@@ -1,0 +1,76 @@
+--- a/net/minecraft/world/item/enchantment/EnchantmentHelper.java
++++ b/net/minecraft/world/item/enchantment/EnchantmentHelper.java
+@@ -33,9 +_,10 @@
+ public class EnchantmentHelper {
+     private static final float SWIFT_SNEAK_EXTRA_FACTOR = 0.15F;
+ 
++    /** @deprecated Neo: Use {@link ItemStack#getEnchantmentLevel(Enchantment)} for gameplay logic. Use the data component when modifying the enchantments. */
++    @Deprecated
+     public static int getItemEnchantmentLevel(Enchantment p_44844_, ItemStack p_44845_) {
+-        ItemEnchantments itemenchantments = p_44845_.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
+-        return itemenchantments.getLevel(p_44844_);
++        return p_44845_.getEnchantmentLevel(p_44844_);
+     }
+ 
+     public static ItemEnchantments updateEnchantments(ItemStack p_331034_, Consumer<ItemEnchantments.Mutable> p_332031_) {
+@@ -78,7 +_,7 @@
+     }
+ 
+     private static void runIterationOnItem(EnchantmentHelper.EnchantmentVisitor p_44851_, ItemStack p_44852_) {
+-        ItemEnchantments itemenchantments = p_44852_.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
++        ItemEnchantments itemenchantments = p_44852_.getAllEnchantments(); // Neo: Allow gameplay enchantments to run too.
+ 
+         for (Entry<Holder<Enchantment>> entry : itemenchantments.entrySet()) {
+             p_44851_.accept(entry.getKey().value(), entry.getIntValue());
+@@ -99,7 +_,7 @@
+ 
+     public static float getDamageBonus(ItemStack p_44834_, @Nullable EntityType<?> p_320195_) {
+         MutableFloat mutablefloat = new MutableFloat();
+-        runIterationOnItem((p_319741_, p_319742_) -> mutablefloat.add(p_319741_.getDamageBonus(p_319742_, p_320195_)), p_44834_);
++        runIterationOnItem((p_44887_, p_44888_) -> mutablefloat.add(p_44887_.getDamageBonus(p_44888_, p_320195_, p_44834_)), p_44834_);
+         return mutablefloat.floatValue();
+     }
+ 
+@@ -125,6 +_,7 @@
+             runIterationOnInventory(enchantmenthelper$enchantmentvisitor, p_44824_.getAllSlots());
+         }
+ 
++        if(false) // Forge: Fix MC-248272
+         if (p_44825_ instanceof Player) {
+             runIterationOnItem(enchantmenthelper$enchantmentvisitor, p_44824_.getMainHandItem());
+         }
+@@ -136,6 +_,7 @@
+             runIterationOnInventory(enchantmenthelper$enchantmentvisitor, p_44897_.getAllSlots());
+         }
+ 
++        if(false) // Forge: Fix MC-248272
+         if (p_44897_ instanceof Player) {
+             runIterationOnItem(enchantmenthelper$enchantmentvisitor, p_44897_.getMainHandItem());
+         }
+@@ -263,7 +_,7 @@
+ 
+     public static int getEnchantmentCost(RandomSource p_220288_, int p_220289_, int p_220290_, ItemStack p_220291_) {
+         Item item = p_220291_.getItem();
+-        int i = item.getEnchantmentValue();
++        int i = p_220291_.getEnchantmentValue();
+         if (i <= 0) {
+             return 0;
+         } else {
+@@ -298,7 +_,7 @@
+     ) {
+         List<EnchantmentInstance> list = Lists.newArrayList();
+         Item item = p_220299_.getItem();
+-        int i = item.getEnchantmentValue();
++        int i = p_220299_.getEnchantmentValue();
+         if (i <= 0) {
+             return list;
+         } else {
+@@ -355,7 +_,7 @@
+             if (enchantment.isEnabled(p_338712_)
+                 && (!enchantment.isTreasureOnly() || p_44820_)
+                 && enchantment.isDiscoverable()
+-                && (flag || enchantment.canEnchant(p_44819_) && enchantment.isPrimaryItem(p_44819_))) {
++                    && ((flag && enchantment.isAllowedOnBooks()) || enchantment.canApplyAtEnchantingTable(p_44819_) && enchantment.isPrimaryItem(p_44819_))) {
+                 for (int i = enchantment.getMaxLevel(); i > enchantment.getMinLevel() - 1; i--) {
+                     if (p_44818_ >= enchantment.getMinCost(i) && p_44818_ <= enchantment.getMaxCost(i)) {
+                         list.add(new EnchantmentInstance(enchantment, i));

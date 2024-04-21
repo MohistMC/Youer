@@ -1,0 +1,97 @@
+--- a/net/minecraft/server/packs/repository/Pack.java
++++ b/net/minecraft/server/packs/repository/Pack.java
+@@ -23,6 +_,8 @@
+     private final Pack.ResourcesSupplier resources;
+     private final Pack.Metadata metadata;
+     private final PackSelectionConfig selectionConfig;
++    private final boolean hidden; // Neo: Allow packs to be hidden from the UI entirely
++    private final List<Pack> children; // Neo: Allows packs to specify packs which will always be placed beneath them; must be hidden
+ 
+     @Nullable
+     public static Pack readMetaAndCreate(PackLocationInfo p_326065_, Pack.ResourcesSupplier p_252210_, PackType p_250595_, PackSelectionConfig p_326429_) {
+@@ -32,6 +_,23 @@
+     }
+ 
+     public Pack(PackLocationInfo p_326123_, Pack.ResourcesSupplier p_249377_, Pack.Metadata p_326375_, PackSelectionConfig p_326282_) {
++        this(p_326123_, p_249377_, p_326375_, p_326282_, List.of());
++    }
++
++    private Pack(PackLocationInfo p_326123_, Pack.ResourcesSupplier p_249377_, Pack.Metadata p_326375_, PackSelectionConfig p_326282_, List<Pack> children) {
++        List<Pack> flattenedChildren = new java.util.ArrayList<>();
++        List<Pack> remainingChildren = children;
++        // recursively flatten children
++        while (!remainingChildren.isEmpty()) {
++            List<Pack> oldChildren = remainingChildren;
++            remainingChildren = new java.util.ArrayList<>();
++            for (Pack child : oldChildren) {
++                flattenedChildren.add(child.withChildren(List.of()).hidden());
++                remainingChildren.addAll(child.getChildren());
++            }
++        }
++        this.children = List.copyOf(flattenedChildren);
++        this.hidden = p_326375_.isHidden();
+         this.location = p_326123_;
+         this.resources = p_249377_;
+         this.metadata = p_326375_;
+@@ -55,7 +_,7 @@
+                 PackCompatibility packcompatibility = PackCompatibility.forVersion(inclusiverange, p_326341_);
+                 OverlayMetadataSection overlaymetadatasection = packresources.getMetadataSection(OverlayMetadataSection.TYPE);
+                 List<String> list = overlaymetadatasection != null ? overlaymetadatasection.overlaysForVersion(p_326341_) : List.of();
+-                pack$metadata = new Pack.Metadata(packmetadatasection.description(), packcompatibility, featureflagset, list);
++                pack$metadata = new Pack.Metadata(packmetadatasection.description(), packcompatibility, featureflagset, list, packresources.isHidden());
+             }
+ 
+             return pack$metadata;
+@@ -132,6 +_,38 @@
+         return this.location.source();
+     }
+ 
++    public boolean isHidden() {
++        return hidden;
++    }
++
++    public List<Pack> getChildren() {
++        return children;
++    }
++
++    public java.util.stream.Stream<Pack> streamSelfAndChildren() {
++        return java.util.stream.Stream.concat(java.util.stream.Stream.of(this), children.stream());
++    }
++
++    /**
++     * {@return a copy of the pack with the provided children in place of any children this pack currently has}
++     */
++    public Pack withChildren(List<Pack> children) {
++        return new Pack(this.location, this.resources, this.metadata, this.selectionConfig, children);
++    }
++
++    /**
++     * {@return a copy of the pack that is hidden}
++     */
++    public Pack hidden() {
++        return new Pack(
++                new PackLocationInfo(this.location.id(), this.location.title(), this.location.source(), this.location.knownPackInfo()),
++                this.resources,
++                new Metadata(this.metadata.description, this.metadata.compatibility, this.metadata.requestedFeatures, this.metadata.overlays, this.metadata.isHidden),
++                new PackSelectionConfig(this.selectionConfig.required(), this.selectionConfig.defaultPosition(), this.selectionConfig.fixedPosition()),
++                this.children
++        );
++    }
++
+     @Override
+     public boolean equals(Object p_10448_) {
+         if (this == p_10448_) {
+@@ -146,7 +_,12 @@
+         return this.location.hashCode();
+     }
+ 
+-    public static record Metadata(Component description, PackCompatibility compatibility, FeatureFlagSet requestedFeatures, List<String> overlays) {
++    public static record Metadata(Component description, PackCompatibility compatibility, FeatureFlagSet requestedFeatures, List<String> overlays, boolean isHidden) {
++        /** @deprecated Neo: use {@link #Metadata(Component,PackCompatibility,FeatureFlagSet,List,boolean)} instead */
++        @Deprecated
++        public Metadata(Component description, PackCompatibility compatibility, FeatureFlagSet requestedFeatures, List<String> overlays) {
++            this(description, compatibility, requestedFeatures, overlays, false);
++        }
+     }
+ 
+     public static enum Position {

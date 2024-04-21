@@ -1,0 +1,52 @@
+--- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
+@@ -140,7 +_,12 @@
+         this.send(p_294278_, null);
+     }
+ 
++    @Override
+     public void send(Packet<?> p_295099_, @Nullable PacketSendListener p_296321_) {
++        if (!net.neoforged.neoforge.network.registration.NetworkRegistry.getInstance().canSendPacket(p_295099_, this)) {
++            return;
++        }
++
+         if (p_295099_.isTerminal()) {
+             this.close();
+         }
+@@ -178,7 +_,36 @@
+         return this.latency;
+     }
+ 
++    /**
++     * Creates a new cookie for this connection.
++     *
++     * @param p_301973_ The client information.
++     * @return The cookie.
++     * @deprecated Use {@link #createCookie(ClientInformation, net.neoforged.neoforge.network.connection.ConnectionType)} instead, keeping the connection type information available.
++     */
++    @Deprecated
+     protected CommonListenerCookie createCookie(ClientInformation p_301973_) {
+         return new CommonListenerCookie(this.playerProfile(), this.latency, p_301973_, this.transferred);
++    }
++
++    /**
++     * Creates a new cookie for this connection.
++     *
++     * @param p_301973_ The client information.
++     * @param connectionType Whether the connection is modded.
++     * @return The cookie.
++     */
++    protected CommonListenerCookie createCookie(ClientInformation p_301973_, net.neoforged.neoforge.network.connection.ConnectionType connectionType) {
++        return new CommonListenerCookie(this.playerProfile(), this.latency, p_301973_, this.transferred, connectionType);
++    }
++
++    @Override
++    public Connection getConnection() {
++        return connection;
++    }
++
++    @Override
++    public net.minecraft.util.thread.ReentrantBlockableEventLoop<?> getMainThreadEventLoop() {
++        return server;
+     }
+ }

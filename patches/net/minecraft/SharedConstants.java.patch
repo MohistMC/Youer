@@ -1,0 +1,20 @@
+--- a/net/minecraft/SharedConstants.java
++++ b/net/minecraft/SharedConstants.java
+@@ -123,7 +_,8 @@
+     public static final boolean USE_WORKFLOWS_HOOKS = false;
+     public static final boolean USE_DEVONLY = false;
+     public static boolean CHECK_DATA_FIXER_SCHEMA = true;
+-    public static boolean IS_RUNNING_IN_IDE;
++    public static boolean IS_RUNNING_IN_IDE = !net.neoforged.fml.loading.FMLLoader.isProduction();
++    public static final boolean IS_RUNNING_WITH_JDWP = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().stream().anyMatch(str -> str.startsWith("-agentlib:jdwp"));
+     public static Set<TypeReference> DATA_FIX_TYPES_TO_OPTIMIZE = Set.of();
+     public static final int WORLD_RESOLUTION = 16;
+     public static final int MAX_CHAT_LENGTH = 256;
+@@ -181,6 +_,7 @@
+     }
+ 
+     static {
++        if (System.getProperty("io.netty.leakDetection.level") == null) // Forge: allow level to be manually specified
+         ResourceLeakDetector.setLevel(NETTY_LEAK_DETECTION);
+         CommandSyntaxException.ENABLE_COMMAND_STACK_TRACES = false;
+         CommandSyntaxException.BUILT_IN_EXCEPTIONS = new BrigadierExceptions();

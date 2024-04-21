@@ -1,0 +1,40 @@
+--- a/net/minecraft/world/entity/ai/goal/RangedCrossbowAttackGoal.java
++++ b/net/minecraft/world/entity/ai/goal/RangedCrossbowAttackGoal.java
+@@ -14,7 +_,7 @@
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.item.component.ChargedProjectiles;
+ 
+-public class RangedCrossbowAttackGoal<T extends Monster & RangedAttackMob & CrossbowAttackMob> extends Goal {
++public class RangedCrossbowAttackGoal<T extends net.minecraft.world.entity.Mob & CrossbowAttackMob> extends Goal {
+     public static final UniformInt PATHFINDING_DELAY_RANGE = TimeUtil.rangeOfSeconds(1, 2);
+     private final T mob;
+     private RangedCrossbowAttackGoal.CrossbowState crossbowState = RangedCrossbowAttackGoal.CrossbowState.UNCHARGED;
+@@ -24,6 +_,10 @@
+     private int attackDelay;
+     private int updatePathDelay;
+ 
++    public <M extends Monster & CrossbowAttackMob> RangedCrossbowAttackGoal(M p_25814_, double p_25815_, float p_25816_) {
++        this((T) p_25814_, p_25815_, p_25816_);
++    }
++
+     public RangedCrossbowAttackGoal(T p_25814_, double p_25815_, float p_25816_) {
+         this.mob = p_25814_;
+         this.speedModifier = p_25815_;
+@@ -37,7 +_,7 @@
+     }
+ 
+     private boolean isHoldingCrossbow() {
+-        return this.mob.isHolding(Items.CROSSBOW);
++        return this.mob.isHolding(is -> is.getItem() instanceof CrossbowItem);
+     }
+ 
+     @Override
+@@ -99,7 +_,7 @@
+             this.mob.getLookControl().setLookAt(livingentity, 30.0F, 30.0F);
+             if (this.crossbowState == RangedCrossbowAttackGoal.CrossbowState.UNCHARGED) {
+                 if (!flag2) {
+-                    this.mob.startUsingItem(ProjectileUtil.getWeaponHoldingHand(this.mob, Items.CROSSBOW));
++                    this.mob.startUsingItem(ProjectileUtil.getWeaponHoldingHand(this.mob, item -> item instanceof CrossbowItem));
+                     this.crossbowState = RangedCrossbowAttackGoal.CrossbowState.CHARGING;
+                     this.mob.setChargingCrossbow(true);
+                 }

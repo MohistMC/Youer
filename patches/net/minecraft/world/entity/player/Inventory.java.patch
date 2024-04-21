@@ -1,0 +1,40 @@
+--- a/net/minecraft/world/entity/player/Inventory.java
++++ b/net/minecraft/world/entity/player/Inventory.java
+@@ -133,7 +_,7 @@
+ 
+         for (int k = 0; k < 9; k++) {
+             int l = (this.selected + k) % 9;
+-            if (!this.items.get(l).isEnchanted()) {
++            if (!this.items.get(l).isNotReplaceableByPickAction(this.player, l)) {
+                 return l;
+             }
+         }
+@@ -214,13 +_,18 @@
+     }
+ 
+     public void tick() {
++        int slot = 0;
+         for (NonNullList<ItemStack> nonnulllist : this.compartments) {
+             for (int i = 0; i < nonnulllist.size(); i++) {
+                 if (!nonnulllist.get(i).isEmpty()) {
+-                    nonnulllist.get(i).inventoryTick(this.player.level(), this.player, i, this.selected == i);
++                    // Neo: Fix the slot param to be the global index instead of the per-compartment index.
++                    // Neo: Fix the selected param to only be true for hotbar slots.
++                    nonnulllist.get(i).inventoryTick(this.player.level(), this.player, slot, this.selected == slot);
+                 }
++                slot++;
+             }
+         }
++        armor.forEach(e -> e.onArmorTick(player.level(), player));
+     }
+ 
+     public boolean add(ItemStack p_36055_) {
+@@ -268,6 +_,8 @@
+             } catch (Throwable throwable) {
+                 CrashReport crashreport = CrashReport.forThrowable(throwable, "Adding item to inventory");
+                 CrashReportCategory crashreportcategory = crashreport.addCategory("Item being added");
++                crashreportcategory.setDetail("Registry Name", () -> String.valueOf(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(p_36042_.getItem())));
++                crashreportcategory.setDetail("Item Class", () -> p_36042_.getItem().getClass().getName());
+                 crashreportcategory.setDetail("Item ID", Item.getId(p_36042_.getItem()));
+                 crashreportcategory.setDetail("Item data", p_36042_.getDamageValue());
+                 crashreportcategory.setDetail("Item name", () -> p_36042_.getHoverName().getString());

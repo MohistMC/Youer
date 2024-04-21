@@ -1,0 +1,20 @@
+--- a/net/minecraft/core/Registry.java
++++ b/net/minecraft/core/Registry.java
+@@ -22,7 +_,7 @@
+ import net.minecraft.util.ExtraCodecs;
+ import net.minecraft.util.RandomSource;
+ 
+-public interface Registry<T> extends Keyable, IdMap<T> {
++public interface Registry<T> extends Keyable, IdMap<T>, net.neoforged.neoforge.registries.IRegistryExtension<T> {
+     ResourceKey<? extends Registry<T>> key();
+ 
+     default Codec<T> byNameCodec() {
+@@ -48,7 +_,7 @@
+     }
+ 
+     private DataResult<Holder.Reference<T>> safeCastToReference(Holder<T> p_326365_) {
+-        return p_326365_ instanceof Holder.Reference<T> reference
++        return p_326365_.getDelegate() instanceof Holder.Reference reference
+             ? DataResult.success(reference)
+             : DataResult.error(() -> "Unregistered holder in " + this.key() + ": " + p_326365_);
+     }

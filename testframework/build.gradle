@@ -1,0 +1,61 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'com.diffplug.spotless'
+    id 'net.neoforged.licenser'
+    id 'net.neoforged.gradle.platform'
+}
+
+java.withSourcesJar()
+
+repositories {
+    maven {
+        name 'Mojang'
+        url 'https://libraries.minecraft.net'
+    }
+    maven {
+        name 'NeoForged'
+        url 'https://maven.neoforged.net/releases'
+    }
+}
+
+dependencies {
+    implementation project(':neoforge')
+
+    compileOnly "org.jetbrains:annotations:${project.jetbrains_annotations_version}"
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+}
+
+license {
+    header = rootProject.file('codeformat/HEADER.txt')
+    include '**/*.java'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(ProcessResources).configureEach {
+    inputs.properties version: version
+
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand version: version
+    }
+}
+
+publishing {
+    publications.create('TestFramework', MavenPublication) {
+        groupId = project.group
+        artifactId = project.name
+        version = project.version
+
+        from components.java
+    }
+    repositories {
+        maven rootProject.gradleutils.getPublishingMaven()
+    }
+}
+
+apply from: rootProject.file('buildscript/spotless-rules.gradle')
+apply from: rootProject.file('buildscript/generate-package-infos.gradle')
+apply from: rootProject.file('buildscript/apply-all-formatting.gradle')
