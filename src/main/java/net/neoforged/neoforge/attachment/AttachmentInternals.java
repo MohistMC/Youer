@@ -9,7 +9,7 @@ import java.util.function.Predicate;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.common.extensions.IEntityExtension;
 import net.neoforged.neoforge.event.entity.living.LivingConversionEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -17,7 +17,7 @@ import net.neoforged.neoforge.internal.versions.neoforge.NeoForgeVersion;
 import org.jetbrains.annotations.ApiStatus;
 
 @ApiStatus.Internal
-@Mod.EventBusSubscriber(modid = NeoForgeVersion.MOD_ID)
+@EventBusSubscriber(modid = NeoForgeVersion.MOD_ID)
 public final class AttachmentInternals {
     /**
      * Copy some attachments to another holder.
@@ -34,7 +34,7 @@ public final class AttachmentInternals {
             @SuppressWarnings("unchecked")
             var copyHandler = (IAttachmentCopyHandler<Object>) type.copyHandler;
             if (filter.test(type)) {
-                Object copy = copyHandler.copy(provider, to.getExposedHolder(), entry.getValue());
+                Object copy = copyHandler.copy(entry.getValue(), to.getExposedHolder(), provider);
                 if (copy != null) {
                     to.getAttachmentMap().put(type, copy);
                 }
