@@ -17,8 +17,8 @@ import org.bukkit.FireworkEffect;
 import org.bukkit.FireworkEffect.Type;
 import org.bukkit.Material;
 import org.bukkit.configuration.serialization.DelegateDeserialization;
-import org.bukkit.craftbukkit.inventory.CraftMetaItem.ItemMetaKey.Specific;
-import org.bukkit.craftbukkit.inventory.CraftMetaItem.ItemMetaKey.Specific.To;
+import org.bukkit.craftbukkit.v1_20_R4.inventory.CraftMetaItem.ItemMetaKey.Specific;
+import org.bukkit.craftbukkit.v1_20_R4.inventory.CraftMetaItem.ItemMetaKey.Specific.To;
 import org.bukkit.inventory.meta.FireworkMeta;
 
 @DelegateDeserialization(SerializableMeta.class)

@@ -5,7 +5,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_20_R4.CraftServer;
-import org.bukkit.craftbukkit.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_20_R4.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_20_R4.util.CraftMagicNumbers;
 import org.bukkit.entity.Minecart;
 import org.bukkit.material.MaterialData;

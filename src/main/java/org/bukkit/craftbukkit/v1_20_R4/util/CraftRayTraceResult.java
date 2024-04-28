@@ -9,7 +9,7 @@ import net.minecraft.world.phys.Vec3;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlock;
 import org.bukkit.entity.Entity;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;

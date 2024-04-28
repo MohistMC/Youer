@@ -3,7 +3,7 @@ package org.bukkit.craftbukkit.v1_20_R4.entity;
 import com.google.common.base.Preconditions;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_20_R4.CraftServer;
-import org.bukkit.craftbukkit.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_20_R4.block.data.CraftBlockData;
 import org.bukkit.entity.BlockDisplay;
 
 public class CraftBlockDisplay extends CraftDisplay implements BlockDisplay {

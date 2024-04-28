@@ -4,7 +4,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.entity.decoration.HangingEntity;
 import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.v1_20_R4.CraftServer;
-import org.bukkit.craftbukkit.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlock;
 import org.bukkit.entity.Hanging;
 
 public class CraftHanging extends CraftEntity implements Hanging {

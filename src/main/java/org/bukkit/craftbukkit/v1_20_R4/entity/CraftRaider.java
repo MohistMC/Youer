@@ -7,7 +7,7 @@ import org.bukkit.block.Block;
 import org.bukkit.craftbukkit.v1_20_R4.CraftRaid;
 import org.bukkit.craftbukkit.v1_20_R4.CraftServer;
 import org.bukkit.craftbukkit.v1_20_R4.CraftSound;
-import org.bukkit.craftbukkit.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlock;
 import org.bukkit.entity.Raider;
 
 public abstract class CraftRaider extends CraftMonster implements Raider {

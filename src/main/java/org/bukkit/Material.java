@@ -7,7 +7,6 @@ import java.lang.reflect.Constructor;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
-import org.bukkit.MinecraftExperimental.Requires;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
@@ -144,55 +143,55 @@ public enum Material implements Keyed, Translatable {
     /**
      * BlockData: {@link Slab}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     TUFF_SLAB(19305, Slab.class),
     /**
      * BlockData: {@link Stairs}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     TUFF_STAIRS(11268, Stairs.class),
     /**
      * BlockData: {@link Wall}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     TUFF_WALL(24395, Wall.class),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     CHISELED_TUFF(15831),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     POLISHED_TUFF(17801),
     /**
      * BlockData: {@link Slab}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     POLISHED_TUFF_SLAB(31096, Slab.class),
     /**
      * BlockData: {@link Stairs}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     POLISHED_TUFF_STAIRS(7964, Stairs.class),
     /**
      * BlockData: {@link Wall}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     POLISHED_TUFF_WALL(28886, Wall.class),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     TUFF_BRICKS(26276),
     /**
      * BlockData: {@link Slab}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     TUFF_BRICK_SLAB(11843, Slab.class),
     /**
      * BlockData: {@link Stairs}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     TUFF_BRICK_STAIRS(30753, Stairs.class),
     /**
      * BlockData: {@link Wall}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     TUFF_BRICK_WALL(11761, Wall.class),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     CHISELED_TUFF_BRICKS(8601),
     DRIPSTONE_BLOCK(26227),
     /**
@@ -298,7 +297,7 @@ public enum Material implements Keyed, Translatable {
     /**
      * BlockData: {@link Waterlogged}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     HEAVY_CORE(15788, Waterlogged.class),
     AMETHYST_BLOCK(18919),
     BUDDING_AMETHYST(13963),
@@ -310,13 +309,13 @@ public enum Material implements Keyed, Translatable {
     EXPOSED_COPPER(28488),
     WEATHERED_COPPER(19699),
     OXIDIZED_COPPER(19490),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     CHISELED_COPPER(12143),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     EXPOSED_CHISELED_COPPER(4570),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WEATHERED_CHISELED_COPPER(30876),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     OXIDIZED_CHISELED_COPPER(27719),
     CUT_COPPER(32519),
     EXPOSED_CUT_COPPER(18000),
@@ -358,13 +357,13 @@ public enum Material implements Keyed, Translatable {
     WAXED_EXPOSED_COPPER(27989),
     WAXED_WEATHERED_COPPER(5960),
     WAXED_OXIDIZED_COPPER(25626),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_CHISELED_COPPER(7500),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_EXPOSED_CHISELED_COPPER(30658),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_WEATHERED_CHISELED_COPPER(5970),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_OXIDIZED_CHISELED_COPPER(7735),
     WAXED_CUT_COPPER(11030),
     WAXED_EXPOSED_CUT_COPPER(30043),
@@ -2105,42 +2104,42 @@ public enum Material implements Keyed, Translatable {
     /**
      * BlockData: {@link Door}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     COPPER_DOOR(26809, Door.class),
     /**
      * BlockData: {@link Door}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     EXPOSED_COPPER_DOOR(13236, Door.class),
     /**
      * BlockData: {@link Door}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WEATHERED_COPPER_DOOR(10208, Door.class),
     /**
      * BlockData: {@link Door}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     OXIDIZED_COPPER_DOOR(5348, Door.class),
     /**
      * BlockData: {@link Door}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_COPPER_DOOR(9954, Door.class),
     /**
      * BlockData: {@link Door}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_EXPOSED_COPPER_DOOR(20748, Door.class),
     /**
      * BlockData: {@link Door}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_WEATHERED_COPPER_DOOR(25073, Door.class),
     /**
      * BlockData: {@link Door}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_OXIDIZED_COPPER_DOOR(23888, Door.class),
     /**
      * BlockData: {@link TrapDoor}
@@ -2193,42 +2192,42 @@ public enum Material implements Keyed, Translatable {
     /**
      * BlockData: {@link TrapDoor}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     COPPER_TRAPDOOR(12110, TrapDoor.class),
     /**
      * BlockData: {@link TrapDoor}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     EXPOSED_COPPER_TRAPDOOR(19219, TrapDoor.class),
     /**
      * BlockData: {@link TrapDoor}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WEATHERED_COPPER_TRAPDOOR(28254, TrapDoor.class),
     /**
      * BlockData: {@link TrapDoor}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     OXIDIZED_COPPER_TRAPDOOR(26518, TrapDoor.class),
     /**
      * BlockData: {@link TrapDoor}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_COPPER_TRAPDOOR(12626, TrapDoor.class),
     /**
      * BlockData: {@link TrapDoor}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_EXPOSED_COPPER_TRAPDOOR(11010, TrapDoor.class),
     /**
      * BlockData: {@link TrapDoor}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_WEATHERED_COPPER_TRAPDOOR(30709, TrapDoor.class),
     /**
      * BlockData: {@link TrapDoor}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_OXIDIZED_COPPER_TRAPDOOR(21450, TrapDoor.class),
     /**
      * BlockData: {@link Gate}
@@ -2635,7 +2634,7 @@ public enum Material implements Keyed, Translatable {
     /**
      * BlockData: {@link Crafter}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     CRAFTER(25243, Crafter.class),
     FILLED_MAP(23504),
     SHEARS(27971, 1, 238),
@@ -2675,9 +2674,9 @@ public enum Material implements Keyed, Translatable {
     BAT_SPAWN_EGG(14607),
     BEE_SPAWN_EGG(22924),
     BLAZE_SPAWN_EGG(4759),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     BOGGED_SPAWN_EGG(12042),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     BREEZE_SPAWN_EGG(7580),
     CAT_SPAWN_EGG(29583),
     CAMEL_SPAWN_EGG(14760),
@@ -2753,11 +2752,11 @@ public enum Material implements Keyed, Translatable {
     ZOMBIFIED_PIGLIN_SPAWN_EGG(6626),
     EXPERIENCE_BOTTLE(12858),
     FIRE_CHARGE(4842),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WIND_CHARGE(23928),
     WRITABLE_BOOK(13393, 1),
     WRITTEN_BOOK(24164, 16),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     MACE(4771, 1, 250),
     ITEM_FRAME(27318),
     GLOW_ITEM_FRAME(26473),
@@ -3155,9 +3154,9 @@ public enum Material implements Keyed, Translatable {
     SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE(7070),
     RAISER_ARMOR_TRIM_SMITHING_TEMPLATE(29116),
     HOST_ARMOR_TRIM_SMITHING_TEMPLATE(12165),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     FLOW_ARMOR_TRIM_SMITHING_TEMPLATE(29175),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     BOLT_ARMOR_TRIM_SMITHING_TEMPLATE(9698),
     ANGLER_POTTERY_SHERD(9952),
     ARCHER_POTTERY_SHERD(21629),
@@ -3167,10 +3166,10 @@ public enum Material implements Keyed, Translatable {
     BURN_POTTERY_SHERD(21259),
     DANGER_POTTERY_SHERD(30506),
     EXPLORER_POTTERY_SHERD(5124),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     FLOW_POTTERY_SHERD(4896),
     FRIEND_POTTERY_SHERD(18221),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     GUSTER_POTTERY_SHERD(28193),
     HEART_POTTERY_SHERD(17607),
     HEARTBREAK_POTTERY_SHERD(21108),
@@ -3179,7 +3178,7 @@ public enum Material implements Keyed, Translatable {
     MOURNER_POTTERY_SHERD(23993),
     PLENTY_POTTERY_SHERD(28236),
     PRIZE_POTTERY_SHERD(4341),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     SCRAPE_POTTERY_SHERD(30034),
     SHEAF_POTTERY_SHERD(23652),
     SHELTER_POTTERY_SHERD(28390),
@@ -3188,100 +3187,100 @@ public enum Material implements Keyed, Translatable {
     /**
      * BlockData: {@link Waterlogged}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     COPPER_GRATE(16221, Waterlogged.class),
     /**
      * BlockData: {@link Waterlogged}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     EXPOSED_COPPER_GRATE(7783, Waterlogged.class),
     /**
      * BlockData: {@link Waterlogged}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WEATHERED_COPPER_GRATE(24954, Waterlogged.class),
     /**
      * BlockData: {@link Waterlogged}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     OXIDIZED_COPPER_GRATE(14122, Waterlogged.class),
     /**
      * BlockData: {@link Waterlogged}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_COPPER_GRATE(11230, Waterlogged.class),
     /**
      * BlockData: {@link Waterlogged}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_EXPOSED_COPPER_GRATE(20520, Waterlogged.class),
     /**
      * BlockData: {@link Waterlogged}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_WEATHERED_COPPER_GRATE(16533, Waterlogged.class),
     /**
      * BlockData: {@link Waterlogged}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_OXIDIZED_COPPER_GRATE(32010, Waterlogged.class),
     /**
      * BlockData: {@link CopperBulb}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     COPPER_BULB(21370, CopperBulb.class),
     /**
      * BlockData: {@link CopperBulb}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     EXPOSED_COPPER_BULB(11944, CopperBulb.class),
     /**
      * BlockData: {@link CopperBulb}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WEATHERED_COPPER_BULB(10800, CopperBulb.class),
     /**
      * BlockData: {@link CopperBulb}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     OXIDIZED_COPPER_BULB(22421, CopperBulb.class),
     /**
      * BlockData: {@link CopperBulb}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_COPPER_BULB(23756, CopperBulb.class),
     /**
      * BlockData: {@link CopperBulb}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_EXPOSED_COPPER_BULB(5530, CopperBulb.class),
     /**
      * BlockData: {@link CopperBulb}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_WEATHERED_COPPER_BULB(13239, CopperBulb.class),
     /**
      * BlockData: {@link CopperBulb}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     WAXED_OXIDIZED_COPPER_BULB(26892, CopperBulb.class),
     /**
      * BlockData: {@link TrialSpawner}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     TRIAL_SPAWNER(19902, TrialSpawner.class),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     TRIAL_KEY(12725),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     OMINOUS_TRIAL_KEY(4986),
     /**
      * BlockData: {@link Vault}
      */
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     VAULT(6288, Vault.class),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     OMINOUS_BOTTLE(26321),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     BREEZE_ROD(14281),
     /**
      * BlockData: {@link Levelled}

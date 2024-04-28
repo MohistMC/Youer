@@ -7,7 +7,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Keyed;
 import org.bukkit.Location;
 import org.bukkit.MinecraftExperimental;
-import org.bukkit.MinecraftExperimental.Requires;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Translatable;
 import org.bukkit.World;
@@ -287,20 +286,20 @@ public enum EntityType implements Keyed, Translatable {
     ITEM_DISPLAY("item_display", ItemDisplay.class, -1),
     SNIFFER("sniffer", Sniffer.class, -1),
     TEXT_DISPLAY("text_display", TextDisplay.class, -1),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     @ApiStatus.Experimental
     BREEZE("breeze", Breeze.class, -1),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     @ApiStatus.Experimental
     WIND_CHARGE("wind_charge", WindCharge.class, -1),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     @ApiStatus.Experimental
     BREEZE_WIND_CHARGE("breeze_wind_charge", BreezeWindCharge.class, -1),
     ARMADILLO("armadillo", Armadillo.class, -1),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     @ApiStatus.Experimental
     BOGGED("bogged", Bogged.class, -1),
-    @MinecraftExperimental(Requires.UPDATE_1_21)
+    @MinecraftExperimental
     @ApiStatus.Experimental
     OMINOUS_ITEM_SPAWNER("ominous_item_spawner", OminousItemSpawner.class, -1),
     /**

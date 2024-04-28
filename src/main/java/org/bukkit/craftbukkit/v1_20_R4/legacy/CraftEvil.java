@@ -10,8 +10,8 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.block.CraftBlock;
-import org.bukkit.craftbukkit.block.CraftBlockState;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockState;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
 

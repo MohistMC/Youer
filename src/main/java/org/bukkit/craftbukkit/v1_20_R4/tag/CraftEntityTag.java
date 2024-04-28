@@ -5,7 +5,7 @@ import java.util.stream.Collectors;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.tags.TagKey;
-import org.bukkit.craftbukkit.entity.CraftEntityType;
+import org.bukkit.craftbukkit.v1_20_R4.entity.CraftEntityType;
 import org.bukkit.entity.EntityType;
 
 public class CraftEntityTag extends CraftTag<net.minecraft.world.entity.EntityType<?>, EntityType> {

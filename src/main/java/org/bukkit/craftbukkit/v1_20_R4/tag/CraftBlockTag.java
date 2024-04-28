@@ -6,7 +6,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.block.CraftBlockType;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockType;
 
 public class CraftBlockTag extends CraftTag<Block, Material> {
 

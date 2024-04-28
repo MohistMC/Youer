@@ -30,7 +30,7 @@ import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.craftbukkit.v1_20_R4.CraftServer;
 import org.bukkit.craftbukkit.v1_20_R4.CraftSound;
 import org.bukkit.craftbukkit.v1_20_R4.CraftWorld;
-import org.bukkit.craftbukkit.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_20_R4.persistence.CraftPersistentDataContainer;
 import org.bukkit.craftbukkit.v1_20_R4.persistence.CraftPersistentDataTypeRegistry;
 import org.bukkit.craftbukkit.v1_20_R4.util.CraftChatMessage;

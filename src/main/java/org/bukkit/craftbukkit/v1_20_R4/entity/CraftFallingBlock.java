@@ -5,7 +5,7 @@ import net.minecraft.world.entity.item.FallingBlockEntity;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_20_R4.CraftServer;
-import org.bukkit.craftbukkit.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_20_R4.block.data.CraftBlockData;
 import org.bukkit.entity.FallingBlock;
 
 public class CraftFallingBlock extends CraftEntity implements FallingBlock {

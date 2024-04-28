@@ -17,9 +17,9 @@ import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.storage.LevelData;
 import org.bukkit.block.BlockState;
-import org.bukkit.craftbukkit.block.CraftBlock;
-import org.bukkit.craftbukkit.block.CraftBlockEntityState;
-import org.bukkit.craftbukkit.block.CraftBlockState;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockEntityState;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockState;
 
 public class BlockStateListPopulator extends DummyGeneratorAccess {
     private final LevelAccessor world;

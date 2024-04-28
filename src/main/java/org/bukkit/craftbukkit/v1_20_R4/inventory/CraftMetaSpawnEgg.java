@@ -13,7 +13,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.component.CustomData;
 import org.bukkit.Material;
 import org.bukkit.configuration.serialization.DelegateDeserialization;
-import org.bukkit.craftbukkit.entity.CraftEntitySnapshot;
+import org.bukkit.craftbukkit.v1_20_R4.entity.CraftEntitySnapshot;
 import org.bukkit.craftbukkit.v1_20_R4.util.CraftLegacy;
 import org.bukkit.entity.EntitySnapshot;
 import org.bukkit.entity.EntityType;

@@ -10,7 +10,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import net.minecraft.world.food.FoodProperties;
 import org.bukkit.configuration.serialization.SerializableAs;
-import org.bukkit.craftbukkit.inventory.SerializableMeta;
+import org.bukkit.craftbukkit.v1_20_R4.inventory.SerializableMeta;
 import org.bukkit.craftbukkit.v1_20_R4.potion.CraftPotionUtil;
 import org.bukkit.inventory.meta.components.FoodComponent;
 import org.bukkit.potion.PotionEffect;

@@ -20,8 +20,8 @@ import net.minecraft.world.item.component.CustomData;
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;
 import org.bukkit.configuration.serialization.DelegateDeserialization;
-import org.bukkit.craftbukkit.block.CraftBlockEntityState;
-import org.bukkit.craftbukkit.block.CraftBlockStates;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockEntityState;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockStates;
 import org.bukkit.craftbukkit.v1_20_R4.util.CraftMagicNumbers;
 import org.bukkit.inventory.meta.BlockStateMeta;
 

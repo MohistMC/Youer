@@ -2,7 +2,7 @@ package org.bukkit.craftbukkit.v1_20_R4.entity;
 
 import net.minecraft.world.entity.projectile.ThrownTrident;
 import org.bukkit.craftbukkit.v1_20_R4.CraftServer;
-import org.bukkit.craftbukkit.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_20_R4.inventory.CraftItemStack;
 import org.bukkit.entity.Trident;
 import org.bukkit.inventory.ItemStack;
 

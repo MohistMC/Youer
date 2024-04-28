@@ -6,9 +6,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.material.FluidState;
-import org.bukkit.craftbukkit.block.CraftBlockEntityState;
-import org.bukkit.craftbukkit.block.CraftBlockState;
-import org.bukkit.craftbukkit.block.CraftBlockStates;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockEntityState;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockState;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockStates;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 
 public class TransformerGeneratorAccess extends DelegatedGeneratorAccess {

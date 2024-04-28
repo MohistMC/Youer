@@ -1,7 +1,6 @@
 package org.bukkit.entity;
 
 import org.bukkit.MinecraftExperimental;
-import org.bukkit.MinecraftExperimental.Requires;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
@@ -9,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents an ominous item spawner.
  */
-@MinecraftExperimental(Requires.UPDATE_1_21)
+@MinecraftExperimental
 @ApiStatus.Experimental
 public interface OminousItemSpawner extends Entity {
 

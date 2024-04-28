@@ -10,7 +10,7 @@ import net.minecraft.world.item.component.CustomData;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.serialization.DelegateDeserialization;
-import org.bukkit.craftbukkit.entity.CraftTropicalFish;
+import org.bukkit.craftbukkit.v1_20_R4.entity.CraftTropicalFish;
 import org.bukkit.craftbukkit.v1_20_R4.util.CraftMagicNumbers;
 import org.bukkit.entity.TropicalFish;
 import org.bukkit.inventory.meta.TropicalFishBucketMeta;

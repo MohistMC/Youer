@@ -6,7 +6,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.inventory.CraftItemType;
+import org.bukkit.craftbukkit.v1_20_R4.inventory.CraftItemType;
 
 public class CraftItemTag extends CraftTag<Item, Material> {
 

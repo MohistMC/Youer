@@ -1,7 +1,7 @@
 package org.bukkit.craftbukkit.v1_20_R4.block.data.type;
 
 import org.bukkit.block.data.type.SculkShrieker;
-import org.bukkit.craftbukkit.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_20_R4.block.data.CraftBlockData;
 
 public abstract class CraftSculkShrieker extends CraftBlockData implements SculkShrieker {
 

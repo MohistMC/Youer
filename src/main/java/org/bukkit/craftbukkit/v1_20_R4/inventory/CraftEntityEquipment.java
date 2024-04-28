@@ -3,7 +3,7 @@ package org.bukkit.craftbukkit.v1_20_R4.inventory;
 import com.google.common.base.Preconditions;
 import net.minecraft.world.entity.Mob;
 import org.bukkit.craftbukkit.v1_20_R4.CraftEquipmentSlot;
-import org.bukkit.craftbukkit.entity.CraftLivingEntity;
+import org.bukkit.craftbukkit.v1_20_R4.entity.CraftLivingEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;

@@ -6,7 +6,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
 import org.bukkit.GameMode;
-import org.bukkit.craftbukkit.entity.CraftHumanEntity;
+import org.bukkit.craftbukkit.v1_20_R4.entity.CraftHumanEntity;
 import org.bukkit.craftbukkit.v1_20_R4.util.CraftChatMessage;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;

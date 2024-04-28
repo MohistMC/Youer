@@ -1,7 +1,7 @@
 package org.bukkit.craftbukkit.v1_20_R4.block.data.type;
 
 import org.bukkit.block.data.type.PointedDripstone;
-import org.bukkit.craftbukkit.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_20_R4.block.data.CraftBlockData;
 
 public abstract class CraftPointedDripstone extends CraftBlockData implements PointedDripstone {
 

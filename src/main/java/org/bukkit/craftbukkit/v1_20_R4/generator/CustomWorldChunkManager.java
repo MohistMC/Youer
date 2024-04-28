@@ -10,7 +10,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.Climate;
 import org.bukkit.block.Biome;
-import org.bukkit.craftbukkit.block.CraftBiome;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBiome;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.WorldInfo;
 

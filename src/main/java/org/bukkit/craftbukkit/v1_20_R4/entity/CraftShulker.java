@@ -4,7 +4,7 @@ import com.google.common.base.Preconditions;
 import org.bukkit.DyeColor;
 import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.v1_20_R4.CraftServer;
-import org.bukkit.craftbukkit.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlock;
 import org.bukkit.entity.Shulker;
 
 public class CraftShulker extends CraftGolem implements Shulker, CraftEnemy {
