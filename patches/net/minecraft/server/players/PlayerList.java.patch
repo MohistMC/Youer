@@ -1,6 +1,26 @@
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -128,6 +_,7 @@
+@@ -111,7 +_,7 @@
+     private static final int SEND_PLAYER_INFO_INTERVAL = 600;
+     private static final SimpleDateFormat BAN_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
+     private final MinecraftServer server;
+-    public final List<ServerPlayer> players = Lists.newArrayList();
++    private final List<ServerPlayer> players = Lists.newArrayList();
+     private final Map<UUID, ServerPlayer> playersByUUID = Maps.newHashMap();
+     private final UserBanList bans = new UserBanList(USERBANLIST_FILE);
+     private final IpBanList ipBans = new IpBanList(IPBANLIST_FILE);
+@@ -119,15 +_,16 @@
+     private final UserWhiteList whitelist = new UserWhiteList(WHITELIST_FILE);
+     private final Map<UUID, ServerStatsCounter> stats = Maps.newHashMap();
+     private final Map<UUID, PlayerAdvancements> advancements = Maps.newHashMap();
+-    public final PlayerDataStorage playerIo;
++    private final PlayerDataStorage playerIo;
+     private boolean doWhiteList;
+     private final LayeredRegistryAccess<RegistryLayer> registries;
+-    public int maxPlayers;
++    protected final int maxPlayers;
+     private int viewDistance;
+     private int simulationDistance;
      private boolean allowCommandsForAllPlayers;
      private static final boolean ALLOW_LOGOUTIVATOR = false;
      private int sendAllPlayerInfoIn;
@@ -25,14 +45,18 @@
          servergamepacketlistenerimpl.send(new ClientboundUpdateRecipesPacket(this.server.getRecipeManager().getOrderedRecipes()));
          this.sendPlayerPermissionLevel(p_11263_);
          p_11263_.getStats().markAllDirty();
-@@ -265,6 +_,7 @@
+@@ -265,9 +_,10 @@
          }
  
          p_11263_.initInventoryMenu();
 +        net.neoforged.neoforge.event.EventHooks.firePlayerLoggedIn( p_11263_ );
      }
  
-     protected void updateEntireScoreboard(ServerScoreboard p_11274_, ServerPlayer p_11275_) {
+-    public void updateEntireScoreboard(ServerScoreboard p_11274_, ServerPlayer p_11275_) {
++    protected void updateEntireScoreboard(ServerScoreboard p_11274_, ServerPlayer p_11275_) {
+         Set<Objective> set = Sets.newHashSet();
+ 
+         for (PlayerTeam playerteam : p_11274_.getPlayerTeams()) {
 @@ -330,6 +_,7 @@
              optional = Optional.of(compoundtag);
              p_11225_.load(compoundtag);

@@ -1,7 +1,105 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -264,7 +_,7 @@
+@@ -9,6 +_,7 @@
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.authlib.GameProfileRepository;
+ import com.mojang.authlib.minecraft.MinecraftSessionService;
++import com.mojang.brigadier.CommandDispatcher;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
+ import it.unimi.dsi.fastutil.longs.LongIterator;
+@@ -48,6 +_,9 @@
+ import java.util.stream.Collectors;
+ import javax.annotation.Nullable;
+ import javax.imageio.ImageIO;
++
++import jline.console.ConsoleReader;
++import joptsimple.OptionSet;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.FileUtil;
+@@ -168,7 +_,7 @@
+ import org.slf4j.Logger;
  
+ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements ServerInfo, ChunkIOErrorReporter, CommandSource, AutoCloseable {
+-    public static final Logger LOGGER = LogUtils.getLogger();
++    private static final Logger LOGGER = LogUtils.getLogger();
+     public static final String VANILLA_BRAND = "vanilla";
+     private static final float AVERAGE_TICK_TIME_SMOOTHING = 0.8F;
+     private static final int TICK_STATS_SPAN = 100;
+@@ -188,8 +_,8 @@
+         "Demo World", GameType.SURVIVAL, false, Difficulty.NORMAL, false, new GameRules(), WorldDataConfiguration.DEFAULT
+     );
+     public static final GameProfile ANONYMOUS_PLAYER_PROFILE = new GameProfile(Util.NIL_UUID, "Anonymous Player");
+-    public LevelStorageSource.LevelStorageAccess storageSource;
+-    public final PlayerDataStorage playerDataStorage;
++    protected final LevelStorageSource.LevelStorageAccess storageSource;
++    protected final PlayerDataStorage playerDataStorage;
+     private final List<Runnable> tickables = Lists.newArrayList();
+     private MetricsRecorder metricsRecorder = InactiveMetricsRecorder.INSTANCE;
+     private ProfilerFiller profiler = this.metricsRecorder.getProfiler();
+@@ -200,18 +_,18 @@
+     @Nullable
+     private MinecraftServer.TimeProfiler debugCommandProfiler;
+     private boolean debugCommandProfilerDelayStart;
+-    public ServerConnectionListener connection;
+-    public final ChunkProgressListenerFactory progressListenerFactory;
++    private final ServerConnectionListener connection;
++    private final ChunkProgressListenerFactory progressListenerFactory;
+     @Nullable
+     private ServerStatus status;
+     @Nullable
+     private ServerStatus.Favicon statusIcon;
+     private final RandomSource random = RandomSource.create();
+-    public final DataFixer fixerUpper;
++    private final DataFixer fixerUpper;
+     private String localIp;
+     private int port = -1;
+     private final LayeredRegistryAccess<RegistryLayer> registries;
+-    public Map<ResourceKey<Level>, ServerLevel> levels = Maps.newLinkedHashMap();
++    private final Map<ResourceKey<Level>, ServerLevel> levels = Maps.newLinkedHashMap();
+     private PlayerList playerList;
+     private volatile boolean running = true;
+     private boolean stopped;
+@@ -236,7 +_,7 @@
+     private long lastOverloadWarningNanos;
+     protected final Services services;
+     private long lastServerStatus;
+-    public final Thread serverThread;
++    private final Thread serverThread;
+     private long lastTickNanos = Util.getNanos();
+     private long taskExecutionStartNanos = Util.getNanos();
+     private long idleTimeNanos;
+@@ -251,20 +_,32 @@
+     private final ServerFunctionManager functionManager;
+     private boolean enforceWhitelist;
+     private float smoothedTickTimeMillis;
+-    public final Executor executor;
++    private final Executor executor;
+     @Nullable
+     private String serverId;
+-    public MinecraftServer.ReloadableResources resources;
++    private MinecraftServer.ReloadableResources resources;
+     private final StructureTemplateManager structureTemplateManager;
+     private final ServerTickRateManager tickRateManager;
+-    public WorldData worldData;
++    protected final WorldData worldData;
+     private final PotionBrewing potionBrewing;
+     private volatile boolean isSaving;
+     private static final AtomicReference<RuntimeException> fatalException = new AtomicReference<>();
+ 
++    // CraftBukkit start
++    public org.bukkit.craftbukkit.CraftServer server;
++    public OptionSet options;
++    public org.bukkit.command.ConsoleCommandSender console;
++    public ConsoleReader reader;
++    public static int currentTick = (int) (System.currentTimeMillis() / 50);
++    public java.util.Queue<Runnable> processQueue = new java.util.concurrent.ConcurrentLinkedQueue<Runnable>();
++    public int autosavePeriod;
++    public Commands vanillaCommandDispatcher;
++    private boolean forceTicks;
++    // CraftBukkit end
++
      public static <S extends MinecraftServer> S spin(Function<Thread, S> p_129873_) {
          AtomicReference<S> atomicreference = new AtomicReference<>();
 -        Thread thread = new Thread(() -> atomicreference.get().runServer(), "Server thread");
@@ -33,6 +131,15 @@
              ChunkPos chunkpos = new ChunkPos(serverchunkcache.randomState().sampler().findSpawnPosition());
              int i = serverchunkcache.getGenerator().getSpawnHeight(p_177897_);
              if (i < p_177897_.getMinBuildHeight()) {
+@@ -484,7 +_,7 @@
+         serverleveldata.setGameType(GameType.SPECTATOR);
+     }
+ 
+-    public void prepareLevels(ChunkProgressListener p_129941_) {
++    private void prepareLevels(ChunkProgressListener p_129941_) {
+         ServerLevel serverlevel = this.overworld();
+         LOGGER.info("Preparing start region for dimension {}", serverlevel.dimension().location());
+         BlockPos blockpos = serverlevel.getSharedSpawnPos();
 @@ -513,6 +_,7 @@
                      ChunkPos chunkpos = new ChunkPos(k);
                      serverlevel1.getChunkSource().updateChunkForced(chunkpos, true);
@@ -86,6 +193,27 @@
                  this.onServerExit();
              }
          }
+@@ -792,6 +_,11 @@
+         return this.runningTask() || Util.getNanos() < (this.mayHaveDelayedTasks ? this.delayedTasksMaxNextTickTimeNanos : this.nextTickTimeNanos);
+     }
+ 
++    private void executeModerately() {
++        this.runAllTasks();
++        java.util.concurrent.locks.LockSupport.parkNanos("executing tasks", 1000L);
++    }
++
+     public static boolean throwIfFatalException() {
+         RuntimeException runtimeexception = fatalException.get();
+         if (runtimeexception != null) {
+@@ -825,7 +_,7 @@
+         }
+     }
+ 
+-    public TickTask wrapRunnable(Runnable p_129852_) {
++    protected TickTask wrapRunnable(Runnable p_129852_) {
+         return new TickTask(this.tickCount, p_129852_);
+     }
+ 
 @@ -901,11 +_,13 @@
      public void tickServer(BooleanSupplier p_129871_) {
          long i = Util.getNanos();
@@ -173,6 +301,23 @@
              GameTestTicker.SINGLETON.tick();
          }
  
+@@ -1089,6 +_,16 @@
+         return this.levels.get(p_129881_);
+     }
+ 
++    public void addLevel(ServerLevel level) {
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new LevelEvent.Load(levels.get(Level.OVERWORLD)));
++        this.levels.put(level.dimension(), level);
++    }
++
++    public void removeLevel(ServerLevel level) {
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new LevelEvent.Unload(levels.get(Level.OVERWORLD)));
++        this.levels.remove(level.dimension(), level);
++    }
++
+     public Set<ResourceKey<Level>> levelKeys() {
+         return this.levels.keySet();
+     }
 @@ -1118,7 +_,7 @@
  
      @DontObfuscate
@@ -252,14 +397,28 @@
      public void dumpServerProperties(Path p_177911_) throws IOException {
      }
  
-@@ -1873,6 +_,10 @@
- 
-     public WorldData getWorldData() {
+@@ -1875,6 +_,10 @@
          return this.worldData;
-+    }
-+
-+    public MinecraftServer.ReloadableResources getServerResources() {
-+         return resources;
      }
  
++    public MinecraftServer.ReloadableResources getServerResources() {
++         return resources;
++    }
++
      public RegistryAccess.Frozen registryAccess() {
+         return this.registries.compositeAccess();
+     }
+@@ -2011,11 +_,11 @@
+     public static record ServerResourcePackInfo(UUID id, String url, String hash, boolean isRequired, @Nullable Component prompt) {
+     }
+ 
+-    public static class TimeProfiler {
++    static class TimeProfiler {
+         final long startNanos;
+         final int startTick;
+ 
+-        public TimeProfiler(long p_177958_, int p_177959_) {
++        TimeProfiler(long p_177958_, int p_177959_) {
+             this.startNanos = p_177958_;
+             this.startTick = p_177959_;
+         }

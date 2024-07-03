@@ -60,16 +60,14 @@ public abstract class Action {
 
     public final File bundled;
 
-    public final File mohistplugin;
-
     protected Action() {
         this.mohistVer = DataParser.versionMap.get("mohist");
-        this.forgeVer = DataParser.versionMap.get("forge");
+        this.forgeVer = DataParser.versionMap.get("neoforged");
         this.mcpVer = DataParser.versionMap.get("mcp");
         this.mcVer = DataParser.versionMap.get("minecraft");
         this.libPath = new File("libraries").getAbsolutePath() + "/";
 
-        this.forgeStart = libPath + "net/minecraftforge/forge/" + mcVer + "-" + forgeVer + "/forge-" + mcVer + "-" + forgeVer;
+        this.forgeStart = libPath + "net/neoforged/neoforge/" + mcVer + "-" + forgeVer + "/neoforge-" + mcVer + "-" + forgeVer;
         this.universalJar = new File(forgeStart + "-universal.jar");
         this.official = new File(forgeStart + "-official.jar");
 
@@ -85,7 +83,6 @@ public abstract class Action {
         this.mcpTsrg = new File(mcpStart + "-mappings.tsrg");
 
         this.bundled = new File(libPath + "net/minecraft/server/" + mcVer + "/server-" + mcVer + "-bundled.jar");
-        this.mohistplugin = new File(libPath, "com/mohistmc/mohistplugins/mohistplugins-" + mcVer + ".jar");
     }
 
     protected void run(String mainClass, String... args) throws Exception {
@@ -118,7 +115,7 @@ public abstract class Action {
             // Clear old version
             if (clearOld) {
                 File parentfile = file.getParentFile();
-                if (file.getAbsolutePath().contains("minecraftforge")) {
+                if (file.getAbsolutePath().contains("neoforged")) {
                     int lastSlashIndex = parentfile.getAbsolutePath().replaceAll("\\\\", "/").lastIndexOf("/");
                     String result = parentfile.getAbsolutePath().substring(0, lastSlashIndex + 1);
                     File old = new File(result);

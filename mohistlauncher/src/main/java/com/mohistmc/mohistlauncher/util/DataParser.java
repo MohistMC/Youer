@@ -9,7 +9,7 @@ public class DataParser {
     public static final HashMap<String, String> versionMap = new HashMap<>();
 
     public static void parseVersions() {
-        versionMap.put("forge", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/forge.txt").get(0));
+        versionMap.put("neoforged", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/neoforged.txt").get(0));
         versionMap.put("minecraft", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/minecraft.txt").get(0));
         versionMap.put("mcp", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/mcp.txt").get(0));
         versionMap.put("mohist",FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/mohist.txt").get(0));

@@ -1,0 +1,23 @@
+--- a/net/minecraft/world/level/block/BlockCampfire.java
++++ b/net/minecraft/world/level/block/BlockCampfire.java
+@@ -105,7 +105,7 @@
+     @Override
+     protected void entityInside(IBlockData iblockdata, World world, BlockPosition blockposition, Entity entity) {
+         if ((Boolean) iblockdata.getValue(BlockCampfire.LIT) && entity instanceof EntityLiving) {
+-            entity.hurt(world.damageSources().campfire(), (float) this.fireDamage);
++            entity.hurt(world.damageSources().campfire().directBlock(world, blockposition), (float) this.fireDamage); // CraftBukkit
+         }
+ 
+         super.entityInside(iblockdata, world, blockposition, entity);
+@@ -215,6 +215,11 @@
+         BlockPosition blockposition = movingobjectpositionblock.getBlockPos();
+ 
+         if (!world.isClientSide && iprojectile.isOnFire() && iprojectile.mayInteract(world, blockposition) && !(Boolean) iblockdata.getValue(BlockCampfire.LIT) && !(Boolean) iblockdata.getValue(BlockCampfire.WATERLOGGED)) {
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(world, blockposition, iprojectile).isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
+             world.setBlock(blockposition, (IBlockData) iblockdata.setValue(BlockProperties.LIT, true), 11);
+         }
+ 

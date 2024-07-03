@@ -1,0 +1,48 @@
+--- a/net/minecraft/world/entity/decoration/EntityItemFrame.java
++++ b/net/minecraft/world/entity/decoration/EntityItemFrame.java
+@@ -90,6 +90,12 @@
+ 
+     @Override
+     protected AxisAlignedBB calculateBoundingBox(BlockPosition blockposition, EnumDirection enumdirection) {
++        // CraftBukkit start - break out BB calc into own method
++        return calculateBoundingBoxStatic(blockposition, enumdirection);
++    }
++
++    public static AxisAlignedBB calculateBoundingBoxStatic(BlockPosition blockposition, EnumDirection enumdirection) {
++        // CraftBukkit end
+         float f = 0.46875F;
+         Vec3D vec3d = Vec3D.atCenterOf(blockposition).relative(enumdirection, -0.46875D);
+         EnumDirection.EnumAxis enumdirection_enumaxis = enumdirection.getAxis();
+@@ -143,6 +149,11 @@
+             return false;
+         } else if (!damagesource.is(DamageTypeTags.IS_EXPLOSION) && !this.getItem().isEmpty()) {
+             if (!this.level().isClientSide) {
++                // CraftBukkit start - fire EntityDamageEvent
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, damagesource, f, false) || this.isRemoved()) {
++                    return true;
++                }
++                // CraftBukkit end
+                 this.dropItem(damagesource.getEntity(), false);
+                 this.gameEvent(GameEvent.BLOCK_CHANGE, damagesource.getEntity());
+                 this.playSound(this.getRemoveItemSound(), 1.0F, 1.0F);
+@@ -255,13 +266,19 @@
+     }
+ 
+     public void setItem(ItemStack itemstack, boolean flag) {
++        // CraftBukkit start
++        this.setItem(itemstack, flag, true);
++    }
++
++    public void setItem(ItemStack itemstack, boolean flag, boolean playSound) {
++        // CraftBukkit end
+         if (!itemstack.isEmpty()) {
+             itemstack = itemstack.copyWithCount(1);
+         }
+ 
+         this.onItemChanged(itemstack);
+         this.getEntityData().set(EntityItemFrame.DATA_ITEM, itemstack);
+-        if (!itemstack.isEmpty()) {
++        if (!itemstack.isEmpty() && playSound) { // CraftBukkit
+             this.playSound(this.getAddItemSound(), 1.0F, 1.0F);
+         }
+ 

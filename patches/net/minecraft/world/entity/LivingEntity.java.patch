@@ -9,6 +9,82 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final String TAG_ACTIVE_EFFECTS = "active_effects";
      private static final ResourceLocation SPEED_MODIFIER_POWDER_SNOW_ID = ResourceLocation.withDefaultNamespace("powder_snow");
+@@ -160,12 +_,12 @@
+     protected static final int LIVING_ENTITY_FLAG_OFF_HAND = 2;
+     protected static final int LIVING_ENTITY_FLAG_SPIN_ATTACK = 4;
+     protected static final EntityDataAccessor<Byte> DATA_LIVING_ENTITY_FLAGS = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.BYTE);
+-    public static final EntityDataAccessor<Float> DATA_HEALTH_ID = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.FLOAT);
++    private static final EntityDataAccessor<Float> DATA_HEALTH_ID = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.FLOAT);
+     private static final EntityDataAccessor<List<ParticleOptions>> DATA_EFFECT_PARTICLES = SynchedEntityData.defineId(
+         LivingEntity.class, EntityDataSerializers.PARTICLES
+     );
+     private static final EntityDataAccessor<Boolean> DATA_EFFECT_AMBIENCE_ID = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.BOOLEAN);
+-    public static final EntityDataAccessor<Integer> DATA_ARROW_COUNT_ID = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.INT);
++    private static final EntityDataAccessor<Integer> DATA_ARROW_COUNT_ID = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.INT);
+     private static final EntityDataAccessor<Integer> DATA_STINGER_COUNT_ID = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.INT);
+     private static final EntityDataAccessor<Optional<BlockPos>> SLEEPING_POS_ID = SynchedEntityData.defineId(
+         LivingEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS
+@@ -177,8 +_,8 @@
+     private static final float ITEM_USE_EFFECT_START_FRACTION = 0.21875F;
+     public static final String ATTRIBUTES_FIELD = "attributes";
+     private final AttributeMap attributes;
+-    public CombatTracker combatTracker = new CombatTracker(this);
+-    public final Map<Holder<MobEffect>, MobEffectInstance> activeEffects = Maps.newHashMap();
++    private final CombatTracker combatTracker = new CombatTracker(this);
++    private final Map<Holder<MobEffect>, MobEffectInstance> activeEffects = Maps.newHashMap();
+     private final NonNullList<ItemStack> lastHandItemStacks = NonNullList.withSize(2, ItemStack.EMPTY);
+     private final NonNullList<ItemStack> lastArmorItemStacks = NonNullList.withSize(4, ItemStack.EMPTY);
+     private ItemStack lastBodyItemStack = ItemStack.EMPTY;
+@@ -195,7 +_,7 @@
+     public float attackAnim;
+     protected int attackStrengthTicker;
+     public final WalkAnimationState walkAnimation = new WalkAnimationState();
+-    public int invulnerableDuration = 20;
++    public final int invulnerableDuration = 20;
+     public final float timeOffs;
+     public final float rotA;
+     public float yBodyRot;
+@@ -203,7 +_,7 @@
+     public float yHeadRot;
+     public float yHeadRotO;
+     @Nullable
+-    public Player lastHurtByPlayer;
++    protected Player lastHurtByPlayer;
+     protected int lastHurtByPlayerTime;
+     protected boolean dead;
+     protected int noActionTime;
+@@ -213,7 +_,7 @@
+     protected float animStepO;
+     protected float rotOffs;
+     protected int deathScore;
+-    public float lastHurt;
++    protected float lastHurt;
+     protected boolean jumping;
+     public float xxa;
+     public float yya;
+@@ -226,10 +_,10 @@
+     protected double lerpXRot;
+     protected double lerpYHeadRot;
+     protected int lerpHeadSteps;
+-    public boolean effectsDirty = true;
++    private boolean effectsDirty = true;
+     @Nullable
+-    public LivingEntity lastHurtByMob;
+-    public int lastHurtByMobTimestamp;
++    private LivingEntity lastHurtByMob;
++    private int lastHurtByMobTimestamp;
+     @Nullable
+     private LivingEntity lastHurtMob;
+     private int lastHurtMobTimestamp;
+@@ -237,7 +_,7 @@
+     private int noJumpDelay;
+     private float absorptionAmount;
+     protected ItemStack useItem = ItemStack.EMPTY;
+-    public int useItemRemaining;
++    protected int useItemRemaining;
+     protected int fallFlyTicks;
+     private BlockPos lastPos;
+     private Optional<BlockPos> lastClimbablePos = Optional.empty();
 @@ -254,6 +_,14 @@
      private boolean skipDropExperience;
      private final Reference2ObjectMap<Enchantment, Set<EnchantmentLocationBasedEffect>> activeLocationDependentEnchantments = new Reference2ObjectArrayMap<>();
@@ -520,6 +596,15 @@
                  d2 = 0.0;
              }
  
+@@ -2444,7 +_,7 @@
+         }
+     }
+ 
+-    public void detectEquipmentUpdates() {
++    private void detectEquipmentUpdates() {
+         Map<EquipmentSlot, ItemStack> map = this.collectEquipmentChanges();
+         if (map != null) {
+             this.handleHandSwap(map);
 @@ -2466,6 +_,7 @@
              };
              ItemStack itemstack1 = this.getItemBySlot(equipmentslot);

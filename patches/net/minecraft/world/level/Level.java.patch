@@ -9,7 +9,27 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("the_nether"));
-@@ -114,6 +_,11 @@
+@@ -92,7 +_,7 @@
+     protected final NeighborUpdater neighborUpdater;
+     private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
+     private boolean tickingBlockEntities;
+-    public final Thread thread;
++    private final Thread thread;
+     private final boolean isDebug;
+     private int skyDarken;
+     protected int randValue = RandomSource.create().nextInt();
+@@ -105,15 +_,20 @@
+     @Deprecated
+     private final RandomSource threadSafeRandom = RandomSource.createThreadSafe();
+     private final Holder<DimensionType> dimensionTypeRegistration;
+-    public final WritableLevelData levelData;
++    protected final WritableLevelData levelData;
+     private final Supplier<ProfilerFiller> profiler;
+     public final boolean isClientSide;
+     private final WorldBorder worldBorder;
+     private final BiomeManager biomeManager;
+-    public ResourceKey<Level> dimension;
++    private final ResourceKey<Level> dimension;
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -219,12 +239,10 @@
                          this.neighborChanged(blockstate, blockpos, p_46719_, p_46718_, false);
                      }
                  }
-@@ -1076,6 +_,18 @@
-     @Override
-     public BiomeManager getBiomeManager() {
+@@ -1078,11 +_,23 @@
          return this.biomeManager;
-+    }
-+
+     }
+ 
 +    private double maxEntityRadius = 2.0D;
 +    @Override
 +    public double getMaxEntityRadius() {
@@ -235,6 +253,14 @@
 +        if (value > maxEntityRadius)
 +            maxEntityRadius = value;
 +        return maxEntityRadius;
++    }
++
+     public final boolean isDebug() {
+         return this.isDebug;
      }
  
-     public final boolean isDebug() {
+-    public abstract LevelEntityGetter<Entity> getEntities();
++    protected abstract LevelEntityGetter<Entity> getEntities();
+ 
+     @Override
+     public long nextSubTickCount() {
