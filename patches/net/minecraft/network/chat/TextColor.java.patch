@@ -1,0 +1,36 @@
+--- a/net/minecraft/network/chat/TextColor.java
++++ b/net/minecraft/network/chat/TextColor.java
+@@ -17,22 +_,32 @@
+     public static final Codec<TextColor> CODEC = Codec.STRING.comapFlatMap(TextColor::parseColor, TextColor::serialize);
+     private static final Map<ChatFormatting, TextColor> LEGACY_FORMAT_TO_COLOR = Stream.of(ChatFormatting.values())
+         .filter(ChatFormatting::isColor)
+-        .collect(ImmutableMap.toImmutableMap(Function.identity(), p_237301_ -> new TextColor(p_237301_.getColor(), p_237301_.getName())));
++        .collect(ImmutableMap.toImmutableMap(Function.identity(), p_237301_ -> new TextColor(p_237301_.getColor(), p_237301_.getName(), p_237301_)));
+     private static final Map<String, TextColor> NAMED_COLORS = LEGACY_FORMAT_TO_COLOR.values()
+         .stream()
+         .collect(ImmutableMap.toImmutableMap(p_237297_ -> p_237297_.name, Function.identity()));
+     private final int value;
+     @Nullable
+     public final String name;
++    @Nullable
++    public final ChatFormatting format;
++
++    private TextColor(int p_131263_, String p_131264_, ChatFormatting format) {
++        this.value = p_131263_ & 16777215;
++        this.name = p_131264_;
++        this.format = format;
++    }
+ 
+     private TextColor(int p_131263_, String p_131264_) {
+         this.value = p_131263_ & 16777215;
+         this.name = p_131264_;
++        this.format = null;
+     }
+ 
+     private TextColor(int p_131261_) {
+         this.value = p_131261_ & 16777215;
+         this.name = null;
++        this.format = null;
+     }
+ 
+     public int getValue() {
