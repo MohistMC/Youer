@@ -1,44 +1,14 @@
 --- a/net/minecraft/server/level/DistanceManager.java
 +++ b/net/minecraft/server/level/DistanceManager.java
-@@ -40,7 +_,7 @@
-     static final int PLAYER_TICKET_LEVEL = ChunkLevel.byStatus(FullChunkStatus.ENTITY_TICKING);
-     private static final int INITIAL_TICKET_LIST_CAPACITY = 4;
-     final Long2ObjectMap<ObjectSet<ServerPlayer>> playersPerChunk = new Long2ObjectOpenHashMap<>();
--    public final Long2ObjectOpenHashMap<SortedArraySet<Ticket<?>>> tickets = new Long2ObjectOpenHashMap<>();
-+    final Long2ObjectOpenHashMap<SortedArraySet<Ticket<?>>> tickets = new Long2ObjectOpenHashMap<>();
-     private final DistanceManager.ChunkTicketTracker ticketTracker = new DistanceManager.ChunkTicketTracker();
-     private final DistanceManager.FixedPlayerDistanceChunkTracker naturalSpawnChunkCounter = new DistanceManager.FixedPlayerDistanceChunkTracker(8);
-     private final TickingTracker tickingTicketsTracker = new TickingTracker();
-@@ -52,7 +_,9 @@
-     final LongSet ticketsToRelease = new LongOpenHashSet();
-     final Executor mainThreadExecutor;
+@@ -54,6 +_,8 @@
      private long ticketTickCounter;
--    public int simulationDistance = 10;
-+    private int simulationDistance = 10;
-+
-+    private final Long2ObjectOpenHashMap<SortedArraySet<Ticket<?>>> forcedTickets = new Long2ObjectOpenHashMap<>();
+     private int simulationDistance = 10;
  
++    private final Long2ObjectOpenHashMap<SortedArraySet<Ticket<?>>> forcedTickets = new Long2ObjectOpenHashMap<>();
++
      protected DistanceManager(Executor p_140774_, Executor p_140775_) {
          ProcessorHandle<Runnable> processorhandle = ProcessorHandle.of("player ticket throttler", p_140775_::execute);
-@@ -91,6 +_,18 @@
-         }
-     }
- 
-+    public <T> boolean addRegionTicketAtDistance(TicketType<T> tickettype, ChunkPos chunkcoordintpair, int i, T t0) {
-+        throw new IllegalStateException("Not implemented");
-+    }
-+
-+    public  <T> boolean removeRegionTicketAtDistance(TicketType<T> tickettype, ChunkPos chunkcoordintpair, int i, T t0) {
-+        throw new IllegalStateException("Not implemented");
-+    }
-+
-+    public <T> void removeAllTicketsFor(TicketType<T> ticketType, int ticketLevel, T ticketIdentifier) {
-+        throw new IllegalStateException("Not implemented");
-+    }
-+
-     private static int getTicketLevelAt(SortedArraySet<Ticket<?>> p_140798_) {
-         return !p_140798_.isEmpty() ? p_140798_.first().getTicketLevel() : ChunkLevel.MAX_LEVEL + 1;
-     }
+         ChunkTaskPriorityQueueSorter chunktaskpriorityqueuesorter = new ChunkTaskPriorityQueueSorter(ImmutableList.of(processorhandle), p_140774_, 4);
 @@ -152,6 +_,10 @@
          if (p_140786_.getTicketLevel() < i) {
              this.ticketTracker.update(p_140785_, p_140786_.getTicketLevel(), true);
@@ -87,42 +57,15 @@
          long i = p_140851_.toLong();
          this.removeTicket(i, ticket);
          this.tickingTicketsTracker.removeTicket(i, ticket);
-@@ -269,6 +_,11 @@
-         return this.ticketThrottler.getDebugStatus();
-     }
+@@ -267,6 +_,11 @@
  
+     public String getDebugStatus() {
+         return this.ticketThrottler.getDebugStatus();
++    }
++
 +    public boolean shouldForceTicks(long chunkPos) {
 +         SortedArraySet<Ticket<?>> tickets = forcedTickets.get(chunkPos);
 +         return tickets != null && !tickets.isEmpty();
-+    }
-+
+     }
+ 
      private void dumpTickets(String p_143208_) {
-         try (FileOutputStream fileoutputstream = new FileOutputStream(new File(p_143208_))) {
-             for (Entry<SortedArraySet<Ticket<?>>> entry : this.tickets.long2ObjectEntrySet()) {
-@@ -322,7 +_,7 @@
-         return !this.tickets.isEmpty();
-     }
- 
--    public class ChunkTicketTracker extends ChunkTracker {
-+    class ChunkTicketTracker extends ChunkTracker {
-         private static final int MAX_LEVEL = ChunkLevel.MAX_LEVEL + 1;
- 
-         public ChunkTicketTracker() {
-@@ -368,7 +_,7 @@
-         }
-     }
- 
--    public class FixedPlayerDistanceChunkTracker extends ChunkTracker {
-+    class FixedPlayerDistanceChunkTracker extends ChunkTracker {
-         protected final Long2ByteMap chunks = new Long2ByteOpenHashMap();
-         protected final int maxDistance;
- 
-@@ -425,7 +_,7 @@
-         }
-     }
- 
--    public class PlayerTicketTracker extends DistanceManager.FixedPlayerDistanceChunkTracker {
-+    class PlayerTicketTracker extends DistanceManager.FixedPlayerDistanceChunkTracker {
-         private int viewDistance;
-         private final Long2IntMap queueLevels = Long2IntMaps.synchronize(new Long2IntOpenHashMap());
-         private final LongSet toUpdate = new LongOpenHashSet();

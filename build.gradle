@@ -1,6 +1,5 @@
 import java.util.regex.Matcher
 import java.util.regex.Pattern
-import com.mohistmc.tasks.JenkinsNumber
 
 plugins {
     id 'net.neoforged.gradleutils' version '3.0.0-alpha.13' apply false
@@ -11,12 +10,28 @@ plugins {
 
 apply plugin: 'net.neoforged.gradleutils'
 
+ext.isPreReleaseVersion = project.minecraft_version.contains('w') || project.minecraft_version.contains('-')
+
+if (isPreReleaseVersion) {
+    project.version = "${project.neoforge_snapshot_next_stable}.0-alpha.${project.minecraft_version}.${(new Date()).format('yyyyMMdd.HHmmss', TimeZone.getTimeZone('UTC'))}"
+} else {
+    gradleutils.version {
+        minecraftVersion project.minecraft_version
+        versionPrefix = null // Reset version prefix, which is set by prev. line
+        tags {
+            label = 'beta'
+            cleanMarkerLabel = 'stable'
+        }
+        branches {
+            suffixBranch = true
+        }
+    }
+
+    project.version = project.neoforge_version
+}
+
 // Print version, generally useful to know - also appears on CI
 System.out.println("NeoForge version ${project.version}")
-
-ext {
-    MOHIST_VERSION = JenkinsNumber.info()
-}
 
 allprojects {
     version rootProject.version
@@ -26,6 +41,11 @@ allprojects {
         maven { url = 'https://maven.mohistmc.com/' }
         maven { url = 'https://maven.izzel.io/releases' }
         mavenLocal()
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.compilerArgs << '-Xlint:-dep-ann' << '-Xlint:-removal' << '-Xdiags:verbose'
     }
 }
 
@@ -52,6 +72,7 @@ license {
         }
     }
 }
+
 
 // Put spotless here because it wants the files to live inside the project root
 spotless {

@@ -1,28 +1,5 @@
 --- a/net/minecraft/world/entity/projectile/FishingHook.java
 +++ b/net/minecraft/world/entity/projectile/FishingHook.java
-@@ -52,17 +_,17 @@
-     private boolean biting;
-     private int outOfWaterTime;
-     private static final int MAX_OUT_OF_WATER_TIME = 10;
--    public static final EntityDataAccessor<Integer> DATA_HOOKED_ENTITY = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.INT);
-+    private static final EntityDataAccessor<Integer> DATA_HOOKED_ENTITY = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.INT);
-     private static final EntityDataAccessor<Boolean> DATA_BITING = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.BOOLEAN);
-     private int life;
-     private int nibble;
--    public int timeUntilLured;
--    public int timeUntilHooked;
-+    private int timeUntilLured;
-+    private int timeUntilHooked;
-     private float fishAngle;
-     private boolean openWater = true;
-     @Nullable
--    public Entity hookedIn;
--    public FishingHook.FishHookState currentState = FishingHook.FishHookState.FLYING;
-+    private Entity hookedIn;
-+    private FishingHook.FishHookState currentState = FishingHook.FishHookState.FLYING;
-     private final int luck;
-     private final int lureSpeed;
- 
 @@ -240,8 +_,8 @@
      private boolean shouldStopFishing(Player p_37137_) {
          ItemStack itemstack = p_37137_.getMainHandItem();
@@ -43,15 +20,6 @@
      }
  
      @Override
-@@ -274,7 +_,7 @@
-         this.setDeltaMovement(this.getDeltaMovement().normalize().scale(p_37142_.distanceTo(this)));
-     }
- 
--    public void setHookedEntity(@Nullable Entity p_150158_) {
-+    private void setHookedEntity(@Nullable Entity p_150158_) {
-         this.hookedIn = p_150158_;
-         this.getEntityData().set(DATA_HOOKED_ENTITY, p_150158_ == null ? 0 : p_150158_.getId() + 1);
-     }
 @@ -441,6 +_,7 @@
          Player player = this.getPlayerOwner();
          if (!this.level().isClientSide && player != null && !this.shouldStopFishing(player)) {
@@ -86,21 +54,3 @@
              return i;
          } else {
              return 0;
-@@ -495,7 +_,7 @@
-         super.handleEntityEvent(p_37123_);
-     }
- 
--    public void pullEntity(Entity p_150156_) {
-+    protected void pullEntity(Entity p_150156_) {
-         Entity entity = this.getOwner();
-         if (entity != null) {
-             Vec3 vec3 = new Vec3(entity.getX() - this.getX(), entity.getY() - this.getY(), entity.getZ() - this.getZ()).scale(0.1);
-@@ -564,7 +_,7 @@
-         }
-     }
- 
--    public static enum FishHookState {
-+    static enum FishHookState {
-         FLYING,
-         HOOKED_IN_ENTITY,
-         BOBBING;

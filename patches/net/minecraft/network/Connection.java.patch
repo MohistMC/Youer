@@ -1,16 +1,5 @@
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
-@@ -87,8 +_,8 @@
-     private final PacketFlow receiving;
-     private volatile boolean sendLoginDisconnect = true;
-     private final Queue<Consumer<Connection>> pendingActions = Queues.newConcurrentLinkedQueue();
--    public Channel channel;
--    public SocketAddress address;
-+    private Channel channel;
-+    private SocketAddress address;
-     @Nullable
-     private volatile PacketListener disconnectListener;
-     @Nullable
 @@ -107,6 +_,8 @@
      private volatile DisconnectionDetails delayedDisconnect;
      @Nullable
@@ -20,15 +9,11 @@
  
      public Connection(PacketFlow p_129482_) {
          this.receiving = p_129482_;
-@@ -120,11 +_,17 @@
+@@ -120,11 +_,13 @@
          if (this.delayedDisconnect != null) {
              this.disconnect(this.delayedDisconnect);
          }
 +        net.neoforged.neoforge.network.connection.ConnectionUtils.setConnection(p_129525_, this);
-+    }
-+
-+    public SocketAddress getRawAddress() {
-+        throw new IllegalStateException("Not implemented");
      }
  
      @Override

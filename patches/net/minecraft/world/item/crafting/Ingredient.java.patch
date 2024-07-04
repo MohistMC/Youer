@@ -1,11 +1,8 @@
 --- a/net/minecraft/world/item/crafting/Ingredient.java
 +++ b/net/minecraft/world/item/crafting/Ingredient.java
-@@ -27,29 +_,79 @@
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.level.ItemLike;
+@@ -29,15 +_,54 @@
  
--public class Ingredient implements Predicate<ItemStack> {
-+public final class Ingredient implements Predicate<ItemStack> {
+ public final class Ingredient implements Predicate<ItemStack> {
      public static final Ingredient EMPTY = new Ingredient(Stream.empty());
 -    public static final StreamCodec<RegistryFriendlyByteBuf, Ingredient> CONTENTS_STREAM_CODEC = ItemStack.LIST_STREAM_CODEC
 -        .map(p_319730_ -> fromValues(p_319730_.stream().map(Ingredient.ItemValue::new)), p_319731_ -> Arrays.asList(p_319731_.getItems()));
@@ -34,14 +31,11 @@
 +    };
      private final Ingredient.Value[] values;
      @Nullable
--    public ItemStack[] itemStacks;
-+    private ItemStack[] itemStacks;
+     private ItemStack[] itemStacks;
      @Nullable
      private IntList stackingIds;
 -    public static final Codec<Ingredient> CODEC = codec(true);
 -    public static final Codec<Ingredient> CODEC_NONEMPTY = codec(false);
--
--    public Ingredient(Stream<? extends Ingredient.Value> p_43907_) {
 +    @Nullable
 +    private net.neoforged.neoforge.common.crafting.ICustomIngredient customIngredient = null;
 +
@@ -62,13 +56,10 @@
 +    public static final com.mojang.serialization.MapCodec<Ingredient> MAP_CODEC_NONEMPTY = net.neoforged.neoforge.common.crafting.CraftingHelper.makeIngredientMapCodec();
 +    public static final Codec<List<Ingredient>> LIST_CODEC = MAP_CODEC_NONEMPTY.codec().listOf();
 +    public static final Codec<List<Ingredient>> LIST_CODEC_NONEMPTY = LIST_CODEC.validate(list -> list.isEmpty() ? DataResult.error(() -> "Item array cannot be empty, at least one item must be defined") : DataResult.success(list));
-+
-+    private Ingredient(Stream<? extends Ingredient.Value> p_43907_) {
-         this.values = p_43907_.toArray(Ingredient.Value[]::new);
-     }
  
--    public Ingredient(Ingredient.Value[] p_301044_) {
-+    private Ingredient(Ingredient.Value[] p_301044_) {
+     private Ingredient(Stream<? extends Ingredient.Value> p_43907_) {
+         this.values = p_43907_.toArray(Ingredient.Value[]::new);
+@@ -47,9 +_,20 @@
          this.values = p_301044_;
      }
  

@@ -9,7 +9,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final String ID_TAG = "id";
      public static final String PASSENGERS_TAG = "Passengers";
-@@ -149,11 +_,12 @@
+@@ -149,6 +_,7 @@
      private static final double LAVA_SLOW_FLOW_SCALE = 0.0023333333333333335;
      public static final String UUID_TAG = "UUID";
      private static double viewScale = 1.0;
@@ -17,33 +17,10 @@
      private final EntityType<?> type;
      private int id = ENTITY_COUNTER.incrementAndGet();
      public boolean blocksBuilding;
--    public ImmutableList<Entity> passengers = ImmutableList.of();
--    public int boardingCooldown;
-+    private ImmutableList<Entity> passengers = ImmutableList.of();
-+    protected int boardingCooldown;
-     @Nullable
-     private Entity vehicle;
-     private Level level;
-@@ -169,7 +_,7 @@
-     public float yRotO;
-     public float xRotO;
-     private AABB bb = INITIAL_AABB;
--    public boolean onGround;
-+    private boolean onGround;
-     public boolean horizontalCollision;
-     public boolean verticalCollision;
-     public boolean verticalCollisionBelow;
-@@ -190,12 +_,14 @@
-     public double yOld;
-     public double zOld;
-     public boolean noPhysics;
--    public final RandomSource random = RandomSource.create();
-+    protected final RandomSource random = RandomSource.create();
+@@ -194,8 +_,10 @@
      public int tickCount;
--    public int remainingFireTicks = -this.getFireImmuneTicks();
--    public boolean wasTouchingWater;
-+    private int remainingFireTicks = -this.getFireImmuneTicks();
-+    protected boolean wasTouchingWater;
+     private int remainingFireTicks = -this.getFireImmuneTicks();
+     protected boolean wasTouchingWater;
 +    @Deprecated // Forge: Use forgeFluidTypeHeight instead
      protected Object2DoubleMap<TagKey<Fluid>> fluidHeight = new Object2DoubleArrayMap<>(2);
      protected boolean wasEyeInWater;
@@ -51,24 +28,6 @@
      private final Set<TagKey<Fluid>> fluidOnEyes = new HashSet<>();
      public int invulnerableTime;
      protected boolean firstTick = true;
-@@ -223,7 +_,7 @@
-     public boolean hasImpulse;
-     @Nullable
-     public PortalProcessor portalProcess;
--    public int portalCooldown;
-+    private int portalCooldown;
-     private boolean invulnerable;
-     protected UUID uuid = Mth.createInsecureUUID(this.random);
-     protected String stringUUID = this.uuid.toString();
-@@ -240,7 +_,7 @@
-     private boolean onGroundNoBlocks = false;
-     private float crystalSoundIntensity;
-     private int lastCrystalSoundPlayTick;
--    public boolean hasVisualFire;
-+    private boolean hasVisualFire;
-     @Nullable
-     private BlockState inBlockState = null;
- 
 @@ -263,7 +_,10 @@
          this.defineSynchedData(synchedentitydata$builder);
          this.entityData = synchedentitydata$builder.build();
@@ -314,20 +273,6 @@
      }
  
      public void setSwimming(boolean p_20283_) {
-@@ -2314,11 +_,11 @@
-         this.setSharedFlag(5, p_20304_);
-     }
- 
--    public boolean getSharedFlag(int p_20292_) {
-+    protected boolean getSharedFlag(int p_20292_) {
-         return (this.entityData.get(DATA_SHARED_FLAGS_ID) & 1 << p_20292_) != 0;
-     }
- 
--    public void setSharedFlag(int p_20116_, boolean p_20117_) {
-+    protected void setSharedFlag(int p_20116_, boolean p_20117_) {
-         byte b0 = this.entityData.get(DATA_SHARED_FLAGS_ID);
-         if (p_20117_) {
-             this.entityData.set(DATA_SHARED_FLAGS_ID, (byte)(b0 | 1 << p_20116_));
 @@ -2366,7 +_,7 @@
              this.igniteForSeconds(8.0F);
          }
@@ -384,15 +329,6 @@
          this.dimensions = entitydimensions1;
          this.eyeHeight = entitydimensions1.eyeHeight();
          this.reapplyPosition();
-@@ -3052,7 +_,7 @@
-         return SoundSource.NEUTRAL;
-     }
- 
--    public int getFireImmuneTicks() {
-+    protected int getFireImmuneTicks() {
-         return 1;
-     }
- 
 @@ -3110,9 +_,17 @@
          return Mth.lerp(p_352259_, this.yRotO, this.yRot);
      }
@@ -516,15 +452,6 @@
      }
  
      public void checkDespawn() {
-@@ -3424,7 +_,7 @@
-         this.levelCallback.onRemove(p_146876_);
-     }
- 
--    public void unsetRemoved() {
-+    protected void unsetRemoved() {
-         this.removalReason = null;
-     }
- 
 @@ -3450,6 +_,109 @@
      public boolean mayInteract(Level p_146843_, BlockPos p_146844_) {
          return true;

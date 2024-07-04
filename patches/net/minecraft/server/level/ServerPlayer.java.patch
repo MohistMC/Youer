@@ -1,32 +1,5 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -188,14 +_,14 @@
-     private float lastSentHealth = -1.0E8F;
-     private int lastSentFood = -99999999;
-     private boolean lastFoodSaturationZero = true;
--    public int lastSentExp = -99999999;
--    public int spawnInvulnerableTime = 60;
-+    private int lastSentExp = -99999999;
-+    private int spawnInvulnerableTime = 60;
-     private ChatVisiblity chatVisibility = ChatVisiblity.FULL;
-     private boolean canChatColor = true;
-     private long lastActionTime = Util.getMillis();
-     @Nullable
-     private Entity camera;
--    public boolean isChangingDimension;
-+    private boolean isChangingDimension;
-     public boolean seenCredits;
-     private final ServerRecipeBook recipeBook = new ServerRecipeBook();
-     @Nullable
-@@ -203,7 +_,7 @@
-     private int levitationStartTime;
-     private boolean disconnected;
-     private int requestedViewDistance = 2;
--    public String language = "en_us";
-+    private String language = "en_us";
-     @Nullable
-     private Vec3 startingToFallPosition;
-     @Nullable
 @@ -252,6 +_,10 @@
          }
  
@@ -38,15 +11,6 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(p_143455_.containerId, p_143456_, p_143457_));
          }
      };
-@@ -456,7 +_,7 @@
-         this.lastSentExp = -1;
-     }
- 
--    public void initMenu(AbstractContainerMenu p_143400_) {
-+    private void initMenu(AbstractContainerMenu p_143400_) {
-         p_143400_.addSlotListener(this.containerListener);
-         p_143400_.setSynchronizer(this.containerSynchronizer);
-     }
 @@ -606,6 +_,11 @@
                  this.connection.send(new ClientboundSetExperiencePacket(this.experienceProgress, this.totalExperience, this.experienceLevel));
              }
@@ -67,15 +31,6 @@
          boolean flag = this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES);
          if (flag) {
              Component component = this.getCombatTracker().getDeathMessage();
-@@ -806,7 +_,7 @@
-         }
-     }
- 
--    public static Optional<ServerPlayer.RespawnPosAngle> findRespawnAndUseSpawnBlock(
-+    private static Optional<ServerPlayer.RespawnPosAngle> findRespawnAndUseSpawnBlock(
-         ServerLevel p_348505_, BlockPos p_348607_, float p_348481_, boolean p_348513_, boolean p_348600_
-     ) {
-         BlockState blockstate = p_348505_.getBlockState(p_348607_);
 @@ -826,7 +_,7 @@
              return BedBlock.findStandUpPosition(EntityType.PLAYER, p_348505_, p_348607_, blockstate.getValue(BedBlock.FACING), p_348481_)
                  .map(p_348148_ -> ServerPlayer.RespawnPosAngle.of(p_348148_, p_348607_));
@@ -102,7 +57,7 @@
                  serverlevel1.getProfiler().push("moving");
                  if (resourcekey == Level.OVERWORLD && serverlevel.dimension() == Level.NETHER) {
                      this.enteredNetherPosition = this.position();
-@@ -895,16 +_,18 @@
+@@ -895,10 +_,12 @@
                  playerlist.sendLevelInfo(this, serverlevel);
                  playerlist.sendAllPlayerInfo(this);
                  playerlist.sendActivePlayerEffects(this);
@@ -115,13 +70,6 @@
                  return this;
              }
          }
-     }
- 
--    public void triggerDimensionChangeTriggers(ServerLevel p_9210_) {
-+    private void triggerDimensionChangeTriggers(ServerLevel p_9210_) {
-         ResourceKey<Level> resourcekey = p_9210_.dimension();
-         ResourceKey<Level> resourcekey1 = this.level().dimension();
-         CriteriaTriggers.CHANGED_DIMENSION.trigger(this, resourcekey, resourcekey1);
 @@ -934,6 +_,15 @@
  
      @Override
@@ -169,14 +117,7 @@
          return this.isReachableBedBlock(p_9117_) || this.isReachableBedBlock(p_9117_.relative(p_9118_.getOpposite()));
      }
  
-@@ -1068,17 +_,25 @@
-         this.connection.send(new ClientboundOpenSignEditorPacket(p_277909_.getBlockPos(), p_277495_));
-     }
- 
--    public void nextContainerCounter() {
-+    private void nextContainerCounter() {
-         this.containerCounter = this.containerCounter % 100 + 1;
-     }
+@@ -1074,11 +_,19 @@
  
      @Override
      public OptionalInt openMenu(@Nullable MenuProvider p_9033_) {
@@ -382,3 +323,12 @@
      }
  
      public boolean allowsListing() {
+@@ -1958,7 +_,7 @@
+         this.awardStat(Stats.ITEM_BROKEN.get(p_348565_));
+     }
+ 
+-    static record RespawnPosAngle(Vec3 position, float yaw) {
++    public static record RespawnPosAngle(Vec3 position, float yaw) {
+         public static ServerPlayer.RespawnPosAngle of(Vec3 p_348670_, BlockPos p_348504_) {
+             return new ServerPlayer.RespawnPosAngle(p_348670_, calculateLookAtYaw(p_348670_, p_348504_));
+         }

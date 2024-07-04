@@ -1,41 +1,5 @@
 --- a/net/minecraft/world/entity/animal/sniffer/Sniffer.java
 +++ b/net/minecraft/world/entity/animal/sniffer/Sniffer.java
-@@ -141,7 +_,7 @@
-         return this.position().add(this.getForward().scale(2.25));
-     }
- 
--    public Sniffer.State getState() {
-+    private Sniffer.State getState() {
-         return this.entityData.get(DATA_STATE);
-     }
- 
-@@ -237,7 +_,7 @@
-         return this;
-     }
- 
--    public Optional<BlockPos> calculateDigPosition() {
-+    Optional<BlockPos> calculateDigPosition() {
-         return IntStream.range(0, 5)
-             .mapToObj(p_273771_ -> LandRandomPos.getPos(this, 10 + 2 * p_273771_, 3))
-             .filter(Objects::nonNull)
-@@ -248,7 +_,7 @@
-             .findFirst();
-     }
- 
--    public boolean canDig() {
-+    boolean canDig() {
-         return !this.isPanicking()
-             && !this.isTempted()
-             && !this.isBaby()
-@@ -258,7 +_,7 @@
-             && this.canDig(this.getHeadBlock().below());
-     }
- 
--    public boolean canDig(BlockPos p_272757_) {
-+    private boolean canDig(BlockPos p_272757_) {
-         return this.level().getBlockState(p_272757_).is(BlockTags.SNIFFER_DIGGABLE_BLOCK)
-             && this.getExploredPositions().noneMatch(p_352807_ -> GlobalPos.of(this.level().dimension(), p_272757_).equals(p_352807_))
-             && Optional.ofNullable(this.getNavigation().createPath(p_272757_, 1)).map(Path::canReach).orElse(false);
 @@ -299,7 +_,7 @@
                  if (this.tickCount % 10 == 0) {
                      this.level()
@@ -45,20 +9,3 @@
                          );
                  }
              }
-@@ -312,14 +_,14 @@
-         return this;
-     }
- 
--    public Sniffer storeExploredPosition(BlockPos p_273015_) {
-+    private Sniffer storeExploredPosition(BlockPos p_273015_) {
-         List<GlobalPos> list = this.getExploredPositions().limit(20L).collect(Collectors.toList());
-         list.add(0, GlobalPos.of(this.level().dimension(), p_273015_));
-         this.getBrain().setMemory(MemoryModuleType.SNIFFER_EXPLORED_POSITIONS, list);
-         return this;
-     }
- 
--    public Stream<GlobalPos> getExploredPositions() {
-+    private Stream<GlobalPos> getExploredPositions() {
-         return this.getBrain().getMemory(MemoryModuleType.SNIFFER_EXPLORED_POSITIONS).stream().flatMap(Collection::stream);
-     }
- 

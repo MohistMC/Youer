@@ -1,39 +1,16 @@
 --- a/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
 +++ b/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
-@@ -31,17 +_,17 @@
- import net.minecraft.world.phys.Vec3;
+@@ -177,6 +_,13 @@
+         }
+     }
  
- public class FireworkRocketEntity extends Projectile implements ItemSupplier {
--    public static final EntityDataAccessor<ItemStack> DATA_ID_FIREWORKS_ITEM = SynchedEntityData.defineId(
-+    private static final EntityDataAccessor<ItemStack> DATA_ID_FIREWORKS_ITEM = SynchedEntityData.defineId(
-         FireworkRocketEntity.class, EntityDataSerializers.ITEM_STACK
-     );
-     private static final EntityDataAccessor<OptionalInt> DATA_ATTACHED_TO_TARGET = SynchedEntityData.defineId(
-         FireworkRocketEntity.class, EntityDataSerializers.OPTIONAL_UNSIGNED_INT
-     );
--    public static final EntityDataAccessor<Boolean> DATA_SHOT_AT_ANGLE = SynchedEntityData.defineId(FireworkRocketEntity.class, EntityDataSerializers.BOOLEAN);
--    public int life;
--    public int lifetime;
-+    private static final EntityDataAccessor<Boolean> DATA_SHOT_AT_ANGLE = SynchedEntityData.defineId(FireworkRocketEntity.class, EntityDataSerializers.BOOLEAN);
-+    private int life;
-+    private int lifetime;
-     @Nullable
--    public LivingEntity attachedToEntity;
-+    private LivingEntity attachedToEntity;
- 
-     public FireworkRocketEntity(EntityType<? extends FireworkRocketEntity> p_37027_, Level p_37028_) {
-         super(p_37027_, p_37028_);
-@@ -174,6 +_,13 @@
- 
-         if (!this.level().isClientSide && this.life > this.lifetime) {
-             this.explode();
-+        }
-+    }
-+
 +    @Override
 +    protected void onHit(HitResult result) {
 +        if (result.getType() == HitResult.Type.MISS || !net.neoforged.neoforge.event.EventHooks.onProjectileImpact(this, result)) {
 +            super.onHit(result);
-         }
-     }
- 
++        }
++    }
++
+     private void explode() {
+         this.level().broadcastEntityEvent(this, (byte)17);
+         this.gameEvent(GameEvent.EXPLODE, this.getOwner());
