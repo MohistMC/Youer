@@ -1,0 +1,10 @@
+/*
+ * Copyright (c) CraftBukkit/NeoForged and contributors
+ */
+
+package org.bukkit.entity;
+
+/**
+ * Represents a snowball.
+ */
+public interface Snowball extends ThrowableProjectile {}
