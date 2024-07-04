@@ -1,5 +1,14 @@
 --- a/net/minecraft/server/dedicated/DedicatedServerProperties.java
 +++ b/net/minecraft/server/dedicated/DedicatedServerProperties.java
+@@ -18,6 +_,8 @@
+ import java.util.concurrent.TimeUnit;
+ import java.util.regex.Pattern;
+ import javax.annotation.Nullable;
++
++import joptsimple.OptionSet;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.Registry;
+ import net.minecraft.core.RegistryAccess;
 @@ -45,7 +_,7 @@
      static final Logger LOGGER = LogUtils.getLogger();
      private static final Pattern SHA1 = Pattern.compile("^[a-fA-F0-9]{40}$");
@@ -9,3 +18,32 @@
      public final boolean preventProxyConnections = this.get("prevent-proxy-connections", false);
      public final String serverIp = this.get("server-ip", "");
      public final boolean spawnAnimals = this.get("spawn-animals", true);
+@@ -103,6 +_,7 @@
+     private final DedicatedServerProperties.WorldDimensionData worldDimensionData;
+     public final WorldOptions worldOptions;
+     public boolean acceptsTransfers = this.get("accepts-transfers", false);
++    public final boolean debug = this.get("debug", false); // CraftBukkit
+ 
+     public DedicatedServerProperties(Properties p_180926_) {
+         super(p_180926_);
+@@ -128,8 +_,20 @@
+         );
+     }
+ 
++    public DedicatedServerProperties(Properties properties, OptionSet optionset) {
++        this(properties);
++    }
++
+     public static DedicatedServerProperties fromFile(Path p_180930_) {
+         return new DedicatedServerProperties(loadFromFile(p_180930_));
++    }
++
++    public static DedicatedServerProperties fromFile(Path path, OptionSet optionset) {
++        return new DedicatedServerProperties(loadFromFile(path), optionset);
++    }
++
++    protected DedicatedServerProperties reload(RegistryAccess iregistrycustom, Properties properties, OptionSet optionset) {
++        return new DedicatedServerProperties(properties, optionset);
+     }
+ 
+     protected DedicatedServerProperties reload(RegistryAccess p_139761_, Properties p_139762_) {
