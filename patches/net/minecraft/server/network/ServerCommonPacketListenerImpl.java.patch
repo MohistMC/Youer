@@ -1,6 +1,44 @@
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -42,6 +_,10 @@
+@@ -8,6 +_,7 @@
+ import net.minecraft.ReportedException;
+ import net.minecraft.Util;
+ import net.minecraft.network.Connection;
++import net.minecraft.network.ConnectionProtocol;
+ import net.minecraft.network.DisconnectionDetails;
+ import net.minecraft.network.PacketSendListener;
+ import net.minecraft.network.chat.Component;
+@@ -23,10 +_,28 @@
+ import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ClientInformation;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.util.VisibleForDebug;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
+ import org.slf4j.Logger;
+ 
+-public abstract class ServerCommonPacketListenerImpl implements ServerCommonPacketListener {
++public abstract class ServerCommonPacketListenerImpl implements ServerCommonPacketListener, CraftPlayer.TransferCookieConnection {
++
++    @Override
++    public boolean isTransferred() {
++        return this.transferred;
++    }
++
++    @Override
++    public ConnectionProtocol getProtocol() {
++        return protocol();
++    }
++
++    @Override
++    public void sendPacket(Packet<?> packet) {
++        send(packet);
++    }
++
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public static final int LATENCY_CHECK_INTERVAL = 15000;
+     private static final int CLOSED_LISTENER_TIMEOUT = 15000;
+@@ -42,6 +_,19 @@
      private boolean closed = false;
      private int latency;
      private volatile boolean suspendFlushingOnServerThread = false;
@@ -8,6 +46,15 @@
 +     * Holds the current connection type, based on the types of payloads that have been received so far.
 +     */
 +    protected net.neoforged.neoforge.network.connection.ConnectionType connectionType;
++    protected ServerPlayer player;
++    protected org.bukkit.craftbukkit.CraftServer cserver;
++    public boolean processedDisconnect;
++
++    public CraftPlayer getCraftPlayer() {
++        //return (this.player == null) ? null : (CraftPlayer) this.player.getBukkitEntity();
++        // CraftBukkit end
++        return null;
++    }
  
      public ServerCommonPacketListenerImpl(MinecraftServer p_295057_, Connection p_294822_, CommonListenerCookie p_301980_) {
          this.server = p_295057_;

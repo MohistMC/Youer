@@ -1,0 +1,28 @@
+--- a/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
+@@ -12,10 +_,17 @@
+ import net.minecraft.network.protocol.status.StatusProtocols;
+ import net.minecraft.server.MinecraftServer;
+ 
++import java.net.InetAddress;
++import java.util.HashMap;
++
+ public class ServerHandshakePacketListenerImpl implements ServerHandshakePacketListener {
+     private static final Component IGNORE_STATUS_REASON = Component.translatable("disconnect.ignoring_status_request");
+     private final MinecraftServer server;
+     private final Connection connection;
++    // CraftBukkit start - add fields
++    private static final HashMap<InetAddress, Long> throttleTracker = new HashMap<InetAddress, Long>();
++    private static int throttleCounter = 0;
++    // CraftBukkit end
+ 
+     public ServerHandshakePacketListenerImpl(MinecraftServer p_9969_, Connection p_9970_) {
+         this.server = p_9969_;
+@@ -24,6 +_,7 @@
+ 
+     @Override
+     public void handleIntention(ClientIntentionPacket p_9975_) {
++        this.connection.hostname = p_9975_.hostName() + ":" + p_9975_.port(); // CraftBukkit  - set hostname
+         switch (p_9975_.intention()) {
+             case LOGIN:
+                 this.beginLogin(p_9975_, false);

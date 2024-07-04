@@ -1,5 +1,31 @@
 --- a/net/minecraft/server/rcon/RconConsoleSource.java
 +++ b/net/minecraft/server/rcon/RconConsoleSource.java
+@@ -7,14 +_,25 @@
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.phys.Vec2;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.command.CraftRemoteConsoleCommandSender;
++
++import java.net.SocketAddress;
+ 
+ public class RconConsoleSource implements CommandSource {
+     private static final String RCON = "Rcon";
+     private static final Component RCON_COMPONENT = Component.literal("Rcon");
+     private final StringBuffer buffer = new StringBuffer();
+     private final MinecraftServer server;
++    public final SocketAddress socketAddress;
++    private final CraftRemoteConsoleCommandSender remoteConsole = new CraftRemoteConsoleCommandSender(this);
++
++    public RconConsoleSource(MinecraftServer p_11505_, SocketAddress socketAddress) {
++        this.socketAddress = socketAddress;
++        this.server = p_11505_;
++    }
+ 
+     public RconConsoleSource(MinecraftServer p_11505_) {
++        this.socketAddress = null;
+         this.server = p_11505_;
+     }
+ 
 @@ -35,7 +_,7 @@
  
      @Override
@@ -9,3 +35,18 @@
      }
  
      @Override
+@@ -51,5 +_,14 @@
+     @Override
+     public boolean shouldInformAdmins() {
+         return this.server.shouldRconBroadcast();
++    }
++
++    public void sendMessage(String message) {
++        this.buffer.append(message);
++    }
++
++    @Override
++    public org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper) {
++        return this.remoteConsole;
+     }
+ }

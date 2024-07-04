@@ -1,5 +1,36 @@
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -184,6 +_,8 @@
+ import net.minecraft.world.phys.shapes.BooleanOp;
+ import net.minecraft.world.phys.shapes.Shapes;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.Location;
++import org.bukkit.event.player.PlayerTeleportEvent;
+ import org.slf4j.Logger;
+ 
+ public class ServerGamePacketListenerImpl
+@@ -235,6 +_,21 @@
+     private final MessageSignatureCache messageSignatureCache = MessageSignatureCache.createDefault();
+     private final FutureChain chatMessageChain;
+     private boolean waitingForSwitchToConfig;
++    // CraftBukkit start - add fields and methods
++    private int lastTick = MinecraftServer.currentTick;
++    private int allowedPlayerTicks = 1;
++    private int lastDropTick = MinecraftServer.currentTick;
++    private int lastBookTick  = MinecraftServer.currentTick;
++    private int dropCount = 0;
++
++    private boolean hasMoved = false;
++    private double lastPosX = Double.MAX_VALUE;
++    private double lastPosY = Double.MAX_VALUE;
++    private double lastPosZ = Double.MAX_VALUE;
++    private float lastPitch = Float.MAX_VALUE;
++    private float lastYaw = Float.MAX_VALUE;
++    private boolean justTeleported = false;
++    // CraftBukkit end
+ 
+     public ServerGamePacketListenerImpl(MinecraftServer p_9770_, Connection p_9771_, ServerPlayer p_9772_, CommonListenerCookie p_301978_) {
+         super(p_9770_, p_9771_, p_301978_);
 @@ -439,9 +_,11 @@
                  }
  
@@ -45,6 +76,36 @@
                                      && !this.player.hasEffect(MobEffects.LEVITATION)
                                      && !flag
                                      && !flag3
+@@ -1003,6 +_,29 @@
+         this.teleport(p_9775_, p_9776_, p_9777_, p_9778_, p_9779_, Collections.emptySet());
+     }
+ 
++    public boolean teleport(double d0, double d1, double d2, float f, float f1, PlayerTeleportEvent.TeleportCause cause) {
++        return false;
++    }
++
++    public boolean teleport(double d0, double d1, double d2, float f, float f1, Set<RelativeMovement> set, PlayerTeleportEvent.TeleportCause cause) { // CraftBukkit - Return event status
++        return false;
++    }
++
++    public void teleport(Location dest) {
++
++    }
++
++    private void internalTeleport(double d0, double d1, double d2, float f, float f1, Set<RelativeMovement> set) {
++    }
++
++    public void chat(String s, PlayerChatMessage original, boolean async) {
++
++    }
++
++    private void handleCommand(String s) {
++
++    }
++
+     public void teleport(double p_9781_, double p_9782_, double p_9783_, float p_9784_, float p_9785_, Set<RelativeMovement> p_9786_) {
+         double d0 = p_9786_.contains(RelativeMovement.X) ? this.player.getX() : 0.0;
+         double d1 = p_9786_.contains(RelativeMovement.Y) ? this.player.getY() : 0.0;
 @@ -1031,8 +_,10 @@
              case SWAP_ITEM_WITH_OFFHAND:
                  if (!this.player.isSpectator()) {
