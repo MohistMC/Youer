@@ -1,7 +1,15 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -128,7 +_,7 @@
+@@ -126,9 +_,15 @@
+ import net.minecraft.world.scores.PlayerTeam;
+ import net.minecraft.world.scores.ScoreHolder;
  import net.minecraft.world.scores.Team;
++import org.bukkit.Location;
++import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.entity.CraftEntity;
++import org.bukkit.craftbukkit.event.CraftPortalEvent;
++import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.player.PlayerTeleportEvent;
  import org.slf4j.Logger;
  
 -public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess, CommandSource, ScoreHolder {
@@ -28,6 +36,63 @@
      private final Set<TagKey<Fluid>> fluidOnEyes = new HashSet<>();
      public int invulnerableTime;
      protected boolean firstTick = true;
+@@ -243,6 +_,56 @@
+     public boolean hasVisualFire;
+     @Nullable
+     private BlockState inBlockState = null;
++    // CraftBukkit start
++    private static final int CURRENT_LEVEL = 2;
++    static boolean isLevelAtLeast(CompoundTag tag, int level) {
++        return tag.contains("Bukkit.updateLevel") && tag.getInt("Bukkit.updateLevel") >= level;
++    }
++
++    private CraftEntity bukkitEntity;
++
++    public CraftEntity getBukkitEntity() {
++        if (bukkitEntity == null) {
++            bukkitEntity = CraftEntity.getEntity(level.getCraftServer(), this);
++        }
++        return bukkitEntity;
++    }
++
++    @Override
++    public CommandSender getBukkitSender(CommandSourceStack wrapper) {
++        return getBukkitEntity();
++    }
++
++    // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
++    public int getDefaultMaxAirSupply() {
++        return TOTAL_AIR_SUPPLY;
++    }
++    // CraftBukkit end
++
++    // CraftBukkit start
++    public boolean forceDrops;
++    public boolean persist = true;
++    public boolean visibleByDefault = true;
++    public boolean valid;
++    public boolean inWorld = false;
++    public boolean generation;
++    public int maxAirTicks = getDefaultMaxAirSupply(); // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
++    public org.bukkit.projectiles.ProjectileSource projectileSource; // For projectiles only
++    public boolean lastDamageCancelled; // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Keep track if the event was canceled
++    public boolean persistentInvisibility = false;
++    public BlockPos lastLavaContact;
++    // Marks an entity, that it was removed by a plugin via Entity#remove
++    // Main use case currently is for SPIGOT-7487, preventing dropping of leash when leash is removed
++    public boolean pluginRemoved = false;
++
++    public float getBukkitYaw() {
++        return this.yRot;
++    }
++
++    public boolean isChunkLoaded() {
++        return level.hasChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4);
++    }
++    // CraftBukkit end
+ 
+     public Entity(EntityType<?> p_19870_, Level p_19871_) {
+         this.type = p_19870_;
 @@ -263,7 +_,10 @@
          this.defineSynchedData(synchedentitydata$builder);
          this.entityData = synchedentitydata$builder.build();
@@ -39,6 +104,83 @@
      }
  
      public boolean isColliding(BlockPos p_20040_, BlockState p_20041_) {
+@@ -333,6 +_,76 @@
+         this.remove(Entity.RemovalReason.DISCARDED);
+     }
+ 
++    public final void discard(EntityRemoveEvent.Cause cause) {
++
++    }
++
++    // CraftBukkit start
++    public void refreshEntityData(ServerPlayer to) {
++
++    }
++    // CraftBukkit end
++
++    public void remove(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
++
++    }
++
++    public void postTick() {
++
++    }
++
++    public final void igniteForSeconds(float f, boolean callEvent) {
++
++    }
++
++    // CraftBukkit start - Add delegate methods
++    public SoundEvent getSwimSound0() {
++        return getSwimSound();
++    }
++
++    public SoundEvent getSwimSplashSound0() {
++        return getSwimSplashSound();
++    }
++
++    public SoundEvent getSwimHighSpeedSplashSound0() {
++        return getSwimHighSpeedSplashSound();
++    }
++    // CraftBukkit end
++
++    // CraftBukkit start - collidable API
++    public boolean canCollideWithBukkit(Entity entity) {
++        return isPushable();
++    }
++    // CraftBukkit end
++
++    public boolean saveAsPassenger(CompoundTag nbttagcompound, boolean includeAll) {
++        return includeAll;
++    }
++
++    public CompoundTag saveWithoutId(CompoundTag nbttagcompound, boolean includeAll) {
++        return nbttagcompound;
++    }
++
++    protected void addAdditionalSaveData(CompoundTag nbttagcompound, boolean includeAll) {
++
++    }
++
++    protected boolean bukkit$removePassenger(Entity entity) { // CraftBukkit
++        return false;
++    }
++
++    public CraftPortalEvent callPortalEvent(Entity entity, Location exit, PlayerTeleportEvent.TeleportCause cause, int searchRadius, int creationRadius) {
++        return null;
++    }
++
++    public boolean teleportTo(ServerLevel worldserver, double d0, double d1, double d2, Set<RelativeMovement> set, float f, float f1, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
++        return false;
++    }
++
++    public final void setRemoved(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
++
++    }
++
+     protected abstract void defineSynchedData(SynchedEntityData.Builder p_326003_);
+ 
+     public SynchedEntityData getEntityData() {
 @@ -467,7 +_,7 @@
  
          if (this.isInLava()) {
