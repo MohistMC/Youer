@@ -1,5 +1,29 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -121,12 +_,7 @@
+ import net.minecraft.world.entity.projectile.AbstractArrow;
+ import net.minecraft.world.entity.vehicle.AbstractMinecart;
+ import net.minecraft.world.entity.vehicle.Boat;
+-import net.minecraft.world.inventory.AbstractContainerMenu;
+-import net.minecraft.world.inventory.ContainerListener;
+-import net.minecraft.world.inventory.ContainerSynchronizer;
+-import net.minecraft.world.inventory.HorseInventoryMenu;
+-import net.minecraft.world.inventory.ResultSlot;
+-import net.minecraft.world.inventory.Slot;
++import net.minecraft.world.inventory.*;
+ import net.minecraft.world.item.ComplexItem;
+ import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemCooldowns;
+@@ -160,6 +_,9 @@
+ import net.minecraft.world.scores.ScoreHolder;
+ import net.minecraft.world.scores.Team;
+ import net.minecraft.world.scores.criteria.ObjectiveCriteria;
++import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
+ import org.slf4j.Logger;
+ 
+ public class ServerPlayer extends Player {
 @@ -252,6 +_,10 @@
          }
  
@@ -11,6 +35,110 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(p_143455_.containerId, p_143456_, p_143457_));
          }
      };
+@@ -276,6 +_,21 @@
+     public final Object object;
+     private int containerCounter;
+     public boolean wonGame;
++    // CraftBukkit start
++    public CraftPlayer.TransferCookieConnection transferCookieConnection;
++    public String displayName;
++    public Component listName;
++    public org.bukkit.Location compassTarget;
++    public int newExp = 0;
++    public int newLevel = 0;
++    public int newTotalExp = 0;
++    public boolean keepLevel = false;
++    public double maxHealthCache;
++    public boolean joining = true;
++    public boolean sentListPacket = false;
++    public String kickLeaveMessage = null; // SPIGOT-3034: Forward leave message to PlayerQuitEvent
++    // CraftBukkit end
++
+ 
+     public ServerPlayer(MinecraftServer p_254143_, ServerLevel p_254435_, GameProfile p_253651_, ClientInformation p_301997_) {
+         super(p_254435_, p_254435_.getSharedSpawnPos(), p_254435_.getSharedSpawnAngle(), p_253651_);
+@@ -289,6 +_,81 @@
+         this.object = null;
+     }
+ 
++    // Use method to resend items in hands in case of client desync, because the item use got cancelled.
++    // For example, when cancelling the leash event
++    public void resendItemInHands() {
++        containerMenu.findSlot(getInventory(), getInventory().selected).ifPresent(s -> {
++            containerSynchronizer.sendSlotChange(containerMenu, s, getMainHandItem());
++        });
++        containerSynchronizer.sendSlotChange(inventoryMenu, InventoryMenu.SHIELD_SLOT, getOffhandItem());
++    }
++
++    // Yes, this doesn't match Vanilla, but it's the best we can do for now.
++    // If this is an issue, PRs are welcome
++    public final BlockPos getSpawnPoint(ServerLevel worldserver) {
++        BlockPos blockposition = worldserver.getSharedSpawnPos();
++
++        if (worldserver.dimensionType().hasSkyLight() && worldserver.serverLevelData.getGameType() != GameType.ADVENTURE) {
++            int i = Math.max(0, this.server.getSpawnRadius(worldserver));
++            int j = Mth.floor(worldserver.getWorldBorder().getDistanceToBorder((double) blockposition.getX(), (double) blockposition.getZ()));
++
++            if (j < i) {
++                i = j;
++            }
++
++            if (j <= 1) {
++                i = 1;
++            }
++
++            long k = (long) (i * 2 + 1);
++            long l = k * k;
++            int i1 = l > 2147483647L ? Integer.MAX_VALUE : (int) l;
++            int j1 = this.getCoprime(i1);
++            int k1 = RandomSource.create().nextInt(i1);
++
++            for (int l1 = 0; l1 < i1; ++l1) {
++                int i2 = (k1 + j1 * l1) % i1;
++                int j2 = i2 % (i * 2 + 1);
++                int k2 = i2 / (i * 2 + 1);
++                BlockPos blockposition1 = PlayerRespawnLogic.getOverworldRespawnPos(worldserver, blockposition.getX() + j2 - i, blockposition.getZ() + k2 - i);
++
++                if (blockposition1 != null) {
++                    return blockposition1;
++                }
++            }
++        }
++
++        return blockposition;
++    }
++    // CraftBukkit end
++
++    // CraftBukkit start - World fallback code, either respawn location or global spawn
++    public void spawnIn(Level world) {
++        this.setLevel(world);
++        if (world == null) {
++            this.unsetRemoved();
++            Vec3 position = null;
++            if (this.respawnDimension != null) {
++                world = this.server.getLevel(this.respawnDimension);
++                if (world != null && this.getRespawnPosition() != null) {
++                    position = ServerPlayer.findRespawnAndUseSpawnBlock((ServerLevel) world, this.getRespawnPosition(), this.getRespawnAngle(), false, false).map(ServerPlayer.RespawnPosAngle::position).orElse(null);
++                }
++            }
++            if (world == null || position == null) {
++                world = ((CraftWorld) Bukkit.getServer().getWorlds().get(0)).getHandle();
++                position = Vec3.atCenterOf(world.getSharedSpawnPos());
++            }
++            this.setLevel(world);
++            this.setPos(position);
++        }
++        this.gameMode.setLevel((ServerLevel) world);
++    }
++    // CraftBukkit end
++
++    public int nextContainerCounterInt() { // CraftBukkit - void -> int
++        return containerCounter; // CraftBukkit
++    }
++
+     @Override
+     public BlockPos adjustSpawnLocation(ServerLevel p_352206_, BlockPos p_352202_) {
+         AABB aabb = this.getDimensions(Pose.STANDING).makeBoundingBox(Vec3.ZERO);
 @@ -606,6 +_,11 @@
                  this.connection.send(new ClientboundSetExperiencePacket(this.experienceProgress, this.totalExperience, this.experienceLevel));
              }
