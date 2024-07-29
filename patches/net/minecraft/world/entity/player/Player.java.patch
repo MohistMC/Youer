@@ -1,7 +1,22 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -113,7 +_,8 @@
+@@ -11,6 +_,8 @@
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.OptionalInt;
++import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.Predicate;
+ import javax.annotation.Nonnull;
+ import javax.annotation.Nullable;
+@@ -111,9 +_,14 @@
+ import net.minecraft.world.scores.PlayerTeam;
+ import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityExhaustionEvent;
++import org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason;
  import org.slf4j.Logger;
  
 -public abstract class Player extends LivingEntity {
@@ -10,13 +25,23 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final HumanoidArm DEFAULT_MAIN_HAND = HumanoidArm.RIGHT;
      public static final int DEFAULT_MODEL_CUSTOMIZATION = 0;
-@@ -193,6 +_,9 @@
+@@ -193,6 +_,19 @@
      public Entity currentExplosionCause;
      private boolean ignoreFallDamageFromCurrentImpulse;
      private int currentImpulseContextResetGraceTime;
 +    private final java.util.Collection<MutableComponent> prefixes = new java.util.LinkedList<>();
 +    private final java.util.Collection<MutableComponent> suffixes = new java.util.LinkedList<>();
 +    @Nullable private Pose forcedPose;
++
++    // CraftBukkit start
++    public boolean fauxSleeping;
++    public int oldLevel = -1;
++
++    @Override
++    public CraftHumanEntity getBukkitEntity() {
++        return (CraftHumanEntity) super.getBukkitEntity();
++    }
++    // CraftBukkit end
  
      public Player(Level p_250508_, BlockPos p_250289_, float p_251702_, GameProfile p_252153_) {
          super(EntityType.PLAYER, p_250508_);
@@ -319,6 +344,19 @@
          this.stopUsingItem();
          this.level().broadcastEntityEvent(this, (byte)30);
      }
+@@ -1384,6 +_,12 @@
+         return this.containerMenu != this.inventoryMenu;
+     }
+ 
++    protected AtomicBoolean startSleepInBed_force = new AtomicBoolean(false);
++    public Player forceSleepInBed(boolean force) {
++        startSleepInBed_force.set(force);
++        return this;
++    }
++
+     public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos p_36203_) {
+         this.startSleeping(p_36203_);
+         this.sleepCounter = 0;
 @@ -1391,6 +_,7 @@
      }
  
@@ -393,6 +431,39 @@
          this.experienceLevel += p_36276_;
          if (this.experienceLevel < 0) {
              this.experienceLevel = 0;
+@@ -1662,12 +_,32 @@
+     }
+ 
+     public void causeFoodExhaustion(float p_36400_) {
++        // CraftBukkit end
+         if (!this.abilities.invulnerable) {
+             if (!this.level().isClientSide) {
+                 this.foodData.addExhaustion(p_36400_);
++                // CraftBukkit start
++                EntityExhaustionEvent event = CraftEventFactory.callPlayerExhaustionEvent(this, reason.getAndSet(EntityExhaustionEvent.ExhaustionReason.UNKNOWN), p_36400_);
++                if (!event.isCancelled()) {
++                      this.foodData.addExhaustion(event.getExhaustion());
++                }
++                // CraftBukkit end
+             }
+         }
+     }
++
++    // Mohist start
++    // CraftBukkit start
++    private AtomicReference<ExhaustionReason> reason = new AtomicReference<>(EntityExhaustionEvent.ExhaustionReason.UNKNOWN);
++    public void exhaustionReason(EntityExhaustionEvent.ExhaustionReason exhaustionReason) {
++        reason.set(exhaustionReason);
++    }
++    public void causeFoodExhaustion(float f, EntityExhaustionEvent.ExhaustionReason reason) {
++        this.exhaustionReason(reason);
++        causeFoodExhaustion(f);
++    }
++    // CraftBukkit end
++    // Mohist end
+ 
+     public Optional<WardenSpawnTracker> getWardenSpawnTracker() {
+         return Optional.empty();
 @@ -1847,7 +_,11 @@
  
      @Override

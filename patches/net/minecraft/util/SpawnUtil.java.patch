@@ -1,11 +1,45 @@
 --- a/net/minecraft/util/SpawnUtil.java
 +++ b/net/minecraft/util/SpawnUtil.java
-@@ -35,7 +_,7 @@
+@@ -1,6 +_,7 @@
+ package net.minecraft.util;
+ 
+ import java.util.Optional;
++import java.util.concurrent.atomic.AtomicReference;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -13,8 +_,23 @@
+ import net.minecraft.world.level.block.StainedGlassBlock;
+ import net.minecraft.world.level.block.StainedGlassPaneBlock;
+ import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+ 
+ public class SpawnUtil {
++
++    // Mohist start
++    private static final AtomicReference<SpawnReason> trySpawnMob$reason = new AtomicReference<>(SpawnReason.DEFAULT);
++
++    public static void trySpawnMob$reason(SpawnReason reason) {
++        trySpawnMob$reason.set(reason);
++    }
++
++    public static <T extends Mob> Optional<T> trySpawnMob(EntityType<T> pEntityType, MobSpawnType pSpawnType, ServerLevel pLevel, BlockPos pPos, int pAttempts, int p_216409_, int pYOffset, SpawnUtil.Strategy pStrategy, SpawnReason reason) {
++        trySpawnMob$reason(reason);
++        return trySpawnMob(pEntityType, pSpawnType, pLevel, pPos, pAttempts, p_216409_, pYOffset, pStrategy);
++    }
++    // Mohist end
++
+     public static <T extends Mob> Optional<T> trySpawnMob(
+         EntityType<T> p_216404_,
+         MobSpawnType p_216405_,
+@@ -35,8 +_,8 @@
                  && moveToPossibleSpawnPosition(p_216406_, p_216410_, blockpos$mutableblockpos, p_216411_)) {
                  T t = (T)p_216404_.create(p_216406_, null, blockpos$mutableblockpos, p_216405_, false, false);
                  if (t != null) {
 -                    if (t.checkSpawnRules(p_216406_, p_216405_) && t.checkSpawnObstruction(p_216406_)) {
+-                        p_216406_.addFreshEntityWithPassengers(t);
 +                    if (net.neoforged.neoforge.event.EventHooks.checkSpawnPosition(t, p_216406_, p_216405_)) {
-                         p_216406_.addFreshEntityWithPassengers(t);
++                        p_216406_.addFreshEntityWithPassengers(t, trySpawnMob$reason.getAndSet(SpawnReason.DEFAULT));
                          return Optional.of(t);
                      }
+ 
