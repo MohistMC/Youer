@@ -1,7 +1,7 @@
 <div align="center">
-  <h1>MohistNeo 1.21</h1>
+  <h1>Youer 1.21.1</h1>
 
-### Minecraft NeoForge Hybrid server implementing the Spigot/Bukkit API, formerly known as Thermos/Cauldron/MCPC+
+### Minecraft NeoForge Hybrid server implementing the Spigot/Bukkit API
 
 [![](https://img.shields.io/jenkins/build?jobUrl=https%3A%2F%2Fci.codemc.io%2Fjob%2FMohistMC%2Fjob%2FMohist-1.20.1)](https://ci.codemc.io/job/MohistMC/job/Mohist-1.20.1)
 [![](https://img.shields.io/github/stars/MohistMC/Mohist.svg?label=Stars&logo=github)](https://github.com/MohistMC/Mohist/stargazers)
@@ -18,7 +18,7 @@
 Progress
 ------
 
-- [x] Rectify NeoForge([**0e7ecfce**](https://github.com/neoforged/NeoForge/commit/0e7ecfce))
+- [x] Rectify NeoForge([**4c6f3a4418**](https://github.com/neoforged/NeoForge/commit/4c6f3a4418))
 - [ ] Start patch
  * [x] Bukkit([**69fa4695**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/bukkit/commits/69fa4695))
  * [ ] CraftBukkit([**661afb43c**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/661afb43c))
