@@ -18,7 +18,7 @@
 Progress
 ------
 
-- [x] Rectify NeoForge([**4c6f3a4418**](https://github.com/neoforged/NeoForge/commit/4c6f3a4418))
+- [x] Rectify NeoForge([**bdda6d296d**](https://github.com/neoforged/NeoForge/commit/bdda6d296d))
 - [ ] Start patch
  * [x] Bukkit([**69fa4695**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/bukkit/commits/69fa4695))
  * [ ] CraftBukkit([**661afb43c**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/661afb43c))
