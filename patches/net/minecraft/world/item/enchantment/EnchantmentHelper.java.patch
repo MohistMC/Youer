@@ -20,8 +20,21 @@
          ItemEnchantments itemenchantments = p_44845_.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
          return itemenchantments.getLevel(p_346179_);
      }
-@@ -122,6 +_,12 @@
-     private static void runIterationOnItem(ItemStack p_345425_, EnchantmentHelper.EnchantmentVisitor p_345023_) {
+@@ -78,7 +_,7 @@
+         return p_330538_.getOrDefault(getComponentType(p_330538_), ItemEnchantments.EMPTY);
+     }
+ 
+-    private static DataComponentType<ItemEnchantments> getComponentType(ItemStack p_331909_) {
++    public static DataComponentType<ItemEnchantments> getComponentType(ItemStack p_331909_) {
+         return p_331909_.is(Items.ENCHANTED_BOOK) ? DataComponents.STORED_ENCHANTMENTS : DataComponents.ENCHANTMENTS;
+     }
+ 
+@@ -119,19 +_,29 @@
+         }
+     }
+ 
+-    private static void runIterationOnItem(ItemStack p_345425_, EnchantmentHelper.EnchantmentVisitor p_345023_) {
++    public static void runIterationOnItem(ItemStack p_345425_, EnchantmentHelper.EnchantmentVisitor p_345023_) {
          ItemEnchantments itemenchantments = p_345425_.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
  
 +        // Neo: Respect gameplay-only enchantments when doing iterations
@@ -33,7 +46,11 @@
          for (Entry<Holder<Enchantment>> entry : itemenchantments.entrySet()) {
              p_345023_.accept(entry.getKey(), entry.getIntValue());
          }
-@@ -132,6 +_,10 @@
+     }
+ 
+-    private static void runIterationOnItem(
++    public static void runIterationOnItem(
+         ItemStack p_44852_, EquipmentSlot p_345566_, LivingEntity p_345792_, EnchantmentHelper.EnchantmentInSlotVisitor p_345683_
      ) {
          if (!p_44852_.isEmpty()) {
              ItemEnchantments itemenchantments = p_44852_.get(DataComponents.ENCHANTMENTS);
@@ -44,6 +61,15 @@
              if (itemenchantments != null && !itemenchantments.isEmpty()) {
                  EnchantedItemInUse enchantediteminuse = new EnchantedItemInUse(p_44852_, p_345566_, p_345792_);
  
+@@ -145,7 +_,7 @@
+         }
+     }
+ 
+-    private static void runIterationOnEquipment(LivingEntity p_344744_, EnchantmentHelper.EnchantmentInSlotVisitor p_345709_) {
++    public static void runIterationOnEquipment(LivingEntity p_344744_, EnchantmentHelper.EnchantmentInSlotVisitor p_345709_) {
+         for (EquipmentSlot equipmentslot : EquipmentSlot.values()) {
+             runIterationOnItem(p_344744_.getItemBySlot(equipmentslot), equipmentslot, p_344744_, p_345709_);
+         }
 @@ -417,6 +_,12 @@
      public static boolean hasTag(ItemStack p_345665_, TagKey<Enchantment> p_345928_) {
          ItemEnchantments itemenchantments = p_345665_.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
@@ -86,3 +112,18 @@
              Enchantment enchantment = p_344478_.value();
  
              for (int i = enchantment.getMaxLevel(); i >= enchantment.getMinLevel(); i--) {
+@@ -598,12 +_,12 @@
+     }
+ 
+     @FunctionalInterface
+-    interface EnchantmentInSlotVisitor {
++    public interface EnchantmentInSlotVisitor {
+         void accept(Holder<Enchantment> p_346326_, int p_346009_, EnchantedItemInUse p_345960_);
+     }
+ 
+     @FunctionalInterface
+-    interface EnchantmentVisitor {
++    public interface EnchantmentVisitor {
+         void accept(Holder<Enchantment> p_346050_, int p_44946_);
+     }
+ }

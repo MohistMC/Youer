@@ -1,0 +1,64 @@
+--- a/net/minecraft/commands/arguments/ScoreHolderArgument.java
++++ b/net/minecraft/commands/arguments/ScoreHolderArgument.java
+@@ -30,10 +_,10 @@
+ import net.minecraft.world.scores.ScoreHolder;
+ 
+ public class ScoreHolderArgument implements ArgumentType<ScoreHolderArgument.Result> {
+-    public static final SuggestionProvider<CommandSourceStack> SUGGEST_SCORE_HOLDERS = (p_353117_, p_353118_) -> {
+-        StringReader stringreader = new StringReader(p_353118_.getInput());
+-        stringreader.setCursor(p_353118_.getStart());
+-        EntitySelectorParser entityselectorparser = new EntitySelectorParser(stringreader, EntitySelectorParser.allowSelectors(p_353117_.getSource()));
++    public static final SuggestionProvider<CommandSourceStack> SUGGEST_SCORE_HOLDERS = (p_108221_, p_108222_) -> {
++        StringReader stringreader = new StringReader(p_108222_.getInput());
++        stringreader.setCursor(p_108222_.getStart());
++        EntitySelectorParser entityselectorparser = new EntitySelectorParser(stringreader);
+ 
+         try {
+             entityselectorparser.parse();
+@@ -41,7 +_,7 @@
+         }
+ 
+         return entityselectorparser.fillSuggestions(
+-            p_353118_, p_171606_ -> SharedSuggestionProvider.suggest(p_353117_.getSource().getOnlinePlayerNames(), p_171606_)
++            p_108222_, p_171606_ -> SharedSuggestionProvider.suggest(p_108221_.getSource().getOnlinePlayerNames(), p_171606_)
+         );
+     };
+     private static final Collection<String> EXAMPLES = Arrays.asList("Player", "0123", "*", "@e");
+@@ -82,30 +_,22 @@
+     }
+ 
+     public ScoreHolderArgument.Result parse(StringReader p_108219_) throws CommandSyntaxException {
+-        return this.parse(p_108219_, true);
+-    }
+-
+-    public <S> ScoreHolderArgument.Result parse(StringReader p_353125_, S p_353126_) throws CommandSyntaxException {
+-        return this.parse(p_353125_, EntitySelectorParser.allowSelectors(p_353126_));
+-    }
+-
+-    private ScoreHolderArgument.Result parse(StringReader p_353140_, boolean p_353127_) throws CommandSyntaxException {
+-        if (p_353140_.canRead() && p_353140_.peek() == '@') {
+-            EntitySelectorParser entityselectorparser = new EntitySelectorParser(p_353140_, p_353127_);
++        if (p_108219_.canRead() && p_108219_.peek() == '@') {
++            EntitySelectorParser entityselectorparser = new EntitySelectorParser(p_108219_);
+             EntitySelector entityselector = entityselectorparser.parse();
+             if (!this.multiple && entityselector.getMaxResults() > 1) {
+-                throw EntityArgument.ERROR_NOT_SINGLE_ENTITY.createWithContext(p_353140_);
++                throw EntityArgument.ERROR_NOT_SINGLE_ENTITY.createWithContext(p_108219_);
+             } else {
+                 return new ScoreHolderArgument.SelectorResult(entityselector);
+             }
+         } else {
+-            int i = p_353140_.getCursor();
++            int i = p_108219_.getCursor();
+ 
+-            while (p_353140_.canRead() && p_353140_.peek() != ' ') {
+-                p_353140_.skip();
++            while (p_108219_.canRead() && p_108219_.peek() != ' ') {
++                p_108219_.skip();
+             }
+ 
+-            String s = p_353140_.getString().substring(i, p_353140_.getCursor());
++            String s = p_108219_.getString().substring(i, p_108219_.getCursor());
+             if (s.equals("*")) {
+                 return (p_108231_, p_108232_) -> {
+                     Collection<ScoreHolder> collection = p_108232_.get();

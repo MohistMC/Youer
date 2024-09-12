@@ -1,16 +1,120 @@
 --- a/net/minecraft/world/item/enchantment/Enchantment.java
 +++ b/net/minecraft/world/item/enchantment/Enchantment.java
-@@ -132,6 +_,10 @@
+@@ -124,6 +_,10 @@
+         return map;
+     }
+ 
++    /**
++     * @deprecated Neo: Use {@link ItemStack#supportsEnchantment(Holder)}
++     */
++    @Deprecated
+     public HolderSet<Item> getSupportedItems() {
+         return this.definition.supportedItems();
+     }
+@@ -132,10 +_,20 @@
          return this.definition.slots().stream().anyMatch(p_345027_ -> p_345027_.test(p_345146_));
      }
  
 +    /**
 +     * @deprecated Neo: Use {@link ItemStack#isPrimaryItemFor(Holder)}
++     *
++     * This method does not respect {@link ItemStack#supportsEnchantment(Holder)} since the {@link Holder} is not available, which makes the result of calling it invalid.
 +     */
 +    @Deprecated
      public boolean isPrimaryItem(ItemStack p_336088_) {
          return this.isSupportedItem(p_336088_) && (this.definition.primaryItems.isEmpty() || p_336088_.is(this.definition.primaryItems.get()));
      }
+ 
++    /**
++     * @deprecated Neo: Use {@link ItemStack#supportsEnchantment(Holder)}
++     */
++    @Deprecated
+     public boolean isSupportedItem(ItemStack p_344865_) {
+         return p_344865_.is(this.definition.supportedItems);
+     }
+@@ -188,6 +_,10 @@
+         return mutablecomponent;
+     }
+ 
++    /**
++     * @deprecated Neo: Use {@link ItemStack#supportsEnchantment(Holder)}
++     */
++    @Deprecated
+     public boolean canEnchant(ItemStack p_44689_) {
+         return this.definition.supportedItems().contains(p_44689_.getItemHolder());
+     }
+@@ -355,7 +_,7 @@
+         );
+     }
+ 
+-    private void modifyItemFilteredCount(
++    public void modifyItemFilteredCount(
+         DataComponentType<List<ConditionalEffect<EnchantmentValueEffect>>> p_345794_,
+         ServerLevel p_345992_,
+         int p_345038_,
+@@ -369,7 +_,7 @@
+         );
+     }
+ 
+-    private void modifyEntityFilteredValue(
++    public void modifyEntityFilteredValue(
+         DataComponentType<List<ConditionalEffect<EnchantmentValueEffect>>> p_345986_,
+         ServerLevel p_345473_,
+         int p_345352_,
+@@ -384,7 +_,7 @@
+         );
+     }
+ 
+-    private void modifyDamageFilteredValue(
++    public void modifyDamageFilteredValue(
+         DataComponentType<List<ConditionalEffect<EnchantmentValueEffect>>> p_345367_,
+         ServerLevel p_345784_,
+         int p_344796_,
+@@ -412,7 +_,7 @@
+         return new LootContext.Builder(lootparams).create(Optional.empty());
+     }
+ 
+-    private static LootContext itemContext(ServerLevel p_345514_, int p_345186_, ItemStack p_344997_) {
++    public static LootContext itemContext(ServerLevel p_345514_, int p_345186_, ItemStack p_344997_) {
+         LootParams lootparams = new LootParams.Builder(p_345514_)
+             .withParameter(LootContextParams.TOOL, p_344997_)
+             .withParameter(LootContextParams.ENCHANTMENT_LEVEL, p_345186_)
+@@ -420,7 +_,7 @@
+         return new LootContext.Builder(lootparams).create(Optional.empty());
+     }
+ 
+-    private static LootContext locationContext(ServerLevel p_345134_, int p_346182_, Entity p_345416_, boolean p_345862_) {
++    public static LootContext locationContext(ServerLevel p_345134_, int p_346182_, Entity p_345416_, boolean p_345862_) {
+         LootParams lootparams = new LootParams.Builder(p_345134_)
+             .withParameter(LootContextParams.THIS_ENTITY, p_345416_)
+             .withParameter(LootContextParams.ENCHANTMENT_LEVEL, p_346182_)
+@@ -430,7 +_,7 @@
+         return new LootContext.Builder(lootparams).create(Optional.empty());
+     }
+ 
+-    private static LootContext entityContext(ServerLevel p_346134_, int p_346059_, Entity p_346146_, Vec3 p_345814_) {
++    public static LootContext entityContext(ServerLevel p_346134_, int p_346059_, Entity p_346146_, Vec3 p_345814_) {
+         LootParams lootparams = new LootParams.Builder(p_346134_)
+             .withParameter(LootContextParams.THIS_ENTITY, p_346146_)
+             .withParameter(LootContextParams.ENCHANTMENT_LEVEL, p_346059_)
+@@ -439,7 +_,7 @@
+         return new LootContext.Builder(lootparams).create(Optional.empty());
+     }
+ 
+-    private static LootContext blockHitContext(ServerLevel p_350329_, int p_350503_, Entity p_350451_, Vec3 p_350874_, BlockState p_350311_) {
++    public static LootContext blockHitContext(ServerLevel p_350329_, int p_350503_, Entity p_350451_, Vec3 p_350874_, BlockState p_350311_) {
+         LootParams lootparams = new LootParams.Builder(p_350329_)
+             .withParameter(LootContextParams.THIS_ENTITY, p_350451_)
+             .withParameter(LootContextParams.ENCHANTMENT_LEVEL, p_350503_)
+@@ -449,7 +_,7 @@
+         return new LootContext.Builder(lootparams).create(Optional.empty());
+     }
+ 
+-    private static <T> void applyEffects(List<ConditionalEffect<T>> p_345860_, LootContext p_345578_, Consumer<T> p_346164_) {
++    public static <T> void applyEffects(List<ConditionalEffect<T>> p_345860_, LootContext p_345578_, Consumer<T> p_346164_) {
+         for (ConditionalEffect<T> conditionaleffect : p_345860_) {
+             if (conditionaleffect.matches(p_345578_)) {
+                 p_346164_.accept(conditionaleffect.effect());
 @@ -503,6 +_,15 @@
      public static Enchantment.Builder enchantment(Enchantment.EnchantmentDefinition p_345873_) {
          return new Enchantment.Builder(p_345873_);
