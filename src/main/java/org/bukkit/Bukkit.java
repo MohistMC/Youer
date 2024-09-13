@@ -1,7 +1,7 @@
 package org.bukkit;
 
 import com.google.common.collect.ImmutableList;
-import com.mohistmc.mohist.Mohist;
+import com.mohistmc.youer.Mohist;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.Serializable;

@@ -15,7 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 public class ItemStackHandler implements IItemHandler, IItemHandlerModifiable, INBTSerializable<CompoundTag> {
-    protected NonNullList<ItemStack> stacks;
+    public NonNullList<ItemStack> stacks;
 
     public ItemStackHandler() {
         this(1);

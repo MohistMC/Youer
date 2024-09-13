@@ -3,7 +3,7 @@ package org.bukkit.craftbukkit.entity;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
-import com.mohistmc.mohist.api.color.ColorsAPI;
+import com.mohistmc.youer.api.color.ColorsAPI;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import io.netty.buffer.Unpooled;

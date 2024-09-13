@@ -3,7 +3,7 @@ package org.bukkit.plugin;
 import java.io.File;
 import java.io.InputStream;
 import java.util.logging.Logger;
-import net.minecraftforge.eventbus.api.IEventBus;
+import net.neoforged.bus.api.IEventBus;
 import org.bukkit.Server;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.configuration.file.FileConfiguration;

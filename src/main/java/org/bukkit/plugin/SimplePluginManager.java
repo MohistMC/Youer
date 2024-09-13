@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.Graphs;
 import com.google.common.graph.MutableGraph;
-import com.mohistmc.mohist.plugins.MohistPlugin;
+import com.mohistmc.youer.plugins.MohistPlugin;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;

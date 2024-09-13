@@ -2,12 +2,12 @@ package org.bukkit.plugin.java;
 
 import com.google.common.base.Preconditions;
 import com.google.common.io.ByteStreams;
-import com.mohistmc.mohist.Mohist;
-import com.mohistmc.mohist.bukkit.pluginfix.PluginFixManager;
-import com.mohistmc.mohist.bukkit.remapping.ClassLoaderRemapper;
-import com.mohistmc.mohist.bukkit.remapping.Remapper;
-import com.mohistmc.mohist.bukkit.remapping.RemappingClassLoader;
-import com.mohistmc.mohist.plugins.PluginHooks;
+import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.bukkit.pluginfix.PluginFixManager;
+import com.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
+import com.mohistmc.youer.bukkit.remapping.Remapper;
+import com.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
+import com.mohistmc.youer.plugins.PluginHooks;
 import cpw.mods.modlauncher.EnumerationHelper;
 import cpw.mods.modlauncher.TransformingClassLoader;
 import io.izzel.tools.product.Product2;

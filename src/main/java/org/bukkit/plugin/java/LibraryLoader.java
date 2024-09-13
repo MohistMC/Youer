@@ -1,9 +1,9 @@
 package org.bukkit.plugin.java;
 
 import com.mohistmc.mjson.Json;
-import com.mohistmc.mohist.Mohist;
-import com.mohistmc.mohist.bukkit.PluginsLibrarySource;
-import com.mohistmc.mohist.bukkit.remapping.RemappingURLClassLoader;
+import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.bukkit.PluginsLibrarySource;
+import com.mohistmc.youer.bukkit.remapping.RemappingURLClassLoader;
 import com.mohistmc.tools.ConnectionUtil;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -39,7 +39,7 @@ class LibraryLoader {
         if (desc.getLibraries().isEmpty()) {
             return null;
         }
-        Mohist.LOGGER.info("[{}] Loading {} libraries... please wait", desc.getName(), desc.getLibraries().size());
+        Youer.LOGGER.info("[{}] Loading {} libraries... please wait", desc.getName(), desc.getLibraries().size());
 
         List<Dependency> dependencies = new ArrayList<>();
         for (String desc_libraries : desc.getLibraries()) {
@@ -73,7 +73,7 @@ class LibraryLoader {
             }
         }
 
-        Mohist.LOGGER.info("[{}] Loading {} extra libraries... please wait", desc.getName(), newDependencies.size() - desc.getLibraries().size());
+        Youer.LOGGER.info("[{}] Loading {} extra libraries... please wait", desc.getName(), newDependencies.size() - desc.getLibraries().size());
 
         for (Dependency dependency : newDependencies) {
             String group = dependency.group().replace(".", "/");
@@ -106,7 +106,7 @@ class LibraryLoader {
         for (File file : libraries) {
             try {
                 jarFiles.add(file.toURI().toURL());
-                Mohist.LOGGER.info("[{}] Loaded libraries {}", desc.getName(), file);
+                Youer.LOGGER.info("[{}] Loaded libraries {}", desc.getName(), file);
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
@@ -245,7 +245,7 @@ class LibraryLoader {
             if (!dependencyIgnoreVersion.contains(dependency.toIgnoreVersion())) {
                 libraries.add(file);
                 dependencyIgnoreVersion.add(dependency.toIgnoreVersion());
-                Mohist.LOGGER.info("[{}] Found libraries {}", dependency.name, file);
+                Youer.LOGGER.info("[{}] Found libraries {}", dependency.name, file);
                 return true;
             }
         }
