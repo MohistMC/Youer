@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.loot;
 
 import com.google.common.base.Preconditions;

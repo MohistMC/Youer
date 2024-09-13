@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 /**
  * Classes used to manipulate the voxels in a {@link org.bukkit.World world},
  * including special states.

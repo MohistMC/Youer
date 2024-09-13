@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.boss;
 
 public enum BarStyle {

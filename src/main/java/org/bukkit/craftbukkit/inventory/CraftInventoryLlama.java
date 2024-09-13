@@ -15,12 +15,12 @@ public class CraftInventoryLlama extends CraftInventoryAbstractHorse implements 
 
     @Override
     public ItemStack getDecor() {
-        net.minecraft.world.item.ItemStack item = this.bodyArmorInventory.getItem(0);
+        net.minecraft.world.item.ItemStack item = bodyArmorInventory.getItem(0);
         return item.isEmpty() ? null : CraftItemStack.asCraftMirror(item);
     }
 
     @Override
     public void setDecor(ItemStack stack) {
-        this.bodyArmorInventory.setItem(0, CraftItemStack.asNMSCopy(stack));
+        bodyArmorInventory.setItem(0, CraftItemStack.asNMSCopy(stack));
     }
 }

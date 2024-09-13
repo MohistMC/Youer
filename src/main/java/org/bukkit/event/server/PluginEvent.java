@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.event.server;
 
 import org.bukkit.plugin.Plugin;

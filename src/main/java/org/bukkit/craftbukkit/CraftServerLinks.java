@@ -30,12 +30,12 @@ public class CraftServerLinks implements ServerLinks {
     public ServerLink getLink(Type type) {
         Preconditions.checkArgument(type != null, "type cannot be null");
 
-        return this.getServerLinks().findKnownType(CraftServerLinks.fromBukkit(type)).map(CraftServerLink::new).orElse(null);
+        return getServerLinks().findKnownType(fromBukkit(type)).map(CraftServerLink::new).orElse(null);
     }
 
     @Override
     public List<ServerLink> getLinks() {
-        return this.getServerLinks().entries().stream().map(nms -> (ServerLink) new CraftServerLink(nms)).toList();
+        return getServerLinks().entries().stream().map(nms -> (ServerLink) new CraftServerLink(nms)).toList();
     }
 
     @Override
@@ -43,11 +43,11 @@ public class CraftServerLinks implements ServerLinks {
         Preconditions.checkArgument(type != null, "type cannot be null");
         Preconditions.checkArgument(url != null, "url cannot be null");
 
-        ServerLink existing = this.getLink(type);
+        ServerLink existing = getLink(type);
         if (existing != null) {
-            this.removeLink(existing);
+            removeLink(existing);
         }
-        return this.addLink(type, url);
+        return addLink(type, url);
     }
 
     @Override
@@ -55,8 +55,8 @@ public class CraftServerLinks implements ServerLinks {
         Preconditions.checkArgument(type != null, "type cannot be null");
         Preconditions.checkArgument(url != null, "url cannot be null");
 
-        CraftServerLink link = new CraftServerLink(net.minecraft.server.ServerLinks.Entry.knownType(CraftServerLinks.fromBukkit(type), url));
-        this.addLink(link);
+        CraftServerLink link = new CraftServerLink(net.minecraft.server.ServerLinks.Entry.knownType(fromBukkit(type), url));
+        addLink(link);
 
         return link;
     }
@@ -67,42 +67,42 @@ public class CraftServerLinks implements ServerLinks {
         Preconditions.checkArgument(url != null, "url cannot be null");
 
         CraftServerLink link = new CraftServerLink(net.minecraft.server.ServerLinks.Entry.custom(CraftChatMessage.fromStringOrNull(displayName), url));
-        this.addLink(link);
+        addLink(link);
 
         return link;
     }
 
     private void addLink(CraftServerLink link) {
-        List<net.minecraft.server.ServerLinks.Entry> lst = new ArrayList<>(this.getServerLinks().entries());
+        List<net.minecraft.server.ServerLinks.Entry> lst = new ArrayList<>(getServerLinks().entries());
         lst.add(link.handle);
 
-        this.setLinks(new net.minecraft.server.ServerLinks(lst));
+        setLinks(new net.minecraft.server.ServerLinks(lst));
     }
 
     @Override
     public boolean removeLink(ServerLink link) {
         Preconditions.checkArgument(link != null, "link cannot be null");
 
-        List<net.minecraft.server.ServerLinks.Entry> lst = new ArrayList<>(this.getServerLinks().entries());
+        List<net.minecraft.server.ServerLinks.Entry> lst = new ArrayList<>(getServerLinks().entries());
         boolean result = lst.remove(((CraftServerLink) link).handle);
 
-        this.setLinks(new net.minecraft.server.ServerLinks(lst));
+        setLinks(new net.minecraft.server.ServerLinks(lst));
 
         return result;
     }
 
     @Override
     public ServerLinks copy() {
-        return new CraftServerLinks(this.getServerLinks());
+        return new CraftServerLinks(getServerLinks());
     }
 
     public net.minecraft.server.ServerLinks getServerLinks() {
-        return (this.server != null) ? this.server.serverLinks() : this.serverLinks;
+        return (server != null) ? server.serverLinks() : serverLinks;
     }
 
     private void setLinks(net.minecraft.server.ServerLinks links) {
-        if (this.server != null) {
-            this.server.serverLinks = links;
+        if (server != null) {
+            server.serverLinks = links;
         } else {
             this.serverLinks = links;
         }
@@ -126,17 +126,17 @@ public class CraftServerLinks implements ServerLinks {
 
         @Override
         public Type getType() {
-            return this.handle.type().left().map(CraftServerLinks::fromNMS).orElse(null);
+            return handle.type().left().map(CraftServerLinks::fromNMS).orElse(null);
         }
 
         @Override
         public String getDisplayName() {
-            return CraftChatMessage.fromComponent(this.handle.displayName());
+            return CraftChatMessage.fromComponent(handle.displayName());
         }
 
         @Override
         public URI getUrl() {
-            return this.handle.link();
+            return handle.link();
         }
     }
 }

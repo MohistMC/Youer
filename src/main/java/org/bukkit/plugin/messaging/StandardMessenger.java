@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.plugin.messaging;
 
 import com.google.common.collect.ImmutableSet;

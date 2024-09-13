@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit;
 
 import com.google.common.base.Preconditions;
@@ -31,6 +27,7 @@ import org.bukkit.entity.memory.MemoryKey;
 import org.bukkit.generator.structure.Structure;
 import org.bukkit.generator.structure.StructureType;
 import org.bukkit.inventory.ItemType;
+import org.bukkit.inventory.MenuType;
 import org.bukkit.inventory.meta.trim.TrimMaterial;
 import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.bukkit.loot.LootTables;
@@ -92,7 +89,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
      *
      * @see PatternType
      */
-    Registry<PatternType> BANNER_PATTERN = new SimpleRegistry<>(PatternType.class);
+    Registry<PatternType> BANNER_PATTERN = Objects.requireNonNull(Bukkit.getRegistry(PatternType.class), "No registry present for Pattern Type. This is a bug.");
     /**
      * Server biomes.
      *
@@ -138,7 +135,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
      *
      * @see Cat.Type
      */
-    Registry<Cat.Type> CAT_VARIANT = new SimpleRegistry<>(Cat.Type.class);
+    Registry<Cat.Type> CAT_VARIANT = Objects.requireNonNull(Bukkit.getRegistry(Cat.Type.class), "No registry present for Cat Type. This is a bug.");
     /**
      * Server enchantments.
      *
@@ -177,6 +174,13 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
      * @see Material
      */
     Registry<Material> MATERIAL = new SimpleRegistry<>(Material.class, (mat) -> !mat.isLegacy());
+    /**
+     * Server menus.
+     *
+     * @see MenuType
+     */
+    @ApiStatus.Experimental
+    Registry<MenuType> MENU = Objects.requireNonNull(Bukkit.getRegistry(MenuType.class), "No registry present for MenuType. This is a bug.");
     /**
      * Server mob effects.
      *
@@ -252,13 +256,13 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
      *
      * @see Villager.Profession
      */
-    Registry<Villager.Profession> VILLAGER_PROFESSION = new SimpleRegistry<>(Villager.Profession.class);
+    Registry<Villager.Profession> VILLAGER_PROFESSION = Objects.requireNonNull(Bukkit.getRegistry(Villager.Profession.class), "No registry present for Villager Profession. This is a bug.");
     /**
      * Villager type.
      *
      * @see Villager.Type
      */
-    Registry<Villager.Type> VILLAGER_TYPE = new SimpleRegistry<>(Villager.Type.class);
+    Registry<Villager.Type> VILLAGER_TYPE = Objects.requireNonNull(Bukkit.getRegistry(Villager.Type.class), "No registry present for Villager Type. This is a bug.");
     /**
      * Memory Keys.
      *
@@ -295,7 +299,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
      *
      * @see Frog.Variant
      */
-    Registry<Frog.Variant> FROG_VARIANT = new SimpleRegistry<>(Frog.Variant.class);
+    Registry<Frog.Variant> FROG_VARIANT = Objects.requireNonNull(Bukkit.getRegistry(Frog.Variant.class), "No registry present for Frog Variant. This is a bug.");
     /**
      * Wolf variants.
      *
@@ -307,8 +311,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
      *
      * @see MapCursor.Type
      */
-    @ApiStatus.Internal
-    Registry<MapCursor.Type> MAP_DECORATION_TYPE = new SimpleRegistry<>(MapCursor.Type.class);
+    Registry<MapCursor.Type> MAP_DECORATION_TYPE = Objects.requireNonNull(Bukkit.getRegistry(MapCursor.Type.class), "No registry present for MapCursor Type. This is a bug.");
     /**
      * Game events.
      *
@@ -391,7 +394,6 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
         }
 
         @ApiStatus.Internal
-        @Deprecated(since = "1.20.6", forRemoval = true)
         public Class<T> getType() {
             return this.type;
         }

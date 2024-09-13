@@ -130,14 +130,14 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
 
     @Override
     public ItemStack getWeapon() {
-        return CraftItemStack.asBukkitCopy(this.getHandle().getWeaponItem());
+        return CraftItemStack.asBukkitCopy(getHandle().getWeaponItem());
     }
 
     @Override
     public void setWeapon(ItemStack item) {
         Preconditions.checkArgument(item != null, "ItemStack cannot be null");
 
-        this.getHandle().firedFromWeapon = CraftItemStack.asNMSCopy(item);
+        getHandle().firedFromWeapon = CraftItemStack.asNMSCopy(item);
     }
 
     @Override

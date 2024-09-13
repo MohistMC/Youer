@@ -160,6 +160,14 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
     }
 
     @Override
+    public void startRiptideAttack(int duration, float damage, ItemStack attackItem) {
+        Preconditions.checkArgument(duration > 0, "Duration must be greater than 0");
+        Preconditions.checkArgument(damage >= 0, "Damage must not be negative");
+
+        getHandle().startAutoSpinAttack(duration, damage, CraftItemStack.asNMSCopy(attackItem));
+    }
+
+    @Override
     public Location getBedLocation() {
         Preconditions.checkState(this.isSleeping(), "Not sleeping");
 
@@ -370,6 +378,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
 
     @Override
     public void openInventory(InventoryView inventory) {
+        Preconditions.checkArgument(this.equals(inventory.getPlayer()), "InventoryView must belong to the opening player");
         if (!(this.getHandle() instanceof ServerPlayer)) return; // TODO: NPC support?
         if (((ServerPlayer) this.getHandle()).connection == null) return;
         if (this.getHandle().containerMenu != this.getHandle().inventoryMenu) {

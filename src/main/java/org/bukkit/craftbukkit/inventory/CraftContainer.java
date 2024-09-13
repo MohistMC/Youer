@@ -97,7 +97,8 @@ public class CraftContainer extends AbstractContainerMenu {
     }
 
     public static MenuType getNotchInventoryType(Inventory inventory) {
-        switch (inventory.getType()) {
+        final InventoryType type = inventory.getType();
+        switch (type) {
             case PLAYER:
             case CHEST:
             case ENDER_CHEST:
@@ -119,52 +120,13 @@ public class CraftContainer extends AbstractContainerMenu {
                     default:
                         throw new IllegalArgumentException("Unsupported custom inventory size " + inventory.getSize());
                 }
-            case WORKBENCH:
-                return MenuType.CRAFTING;
-            case FURNACE:
-                return MenuType.FURNACE;
-            case DISPENSER:
-                return MenuType.GENERIC_3x3;
-            case ENCHANTING:
-                return MenuType.ENCHANTMENT;
-            case BREWING:
-                return MenuType.BREWING_STAND;
-            case BEACON:
-                return MenuType.BEACON;
-            case ANVIL:
-                return MenuType.ANVIL;
-            case HOPPER:
-                return MenuType.HOPPER;
-            case DROPPER:
-                return MenuType.GENERIC_3x3;
-            case SHULKER_BOX:
-                return MenuType.SHULKER_BOX;
-            case BLAST_FURNACE:
-                return MenuType.BLAST_FURNACE;
-            case LECTERN:
-                return MenuType.LECTERN;
-            case SMOKER:
-                return MenuType.SMOKER;
-            case LOOM:
-                return MenuType.LOOM;
-            case CARTOGRAPHY:
-                return MenuType.CARTOGRAPHY_TABLE;
-            case GRINDSTONE:
-                return MenuType.GRINDSTONE;
-            case STONECUTTER:
-                return MenuType.STONECUTTER;
-            case SMITHING:
-            case SMITHING_NEW:
-                return MenuType.SMITHING;
-            case CREATIVE:
-            case CRAFTING:
-            case MERCHANT:
-                throw new IllegalArgumentException("Can't open a " + inventory.getType() + " inventory!");
-            case CRAFTER:
-                return MenuType.CRAFTER_3x3;
             default:
-                // TODO: If it reaches the default case, should we throw an error?
-                return MenuType.GENERIC_9x3;
+                final org.bukkit.inventory.MenuType menu = type.getMenuType();
+                if (menu == null) {
+                    return MenuType.GENERIC_9x3;
+                } else {
+                    return ((CraftMenuType<?>) menu).getHandle();
+                }
         }
     }
 
@@ -227,7 +189,7 @@ public class CraftContainer extends AbstractContainerMenu {
                 this.delegate = new GrindstoneMenu(windowId, bottom);
                 break;
             case STONECUTTER:
-                this.setupStoneCutter(top, bottom); // SPIGOT-7757 - manual setup required for individual slots
+                setupStoneCutter(top, bottom); // SPIGOT-7757 - manual setup required for individual slots
                 break;
             case MERCHANT:
                 this.delegate = new MerchantMenu(windowId, bottom);

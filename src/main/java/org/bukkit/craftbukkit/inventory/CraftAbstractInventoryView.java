@@ -12,30 +12,30 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
 
     @Override
     public void setItem(final int slot, @Nullable final ItemStack item) {
-        Inventory inventory = this.getInventory(slot);
+        Inventory inventory = getInventory(slot);
         if (inventory != null) {
-            inventory.setItem(this.convertSlot(slot), item);
+            inventory.setItem(convertSlot(slot), item);
         } else if (item != null) {
-            this.getPlayer().getWorld().dropItemNaturally(this.getPlayer().getLocation(), item);
+            getPlayer().getWorld().dropItemNaturally(getPlayer().getLocation(), item);
         }
     }
 
     @Nullable
     @Override
     public ItemStack getItem(final int slot) {
-        Inventory inventory = this.getInventory(slot);
-        return (inventory == null) ? null : inventory.getItem(this.convertSlot(slot));
+        Inventory inventory = getInventory(slot);
+        return (inventory == null) ? null : inventory.getItem(convertSlot(slot));
     }
 
     @Override
     public void setCursor(@Nullable final ItemStack item) {
-        this.getPlayer().setItemOnCursor(item);
+        getPlayer().setItemOnCursor(item);
     }
 
     @Nullable
     @Override
     public ItemStack getCursor() {
-        return this.getPlayer().getItemOnCursor();
+        return getPlayer().getItemOnCursor();
     }
 
     @Nullable
@@ -47,18 +47,18 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
             return null;
         }
         Preconditions.checkArgument(rawSlot >= 0, "Negative, non outside slot %s", rawSlot);
-        Preconditions.checkArgument(rawSlot < this.countSlots(), "Slot %s greater than inventory slot count", rawSlot);
+        Preconditions.checkArgument(rawSlot < countSlots(), "Slot %s greater than inventory slot count", rawSlot);
 
-        if (rawSlot < this.getTopInventory().getSize()) {
-            return this.getTopInventory();
+        if (rawSlot < getTopInventory().getSize()) {
+            return getTopInventory();
         } else {
-            return this.getBottomInventory();
+            return getBottomInventory();
         }
     }
 
     @Override
     public int convertSlot(final int rawSlot) {
-        int numInTop = this.getTopInventory().getSize();
+        int numInTop = getTopInventory().getSize();
         // Index from the top inventory as having slots from [0,size]
         if (rawSlot < numInTop) {
             return rawSlot;
@@ -69,7 +69,7 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
 
         // Player crafting slots are indexed differently. The matrix is caught by the first return.
         // Creative mode is the same, except that you can't see the crafting slots (but the IDs are still used)
-        if (this.getType() == InventoryType.CRAFTING || this.getType() == InventoryType.CREATIVE) {
+        if (getType() == InventoryType.CRAFTING || getType() == InventoryType.CREATIVE) {
             /*
              * Raw Slots:
              *
@@ -206,16 +206,16 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
 
     @Override
     public void close() {
-        this.getPlayer().closeInventory();
+        getPlayer().closeInventory();
     }
 
     @Override
     public int countSlots() {
-        return this.getTopInventory().getSize() + this.getBottomInventory().getSize();
+        return getTopInventory().getSize() + getBottomInventory().getSize();
     }
 
     @Override
     public boolean setProperty(@NotNull final Property prop, final int value) {
-        return this.getPlayer().setWindowProperty(prop, value);
+        return getPlayer().setWindowProperty(prop, value);
     }
 }

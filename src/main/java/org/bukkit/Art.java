@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit;
 
 import com.google.common.base.Preconditions;
@@ -68,8 +64,8 @@ public enum Art implements Keyed {
 
     private final int id, width, height;
     private final NamespacedKey key;
-    private static final HashMap<String, Art> BY_NAME = Maps.newHashMap();
-    private static final HashMap<Integer, Art> BY_ID = Maps.newHashMap();
+    public static final HashMap<String, Art> BY_NAME = Maps.newHashMap();
+    public static final HashMap<Integer, Art> BY_ID = Maps.newHashMap();
 
     private Art(int id, int width, int height) {
         this.id = id;

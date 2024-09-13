@@ -1,11 +1,16 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.plugin.java;
 
 import com.google.common.base.Preconditions;
 import com.google.common.io.ByteStreams;
+import com.mohistmc.mohist.Mohist;
+import com.mohistmc.mohist.bukkit.pluginfix.PluginFixManager;
+import com.mohistmc.mohist.bukkit.remapping.ClassLoaderRemapper;
+import com.mohistmc.mohist.bukkit.remapping.Remapper;
+import com.mohistmc.mohist.bukkit.remapping.RemappingClassLoader;
+import com.mohistmc.mohist.plugins.PluginHooks;
+import cpw.mods.modlauncher.EnumerationHelper;
+import cpw.mods.modlauncher.TransformingClassLoader;
+import io.izzel.tools.product.Product2;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,18 +19,22 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.net.URLConnection;
 import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.SimplePluginManager;
@@ -35,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * A ClassLoader for plugins, to allow shared classes across multiple plugins
  */
-final class PluginClassLoader extends URLClassLoader {
+final class PluginClassLoader extends URLClassLoader implements RemappingClassLoader {
     private final JavaPluginLoader loader;
     private final Map<String, Class<?>> classes = new ConcurrentHashMap<String, Class<?>>();
     private final PluginDescriptionFile description;
@@ -52,6 +61,16 @@ final class PluginClassLoader extends URLClassLoader {
 
     static {
         ClassLoader.registerAsParallelCapable();
+    }
+
+    private ClassLoaderRemapper remapper;
+
+    @Override
+    public ClassLoaderRemapper getRemapper() {
+        if (remapper == null) {
+            remapper = Remapper.createClassLoaderRemapper(this);
+        }
+        return remapper;
     }
 
     PluginClassLoader(@NotNull final JavaPluginLoader loader, @Nullable final ClassLoader parent, @NotNull final PluginDescriptionFile description, @NotNull final File dataFolder, @NotNull final File file, @Nullable ClassLoader libraryLoader) throws IOException, InvalidPluginException, MalformedURLException {
@@ -99,16 +118,34 @@ final class PluginClassLoader extends URLClassLoader {
         } catch (ExceptionInInitializerError | InvocationTargetException ex) {
             throw new InvalidPluginException("Exception initializing main class `" + description.getMain() + "'", ex);
         }
+
+        if (PluginHooks.hook(plugin)) {
+            ((TransformingClassLoader) Mohist.classLoader).addChild(this);
+        }
     }
 
     @Override
     public URL getResource(String name) {
-        return findResource(name);
+        Objects.requireNonNull(name);
+        URL url = findResource(name);
+        if (url == null) {
+            if (getParent() != null) {
+                url = getParent().getResource(name);
+            }
+        }
+        return url;
     }
 
     @Override
     public Enumeration<URL> getResources(String name) throws IOException {
-        return findResources(name);
+        Objects.requireNonNull(name);
+        @SuppressWarnings("unchecked")
+        Enumeration<URL>[] tmp = (Enumeration<URL>[]) new Enumeration<?>[2];
+        if (getParent()!= null) {
+            tmp[1] = getParent().getResources(name);
+        }
+        tmp[0] = findResources(name);
+        return EnumerationHelper.merge(tmp[0], tmp[1]);
     }
 
     @Override
@@ -173,18 +210,29 @@ final class PluginClassLoader extends URLClassLoader {
 
         if (result == null) {
             String path = name.replace('.', '/').concat(".class");
-            JarEntry entry = jar.getJarEntry(path);
+            URL url = this.findResource(path);
 
-            if (entry != null) {
-                byte[] classBytes;
+            if (url != null) {
 
-                try (InputStream is = jar.getInputStream(entry)) {
-                    classBytes = ByteStreams.toByteArray(is);
-                } catch (IOException ex) {
-                    throw new ClassNotFoundException(name, ex);
+                URLConnection connection;
+                Callable<byte[]> byteSource;
+                try {
+                    connection = url.openConnection();
+                    connection.connect();
+                    byteSource = () -> {
+                        try (InputStream is = connection.getInputStream()) {
+                            byte[] classBytes = ByteStreams.toByteArray(is);
+                            classBytes = Remapper.SWITCH_TABLE_FIXER.apply(classBytes);
+                            classBytes = Bukkit.getUnsafe().processClass(description, path, classBytes);
+                            classBytes = PluginFixManager.injectPluginFix(name, classBytes); // Mohist - Inject plugin fix
+                            return classBytes;
+                        }
+                    };
+                } catch (IOException e) {
+                    throw new ClassNotFoundException(name, e);
                 }
 
-                classBytes = loader.server.getUnsafe().processClass(description, path, classBytes);
+                Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(name, byteSource, connection);
 
                 int dot = name.lastIndexOf('.');
                 if (dot != -1) {
@@ -204,10 +252,7 @@ final class PluginClassLoader extends URLClassLoader {
                     }
                 }
 
-                CodeSigner[] signers = entry.getCodeSigners();
-                CodeSource source = new CodeSource(url, signers);
-
-                result = defineClass(name, classBytes, 0, classBytes.length, source);
+                result = defineClass(name, classBytes._1, 0, classBytes._1.length, classBytes._2);
             }
 
             if (result == null) {

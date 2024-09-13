@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.entity;
 
 import org.jetbrains.annotations.ApiStatus;
@@ -10,5 +6,5 @@ import org.jetbrains.annotations.ApiStatus;
  * Represents a Bogged Skeleton.
  */
 @ApiStatus.Experimental
-public interface Bogged extends AbstractSkeleton {
+public interface Bogged extends AbstractSkeleton, Shearable {
 }

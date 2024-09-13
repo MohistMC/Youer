@@ -78,8 +78,8 @@ public class CraftCreeper extends CraftMonster implements Creeper {
     @Override
     public void ignite(Entity entity) {
         Preconditions.checkNotNull(entity, "entity cannot be null");
-        this.getHandle().entityIgniter = ((CraftEntity) entity).getHandle();
-        this.getHandle().ignite();
+        getHandle().entityIgniter = ((CraftEntity) entity).getHandle();
+        getHandle().ignite();
     }
 
     @Override
@@ -89,7 +89,7 @@ public class CraftCreeper extends CraftMonster implements Creeper {
 
     @Override
     public Entity getIgniter() {
-        return (this.getHandle().entityIgniter != null) ? this.getHandle().entityIgniter.getBukkitEntity() : null;
+        return (getHandle().entityIgniter != null) ? getHandle().entityIgniter.getBukkitEntity() : null;
     }
 
     @Override

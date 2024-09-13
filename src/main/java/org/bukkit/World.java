@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit;
 
 import java.io.File;
@@ -3050,4 +3046,29 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
             }
         }
     }
+
+    // Mohist start
+
+    /**
+     * Returns whether the current world was created by a plugin.
+     *
+     * @return whether the current world was created by a plugin
+     */
+    boolean isBukkit();
+    void setBukkit(boolean b);
+
+    /**
+     * Returns whether the current world was created by a mod.
+     *
+     * @return whether the current world was created by a mod
+     */
+    boolean isMods();
+
+    /**
+     * Returns the mod source for this world.
+     *
+     * @return the mod source for this world
+     */
+    String getModid();
+    // Mohist end
 }

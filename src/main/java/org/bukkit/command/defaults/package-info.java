@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 /**
  * Commands for emulating the Minecraft commands and other necessary ones for
  * use by a Bukkit implementation.

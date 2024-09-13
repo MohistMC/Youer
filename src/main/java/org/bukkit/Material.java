@@ -1,16 +1,15 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.mohistmc.dynamicenum.MohistDynamEnum;
 import java.lang.reflect.Constructor;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import net.minecraft.resources.ResourceLocation;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
@@ -101,6 +100,7 @@ import org.bukkit.block.data.type.SculkShrieker;
 import org.bukkit.block.data.type.SculkVein;
 import org.bukkit.block.data.type.SeaPickle;
 import org.bukkit.block.data.type.Sign;
+import org.bukkit.block.data.type.Skull;
 import org.bukkit.block.data.type.Slab;
 import org.bukkit.block.data.type.SmallDripleaf;
 import org.bukkit.block.data.type.Snow;
@@ -118,6 +118,8 @@ import org.bukkit.block.data.type.Vault;
 import org.bukkit.block.data.type.Wall;
 import org.bukkit.block.data.type.WallHangingSign;
 import org.bukkit.block.data.type.WallSign;
+import org.bukkit.block.data.type.WallSkull;
+import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.inventory.CreativeCategory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -2734,33 +2736,33 @@ public enum Material implements Keyed, Translatable {
     MAP(21655),
     GOLDEN_CARROT(5300),
     /**
-     * BlockData: {@link Rotatable}
+     * BlockData: {@link Skull}
      */
-    SKELETON_SKULL(13270, Rotatable.class),
+    SKELETON_SKULL(13270, Skull.class),
     /**
-     * BlockData: {@link Rotatable}
+     * BlockData: {@link Skull}
      */
-    WITHER_SKELETON_SKULL(31487, Rotatable.class),
+    WITHER_SKELETON_SKULL(31487, Skull.class),
     /**
-     * BlockData: {@link Rotatable}
+     * BlockData: {@link Skull}
      */
-    PLAYER_HEAD(21174, Rotatable.class),
+    PLAYER_HEAD(21174, Skull.class),
     /**
-     * BlockData: {@link Rotatable}
+     * BlockData: {@link Skull}
      */
-    ZOMBIE_HEAD(9304, Rotatable.class),
+    ZOMBIE_HEAD(9304, Skull.class),
     /**
-     * BlockData: {@link Rotatable}
+     * BlockData: {@link Skull}
      */
-    CREEPER_HEAD(29146, Rotatable.class),
+    CREEPER_HEAD(29146, Skull.class),
     /**
-     * BlockData: {@link Rotatable}
+     * BlockData: {@link Skull}
      */
-    DRAGON_HEAD(20084, Rotatable.class),
+    DRAGON_HEAD(20084, Skull.class),
     /**
-     * BlockData: {@link Rotatable}
+     * BlockData: {@link Skull}
      */
-    PIGLIN_HEAD(5512, Rotatable.class),
+    PIGLIN_HEAD(5512, Skull.class),
     NETHER_STAR(12469),
     PUMPKIN_PIE(28725),
     FIREWORK_ROCKET(23841),
@@ -3419,33 +3421,33 @@ public enum Material implements Keyed, Translatable {
      */
     POTATOES(10879, Ageable.class),
     /**
-     * BlockData: {@link Directional}
+     * BlockData: {@link WallSkull}
      */
-    SKELETON_WALL_SKULL(31650, Directional.class),
+    SKELETON_WALL_SKULL(31650, WallSkull.class),
     /**
-     * BlockData: {@link Directional}
+     * BlockData: {@link WallSkull}
      */
-    WITHER_SKELETON_WALL_SKULL(9326, Directional.class),
+    WITHER_SKELETON_WALL_SKULL(9326, WallSkull.class),
     /**
-     * BlockData: {@link Directional}
+     * BlockData: {@link WallSkull}
      */
-    ZOMBIE_WALL_HEAD(16296, Directional.class),
+    ZOMBIE_WALL_HEAD(16296, WallSkull.class),
     /**
-     * BlockData: {@link Directional}
+     * BlockData: {@link WallSkull}
      */
-    PLAYER_WALL_HEAD(13164, Directional.class),
+    PLAYER_WALL_HEAD(13164, WallSkull.class),
     /**
-     * BlockData: {@link Directional}
+     * BlockData: {@link WallSkull}
      */
-    CREEPER_WALL_HEAD(30123, Directional.class),
+    CREEPER_WALL_HEAD(30123, WallSkull.class),
     /**
-     * BlockData: {@link Directional}
+     * BlockData: {@link WallSkull}
      */
-    DRAGON_WALL_HEAD(19818, Directional.class),
+    DRAGON_WALL_HEAD(19818, WallSkull.class),
     /**
-     * BlockData: {@link Directional}
+     * BlockData: {@link WallSkull}
      */
-    PIGLIN_WALL_HEAD(4446, Directional.class),
+    PIGLIN_WALL_HEAD(4446, WallSkull.class),
     /**
      * BlockData: {@link Directional}
      */
@@ -4621,11 +4623,21 @@ public enum Material implements Keyed, Translatable {
     private final short durability;
     public final Class<?> data;
     private final boolean legacy;
-    private final NamespacedKey key;
+    public NamespacedKey key;
+    public boolean isForgeBlock = false;
+    public boolean isForgeItem = false;
 
     private Material(final int id) {
         this(id, 64);
     }
+
+    // Mohist start - constructor used to set if the Material is a block or not
+    private Material(final int id, final int stack, boolean isForgeBlock, boolean isForgeItem) {
+        this(id, stack);
+        this.isForgeBlock = isForgeBlock;
+        this.isForgeItem = isForgeItem;
+    }
+    // Mohist end
 
     private Material(final int id, final int stack) {
         this(id, stack, MaterialData.class);
@@ -5519,5 +5531,24 @@ public enum Material implements Keyed, Translatable {
             material = Bukkit.getUnsafe().fromLegacy(this);
         }
         return Registry.BLOCK.get(material.key);
+    }
+
+    public static Material addMaterial(String materialName, int id, int stack, boolean isBlock, boolean isItem, ResourceLocation resourceLocation) {
+        if (isBlock) {
+            Material material = BY_NAME.get(materialName);
+            if (material != null){
+                material.isForgeBlock = true;
+            }else {
+                material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
+            }
+            BY_NAME.put(materialName, material);
+            material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
+            return material;
+        } else { // Forge Items
+            Material material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
+            BY_NAME.put(materialName, material);
+            material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
+            return material;
+        }
     }
 }

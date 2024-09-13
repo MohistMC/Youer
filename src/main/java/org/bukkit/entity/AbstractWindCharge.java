@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.entity;
 
 import org.jetbrains.annotations.ApiStatus;

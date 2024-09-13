@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 /**
  * Classes relating to the specialized enhancements to {@link
  * org.bukkit.inventory.ItemStack item stacks}, as part of the {@link

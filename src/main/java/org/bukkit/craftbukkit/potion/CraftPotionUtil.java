@@ -3,6 +3,8 @@ package org.bukkit.craftbukkit.potion;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
+import java.util.HashMap;
+import java.util.Map;
 import net.minecraft.core.Holder;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -12,6 +14,8 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 
 public class CraftPotionUtil {
+
+    public static Map<PotionType, String> mods = new HashMap<>(); // Mohist
 
     private static final BiMap<PotionType, PotionType> upgradeable = ImmutableBiMap.<PotionType, PotionType>builder()
             .put(PotionType.LEAPING, PotionType.STRONG_LEAPING)
@@ -47,9 +51,9 @@ public class CraftPotionUtil {
 
         PotionType type;
         if (data.isUpgraded()) {
-            type = CraftPotionUtil.upgradeable.get(data.getType());
+            type = upgradeable.get(data.getType());
         } else if (data.isExtended()) {
-            type = CraftPotionUtil.extendable.get(data.getType());
+            type = extendable.get(data.getType());
         } else {
             type = data.getType();
         }
@@ -64,11 +68,11 @@ public class CraftPotionUtil {
         }
 
         PotionType potionType;
-        potionType = CraftPotionUtil.extendable.inverse().get(type);
+        potionType = extendable.inverse().get(type);
         if (potionType != null) {
             return new PotionData(potionType, true, false);
         }
-        potionType = CraftPotionUtil.upgradeable.inverse().get(type);
+        potionType = upgradeable.inverse().get(type);
         if (potionType != null) {
             return new PotionData(potionType, false, true);
         }

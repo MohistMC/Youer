@@ -23,7 +23,6 @@ public class CraftLeash extends CraftBlockAttachedEntity implements LeashHitch {
         // Leash hitch has no facing direction, so we return self
         return BlockFace.SELF;
     }
-
     @Override
     public BlockFace getAttachedFace() {
         // Leash hitch has no facing direction, so we return self

@@ -51,21 +51,20 @@ public class CraftFireball extends AbstractProjectile implements Fireball {
 
     @Override
     public Vector getDirection() {
-        return this.getAcceleration();
+        return getAcceleration();
     }
 
     @Override
     public void setDirection(Vector direction) {
         Preconditions.checkArgument(direction != null, "Vector direction cannot be null");
         if (direction.isZero()) {
-            this.setVelocity(direction);
-            this.setAcceleration(direction);
+            setVelocity(direction);
+            setAcceleration(direction);
             return;
         }
-
         direction = direction.clone().normalize();
-        this.setVelocity(direction.clone().multiply(this.getVelocity().length()));
-        this.setAcceleration(direction.multiply(this.getAcceleration().length()));
+        setVelocity(direction.clone().multiply(getVelocity().length()));
+        setAcceleration(direction.multiply(getAcceleration().length()));
     }
 
     @Override
@@ -73,14 +72,14 @@ public class CraftFireball extends AbstractProjectile implements Fireball {
         Preconditions.checkArgument(acceleration != null, "Vector acceleration cannot be null");
         // SPIGOT-6993: EntityFireball#assignPower will normalize the given values
         // Note: Because of MC-80142 the fireball will stutter on the client when setting the power to something other than 0 or the normalized vector * 0.1
-        this.getHandle().assignDirectionalMovement(new Vec3(acceleration.getX(), acceleration.getY(), acceleration.getZ()), acceleration.length());
-        this.update(); // SPIGOT-6579
+        getHandle().assignDirectionalMovement(new Vec3(acceleration.getX(), acceleration.getY(), acceleration.getZ()), acceleration.length());
+        update(); // SPIGOT-6579
     }
 
     @NotNull
     @Override
     public Vector getAcceleration() {
-        Vec3 delta = this.getHandle().getDeltaMovement();
+        Vec3 delta = getHandle().getDeltaMovement();
         return new Vector(delta.x, delta.y, delta.z);
     }
 

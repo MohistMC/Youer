@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.conversations;
 
 import org.apache.commons.lang3.math.NumberUtils;

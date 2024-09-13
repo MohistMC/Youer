@@ -352,16 +352,16 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     public Collection<Player> getPlayersSeeingChunk(Chunk chunk) {
         Preconditions.checkArgument(chunk != null, "chunk cannot be null");
 
-        return this.getPlayersSeeingChunk(chunk.getX(), chunk.getZ());
+        return getPlayersSeeingChunk(chunk.getX(), chunk.getZ());
     }
 
     @Override
     public Collection<Player> getPlayersSeeingChunk(int x, int z) {
-        if (!this.isChunkLoaded(x, z)) {
+        if (!isChunkLoaded(x, z)) {
             return Collections.emptySet();
         }
 
-        List<ServerPlayer> players = this.world.getChunkSource().chunkMap.getPlayers(new ChunkPos(x, z), false);
+        List<ServerPlayer> players = world.getChunkSource().chunkMap.getPlayers(new ChunkPos(x, z), false);
 
         if (players.isEmpty()) {
             return Collections.emptySet();
@@ -648,7 +648,8 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public String getName() {
-        return this.world.serverLevelData.getLevelName();
+        world.K.checkName(world.name);
+        return world.name;
     }
 
     @Override
@@ -869,7 +870,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public double getHumidity(int x, int y, int z) {
-        return this.world.getNoiseBiome(x >> 2, y >> 2, z >> 2).value().climateSettings.downfall();
+        return this.world.getNoiseBiome(x >> 2, y >> 2, z >> 2).value().i.downfall();
     }
 
     @Override
@@ -1092,7 +1093,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public void setDifficulty(Difficulty difficulty) {
-        this.getHandle().serverLevelData.setDifficulty(net.minecraft.world.Difficulty.byId(difficulty.getValue()));
+        this.getHandle().K.setDifficulty(net.minecraft.world.Difficulty.byId(difficulty.getValue()));
     }
 
     @Override
@@ -1407,7 +1408,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public boolean canGenerateStructures() {
-        return this.world.serverLevelData.worldGenOptions().generateStructures();
+        return this.world.K.worldGenOptions().generateStructures();
     }
 
     @Override
@@ -1417,7 +1418,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public void setHardcore(boolean hardcore) {
-        this.world.serverLevelData.settings.hardcore = hardcore;
+        this.world.K.settings.hardcore = hardcore;
     }
 
     @Override
@@ -1904,7 +1905,6 @@ public class CraftWorld extends CraftRegionAccessor implements World {
                 extra, // Speed?
                 force
         );
-
     }
 
     @Deprecated
@@ -2100,4 +2100,33 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         return this.spigot;
     }
     // Spigot end
+
+    // Mohist start
+    private boolean isbukkit = false;
+    @Override
+    public boolean isBukkit() {
+        return isbukkit;
+    }
+
+    @Override
+    public void setBukkit(boolean b) {
+        isbukkit = b;
+    }
+
+    @Override
+    public boolean isMods() {
+        String path = getWorldFolder().getAbsolutePath().replaceAll("\\\\", "/");
+        return !isBukkit() && path.contains("/world/dimensions/");
+    }
+
+    @Override
+    public String getModid() {
+        String path = getWorldFolder().getAbsolutePath().replaceAll("\\\\", "/");
+        String modName = "";
+        if(path.contains("/world/dimensions/")) {
+            modName = path.split("/world/dimensions/")[1].split("/")[0];
+        }
+        return modName;
+    }
+    // Mohist end
 }

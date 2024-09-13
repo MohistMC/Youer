@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.enchantments;
 
 import com.google.common.base.Preconditions;
@@ -349,10 +345,13 @@ public abstract class Enchantment implements Keyed, Translatable {
     @Contract("null -> null")
     @Nullable
     public static Enchantment getByName(@Nullable String name) {
+
         if (name == null) {
             return null;
         }
-
+        if (name.equals("ARROW_DAMAGE")) {
+            name = "POWER";
+        }
         return getByKey(NamespacedKey.fromString(name.toLowerCase(Locale.ROOT)));
     }
 

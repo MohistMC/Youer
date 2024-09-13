@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 /**
  * Classes concerning damage types and sources applicable to living entities.
  */

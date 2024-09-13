@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.event.entity;
 
 import com.google.common.base.Function;
@@ -251,6 +247,10 @@ public class EntityDamageEvent extends EntityEvent implements Cancellable {
          * raw {@link EntityDamageEvent#getDamage()}.
          */
         BASE,
+        /**
+         * This represents the damage increased by freezing status.
+         */
+        FREEZING,
         /**
          * This represents the damage reduced by a wearing a helmet when hit
          * by a falling block.

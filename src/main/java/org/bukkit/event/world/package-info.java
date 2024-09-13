@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 /**
  * {@link org.bukkit.event.Event Events} triggered by various {@link
  * org.bukkit.World world} states or changes.

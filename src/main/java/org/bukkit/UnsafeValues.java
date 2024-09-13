@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit;
 
 import com.google.common.collect.Multimap;
@@ -86,16 +82,12 @@ public interface UnsafeValues {
      */
     boolean removeAdvancement(NamespacedKey key);
 
-    @Deprecated(since = "1.21", forRemoval = true)
     Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers(Material material, EquipmentSlot slot);
 
-    @Deprecated(since = "1.21", forRemoval = true)
     CreativeCategory getCreativeCategory(Material material);
 
-    @Deprecated(since = "1.21", forRemoval = true)
     String getBlockTranslationKey(Material material);
 
-    @Deprecated(since = "1.21", forRemoval = true)
     String getItemTranslationKey(Material material);
 
     String getTranslationKey(EntityType entityType);
@@ -114,7 +106,6 @@ public interface UnsafeValues {
      * @return an internal potion data
      */
     @ApiStatus.Internal
-    @Deprecated(since = "1.20.2", forRemoval = true)
     PotionType.InternalPotionData getInternalPotionData(NamespacedKey key);
 
     @ApiStatus.Internal

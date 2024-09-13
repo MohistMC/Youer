@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.event.entity;
 
 import org.bukkit.Chunk;
@@ -67,6 +63,10 @@ public class CreatureSpawnEvent extends EntitySpawnEvent {
          * When a creature spawns from a spawner
          */
         SPAWNER,
+        /**
+         * When a creature spawns from a trial spawner
+         */
+        TRIAL_SPAWNER,
         /**
          * When a creature spawns from an egg
          */
@@ -205,6 +205,11 @@ public class CreatureSpawnEvent extends EntitySpawnEvent {
          * When a creature is spawned by an enchantment
          */
         ENCHANTMENT,
+        /**
+         * When a creature is spawned by a potion effect, for example:
+         * {@link org.bukkit.potion.PotionType#OOZING}, {@link org.bukkit.potion.PotionType#INFESTED}
+         */
+        POTION_EFFECT,
         /**
          * When a creature is spawned by plugins
          */

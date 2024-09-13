@@ -92,12 +92,12 @@ public class CraftArrow extends CraftAbstractArrow implements Arrow {
 
     @Override
     public void setBasePotionData(PotionData data) {
-        this.setBasePotionType(CraftPotionUtil.fromBukkit(data));
+        setBasePotionType(CraftPotionUtil.fromBukkit(data));
     }
 
     @Override
     public PotionData getBasePotionData() {
-        return CraftPotionUtil.toBukkit(this.getBasePotionType());
+        return CraftPotionUtil.toBukkit(getBasePotionType());
     }
 
     @Override

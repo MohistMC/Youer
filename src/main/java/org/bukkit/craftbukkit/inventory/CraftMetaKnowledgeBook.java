@@ -8,6 +8,7 @@ import java.util.Map;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.ResourceLocation;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.serialization.DelegateDeserialization;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
@@ -75,6 +76,11 @@ public class CraftMetaKnowledgeBook extends CraftMetaItem implements KnowledgeBo
 
     boolean isBookEmpty() {
         return !(this.hasRecipes());
+    }
+
+    @Override
+    boolean applicableTo(Material type) {
+        return type == Material.KNOWLEDGE_BOOK;
     }
 
     @Override

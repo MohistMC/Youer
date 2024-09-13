@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 // CHECKSTYLE:OFF
 package org.bukkit.util.noise;
 

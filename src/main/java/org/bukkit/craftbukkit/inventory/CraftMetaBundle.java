@@ -9,6 +9,7 @@ import java.util.Map;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.component.BundleContents;
+import org.bukkit.Material;
 import org.bukkit.configuration.serialization.DelegateDeserialization;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BundleMeta;
@@ -74,6 +75,11 @@ public class CraftMetaBundle extends CraftMetaItem implements BundleMeta {
 
             tag.put(CraftMetaBundle.ITEMS, new BundleContents(list));
         }
+    }
+
+    @Override
+    boolean applicableTo(Material type) {
+        return type == Material.BUNDLE;
     }
 
     @Override

@@ -41,7 +41,7 @@ public class CraftDamageSource implements DamageSource {
 
     @Override
     public org.bukkit.entity.Entity getCausingEntity() {
-        net.minecraft.world.entity.Entity entity = this.getHandle().getCausingDamager();
+        net.minecraft.world.entity.Entity entity = this.getHandle().getEntity();
         return (entity != null) ? entity.getBukkitEntity() : null;
     }
 

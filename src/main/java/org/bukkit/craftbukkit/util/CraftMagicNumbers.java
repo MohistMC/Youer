@@ -2,6 +2,7 @@ package org.bukkit.craftbukkit.util;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
 import com.google.gson.JsonElement;
@@ -33,6 +34,7 @@ import net.minecraft.util.datafix.DataFixers;
 import net.minecraft.util.datafix.fixes.References;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.LevelResource;
@@ -47,10 +49,11 @@ import org.bukkit.advancement.Advancement;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.craftbukkit.CraftEquipmentSlot;
 import org.bukkit.craftbukkit.CraftFeatureFlag;
 import org.bukkit.craftbukkit.CraftRegistry;
-import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.attribute.CraftAttribute;
+import org.bukkit.craftbukkit.attribute.CraftAttributeInstance;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.damage.CraftDamageEffect;
 import org.bukkit.craftbukkit.damage.CraftDamageSourceBuilder;
@@ -102,10 +105,10 @@ public final class CraftMagicNumbers implements UnsafeValues {
     }
 
     // ========================================================================
-    private static final Map<Block, Material> BLOCK_MATERIAL = new HashMap<>();
-    private static final Map<Item, Material> ITEM_MATERIAL = new HashMap<>();
-    private static final Map<Material, Item> MATERIAL_ITEM = new HashMap<>();
-    private static final Map<Material, Block> MATERIAL_BLOCK = new HashMap<>();
+    public static final Map<Block, Material> BLOCK_MATERIAL = new HashMap<>();
+    public static final Map<Item, Material> ITEM_MATERIAL = new HashMap<>();
+    public static final Map<Material, Item> MATERIAL_ITEM = new HashMap<>();
+    public static final Map<Material, Block> MATERIAL_BLOCK = new HashMap<>();
 
     static {
         for (Block block : BuiltInRegistries.BLOCK) {
@@ -225,7 +228,7 @@ public final class CraftMagicNumbers implements UnsafeValues {
      * @return string
      */
     public String getMappingsVersion() {
-        return "229d7afc75b70a6c388337687ac4da1f";
+        return "7092ff1ff9352ad7e2260dc150e6a3ec";
     }
 
     @Override
@@ -240,7 +243,7 @@ public final class CraftMagicNumbers implements UnsafeValues {
         try {
             nmsStack.applyComponents(new ItemParser(Commands.createValidationContext(MinecraftServer.getDefaultRegistryAccess())).parse(new StringReader(arguments)).components());
         } catch (CommandSyntaxException ex) {
-            com.mojang.logging.LogUtils.getClassLogger().error("Exception modifying ItemStack", new Throwable(ex)); // Paper - show stack trace
+            Logger.getLogger(CraftMagicNumbers.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         stack.setItemMeta(CraftItemStack.getItemMeta(nmsStack));
@@ -313,23 +316,17 @@ public final class CraftMagicNumbers implements UnsafeValues {
     }
 
     public static boolean isLegacy(PluginDescriptionFile pdf) {
-        return pdf.getAPIVersion() == null;
+        return false;
     }
 
     @Override
     public byte[] processClass(PluginDescriptionFile pdf, String path, byte[] clazz) {
-        try {
-            clazz = Commodore.convert(clazz, pdf.getName(), ApiVersion.getOrCreateVersion(pdf.getAPIVersion()), ((CraftServer) Bukkit.getServer()).activeCompatibilities);
-        } catch (Exception ex) {
-            Bukkit.getLogger().log(Level.SEVERE, "Fatal error trying to convert " + pdf.getFullName() + ":" + path, ex);
-        }
-
         return clazz;
     }
 
     @Override
     public Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers(Material material, EquipmentSlot slot) {
-        return material.getDefaultAttributeModifiers(slot);
+        return  material.getDefaultAttributeModifiers(slot);
     }
 
     @Override

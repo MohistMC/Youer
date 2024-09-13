@@ -4,6 +4,8 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
@@ -47,6 +49,98 @@ public class CraftMetaBlockState extends CraftMetaItem implements BlockStateMeta
             Material.RED_SHULKER_BOX,
             Material.BLACK_SHULKER_BOX
     );
+
+    private static final Set<Material> BLOCK_STATE_MATERIALS = Sets.newHashSet(
+            Material.FURNACE,
+            Material.CHEST,
+            Material.TRAPPED_CHEST,
+            Material.JUKEBOX,
+            Material.DISPENSER,
+            Material.DROPPER,
+            Material.ACACIA_HANGING_SIGN,
+            Material.ACACIA_SIGN,
+            Material.ACACIA_WALL_HANGING_SIGN,
+            Material.ACACIA_WALL_SIGN,
+            Material.BAMBOO_HANGING_SIGN,
+            Material.BAMBOO_SIGN,
+            Material.BAMBOO_WALL_HANGING_SIGN,
+            Material.BAMBOO_WALL_SIGN,
+            Material.BIRCH_HANGING_SIGN,
+            Material.BIRCH_SIGN,
+            Material.BIRCH_WALL_HANGING_SIGN,
+            Material.BIRCH_WALL_SIGN,
+            Material.CHERRY_HANGING_SIGN,
+            Material.CHERRY_SIGN,
+            Material.CHERRY_WALL_HANGING_SIGN,
+            Material.CHERRY_WALL_SIGN,
+            Material.CRIMSON_HANGING_SIGN,
+            Material.CRIMSON_SIGN,
+            Material.CRIMSON_WALL_HANGING_SIGN,
+            Material.CRIMSON_WALL_SIGN,
+            Material.DARK_OAK_HANGING_SIGN,
+            Material.DARK_OAK_SIGN,
+            Material.DARK_OAK_WALL_HANGING_SIGN,
+            Material.DARK_OAK_WALL_SIGN,
+            Material.JUNGLE_HANGING_SIGN,
+            Material.JUNGLE_SIGN,
+            Material.JUNGLE_WALL_HANGING_SIGN,
+            Material.JUNGLE_WALL_SIGN,
+            Material.MANGROVE_HANGING_SIGN,
+            Material.MANGROVE_SIGN,
+            Material.MANGROVE_WALL_HANGING_SIGN,
+            Material.MANGROVE_WALL_SIGN,
+            Material.OAK_HANGING_SIGN,
+            Material.OAK_SIGN,
+            Material.OAK_WALL_HANGING_SIGN,
+            Material.OAK_WALL_SIGN,
+            Material.SPRUCE_HANGING_SIGN,
+            Material.SPRUCE_SIGN,
+            Material.SPRUCE_WALL_HANGING_SIGN,
+            Material.SPRUCE_WALL_SIGN,
+            Material.WARPED_HANGING_SIGN,
+            Material.WARPED_SIGN,
+            Material.WARPED_WALL_HANGING_SIGN,
+            Material.WARPED_WALL_SIGN,
+            Material.SPAWNER,
+            Material.BREWING_STAND,
+            Material.ENCHANTING_TABLE,
+            Material.COMMAND_BLOCK,
+            Material.REPEATING_COMMAND_BLOCK,
+            Material.CHAIN_COMMAND_BLOCK,
+            Material.BEACON,
+            Material.DAYLIGHT_DETECTOR,
+            Material.HOPPER,
+            Material.COMPARATOR,
+            Material.SHIELD,
+            Material.STRUCTURE_BLOCK,
+            Material.ENDER_CHEST,
+            Material.BARREL,
+            Material.BELL,
+            Material.BLAST_FURNACE,
+            Material.CAMPFIRE,
+            Material.SOUL_CAMPFIRE,
+            Material.JIGSAW,
+            Material.LECTERN,
+            Material.SMOKER,
+            Material.BEEHIVE,
+            Material.BEE_NEST,
+            Material.SCULK_CATALYST,
+            Material.SCULK_SHRIEKER,
+            Material.CALIBRATED_SCULK_SENSOR,
+            Material.SCULK_SENSOR,
+            Material.CHISELED_BOOKSHELF,
+            Material.DECORATED_POT,
+            Material.SUSPICIOUS_SAND,
+            Material.SUSPICIOUS_GRAVEL,
+            Material.TRIAL_SPAWNER,
+            Material.CRAFTER,
+            Material.VAULT
+    );
+
+    static {
+        // Add shulker boxes to the list of block state materials too
+        BLOCK_STATE_MATERIALS.addAll(SHULKER_BOX_MATERIALS);
+    }
 
     @ItemMetaKey.Specific(ItemMetaKey.Specific.To.NBT)
     static final ItemMetaKeyType<CustomData> BLOCK_ENTITY_TAG = new ItemMetaKeyType<>(DataComponents.BLOCK_ENTITY_DATA, "BlockEntityTag");
@@ -108,8 +202,10 @@ public class CraftMetaBlockState extends CraftMetaItem implements BlockStateMeta
         } else {
             this.material = Material.AIR;
         }
-        this.blockEntityTag = CraftMetaBlockState.getBlockState(this.material, this.internalTag);
-        this.internalTag = null;
+        if (internalTag != null) {
+            blockEntityTag = getBlockState(material, internalTag);
+            internalTag = null;
+        }
     }
 
     @Override
@@ -179,6 +275,11 @@ public class CraftMetaBlockState extends CraftMetaItem implements BlockStateMeta
     @Override
     boolean isEmpty() {
         return super.isEmpty() && this.blockEntityTag == null;
+    }
+
+    @Override
+    boolean applicableTo(Material type) {
+        return CraftMetaBlockState.BLOCK_STATE_MATERIALS.contains(type);
     }
 
     @Override

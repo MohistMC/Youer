@@ -147,19 +147,19 @@ public final class CraftItemMetas {
     // which would result in dead memory once all ItemTypes have cached the data.
     public static <I extends ItemMeta> ItemMetaData<I> getItemMetaData(ItemType itemType) {
         if (itemType == ItemType.AIR) {
-            return CraftItemMetas.asType(CraftItemMetas.EMPTY_META_DATA);
+            return asType(EMPTY_META_DATA);
         }
         if (itemType == ItemType.WRITTEN_BOOK) {
-            return CraftItemMetas.asType(CraftItemMetas.SIGNED_BOOK_META_DATA);
+            return asType(SIGNED_BOOK_META_DATA);
         }
         if (itemType == ItemType.WRITABLE_BOOK) {
-            return CraftItemMetas.asType(CraftItemMetas.WRITABLE_BOOK_META_DATA);
+            return asType(WRITABLE_BOOK_META_DATA);
         }
         if (itemType == ItemType.CREEPER_HEAD || itemType == ItemType.DRAGON_HEAD
                 || itemType == ItemType.PIGLIN_HEAD || itemType == ItemType.PLAYER_HEAD
                 || itemType == ItemType.SKELETON_SKULL || itemType == ItemType.WITHER_SKELETON_SKULL
                 || itemType == ItemType.ZOMBIE_HEAD) {
-            return CraftItemMetas.asType(CraftItemMetas.SKULL_META_DATA);
+            return asType(SKULL_META_DATA);
         }
         if (itemType == ItemType.CHAINMAIL_HELMET || itemType == ItemType.CHAINMAIL_CHESTPLATE
                 || itemType == ItemType.CHAINMAIL_LEGGINGS || itemType == ItemType.CHAINMAIL_BOOTS
@@ -172,34 +172,34 @@ public final class CraftItemMetas {
                 || itemType == ItemType.NETHERITE_HELMET || itemType == ItemType.NETHERITE_CHESTPLATE
                 || itemType == ItemType.NETHERITE_LEGGINGS || itemType == ItemType.NETHERITE_BOOTS
                 || itemType == ItemType.TURTLE_HELMET) {
-            return CraftItemMetas.asType(CraftItemMetas.ARMOR_META_DATA);
+            return asType(ARMOR_META_DATA);
         }
         if (itemType == ItemType.LEATHER_HELMET || itemType == ItemType.LEATHER_CHESTPLATE
                 || itemType == ItemType.LEATHER_LEGGINGS || itemType == ItemType.LEATHER_BOOTS
                 || itemType == ItemType.WOLF_ARMOR) {
-            return CraftItemMetas.asType(CraftItemMetas.COLORABLE_ARMOR_META_DATA);
+            return asType(COLORABLE_ARMOR_META_DATA);
         }
         if (itemType == ItemType.LEATHER_HORSE_ARMOR) {
-            return CraftItemMetas.asType(CraftItemMetas.LEATHER_ARMOR_META_DATA);
+            return asType(LEATHER_ARMOR_META_DATA);
         }
         if (itemType == ItemType.POTION || itemType == ItemType.SPLASH_POTION
                 || itemType == ItemType.LINGERING_POTION || itemType == ItemType.TIPPED_ARROW) {
-            return CraftItemMetas.asType(CraftItemMetas.POTION_META_DATA);
+            return asType(POTION_META_DATA);
         }
         if (itemType == ItemType.FILLED_MAP) {
-            return CraftItemMetas.asType(CraftItemMetas.MAP_META_DATA);
+            return asType(MAP_META_DATA);
         }
         if (itemType == ItemType.FIREWORK_ROCKET) {
-            return CraftItemMetas.asType(CraftItemMetas.FIREWORK_META_DATA);
+            return asType(FIREWORK_META_DATA);
         }
         if (itemType == ItemType.FIREWORK_STAR) {
-            return CraftItemMetas.asType(CraftItemMetas.CHARGE_META_DATA);
+            return asType(CHARGE_META_DATA);
         }
         if (itemType == ItemType.ENCHANTED_BOOK) {
-            return CraftItemMetas.asType(CraftItemMetas.ENCHANTED_BOOK_META_DATA);
+            return asType(ENCHANTED_BOOK_META_DATA);
         }
         if (itemType.hasBlockType() && Tag.BANNERS.isTagged(itemType.getBlockType().asMaterial())) {
-            return CraftItemMetas.asType(CraftItemMetas.BANNER_META_DATA);
+            return asType(BANNER_META_DATA);
         }
         if (itemType == ItemType.ARMADILLO_SPAWN_EGG || itemType == ItemType.ALLAY_SPAWN_EGG
                 || itemType == ItemType.ARMADILLO_SPAWN_EGG || itemType == ItemType.ALLAY_SPAWN_EGG
@@ -242,13 +242,13 @@ public final class CraftItemMetas {
                 || itemType == ItemType.WOLF_SPAWN_EGG || itemType == ItemType.ZOGLIN_SPAWN_EGG
                 || itemType == ItemType.ZOMBIE_HORSE_SPAWN_EGG || itemType == ItemType.ZOMBIE_SPAWN_EGG
                 || itemType == ItemType.ZOMBIE_VILLAGER_SPAWN_EGG || itemType == ItemType.ZOMBIFIED_PIGLIN_SPAWN_EGG) {
-            return CraftItemMetas.asType(CraftItemMetas.SPAWN_EGG_META_DATA);
+            return asType(SPAWN_EGG_META_DATA);
         }
         if (itemType == ItemType.ARMOR_STAND) {
-            return CraftItemMetas.asType(CraftItemMetas.ARMOR_STAND_META_DATA);
+            return asType(ARMOR_STAND_META_DATA);
         }
         if (itemType == ItemType.KNOWLEDGE_BOOK) {
-            return CraftItemMetas.asType(CraftItemMetas.KNOWLEDGE_BOOK_META_DATA);
+            return asType(KNOWLEDGE_BOOK_META_DATA);
         }
         if (itemType == ItemType.FURNACE || itemType == ItemType.CHEST
                 || itemType == ItemType.TRAPPED_CHEST || itemType == ItemType.JUKEBOX
@@ -271,40 +271,40 @@ public final class CraftItemMetas {
                 || itemType == ItemType.DECORATED_POT || itemType == ItemType.SUSPICIOUS_SAND
                 || itemType == ItemType.SUSPICIOUS_GRAVEL || itemType == ItemType.CRAFTER
                 || itemType == ItemType.TRIAL_SPAWNER || itemType == ItemType.VAULT) {
-            return CraftItemMetas.asType(CraftItemMetas.BLOCK_STATE_META_DATA);
+            return asType(BLOCK_STATE_META_DATA);
         }
         if (itemType == ItemType.TROPICAL_FISH_BUCKET) {
-            return CraftItemMetas.asType(CraftItemMetas.TROPICAL_FISH_BUCKET_META_DATA);
+            return asType(TROPICAL_FISH_BUCKET_META_DATA);
         }
         if (itemType == ItemType.AXOLOTL_BUCKET) {
-            return CraftItemMetas.asType(CraftItemMetas.AXOLOTL_BUCKET_META_DATA);
+            return asType(AXOLOTL_BUCKET_META_DATA);
         }
         if (itemType == ItemType.CROSSBOW) {
-            return CraftItemMetas.asType(CraftItemMetas.CROSSBOW_META_DATA);
+            return asType(CROSSBOW_META_DATA);
         }
         if (itemType == ItemType.SUSPICIOUS_STEW) {
-            return CraftItemMetas.asType(CraftItemMetas.SUSPICIOUS_STEW_META_DATA);
+            return asType(SUSPICIOUS_STEW_META_DATA);
         }
         if (itemType == ItemType.COD_BUCKET || itemType == ItemType.PUFFERFISH_BUCKET
                 || itemType == ItemType.SALMON_BUCKET || itemType == ItemType.ITEM_FRAME
                 || itemType == ItemType.GLOW_ITEM_FRAME || itemType == ItemType.PAINTING) {
-            return CraftItemMetas.asType(CraftItemMetas.ENTITY_TAG_META_DATA);
+            return asType(ENTITY_TAG_META_DATA);
         }
         if (itemType == ItemType.COMPASS) {
-            return CraftItemMetas.asType(CraftItemMetas.COMPASS_META_DATA);
+            return asType(COMPASS_META_DATA);
         }
         if (itemType == ItemType.BUNDLE) {
-            return CraftItemMetas.asType(CraftItemMetas.BUNDLE_META_DATA);
+            return asType(BUNDLE_META_DATA);
         }
         if (itemType == ItemType.GOAT_HORN) {
-            return CraftItemMetas.asType(CraftItemMetas.MUSIC_INSTRUMENT_META_DATA);
+            return asType(MUSIC_INSTRUMENT_META_DATA);
         }
 
         if (itemType == ItemType.OMINOUS_BOTTLE) {
-            return CraftItemMetas.asType(CraftItemMetas.OMINOUS_BOTTLE_META_DATA);
+            return asType(OMINOUS_BOTTLE_META_DATA);
         }
 
-        return CraftItemMetas.asType(CraftItemMetas.ITEM_META_DATA);
+        return asType(ITEM_META_DATA);
     }
 
     private static <I extends ItemMeta> ItemMetaData<I> asType(ItemMetaData<?> metaData) {

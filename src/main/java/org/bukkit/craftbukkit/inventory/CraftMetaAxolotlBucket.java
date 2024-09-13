@@ -7,6 +7,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.component.CustomData;
+import org.bukkit.Material;
 import org.bukkit.configuration.serialization.DelegateDeserialization;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.entity.Axolotl;
@@ -42,15 +43,15 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
         getOrEmpty(tag, CraftMetaAxolotlBucket.ENTITY_TAG).ifPresent((nbt) -> {
             this.entityTag = nbt.copyTag();
 
-            if (this.entityTag.contains(CraftMetaAxolotlBucket.VARIANT.NBT, CraftMagicNumbers.NBT.TAG_INT)) {
-                this.variant = this.entityTag.getInt(CraftMetaAxolotlBucket.VARIANT.NBT);
+            if (entityTag.contains(VARIANT.NBT, CraftMagicNumbers.NBT.TAG_INT)) {
+                this.variant = entityTag.getInt(VARIANT.NBT);
             }
         });
-        getOrEmpty(tag, CraftMetaAxolotlBucket.BUCKET_ENTITY_TAG).ifPresent((nbt) -> {
-            this.bucketEntityTag = nbt.copyTag();
+        getOrEmpty(tag, BUCKET_ENTITY_TAG).ifPresent((nbt) -> {
+            bucketEntityTag = nbt.copyTag();
 
-            if (this.bucketEntityTag.contains(CraftMetaAxolotlBucket.VARIANT.NBT, CraftMagicNumbers.NBT.TAG_INT)) {
-                this.variant = this.bucketEntityTag.getInt(CraftMetaAxolotlBucket.VARIANT.NBT);
+            if (bucketEntityTag.contains(VARIANT.NBT, CraftMagicNumbers.NBT.TAG_INT)) {
+                this.variant = bucketEntityTag.getInt(VARIANT.NBT);
             }
         });
     }
@@ -71,8 +72,8 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
         if (tag.contains(CraftMetaAxolotlBucket.ENTITY_TAG.NBT)) {
             this.entityTag = tag.getCompound(CraftMetaAxolotlBucket.ENTITY_TAG.NBT);
         }
-        if (tag.contains(CraftMetaAxolotlBucket.BUCKET_ENTITY_TAG.NBT)) {
-            this.bucketEntityTag = tag.getCompound(CraftMetaAxolotlBucket.BUCKET_ENTITY_TAG.NBT);
+        if (tag.contains(BUCKET_ENTITY_TAG.NBT)) {
+            bucketEntityTag = tag.getCompound(BUCKET_ENTITY_TAG.NBT);
         }
     }
 
@@ -81,8 +82,8 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
         if (this.entityTag != null && !this.entityTag.isEmpty()) {
             internalTags.put(CraftMetaAxolotlBucket.ENTITY_TAG.NBT, this.entityTag);
         }
-        if (this.bucketEntityTag != null && !this.bucketEntityTag.isEmpty()) {
-            internalTags.put(CraftMetaAxolotlBucket.BUCKET_ENTITY_TAG.NBT, this.bucketEntityTag);
+        if (bucketEntityTag != null && !bucketEntityTag.isEmpty()) {
+            internalTags.put(BUCKET_ENTITY_TAG.NBT, bucketEntityTag);
         }
     }
 
@@ -90,8 +91,8 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
     void applyToItem(CraftMetaItem.Applicator tag) {
         super.applyToItem(tag);
 
-        if (this.entityTag != null) {
-            tag.put(CraftMetaAxolotlBucket.ENTITY_TAG, CustomData.of(this.entityTag));
+        if (entityTag != null) {
+            tag.put(ENTITY_TAG, CustomData.of(entityTag));
         }
 
         CompoundTag bucketEntityTag = (this.bucketEntityTag != null) ? this.bucketEntityTag.copy() : null;
@@ -99,12 +100,17 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
             if (bucketEntityTag == null) {
                 bucketEntityTag = new CompoundTag();
             }
-            bucketEntityTag.putInt(CraftMetaAxolotlBucket.VARIANT.NBT, this.variant);
+            bucketEntityTag.putInt("Variant", this.variant);
         }
 
         if (bucketEntityTag != null) {
-            tag.put(CraftMetaAxolotlBucket.BUCKET_ENTITY_TAG, CustomData.of(bucketEntityTag));
+            tag.put(CraftMetaAxolotlBucket.ENTITY_TAG, CustomData.of(bucketEntityTag));
         }
+    }
+
+    @Override
+    boolean applicableTo(Material type) {
+        return type == Material.AXOLOTL_BUCKET;
     }
 
     @Override
@@ -113,7 +119,7 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
     }
 
     boolean isBucketEmpty() {
-        return !(this.hasVariant() || this.entityTag != null || this.bucketEntityTag != null);
+        return !(this.hasVariant() || this.entityTag != null || bucketEntityTag != null);
     }
 
     @Override
@@ -143,8 +149,8 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
             CraftMetaAxolotlBucket that = (CraftMetaAxolotlBucket) meta;
 
             return (this.hasVariant() ? that.hasVariant() && this.variant.equals(that.variant) : !that.hasVariant())
-                    && (this.entityTag != null ? that.entityTag != null && this.entityTag.equals(that.entityTag) : that.entityTag == null)
-                    && (this.bucketEntityTag != null ? that.bucketEntityTag != null && this.bucketEntityTag.equals(that.bucketEntityTag) : that.bucketEntityTag == null);
+                    && (entityTag != null ? that.entityTag != null && this.entityTag.equals(that.entityTag) : that.entityTag == null)
+                    && (bucketEntityTag != null ? that.bucketEntityTag != null && this.bucketEntityTag.equals(that.bucketEntityTag) : that.bucketEntityTag == null);
         }
         return true;
     }
@@ -165,8 +171,8 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
         if (this.entityTag != null) {
             hash = 61 * hash + this.entityTag.hashCode();
         }
-        if (this.bucketEntityTag != null) {
-            hash = 61 * hash + this.bucketEntityTag.hashCode();
+        if (bucketEntityTag != null) {
+            hash = 61 * hash + bucketEntityTag.hashCode();
         }
 
         return original != hash ? CraftMetaAxolotlBucket.class.hashCode() ^ hash : hash;
@@ -179,8 +185,8 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
         if (this.entityTag != null) {
             clone.entityTag = this.entityTag.copy();
         }
-        if (this.bucketEntityTag != null) {
-            clone.bucketEntityTag = this.bucketEntityTag.copy();
+        if (bucketEntityTag != null) {
+            clone.bucketEntityTag = bucketEntityTag.copy();
         }
 
         return clone;

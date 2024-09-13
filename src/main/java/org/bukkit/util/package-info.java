@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 /**
  * Multi and single purpose classes to facilitate various programmatic
  * concepts.

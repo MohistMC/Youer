@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit;
 
 import com.google.common.base.Preconditions;
@@ -588,6 +584,11 @@ public class Location implements Cloneable, ConfigurationSerializable {
     public String toString() {
         World world = (this.world == null) ? null : this.world.get();
         return "Location{" + "world=" + world + ",x=" + x + ",y=" + y + ",z=" + z + ",pitch=" + pitch + ",yaw=" + yaw + '}';
+    }
+
+    public String asString() {
+        World world = (this.world == null) ? null : this.world.get();
+        return "world=" + world.getName() + ",x=" + x + ",y=" + y + ",z=" + z + ",pitch=" + pitch + ",yaw=" + yaw;
     }
 
     /**

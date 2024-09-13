@@ -16,7 +16,7 @@ public record FieldRenameData(RenameData<String> renameData, RenameData<Namespac
         }
 
         from = from.toUpperCase(Locale.ROOT);
-        return this.renameData.getReplacement(apiVersion, from);
+        return renameData.getReplacement(apiVersion, from);
     }
 
     public NamespacedKey getReplacement(NamespacedKey from, ApiVersion apiVersion) {
@@ -24,7 +24,7 @@ public record FieldRenameData(RenameData<String> renameData, RenameData<Namespac
             return null;
         }
 
-        return this.keyRenameData.getReplacement(apiVersion, from);
+        return keyRenameData.getReplacement(apiVersion, from);
     }
 
     public static class Builder {
@@ -58,34 +58,34 @@ public record FieldRenameData(RenameData<String> renameData, RenameData<Namespac
         }
 
         public Builder change(String from, String to) {
-            if (this.currentVersion != null) {
-                this.versionData.computeIfAbsent(this.currentVersion, d -> new HashMap<>()).put(from.replace('.', '_'), to);
+            if (currentVersion != null) {
+                versionData.computeIfAbsent(currentVersion, d -> new HashMap<>()).put(from.replace('.', '_'), to);
             } else {
-                this.data.put(from.replace('.', '_'), to);
+                data.put(from.replace('.', '_'), to);
             }
 
-            if (this.keyRename) {
+            if (keyRename) {
                 NamespacedKey fromKey = NamespacedKey.minecraft(from.toLowerCase(Locale.ROOT));
                 NamespacedKey toKey = NamespacedKey.minecraft(to.toLowerCase(Locale.ROOT));
-                if (this.currentVersion != null) {
-                    this.versionKeyData.computeIfAbsent(this.currentVersion, d -> new HashMap<>()).put(fromKey, toKey);
+                if (currentVersion != null) {
+                    versionKeyData.computeIfAbsent(currentVersion, d -> new HashMap<>()).put(fromKey, toKey);
                 } else {
-                    this.keyData.put(fromKey, toKey);
+                    keyData.put(fromKey, toKey);
                 }
             }
             return this;
         }
 
         public FieldRenameData build() {
-            return new FieldRenameData(new RenameData<>(this.versionData, this.data), new RenameData<>(this.versionKeyData, this.keyData));
+            return new FieldRenameData(new RenameData<>(versionData, data), new RenameData<>(versionKeyData, keyData));
         }
     }
 
     private record RenameData<T>(NavigableMap<ApiVersion, Map<T, T>> versionData, Map<T, T> data) {
         public T getReplacement(ApiVersion apiVersion, T from) {
-            from = this.data.getOrDefault(from, from);
+            from = data.getOrDefault(from, from);
 
-            for (Map.Entry<ApiVersion, Map<T, T>> entry : this.versionData.entrySet()) {
+            for (Map.Entry<ApiVersion, Map<T, T>> entry : versionData.entrySet()) {
                 if (apiVersion.isNewerThanOrSameAs(entry.getKey())) {
                     continue;
                 }

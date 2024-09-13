@@ -1,16 +1,15 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.entity;
 
 import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import org.bukkit.Bukkit;
 import org.bukkit.Keyed;
 import org.bukkit.Location;
+import org.bukkit.MinecraftExperimental;
+import org.bukkit.MinecraftExperimental.Requires;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Translatable;
 import org.bukkit.World;
@@ -23,6 +22,7 @@ import org.bukkit.entity.minecart.SpawnerMinecart;
 import org.bukkit.entity.minecart.StorageMinecart;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffectType;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -315,10 +315,10 @@ public enum EntityType implements Keyed, Translatable {
     private final Class<? extends Entity> clazz;
     private final short typeId;
     private final boolean independent, living;
-    private final NamespacedKey key;
+    public NamespacedKey key;
 
-    private static final Map<String, EntityType> NAME_MAP = new HashMap<String, EntityType>();
-    private static final Map<Short, EntityType> ID_MAP = new HashMap<Short, EntityType>();
+    public static final Map<String, EntityType> NAME_MAP = new HashMap<String, EntityType>();
+    public static final Map<Short, EntityType> ID_MAP = new HashMap<Short, EntityType>();
 
     static {
         for (EntityType type : values()) {
@@ -353,7 +353,7 @@ public enum EntityType implements Keyed, Translatable {
     @Deprecated
     @Nullable
     public String getName() {
-        return name;
+        return name == null ? name() : name; // Mohist
     }
 
     @NotNull
@@ -394,7 +394,7 @@ public enum EntityType implements Keyed, Translatable {
         if (name == null) {
             return null;
         }
-        return NAME_MAP.get(name.toLowerCase(Locale.ROOT));
+        return Objects.requireNonNullElse(NAME_MAP.get(name.toLowerCase(Locale.ROOT)), EntityType.UNKNOWN);
     }
 
     /**

@@ -1,10 +1,7 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit;
 
 import com.google.common.collect.ImmutableList;
+import com.mohistmc.mohist.Mohist;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.Serializable;
@@ -100,7 +97,7 @@ public final class Bukkit {
         }
 
         Bukkit.server = server;
-        server.getLogger().info("This server is running " + getName() + " version " + getVersion() + " (Implementing API version " + getBukkitVersion() + ")");
+        server.getLogger().info("This server is running " + getName() + " version " + getVersion() + " (Implementing API version " + getBukkitVersion() + ", Forge version " + Mohist.versionInfo.forge() + ")");
     }
 
     /**
@@ -869,7 +866,6 @@ public final class Bukkit {
      */
     public static void reload() {
         server.reload();
-        org.spigotmc.CustomTimingsHandler.reload(); // Spigot
     }
 
     /**

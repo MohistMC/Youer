@@ -48,7 +48,6 @@ public class SpigotConfig
     static int version;
     static Map<String, Command> commands;
     /*========================================================================*/
-    private static Metrics metrics;
 
     public static void init(File configFile)
     {
@@ -81,18 +80,6 @@ public class SpigotConfig
         for ( Map.Entry<String, Command> entry : SpigotConfig.commands.entrySet() )
         {
             MinecraftServer.getServer().server.getCommandMap().register( entry.getKey(), "Spigot", entry.getValue() );
-        }
-
-        if ( SpigotConfig.metrics == null )
-        {
-            try
-            {
-                SpigotConfig.metrics = new Metrics();
-                SpigotConfig.metrics.start();
-            } catch ( IOException ex )
-            {
-                Bukkit.getServer().getLogger().log( Level.SEVERE, "Could not start metrics service", ex );
-            }
         }
     }
 
@@ -344,11 +331,14 @@ public class SpigotConfig
         SpigotConfig.movedTooQuicklyMultiplier = SpigotConfig.getDouble( "settings.moved-too-quickly-multiplier", 10.0D );
     }
 
+    public static double maxAbsorption = 2048;
     public static double maxHealth = 2048;
     public static double movementSpeed = 2048;
     public static double attackDamage = 2048;
     private static void attributeMaxes()
     {
+        SpigotConfig.maxAbsorption = SpigotConfig.getDouble( "settings.attribute.maxAbsorption.max", SpigotConfig.maxAbsorption );
+        ( (RangedAttribute) Attributes.MAX_ABSORPTION.value() ).maxValue = SpigotConfig.maxAbsorption;
         SpigotConfig.maxHealth = SpigotConfig.getDouble( "settings.attribute.maxHealth.max", SpigotConfig.maxHealth );
         ( (RangedAttribute) Attributes.MAX_HEALTH.value() ).maxValue = SpigotConfig.maxHealth;
         SpigotConfig.movementSpeed = SpigotConfig.getDouble( "settings.attribute.movementSpeed.max", SpigotConfig.movementSpeed );

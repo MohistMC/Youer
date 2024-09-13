@@ -62,7 +62,7 @@ public final class CraftFoodComponent implements FoodComponent {
         result.put("saturation", this.getSaturation());
         result.put("can-always-eat", this.canAlwaysEat());
         result.put("eat-seconds", this.getEatSeconds());
-        result.put("using-converts-to", this.getUsingConvertsTo());
+        result.put("using-converts-to", getUsingConvertsTo());
         result.put("effects", this.getEffects());
         return result;
     }
@@ -79,7 +79,7 @@ public final class CraftFoodComponent implements FoodComponent {
     @Override
     public void setNutrition(int nutrition) {
         Preconditions.checkArgument(nutrition >= 0, "Nutrition cannot be negative");
-        this.handle = new FoodProperties(nutrition, this.handle.saturation(), this.handle.canAlwaysEat(), this.handle.eatSeconds(), this.handle.usingConvertsTo(), this.handle.effects());
+        this.handle = new FoodProperties(nutrition, this.handle.saturation(), this.handle.canAlwaysEat(), this.handle.eatSeconds(), this.handle.usingConvertsTo(), handle.effects());
     }
 
     @Override
@@ -89,7 +89,7 @@ public final class CraftFoodComponent implements FoodComponent {
 
     @Override
     public void setSaturation(float saturation) {
-        this.handle = new FoodProperties(this.handle.nutrition(), saturation, this.handle.canAlwaysEat(), this.handle.eatSeconds(), this.handle.usingConvertsTo(), this.handle.effects());
+        this.handle = new FoodProperties(this.handle.nutrition(), saturation, this.handle.canAlwaysEat(), this.handle.eatSeconds(), this.handle.usingConvertsTo(), handle.effects());
     }
 
     @Override
@@ -99,7 +99,7 @@ public final class CraftFoodComponent implements FoodComponent {
 
     @Override
     public void setCanAlwaysEat(boolean canAlwaysEat) {
-        this.handle = new FoodProperties(this.handle.nutrition(), this.handle.saturation(), canAlwaysEat, this.handle.eatSeconds(), this.handle.usingConvertsTo(), this.handle.effects());
+        this.handle = new FoodProperties(this.handle.nutrition(), this.handle.saturation(), canAlwaysEat, this.handle.eatSeconds(), this.handle.usingConvertsTo(), handle.effects());
     }
 
     @Override
@@ -109,17 +109,17 @@ public final class CraftFoodComponent implements FoodComponent {
 
     @Override
     public void setEatSeconds(float eatSeconds) {
-        this.handle = new FoodProperties(this.handle.nutrition(), this.handle.saturation(), this.handle.canAlwaysEat(), eatSeconds, this.handle.usingConvertsTo(), this.handle.effects());
+        handle = new FoodProperties(handle.nutrition(), handle.saturation(), handle.canAlwaysEat(), eatSeconds, handle.usingConvertsTo(), handle.effects());
     }
 
     @Override
     public ItemStack getUsingConvertsTo() {
-        return this.handle.usingConvertsTo().map(CraftItemStack::asBukkitCopy).orElse(null);
+        return handle.usingConvertsTo().map(CraftItemStack::asBukkitCopy).orElse(null);
     }
 
     @Override
     public void setUsingConvertsTo(ItemStack item) {
-        this.handle = new FoodProperties(this.handle.nutrition(), this.handle.saturation(), this.handle.canAlwaysEat(), this.handle.eatSeconds(), Optional.ofNullable(item).map(CraftItemStack::asNMSCopy), this.handle.effects());
+        handle = new FoodProperties(handle.nutrition(), handle.saturation(), handle.canAlwaysEat(), handle.eatSeconds(), Optional.ofNullable(item).map(CraftItemStack::asNMSCopy), handle.effects());
     }
 
     @Override
@@ -129,7 +129,7 @@ public final class CraftFoodComponent implements FoodComponent {
 
     @Override
     public void setEffects(List<FoodEffect> effects) {
-        this.handle = new FoodProperties(this.handle.nutrition(), this.handle.saturation(), this.handle.canAlwaysEat(), this.handle.eatSeconds(), this.handle.usingConvertsTo(), effects.stream().map(CraftFoodEffect::new).map(CraftFoodEffect::getHandle).toList());
+        this.handle = new FoodProperties(this.handle.nutrition(), this.handle.saturation(), this.handle.canAlwaysEat(), this.handle.eatSeconds(),  handle.usingConvertsTo(), effects.stream().map(CraftFoodEffect::new).map(CraftFoodEffect::getHandle).toList());
     }
 
     @Override
@@ -139,7 +139,7 @@ public final class CraftFoodComponent implements FoodComponent {
         FoodProperties.PossibleEffect newEffect = new net.minecraft.world.food.FoodProperties.PossibleEffect(CraftPotionUtil.fromBukkit(effect), probability);
         effects.add(newEffect);
 
-        this.handle = new FoodProperties(this.handle.nutrition(), this.handle.saturation(), this.handle.canAlwaysEat(), this.handle.eatSeconds(), this.handle.usingConvertsTo(), effects);
+        this.handle = new FoodProperties(this.handle.nutrition(), this.handle.saturation(), this.handle.canAlwaysEat(), this.handle.eatSeconds(), handle.usingConvertsTo(), effects);
 
         return new CraftFoodEffect(newEffect);
     }

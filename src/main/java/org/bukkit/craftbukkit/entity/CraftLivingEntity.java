@@ -196,6 +196,28 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         return blocks.get(0);
     }
 
+    public Entity getTargetEntity(int maxDistance, boolean ignoreBlocks) {
+        net.minecraft.world.phys.EntityHitResult rayTrace = rayTraceEntity(maxDistance, ignoreBlocks);
+        return rayTrace == null ? null : rayTrace.getEntity().getBukkitEntity();
+    }
+
+    public net.minecraft.world.phys.EntityHitResult rayTraceEntity(int maxDistance, boolean ignoreBlocks) {
+        net.minecraft.world.phys.EntityHitResult rayTrace = getHandle().getTargetEntity(maxDistance);
+        if (rayTrace == null) {
+            return null;
+        }
+        if (!ignoreBlocks) {
+            net.minecraft.world.phys.HitResult rayTraceBlocks = getHandle().getRayTrace(maxDistance, net.minecraft.world.level.ClipContext.Fluid.NONE);
+            if (rayTraceBlocks != null) {
+                net.minecraft.world.phys.Vec3 eye = getHandle().getEyePosition(1.0F);
+                if (eye.distanceToSqr(rayTraceBlocks.getLocation()) <= eye.distanceToSqr(rayTrace.getLocation())) {
+                    return null;
+                }
+            }
+        }
+        return rayTrace;
+    }
+
     @Override
     public List<Block> getLastTwoTargetBlocks(Set<Material> transparent, int maxDistance) {
         return this.getLineOfSight(transparent, maxDistance, 2);
@@ -489,7 +511,7 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
             } else if (WindCharge.class.isAssignableFrom(projectile)) {
                 launch = EntityType.WIND_CHARGE.create(world);
                 ((net.minecraft.world.entity.projectile.windcharge.WindCharge) launch).setOwner(this.getHandle());
-                ((net.minecraft.world.entity.projectile.windcharge.WindCharge) launch).assignDirectionalMovement(vec, 0.1D);
+                ((net.minecraft.world.entity.projectile.windcharge.WindCharge) launch).assignDirectionalMovement(vec, 1.0D);
             } else {
                 launch = new LargeFireball(world, this.getHandle(), vec, 1);
             }
@@ -642,6 +664,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     @Override
     public boolean isRiptiding() {
         return this.getHandle().isAutoSpinAttack();
+    }
+
+    @Override
+    public void setRiptiding(boolean riptiding) {
+        getHandle().setLivingEntityFlag(net.minecraft.world.entity.LivingEntity.LIVING_ENTITY_FLAG_SPIN_ATTACK, riptiding);
     }
 
     @Override

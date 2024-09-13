@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.spigotmc.event.player;
 
 import org.bukkit.Location;

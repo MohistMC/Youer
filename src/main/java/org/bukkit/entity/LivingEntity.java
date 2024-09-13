@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.entity;
 
 import java.util.Collection;
@@ -88,6 +84,27 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     @NotNull
     public Block getTargetBlock(@Nullable Set<Material> transparent, int maxDistance);
+
+    /**
+     * Gets information about the entity being targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @return entity being targeted, or null if no entity is targeted
+     */
+    @Nullable
+    public default Entity getTargetEntity(int maxDistance) {
+        return getTargetEntity(maxDistance, false);
+    }
+
+    /**
+     * Gets information about the entity being targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param ignoreBlocks true to scan through blocks
+     * @return entity being targeted, or null if no entity is targeted
+     */
+    @Nullable
+    public Entity getTargetEntity(int maxDistance, boolean ignoreBlocks);
 
     /**
      * Gets the last two blocks along the living entity's line of sight.
@@ -514,11 +531,21 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
     public void setSwimming(boolean swimming);
 
     /**
-     * Checks to see if an entity is currently using the Riptide enchantment.
+     * Checks to see if an entity is currently riptiding.
      *
      * @return True if this entity is currently riptiding.
      */
     public boolean isRiptiding();
+
+    /**
+     * Makes entity start or stop riptiding.
+     * <p>
+     * Note: This does not damage attackable entities.
+     *
+     * @param riptiding whether the entity should start riptiding.
+     * @see HumanEntity#startRiptideAttack(int, float, ItemStack)
+     */
+    public void setRiptiding(boolean riptiding);
 
     /**
      * Returns whether this entity is slumbering.

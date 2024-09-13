@@ -1,7 +1,3 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.plugin.java;
 
 import com.google.common.base.Preconditions;
@@ -48,7 +44,7 @@ import org.bukkit.plugin.UnknownDependencyException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spigotmc.CustomTimingsHandler; // Spigot
-import org.yaml.snakeyaml.error.YAMLException;
+import com.mohistmc.org.yaml.snakeyaml .error.YAMLException;
 
 /**
  * Represents a Java plugin loader, allowing plugins in the form of .jar
@@ -57,7 +53,7 @@ public final class JavaPluginLoader implements PluginLoader {
     final Server server;
     private final Pattern[] fileFilters = new Pattern[]{Pattern.compile("\\.jar$")};
     private final List<PluginClassLoader> loaders = new CopyOnWriteArrayList<PluginClassLoader>();
-    // private final LibraryLoader libraryLoader;
+    private final LibraryLoader libraryLoader;
     public static final CustomTimingsHandler pluginParentTimer = new CustomTimingsHandler("** Plugins"); // Spigot
 
     /**
@@ -70,15 +66,14 @@ public final class JavaPluginLoader implements PluginLoader {
         Preconditions.checkArgument(instance != null, "Server cannot be null");
         server = instance;
 
-        /*
         LibraryLoader libraryLoader = null;
         try {
-            libraryLoader = new LibraryLoader(server.getLogger());
+            libraryLoader = new LibraryLoader();
         } catch (NoClassDefFoundError ex) {
             // Provided depends were not added back
             server.getLogger().warning("Could not initialize LibraryLoader (missing dependencies?)");
         }
-        this.libraryLoader = libraryLoader;*/
+        this.libraryLoader = libraryLoader;
     }
 
     @Override
@@ -147,7 +142,7 @@ public final class JavaPluginLoader implements PluginLoader {
 
         final PluginClassLoader loader;
         try {
-            loader = new PluginClassLoader(this, getClass().getClassLoader(), description, dataFolder, file, /*(libraryLoader != null) ? libraryLoader.createLoader(description) :*/ null);
+            loader = new PluginClassLoader(this, getClass().getClassLoader(), description, dataFolder, file, (libraryLoader != null) ? libraryLoader.createLoader(description) : null);
         } catch (InvalidPluginException ex) {
             throw ex;
         } catch (Throwable ex) {
@@ -297,7 +292,6 @@ public final class JavaPluginLoader implements PluginLoader {
                 }
             }
 
-            final CustomTimingsHandler timings = new CustomTimingsHandler("Plugin: " + plugin.getDescription().getFullName() + " Event: " + listener.getClass().getName() + "::" + method.getName() + "(" + eventClass.getSimpleName() + ")", pluginParentTimer); // Spigot
             EventExecutor executor = new EventExecutor() {
                 @Override
                 public void execute(@NotNull Listener listener, @NotNull Event event) throws EventException {
@@ -305,12 +299,7 @@ public final class JavaPluginLoader implements PluginLoader {
                         if (!eventClass.isAssignableFrom(event.getClass())) {
                             return;
                         }
-                        // Spigot start
-                        boolean isAsync = event.isAsynchronous();
-                        if (!isAsync) timings.startTiming();
                         method.invoke(listener, event);
-                        if (!isAsync) timings.stopTiming();
-                        // Spigot end
                     } catch (InvocationTargetException ex) {
                         throw new EventException(ex.getCause());
                     } catch (Throwable t) {

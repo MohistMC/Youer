@@ -1,10 +1,5 @@
-/*
- * Copyright (c) CraftBukkit/NeoForged and contributors
- */
-
 package org.bukkit.configuration;
 
-import static org.bukkit.util.NumberConversions.*;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
@@ -19,6 +14,9 @@ import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.inventory.ItemStack;
+import static org.bukkit.util.NumberConversions.toDouble;
+import static org.bukkit.util.NumberConversions.toInt;
+import static org.bukkit.util.NumberConversions.toLong;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
