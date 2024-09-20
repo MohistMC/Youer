@@ -23,19 +23,18 @@ import com.mohistmc.youer.eventhandler.dispatcher.BlockEventDispatcher;
 import com.mohistmc.youer.eventhandler.dispatcher.EntityEventDispatcher;
 import com.mohistmc.youer.eventhandler.dispatcher.ItemEventDispatcher;
 import com.mohistmc.youer.eventhandler.dispatcher.PlayerEventDispatcher;
-import com.mohistmc.youer.eventhandler.dispatcher.ServerEventDispatcher;
 import com.mohistmc.youer.eventhandler.dispatcher.WorldEventDispatcher;
-import net.minecraftforge.common.MinecraftForge;
+import net.neoforged.neoforge.common.NeoForge;
 
 public class EventDispatcherRegistry {
 
     public static void init() {
-        MinecraftForge.EVENT_BUS.register(new PlayerEventDispatcher());
-        MinecraftForge.EVENT_BUS.register(new WorldEventDispatcher());
-        MinecraftForge.EVENT_BUS.register(new ItemEventDispatcher());
-        MinecraftForge.EVENT_BUS.register(new EntityEventDispatcher());
-        MinecraftForge.EVENT_BUS.register(new BlockEventDispatcher());
-        MinecraftForge.EVENT_BUS.register(new ServerEventDispatcher());
+        NeoForge.EVENT_BUS.register(new PlayerEventDispatcher());
+        NeoForge.EVENT_BUS.register(new WorldEventDispatcher());
+        NeoForge.EVENT_BUS.register(new ItemEventDispatcher());
+        NeoForge.EVENT_BUS.register(new EntityEventDispatcher());
+        NeoForge.EVENT_BUS.register(new BlockEventDispatcher());
+        NeoForge.EVENT_BUS.register(new ServerEventDispatcher());
         Youer.LOGGER.info("EventDispatcherRegistry initialized");
     }
 }

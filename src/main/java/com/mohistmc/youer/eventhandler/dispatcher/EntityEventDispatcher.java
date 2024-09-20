@@ -26,9 +26,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
-import net.minecraftforge.event.entity.living.LivingDropsEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.entity.CraftLivingEntity;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -42,7 +42,7 @@ public class EntityEventDispatcher {
     @SubscribeEvent(receiveCanceled = true)
     public void changeTargetEvent(LivingChangeTargetEvent event) {
         EntityTargetEvent.TargetReason reason = event.getReason();
-        LivingEntity entityliving = event.getNewTarget();
+        LivingEntity entityliving = event.getNewAboutToBeSetTarget();
 
         if (entityliving instanceof Mob mob) {
             if (event.isFireCBEvent()) {
@@ -59,7 +59,7 @@ public class EntityEventDispatcher {
                     event.setCanceled(true);
                 } else {
                     if (CBevent.getTarget() != null) {
-                        event.setNewTarget(((CraftLivingEntity) CBevent.getTarget()).getHandle());
+                        event.setNewAboutToBeSetTarget(((CraftLivingEntity) CBevent.getTarget()).getHandle());
                     }
                 }
             }
