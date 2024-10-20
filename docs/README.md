@@ -1,6 +1,8 @@
 <div align="center">
   <h1>Youer 1.21.1</h1>
 
+<span style="color:red;font-size:20px;">The project is experimental, we are not available, and it is expected that it will not be released stably until after 1.21.2 or 1.22.</span>
+
 ### Minecraft NeoForge Hybrid server implementing the Spigot/Bukkit API
 
 [![](https://img.shields.io/jenkins/build?jobUrl=https%3A%2F%2Fci.codemc.io%2Fjob%2FMohistMC%2Fjob%2FYouer-1.21.1)](https://ci.codemc.io/job/MohistMC/job/Youer-1.21.1)
@@ -15,6 +17,7 @@
 [![](https://bstats.org/signatures/server-implementation/Mohist.svg)](https://bstats.org/plugin/server-implementation/Mohist/6762)
 
 </div>
+
 Progress
 ------
 
