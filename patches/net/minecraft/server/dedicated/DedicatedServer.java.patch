@@ -1,24 +1,15 @@
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -58,6 +_,8 @@
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.block.entity.SkullBlockEntity;
- import net.minecraft.world.level.storage.LevelStorageSource;
-+import org.bukkit.command.CommandSender;
-+import org.bukkit.command.RemoteConsoleCommandSender;
- import org.slf4j.Logger;
- 
- public class DedicatedServer extends MinecraftServer implements ServerInterface {
-@@ -80,6 +_,8 @@
+@@ -79,6 +_,8 @@
      @Nullable
      private DebugSampleSubscriptionTracker debugSampleSubscriptionTracker;
-     public ServerLinks serverLinks;
+     private final ServerLinks serverLinks;
 +    @Nullable
 +    private net.minecraft.client.server.LanServerPinger dediLanPinger;
  
      public DedicatedServer(
          Thread p_214789_,
-@@ -103,6 +_,7 @@
+@@ -102,6 +_,7 @@
          Thread thread = new Thread("Server console handler") {
              @Override
              public void run() {
@@ -26,7 +17,7 @@
                  BufferedReader bufferedreader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
  
                  String s1;
-@@ -185,11 +_,13 @@
+@@ -184,11 +_,13 @@
              long i = Util.getNanos();
              SkullBlockEntity.setup(this.services, this);
              GameProfileCache.setUsesAuthentication(this.usesAuthentication());
@@ -40,7 +31,7 @@
              if (dedicatedserverproperties.announcePlayerAchievements != null) {
                  this.getGameRules().getRule(GameRules.RULE_ANNOUNCE_ADVANCEMENTS).set(dedicatedserverproperties.announcePlayerAchievements, this);
              }
-@@ -217,6 +_,12 @@
+@@ -216,6 +_,12 @@
                  LOGGER.info("JMX monitoring enabled");
              }
  
@@ -53,7 +44,7 @@
              return true;
          }
      }
-@@ -295,6 +_,10 @@
+@@ -277,6 +_,10 @@
          if (this.queryThreadGs4 != null) {
              this.queryThreadGs4.stop();
          }
@@ -64,17 +55,7 @@
      }
  
      @Override
-@@ -542,13 +_,22 @@
-         return this.rconConsoleSource.getCommandResponse();
-     }
- 
-+    public String runCommand(RconConsoleSource rconConsoleSource, String s) {
-+        return s;
-+    }
-+
-     public void storeUsingWhiteList(boolean p_139689_) {
-         this.settings.update(p_349962_ -> p_349962_.whiteList.update(this.registryAccess(), p_139689_));
-     }
+@@ -530,7 +_,12 @@
  
      @Override
      public void stopServer() {
@@ -87,19 +68,3 @@
          Util.shutdownExecutors();
          SkullBlockEntity.clear();
      }
-@@ -638,5 +_,15 @@
-                 return Optional.empty();
-             }
-         }
-+    }
-+
-+    @Override
-+    public boolean isDebugging() {
-+        return this.getProperties().debug;
-+    }
-+
-+    @Override
-+    public CommandSender getBukkitSender(CommandSourceStack wrapper) {
-+        return console;
-     }
- }

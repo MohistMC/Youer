@@ -14,10 +14,6 @@ public class CombinedInvWrapper implements IItemHandlerModifiable {
     protected final int[] baseIndex; // index-offsets of the different handlers
     protected final int slotCount; // number of total slots
 
-    public IItemHandlerModifiable[] itemHandler() {
-        return itemHandler;
-    }
-
     public CombinedInvWrapper(IItemHandlerModifiable... itemHandler) {
         this.itemHandler = itemHandler;
         this.baseIndex = new int[itemHandler.length];

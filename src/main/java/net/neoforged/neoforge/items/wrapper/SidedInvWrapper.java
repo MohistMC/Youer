@@ -210,10 +210,4 @@ public class SidedInvWrapper implements IItemHandlerModifiable {
         int slot1 = getSlot(inv, slot, side);
         return slot1 == -1 ? false : inv.canPlaceItem(slot1, stack);
     }
-
-    // Mohsit start
-    public WorldlyContainer getInv() {
-        return inv;
-    }
-    // Mohist end
 }

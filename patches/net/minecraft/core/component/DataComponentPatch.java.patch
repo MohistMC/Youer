@@ -1,45 +1,8 @@
 --- a/net/minecraft/core/component/DataComponentPatch.java
 +++ b/net/minecraft/core/component/DataComponentPatch.java
-@@ -238,7 +_,44 @@
-         Builder() {
+@@ -239,6 +_,7 @@
          }
  
-+        // CraftBukkit start
-+        public void copy(DataComponentPatch orig) {
-+            this.map.putAll(orig.map);
-+        }
-+
-+        public void clear(DataComponentType<?> type) {
-+            this.map.remove(type);
-+        }
-+
-+        public boolean isSet(DataComponentType<?> type) {
-+            return map.containsKey(type);
-+        }
-+
-+        public boolean isEmpty() {
-+            return this.map.isEmpty();
-+        }
-+
-+        @Override
-+        public boolean equals(Object object) {
-+            if (this == object) {
-+                return true;
-+            }
-+
-+            if (object instanceof DataComponentPatch.Builder patch) {
-+                return this.map.equals(patch.map);
-+            }
-+
-+            return false;
-+        }
-+
-+        @Override
-+        public int hashCode() {
-+            return this.map.hashCode();
-+        }
-+        // CraftBukkit end
-+
          public <T> DataComponentPatch.Builder set(DataComponentType<T> p_332004_, T p_331566_) {
 +            net.neoforged.neoforge.common.CommonHooks.validateComponent(p_331566_);
              this.map.put(p_332004_, Optional.of(p_331566_));

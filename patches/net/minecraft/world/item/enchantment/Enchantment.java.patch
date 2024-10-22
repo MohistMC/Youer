@@ -43,83 +43,10 @@
      public boolean canEnchant(ItemStack p_44689_) {
          return this.definition.supportedItems().contains(p_44689_.getItemHolder());
      }
-@@ -355,7 +_,7 @@
-         );
-     }
- 
--    private void modifyItemFilteredCount(
-+    public void modifyItemFilteredCount(
-         DataComponentType<List<ConditionalEffect<EnchantmentValueEffect>>> p_345794_,
-         ServerLevel p_345992_,
-         int p_345038_,
-@@ -369,7 +_,7 @@
-         );
-     }
- 
--    private void modifyEntityFilteredValue(
-+    public void modifyEntityFilteredValue(
-         DataComponentType<List<ConditionalEffect<EnchantmentValueEffect>>> p_345986_,
-         ServerLevel p_345473_,
-         int p_345352_,
-@@ -384,7 +_,7 @@
-         );
-     }
- 
--    private void modifyDamageFilteredValue(
-+    public void modifyDamageFilteredValue(
-         DataComponentType<List<ConditionalEffect<EnchantmentValueEffect>>> p_345367_,
-         ServerLevel p_345784_,
-         int p_344796_,
-@@ -412,7 +_,7 @@
-         return new LootContext.Builder(lootparams).create(Optional.empty());
-     }
- 
--    private static LootContext itemContext(ServerLevel p_345514_, int p_345186_, ItemStack p_344997_) {
-+    public static LootContext itemContext(ServerLevel p_345514_, int p_345186_, ItemStack p_344997_) {
-         LootParams lootparams = new LootParams.Builder(p_345514_)
-             .withParameter(LootContextParams.TOOL, p_344997_)
-             .withParameter(LootContextParams.ENCHANTMENT_LEVEL, p_345186_)
-@@ -420,7 +_,7 @@
-         return new LootContext.Builder(lootparams).create(Optional.empty());
-     }
- 
--    private static LootContext locationContext(ServerLevel p_345134_, int p_346182_, Entity p_345416_, boolean p_345862_) {
-+    public static LootContext locationContext(ServerLevel p_345134_, int p_346182_, Entity p_345416_, boolean p_345862_) {
-         LootParams lootparams = new LootParams.Builder(p_345134_)
-             .withParameter(LootContextParams.THIS_ENTITY, p_345416_)
-             .withParameter(LootContextParams.ENCHANTMENT_LEVEL, p_346182_)
-@@ -430,7 +_,7 @@
-         return new LootContext.Builder(lootparams).create(Optional.empty());
-     }
- 
--    private static LootContext entityContext(ServerLevel p_346134_, int p_346059_, Entity p_346146_, Vec3 p_345814_) {
-+    public static LootContext entityContext(ServerLevel p_346134_, int p_346059_, Entity p_346146_, Vec3 p_345814_) {
-         LootParams lootparams = new LootParams.Builder(p_346134_)
-             .withParameter(LootContextParams.THIS_ENTITY, p_346146_)
-             .withParameter(LootContextParams.ENCHANTMENT_LEVEL, p_346059_)
-@@ -439,7 +_,7 @@
-         return new LootContext.Builder(lootparams).create(Optional.empty());
-     }
- 
--    private static LootContext blockHitContext(ServerLevel p_350329_, int p_350503_, Entity p_350451_, Vec3 p_350874_, BlockState p_350311_) {
-+    public static LootContext blockHitContext(ServerLevel p_350329_, int p_350503_, Entity p_350451_, Vec3 p_350874_, BlockState p_350311_) {
-         LootParams lootparams = new LootParams.Builder(p_350329_)
-             .withParameter(LootContextParams.THIS_ENTITY, p_350451_)
-             .withParameter(LootContextParams.ENCHANTMENT_LEVEL, p_350503_)
-@@ -449,7 +_,7 @@
-         return new LootContext.Builder(lootparams).create(Optional.empty());
-     }
- 
--    private static <T> void applyEffects(List<ConditionalEffect<T>> p_345860_, LootContext p_345578_, Consumer<T> p_346164_) {
-+    public static <T> void applyEffects(List<ConditionalEffect<T>> p_345860_, LootContext p_345578_, Consumer<T> p_346164_) {
-         for (ConditionalEffect<T> conditionaleffect : p_345860_) {
-             if (conditionaleffect.matches(p_345578_)) {
-                 p_346164_.accept(conditionaleffect.effect());
-@@ -503,6 +_,15 @@
-     public static Enchantment.Builder enchantment(Enchantment.EnchantmentDefinition p_345873_) {
+@@ -511,12 +_,26 @@
          return new Enchantment.Builder(p_345873_);
      }
-+
+ 
 +//    TODO: Reimplement. Not sure if we want to patch EnchantmentDefinition or hack this in as an EnchantmentEffectComponent.
 +//    /**
 +//     * Is this enchantment allowed to be enchanted on books via Enchantment Table
@@ -128,6 +55,46 @@
 +//    public boolean isAllowedOnBooks() {
 +//        return true;
 +//    }
- 
++
      public static class Builder {
          private final Enchantment.EnchantmentDefinition definition;
+         private HolderSet<Enchantment> exclusiveSet = HolderSet.direct();
+         private final Map<DataComponentType<?>, List<?>> effectLists = new HashMap<>();
+         private final DataComponentMap.Builder effectMapBuilder = DataComponentMap.builder();
+ 
++        /**
++         * Neo: Allow customizing or changing the {@link Component} created by the enchantment builder.
++         */
++        protected java.util.function.UnaryOperator<MutableComponent> nameFactory = java.util.function.UnaryOperator.identity();
++
+         public Builder(Enchantment.EnchantmentDefinition p_345317_) {
+             this.definition = p_345317_;
+         }
+@@ -569,6 +_,16 @@
+             return this;
+         }
+ 
++        /**
++         * Allows specifying an operator that can customize the default {@link Component} created by {@link #build(ResourceLocation)}.
++         *
++         * @return this
++         */
++        public Enchantment.Builder withCustomName(java.util.function.UnaryOperator<MutableComponent> nameFactory) {
++            this.nameFactory = nameFactory;
++            return this;
++        }
++
+         private <E> List<E> getEffectsList(DataComponentType<List<E>> p_344770_) {
+             return (List<E>)this.effectLists.computeIfAbsent(p_344770_, p_346247_ -> {
+                 ArrayList<E> arraylist = new ArrayList<>();
+@@ -579,7 +_,9 @@
+ 
+         public Enchantment build(ResourceLocation p_344988_) {
+             return new Enchantment(
+-                Component.translatable(Util.makeDescriptionId("enchantment", p_344988_)), this.definition, this.exclusiveSet, this.effectMapBuilder.build()
++                // Neo: permit custom name components instead of a single hardcoded translatable component.
++                this.nameFactory.apply(Component.translatable(Util.makeDescriptionId("enchantment", p_344988_))),
++                this.definition, this.exclusiveSet, this.effectMapBuilder.build()
+             );
+         }
+     }
