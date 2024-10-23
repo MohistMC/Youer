@@ -25,13 +25,13 @@ class CraftAsyncTask extends CraftTask {
     @Override
     public void run() {
         final Thread thread = Thread.currentThread();
-        synchronized (this.workers) {
-            if (this.getPeriod() == CraftTask.CANCEL) {
+        synchronized (workers) {
+            if (getPeriod() == CraftTask.CANCEL) {
                 // Never continue running after cancelled.
                 // Checking this with the lock is important!
                 return;
             }
-            this.workers.add(
+            workers.add(
                 new BukkitWorker() {
                     @Override
                     public Thread getThread() {
@@ -54,16 +54,16 @@ class CraftAsyncTask extends CraftTask {
             super.run();
         } catch (final Throwable t) {
             thrown = t;
-            this.getOwner().getLogger().log(
+            getOwner().getLogger().log(
                     Level.WARNING,
                     String.format(
                         "Plugin %s generated an exception while executing task %s",
-                        this.getOwner().getDescription().getFullName(),
-                        this.getTaskId()),
+                        getOwner().getDescription().getFullName(),
+                        getTaskId()),
                     thrown);
         } finally {
             // Cleanup is important for any async task, otherwise ghost tasks are everywhere
-            synchronized (this.workers) {
+            synchronized (workers) {
                 try {
                     final Iterator<BukkitWorker> workers = this.workers.iterator();
                     boolean removed = false;
@@ -79,15 +79,15 @@ class CraftAsyncTask extends CraftTask {
                                 String.format(
                                     "Unable to remove worker %s on task %s for %s",
                                     thread.getName(),
-                                    this.getTaskId(),
-                                    this.getOwner().getDescription().getFullName()),
+                                    getTaskId(),
+                                    getOwner().getDescription().getFullName()),
                                 thrown); // We don't want to lose the original exception, if any
                     }
                 } finally {
-                    if (this.getPeriod() < 0 && this.workers.isEmpty()) {
+                    if (getPeriod() < 0 && workers.isEmpty()) {
                         // At this spot, we know we are the final async task being executed!
                         // Because we have the lock, nothing else is running or will run because delay < 0
-                        this.runners.remove(this.getTaskId());
+                        runners.remove(getTaskId());
                     }
                 }
             }
@@ -95,16 +95,16 @@ class CraftAsyncTask extends CraftTask {
     }
 
     LinkedList<BukkitWorker> getWorkers() {
-        return this.workers;
+        return workers;
     }
 
     @Override
     boolean cancel0() {
-        synchronized (this.workers) {
+        synchronized (workers) {
             // Synchronizing here prevents race condition for a completing task
-            this.setPeriod(CraftTask.CANCEL);
-            if (this.workers.isEmpty()) {
-                this.runners.remove(this.getTaskId());
+            setPeriod(CraftTask.CANCEL);
+            if (workers.isEmpty()) {
+                runners.remove(getTaskId());
             }
         }
         return true;

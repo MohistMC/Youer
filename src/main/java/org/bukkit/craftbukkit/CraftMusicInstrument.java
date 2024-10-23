@@ -2,6 +2,7 @@ package org.bukkit.craftbukkit;
 
 import com.google.common.base.Preconditions;
 import net.minecraft.core.Holder;
+import net.minecraft.core.IRegistry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.Instrument;
 import org.bukkit.MusicInstrument;
@@ -17,7 +18,7 @@ public class CraftMusicInstrument extends MusicInstrument implements Handleable<
     }
 
     public static MusicInstrument minecraftHolderToBukkit(Holder<Instrument> minecraft) {
-        return CraftMusicInstrument.minecraftToBukkit(minecraft.value());
+        return minecraftToBukkit(minecraft.value());
     }
 
     public static Instrument bukkitToMinecraft(MusicInstrument bukkit) {
@@ -27,9 +28,9 @@ public class CraftMusicInstrument extends MusicInstrument implements Handleable<
     public static Holder<Instrument> bukkitToMinecraftHolder(MusicInstrument bukkit) {
         Preconditions.checkArgument(bukkit != null);
 
-        net.minecraft.core.Registry<Instrument> registry = CraftRegistry.getMinecraftRegistry(Registries.INSTRUMENT);
+        IRegistry<Instrument> registry = CraftRegistry.getMinecraftRegistry(Registries.INSTRUMENT);
 
-        if (registry.wrapAsHolder(CraftMusicInstrument.bukkitToMinecraft(bukkit)) instanceof Holder.Reference<Instrument> holder) {
+        if (registry.wrapAsHolder(bukkitToMinecraft(bukkit)) instanceof Holder.c<Instrument> holder) {
             return holder;
         }
 
@@ -59,13 +60,13 @@ public class CraftMusicInstrument extends MusicInstrument implements Handleable<
 
     @Override
     public Instrument getHandle() {
-        return this.handle;
+        return handle;
     }
 
     @NotNull
     @Override
     public NamespacedKey getKey() {
-        return this.key;
+        return key;
     }
 
     @Override
@@ -78,16 +79,16 @@ public class CraftMusicInstrument extends MusicInstrument implements Handleable<
             return false;
         }
 
-        return this.getKey().equals(((MusicInstrument) other).getKey());
+        return getKey().equals(((MusicInstrument) other).getKey());
     }
 
     @Override
     public int hashCode() {
-        return this.getKey().hashCode();
+        return getKey().hashCode();
     }
 
     @Override
     public String toString() {
-        return "CraftMusicInstrument{key=" + this.key + "}";
+        return "CraftMusicInstrument{key=" + key + "}";
     }
 }

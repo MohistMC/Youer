@@ -9,21 +9,21 @@ public final class CraftWaterloggedTransparent extends org.bukkit.craftbukkit.bl
         super();
     }
 
-    public CraftWaterloggedTransparent(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftWaterloggedTransparent(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftWaterlogged
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty WATERLOGGED = getBoolean(net.minecraft.world.level.block.WaterloggedTransparentBlock.class, "waterlogged");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean WATERLOGGED = getBoolean(net.minecraft.world.level.block.WaterloggedTransparentBlock.class, "waterlogged");
 
     @Override
     public boolean isWaterlogged() {
-        return this.get(CraftWaterloggedTransparent.WATERLOGGED);
+        return get(WATERLOGGED);
     }
 
     @Override
     public void setWaterlogged(boolean waterlogged) {
-        this.set(CraftWaterloggedTransparent.WATERLOGGED, waterlogged);
+        set(WATERLOGGED, waterlogged);
     }
 }

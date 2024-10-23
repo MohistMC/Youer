@@ -24,44 +24,44 @@ public class CraftInteraction extends CraftEntity implements Interaction {
 
     @Override
     public float getInteractionWidth() {
-        return this.getHandle().getWidth();
+        return getHandle().getWidth();
     }
 
     @Override
     public void setInteractionWidth(float width) {
-        this.getHandle().setWidth(width);
+        getHandle().setWidth(width);
     }
 
     @Override
     public float getInteractionHeight() {
-        return this.getHandle().getHeight();
+        return getHandle().getHeight();
     }
 
     @Override
     public void setInteractionHeight(float height) {
-        this.getHandle().setHeight(height);
+        getHandle().setHeight(height);
     }
 
     @Override
     public boolean isResponsive() {
-        return this.getHandle().getResponse();
+        return getHandle().getResponse();
     }
 
     @Override
     public void setResponsive(boolean response) {
-        this.getHandle().setResponse(response);
+        getHandle().setResponse(response);
     }
 
     @Override
     public PreviousInteraction getLastAttack() {
-        net.minecraft.world.entity.Interaction.PlayerAction last = this.getHandle().attack;
+        net.minecraft.world.entity.Interaction.PlayerAction last = getHandle().attack;
 
         return (last != null) ? new CraftPreviousInteraction(last.player(), last.timestamp()) : null;
     }
 
     @Override
     public PreviousInteraction getLastInteraction() {
-        net.minecraft.world.entity.Interaction.PlayerAction last = this.getHandle().interaction;
+        net.minecraft.world.entity.Interaction.PlayerAction last = getHandle().interaction;
 
         return (last != null) ? new CraftPreviousInteraction(last.player(), last.timestamp()) : null;
     }
@@ -78,12 +78,12 @@ public class CraftInteraction extends CraftEntity implements Interaction {
 
         @Override
         public OfflinePlayer getPlayer() {
-            return Bukkit.getOfflinePlayer(this.uuid);
+            return Bukkit.getOfflinePlayer(uuid);
         }
 
         @Override
         public long getTimestamp() {
-            return this.timestamp;
+            return timestamp;
         }
     }
 }

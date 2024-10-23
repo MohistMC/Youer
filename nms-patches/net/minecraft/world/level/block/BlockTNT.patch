@@ -14,7 +14,7 @@
      public static final MapCodec<BlockTNT> CODEC = simpleCodec(BlockTNT::new);
 @@ -47,7 +52,7 @@
      @Override
-     protected void onPlace(IBlockData iblockdata, World world, BlockPosition blockposition, IBlockData iblockdata1, boolean flag) {
+     protected void onPlace(IBlockData iblockdata, World world, BlockPos blockposition, IBlockData iblockdata1, boolean flag) {
          if (!iblockdata1.is(iblockdata.getBlock())) {
 -            if (world.hasNeighborSignal(blockposition)) {
 +            if (world.hasNeighborSignal(blockposition) && CraftEventFactory.callTNTPrimeEvent(world, blockposition, PrimeCause.REDSTONE, null, null)) { // CraftBukkit - TNTPrimeEvent
@@ -24,7 +24,7 @@
 @@ -57,7 +62,7 @@
  
      @Override
-     protected void neighborChanged(IBlockData iblockdata, World world, BlockPosition blockposition, Block block, @Nullable Orientation orientation, boolean flag) {
+     protected void neighborChanged(IBlockData iblockdata, World world, BlockPos blockposition, Block block, @Nullable Orientation orientation, boolean flag) {
 -        if (world.hasNeighborSignal(blockposition)) {
 +        if (world.hasNeighborSignal(blockposition) && CraftEventFactory.callTNTPrimeEvent(world, blockposition, PrimeCause.REDSTONE, null, null)) { // CraftBukkit - TNTPrimeEvent
              explode(world, blockposition);
@@ -33,7 +33,7 @@
 @@ -66,7 +71,7 @@
  
      @Override
-     public IBlockData playerWillDestroy(World world, BlockPosition blockposition, IBlockData iblockdata, EntityHuman entityhuman) {
+     public IBlockData playerWillDestroy(World world, BlockPos blockposition, IBlockData iblockdata, EntityHuman entityhuman) {
 -        if (!world.isClientSide() && !entityhuman.isCreative() && (Boolean) iblockdata.getValue(BlockTNT.UNSTABLE)) {
 +        if (!world.isClientSide() && !entityhuman.isCreative() && (Boolean) iblockdata.getValue(BlockTNT.UNSTABLE) && CraftEventFactory.callTNTPrimeEvent(world, blockposition, PrimeCause.BLOCK_BREAK, entityhuman, null)) { // CraftBukkit - TNTPrimeEvent
              explode(world, blockposition);

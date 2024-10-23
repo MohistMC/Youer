@@ -9,40 +9,40 @@ public final class CraftDropper extends org.bukkit.craftbukkit.block.data.CraftB
         super();
     }
 
-    public CraftDropper(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftDropper(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftDispenser
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty TRIGGERED = getBoolean(net.minecraft.world.level.block.DropperBlock.class, "triggered");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean TRIGGERED = getBoolean(net.minecraft.world.level.block.BlockDropper.class, "triggered");
 
     @Override
     public boolean isTriggered() {
-        return this.get(CraftDropper.TRIGGERED);
+        return get(TRIGGERED);
     }
 
     @Override
     public void setTriggered(boolean triggered) {
-        this.set(CraftDropper.TRIGGERED, triggered);
+        set(TRIGGERED, triggered);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftDirectional
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> FACING = getEnum(net.minecraft.world.level.block.DropperBlock.class, "facing");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> FACING = getEnum(net.minecraft.world.level.block.BlockDropper.class, "facing");
 
     @Override
     public org.bukkit.block.BlockFace getFacing() {
-        return this.get(CraftDropper.FACING, org.bukkit.block.BlockFace.class);
+        return get(FACING, org.bukkit.block.BlockFace.class);
     }
 
     @Override
     public void setFacing(org.bukkit.block.BlockFace facing) {
-        this.set(CraftDropper.FACING, facing);
+        set(FACING, facing);
     }
 
     @Override
     public java.util.Set<org.bukkit.block.BlockFace> getFaces() {
-        return this.getValues(CraftDropper.FACING, org.bukkit.block.BlockFace.class);
+        return getValues(FACING, org.bukkit.block.BlockFace.class);
     }
 }

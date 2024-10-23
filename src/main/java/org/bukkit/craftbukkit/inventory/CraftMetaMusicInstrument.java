@@ -6,10 +6,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Instrument;
-import org.bukkit.Material;
 import org.bukkit.MusicInstrument;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.configuration.serialization.DelegateDeserialization;
 import org.bukkit.craftbukkit.CraftMusicInstrument;
 import org.bukkit.inventory.meta.MusicInstrumentMeta;
@@ -32,7 +29,7 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
     CraftMetaMusicInstrument(DataComponentPatch tag) {
         super(tag);
 
-        getOrEmpty(tag, CraftMetaMusicInstrument.GOAT_HORN_INSTRUMENT).ifPresent((instrument) -> {
+        getOrEmpty(tag, GOAT_HORN_INSTRUMENT).ifPresent((instrument) -> {
             this.instrument = CraftMusicInstrument.minecraftHolderToBukkit(instrument);
         });
     }
@@ -40,7 +37,7 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
     CraftMetaMusicInstrument(Map<String, Object> map) {
         super(map);
 
-        String instrumentString = SerializableMeta.getString(map, CraftMetaMusicInstrument.GOAT_HORN_INSTRUMENT.BUKKIT, true);
+        String instrumentString = SerializableMeta.getString(map, GOAT_HORN_INSTRUMENT.BUKKIT, true);
         if (instrumentString != null) {
             this.instrument = CraftMusicInstrument.stringToBukkit(instrumentString);
         }
@@ -50,14 +47,9 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
     void applyToItem(CraftMetaItem.Applicator tag) {
         super.applyToItem(tag);
 
-        if (this.instrument != null) {
-            tag.put(CraftMetaMusicInstrument.GOAT_HORN_INSTRUMENT, CraftMusicInstrument.bukkitToMinecraftHolder(this.instrument));
+        if (instrument != null) {
+            tag.put(GOAT_HORN_INSTRUMENT, CraftMusicInstrument.bukkitToMinecraftHolder(instrument));
         }
-    }
-
-    @Override
-    boolean applicableTo(Material type) {
-        return type == Material.GOAT_HORN;
     }
 
     @Override
@@ -74,16 +66,16 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
 
     @Override
     boolean notUncommon(CraftMetaItem meta) {
-        return super.notUncommon(meta) && (meta instanceof CraftMetaMusicInstrument || this.isInstrumentEmpty());
+        return super.notUncommon(meta) && (meta instanceof CraftMetaMusicInstrument || isInstrumentEmpty());
     }
 
     @Override
     boolean isEmpty() {
-        return super.isEmpty() && this.isInstrumentEmpty();
+        return super.isEmpty() && isInstrumentEmpty();
     }
 
     boolean isInstrumentEmpty() {
-        return this.instrument == null;
+        return instrument == null;
     }
 
     @Override
@@ -91,8 +83,8 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
         final int orginal;
         int hash = orginal = super.applyHash();
 
-        if (this.hasInstrument()) {
-            hash = 61 * hash + this.instrument.hashCode();
+        if (hasInstrument()) {
+            hash = 61 * hash + instrument.hashCode();
         }
 
         return orginal != hash ? CraftMetaMusicInstrument.class.hashCode() ^ hash : hash;
@@ -109,8 +101,8 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
     ImmutableMap.Builder<String, Object> serialize(ImmutableMap.Builder<String, Object> builder) {
         super.serialize(builder);
 
-        if (this.hasInstrument()) {
-            builder.put(CraftMetaMusicInstrument.GOAT_HORN_INSTRUMENT.BUKKIT, CraftMusicInstrument.bukkitToString(instrument));
+        if (hasInstrument()) {
+            builder.put(GOAT_HORN_INSTRUMENT.BUKKIT, CraftMusicInstrument.bukkitToString(instrument));
         }
 
         return builder;
@@ -118,11 +110,11 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
 
     @Override
     public MusicInstrument getInstrument() {
-        return this.instrument;
+        return instrument;
     }
 
     public boolean hasInstrument() {
-        return this.instrument != null;
+        return instrument != null;
     }
 
     @Override

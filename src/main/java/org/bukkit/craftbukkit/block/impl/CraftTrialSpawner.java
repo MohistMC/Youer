@@ -9,32 +9,32 @@ public final class CraftTrialSpawner extends org.bukkit.craftbukkit.block.data.C
         super();
     }
 
-    public CraftTrialSpawner(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftTrialSpawner(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftTrialSpawner
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> TRIAL_SPAWNER_STATE = getEnum(net.minecraft.world.level.block.TrialSpawnerBlock.class, "trial_spawner_state");
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty OMINOUS = getBoolean(net.minecraft.world.level.block.TrialSpawnerBlock.class, "ominous");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> TRIAL_SPAWNER_STATE = getEnum(net.minecraft.world.level.block.TrialSpawnerBlock.class, "trial_spawner_state");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean OMINOUS = getBoolean(net.minecraft.world.level.block.TrialSpawnerBlock.class, "ominous");
 
     @Override
     public org.bukkit.block.data.type.TrialSpawner.State getTrialSpawnerState() {
-        return this.get(CraftTrialSpawner.TRIAL_SPAWNER_STATE, org.bukkit.block.data.type.TrialSpawner.State.class);
+        return get(TRIAL_SPAWNER_STATE, org.bukkit.block.data.type.TrialSpawner.State.class);
     }
 
     @Override
     public void setTrialSpawnerState(org.bukkit.block.data.type.TrialSpawner.State state) {
-        this.set(CraftTrialSpawner.TRIAL_SPAWNER_STATE, state);
+        set(TRIAL_SPAWNER_STATE, state);
     }
 
     @Override
     public boolean isOminous() {
-        return this.get(CraftTrialSpawner.OMINOUS);
+        return get(OMINOUS);
     }
 
     @Override
     public void setOminous(boolean ominous) {
-        this.set(CraftTrialSpawner.OMINOUS, ominous);
+        set(OMINOUS, ominous);
     }
 }

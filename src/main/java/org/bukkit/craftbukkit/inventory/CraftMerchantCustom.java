@@ -1,14 +1,14 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
-import net.minecraft.network.chat.Component;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.network.chat.IChatBaseComponent;
+import net.minecraft.sounds.SoundEffect;
+import net.minecraft.sounds.SoundEffects;
+import net.minecraft.world.entity.player.EntityHuman;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.trading.Merchant;
-import net.minecraft.world.item.trading.MerchantOffer;
-import net.minecraft.world.item.trading.MerchantOffers;
+import net.minecraft.world.item.trading.IMerchant;
+import net.minecraft.world.item.trading.MerchantRecipe;
+import net.minecraft.world.item.trading.MerchantRecipeList;
 import org.bukkit.craftbukkit.util.CraftChatMessage;
 
 public class CraftMerchantCustom implements CraftMerchant {
@@ -17,7 +17,7 @@ public class CraftMerchantCustom implements CraftMerchant {
 
     public CraftMerchantCustom(String title) {
         this.merchant = new MinecraftMerchant(title);
-        this.getMerchant().craftMerchant = this;
+        getMerchant().craftMerchant = this;
     }
 
     @Override
@@ -30,11 +30,11 @@ public class CraftMerchantCustom implements CraftMerchant {
         return this.merchant;
     }
 
-    public static class MinecraftMerchant implements Merchant {
+    public static class MinecraftMerchant implements IMerchant {
 
-        private final Component title;
-        private final MerchantOffers trades = new MerchantOffers();
-        private Player tradingPlayer;
+        private final IChatBaseComponent title;
+        private final MerchantRecipeList trades = new MerchantRecipeList();
+        private EntityHuman tradingPlayer;
         protected CraftMerchant craftMerchant;
 
         public MinecraftMerchant(String title) {
@@ -44,36 +44,36 @@ public class CraftMerchantCustom implements CraftMerchant {
 
         @Override
         public CraftMerchant getCraftMerchant() {
-            return this.craftMerchant;
+            return craftMerchant;
         }
 
         @Override
-        public void setTradingPlayer(Player customer) {
-            this.tradingPlayer = customer;
+        public void setTradingPlayer(EntityHuman entityhuman) {
+            this.tradingPlayer = entityhuman;
         }
 
         @Override
-        public Player getTradingPlayer() {
+        public EntityHuman getTradingPlayer() {
             return this.tradingPlayer;
         }
 
         @Override
-        public MerchantOffers getOffers() {
+        public MerchantRecipeList getOffers() {
             return this.trades;
         }
 
         @Override
-        public void notifyTrade(MerchantOffer offer) {
+        public void notifyTrade(MerchantRecipe merchantrecipe) {
             // increase recipe's uses
-            offer.increaseUses();
+            merchantrecipe.increaseUses();
         }
 
         @Override
-        public void notifyTradeUpdated(ItemStack stack) {
+        public void notifyTradeUpdated(ItemStack itemstack) {
         }
 
-        public Component getScoreboardDisplayName() {
-            return this.title;
+        public IChatBaseComponent getScoreboardDisplayName() {
+            return title;
         }
 
         @Override
@@ -82,7 +82,7 @@ public class CraftMerchantCustom implements CraftMerchant {
         }
 
         @Override
-        public void overrideXp(int experience) {
+        public void overrideXp(int i) {
         }
 
         @Override
@@ -91,12 +91,12 @@ public class CraftMerchantCustom implements CraftMerchant {
         }
 
         @Override
-        public SoundEvent getNotifyTradeSound() {
-            return SoundEvents.VILLAGER_YES;
+        public SoundEffect getNotifyTradeSound() {
+            return SoundEffects.VILLAGER_YES;
         }
 
         @Override
-        public void overrideOffers(MerchantOffers offers) {
+        public void overrideOffers(MerchantRecipeList merchantrecipelist) {
         }
 
         @Override

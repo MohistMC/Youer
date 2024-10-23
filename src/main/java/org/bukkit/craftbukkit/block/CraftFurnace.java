@@ -2,9 +2,8 @@ package org.bukkit.craftbukkit.block;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.block.AbstractFurnaceBlock;
-import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
+import net.minecraft.world.level.block.BlockFurnace;
+import net.minecraft.world.level.block.entity.TileEntityFurnace;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -15,7 +14,7 @@ import org.bukkit.inventory.CookingRecipe;
 import org.bukkit.inventory.FurnaceInventory;
 import org.bukkit.inventory.Recipe;
 
-public abstract class CraftFurnace<T extends AbstractFurnaceBlockEntity> extends CraftContainer<T> implements Furnace {
+public abstract class CraftFurnace<T extends TileEntityFurnace> extends CraftContainer<T> implements Furnace {
 
     public CraftFurnace(World world, T tileEntity) {
         super(world, tileEntity);
@@ -48,7 +47,7 @@ public abstract class CraftFurnace<T extends AbstractFurnaceBlockEntity> extends
     public void setBurnTime(short burnTime) {
         this.getSnapshot().litTime = burnTime;
         // SPIGOT-844: Allow lighting and relighting using this API
-        this.data = this.data.setValue(AbstractFurnaceBlock.LIT, burnTime > 0);
+        this.data = this.data.setValue(BlockFurnace.LIT, burnTime > 0);
     }
 
     @Override
@@ -74,12 +73,12 @@ public abstract class CraftFurnace<T extends AbstractFurnaceBlockEntity> extends
     @Override
     public Map<CookingRecipe<?>, Integer> getRecipesUsed() {
         ImmutableMap.Builder<CookingRecipe<?>, Integer> recipesUsed = ImmutableMap.builder();
-        for (Map.Entry<ResourceLocation, Integer> entrySet : this.getSnapshot().getRecipesUsed().object2IntEntrySet()) {
-            Recipe recipe = Bukkit.getRecipe(CraftNamespacedKey.fromMinecraft(entrySet.getKey()));
+        this.getSnapshot().recipesUsed.reference2IntEntrySet().fastForEach(entrySet -> {
+            Recipe recipe = Bukkit.getRecipe(CraftNamespacedKey.fromMinecraft(entrySet.getKey().location()));
             if (recipe instanceof CookingRecipe<?> cookingRecipe) {
                 recipesUsed.put(cookingRecipe, entrySet.getValue());
             }
-        }
+        });
 
         return recipesUsed.build();
     }

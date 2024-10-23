@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
-import net.minecraft.world.entity.item.PrimedTnt;
+import net.minecraft.world.entity.EntityLiving;
+import net.minecraft.world.entity.item.EntityTNTPrimed;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -8,43 +9,43 @@ import org.bukkit.entity.TNTPrimed;
 
 public class CraftTNTPrimed extends CraftEntity implements TNTPrimed {
 
-    public CraftTNTPrimed(CraftServer server, PrimedTnt entity) {
+    public CraftTNTPrimed(CraftServer server, EntityTNTPrimed entity) {
         super(server, entity);
     }
 
     @Override
     public float getYield() {
-        return this.getHandle().yield;
+        return getHandle().explosionPower;
     }
 
     @Override
     public boolean isIncendiary() {
-        return this.getHandle().isIncendiary;
+        return getHandle().isIncendiary;
     }
 
     @Override
     public void setIsIncendiary(boolean isIncendiary) {
-        this.getHandle().isIncendiary = isIncendiary;
+        getHandle().isIncendiary = isIncendiary;
     }
 
     @Override
     public void setYield(float yield) {
-        this.getHandle().yield = yield;
+        getHandle().explosionPower = yield;
     }
 
     @Override
     public int getFuseTicks() {
-        return this.getHandle().getFuse();
+        return getHandle().getFuse();
     }
 
     @Override
     public void setFuseTicks(int fuseTicks) {
-        this.getHandle().setFuse(fuseTicks);
+        getHandle().setFuse(fuseTicks);
     }
 
     @Override
-    public PrimedTnt getHandle() {
-        return (PrimedTnt) this.entity;
+    public EntityTNTPrimed getHandle() {
+        return (EntityTNTPrimed) entity;
     }
 
     @Override
@@ -54,7 +55,7 @@ public class CraftTNTPrimed extends CraftEntity implements TNTPrimed {
 
     @Override
     public Entity getSource() {
-        net.minecraft.world.entity.LivingEntity source = this.getHandle().getOwner();
+        EntityLiving source = getHandle().getOwner();
 
         return (source != null) ? source.getBukkitEntity() : null;
     }
@@ -62,9 +63,9 @@ public class CraftTNTPrimed extends CraftEntity implements TNTPrimed {
     @Override
     public void setSource(Entity source) {
         if (source instanceof LivingEntity) {
-            this.getHandle().owner = ((CraftLivingEntity) source).getHandle();
+            getHandle().owner = ((CraftLivingEntity) source).getHandle();
         } else {
-            this.getHandle().owner = null;
+            getHandle().owner = null;
         }
     }
 }

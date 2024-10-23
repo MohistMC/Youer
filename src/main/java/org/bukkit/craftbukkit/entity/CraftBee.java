@@ -2,6 +2,7 @@ package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.animal.EntityBee;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.util.CraftLocation;
@@ -9,13 +10,13 @@ import org.bukkit.entity.Bee;
 
 public class CraftBee extends CraftAnimals implements Bee {
 
-    public CraftBee(CraftServer server, net.minecraft.world.entity.animal.Bee entity) {
+    public CraftBee(CraftServer server, EntityBee entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.animal.Bee getHandle() {
-        return (net.minecraft.world.entity.animal.Bee) this.entity;
+    public EntityBee getHandle() {
+        return (EntityBee) entity;
     }
 
     @Override
@@ -25,65 +26,65 @@ public class CraftBee extends CraftAnimals implements Bee {
 
     @Override
     public Location getHive() {
-        BlockPos hive = this.getHandle().getHivePos();
-        return (hive == null) ? null : CraftLocation.toBukkit(hive, this.getWorld());
+        BlockPos hive = getHandle().getHivePos();
+        return (hive == null) ? null : CraftLocation.toBukkit(hive, getWorld());
     }
 
     @Override
     public void setHive(Location location) {
         Preconditions.checkArgument(location == null || this.getWorld().equals(location.getWorld()), "Hive must be in same world");
-        this.getHandle().hivePos = (location == null) ? null : CraftLocation.toBlockPosition(location);
+        getHandle().hivePos = (location == null) ? null : CraftLocation.toBlockPos(location);
     }
 
     @Override
     public Location getFlower() {
-        BlockPos flower = this.getHandle().getSavedFlowerPos();
-        return (flower == null) ? null : CraftLocation.toBukkit(flower, this.getWorld());
+        BlockPos flower = getHandle().getSavedFlowerPos();
+        return (flower == null) ? null : CraftLocation.toBukkit(flower, getWorld());
     }
 
     @Override
     public void setFlower(Location location) {
         Preconditions.checkArgument(location == null || this.getWorld().equals(location.getWorld()), "Flower must be in same world");
-        this.getHandle().setSavedFlowerPos(location == null ? null : CraftLocation.toBlockPosition(location));
+        getHandle().setSavedFlowerPos(location == null ? null : CraftLocation.toBlockPos(location));
     }
 
     @Override
     public boolean hasNectar() {
-        return this.getHandle().hasNectar();
+        return getHandle().hasNectar();
     }
 
     @Override
     public void setHasNectar(boolean nectar) {
-        this.getHandle().setHasNectar(nectar);
+        getHandle().setHasNectar(nectar);
     }
 
     @Override
     public boolean hasStung() {
-        return this.getHandle().hasStung();
+        return getHandle().hasStung();
     }
 
     @Override
     public void setHasStung(boolean stung) {
-        this.getHandle().setHasStung(stung);
+        getHandle().setHasStung(stung);
     }
 
     @Override
     public int getAnger() {
-        return this.getHandle().getRemainingPersistentAngerTime();
+        return getHandle().getRemainingPersistentAngerTime();
     }
 
     @Override
     public void setAnger(int anger) {
-        this.getHandle().setRemainingPersistentAngerTime(anger);
+        getHandle().setRemainingPersistentAngerTime(anger);
     }
 
     @Override
     public int getCannotEnterHiveTicks() {
-        return this.getHandle().stayOutOfHiveCountdown;
+        return getHandle().stayOutOfHiveCountdown;
     }
 
     @Override
     public void setCannotEnterHiveTicks(int ticks) {
-        this.getHandle().setStayOutOfHiveCountdown(ticks);
+        getHandle().setStayOutOfHiveCountdown(ticks);
     }
 }

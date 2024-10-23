@@ -25,7 +25,7 @@ public class CraftDamageEffect implements DamageEffect {
     public static DamageEffect getById(String id) {
         for (DamageEffects damageEffects : DamageEffects.values()) {
             if (damageEffects.getSerializedName().equalsIgnoreCase(id)) {
-                return CraftDamageEffect.toBukkit(damageEffects);
+                return toBukkit(damageEffects);
             }
         }
         return null;

@@ -1,17 +1,18 @@
 package org.bukkit.craftbukkit.entity;
 
+import net.minecraft.world.entity.animal.horse.EntityLlamaTrader;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.TraderLlama;
 
 public class CraftTraderLlama extends CraftLlama implements TraderLlama {
 
-    public CraftTraderLlama(CraftServer server, net.minecraft.world.entity.animal.horse.TraderLlama entity) {
+    public CraftTraderLlama(CraftServer server, EntityLlamaTrader entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.animal.horse.TraderLlama getHandle() {
-        return (net.minecraft.world.entity.animal.horse.TraderLlama) super.getHandle();
+    public EntityLlamaTrader getHandle() {
+        return (EntityLlamaTrader) super.getHandle();
     }
 
     @Override

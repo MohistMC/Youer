@@ -12,11 +12,10 @@ public class ServerShutdownThread extends Thread {
     @Override
     public void run() {
         try {
-            org.spigotmc.AsyncCatcher.enabled = false; // Spigot
-            this.server.close();
+            server.close();
         } finally {
             try {
-                net.minecrell.terminalconsole.TerminalConsoleAppender.close();
+                server.reader.getTerminal().restore();
             } catch (Exception e) {
             }
         }

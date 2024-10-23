@@ -9,45 +9,45 @@ public final class CraftSeaPickle extends org.bukkit.craftbukkit.block.data.Craf
         super();
     }
 
-    public CraftSeaPickle(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftSeaPickle(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftSeaPickle
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty PICKLES = getInteger(net.minecraft.world.level.block.SeaPickleBlock.class, "pickles");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger PICKLES = getInteger(net.minecraft.world.level.block.BlockSeaPickle.class, "pickles");
 
     @Override
     public int getPickles() {
-        return this.get(CraftSeaPickle.PICKLES);
+        return get(PICKLES);
     }
 
     @Override
     public void setPickles(int pickles) {
-        this.set(CraftSeaPickle.PICKLES, pickles);
+        set(PICKLES, pickles);
     }
 
     @Override
     public int getMinimumPickles() {
-        return getMin(CraftSeaPickle.PICKLES);
+        return getMin(PICKLES);
     }
 
     @Override
     public int getMaximumPickles() {
-        return getMax(CraftSeaPickle.PICKLES);
+        return getMax(PICKLES);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftWaterlogged
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty WATERLOGGED = getBoolean(net.minecraft.world.level.block.SeaPickleBlock.class, "waterlogged");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean WATERLOGGED = getBoolean(net.minecraft.world.level.block.BlockSeaPickle.class, "waterlogged");
 
     @Override
     public boolean isWaterlogged() {
-        return this.get(CraftSeaPickle.WATERLOGGED);
+        return get(WATERLOGGED);
     }
 
     @Override
     public void setWaterlogged(boolean waterlogged) {
-        this.set(CraftSeaPickle.WATERLOGGED, waterlogged);
+        set(WATERLOGGED, waterlogged);
     }
 }

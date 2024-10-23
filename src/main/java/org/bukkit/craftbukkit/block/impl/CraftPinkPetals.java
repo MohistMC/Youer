@@ -9,45 +9,45 @@ public final class CraftPinkPetals extends org.bukkit.craftbukkit.block.data.Cra
         super();
     }
 
-    public CraftPinkPetals(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftPinkPetals(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftPinkPetals
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty FLOWER_AMOUNT = getInteger(net.minecraft.world.level.block.PinkPetalsBlock.class, "flower_amount");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger FLOWER_AMOUNT = getInteger(net.minecraft.world.level.block.PinkPetalsBlock.class, "flower_amount");
 
     @Override
     public int getFlowerAmount() {
-        return this.get(CraftPinkPetals.FLOWER_AMOUNT);
+        return get(FLOWER_AMOUNT);
     }
 
     @Override
     public void setFlowerAmount(int flower_amount) {
-        this.set(CraftPinkPetals.FLOWER_AMOUNT, flower_amount);
+        set(FLOWER_AMOUNT, flower_amount);
     }
 
     @Override
     public int getMaximumFlowerAmount() {
-        return getMax(CraftPinkPetals.FLOWER_AMOUNT);
+        return getMax(FLOWER_AMOUNT);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftDirectional
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> FACING = getEnum(net.minecraft.world.level.block.PinkPetalsBlock.class, "facing");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> FACING = getEnum(net.minecraft.world.level.block.PinkPetalsBlock.class, "facing");
 
     @Override
     public org.bukkit.block.BlockFace getFacing() {
-        return this.get(CraftPinkPetals.FACING, org.bukkit.block.BlockFace.class);
+        return get(FACING, org.bukkit.block.BlockFace.class);
     }
 
     @Override
     public void setFacing(org.bukkit.block.BlockFace facing) {
-        this.set(CraftPinkPetals.FACING, facing);
+        set(FACING, facing);
     }
 
     @Override
     public java.util.Set<org.bukkit.block.BlockFace> getFaces() {
-        return this.getValues(CraftPinkPetals.FACING, org.bukkit.block.BlockFace.class);
+        return getValues(FACING, org.bukkit.block.BlockFace.class);
     }
 }

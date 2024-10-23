@@ -14,9 +14,9 @@ public class ConversationTracker {
     private LinkedList<Conversation> conversationQueue = new LinkedList<Conversation>();
 
     public synchronized boolean beginConversation(Conversation conversation) {
-        if (!this.conversationQueue.contains(conversation)) {
-            this.conversationQueue.addLast(conversation);
-            if (this.conversationQueue.getFirst() == conversation) {
+        if (!conversationQueue.contains(conversation)) {
+            conversationQueue.addLast(conversation);
+            if (conversationQueue.getFirst() == conversation) {
                 conversation.begin();
                 conversation.outputNextPrompt();
                 return true;
@@ -26,23 +26,23 @@ public class ConversationTracker {
     }
 
     public synchronized void abandonConversation(Conversation conversation, ConversationAbandonedEvent details) {
-        if (!this.conversationQueue.isEmpty()) {
-            if (this.conversationQueue.getFirst() == conversation) {
+        if (!conversationQueue.isEmpty()) {
+            if (conversationQueue.getFirst() == conversation) {
                 conversation.abandon(details);
             }
-            if (this.conversationQueue.contains(conversation)) {
-                this.conversationQueue.remove(conversation);
+            if (conversationQueue.contains(conversation)) {
+                conversationQueue.remove(conversation);
             }
-            if (!this.conversationQueue.isEmpty()) {
-                this.conversationQueue.getFirst().outputNextPrompt();
+            if (!conversationQueue.isEmpty()) {
+                conversationQueue.getFirst().outputNextPrompt();
             }
         }
     }
 
     public synchronized void abandonAllConversations() {
 
-        LinkedList<Conversation> oldQueue = this.conversationQueue;
-        this.conversationQueue = new LinkedList<Conversation>();
+        LinkedList<Conversation> oldQueue = conversationQueue;
+        conversationQueue = new LinkedList<Conversation>();
         for (Conversation conversation : oldQueue) {
             try {
                 conversation.abandon(new ConversationAbandonedEvent(conversation, new ManuallyAbandonedConversationCanceller()));
@@ -53,8 +53,8 @@ public class ConversationTracker {
     }
 
     public synchronized void acceptConversationInput(String input) {
-        if (this.isConversing()) {
-            Conversation conversation = this.conversationQueue.getFirst();
+        if (isConversing()) {
+            Conversation conversation = conversationQueue.getFirst();
             try {
                 conversation.acceptInput(input);
             } catch (Throwable t) {
@@ -67,10 +67,10 @@ public class ConversationTracker {
     }
 
     public synchronized boolean isConversing() {
-        return !this.conversationQueue.isEmpty();
+        return !conversationQueue.isEmpty();
     }
 
     public synchronized boolean isConversingModaly() {
-        return this.isConversing() && this.conversationQueue.getFirst().isModal();
+        return isConversing() && conversationQueue.getFirst().isModal();
     }
 }

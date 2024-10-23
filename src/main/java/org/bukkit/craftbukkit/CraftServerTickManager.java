@@ -16,78 +16,78 @@ final class CraftServerTickManager implements ServerTickManager {
 
     @Override
     public boolean isRunningNormally() {
-        return this.manager.runsNormally();
+        return manager.runsNormally();
     }
 
     @Override
     public boolean isStepping() {
-        return this.manager.isSteppingForward();
+        return manager.isSteppingForward();
     }
 
     @Override
     public boolean isSprinting() {
-        return this.manager.isSprinting();
+        return manager.isSprinting();
     }
 
     @Override
     public boolean isFrozen() {
-        return this.manager.isFrozen();
+        return manager.isFrozen();
     }
 
     @Override
     public float getTickRate() {
-        return this.manager.tickrate();
+        return manager.tickrate();
     }
 
     @Override
     public void setTickRate(final float tickRate) {
         Preconditions.checkArgument(tickRate >= 1.0F && tickRate <= 10_000.0F, "The given tick rate must not be less than 1.0 or greater than 10,000.0");
-        this.manager.setTickRate(tickRate);
+        manager.setTickRate(tickRate);
     }
 
     @Override
     public void setFrozen(final boolean frozen) {
         if (frozen) {
-            if (this.manager.isSprinting()) {
-                this.manager.stopSprinting();
+            if (manager.isSprinting()) {
+                manager.stopSprinting();
             }
 
-            if (this.manager.isSteppingForward()) {
-                this.manager.stopStepping();
+            if (manager.isSteppingForward()) {
+                manager.stopStepping();
             }
         }
 
-        this.manager.setFrozen(frozen);
+        manager.setFrozen(frozen);
     }
 
     @Override
     public boolean stepGameIfFrozen(final int ticks) {
-        return this.manager.stepGameIfPaused(ticks);
+        return manager.stepGameIfPaused(ticks);
     }
 
     @Override
     public boolean stopStepping() {
-        return this.manager.stopStepping();
+        return manager.stopStepping();
     }
 
     @Override
     public boolean requestGameToSprint(final int ticks) {
-        return this.manager.requestGameToSprint(ticks);
+        return manager.requestGameToSprint(ticks);
     }
 
     @Override
     public boolean stopSprinting() {
-        return this.manager.stopSprinting();
+        return manager.stopSprinting();
     }
 
     @Override
     public boolean isFrozen(final Entity entity) {
         Preconditions.checkArgument(entity != null, "The given entity must not be null");
-        return this.manager.isEntityFrozen(((CraftEntity) entity).getHandle());
+        return manager.isEntityFrozen(((CraftEntity) entity).getHandle());
     }
 
     @Override
     public int getFrozenTicksToRun() {
-        return this.manager.frozenTicksToRun();
+        return manager.frozenTicksToRun();
     }
 }

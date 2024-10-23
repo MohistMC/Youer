@@ -9,31 +9,31 @@ public final class CraftCeilingHangingSign extends org.bukkit.craftbukkit.block.
         super();
     }
 
-    public CraftCeilingHangingSign(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftCeilingHangingSign(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftAttachable
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty ATTACHED = getBoolean(net.minecraft.world.level.block.CeilingHangingSignBlock.class, "attached");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean ATTACHED = getBoolean(net.minecraft.world.level.block.CeilingHangingSignBlock.class, "attached");
 
     @Override
     public boolean isAttached() {
-        return this.get(CraftCeilingHangingSign.ATTACHED);
+        return get(ATTACHED);
     }
 
     @Override
     public void setAttached(boolean attached) {
-        this.set(CraftCeilingHangingSign.ATTACHED, attached);
+        set(ATTACHED, attached);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftRotatable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty ROTATION = getInteger(net.minecraft.world.level.block.CeilingHangingSignBlock.class, "rotation");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger ROTATION = getInteger(net.minecraft.world.level.block.CeilingHangingSignBlock.class, "rotation");
 
     @Override
     public org.bukkit.block.BlockFace getRotation() {
-        int data = this.get(CraftCeilingHangingSign.ROTATION);
+        int data = get(ROTATION);
         switch (data) {
             case 0x0:
                 return org.bukkit.block.BlockFace.SOUTH;
@@ -127,20 +127,20 @@ public final class CraftCeilingHangingSign extends org.bukkit.craftbukkit.block.
             default:
                 throw new IllegalArgumentException("Illegal rotation " + rotation);
         }
-        this.set(CraftCeilingHangingSign.ROTATION, val);
+        set(ROTATION, val);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftWaterlogged
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty WATERLOGGED = getBoolean(net.minecraft.world.level.block.CeilingHangingSignBlock.class, "waterlogged");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean WATERLOGGED = getBoolean(net.minecraft.world.level.block.CeilingHangingSignBlock.class, "waterlogged");
 
     @Override
     public boolean isWaterlogged() {
-        return this.get(CraftCeilingHangingSign.WATERLOGGED);
+        return get(WATERLOGGED);
     }
 
     @Override
     public void setWaterlogged(boolean waterlogged) {
-        this.set(CraftCeilingHangingSign.WATERLOGGED, waterlogged);
+        set(WATERLOGGED, waterlogged);
     }
 }

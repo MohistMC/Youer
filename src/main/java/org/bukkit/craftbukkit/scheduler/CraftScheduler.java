@@ -54,14 +54,14 @@ public class CraftScheduler implements BukkitScheduler {
     private static final IntUnaryOperator INCREMENT_IDS = previous -> {
         // We reached the end, go back to the start!
         if (previous == Integer.MAX_VALUE) {
-            return CraftScheduler.START_ID;
+            return START_ID;
         }
         return previous + 1;
     };
     /**
      * Counter for IDs. Order doesn't matter, only uniqueness.
      */
-    private final AtomicInteger ids = new AtomicInteger(CraftScheduler.START_ID);
+    private final AtomicInteger ids = new AtomicInteger(START_ID);
     /**
      * Current head of linked-list. This reference is always stale, {@link CraftTask#next} is the live reference.
      */
@@ -69,7 +69,7 @@ public class CraftScheduler implements BukkitScheduler {
     /**
      * Tail of a linked-list. AtomicReference only matters when adding to queue
      */
-    private final AtomicReference<CraftTask> tail = new AtomicReference<CraftTask>(this.head);
+    private final AtomicReference<CraftTask> tail = new AtomicReference<CraftTask>(head);
     /**
      * Main thread logic only
      */
@@ -103,7 +103,7 @@ public class CraftScheduler implements BukkitScheduler {
             return string;
         }
     };
-    private CraftAsyncDebugger debugTail = this.debugHead;
+    private CraftAsyncDebugger debugTail = debugHead;
     private static final int RECENT_TICKS;
 
     static {
@@ -117,12 +117,12 @@ public class CraftScheduler implements BukkitScheduler {
 
     @Override
     public BukkitTask runTask(Plugin plugin, Runnable runnable) {
-        return this.runTaskLater(plugin, runnable, 0L);
+        return runTaskLater(plugin, runnable, 0L);
     }
 
     @Override
     public void runTask(Plugin plugin, Consumer<? super BukkitTask> task) throws IllegalArgumentException {
-        this.runTaskLater(plugin, task, 0L);
+        runTaskLater(plugin, task, 0L);
     }
 
     @Deprecated
@@ -133,12 +133,12 @@ public class CraftScheduler implements BukkitScheduler {
 
     @Override
     public BukkitTask runTaskAsynchronously(Plugin plugin, Runnable runnable) {
-        return this.runTaskLaterAsynchronously(plugin, runnable, 0L);
+        return runTaskLaterAsynchronously(plugin, runnable, 0L);
     }
 
     @Override
     public void runTaskAsynchronously(Plugin plugin, Consumer<? super BukkitTask> task) throws IllegalArgumentException {
-        this.runTaskLaterAsynchronously(plugin, task, 0L);
+        runTaskLaterAsynchronously(plugin, task, 0L);
     }
 
     @Override
@@ -148,12 +148,12 @@ public class CraftScheduler implements BukkitScheduler {
 
     @Override
     public BukkitTask runTaskLater(Plugin plugin, Runnable runnable, long delay) {
-        return this.runTaskTimer(plugin, runnable, delay, CraftTask.NO_REPEATING);
+        return runTaskTimer(plugin, runnable, delay, CraftTask.NO_REPEATING);
     }
 
     @Override
     public void runTaskLater(Plugin plugin, Consumer<? super BukkitTask> task, long delay) throws IllegalArgumentException {
-        this.runTaskTimer(plugin, task, delay, CraftTask.NO_REPEATING);
+        runTaskTimer(plugin, task, delay, CraftTask.NO_REPEATING);
     }
 
     @Deprecated
@@ -164,36 +164,36 @@ public class CraftScheduler implements BukkitScheduler {
 
     @Override
     public BukkitTask runTaskLaterAsynchronously(Plugin plugin, Runnable runnable, long delay) {
-        return this.runTaskTimerAsynchronously(plugin, runnable, delay, CraftTask.NO_REPEATING);
+        return runTaskTimerAsynchronously(plugin, runnable, delay, CraftTask.NO_REPEATING);
     }
 
     @Override
     public void runTaskLaterAsynchronously(Plugin plugin, Consumer<? super BukkitTask> task, long delay) throws IllegalArgumentException {
-        this.runTaskTimerAsynchronously(plugin, task, delay, CraftTask.NO_REPEATING);
+        runTaskTimerAsynchronously(plugin, task, delay, CraftTask.NO_REPEATING);
     }
 
     @Override
     public void runTaskTimerAsynchronously(Plugin plugin, Consumer<? super BukkitTask> task, long delay, long period) throws IllegalArgumentException {
-        this.runTaskTimerAsynchronously(plugin, (Object) task, delay, CraftTask.NO_REPEATING);
+        runTaskTimerAsynchronously(plugin, (Object) task, delay, CraftTask.NO_REPEATING);
     }
 
     @Override
     public int scheduleSyncRepeatingTask(final Plugin plugin, final Runnable runnable, long delay, long period) {
-        return this.runTaskTimer(plugin, runnable, delay, period).getTaskId();
+        return runTaskTimer(plugin, runnable, delay, period).getTaskId();
     }
 
     @Override
     public BukkitTask runTaskTimer(Plugin plugin, Runnable runnable, long delay, long period) {
-        return this.runTaskTimer(plugin, (Object) runnable, delay, period);
+        return runTaskTimer(plugin, (Object) runnable, delay, period);
     }
 
     @Override
     public void runTaskTimer(Plugin plugin, Consumer<? super BukkitTask> task, long delay, long period) throws IllegalArgumentException {
-        this.runTaskTimer(plugin, (Object) task, delay, period);
+        runTaskTimer(plugin, (Object) task, delay, period);
     }
 
     public BukkitTask runTaskTimer(Plugin plugin, Object runnable, long delay, long period) {
-        CraftScheduler.validate(plugin, runnable);
+        validate(plugin, runnable);
         if (delay < 0L) {
             delay = 0;
         }
@@ -202,22 +202,22 @@ public class CraftScheduler implements BukkitScheduler {
         } else if (period < CraftTask.NO_REPEATING) {
             period = CraftTask.NO_REPEATING;
         }
-        return this.handle(new CraftTask(plugin, runnable, this.nextId(), period), delay);
+        return handle(new CraftTask(plugin, runnable, nextId(), period), delay);
     }
 
     @Deprecated
     @Override
     public int scheduleAsyncRepeatingTask(final Plugin plugin, final Runnable runnable, long delay, long period) {
-        return this.runTaskTimerAsynchronously(plugin, runnable, delay, period).getTaskId();
+        return runTaskTimerAsynchronously(plugin, runnable, delay, period).getTaskId();
     }
 
     @Override
     public BukkitTask runTaskTimerAsynchronously(Plugin plugin, Runnable runnable, long delay, long period) {
-        return this.runTaskTimerAsynchronously(plugin, (Object) runnable, delay, period);
+        return runTaskTimerAsynchronously(plugin, (Object) runnable, delay, period);
     }
 
     public BukkitTask runTaskTimerAsynchronously(Plugin plugin, Object runnable, long delay, long period) {
-        CraftScheduler.validate(plugin, runnable);
+        validate(plugin, runnable);
         if (delay < 0L) {
             delay = 0;
         }
@@ -226,14 +226,14 @@ public class CraftScheduler implements BukkitScheduler {
         } else if (period < CraftTask.NO_REPEATING) {
             period = CraftTask.NO_REPEATING;
         }
-        return this.handle(new CraftAsyncTask(this.runners, plugin, runnable, this.nextId(), period), delay);
+        return handle(new CraftAsyncTask(runners, plugin, runnable, nextId(), period), delay);
     }
 
     @Override
     public <T> Future<T> callSyncMethod(final Plugin plugin, final Callable<T> task) {
-        CraftScheduler.validate(plugin, task);
-        final CraftFuture<T> future = new CraftFuture<T>(task, plugin, this.nextId());
-        this.handle(future, 0L);
+        validate(plugin, task);
+        final CraftFuture<T> future = new CraftFuture<T>(task, plugin, nextId());
+        handle(future, 0L);
         return future;
     }
 
@@ -242,7 +242,7 @@ public class CraftScheduler implements BukkitScheduler {
         if (taskId <= 0) {
             return;
         }
-        CraftTask task = this.runners.get(taskId);
+        CraftTask task = runners.get(taskId);
         if (task != null) {
             task.cancel0();
         }
@@ -250,8 +250,8 @@ public class CraftScheduler implements BukkitScheduler {
                 new Runnable() {
                     @Override
                     public void run() {
-                        if (!this.check(CraftScheduler.this.temp)) {
-                            this.check(CraftScheduler.this.pending);
+                        if (!check(CraftScheduler.this.temp)) {
+                            check(CraftScheduler.this.pending);
                         }
                     }
                     private boolean check(final Iterable<CraftTask> collection) {
@@ -262,7 +262,7 @@ public class CraftScheduler implements BukkitScheduler {
                                 task.cancel0();
                                 tasks.remove();
                                 if (task.isSync()) {
-                                    CraftScheduler.this.runners.remove(taskId);
+                                    runners.remove(taskId);
                                 }
                                 return true;
                             }
@@ -270,8 +270,8 @@ public class CraftScheduler implements BukkitScheduler {
                         return false;
                     }
                 });
-        this.handle(task, 0L);
-        for (CraftTask taskPending = this.head.getNext(); taskPending != null; taskPending = taskPending.getNext()) {
+        handle(task, 0L);
+        for (CraftTask taskPending = head.getNext(); taskPending != null; taskPending = taskPending.getNext()) {
             if (taskPending == task) {
                 return;
             }
@@ -288,8 +288,8 @@ public class CraftScheduler implements BukkitScheduler {
                 new Runnable() {
                     @Override
                     public void run() {
-                        this.check(CraftScheduler.this.pending);
-                        this.check(CraftScheduler.this.temp);
+                        check(CraftScheduler.this.pending);
+                        check(CraftScheduler.this.temp);
                     }
                     void check(final Iterable<CraftTask> collection) {
                         final Iterator<CraftTask> tasks = collection.iterator();
@@ -299,14 +299,14 @@ public class CraftScheduler implements BukkitScheduler {
                                 task.cancel0();
                                 tasks.remove();
                                 if (task.isSync()) {
-                                    CraftScheduler.this.runners.remove(task.getTaskId());
+                                    runners.remove(task.getTaskId());
                                 }
                             }
                         }
                     }
                 });
-        this.handle(task, 0L);
-        for (CraftTask taskPending = this.head.getNext(); taskPending != null; taskPending = taskPending.getNext()) {
+        handle(task, 0L);
+        for (CraftTask taskPending = head.getNext(); taskPending != null; taskPending = taskPending.getNext()) {
             if (taskPending == task) {
                 break;
             }
@@ -314,7 +314,7 @@ public class CraftScheduler implements BukkitScheduler {
                 taskPending.cancel0();
             }
         }
-        for (CraftTask runner : this.runners.values()) {
+        for (CraftTask runner : runners.values()) {
             if (runner.getOwner().equals(plugin)) {
                 runner.cancel0();
             }
@@ -323,12 +323,12 @@ public class CraftScheduler implements BukkitScheduler {
 
     @Override
     public boolean isCurrentlyRunning(final int taskId) {
-        final CraftTask task = this.runners.get(taskId);
+        final CraftTask task = runners.get(taskId);
         if (task == null) {
             return false;
         }
         if (task.isSync()) {
-            return (task == this.currentTask);
+            return (task == currentTask);
         }
         final CraftAsyncTask asyncTask = (CraftAsyncTask) task;
         synchronized (asyncTask.getWorkers()) {
@@ -341,19 +341,19 @@ public class CraftScheduler implements BukkitScheduler {
         if (taskId <= 0) {
             return false;
         }
-        for (CraftTask task = this.head.getNext(); task != null; task = task.getNext()) {
+        for (CraftTask task = head.getNext(); task != null; task = task.getNext()) {
             if (task.getTaskId() == taskId) {
                 return task.getPeriod() >= CraftTask.NO_REPEATING; // The task will run
             }
         }
-        CraftTask task = this.runners.get(taskId);
+        CraftTask task = runners.get(taskId);
         return task != null && task.getPeriod() >= CraftTask.NO_REPEATING;
     }
 
     @Override
     public List<BukkitWorker> getActiveWorkers() {
         final ArrayList<BukkitWorker> workers = new ArrayList<BukkitWorker>();
-        for (final CraftTask taskObj : this.runners.values()) {
+        for (final CraftTask taskObj : runners.values()) {
             // Iterator will be a best-effort (may fail to grab very new values) if called from an async thread
             if (taskObj.isSync()) {
                 continue;
@@ -370,7 +370,7 @@ public class CraftScheduler implements BukkitScheduler {
     @Override
     public List<BukkitTask> getPendingTasks() {
         final ArrayList<CraftTask> truePending = new ArrayList<CraftTask>();
-        for (CraftTask task = this.head.getNext(); task != null; task = task.getNext()) {
+        for (CraftTask task = head.getNext(); task != null; task = task.getNext()) {
             if (task.getTaskId() != -1) {
                 // -1 is special code
                 truePending.add(task);
@@ -378,7 +378,7 @@ public class CraftScheduler implements BukkitScheduler {
         }
 
         final ArrayList<BukkitTask> pending = new ArrayList<BukkitTask>();
-        for (CraftTask task : this.runners.values()) {
+        for (CraftTask task : runners.values()) {
             if (task.getPeriod() >= CraftTask.NO_REPEATING) {
                 pending.add(task);
             }
@@ -395,25 +395,23 @@ public class CraftScheduler implements BukkitScheduler {
     /**
      * This method is designed to never block or wait for locks; an immediate execution of all current tasks.
      */
-    public void mainThreadHeartbeat(final int currentTick) {
-        this.currentTick = currentTick;
+    public void mainThreadHeartbeat() {
+        this.currentTick++;
         final List<CraftTask> temp = this.temp;
-        this.parsePending();
-        while (this.isReady(currentTick)) {
-            final CraftTask task = this.pending.remove();
+        parsePending();
+        while (isReady(currentTick)) {
+            final CraftTask task = pending.remove();
             if (task.getPeriod() < CraftTask.NO_REPEATING) {
                 if (task.isSync()) {
-                    this.runners.remove(task.getTaskId(), task);
+                    runners.remove(task.getTaskId(), task);
                 }
-                this.parsePending();
+                parsePending();
                 continue;
             }
             if (task.isSync()) {
-                this.currentTask = task;
+                currentTask = task;
                 try {
-                    task.timings.startTiming(); // Spigot
                     task.run();
-                    task.timings.stopTiming(); // Spigot
                 } catch (final Throwable throwable) {
                     task.getOwner().getLogger().log(
                             Level.WARNING,
@@ -423,12 +421,12 @@ public class CraftScheduler implements BukkitScheduler {
                                 task.getOwner().getDescription().getFullName()),
                             throwable);
                 } finally {
-                    this.currentTask = null;
+                    currentTask = null;
                 }
-                this.parsePending();
+                parsePending();
             } else {
-                this.debugTail = this.debugTail.setNext(new CraftAsyncDebugger(currentTick + CraftScheduler.RECENT_TICKS, task.getOwner(), task.getTaskClass()));
-                this.executor.execute(task);
+                debugTail = debugTail.setNext(new CraftAsyncDebugger(currentTick + RECENT_TICKS, task.getOwner(), task.getTaskClass()));
+                executor.execute(task);
                 // We don't need to parse pending
                 // (async tasks must live with race-conditions if they attempt to cancel between these few lines of code)
             }
@@ -437,12 +435,12 @@ public class CraftScheduler implements BukkitScheduler {
                 task.setNextRun(currentTick + period);
                 temp.add(task);
             } else if (task.isSync()) {
-                this.runners.remove(task.getTaskId());
+                runners.remove(task.getTaskId());
             }
         }
-        this.pending.addAll(temp);
+        pending.addAll(temp);
         temp.clear();
-        this.debugHead = this.debugHead.getNextHead(currentTick);
+        debugHead = debugHead.getNextHead(currentTick);
     }
 
     private void addTask(final CraftTask task) {
@@ -455,8 +453,8 @@ public class CraftScheduler implements BukkitScheduler {
     }
 
     private CraftTask handle(final CraftTask task, final long delay) {
-        task.setNextRun(this.currentTick + delay);
-        this.addTask(task);
+        task.setNextRun(currentTick + delay);
+        addTask(task);
         return task;
     }
 
@@ -469,11 +467,11 @@ public class CraftScheduler implements BukkitScheduler {
     }
 
     private int nextId() {
-        Preconditions.checkArgument(this.runners.size() < Integer.MAX_VALUE, "There are already %s tasks scheduled! Cannot schedule more", Integer.MAX_VALUE);
+        Preconditions.checkArgument(runners.size() < Integer.MAX_VALUE, "There are already %s tasks scheduled! Cannot schedule more", Integer.MAX_VALUE);
         int id;
         do {
-            id = this.ids.updateAndGet(CraftScheduler.INCREMENT_IDS);
-        } while (this.runners.containsKey(id)); // Avoid generating duplicate IDs
+            id = ids.updateAndGet(INCREMENT_IDS);
+        } while (runners.containsKey(id)); // Avoid generating duplicate IDs
         return id;
     }
 
@@ -485,8 +483,8 @@ public class CraftScheduler implements BukkitScheduler {
             if (task.getTaskId() == -1) {
                 task.run();
             } else if (task.getPeriod() >= CraftTask.NO_REPEATING) {
-                this.pending.add(task);
-                this.runners.put(task.getTaskId(), task);
+                pending.add(task);
+                runners.put(task.getTaskId(), task);
             }
         }
         // We split this because of the way things are ordered for all of the async calls in CraftScheduler
@@ -499,14 +497,14 @@ public class CraftScheduler implements BukkitScheduler {
     }
 
     private boolean isReady(final int currentTick) {
-        return !this.pending.isEmpty() && this.pending.peek().getNextRun() <= currentTick;
+        return !pending.isEmpty() && pending.peek().getNextRun() <= currentTick;
     }
 
     @Override
     public String toString() {
-        int debugTick = this.currentTick;
-        StringBuilder string = new StringBuilder("Recent tasks from ").append(debugTick - CraftScheduler.RECENT_TICKS).append('-').append(debugTick).append('{');
-        this.debugHead.debugTo(string);
+        int debugTick = currentTick;
+        StringBuilder string = new StringBuilder("Recent tasks from ").append(debugTick - RECENT_TICKS).append('-').append(debugTick).append('{');
+        debugHead.debugTo(string);
         return string.append('}').toString();
     }
 

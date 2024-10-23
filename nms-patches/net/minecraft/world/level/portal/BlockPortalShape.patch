@@ -13,14 +13,14 @@
  
      private static final int MIN_WIDTH = 2;
 @@ -40,8 +45,12 @@
-     private final BlockPosition bottomLeft;
+     private final BlockPos bottomLeft;
      private final int height;
      private final int width;
 +    // CraftBukkit start - add field
 +    private final BlockStateListPopulator blocks;
  
--    private BlockPortalShape(EnumDirection.EnumAxis enumdirection_enumaxis, int i, EnumDirection enumdirection, BlockPosition blockposition, int j, int k) {
-+    private BlockPortalShape(EnumDirection.EnumAxis enumdirection_enumaxis, int i, EnumDirection enumdirection, BlockPosition blockposition, int j, int k, BlockStateListPopulator blocks) {
+-    private BlockPortalShape(EnumDirection.EnumAxis enumdirection_enumaxis, int i, EnumDirection enumdirection, BlockPos blockposition, int j, int k) {
++    private BlockPortalShape(EnumDirection.EnumAxis enumdirection_enumaxis, int i, EnumDirection enumdirection, BlockPos blockposition, int j, int k, BlockStateListPopulator blocks) {
 +        this.blocks = blocks;
 +        // CraftBukkit end
          this.axis = enumdirection_enumaxis;
@@ -29,11 +29,11 @@
 @@ -69,44 +78,45 @@
      }
  
-     public static BlockPortalShape findAnyShape(IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection.EnumAxis enumdirection_enumaxis) {
+     public static BlockPortalShape findAnyShape(IBlockAccess iblockaccess, BlockPos blockposition, EnumDirection.EnumAxis enumdirection_enumaxis) {
 +        BlockStateListPopulator blocks = new BlockStateListPopulator(((GeneratorAccess) iblockaccess).getMinecraftWorld()); // CraftBukkit
          EnumDirection enumdirection = enumdirection_enumaxis == EnumDirection.EnumAxis.X ? EnumDirection.WEST : EnumDirection.SOUTH;
--        BlockPosition blockposition1 = calculateBottomLeft(iblockaccess, enumdirection, blockposition);
-+        BlockPosition blockposition1 = calculateBottomLeft(iblockaccess, enumdirection, blockposition, blocks); // CraftBukkit
+-        BlockPos blockposition1 = calculateBottomLeft(iblockaccess, enumdirection, blockposition);
++        BlockPos blockposition1 = calculateBottomLeft(iblockaccess, enumdirection, blockposition, blocks); // CraftBukkit
  
          if (blockposition1 == null) {
 -            return new BlockPortalShape(enumdirection_enumaxis, 0, enumdirection, blockposition, 0, 0);
@@ -57,8 +57,8 @@
      }
  
      @Nullable
--    private static BlockPosition calculateBottomLeft(IBlockAccess iblockaccess, EnumDirection enumdirection, BlockPosition blockposition) {
-+    private static BlockPosition calculateBottomLeft(IBlockAccess iblockaccess, EnumDirection enumdirection, BlockPosition blockposition, BlockStateListPopulator blocks) { // CraftBukkit
+-    private static BlockPos calculateBottomLeft(IBlockAccess iblockaccess, EnumDirection enumdirection, BlockPos blockposition) {
++    private static BlockPos calculateBottomLeft(IBlockAccess iblockaccess, EnumDirection enumdirection, BlockPos blockposition, BlockStateListPopulator blocks) { // CraftBukkit
          for (int i = Math.max(iblockaccess.getMinY(), blockposition.getY() - 21); blockposition.getY() > i && isEmpty(iblockaccess.getBlockState(blockposition.below())); blockposition = blockposition.below()) {
              ;
          }
@@ -70,17 +70,17 @@
          return j < 0 ? null : blockposition.relative(enumdirection1, j);
      }
  
--    private static int calculateWidth(IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection enumdirection) {
+-    private static int calculateWidth(IBlockAccess iblockaccess, BlockPos blockposition, EnumDirection enumdirection) {
 -        int i = getDistanceUntilEdgeAboveFrame(iblockaccess, blockposition, enumdirection);
-+    private static int calculateWidth(IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection enumdirection, BlockStateListPopulator blocks) { // CraftBukkit
++    private static int calculateWidth(IBlockAccess iblockaccess, BlockPos blockposition, EnumDirection enumdirection, BlockStateListPopulator blocks) { // CraftBukkit
 +        int i = getDistanceUntilEdgeAboveFrame(iblockaccess, blockposition, enumdirection, blocks); // CraftBukkit
  
          return i >= 2 && i <= 21 ? i : 0;
      }
  
--    private static int getDistanceUntilEdgeAboveFrame(IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection enumdirection) {
-+    private static int getDistanceUntilEdgeAboveFrame(IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection enumdirection, BlockStateListPopulator blocks) { // CraftBukkit
-         BlockPosition.MutableBlockPosition blockposition_mutableblockposition = new BlockPosition.MutableBlockPosition();
+-    private static int getDistanceUntilEdgeAboveFrame(IBlockAccess iblockaccess, BlockPos blockposition, EnumDirection enumdirection) {
++    private static int getDistanceUntilEdgeAboveFrame(IBlockAccess iblockaccess, BlockPos blockposition, EnumDirection enumdirection, BlockStateListPopulator blocks) { // CraftBukkit
+         BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
  
          for (int i = 0; i <= 21; ++i) {
 @@ -115,6 +125,7 @@
@@ -101,9 +101,9 @@
          return 0;
      }
  
--    private static int calculateHeight(IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection enumdirection, int i, MutableInt mutableint) {
-+    private static int calculateHeight(IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection enumdirection, int i, MutableInt mutableint, BlockStateListPopulator blocks) { // CraftBukkit
-         BlockPosition.MutableBlockPosition blockposition_mutableblockposition = new BlockPosition.MutableBlockPosition();
+-    private static int calculateHeight(IBlockAccess iblockaccess, BlockPos blockposition, EnumDirection enumdirection, int i, MutableInt mutableint) {
++    private static int calculateHeight(IBlockAccess iblockaccess, BlockPos blockposition, EnumDirection enumdirection, int i, MutableInt mutableint, BlockStateListPopulator blocks) { // CraftBukkit
+         BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 -        int j = getDistanceUntilTop(iblockaccess, blockposition, enumdirection, blockposition_mutableblockposition, i, mutableint);
 +        int j = getDistanceUntilTop(iblockaccess, blockposition, enumdirection, blockposition_mutableblockposition, i, mutableint, blocks); // CraftBukkit
  
@@ -111,10 +111,10 @@
 +        return j >= 3 && j <= 21 && hasTopFrame(iblockaccess, blockposition, enumdirection, blockposition_mutableblockposition, i, j, blocks) ? j : 0; // CraftBukkit
      }
  
--    private static boolean hasTopFrame(IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection enumdirection, BlockPosition.MutableBlockPosition blockposition_mutableblockposition, int i, int j) {
-+    private static boolean hasTopFrame(IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection enumdirection, BlockPosition.MutableBlockPosition blockposition_mutableblockposition, int i, int j, BlockStateListPopulator blocks) { // CraftBukkit
+-    private static boolean hasTopFrame(IBlockAccess iblockaccess, BlockPos blockposition, EnumDirection enumdirection, BlockPos.MutableBlockPos blockposition_mutableblockposition, int i, int j) {
++    private static boolean hasTopFrame(IBlockAccess iblockaccess, BlockPos blockposition, EnumDirection enumdirection, BlockPos.MutableBlockPos blockposition_mutableblockposition, int i, int j, BlockStateListPopulator blocks) { // CraftBukkit
          for (int k = 0; k < i; ++k) {
-             BlockPosition.MutableBlockPosition blockposition_mutableblockposition1 = blockposition_mutableblockposition.set(blockposition).move(EnumDirection.UP, j).move(enumdirection, k);
+             BlockPos.MutableBlockPos blockposition_mutableblockposition1 = blockposition_mutableblockposition.set(blockposition).move(EnumDirection.UP, j).move(enumdirection, k);
  
              if (!BlockPortalShape.FRAME.test(iblockaccess.getBlockState(blockposition_mutableblockposition1), iblockaccess, blockposition_mutableblockposition1)) {
                  return false;
@@ -125,8 +125,8 @@
          return true;
      }
  
--    private static int getDistanceUntilTop(IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection enumdirection, BlockPosition.MutableBlockPosition blockposition_mutableblockposition, int i, MutableInt mutableint) {
-+    private static int getDistanceUntilTop(IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection enumdirection, BlockPosition.MutableBlockPosition blockposition_mutableblockposition, int i, MutableInt mutableint, BlockStateListPopulator blocks) { // CraftBukkit
+-    private static int getDistanceUntilTop(IBlockAccess iblockaccess, BlockPos blockposition, EnumDirection enumdirection, BlockPos.MutableBlockPos blockposition_mutableblockposition, int i, MutableInt mutableint) {
++    private static int getDistanceUntilTop(IBlockAccess iblockaccess, BlockPos blockposition, EnumDirection enumdirection, BlockPos.MutableBlockPos blockposition_mutableblockposition, int i, MutableInt mutableint, BlockStateListPopulator blocks) { // CraftBukkit
          for (int j = 0; j < 21; ++j) {
              blockposition_mutableblockposition.set(blockposition).move(EnumDirection.UP, j).move(enumdirection, -1);
              if (!BlockPortalShape.FRAME.test(iblockaccess.getBlockState(blockposition_mutableblockposition), iblockaccess, blockposition_mutableblockposition)) {
@@ -153,7 +153,7 @@
 +        // Copy below for loop
          IBlockData iblockdata = (IBlockData) Blocks.NETHER_PORTAL.defaultBlockState().setValue(BlockPortal.AXIS, this.axis);
  
-         BlockPosition.betweenClosed(this.bottomLeft, this.bottomLeft.relative(EnumDirection.UP, this.height - 1).relative(this.rightDir, this.width - 1)).forEach((blockposition) -> {
+         BlockPos.betweenClosed(this.bottomLeft, this.bottomLeft.relative(EnumDirection.UP, this.height - 1).relative(this.rightDir, this.width - 1)).forEach((blockposition) -> {
 +            blocks.setBlock(blockposition, iblockdata, 18);
 +        });
 +
@@ -164,7 +164,7 @@
 +            return false;
 +        }
 +        // CraftBukkit end
-+        BlockPosition.betweenClosed(this.bottomLeft, this.bottomLeft.relative(EnumDirection.UP, this.height - 1).relative(this.rightDir, this.width - 1)).forEach((blockposition) -> {
++        BlockPos.betweenClosed(this.bottomLeft, this.bottomLeft.relative(EnumDirection.UP, this.height - 1).relative(this.rightDir, this.width - 1)).forEach((blockposition) -> {
              generatoraccess.setBlock(blockposition, iblockdata, 18);
          });
 +        return true; // CraftBukkit

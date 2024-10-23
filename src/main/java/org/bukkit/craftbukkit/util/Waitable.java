@@ -16,16 +16,16 @@ public abstract class Waitable<T> implements Runnable {
     @Override
     public final void run() {
         synchronized (this) {
-            Preconditions.checkState(this.status == Status.WAITING, "Invalid state %s", this.status);
-            this.status = Status.RUNNING;
+            Preconditions.checkState(status == Status.WAITING, "Invalid state %s", status);
+            status = Status.RUNNING;
         }
         try {
-            this.value = this.evaluate();
+            value = evaluate();
         } catch (Throwable t) {
             this.t = t;
         } finally {
             synchronized (this) {
-                this.status = Status.FINISHED;
+                status = Status.FINISHED;
                 this.notifyAll();
             }
         }
@@ -34,12 +34,12 @@ public abstract class Waitable<T> implements Runnable {
     protected abstract T evaluate();
 
     public synchronized T get() throws InterruptedException, ExecutionException {
-        while (this.status != Status.FINISHED) {
+        while (status != Status.FINISHED) {
             this.wait();
         }
-        if (this.t != null) {
-            throw new ExecutionException(this.t);
+        if (t != null) {
+            throw new ExecutionException(t);
         }
-        return this.value;
+        return value;
     }
 }

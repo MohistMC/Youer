@@ -1,19 +1,20 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import net.minecraft.world.entity.animal.EntityPanda;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Panda;
 import org.bukkit.entity.Panda.Gene;
 
 public class CraftPanda extends CraftAnimals implements Panda {
 
-    public CraftPanda(CraftServer server, net.minecraft.world.entity.animal.Panda entity) {
+    public CraftPanda(CraftServer server, EntityPanda entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.animal.Panda getHandle() {
-        return (net.minecraft.world.entity.animal.Panda) super.getHandle();
+    public EntityPanda getHandle() {
+        return (EntityPanda) super.getHandle();
     }
 
     @Override
@@ -23,93 +24,93 @@ public class CraftPanda extends CraftAnimals implements Panda {
 
     @Override
     public Gene getMainGene() {
-        return CraftPanda.fromNms(this.getHandle().getMainGene());
+        return fromNms(getHandle().getMainGene());
     }
 
     @Override
     public void setMainGene(Gene gene) {
-        this.getHandle().setMainGene(CraftPanda.toNms(gene));
+        getHandle().setMainGene(toNms(gene));
     }
 
     @Override
     public Gene getHiddenGene() {
-        return CraftPanda.fromNms(this.getHandle().getHiddenGene());
+        return fromNms(getHandle().getHiddenGene());
     }
 
     @Override
     public void setHiddenGene(Gene gene) {
-        this.getHandle().setHiddenGene(CraftPanda.toNms(gene));
+        getHandle().setHiddenGene(toNms(gene));
     }
 
     @Override
     public boolean isRolling() {
-        return this.getHandle().isRolling();
+        return getHandle().isRolling();
     }
 
     @Override
     public void setRolling(boolean flag) {
-        this.getHandle().roll(flag);
+        getHandle().roll(flag);
     }
 
     @Override
     public boolean isSneezing() {
-        return this.getHandle().isSneezing();
+        return getHandle().isSneezing();
     }
 
     @Override
     public void setSneezing(boolean flag) {
-        this.getHandle().sneeze(flag);
+        getHandle().sneeze(flag);
     }
 
     @Override
     public boolean isSitting() {
-        return this.getHandle().isSitting();
+        return getHandle().isSitting();
     }
 
     @Override
     public void setSitting(boolean flag) {
-        this.getHandle().sit(flag);
+        getHandle().sit(flag);
     }
 
     @Override
     public boolean isOnBack() {
-        return this.getHandle().isOnBack();
+        return getHandle().isOnBack();
     }
 
     @Override
     public void setOnBack(boolean flag) {
-        this.getHandle().setOnBack(flag);
+        getHandle().setOnBack(flag);
     }
 
     @Override
     public boolean isEating() {
-        return this.getHandle().isEating();
+        return getHandle().isEating();
     }
 
     @Override
     public void setEating(boolean flag) {
-        this.getHandle().eat(flag);
+        getHandle().eat(flag);
     }
 
     @Override
     public boolean isScared() {
-        return this.getHandle().isScared();
+        return getHandle().isScared();
     }
 
     @Override
     public int getUnhappyTicks() {
-        return this.getHandle().getUnhappyCounter();
+        return getHandle().getUnhappyCounter();
     }
 
-    public static Gene fromNms(net.minecraft.world.entity.animal.Panda.Gene gene) {
+    public static Gene fromNms(EntityPanda.Gene gene) {
         Preconditions.checkArgument(gene != null, "Gene may not be null");
 
         return Gene.values()[gene.ordinal()];
     }
 
-    public static net.minecraft.world.entity.animal.Panda.Gene toNms(Gene gene) {
+    public static EntityPanda.Gene toNms(Gene gene) {
         Preconditions.checkArgument(gene != null, "Gene may not be null");
 
-        return net.minecraft.world.entity.animal.Panda.Gene.values()[gene.ordinal()];
+        return EntityPanda.Gene.values()[gene.ordinal()];
     }
 }

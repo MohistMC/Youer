@@ -5,6 +5,8 @@ import java.util.Locale;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.animal.CatVariant;
+import net.minecraft.world.entity.animal.EntityCat;
+import net.minecraft.world.item.EnumColor;
 import org.bukkit.DyeColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -15,13 +17,13 @@ import org.bukkit.entity.Cat;
 
 public class CraftCat extends CraftTameableAnimal implements Cat {
 
-    public CraftCat(CraftServer server, net.minecraft.world.entity.animal.Cat entity) {
+    public CraftCat(CraftServer server, EntityCat entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.animal.Cat getHandle() {
-        return (net.minecraft.world.entity.animal.Cat) super.getHandle();
+    public EntityCat getHandle() {
+        return (EntityCat) super.getHandle();
     }
 
     @Override
@@ -31,24 +33,24 @@ public class CraftCat extends CraftTameableAnimal implements Cat {
 
     @Override
     public Type getCatType() {
-        return CraftType.minecraftHolderToBukkit(this.getHandle().getVariant());
+        return CraftType.minecraftHolderToBukkit(getHandle().getVariant());
     }
 
     @Override
     public void setCatType(Type type) {
         Preconditions.checkArgument(type != null, "Cannot have null Type");
 
-        this.getHandle().setVariant(CraftType.bukkitToMinecraftHolder(type));
+        getHandle().setVariant(CraftType.bukkitToMinecraftHolder(type));
     }
 
     @Override
     public DyeColor getCollarColor() {
-        return DyeColor.getByWoolData((byte) this.getHandle().getCollarColor().getId());
+        return DyeColor.getByWoolData((byte) getHandle().getCollarColor().getId());
     }
 
     @Override
     public void setCollarColor(DyeColor color) {
-        this.getHandle().setCollarColor(net.minecraft.world.item.DyeColor.byId(color.getWoolData()));
+        getHandle().setCollarColor(EnumColor.byId(color.getWoolData()));
     }
 
     public static class CraftType implements Type, Handleable<CatVariant> {
@@ -59,7 +61,7 @@ public class CraftCat extends CraftTameableAnimal implements Cat {
         }
 
         public static Type minecraftHolderToBukkit(Holder<CatVariant> minecraft) {
-            return CraftType.minecraftToBukkit(minecraft.value());
+            return minecraftToBukkit(minecraft.value());
         }
 
         public static CatVariant bukkitToMinecraft(Type bukkit) {

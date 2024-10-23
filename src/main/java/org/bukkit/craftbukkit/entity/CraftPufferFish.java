@@ -1,28 +1,28 @@
 package org.bukkit.craftbukkit.entity;
 
-import net.minecraft.world.entity.animal.Pufferfish;
+import net.minecraft.world.entity.animal.EntityPufferFish;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.PufferFish;
 
 public class CraftPufferFish extends CraftFish implements PufferFish {
 
-    public CraftPufferFish(CraftServer server, Pufferfish entity) {
+    public CraftPufferFish(CraftServer server, EntityPufferFish entity) {
         super(server, entity);
     }
 
     @Override
-    public Pufferfish getHandle() {
-        return (Pufferfish) super.getHandle();
+    public EntityPufferFish getHandle() {
+        return (EntityPufferFish) super.getHandle();
     }
 
     @Override
     public int getPuffState() {
-        return this.getHandle().getPuffState();
+        return getHandle().getPuffState();
     }
 
     @Override
     public void setPuffState(int state) {
-        this.getHandle().setPuffState(state);
+        getHandle().setPuffState(state);
     }
 
     @Override

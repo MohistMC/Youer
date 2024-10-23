@@ -3,8 +3,9 @@ package org.bukkit.craftbukkit.scoreboard;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
-import net.minecraft.world.scores.PlayerTeam;
-import net.minecraft.world.scores.Team.Visibility;
+import net.minecraft.world.scores.ScoreboardTeam;
+import net.minecraft.world.scores.ScoreboardTeamBase;
+import net.minecraft.world.scores.ScoreboardTeamBase.EnumNameTagVisibility;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -13,128 +14,128 @@ import org.bukkit.scoreboard.NameTagVisibility;
 import org.bukkit.scoreboard.Team;
 
 final class CraftTeam extends CraftScoreboardComponent implements Team {
-    private final PlayerTeam team;
+    private final ScoreboardTeam team;
 
-    CraftTeam(CraftScoreboard scoreboard, PlayerTeam team) {
+    CraftTeam(CraftScoreboard scoreboard, ScoreboardTeam team) {
         super(scoreboard);
         this.team = team;
     }
 
     @Override
     public String getName() {
-        this.checkState();
+        checkState();
 
-        return this.team.getName();
+        return team.getName();
     }
 
     @Override
     public String getDisplayName() {
-        this.checkState();
+        checkState();
 
-        return CraftChatMessage.fromComponent(this.team.getDisplayName());
+        return CraftChatMessage.fromComponent(team.getDisplayName());
     }
 
     @Override
     public void setDisplayName(String displayName) {
         Preconditions.checkArgument(displayName != null, "Display name cannot be null");
-        this.checkState();
+        checkState();
 
-        this.team.setDisplayName(CraftChatMessage.fromString(displayName)[0]); // SPIGOT-4112: not nullable
+        team.setDisplayName(CraftChatMessage.fromString(displayName)[0]); // SPIGOT-4112: not nullable
     }
 
     @Override
     public String getPrefix() {
-        this.checkState();
+        checkState();
 
-        return CraftChatMessage.fromComponent(this.team.getPlayerPrefix());
+        return CraftChatMessage.fromComponent(team.getPlayerPrefix());
     }
 
     @Override
     public void setPrefix(String prefix) {
         Preconditions.checkArgument(prefix != null, "Prefix cannot be null");
-        this.checkState();
+        checkState();
 
-        this.team.setPlayerPrefix(CraftChatMessage.fromStringOrNull(prefix));
+        team.setPlayerPrefix(CraftChatMessage.fromStringOrNull(prefix));
     }
 
     @Override
     public String getSuffix() {
-        this.checkState();
+        checkState();
 
-        return CraftChatMessage.fromComponent(this.team.getPlayerSuffix());
+        return CraftChatMessage.fromComponent(team.getPlayerSuffix());
     }
 
     @Override
     public void setSuffix(String suffix) {
         Preconditions.checkArgument(suffix != null, "Suffix cannot be null");
-        this.checkState();
+        checkState();
 
-        this.team.setPlayerSuffix(CraftChatMessage.fromStringOrNull(suffix));
+        team.setPlayerSuffix(CraftChatMessage.fromStringOrNull(suffix));
     }
 
     @Override
     public ChatColor getColor() {
-        this.checkState();
+        checkState();
 
-        return CraftChatMessage.getColor(this.team.getColor());
+        return CraftChatMessage.getColor(team.getColor());
     }
 
     @Override
     public void setColor(ChatColor color) {
         Preconditions.checkArgument(color != null, "Color cannot be null");
-        this.checkState();
+        checkState();
 
-        this.team.setColor(CraftChatMessage.getColor(color));
+        team.setColor(CraftChatMessage.getColor(color));
     }
 
     @Override
     public boolean allowFriendlyFire() {
-        this.checkState();
+        checkState();
 
-        return this.team.isAllowFriendlyFire();
+        return team.isAllowFriendlyFire();
     }
 
     @Override
     public void setAllowFriendlyFire(boolean enabled) {
-        this.checkState();
+        checkState();
 
-        this.team.setAllowFriendlyFire(enabled);
+        team.setAllowFriendlyFire(enabled);
     }
 
     @Override
     public boolean canSeeFriendlyInvisibles() {
-        this.checkState();
+        checkState();
 
-        return this.team.canSeeFriendlyInvisibles();
+        return team.canSeeFriendlyInvisibles();
     }
 
     @Override
     public void setCanSeeFriendlyInvisibles(boolean enabled) {
-        this.checkState();
+        checkState();
 
-        this.team.setSeeFriendlyInvisibles(enabled);
+        team.setSeeFriendlyInvisibles(enabled);
     }
 
     @Override
     public NameTagVisibility getNameTagVisibility() throws IllegalArgumentException {
-        this.checkState();
+        checkState();
 
-        return CraftTeam.notchToBukkit(this.team.getNameTagVisibility());
+        return notchToBukkit(team.getNameTagVisibility());
     }
 
     @Override
     public void setNameTagVisibility(NameTagVisibility visibility) throws IllegalArgumentException {
-        this.checkState();
+        checkState();
 
-        this.team.setNameTagVisibility(CraftTeam.bukkitToNotch(visibility));
+        team.setNameTagVisibility(bukkitToNotch(visibility));
     }
 
     @Override
     public Set<OfflinePlayer> getPlayers() {
-        this.checkState();
+        checkState();
 
         ImmutableSet.Builder<OfflinePlayer> players = ImmutableSet.builder();
-        for (String playerName : this.team.getPlayers()) {
+        for (String playerName : team.getPlayers()) {
             players.add(Bukkit.getOfflinePlayer(playerName));
         }
         return players.build();
@@ -142,10 +143,10 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
 
     @Override
     public Set<String> getEntries() {
-        this.checkState();
+        checkState();
 
         ImmutableSet.Builder<String> entries = ImmutableSet.builder();
-        for (String playerName : this.team.getPlayers()) {
+        for (String playerName : team.getPlayers()) {
             entries.add(playerName);
         }
         return entries.build();
@@ -153,76 +154,76 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
 
     @Override
     public int getSize() {
-        this.checkState();
+        checkState();
 
-        return this.team.getPlayers().size();
+        return team.getPlayers().size();
     }
 
     @Override
     public void addPlayer(OfflinePlayer player) {
         Preconditions.checkArgument(player != null, "OfflinePlayer cannot be null");
-        this.addEntry(player.getName());
+        addEntry(player.getName());
     }
 
     @Override
     public void addEntry(String entry) {
         Preconditions.checkArgument(entry != null, "Entry cannot be null");
-        CraftScoreboard scoreboard = this.checkState();
+        CraftScoreboard scoreboard = checkState();
 
-        scoreboard.board.addPlayerToTeam(entry, this.team);
+        scoreboard.board.addPlayerToTeam(entry, team);
     }
 
     @Override
     public boolean removePlayer(OfflinePlayer player) {
         Preconditions.checkArgument(player != null, "OfflinePlayer cannot be null");
-        return this.removeEntry(player.getName());
+        return removeEntry(player.getName());
     }
 
     @Override
     public boolean removeEntry(String entry) {
         Preconditions.checkArgument(entry != null, "Entry cannot be null");
-        CraftScoreboard scoreboard = this.checkState();
+        CraftScoreboard scoreboard = checkState();
 
-        if (!this.team.getPlayers().contains(entry)) {
+        if (!team.getPlayers().contains(entry)) {
             return false;
         }
 
-        scoreboard.board.removePlayerFromTeam(entry, this.team);
+        scoreboard.board.removePlayerFromTeam(entry, team);
         return true;
     }
 
     @Override
     public boolean hasPlayer(OfflinePlayer player) throws IllegalArgumentException, IllegalStateException {
         Preconditions.checkArgument(player != null, "OfflinePlayer cannot be null");
-        return this.hasEntry(player.getName());
+        return hasEntry(player.getName());
     }
 
     @Override
     public boolean hasEntry(String entry) throws IllegalArgumentException, IllegalStateException {
         Preconditions.checkArgument(entry != null, "Entry cannot be null");
-        this.checkState();
+        checkState();
 
-        return this.team.getPlayers().contains(entry);
+        return team.getPlayers().contains(entry);
     }
 
     @Override
     public void unregister() {
-        CraftScoreboard scoreboard = this.checkState();
+        CraftScoreboard scoreboard = checkState();
 
-        scoreboard.board.removePlayerTeam(this.team);
+        scoreboard.board.removePlayerTeam(team);
     }
 
     @Override
     public OptionStatus getOption(Option option) {
-        this.checkState();
+        checkState();
 
         switch (option) {
             case NAME_TAG_VISIBILITY:
-                return OptionStatus.values()[this.team.getNameTagVisibility().ordinal()];
+                return OptionStatus.values()[team.getNameTagVisibility().ordinal()];
             case DEATH_MESSAGE_VISIBILITY:
-                return OptionStatus.values()[this.team.getDeathMessageVisibility().ordinal()];
+                return OptionStatus.values()[team.getDeathMessageVisibility().ordinal()];
             case COLLISION_RULE:
-                return OptionStatus.values()[this.team.getCollisionRule().ordinal()];
+                return OptionStatus.values()[team.getCollisionRule().ordinal()];
             default:
                 throw new IllegalArgumentException("Unrecognised option " + option);
         }
@@ -230,39 +231,39 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
 
     @Override
     public void setOption(Option option, OptionStatus status) {
-        this.checkState();
+        checkState();
 
         switch (option) {
             case NAME_TAG_VISIBILITY:
-                this.team.setNameTagVisibility(Visibility.values()[status.ordinal()]);
+                team.setNameTagVisibility(EnumNameTagVisibility.values()[status.ordinal()]);
                 break;
             case DEATH_MESSAGE_VISIBILITY:
-                this.team.setDeathMessageVisibility(Visibility.values()[status.ordinal()]);
+                team.setDeathMessageVisibility(EnumNameTagVisibility.values()[status.ordinal()]);
                 break;
             case COLLISION_RULE:
-                this.team.setCollisionRule(net.minecraft.world.scores.Team.CollisionRule.values()[status.ordinal()]);
+                team.setCollisionRule(ScoreboardTeamBase.EnumTeamPush.values()[status.ordinal()]);
                 break;
             default:
                 throw new IllegalArgumentException("Unrecognised option " + option);
         }
     }
 
-    public static Visibility bukkitToNotch(NameTagVisibility visibility) {
+    public static EnumNameTagVisibility bukkitToNotch(NameTagVisibility visibility) {
         switch (visibility) {
             case ALWAYS:
-                return Visibility.ALWAYS;
+                return EnumNameTagVisibility.ALWAYS;
             case NEVER:
-                return Visibility.NEVER;
+                return EnumNameTagVisibility.NEVER;
             case HIDE_FOR_OTHER_TEAMS:
-                return Visibility.HIDE_FOR_OTHER_TEAMS;
+                return EnumNameTagVisibility.HIDE_FOR_OTHER_TEAMS;
             case HIDE_FOR_OWN_TEAM:
-                return Visibility.HIDE_FOR_OWN_TEAM;
+                return EnumNameTagVisibility.HIDE_FOR_OWN_TEAM;
             default:
                 throw new IllegalArgumentException("Unknown visibility level " + visibility);
         }
     }
 
-    public static NameTagVisibility notchToBukkit(Visibility visibility) {
+    public static NameTagVisibility notchToBukkit(EnumNameTagVisibility visibility) {
         switch (visibility) {
             case ALWAYS:
                 return NameTagVisibility.ALWAYS;
@@ -279,9 +280,9 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
 
     @Override
     CraftScoreboard checkState() {
-        Preconditions.checkState(this.getScoreboard().board.getPlayerTeam(this.team.getName()) != null, "Unregistered scoreboard component");
+        Preconditions.checkState(getScoreboard().board.getPlayerTeam(team.getName()) != null, "Unregistered scoreboard component");
 
-        return this.getScoreboard();
+        return getScoreboard();
     }
 
     @Override
@@ -296,7 +297,7 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
         if (obj == null) {
             return false;
         }
-        if (this.getClass() != obj.getClass()) {
+        if (getClass() != obj.getClass()) {
             return false;
         }
         final CraftTeam other = (CraftTeam) obj;

@@ -1,18 +1,18 @@
 package org.bukkit.craftbukkit.block;
 
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.level.block.BarrelBlock;
-import net.minecraft.world.level.block.entity.BarrelBlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.sounds.SoundEffects;
+import net.minecraft.world.level.block.BlockBarrel;
+import net.minecraft.world.level.block.entity.TileEntityBarrel;
+import net.minecraft.world.level.block.state.IBlockData;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Barrel;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.inventory.Inventory;
 
-public class CraftBarrel extends CraftLootable<BarrelBlockEntity> implements Barrel {
+public class CraftBarrel extends CraftLootable<TileEntityBarrel> implements Barrel {
 
-    public CraftBarrel(World world, BarrelBlockEntity tileEntity) {
+    public CraftBarrel(World world, TileEntityBarrel tileEntity) {
         super(world, tileEntity);
     }
 
@@ -36,32 +36,32 @@ public class CraftBarrel extends CraftLootable<BarrelBlockEntity> implements Bar
 
     @Override
     public void open() {
-        this.requirePlaced();
-        if (!this.getTileEntity().openersCounter.opened) {
-            BlockState blockData = this.getTileEntity().getBlockState();
-            boolean open = blockData.getValue(BarrelBlock.OPEN);
+        requirePlaced();
+        if (!getTileEntity().openersCounter.opened) {
+            IBlockData blockData = getTileEntity().getBlockState();
+            boolean open = blockData.getValue(BlockBarrel.OPEN);
 
             if (!open) {
-                this.getTileEntity().updateBlockState(blockData, true);
-                if (this.getWorldHandle() instanceof net.minecraft.world.level.Level) {
-                    this.getTileEntity().playSound(blockData, SoundEvents.BARREL_OPEN);
+                getTileEntity().updateBlockState(blockData, true);
+                if (getWorldHandle() instanceof net.minecraft.world.level.World) {
+                    getTileEntity().playSound(blockData, SoundEffects.BARREL_OPEN);
                 }
             }
         }
-        this.getTileEntity().openersCounter.opened = true;
+        getTileEntity().openersCounter.opened = true;
     }
 
     @Override
     public void close() {
-        this.requirePlaced();
-        if (this.getTileEntity().openersCounter.opened) {
-            BlockState blockData = this.getTileEntity().getBlockState();
-            this.getTileEntity().updateBlockState(blockData, false);
-            if (this.getWorldHandle() instanceof net.minecraft.world.level.Level) {
-                this.getTileEntity().playSound(blockData, SoundEvents.BARREL_CLOSE);
+        requirePlaced();
+        if (getTileEntity().openersCounter.opened) {
+            IBlockData blockData = getTileEntity().getBlockState();
+            getTileEntity().updateBlockState(blockData, false);
+            if (getWorldHandle() instanceof net.minecraft.world.level.World) {
+                getTileEntity().playSound(blockData, SoundEffects.BARREL_CLOSE);
             }
         }
-        this.getTileEntity().openersCounter.opened = false;
+        getTileEntity().openersCounter.opened = false;
     }
 
     @Override

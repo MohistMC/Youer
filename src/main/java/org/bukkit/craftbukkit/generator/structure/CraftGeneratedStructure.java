@@ -3,6 +3,7 @@ package org.bukkit.craftbukkit.generator.structure;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
+import net.minecraft.world.level.levelgen.structure.StructureBoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import org.bukkit.generator.structure.GeneratedStructure;
 import org.bukkit.generator.structure.Structure;
@@ -21,24 +22,24 @@ public class CraftGeneratedStructure implements GeneratedStructure {
 
     @Override
     public BoundingBox getBoundingBox() {
-        net.minecraft.world.level.levelgen.structure.BoundingBox bb = this.handle.getBoundingBox();
+        StructureBoundingBox bb = handle.getBoundingBox();
         return new BoundingBox(bb.minX(), bb.minY(), bb.minZ(), bb.maxX(), bb.maxY(), bb.maxZ());
     }
 
     @Override
     public Structure getStructure() {
-        return CraftStructure.minecraftToBukkit(this.handle.getStructure());
+        return CraftStructure.minecraftToBukkit(handle.getStructure());
     }
 
     @Override
     public Collection<StructurePiece> getPieces() {
-        if (this.pieces == null) { // Cache the pieces on first request
+        if (pieces == null) { // Cache the pieces on first request
             ImmutableList.Builder<StructurePiece> builder = new ImmutableList.Builder<>();
-            for (net.minecraft.world.level.levelgen.structure.StructurePiece piece : this.handle.getPieces()) {
+            for (net.minecraft.world.level.levelgen.structure.StructurePiece piece : handle.getPieces()) {
                 builder.add(new CraftStructurePiece(piece));
             }
 
-            this.pieces = builder.build();
+            pieces = builder.build();
         }
 
         return this.pieces;
@@ -46,6 +47,6 @@ public class CraftGeneratedStructure implements GeneratedStructure {
 
     @Override
     public PersistentDataContainer getPersistentDataContainer() {
-        return this.handle.persistentDataContainer;
+        return handle.persistentDataContainer;
     }
 }

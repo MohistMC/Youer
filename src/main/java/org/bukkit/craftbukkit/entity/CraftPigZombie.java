@@ -1,38 +1,38 @@
 package org.bukkit.craftbukkit.entity;
 
-import net.minecraft.world.entity.monster.ZombifiedPiglin;
+import net.minecraft.world.entity.monster.EntityPigZombie;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.PigZombie;
 
 public class CraftPigZombie extends CraftZombie implements PigZombie {
 
-    public CraftPigZombie(CraftServer server, ZombifiedPiglin entity) {
+    public CraftPigZombie(CraftServer server, EntityPigZombie entity) {
         super(server, entity);
     }
 
     @Override
     public int getAnger() {
-        return this.getHandle().getRemainingPersistentAngerTime();
+        return getHandle().getRemainingPersistentAngerTime();
     }
 
     @Override
     public void setAnger(int level) {
-        this.getHandle().setRemainingPersistentAngerTime(level);
+        getHandle().setRemainingPersistentAngerTime(level);
     }
 
     @Override
     public void setAngry(boolean angry) {
-        this.setAnger(angry ? 400 : 0);
+        setAnger(angry ? 400 : 0);
     }
 
     @Override
     public boolean isAngry() {
-        return this.getAnger() > 0;
+        return getAnger() > 0;
     }
 
     @Override
-    public ZombifiedPiglin getHandle() {
-        return (ZombifiedPiglin) this.entity;
+    public EntityPigZombie getHandle() {
+        return (EntityPigZombie) entity;
     }
 
     @Override

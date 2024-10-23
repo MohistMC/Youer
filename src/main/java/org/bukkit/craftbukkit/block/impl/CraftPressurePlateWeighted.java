@@ -9,26 +9,26 @@ public final class CraftPressurePlateWeighted extends org.bukkit.craftbukkit.blo
         super();
     }
 
-    public CraftPressurePlateWeighted(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftPressurePlateWeighted(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftAnaloguePowerable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty POWER = getInteger(net.minecraft.world.level.block.WeightedPressurePlateBlock.class, "power");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger POWER = getInteger(net.minecraft.world.level.block.BlockPressurePlateWeighted.class, "power");
 
     @Override
     public int getPower() {
-        return this.get(CraftPressurePlateWeighted.POWER);
+        return get(POWER);
     }
 
     @Override
     public void setPower(int power) {
-        this.set(CraftPressurePlateWeighted.POWER, power);
+        set(POWER, power);
     }
 
     @Override
     public int getMaximumPower() {
-        return getMax(CraftPressurePlateWeighted.POWER);
+        return getMax(POWER);
     }
 }

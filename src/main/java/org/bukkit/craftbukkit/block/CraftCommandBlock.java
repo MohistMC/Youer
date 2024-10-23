@@ -1,14 +1,14 @@
 package org.bukkit.craftbukkit.block;
 
-import net.minecraft.world.level.block.entity.CommandBlockEntity;
+import net.minecraft.world.level.block.entity.TileEntityCommand;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.CommandBlock;
 import org.bukkit.craftbukkit.util.CraftChatMessage;
 
-public class CraftCommandBlock extends CraftBlockEntityState<CommandBlockEntity> implements CommandBlock {
+public class CraftCommandBlock extends CraftBlockEntityState<TileEntityCommand> implements CommandBlock {
 
-    public CraftCommandBlock(World world, CommandBlockEntity tileEntity) {
+    public CraftCommandBlock(World world, TileEntityCommand tileEntity) {
         super(world, tileEntity);
     }
 
@@ -18,22 +18,22 @@ public class CraftCommandBlock extends CraftBlockEntityState<CommandBlockEntity>
 
     @Override
     public String getCommand() {
-        return this.getSnapshot().getCommandBlock().getCommand();
+        return getSnapshot().getCommandBlock().getCommand();
     }
 
     @Override
     public void setCommand(String command) {
-        this.getSnapshot().getCommandBlock().setCommand(command != null ? command : "");
+        getSnapshot().getCommandBlock().setCommand(command != null ? command : "");
     }
 
     @Override
     public String getName() {
-        return CraftChatMessage.fromComponent(this.getSnapshot().getCommandBlock().getName());
+        return CraftChatMessage.fromComponent(getSnapshot().getCommandBlock().getName());
     }
 
     @Override
     public void setName(String name) {
-        this.getSnapshot().getCommandBlock().setCustomName(CraftChatMessage.fromStringOrNull(name != null ? name : "@"));
+        getSnapshot().getCommandBlock().setCustomName(CraftChatMessage.fromStringOrNull(name != null ? name : "@"));
     }
 
     @Override

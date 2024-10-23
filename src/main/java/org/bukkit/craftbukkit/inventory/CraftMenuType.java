@@ -5,8 +5,9 @@ import com.google.common.base.Suppliers;
 import java.util.function.Supplier;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.server.level.EntityPlayer;
+import net.minecraft.world.inventory.Container;
+import net.minecraft.world.inventory.Containers;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.craftbukkit.CraftRegistry;
@@ -18,20 +19,20 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.MenuType;
 
-public class CraftMenuType<V extends InventoryView> implements MenuType.Typed<V>, Handleable<net.minecraft.world.inventory.MenuType<?>> {
+public class CraftMenuType<V extends InventoryView> implements MenuType.Typed<V>, Handleable<Containers<?>> {
 
     private final NamespacedKey key;
-    private final net.minecraft.world.inventory.MenuType<?> handle;
+    private final Containers<?> handle;
     private final Supplier<CraftMenus.MenuTypeData<V>> typeData;
 
-    public CraftMenuType(NamespacedKey key, net.minecraft.world.inventory.MenuType<?> handle) {
+    public CraftMenuType(NamespacedKey key, Containers<?> handle) {
         this.key = key;
         this.handle = handle;
         this.typeData = Suppliers.memoize(() -> CraftMenus.getMenuTypeData(this));
     }
 
     @Override
-    public net.minecraft.world.inventory.MenuType<?> getHandle() {
+    public Containers<?> getHandle() {
         return this.handle;
     }
 
@@ -41,10 +42,10 @@ public class CraftMenuType<V extends InventoryView> implements MenuType.Typed<V>
         Preconditions.checkArgument(title != null, "The given title must not be null");
         Preconditions.checkArgument(player instanceof CraftHumanEntity, "The given player must be a CraftHumanEntity");
         final CraftHumanEntity craftHuman = (CraftHumanEntity) player;
-        Preconditions.checkArgument(craftHuman.getHandle() instanceof ServerPlayer, "The given player must be an EntityPlayer");
-        final ServerPlayer serverPlayer = (ServerPlayer) craftHuman.getHandle();
+        Preconditions.checkArgument(craftHuman.getHandle() instanceof EntityPlayer, "The given player must be an EntityPlayer");
+        final EntityPlayer serverPlayer = (EntityPlayer) craftHuman.getHandle();
 
-        final AbstractContainerMenu container = typeData.get().menuBuilder().build(serverPlayer, this.handle);
+        final Container container = typeData.get().menuBuilder().build(serverPlayer, this.handle);
         container.setTitle(CraftChatMessage.fromString(title)[0]);
         container.checkReachable = false;
         return (V) container.getBukkitView();
@@ -74,15 +75,15 @@ public class CraftMenuType<V extends InventoryView> implements MenuType.Typed<V>
         return this.key;
     }
 
-    public static net.minecraft.world.inventory.MenuType<?> bukkitToMinecraft(MenuType bukkit) {
+    public static Containers<?> bukkitToMinecraft(MenuType bukkit) {
         return CraftRegistry.bukkitToMinecraft(bukkit);
     }
 
-    public static MenuType minecraftToBukkit(net.minecraft.world.inventory.MenuType<?> minecraft) {
+    public static MenuType minecraftToBukkit(Containers<?> minecraft) {
         return CraftRegistry.minecraftToBukkit(minecraft, Registries.MENU, Registry.MENU);
     }
 
-    public static MenuType minecraftHolderToBukkit(Holder<net.minecraft.world.inventory.MenuType<?>> minecraft) {
+    public static MenuType minecraftHolderToBukkit(Holder<Containers<?>> minecraft) {
         return minecraftToBukkit(minecraft.value());
     }
 }

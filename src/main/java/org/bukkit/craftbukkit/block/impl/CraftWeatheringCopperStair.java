@@ -9,68 +9,68 @@ public final class CraftWeatheringCopperStair extends org.bukkit.craftbukkit.blo
         super();
     }
 
-    public CraftWeatheringCopperStair(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftWeatheringCopperStair(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftStairs
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> SHAPE = getEnum(net.minecraft.world.level.block.WeatheringCopperStairBlock.class, "shape");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> SHAPE = getEnum(net.minecraft.world.level.block.WeatheringCopperStairBlock.class, "shape");
 
     @Override
     public org.bukkit.block.data.type.Stairs.Shape getShape() {
-        return this.get(CraftWeatheringCopperStair.SHAPE, org.bukkit.block.data.type.Stairs.Shape.class);
+        return get(SHAPE, org.bukkit.block.data.type.Stairs.Shape.class);
     }
 
     @Override
     public void setShape(org.bukkit.block.data.type.Stairs.Shape shape) {
-        this.set(CraftWeatheringCopperStair.SHAPE, shape);
+        set(SHAPE, shape);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftBisected
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> HALF = getEnum(net.minecraft.world.level.block.WeatheringCopperStairBlock.class, "half");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> HALF = getEnum(net.minecraft.world.level.block.WeatheringCopperStairBlock.class, "half");
 
     @Override
     public org.bukkit.block.data.Bisected.Half getHalf() {
-        return this.get(CraftWeatheringCopperStair.HALF, org.bukkit.block.data.Bisected.Half.class);
+        return get(HALF, org.bukkit.block.data.Bisected.Half.class);
     }
 
     @Override
     public void setHalf(org.bukkit.block.data.Bisected.Half half) {
-        this.set(CraftWeatheringCopperStair.HALF, half);
+        set(HALF, half);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftDirectional
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> FACING = getEnum(net.minecraft.world.level.block.WeatheringCopperStairBlock.class, "facing");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> FACING = getEnum(net.minecraft.world.level.block.WeatheringCopperStairBlock.class, "facing");
 
     @Override
     public org.bukkit.block.BlockFace getFacing() {
-        return this.get(CraftWeatheringCopperStair.FACING, org.bukkit.block.BlockFace.class);
+        return get(FACING, org.bukkit.block.BlockFace.class);
     }
 
     @Override
     public void setFacing(org.bukkit.block.BlockFace facing) {
-        this.set(CraftWeatheringCopperStair.FACING, facing);
+        set(FACING, facing);
     }
 
     @Override
     public java.util.Set<org.bukkit.block.BlockFace> getFaces() {
-        return this.getValues(CraftWeatheringCopperStair.FACING, org.bukkit.block.BlockFace.class);
+        return getValues(FACING, org.bukkit.block.BlockFace.class);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftWaterlogged
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty WATERLOGGED = getBoolean(net.minecraft.world.level.block.WeatheringCopperStairBlock.class, "waterlogged");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean WATERLOGGED = getBoolean(net.minecraft.world.level.block.WeatheringCopperStairBlock.class, "waterlogged");
 
     @Override
     public boolean isWaterlogged() {
-        return this.get(CraftWeatheringCopperStair.WATERLOGGED);
+        return get(WATERLOGGED);
     }
 
     @Override
     public void setWaterlogged(boolean waterlogged) {
-        this.set(CraftWeatheringCopperStair.WATERLOGGED, waterlogged);
+        set(WATERLOGGED, waterlogged);
     }
 }

@@ -9,17 +9,17 @@ import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.players.UserBanList;
-import net.minecraft.server.players.UserBanListEntry;
+import net.minecraft.server.players.GameProfileBanEntry;
+import net.minecraft.server.players.GameProfileBanList;
 import org.bukkit.BanEntry;
 import org.bukkit.ban.ProfileBanList;
 import org.bukkit.craftbukkit.profile.CraftPlayerProfile;
 import org.bukkit.profile.PlayerProfile;
 
 public class CraftProfileBanList implements ProfileBanList {
-    private final UserBanList list;
+    private final GameProfileBanList list;
 
-    public CraftProfileBanList(UserBanList list) {
+    public CraftProfileBanList(GameProfileBanList list) {
         this.list = list;
     }
 
@@ -27,7 +27,7 @@ public class CraftProfileBanList implements ProfileBanList {
     public BanEntry<PlayerProfile> getBanEntry(String target) {
         Preconditions.checkArgument(target != null, "Target cannot be null");
 
-        return this.getBanEntry(CraftProfileBanList.getProfile(target));
+        return this.getBanEntry(getProfile(target));
     }
 
     @Override
@@ -41,7 +41,7 @@ public class CraftProfileBanList implements ProfileBanList {
     public BanEntry<PlayerProfile> addBan(String target, String reason, Date expires, String source) {
         Preconditions.checkArgument(target != null, "Ban target cannot be null");
 
-        return this.addBan(CraftProfileBanList.getProfileByName(target), reason, expires, source);
+        return this.addBan(getProfileByName(target), reason, expires, source);
     }
 
     @Override
@@ -55,21 +55,21 @@ public class CraftProfileBanList implements ProfileBanList {
     @Override
     public BanEntry<PlayerProfile> addBan(PlayerProfile target, String reason, Instant expires, String source) {
         Date date = expires != null ? Date.from(expires) : null;
-        return this.addBan(target, reason, date, source);
+        return addBan(target, reason, date, source);
     }
 
     @Override
     public BanEntry<PlayerProfile> addBan(PlayerProfile target, String reason, Duration duration, String source) {
         Instant instant = duration != null ? Instant.now().plus(duration) : null;
-        return this.addBan(target, reason, instant, source);
+        return addBan(target, reason, instant, source);
     }
 
     @Override
     public Set<BanEntry> getBanEntries() {
         ImmutableSet.Builder<BanEntry> builder = ImmutableSet.builder();
-        for (UserBanListEntry entry : this.list.getEntries()) {
+        for (GameProfileBanEntry entry : list.getEntries()) {
             GameProfile profile = entry.getUser();
-            builder.add(new CraftProfileBanEntry(profile, entry, this.list));
+            builder.add(new CraftProfileBanEntry(profile, entry, list));
         }
 
         return builder.build();
@@ -78,9 +78,9 @@ public class CraftProfileBanList implements ProfileBanList {
     @Override
     public Set<BanEntry<PlayerProfile>> getEntries() {
         ImmutableSet.Builder<BanEntry<PlayerProfile>> builder = ImmutableSet.builder();
-        for (UserBanListEntry entry : this.list.getEntries()) {
+        for (GameProfileBanEntry entry : list.getEntries()) {
             GameProfile profile = entry.getUser();
-            builder.add(new CraftProfileBanEntry(profile, entry, this.list));
+            builder.add(new CraftProfileBanEntry(profile, entry, list));
         }
 
         return builder.build();
@@ -97,7 +97,7 @@ public class CraftProfileBanList implements ProfileBanList {
     public boolean isBanned(String target) {
         Preconditions.checkArgument(target != null, "Target cannot be null");
 
-        return this.isBanned(CraftProfileBanList.getProfile(target));
+        return this.isBanned(getProfile(target));
     }
 
     @Override
@@ -111,7 +111,7 @@ public class CraftProfileBanList implements ProfileBanList {
     public void pardon(String target) {
         Preconditions.checkArgument(target != null, "Target cannot be null");
 
-        this.pardon(CraftProfileBanList.getProfile(target));
+        this.pardon(getProfile(target));
     }
 
     public BanEntry<PlayerProfile> getBanEntry(GameProfile profile) {
@@ -119,12 +119,12 @@ public class CraftProfileBanList implements ProfileBanList {
             return null;
         }
 
-        UserBanListEntry entry = this.list.get(profile);
+        GameProfileBanEntry entry = list.get(profile);
         if (entry == null) {
             return null;
         }
 
-        return new CraftProfileBanEntry(profile, entry, this.list);
+        return new CraftProfileBanEntry(profile, entry, list);
     }
 
     public BanEntry<PlayerProfile> addBan(GameProfile profile, String reason, Date expires, String source) {
@@ -132,21 +132,21 @@ public class CraftProfileBanList implements ProfileBanList {
             return null;
         }
 
-        UserBanListEntry entry = new UserBanListEntry(profile, new Date(),
+        GameProfileBanEntry entry = new GameProfileBanEntry(profile, new Date(),
                 (source == null || source.isBlank()) ? null : source, expires,
                 (reason == null || reason.isBlank()) ? null : reason);
 
-        this.list.add(entry);
+        list.add(entry);
 
-        return new CraftProfileBanEntry(profile, entry, this.list);
+        return new CraftProfileBanEntry(profile, entry, list);
     }
 
     private void pardon(GameProfile profile) {
-        this.list.remove(profile);
+        list.remove(profile);
     }
 
     private boolean isBanned(GameProfile profile) {
-        return profile != null && this.list.isBanned(profile);
+        return profile != null && list.isBanned(profile);
     }
 
     static GameProfile getProfile(String target) {
@@ -157,7 +157,7 @@ public class CraftProfileBanList implements ProfileBanList {
         } catch (IllegalArgumentException ignored) {
         }
 
-        return (uuid != null) ? CraftProfileBanList.getProfileByUUID(uuid) : CraftProfileBanList.getProfileByName(target);
+        return (uuid != null) ? getProfileByUUID(uuid) : getProfileByName(target);
     }
 
     static GameProfile getProfileByUUID(UUID uuid) {

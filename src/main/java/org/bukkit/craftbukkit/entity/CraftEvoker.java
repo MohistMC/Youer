@@ -1,18 +1,19 @@
 package org.bukkit.craftbukkit.entity;
 
-import net.minecraft.world.entity.monster.SpellcasterIllager;
+import net.minecraft.world.entity.monster.EntityEvoker;
+import net.minecraft.world.entity.monster.EntityIllagerWizard;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Evoker;
 
 public class CraftEvoker extends CraftSpellcaster implements Evoker {
 
-    public CraftEvoker(CraftServer server, net.minecraft.world.entity.monster.Evoker entity) {
+    public CraftEvoker(CraftServer server, EntityEvoker entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.monster.Evoker getHandle() {
-        return (net.minecraft.world.entity.monster.Evoker) super.getHandle();
+    public EntityEvoker getHandle() {
+        return (EntityEvoker) super.getHandle();
     }
 
     @Override
@@ -22,11 +23,11 @@ public class CraftEvoker extends CraftSpellcaster implements Evoker {
 
     @Override
     public Evoker.Spell getCurrentSpell() {
-        return Evoker.Spell.values()[this.getHandle().getCurrentSpell().ordinal()];
+        return Evoker.Spell.values()[getHandle().getCurrentSpell().ordinal()];
     }
 
     @Override
     public void setCurrentSpell(Evoker.Spell spell) {
-        this.getHandle().setIsCastingSpell(spell == null ? SpellcasterIllager.IllagerSpell.NONE : SpellcasterIllager.IllagerSpell.byId(spell.ordinal()));
+        getHandle().setIsCastingSpell(spell == null ? EntityIllagerWizard.Spell.NONE : EntityIllagerWizard.Spell.byId(spell.ordinal()));
     }
 }

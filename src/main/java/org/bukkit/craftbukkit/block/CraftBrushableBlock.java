@@ -21,12 +21,12 @@ public class CraftBrushableBlock extends CraftBlockEntityState<BrushableBlockEnt
 
     @Override
     public ItemStack getItem() {
-        return CraftItemStack.asBukkitCopy(this.getSnapshot().getItem());
+        return CraftItemStack.asBukkitCopy(getSnapshot().getItem());
     }
 
     @Override
     public void setItem(ItemStack item) {
-        this.getSnapshot().item = CraftItemStack.asNMSCopy(item);
+        getSnapshot().item = CraftItemStack.asNMSCopy(item);
     }
 
     @Override
@@ -40,26 +40,26 @@ public class CraftBrushableBlock extends CraftBlockEntityState<BrushableBlockEnt
 
     @Override
     public LootTable getLootTable() {
-        return CraftLootTable.minecraftToBukkit(this.getSnapshot().lootTable);
+        return CraftLootTable.minecraftToBukkit(getSnapshot().lootTable);
     }
 
     @Override
     public void setLootTable(LootTable table) {
-        this.setLootTable(table, this.getSeed());
+        setLootTable(table, getSeed());
     }
 
     @Override
     public long getSeed() {
-        return this.getSnapshot().lootTableSeed;
+        return getSnapshot().lootTableSeed;
     }
 
     @Override
     public void setSeed(long seed) {
-        this.setLootTable(this.getLootTable(), seed);
+        setLootTable(getLootTable(), seed);
     }
 
     private void setLootTable(LootTable table, long seed) {
-        this.getSnapshot().setLootTable(CraftLootTable.bukkitToMinecraft(table), seed);
+        getSnapshot().setLootTable(CraftLootTable.bukkitToMinecraft(table), seed);
     }
 
     @Override

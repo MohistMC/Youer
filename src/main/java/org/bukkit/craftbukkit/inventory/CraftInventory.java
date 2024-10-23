@@ -4,24 +4,25 @@ import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
-import net.minecraft.world.Container;
-import net.minecraft.world.inventory.CraftingContainer;
-import net.minecraft.world.inventory.MerchantContainer;
-import net.minecraft.world.inventory.PlayerEnderChestContainer;
-import net.minecraft.world.level.block.ComposterBlock;
-import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
-import net.minecraft.world.level.block.entity.BarrelBlockEntity;
-import net.minecraft.world.level.block.entity.BlastFurnaceBlockEntity;
-import net.minecraft.world.level.block.entity.BrewingStandBlockEntity;
+import net.minecraft.world.IInventory;
+import net.minecraft.world.entity.player.PlayerInventory;
+import net.minecraft.world.inventory.InventoryCrafting;
+import net.minecraft.world.inventory.InventoryEnderChest;
+import net.minecraft.world.inventory.InventoryMerchant;
+import net.minecraft.world.level.block.BlockComposter;
 import net.minecraft.world.level.block.entity.ChiseledBookShelfBlockEntity;
 import net.minecraft.world.level.block.entity.CrafterBlockEntity;
-import net.minecraft.world.level.block.entity.DispenserBlockEntity;
-import net.minecraft.world.level.block.entity.DropperBlockEntity;
-import net.minecraft.world.level.block.entity.Hopper;
-import net.minecraft.world.level.block.entity.JukeboxBlockEntity;
-import net.minecraft.world.level.block.entity.LecternBlockEntity;
-import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
-import net.minecraft.world.level.block.entity.SmokerBlockEntity;
+import net.minecraft.world.level.block.entity.IHopper;
+import net.minecraft.world.level.block.entity.TileEntityBarrel;
+import net.minecraft.world.level.block.entity.TileEntityBlastFurnace;
+import net.minecraft.world.level.block.entity.TileEntityBrewingStand;
+import net.minecraft.world.level.block.entity.TileEntityDispenser;
+import net.minecraft.world.level.block.entity.TileEntityDropper;
+import net.minecraft.world.level.block.entity.TileEntityFurnace;
+import net.minecraft.world.level.block.entity.TileEntityJukeBox;
+import net.minecraft.world.level.block.entity.TileEntityLectern;
+import net.minecraft.world.level.block.entity.TileEntityShulkerBox;
+import net.minecraft.world.level.block.entity.TileEntitySmoker;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.util.CraftLegacy;
@@ -32,24 +33,24 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 public class CraftInventory implements Inventory {
-    protected final Container inventory;
+    protected final IInventory inventory;
 
-    public CraftInventory(Container inventory) {
+    public CraftInventory(IInventory inventory) {
         this.inventory = inventory;
     }
 
-    public Container getInventory() {
-        return this.inventory;
+    public IInventory getInventory() {
+        return inventory;
     }
 
     @Override
     public int getSize() {
-        return this.getInventory().getContainerSize();
+        return getInventory().getContainerSize();
     }
 
     @Override
     public ItemStack getItem(int index) {
-        net.minecraft.world.item.ItemStack item = this.getInventory().getItem(index);
+        net.minecraft.world.item.ItemStack item = getInventory().getItem(index);
         return item.isEmpty() ? null : CraftItemStack.asCraftMirror(item);
     }
 
@@ -67,44 +68,44 @@ public class CraftInventory implements Inventory {
 
     @Override
     public ItemStack[] getStorageContents() {
-        return this.getContents();
+        return getContents();
     }
 
     @Override
     public void setStorageContents(ItemStack[] items) throws IllegalArgumentException {
-        this.setContents(items);
+        setContents(items);
     }
 
     @Override
     public ItemStack[] getContents() {
-        List<net.minecraft.world.item.ItemStack> mcItems = this.getInventory().getContents();
+        List<net.minecraft.world.item.ItemStack> mcItems = getInventory().getContents();
 
-        return this.asCraftMirror(mcItems);
+        return asCraftMirror(mcItems);
     }
 
     @Override
     public void setContents(ItemStack[] items) {
-        Preconditions.checkArgument(items.length <= this.getSize(), "Invalid inventory size (%s); expected %s or less", items.length, this.getSize());
+        Preconditions.checkArgument(items.length <= getSize(), "Invalid inventory size (%s); expected %s or less", items.length, getSize());
 
-        for (int i = 0; i < this.getSize(); i++) {
+        for (int i = 0; i < getSize(); i++) {
             if (i >= items.length) {
-                this.setItem(i, null);
+                setItem(i, null);
             } else {
-                this.setItem(i, items[i]);
+                setItem(i, items[i]);
             }
         }
     }
 
     @Override
     public void setItem(int index, ItemStack item) {
-        this.getInventory().setItem(index, CraftItemStack.asNMSCopy(item));
+        getInventory().setItem(index, CraftItemStack.asNMSCopy(item));
     }
 
     @Override
     public boolean contains(Material material) {
         Preconditions.checkArgument(material != null, "Material cannot be null");
         material = CraftLegacy.fromLegacy(material);
-        for (ItemStack item : this.getStorageContents()) {
+        for (ItemStack item : getStorageContents()) {
             if (item != null && item.getType() == material) {
                 return true;
             }
@@ -117,7 +118,7 @@ public class CraftInventory implements Inventory {
         if (item == null) {
             return false;
         }
-        for (ItemStack i : this.getStorageContents()) {
+        for (ItemStack i : getStorageContents()) {
             if (item.equals(i)) {
                 return true;
             }
@@ -132,7 +133,7 @@ public class CraftInventory implements Inventory {
         if (amount <= 0) {
             return true;
         }
-        for (ItemStack item : this.getStorageContents()) {
+        for (ItemStack item : getStorageContents()) {
             if (item != null && item.getType() == material) {
                 if ((amount -= item.getAmount()) <= 0) {
                     return true;
@@ -150,7 +151,7 @@ public class CraftInventory implements Inventory {
         if (amount <= 0) {
             return true;
         }
-        for (ItemStack i : this.getStorageContents()) {
+        for (ItemStack i : getStorageContents()) {
             if (item.equals(i) && --amount <= 0) {
                 return true;
             }
@@ -166,7 +167,7 @@ public class CraftInventory implements Inventory {
         if (amount <= 0) {
             return true;
         }
-        for (ItemStack i : this.getStorageContents()) {
+        for (ItemStack i : getStorageContents()) {
             if (item.isSimilar(i) && (amount -= i.getAmount()) <= 0) {
                 return true;
             }
@@ -180,7 +181,7 @@ public class CraftInventory implements Inventory {
         material = CraftLegacy.fromLegacy(material);
         HashMap<Integer, ItemStack> slots = new HashMap<>();
 
-        ItemStack[] inventory = this.getStorageContents();
+        ItemStack[] inventory = getStorageContents();
         for (int i = 0; i < inventory.length; i++) {
             ItemStack item = inventory[i];
             if (item != null && item.getType() == material) {
@@ -194,7 +195,7 @@ public class CraftInventory implements Inventory {
     public HashMap<Integer, ItemStack> all(ItemStack item) {
         HashMap<Integer, ItemStack> slots = new HashMap<>();
         if (item != null) {
-            ItemStack[] inventory = this.getStorageContents();
+            ItemStack[] inventory = getStorageContents();
             for (int i = 0; i < inventory.length; i++) {
                 if (item.equals(inventory[i])) {
                     slots.put(i, inventory[i]);
@@ -208,7 +209,7 @@ public class CraftInventory implements Inventory {
     public int first(Material material) {
         Preconditions.checkArgument(material != null, "Material cannot be null");
         material = CraftLegacy.fromLegacy(material);
-        ItemStack[] inventory = this.getStorageContents();
+        ItemStack[] inventory = getStorageContents();
         for (int i = 0; i < inventory.length; i++) {
             ItemStack item = inventory[i];
             if (item != null && item.getType() == material) {
@@ -220,14 +221,14 @@ public class CraftInventory implements Inventory {
 
     @Override
     public int first(ItemStack item) {
-        return this.first(item, true);
+        return first(item, true);
     }
 
     private int first(ItemStack item, boolean withAmount) {
         if (item == null) {
             return -1;
         }
-        ItemStack[] inventory = this.getStorageContents();
+        ItemStack[] inventory = getStorageContents();
         for (int i = 0; i < inventory.length; i++) {
             if (inventory[i] == null) continue;
 
@@ -240,7 +241,7 @@ public class CraftInventory implements Inventory {
 
     @Override
     public int firstEmpty() {
-        ItemStack[] inventory = this.getStorageContents();
+        ItemStack[] inventory = getStorageContents();
         for (int i = 0; i < inventory.length; i++) {
             if (inventory[i] == null) {
                 return i;
@@ -251,13 +252,13 @@ public class CraftInventory implements Inventory {
 
     @Override
     public boolean isEmpty() {
-        return this.inventory.isEmpty();
+        return inventory.isEmpty();
     }
 
     public int firstPartial(Material material) {
         Preconditions.checkArgument(material != null, "Material cannot be null");
         material = CraftLegacy.fromLegacy(material);
-        ItemStack[] inventory = this.getStorageContents();
+        ItemStack[] inventory = getStorageContents();
         for (int i = 0; i < inventory.length; i++) {
             ItemStack item = inventory[i];
             if (item != null && item.getType() == material && item.getAmount() < item.getMaxStackSize()) {
@@ -268,7 +269,7 @@ public class CraftInventory implements Inventory {
     }
 
     private int firstPartial(ItemStack item) {
-        ItemStack[] inventory = this.getStorageContents();
+        ItemStack[] inventory = getStorageContents();
         ItemStack filteredItem = CraftItemStack.asCraftCopy(item);
         if (item == null) {
             return -1;
@@ -298,12 +299,12 @@ public class CraftInventory implements Inventory {
             Preconditions.checkArgument(item != null, "ItemStack cannot be null");
             while (true) {
                 // Do we already have a stack of it?
-                int firstPartial = this.firstPartial(item);
+                int firstPartial = firstPartial(item);
 
                 // Drat! no partial stack
                 if (firstPartial == -1) {
                     // Find a free spot!
-                    int firstFree = this.firstEmpty();
+                    int firstFree = firstEmpty();
 
                     if (firstFree == -1) {
                         // No space at all!
@@ -311,20 +312,20 @@ public class CraftInventory implements Inventory {
                         break;
                     } else {
                         // More than a single stack!
-                        if (item.getAmount() > this.getMaxItemStack()) {
+                        if (item.getAmount() > getMaxItemStack()) {
                             CraftItemStack stack = CraftItemStack.asCraftCopy(item);
-                            stack.setAmount(this.getMaxItemStack());
-                            this.setItem(firstFree, stack);
-                            item.setAmount(item.getAmount() - this.getMaxItemStack());
+                            stack.setAmount(getMaxItemStack());
+                            setItem(firstFree, stack);
+                            item.setAmount(item.getAmount() - getMaxItemStack());
                         } else {
                             // Just store it
-                            this.setItem(firstFree, item);
+                            setItem(firstFree, item);
                             break;
                         }
                     }
                 } else {
                     // So, apparently it might only partially fit, well lets do just that
-                    ItemStack partialItem = this.getItem(firstPartial);
+                    ItemStack partialItem = getItem(firstPartial);
 
                     int amount = item.getAmount();
                     int partialAmount = partialItem.getAmount();
@@ -334,14 +335,14 @@ public class CraftInventory implements Inventory {
                     if (amount + partialAmount <= maxAmount) {
                         partialItem.setAmount(amount + partialAmount);
                         // To make sure the packet is sent to the client
-                        this.setItem(firstPartial, partialItem);
+                        setItem(firstPartial, partialItem);
                         break;
                     }
 
                     // It fits partially
                     partialItem.setAmount(maxAmount);
                     // To make sure the packet is sent to the client
-                    this.setItem(firstPartial, partialItem);
+                    setItem(firstPartial, partialItem);
                     item.setAmount(amount + partialAmount - maxAmount);
                 }
             }
@@ -362,7 +363,7 @@ public class CraftInventory implements Inventory {
             int toDelete = item.getAmount();
 
             while (true) {
-                int first = this.first(item, false);
+                int first = first(item, false);
 
                 // Drat! we don't have this type in the inventory
                 if (first == -1) {
@@ -370,17 +371,17 @@ public class CraftInventory implements Inventory {
                     leftover.put(i, item);
                     break;
                 } else {
-                    ItemStack itemStack = this.getItem(first);
+                    ItemStack itemStack = getItem(first);
                     int amount = itemStack.getAmount();
 
                     if (amount <= toDelete) {
                         toDelete -= amount;
                         // clear the slot, all used up
-                        this.clear(first);
+                        clear(first);
                     } else {
                         // split the stack and store
                         itemStack.setAmount(amount - toDelete);
-                        this.setItem(first, itemStack);
+                        setItem(first, itemStack);
                         toDelete = 0;
                     }
                 }
@@ -395,40 +396,40 @@ public class CraftInventory implements Inventory {
     }
 
     private int getMaxItemStack() {
-        return this.getInventory().getMaxStackSize();
+        return getInventory().getMaxStackSize();
     }
 
     @Override
     public void remove(Material material) {
         Preconditions.checkArgument(material != null, "Material cannot be null");
         material = CraftLegacy.fromLegacy(material);
-        ItemStack[] items = this.getStorageContents();
+        ItemStack[] items = getStorageContents();
         for (int i = 0; i < items.length; i++) {
             if (items[i] != null && items[i].getType() == material) {
-                this.clear(i);
+                clear(i);
             }
         }
     }
 
     @Override
     public void remove(ItemStack item) {
-        ItemStack[] items = this.getStorageContents();
+        ItemStack[] items = getStorageContents();
         for (int i = 0; i < items.length; i++) {
             if (items[i] != null && items[i].equals(item)) {
-                this.clear(i);
+                clear(i);
             }
         }
     }
 
     @Override
     public void clear(int index) {
-        this.setItem(index, null);
+        setItem(index, null);
     }
 
     @Override
     public void clear() {
-        for (int i = 0; i < this.getSize(); i++) {
-            this.clear(i);
+        for (int i = 0; i < getSize(); i++) {
+            clear(i);
         }
     }
 
@@ -440,7 +441,7 @@ public class CraftInventory implements Inventory {
     @Override
     public ListIterator<ItemStack> iterator(int index) {
         if (index < 0) {
-            index += this.getSize() + 1; // ie, with -1, previous() will return the last element
+            index += getSize() + 1; // ie, with -1, previous() will return the last element
         }
         return new InventoryIterator(this, index);
     }
@@ -453,33 +454,33 @@ public class CraftInventory implements Inventory {
     @Override
     public InventoryType getType() {
         // Thanks to Droppers extending Dispensers, Blast Furnaces & Smokers extending Furnace, order is important.
-        if (this.inventory instanceof CraftingContainer) {
-            if (this.inventory instanceof CrafterBlockEntity) {
+        if (inventory instanceof InventoryCrafting) {
+            if (inventory instanceof CrafterBlockEntity) {
                 return InventoryType.CRAFTER;
             } else {
-                return this.inventory.getContainerSize() >= 9 ? InventoryType.WORKBENCH : InventoryType.CRAFTING;
+                return inventory.getContainerSize() >= 9 ? InventoryType.WORKBENCH : InventoryType.CRAFTING;
             }
-        } else if (this.inventory instanceof net.minecraft.world.entity.player.Inventory) {
+        } else if (inventory instanceof PlayerInventory) {
             return InventoryType.PLAYER;
-        } else if (this.inventory instanceof DropperBlockEntity) {
+        } else if (inventory instanceof TileEntityDropper) {
             return InventoryType.DROPPER;
-        } else if (this.inventory instanceof DispenserBlockEntity) {
+        } else if (inventory instanceof TileEntityDispenser) {
             return InventoryType.DISPENSER;
-        } else if (this.inventory instanceof BlastFurnaceBlockEntity) {
+        } else if (inventory instanceof TileEntityBlastFurnace) {
             return InventoryType.BLAST_FURNACE;
-        } else if (this.inventory instanceof SmokerBlockEntity) {
+        } else if (inventory instanceof TileEntitySmoker) {
             return InventoryType.SMOKER;
-        } else if (this.inventory instanceof AbstractFurnaceBlockEntity) {
+        } else if (inventory instanceof TileEntityFurnace) {
             return InventoryType.FURNACE;
         } else if (this instanceof CraftInventoryEnchanting) {
             return InventoryType.ENCHANTING;
-        } else if (this.inventory instanceof BrewingStandBlockEntity) {
+        } else if (inventory instanceof TileEntityBrewingStand) {
             return InventoryType.BREWING;
-        } else if (this.inventory instanceof CraftInventoryCustom.MinecraftInventory) {
-            return ((CraftInventoryCustom.MinecraftInventory) this.inventory).getType();
-        } else if (this.inventory instanceof PlayerEnderChestContainer) {
+        } else if (inventory instanceof CraftInventoryCustom.MinecraftInventory) {
+            return ((CraftInventoryCustom.MinecraftInventory) inventory).getType();
+        } else if (inventory instanceof InventoryEnderChest) {
             return InventoryType.ENDER_CHEST;
-        } else if (this.inventory instanceof MerchantContainer) {
+        } else if (inventory instanceof InventoryMerchant) {
             return InventoryType.MERCHANT;
         } else if (this instanceof CraftInventoryBeacon) {
             return InventoryType.BEACON;
@@ -487,15 +488,15 @@ public class CraftInventory implements Inventory {
             return InventoryType.ANVIL;
         } else if (this instanceof CraftInventorySmithing) {
             return InventoryType.SMITHING;
-        } else if (this.inventory instanceof Hopper) {
+        } else if (inventory instanceof IHopper) {
             return InventoryType.HOPPER;
-        } else if (this.inventory instanceof ShulkerBoxBlockEntity) {
+        } else if (inventory instanceof TileEntityShulkerBox) {
             return InventoryType.SHULKER_BOX;
-        } else if (this.inventory instanceof BarrelBlockEntity) {
+        } else if (inventory instanceof TileEntityBarrel) {
             return InventoryType.BARREL;
-        } else if (this.inventory instanceof LecternBlockEntity.LecternInventory) {
+        } else if (inventory instanceof TileEntityLectern.LecternInventory) {
             return InventoryType.LECTERN;
-        } else if (this.inventory instanceof ChiseledBookShelfBlockEntity) {
+        } else if (inventory instanceof ChiseledBookShelfBlockEntity) {
             return InventoryType.CHISELED_BOOKSHELF;
         } else if (this instanceof CraftInventoryLoom) {
             return InventoryType.LOOM;
@@ -505,9 +506,9 @@ public class CraftInventory implements Inventory {
             return InventoryType.GRINDSTONE;
         } else if (this instanceof CraftInventoryStonecutter) {
             return InventoryType.STONECUTTER;
-        } else if (this.inventory instanceof ComposterBlock.EmptyContainer || this.inventory instanceof ComposterBlock.InputContainer || this.inventory instanceof ComposterBlock.OutputContainer) {
+        } else if (inventory instanceof BlockComposter.ContainerEmpty || inventory instanceof BlockComposter.ContainerInput || inventory instanceof BlockComposter.ContainerOutput) {
             return InventoryType.COMPOSTER;
-        } else if (this.inventory instanceof JukeboxBlockEntity) {
+        } else if (inventory instanceof TileEntityJukeBox) {
             return InventoryType.JUKEBOX;
         } else {
             return InventoryType.CHEST;
@@ -516,22 +517,22 @@ public class CraftInventory implements Inventory {
 
     @Override
     public InventoryHolder getHolder() {
-        return this.inventory.getOwner();
+        return inventory.getOwner();
     }
 
     @Override
     public int getMaxStackSize() {
-        return this.inventory.getMaxStackSize();
+        return inventory.getMaxStackSize();
     }
 
     @Override
     public void setMaxStackSize(int size) {
-        this.inventory.setMaxStackSize(size);
+        inventory.setMaxStackSize(size);
     }
 
     @Override
     public int hashCode() {
-        return this.inventory.hashCode();
+        return inventory.hashCode();
     }
 
     @Override
@@ -541,6 +542,6 @@ public class CraftInventory implements Inventory {
 
     @Override
     public Location getLocation() {
-        return this.inventory.getLocation();
+        return inventory.getLocation();
     }
 }

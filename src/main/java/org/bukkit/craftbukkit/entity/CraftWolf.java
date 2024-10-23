@@ -2,8 +2,11 @@ package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
 import net.minecraft.core.Holder;
+import net.minecraft.core.IRegistry;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.entity.animal.EntityWolf;
 import net.minecraft.world.entity.animal.WolfVariant;
+import net.minecraft.world.item.EnumColor;
 import org.bukkit.DyeColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -13,69 +16,69 @@ import org.bukkit.craftbukkit.util.Handleable;
 import org.bukkit.entity.Wolf;
 
 public class CraftWolf extends CraftTameableAnimal implements Wolf {
-    public CraftWolf(CraftServer server, net.minecraft.world.entity.animal.Wolf wolf) {
+    public CraftWolf(CraftServer server, EntityWolf wolf) {
         super(server, wolf);
     }
 
     @Override
     public boolean isAngry() {
-        return this.getHandle().isAngry();
+        return getHandle().isAngry();
     }
 
     @Override
     public void setAngry(boolean angry) {
         if (angry) {
-            this.getHandle().startPersistentAngerTimer();
+            getHandle().startPersistentAngerTimer();
         } else {
-            this.getHandle().stopBeingAngry();
+            getHandle().stopBeingAngry();
         }
     }
 
     @Override
-    public net.minecraft.world.entity.animal.Wolf getHandle() {
-        return (net.minecraft.world.entity.animal.Wolf) this.entity;
+    public EntityWolf getHandle() {
+        return (EntityWolf) entity;
     }
 
     @Override
     public DyeColor getCollarColor() {
-        return DyeColor.getByWoolData((byte) this.getHandle().getCollarColor().getId());
+        return DyeColor.getByWoolData((byte) getHandle().getCollarColor().getId());
     }
 
     @Override
     public void setCollarColor(DyeColor color) {
-        this.getHandle().setCollarColor(net.minecraft.world.item.DyeColor.byId(color.getWoolData()));
+        getHandle().setCollarColor(EnumColor.byId(color.getWoolData()));
     }
 
     @Override
     public boolean isWet() {
-        return this.getHandle().isWet();
+        return getHandle().isWet;
     }
 
     @Override
     public float getTailAngle() {
-        return this.getHandle().getTailAngle();
+        return getHandle().getTailAngle();
     }
 
     @Override
     public boolean isInterested() {
-        return this.getHandle().isInterested();
+        return getHandle().isInterested();
     }
 
     @Override
     public void setInterested(boolean flag) {
-        this.getHandle().setIsInterested(flag);
+        getHandle().setIsInterested(flag);
     }
 
     @Override
     public Variant getVariant() {
-        return CraftVariant.minecraftHolderToBukkit(this.getHandle().getVariant());
+        return CraftVariant.minecraftHolderToBukkit(getHandle().getVariant());
     }
 
     @Override
     public void setVariant(Variant variant) {
         Preconditions.checkArgument(variant != null, "variant");
 
-        this.getHandle().setVariant(CraftVariant.bukkitToMinecraftHolder(variant));
+        getHandle().setVariant(CraftVariant.bukkitToMinecraftHolder(variant));
     }
 
     public static class CraftVariant implements Variant, Handleable<WolfVariant> {
@@ -85,7 +88,7 @@ public class CraftWolf extends CraftTameableAnimal implements Wolf {
         }
 
         public static Variant minecraftHolderToBukkit(Holder<WolfVariant> minecraft) {
-            return CraftVariant.minecraftToBukkit(minecraft.value());
+            return minecraftToBukkit(minecraft.value());
         }
 
         public static WolfVariant bukkitToMinecraft(Variant bukkit) {
@@ -95,9 +98,9 @@ public class CraftWolf extends CraftTameableAnimal implements Wolf {
         public static Holder<WolfVariant> bukkitToMinecraftHolder(Variant bukkit) {
             Preconditions.checkArgument(bukkit != null);
 
-            net.minecraft.core.Registry<WolfVariant> registry = CraftRegistry.getMinecraftRegistry(Registries.WOLF_VARIANT);
+            IRegistry<WolfVariant> registry = CraftRegistry.getMinecraftRegistry(Registries.WOLF_VARIANT);
 
-            if (registry.wrapAsHolder(CraftVariant.bukkitToMinecraft(bukkit)) instanceof Holder.Reference<WolfVariant> holder) {
+            if (registry.wrapAsHolder(bukkitToMinecraft(bukkit)) instanceof Holder.c<WolfVariant> holder) {
                 return holder;
             }
 
@@ -115,17 +118,17 @@ public class CraftWolf extends CraftTameableAnimal implements Wolf {
 
         @Override
         public WolfVariant getHandle() {
-            return this.variant;
+            return variant;
         }
 
         @Override
         public NamespacedKey getKey() {
-            return this.key;
+            return key;
         }
 
         @Override
         public String toString() {
-            return this.key.toString();
+            return key.toString();
         }
 
         @Override
@@ -138,12 +141,12 @@ public class CraftWolf extends CraftTameableAnimal implements Wolf {
                 return false;
             }
 
-            return this.getKey().equals(otherVariant.getKey());
+            return getKey().equals(otherVariant.getKey());
         }
 
         @Override
         public int hashCode() {
-            return this.getKey().hashCode();
+            return getKey().hashCode();
         }
     }
 }

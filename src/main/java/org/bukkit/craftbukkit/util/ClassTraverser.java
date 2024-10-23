@@ -18,28 +18,28 @@ public class ClassTraverser implements Iterator<Class<?>> {
 
     @Override
     public boolean hasNext() {
-        return this.next != null;
+        return next != null;
     }
 
     @Override
     public Class<?> next() {
-        Class<?> clazz = this.next;
+        Class<?> clazz = next;
 
-        this.visit.add(this.next);
+        visit.add(next);
 
         Set<Class<?>> classes = Sets.newHashSet(clazz.getInterfaces());
         classes.add(clazz.getSuperclass());
         classes.remove(null); // Super class can be null, remove it if this is the case
-        classes.removeAll(this.visit);
-        this.toVisit.addAll(classes);
+        classes.removeAll(visit);
+        toVisit.addAll(classes);
 
-        if (this.toVisit.isEmpty()) {
-            this.next = null;
+        if (toVisit.isEmpty()) {
+            next = null;
             return clazz;
         }
 
-        this.next = this.toVisit.iterator().next();
-        this.toVisit.remove(this.next);
+        next = toVisit.iterator().next();
+        toVisit.remove(next);
 
         return clazz;
     }

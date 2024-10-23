@@ -1,130 +1,140 @@
 package org.bukkit.craftbukkit.entity;
 
-import com.google.common.base.Preconditions;
 import java.util.stream.Collectors;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.vehicle.AbstractBoat;
+import net.minecraft.world.entity.vehicle.EntityBoat;
 import org.bukkit.TreeSpecies;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
 
-public class CraftBoat extends CraftVehicle implements Boat {
+public abstract class CraftBoat extends CraftVehicle implements Boat {
 
-    public CraftBoat(CraftServer server, net.minecraft.world.entity.vehicle.Boat entity) {
+    public CraftBoat(CraftServer server, AbstractBoat entity) {
         super(server, entity);
     }
 
     @Override
     public TreeSpecies getWoodType() {
-        return CraftBoat.getTreeSpecies(this.getHandle().getVariant());
+        return getTreeSpecies(getHandle().getType());
     }
 
     @Override
     public void setWoodType(TreeSpecies species) {
-        this.getHandle().setVariant(CraftBoat.getBoatType(species));
+        throw new UnsupportedOperationException("Not supported - you must spawn a new entity to change boat type.");
     }
 
     @Override
     public Type getBoatType() {
-        return CraftBoat.boatTypeFromNms(this.getHandle().getVariant());
+        return boatTypeFromNms(getHandle().getType());
     }
 
     @Override
     public void setBoatType(Type type) {
-        Preconditions.checkArgument(type != null, "Boat.Type cannot be null");
-
-        this.getHandle().setVariant(CraftBoat.boatTypeToNms(type));
+        throw new UnsupportedOperationException("Not supported - you must spawn a new entity to change boat type.");
     }
 
     @Override
     public double getMaxSpeed() {
-        return this.getHandle().maxSpeed;
+        return getHandle().maxSpeed;
     }
 
     @Override
     public void setMaxSpeed(double speed) {
         if (speed >= 0D) {
-            this.getHandle().maxSpeed = speed;
+            getHandle().maxSpeed = speed;
         }
     }
 
     @Override
     public double getOccupiedDeceleration() {
-        return this.getHandle().occupiedDeceleration;
+        return getHandle().occupiedDeceleration;
     }
 
     @Override
     public void setOccupiedDeceleration(double speed) {
         if (speed >= 0D) {
-            this.getHandle().occupiedDeceleration = speed;
+            getHandle().occupiedDeceleration = speed;
         }
     }
 
     @Override
     public double getUnoccupiedDeceleration() {
-        return this.getHandle().unoccupiedDeceleration;
+        return getHandle().unoccupiedDeceleration;
     }
 
     @Override
     public void setUnoccupiedDeceleration(double speed) {
-        this.getHandle().unoccupiedDeceleration = speed;
+        getHandle().unoccupiedDeceleration = speed;
     }
 
     @Override
     public boolean getWorkOnLand() {
-        return this.getHandle().landBoats;
+        return getHandle().landBoats;
     }
 
     @Override
     public void setWorkOnLand(boolean workOnLand) {
-        this.getHandle().landBoats = workOnLand;
+        getHandle().landBoats = workOnLand;
     }
 
     @Override
     public Status getStatus() {
-        return CraftBoat.boatStatusFromNms(this.getHandle().status);
+        return boatStatusFromNms(getHandle().status);
     }
 
     @Override
-    public net.minecraft.world.entity.vehicle.Boat getHandle() {
-        return (net.minecraft.world.entity.vehicle.Boat) this.entity;
+    public AbstractBoat getHandle() {
+        return (AbstractBoat) entity;
     }
 
     @Override
     public String toString() {
-        return "CraftBoat{boatType=" + this.getBoatType() + ",status=" + this.getStatus() + ",passengers=" + this.getPassengers().stream().map(Entity::toString).collect(Collectors.joining("-", "{", "}")) + "}";
+        return "CraftBoat{boatType=" + getBoatType() + ",status=" + getStatus() + ",passengers=" + getPassengers().stream().map(Entity::toString).collect(Collectors.joining("-", "{", "}")) + "}";
     }
 
-    public static Boat.Type boatTypeFromNms(net.minecraft.world.entity.vehicle.Boat.Type boatType) {
-        return switch (boatType) {
-            default -> throw new EnumConstantNotPresentException(Type.class, boatType.name());
-            case OAK -> Type.OAK;
-            case BIRCH -> Type.BIRCH;
-            case ACACIA -> Type.ACACIA;
-            case CHERRY -> Type.CHERRY;
-            case JUNGLE -> Type.JUNGLE;
-            case SPRUCE -> Type.SPRUCE;
-            case DARK_OAK -> Type.DARK_OAK;
-            case MANGROVE -> Type.MANGROVE;
-            case BAMBOO -> Type.BAMBOO;
-        };
+    public static Boat.Type boatTypeFromNms(EntityTypes<?> boatType) {
+        if (boatType == EntityTypes.OAK_BOAT || boatType == EntityTypes.OAK_CHEST_BOAT) {
+            return Type.OAK;
+        }
+
+        if (boatType == EntityTypes.BIRCH_BOAT || boatType == EntityTypes.BIRCH_CHEST_BOAT) {
+            return Type.BIRCH;
+        }
+
+        if (boatType == EntityTypes.ACACIA_BOAT || boatType == EntityTypes.ACACIA_CHEST_BOAT) {
+            return Type.ACACIA;
+        }
+
+        if (boatType == EntityTypes.CHERRY_BOAT || boatType == EntityTypes.CHERRY_CHEST_BOAT) {
+            return Type.CHERRY;
+        }
+
+        if (boatType == EntityTypes.JUNGLE_BOAT || boatType == EntityTypes.JUNGLE_CHEST_BOAT) {
+            return Type.JUNGLE;
+        }
+
+        if (boatType == EntityTypes.SPRUCE_BOAT || boatType == EntityTypes.SPRUCE_CHEST_BOAT) {
+            return Type.SPRUCE;
+        }
+
+        if (boatType == EntityTypes.DARK_OAK_BOAT || boatType == EntityTypes.DARK_OAK_CHEST_BOAT) {
+            return Type.DARK_OAK;
+        }
+
+        if (boatType == EntityTypes.MANGROVE_BOAT || boatType == EntityTypes.MANGROVE_CHEST_BOAT) {
+            return Type.MANGROVE;
+        }
+
+        if (boatType == EntityTypes.BAMBOO_RAFT || boatType == EntityTypes.BAMBOO_CHEST_RAFT) {
+            return Type.BAMBOO;
+        }
+
+        throw new EnumConstantNotPresentException(Type.class, boatType.toString());
     }
 
-    public static net.minecraft.world.entity.vehicle.Boat.Type boatTypeToNms(Boat.Type type) {
-        return switch (type) {
-            default -> throw new EnumConstantNotPresentException(net.minecraft.world.entity.vehicle.Boat.Type.class, type.name());
-            case BAMBOO -> net.minecraft.world.entity.vehicle.Boat.Type.BAMBOO;
-            case MANGROVE -> net.minecraft.world.entity.vehicle.Boat.Type.MANGROVE;
-            case SPRUCE -> net.minecraft.world.entity.vehicle.Boat.Type.SPRUCE;
-            case DARK_OAK -> net.minecraft.world.entity.vehicle.Boat.Type.DARK_OAK;
-            case JUNGLE -> net.minecraft.world.entity.vehicle.Boat.Type.JUNGLE;
-            case CHERRY -> net.minecraft.world.entity.vehicle.Boat.Type.CHERRY;
-            case ACACIA -> net.minecraft.world.entity.vehicle.Boat.Type.ACACIA;
-            case BIRCH -> net.minecraft.world.entity.vehicle.Boat.Type.BIRCH;
-            case OAK -> net.minecraft.world.entity.vehicle.Boat.Type.OAK;
-        };
-    }
-
-    public static Status boatStatusFromNms(net.minecraft.world.entity.vehicle.Boat.Status enumStatus) {
+    public static Status boatStatusFromNms(EntityBoat.EnumStatus enumStatus) {
         return switch (enumStatus) {
             default -> throw new EnumConstantNotPresentException(Status.class, enumStatus.name());
             case IN_AIR -> Status.IN_AIR;
@@ -136,40 +146,27 @@ public class CraftBoat extends CraftVehicle implements Boat {
     }
 
     @Deprecated
-    public static TreeSpecies getTreeSpecies(net.minecraft.world.entity.vehicle.Boat.Type boatType) {
-        switch (boatType) {
-            case SPRUCE:
-                return TreeSpecies.REDWOOD;
-            case BIRCH:
-                return TreeSpecies.BIRCH;
-            case JUNGLE:
-                return TreeSpecies.JUNGLE;
-            case ACACIA:
-                return TreeSpecies.ACACIA;
-            case DARK_OAK:
-                return TreeSpecies.DARK_OAK;
-            case OAK:
-            default:
-                return TreeSpecies.GENERIC;
+    public static TreeSpecies getTreeSpecies(EntityTypes<?> boatType) {
+        if (boatType == EntityTypes.SPRUCE_BOAT || boatType == EntityTypes.SPRUCE_CHEST_BOAT) {
+            return TreeSpecies.REDWOOD;
         }
-    }
 
-    @Deprecated
-    public static net.minecraft.world.entity.vehicle.Boat.Type getBoatType(TreeSpecies species) {
-        switch (species) {
-            case REDWOOD:
-                return net.minecraft.world.entity.vehicle.Boat.Type.SPRUCE;
-            case BIRCH:
-                return net.minecraft.world.entity.vehicle.Boat.Type.BIRCH;
-            case JUNGLE:
-                return net.minecraft.world.entity.vehicle.Boat.Type.JUNGLE;
-            case ACACIA:
-                return net.minecraft.world.entity.vehicle.Boat.Type.ACACIA;
-            case DARK_OAK:
-                return net.minecraft.world.entity.vehicle.Boat.Type.DARK_OAK;
-            case GENERIC:
-            default:
-                return net.minecraft.world.entity.vehicle.Boat.Type.OAK;
+        if (boatType == EntityTypes.BIRCH_BOAT || boatType == EntityTypes.BIRCH_CHEST_BOAT) {
+            return TreeSpecies.BIRCH;
         }
+
+        if (boatType == EntityTypes.JUNGLE_BOAT || boatType == EntityTypes.JUNGLE_CHEST_BOAT) {
+            return TreeSpecies.JUNGLE;
+        }
+
+        if (boatType == EntityTypes.ACACIA_BOAT || boatType == EntityTypes.ACACIA_CHEST_BOAT) {
+            return TreeSpecies.ACACIA;
+        }
+
+        if (boatType == EntityTypes.DARK_OAK_BOAT || boatType == EntityTypes.DARK_OAK_CHEST_BOAT) {
+            return TreeSpecies.DARK_OAK;
+        }
+
+        return TreeSpecies.GENERIC;
     }
 }

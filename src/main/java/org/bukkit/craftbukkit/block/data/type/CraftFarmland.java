@@ -5,20 +5,20 @@ import org.bukkit.craftbukkit.block.data.CraftBlockData;
 
 public abstract class CraftFarmland extends CraftBlockData implements Farmland {
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty MOISTURE = getInteger("moisture");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger MOISTURE = getInteger("moisture");
 
     @Override
     public int getMoisture() {
-        return this.get(CraftFarmland.MOISTURE);
+        return get(MOISTURE);
     }
 
     @Override
     public void setMoisture(int moisture) {
-        this.set(CraftFarmland.MOISTURE, moisture);
+        set(MOISTURE, moisture);
     }
 
     @Override
     public int getMaximumMoisture() {
-        return getMax(CraftFarmland.MOISTURE);
+        return getMax(MOISTURE);
     }
 }

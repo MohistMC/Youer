@@ -2,7 +2,7 @@ package org.bukkit.craftbukkit.command;
 
 import java.util.Set;
 import java.util.UUID;
-import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.CommandListenerWrapper;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ProxiedCommandSender;
@@ -13,130 +13,123 @@ import org.bukkit.plugin.Plugin;
 
 public class ProxiedNativeCommandSender implements ProxiedCommandSender {
 
-    private final CommandSourceStack orig;
+    private final CommandListenerWrapper orig;
     private final CommandSender caller;
     private final CommandSender callee;
 
-    public ProxiedNativeCommandSender(CommandSourceStack orig, CommandSender caller, CommandSender callee) {
+    public ProxiedNativeCommandSender(CommandListenerWrapper orig, CommandSender caller, CommandSender callee) {
         this.orig = orig;
         this.caller = caller;
         this.callee = callee;
     }
 
-    public CommandSourceStack getHandle() {
-        return this.orig;
+    public CommandListenerWrapper getHandle() {
+        return orig;
     }
 
     @Override
     public CommandSender getCaller() {
-        return this.caller;
+        return caller;
     }
 
     @Override
     public CommandSender getCallee() {
-        return this.callee;
+        return callee;
     }
 
     @Override
     public void sendMessage(String message) {
-        this.getCaller().sendMessage(message);
+        getCaller().sendMessage(message);
     }
 
     @Override
     public void sendMessage(String... messages) {
-        this.getCaller().sendMessage(messages);
+        getCaller().sendMessage(messages);
     }
 
     @Override
     public void sendMessage(UUID sender, String message) {
-        this.getCaller().sendMessage(sender, message);
+        getCaller().sendMessage(sender, message);
     }
 
     @Override
     public void sendMessage(UUID sender, String... messages) {
-        this.getCaller().sendMessage(sender, messages);
+        getCaller().sendMessage(sender, messages);
     }
 
     @Override
     public Server getServer() {
-        return this.getCallee().getServer();
+        return getCallee().getServer();
     }
 
     @Override
     public String getName() {
-        return this.getCallee().getName();
+        return getCallee().getName();
     }
 
     @Override
     public boolean isPermissionSet(String name) {
-        return this.getCaller().isPermissionSet(name);
+        return getCaller().isPermissionSet(name);
     }
 
     @Override
     public boolean isPermissionSet(Permission perm) {
-        return this.getCaller().isPermissionSet(perm);
+        return getCaller().isPermissionSet(perm);
     }
 
     @Override
     public boolean hasPermission(String name) {
-        return this.getCaller().hasPermission(name);
+        return getCaller().hasPermission(name);
     }
 
     @Override
     public boolean hasPermission(Permission perm) {
-        return this.getCaller().hasPermission(perm);
+        return getCaller().hasPermission(perm);
     }
 
     @Override
     public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value) {
-        return this.getCaller().addAttachment(plugin, name, value);
+        return getCaller().addAttachment(plugin, name, value);
     }
 
     @Override
     public PermissionAttachment addAttachment(Plugin plugin) {
-        return this.getCaller().addAttachment(plugin);
+        return getCaller().addAttachment(plugin);
     }
 
     @Override
     public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value, int ticks) {
-        return this.getCaller().addAttachment(plugin, name, value, ticks);
+        return getCaller().addAttachment(plugin, name, value, ticks);
     }
 
     @Override
     public PermissionAttachment addAttachment(Plugin plugin, int ticks) {
-        return this.getCaller().addAttachment(plugin, ticks);
+        return getCaller().addAttachment(plugin, ticks);
     }
 
     @Override
     public void removeAttachment(PermissionAttachment attachment) {
-        this.getCaller().removeAttachment(attachment);
+        getCaller().removeAttachment(attachment);
     }
 
     @Override
     public void recalculatePermissions() {
-        this.getCaller().recalculatePermissions();
+        getCaller().recalculatePermissions();
     }
 
     @Override
     public Set<PermissionAttachmentInfo> getEffectivePermissions() {
-        return this.getCaller().getEffectivePermissions();
+        return getCaller().getEffectivePermissions();
     }
 
     @Override
     public boolean isOp() {
-        return this.getCaller().isOp();
+        return getCaller().isOp();
     }
 
     @Override
     public void setOp(boolean value) {
-        this.getCaller().setOp(value);
+        getCaller().setOp(value);
     }
 
-    // Spigot start
-    @Override
-    public org.bukkit.command.CommandSender.Spigot spigot()
-    {
-       return this.getCaller().spigot();
-    }
-    // Spigot end
 }

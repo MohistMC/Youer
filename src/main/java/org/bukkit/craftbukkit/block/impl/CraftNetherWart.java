@@ -9,26 +9,26 @@ public final class CraftNetherWart extends org.bukkit.craftbukkit.block.data.Cra
         super();
     }
 
-    public CraftNetherWart(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftNetherWart(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftAgeable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty AGE = getInteger(net.minecraft.world.level.block.NetherWartBlock.class, "age");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger AGE = getInteger(net.minecraft.world.level.block.BlockNetherWart.class, "age");
 
     @Override
     public int getAge() {
-        return this.get(CraftNetherWart.AGE);
+        return get(AGE);
     }
 
     @Override
     public void setAge(int age) {
-        this.set(CraftNetherWart.AGE, age);
+        set(AGE, age);
     }
 
     @Override
     public int getMaximumAge() {
-        return getMax(CraftNetherWart.AGE);
+        return getMax(AGE);
     }
 }

@@ -5,37 +5,37 @@ import org.bukkit.craftbukkit.block.data.CraftBlockData;
 
 public abstract class CraftCrafter extends CraftBlockData implements Crafter {
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty CRAFTING = getBoolean("crafting");
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty TRIGGERED = getBoolean("triggered");
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> ORIENTATION = getEnum("orientation");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean CRAFTING = getBoolean("crafting");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean TRIGGERED = getBoolean("triggered");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> ORIENTATION = getEnum("orientation");
 
     @Override
     public boolean isCrafting() {
-        return this.get(CraftCrafter.CRAFTING);
+        return get(CRAFTING);
     }
 
     @Override
     public void setCrafting(boolean crafting) {
-        this.set(CraftCrafter.CRAFTING, crafting);
+        set(CRAFTING, crafting);
     }
 
     @Override
     public boolean isTriggered() {
-        return this.get(CraftCrafter.TRIGGERED);
+        return get(TRIGGERED);
     }
 
     @Override
     public void setTriggered(boolean triggered) {
-        this.set(CraftCrafter.TRIGGERED, triggered);
+        set(TRIGGERED, triggered);
     }
 
     @Override
     public org.bukkit.block.data.type.Crafter.Orientation getOrientation() {
-        return this.get(CraftCrafter.ORIENTATION, org.bukkit.block.data.type.Crafter.Orientation.class);
+        return get(ORIENTATION, org.bukkit.block.data.type.Crafter.Orientation.class);
     }
 
     @Override
     public void setOrientation(org.bukkit.block.data.type.Crafter.Orientation orientation) {
-        this.set(CraftCrafter.ORIENTATION, orientation);
+        set(ORIENTATION, orientation);
     }
 }

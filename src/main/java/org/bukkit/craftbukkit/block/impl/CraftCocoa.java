@@ -9,45 +9,45 @@ public final class CraftCocoa extends org.bukkit.craftbukkit.block.data.CraftBlo
         super();
     }
 
-    public CraftCocoa(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftCocoa(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftAgeable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty AGE = getInteger(net.minecraft.world.level.block.CocoaBlock.class, "age");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger AGE = getInteger(net.minecraft.world.level.block.BlockCocoa.class, "age");
 
     @Override
     public int getAge() {
-        return this.get(CraftCocoa.AGE);
+        return get(AGE);
     }
 
     @Override
     public void setAge(int age) {
-        this.set(CraftCocoa.AGE, age);
+        set(AGE, age);
     }
 
     @Override
     public int getMaximumAge() {
-        return getMax(CraftCocoa.AGE);
+        return getMax(AGE);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftDirectional
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> FACING = getEnum(net.minecraft.world.level.block.CocoaBlock.class, "facing");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> FACING = getEnum(net.minecraft.world.level.block.BlockCocoa.class, "facing");
 
     @Override
     public org.bukkit.block.BlockFace getFacing() {
-        return this.get(CraftCocoa.FACING, org.bukkit.block.BlockFace.class);
+        return get(FACING, org.bukkit.block.BlockFace.class);
     }
 
     @Override
     public void setFacing(org.bukkit.block.BlockFace facing) {
-        this.set(CraftCocoa.FACING, facing);
+        set(FACING, facing);
     }
 
     @Override
     public java.util.Set<org.bukkit.block.BlockFace> getFaces() {
-        return this.getValues(CraftCocoa.FACING, org.bukkit.block.BlockFace.class);
+        return getValues(FACING, org.bukkit.block.BlockFace.class);
     }
 }

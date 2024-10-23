@@ -3,12 +3,12 @@
 @@ -43,23 +43,35 @@
      }
  
-     public Optional<BlockPosition> findClosestPortalPosition(BlockPosition blockposition, boolean flag, WorldBorder worldborder) {
+     public Optional<BlockPos> findClosestPortalPosition(BlockPos blockposition, boolean flag, WorldBorder worldborder) {
 +        // CraftBukkit start
 +        return findClosestPortalPosition(blockposition, worldborder, flag ? 16 : 128); // Search Radius
 +    }
 +
-+    public Optional<BlockPosition> findClosestPortalPosition(BlockPosition blockposition, WorldBorder worldborder, int i) {
++    public Optional<BlockPos> findClosestPortalPosition(BlockPos blockposition, WorldBorder worldborder, int i) {
          VillagePlace villageplace = this.level.getPoiManager();
 -        int i = flag ? 16 : 128;
 +        // int i = flag ? 16 : 128;
@@ -16,7 +16,7 @@
  
          villageplace.ensureLoadedAndValid(this.level, blockposition, i);
 -        Stream stream = villageplace.getInSquare((holder) -> {
-+        Stream<BlockPosition> stream = villageplace.getInSquare((holder) -> { // CraftBukkit - decompile error
++        Stream<BlockPos> stream = villageplace.getInSquare((holder) -> { // CraftBukkit - decompile error
              return holder.is(PoiTypes.NETHER_PORTAL);
          }, blockposition, i, VillagePlace.Occupancy.ANY).map(VillagePlaceRecord::getPos);
  
@@ -24,27 +24,27 @@
          return stream.filter(worldborder::isWithinBounds).filter((blockposition1) -> {
              return this.level.getBlockState(blockposition1).hasProperty(BlockProperties.HORIZONTAL_AXIS);
 -        }).min(Comparator.comparingDouble((blockposition1) -> {
-+        }).min(Comparator.comparingDouble((BlockPosition blockposition1) -> { // CraftBukkit - decompile error
++        }).min(Comparator.comparingDouble((BlockPos blockposition1) -> { // CraftBukkit - decompile error
              return blockposition1.distSqr(blockposition);
-         }).thenComparingInt(BaseBlockPosition::getY));
+         }).thenComparingInt(BaseBlockPos::getY));
      }
  
-     public Optional<BlockUtil.Rectangle> createPortal(BlockPosition blockposition, EnumDirection.EnumAxis enumdirection_enumaxis) {
+     public Optional<BlockUtil.Rectangle> createPortal(BlockPos blockposition, EnumDirection.EnumAxis enumdirection_enumaxis) {
 +        // CraftBukkit start
 +        return this.createPortal(blockposition, enumdirection_enumaxis, null, 16);
 +    }
 +
-+    public Optional<BlockUtil.Rectangle> createPortal(BlockPosition blockposition, EnumDirection.EnumAxis enumdirection_enumaxis, net.minecraft.world.entity.Entity entity, int createRadius) {
++    public Optional<BlockUtil.Rectangle> createPortal(BlockPos blockposition, EnumDirection.EnumAxis enumdirection_enumaxis, net.minecraft.world.entity.Entity entity, int createRadius) {
 +        // CraftBukkit end
          EnumDirection enumdirection = EnumDirection.get(EnumDirection.EnumAxisDirection.POSITIVE, enumdirection_enumaxis);
          double d0 = -1.0D;
-         BlockPosition blockposition1 = null;
+         BlockPos blockposition1 = null;
 @@ -69,7 +81,7 @@
          int i = Math.min(this.level.getMaxY(), this.level.getMinY() + this.level.getLogicalHeight() - 1);
          boolean flag = true;
-         BlockPosition.MutableBlockPosition blockposition_mutableblockposition = blockposition.mutable();
--        Iterator iterator = BlockPosition.spiralAround(blockposition, 16, EnumDirection.EAST, EnumDirection.SOUTH).iterator();
-+        Iterator iterator = BlockPosition.spiralAround(blockposition, createRadius, EnumDirection.EAST, EnumDirection.SOUTH).iterator(); // CraftBukkit
+         BlockPos.MutableBlockPos blockposition_mutableblockposition = blockposition.mutable();
+-        Iterator iterator = BlockPos.spiralAround(blockposition, 16, EnumDirection.EAST, EnumDirection.SOUTH).iterator();
++        Iterator iterator = BlockPos.spiralAround(blockposition, createRadius, EnumDirection.EAST, EnumDirection.SOUTH).iterator(); // CraftBukkit
  
          int j;
          int k;

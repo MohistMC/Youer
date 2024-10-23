@@ -4,11 +4,11 @@ import java.util.Collection;
 import java.util.Objects;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.ChunkCoordIntPair;
+import net.minecraft.world.level.GeneratorAccessSeed;
 import net.minecraft.world.level.StructureManager;
-import net.minecraft.world.level.WorldGenLevel;
-import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureBoundingBox;
 import org.bukkit.Bukkit;
 import org.bukkit.block.BlockState;
 import org.bukkit.craftbukkit.block.CraftBlockState;
@@ -38,23 +38,23 @@ public class CraftStructureTransformer {
 
         @Override
         public BlockState getOriginal() {
-            if (this.originalCopy != null) {
-                return this.originalCopy;
+            if (originalCopy != null) {
+                return originalCopy;
             }
-            return this.originalCopy = this.original.copy();
+            return originalCopy = original.copy();
         }
 
         @Override
         public BlockState getWorld() {
-            if (this.worldCopy != null) {
-                return this.worldCopy;
+            if (worldCopy != null) {
+                return worldCopy;
             }
-            return this.worldCopy = this.world.copy();
+            return worldCopy = world.copy();
         }
 
         private void destroyCopies() {
-            this.originalCopy = null;
-            this.worldCopy = null;
+            originalCopy = null;
+            worldCopy = null;
         }
 
     }
@@ -63,7 +63,7 @@ public class CraftStructureTransformer {
     private BlockTransformer[] blockTransformers;
     private EntityTransformer[] entityTransformers;
 
-    public CraftStructureTransformer(Cause cause, WorldGenLevel generatoraccessseed, StructureManager structuremanager, Structure structure, BoundingBox structureboundingbox, ChunkPos chunkcoordintpair) {
+    public CraftStructureTransformer(Cause cause, GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, Structure structure, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair) {
         AsyncStructureGenerateEvent event = new AsyncStructureGenerateEvent(structuremanager.level.getMinecraftWorld().getWorld(), !Bukkit.isPrimaryThread(), cause, CraftStructure.minecraftToBukkit(structure), new org.bukkit.util.BoundingBox(structureboundingbox.minX(), structureboundingbox.minY(), structureboundingbox.minZ(), structureboundingbox.maxX(), structureboundingbox.maxY(), structureboundingbox.maxZ()), chunkcoordintpair.x, chunkcoordintpair.z);
         Bukkit.getPluginManager().callEvent(event);
         this.blockTransformers = event.getBlockTransformers().values().toArray(BlockTransformer[]::new);
@@ -71,18 +71,18 @@ public class CraftStructureTransformer {
         this.limitedRegion = new CraftLimitedRegion(generatoraccessseed, chunkcoordintpair);
     }
 
-    public CraftStructureTransformer(WorldGenLevel generatoraccessseed, ChunkPos chunkcoordintpair, Collection<BlockTransformer> blockTransformers, Collection<EntityTransformer> entityTransformers) {
+    public CraftStructureTransformer(GeneratorAccessSeed generatoraccessseed, ChunkCoordIntPair chunkcoordintpair, Collection<BlockTransformer> blockTransformers, Collection<EntityTransformer> entityTransformers) {
         this.blockTransformers = blockTransformers.toArray(BlockTransformer[]::new);
         this.entityTransformers = entityTransformers.toArray(EntityTransformer[]::new);
         this.limitedRegion = new CraftLimitedRegion(generatoraccessseed, chunkcoordintpair);
     }
 
     public boolean transformEntity(Entity entity) {
-        EntityTransformer[] transformers = this.entityTransformers;
+        EntityTransformer[] transformers = entityTransformers;
         if (transformers == null || transformers.length == 0) {
             return true;
         }
-        CraftLimitedRegion region = this.limitedRegion;
+        CraftLimitedRegion region = limitedRegion;
         if (region == null) {
             return true;
         }
@@ -99,15 +99,15 @@ public class CraftStructureTransformer {
     }
 
     public boolean canTransformBlocks() {
-        return this.blockTransformers != null && this.blockTransformers.length != 0 && this.limitedRegion != null;
+        return blockTransformers != null && blockTransformers.length != 0 && limitedRegion != null;
     }
 
     public CraftBlockState transformCraftState(CraftBlockState originalState) {
-        BlockTransformer[] transformers = this.blockTransformers;
+        BlockTransformer[] transformers = blockTransformers;
         if (transformers == null || transformers.length == 0) {
             return originalState;
         }
-        CraftLimitedRegion region = this.limitedRegion;
+        CraftLimitedRegion region = limitedRegion;
         if (region == null) {
             return originalState;
         }
@@ -123,8 +123,8 @@ public class CraftStructureTransformer {
     }
 
     public void discard() {
-        this.limitedRegion.saveEntities();
-        this.limitedRegion.breakLink();
+        limitedRegion.saveEntities();
+        limitedRegion.breakLink();
         this.limitedRegion = null;
         this.blockTransformers = null;
         this.entityTransformers = null;

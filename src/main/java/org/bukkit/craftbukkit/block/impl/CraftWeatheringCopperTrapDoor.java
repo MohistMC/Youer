@@ -9,82 +9,82 @@ public final class CraftWeatheringCopperTrapDoor extends org.bukkit.craftbukkit.
         super();
     }
 
-    public CraftWeatheringCopperTrapDoor(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftWeatheringCopperTrapDoor(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftBisected
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> HALF = getEnum(net.minecraft.world.level.block.WeatheringCopperTrapDoorBlock.class, "half");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> HALF = getEnum(net.minecraft.world.level.block.WeatheringCopperTrapDoorBlock.class, "half");
 
     @Override
     public org.bukkit.block.data.Bisected.Half getHalf() {
-        return this.get(CraftWeatheringCopperTrapDoor.HALF, org.bukkit.block.data.Bisected.Half.class);
+        return get(HALF, org.bukkit.block.data.Bisected.Half.class);
     }
 
     @Override
     public void setHalf(org.bukkit.block.data.Bisected.Half half) {
-        this.set(CraftWeatheringCopperTrapDoor.HALF, half);
+        set(HALF, half);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftDirectional
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> FACING = getEnum(net.minecraft.world.level.block.WeatheringCopperTrapDoorBlock.class, "facing");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> FACING = getEnum(net.minecraft.world.level.block.WeatheringCopperTrapDoorBlock.class, "facing");
 
     @Override
     public org.bukkit.block.BlockFace getFacing() {
-        return this.get(CraftWeatheringCopperTrapDoor.FACING, org.bukkit.block.BlockFace.class);
+        return get(FACING, org.bukkit.block.BlockFace.class);
     }
 
     @Override
     public void setFacing(org.bukkit.block.BlockFace facing) {
-        this.set(CraftWeatheringCopperTrapDoor.FACING, facing);
+        set(FACING, facing);
     }
 
     @Override
     public java.util.Set<org.bukkit.block.BlockFace> getFaces() {
-        return this.getValues(CraftWeatheringCopperTrapDoor.FACING, org.bukkit.block.BlockFace.class);
+        return getValues(FACING, org.bukkit.block.BlockFace.class);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftOpenable
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty OPEN = getBoolean(net.minecraft.world.level.block.WeatheringCopperTrapDoorBlock.class, "open");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean OPEN = getBoolean(net.minecraft.world.level.block.WeatheringCopperTrapDoorBlock.class, "open");
 
     @Override
     public boolean isOpen() {
-        return this.get(CraftWeatheringCopperTrapDoor.OPEN);
+        return get(OPEN);
     }
 
     @Override
     public void setOpen(boolean open) {
-        this.set(CraftWeatheringCopperTrapDoor.OPEN, open);
+        set(OPEN, open);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftPowerable
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty POWERED = getBoolean(net.minecraft.world.level.block.WeatheringCopperTrapDoorBlock.class, "powered");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean POWERED = getBoolean(net.minecraft.world.level.block.WeatheringCopperTrapDoorBlock.class, "powered");
 
     @Override
     public boolean isPowered() {
-        return this.get(CraftWeatheringCopperTrapDoor.POWERED);
+        return get(POWERED);
     }
 
     @Override
     public void setPowered(boolean powered) {
-        this.set(CraftWeatheringCopperTrapDoor.POWERED, powered);
+        set(POWERED, powered);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftWaterlogged
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty WATERLOGGED = getBoolean(net.minecraft.world.level.block.WeatheringCopperTrapDoorBlock.class, "waterlogged");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean WATERLOGGED = getBoolean(net.minecraft.world.level.block.WeatheringCopperTrapDoorBlock.class, "waterlogged");
 
     @Override
     public boolean isWaterlogged() {
-        return this.get(CraftWeatheringCopperTrapDoor.WATERLOGGED);
+        return get(WATERLOGGED);
     }
 
     @Override
     public void setWaterlogged(boolean waterlogged) {
-        this.set(CraftWeatheringCopperTrapDoor.WATERLOGGED, waterlogged);
+        set(WATERLOGGED, waterlogged);
     }
 }

@@ -9,35 +9,35 @@ public final class CraftStepAbstract extends org.bukkit.craftbukkit.block.data.C
         super();
     }
 
-    public CraftStepAbstract(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftStepAbstract(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftSlab
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> TYPE = getEnum(net.minecraft.world.level.block.SlabBlock.class, "type");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> TYPE = getEnum(net.minecraft.world.level.block.BlockStepAbstract.class, "type");
 
     @Override
     public org.bukkit.block.data.type.Slab.Type getType() {
-        return this.get(CraftStepAbstract.TYPE, org.bukkit.block.data.type.Slab.Type.class);
+        return get(TYPE, org.bukkit.block.data.type.Slab.Type.class);
     }
 
     @Override
     public void setType(org.bukkit.block.data.type.Slab.Type type) {
-        this.set(CraftStepAbstract.TYPE, type);
+        set(TYPE, type);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftWaterlogged
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty WATERLOGGED = getBoolean(net.minecraft.world.level.block.SlabBlock.class, "waterlogged");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean WATERLOGGED = getBoolean(net.minecraft.world.level.block.BlockStepAbstract.class, "waterlogged");
 
     @Override
     public boolean isWaterlogged() {
-        return this.get(CraftStepAbstract.WATERLOGGED);
+        return get(WATERLOGGED);
     }
 
     @Override
     public void setWaterlogged(boolean waterlogged) {
-        this.set(CraftStepAbstract.WATERLOGGED, waterlogged);
+        set(WATERLOGGED, waterlogged);
     }
 }

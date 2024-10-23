@@ -1,16 +1,17 @@
 package org.bukkit.craftbukkit.entity;
 
+import net.minecraft.world.entity.monster.EntitySilverfish;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Silverfish;
 
 public class CraftSilverfish extends CraftMonster implements Silverfish {
-    public CraftSilverfish(CraftServer server, net.minecraft.world.entity.monster.Silverfish entity) {
+    public CraftSilverfish(CraftServer server, EntitySilverfish entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.monster.Silverfish getHandle() {
-        return (net.minecraft.world.entity.monster.Silverfish) this.entity;
+    public EntitySilverfish getHandle() {
+        return (EntitySilverfish) entity;
     }
 
     @Override

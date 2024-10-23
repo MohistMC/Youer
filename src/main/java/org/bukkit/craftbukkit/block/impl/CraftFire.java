@@ -9,59 +9,59 @@ public final class CraftFire extends org.bukkit.craftbukkit.block.data.CraftBloc
         super();
     }
 
-    public CraftFire(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftFire(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftAgeable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty AGE = getInteger(net.minecraft.world.level.block.FireBlock.class, "age");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger AGE = getInteger(net.minecraft.world.level.block.BlockFire.class, "age");
 
     @Override
     public int getAge() {
-        return this.get(CraftFire.AGE);
+        return get(AGE);
     }
 
     @Override
     public void setAge(int age) {
-        this.set(CraftFire.AGE, age);
+        set(AGE, age);
     }
 
     @Override
     public int getMaximumAge() {
-        return getMax(CraftFire.AGE);
+        return getMax(AGE);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftMultipleFacing
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty[] FACES = new net.minecraft.world.level.block.state.properties.BooleanProperty[]{
-        getBoolean(net.minecraft.world.level.block.FireBlock.class, "north", true), getBoolean(net.minecraft.world.level.block.FireBlock.class, "east", true), getBoolean(net.minecraft.world.level.block.FireBlock.class, "south", true), getBoolean(net.minecraft.world.level.block.FireBlock.class, "west", true), getBoolean(net.minecraft.world.level.block.FireBlock.class, "up", true), getBoolean(net.minecraft.world.level.block.FireBlock.class, "down", true)
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean[] FACES = new net.minecraft.world.level.block.state.properties.BlockStateBoolean[]{
+        getBoolean(net.minecraft.world.level.block.BlockFire.class, "north", true), getBoolean(net.minecraft.world.level.block.BlockFire.class, "east", true), getBoolean(net.minecraft.world.level.block.BlockFire.class, "south", true), getBoolean(net.minecraft.world.level.block.BlockFire.class, "west", true), getBoolean(net.minecraft.world.level.block.BlockFire.class, "up", true), getBoolean(net.minecraft.world.level.block.BlockFire.class, "down", true)
     };
 
     @Override
     public boolean hasFace(org.bukkit.block.BlockFace face) {
-        net.minecraft.world.level.block.state.properties.BooleanProperty state = CraftFire.FACES[face.ordinal()];
+        net.minecraft.world.level.block.state.properties.BlockStateBoolean state = FACES[face.ordinal()];
         if (state == null) {
             throw new IllegalArgumentException("Non-allowed face " + face + ". Check MultipleFacing.getAllowedFaces.");
         }
-        return this.get(state);
+        return get(state);
     }
 
     @Override
     public void setFace(org.bukkit.block.BlockFace face, boolean has) {
-        net.minecraft.world.level.block.state.properties.BooleanProperty state = CraftFire.FACES[face.ordinal()];
+        net.minecraft.world.level.block.state.properties.BlockStateBoolean state = FACES[face.ordinal()];
         if (state == null) {
             throw new IllegalArgumentException("Non-allowed face " + face + ". Check MultipleFacing.getAllowedFaces.");
         }
-        this.set(state, has);
+        set(state, has);
     }
 
     @Override
     public java.util.Set<org.bukkit.block.BlockFace> getFaces() {
         com.google.common.collect.ImmutableSet.Builder<org.bukkit.block.BlockFace> faces = com.google.common.collect.ImmutableSet.builder();
 
-        for (int i = 0; i < CraftFire.FACES.length; i++) {
-            if (CraftFire.FACES[i] != null && this.get(CraftFire.FACES[i])) {
+        for (int i = 0; i < FACES.length; i++) {
+            if (FACES[i] != null && get(FACES[i])) {
                 faces.add(org.bukkit.block.BlockFace.values()[i]);
             }
         }
@@ -73,8 +73,8 @@ public final class CraftFire extends org.bukkit.craftbukkit.block.data.CraftBloc
     public java.util.Set<org.bukkit.block.BlockFace> getAllowedFaces() {
         com.google.common.collect.ImmutableSet.Builder<org.bukkit.block.BlockFace> faces = com.google.common.collect.ImmutableSet.builder();
 
-        for (int i = 0; i < CraftFire.FACES.length; i++) {
-            if (CraftFire.FACES[i] != null) {
+        for (int i = 0; i < FACES.length; i++) {
+            if (FACES[i] != null) {
                 faces.add(org.bukkit.block.BlockFace.values()[i]);
             }
         }

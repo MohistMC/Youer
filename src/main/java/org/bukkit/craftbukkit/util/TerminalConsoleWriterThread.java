@@ -40,26 +40,26 @@ public class TerminalConsoleWriterThread extends Thread {
 
             try {
                 if (Main.useJline) {
-                    this.reader.print(Ansi.ansi().eraseLine(Erase.ALL).toString() + ConsoleReader.RESET_LINE);
-                    this.reader.flush();
-                    this.output.write(message.getBytes());
-                    this.output.flush();
+                    reader.print(Ansi.ansi().eraseLine(Erase.ALL).toString() + ConsoleReader.RESET_LINE);
+                    reader.flush();
+                    output.write(message.getBytes());
+                    output.flush();
 
                     try {
-                        this.reader.drawLine();
+                        reader.drawLine();
                     } catch (Throwable ex) {
-                        this.reader.getCursorBuffer().clear();
+                        reader.getCursorBuffer().clear();
                     }
 
-                    if (this.completion > -1) {
+                    if (completion > -1) {
                         // SPIGOT-6705: Make sure we print the display line again on tab completion, so that the user does not get stuck on it
-                        this.reader.print(String.format(this.bundle.getString("DISPLAY_CANDIDATES"), this.completion));
+                        reader.print(String.format(bundle.getString("DISPLAY_CANDIDATES"), completion));
                     }
 
-                    this.reader.flush();
+                    reader.flush();
                 } else {
-                    this.output.write(message.getBytes());
-                    this.output.flush();
+                    output.write(message.getBytes());
+                    output.flush();
                 }
             } catch (IOException ex) {
                 Logger.getLogger(TerminalConsoleWriterThread.class.getName()).log(Level.SEVERE, null, ex);

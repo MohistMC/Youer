@@ -44,35 +44,35 @@ public class CraftCrafter extends CraftLootable<CrafterBlockEntity> implements C
 
     @Override
     public int getCraftingTicks() {
-        return this.getSnapshot().craftingTicksRemaining;
+        return getSnapshot().craftingTicksRemaining;
     }
 
     @Override
     public void setCraftingTicks(int ticks) {
-      this.getSnapshot().setCraftingTicksRemaining(ticks);
+      getSnapshot().setCraftingTicksRemaining(ticks);
     }
 
     @Override
     public boolean isSlotDisabled(int slot) {
         Preconditions.checkArgument(slot >= 0 && slot < 9, "Invalid slot index %s for Crafter", slot);
 
-        return this.getSnapshot().isSlotDisabled(slot);
+        return getSnapshot().isSlotDisabled(slot);
     }
 
     @Override
     public void setSlotDisabled(int slot, boolean disabled) {
         Preconditions.checkArgument(slot >= 0 && slot < 9, "Invalid slot index %s for Crafter", slot);
 
-        this.getSnapshot().setSlotState(slot, disabled);
+        getSnapshot().setSlotState(slot, disabled);
     }
 
     @Override
     public boolean isTriggered() {
-        return this.getSnapshot().isTriggered();
+        return getSnapshot().isTriggered();
     }
 
     @Override
     public void setTriggered(boolean triggered) {
-        this.getSnapshot().setTriggered(triggered);
+        getSnapshot().setTriggered(triggered);
     }
 }

@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import net.minecraft.world.entity.monster.EntityGuardian;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Guardian;
 import org.bukkit.entity.LivingEntity;
@@ -9,13 +10,13 @@ public class CraftGuardian extends CraftMonster implements Guardian {
 
     private static final int MINIMUM_ATTACK_TICKS = -10;
 
-    public CraftGuardian(CraftServer server, net.minecraft.world.entity.monster.Guardian entity) {
+    public CraftGuardian(CraftServer server, EntityGuardian entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.monster.Guardian getHandle() {
-        return (net.minecraft.world.entity.monster.Guardian) super.getHandle();
+    public EntityGuardian getHandle() {
+        return (EntityGuardian) super.getHandle();
     }
 
     @Override
@@ -29,21 +30,21 @@ public class CraftGuardian extends CraftMonster implements Guardian {
 
         // clean up laser target, when target is removed
         if (target == null) {
-            this.getHandle().setActiveAttackTarget(0);
+            getHandle().setActiveAttackTarget(0);
         }
     }
 
     @Override
     public boolean setLaser(boolean activated) {
         if (activated) {
-            LivingEntity target = this.getTarget();
+            LivingEntity target = getTarget();
             if (target == null) {
                 return false;
             }
 
-            this.getHandle().setActiveAttackTarget(target.getEntityId());
+            getHandle().setActiveAttackTarget(target.getEntityId());
         } else {
-            this.getHandle().setActiveAttackTarget(0);
+            getHandle().setActiveAttackTarget(0);
         }
 
         return true;
@@ -51,19 +52,19 @@ public class CraftGuardian extends CraftMonster implements Guardian {
 
     @Override
     public boolean hasLaser() {
-        return this.getHandle().hasActiveAttackTarget();
+        return getHandle().hasActiveAttackTarget();
     }
 
     @Override
     public int getLaserDuration() {
-        return this.getHandle().getAttackDuration();
+        return getHandle().getAttackDuration();
     }
 
     @Override
     public void setLaserTicks(int ticks) {
-        Preconditions.checkArgument(ticks >= CraftGuardian.MINIMUM_ATTACK_TICKS, "ticks must be >= %s. Given %s", CraftGuardian.MINIMUM_ATTACK_TICKS, ticks);
+        Preconditions.checkArgument(ticks >= MINIMUM_ATTACK_TICKS, "ticks must be >= %s. Given %s", MINIMUM_ATTACK_TICKS, ticks);
 
-        net.minecraft.world.entity.monster.Guardian.GuardianAttackGoal goal = this.getHandle().guardianAttackGoal;
+        EntityGuardian.PathfinderGoalGuardianAttack goal = getHandle().guardianAttackGoal;
         if (goal != null) {
             goal.attackTime = ticks;
         }
@@ -71,8 +72,8 @@ public class CraftGuardian extends CraftMonster implements Guardian {
 
     @Override
     public int getLaserTicks() {
-        net.minecraft.world.entity.monster.Guardian.GuardianAttackGoal goal = this.getHandle().guardianAttackGoal;
-        return (goal != null) ? goal.attackTime : CraftGuardian.MINIMUM_ATTACK_TICKS;
+        EntityGuardian.PathfinderGoalGuardianAttack goal = getHandle().guardianAttackGoal;
+        return (goal != null) ? goal.attackTime : MINIMUM_ATTACK_TICKS;
     }
 
     @Override
@@ -87,6 +88,6 @@ public class CraftGuardian extends CraftMonster implements Guardian {
 
     @Override
     public boolean isMoving() {
-        return this.getHandle().isMoving();
+        return getHandle().isMoving();
     }
 }

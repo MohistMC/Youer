@@ -37,7 +37,7 @@
                  if (!this.isSilent()) {
 -                    worldserver.globalLevelEvent(1023, this.blockPosition(), 0);
 +                    // CraftBukkit start - Use relative location for far away sounds
-+                    // worldserver.globalLevelEvent(1023, new BlockPosition(this), 0);
++                    // worldserver.globalLevelEvent(1023, new BlockPos(this), 0);
 +                    int viewDistance = worldserver.getCraftServer().getViewDistance() * 16;
 +                    for (EntityPlayer player : (List<EntityPlayer>) MinecraftServer.getServer().getPlayerList().players) {
 +                        double deltaX = this.getX() - player.getX();
@@ -47,7 +47,7 @@
 +                            double deltaLength = Math.sqrt(distanceSquared);
 +                            double relativeX = player.getX() + (deltaX / deltaLength) * viewDistance;
 +                            double relativeZ = player.getZ() + (deltaZ / deltaLength) * viewDistance;
-+                            player.connection.send(new PacketPlayOutWorldEvent(1023, new BlockPosition((int) relativeX, (int) this.getY(), (int) relativeZ), 0, true));
++                            player.connection.send(new PacketPlayOutWorldEvent(1023, new BlockPos((int) relativeX, (int) this.getY(), (int) relativeZ), 0, true));
 +                        } else {
 +                            player.connection.send(new PacketPlayOutWorldEvent(1023, this.blockPosition(), 0, true));
 +                        }

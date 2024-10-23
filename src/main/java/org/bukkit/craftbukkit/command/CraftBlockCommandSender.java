@@ -1,8 +1,8 @@
 package org.bukkit.craftbukkit.command;
 
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.commands.CommandListenerWrapper;
+import net.minecraft.network.chat.IChatBaseComponent;
+import net.minecraft.world.level.block.entity.TileEntity;
 import org.bukkit.block.Block;
 import org.bukkit.command.BlockCommandSender;
 import org.bukkit.craftbukkit.block.CraftBlock;
@@ -28,50 +28,50 @@ public class CraftBlockCommandSender extends ServerCommandSender implements Bloc
             throw new UnsupportedOperationException("Cannot change operator status of a block");
         }
     });
-    private final CommandSourceStack block;
-    private final BlockEntity tile;
+    private final CommandListenerWrapper block;
+    private final TileEntity tile;
 
-    public CraftBlockCommandSender(CommandSourceStack commandBlockListenerAbstract, BlockEntity tile) {
-        super(CraftBlockCommandSender.SHARED_PERM);
+    public CraftBlockCommandSender(CommandListenerWrapper commandBlockListenerAbstract, TileEntity tile) {
+        super(SHARED_PERM);
         this.block = commandBlockListenerAbstract;
         this.tile = tile;
     }
 
     @Override
     public Block getBlock() {
-        return CraftBlock.at(this.tile.getLevel(), this.tile.getBlockPos());
+        return CraftBlock.at(tile.getLevel(), tile.getBlockPos());
     }
 
     @Override
     public void sendMessage(String message) {
-        for (Component component : CraftChatMessage.fromString(message)) {
-            this.block.source.sendSystemMessage(component);
+        for (IChatBaseComponent component : CraftChatMessage.fromString(message)) {
+            block.source.sendSystemMessage(component);
         }
     }
 
     @Override
     public void sendMessage(String... messages) {
         for (String message : messages) {
-            this.sendMessage(message);
+            sendMessage(message);
         }
     }
 
     @Override
     public String getName() {
-        return this.block.getTextName();
+        return block.getTextName();
     }
 
     @Override
     public boolean isOp() {
-        return CraftBlockCommandSender.SHARED_PERM.isOp();
+        return SHARED_PERM.isOp();
     }
 
     @Override
     public void setOp(boolean value) {
-        CraftBlockCommandSender.SHARED_PERM.setOp(value);
+        SHARED_PERM.setOp(value);
     }
 
-    public CommandSourceStack getWrapper() {
-        return this.block;
+    public CommandListenerWrapper getWrapper() {
+        return block;
     }
 }

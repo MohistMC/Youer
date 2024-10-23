@@ -1,7 +1,7 @@
 package org.bukkit.craftbukkit.block;
 
-import net.minecraft.world.level.block.LecternBlock;
-import net.minecraft.world.level.block.entity.LecternBlockEntity;
+import net.minecraft.world.level.block.BlockLectern;
+import net.minecraft.world.level.block.entity.TileEntityLectern;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -9,9 +9,9 @@ import org.bukkit.block.Lectern;
 import org.bukkit.craftbukkit.inventory.CraftInventoryLectern;
 import org.bukkit.inventory.Inventory;
 
-public class CraftLectern extends CraftBlockEntityState<LecternBlockEntity> implements Lectern {
+public class CraftLectern extends CraftBlockEntityState<TileEntityLectern> implements Lectern {
 
-    public CraftLectern(World world, LecternBlockEntity tileEntity) {
+    public CraftLectern(World world, TileEntityLectern tileEntity) {
         super(world, tileEntity);
     }
 
@@ -21,12 +21,12 @@ public class CraftLectern extends CraftBlockEntityState<LecternBlockEntity> impl
 
     @Override
     public int getPage() {
-        return this.getSnapshot().getPage();
+        return getSnapshot().getPage();
     }
 
     @Override
     public void setPage(int page) {
-        this.getSnapshot().setPage(page);
+        getSnapshot().setPage(page);
     }
 
     @Override
@@ -47,8 +47,8 @@ public class CraftLectern extends CraftBlockEntityState<LecternBlockEntity> impl
     public boolean update(boolean force, boolean applyPhysics) {
         boolean result = super.update(force, applyPhysics);
 
-        if (result && this.getType() == Material.LECTERN && this.getWorldHandle() instanceof net.minecraft.world.level.Level) {
-            LecternBlock.signalPageChange(this.world.getHandle(), this.getPosition(), this.getHandle());
+        if (result && this.getType() == Material.LECTERN && getWorldHandle() instanceof net.minecraft.world.level.World) {
+            BlockLectern.signalPageChange(this.world.getHandle(), this.getPosition(), this.getHandle());
         }
 
         return result;

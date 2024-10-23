@@ -7,8 +7,8 @@ import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.MinecraftKey;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.EitherHolder;
 import net.minecraft.world.item.JukeboxPlayable;
 import org.bukkit.JukeboxSong;
@@ -37,7 +37,7 @@ public final class CraftJukeboxComponent implements JukeboxPlayableComponent {
         String song = SerializableMeta.getObject(String.class, map, "song", false);
         Boolean showTooltip = SerializableMeta.getObject(Boolean.class, map, "show-in-tooltip", true);
 
-        this.handle = new JukeboxPlayable(new EitherHolder<>(ResourceKey.create(Registries.JUKEBOX_SONG, ResourceLocation.parse(song))), (showTooltip != null) ? showTooltip : true);
+        this.handle = new JukeboxPlayable(new EitherHolder<>(ResourceKey.create(Registries.JUKEBOX_SONG, MinecraftKey.parse(song))), (showTooltip != null) ? showTooltip : true);
     }
 
     @Override

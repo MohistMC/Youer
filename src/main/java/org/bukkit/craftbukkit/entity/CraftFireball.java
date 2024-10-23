@@ -1,8 +1,8 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
-import net.minecraft.world.entity.projectile.AbstractHurtingProjectile;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.entity.projectile.EntityFireball;
+import net.minecraft.world.phys.Vec3D;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Fireball;
 import org.bukkit.projectiles.ProjectileSource;
@@ -10,43 +10,43 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 public class CraftFireball extends AbstractProjectile implements Fireball {
-    public CraftFireball(CraftServer server, AbstractHurtingProjectile entity) {
+    public CraftFireball(CraftServer server, EntityFireball entity) {
         super(server, entity);
     }
 
     @Override
     public float getYield() {
-        return this.getHandle().bukkitYield;
+        return getHandle().bukkitYield;
     }
 
     @Override
     public boolean isIncendiary() {
-        return this.getHandle().isIncendiary;
+        return getHandle().isIncendiary;
     }
 
     @Override
     public void setIsIncendiary(boolean isIncendiary) {
-        this.getHandle().isIncendiary = isIncendiary;
+        getHandle().isIncendiary = isIncendiary;
     }
 
     @Override
     public void setYield(float yield) {
-        this.getHandle().bukkitYield = yield;
+        getHandle().bukkitYield = yield;
     }
 
     @Override
     public ProjectileSource getShooter() {
-        return this.getHandle().projectileSource;
+        return getHandle().projectileSource;
     }
 
     @Override
     public void setShooter(ProjectileSource shooter) {
         if (shooter instanceof CraftLivingEntity) {
-            this.getHandle().setOwner(((CraftLivingEntity) shooter).getHandle());
+            getHandle().setOwner(((CraftLivingEntity) shooter).getHandle());
         } else {
-            this.getHandle().setOwner(null);
+            getHandle().setOwner(null);
         }
-        this.getHandle().projectileSource = shooter;
+        getHandle().projectileSource = shooter;
     }
 
     @Override
@@ -62,6 +62,7 @@ public class CraftFireball extends AbstractProjectile implements Fireball {
             setAcceleration(direction);
             return;
         }
+
         direction = direction.clone().normalize();
         setVelocity(direction.clone().multiply(getVelocity().length()));
         setAcceleration(direction.multiply(getAcceleration().length()));
@@ -72,20 +73,20 @@ public class CraftFireball extends AbstractProjectile implements Fireball {
         Preconditions.checkArgument(acceleration != null, "Vector acceleration cannot be null");
         // SPIGOT-6993: EntityFireball#assignPower will normalize the given values
         // Note: Because of MC-80142 the fireball will stutter on the client when setting the power to something other than 0 or the normalized vector * 0.1
-        getHandle().assignDirectionalMovement(new Vec3(acceleration.getX(), acceleration.getY(), acceleration.getZ()), acceleration.length());
+        getHandle().assignDirectionalMovement(new Vec3D(acceleration.getX(), acceleration.getY(), acceleration.getZ()), acceleration.length());
         update(); // SPIGOT-6579
     }
 
     @NotNull
     @Override
     public Vector getAcceleration() {
-        Vec3 delta = getHandle().getDeltaMovement();
+        Vec3D delta = getHandle().getDeltaMovement();
         return new Vector(delta.x, delta.y, delta.z);
     }
 
     @Override
-    public AbstractHurtingProjectile getHandle() {
-        return (AbstractHurtingProjectile) this.entity;
+    public EntityFireball getHandle() {
+        return (EntityFireball) entity;
     }
 
     @Override

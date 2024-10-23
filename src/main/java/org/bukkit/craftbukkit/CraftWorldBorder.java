@@ -24,7 +24,7 @@ public class CraftWorldBorder implements WorldBorder {
 
     @Override
     public World getWorld() {
-        return this.world;
+        return world;
     }
 
     @Override
@@ -44,7 +44,7 @@ public class CraftWorldBorder implements WorldBorder {
 
     @Override
     public void setSize(double newSize, long time) {
-        this.setSize(Math.min(this.getMaxSize(), Math.max(1.0D, newSize)), TimeUnit.SECONDS, Math.min(9223372036854775L, Math.max(0L, time)));
+        setSize(Math.min(getMaxSize(), Math.max(1.0D, newSize)), TimeUnit.SECONDS, Math.min(9223372036854775L, Math.max(0L, time)));
     }
 
     @Override
@@ -125,7 +125,7 @@ public class CraftWorldBorder implements WorldBorder {
     public boolean isInside(Location location) {
         Preconditions.checkArgument(location != null, "location cannot be null");
 
-        return (this.world == null || location.getWorld().equals(this.world)) && this.handle.isWithinBounds(BlockPos.containing(location.getX(), location.getY(), location.getZ()));
+        return (world == null || location.getWorld().equals(this.world)) && this.handle.isWithinBounds(BlockPos.containing(location.getX(), location.getY(), location.getZ()));
     }
 
     @Override
@@ -139,10 +139,10 @@ public class CraftWorldBorder implements WorldBorder {
     }
 
     public net.minecraft.world.level.border.WorldBorder getHandle() {
-        return this.handle;
+        return handle;
     }
 
     public boolean isVirtual() {
-        return this.world == null;
+        return world == null;
     }
 }

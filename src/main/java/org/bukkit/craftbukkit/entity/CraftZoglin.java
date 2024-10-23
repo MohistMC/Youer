@@ -1,27 +1,28 @@
 package org.bukkit.craftbukkit.entity;
 
+import net.minecraft.world.entity.monster.EntityZoglin;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Zoglin;
 
 public class CraftZoglin extends CraftMonster implements Zoglin {
 
-    public CraftZoglin(CraftServer server, net.minecraft.world.entity.monster.Zoglin entity) {
+    public CraftZoglin(CraftServer server, EntityZoglin entity) {
         super(server, entity);
     }
 
     @Override
     public boolean isBaby() {
-        return this.getHandle().isBaby();
+        return getHandle().isBaby();
     }
 
     @Override
     public void setBaby(boolean flag) {
-        this.getHandle().setBaby(flag);
+        getHandle().setBaby(flag);
     }
 
     @Override
-    public net.minecraft.world.entity.monster.Zoglin getHandle() {
-        return (net.minecraft.world.entity.monster.Zoglin) this.entity;
+    public EntityZoglin getHandle() {
+        return (EntityZoglin) entity;
     }
 
     @Override
@@ -31,12 +32,12 @@ public class CraftZoglin extends CraftMonster implements Zoglin {
 
     @Override
     public int getAge() {
-        return this.getHandle().isBaby() ? -1 : 0;
+        return getHandle().isBaby() ? -1 : 0;
     }
 
     @Override
     public void setAge(int i) {
-        this.getHandle().setBaby(i < 0);
+        getHandle().setBaby(i < 0);
     }
 
     @Override
@@ -50,17 +51,17 @@ public class CraftZoglin extends CraftMonster implements Zoglin {
 
     @Override
     public void setBaby() {
-        this.getHandle().setBaby(true);
+        getHandle().setBaby(true);
     }
 
     @Override
     public void setAdult() {
-        this.getHandle().setBaby(false);
+        getHandle().setBaby(false);
     }
 
     @Override
     public boolean isAdult() {
-        return !this.getHandle().isBaby();
+        return !getHandle().isBaby();
     }
 
     @Override

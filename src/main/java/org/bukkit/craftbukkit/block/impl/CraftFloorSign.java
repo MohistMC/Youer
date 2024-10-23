@@ -9,17 +9,17 @@ public final class CraftFloorSign extends org.bukkit.craftbukkit.block.data.Craf
         super();
     }
 
-    public CraftFloorSign(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftFloorSign(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftRotatable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty ROTATION = getInteger(net.minecraft.world.level.block.StandingSignBlock.class, "rotation");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger ROTATION = getInteger(net.minecraft.world.level.block.BlockFloorSign.class, "rotation");
 
     @Override
     public org.bukkit.block.BlockFace getRotation() {
-        int data = this.get(CraftFloorSign.ROTATION);
+        int data = get(ROTATION);
         switch (data) {
             case 0x0:
                 return org.bukkit.block.BlockFace.SOUTH;
@@ -113,20 +113,20 @@ public final class CraftFloorSign extends org.bukkit.craftbukkit.block.data.Craf
             default:
                 throw new IllegalArgumentException("Illegal rotation " + rotation);
         }
-        this.set(CraftFloorSign.ROTATION, val);
+        set(ROTATION, val);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftWaterlogged
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty WATERLOGGED = getBoolean(net.minecraft.world.level.block.StandingSignBlock.class, "waterlogged");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean WATERLOGGED = getBoolean(net.minecraft.world.level.block.BlockFloorSign.class, "waterlogged");
 
     @Override
     public boolean isWaterlogged() {
-        return this.get(CraftFloorSign.WATERLOGGED);
+        return get(WATERLOGGED);
     }
 
     @Override
     public void setWaterlogged(boolean waterlogged) {
-        this.set(CraftFloorSign.WATERLOGGED, waterlogged);
+        set(WATERLOGGED, waterlogged);
     }
 }

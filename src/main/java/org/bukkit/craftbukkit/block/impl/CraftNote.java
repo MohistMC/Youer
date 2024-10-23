@@ -9,46 +9,46 @@ public final class CraftNote extends org.bukkit.craftbukkit.block.data.CraftBloc
         super();
     }
 
-    public CraftNote(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftNote(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftNoteBlock
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> INSTRUMENT = getEnum(net.minecraft.world.level.block.NoteBlock.class, "instrument");
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty NOTE = getInteger(net.minecraft.world.level.block.NoteBlock.class, "note");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> INSTRUMENT = getEnum(net.minecraft.world.level.block.BlockNote.class, "instrument");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger NOTE = getInteger(net.minecraft.world.level.block.BlockNote.class, "note");
 
     @Override
     public org.bukkit.Instrument getInstrument() {
-        return this.get(CraftNote.INSTRUMENT, org.bukkit.Instrument.class);
+        return get(INSTRUMENT, org.bukkit.Instrument.class);
     }
 
     @Override
     public void setInstrument(org.bukkit.Instrument instrument) {
-        this.set(CraftNote.INSTRUMENT, instrument);
+        set(INSTRUMENT, instrument);
     }
 
     @Override
     public org.bukkit.Note getNote() {
-       return new org.bukkit.Note(this.get(CraftNote.NOTE));
+       return new org.bukkit.Note(get(NOTE));
     }
 
     @Override
     public void setNote(org.bukkit.Note note) {
-        this.set(CraftNote.NOTE, (int) note.getId());
+        set(NOTE, (int) note.getId());
     }
 
     // org.bukkit.craftbukkit.block.data.CraftPowerable
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty POWERED = getBoolean(net.minecraft.world.level.block.NoteBlock.class, "powered");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean POWERED = getBoolean(net.minecraft.world.level.block.BlockNote.class, "powered");
 
     @Override
     public boolean isPowered() {
-        return this.get(CraftNote.POWERED);
+        return get(POWERED);
     }
 
     @Override
     public void setPowered(boolean powered) {
-        this.set(CraftNote.POWERED, powered);
+        set(POWERED, powered);
     }
 }

@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import net.minecraft.Util;
+import net.minecraft.SystemUtils;
 import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.world.item.component.ResolvableProfile;
 import org.apache.commons.lang.StringUtils;
@@ -75,6 +75,7 @@ public final class CraftPlayerProfile implements PlayerProfile {
         this(uniqueId, name, true);
     }
 
+    // The ResolvableProfile used in Components can have just the properties then need ignore all checks internally
     @ApiStatus.Internal
     public CraftPlayerProfile(@Nonnull ResolvableProfile resolvableProfile) {
         this(resolvableProfile.id().orElse(null), resolvableProfile.name().orElse(null), false);
@@ -96,7 +97,7 @@ public final class CraftPlayerProfile implements PlayerProfile {
 
     @Override
     public UUID getUniqueId() {
-        return (Objects.equals(uniqueId, Util.NIL_UUID)) ? null : uniqueId;
+        return (Objects.equals(uniqueId, SystemUtils.NIL_UUID)) ? null : uniqueId;
     }
 
     @Override
@@ -106,28 +107,28 @@ public final class CraftPlayerProfile implements PlayerProfile {
 
     @Nullable
     Property getProperty(String propertyName) {
-        return Iterables.getFirst(this.properties.get(propertyName), null);
+        return Iterables.getFirst(properties.get(propertyName), null);
     }
 
     void setProperty(String propertyName, @Nullable Property property) {
         // Assert: (property == null) || property.getName().equals(propertyName)
-        this.removeProperty(propertyName);
+        removeProperty(propertyName);
         if (property != null) {
-            this.properties.put(property.name(), property);
+            properties.put(property.name(), property);
         }
     }
 
     void removeProperty(String propertyName) {
-        this.properties.removeAll(propertyName);
+        properties.removeAll(propertyName);
     }
 
     void rebuildDirtyProperties() {
-        this.textures.rebuildPropertyIfDirty();
+        textures.rebuildPropertyIfDirty();
     }
 
     @Override
     public CraftPlayerTextures getTextures() {
-        return this.textures;
+        return textures;
     }
 
     @Override
@@ -141,12 +142,12 @@ public final class CraftPlayerProfile implements PlayerProfile {
 
     @Override
     public boolean isComplete() {
-        return (this.getUniqueId() != null) && (this.getName() != null) && !this.textures.isEmpty();
+        return (getUniqueId() != null) && (getName() != null) && !textures.isEmpty();
     }
 
     @Override
     public CompletableFuture<PlayerProfile> update() {
-        return CompletableFuture.supplyAsync(this::getUpdatedProfile, Util.backgroundExecutor());
+        return CompletableFuture.supplyAsync(this::getUpdatedProfile, SystemUtils.backgroundExecutor());
     }
 
     private CraftPlayerProfile getUpdatedProfile() {
@@ -154,12 +155,12 @@ public final class CraftPlayerProfile implements PlayerProfile {
         GameProfile profile = this.buildGameProfile();
 
         // If missing, look up the uuid by name:
-        if (profile.getId().equals(Util.NIL_UUID)) {
+        if (profile.getId().equals(SystemUtils.NIL_UUID)) {
             profile = server.getProfileCache().get(profile.getName()).orElse(profile);
         }
 
         // Look up properties such as the textures:
-        if (!profile.getId().equals(Util.NIL_UUID)) {
+        if (!profile.getId().equals(SystemUtils.NIL_UUID)) {
             ProfileResult newProfile = server.getSessionService().fetchProfile(profile.getId(), true);
             if (newProfile != null) {
                 profile = newProfile.profile();
@@ -181,22 +182,22 @@ public final class CraftPlayerProfile implements PlayerProfile {
     // built GameProfiles don't affect the use of this profile in other contexts.
     @Nonnull
     public GameProfile buildGameProfile() {
-        this.rebuildDirtyProperties();
-        GameProfile profile = new GameProfile(this.uniqueId, this.name);
-        profile.getProperties().putAll(this.properties);
+        rebuildDirtyProperties();
+        GameProfile profile = new GameProfile(uniqueId, name);
+        profile.getProperties().putAll(properties);
         return profile;
     }
 
     @Override
     public String toString() {
-        this.rebuildDirtyProperties();
+        rebuildDirtyProperties();
         StringBuilder builder = new StringBuilder();
         builder.append("CraftPlayerProfile [uniqueId=");
-        builder.append(this.uniqueId);
+        builder.append(uniqueId);
         builder.append(", name=");
-        builder.append(this.name);
+        builder.append(name);
         builder.append(", properties=");
-        builder.append(CraftPlayerProfile.toString(this.properties));
+        builder.append(toString(properties));
         builder.append("]");
         return builder.toString();
     }
@@ -217,12 +218,12 @@ public final class CraftPlayerProfile implements PlayerProfile {
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (!(obj instanceof CraftPlayerProfile other)) return false;
-        if (!Objects.equals(this.uniqueId, other.uniqueId)) return false;
-        if (!Objects.equals(this.name, other.name)) return false;
+        if (!Objects.equals(uniqueId, other.uniqueId)) return false;
+        if (!Objects.equals(name, other.name)) return false;
 
-        this.rebuildDirtyProperties();
+        rebuildDirtyProperties();
         other.rebuildDirtyProperties();
-        if (!CraftPlayerProfile.equals(this.properties, other.properties)) return false;
+        if (!equals(properties, other.properties)) return false;
         return true;
     }
 
@@ -245,11 +246,11 @@ public final class CraftPlayerProfile implements PlayerProfile {
 
     @Override
     public int hashCode() {
-        this.rebuildDirtyProperties();
+        rebuildDirtyProperties();
         int result = 1;
-        result = 31 * result + Objects.hashCode(this.uniqueId);
-        result = 31 * result + Objects.hashCode(this.name);
-        result = 31 * result + CraftPlayerProfile.hashCode(this.properties);
+        result = 31 * result + Objects.hashCode(uniqueId);
+        result = 31 * result + Objects.hashCode(name);
+        result = 31 * result + hashCode(properties);
         return result;
     }
 
@@ -273,9 +274,9 @@ public final class CraftPlayerProfile implements PlayerProfile {
             map.put("uniqueId", this.uniqueId.toString());
         }
         if (this.name != null) {
-            map.put("name", this.getName());
+            map.put("name", getName());
         }
-        this.rebuildDirtyProperties();
+        rebuildDirtyProperties();
         if (!this.properties.isEmpty()) {
             List<Object> propertiesData = new ArrayList<>();
             this.properties.forEach((propertyName, property) -> propertiesData.add(CraftProfileProperty.serialize(property)));

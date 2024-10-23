@@ -18,7 +18,7 @@ public class CraftAllay extends CraftCreature implements org.bukkit.entity.Allay
 
     @Override
     public Allay getHandle() {
-        return (Allay) this.entity;
+        return (Allay) entity;
     }
 
     @Override
@@ -28,67 +28,67 @@ public class CraftAllay extends CraftCreature implements org.bukkit.entity.Allay
 
     @Override
     public Inventory getInventory() {
-        return new CraftInventory(this.getHandle().getInventory());
+        return new CraftInventory(getHandle().getInventory());
     }
 
     @Override
     public boolean canDuplicate() {
-        return this.getHandle().canDuplicate();
+        return getHandle().canDuplicate();
     }
 
     @Override
     public void setCanDuplicate(boolean canDuplicate) {
-        this.getHandle().setCanDuplicate(canDuplicate);
+        getHandle().setCanDuplicate(canDuplicate);
     }
 
     @Override
     public long getDuplicationCooldown() {
-        return this.getHandle().duplicationCooldown;
+        return getHandle().duplicationCooldown;
     }
 
     @Override
     public void setDuplicationCooldown(long l) {
-        this.getHandle().duplicationCooldown = l;
+        getHandle().duplicationCooldown = l;
     }
 
     @Override
     public void resetDuplicationCooldown() {
-        this.getHandle().resetDuplicationCooldown();
+        getHandle().resetDuplicationCooldown();
     }
 
     @Override
     public boolean isDancing() {
-        return this.getHandle().isDancing();
+        return getHandle().isDancing();
     }
 
     @Override
     public void startDancing(Location location) {
         Preconditions.checkArgument(location != null, "Location cannot be null");
         Preconditions.checkArgument(location.getBlock().getType().equals(Material.JUKEBOX), "The Block in the Location need to be a JukeBox");
-        this.getHandle().setJukeboxPlaying(CraftLocation.toBlockPosition(location), true);
+        getHandle().setJukeboxPlaying(CraftLocation.toBlockPos(location), true);
     }
 
     @Override
     public void startDancing() {
-        this.getHandle().forceDancing = true;
-        this.getHandle().setDancing(true);
+        getHandle().forceDancing = true;
+        getHandle().setDancing(true);
     }
 
     @Override
     public void stopDancing() {
-        this.getHandle().forceDancing = false;
-        this.getHandle().jukeboxPos = null;
-        this.getHandle().setJukeboxPlaying(null, false);
+        getHandle().forceDancing = false;
+        getHandle().jukeboxPos = null;
+        getHandle().setJukeboxPlaying(null, false);
     }
 
     @Override
     public org.bukkit.entity.Allay duplicateAllay() {
-        Allay nmsAllay = this.getHandle().duplicateAllay0();
+        Allay nmsAllay = getHandle().duplicateAllay();
         return (nmsAllay != null) ? (org.bukkit.entity.Allay) nmsAllay.getBukkitEntity() : null;
     }
 
     public Location getJukebox() {
-        BlockPos nmsJukeboxPos = this.getHandle().jukeboxPos;
-        return (nmsJukeboxPos != null) ? CraftLocation.toBukkit(nmsJukeboxPos, this.getWorld()) : null;
+        BlockPos nmsJukeboxPos = getHandle().jukeboxPos;
+        return (nmsJukeboxPos != null) ? CraftLocation.toBukkit(nmsJukeboxPos, getWorld()) : null;
     }
 }

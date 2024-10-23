@@ -5,20 +5,20 @@ import org.bukkit.craftbukkit.block.data.CraftBlockData;
 
 public abstract class CraftCandle extends CraftBlockData implements Candle {
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty CANDLES = getInteger("candles");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger CANDLES = getInteger("candles");
 
     @Override
     public int getCandles() {
-        return this.get(CraftCandle.CANDLES);
+        return get(CANDLES);
     }
 
     @Override
     public void setCandles(int candles) {
-        this.set(CraftCandle.CANDLES, candles);
+        set(CANDLES, candles);
     }
 
     @Override
     public int getMaximumCandles() {
-        return getMax(CraftCandle.CANDLES);
+        return getMax(CANDLES);
     }
 }

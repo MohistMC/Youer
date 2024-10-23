@@ -9,67 +9,67 @@ public abstract class LazyHashSet<E> implements Set<E> {
 
     @Override
     public int size() {
-        return this.getReference().size();
+        return getReference().size();
     }
 
     @Override
     public boolean isEmpty() {
-        return this.getReference().isEmpty();
+        return getReference().isEmpty();
     }
 
     @Override
     public boolean contains(Object o) {
-        return this.getReference().contains(o);
+        return getReference().contains(o);
     }
 
     @Override
     public Iterator<E> iterator() {
-        return this.getReference().iterator();
+        return getReference().iterator();
     }
 
     @Override
     public Object[] toArray() {
-        return this.getReference().toArray();
+        return getReference().toArray();
     }
 
     @Override
     public <T> T[] toArray(T[] a) {
-        return this.getReference().toArray(a);
+        return getReference().toArray(a);
     }
 
     @Override
     public boolean add(E o) {
-        return this.getReference().add(o);
+        return getReference().add(o);
     }
 
     @Override
     public boolean remove(Object o) {
-        return this.getReference().remove(o);
+        return getReference().remove(o);
     }
 
     @Override
     public boolean containsAll(Collection<?> c) {
-        return this.getReference().containsAll(c);
+        return getReference().containsAll(c);
     }
 
     @Override
     public boolean addAll(Collection<? extends E> c) {
-        return this.getReference().addAll(c);
+        return getReference().addAll(c);
     }
 
     @Override
     public boolean retainAll(Collection<?> c) {
-        return this.getReference().retainAll(c);
+        return getReference().retainAll(c);
     }
 
     @Override
     public boolean removeAll(Collection<?> c) {
-        return this.getReference().removeAll(c);
+        return getReference().removeAll(c);
     }
 
     @Override
     public void clear() {
-        this.getReference().clear();
+        getReference().clear();
     }
 
     public Set<E> getReference() {
@@ -77,18 +77,18 @@ public abstract class LazyHashSet<E> implements Set<E> {
         if (reference != null) {
             return reference;
         }
-        return this.reference = this.makeReference();
+        return this.reference = makeReference();
     }
 
     abstract Set<E> makeReference();
 
     public boolean isLazy() {
-        return this.reference == null;
+        return reference == null;
     }
 
     @Override
     public int hashCode() {
-        return 157 * this.getReference().hashCode();
+        return 157 * getReference().hashCode();
     }
 
     @Override
@@ -105,6 +105,6 @@ public abstract class LazyHashSet<E> implements Set<E> {
 
     @Override
     public String toString() {
-        return this.getReference().toString();
+        return getReference().toString();
     }
 }

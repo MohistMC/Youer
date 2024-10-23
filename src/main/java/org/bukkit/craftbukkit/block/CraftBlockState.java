@@ -5,7 +5,8 @@ import java.lang.ref.WeakReference;
 import java.util.List;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.GeneratorAccess;
+import net.minecraft.world.level.block.state.IBlockData;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -26,15 +27,15 @@ public class CraftBlockState implements BlockState {
 
     protected final CraftWorld world;
     private final BlockPos position;
-    protected net.minecraft.world.level.block.state.BlockState data;
+    protected IBlockData data;
     protected int flag;
-    private WeakReference<LevelAccessor> weakWorld;
+    private WeakReference<GeneratorAccess> weakWorld;
 
     protected CraftBlockState(final Block block) {
         this(block.getWorld(), ((CraftBlock) block).getPosition(), ((CraftBlock) block).getNMS());
         this.flag = 3;
 
-        this.setWorldHandle(((CraftBlock) block).getHandle());
+        setWorldHandle(((CraftBlock) block).getHandle());
     }
 
     protected CraftBlockState(final Block block, int flag) {
@@ -43,10 +44,10 @@ public class CraftBlockState implements BlockState {
     }
 
     // world can be null for non-placed BlockStates.
-    protected CraftBlockState(@Nullable World world, BlockPos blockPosition, net.minecraft.world.level.block.state.BlockState blockData) {
+    protected CraftBlockState(@Nullable World world, BlockPos blockPosition, IBlockData blockData) {
         this.world = (CraftWorld) world;
-        this.position = blockPosition;
-        this.data = blockData;
+        position = blockPosition;
+        data = blockData;
     }
 
     // Creates an unplaced copy of the given CraftBlockState at the given location
@@ -56,15 +57,15 @@ public class CraftBlockState implements BlockState {
             this.position = state.getPosition().immutable();
         } else {
             this.world = (CraftWorld) location.getWorld();
-            this.position = CraftLocation.toBlockPosition(location);
+            this.position = CraftLocation.toBlockPos(location);
         }
         this.data = state.data;
         this.flag = state.flag;
-        this.setWorldHandle(state.getWorldHandle());
+        setWorldHandle(state.getWorldHandle());
     }
 
-    public void setWorldHandle(LevelAccessor generatorAccess) {
-        if (generatorAccess instanceof net.minecraft.world.level.Level) {
+    public void setWorldHandle(GeneratorAccess generatorAccess) {
+        if (generatorAccess instanceof net.minecraft.world.level.World) {
             this.weakWorld = null;
         } else {
             this.weakWorld = new WeakReference<>(generatorAccess);
@@ -73,57 +74,57 @@ public class CraftBlockState implements BlockState {
 
     // Returns null if weakWorld is not available and the BlockState is not placed.
     // If this returns a World instead of only a GeneratorAccess, this implies that this BlockState is placed.
-    public LevelAccessor getWorldHandle() {
-        if (this.weakWorld == null) {
-            return this.isPlaced() ? this.world.getHandle() : null;
+    public GeneratorAccess getWorldHandle() {
+        if (weakWorld == null) {
+            return this.isPlaced() ? world.getHandle() : null;
         }
 
-        LevelAccessor access = this.weakWorld.get();
+        GeneratorAccess access = weakWorld.get();
         if (access == null) {
-            this.weakWorld = null;
-            return this.isPlaced() ? this.world.getHandle() : null;
+            weakWorld = null;
+            return this.isPlaced() ? world.getHandle() : null;
         }
 
         return access;
     }
 
     protected final boolean isWorldGeneration() {
-        LevelAccessor generatorAccess = this.getWorldHandle();
-        return generatorAccess != null && !(generatorAccess instanceof net.minecraft.world.level.Level);
+        GeneratorAccess generatorAccess = this.getWorldHandle();
+        return generatorAccess != null && !(generatorAccess instanceof net.minecraft.world.level.World);
     }
 
     protected final void ensureNoWorldGeneration() {
-        Preconditions.checkState(!this.isWorldGeneration(), "This operation is not supported during world generation!");
+        Preconditions.checkState(!isWorldGeneration(), "This operation is not supported during world generation!");
     }
 
     @Override
     public World getWorld() {
-        this.requirePlaced();
-        return this.world;
+        requirePlaced();
+        return world;
     }
 
     @Override
     public int getX() {
-        return this.position.getX();
+        return position.getX();
     }
 
     @Override
     public int getY() {
-        return this.position.getY();
+        return position.getY();
     }
 
     @Override
     public int getZ() {
-        return this.position.getZ();
+        return position.getZ();
     }
 
     @Override
     public Chunk getChunk() {
-        this.requirePlaced();
-        return this.world.getChunkAt(this.getX() >> 4, this.getZ() >> 4);
+        requirePlaced();
+        return world.getChunkAt(getX() >> 4, getZ() >> 4);
     }
 
-    public void setData(net.minecraft.world.level.block.state.BlockState data) {
+    public void setData(IBlockData data) {
         this.data = data;
     }
 
@@ -131,13 +132,13 @@ public class CraftBlockState implements BlockState {
         return this.position;
     }
 
-    public net.minecraft.world.level.block.state.BlockState getHandle() {
+    public IBlockData getHandle() {
         return this.data;
     }
 
     @Override
     public BlockData getBlockData() {
-        return CraftBlockData.fromData(this.data);
+        return CraftBlockData.fromData(data);
     }
 
     @Override
@@ -160,7 +161,7 @@ public class CraftBlockState implements BlockState {
 
     @Override
     public MaterialData getData() {
-        return CraftMagicNumbers.getMaterial(this.data);
+        return CraftMagicNumbers.getMaterial(data);
     }
 
     @Override
@@ -175,7 +176,7 @@ public class CraftBlockState implements BlockState {
 
     @Override
     public Material getType() {
-        return CraftBlockType.minecraftToBukkit(this.data.getBlock());
+        return CraftBlockType.minecraftToBukkit(data.getBlock());
     }
 
     public void setFlag(int flag) {
@@ -183,49 +184,49 @@ public class CraftBlockState implements BlockState {
     }
 
     public int getFlag() {
-        return this.flag;
+        return flag;
     }
 
     @Override
     public byte getLightLevel() {
-        return this.getBlock().getLightLevel();
+        return getBlock().getLightLevel();
     }
 
     @Override
     public CraftBlock getBlock() {
-        this.requirePlaced();
-        return CraftBlock.at(this.getWorldHandle(), this.position);
+        requirePlaced();
+        return CraftBlock.at(getWorldHandle(), position);
     }
 
     @Override
     public boolean update() {
-        return this.update(false);
+        return update(false);
     }
 
     @Override
     public boolean update(boolean force) {
-        return this.update(force, true);
+        return update(force, true);
     }
 
     @Override
     public boolean update(boolean force, boolean applyPhysics) {
-        if (!this.isPlaced()) {
+        if (!isPlaced()) {
             return true;
         }
-        LevelAccessor access = this.getWorldHandle();
-        CraftBlock block = this.getBlock();
+        GeneratorAccess access = getWorldHandle();
+        CraftBlock block = getBlock();
 
-        if (block.getType() != this.getType()) {
+        if (block.getType() != getType()) {
             if (!force) {
                 return false;
             }
         }
 
-        net.minecraft.world.level.block.state.BlockState newBlock = this.data;
+        IBlockData newBlock = this.data;
         block.setTypeAndData(newBlock, applyPhysics);
-        if (access instanceof net.minecraft.world.level.Level) {
-            this.world.getHandle().sendBlockUpdated(
-                    this.position,
+        if (access instanceof net.minecraft.world.level.World) {
+            world.getHandle().sendBlockUpdated(
+                    position,
                     block.getNMS(),
                     newBlock,
                     3
@@ -233,8 +234,8 @@ public class CraftBlockState implements BlockState {
         }
 
         // Update levers etc
-        if (false && applyPhysics && this.getData() instanceof Attachable) { // Call does not map to new API
-            this.world.getHandle().updateNeighborsAt(this.position.relative(CraftBlock.blockFaceToNotch(((Attachable) this.getData()).getAttachedFace())), newBlock.getBlock());
+        if (false && applyPhysics && getData() instanceof Attachable) { // Call does not map to new API
+            world.getHandle().updateNeighborsAt(position.relative(CraftBlock.blockFaceToNotch(((Attachable) getData()).getAttachedFace())), newBlock.getBlock());
         }
 
         return true;
@@ -242,7 +243,7 @@ public class CraftBlockState implements BlockState {
 
     @Override
     public byte getRawData() {
-        return CraftMagicNumbers.toLegacyData(this.data);
+        return CraftMagicNumbers.toLegacyData(data);
     }
 
     @Override
@@ -253,10 +254,10 @@ public class CraftBlockState implements BlockState {
     @Override
     public Location getLocation(Location loc) {
         if (loc != null) {
-            loc.setWorld(this.world);
-            loc.setX(this.getX());
-            loc.setY(this.getY());
-            loc.setZ(this.getZ());
+            loc.setWorld(world);
+            loc.setX(getX());
+            loc.setY(getY());
+            loc.setZ(getZ());
             loc.setYaw(0);
             loc.setPitch(0);
         }
@@ -266,7 +267,7 @@ public class CraftBlockState implements BlockState {
 
     @Override
     public void setRawData(byte data) {
-        this.data = CraftMagicNumbers.getBlock(this.getType(), data);
+        this.data = CraftMagicNumbers.getBlock(getType(), data);
     }
 
     @Override
@@ -274,7 +275,7 @@ public class CraftBlockState implements BlockState {
         if (obj == null) {
             return false;
         }
-        if (this.getClass() != obj.getClass()) {
+        if (getClass() != obj.getClass()) {
             return false;
         }
         final CraftBlockState other = (CraftBlockState) obj;
@@ -301,35 +302,35 @@ public class CraftBlockState implements BlockState {
 
     @Override
     public void setMetadata(String metadataKey, MetadataValue newMetadataValue) {
-        this.requirePlaced();
-        this.world.getBlockMetadata().setMetadata(this.getBlock(), metadataKey, newMetadataValue);
+        requirePlaced();
+        world.getBlockMetadata().setMetadata(getBlock(), metadataKey, newMetadataValue);
     }
 
     @Override
     public List<MetadataValue> getMetadata(String metadataKey) {
-        this.requirePlaced();
-        return this.world.getBlockMetadata().getMetadata(this.getBlock(), metadataKey);
+        requirePlaced();
+        return world.getBlockMetadata().getMetadata(getBlock(), metadataKey);
     }
 
     @Override
     public boolean hasMetadata(String metadataKey) {
-        this.requirePlaced();
-        return this.world.getBlockMetadata().hasMetadata(this.getBlock(), metadataKey);
+        requirePlaced();
+        return world.getBlockMetadata().hasMetadata(getBlock(), metadataKey);
     }
 
     @Override
     public void removeMetadata(String metadataKey, Plugin owningPlugin) {
-        this.requirePlaced();
-        this.world.getBlockMetadata().removeMetadata(this.getBlock(), metadataKey, owningPlugin);
+        requirePlaced();
+        world.getBlockMetadata().removeMetadata(getBlock(), metadataKey, owningPlugin);
     }
 
     @Override
     public boolean isPlaced() {
-        return this.world != null;
+        return world != null;
     }
 
     protected void requirePlaced() {
-        Preconditions.checkState(this.isPlaced(), "The blockState must be placed to call this method");
+        Preconditions.checkState(isPlaced(), "The blockState must be placed to call this method");
     }
 
     @Override

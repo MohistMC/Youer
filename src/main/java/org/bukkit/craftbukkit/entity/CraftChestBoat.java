@@ -1,24 +1,24 @@
 package org.bukkit.craftbukkit.entity;
 
-import net.minecraft.world.entity.vehicle.ChestBoat;
+import net.minecraft.world.entity.vehicle.AbstractChestBoat;
 import org.bukkit.craftbukkit.CraftLootTable;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.loot.LootTable;
 
-public class CraftChestBoat extends CraftBoat implements org.bukkit.entity.ChestBoat {
+public abstract class CraftChestBoat extends CraftBoat implements org.bukkit.entity.ChestBoat {
 
     private final Inventory inventory;
 
-    public CraftChestBoat(CraftServer server, ChestBoat entity) {
+    public CraftChestBoat(CraftServer server, AbstractChestBoat entity) {
         super(server, entity);
-        this.inventory = new CraftInventory(entity);
+        inventory = new CraftInventory(entity);
     }
 
     @Override
-    public ChestBoat getHandle() {
-        return (ChestBoat) this.entity;
+    public AbstractChestBoat getHandle() {
+        return (AbstractChestBoat) entity;
     }
 
     @Override
@@ -28,31 +28,31 @@ public class CraftChestBoat extends CraftBoat implements org.bukkit.entity.Chest
 
     @Override
     public Inventory getInventory() {
-        return this.inventory;
+        return inventory;
     }
 
     @Override
     public void setLootTable(LootTable table) {
-        this.setLootTable(table, this.getSeed());
+        setLootTable(table, getSeed());
     }
 
     @Override
     public LootTable getLootTable() {
-        return CraftLootTable.minecraftToBukkit(this.getHandle().getLootTable());
+        return CraftLootTable.minecraftToBukkit(getHandle().getContainerLootTable());
     }
 
     @Override
     public void setSeed(long seed) {
-        this.setLootTable(this.getLootTable(), seed);
+        setLootTable(getLootTable(), seed);
     }
 
     @Override
     public long getSeed() {
-        return this.getHandle().getLootTableSeed();
+        return getHandle().getContainerLootTableSeed();
     }
 
     private void setLootTable(LootTable table, long seed) {
-        this.getHandle().setLootTable(CraftLootTable.bukkitToMinecraft(table));
-        this.getHandle().setLootTableSeed(seed);
+        getHandle().setContainerLootTable(CraftLootTable.bukkitToMinecraft(table));
+        getHandle().setContainerLootTableSeed(seed);
     }
 }

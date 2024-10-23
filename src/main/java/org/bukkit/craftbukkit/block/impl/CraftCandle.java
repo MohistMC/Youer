@@ -9,54 +9,54 @@ public final class CraftCandle extends org.bukkit.craftbukkit.block.data.CraftBl
         super();
     }
 
-    public CraftCandle(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftCandle(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftCandle
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty CANDLES = getInteger(net.minecraft.world.level.block.CandleBlock.class, "candles");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger CANDLES = getInteger(net.minecraft.world.level.block.CandleBlock.class, "candles");
 
     @Override
     public int getCandles() {
-        return this.get(CraftCandle.CANDLES);
+        return get(CANDLES);
     }
 
     @Override
     public void setCandles(int candles) {
-        this.set(CraftCandle.CANDLES, candles);
+        set(CANDLES, candles);
     }
 
     @Override
     public int getMaximumCandles() {
-        return getMax(CraftCandle.CANDLES);
+        return getMax(CANDLES);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftLightable
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty LIT = getBoolean(net.minecraft.world.level.block.CandleBlock.class, "lit");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean LIT = getBoolean(net.minecraft.world.level.block.CandleBlock.class, "lit");
 
     @Override
     public boolean isLit() {
-        return this.get(CraftCandle.LIT);
+        return get(LIT);
     }
 
     @Override
     public void setLit(boolean lit) {
-        this.set(CraftCandle.LIT, lit);
+        set(LIT, lit);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftWaterlogged
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty WATERLOGGED = getBoolean(net.minecraft.world.level.block.CandleBlock.class, "waterlogged");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean WATERLOGGED = getBoolean(net.minecraft.world.level.block.CandleBlock.class, "waterlogged");
 
     @Override
     public boolean isWaterlogged() {
-        return this.get(CraftCandle.WATERLOGGED);
+        return get(WATERLOGGED);
     }
 
     @Override
     public void setWaterlogged(boolean waterlogged) {
-        this.set(CraftCandle.WATERLOGGED, waterlogged);
+        set(WATERLOGGED, waterlogged);
     }
 }

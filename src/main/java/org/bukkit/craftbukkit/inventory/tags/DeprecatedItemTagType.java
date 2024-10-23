@@ -16,13 +16,13 @@ public final class DeprecatedItemTagType<P, C> implements PersistentDataType<P, 
     @NotNull
     @Override
     public Class<P> getPrimitiveType() {
-        return this.deprecated.getPrimitiveType();
+        return deprecated.getPrimitiveType();
     }
 
     @NotNull
     @Override
     public Class<C> getComplexType() {
-        return this.deprecated.getComplexType();
+        return deprecated.getComplexType();
     }
 
     @NotNull

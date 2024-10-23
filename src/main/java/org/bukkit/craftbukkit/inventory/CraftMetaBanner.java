@@ -3,16 +3,14 @@ package org.bukkit.craftbukkit.inventory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.EnumColor;
 import net.minecraft.world.level.block.entity.BannerPatternLayers;
 import org.bukkit.DyeColor;
-import org.bukkit.Material;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.block.banner.PatternType;
 import org.bukkit.configuration.serialization.DelegateDeserialization;
@@ -21,41 +19,6 @@ import org.bukkit.inventory.meta.BannerMeta;
 
 @DelegateDeserialization(SerializableMeta.class)
 public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
-
-    private static final Set<Material> BANNER_MATERIALS = Sets.newHashSet(
-            Material.BLACK_BANNER,
-            Material.BLACK_WALL_BANNER,
-            Material.BLUE_BANNER,
-            Material.BLUE_WALL_BANNER,
-            Material.BROWN_BANNER,
-            Material.BROWN_WALL_BANNER,
-            Material.CYAN_BANNER,
-            Material.CYAN_WALL_BANNER,
-            Material.GRAY_BANNER,
-            Material.GRAY_WALL_BANNER,
-            Material.GREEN_BANNER,
-            Material.GREEN_WALL_BANNER,
-            Material.LIGHT_BLUE_BANNER,
-            Material.LIGHT_BLUE_WALL_BANNER,
-            Material.LIGHT_GRAY_BANNER,
-            Material.LIGHT_GRAY_WALL_BANNER,
-            Material.LIME_BANNER,
-            Material.LIME_WALL_BANNER,
-            Material.MAGENTA_BANNER,
-            Material.MAGENTA_WALL_BANNER,
-            Material.ORANGE_BANNER,
-            Material.ORANGE_WALL_BANNER,
-            Material.PINK_BANNER,
-            Material.PINK_WALL_BANNER,
-            Material.PURPLE_BANNER,
-            Material.PURPLE_WALL_BANNER,
-            Material.RED_BANNER,
-            Material.RED_WALL_BANNER,
-            Material.WHITE_BANNER,
-            Material.WHITE_WALL_BANNER,
-            Material.YELLOW_BANNER,
-            Material.YELLOW_WALL_BANNER
-    );
 
     static final ItemMetaKeyType<BannerPatternLayers> PATTERNS = new ItemMetaKeyType<>(DataComponents.BANNER_PATTERNS, "patterns");
 
@@ -69,16 +32,16 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
         }
 
         CraftMetaBanner banner = (CraftMetaBanner) meta;
-        this.patterns = new ArrayList<Pattern>(banner.patterns);
+        patterns = new ArrayList<Pattern>(banner.patterns);
     }
 
     CraftMetaBanner(DataComponentPatch tag) {
         super(tag);
 
-        getOrEmpty(tag, CraftMetaBanner.PATTERNS).ifPresent((entityTag) -> {
-            List<BannerPatternLayers.Layer> patterns = entityTag.layers();
+        getOrEmpty(tag, PATTERNS).ifPresent((entityTag) -> {
+            List<BannerPatternLayers.b> patterns = entityTag.layers();
             for (int i = 0; i < Math.min(patterns.size(), 20); i++) {
-                BannerPatternLayers.Layer p = patterns.get(i);
+                BannerPatternLayers.b p = patterns.get(i);
                 DyeColor color = DyeColor.getByWoolData((byte) p.color().getId());
                 PatternType pattern = CraftPatternType.minecraftHolderToBukkit(p.pattern());
 
@@ -92,14 +55,14 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
     CraftMetaBanner(Map<String, Object> map) {
         super(map);
 
-        Iterable<?> rawPatternList = SerializableMeta.getObject(Iterable.class, map, CraftMetaBanner.PATTERNS.BUKKIT, true);
+        Iterable<?> rawPatternList = SerializableMeta.getObject(Iterable.class, map, PATTERNS.BUKKIT, true);
         if (rawPatternList == null) {
             return;
         }
 
         for (Object obj : rawPatternList) {
             Preconditions.checkArgument(obj instanceof Pattern, "Object (%s) in pattern list is not valid", obj.getClass());
-            this.addPattern((Pattern) obj);
+            addPattern((Pattern) obj);
         }
     }
 
@@ -107,18 +70,18 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
     void applyToItem(CraftMetaItem.Applicator tag) {
         super.applyToItem(tag);
 
-        List<BannerPatternLayers.Layer> newPatterns = new ArrayList<>();
+        List<BannerPatternLayers.b> newPatterns = new ArrayList<>();
 
-        for (Pattern p : this.patterns) {
-            newPatterns.add(new BannerPatternLayers.Layer(CraftPatternType.bukkitToMinecraftHolder(p.getPattern()), net.minecraft.world.item.DyeColor.byId(p.getColor().getWoolData())));
+        for (Pattern p : patterns) {
+            newPatterns.add(new BannerPatternLayers.b(CraftPatternType.bukkitToMinecraftHolder(p.getPattern()), EnumColor.byId(p.getColor().getWoolData())));
         }
 
-        tag.put(CraftMetaBanner.PATTERNS, new BannerPatternLayers(newPatterns));
+        tag.put(PATTERNS, new BannerPatternLayers(newPatterns));
     }
 
     @Override
     public List<Pattern> getPatterns() {
-        return new ArrayList<Pattern>(this.patterns);
+        return new ArrayList<Pattern>(patterns);
     }
 
     @Override
@@ -128,35 +91,35 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
 
     @Override
     public void addPattern(Pattern pattern) {
-        this.patterns.add(pattern);
+        patterns.add(pattern);
     }
 
     @Override
     public Pattern getPattern(int i) {
-        return this.patterns.get(i);
+        return patterns.get(i);
     }
 
     @Override
     public Pattern removePattern(int i) {
-        return this.patterns.remove(i);
+        return patterns.remove(i);
     }
 
     @Override
     public void setPattern(int i, Pattern pattern) {
-        this.patterns.set(i, pattern);
+        patterns.set(i, pattern);
     }
 
     @Override
     public int numberOfPatterns() {
-        return this.patterns.size();
+        return patterns.size();
     }
 
     @Override
     ImmutableMap.Builder<String, Object> serialize(ImmutableMap.Builder<String, Object> builder) {
         super.serialize(builder);
 
-        if (!this.patterns.isEmpty()) {
-            builder.put(CraftMetaBanner.PATTERNS.BUKKIT, ImmutableList.copyOf(this.patterns));
+        if (!patterns.isEmpty()) {
+            builder.put(PATTERNS.BUKKIT, ImmutableList.copyOf(patterns));
         }
 
         return builder;
@@ -166,8 +129,8 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
     int applyHash() {
         final int original;
         int hash = original = super.applyHash();
-        if (!this.patterns.isEmpty()) {
-            hash = 31 * hash + this.patterns.hashCode();
+        if (!patterns.isEmpty()) {
+            hash = 31 * hash + patterns.hashCode();
         }
         return original != hash ? CraftMetaBanner.class.hashCode() ^ hash : hash;
     }
@@ -180,30 +143,25 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
         if (meta instanceof CraftMetaBanner) {
             CraftMetaBanner that = (CraftMetaBanner) meta;
 
-            return this.patterns.equals(that.patterns);
+            return patterns.equals(that.patterns);
         }
         return true;
     }
 
     @Override
     boolean notUncommon(CraftMetaItem meta) {
-        return super.notUncommon(meta) && (meta instanceof CraftMetaBanner || this.patterns.isEmpty());
+        return super.notUncommon(meta) && (meta instanceof CraftMetaBanner || patterns.isEmpty());
     }
 
     @Override
     boolean isEmpty() {
-        return super.isEmpty() && this.patterns.isEmpty();
-    }
-
-    @Override
-    boolean applicableTo(Material type) {
-        return CraftMetaBanner.BANNER_MATERIALS.contains(type);
+        return super.isEmpty() && patterns.isEmpty();
     }
 
     @Override
     public CraftMetaBanner clone() {
         CraftMetaBanner meta = (CraftMetaBanner) super.clone();
-        meta.patterns = new ArrayList<>(this.patterns);
+        meta.patterns = new ArrayList<>(patterns);
         return meta;
     }
 }

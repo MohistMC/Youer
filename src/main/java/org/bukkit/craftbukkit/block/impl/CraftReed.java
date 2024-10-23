@@ -9,26 +9,26 @@ public final class CraftReed extends org.bukkit.craftbukkit.block.data.CraftBloc
         super();
     }
 
-    public CraftReed(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftReed(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftAgeable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty AGE = getInteger(net.minecraft.world.level.block.SugarCaneBlock.class, "age");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger AGE = getInteger(net.minecraft.world.level.block.BlockReed.class, "age");
 
     @Override
     public int getAge() {
-        return this.get(CraftReed.AGE);
+        return get(AGE);
     }
 
     @Override
     public void setAge(int age) {
-        this.set(CraftReed.AGE, age);
+        set(AGE, age);
     }
 
     @Override
     public int getMaximumAge() {
-        return getMax(CraftReed.AGE);
+        return getMax(AGE);
     }
 }

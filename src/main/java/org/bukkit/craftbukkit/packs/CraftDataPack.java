@@ -3,10 +3,10 @@ package org.bukkit.craftbukkit.packs;
 import java.io.IOException;
 import java.util.Set;
 import java.util.stream.Collectors;
-import net.minecraft.server.packs.PackResources;
-import net.minecraft.server.packs.metadata.pack.PackMetadataSection;
-import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.server.packs.IResourcePack;
+import net.minecraft.server.packs.metadata.pack.ResourcePackInfo;
 import net.minecraft.server.packs.repository.PackSource;
+import net.minecraft.server.packs.repository.ResourcePackLoader;
 import net.minecraft.util.InclusiveRange;
 import org.bukkit.Bukkit;
 import org.bukkit.FeatureFlag;
@@ -18,24 +18,24 @@ import org.bukkit.packs.DataPack;
 
 public class CraftDataPack implements DataPack {
 
-    private final Pack handle;
-    private final PackMetadataSection resourcePackInfo;
+    private final ResourcePackLoader handle;
+    private final ResourcePackInfo resourcePackInfo;
 
-    public CraftDataPack(Pack handler) {
+    public CraftDataPack(ResourcePackLoader handler) {
         this.handle = handler;
-        try (PackResources iresourcepack = this.handle.resources.openPrimary(this.handle.location())) {
-            this.resourcePackInfo = iresourcepack.getMetadataSection(PackMetadataSection.TYPE);
+        try (IResourcePack iresourcepack = this.handle.resources.openPrimary(this.handle.location())) {
+            this.resourcePackInfo = iresourcepack.getMetadataSection(ResourcePackInfo.TYPE);
         } catch (IOException e) { // This is already called in NMS then if in NMS not happen is secure this not throw here
             throw new RuntimeException(e);
         }
     }
 
-    public Pack getHandle() {
+    public ResourcePackLoader getHandle() {
         return this.handle;
     }
 
     public String getRawId() {
-        return this.getHandle().getId();
+        return getHandle().getId();
     }
 
     @Override
@@ -65,7 +65,7 @@ public class CraftDataPack implements DataPack {
 
     @Override
     public boolean isRequired() {
-        return this.getHandle().isRequired();
+        return getHandle().isRequired();
     }
 
     @Override
@@ -79,7 +79,7 @@ public class CraftDataPack implements DataPack {
 
     @Override
     public boolean isEnabled() {
-        return ((CraftServer) Bukkit.getServer()).getServer().getPackRepository().getSelectedIds().contains(this.getRawId());
+        return ((CraftServer) Bukkit.getServer()).getServer().getPackRepository().getSelectedIds().contains(getRawId());
     }
 
     @Override
@@ -103,12 +103,12 @@ public class CraftDataPack implements DataPack {
 
     @Override
     public NamespacedKey getKey() {
-        return NamespacedKey.fromString(this.getRawId());
+        return NamespacedKey.fromString(getRawId());
     }
 
     @Override
     public String toString() {
-        String requestedFeatures = this.getRequestedFeatures().stream().map(featureFlag -> featureFlag.getKey().toString()).collect(Collectors.joining(","));
+        String requestedFeatures = getRequestedFeatures().stream().map(featureFlag -> featureFlag.getKey().toString()).collect(Collectors.joining(","));
         return "CraftDataPack{rawId=" + this.getRawId() + ",id=" + this.getKey() + ",title=" + this.getTitle() + ",description=" + this.getDescription() + ",packformat=" + this.getPackFormat() + ",minSupportedPackFormat=" + this.getMinSupportedPackFormat() + ",maxSupportedPackFormat=" + this.getMaxSupportedPackFormat() + ",compatibility=" + this.getCompatibility() + ",source=" + this.getSource() + ",enabled=" + this.isEnabled() + ",requestedFeatures=[" + requestedFeatures + "]}";
     }
 }

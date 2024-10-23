@@ -2,7 +2,7 @@ package org.bukkit.craftbukkit.enchantments;
 
 import com.google.common.base.Preconditions;
 import java.util.Locale;
-import net.minecraft.Util;
+import net.minecraft.SystemUtils;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.EnchantmentTags;
@@ -25,7 +25,7 @@ public class CraftEnchantment extends Enchantment implements Handleable<net.mine
     }
 
     public static Enchantment minecraftHolderToBukkit(Holder<net.minecraft.world.item.enchantment.Enchantment> minecraft) {
-        return CraftEnchantment.minecraftToBukkit(minecraft.value());
+        return minecraftToBukkit(minecraft.value());
     }
 
     public static net.minecraft.world.item.enchantment.Enchantment bukkitToMinecraft(Enchantment bukkit) {
@@ -65,22 +65,22 @@ public class CraftEnchantment extends Enchantment implements Handleable<net.mine
 
     @Override
     public net.minecraft.world.item.enchantment.Enchantment getHandle() {
-        return this.handle.value();
+        return handle.value();
     }
 
     @Override
     public NamespacedKey getKey() {
-        return this.key;
+        return key;
     }
 
     @Override
     public int getMaxLevel() {
-        return this.getHandle().getMaxLevel();
+        return getHandle().getMaxLevel();
     }
 
     @Override
     public int getStartLevel() {
-        return this.getHandle().getMinLevel();
+        return getHandle().getMinLevel();
     }
 
     @Override
@@ -100,7 +100,7 @@ public class CraftEnchantment extends Enchantment implements Handleable<net.mine
 
     @Override
     public boolean canEnchantItem(ItemStack item) {
-        return this.getHandle().canEnchant(CraftItemStack.asNMSCopy(item));
+        return getHandle().canEnchant(CraftItemStack.asNMSCopy(item));
     }
 
     @Override
@@ -148,7 +148,7 @@ public class CraftEnchantment extends Enchantment implements Handleable<net.mine
 
     @Override
     public String getTranslationKey() {
-        return Util.makeDescriptionId("enchantment", handle.unwrapKey().get().location());
+        return SystemUtils.makeDescriptionId("enchantment", handle.unwrapKey().get().location());
     }
 
     @Override
@@ -161,16 +161,16 @@ public class CraftEnchantment extends Enchantment implements Handleable<net.mine
             return false;
         }
 
-        return this.getKey().equals(((Enchantment) other).getKey());
+        return getKey().equals(((Enchantment) other).getKey());
     }
 
     @Override
     public int hashCode() {
-        return this.getKey().hashCode();
+        return getKey().hashCode();
     }
 
     @Override
     public String toString() {
-        return "CraftEnchantment[" + this.getKey() + "]";
+        return "CraftEnchantment[" + getKey() + "]";
     }
 }

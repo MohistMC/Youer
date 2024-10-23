@@ -9,50 +9,50 @@ public final class CraftTurtleEgg extends org.bukkit.craftbukkit.block.data.Craf
         super();
     }
 
-    public CraftTurtleEgg(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftTurtleEgg(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftTurtleEgg
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty EGGS = getInteger(net.minecraft.world.level.block.TurtleEggBlock.class, "eggs");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger EGGS = getInteger(net.minecraft.world.level.block.BlockTurtleEgg.class, "eggs");
 
     @Override
     public int getEggs() {
-        return this.get(CraftTurtleEgg.EGGS);
+        return get(EGGS);
     }
 
     @Override
     public void setEggs(int eggs) {
-        this.set(CraftTurtleEgg.EGGS, eggs);
+        set(EGGS, eggs);
     }
 
     @Override
     public int getMinimumEggs() {
-        return getMin(CraftTurtleEgg.EGGS);
+        return getMin(EGGS);
     }
 
     @Override
     public int getMaximumEggs() {
-        return getMax(CraftTurtleEgg.EGGS);
+        return getMax(EGGS);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftHatchable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty HATCH = getInteger(net.minecraft.world.level.block.TurtleEggBlock.class, "hatch");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger HATCH = getInteger(net.minecraft.world.level.block.BlockTurtleEgg.class, "hatch");
 
     @Override
     public int getHatch() {
-        return this.get(CraftTurtleEgg.HATCH);
+        return get(HATCH);
     }
 
     @Override
     public void setHatch(int hatch) {
-        this.set(CraftTurtleEgg.HATCH, hatch);
+        set(HATCH, hatch);
     }
 
     @Override
     public int getMaximumHatch() {
-        return getMax(CraftTurtleEgg.HATCH);
+        return getMax(HATCH);
     }
 }

@@ -6,8 +6,9 @@ import java.util.List;
 import java.util.Optional;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.random.SimpleWeightedRandomList;
-import net.minecraft.world.entity.vehicle.MinecartSpawner;
-import net.minecraft.world.level.SpawnData;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.vehicle.EntityMinecartMobSpawner;
+import net.minecraft.world.level.MobSpawnerData;
 import org.bukkit.block.spawner.SpawnRule;
 import org.bukkit.block.spawner.SpawnerEntry;
 import org.bukkit.craftbukkit.CraftServer;
@@ -17,19 +18,18 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.minecart.SpawnerMinecart;
 
 final class CraftMinecartMobSpawner extends CraftMinecart implements SpawnerMinecart {
-    CraftMinecartMobSpawner(CraftServer server, MinecartSpawner entity) {
+    CraftMinecartMobSpawner(CraftServer server, EntityMinecartMobSpawner entity) {
         super(server, entity);
     }
 
-
     @Override
     public EntityType getSpawnedType() {
-        SpawnData spawnData = getHandle().getSpawner().nextSpawnData;
+        MobSpawnerData spawnData = getHandle().getSpawner().nextSpawnData;
         if (spawnData == null) {
             return null;
         }
 
-        Optional<net.minecraft.world.entity.EntityType<?>> type = net.minecraft.world.entity.EntityType.by(spawnData.getEntityToSpawn());
+        Optional<EntityTypes<?>> type = EntityTypes.by(spawnData.getEntityToSpawn());
         return type.map(CraftEntityType::minecraftToBukkit).orElse(null);
     }
 
@@ -37,7 +37,7 @@ final class CraftMinecartMobSpawner extends CraftMinecart implements SpawnerMine
     public void setSpawnedType(EntityType entityType) {
         if (entityType == null) {
             getHandle().getSpawner().spawnPotentials = SimpleWeightedRandomList.empty(); // need clear the spawnPotentials to avoid nextSpawnData being replaced later
-            getHandle().getSpawner().nextSpawnData = new SpawnData();
+            getHandle().getSpawner().nextSpawnData = new MobSpawnerData();
             return;
         }
         Preconditions.checkArgument(entityType != EntityType.UNKNOWN, "Can't spawn EntityType %s from mob spawners!", entityType);
@@ -48,7 +48,7 @@ final class CraftMinecartMobSpawner extends CraftMinecart implements SpawnerMine
 
     @Override
     public EntitySnapshot getSpawnedEntity() {
-        SpawnData spawnData = getHandle().getSpawner().nextSpawnData;
+        MobSpawnerData spawnData = getHandle().getSpawner().nextSpawnData;
         if (spawnData == null) {
             return null;
         }
@@ -164,8 +164,8 @@ final class CraftMinecartMobSpawner extends CraftMinecart implements SpawnerMine
     }
 
     @Override
-    public MinecartSpawner getHandle() {
-        return (MinecartSpawner) entity;
+    public EntityMinecartMobSpawner getHandle() {
+        return (EntityMinecartMobSpawner) entity;
     }
 
     @Override

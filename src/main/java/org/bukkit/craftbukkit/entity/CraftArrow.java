@@ -5,7 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import net.minecraft.core.Holder;
 import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffectList;
+import net.minecraft.world.entity.projectile.EntityTippedArrow;
 import net.minecraft.world.item.alchemy.PotionContents;
 import org.bukkit.Color;
 import org.bukkit.craftbukkit.CraftServer;
@@ -20,13 +21,13 @@ import org.bukkit.potion.PotionType;
 
 public class CraftArrow extends CraftAbstractArrow implements Arrow {
 
-    public CraftArrow(CraftServer server, net.minecraft.world.entity.projectile.Arrow entity) {
+    public CraftArrow(CraftServer server, EntityTippedArrow entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.projectile.Arrow getHandle() {
-        return (net.minecraft.world.entity.projectile.Arrow) this.entity;
+    public EntityTippedArrow getHandle() {
+        return (EntityTippedArrow) entity;
     }
 
     @Override
@@ -36,28 +37,28 @@ public class CraftArrow extends CraftAbstractArrow implements Arrow {
 
     @Override
     public boolean addCustomEffect(PotionEffect effect, boolean override) {
-        if (this.hasCustomEffect(effect.getType())) {
+        if (hasCustomEffect(effect.getType())) {
             if (!override) {
                 return false;
             }
-            this.removeCustomEffect(effect.getType());
+            removeCustomEffect(effect.getType());
         }
-        this.getHandle().addEffect(CraftPotionUtil.fromBukkit(effect));
-        this.getHandle().updateColor();
+        getHandle().addEffect(CraftPotionUtil.fromBukkit(effect));
+        getHandle().updateColor();
         return true;
     }
 
     @Override
     public void clearCustomEffects() {
-        PotionContents old = this.getHandle().getPotionContents();
-        this.getHandle().setPotionContents(new PotionContents(old.potion(), old.customColor(), List.of()));
-        this.getHandle().updateColor();
+        PotionContents old = getHandle().getPotionContents();
+        getHandle().setPotionContents(new PotionContents(old.potion(), old.customColor(), List.of(), old.customName()));
+        getHandle().updateColor();
     }
 
     @Override
     public List<PotionEffect> getCustomEffects() {
         ImmutableList.Builder<PotionEffect> builder = ImmutableList.builder();
-        for (MobEffectInstance effect : this.getHandle().getPotionContents().customEffects()) {
+        for (MobEffect effect : getHandle().getPotionContents().customEffects()) {
             builder.add(CraftPotionUtil.toBukkit(effect));
         }
         return builder.build();
@@ -65,7 +66,7 @@ public class CraftArrow extends CraftAbstractArrow implements Arrow {
 
     @Override
     public boolean hasCustomEffect(PotionEffectType type) {
-        for (MobEffectInstance effect : this.getHandle().getPotionContents().customEffects()) {
+        for (MobEffect effect : getHandle().getPotionContents().customEffects()) {
             if (CraftPotionUtil.equals(effect.getEffect(), type)) {
                 return true;
             }
@@ -75,18 +76,18 @@ public class CraftArrow extends CraftAbstractArrow implements Arrow {
 
     @Override
     public boolean hasCustomEffects() {
-        return !this.getHandle().getPotionContents().customEffects().isEmpty();
+        return !getHandle().getPotionContents().customEffects().isEmpty();
     }
 
     @Override
     public boolean removeCustomEffect(PotionEffectType effect) {
-        if (!this.hasCustomEffect(effect)) {
+        if (!hasCustomEffect(effect)) {
             return false;
         }
-        Holder<MobEffect> minecraft = CraftPotionEffectType.bukkitToMinecraftHolder(effect);
+        Holder<MobEffectList> minecraft = CraftPotionEffectType.bukkitToMinecraftHolder(effect);
 
-        PotionContents old = this.getHandle().getPotionContents();
-        this.getHandle().setPotionContents(new PotionContents(old.potion(), old.customColor(), old.customEffects().stream().filter((mobEffect) -> !mobEffect.getEffect().equals(minecraft)).toList()));
+        PotionContents old = getHandle().getPotionContents();
+        getHandle().setPotionContents(new PotionContents(old.potion(), old.customColor(), old.customEffects().stream().filter((mobEffect) -> !mobEffect.getEffect().equals(minecraft)).toList(), old.customName()));
         return true;
     }
 
@@ -103,30 +104,30 @@ public class CraftArrow extends CraftAbstractArrow implements Arrow {
     @Override
     public void setBasePotionType(PotionType potionType) {
         if (potionType != null) {
-            this.getHandle().setPotionContents(this.getHandle().getPotionContents().withPotion(CraftPotionType.bukkitToMinecraftHolder(potionType)));
+            getHandle().setPotionContents(getHandle().getPotionContents().withPotion(CraftPotionType.bukkitToMinecraftHolder(potionType)));
         } else {
-            PotionContents old = this.getHandle().getPotionContents();
-            this.getHandle().setPotionContents(new PotionContents(Optional.empty(), old.customColor(), old.customEffects()));
+            PotionContents old = getHandle().getPotionContents();
+            getHandle().setPotionContents(new PotionContents(Optional.empty(), old.customColor(), old.customEffects(), old.customName()));
         }
     }
 
     @Override
     public PotionType getBasePotionType() {
-        return this.getHandle().getPotionContents().potion().map(CraftPotionType::minecraftHolderToBukkit).orElse(null);
+        return getHandle().getPotionContents().potion().map(CraftPotionType::minecraftHolderToBukkit).orElse(null);
     }
 
     @Override
     public void setColor(Color color) {
         int colorRGB = (color == null) ? -1 : color.asRGB();
-        PotionContents old = this.getHandle().getPotionContents();
-        this.getHandle().setPotionContents(new PotionContents(old.potion(), Optional.of(colorRGB), old.customEffects()));
+        PotionContents old = getHandle().getPotionContents();
+        getHandle().setPotionContents(new PotionContents(old.potion(), Optional.of(colorRGB), old.customEffects(), old.customName()));
     }
 
     @Override
     public Color getColor() {
-        if (this.getHandle().getColor() <= -1) {
+        if (getHandle().getColor() <= -1) {
             return null;
         }
-        return Color.fromRGB(this.getHandle().getColor());
+        return Color.fromRGB(getHandle().getColor());
     }
 }

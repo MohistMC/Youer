@@ -6,6 +6,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import org.bukkit.block.Banner;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.SerializableAs;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -30,6 +31,7 @@ public final class SerializableMeta implements ConfigurationSerializable {
                 .put(CraftMetaColorableArmor.class, "COLORABLE_ARMOR")
                 .put(CraftMetaMap.class, "MAP")
                 .put(CraftMetaPotion.class, "POTION")
+                .put(CraftMetaShield.class, "SHIELD")
                 .put(CraftMetaSpawnEgg.class, "SPAWN_EGG")
                 .put(CraftMetaEnchantedBook.class, "ENCHANTED")
                 .put(CraftMetaFirework.class, "FIREWORK")
@@ -64,18 +66,24 @@ public final class SerializableMeta implements ConfigurationSerializable {
     public static ItemMeta deserialize(Map<String, Object> map) throws Throwable {
         Preconditions.checkArgument(map != null, "Cannot deserialize null map");
 
-        String type = SerializableMeta.getString(map, SerializableMeta.TYPE_FIELD, false);
-        Constructor<? extends CraftMetaItem> constructor = SerializableMeta.constructorMap.get(type);
+        String type = getString(map, TYPE_FIELD, false);
+        Constructor<? extends CraftMetaItem> constructor = constructorMap.get(type);
 
         if (constructor == null) {
-            throw new IllegalArgumentException(type + " is not a valid " + SerializableMeta.TYPE_FIELD);
+            throw new IllegalArgumentException(type + " is not a valid " + TYPE_FIELD);
         }
 
         try {
-            return constructor.newInstance(map);
-        } catch (final InstantiationException e) {
-            throw new AssertionError(e);
-        } catch (final IllegalAccessException e) {
+            CraftMetaItem meta = constructor.newInstance(map);
+
+            // Convert Shield CraftMetaBlockState to CraftMetaShield
+            if (meta instanceof CraftMetaBlockState state && state.hasBlockState() && state.getBlockState() instanceof Banner) {
+                meta = new CraftMetaShield(meta);
+                meta.unhandledTags.clear(CraftMetaShield.BASE_COLOR.TYPE);
+            }
+
+            return meta;
+        } catch (final InstantiationException | IllegalAccessException e) {
             throw new AssertionError(e);
         } catch (final InvocationTargetException e) {
             throw e.getCause();
@@ -88,11 +96,11 @@ public final class SerializableMeta implements ConfigurationSerializable {
     }
 
     public static String getString(Map<?, ?> map, Object field, boolean nullable) {
-        return SerializableMeta.getObject(String.class, map, field, nullable);
+        return getObject(String.class, map, field, nullable);
     }
 
     public static boolean getBoolean(Map<?, ?> map, Object field) {
-        Boolean value = SerializableMeta.getObject(Boolean.class, map, field, true);
+        Boolean value = getObject(Boolean.class, map, field, true);
         return value != null && value;
     }
 

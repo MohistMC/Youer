@@ -7,804 +7,785 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.core.EnumDirection;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.IRegistry;
+import net.minecraft.core.IRegistryCustom;
+import net.minecraft.core.particles.ParticleParam;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundSource;
+import net.minecraft.server.level.WorldServer;
+import net.minecraft.sounds.SoundCategory;
+import net.minecraft.sounds.SoundEffect;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.Difficulty;
-import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.DifficultyDamageScaler;
+import net.minecraft.world.EnumDifficulty;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.targeting.TargetingConditions;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.EntityHuman;
 import net.minecraft.world.flag.FeatureFlagSet;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ClipBlockStateContext;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.ColorResolver;
-import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.level.WorldGenLevel;
-import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.EnumSkyBlock;
+import net.minecraft.world.level.GeneratorAccessSeed;
+import net.minecraft.world.level.IBlockAccess;
+import net.minecraft.world.level.RayTrace;
+import net.minecraft.world.level.biome.BiomeBase;
 import net.minecraft.world.level.biome.BiomeManager;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.entity.TileEntity;
+import net.minecraft.world.level.block.entity.TileEntityTypes;
+import net.minecraft.world.level.block.state.IBlockData;
 import net.minecraft.world.level.border.WorldBorder;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkSource;
+import net.minecraft.world.level.chunk.IChunkAccess;
+import net.minecraft.world.level.chunk.IChunkProvider;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
-import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.dimension.DimensionManager;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.level.gameevent.GameEvent;
-import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.HeightMap;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.level.material.FluidState;
-import net.minecraft.world.level.storage.LevelData;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.level.material.FluidType;
+import net.minecraft.world.level.storage.WorldData;
+import net.minecraft.world.phys.AxisAlignedBB;
+import net.minecraft.world.phys.MovingObjectPositionBlock;
+import net.minecraft.world.phys.Vec3D;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.VoxelShapeCollision;
 import net.minecraft.world.ticks.LevelTickAccess;
-import net.minecraft.world.ticks.TickPriority;
+import net.minecraft.world.ticks.TickListPriority;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 
-public abstract class DelegatedGeneratorAccess implements WorldGenLevel {
+public abstract class DelegatedGeneratorAccess implements GeneratorAccessSeed {
 
-    private WorldGenLevel handle;
+    private GeneratorAccessSeed handle;
 
-    public void setHandle(WorldGenLevel worldAccess) {
+    public void setHandle(GeneratorAccessSeed worldAccess) {
         this.handle = worldAccess;
     }
 
-    public WorldGenLevel getHandle() {
-        return this.handle;
+    public GeneratorAccessSeed getHandle() {
+        return handle;
     }
 
     @Override
     public long getSeed() {
-        return this.handle.getSeed();
+        return handle.getSeed();
     }
 
     @Override
-    public void setCurrentlyGenerating(Supplier<String> structureName) {
-        this.handle.setCurrentlyGenerating(structureName);
+    public boolean ensureCanWrite(BlockPos var0) {
+        return handle.ensureCanWrite(var0);
     }
 
     @Override
-    public boolean ensureCanWrite(BlockPos pos) {
-        return this.handle.ensureCanWrite(pos);
+    public void setCurrentlyGenerating(Supplier<String> var0) {
+        handle.setCurrentlyGenerating(var0);
     }
 
     @Override
-    public ServerLevel getLevel() {
-        return this.handle.getLevel();
-    }
-
-    @Override
-    public void addFreshEntityWithPassengers(Entity arg0, CreatureSpawnEvent.SpawnReason arg1) {
-        this.handle.addFreshEntityWithPassengers(arg0, arg1);
+    public WorldServer getLevel() {
+        return handle.getLevel();
     }
 
     @Override
     public void addFreshEntityWithPassengers(Entity entity) {
-        this.handle.addFreshEntityWithPassengers(entity);
+        handle.addFreshEntityWithPassengers(entity);
     }
 
     @Override
-    public ServerLevel getMinecraftWorld() {
-        return this.handle.getMinecraftWorld();
+    public void addFreshEntityWithPassengers(Entity entity, CreatureSpawnEvent.SpawnReason reason) {
+        handle.addFreshEntityWithPassengers(entity, reason);
     }
 
     @Override
-    public DifficultyInstance getCurrentDifficultyAt(BlockPos pos) {
-        return this.handle.getCurrentDifficultyAt(pos);
-    }
-
-    @Override
-    public void neighborShapeChanged(Direction direction, BlockState neighborState, BlockPos pos, BlockPos neighborPos, int flags, int maxUpdateDepth) {
-        this.handle.neighborShapeChanged(direction, neighborState, pos, neighborPos, flags, maxUpdateDepth);
+    public WorldServer getMinecraftWorld() {
+        return handle.getMinecraftWorld();
     }
 
     @Override
     public long dayTime() {
-        return this.handle.dayTime();
-    }
-
-    @Override
-    public LevelData getLevelData() {
-        return this.handle.getLevelData();
-    }
-
-    @Override
-    public boolean hasChunk(int chunkX, int chunkZ) {
-        return this.handle.hasChunk(chunkX, chunkZ);
-    }
-
-    @Override
-    public ChunkSource getChunkSource() {
-        return this.handle.getChunkSource();
-    }
-
-    @Override
-    public void scheduleTick(BlockPos pos, Block block, int delay, TickPriority priority) {
-        this.handle.scheduleTick(pos, block, delay, priority);
-    }
-
-    @Override
-    public void scheduleTick(BlockPos pos, Block block, int delay) {
-        this.handle.scheduleTick(pos, block, delay);
-    }
-
-    @Override
-    public void scheduleTick(BlockPos pos, Fluid fluid, int delay, TickPriority priority) {
-        this.handle.scheduleTick(pos, fluid, delay, priority);
-    }
-
-    @Override
-    public void scheduleTick(BlockPos pos, Fluid fluid, int delay) {
-        this.handle.scheduleTick(pos, fluid, delay);
-    }
-
-    @Override
-    public Difficulty getDifficulty() {
-        return this.handle.getDifficulty();
-    }
-
-    @Override
-    public void blockUpdated(BlockPos pos, Block block) {
-        this.handle.blockUpdated(pos, block);
-    }
-
-    @Override
-    public MinecraftServer getServer() {
-        return this.handle.getServer();
-    }
-
-    @Override
-    public RandomSource getRandom() {
-        return this.handle.getRandom();
-    }
-
-    @Override
-    public LevelTickAccess<Block> getBlockTicks() {
-        return this.handle.getBlockTicks();
+        return handle.dayTime();
     }
 
     @Override
     public long nextSubTickCount() {
-        return this.handle.nextSubTickCount();
+        return handle.nextSubTickCount();
     }
 
     @Override
-    public LevelTickAccess<Fluid> getFluidTicks() {
-        return this.handle.getFluidTicks();
+    public LevelTickAccess<Block> getBlockTicks() {
+        return handle.getBlockTicks();
     }
 
     @Override
-    public void playSound(Player except, BlockPos pos, SoundEvent sound, SoundSource category) {
-        this.handle.playSound(except, pos, sound, category);
+    public void scheduleTick(BlockPos blockposition, Block block, int i, TickListPriority ticklistpriority) {
+        handle.scheduleTick(blockposition, block, i, ticklistpriority);
     }
 
     @Override
-    public void playSound(Player source, BlockPos pos, SoundEvent sound, SoundSource category, float volume, float pitch) {
-        this.handle.playSound(source, pos, sound, category, volume, pitch);
+    public void scheduleTick(BlockPos blockposition, Block block, int i) {
+        handle.scheduleTick(blockposition, block, i);
     }
 
     @Override
-    public void levelEvent(int eventId, BlockPos pos, int data) {
-        this.handle.levelEvent(eventId, pos, data);
+    public LevelTickAccess<FluidType> getFluidTicks() {
+        return handle.getFluidTicks();
     }
 
     @Override
-    public void levelEvent(Player player, int eventId, BlockPos pos, int data) {
-        this.handle.levelEvent(player, eventId, pos, data);
+    public void scheduleTick(BlockPos blockposition, FluidType fluidtype, int i, TickListPriority ticklistpriority) {
+        handle.scheduleTick(blockposition, fluidtype, i, ticklistpriority);
     }
 
     @Override
-    public void addParticle(ParticleOptions parameters, double x, double y, double z, double velocityX, double velocityY, double velocityZ) {
-        this.handle.addParticle(parameters, x, y, z, velocityX, velocityY, velocityZ);
+    public void scheduleTick(BlockPos blockposition, FluidType fluidtype, int i) {
+        handle.scheduleTick(blockposition, fluidtype, i);
     }
 
     @Override
-    public void gameEvent(Holder<GameEvent> event, Vec3 emitterPos, GameEvent.Context emitter) {
-        this.handle.gameEvent(event, emitterPos, emitter);
+    public WorldData getLevelData() {
+        return handle.getLevelData();
     }
 
     @Override
-    public void gameEvent(Holder<GameEvent> event, BlockPos pos, GameEvent.Context emitter) {
-        this.handle.gameEvent(event, pos, emitter);
+    public DifficultyDamageScaler getCurrentDifficultyAt(BlockPos blockposition) {
+        return handle.getCurrentDifficultyAt(blockposition);
     }
 
     @Override
-    public void gameEvent(Entity entity, Holder<GameEvent> event, BlockPos pos) {
-        this.handle.gameEvent(entity, event, pos);
+    public MinecraftServer getServer() {
+        return handle.getServer();
     }
 
     @Override
-    public void gameEvent(Entity entity, Holder<GameEvent> event, Vec3 pos) {
-        this.handle.gameEvent(entity, event, pos);
+    public EnumDifficulty getDifficulty() {
+        return handle.getDifficulty();
     }
 
     @Override
-    public List<VoxelShape> getEntityCollisions(Entity entity, AABB box) {
-        return this.handle.getEntityCollisions(entity, box);
+    public IChunkProvider getChunkSource() {
+        return handle.getChunkSource();
     }
 
     @Override
-    public <T extends BlockEntity> Optional<T> getBlockEntity(BlockPos pos, BlockEntityType<T> type) {
-        return this.handle.getBlockEntity(pos, type);
+    public boolean hasChunk(int i, int j) {
+        return handle.hasChunk(i, j);
     }
 
     @Override
-    public BlockPos getHeightmapPos(Heightmap.Types heightmap, BlockPos pos) {
-        return this.handle.getHeightmapPos(heightmap, pos);
+    public RandomSource getRandom() {
+        return handle.getRandom();
     }
 
     @Override
-    public boolean isUnobstructed(Entity except, VoxelShape shape) {
-        return this.handle.isUnobstructed(except, shape);
+    public void blockUpdated(BlockPos blockposition, Block block) {
+        handle.blockUpdated(blockposition, block);
     }
 
     @Override
-    public boolean hasNearbyAlivePlayer(double x, double y, double z, double range) {
-        return this.handle.hasNearbyAlivePlayer(x, y, z, range);
+    public void neighborShapeChanged(EnumDirection enumdirection, BlockPos blockposition, BlockPos blockposition1, IBlockData iblockdata, int i, int j) {
+        handle.neighborShapeChanged(enumdirection, blockposition, blockposition1, iblockdata, i, j);
     }
 
     @Override
-    public List<? extends Player> players() {
-        return this.handle.players();
+    public void playSound(EntityHuman entityhuman, BlockPos blockposition, SoundEffect soundeffect, SoundCategory soundcategory) {
+        handle.playSound(entityhuman, blockposition, soundeffect, soundcategory);
     }
 
     @Override
-    public List<Entity> getEntities(Entity except, AABB box, Predicate<? super Entity> predicate) {
-        return this.handle.getEntities(except, box, predicate);
+    public void playSound(EntityHuman entityhuman, BlockPos blockposition, SoundEffect soundeffect, SoundCategory soundcategory, float f, float f1) {
+        handle.playSound(entityhuman, blockposition, soundeffect, soundcategory, f, f1);
     }
 
     @Override
-    public <T extends Entity> List<T> getEntities(EntityTypeTest<Entity, T> filter, AABB box, Predicate<? super T> predicate) {
-        return this.handle.getEntities(filter, box, predicate);
+    public void addParticle(ParticleParam particleparam, double d0, double d1, double d2, double d3, double d4, double d5) {
+        handle.addParticle(particleparam, d0, d1, d2, d3, d4, d5);
     }
 
     @Override
-    public List<Entity> getEntities(Entity except, AABB box) {
-        return this.handle.getEntities(except, box);
+    public void levelEvent(EntityHuman entityhuman, int i, BlockPos blockposition, int j) {
+        handle.levelEvent(entityhuman, i, blockposition, j);
     }
 
     @Override
-    public <T extends Entity> List<T> getEntitiesOfClass(Class<T> entityClass, AABB box) {
-        return this.handle.getEntitiesOfClass(entityClass, box);
+    public void levelEvent(int i, BlockPos blockposition, int j) {
+        handle.levelEvent(i, blockposition, j);
     }
 
     @Override
-    public <T extends Entity> List<T> getEntitiesOfClass(Class<T> entityClass, AABB box, Predicate<? super T> predicate) {
-        return this.handle.getEntitiesOfClass(entityClass, box, predicate);
+    public void gameEvent(Holder<GameEvent> holder, Vec3D vec3d, GameEvent.a gameevent_a) {
+        handle.gameEvent(holder, vec3d, gameevent_a);
     }
 
     @Override
-    public Player getNearestPlayer(TargetingConditions targetPredicate, LivingEntity entity, double x, double y, double z) {
-        return this.handle.getNearestPlayer(targetPredicate, entity, x, y, z);
+    public void gameEvent(Entity entity, Holder<GameEvent> holder, Vec3D vec3d) {
+        handle.gameEvent(entity, holder, vec3d);
     }
 
     @Override
-    public Player getNearestPlayer(TargetingConditions targetPredicate, double x, double y, double z) {
-        return this.handle.getNearestPlayer(targetPredicate, x, y, z);
+    public void gameEvent(Entity entity, Holder<GameEvent> holder, BlockPos blockposition) {
+        handle.gameEvent(entity, holder, blockposition);
     }
 
     @Override
-    public Player getNearestPlayer(Entity entity, double maxDistance) {
-        return this.handle.getNearestPlayer(entity, maxDistance);
+    public void gameEvent(Holder<GameEvent> holder, BlockPos blockposition, GameEvent.a gameevent_a) {
+        handle.gameEvent(holder, blockposition, gameevent_a);
     }
 
     @Override
-    public Player getNearestPlayer(double x, double y, double z, double maxDistance, Predicate<Entity> targetPredicate) {
-        return this.handle.getNearestPlayer(x, y, z, maxDistance, targetPredicate);
+    public void gameEvent(ResourceKey<GameEvent> resourcekey, BlockPos blockposition, GameEvent.a gameevent_a) {
+        handle.gameEvent(resourcekey, blockposition, gameevent_a);
     }
 
     @Override
-    public Player getNearestPlayer(double x, double y, double z, double maxDistance, boolean ignoreCreative) {
-        return this.handle.getNearestPlayer(x, y, z, maxDistance, ignoreCreative);
+    public <T extends TileEntity> Optional<T> getBlockEntity(BlockPos var0, TileEntityTypes<T> var1) {
+        return handle.getBlockEntity(var0, var1);
     }
 
     @Override
-    public Player getNearestPlayer(TargetingConditions targetPredicate, LivingEntity entity) {
-        return this.handle.getNearestPlayer(targetPredicate, entity);
+    public List<VoxelShape> getEntityCollisions(Entity var0, AxisAlignedBB var1) {
+        return handle.getEntityCollisions(var0, var1);
     }
 
     @Override
-    public <T extends LivingEntity> T getNearestEntity(Class<? extends T> entityClass, TargetingConditions targetPredicate, LivingEntity entity, double x, double y, double z, AABB box) {
-        return this.handle.getNearestEntity(entityClass, targetPredicate, entity, x, y, z, box);
+    public boolean isUnobstructed(Entity var0, VoxelShape var1) {
+        return handle.isUnobstructed(var0, var1);
     }
 
     @Override
-    public <T extends LivingEntity> T getNearestEntity(List<? extends T> entityList, TargetingConditions targetPredicate, LivingEntity entity, double x, double y, double z) {
-        return this.handle.getNearestEntity(entityList, targetPredicate, entity, x, y, z);
-    }
-
-    @Override
-    public Player getPlayerByUUID(UUID uuid) {
-        return this.handle.getPlayerByUUID(uuid);
-    }
-
-    @Override
-    public List<Player> getNearbyPlayers(TargetingConditions targetPredicate, LivingEntity entity, AABB box) {
-        return this.handle.getNearbyPlayers(targetPredicate, entity, box);
-    }
-
-    @Override
-    public <T extends LivingEntity> List<T> getNearbyEntities(Class<T> entityClass, TargetingConditions targetPredicate, LivingEntity targetingEntity, AABB box) {
-        return this.handle.getNearbyEntities(entityClass, targetPredicate, targetingEntity, box);
-    }
-
-    @Override
-    @Deprecated
-    public float getLightLevelDependentMagicValue(BlockPos pos) {
-        return this.handle.getLightLevelDependentMagicValue(pos);
-    }
-
-    @Override
-    public BlockGetter getChunkForCollisions(int chunkX, int chunkZ) {
-        return this.handle.getChunkForCollisions(chunkX, chunkZ);
-    }
-
-    @Override
-    public int getMaxLocalRawBrightness(BlockPos pos) {
-        return this.handle.getMaxLocalRawBrightness(pos);
-    }
-
-    @Override
-    public int getMaxLocalRawBrightness(BlockPos pos, int ambientDarkness) {
-        return this.handle.getMaxLocalRawBrightness(pos, ambientDarkness);
-    }
-
-    @Override
-    public boolean canSeeSkyFromBelowWater(BlockPos pos) {
-        return this.handle.canSeeSkyFromBelowWater(pos);
-    }
-
-    @Override
-    public float getPathfindingCostFromLightLevels(BlockPos pos) {
-        return this.handle.getPathfindingCostFromLightLevels(pos);
-    }
-
-    @Override
-    public Stream<BlockState> getBlockStatesIfLoaded(AABB box) {
-        return this.handle.getBlockStatesIfLoaded(box);
-    }
-
-    @Override
-    public Holder<Biome> getUncachedNoiseBiome(int biomeX, int biomeY, int biomeZ) {
-        return this.handle.getUncachedNoiseBiome(biomeX, biomeY, biomeZ);
-    }
-
-    @Override
-    @Deprecated
-    public int getSeaLevel() {
-        return this.handle.getSeaLevel();
-    }
-
-    @Override
-    public boolean containsAnyLiquid(AABB box) {
-        return this.handle.containsAnyLiquid(box);
-    }
-
-    @Override
-    public int getMinBuildHeight() {
-        return this.handle.getMinBuildHeight();
-    }
-
-    @Override
-    public boolean isWaterAt(BlockPos pos) {
-        return this.handle.isWaterAt(pos);
-    }
-
-    @Override
-    public boolean isEmptyBlock(BlockPos pos) {
-        return this.handle.isEmptyBlock(pos);
-    }
-
-    @Override
-    public boolean isClientSide() {
-        return this.handle.isClientSide();
-    }
-
-    @Override
-    public DimensionType dimensionType() {
-        return this.handle.dimensionType();
-    }
-
-    @Override
-    public FeatureFlagSet enabledFeatures() {
-        return this.handle.enabledFeatures();
-    }
-
-    @Override
-    @Deprecated
-    public boolean hasChunkAt(int x, int z) {
-        return this.handle.hasChunkAt(x, z);
-    }
-
-    @Override
-    @Deprecated
-    public boolean hasChunkAt(BlockPos pos) {
-        return this.handle.hasChunkAt(pos);
-    }
-
-    @Override
-    public <T> HolderLookup<T> holderLookup(ResourceKey<? extends Registry<? extends T>> registryRef) {
-        return this.handle.holderLookup(registryRef);
-    }
-
-    @Override
-    public RegistryAccess registryAccess() {
-        return this.handle.registryAccess();
-    }
-
-    @Override
-    public Holder<Biome> getNoiseBiome(int biomeX, int biomeY, int biomeZ) {
-        return this.handle.getNoiseBiome(biomeX, biomeY, biomeZ);
-    }
-
-    @Override
-    public int getBlockTint(BlockPos pos, ColorResolver colorResolver) {
-        return this.handle.getBlockTint(pos, colorResolver);
-    }
-
-    @Override
-    @Deprecated
-    public boolean hasChunksAt(BlockPos min, BlockPos max) {
-        return this.handle.hasChunksAt(min, max);
-    }
-
-    @Override
-    @Deprecated
-    public boolean hasChunksAt(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
-        return this.handle.hasChunksAt(minX, minY, minZ, maxX, maxY, maxZ);
-    }
-
-    @Override
-    @Deprecated
-    public boolean hasChunksAt(int minX, int minZ, int maxX, int maxZ) {
-        return this.handle.hasChunksAt(minX, minZ, maxX, maxZ);
-    }
-
-    @Override
-    public ChunkAccess getChunk(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
-        return this.handle.getChunk(chunkX, chunkZ, leastStatus, create);
-    }
-
-    @Override
-    public ChunkAccess getChunk(int chunkX, int chunkZ, ChunkStatus status) {
-        return this.handle.getChunk(chunkX, chunkZ, status);
-    }
-
-    @Override
-    public ChunkAccess getChunk(BlockPos pos) {
-        return this.handle.getChunk(pos);
-    }
-
-    @Override
-    public ChunkAccess getChunk(int chunkX, int chunkZ) {
-        return this.handle.getChunk(chunkX, chunkZ);
-    }
-
-    @Override
-    public int getHeight(Heightmap.Types heightmap, int x, int z) {
-        return this.handle.getHeight(heightmap, x, z);
-    }
-
-    @Override
-    public int getHeight() {
-        return this.handle.getHeight();
-    }
-
-    @Override
-    public Holder<Biome> getBiome(BlockPos pos) {
-        return this.handle.getBiome(pos);
-    }
-
-    @Override
-    public int getSkyDarken() {
-        return this.handle.getSkyDarken();
-    }
-
-    @Override
-    public BiomeManager getBiomeManager() {
-        return this.handle.getBiomeManager();
-    }
-
-    @Override
-    public boolean canSeeSky(BlockPos pos) {
-        return this.handle.canSeeSky(pos);
-    }
-
-    @Override
-    public int getRawBrightness(BlockPos pos, int ambientDarkness) {
-        return this.handle.getRawBrightness(pos, ambientDarkness);
-    }
-
-    @Override
-    public LevelLightEngine getLightEngine() {
-        return this.handle.getLightEngine();
-    }
-
-    @Override
-    public int getBrightness(LightLayer type, BlockPos pos) {
-        return this.handle.getBrightness(type, pos);
-    }
-
-    @Override
-    public float getShade(Direction direction, boolean shaded) {
-        return this.handle.getShade(direction, shaded);
-    }
-
-    @Override
-    public BlockEntity getBlockEntity(BlockPos pos) {
-        return this.handle.getBlockEntity(pos);
-    }
-
-    @Override
-    public double getBlockFloorHeight(VoxelShape blockCollisionShape, Supplier<VoxelShape> belowBlockCollisionShapeGetter) {
-        return this.handle.getBlockFloorHeight(blockCollisionShape, belowBlockCollisionShapeGetter);
-    }
-
-    @Override
-    public double getBlockFloorHeight(BlockPos pos) {
-        return this.handle.getBlockFloorHeight(pos);
-    }
-
-    @Override
-    public BlockHitResult clipWithInteractionOverride(Vec3 start, Vec3 end, BlockPos pos, VoxelShape shape, BlockState state) {
-        return this.handle.clipWithInteractionOverride(start, end, pos, shape, state);
-    }
-
-    @Override
-    public BlockState getBlockState(BlockPos pos) {
-        return this.handle.getBlockState(pos);
-    }
-
-    @Override
-    public FluidState getFluidState(BlockPos pos) {
-        return this.handle.getFluidState(pos);
-    }
-
-    @Override
-    public int getLightEmission(BlockPos pos) {
-        return this.handle.getLightEmission(pos);
-    }
-
-    @Override
-    public BlockHitResult clip(ClipContext context) {
-        return this.handle.clip(context);
-    }
-
-    @Override
-    public BlockHitResult clip(ClipContext arg0, BlockPos arg1) {
-        return this.handle.clip(arg0, arg1);
-    }
-
-    @Override
-    public int getMaxLightLevel() {
-        return this.handle.getMaxLightLevel();
-    }
-
-    @Override
-    public BlockHitResult isBlockInLine(ClipBlockStateContext context) {
-        return this.handle.isBlockInLine(context);
-    }
-
-    @Override
-    public Stream<BlockState> getBlockStates(AABB box) {
-        return this.handle.getBlockStates(box);
-    }
-
-    @Override
-    public boolean isOutsideBuildHeight(int y) {
-        return this.handle.isOutsideBuildHeight(y);
-    }
-
-    @Override
-    public boolean isOutsideBuildHeight(BlockPos pos) {
-        return this.handle.isOutsideBuildHeight(pos);
-    }
-
-    @Override
-    public int getSectionIndexFromSectionY(int coord) {
-        return this.handle.getSectionIndexFromSectionY(coord);
-    }
-
-    @Override
-    public int getSectionYFromSectionIndex(int index) {
-        return this.handle.getSectionYFromSectionIndex(index);
-    }
-
-    @Override
-    public int getMaxSection() {
-        return this.handle.getMaxSection();
-    }
-
-    @Override
-    public int getMinSection() {
-        return this.handle.getMinSection();
-    }
-
-    @Override
-    public int getSectionIndex(int y) {
-        return this.handle.getSectionIndex(y);
-    }
-
-    @Override
-    public int getSectionsCount() {
-        return this.handle.getSectionsCount();
-    }
-
-    @Override
-    public int getMaxBuildHeight() {
-        return this.handle.getMaxBuildHeight();
-    }
-
-    @Override
-    public boolean isUnobstructed(BlockState state, BlockPos pos, CollisionContext context) {
-        return this.handle.isUnobstructed(state, pos, context);
-    }
-
-    @Override
-    public boolean isUnobstructed(Entity entity) {
-        return this.handle.isUnobstructed(entity);
-    }
-
-    @Override
-    public WorldBorder getWorldBorder() {
-        return this.handle.getWorldBorder();
-    }
-
-    @Override
-    public Optional<Vec3> findFreePosition(Entity entity, VoxelShape shape, Vec3 target, double x, double y, double z) {
-        return this.handle.findFreePosition(entity, shape, target, x, y, z);
-    }
-
-    @Override
-    public Iterable<VoxelShape> getCollisions(Entity entity, AABB box) {
-        return this.handle.getCollisions(entity, box);
-    }
-
-    @Override
-    public Iterable<VoxelShape> getBlockCollisions(Entity entity, AABB box) {
-        return this.handle.getBlockCollisions(entity, box);
-    }
-
-    @Override
-    public boolean noCollision(AABB box) {
-        return this.handle.noCollision(box);
-    }
-
-    @Override
-    public boolean noCollision(Entity entity) {
-        return this.handle.noCollision(entity);
-    }
-
-    @Override
-    public boolean noCollision(Entity entity, AABB box) {
-        return this.handle.noCollision(entity, box);
-    }
-
-    @Override
-    public boolean collidesWithSuffocatingBlock(Entity entity, AABB box) {
-        return this.handle.collidesWithSuffocatingBlock(entity, box);
-    }
-
-    @Override
-    public Optional<BlockPos> findSupportingBlock(Entity entity, AABB box) {
-        return this.handle.findSupportingBlock(entity, box);
-    }
-
-    @Override
-    public int getBestNeighborSignal(BlockPos pos) {
-        return this.handle.getBestNeighborSignal(pos);
-    }
-
-    @Override
-    public int getControlInputSignal(BlockPos pos, Direction direction, boolean onlyFromGate) {
-        return this.handle.getControlInputSignal(pos, direction, onlyFromGate);
-    }
-
-    @Override
-    public int getDirectSignal(BlockPos pos, Direction direction) {
-        return this.handle.getDirectSignal(pos, direction);
-    }
-
-    @Override
-    public int getDirectSignalTo(BlockPos pos) {
-        return this.handle.getDirectSignalTo(pos);
-    }
-
-    @Override
-    public boolean hasNeighborSignal(BlockPos pos) {
-        return this.handle.hasNeighborSignal(pos);
-    }
-
-    @Override
-    public boolean hasSignal(BlockPos pos, Direction direction) {
-        return this.handle.hasSignal(pos, direction);
-    }
-
-    @Override
-    public int getSignal(BlockPos pos, Direction direction) {
-        return this.handle.getSignal(pos, direction);
-    }
-
-    @Override
-    public boolean isStateAtPosition(BlockPos pos, Predicate<BlockState> state) {
-        return this.handle.isStateAtPosition(pos, state);
-    }
-
-    @Override
-    public boolean isFluidAtPosition(BlockPos pos, Predicate<FluidState> state) {
-        return this.handle.isFluidAtPosition(pos, state);
-    }
-
-    @Override
-    public boolean addFreshEntity(Entity arg0, CreatureSpawnEvent.SpawnReason arg1) {
-        return this.handle.addFreshEntity(arg0, arg1);
-    }
-
-    @Override
-    public boolean addFreshEntity(Entity entity) {
-        return this.handle.addFreshEntity(entity);
-    }
-
-    @Override
-    public boolean removeBlock(BlockPos pos, boolean move) {
-        return this.handle.removeBlock(pos, move);
-    }
-
-    @Override
-    public boolean destroyBlock(BlockPos pos, boolean drop, Entity breakingEntity, int maxUpdateDepth) {
-        return this.handle.destroyBlock(pos, drop, breakingEntity, maxUpdateDepth);
-    }
-
-    @Override
-    public boolean destroyBlock(BlockPos pos, boolean drop, Entity breakingEntity) {
-        return this.handle.destroyBlock(pos, drop, breakingEntity);
-    }
-
-    @Override
-    public boolean destroyBlock(BlockPos pos, boolean drop) {
-        return this.handle.destroyBlock(pos, drop);
-    }
-
-    @Override
-    public boolean setBlock(BlockPos pos, BlockState state, int flags) {
-        return this.handle.setBlock(pos, state, flags);
-    }
-
-    @Override
-    public boolean setBlock(BlockPos pos, BlockState state, int flags, int maxUpdateDepth) {
-        return this.handle.setBlock(pos, state, flags, maxUpdateDepth);
-    }
-
-    @Override
-    public float getTimeOfDay(float tickDelta) {
-        return this.handle.getTimeOfDay(tickDelta);
+    public BlockPos getHeightmapPos(HeightMap.Type var0, BlockPos var1) {
+        return handle.getHeightmapPos(var0, var1);
     }
 
     @Override
     public float getMoonBrightness() {
-        return this.handle.getMoonBrightness();
+        return handle.getMoonBrightness();
+    }
+
+    @Override
+    public float getTimeOfDay(float var0) {
+        return handle.getTimeOfDay(var0);
     }
 
     @Override
     public int getMoonPhase() {
-        return this.handle.getMoonPhase();
+        return handle.getMoonPhase();
+    }
+
+    @Override
+    public IChunkAccess getChunk(int i, int i1, ChunkStatus cs, boolean bln) {
+        return handle.getChunk(i, i1, cs, bln);
+    }
+
+    @Override
+    public int getHeight(HeightMap.Type type, int i, int i1) {
+        return handle.getHeight(type, i, i1);
+    }
+
+    @Override
+    public int getSkyDarken() {
+        return handle.getSkyDarken();
+    }
+
+    @Override
+    public BiomeManager getBiomeManager() {
+        return handle.getBiomeManager();
+    }
+
+    @Override
+    public Holder<BiomeBase> getBiome(BlockPos var0) {
+        return handle.getBiome(var0);
+    }
+
+    @Override
+    public Stream<IBlockData> getBlockStatesIfLoaded(AxisAlignedBB var0) {
+        return handle.getBlockStatesIfLoaded(var0);
+    }
+
+    @Override
+    public int getBlockTint(BlockPos var0, ColorResolver var1) {
+        return handle.getBlockTint(var0, var1);
+    }
+
+    @Override
+    public Holder<BiomeBase> getNoiseBiome(int var0, int var1, int var2) {
+        return handle.getNoiseBiome(var0, var1, var2);
+    }
+
+    @Override
+    public Holder<BiomeBase> getUncachedNoiseBiome(int i, int i1, int i2) {
+        return handle.getUncachedNoiseBiome(i, i1, i2);
+    }
+
+    @Override
+    public boolean isClientSide() {
+        return handle.isClientSide();
+    }
+
+    @Override
+    public int getSeaLevel() {
+        return handle.getSeaLevel();
+    }
+
+    @Override
+    public DimensionManager dimensionType() {
+        return handle.dimensionType();
+    }
+
+    @Override
+    public int getMinY() {
+        return handle.getMinY();
+    }
+
+    @Override
+    public int getHeight() {
+        return handle.getHeight();
+    }
+
+    @Override
+    public boolean isEmptyBlock(BlockPos var0) {
+        return handle.isEmptyBlock(var0);
+    }
+
+    @Override
+    public boolean canSeeSkyFromBelowWater(BlockPos var0) {
+        return handle.canSeeSkyFromBelowWater(var0);
+    }
+
+    @Override
+    public float getPathfindingCostFromLightLevels(BlockPos var0) {
+        return handle.getPathfindingCostFromLightLevels(var0);
+    }
+
+    @Override
+    public float getLightLevelDependentMagicValue(BlockPos var0) {
+        return handle.getLightLevelDependentMagicValue(var0);
+    }
+
+    @Override
+    public IChunkAccess getChunk(BlockPos var0) {
+        return handle.getChunk(var0);
+    }
+
+    @Override
+    public IChunkAccess getChunk(int var0, int var1) {
+        return handle.getChunk(var0, var1);
+    }
+
+    @Override
+    public IChunkAccess getChunk(int var0, int var1, ChunkStatus var2) {
+        return handle.getChunk(var0, var1, var2);
+    }
+
+    @Override
+    public IBlockAccess getChunkForCollisions(int var0, int var1) {
+        return handle.getChunkForCollisions(var0, var1);
+    }
+
+    @Override
+    public boolean isWaterAt(BlockPos var0) {
+        return handle.isWaterAt(var0);
+    }
+
+    @Override
+    public boolean containsAnyLiquid(AxisAlignedBB var0) {
+        return handle.containsAnyLiquid(var0);
+    }
+
+    @Override
+    public int getMaxLocalRawBrightness(BlockPos var0) {
+        return handle.getMaxLocalRawBrightness(var0);
+    }
+
+    @Override
+    public int getMaxLocalRawBrightness(BlockPos var0, int var1) {
+        return handle.getMaxLocalRawBrightness(var0, var1);
+    }
+
+    @Override
+    public boolean hasChunkAt(int var0, int var1) {
+        return handle.hasChunkAt(var0, var1);
+    }
+
+    @Override
+    public boolean hasChunkAt(BlockPos var0) {
+        return handle.hasChunkAt(var0);
+    }
+
+    @Override
+    public boolean hasChunksAt(BlockPos var0, BlockPos var1) {
+        return handle.hasChunksAt(var0, var1);
+    }
+
+    @Override
+    public boolean hasChunksAt(int var0, int var1, int var2, int var3, int var4, int var5) {
+        return handle.hasChunksAt(var0, var1, var2, var3, var4, var5);
+    }
+
+    @Override
+    public boolean hasChunksAt(int var0, int var1, int var2, int var3) {
+        return handle.hasChunksAt(var0, var1, var2, var3);
+    }
+
+    @Override
+    public IRegistryCustom registryAccess() {
+        return handle.registryAccess();
+    }
+
+    @Override
+    public FeatureFlagSet enabledFeatures() {
+        return handle.enabledFeatures();
+    }
+
+    @Override
+    public <T> HolderLookup<T> holderLookup(ResourceKey<? extends IRegistry<? extends T>> var0) {
+        return handle.holderLookup(var0);
+    }
+
+    @Override
+    public float getShade(EnumDirection ed, boolean bln) {
+        return handle.getShade(ed, bln);
+    }
+
+    @Override
+    public LevelLightEngine getLightEngine() {
+        return handle.getLightEngine();
+    }
+
+    @Override
+    public int getBrightness(EnumSkyBlock var0, BlockPos var1) {
+        return handle.getBrightness(var0, var1);
+    }
+
+    @Override
+    public int getRawBrightness(BlockPos var0, int var1) {
+        return handle.getRawBrightness(var0, var1);
+    }
+
+    @Override
+    public boolean canSeeSky(BlockPos var0) {
+        return handle.canSeeSky(var0);
+    }
+
+    @Override
+    public WorldBorder getWorldBorder() {
+        return handle.getWorldBorder();
+    }
+
+    @Override
+    public boolean isUnobstructed(IBlockData var0, BlockPos var1, VoxelShapeCollision var2) {
+        return handle.isUnobstructed(var0, var1, var2);
+    }
+
+    @Override
+    public boolean isUnobstructed(Entity var0) {
+        return handle.isUnobstructed(var0);
+    }
+
+    @Override
+    public boolean noCollision(AxisAlignedBB var0) {
+        return handle.noCollision(var0);
+    }
+
+    @Override
+    public boolean noCollision(Entity var0) {
+        return handle.noCollision(var0);
+    }
+
+    @Override
+    public boolean noCollision(Entity var0, AxisAlignedBB var1) {
+        return handle.noCollision(var0, var1);
+    }
+
+    @Override
+    public boolean noCollision(Entity var0, AxisAlignedBB var1, boolean var2) {
+        return handle.noCollision(var0, var1, var2);
+    }
+
+    @Override
+    public boolean noBlockCollision(Entity var0, AxisAlignedBB var1) {
+        return handle.noBlockCollision(var0, var1);
+    }
+
+    @Override
+    public Iterable<VoxelShape> getCollisions(Entity var0, AxisAlignedBB var1) {
+        return handle.getCollisions(var0, var1);
+    }
+
+    @Override
+    public Iterable<VoxelShape> getBlockCollisions(Entity var0, AxisAlignedBB var1) {
+        return handle.getBlockCollisions(var0, var1);
+    }
+
+    @Override
+    public Iterable<VoxelShape> getBlockAndLiquidCollisions(Entity var0, AxisAlignedBB var1) {
+        return handle.getBlockAndLiquidCollisions(var0, var1);
+    }
+
+    @Override
+    public MovingObjectPositionBlock clipIncludingBorder(RayTrace var0) {
+        return handle.clipIncludingBorder(var0);
+    }
+
+    @Override
+    public boolean collidesWithSuffocatingBlock(Entity var0, AxisAlignedBB var1) {
+        return handle.collidesWithSuffocatingBlock(var0, var1);
+    }
+
+    @Override
+    public Optional<BlockPos> findSupportingBlock(Entity var0, AxisAlignedBB var1) {
+        return handle.findSupportingBlock(var0, var1);
+    }
+
+    @Override
+    public Optional<Vec3D> findFreePosition(Entity var0, VoxelShape var1, Vec3D var2, double var3, double var5, double var7) {
+        return handle.findFreePosition(var0, var1, var2, var3, var5, var7);
+    }
+
+    @Override
+    public int getDirectSignal(BlockPos var0, EnumDirection var1) {
+        return handle.getDirectSignal(var0, var1);
+    }
+
+    @Override
+    public int getDirectSignalTo(BlockPos var0) {
+        return handle.getDirectSignalTo(var0);
+    }
+
+    @Override
+    public int getControlInputSignal(BlockPos var0, EnumDirection var1, boolean var2) {
+        return handle.getControlInputSignal(var0, var1, var2);
+    }
+
+    @Override
+    public boolean hasSignal(BlockPos var0, EnumDirection var1) {
+        return handle.hasSignal(var0, var1);
+    }
+
+    @Override
+    public int getSignal(BlockPos var0, EnumDirection var1) {
+        return handle.getSignal(var0, var1);
+    }
+
+    @Override
+    public boolean hasNeighborSignal(BlockPos var0) {
+        return handle.hasNeighborSignal(var0);
+    }
+
+    @Override
+    public int getBestNeighborSignal(BlockPos var0) {
+        return handle.getBestNeighborSignal(var0);
+    }
+
+    @Override
+    public TileEntity getBlockEntity(BlockPos blockposition) {
+        return handle.getBlockEntity(blockposition);
+    }
+
+    @Override
+    public IBlockData getBlockState(BlockPos blockposition) {
+        return handle.getBlockState(blockposition);
+    }
+
+    @Override
+    public Fluid getFluidState(BlockPos blockposition) {
+        return handle.getFluidState(blockposition);
+    }
+
+    @Override
+    public int getLightEmission(BlockPos blockposition) {
+        return handle.getLightEmission(blockposition);
+    }
+
+    @Override
+    public Stream<IBlockData> getBlockStates(AxisAlignedBB axisalignedbb) {
+        return handle.getBlockStates(axisalignedbb);
+    }
+
+    @Override
+    public MovingObjectPositionBlock isBlockInLine(ClipBlockStateContext clipblockstatecontext) {
+        return handle.isBlockInLine(clipblockstatecontext);
+    }
+
+    @Override
+    public MovingObjectPositionBlock clip(RayTrace raytrace1, BlockPos blockposition) {
+        return handle.clip(raytrace1, blockposition);
+    }
+
+    @Override
+    public MovingObjectPositionBlock clip(RayTrace raytrace) {
+        return handle.clip(raytrace);
+    }
+
+    @Override
+    public MovingObjectPositionBlock clipWithInteractionOverride(Vec3D vec3d, Vec3D vec3d1, BlockPos blockposition, VoxelShape voxelshape, IBlockData iblockdata) {
+        return handle.clipWithInteractionOverride(vec3d, vec3d1, blockposition, voxelshape, iblockdata);
+    }
+
+    @Override
+    public double getBlockFloorHeight(VoxelShape voxelshape, Supplier<VoxelShape> supplier) {
+        return handle.getBlockFloorHeight(voxelshape, supplier);
+    }
+
+    @Override
+    public double getBlockFloorHeight(BlockPos blockposition) {
+        return handle.getBlockFloorHeight(blockposition);
+    }
+
+    @Override
+    public List<Entity> getEntities(Entity entity, AxisAlignedBB aabb, Predicate<? super Entity> prdct) {
+        return handle.getEntities(entity, aabb, prdct);
+    }
+
+    @Override
+    public <T extends Entity> List<T> getEntities(EntityTypeTest<Entity, T> ett, AxisAlignedBB aabb, Predicate<? super T> prdct) {
+        return handle.getEntities(ett, aabb, prdct);
+    }
+
+    @Override
+    public <T extends Entity> List<T> getEntitiesOfClass(Class<T> var0, AxisAlignedBB var1, Predicate<? super T> var2) {
+        return handle.getEntitiesOfClass(var0, var1, var2);
+    }
+
+    @Override
+    public List<? extends EntityHuman> players() {
+        return handle.players();
+    }
+
+    @Override
+    public List<Entity> getEntities(Entity var0, AxisAlignedBB var1) {
+        return handle.getEntities(var0, var1);
+    }
+
+    @Override
+    public <T extends Entity> List<T> getEntitiesOfClass(Class<T> var0, AxisAlignedBB var1) {
+        return handle.getEntitiesOfClass(var0, var1);
+    }
+
+    @Override
+    public EntityHuman getNearestPlayer(double var0, double var2, double var4, double var6, Predicate<Entity> var8) {
+        return handle.getNearestPlayer(var0, var2, var4, var6, var8);
+    }
+
+    @Override
+    public EntityHuman getNearestPlayer(Entity var0, double var1) {
+        return handle.getNearestPlayer(var0, var1);
+    }
+
+    @Override
+    public EntityHuman getNearestPlayer(double var0, double var2, double var4, double var6, boolean var8) {
+        return handle.getNearestPlayer(var0, var2, var4, var6, var8);
+    }
+
+    @Override
+    public boolean hasNearbyAlivePlayer(double var0, double var2, double var4, double var6) {
+        return handle.hasNearbyAlivePlayer(var0, var2, var4, var6);
+    }
+
+    @Override
+    public EntityHuman getPlayerByUUID(UUID var0) {
+        return handle.getPlayerByUUID(var0);
+    }
+
+    @Override
+    public boolean setBlock(BlockPos blockposition, IBlockData iblockdata, int i, int j) {
+        return handle.setBlock(blockposition, iblockdata, i, j);
+    }
+
+    @Override
+    public boolean setBlock(BlockPos blockposition, IBlockData iblockdata, int i) {
+        return handle.setBlock(blockposition, iblockdata, i);
+    }
+
+    @Override
+    public boolean removeBlock(BlockPos blockposition, boolean flag) {
+        return handle.removeBlock(blockposition, flag);
+    }
+
+    @Override
+    public boolean destroyBlock(BlockPos blockposition, boolean flag) {
+        return handle.destroyBlock(blockposition, flag);
+    }
+
+    @Override
+    public boolean destroyBlock(BlockPos blockposition, boolean flag, Entity entity) {
+        return handle.destroyBlock(blockposition, flag, entity);
+    }
+
+    @Override
+    public boolean destroyBlock(BlockPos blockposition, boolean flag, Entity entity, int i) {
+        return handle.destroyBlock(blockposition, flag, entity, i);
+    }
+
+    @Override
+    public boolean addFreshEntity(Entity entity) {
+        return handle.addFreshEntity(entity);
+    }
+
+    @Override
+    public boolean addFreshEntity(Entity entity, CreatureSpawnEvent.SpawnReason reason) {
+        return handle.addFreshEntity(entity, reason);
+    }
+
+    @Override
+    public int getMaxY() {
+        return handle.getMaxY();
+    }
+
+    @Override
+    public int getSectionsCount() {
+        return handle.getSectionsCount();
+    }
+
+    @Override
+    public int getMinSectionY() {
+        return handle.getMinSectionY();
+    }
+
+    @Override
+    public int getMaxSectionY() {
+        return handle.getMaxSectionY();
+    }
+
+    @Override
+    public boolean isInsideBuildHeight(int var0) {
+        return handle.isInsideBuildHeight(var0);
+    }
+
+    @Override
+    public boolean isOutsideBuildHeight(BlockPos var0) {
+        return handle.isOutsideBuildHeight(var0);
+    }
+
+    @Override
+    public boolean isOutsideBuildHeight(int var0) {
+        return handle.isOutsideBuildHeight(var0);
+    }
+
+    @Override
+    public int getSectionIndex(int var0) {
+        return handle.getSectionIndex(var0);
+    }
+
+    @Override
+    public int getSectionIndexFromSectionY(int var0) {
+        return handle.getSectionIndexFromSectionY(var0);
+    }
+
+    @Override
+    public int getSectionYFromSectionIndex(int var0) {
+        return handle.getSectionYFromSectionIndex(var0);
+    }
+
+    @Override
+    public boolean isStateAtPosition(BlockPos bp, Predicate<IBlockData> prdct) {
+        return handle.isStateAtPosition(bp, prdct);
+    }
+
+    @Override
+    public boolean isFluidAtPosition(BlockPos bp, Predicate<Fluid> prdct) {
+        return handle.isFluidAtPosition(bp, prdct);
     }
 }

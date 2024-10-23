@@ -5,33 +5,32 @@ import com.mojang.serialization.MapCodec;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.WorldGenRegion;
-import net.minecraft.util.Mth;
+import net.minecraft.core.IRegistryCustom;
+import net.minecraft.server.level.RegionLimitedWorldAccess;
+import net.minecraft.server.level.WorldServer;
+import net.minecraft.util.MathHelper;
 import net.minecraft.util.random.WeightedRandomList;
-import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.EnumCreatureType;
+import net.minecraft.world.level.BlockColumn;
+import net.minecraft.world.level.GeneratorAccessSeed;
 import net.minecraft.world.level.LevelHeightAccessor;
-import net.minecraft.world.level.NoiseColumn;
 import net.minecraft.world.level.StructureManager;
-import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.biome.BiomeBase;
 import net.minecraft.world.level.biome.BiomeManager;
-import net.minecraft.world.level.biome.BiomeSource;
-import net.minecraft.world.level.biome.MobSpawnSettings;
-import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.biome.BiomeSettingsMobs;
+import net.minecraft.world.level.biome.WorldChunkManager;
+import net.minecraft.world.level.block.ITileEntity;
+import net.minecraft.world.level.block.entity.TileEntity;
+import net.minecraft.world.level.block.state.IBlockData;
 import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
-import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.level.levelgen.GenerationStep;
-import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.chunk.ChunkSection;
+import net.minecraft.world.level.chunk.IChunkAccess;
+import net.minecraft.world.level.levelgen.HeightMap;
 import net.minecraft.world.level.levelgen.LegacyRandomSource;
 import net.minecraft.world.level.levelgen.RandomState;
-import net.minecraft.world.level.levelgen.WorldgenRandom;
+import net.minecraft.world.level.levelgen.SeededRandom;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.bukkit.block.Biome;
@@ -46,7 +45,7 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
 
     private final net.minecraft.world.level.chunk.ChunkGenerator delegate;
     private final ChunkGenerator generator;
-    private final ServerLevel world;
+    private final WorldServer world;
     private final Random random = new Random();
     private boolean newApi;
     private boolean implementBaseHeight = true;
@@ -54,37 +53,37 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
     @Deprecated
     private class CustomBiomeGrid implements BiomeGrid {
 
-        private final ChunkAccess biome;
+        private final IChunkAccess biome;
 
-        public CustomBiomeGrid(ChunkAccess biome) {
+        public CustomBiomeGrid(IChunkAccess biome) {
             this.biome = biome;
         }
 
         @Override
         public Biome getBiome(int x, int z) {
-            return this.getBiome(x, 0, z);
+            return getBiome(x, 0, z);
         }
 
         @Override
         public void setBiome(int x, int z, Biome bio) {
-            for (int y = CustomChunkGenerator.this.world.getWorld().getMinHeight(); y < CustomChunkGenerator.this.world.getWorld().getMaxHeight(); y += 4) {
-                this.setBiome(x, y, z, bio);
+            for (int y = world.getWorld().getMinHeight(); y < world.getWorld().getMaxHeight(); y += 4) {
+                setBiome(x, y, z, bio);
             }
         }
 
         @Override
         public Biome getBiome(int x, int y, int z) {
-            return CraftBiome.minecraftHolderToBukkit(this.biome.getNoiseBiome(x >> 2, y >> 2, z >> 2));
+            return CraftBiome.minecraftHolderToBukkit(biome.getNoiseBiome(x >> 2, y >> 2, z >> 2));
         }
 
         @Override
         public void setBiome(int x, int y, int z, Biome bio) {
             Preconditions.checkArgument(bio != Biome.CUSTOM, "Cannot set the biome to %s", bio);
-            this.biome.setBiome(x >> 2, y >> 2, z >> 2, CraftBiome.bukkitToMinecraftHolder(bio));
+            biome.setBiome(x >> 2, y >> 2, z >> 2, CraftBiome.bukkitToMinecraftHolder(bio));
         }
     }
 
-    public CustomChunkGenerator(ServerLevel world, net.minecraft.world.level.chunk.ChunkGenerator delegate, ChunkGenerator generator) {
+    public CustomChunkGenerator(WorldServer world, net.minecraft.world.level.chunk.ChunkGenerator delegate, ChunkGenerator generator) {
         super(delegate.getBiomeSource(), delegate.generationSettingsGetter);
 
         this.world = world;
@@ -93,69 +92,69 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
     }
 
     public net.minecraft.world.level.chunk.ChunkGenerator getDelegate() {
-        return this.delegate;
+        return delegate;
     }
 
-    private static WorldgenRandom getSeededRandom() {
-        return new WorldgenRandom(new LegacyRandomSource(0));
+    private static SeededRandom getSeededRandom() {
+        return new SeededRandom(new LegacyRandomSource(0));
     }
 
     @Override
-    public BiomeSource getBiomeSource() {
-        return this.delegate.getBiomeSource();
+    public WorldChunkManager getBiomeSource() {
+        return delegate.getBiomeSource();
     }
 
     @Override
     public int getMinY() {
-        return this.delegate.getMinY();
+        return delegate.getMinY();
     }
 
     @Override
     public int getSeaLevel() {
-        return this.delegate.getSeaLevel();
+        return delegate.getSeaLevel();
     }
 
     @Override
-    public void createStructures(RegistryAccess registryManager, ChunkGeneratorStructureState placementCalculator, StructureManager structureAccessor, ChunkAccess chunk, StructureTemplateManager structureTemplateManager) {
-        WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
-        int x = chunk.getPos().x;
-        int z = chunk.getPos().z;
+    public void createStructures(IRegistryCustom iregistrycustom, ChunkGeneratorStructureState chunkgeneratorstructurestate, StructureManager structuremanager, IChunkAccess ichunkaccess, StructureTemplateManager structuretemplatemanager) {
+        SeededRandom random = getSeededRandom();
+        int x = ichunkaccess.getPos().x;
+        int z = ichunkaccess.getPos().z;
 
-        random.setSeed(Mth.getSeed(x, "should-structures".hashCode(), z) ^ this.world.getSeed());
-        if (this.generator.shouldGenerateStructures(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z)) {
-            super.createStructures(registryManager, placementCalculator, structureAccessor, chunk, structureTemplateManager);
+        random.setSeed(MathHelper.getSeed(x, "should-structures".hashCode(), z) ^ world.getSeed());
+        if (generator.shouldGenerateStructures(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z)) {
+            super.createStructures(iregistrycustom, chunkgeneratorstructurestate, structuremanager, ichunkaccess, structuretemplatemanager);
         }
     }
 
     @Override
-    public void buildSurface(WorldGenRegion region, StructureManager structures, RandomState noiseConfig, ChunkAccess chunk) {
-        WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
-        int x = chunk.getPos().x;
-        int z = chunk.getPos().z;
+    public void buildSurface(RegionLimitedWorldAccess regionlimitedworldaccess, StructureManager structuremanager, RandomState randomstate, IChunkAccess ichunkaccess) {
+        SeededRandom random = getSeededRandom();
+        int x = ichunkaccess.getPos().x;
+        int z = ichunkaccess.getPos().z;
 
-        random.setSeed(Mth.getSeed(x, "should-surface".hashCode(), z) ^ region.getSeed());
-        if (this.generator.shouldGenerateSurface(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z)) {
-            this.delegate.buildSurface(region, structures, noiseConfig, chunk);
+        random.setSeed(MathHelper.getSeed(x, "should-surface".hashCode(), z) ^ regionlimitedworldaccess.getSeed());
+        if (generator.shouldGenerateSurface(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z)) {
+            delegate.buildSurface(regionlimitedworldaccess, structuremanager, randomstate, ichunkaccess);
         }
 
-        CraftChunkData chunkData = new CraftChunkData(this.world.getWorld(), chunk);
+        CraftChunkData chunkData = new CraftChunkData(this.world.getWorld(), ichunkaccess);
 
         random.setSeed((long) x * 341873128712L + (long) z * 132897987541L);
-        this.generator.generateSurface(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z, chunkData);
+        generator.generateSurface(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z, chunkData);
 
-        if (this.generator.shouldGenerateBedrock()) {
-            random = CustomChunkGenerator.getSeededRandom();
+        if (generator.shouldGenerateBedrock()) {
+            random = getSeededRandom();
             random.setSeed((long) x * 341873128712L + (long) z * 132897987541L);
             // delegate.buildBedrock(ichunkaccess, random);
         }
 
-        random = CustomChunkGenerator.getSeededRandom();
+        random = getSeededRandom();
         random.setSeed((long) x * 341873128712L + (long) z * 132897987541L);
-        this.generator.generateBedrock(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z, chunkData);
+        generator.generateBedrock(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z, chunkData);
         chunkData.breakLink();
 
         // return if new api is used
-        if (this.newApi) {
+        if (newApi) {
             return;
         }
 
@@ -164,27 +163,27 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
         this.random.setSeed((long) x * 341873128712L + (long) z * 132897987541L);
 
         // Get default biome data for chunk
-        CustomBiomeGrid biomegrid = new CustomBiomeGrid(chunk);
+        CustomBiomeGrid biomegrid = new CustomBiomeGrid(ichunkaccess);
 
         ChunkData data;
         try {
-            if (this.generator.isParallelCapable()) {
-                data = this.generator.generateChunkData(this.world.getWorld(), this.random, x, z, biomegrid);
+            if (generator.isParallelCapable()) {
+                data = generator.generateChunkData(this.world.getWorld(), this.random, x, z, biomegrid);
             } else {
                 synchronized (this) {
-                    data = this.generator.generateChunkData(this.world.getWorld(), this.random, x, z, biomegrid);
+                    data = generator.generateChunkData(this.world.getWorld(), this.random, x, z, biomegrid);
                 }
             }
         } catch (UnsupportedOperationException exception) {
-            this.newApi = true;
+            newApi = true;
             return;
         }
 
         Preconditions.checkArgument(data instanceof OldCraftChunkData, "Plugins must use createChunkData(World) rather than implementing ChunkData: %s", data);
         OldCraftChunkData craftData = (OldCraftChunkData) data;
-        LevelChunkSection[] sections = craftData.getRawChunkData();
+        ChunkSection[] sections = craftData.getRawChunkData();
 
-        LevelChunkSection[] csect = chunk.getSections();
+        ChunkSection[] csect = ichunkaccess.getSections();
         int scnt = Math.min(csect.length, sections.length);
 
         // Loop through returned sections
@@ -192,11 +191,11 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
             if (sections[sec] == null) {
                 continue;
             }
-            LevelChunkSection section = sections[sec];
+            ChunkSection section = sections[sec];
 
             // SPIGOT-6843: Copy biomes over to new section.
             // Not the most performant way, but has a small footprint and developer should move to the new api anyway
-            LevelChunkSection oldSection = csect[sec];
+            ChunkSection oldSection = csect[sec];
             for (int biomeX = 0; biomeX < 4; biomeX++) {
                 for (int biomeY = 0; biomeY < 4; biomeY++) {
                     for (int biomeZ = 0; biomeZ < 4; biomeZ++) {
@@ -213,123 +212,123 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
                 int tx = pos.getX();
                 int ty = pos.getY();
                 int tz = pos.getZ();
-                BlockState block = craftData.getTypeId(tx, ty, tz);
+                IBlockData block = craftData.getTypeId(tx, ty, tz);
 
                 if (block.hasBlockEntity()) {
-                    BlockEntity tile = ((EntityBlock) block.getBlock()).newBlockEntity(new BlockPos((x << 4) + tx, ty, (z << 4) + tz), block);
-                    chunk.setBlockEntity(tile);
+                    TileEntity tile = ((ITileEntity) block.getBlock()).newBlockEntity(new BlockPos((x << 4) + tx, ty, (z << 4) + tz), block);
+                    ichunkaccess.setBlockEntity(tile);
                 }
             }
         }
     }
 
     @Override
-    public void applyCarvers(WorldGenRegion chunkRegion, long seed, RandomState noiseConfig, BiomeManager biomeAccess, StructureManager structureAccessor, ChunkAccess chunk, GenerationStep.Carving carverStep) {
-        WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
-        int x = chunk.getPos().x;
-        int z = chunk.getPos().z;
+    public void applyCarvers(RegionLimitedWorldAccess regionlimitedworldaccess, long seed, RandomState randomstate, BiomeManager biomemanager, StructureManager structuremanager, IChunkAccess ichunkaccess) {
+        SeededRandom random = getSeededRandom();
+        int x = ichunkaccess.getPos().x;
+        int z = ichunkaccess.getPos().z;
 
-        random.setSeed(Mth.getSeed(x, "should-caves".hashCode(), z) ^ chunkRegion.getSeed());
-        if (this.generator.shouldGenerateCaves(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z)) {
-            this.delegate.applyCarvers(chunkRegion, seed, noiseConfig, biomeAccess, structureAccessor, chunk, carverStep);
+        random.setSeed(MathHelper.getSeed(x, "should-caves".hashCode(), z) ^ regionlimitedworldaccess.getSeed());
+        if (generator.shouldGenerateCaves(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z)) {
+            delegate.applyCarvers(regionlimitedworldaccess, seed, randomstate, biomemanager, structuremanager, ichunkaccess);
         }
 
         // Minecraft removed the LIQUID_CARVERS stage from world generation, without removing the LIQUID Carving enum.
         // Meaning this method is only called once for each chunk, so no check is required.
-        CraftChunkData chunkData = new CraftChunkData(this.world.getWorld(), chunk);
+        CraftChunkData chunkData = new CraftChunkData(this.world.getWorld(), ichunkaccess);
         random.setDecorationSeed(seed, 0, 0);
 
-        this.generator.generateCaves(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z, chunkData);
+        generator.generateCaves(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z, chunkData);
         chunkData.breakLink();
     }
 
     @Override
-    public CompletableFuture<ChunkAccess> fillFromNoise(Blender blender, RandomState noiseConfig, StructureManager structureAccessor, ChunkAccess chunk) {
-        CompletableFuture<ChunkAccess> future = null;
-        WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
-        int x = chunk.getPos().x;
-        int z = chunk.getPos().z;
+    public CompletableFuture<IChunkAccess> fillFromNoise(Blender blender, RandomState randomstate, StructureManager structuremanager, IChunkAccess ichunkaccess) {
+        CompletableFuture<IChunkAccess> future = null;
+        SeededRandom random = getSeededRandom();
+        int x = ichunkaccess.getPos().x;
+        int z = ichunkaccess.getPos().z;
 
-        random.setSeed(Mth.getSeed(x, "should-noise".hashCode(), z) ^ this.world.getSeed());
-        if (this.generator.shouldGenerateNoise(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z)) {
-            future = this.delegate.fillFromNoise(blender, noiseConfig, structureAccessor, chunk);
+        random.setSeed(MathHelper.getSeed(x, "should-noise".hashCode(), z) ^ this.world.getSeed());
+        if (generator.shouldGenerateNoise(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z)) {
+            future = delegate.fillFromNoise(blender, randomstate, structuremanager, ichunkaccess);
         }
 
-        java.util.function.Function<ChunkAccess, ChunkAccess> function = (ichunkaccess1) -> {
+        java.util.function.Function<IChunkAccess, IChunkAccess> function = (ichunkaccess1) -> {
             CraftChunkData chunkData = new CraftChunkData(this.world.getWorld(), ichunkaccess1);
             random.setSeed((long) x * 341873128712L + (long) z * 132897987541L);
 
-            this.generator.generateNoise(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z, chunkData);
+            generator.generateNoise(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z, chunkData);
             chunkData.breakLink();
             return ichunkaccess1;
         };
 
-        return future == null ? CompletableFuture.supplyAsync(() -> function.apply(chunk), net.minecraft.Util.backgroundExecutor()) : future.thenApply(function);
+        return future == null ? CompletableFuture.supplyAsync(() -> function.apply(ichunkaccess), net.minecraft.SystemUtils.backgroundExecutor()) : future.thenApply(function);
     }
 
     @Override
-    public int getBaseHeight(int x, int z, Heightmap.Types heightmap, LevelHeightAccessor world, RandomState noiseConfig) {
-        if (this.implementBaseHeight) {
+    public int getBaseHeight(int i, int j, HeightMap.Type heightmap_type, LevelHeightAccessor levelheightaccessor, RandomState randomstate) {
+        if (implementBaseHeight) {
             try {
-                WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
-                int xChunk = x >> 4;
-                int zChunk = z >> 4;
+                SeededRandom random = getSeededRandom();
+                int xChunk = i >> 4;
+                int zChunk = j >> 4;
                 random.setSeed((long) xChunk * 341873128712L + (long) zChunk * 132897987541L);
 
-                return this.generator.getBaseHeight(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z, CraftHeightMap.fromNMS(heightmap));
+                return generator.getBaseHeight(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), i, j, CraftHeightMap.fromNMS(heightmap_type));
             } catch (UnsupportedOperationException exception) {
-                this.implementBaseHeight = false;
+                implementBaseHeight = false;
             }
         }
 
-        return this.delegate.getBaseHeight(x, z, heightmap, world, noiseConfig);
+        return delegate.getBaseHeight(i, j, heightmap_type, levelheightaccessor, randomstate);
     }
 
     @Override
-    public WeightedRandomList<MobSpawnSettings.SpawnerData> getMobsAt(Holder<net.minecraft.world.level.biome.Biome> biome, StructureManager accessor, MobCategory group, BlockPos pos) {
-        return this.delegate.getMobsAt(biome, accessor, group, pos);
+    public WeightedRandomList<BiomeSettingsMobs.c> getMobsAt(Holder<BiomeBase> holder, StructureManager structuremanager, EnumCreatureType enumcreaturetype, BlockPos blockposition) {
+        return delegate.getMobsAt(holder, structuremanager, enumcreaturetype, blockposition);
     }
 
     @Override
-    public void applyBiomeDecoration(WorldGenLevel world, ChunkAccess chunk, StructureManager structureAccessor) {
-        WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
-        int x = chunk.getPos().x;
-        int z = chunk.getPos().z;
+    public void applyBiomeDecoration(GeneratorAccessSeed generatoraccessseed, IChunkAccess ichunkaccess, StructureManager structuremanager) {
+        SeededRandom random = getSeededRandom();
+        int x = ichunkaccess.getPos().x;
+        int z = ichunkaccess.getPos().z;
 
-        random.setSeed(Mth.getSeed(x, "should-decoration".hashCode(), z) ^ world.getSeed());
-        super.applyBiomeDecoration(world, chunk, structureAccessor, this.generator.shouldGenerateDecorations(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z));
+        random.setSeed(MathHelper.getSeed(x, "should-decoration".hashCode(), z) ^ generatoraccessseed.getSeed());
+        super.applyBiomeDecoration(generatoraccessseed, ichunkaccess, structuremanager, generator.shouldGenerateDecorations(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z));
     }
 
     @Override
-    public void addDebugScreenInfo(List<String> text, RandomState noiseConfig, BlockPos pos) {
-        this.delegate.addDebugScreenInfo(text, noiseConfig, pos);
+    public void addDebugScreenInfo(List<String> list, RandomState randomstate, BlockPos blockposition) {
+        delegate.addDebugScreenInfo(list, randomstate, blockposition);
     }
 
     @Override
-    public void spawnOriginalMobs(WorldGenRegion region) {
-        WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
-        int x = region.getCenter().x;
-        int z = region.getCenter().z;
+    public void spawnOriginalMobs(RegionLimitedWorldAccess regionlimitedworldaccess) {
+        SeededRandom random = getSeededRandom();
+        int x = regionlimitedworldaccess.getCenter().x;
+        int z = regionlimitedworldaccess.getCenter().z;
 
-        random.setSeed(Mth.getSeed(x, "should-mobs".hashCode(), z) ^ region.getSeed());
-        if (this.generator.shouldGenerateMobs(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z)) {
-            this.delegate.spawnOriginalMobs(region);
+        random.setSeed(MathHelper.getSeed(x, "should-mobs".hashCode(), z) ^ regionlimitedworldaccess.getSeed());
+        if (generator.shouldGenerateMobs(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z)) {
+            delegate.spawnOriginalMobs(regionlimitedworldaccess);
         }
     }
 
     @Override
-    public int getSpawnHeight(LevelHeightAccessor world) {
-        return this.delegate.getSpawnHeight(world);
+    public int getSpawnHeight(LevelHeightAccessor levelheightaccessor) {
+        return delegate.getSpawnHeight(levelheightaccessor);
     }
 
     @Override
     public int getGenDepth() {
-        return this.delegate.getGenDepth();
+        return delegate.getGenDepth();
     }
 
     @Override
-    public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor world, RandomState noiseConfig) {
-        return this.delegate.getBaseColumn(x, z, world, noiseConfig);
+    public BlockColumn getBaseColumn(int i, int j, LevelHeightAccessor levelheightaccessor, RandomState randomstate) {
+        return delegate.getBaseColumn(i, j, levelheightaccessor, randomstate);
     }
 
     @Override

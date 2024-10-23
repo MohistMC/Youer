@@ -1,31 +1,32 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import net.minecraft.world.entity.animal.EntityParrot;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Parrot.Variant;
 
 public class CraftParrot extends CraftTameableAnimal implements Parrot {
 
-    public CraftParrot(CraftServer server, net.minecraft.world.entity.animal.Parrot parrot) {
+    public CraftParrot(CraftServer server, EntityParrot parrot) {
         super(server, parrot);
     }
 
     @Override
-    public net.minecraft.world.entity.animal.Parrot getHandle() {
-        return (net.minecraft.world.entity.animal.Parrot) this.entity;
+    public EntityParrot getHandle() {
+        return (EntityParrot) entity;
     }
 
     @Override
     public Variant getVariant() {
-        return Variant.values()[this.getHandle().getVariant().ordinal()];
+        return Variant.values()[getHandle().getVariant().ordinal()];
     }
 
     @Override
     public void setVariant(Variant variant) {
         Preconditions.checkArgument(variant != null, "variant");
 
-        this.getHandle().setVariant(net.minecraft.world.entity.animal.Parrot.Variant.byId(variant.ordinal()));
+        getHandle().setVariant(EntityParrot.Variant.byId(variant.ordinal()));
     }
 
     @Override
@@ -35,6 +36,6 @@ public class CraftParrot extends CraftTameableAnimal implements Parrot {
 
     @Override
     public boolean isDancing() {
-        return this.getHandle().isPartyParrot();
+        return getHandle().isPartyParrot();
     }
 }

@@ -1,17 +1,18 @@
 package org.bukkit.craftbukkit.entity;
 
+import net.minecraft.world.entity.monster.EntityRavager;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Ravager;
 
 public class CraftRavager extends CraftRaider implements Ravager {
 
-    public CraftRavager(CraftServer server, net.minecraft.world.entity.monster.Ravager entity) {
+    public CraftRavager(CraftServer server, EntityRavager entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.monster.Ravager getHandle() {
-        return (net.minecraft.world.entity.monster.Ravager) super.getHandle();
+    public EntityRavager getHandle() {
+        return (EntityRavager) super.getHandle();
     }
 
     @Override

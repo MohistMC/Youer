@@ -24,42 +24,42 @@ public final class RandomSourceWrapper implements RandomSource {
 
     @Override
     public synchronized void setSeed(long seed) {
-        this.random.setSeed(seed);
+        random.setSeed(seed);
     }
 
     @Override
     public int nextInt() {
-        return this.random.nextInt();
+        return random.nextInt();
     }
 
     @Override
     public int nextInt(int bound) {
-        return this.random.nextInt(bound);
+        return random.nextInt(bound);
     }
 
     @Override
     public long nextLong() {
-        return this.random.nextLong();
+        return random.nextLong();
     }
 
     @Override
     public boolean nextBoolean() {
-        return this.random.nextBoolean();
+        return random.nextBoolean();
     }
 
     @Override
     public float nextFloat() {
-        return this.random.nextFloat();
+        return random.nextFloat();
     }
 
     @Override
     public double nextDouble() {
-        return this.random.nextDouble();
+        return random.nextDouble();
     }
 
     @Override
     public synchronized double nextGaussian() {
-        return this.random.nextGaussian();
+        return random.nextGaussian();
     }
 
     public static final class RandomWrapper extends Random {
@@ -72,49 +72,49 @@ public final class RandomSourceWrapper implements RandomSource {
 
         @Override
         public void setSeed(long l) {
-            if (this.random != null) {
-                this.random.setSeed(l);
+            if (random != null) {
+                random.setSeed(l);
             }
         }
 
         @Override
         public int nextInt() {
-            return this.random.nextInt();
+            return random.nextInt();
         }
 
         @Override
         public int nextInt(int i) {
-            return this.random.nextInt(i);
+            return random.nextInt(i);
         }
 
         @Override
         public long nextLong() {
-            return this.random.nextLong();
+            return random.nextLong();
         }
 
         @Override
         public boolean nextBoolean() {
-            return this.random.nextBoolean();
+            return random.nextBoolean();
         }
 
         @Override
         public float nextFloat() {
-            return this.random.nextFloat();
+            return random.nextFloat();
         }
 
         @Override
         public double nextDouble() {
-            return this.random.nextDouble();
+            return random.nextDouble();
         }
 
         @Override
         public double nextGaussian() {
-            return this.random.nextGaussian();
+            return random.nextGaussian();
         }
 
         @Override
         public int nextInt(int var0, int var1) {
-            return this.random.nextInt(var0, var1);
+            return random.nextInt(var0, var1);
         }
     }
 }

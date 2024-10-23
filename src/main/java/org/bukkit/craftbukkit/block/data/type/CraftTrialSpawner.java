@@ -5,26 +5,26 @@ import org.bukkit.craftbukkit.block.data.CraftBlockData;
 
 public abstract class CraftTrialSpawner extends CraftBlockData implements TrialSpawner {
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> TRIAL_SPAWNER_STATE = getEnum("trial_spawner_state");
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty OMINOUS = getBoolean("ominous");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> TRIAL_SPAWNER_STATE = getEnum("trial_spawner_state");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean OMINOUS = getBoolean("ominous");
 
     @Override
     public org.bukkit.block.data.type.TrialSpawner.State getTrialSpawnerState() {
-        return this.get(CraftTrialSpawner.TRIAL_SPAWNER_STATE, org.bukkit.block.data.type.TrialSpawner.State.class);
+        return get(TRIAL_SPAWNER_STATE, org.bukkit.block.data.type.TrialSpawner.State.class);
     }
 
     @Override
     public void setTrialSpawnerState(org.bukkit.block.data.type.TrialSpawner.State state) {
-        this.set(CraftTrialSpawner.TRIAL_SPAWNER_STATE, state);
+        set(TRIAL_SPAWNER_STATE, state);
     }
 
     @Override
     public boolean isOminous() {
-        return this.get(CraftTrialSpawner.OMINOUS);
+        return get(OMINOUS);
     }
 
     @Override
     public void setOminous(boolean ominous) {
-        this.set(CraftTrialSpawner.OMINOUS, ominous);
+        set(OMINOUS, ominous);
     }
 }

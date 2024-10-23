@@ -16,38 +16,38 @@ public class CraftPortalEvent {
     private final boolean cancelled;
 
     public CraftPortalEvent(EntityPortalEvent portalEvent) {
-        this.to = portalEvent.getTo();
-        this.searchRadius = portalEvent.getSearchRadius();
-        this.cancelled = portalEvent.isCancelled();
-        this.creationRadius = 0;
-        this.canCreatePortal = false;
+        to = portalEvent.getTo();
+        searchRadius = portalEvent.getSearchRadius();
+        cancelled = portalEvent.isCancelled();
+        creationRadius = portalEvent.getCreationRadius();
+        canCreatePortal = portalEvent.getCanCreatePortal();
     }
 
     public CraftPortalEvent(PlayerPortalEvent portalEvent) {
-        this.to = portalEvent.getTo();
-        this.searchRadius = portalEvent.getSearchRadius();
-        this.creationRadius = portalEvent.getCreationRadius();
-        this.canCreatePortal = portalEvent.getCanCreatePortal();
-        this.cancelled = portalEvent.isCancelled();
+        to = portalEvent.getTo();
+        searchRadius = portalEvent.getSearchRadius();
+        creationRadius = portalEvent.getCreationRadius();
+        canCreatePortal = portalEvent.getCanCreatePortal();
+        cancelled = portalEvent.isCancelled();
     }
 
     public Location getTo() {
-        return this.to;
+        return to;
     }
 
     public int getSearchRadius() {
-        return this.searchRadius;
+        return searchRadius;
     }
 
     public int getCreationRadius() {
-        return this.creationRadius;
+        return creationRadius;
     }
 
     public boolean getCanCreatePortal() {
-        return this.canCreatePortal;
+        return canCreatePortal;
     }
 
     public boolean isCancelled() {
-        return this.cancelled;
+        return cancelled;
     }
 }

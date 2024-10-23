@@ -1,27 +1,28 @@
 package org.bukkit.craftbukkit.entity;
 
+import net.minecraft.world.entity.monster.EntitySlime;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Slime;
 
 public class CraftSlime extends CraftMob implements Slime, CraftEnemy {
 
-    public CraftSlime(CraftServer server, net.minecraft.world.entity.monster.Slime entity) {
+    public CraftSlime(CraftServer server, EntitySlime entity) {
         super(server, entity);
     }
 
     @Override
     public int getSize() {
-        return this.getHandle().getSize();
+        return getHandle().getSize();
     }
 
     @Override
     public void setSize(int size) {
-        this.getHandle().setSize(size, true);
+        getHandle().setSize(size, true);
     }
 
     @Override
-    public net.minecraft.world.entity.monster.Slime getHandle() {
-        return (net.minecraft.world.entity.monster.Slime) this.entity;
+    public EntitySlime getHandle() {
+        return (EntitySlime) entity;
     }
 
     @Override

@@ -1,17 +1,17 @@
 package org.bukkit.craftbukkit.entity;
 
-import net.minecraft.world.entity.animal.AbstractGolem;
+import net.minecraft.world.entity.animal.EntityGolem;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Golem;
 
 public class CraftGolem extends CraftCreature implements Golem {
-    public CraftGolem(CraftServer server, AbstractGolem entity) {
+    public CraftGolem(CraftServer server, EntityGolem entity) {
         super(server, entity);
     }
 
     @Override
-    public AbstractGolem getHandle() {
-        return (AbstractGolem) this.entity;
+    public EntityGolem getHandle() {
+        return (EntityGolem) entity;
     }
 
     @Override

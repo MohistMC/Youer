@@ -9,35 +9,35 @@ public final class CraftWeatheringCopperBulb extends org.bukkit.craftbukkit.bloc
         super();
     }
 
-    public CraftWeatheringCopperBulb(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftWeatheringCopperBulb(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftLightable
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty LIT = getBoolean(net.minecraft.world.level.block.WeatheringCopperBulbBlock.class, "lit");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean LIT = getBoolean(net.minecraft.world.level.block.WeatheringCopperBulbBlock.class, "lit");
 
     @Override
     public boolean isLit() {
-        return this.get(CraftWeatheringCopperBulb.LIT);
+        return get(LIT);
     }
 
     @Override
     public void setLit(boolean lit) {
-        this.set(CraftWeatheringCopperBulb.LIT, lit);
+        set(LIT, lit);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftPowerable
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty POWERED = getBoolean(net.minecraft.world.level.block.WeatheringCopperBulbBlock.class, "powered");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean POWERED = getBoolean(net.minecraft.world.level.block.WeatheringCopperBulbBlock.class, "powered");
 
     @Override
     public boolean isPowered() {
-        return this.get(CraftWeatheringCopperBulb.POWERED);
+        return get(POWERED);
     }
 
     @Override
     public void setPowered(boolean powered) {
-        this.set(CraftWeatheringCopperBulb.POWERED, powered);
+        set(POWERED, powered);
     }
 }

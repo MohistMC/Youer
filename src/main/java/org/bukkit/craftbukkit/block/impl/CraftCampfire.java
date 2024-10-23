@@ -9,68 +9,68 @@ public final class CraftCampfire extends org.bukkit.craftbukkit.block.data.Craft
         super();
     }
 
-    public CraftCampfire(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftCampfire(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftCampfire
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty SIGNAL_FIRE = getBoolean(net.minecraft.world.level.block.CampfireBlock.class, "signal_fire");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean SIGNAL_FIRE = getBoolean(net.minecraft.world.level.block.BlockCampfire.class, "signal_fire");
 
     @Override
     public boolean isSignalFire() {
-        return this.get(CraftCampfire.SIGNAL_FIRE);
+        return get(SIGNAL_FIRE);
     }
 
     @Override
     public void setSignalFire(boolean signalFire) {
-        this.set(CraftCampfire.SIGNAL_FIRE, signalFire);
+        set(SIGNAL_FIRE, signalFire);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftDirectional
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> FACING = getEnum(net.minecraft.world.level.block.CampfireBlock.class, "facing");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> FACING = getEnum(net.minecraft.world.level.block.BlockCampfire.class, "facing");
 
     @Override
     public org.bukkit.block.BlockFace getFacing() {
-        return this.get(CraftCampfire.FACING, org.bukkit.block.BlockFace.class);
+        return get(FACING, org.bukkit.block.BlockFace.class);
     }
 
     @Override
     public void setFacing(org.bukkit.block.BlockFace facing) {
-        this.set(CraftCampfire.FACING, facing);
+        set(FACING, facing);
     }
 
     @Override
     public java.util.Set<org.bukkit.block.BlockFace> getFaces() {
-        return this.getValues(CraftCampfire.FACING, org.bukkit.block.BlockFace.class);
+        return getValues(FACING, org.bukkit.block.BlockFace.class);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftLightable
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty LIT = getBoolean(net.minecraft.world.level.block.CampfireBlock.class, "lit");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean LIT = getBoolean(net.minecraft.world.level.block.BlockCampfire.class, "lit");
 
     @Override
     public boolean isLit() {
-        return this.get(CraftCampfire.LIT);
+        return get(LIT);
     }
 
     @Override
     public void setLit(boolean lit) {
-        this.set(CraftCampfire.LIT, lit);
+        set(LIT, lit);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftWaterlogged
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty WATERLOGGED = getBoolean(net.minecraft.world.level.block.CampfireBlock.class, "waterlogged");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean WATERLOGGED = getBoolean(net.minecraft.world.level.block.BlockCampfire.class, "waterlogged");
 
     @Override
     public boolean isWaterlogged() {
-        return this.get(CraftCampfire.WATERLOGGED);
+        return get(WATERLOGGED);
     }
 
     @Override
     public void setWaterlogged(boolean waterlogged) {
-        this.set(CraftCampfire.WATERLOGGED, waterlogged);
+        set(WATERLOGGED, waterlogged);
     }
 }

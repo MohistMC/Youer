@@ -9,26 +9,26 @@ public final class CraftLayeredCauldron extends org.bukkit.craftbukkit.block.dat
         super();
     }
 
-    public CraftLayeredCauldron(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftLayeredCauldron(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftLevelled
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty LEVEL = getInteger(net.minecraft.world.level.block.LayeredCauldronBlock.class, "level");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger LEVEL = getInteger(net.minecraft.world.level.block.LayeredCauldronBlock.class, "level");
 
     @Override
     public int getLevel() {
-        return this.get(CraftLayeredCauldron.LEVEL);
+        return get(LEVEL);
     }
 
     @Override
     public void setLevel(int level) {
-        this.set(CraftLayeredCauldron.LEVEL, level);
+        set(LEVEL, level);
     }
 
     @Override
     public int getMaximumLevel() {
-        return getMax(CraftLayeredCauldron.LEVEL);
+        return getMax(LEVEL);
     }
 }

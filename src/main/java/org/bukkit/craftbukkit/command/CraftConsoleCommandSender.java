@@ -21,7 +21,7 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
 
     @Override
     public void sendMessage(String message) {
-        this.sendRawMessage(message);
+        sendRawMessage(message);
     }
 
     @Override
@@ -37,7 +37,7 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
     @Override
     public void sendMessage(String... messages) {
         for (String message : messages) {
-            this.sendMessage(message);
+            sendMessage(message);
         }
     }
 
@@ -58,26 +58,26 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
 
     @Override
     public boolean beginConversation(Conversation conversation) {
-        return this.conversationTracker.beginConversation(conversation);
+        return conversationTracker.beginConversation(conversation);
     }
 
     @Override
     public void abandonConversation(Conversation conversation) {
-        this.conversationTracker.abandonConversation(conversation, new ConversationAbandonedEvent(conversation, new ManuallyAbandonedConversationCanceller()));
+        conversationTracker.abandonConversation(conversation, new ConversationAbandonedEvent(conversation, new ManuallyAbandonedConversationCanceller()));
     }
 
     @Override
     public void abandonConversation(Conversation conversation, ConversationAbandonedEvent details) {
-        this.conversationTracker.abandonConversation(conversation, details);
+        conversationTracker.abandonConversation(conversation, details);
     }
 
     @Override
     public void acceptConversationInput(String input) {
-        this.conversationTracker.acceptConversationInput(input);
+        conversationTracker.acceptConversationInput(input);
     }
 
     @Override
     public boolean isConversing() {
-        return this.conversationTracker.isConversing();
+        return conversationTracker.isConversing();
     }
 }

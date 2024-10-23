@@ -22,41 +22,41 @@ public class InventoryIterator implements ListIterator<ItemStack> {
 
     @Override
     public boolean hasNext() {
-        return this.nextIndex < this.inventory.getSize();
+        return nextIndex < inventory.getSize();
     }
 
     @Override
     public ItemStack next() {
-        this.lastDirection = true;
-        return this.inventory.getItem(this.nextIndex++);
+        lastDirection = true;
+        return inventory.getItem(nextIndex++);
     }
 
     @Override
     public int nextIndex() {
-        return this.nextIndex;
+        return nextIndex;
     }
 
     @Override
     public boolean hasPrevious() {
-        return this.nextIndex > 0;
+        return nextIndex > 0;
     }
 
     @Override
     public ItemStack previous() {
-        this.lastDirection = false;
-        return this.inventory.getItem(--this.nextIndex);
+        lastDirection = false;
+        return inventory.getItem(--nextIndex);
     }
 
     @Override
     public int previousIndex() {
-        return this.nextIndex - 1;
+        return nextIndex - 1;
     }
 
     @Override
     public void set(ItemStack item) {
-        Preconditions.checkState(this.lastDirection != null, "No current item!");
-        int i = this.lastDirection ? this.nextIndex - 1 : this.nextIndex;
-        this.inventory.setItem(i, item);
+        Preconditions.checkState(lastDirection != null, "No current item!");
+        int i = lastDirection ? nextIndex - 1 : nextIndex;
+        inventory.setItem(i, item);
     }
 
     @Override

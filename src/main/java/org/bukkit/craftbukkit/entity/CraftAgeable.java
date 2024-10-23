@@ -1,71 +1,71 @@
 package org.bukkit.craftbukkit.entity;
 
-import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.EntityAgeable;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Ageable;
 
 public class CraftAgeable extends CraftCreature implements Ageable {
-    public CraftAgeable(CraftServer server, AgeableMob entity) {
+    public CraftAgeable(CraftServer server, EntityAgeable entity) {
         super(server, entity);
     }
 
     @Override
     public int getAge() {
-        return this.getHandle().getAge();
+        return getHandle().getAge();
     }
 
     @Override
     public void setAge(int age) {
-        this.getHandle().setAge(age);
+        getHandle().setAge(age);
     }
 
     @Override
     public void setAgeLock(boolean lock) {
-        this.getHandle().ageLocked = lock;
+        getHandle().ageLocked = lock;
     }
 
     @Override
     public boolean getAgeLock() {
-        return this.getHandle().ageLocked;
+        return getHandle().ageLocked;
     }
 
     @Override
     public void setBaby() {
-        if (this.isAdult()) {
-            this.setAge(-24000);
+        if (isAdult()) {
+            setAge(-24000);
         }
     }
 
     @Override
     public void setAdult() {
-        if (!this.isAdult()) {
-            this.setAge(0);
+        if (!isAdult()) {
+            setAge(0);
         }
     }
 
     @Override
     public boolean isAdult() {
-        return this.getAge() >= 0;
+        return getAge() >= 0;
     }
 
 
     @Override
     public boolean canBreed() {
-        return this.getAge() == 0;
+        return getAge() == 0;
     }
 
     @Override
     public void setBreed(boolean breed) {
         if (breed) {
-            this.setAge(0);
-        } else if (this.isAdult()) {
-            this.setAge(6000);
+            setAge(0);
+        } else if (isAdult()) {
+            setAge(6000);
         }
     }
 
     @Override
-    public AgeableMob getHandle() {
-        return (AgeableMob) this.entity;
+    public EntityAgeable getHandle() {
+        return (EntityAgeable) entity;
     }
 
     @Override

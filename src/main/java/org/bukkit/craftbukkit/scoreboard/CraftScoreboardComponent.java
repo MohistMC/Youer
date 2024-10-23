@@ -10,7 +10,7 @@ abstract class CraftScoreboardComponent {
     abstract CraftScoreboard checkState();
 
     public CraftScoreboard getScoreboard() {
-        return this.scoreboard;
+        return scoreboard;
     }
 
     abstract void unregister();

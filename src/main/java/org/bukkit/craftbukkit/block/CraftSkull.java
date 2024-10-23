@@ -2,11 +2,11 @@ package org.bukkit.craftbukkit.block;
 
 import com.google.common.base.Preconditions;
 import com.mojang.authlib.GameProfile;
-import net.minecraft.Util;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.SystemUtils;
+import net.minecraft.resources.MinecraftKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.component.ResolvableProfile;
-import net.minecraft.world.level.block.entity.SkullBlockEntity;
+import net.minecraft.world.level.block.entity.TileEntitySkull;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -24,12 +24,12 @@ import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.profile.PlayerProfile;
 import org.jetbrains.annotations.Nullable;
 
-public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implements Skull {
+public class CraftSkull extends CraftBlockEntityState<TileEntitySkull> implements Skull {
 
     private static final int MAX_OWNER_LENGTH = 16;
     private ResolvableProfile profile;
 
-    public CraftSkull(World world, SkullBlockEntity tileEntity) {
+    public CraftSkull(World world, TileEntitySkull tileEntity) {
         super(world, tileEntity);
     }
 
@@ -38,28 +38,28 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
     }
 
     @Override
-    public void load(SkullBlockEntity skull) {
+    public void load(TileEntitySkull skull) {
         super.load(skull);
 
         ResolvableProfile owner = skull.getOwnerProfile();
         if (owner != null) {
-            this.profile = owner;
+            profile = owner;
         }
     }
 
     @Override
     public boolean hasOwner() {
-        return this.profile != null;
+        return profile != null;
     }
 
     @Override
     public String getOwner() {
-        return this.hasOwner() ? this.profile.name().orElse(null) : null;
+        return hasOwner() ? profile.name().orElse(null) : null;
     }
 
     @Override
     public boolean setOwner(String name) {
-        if (name == null || name.length() > CraftSkull.MAX_OWNER_LENGTH) {
+        if (name == null || name.length() > MAX_OWNER_LENGTH) {
             return false;
         }
 
@@ -75,7 +75,7 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
     @Override
     public OfflinePlayer getOwningPlayer() {
         if (hasOwner()) {
-            if (profile.id().filter(u -> !u.equals(Util.NIL_UUID)).isPresent()) {
+            if (profile.id().filter(u -> !u.equals(SystemUtils.NIL_UUID)).isPresent()) {
                 return Bukkit.getOfflinePlayer(profile.id().get());
             }
 
@@ -100,11 +100,11 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
 
     @Override
     public PlayerProfile getOwnerProfile() {
-        if (!this.hasOwner()) {
+        if (!hasOwner()) {
             return null;
         }
 
-        return new CraftPlayerProfile(this.profile);
+        return new CraftPlayerProfile(profile);
     }
 
     @Override
@@ -118,7 +118,7 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
 
     @Override
     public NamespacedKey getNoteBlockSound() {
-        ResourceLocation key = this.getSnapshot().getNoteBlockSound();
+        MinecraftKey key = getSnapshot().getNoteBlockSound();
         return (key != null) ? CraftNamespacedKey.fromMinecraft(key) : null;
     }
 
@@ -133,24 +133,24 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
 
     @Override
     public BlockFace getRotation() {
-        BlockData blockData = this.getBlockData();
+        BlockData blockData = getBlockData();
         return (blockData instanceof Rotatable rotatable) ? rotatable.getRotation() : ((Directional) blockData).getFacing();
     }
 
     @Override
     public void setRotation(BlockFace rotation) {
-        BlockData blockData = this.getBlockData();
+        BlockData blockData = getBlockData();
         if (blockData instanceof Rotatable) {
             ((Rotatable) blockData).setRotation(rotation);
         } else {
             ((Directional) blockData).setFacing(rotation);
         }
-        this.setBlockData(blockData);
+        setBlockData(blockData);
     }
 
     @Override
     public SkullType getSkullType() {
-        switch (this.getType()) {
+        switch (getType()) {
             case SKELETON_SKULL:
             case SKELETON_WALL_SKULL:
                 return SkullType.SKELETON;
@@ -173,7 +173,7 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
             case DRAGON_WALL_HEAD:
                 return SkullType.DRAGON;
             default:
-                throw new IllegalArgumentException("Unknown SkullType for " + this.getType());
+                throw new IllegalArgumentException("Unknown SkullType for " + getType());
         }
     }
 
@@ -183,10 +183,10 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
     }
 
     @Override
-    public void applyTo(SkullBlockEntity skull) {
+    public void applyTo(TileEntitySkull skull) {
         super.applyTo(skull);
 
-        if (this.getSkullType() == SkullType.PLAYER) {
+        if (getSkullType() == SkullType.PLAYER) {
             skull.setOwner(hasOwner() ? profile : null);
         }
     }

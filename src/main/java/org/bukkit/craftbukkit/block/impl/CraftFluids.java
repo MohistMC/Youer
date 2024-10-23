@@ -9,26 +9,26 @@ public final class CraftFluids extends org.bukkit.craftbukkit.block.data.CraftBl
         super();
     }
 
-    public CraftFluids(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftFluids(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftLevelled
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty LEVEL = getInteger(net.minecraft.world.level.block.LiquidBlock.class, "level");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger LEVEL = getInteger(net.minecraft.world.level.block.BlockFluids.class, "level");
 
     @Override
     public int getLevel() {
-        return this.get(CraftFluids.LEVEL);
+        return get(LEVEL);
     }
 
     @Override
     public void setLevel(int level) {
-        this.set(CraftFluids.LEVEL, level);
+        set(LEVEL, level);
     }
 
     @Override
     public int getMaximumLevel() {
-        return getMax(CraftFluids.LEVEL);
+        return getMax(LEVEL);
     }
 }

@@ -2,8 +2,8 @@ package org.bukkit.craftbukkit.block;
 
 import com.google.common.base.Preconditions;
 import java.util.UUID;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.network.chat.IChatBaseComponent;
+import net.minecraft.world.level.block.entity.TileEntitySign;
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
 import org.bukkit.Location;
@@ -19,7 +19,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerSignOpenEvent;
 import org.jetbrains.annotations.NotNull;
 
-public class CraftSign<T extends SignBlockEntity> extends CraftBlockEntityState<T> implements Sign {
+public class CraftSign<T extends TileEntitySign> extends CraftBlockEntityState<T> implements Sign {
 
     private final CraftSignSide front;
     private final CraftSignSide back;
@@ -38,22 +38,22 @@ public class CraftSign<T extends SignBlockEntity> extends CraftBlockEntityState<
 
     @Override
     public String[] getLines() {
-        return this.front.getLines();
+        return front.getLines();
     }
 
     @Override
     public String getLine(int index) throws IndexOutOfBoundsException {
-        return this.front.getLine(index);
+        return front.getLine(index);
     }
 
     @Override
     public void setLine(int index, String line) throws IndexOutOfBoundsException {
-        this.front.setLine(index, line);
+        front.setLine(index, line);
     }
 
     @Override
     public boolean isEditable() {
-        return !this.isWaxed();
+        return !isWaxed();
     }
 
     @Override
@@ -63,22 +63,22 @@ public class CraftSign<T extends SignBlockEntity> extends CraftBlockEntityState<
 
     @Override
     public boolean isWaxed() {
-        return this.getSnapshot().isWaxed();
+        return getSnapshot().isWaxed();
     }
 
     @Override
     public void setWaxed(boolean waxed) {
-        this.getSnapshot().setWaxed(waxed);
+        getSnapshot().setWaxed(waxed);
     }
 
     @Override
     public boolean isGlowingText() {
-        return this.front.isGlowingText();
+        return front.isGlowingText();
     }
 
     @Override
     public void setGlowingText(boolean glowing) {
-        this.front.setGlowingText(glowing);
+        front.setGlowingText(glowing);
     }
 
     @NotNull
@@ -88,9 +88,9 @@ public class CraftSign<T extends SignBlockEntity> extends CraftBlockEntityState<
 
         switch (side) {
             case FRONT:
-                return this.front;
+                return front;
             case BACK:
-                return this.back;
+                return back;
             default:
                 throw new IllegalArgumentException();
         }
@@ -98,39 +98,39 @@ public class CraftSign<T extends SignBlockEntity> extends CraftBlockEntityState<
 
     @Override
     public SignSide getTargetSide(Player player) {
-        this.ensureNoWorldGeneration();
+        ensureNoWorldGeneration();
         Preconditions.checkArgument(player != null, "player cannot be null");
 
-        if (this.getSnapshot().isFacingFrontText(((CraftPlayer) player).getHandle())) {
-            return this.front;
+        if (getSnapshot().isFacingFrontText(((CraftPlayer) player).getHandle())) {
+            return front;
         }
 
-        return this.back;
+        return back;
     }
 
     @Override
     public Player getAllowedEditor() {
-        this.ensureNoWorldGeneration();
+        ensureNoWorldGeneration();
 
         // getPlayerWhoMayEdit is always null for the snapshot, so we use the wrapped TileEntity
-        UUID id = this.getTileEntity().getPlayerWhoMayEdit();
+        UUID id = getTileEntity().getPlayerWhoMayEdit();
         return (id == null) ? null : Bukkit.getPlayer(id);
     }
 
     @Override
     public DyeColor getColor() {
-        return this.front.getColor();
+        return front.getColor();
     }
 
     @Override
     public void setColor(DyeColor color) {
-        this.front.setColor(color);
+        front.setColor(color);
     }
 
     @Override
     public void applyTo(T sign) {
-        this.getSnapshot().setText(this.front.applyLegacyStringToSignSide(), true);
-        this.getSnapshot().setText(this.back.applyLegacyStringToSignSide(), false);
+        getSnapshot().setText(front.applyLegacyStringToSignSide(), true);
+        getSnapshot().setText(back.applyLegacyStringToSignSide(), false);
 
         super.applyTo(sign);
     }
@@ -155,35 +155,35 @@ public class CraftSign<T extends SignBlockEntity> extends CraftBlockEntityState<
             return;
         }
 
-        SignBlockEntity handle = ((CraftSign<?>) sign).getTileEntity();
+        TileEntitySign handle = ((CraftSign<?>) sign).getTileEntity();
         handle.setAllowedPlayerEditor(player.getUniqueId());
 
         ((CraftPlayer) player).getHandle().openTextEdit(handle, Side.FRONT == side);
     }
 
-    public static Component[] sanitizeLines(String[] lines) {
-        Component[] components = new Component[4];
+    public static IChatBaseComponent[] sanitizeLines(String[] lines) {
+        IChatBaseComponent[] components = new IChatBaseComponent[4];
 
         for (int i = 0; i < 4; i++) {
             if (i < lines.length && lines[i] != null) {
                 components[i] = CraftChatMessage.fromString(lines[i])[0];
             } else {
-                components[i] = Component.empty();
+                components[i] = IChatBaseComponent.empty();
             }
         }
 
         return components;
     }
 
-    public static String[] revertComponents(Component[] components) {
+    public static String[] revertComponents(IChatBaseComponent[] components) {
         String[] lines = new String[components.length];
         for (int i = 0; i < lines.length; i++) {
-            lines[i] = CraftSign.revertComponent(components[i]);
+            lines[i] = revertComponent(components[i]);
         }
         return lines;
     }
 
-    private static String revertComponent(Component component) {
+    private static String revertComponent(IChatBaseComponent component) {
         return CraftChatMessage.fromComponent(component);
     }
 }

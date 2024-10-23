@@ -418,9 +418,9 @@ public class ClientHooks {
 
     public static Vector4f getFogColor(Camera camera, float partialTick, ClientLevel level, int renderDistance, float darkenWorldAmount, float fogRed, float fogGreen, float fogBlue) {
         // Modify fog color depending on the fluid
-        FluidState state = level.getFluidState(camera.getBlockPosition());
+        FluidState state = level.getFluidState(camera.getBlockPos());
         Vector4f fluidFogColor = new Vector4f(fogRed, fogGreen, fogBlue, 1F);
-        if (camera.getPosition().y < (double) ((float) camera.getBlockPosition().getY() + state.getHeight(level, camera.getBlockPosition())))
+        if (camera.getPosition().y < (double) ((float) camera.getBlockPos().getY() + state.getHeight(level, camera.getBlockPos())))
             fluidFogColor = IClientFluidTypeExtensions.of(state).modifyFogColor(camera, partialTick, level, renderDistance, darkenWorldAmount, fluidFogColor);
 
         ViewportEvent.ComputeFogColor event = new ViewportEvent.ComputeFogColor(camera, partialTick, fluidFogColor.x(), fluidFogColor.y(), fluidFogColor.z());
@@ -432,8 +432,8 @@ public class ClientHooks {
 
     public static FogParameters onFogRender(FogRenderer.FogMode mode, FogType type, Camera camera, float partialTick, float renderDistance, FogParameters fogParameters) {
         // Modify fog rendering depending on the fluid
-        FluidState state = camera.getEntity().level().getFluidState(camera.getBlockPosition());
-        if (camera.getPosition().y < (double) ((float) camera.getBlockPosition().getY() + state.getHeight(camera.getEntity().level(), camera.getBlockPosition())))
+        FluidState state = camera.getEntity().level().getFluidState(camera.getBlockPos());
+        if (camera.getPosition().y < (double) ((float) camera.getBlockPos().getY() + state.getHeight(camera.getEntity().level(), camera.getBlockPos())))
             fogParameters = IClientFluidTypeExtensions.of(state).modifyFogRender(camera, mode, renderDistance, partialTick, fogParameters);
 
         ViewportEvent.RenderFog event = new ViewportEvent.RenderFog(mode, type, camera, partialTick, fogParameters);

@@ -9,73 +9,73 @@ public final class CraftMangrovePropagule extends org.bukkit.craftbukkit.block.d
         super();
     }
 
-    public CraftMangrovePropagule(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftMangrovePropagule(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftAgeable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty AGE = getInteger(net.minecraft.world.level.block.MangrovePropaguleBlock.class, "age");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger AGE = getInteger(net.minecraft.world.level.block.MangrovePropaguleBlock.class, "age");
 
     @Override
     public int getAge() {
-        return this.get(CraftMangrovePropagule.AGE);
+        return get(AGE);
     }
 
     @Override
     public void setAge(int age) {
-        this.set(CraftMangrovePropagule.AGE, age);
+        set(AGE, age);
     }
 
     @Override
     public int getMaximumAge() {
-        return getMax(CraftMangrovePropagule.AGE);
+        return getMax(AGE);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftHangable
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty HANGING = getBoolean(net.minecraft.world.level.block.MangrovePropaguleBlock.class, "hanging");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean HANGING = getBoolean(net.minecraft.world.level.block.MangrovePropaguleBlock.class, "hanging");
 
     @Override
     public boolean isHanging() {
-        return this.get(CraftMangrovePropagule.HANGING);
+        return get(HANGING);
     }
 
     @Override
     public void setHanging(boolean hanging) {
-        this.set(CraftMangrovePropagule.HANGING, hanging);
+        set(HANGING, hanging);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftSapling
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty STAGE = getInteger(net.minecraft.world.level.block.MangrovePropaguleBlock.class, "stage");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger STAGE = getInteger(net.minecraft.world.level.block.MangrovePropaguleBlock.class, "stage");
 
     @Override
     public int getStage() {
-        return this.get(CraftMangrovePropagule.STAGE);
+        return get(STAGE);
     }
 
     @Override
     public void setStage(int stage) {
-        this.set(CraftMangrovePropagule.STAGE, stage);
+        set(STAGE, stage);
     }
 
     @Override
     public int getMaximumStage() {
-        return getMax(CraftMangrovePropagule.STAGE);
+        return getMax(STAGE);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftWaterlogged
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty WATERLOGGED = getBoolean(net.minecraft.world.level.block.MangrovePropaguleBlock.class, "waterlogged");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean WATERLOGGED = getBoolean(net.minecraft.world.level.block.MangrovePropaguleBlock.class, "waterlogged");
 
     @Override
     public boolean isWaterlogged() {
-        return this.get(CraftMangrovePropagule.WATERLOGGED);
+        return get(WATERLOGGED);
     }
 
     @Override
     public void setWaterlogged(boolean waterlogged) {
-        this.set(CraftMangrovePropagule.WATERLOGGED, waterlogged);
+        set(WATERLOGGED, waterlogged);
     }
 }

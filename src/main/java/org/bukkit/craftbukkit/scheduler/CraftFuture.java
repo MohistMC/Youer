@@ -21,10 +21,10 @@ class CraftFuture<T> extends CraftTask implements Future<T> {
 
     @Override
     public synchronized boolean cancel(final boolean mayInterruptIfRunning) {
-        if (this.getPeriod() != CraftTask.NO_REPEATING) {
+        if (getPeriod() != CraftTask.NO_REPEATING) {
             return false;
         }
-        this.setPeriod(CraftTask.CANCEL);
+        setPeriod(CraftTask.CANCEL);
         return true;
     }
 
@@ -37,7 +37,7 @@ class CraftFuture<T> extends CraftTask implements Future<T> {
     @Override
     public T get() throws CancellationException, InterruptedException, ExecutionException {
         try {
-            return this.get(0, TimeUnit.MILLISECONDS);
+            return get(0, TimeUnit.MILLISECONDS);
         } catch (final TimeoutException e) {
             throw new Error(e);
         }
@@ -67,10 +67,10 @@ class CraftFuture<T> extends CraftTask implements Future<T> {
                 throw new CancellationException();
             }
             if (period == CraftTask.DONE_FOR_FUTURE) {
-                if (this.exception == null) {
-                    return this.value;
+                if (exception == null) {
+                    return value;
                 }
-                throw new ExecutionException(this.exception);
+                throw new ExecutionException(exception);
             }
             throw new IllegalStateException("Expected " + CraftTask.NO_REPEATING + " to " + CraftTask.DONE_FOR_FUTURE + ", got " + period);
         }
@@ -79,18 +79,18 @@ class CraftFuture<T> extends CraftTask implements Future<T> {
     @Override
     public void run() {
         synchronized (this) {
-            if (this.getPeriod() == CraftTask.CANCEL) {
+            if (getPeriod() == CraftTask.CANCEL) {
                 return;
             }
-            this.setPeriod(CraftTask.PROCESS_FOR_FUTURE);
+            setPeriod(CraftTask.PROCESS_FOR_FUTURE);
         }
         try {
-            this.value = this.callable.call();
+            value = callable.call();
         } catch (final Exception e) {
-            this.exception = e;
+            exception = e;
         } finally {
             synchronized (this) {
-                this.setPeriod(CraftTask.DONE_FOR_FUTURE);
+                setPeriod(CraftTask.DONE_FOR_FUTURE);
                 this.notifyAll();
             }
         }
@@ -98,11 +98,11 @@ class CraftFuture<T> extends CraftTask implements Future<T> {
 
     @Override
     synchronized boolean cancel0() {
-        if (this.getPeriod() != CraftTask.NO_REPEATING) {
+        if (getPeriod() != CraftTask.NO_REPEATING) {
             return false;
         }
-        this.setPeriod(CraftTask.CANCEL);
-        this.notifyAll();
+        setPeriod(CraftTask.CANCEL);
+        notifyAll();
         return true;
     }
 }

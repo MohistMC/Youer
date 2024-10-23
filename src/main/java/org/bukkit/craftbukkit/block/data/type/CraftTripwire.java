@@ -5,15 +5,15 @@ import org.bukkit.craftbukkit.block.data.CraftBlockData;
 
 public abstract class CraftTripwire extends CraftBlockData implements Tripwire {
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty DISARMED = getBoolean("disarmed");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean DISARMED = getBoolean("disarmed");
 
     @Override
     public boolean isDisarmed() {
-        return this.get(CraftTripwire.DISARMED);
+        return get(DISARMED);
     }
 
     @Override
     public void setDisarmed(boolean disarmed) {
-        this.set(CraftTripwire.DISARMED, disarmed);
+        set(DISARMED, disarmed);
     }
 }

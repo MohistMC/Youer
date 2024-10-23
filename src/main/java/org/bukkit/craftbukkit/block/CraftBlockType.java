@@ -1,21 +1,23 @@
 package org.bukkit.craftbukkit.block;
 
 import com.google.common.base.Preconditions;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.EnumHand;
+import net.minecraft.world.entity.player.EntityHuman;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.EmptyBlockGetter;
+import net.minecraft.world.level.BlockAccessAir;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.BlockFire;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.FallingBlock;
-import net.minecraft.world.level.block.FireBlock;
-import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.level.block.Fallable;
+import net.minecraft.world.level.block.state.BlockBase;
+import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.phys.MovingObjectPositionBlock;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -54,28 +56,35 @@ public class CraftBlockType<B extends BlockData> implements BlockType.Typed<B>, 
         return CraftRegistry.bukkitToMinecraft(bukkit);
     }
 
-    private static boolean hasMethod(Class<?> clazz, String methodName, Class<?>... params) {
-        boolean hasMethod;
-        try {
-            hasMethod = clazz.getDeclaredMethod(methodName, params) != null;
-        } catch (NoSuchMethodException ex) {
-            hasMethod = false;
+    private static boolean hasMethod(Class<?> clazz, Class<?>... params) {
+        boolean hasMethod = false;
+        for (Method method : clazz.getDeclaredMethods()) {
+            if (Arrays.equals(method.getParameterTypes(), params)) {
+                Preconditions.checkArgument(!hasMethod, "More than one matching method for %s, args %s", clazz, Arrays.toString(params));
+
+                hasMethod = true;
+            }
         }
 
         return hasMethod;
     }
 
+    private static final Class<?>[] USE_WITHOUT_ITEM_ARGS = new Class[]{
+        IBlockData.class, net.minecraft.world.level.World.class, BlockPos.class, EntityHuman.class, MovingObjectPositionBlock.class
+    };
+    private static final Class<?>[] USE_ITEM_ON_ARGS = new Class[]{
+        net.minecraft.world.item.ItemStack.class, IBlockData.class, net.minecraft.world.level.World.class, BlockPos.class, EntityHuman.class, EnumHand.class, MovingObjectPositionBlock.class
+    };
+
     private static boolean isInteractable(Block block) {
         Class<?> clazz = block.getClass();
 
-        boolean hasMethod = hasMethod(clazz, "useWithoutItem", BlockState.class, net.minecraft.world.level.Level.class, BlockPos.class, Player.class, BlockHitResult.class)
-                || hasMethod(clazz, "useItemOn", net.minecraft.world.item.ItemStack.class, BlockState.class, net.minecraft.world.level.Level.class, BlockPos.class, Player.class, InteractionHand.class, BlockHitResult.class);
+        boolean hasMethod = hasMethod(clazz, USE_WITHOUT_ITEM_ARGS) || hasMethod(clazz, USE_ITEM_ON_ARGS);
 
-        if (!hasMethod && clazz.getSuperclass() != BlockBehaviour.class) {
+        if (!hasMethod && clazz.getSuperclass() != BlockBase.class) {
             clazz = clazz.getSuperclass();
 
-            hasMethod = hasMethod(clazz, "useWithoutItem", BlockState.class, net.minecraft.world.level.Level.class, BlockPos.class, Player.class, BlockHitResult.class)
-                    || hasMethod(clazz, "useItemOn", net.minecraft.world.item.ItemStack.class, BlockState.class, net.minecraft.world.level.Level.class, BlockPos.class, Player.class, InteractionHand.class, BlockHitResult.class);
+            hasMethod = hasMethod(clazz, USE_WITHOUT_ITEM_ARGS) || hasMethod(clazz, USE_ITEM_ON_ARGS);
         }
 
         return hasMethod;
@@ -177,17 +186,17 @@ public class CraftBlockType<B extends BlockData> implements BlockType.Typed<B>, 
 
     @Override
     public boolean isBurnable() {
-        return ((FireBlock) Blocks.FIRE).igniteOdds.getOrDefault(block, 0) > 0;
+        return ((BlockFire) Blocks.FIRE).igniteOdds.getOrDefault(block, 0) > 0;
     }
 
     @Override
     public boolean isOccluding() {
-        return block.defaultBlockState().isRedstoneConductor(EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
+        return block.defaultBlockState().isRedstoneConductor(BlockAccessAir.INSTANCE, BlockPos.ZERO);
     }
 
     @Override
     public boolean hasGravity() {
-        return block instanceof FallingBlock;
+        return block instanceof Fallable;
     }
 
     @Override

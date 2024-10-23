@@ -1,10 +1,10 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
-import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
-import net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.network.protocol.game.PacketPlayOutHeldItemSlot;
+import net.minecraft.network.protocol.game.PacketPlayOutSetSlot;
+import net.minecraft.server.level.EntityPlayer;
+import net.minecraft.world.entity.player.PlayerInventory;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.EntityEquipment;
@@ -12,67 +12,67 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 public class CraftInventoryPlayer extends CraftInventory implements org.bukkit.inventory.PlayerInventory, EntityEquipment {
-    public CraftInventoryPlayer(net.minecraft.world.entity.player.Inventory inventory) {
+    public CraftInventoryPlayer(net.minecraft.world.entity.player.PlayerInventory inventory) {
         super(inventory);
     }
 
     @Override
-    public Inventory getInventory() {
-        return (Inventory) this.inventory;
+    public PlayerInventory getInventory() {
+        return (PlayerInventory) inventory;
     }
 
     @Override
     public ItemStack[] getStorageContents() {
-        return this.asCraftMirror(this.getInventory().items);
+        return asCraftMirror(getInventory().items);
     }
 
     @Override
     public ItemStack getItemInMainHand() {
-        return CraftItemStack.asCraftMirror(this.getInventory().getSelected());
+        return CraftItemStack.asCraftMirror(getInventory().getSelected());
     }
 
     @Override
     public void setItemInMainHand(ItemStack item) {
-        this.setItem(this.getHeldItemSlot(), item);
+        setItem(getHeldItemSlot(), item);
     }
 
     @Override
     public void setItemInMainHand(ItemStack item, boolean silent) {
-        this.setItemInMainHand(item); // Silence doesn't apply to players
+        setItemInMainHand(item); // Silence doesn't apply to players
     }
 
     @Override
     public ItemStack getItemInOffHand() {
-        return CraftItemStack.asCraftMirror(this.getInventory().offhand.get(0));
+        return CraftItemStack.asCraftMirror(getInventory().offhand.get(0));
     }
 
     @Override
     public void setItemInOffHand(ItemStack item) {
-        ItemStack[] extra = this.getExtraContents();
+        ItemStack[] extra = getExtraContents();
         extra[0] = item;
-        this.setExtraContents(extra);
+        setExtraContents(extra);
     }
 
     @Override
     public void setItemInOffHand(ItemStack item, boolean silent) {
-        this.setItemInOffHand(item); // Silence doesn't apply to players
+        setItemInOffHand(item); // Silence doesn't apply to players
     }
 
     @Override
     public ItemStack getItemInHand() {
-        return this.getItemInMainHand();
+        return getItemInMainHand();
     }
 
     @Override
     public void setItemInHand(ItemStack stack) {
-        this.setItemInMainHand(stack);
+        setItemInMainHand(stack);
     }
 
     @Override
     public void setItem(int index, ItemStack item) {
         super.setItem(index, item);
         if (this.getHolder() == null) return;
-        ServerPlayer player = ((CraftPlayer) this.getHolder()).getHandle();
+        EntityPlayer player = ((CraftPlayer) this.getHolder()).getHandle();
         if (player.connection == null) return;
         // PacketPlayOutSetSlot places the items differently than setItem()
         //
@@ -102,14 +102,14 @@ public class CraftInventoryPlayer extends CraftInventory implements org.bukkit.i
         // to reverse the order of the index from 8. That means we need 0 to correspond to 8, 1 to correspond to 7,
         // 2 to correspond to 6, and 3 to correspond to 5. We do this simply by taking the result of (index - 36) and
         // subtracting that value from 8.
-        if (index < Inventory.getSelectionSize()) {
+        if (index < PlayerInventory.getSelectionSize()) {
             index += 36;
         } else if (index > 39) {
             index += 5; // Off hand
         } else if (index > 35) {
             index = 8 - (index - 36);
         }
-        player.connection.send(new ClientboundContainerSetSlotPacket(player.inventoryMenu.containerId, player.inventoryMenu.incrementStateId(), index, CraftItemStack.asNMSCopy(item)));
+        player.connection.send(new PacketPlayOutSetSlot(player.inventoryMenu.containerId, player.inventoryMenu.incrementStateId(), index, CraftItemStack.asNMSCopy(item)));
     }
 
     @Override
@@ -136,13 +136,13 @@ public class CraftInventoryPlayer extends CraftInventory implements org.bukkit.i
                 this.setHelmet(item);
                 break;
             default:
-                throw new IllegalArgumentException("Not implemented. This is a bug");
+                throw new IllegalArgumentException("Could not set slot " + slot + " - not a valid slot for PlayerInventory");
         }
     }
 
     @Override
     public void setItem(EquipmentSlot slot, ItemStack item, boolean silent) {
-        this.setItem(slot, item); // Silence doesn't apply to players
+        setItem(slot, item); // Silence doesn't apply to players
     }
 
     @Override
@@ -151,97 +151,97 @@ public class CraftInventoryPlayer extends CraftInventory implements org.bukkit.i
 
         switch (slot) {
             case HAND:
-                return this.getItemInMainHand();
+                return getItemInMainHand();
             case OFF_HAND:
-                return this.getItemInOffHand();
+                return getItemInOffHand();
             case FEET:
-                return this.getBoots();
+                return getBoots();
             case LEGS:
-                return this.getLeggings();
+                return getLeggings();
             case CHEST:
-                return this.getChestplate();
+                return getChestplate();
             case HEAD:
-                return this.getHelmet();
+                return getHelmet();
             default:
-                throw new IllegalArgumentException("Not implemented. This is a bug");
+                throw new IllegalArgumentException("Could not get slot " + slot + " - not a valid slot for PlayerInventory");
         }
     }
 
     @Override
     public int getHeldItemSlot() {
-        return this.getInventory().selected;
+        return getInventory().selected;
     }
 
     @Override
     public void setHeldItemSlot(int slot) {
-        Preconditions.checkArgument(slot >= 0 && slot < Inventory.getSelectionSize(), "Slot (%s) is not between 0 and %s inclusive", slot, Inventory.getSelectionSize() - 1);
+        Preconditions.checkArgument(slot >= 0 && slot < PlayerInventory.getSelectionSize(), "Slot (%s) is not between 0 and %s inclusive", slot, PlayerInventory.getSelectionSize() - 1);
         this.getInventory().selected = slot;
-        ((CraftPlayer) this.getHolder()).getHandle().connection.send(new ClientboundSetCarriedItemPacket(slot));
+        ((CraftPlayer) this.getHolder()).getHandle().connection.send(new PacketPlayOutHeldItemSlot(slot));
     }
 
     @Override
     public ItemStack getHelmet() {
-        return this.getItem(this.getSize() - 2);
+        return getItem(getSize() - 2);
     }
 
     @Override
     public ItemStack getChestplate() {
-        return this.getItem(this.getSize() - 3);
+        return getItem(getSize() - 3);
     }
 
     @Override
     public ItemStack getLeggings() {
-        return this.getItem(this.getSize() - 4);
+        return getItem(getSize() - 4);
     }
 
     @Override
     public ItemStack getBoots() {
-        return this.getItem(this.getSize() - 5);
+        return getItem(getSize() - 5);
     }
 
     @Override
     public void setHelmet(ItemStack helmet) {
-        this.setItem(this.getSize() - 2, helmet);
+        setItem(getSize() - 2, helmet);
     }
 
     @Override
     public void setHelmet(ItemStack helmet, boolean silent) {
-        this.setHelmet(helmet); // Silence doesn't apply to players
+        setHelmet(helmet); // Silence doesn't apply to players
     }
 
     @Override
     public void setChestplate(ItemStack chestplate) {
-        this.setItem(this.getSize() - 3, chestplate);
+        setItem(getSize() - 3, chestplate);
     }
 
     @Override
     public void setChestplate(ItemStack chestplate, boolean silent) {
-        this.setChestplate(chestplate); // Silence doesn't apply to players
+        setChestplate(chestplate); // Silence doesn't apply to players
     }
 
     @Override
     public void setLeggings(ItemStack leggings) {
-        this.setItem(this.getSize() - 4, leggings);
+        setItem(getSize() - 4, leggings);
     }
 
     @Override
     public void setLeggings(ItemStack leggings, boolean silent) {
-        this.setLeggings(leggings); // Silence doesn't apply to players
+        setLeggings(leggings); // Silence doesn't apply to players
     }
 
     @Override
     public void setBoots(ItemStack boots) {
-        this.setItem(this.getSize() - 5, boots);
+        setItem(getSize() - 5, boots);
     }
 
     @Override
     public void setBoots(ItemStack boots, boolean silent) {
-        this.setBoots(boots); // Silence doesn't apply to players
+        setBoots(boots); // Silence doesn't apply to players
     }
 
     @Override
     public ItemStack[] getArmorContents() {
-        return this.asCraftMirror(this.getInventory().armor);
+        return asCraftMirror(getInventory().armor);
     }
 
     private void setSlots(ItemStack[] items, int baseSlot, int length) {
@@ -252,46 +252,46 @@ public class CraftInventoryPlayer extends CraftInventory implements org.bukkit.i
 
         for (int i = 0; i < length; i++) {
             if (i >= items.length) {
-                this.setItem(baseSlot + i, null);
+                setItem(baseSlot + i, null);
             } else {
-                this.setItem(baseSlot + i, items[i]);
+                setItem(baseSlot + i, items[i]);
             }
         }
     }
 
     @Override
     public void setStorageContents(ItemStack[] items) throws IllegalArgumentException {
-        this.setSlots(items, 0, this.getInventory().items.size());
+        setSlots(items, 0, getInventory().items.size());
     }
 
     @Override
     public void setArmorContents(ItemStack[] items) {
-        this.setSlots(items, this.getInventory().items.size(), this.getInventory().armor.size());
+        setSlots(items, getInventory().items.size(), getInventory().armor.size());
     }
 
     @Override
     public ItemStack[] getExtraContents() {
-        return this.asCraftMirror(this.getInventory().offhand);
+        return asCraftMirror(getInventory().offhand);
     }
 
     @Override
     public void setExtraContents(ItemStack[] items) {
-        this.setSlots(items, this.getInventory().items.size() + this.getInventory().armor.size(), this.getInventory().offhand.size());
+        setSlots(items, getInventory().items.size() + getInventory().armor.size(), getInventory().offhand.size());
     }
 
     @Override
     public HumanEntity getHolder() {
-        return (HumanEntity) this.inventory.getOwner();
+        return (HumanEntity) inventory.getOwner();
     }
 
     @Override
     public float getItemInHandDropChance() {
-        return this.getItemInMainHandDropChance();
+        return getItemInMainHandDropChance();
     }
 
     @Override
     public void setItemInHandDropChance(float chance) {
-        this.setItemInMainHandDropChance(chance);
+        setItemInMainHandDropChance(chance);
     }
 
     @Override

@@ -25,23 +25,23 @@ public class CraftItemDisplay extends CraftDisplay implements ItemDisplay {
 
     @Override
     public ItemStack getItemStack() {
-        return CraftItemStack.asBukkitCopy(this.getHandle().getItemStack());
+        return CraftItemStack.asBukkitCopy(getHandle().getItemStack());
     }
 
     @Override
     public void setItemStack(ItemStack item) {
-        this.getHandle().setItemStack(CraftItemStack.asNMSCopy(item));
+        getHandle().setItemStack(CraftItemStack.asNMSCopy(item));
     }
 
     @Override
     public ItemDisplayTransform getItemDisplayTransform() {
-        return ItemDisplayTransform.values()[this.getHandle().getItemTransform().ordinal()];
+        return ItemDisplayTransform.values()[getHandle().getItemTransform().ordinal()];
     }
 
     @Override
     public void setItemDisplayTransform(ItemDisplayTransform display) {
         Preconditions.checkArgument(display != null, "Display cannot be null");
 
-        this.getHandle().setItemTransform(ItemDisplayContext.BY_ID.apply(display.ordinal()));
+        getHandle().setItemTransform(ItemDisplayContext.BY_ID.apply(display.ordinal()));
     }
 }

@@ -10,7 +10,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.craftbukkit.util.Handleable;
 import org.bukkit.entity.Entity;
 
@@ -22,7 +21,7 @@ public class CraftFrog extends CraftAnimals implements org.bukkit.entity.Frog {
 
     @Override
     public Frog getHandle() {
-        return (Frog) this.entity;
+        return (Frog) entity;
     }
 
     @Override
@@ -32,28 +31,28 @@ public class CraftFrog extends CraftAnimals implements org.bukkit.entity.Frog {
 
     @Override
     public Entity getTongueTarget() {
-        return this.getHandle().getTongueTarget().map(net.minecraft.world.entity.Entity::getBukkitEntity).orElse(null);
+        return getHandle().getTongueTarget().map(net.minecraft.world.entity.Entity::getBukkitEntity).orElse(null);
     }
 
     @Override
     public void setTongueTarget(Entity target) {
         if (target == null) {
-            this.getHandle().eraseTongueTarget();
+            getHandle().eraseTongueTarget();
         } else {
-            this.getHandle().setTongueTarget(((CraftEntity) target).getHandle());
+            getHandle().setTongueTarget(((CraftEntity) target).getHandle());
         }
     }
 
     @Override
     public Variant getVariant() {
-        return CraftVariant.minecraftHolderToBukkit(this.getHandle().getVariant());
+        return CraftVariant.minecraftHolderToBukkit(getHandle().getVariant());
     }
 
     @Override
     public void setVariant(Variant variant) {
         Preconditions.checkArgument(variant != null, "variant");
 
-        this.getHandle().setVariant(CraftVariant.bukkitToMinecraftHolder(variant));
+        getHandle().setVariant(CraftVariant.bukkitToMinecraftHolder(variant));
     }
 
     public static class CraftVariant implements Variant, Handleable<FrogVariant> {
@@ -64,7 +63,7 @@ public class CraftFrog extends CraftAnimals implements org.bukkit.entity.Frog {
         }
 
         public static Variant minecraftHolderToBukkit(Holder<FrogVariant> minecraft) {
-            return CraftVariant.minecraftToBukkit(minecraft.value());
+            return minecraftToBukkit(minecraft.value());
         }
 
         public static FrogVariant bukkitToMinecraft(Variant bukkit) {
@@ -92,38 +91,38 @@ public class CraftFrog extends CraftAnimals implements org.bukkit.entity.Frog {
             } else {
                 this.name = key.toString();
             }
-            this.ordinal = CraftVariant.count++;
+            this.ordinal = count++;
         }
 
         @Override
         public FrogVariant getHandle() {
-            return this.frogVariant;
+            return frogVariant;
         }
 
         @Override
         public NamespacedKey getKey() {
-            return this.key;
+            return key;
         }
 
         @Override
         public int compareTo(Variant variant) {
-            return this.ordinal - variant.ordinal();
+            return ordinal - variant.ordinal();
         }
 
         @Override
         public String name() {
-            return this.name;
+            return name;
         }
 
         @Override
         public int ordinal() {
-            return this.ordinal;
+            return ordinal;
         }
 
         @Override
         public String toString() {
             // For backwards compatibility
-            return this.name();
+            return name();
         }
 
         @Override
@@ -136,12 +135,12 @@ public class CraftFrog extends CraftAnimals implements org.bukkit.entity.Frog {
                 return false;
             }
 
-            return this.getKey().equals(((Variant) other).getKey());
+            return getKey().equals(((Variant) other).getKey());
         }
 
         @Override
         public int hashCode() {
-            return this.getKey().hashCode();
+            return getKey().hashCode();
         }
     }
 }

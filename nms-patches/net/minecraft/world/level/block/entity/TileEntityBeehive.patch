@@ -14,10 +14,10 @@
 @@ -56,6 +60,7 @@
      private List<TileEntityBeehive.HiveBee> stored = Lists.newArrayList();
      @Nullable
-     public BlockPosition savedFlowerPos;
+     public BlockPos savedFlowerPos;
 +    public int maxBees = 3; // CraftBukkit - allow setting max amount of bees a hive can hold
  
-     public TileEntityBeehive(BlockPosition blockposition, IBlockData iblockdata) {
+     public TileEntityBeehive(BlockPos blockposition, IBlockData iblockdata) {
          super(TileEntityTypes.BEEHIVE, blockposition, iblockdata);
 @@ -95,7 +100,7 @@
      }
@@ -88,13 +88,13 @@
 @@ -180,7 +203,13 @@
      }
  
-     private static boolean releaseOccupant(World world, BlockPosition blockposition, IBlockData iblockdata, TileEntityBeehive.c tileentitybeehive_c, @Nullable List<Entity> list, TileEntityBeehive.ReleaseStatus tileentitybeehive_releasestatus, @Nullable BlockPosition blockposition1) {
+     private static boolean releaseOccupant(World world, BlockPos blockposition, IBlockData iblockdata, TileEntityBeehive.c tileentitybeehive_c, @Nullable List<Entity> list, TileEntityBeehive.ReleaseStatus tileentitybeehive_releasestatus, @Nullable BlockPos blockposition1) {
 -        if (EntityBee.isNightOrRaining(world) && tileentitybeehive_releasestatus != TileEntityBeehive.ReleaseStatus.EMERGENCY) {
 +        // CraftBukkit start - This allows us to bypass the night/rain/emergency check
 +        return releaseOccupant(world, blockposition, iblockdata, tileentitybeehive_c, list, tileentitybeehive_releasestatus, blockposition1, false);
 +    }
 +
-+    private static boolean releaseOccupant(World world, BlockPosition blockposition, IBlockData iblockdata, TileEntityBeehive.c tileentitybeehive_c, @Nullable List<Entity> list, TileEntityBeehive.ReleaseStatus tileentitybeehive_releasestatus, @Nullable BlockPosition blockposition1, boolean force) {
++    private static boolean releaseOccupant(World world, BlockPos blockposition, IBlockData iblockdata, TileEntityBeehive.c tileentitybeehive_c, @Nullable List<Entity> list, TileEntityBeehive.ReleaseStatus tileentitybeehive_releasestatus, @Nullable BlockPos blockposition1, boolean force) {
 +        if (!force && EntityBee.isNightOrRaining(world) && tileentitybeehive_releasestatus != TileEntityBeehive.ReleaseStatus.EMERGENCY) {
 +            // CraftBukkit end
              return false;
@@ -165,8 +165,8 @@
              });
          }
  
--        this.savedFlowerPos = (BlockPosition) GameProfileSerializer.readBlockPos(nbttagcompound, "flower_pos").orElse((Object) null);
-+        this.savedFlowerPos = (BlockPosition) GameProfileSerializer.readBlockPos(nbttagcompound, "flower_pos").orElse(null); // CraftBukkit - decompile error
+-        this.savedFlowerPos = (BlockPos) GameProfileSerializer.readBlockPos(nbttagcompound, "flower_pos").orElse((Object) null);
++        this.savedFlowerPos = (BlockPos) GameProfileSerializer.readBlockPos(nbttagcompound, "flower_pos").orElse(null); // CraftBukkit - decompile error
 +        // CraftBukkit start
 +        if (nbttagcompound.contains("Bukkit.MaxEntities")) {
 +            this.maxBees = nbttagcompound.getInt("Bukkit.MaxEntities");
@@ -202,7 +202,7 @@
              list.forEach(nbttagcompound::remove);
 @@ -370,7 +423,7 @@
          @Nullable
-         public Entity createEntity(World world, BlockPosition blockposition) {
+         public Entity createEntity(World world, BlockPos blockposition) {
              NBTTagCompound nbttagcompound = this.entityData.copyTag();
 -            List list = TileEntityBeehive.IGNORED_BEE_TAGS;
 +            List<String> list = TileEntityBeehive.IGNORED_BEE_TAGS; // CraftBukkit - decompile error

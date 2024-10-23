@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import net.minecraft.core.NonNullList;
-import net.minecraft.world.Container;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.IInventory;
+import net.minecraft.world.entity.player.EntityHuman;
 import net.minecraft.world.item.ItemStack;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.entity.CraftHumanEntity;
@@ -31,11 +31,7 @@ public class CraftInventoryCustom extends CraftInventory {
         super(new MinecraftInventory(owner, size, title));
     }
 
-    public CraftInventoryCustom(InventoryHolder owner, NonNullList<ItemStack> items) {
-        super(new MinecraftInventory(owner, items));
-    }
-
-    static class MinecraftInventory implements Container {
+    static class MinecraftInventory implements IInventory {
         private final NonNullList<ItemStack> items;
         private int maxStack = MAX_STACK;
         private final List<HumanEntity> viewers;
@@ -66,47 +62,39 @@ public class CraftInventoryCustom extends CraftInventory {
             this.type = InventoryType.CHEST;
         }
 
-        public MinecraftInventory(InventoryHolder owner, NonNullList<ItemStack> items) {
-            this.items = items;
-            this.title = "Chest";
-            this.viewers = new ArrayList<>();
-            this.owner = owner;
-            this.type = InventoryType.CHEST;
-        }
-
         @Override
         public int getContainerSize() {
-            return this.items.size();
+            return items.size();
         }
 
         @Override
-        public ItemStack getItem(int slot) {
-            return this.items.get(slot);
+        public ItemStack getItem(int i) {
+            return items.get(i);
         }
 
         @Override
-        public ItemStack removeItem(int slot, int amount) {
-            ItemStack stack = this.getItem(slot);
+        public ItemStack removeItem(int i, int j) {
+            ItemStack stack = this.getItem(i);
             ItemStack result;
             if (stack == ItemStack.EMPTY) return stack;
-            if (stack.getCount() <= amount) {
-                this.setItem(slot, ItemStack.EMPTY);
+            if (stack.getCount() <= j) {
+                this.setItem(i, ItemStack.EMPTY);
                 result = stack;
             } else {
-                result = CraftItemStack.copyNMSStack(stack, amount);
-                stack.shrink(amount);
+                result = CraftItemStack.copyNMSStack(stack, j);
+                stack.shrink(j);
             }
             this.setChanged();
             return result;
         }
 
         @Override
-        public ItemStack removeItemNoUpdate(int slot) {
-            ItemStack stack = this.getItem(slot);
+        public ItemStack removeItemNoUpdate(int i) {
+            ItemStack stack = this.getItem(i);
             ItemStack result;
             if (stack == ItemStack.EMPTY) return stack;
             if (stack.getCount() <= 1) {
-                this.setItem(slot, null);
+                this.setItem(i, null);
                 result = stack;
             } else {
                 result = CraftItemStack.copyNMSStack(stack, 1);
@@ -116,78 +104,78 @@ public class CraftInventoryCustom extends CraftInventory {
         }
 
         @Override
-        public void setItem(int slot, ItemStack stack) {
-            this.items.set(slot, stack);
-            if (stack != ItemStack.EMPTY && this.getMaxStackSize() > 0 && stack.getCount() > this.getMaxStackSize()) {
-                stack.setCount(this.getMaxStackSize());
+        public void setItem(int i, ItemStack itemstack) {
+            items.set(i, itemstack);
+            if (itemstack != ItemStack.EMPTY && this.getMaxStackSize() > 0 && itemstack.getCount() > this.getMaxStackSize()) {
+                itemstack.setCount(this.getMaxStackSize());
             }
         }
 
         @Override
         public int getMaxStackSize() {
-            return this.maxStack;
+            return maxStack;
         }
 
         @Override
         public void setMaxStackSize(int size) {
-            this.maxStack = size;
+            maxStack = size;
         }
 
         @Override
         public void setChanged() {}
 
         @Override
-        public boolean stillValid(Player player) {
+        public boolean stillValid(EntityHuman entityhuman) {
             return true;
         }
 
         @Override
         public List<ItemStack> getContents() {
-            return this.items;
+            return items;
         }
 
         @Override
         public void onOpen(CraftHumanEntity who) {
-            this.viewers.add(who);
+            viewers.add(who);
         }
 
         @Override
         public void onClose(CraftHumanEntity who) {
-            this.viewers.remove(who);
+            viewers.remove(who);
         }
 
         @Override
         public List<HumanEntity> getViewers() {
-            return this.viewers;
+            return viewers;
         }
 
         public InventoryType getType() {
-            return this.type;
+            return type;
         }
 
         @Override
         public InventoryHolder getOwner() {
-            return this.owner;
+            return owner;
         }
 
         @Override
-        public boolean canPlaceItem(int slot, ItemStack stack) {
+        public boolean canPlaceItem(int i, ItemStack itemstack) {
             return true;
         }
 
         @Override
-        public void startOpen(Player player) {
+        public void startOpen(EntityHuman entityHuman) {
 
         }
 
         @Override
-        public void stopOpen(Player player) {
+        public void stopOpen(EntityHuman entityHuman) {
 
         }
 
         @Override
         public void clearContent() {
-            this.items.clear();
+            items.clear();
         }
 
         @Override
@@ -196,7 +184,7 @@ public class CraftInventoryCustom extends CraftInventory {
         }
 
         public String getTitle() {
-            return this.title;
+            return title;
         }
 
         @Override

@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-import net.minecraft.Util;
+import net.minecraft.SystemUtils;
 import org.bukkit.map.MapPalette;
 
 public class CraftMapColorCache implements MapPalette.MapColorCache {
@@ -37,7 +37,7 @@ public class CraftMapColorCache implements MapPalette.MapColorCache {
         craftMapColorCache.buildCache();
         try {
             byte[] hash = MessageDigest.getInstance("MD5").digest(craftMapColorCache.cache);
-            System.out.println("MD5_CACHE_HASH: " + CraftMapColorCache.bytesToString(hash));
+            System.out.println("MD5_CACHE_HASH: " + bytesToString(hash));
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
@@ -58,16 +58,16 @@ public class CraftMapColorCache implements MapPalette.MapColorCache {
     }
 
     public CompletableFuture<Void> initCache() {
-        Preconditions.checkState(!this.cached && !this.running.getAndSet(true), "Cache is already build or is currently being build");
+        Preconditions.checkState(!cached && !running.getAndSet(true), "Cache is already build or is currently being build");
 
-        this.cache = new byte[256 * 256 * 256]; // Red, Green and Blue have each a range from 0 to 255 each mean we need space for 256 * 256 * 256 values
-        if (CraftMapColorCache.CACHE_FILE.exists()) {
+        cache = new byte[256 * 256 * 256]; // Red, Green and Blue have each a range from 0 to 255 each mean we need space for 256 * 256 * 256 values
+        if (CACHE_FILE.exists()) {
             byte[] fileContent;
 
-            try (InputStream inputStream = new InflaterInputStream(new FileInputStream(CraftMapColorCache.CACHE_FILE))) {
+            try (InputStream inputStream = new InflaterInputStream(new FileInputStream(CACHE_FILE))) {
                 fileContent = inputStream.readAllBytes();
             } catch (IOException e) {
-                this.logger.warning("Error while reading map color cache");
+                logger.warning("Error while reading map color cache");
                 e.printStackTrace();
                 return CompletableFuture.completedFuture(null);
             }
@@ -76,22 +76,22 @@ public class CraftMapColorCache implements MapPalette.MapColorCache {
             try {
                 hash = MessageDigest.getInstance("MD5").digest(fileContent);
             } catch (NoSuchAlgorithmException e) {
-                this.logger.warning("Error while hashing map color cache");
+                logger.warning("Error while hashing map color cache");
                 e.printStackTrace();
                 return CompletableFuture.completedFuture(null);
             }
 
-            if (!CraftMapColorCache.MD5_CACHE_HASH.equals(CraftMapColorCache.bytesToString(hash))) {
-                this.logger.info("Map color cache hash invalid, rebuilding cache in the background");
-                return this.buildAndSaveCache();
+            if (!MD5_CACHE_HASH.equals(bytesToString(hash))) {
+                logger.info("Map color cache hash invalid, rebuilding cache in the background");
+                return buildAndSaveCache();
             } else {
-                System.arraycopy(fileContent, 0, this.cache, 0, fileContent.length);
+                System.arraycopy(fileContent, 0, cache, 0, fileContent.length);
             }
 
-            this.cached = true;
+            cached = true;
         } else {
-            this.logger.info("Map color cache not found, building it in the background");
-            return this.buildAndSaveCache();
+            logger.info("Map color cache not found, building it in the background");
+            return buildAndSaveCache();
         }
 
         return CompletableFuture.completedFuture(null);
@@ -102,7 +102,7 @@ public class CraftMapColorCache implements MapPalette.MapColorCache {
             for (int g = 0; g < 256; g++) {
                 for (int b = 0; b < 256; b++) {
                     Color color = new Color(r, g, b);
-                    this.cache[this.toInt(color)] = MapPalette.matchColor(color);
+                    cache[toInt(color)] = MapPalette.matchColor(color);
                 }
             }
         }
@@ -110,34 +110,34 @@ public class CraftMapColorCache implements MapPalette.MapColorCache {
 
     private CompletableFuture<Void> buildAndSaveCache() {
         return CompletableFuture.runAsync(() -> {
-            this.buildCache();
+            buildCache();
 
-            if (!CraftMapColorCache.CACHE_FILE.exists()) {
+            if (!CACHE_FILE.exists()) {
                 try {
-                    if (!CraftMapColorCache.CACHE_FILE.createNewFile()) {
-                        this.cached = true;
+                    if (!CACHE_FILE.createNewFile()) {
+                        cached = true;
                         return;
                     }
                 } catch (IOException e) {
-                    this.logger.warning("Error while building map color cache");
+                    logger.warning("Error while building map color cache");
                     e.printStackTrace();
-                    this.cached = true;
+                    cached = true;
                     return;
                 }
             }
 
-            try (OutputStream outputStream = new DeflaterOutputStream(new FileOutputStream(CraftMapColorCache.CACHE_FILE))) {
-                outputStream.write(this.cache);
+            try (OutputStream outputStream = new DeflaterOutputStream(new FileOutputStream(CACHE_FILE))) {
+                outputStream.write(cache);
             } catch (IOException e) {
-                this.logger.warning("Error while building map color cache");
+                logger.warning("Error while building map color cache");
                 e.printStackTrace();
-                this.cached = true;
+                cached = true;
                 return;
             }
 
-            this.cached = true;
-            this.logger.info("Map color cache build successfully");
-        }, Util.backgroundExecutor());
+            cached = true;
+            logger.info("Map color cache build successfully");
+        }, SystemUtils.backgroundExecutor());
     }
 
     private int toInt(Color color) {
@@ -146,13 +146,13 @@ public class CraftMapColorCache implements MapPalette.MapColorCache {
 
     @Override
     public boolean isCached() {
-        return this.cached || (!this.running.get() && this.initCache().isDone());
+        return cached || (!running.get() && initCache().isDone());
     }
 
     @Override
     public byte matchColor(Color color) {
-        Preconditions.checkState(this.isCached(), "Cache not build jet");
+        Preconditions.checkState(isCached(), "Cache not build jet");
 
-        return this.cache[this.toInt(color)];
+        return cache[toInt(color)];
     }
 }

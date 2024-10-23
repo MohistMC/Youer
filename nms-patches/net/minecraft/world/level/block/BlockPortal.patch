@@ -28,7 +28,7 @@
                      entity.setPortalCooldown();
 @@ -104,6 +114,10 @@
      @Override
-     protected void entityInside(IBlockData iblockdata, World world, BlockPosition blockposition, Entity entity) {
+     protected void entityInside(IBlockData iblockdata, World world, BlockPos blockposition, Entity entity) {
          if (entity.canUsePortal(false)) {
 +            // CraftBukkit start - Entity in portal
 +            EntityPortalEnterEvent event = new EntityPortalEnterEvent(entity.getBukkitEntity(), new org.bukkit.Location(world.getWorld(), blockposition.getX(), blockposition.getY(), blockposition.getZ()));
@@ -40,7 +40,7 @@
 @@ -121,24 +135,34 @@
      @Nullable
      @Override
-     public TeleportTransition getPortalDestination(WorldServer worldserver, Entity entity, BlockPosition blockposition) {
+     public TeleportTransition getPortalDestination(WorldServer worldserver, Entity entity, BlockPos blockposition) {
 -        ResourceKey<World> resourcekey = worldserver.dimension() == World.NETHER ? World.OVERWORLD : World.NETHER;
 +        // CraftBukkit start
 +        ResourceKey<World> resourcekey = worldserver.getTypeKey() == WorldDimension.NETHER ? World.OVERWORLD : World.NETHER;
@@ -55,7 +55,7 @@
 +            // CraftBukkit end
              WorldBorder worldborder = worldserver1.getWorldBorder();
              double d0 = DimensionManager.getTeleportationScale(worldserver.dimensionType(), worldserver1.dimensionType());
-             BlockPosition blockposition1 = worldborder.clampToBounds(entity.getX() * d0, entity.getY(), entity.getZ() * d0);
+             BlockPos blockposition1 = worldborder.clampToBounds(entity.getX() * d0, entity.getY(), entity.getZ() * d0);
 +            // CraftBukkit start
 +            CraftPortalEvent event = entity.callPortalEvent(entity, CraftLocation.toBukkit(blockposition1, worldserver1.getWorld()), PlayerTeleportEvent.TeleportCause.NETHER_PORTAL, flag ? 16 : 128, 16);
 +            if (event == null) {
@@ -71,10 +71,10 @@
      }
  
      @Nullable
--    private TeleportTransition getExitPortal(WorldServer worldserver, Entity entity, BlockPosition blockposition, BlockPosition blockposition1, boolean flag, WorldBorder worldborder) {
--        Optional<BlockPosition> optional = worldserver.getPortalForcer().findClosestPortalPosition(blockposition1, flag, worldborder);
-+    private TeleportTransition getExitPortal(WorldServer worldserver, Entity entity, BlockPosition blockposition, BlockPosition blockposition1, boolean flag, WorldBorder worldborder, int searchRadius, boolean canCreatePortal, int createRadius) {
-+        Optional<BlockPosition> optional = worldserver.getPortalForcer().findClosestPortalPosition(blockposition1, worldborder, searchRadius);
+-    private TeleportTransition getExitPortal(WorldServer worldserver, Entity entity, BlockPos blockposition, BlockPos blockposition1, boolean flag, WorldBorder worldborder) {
+-        Optional<BlockPos> optional = worldserver.getPortalForcer().findClosestPortalPosition(blockposition1, flag, worldborder);
++    private TeleportTransition getExitPortal(WorldServer worldserver, Entity entity, BlockPos blockposition, BlockPos blockposition1, boolean flag, WorldBorder worldborder, int searchRadius, boolean canCreatePortal, int createRadius) {
++        Optional<BlockPos> optional = worldserver.getPortalForcer().findClosestPortalPosition(blockposition1, worldborder, searchRadius);
          BlockUtil.Rectangle blockutil_rectangle;
          TeleportTransition.a teleporttransition_a;
  

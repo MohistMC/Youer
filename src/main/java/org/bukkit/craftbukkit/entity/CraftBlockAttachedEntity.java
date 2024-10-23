@@ -4,7 +4,6 @@ import net.minecraft.world.entity.decoration.BlockAttachedEntity;
 import org.bukkit.craftbukkit.CraftServer;
 
 public class CraftBlockAttachedEntity extends CraftEntity {
-
     public CraftBlockAttachedEntity(CraftServer server, BlockAttachedEntity entity) {
         super(server, entity);
     }

@@ -9,40 +9,40 @@ public final class CraftPitcherCrop extends org.bukkit.craftbukkit.block.data.Cr
         super();
     }
 
-    public CraftPitcherCrop(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftPitcherCrop(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftAgeable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty AGE = getInteger(net.minecraft.world.level.block.PitcherCropBlock.class, "age");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger AGE = getInteger(net.minecraft.world.level.block.PitcherCropBlock.class, "age");
 
     @Override
     public int getAge() {
-        return this.get(CraftPitcherCrop.AGE);
+        return get(AGE);
     }
 
     @Override
     public void setAge(int age) {
-        this.set(CraftPitcherCrop.AGE, age);
+        set(AGE, age);
     }
 
     @Override
     public int getMaximumAge() {
-        return getMax(CraftPitcherCrop.AGE);
+        return getMax(AGE);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftBisected
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> HALF = getEnum(net.minecraft.world.level.block.PitcherCropBlock.class, "half");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> HALF = getEnum(net.minecraft.world.level.block.PitcherCropBlock.class, "half");
 
     @Override
     public org.bukkit.block.data.Bisected.Half getHalf() {
-        return this.get(CraftPitcherCrop.HALF, org.bukkit.block.data.Bisected.Half.class);
+        return get(HALF, org.bukkit.block.data.Bisected.Half.class);
     }
 
     @Override
     public void setHalf(org.bukkit.block.data.Bisected.Half half) {
-        this.set(CraftPitcherCrop.HALF, half);
+        set(HALF, half);
     }
 }

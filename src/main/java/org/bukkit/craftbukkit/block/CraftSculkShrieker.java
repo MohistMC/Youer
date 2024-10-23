@@ -1,6 +1,6 @@
 package org.bukkit.craftbukkit.block;
 
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.world.level.block.entity.SculkShriekerBlockEntity;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -20,20 +20,20 @@ public class CraftSculkShrieker extends CraftBlockEntityState<SculkShriekerBlock
 
     @Override
     public int getWarningLevel() {
-        return this.getSnapshot().warningLevel;
+        return getSnapshot().warningLevel;
     }
 
     @Override
     public void setWarningLevel(int level) {
-        this.getSnapshot().warningLevel = level;
+        getSnapshot().warningLevel = level;
     }
 
     @Override
     public void tryShriek(Player player) {
-        this.requirePlaced();
+        requirePlaced();
 
-        ServerPlayer entityPlayer = (player == null) ? null : ((CraftPlayer) player).getHandle();
-        this.getTileEntity().tryShriek(this.world.getHandle(), entityPlayer);
+        EntityPlayer entityPlayer = (player == null) ? null : ((CraftPlayer) player).getHandle();
+        getTileEntity().tryShriek(world.getHandle(), entityPlayer);
     }
 
     @Override

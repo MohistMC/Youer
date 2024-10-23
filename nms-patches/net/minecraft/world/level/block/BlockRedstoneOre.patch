@@ -15,14 +15,14 @@
 @@ -38,14 +43,27 @@
  
      @Override
-     protected void attack(IBlockData iblockdata, World world, BlockPosition blockposition, EntityHuman entityhuman) {
+     protected void attack(IBlockData iblockdata, World world, BlockPos blockposition, EntityHuman entityhuman) {
 -        interact(iblockdata, world, blockposition);
 +        interact(iblockdata, world, blockposition, entityhuman); // CraftBukkit - add entityhuman
          super.attack(iblockdata, world, blockposition, entityhuman);
      }
  
      @Override
-     public void stepOn(World world, BlockPosition blockposition, IBlockData iblockdata, Entity entity) {
+     public void stepOn(World world, BlockPos blockposition, IBlockData iblockdata, Entity entity) {
          if (!entity.isSteppingCarefully()) {
 -            interact(iblockdata, world, blockposition);
 +            // CraftBukkit start
@@ -53,8 +53,8 @@
          return (EnumInteractionResult) (itemstack.getItem() instanceof ItemBlock && (new BlockActionContext(entityhuman, enumhand, itemstack, movingobjectpositionblock)).canPlace() ? EnumInteractionResult.PASS : EnumInteractionResult.SUCCESS);
      }
  
--    private static void interact(IBlockData iblockdata, World world, BlockPosition blockposition) {
-+    private static void interact(IBlockData iblockdata, World world, BlockPosition blockposition, Entity entity) { // CraftBukkit - add Entity
+-    private static void interact(IBlockData iblockdata, World world, BlockPos blockposition) {
++    private static void interact(IBlockData iblockdata, World world, BlockPos blockposition, Entity entity) { // CraftBukkit - add Entity
          spawnParticles(world, blockposition);
          if (!(Boolean) iblockdata.getValue(BlockRedstoneOre.LIT)) {
 +            // CraftBukkit start
@@ -67,7 +67,7 @@
  
 @@ -78,6 +101,11 @@
      @Override
-     protected void randomTick(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, RandomSource randomsource) {
+     protected void randomTick(IBlockData iblockdata, WorldServer worldserver, BlockPos blockposition, RandomSource randomsource) {
          if ((Boolean) iblockdata.getValue(BlockRedstoneOre.LIT)) {
 +            // CraftBukkit start
 +            if (CraftEventFactory.callBlockFadeEvent(worldserver, blockposition, iblockdata.setValue(BlockRedstoneOre.LIT, false)).isCancelled()) {
@@ -79,13 +79,13 @@
  
 @@ -86,10 +114,17 @@
      @Override
-     protected void spawnAfterBreak(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
+     protected void spawnAfterBreak(IBlockData iblockdata, WorldServer worldserver, BlockPos blockposition, ItemStack itemstack, boolean flag) {
          super.spawnAfterBreak(iblockdata, worldserver, blockposition, itemstack, flag);
 +        // CraftBukkit start - Delegated to getExpDrop
 +    }
 +
 +    @Override
-+    public int getExpDrop(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
++    public int getExpDrop(IBlockData iblockdata, WorldServer worldserver, BlockPos blockposition, ItemStack itemstack, boolean flag) {
          if (flag) {
 -            this.tryDropExperience(worldserver, blockposition, itemstack, UniformInt.of(1, 5));
 +            return this.tryDropExperience(worldserver, blockposition, itemstack, UniformInt.of(1, 5));

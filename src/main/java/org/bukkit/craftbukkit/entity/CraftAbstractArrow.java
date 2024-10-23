@@ -2,6 +2,8 @@ package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.projectile.EntityArrow;
+import net.minecraft.world.item.Items;
 import org.bukkit.block.Block;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -12,7 +14,7 @@ import org.bukkit.projectiles.ProjectileSource;
 
 public class CraftAbstractArrow extends AbstractProjectile implements AbstractArrow {
 
-    public CraftAbstractArrow(CraftServer server, net.minecraft.world.entity.projectile.AbstractArrow entity) {
+    public CraftAbstractArrow(CraftServer server, EntityArrow entity) {
         super(server, entity);
     }
 
@@ -27,76 +29,76 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
 
     @Override
     public double getDamage() {
-        return this.getHandle().getBaseDamage();
+        return getHandle().getBaseDamage();
     }
 
     @Override
     public void setDamage(double damage) {
         Preconditions.checkArgument(damage >= 0, "Damage value (%s) must be positive", damage);
-        this.getHandle().setBaseDamage(damage);
+        getHandle().setBaseDamage(damage);
     }
 
     @Override
     public int getPierceLevel() {
-        return this.getHandle().getPierceLevel();
+        return getHandle().getPierceLevel();
     }
 
     @Override
     public void setPierceLevel(int pierceLevel) {
         Preconditions.checkArgument(0 <= pierceLevel && pierceLevel <= Byte.MAX_VALUE, "Pierce level (%s) out of range, expected 0 < level < 127", pierceLevel);
 
-        this.getHandle().setPierceLevel((byte) pierceLevel);
+        getHandle().setPierceLevel((byte) pierceLevel);
     }
 
     @Override
     public boolean isCritical() {
-        return this.getHandle().isCritArrow();
+        return getHandle().isCritArrow();
     }
 
     @Override
     public void setCritical(boolean critical) {
-        this.getHandle().setCritArrow(critical);
+        getHandle().setCritArrow(critical);
     }
 
     @Override
     public ProjectileSource getShooter() {
-        return this.getHandle().projectileSource;
+        return getHandle().projectileSource;
     }
 
     @Override
     public void setShooter(ProjectileSource shooter) {
         if (shooter instanceof Entity) {
-            this.getHandle().setOwner(((CraftEntity) shooter).getHandle());
+            getHandle().setOwner(((CraftEntity) shooter).getHandle());
         } else {
-            this.getHandle().setOwner(null);
+            getHandle().setOwner(null);
         }
-        this.getHandle().projectileSource = shooter;
+        getHandle().projectileSource = shooter;
     }
 
     @Override
     public boolean isInBlock() {
-        return this.getHandle().inGround;
+        return getHandle().isInGround();
     }
 
     @Override
     public Block getAttachedBlock() {
-        if (!this.isInBlock()) {
+        if (!isInBlock()) {
             return null;
         }
 
-        BlockPos pos = this.getHandle().blockPosition();
-        return this.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
+        BlockPos pos = getHandle().blockPosition();
+        return getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
     }
 
     @Override
     public PickupStatus getPickupStatus() {
-        return PickupStatus.values()[this.getHandle().pickup.ordinal()];
+        return PickupStatus.values()[getHandle().pickup.ordinal()];
     }
 
     @Override
     public void setPickupStatus(PickupStatus status) {
         Preconditions.checkArgument(status != null, "PickupStatus cannot be null");
-        this.getHandle().pickup = net.minecraft.world.entity.projectile.AbstractArrow.Pickup.byOrdinal(status.ordinal());
+        getHandle().pickup = EntityArrow.PickupStatus.byOrdinal(status.ordinal());
     }
 
     @Override
@@ -104,12 +106,14 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
         super.setTicksLived(value);
 
         // Second field for EntityArrow
-        this.getHandle().life = value;
+        getHandle().life = value;
     }
 
     @Override
     public boolean isShotFromCrossbow() {
-        return this.getHandle().shotFromCrossbow();
+        net.minecraft.world.item.ItemStack firedFromWeapon = getHandle().getWeaponItem();
+
+        return firedFromWeapon != null && firedFromWeapon.is(Items.CROSSBOW);
     }
 
     @Override
@@ -118,14 +122,14 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
 
     @Override
     public ItemStack getItem() {
-        return CraftItemStack.asBukkitCopy(this.getHandle().pickupItemStack);
+        return CraftItemStack.asBukkitCopy(getHandle().pickupItemStack);
     }
 
     @Override
     public void setItem(ItemStack item) {
         Preconditions.checkArgument(item != null, "ItemStack cannot be null");
 
-        this.getHandle().pickupItemStack = CraftItemStack.asNMSCopy(item);
+        getHandle().pickupItemStack = CraftItemStack.asNMSCopy(item);
     }
 
     @Override
@@ -141,8 +145,8 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
     }
 
     @Override
-    public net.minecraft.world.entity.projectile.AbstractArrow getHandle() {
-        return (net.minecraft.world.entity.projectile.AbstractArrow) this.entity;
+    public EntityArrow getHandle() {
+        return (EntityArrow) entity;
     }
 
     @Override

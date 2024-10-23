@@ -57,7 +57,7 @@
 +    }
 +    // CraftBukkit end
 +
-     public TileEntityHopper(BlockPosition blockposition, IBlockData iblockdata) {
+     public TileEntityHopper(BlockPos blockposition, IBlockData iblockdata) {
          super(TileEntityTypes.HOPPER, blockposition, iblockdata);
          this.items = NonNullList.withSize(5, ItemStack.EMPTY);
 @@ -167,7 +213,29 @@
@@ -164,10 +164,10 @@
 +    // CraftBukkit end
 +
      @Nullable
-     private static IInventory getAttachedContainer(World world, BlockPosition blockposition, TileEntityHopper tileentityhopper) {
+     private static IInventory getAttachedContainer(World world, BlockPos blockposition, TileEntityHopper tileentityhopper) {
 -        return getContainerAt(world, blockposition.relative(tileentityhopper.facing));
 +        // CraftBukkit start
-+        BlockPosition searchPosition = blockposition.relative(tileentityhopper.facing);
++        BlockPos searchPosition = blockposition.relative(tileentityhopper.facing);
 +        IInventory inventory = getContainerAt(world, searchPosition);
 +
 +        CraftBlock hopper = CraftBlock.at(world, blockposition);
@@ -177,12 +177,12 @@
      }
  
      @Nullable
-     private static IInventory getSourceContainer(World world, IHopper ihopper, BlockPosition blockposition, IBlockData iblockdata) {
+     private static IInventory getSourceContainer(World world, IHopper ihopper, BlockPos blockposition, IBlockData iblockdata) {
 -        return getContainerAt(world, blockposition, iblockdata, ihopper.getLevelX(), ihopper.getLevelY() + 1.0D, ihopper.getLevelZ());
 +        // CraftBukkit start
 +        IInventory inventory = getContainerAt(world, blockposition, iblockdata, ihopper.getLevelX(), ihopper.getLevelY() + 1.0D, ihopper.getLevelZ());
 +
-+        BlockPosition blockPosition = BlockPosition.containing(ihopper.getLevelX(), ihopper.getLevelY(), ihopper.getLevelZ());
++        BlockPos blockPosition = BlockPos.containing(ihopper.getLevelX(), ihopper.getLevelY(), ihopper.getLevelZ());
 +        CraftBlock hopper = CraftBlock.at(world, blockPosition);
 +        CraftBlock container = CraftBlock.at(world, blockPosition.above());
 +        return runHopperInventorySearchEvent(inventory, hopper, container, HopperInventorySearchEvent.ContainerType.SOURCE);

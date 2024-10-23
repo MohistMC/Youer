@@ -9,40 +9,40 @@ public final class CraftPistonMoving extends org.bukkit.craftbukkit.block.data.C
         super();
     }
 
-    public CraftPistonMoving(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftPistonMoving(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftTechnicalPiston
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> TYPE = getEnum(net.minecraft.world.level.block.piston.MovingPistonBlock.class, "type");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> TYPE = getEnum(net.minecraft.world.level.block.piston.BlockPistonMoving.class, "type");
 
     @Override
     public org.bukkit.block.data.type.TechnicalPiston.Type getType() {
-        return this.get(CraftPistonMoving.TYPE, org.bukkit.block.data.type.TechnicalPiston.Type.class);
+        return get(TYPE, org.bukkit.block.data.type.TechnicalPiston.Type.class);
     }
 
     @Override
     public void setType(org.bukkit.block.data.type.TechnicalPiston.Type type) {
-        this.set(CraftPistonMoving.TYPE, type);
+        set(TYPE, type);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftDirectional
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> FACING = getEnum(net.minecraft.world.level.block.piston.MovingPistonBlock.class, "facing");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> FACING = getEnum(net.minecraft.world.level.block.piston.BlockPistonMoving.class, "facing");
 
     @Override
     public org.bukkit.block.BlockFace getFacing() {
-        return this.get(CraftPistonMoving.FACING, org.bukkit.block.BlockFace.class);
+        return get(FACING, org.bukkit.block.BlockFace.class);
     }
 
     @Override
     public void setFacing(org.bukkit.block.BlockFace facing) {
-        this.set(CraftPistonMoving.FACING, facing);
+        set(FACING, facing);
     }
 
     @Override
     public java.util.Set<org.bukkit.block.BlockFace> getFaces() {
-        return this.getValues(CraftPistonMoving.FACING, org.bukkit.block.BlockFace.class);
+        return getValues(FACING, org.bukkit.block.BlockFace.class);
     }
 }

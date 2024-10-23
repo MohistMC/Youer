@@ -9,26 +9,26 @@ public final class CraftRotatable extends org.bukkit.craftbukkit.block.data.Craf
         super();
     }
 
-    public CraftRotatable(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftRotatable(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftOrientable
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> AXIS = getEnum(net.minecraft.world.level.block.RotatedPillarBlock.class, "axis");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> AXIS = getEnum(net.minecraft.world.level.block.BlockRotatable.class, "axis");
 
     @Override
     public org.bukkit.Axis getAxis() {
-        return this.get(CraftRotatable.AXIS, org.bukkit.Axis.class);
+        return get(AXIS, org.bukkit.Axis.class);
     }
 
     @Override
     public void setAxis(org.bukkit.Axis axis) {
-        this.set(CraftRotatable.AXIS, axis);
+        set(AXIS, axis);
     }
 
     @Override
     public java.util.Set<org.bukkit.Axis> getAxes() {
-        return this.getValues(CraftRotatable.AXIS, org.bukkit.Axis.class);
+        return getValues(AXIS, org.bukkit.Axis.class);
     }
 }

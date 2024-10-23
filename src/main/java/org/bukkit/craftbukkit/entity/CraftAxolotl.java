@@ -22,23 +22,23 @@ public class CraftAxolotl extends CraftAnimals implements Axolotl {
 
     @Override
     public boolean isPlayingDead() {
-        return this.getHandle().isPlayingDead();
+        return getHandle().isPlayingDead();
     }
 
     @Override
     public void setPlayingDead(boolean playingDead) {
-        this.getHandle().setPlayingDead(playingDead);
+        getHandle().setPlayingDead(playingDead);
     }
 
     @Override
     public Variant getVariant() {
-        return Variant.values()[this.getHandle().getVariant().ordinal()];
+        return Variant.values()[getHandle().getVariant().ordinal()];
     }
 
     @Override
     public void setVariant(Variant variant) {
         Preconditions.checkArgument(variant != null, "variant");
 
-        this.getHandle().setVariant(net.minecraft.world.entity.animal.axolotl.Axolotl.Variant.byId(variant.ordinal()));
+        getHandle().setVariant(net.minecraft.world.entity.animal.axolotl.Axolotl.Variant.byId(variant.ordinal()));
     }
 }

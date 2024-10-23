@@ -110,8 +110,8 @@
 +
 +    // Yes, this doesn't match Vanilla, but it's the best we can do for now.
 +    // If this is an issue, PRs are welcome
-+    public final BlockPosition getSpawnPoint(WorldServer worldserver) {
-+        BlockPosition blockposition = worldserver.getSharedSpawnPos();
++    public final BlockPos getSpawnPoint(WorldServer worldserver) {
++        BlockPos blockposition = worldserver.getSharedSpawnPos();
 +
 +        if (worldserver.dimensionType().hasSkyLight() && worldserver.serverLevelData.getGameType() != EnumGamemode.ADVENTURE) {
 +            int i = Math.max(0, this.server.getSpawnRadius(worldserver));
@@ -135,7 +135,7 @@
 +                int i2 = (k1 + j1 * l1) % i1;
 +                int j2 = i2 % (i * 2 + 1);
 +                int k2 = i2 / (i * 2 + 1);
-+                BlockPosition blockposition1 = WorldProviderNormal.getOverworldRespawnPos(worldserver, blockposition.getX() + j2 - i, blockposition.getZ() + k2 - i);
++                BlockPos blockposition1 = WorldProviderNormal.getOverworldRespawnPos(worldserver, blockposition.getX() + j2 - i, blockposition.getZ() + k2 - i);
 +
 +                if (blockposition1 != null) {
 +                    return blockposition1;
@@ -148,9 +148,9 @@
 +    // CraftBukkit end
  
      @Override
-     public BlockPosition adjustSpawnLocation(WorldServer worldserver, BlockPosition blockposition) {
+     public BlockPos adjustSpawnLocation(WorldServer worldserver, BlockPos blockposition) {
          AxisAlignedBB axisalignedbb = this.getDimensions(EntityPose.STANDING).makeBoundingBox(Vec3D.ZERO);
-         BlockPosition blockposition1 = blockposition;
+         BlockPos blockposition1 = blockposition;
  
 -        if (worldserver.dimensionType().hasSkyLight() && worldserver.getServer().getWorldData().getGameType() != EnumGamemode.ADVENTURE) {
 +        if (worldserver.dimensionType().hasSkyLight() && worldserver.serverLevelData.getGameType() != EnumGamemode.ADVENTURE) { // CraftBukkit
@@ -208,7 +208,7 @@
 +        // CraftBukkit end
 +
          if (nbttagcompound.contains("SpawnX", 99) && nbttagcompound.contains("SpawnY", 99) && nbttagcompound.contains("SpawnZ", 99)) {
-             this.respawnPosition = new BlockPosition(nbttagcompound.getInt("SpawnX"), nbttagcompound.getInt("SpawnY"), nbttagcompound.getInt("SpawnZ"));
+             this.respawnPosition = new BlockPos(nbttagcompound.getInt("SpawnX"), nbttagcompound.getInt("SpawnY"), nbttagcompound.getInt("SpawnZ"));
              this.respawnForced = nbttagcompound.getBoolean("SpawnForced");
              this.respawnAngle = nbttagcompound.getFloat("SpawnAngle");
              if (nbttagcompound.contains("SpawnDimension")) {
@@ -218,11 +218,11 @@
  
                  Objects.requireNonNull(logger1);
 @@ -484,7 +610,7 @@
-             dataresult = BlockPosition.CODEC.parse(DynamicOpsNBT.INSTANCE, nbtbase);
+             dataresult = BlockPos.CODEC.parse(DynamicOpsNBT.INSTANCE, nbtbase);
              logger = EntityPlayer.LOGGER;
              Objects.requireNonNull(logger);
 -            dataresult.resultOrPartial(logger::error).ifPresent((blockposition) -> {
-+            ((DataResult<BlockPosition>) dataresult).resultOrPartial(logger::error).ifPresent((blockposition) -> { // CraftBukkit - decompile error
++            ((DataResult<BlockPos>) dataresult).resultOrPartial(logger::error).ifPresent((blockposition) -> { // CraftBukkit - decompile error
                  this.raidOmenPosition = blockposition;
              });
          }
@@ -516,7 +516,7 @@
 +        boolean isBedSpawn = false;
 +        boolean isAnchorSpawn = false;
 +        // CraftBukkit end
-         BlockPosition blockposition = this.getRespawnPosition();
+         BlockPos blockposition = this.getRespawnPosition();
          float f = this.getRespawnAngle();
          boolean flag1 = this.isRespawnForced();
 @@ -1116,13 +1358,32 @@
@@ -554,7 +554,7 @@
 +        // CraftBukkit end
      }
  
-     public static Optional<EntityPlayer.RespawnPosAngle> findRespawnAndUseSpawnBlock(WorldServer worldserver, BlockPosition blockposition, float f, boolean flag, boolean flag1) {
+     public static Optional<EntityPlayer.RespawnPosAngle> findRespawnAndUseSpawnBlock(WorldServer worldserver, BlockPos blockposition, float f, boolean flag, boolean flag1) {
 @@ -1137,11 +1398,11 @@
              }
  
@@ -722,11 +722,11 @@
      }
  
 -    @Override
--    public Either<EntityHuman.EnumBedResult, Unit> startSleepInBed(BlockPosition blockposition) {
+-    public Either<EntityHuman.EnumBedResult, Unit> startSleepInBed(BlockPos blockposition) {
 -        EnumDirection enumdirection = (EnumDirection) this.level().getBlockState(blockposition).getValue(BlockFacingHorizontal.FACING);
 -
 +    // CraftBukkit start - moved bed result checks from below into separate method
-+    private Either<EntityHuman.EnumBedResult, Unit> getBedResult(BlockPosition blockposition, EnumDirection enumdirection) {
++    private Either<EntityHuman.EnumBedResult, Unit> getBedResult(BlockPos blockposition, EnumDirection enumdirection) {
          if (!this.isSleeping() && this.isAlive()) {
 -            if (!this.level().dimensionType().natural()) {
 +            if (!this.level().dimensionType().natural() || !this.level().dimensionType().bedWorks()) {
@@ -755,7 +755,7 @@
 +    }
 +
 +    @Override
-+    public Either<EntityHuman.EnumBedResult, Unit> startSleepInBed(BlockPosition blockposition, boolean force) {
++    public Either<EntityHuman.EnumBedResult, Unit> startSleepInBed(BlockPos blockposition, boolean force) {
 +        EnumDirection enumdirection = (EnumDirection) this.level().getBlockState(blockposition).getValue(BlockFacingHorizontal.FACING);
 +        Either<EntityHuman.EnumBedResult, Unit> bedResult = this.getBedResult(blockposition, enumdirection);
 +
@@ -797,7 +797,7 @@
 +        if (!this.isSleeping()) return; // CraftBukkit - Can't leave bed if not in one!
 +        // CraftBukkit start - fire PlayerBedLeaveEvent
 +        CraftPlayer player = this.getBukkitEntity();
-+        BlockPosition bedPosition = this.getSleepingPos().orElse(null);
++        BlockPos bedPosition = this.getSleepingPos().orElse(null);
 +
 +        org.bukkit.block.Block bed;
 +        if (bedPosition != null) {
@@ -1032,7 +1032,7 @@
      @Override
 -    public boolean teleportTo(WorldServer worldserver, double d0, double d1, double d2, Set<Relative> set, float f, float f1, boolean flag) {
 +    public boolean teleportTo(WorldServer worldserver, double d0, double d1, double d2, Set<Relative> set, float f, float f1, boolean flag, TeleportCause cause) { // CraftBukkit
-         ChunkCoordIntPair chunkcoordintpair = new ChunkCoordIntPair(BlockPosition.containing(d0, d1, d2));
+         ChunkCoordIntPair chunkcoordintpair = new ChunkCoordIntPair(BlockPos.containing(d0, d1, d2));
  
          worldserver.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT, chunkcoordintpair, 1, this.getId());
 @@ -1780,7 +2184,7 @@
@@ -1087,12 +1087,12 @@
 @@ -2065,6 +2479,32 @@
      }
  
-     public void setRespawnPosition(ResourceKey<World> resourcekey, @Nullable BlockPosition blockposition, float f, boolean flag, boolean flag1) {
+     public void setRespawnPosition(ResourceKey<World> resourcekey, @Nullable BlockPos blockposition, float f, boolean flag, boolean flag1) {
 +        // CraftBukkit start
 +        this.setRespawnPosition(resourcekey, blockposition, f, flag, flag1, PlayerSpawnChangeEvent.Cause.UNKNOWN);
 +    }
 +
-+    public void setRespawnPosition(ResourceKey<World> resourcekey, @Nullable BlockPosition blockposition, float f, boolean flag, boolean flag1, PlayerSpawnChangeEvent.Cause cause) {
++    public void setRespawnPosition(ResourceKey<World> resourcekey, @Nullable BlockPos blockposition, float f, boolean flag, boolean flag1, PlayerSpawnChangeEvent.Cause cause) {
 +        WorldServer newWorld = this.server.getLevel(resourcekey);
 +        Location newSpawn = (blockposition != null) ? CraftLocation.toBukkit(blockposition, newWorld.getWorld(), f, 0) : null;
 +
@@ -1106,7 +1106,7 @@
 +
 +        if (newSpawn != null) {
 +            resourcekey = ((CraftWorld) newSpawn.getWorld()).getHandle().dimension();
-+            blockposition = BlockPosition.containing(newSpawn.getX(), newSpawn.getY(), newSpawn.getZ());
++            blockposition = BlockPos.containing(newSpawn.getX(), newSpawn.getY(), newSpawn.getZ());
 +            f = newSpawn.getYaw();
 +        } else {
 +            resourcekey = World.OVERWORLD;
@@ -1165,14 +1165,14 @@
 +    // CraftBukkit start
 +    public static record RespawnPosAngle(Vec3D position, float yaw, boolean isBedSpawn, boolean isAnchorSpawn) {
  
--        public static EntityPlayer.RespawnPosAngle of(Vec3D vec3d, BlockPosition blockposition) {
+-        public static EntityPlayer.RespawnPosAngle of(Vec3D vec3d, BlockPos blockposition) {
 -            return new EntityPlayer.RespawnPosAngle(vec3d, calculateLookAtYaw(vec3d, blockposition));
-+        public static EntityPlayer.RespawnPosAngle of(Vec3D vec3d, BlockPosition blockposition, boolean isBedSpawn, boolean isAnchorSpawn) {
++        public static EntityPlayer.RespawnPosAngle of(Vec3D vec3d, BlockPos blockposition, boolean isBedSpawn, boolean isAnchorSpawn) {
 +            return new EntityPlayer.RespawnPosAngle(vec3d, calculateLookAtYaw(vec3d, blockposition), isBedSpawn, isAnchorSpawn);
 +            // CraftBukkit end
          }
  
-         private static float calculateLookAtYaw(Vec3D vec3d, BlockPosition blockposition) {
+         private static float calculateLookAtYaw(Vec3D vec3d, BlockPos blockposition) {
 @@ -2406,4 +2874,146 @@
              return (float) MathHelper.wrapDegrees(MathHelper.atan2(vec3d1.z, vec3d1.x) * 57.2957763671875D - 90.0D);
          }

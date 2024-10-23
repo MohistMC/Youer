@@ -11,7 +11,7 @@ public class CraftTadpole extends CraftFish implements org.bukkit.entity.Tadpole
 
     @Override
     public Tadpole getHandle() {
-        return (Tadpole) this.entity;
+        return (Tadpole) entity;
     }
 
     @Override
@@ -21,11 +21,11 @@ public class CraftTadpole extends CraftFish implements org.bukkit.entity.Tadpole
 
     @Override
     public int getAge() {
-        return this.getHandle().age;
+        return getHandle().age;
     }
 
     @Override
     public void setAge(int age) {
-        this.getHandle().age = age;
+        getHandle().age = age;
     }
 }

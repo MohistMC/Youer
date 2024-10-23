@@ -42,8 +42,8 @@
 +    public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
 +    public boolean captureBlockStates = false;
 +    public boolean captureTreeGeneration = false;
-+    public Map<BlockPosition, CapturedBlockState> capturedBlockStates = new java.util.LinkedHashMap<>();
-+    public Map<BlockPosition, TileEntity> capturedTileEntities = new HashMap<>();
++    public Map<BlockPos, CapturedBlockState> capturedBlockStates = new java.util.LinkedHashMap<>();
++    public Map<BlockPos, TileEntity> capturedTileEntities = new HashMap<>();
 +    public List<EntityItem> captureDrops;
 +    public final it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>();
 +    public boolean populating;
@@ -138,7 +138,7 @@
 @@ -206,6 +299,18 @@
  
      @Override
-     public boolean setBlock(BlockPosition blockposition, IBlockData iblockdata, int i, int j) {
+     public boolean setBlock(BlockPos blockposition, IBlockData iblockdata, int i, int j) {
 +        // CraftBukkit start - tree generation
 +        if (this.captureTreeGeneration) {
 +            CapturedBlockState blockstate = capturedBlockStates.get(blockposition);
@@ -204,7 +204,7 @@
      }
  
 +    // CraftBukkit start - Split off from above in order to directly send client and physic updates
-+    public void notifyAndUpdatePhysics(BlockPosition blockposition, Chunk chunk, IBlockData oldBlock, IBlockData newBlock, IBlockData actualBlock, int i, int j) {
++    public void notifyAndUpdatePhysics(BlockPos blockposition, Chunk chunk, IBlockData oldBlock, IBlockData newBlock, IBlockData actualBlock, int i, int j) {
 +        IBlockData iblockdata = newBlock;
 +        IBlockData iblockdata1 = oldBlock;
 +        IBlockData iblockdata2 = actualBlock;
@@ -252,13 +252,13 @@
 +    }
 +    // CraftBukkit end
 +
-     public void onBlockStateChange(BlockPosition blockposition, IBlockData iblockdata, IBlockData iblockdata1) {}
+     public void onBlockStateChange(BlockPos blockposition, IBlockData iblockdata, IBlockData iblockdata1) {}
  
      @Override
 @@ -339,6 +517,14 @@
  
      @Override
-     public IBlockData getBlockState(BlockPosition blockposition) {
+     public IBlockData getBlockState(BlockPos blockposition) {
 +        // CraftBukkit start - tree generation
 +        if (captureTreeGeneration) {
 +            CapturedBlockState previous = capturedBlockStates.get(blockposition);
@@ -273,13 +273,13 @@
 @@ -509,6 +695,16 @@
      @Nullable
      @Override
-     public TileEntity getBlockEntity(BlockPosition blockposition) {
+     public TileEntity getBlockEntity(BlockPos blockposition) {
 +        // CraftBukkit start
 +        return getBlockEntity(blockposition, true);
 +    }
 +
 +    @Nullable
-+    public TileEntity getBlockEntity(BlockPosition blockposition, boolean validate) {
++    public TileEntity getBlockEntity(BlockPos blockposition, boolean validate) {
 +        if (capturedTileEntities.containsKey(blockposition)) {
 +            return capturedTileEntities.get(blockposition);
 +        }
@@ -288,7 +288,7 @@
      }
  
 @@ -516,6 +712,12 @@
-         BlockPosition blockposition = tileentity.getBlockPos();
+         BlockPos blockposition = tileentity.getBlockPos();
  
          if (!this.isOutsideBuildHeight(blockposition)) {
 +            // CraftBukkit start

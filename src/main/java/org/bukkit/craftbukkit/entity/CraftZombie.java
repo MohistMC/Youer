@@ -1,20 +1,21 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
-import net.minecraft.world.entity.monster.ZombieVillager;
+import net.minecraft.world.entity.monster.EntityZombie;
+import net.minecraft.world.entity.monster.EntityZombieVillager;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Villager;
 import org.bukkit.entity.Zombie;
 
 public class CraftZombie extends CraftMonster implements Zombie {
 
-    public CraftZombie(CraftServer server, net.minecraft.world.entity.monster.Zombie entity) {
+    public CraftZombie(CraftServer server, EntityZombie entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.monster.Zombie getHandle() {
-        return (net.minecraft.world.entity.monster.Zombie) this.entity;
+    public EntityZombie getHandle() {
+        return (EntityZombie) entity;
     }
 
     @Override
@@ -24,17 +25,17 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public boolean isBaby() {
-        return this.getHandle().isBaby();
+        return getHandle().isBaby();
     }
 
     @Override
     public void setBaby(boolean flag) {
-        this.getHandle().setBaby(flag);
+        getHandle().setBaby(flag);
     }
 
     @Override
     public boolean isVillager() {
-        return this.getHandle() instanceof ZombieVillager;
+        return getHandle() instanceof EntityZombieVillager;
     }
 
     @Override
@@ -54,34 +55,34 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public boolean isConverting() {
-        return this.getHandle().isUnderWaterConverting();
+        return getHandle().isUnderWaterConverting();
     }
 
     @Override
     public int getConversionTime() {
-        Preconditions.checkState(this.isConverting(), "Entity not converting");
+        Preconditions.checkState(isConverting(), "Entity not converting");
 
-        return this.getHandle().conversionTime;
+        return getHandle().conversionTime;
     }
 
     @Override
     public void setConversionTime(int time) {
         if (time < 0) {
-            this.getHandle().conversionTime = -1;
-            this.getHandle().getEntityData().set(net.minecraft.world.entity.monster.Zombie.DATA_DROWNED_CONVERSION_ID, false);
+            getHandle().conversionTime = -1;
+            getHandle().getEntityData().set(EntityZombie.DATA_DROWNED_CONVERSION_ID, false);
         } else {
-            this.getHandle().startUnderWaterConversion(time);
+            getHandle().startUnderWaterConversion(time);
         }
     }
 
     @Override
     public int getAge() {
-        return this.getHandle().isBaby() ? -1 : 0;
+        return getHandle().isBaby() ? -1 : 0;
     }
 
     @Override
     public void setAge(int i) {
-        this.getHandle().setBaby(i < 0);
+        getHandle().setBaby(i < 0);
     }
 
     @Override
@@ -95,17 +96,17 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public void setBaby() {
-        this.getHandle().setBaby(true);
+        getHandle().setBaby(true);
     }
 
     @Override
     public void setAdult() {
-        this.getHandle().setBaby(false);
+        getHandle().setBaby(false);
     }
 
     @Override
     public boolean isAdult() {
-        return !this.getHandle().isBaby();
+        return !getHandle().isBaby();
     }
 
     @Override
@@ -119,11 +120,11 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public boolean canBreakDoors() {
-        return this.getHandle().canBreakDoors();
+        return getHandle().canBreakDoors();
     }
 
     @Override
     public void setCanBreakDoors(boolean flag) {
-        this.getHandle().setCanBreakDoors(flag);
+        getHandle().setCanBreakDoors(flag);
     }
 }

@@ -12,7 +12,7 @@
 @@ -127,15 +127,16 @@
      }
  
-     private void explode(IBlockData iblockdata, World world, final BlockPosition blockposition) {
+     private void explode(IBlockData iblockdata, World world, final BlockPos blockposition) {
 +        org.bukkit.block.BlockState blockState = org.bukkit.craftbukkit.block.CraftBlock.at(world, blockposition).getState(); // CraftBukkit - capture BlockState before remove block
          world.removeBlock(blockposition, false);
 -        Stream stream = EnumDirection.EnumDirectionLimit.HORIZONTAL.stream();
@@ -26,7 +26,7 @@
 -        ExplosionDamageCalculator explosiondamagecalculator = new ExplosionDamageCalculator(this) {
 +        ExplosionDamageCalculator explosiondamagecalculator = new ExplosionDamageCalculator() { // CraftBukkit - decompile error
              @Override
-             public Optional<Float> getBlockExplosionResistance(Explosion explosion, IBlockAccess iblockaccess, BlockPosition blockposition1, IBlockData iblockdata1, Fluid fluid) {
+             public Optional<Float> getBlockExplosionResistance(Explosion explosion, IBlockAccess iblockaccess, BlockPos blockposition1, IBlockData iblockdata1, Fluid fluid) {
                  return blockposition1.equals(blockposition) && flag1 ? Optional.of(Blocks.WATER.getExplosionResistance()) : super.getBlockExplosionResistance(explosion, iblockaccess, blockposition1, iblockdata1, fluid);
 @@ -143,7 +144,7 @@
          };

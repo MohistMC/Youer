@@ -1,8 +1,8 @@
 package org.bukkit.craftbukkit.block;
 
+import net.minecraft.world.level.block.BlockDropper;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.DropperBlock;
-import net.minecraft.world.level.block.entity.DropperBlockEntity;
+import net.minecraft.world.level.block.entity.TileEntityDropper;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -12,9 +12,9 @@ import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.inventory.Inventory;
 
-public class CraftDropper extends CraftLootable<DropperBlockEntity> implements Dropper {
+public class CraftDropper extends CraftLootable<TileEntityDropper> implements Dropper {
 
-    public CraftDropper(World world, DropperBlockEntity tileEntity) {
+    public CraftDropper(World world, TileEntityDropper tileEntity) {
         super(world, tileEntity);
     }
 
@@ -38,11 +38,11 @@ public class CraftDropper extends CraftLootable<DropperBlockEntity> implements D
 
     @Override
     public void drop() {
-        this.ensureNoWorldGeneration();
-        Block block = this.getBlock();
+        ensureNoWorldGeneration();
+        Block block = getBlock();
         if (block.getType() == Material.DROPPER) {
             CraftWorld world = (CraftWorld) this.getWorld();
-            DropperBlock drop = (DropperBlock) Blocks.DROPPER;
+            BlockDropper drop = (BlockDropper) Blocks.DROPPER;
 
             drop.dispenseFrom(world.getHandle(), this.getHandle(), this.getPosition());
         }

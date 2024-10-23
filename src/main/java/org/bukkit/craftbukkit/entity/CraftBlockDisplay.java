@@ -24,13 +24,13 @@ public class CraftBlockDisplay extends CraftDisplay implements BlockDisplay {
 
     @Override
     public BlockData getBlock() {
-        return CraftBlockData.fromData(this.getHandle().getBlockState());
+        return CraftBlockData.fromData(getHandle().getBlockState());
     }
 
     @Override
     public void setBlock(BlockData block) {
         Preconditions.checkArgument(block != null, "Block cannot be null");
 
-        this.getHandle().setBlockState(((CraftBlockData) block).getState());
+        getHandle().setBlockState(((CraftBlockData) block).getState());
     }
 }

@@ -1,32 +1,32 @@
 package org.bukkit.craftbukkit.inventory;
 
-import net.minecraft.world.Container;
+import net.minecraft.world.IInventory;
 import org.bukkit.block.Jukebox;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.JukeboxInventory;
 
 public class CraftInventoryJukebox extends CraftInventory implements JukeboxInventory {
 
-    public CraftInventoryJukebox(Container inventory) {
+    public CraftInventoryJukebox(IInventory inventory) {
         super(inventory);
     }
 
     @Override
     public void setRecord(ItemStack item) {
         if (item == null) {
-            this.inventory.removeItem(0, 0); // Second parameter is unused in TileEntityJukebox
+            inventory.removeItem(0, 0); // Second parameter is unused in TileEntityJukebox
         } else {
-            this.setItem(0, item);
+            setItem(0, item);
         }
     }
 
     @Override
     public ItemStack getRecord() {
-        return this.getItem(0);
+        return getItem(0);
     }
 
     @Override
     public Jukebox getHolder() {
-        return (Jukebox) this.inventory.getOwner();
+        return (Jukebox) inventory.getOwner();
     }
 }

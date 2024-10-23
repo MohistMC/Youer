@@ -2,8 +2,15 @@ package org.bukkit.craftbukkit.inventory;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import net.minecraft.world.item.BundleItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemBanner;
+import net.minecraft.world.item.ItemBlock;
+import net.minecraft.world.item.ItemMonsterEgg;
+import net.minecraft.world.item.ItemSign;
 import net.minecraft.world.item.ItemStack;
-import org.bukkit.Tag;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.BlockShulkerBox;
 import org.bukkit.inventory.ItemType;
 import org.bukkit.inventory.meta.ArmorMeta;
 import org.bukkit.inventory.meta.AxolotlBucketMeta;
@@ -24,6 +31,7 @@ import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.MusicInstrumentMeta;
 import org.bukkit.inventory.meta.OminousBottleMeta;
 import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.inventory.meta.ShieldMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.inventory.meta.SpawnEggMeta;
 import org.bukkit.inventory.meta.SuspiciousStewMeta;
@@ -107,6 +115,10 @@ public final class CraftItemMetas {
             item -> new CraftMetaBlockState(item.getComponentsPatch(), CraftItemType.minecraftToBukkit(item.getItem())),
             (type, meta) -> new CraftMetaBlockState(meta, type.asMaterial()));
 
+    private static final ItemMetaData<ShieldMeta> SHIELD_META_DATA = new ItemMetaData<>(ShieldMeta.class,
+            item -> new CraftMetaShield(item.getComponentsPatch()),
+            (type, meta) -> new CraftMetaShield(meta));
+
     private static final ItemMetaData<TropicalFishBucketMeta> TROPICAL_FISH_BUCKET_META_DATA = new ItemMetaData<>(TropicalFishBucketMeta.class,
             item -> new CraftMetaTropicalFishBucket(item.getComponentsPatch()),
             (type, meta) -> meta instanceof CraftMetaTropicalFishBucket tropicalFishBucket ? tropicalFishBucket : new CraftMetaTropicalFishBucket(meta));
@@ -145,7 +157,10 @@ public final class CraftItemMetas {
 
     // We use if instead of a set, since the result gets cached in CraftItemType,
     // which would result in dead memory once all ItemTypes have cached the data.
-    public static <I extends ItemMeta> ItemMetaData<I> getItemMetaData(ItemType itemType) {
+    public static <I extends ItemMeta> ItemMetaData<I> getItemMetaData(CraftItemType<?> itemType) {
+        Item itemHandle = itemType.getHandle();
+        Block blockHandle = (itemHandle instanceof ItemBlock itemBlock) ? itemBlock.getBlock() : null;
+
         if (itemType == ItemType.AIR) {
             return asType(EMPTY_META_DATA);
         }
@@ -198,50 +213,10 @@ public final class CraftItemMetas {
         if (itemType == ItemType.ENCHANTED_BOOK) {
             return asType(ENCHANTED_BOOK_META_DATA);
         }
-        if (itemType.hasBlockType() && Tag.BANNERS.isTagged(itemType.getBlockType().asMaterial())) {
+        if (itemHandle instanceof ItemBanner) {
             return asType(BANNER_META_DATA);
         }
-        if (itemType == ItemType.ARMADILLO_SPAWN_EGG || itemType == ItemType.ALLAY_SPAWN_EGG
-                || itemType == ItemType.ARMADILLO_SPAWN_EGG || itemType == ItemType.ALLAY_SPAWN_EGG
-                || itemType == ItemType.AXOLOTL_SPAWN_EGG || itemType == ItemType.BAT_SPAWN_EGG
-                || itemType == ItemType.BEE_SPAWN_EGG || itemType == ItemType.BLAZE_SPAWN_EGG
-                || itemType == ItemType.BOGGED_SPAWN_EGG || itemType == ItemType.BREEZE_SPAWN_EGG
-                || itemType == ItemType.CAT_SPAWN_EGG || itemType == ItemType.CAMEL_SPAWN_EGG
-                || itemType == ItemType.CAVE_SPIDER_SPAWN_EGG || itemType == ItemType.CHICKEN_SPAWN_EGG
-                || itemType == ItemType.COD_SPAWN_EGG || itemType == ItemType.COW_SPAWN_EGG
-                || itemType == ItemType.CREEPER_SPAWN_EGG || itemType == ItemType.DOLPHIN_SPAWN_EGG
-                || itemType == ItemType.DONKEY_SPAWN_EGG || itemType == ItemType.DROWNED_SPAWN_EGG
-                || itemType == ItemType.ELDER_GUARDIAN_SPAWN_EGG || itemType == ItemType.ENDER_DRAGON_SPAWN_EGG
-                || itemType == ItemType.ENDERMAN_SPAWN_EGG || itemType == ItemType.ENDERMITE_SPAWN_EGG
-                || itemType == ItemType.EVOKER_SPAWN_EGG || itemType == ItemType.FOX_SPAWN_EGG
-                || itemType == ItemType.FROG_SPAWN_EGG || itemType == ItemType.GHAST_SPAWN_EGG
-                || itemType == ItemType.GLOW_SQUID_SPAWN_EGG || itemType == ItemType.GOAT_SPAWN_EGG
-                || itemType == ItemType.GUARDIAN_SPAWN_EGG || itemType == ItemType.HOGLIN_SPAWN_EGG
-                || itemType == ItemType.HORSE_SPAWN_EGG || itemType == ItemType.HUSK_SPAWN_EGG
-                || itemType == ItemType.IRON_GOLEM_SPAWN_EGG || itemType == ItemType.LLAMA_SPAWN_EGG
-                || itemType == ItemType.MAGMA_CUBE_SPAWN_EGG || itemType == ItemType.MOOSHROOM_SPAWN_EGG
-                || itemType == ItemType.MULE_SPAWN_EGG || itemType == ItemType.OCELOT_SPAWN_EGG
-                || itemType == ItemType.PANDA_SPAWN_EGG || itemType == ItemType.PARROT_SPAWN_EGG
-                || itemType == ItemType.PHANTOM_SPAWN_EGG || itemType == ItemType.PIGLIN_BRUTE_SPAWN_EGG
-                || itemType == ItemType.PIGLIN_SPAWN_EGG || itemType == ItemType.PIG_SPAWN_EGG
-                || itemType == ItemType.PILLAGER_SPAWN_EGG || itemType == ItemType.POLAR_BEAR_SPAWN_EGG
-                || itemType == ItemType.PUFFERFISH_SPAWN_EGG || itemType == ItemType.RABBIT_SPAWN_EGG
-                || itemType == ItemType.RAVAGER_SPAWN_EGG || itemType == ItemType.SALMON_SPAWN_EGG
-                || itemType == ItemType.SHEEP_SPAWN_EGG || itemType == ItemType.SHULKER_SPAWN_EGG
-                || itemType == ItemType.SILVERFISH_SPAWN_EGG || itemType == ItemType.SKELETON_HORSE_SPAWN_EGG
-                || itemType == ItemType.SKELETON_SPAWN_EGG || itemType == ItemType.SLIME_SPAWN_EGG
-                || itemType == ItemType.SNIFFER_SPAWN_EGG || itemType == ItemType.SNOW_GOLEM_SPAWN_EGG
-                || itemType == ItemType.SPIDER_SPAWN_EGG || itemType == ItemType.SQUID_SPAWN_EGG
-                || itemType == ItemType.STRAY_SPAWN_EGG || itemType == ItemType.STRIDER_SPAWN_EGG
-                || itemType == ItemType.TADPOLE_SPAWN_EGG || itemType == ItemType.TRADER_LLAMA_SPAWN_EGG
-                || itemType == ItemType.TROPICAL_FISH_SPAWN_EGG || itemType == ItemType.TURTLE_SPAWN_EGG
-                || itemType == ItemType.VEX_SPAWN_EGG || itemType == ItemType.VILLAGER_SPAWN_EGG
-                || itemType == ItemType.VINDICATOR_SPAWN_EGG || itemType == ItemType.WANDERING_TRADER_SPAWN_EGG
-                || itemType == ItemType.WARDEN_SPAWN_EGG || itemType == ItemType.WITCH_SPAWN_EGG
-                || itemType == ItemType.WITHER_SKELETON_SPAWN_EGG || itemType == ItemType.WITHER_SPAWN_EGG
-                || itemType == ItemType.WOLF_SPAWN_EGG || itemType == ItemType.ZOGLIN_SPAWN_EGG
-                || itemType == ItemType.ZOMBIE_HORSE_SPAWN_EGG || itemType == ItemType.ZOMBIE_SPAWN_EGG
-                || itemType == ItemType.ZOMBIE_VILLAGER_SPAWN_EGG || itemType == ItemType.ZOMBIFIED_PIGLIN_SPAWN_EGG) {
+        if (itemHandle instanceof ItemMonsterEgg) {
             return asType(SPAWN_EGG_META_DATA);
         }
         if (itemType == ItemType.ARMOR_STAND) {
@@ -253,13 +228,13 @@ public final class CraftItemMetas {
         if (itemType == ItemType.FURNACE || itemType == ItemType.CHEST
                 || itemType == ItemType.TRAPPED_CHEST || itemType == ItemType.JUKEBOX
                 || itemType == ItemType.DISPENSER || itemType == ItemType.DROPPER
-                || (itemType.hasBlockType() && Tag.SIGNS.isTagged(itemType.getBlockType().asMaterial())) || itemType == ItemType.SPAWNER
+                || itemHandle instanceof ItemSign || itemType == ItemType.SPAWNER
                 || itemType == ItemType.BREWING_STAND || itemType == ItemType.ENCHANTING_TABLE
                 || itemType == ItemType.COMMAND_BLOCK || itemType == ItemType.REPEATING_COMMAND_BLOCK
                 || itemType == ItemType.CHAIN_COMMAND_BLOCK || itemType == ItemType.BEACON
                 || itemType == ItemType.DAYLIGHT_DETECTOR || itemType == ItemType.HOPPER
-                || itemType == ItemType.COMPARATOR || itemType == ItemType.SHIELD
-                || itemType == ItemType.STRUCTURE_BLOCK || (itemType.hasBlockType() && Tag.SHULKER_BOXES.isTagged(itemType.getBlockType().asMaterial()))
+                || itemType == ItemType.COMPARATOR || itemType == ItemType.STRUCTURE_BLOCK
+                || blockHandle instanceof BlockShulkerBox
                 || itemType == ItemType.ENDER_CHEST || itemType == ItemType.BARREL
                 || itemType == ItemType.BELL || itemType == ItemType.BLAST_FURNACE
                 || itemType == ItemType.CAMPFIRE || itemType == ItemType.SOUL_CAMPFIRE
@@ -270,8 +245,12 @@ public final class CraftItemMetas {
                 || itemType == ItemType.CALIBRATED_SCULK_SENSOR || itemType == ItemType.CHISELED_BOOKSHELF
                 || itemType == ItemType.DECORATED_POT || itemType == ItemType.SUSPICIOUS_SAND
                 || itemType == ItemType.SUSPICIOUS_GRAVEL || itemType == ItemType.CRAFTER
-                || itemType == ItemType.TRIAL_SPAWNER || itemType == ItemType.VAULT) {
+                || itemType == ItemType.TRIAL_SPAWNER || itemType == ItemType.VAULT
+                || itemType == ItemType.CREAKING_HEART) {
             return asType(BLOCK_STATE_META_DATA);
+        }
+        if (itemType == ItemType.SHIELD) {
+            return asType(SHIELD_META_DATA);
         }
         if (itemType == ItemType.TROPICAL_FISH_BUCKET) {
             return asType(TROPICAL_FISH_BUCKET_META_DATA);
@@ -293,7 +272,7 @@ public final class CraftItemMetas {
         if (itemType == ItemType.COMPASS) {
             return asType(COMPASS_META_DATA);
         }
-        if (itemType == ItemType.BUNDLE) {
+        if (itemHandle instanceof BundleItem) {
             return asType(BUNDLE_META_DATA);
         }
         if (itemType == ItemType.GOAT_HORN) {

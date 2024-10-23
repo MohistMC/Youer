@@ -1,7 +1,7 @@
 package org.bukkit.craftbukkit.scoreboard;
 
 import com.google.common.collect.ImmutableBiMap;
-import net.minecraft.world.scores.criteria.ObjectiveCriteria;
+import net.minecraft.world.scores.criteria.IScoreboardCriteria;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.RenderType;
 
@@ -32,18 +32,18 @@ final class CraftScoreboardTranslations {
     private CraftScoreboardTranslations() {}
 
     static DisplaySlot toBukkitSlot(net.minecraft.world.scores.DisplaySlot minecraft) {
-        return CraftScoreboardTranslations.SLOTS.inverse().get(minecraft.getSerializedName());
+        return SLOTS.inverse().get(minecraft.getSerializedName());
     }
 
     static net.minecraft.world.scores.DisplaySlot fromBukkitSlot(DisplaySlot slot) {
-        return net.minecraft.world.scores.DisplaySlot.CODEC.byName(CraftScoreboardTranslations.SLOTS.get(slot));
+        return net.minecraft.world.scores.DisplaySlot.CODEC.byName(SLOTS.get(slot));
     }
 
-    static RenderType toBukkitRender(ObjectiveCriteria.RenderType display) {
+    static RenderType toBukkitRender(IScoreboardCriteria.EnumScoreboardHealthDisplay display) {
         return RenderType.valueOf(display.name());
     }
 
-    static ObjectiveCriteria.RenderType fromBukkitRender(RenderType render) {
-        return ObjectiveCriteria.RenderType.valueOf(render.name());
+    static IScoreboardCriteria.EnumScoreboardHealthDisplay fromBukkitRender(RenderType render) {
+        return IScoreboardCriteria.EnumScoreboardHealthDisplay.valueOf(render.name());
     }
 }

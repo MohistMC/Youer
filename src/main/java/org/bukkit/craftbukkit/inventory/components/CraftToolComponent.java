@@ -14,8 +14,6 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.component.Tool;
 import net.minecraft.world.level.block.Block;
 import org.bukkit.Material;
@@ -109,13 +107,13 @@ public final class CraftToolComponent implements ToolComponent {
         Preconditions.checkArgument(block != null, "block must not be null");
         Preconditions.checkArgument(block.isBlock(), "block must be a block type, given %s", block.getKey());
 
-        Holder.Reference<Block> nmsBlock = CraftBlockType.bukkitToMinecraft(block).builtInRegistryHolder();
+        Holder.c<Block> nmsBlock = CraftBlockType.bukkitToMinecraft(block).builtInRegistryHolder();
         return addRule(HolderSet.direct(nmsBlock), speed, correctForDrops);
     }
 
     @Override
     public ToolRule addRule(Collection<Material> blocks, Float speed, Boolean correctForDrops) {
-        List<Holder.Reference<Block>> nmsBlocks = new ArrayList<>(blocks.size());
+        List<Holder.c<Block>> nmsBlocks = new ArrayList<>(blocks.size());
 
         for (Material material : blocks) {
             Preconditions.checkArgument(material.isBlock(), "blocks contains non-block type: %s", material.getKey());
@@ -132,9 +130,9 @@ public final class CraftToolComponent implements ToolComponent {
     }
 
     private ToolRule addRule(HolderSet<Block> blocks, Float speed, Boolean correctForDrops) {
-        Tool.Rule rule = new Tool.Rule(blocks, Optional.ofNullable(speed), Optional.ofNullable(correctForDrops));
+        Tool.a rule = new Tool.a(blocks, Optional.ofNullable(speed), Optional.ofNullable(correctForDrops));
 
-        List<Tool.Rule> rules = new ArrayList<>(handle.rules().size() + 1);
+        List<Tool.a> rules = new ArrayList<>(handle.rules().size() + 1);
         rules.addAll(handle.rules());
         rules.add(rule);
 
@@ -146,7 +144,7 @@ public final class CraftToolComponent implements ToolComponent {
     public boolean removeRule(ToolRule rule) {
         Preconditions.checkArgument(rule != null, "rule must not be null");
 
-        List<Tool.Rule> rules = new ArrayList<>(handle.rules());
+        List<Tool.a> rules = new ArrayList<>(handle.rules());
         boolean removed = rules.remove(((CraftToolRule) rule).handle);
         handle = new Tool(rules, handle.defaultMiningSpeed(), handle.damagePerBlock());
 
@@ -183,60 +181,30 @@ public final class CraftToolComponent implements ToolComponent {
     @SerializableAs("ToolRule")
     public static class CraftToolRule implements ToolRule {
 
-        private Tool.Rule handle;
+        private Tool.a handle;
 
-        public CraftToolRule(Tool.Rule handle) {
+        public CraftToolRule(Tool.a handle) {
             this.handle = handle;
         }
 
         public CraftToolRule(ToolRule bukkit) {
-            Tool.Rule toCopy = ((CraftToolRule) bukkit).handle;
-            this.handle = new Tool.Rule(toCopy.blocks(), toCopy.speed(), toCopy.correctForDrops());
+            Tool.a toCopy = ((CraftToolRule) bukkit).handle;
+            this.handle = new Tool.a(toCopy.blocks(), toCopy.speed(), toCopy.correctForDrops());
         }
 
         public CraftToolRule(Map<String, Object> map) {
             Float speed = SerializableMeta.getObject(Float.class, map, "speed", true);
             Boolean correct = SerializableMeta.getObject(Boolean.class, map, "correct-for-drops", true);
+            HolderSet<Block> blocks = CraftHolderUtil.parse(SerializableMeta.getObject(Object.class, map, "blocks", false), Registries.BLOCK, BuiltInRegistries.BLOCK);
 
-            HolderSet<Block> blocks = null;
-            Object blocksObject = SerializableMeta.getObject(Object.class, map, "blocks", false);
-            if (blocksObject instanceof String blocksString && blocksString.startsWith("#")) { // Tag
-                blocksString = blocksString.substring(1);
-                ResourceLocation key = ResourceLocation.tryParse(blocksString);
-                if (key != null) {
-                    blocks = BuiltInRegistries.BLOCK.getTag(TagKey.create(Registries.BLOCK, key)).orElse(null);
-                }
-            } else if (blocksObject instanceof List blocksList) { // List of blocks
-                List<Holder.Reference<Block>> blockHolders = new ArrayList<>(blocksList.size());
-
-                for (Object entry : blocksList) {
-                    ResourceLocation key = ResourceLocation.tryParse(entry.toString());
-                    if (key == null) {
-                        continue;
-                    }
-
-                    BuiltInRegistries.BLOCK.getHolder(key).ifPresent(blockHolders::add);
-                }
-
-                blocks = HolderSet.direct(blockHolders);
-            } else {
-                throw new IllegalArgumentException("blocks" + "(" + blocksObject + ") is not a valid String or List");
-            }
-
-            if (blocks == null) {
-                blocks = HolderSet.empty();
-            }
-
-            this.handle = new Tool.Rule(blocks, Optional.ofNullable(speed), Optional.ofNullable(correct));
+            this.handle = new Tool.a(blocks, Optional.ofNullable(speed), Optional.ofNullable(correct));
         }
 
         @Override
         public Map<String, Object> serialize() {
             Map<String, Object> result = new LinkedHashMap<>();
 
-            handle.blocks().unwrap()
-                    .ifLeft(key -> result.put("blocks", "#" + key.location().toString())) // Tag
-                    .ifRight(blocks -> result.put("blocks", blocks.stream().map((block) -> block.unwrapKey().orElseThrow().location().toString()).toList())); // List of blocks
+            CraftHolderUtil.serialize(result, "blocks", handle.blocks());
 
             Float speed = getSpeed();
             if (speed != null) {
@@ -251,7 +219,7 @@ public final class CraftToolComponent implements ToolComponent {
             return result;
         }
 
-        public Tool.Rule getHandle() {
+        public Tool.a getHandle() {
             return handle;
         }
 
@@ -264,7 +232,7 @@ public final class CraftToolComponent implements ToolComponent {
         public void setBlocks(Material block) {
             Preconditions.checkArgument(block != null, "block must not be null");
             Preconditions.checkArgument(block.isBlock(), "block must be a block type, given %s", block.getKey());
-            handle = new Tool.Rule(HolderSet.direct(CraftBlockType.bukkitToMinecraft(block).builtInRegistryHolder()), handle.speed(), handle.correctForDrops());
+            handle = new Tool.a(HolderSet.direct(CraftBlockType.bukkitToMinecraft(block).builtInRegistryHolder()), handle.speed(), handle.correctForDrops());
         }
 
         @Override
@@ -274,13 +242,13 @@ public final class CraftToolComponent implements ToolComponent {
                 Preconditions.checkArgument(material.isBlock(), "blocks contains non-block type: %s", material.getKey());
             }
 
-            handle = new Tool.Rule(HolderSet.direct((List) blocks.stream().map(CraftBlockType::bukkitToMinecraft).map(Block::builtInRegistryHolder).collect(Collectors.toList())), handle.speed(), handle.correctForDrops());
+            handle = new Tool.a(HolderSet.direct((List) blocks.stream().map(CraftBlockType::bukkitToMinecraft).map(Block::builtInRegistryHolder).collect(Collectors.toList())), handle.speed(), handle.correctForDrops());
         }
 
         @Override
         public void setBlocks(Tag<Material> tag) {
             Preconditions.checkArgument(tag instanceof CraftBlockTag, "tag must be a block tag");
-            handle = new Tool.Rule(((CraftBlockTag) tag).getHandle(), handle.speed(), handle.correctForDrops());
+            handle = new Tool.a(((CraftBlockTag) tag).getHandle(), handle.speed(), handle.correctForDrops());
         }
 
         @Override
@@ -290,7 +258,7 @@ public final class CraftToolComponent implements ToolComponent {
 
         @Override
         public void setSpeed(Float speed) {
-            handle = new Tool.Rule(handle.blocks(), Optional.ofNullable(speed), handle.correctForDrops());
+            handle = new Tool.a(handle.blocks(), Optional.ofNullable(speed), handle.correctForDrops());
         }
 
         @Override
@@ -300,7 +268,7 @@ public final class CraftToolComponent implements ToolComponent {
 
         @Override
         public void setCorrectForDrops(Boolean correct) {
-            handle = new Tool.Rule(handle.blocks(), handle.speed(), Optional.ofNullable(correct));
+            handle = new Tool.a(handle.blocks(), handle.speed(), Optional.ofNullable(correct));
         }
 
         @Override

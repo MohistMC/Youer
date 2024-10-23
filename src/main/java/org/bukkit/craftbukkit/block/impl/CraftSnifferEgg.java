@@ -9,26 +9,26 @@ public final class CraftSnifferEgg extends org.bukkit.craftbukkit.block.data.Cra
         super();
     }
 
-    public CraftSnifferEgg(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftSnifferEgg(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftHatchable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty HATCH = getInteger(net.minecraft.world.level.block.SnifferEggBlock.class, "hatch");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger HATCH = getInteger(net.minecraft.world.level.block.SnifferEggBlock.class, "hatch");
 
     @Override
     public int getHatch() {
-        return this.get(CraftSnifferEgg.HATCH);
+        return get(HATCH);
     }
 
     @Override
     public void setHatch(int hatch) {
-        this.set(CraftSnifferEgg.HATCH, hatch);
+        set(HATCH, hatch);
     }
 
     @Override
     public int getMaximumHatch() {
-        return getMax(CraftSnifferEgg.HATCH);
+        return getMax(HATCH);
     }
 }

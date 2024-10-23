@@ -1,17 +1,17 @@
 package org.bukkit.craftbukkit.block;
 
 import java.util.Set;
-import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.IRegistryCustom;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponentType;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.network.protocol.game.PacketListenerPlayOut;
+import net.minecraft.network.protocol.game.PacketPlayOutTileEntityData;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.GeneratorAccess;
+import net.minecraft.world.level.block.entity.TileEntity;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.TileState;
@@ -20,7 +20,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class CraftBlockEntityState<T extends BlockEntity> extends CraftBlockState implements TileState {
+public class CraftBlockEntityState<T extends TileEntity> extends CraftBlockState implements TileState {
 
     private final T tileEntity;
     private final T snapshot;
@@ -32,22 +32,22 @@ public class CraftBlockEntityState<T extends BlockEntity> extends CraftBlockStat
 
         // copy tile entity data:
         this.snapshot = this.createSnapshot(tileEntity);
-        this.load(this.snapshot);
+        this.load(snapshot);
     }
 
     protected CraftBlockEntityState(CraftBlockEntityState<T> state, Location location) {
         super(state, location);
-        this.tileEntity = this.createSnapshot(state.snapshot);
-        this.snapshot = this.tileEntity;
-        this.loadData(state.getSnapshotNBT());
+        this.tileEntity = createSnapshot(state.snapshot);
+        this.snapshot = tileEntity;
+        loadData(state.getSnapshotNBT());
     }
 
     public void refreshSnapshot() {
-        this.load(this.tileEntity);
+        this.load(tileEntity);
     }
 
-    private RegistryAccess getRegistryAccess() {
-        LevelAccessor worldHandle = this.getWorldHandle();
+    private IRegistryCustom getRegistryAccess() {
+        GeneratorAccess worldHandle = getWorldHandle();
         return (worldHandle != null) ? worldHandle.registryAccess() : MinecraftServer.getDefaultRegistryAccess();
     }
 
@@ -56,67 +56,75 @@ public class CraftBlockEntityState<T extends BlockEntity> extends CraftBlockStat
             return null;
         }
 
-        CompoundTag nbtTagCompound = tileEntity.saveWithFullMetadata(this.getRegistryAccess());
-        T snapshot = (T) BlockEntity.loadStatic(this.getPosition(), this.getHandle(), nbtTagCompound, this.getRegistryAccess());
+        NBTTagCompound nbtTagCompound = tileEntity.saveWithFullMetadata(getRegistryAccess());
+        T snapshot = (T) TileEntity.loadStatic(getPosition(), getHandle(), nbtTagCompound, getRegistryAccess());
 
         return snapshot;
     }
 
     public Set<DataComponentType<?>> applyComponents(DataComponentMap datacomponentmap, DataComponentPatch datacomponentpatch) {
         Set<DataComponentType<?>> result = snapshot.applyComponentsSet(datacomponentmap, datacomponentpatch);
-        this.load(this.snapshot);
+        load(snapshot);
         return result;
     }
 
     public DataComponentMap collectComponents() {
-        return this.snapshot.collectComponents();
+        return snapshot.collectComponents();
     }
 
     // Loads the specified data into the snapshot TileEntity.
-    public void loadData(CompoundTag nbtTagCompound) {
-        this.snapshot.loadWithComponents(nbtTagCompound, this.getRegistryAccess());
-        this.load(this.snapshot);
+    public void loadData(NBTTagCompound nbtTagCompound) {
+        snapshot.loadWithComponents(nbtTagCompound, getRegistryAccess());
+        load(snapshot);
     }
 
     // copies the TileEntity-specific data, retains the position
     private void copyData(T from, T to) {
-        CompoundTag nbtTagCompound = from.saveWithFullMetadata(this.getRegistryAccess());
-        to.loadWithComponents(nbtTagCompound, this.getRegistryAccess());
+        NBTTagCompound nbtTagCompound = from.saveWithFullMetadata(getRegistryAccess());
+        to.loadWithComponents(nbtTagCompound, getRegistryAccess());
     }
 
     // gets the wrapped TileEntity
-    public T getTileEntity() {
-        return this.tileEntity;
+    protected T getTileEntity() {
+        return tileEntity;
     }
 
     // gets the cloned TileEntity which is used to store the captured data
     protected T getSnapshot() {
-        return this.snapshot;
+        return snapshot;
     }
 
     // gets the current TileEntity from the world at this position
-    protected BlockEntity getTileEntityFromWorld() {
-        this.requirePlaced();
+    protected TileEntity getTileEntityFromWorld() {
+        requirePlaced();
 
-        return this.getWorldHandle().getBlockEntity(this.getPosition());
+        return getWorldHandle().getBlockEntity(this.getPosition());
     }
 
     // gets the NBT data of the TileEntity represented by this block state
-    public CompoundTag getSnapshotNBT() {
+    public NBTTagCompound getSnapshotNBT() {
         // update snapshot
-        this.applyTo(this.snapshot);
+        applyTo(snapshot);
 
-        return this.snapshot.saveWithFullMetadata(this.getRegistryAccess());
+        return snapshot.saveWithFullMetadata(getRegistryAccess());
     }
 
-    public CompoundTag getSnapshotNBTWithoutComponents() {
-        CompoundTag nbt = this.getSnapshotNBT();
-        this.snapshot.removeComponentsFromTag(nbt);
+    public NBTTagCompound getItemNBT() {
+        // update snapshot
+        applyTo(snapshot);
+
+        // See TileEntity#saveToItem
+        NBTTagCompound nbt = snapshot.saveCustomOnly(getRegistryAccess());
+        snapshot.removeComponentsFromTag(nbt);
         return nbt;
     }
 
+    public void addEntityType(NBTTagCompound nbt) {
+        TileEntity.addEntityType(nbt, snapshot.getType());
+    }
+
     // gets the packet data of the TileEntity represented by this block state
-    public CompoundTag getUpdateNBT() {
+    public NBTTagCompound getUpdateNBT() {
         // update snapshot
         applyTo(snapshot);
 
@@ -125,19 +133,19 @@ public class CraftBlockEntityState<T extends BlockEntity> extends CraftBlockStat
 
     // copies the data of the given tile entity to this block state
     protected void load(T tileEntity) {
-        if (tileEntity != null && tileEntity != this.snapshot) {
-            this.copyData(tileEntity, this.snapshot);
+        if (tileEntity != null && tileEntity != snapshot) {
+            copyData(tileEntity, snapshot);
         }
     }
 
     // applies the TileEntity data of this block state to the given TileEntity
     protected void applyTo(T tileEntity) {
-        if (tileEntity != null && tileEntity != this.snapshot) {
-            this.copyData(this.snapshot, tileEntity);
+        if (tileEntity != null && tileEntity != snapshot) {
+            copyData(snapshot, tileEntity);
         }
     }
 
-    protected boolean isApplicable(BlockEntity tileEntity) {
+    protected boolean isApplicable(TileEntity tileEntity) {
         return tileEntity != null && this.tileEntity.getClass() == tileEntity.getClass();
     }
 
@@ -146,10 +154,10 @@ public class CraftBlockEntityState<T extends BlockEntity> extends CraftBlockStat
         boolean result = super.update(force, applyPhysics);
 
         if (result && this.isPlaced()) {
-            BlockEntity tile = this.getTileEntityFromWorld();
+            TileEntity tile = getTileEntityFromWorld();
 
-            if (this.isApplicable(tile)) {
-                this.applyTo((T) tile);
+            if (isApplicable(tile)) {
+                applyTo((T) tile);
                 tile.setChanged();
             }
         }
@@ -163,8 +171,8 @@ public class CraftBlockEntityState<T extends BlockEntity> extends CraftBlockStat
     }
 
     @Nullable
-    public Packet<ClientGamePacketListener> getUpdatePacket(@NotNull Location location) {
-        return new ClientboundBlockEntityDataPacket(CraftLocation.toBlockPosition(location), snapshot.getType(), getUpdateNBT());
+    public Packet<PacketListenerPlayOut> getUpdatePacket(@NotNull Location location) {
+        return new PacketPlayOutTileEntityData(CraftLocation.toBlockPos(location), snapshot.getType(), getUpdateNBT());
     }
 
     @Override

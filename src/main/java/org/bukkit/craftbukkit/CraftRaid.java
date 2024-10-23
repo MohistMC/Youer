@@ -8,7 +8,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
+import net.minecraft.world.entity.raid.EntityRaider;
+import net.minecraft.world.level.World;
 import org.bukkit.Location;
 import org.bukkit.Raid;
 import org.bukkit.Raid.RaidStatus;
@@ -25,40 +26,40 @@ public final class CraftRaid implements Raid {
 
     @Override
     public boolean isStarted() {
-        return this.handle.isStarted();
+        return handle.isStarted();
     }
 
     @Override
     public long getActiveTicks() {
-        return this.handle.ticksActive;
+        return handle.ticksActive;
     }
 
     @Override
     public int getBadOmenLevel() {
-        return this.handle.raidOmenLevel;
+        return handle.raidOmenLevel;
     }
 
     @Override
     public void setBadOmenLevel(int badOmenLevel) {
-        int max = this.handle.getMaxRaidOmenLevel();
+        int max = handle.getMaxRaidOmenLevel();
         Preconditions.checkArgument(0 <= badOmenLevel && badOmenLevel <= max, "Bad Omen level must be between 0 and %s", max);
-        this.handle.raidOmenLevel = badOmenLevel;
+        handle.raidOmenLevel = badOmenLevel;
     }
 
     @Override
     public Location getLocation() {
-        BlockPos pos = this.handle.getCenter();
-        Level world = this.handle.getLevel();
+        BlockPos pos = handle.getCenter();
+        World world = handle.getLevel();
         return CraftLocation.toBukkit(pos, world.getWorld());
     }
 
     @Override
     public RaidStatus getStatus() {
-        if (this.handle.isStopped()) {
+        if (handle.isStopped()) {
             return RaidStatus.STOPPED;
-        } else if (this.handle.isVictory()) {
+        } else if (handle.isVictory()) {
             return RaidStatus.VICTORY;
-        } else if (this.handle.isLoss()) {
+        } else if (handle.isLoss()) {
             return RaidStatus.LOSS;
         } else {
             return RaidStatus.ONGOING;
@@ -67,40 +68,40 @@ public final class CraftRaid implements Raid {
 
     @Override
     public int getSpawnedGroups() {
-        return this.handle.getGroupsSpawned();
+        return handle.getGroupsSpawned();
     }
 
     @Override
     public int getTotalGroups() {
-        return this.handle.numGroups + (this.handle.raidOmenLevel > 1 ? 1 : 0);
+        return handle.numGroups + (handle.raidOmenLevel > 1 ? 1 : 0);
     }
 
     @Override
     public int getTotalWaves() {
-        return this.handle.numGroups;
+        return handle.numGroups;
     }
 
     @Override
     public float getTotalHealth() {
-        return this.handle.getHealthOfLivingRaiders();
+        return handle.getHealthOfLivingRaiders();
     }
 
     @Override
     public Set<UUID> getHeroes() {
-        return Collections.unmodifiableSet(this.handle.heroesOfTheVillage);
+        return Collections.unmodifiableSet(handle.heroesOfTheVillage);
     }
 
     @Override
     public List<Raider> getRaiders() {
-        return this.handle.getRaiders().stream().map(new Function<net.minecraft.world.entity.raid.Raider, Raider>() {
+        return handle.getRaiders().stream().map(new Function<EntityRaider, Raider>() {
             @Override
-            public Raider apply(net.minecraft.world.entity.raid.Raider entityRaider) {
+            public Raider apply(EntityRaider entityRaider) {
                 return (Raider) entityRaider.getBukkitEntity();
             }
         }).collect(ImmutableList.toImmutableList());
     }
 
     public net.minecraft.world.entity.raid.Raid getHandle() {
-        return this.handle;
+        return handle;
     }
 }

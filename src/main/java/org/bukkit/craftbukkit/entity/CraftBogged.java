@@ -12,7 +12,7 @@ public class CraftBogged extends CraftAbstractSkeleton implements Bogged {
 
     @Override
     public net.minecraft.world.entity.monster.Bogged getHandle() {
-        return (net.minecraft.world.entity.monster.Bogged) this.entity;
+        return (net.minecraft.world.entity.monster.Bogged) entity;
     }
 
     @Override
@@ -27,11 +27,11 @@ public class CraftBogged extends CraftAbstractSkeleton implements Bogged {
 
     @Override
     public boolean isSheared() {
-        return this.getHandle().isSheared();
+        return getHandle().isSheared();
     }
 
     @Override
     public void setSheared(boolean flag) {
-        this.getHandle().setSheared(flag);
+        getHandle().setSheared(flag);
     }
 }

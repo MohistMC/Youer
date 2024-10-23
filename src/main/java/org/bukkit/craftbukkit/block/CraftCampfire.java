@@ -1,15 +1,15 @@
 package org.bukkit.craftbukkit.block;
 
-import net.minecraft.world.level.block.entity.CampfireBlockEntity;
+import net.minecraft.world.level.block.entity.TileEntityCampfire;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Campfire;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 
-public class CraftCampfire extends CraftBlockEntityState<CampfireBlockEntity> implements Campfire {
+public class CraftCampfire extends CraftBlockEntityState<TileEntityCampfire> implements Campfire {
 
-    public CraftCampfire(World world, CampfireBlockEntity tileEntity) {
+    public CraftCampfire(World world, TileEntityCampfire tileEntity) {
         super(world, tileEntity);
     }
 
@@ -19,38 +19,38 @@ public class CraftCampfire extends CraftBlockEntityState<CampfireBlockEntity> im
 
     @Override
     public int getSize() {
-        return this.getSnapshot().getItems().size();
+        return getSnapshot().getItems().size();
     }
 
     @Override
     public ItemStack getItem(int index) {
-        net.minecraft.world.item.ItemStack item = this.getSnapshot().getItems().get(index);
+        net.minecraft.world.item.ItemStack item = getSnapshot().getItems().get(index);
         return item.isEmpty() ? null : CraftItemStack.asCraftMirror(item);
     }
 
     @Override
     public void setItem(int index, ItemStack item) {
-        this.getSnapshot().getItems().set(index, CraftItemStack.asNMSCopy(item));
+        getSnapshot().getItems().set(index, CraftItemStack.asNMSCopy(item));
     }
 
     @Override
     public int getCookTime(int index) {
-        return this.getSnapshot().cookingProgress[index];
+        return getSnapshot().cookingProgress[index];
     }
 
     @Override
     public void setCookTime(int index, int cookTime) {
-        this.getSnapshot().cookingProgress[index] = cookTime;
+        getSnapshot().cookingProgress[index] = cookTime;
     }
 
     @Override
     public int getCookTimeTotal(int index) {
-        return this.getSnapshot().cookingTime[index];
+        return getSnapshot().cookingTime[index];
     }
 
     @Override
     public void setCookTimeTotal(int index, int cookTimeTotal) {
-        this.getSnapshot().cookingTime[index] = cookTimeTotal;
+        getSnapshot().cookingTime[index] = cookTimeTotal;
     }
 
     @Override

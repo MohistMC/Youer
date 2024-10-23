@@ -21,7 +21,7 @@ public class HelpTopicAmendment {
      * @return the full text
      */
     public String getFullText() {
-        return this.fullText;
+        return fullText;
     }
 
     /**
@@ -29,7 +29,7 @@ public class HelpTopicAmendment {
      * @return the short text
      */
     public String getShortText() {
-        return this.shortText;
+        return shortText;
     }
 
     /**
@@ -37,7 +37,7 @@ public class HelpTopicAmendment {
      * @return the topic name
      */
     public String getTopicName() {
-        return this.topicName;
+        return topicName;
     }
 
     /**
@@ -45,6 +45,6 @@ public class HelpTopicAmendment {
      * @return the permission
      */
     public String getPermission() {
-        return this.permission;
+        return permission;
     }
 }

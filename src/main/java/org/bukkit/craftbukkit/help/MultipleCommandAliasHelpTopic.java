@@ -17,7 +17,7 @@ public class MultipleCommandAliasHelpTopic extends HelpTopic {
     public MultipleCommandAliasHelpTopic(MultipleCommandAlias alias) {
         this.alias = alias;
 
-        this.name = "/" + alias.getLabel();
+        name = "/" + alias.getLabel();
 
         // Build short text
         StringBuilder sb = new StringBuilder();
@@ -28,20 +28,20 @@ public class MultipleCommandAliasHelpTopic extends HelpTopic {
             sb.append("/");
             sb.append(alias.getCommands()[i].getLabel());
         }
-        this.shortText = sb.toString();
+        shortText = sb.toString();
 
         // Build full text
-        this.fullText = ChatColor.GOLD + "Alias for: " + ChatColor.WHITE + this.getShortText();
+        fullText = ChatColor.GOLD + "Alias for: " + ChatColor.WHITE + getShortText();
     }
 
     @Override
     public boolean canSee(CommandSender sender) {
-        if (this.amendedPermission == null) {
+        if (amendedPermission == null) {
             if (sender instanceof ConsoleCommandSender) {
                 return true;
             }
 
-            for (Command command : this.alias.getCommands()) {
+            for (Command command : alias.getCommands()) {
                 if (!command.testPermissionSilent(sender)) {
                     return false;
                 }
@@ -49,7 +49,7 @@ public class MultipleCommandAliasHelpTopic extends HelpTopic {
 
             return true;
         } else {
-            return sender.hasPermission(this.amendedPermission);
+            return sender.hasPermission(amendedPermission);
         }
     }
 }

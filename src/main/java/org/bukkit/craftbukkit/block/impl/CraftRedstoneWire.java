@@ -9,28 +9,28 @@ public final class CraftRedstoneWire extends org.bukkit.craftbukkit.block.data.C
         super();
     }
 
-    public CraftRedstoneWire(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftRedstoneWire(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftRedstoneWire
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> NORTH = getEnum(net.minecraft.world.level.block.RedStoneWireBlock.class, "north");
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> EAST = getEnum(net.minecraft.world.level.block.RedStoneWireBlock.class, "east");
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> SOUTH = getEnum(net.minecraft.world.level.block.RedStoneWireBlock.class, "south");
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> WEST = getEnum(net.minecraft.world.level.block.RedStoneWireBlock.class, "west");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> NORTH = getEnum(net.minecraft.world.level.block.BlockRedstoneWire.class, "north");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> EAST = getEnum(net.minecraft.world.level.block.BlockRedstoneWire.class, "east");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> SOUTH = getEnum(net.minecraft.world.level.block.BlockRedstoneWire.class, "south");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> WEST = getEnum(net.minecraft.world.level.block.BlockRedstoneWire.class, "west");
 
     @Override
     public org.bukkit.block.data.type.RedstoneWire.Connection getFace(org.bukkit.block.BlockFace face) {
         switch (face) {
             case NORTH:
-                return this.get(CraftRedstoneWire.NORTH, org.bukkit.block.data.type.RedstoneWire.Connection.class);
+                return get(NORTH, org.bukkit.block.data.type.RedstoneWire.Connection.class);
             case EAST:
-                return this.get(CraftRedstoneWire.EAST, org.bukkit.block.data.type.RedstoneWire.Connection.class);
+                return get(EAST, org.bukkit.block.data.type.RedstoneWire.Connection.class);
             case SOUTH:
-                return this.get(CraftRedstoneWire.SOUTH, org.bukkit.block.data.type.RedstoneWire.Connection.class);
+                return get(SOUTH, org.bukkit.block.data.type.RedstoneWire.Connection.class);
             case WEST:
-                return this.get(CraftRedstoneWire.WEST, org.bukkit.block.data.type.RedstoneWire.Connection.class);
+                return get(WEST, org.bukkit.block.data.type.RedstoneWire.Connection.class);
             default:
                 throw new IllegalArgumentException("Cannot have face " + face);
         }
@@ -40,16 +40,16 @@ public final class CraftRedstoneWire extends org.bukkit.craftbukkit.block.data.C
     public void setFace(org.bukkit.block.BlockFace face, org.bukkit.block.data.type.RedstoneWire.Connection connection) {
         switch (face) {
             case NORTH:
-                this.set(CraftRedstoneWire.NORTH, connection);
+                set(NORTH, connection);
                 break;
             case EAST:
-                this.set(CraftRedstoneWire.EAST, connection);
+                set(EAST, connection);
                 break;
             case SOUTH:
-                this.set(CraftRedstoneWire.SOUTH, connection);
+                set(SOUTH, connection);
                 break;
             case WEST:
-                this.set(CraftRedstoneWire.WEST, connection);
+                set(WEST, connection);
                 break;
             default:
                 throw new IllegalArgumentException("Cannot have face " + face);
@@ -63,20 +63,20 @@ public final class CraftRedstoneWire extends org.bukkit.craftbukkit.block.data.C
 
     // org.bukkit.craftbukkit.block.data.CraftAnaloguePowerable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty POWER = getInteger(net.minecraft.world.level.block.RedStoneWireBlock.class, "power");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger POWER = getInteger(net.minecraft.world.level.block.BlockRedstoneWire.class, "power");
 
     @Override
     public int getPower() {
-        return this.get(CraftRedstoneWire.POWER);
+        return get(POWER);
     }
 
     @Override
     public void setPower(int power) {
-        this.set(CraftRedstoneWire.POWER, power);
+        set(POWER, power);
     }
 
     @Override
     public int getMaximumPower() {
-        return getMax(CraftRedstoneWire.POWER);
+        return getMax(POWER);
     }
 }

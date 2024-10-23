@@ -1,7 +1,7 @@
 --- a/net/minecraft/world/entity/decoration/EntityPainting.java
 +++ b/net/minecraft/world/entity/decoration/EntityPainting.java
 @@ -72,7 +72,7 @@
-     public static Optional<EntityPainting> create(World world, BlockPosition blockposition, EnumDirection enumdirection) {
+     public static Optional<EntityPainting> create(World world, BlockPos blockposition, EnumDirection enumdirection) {
          EntityPainting entitypainting = new EntityPainting(world, blockposition);
          List<Holder<PaintingVariant>> list = new ArrayList();
 -        Iterable iterable = world.registryAccess().lookupOrThrow(Registries.PAINTING_VARIANT).getTagOrEmpty(PaintingVariantTags.PLACEABLE);
@@ -12,13 +12,13 @@
 @@ -138,22 +138,32 @@
  
      @Override
-     protected AxisAlignedBB calculateBoundingBox(BlockPosition blockposition, EnumDirection enumdirection) {
+     protected AxisAlignedBB calculateBoundingBox(BlockPos blockposition, EnumDirection enumdirection) {
 +        // CraftBukkit start
 +        PaintingVariant paintingvariant = (PaintingVariant) this.getVariant().value();
 +        return calculateBoundingBoxStatic(blockposition, enumdirection, paintingvariant.width(), paintingvariant.height());
 +    }
 +
-+    public static AxisAlignedBB calculateBoundingBoxStatic(BlockPosition blockposition, EnumDirection enumdirection, int width, int height) {
++    public static AxisAlignedBB calculateBoundingBoxStatic(BlockPos blockposition, EnumDirection enumdirection, int width, int height) {
 +        // CraftBukkit end
          float f = 0.46875F;
          Vec3D vec3d = Vec3D.atCenterOf(blockposition).relative(enumdirection, -0.46875D);

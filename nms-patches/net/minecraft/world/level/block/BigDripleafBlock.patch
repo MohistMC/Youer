@@ -22,7 +22,7 @@
  
      @Override
 @@ -178,7 +183,20 @@
-     protected void entityInside(IBlockData iblockdata, World world, BlockPosition blockposition, Entity entity) {
+     protected void entityInside(IBlockData iblockdata, World world, BlockPos blockposition, Entity entity) {
          if (!world.isClientSide) {
              if (iblockdata.getValue(BigDripleafBlock.TILT) == Tilt.NONE && canEntityTilt(blockposition, entity) && !world.hasNeighborSignal(blockposition)) {
 -                this.setTiltAndScheduleTick(iblockdata, world, blockposition, Tilt.UNSTABLE, (SoundEffect) null);
@@ -59,10 +59,10 @@
          return entity.onGround() && entity.position().y > (double) ((float) blockposition.getY() + 0.6875F);
      }
  
--    private void setTiltAndScheduleTick(IBlockData iblockdata, World world, BlockPosition blockposition, Tilt tilt, @Nullable SoundEffect soundeffect) {
+-    private void setTiltAndScheduleTick(IBlockData iblockdata, World world, BlockPos blockposition, Tilt tilt, @Nullable SoundEffect soundeffect) {
 -        setTilt(iblockdata, world, blockposition, tilt);
 +    // CraftBukkit start
-+    private void setTiltAndScheduleTick(IBlockData iblockdata, World world, BlockPosition blockposition, Tilt tilt, @Nullable SoundEffect soundeffect, @Nullable Entity entity) {
++    private void setTiltAndScheduleTick(IBlockData iblockdata, World world, BlockPos blockposition, Tilt tilt, @Nullable SoundEffect soundeffect, @Nullable Entity entity) {
 +        if (!setTilt(iblockdata, world, blockposition, tilt, entity)) return;
 +        // CraftBukkit end
          if (soundeffect != null) {
@@ -71,7 +71,7 @@
 @@ -235,14 +255,21 @@
      }
  
-     private static void resetTilt(IBlockData iblockdata, World world, BlockPosition blockposition) {
+     private static void resetTilt(IBlockData iblockdata, World world, BlockPos blockposition) {
 -        setTilt(iblockdata, world, blockposition, Tilt.NONE);
 +        setTilt(iblockdata, world, blockposition, Tilt.NONE, null); // CraftBukkit
          if (iblockdata.getValue(BigDripleafBlock.TILT) != Tilt.NONE) {
@@ -80,9 +80,9 @@
  
      }
  
--    private static void setTilt(IBlockData iblockdata, World world, BlockPosition blockposition, Tilt tilt) {
+-    private static void setTilt(IBlockData iblockdata, World world, BlockPos blockposition, Tilt tilt) {
 +    // CraftBukkit start
-+    private static boolean setTilt(IBlockData iblockdata, World world, BlockPosition blockposition, Tilt tilt, @Nullable Entity entity) {
++    private static boolean setTilt(IBlockData iblockdata, World world, BlockPos blockposition, Tilt tilt, @Nullable Entity entity) {
 +        if (entity != null) {
 +            if (!CraftEventFactory.callEntityChangeBlockEvent(entity, blockposition, iblockdata.setValue(BigDripleafBlock.TILT, tilt))) {
 +                return false;

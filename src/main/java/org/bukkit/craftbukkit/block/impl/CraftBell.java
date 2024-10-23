@@ -9,54 +9,54 @@ public final class CraftBell extends org.bukkit.craftbukkit.block.data.CraftBloc
         super();
     }
 
-    public CraftBell(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftBell(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.type.CraftBell
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> ATTACHMENT = getEnum(net.minecraft.world.level.block.BellBlock.class, "attachment");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> ATTACHMENT = getEnum(net.minecraft.world.level.block.BlockBell.class, "attachment");
 
     @Override
     public org.bukkit.block.data.type.Bell.Attachment getAttachment() {
-        return this.get(CraftBell.ATTACHMENT, org.bukkit.block.data.type.Bell.Attachment.class);
+        return get(ATTACHMENT, org.bukkit.block.data.type.Bell.Attachment.class);
     }
 
     @Override
     public void setAttachment(org.bukkit.block.data.type.Bell.Attachment leaves) {
-        this.set(CraftBell.ATTACHMENT, leaves);
+        set(ATTACHMENT, leaves);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftDirectional
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> FACING = getEnum(net.minecraft.world.level.block.BellBlock.class, "facing");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> FACING = getEnum(net.minecraft.world.level.block.BlockBell.class, "facing");
 
     @Override
     public org.bukkit.block.BlockFace getFacing() {
-        return this.get(CraftBell.FACING, org.bukkit.block.BlockFace.class);
+        return get(FACING, org.bukkit.block.BlockFace.class);
     }
 
     @Override
     public void setFacing(org.bukkit.block.BlockFace facing) {
-        this.set(CraftBell.FACING, facing);
+        set(FACING, facing);
     }
 
     @Override
     public java.util.Set<org.bukkit.block.BlockFace> getFaces() {
-        return this.getValues(CraftBell.FACING, org.bukkit.block.BlockFace.class);
+        return getValues(FACING, org.bukkit.block.BlockFace.class);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftPowerable
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty POWERED = getBoolean(net.minecraft.world.level.block.BellBlock.class, "powered");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean POWERED = getBoolean(net.minecraft.world.level.block.BlockBell.class, "powered");
 
     @Override
     public boolean isPowered() {
-        return this.get(CraftBell.POWERED);
+        return get(POWERED);
     }
 
     @Override
     public void setPowered(boolean powered) {
-        this.set(CraftBell.POWERED, powered);
+        set(POWERED, powered);
     }
 }

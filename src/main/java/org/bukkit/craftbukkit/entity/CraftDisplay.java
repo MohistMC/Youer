@@ -24,7 +24,7 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public Transformation getTransformation() {
-        com.mojang.math.Transformation nms = net.minecraft.world.entity.Display.createTransformation(this.getHandle().getEntityData());
+        com.mojang.math.Transformation nms = net.minecraft.world.entity.Display.createTransformation(getHandle().getEntityData());
 
         return new Transformation(nms.getTranslation(), nms.getLeftRotation(), nms.getScale(), nms.getRightRotation());
     }
@@ -33,24 +33,24 @@ public class CraftDisplay extends CraftEntity implements Display {
     public void setTransformation(Transformation transformation) {
         Preconditions.checkArgument(transformation != null, "Transformation cannot be null");
 
-        this.getHandle().setTransformation(new com.mojang.math.Transformation(transformation.getTranslation(), transformation.getLeftRotation(), transformation.getScale(), transformation.getRightRotation()));
+        getHandle().setTransformation(new com.mojang.math.Transformation(transformation.getTranslation(), transformation.getLeftRotation(), transformation.getScale(), transformation.getRightRotation()));
     }
 
     @Override
     public void setTransformationMatrix(org.joml.Matrix4f transformationMatrix) {
         Preconditions.checkArgument(transformationMatrix != null, "Transformation matrix cannot be null");
 
-        this.getHandle().setTransformation(new com.mojang.math.Transformation(transformationMatrix));
+        getHandle().setTransformation(new com.mojang.math.Transformation(transformationMatrix));
     }
 
     @Override
     public int getInterpolationDuration() {
-        return this.getHandle().getTransformationInterpolationDuration();
+        return getHandle().getTransformationInterpolationDuration();
     }
 
     @Override
     public void setInterpolationDuration(int duration) {
-        this.getHandle().setTransformationInterpolationDuration(duration);
+        getHandle().setTransformationInterpolationDuration(duration);
     }
 
     @Override
@@ -66,79 +66,79 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public float getViewRange() {
-        return this.getHandle().getViewRange();
+        return getHandle().getViewRange();
     }
 
     @Override
     public void setViewRange(float range) {
-        this.getHandle().setViewRange(range);
+        getHandle().setViewRange(range);
     }
 
     @Override
     public float getShadowRadius() {
-        return this.getHandle().getShadowRadius();
+        return getHandle().getShadowRadius();
     }
 
     @Override
     public void setShadowRadius(float radius) {
-        this.getHandle().setShadowRadius(radius);
+        getHandle().setShadowRadius(radius);
     }
 
     @Override
     public float getShadowStrength() {
-        return this.getHandle().getShadowStrength();
+        return getHandle().getShadowStrength();
     }
 
     @Override
     public void setShadowStrength(float strength) {
-        this.getHandle().setShadowStrength(strength);
+        getHandle().setShadowStrength(strength);
     }
 
     @Override
     public float getDisplayWidth() {
-        return this.getHandle().getWidth();
+        return getHandle().getWidth();
     }
 
     @Override
     public void setDisplayWidth(float width) {
-        this.getHandle().setWidth(width);
+        getHandle().setWidth(width);
     }
 
     @Override
     public float getDisplayHeight() {
-        return this.getHandle().getHeight();
+        return getHandle().getHeight();
     }
 
     @Override
     public void setDisplayHeight(float height) {
-        this.getHandle().setHeight(height);
+        getHandle().setHeight(height);
     }
 
     @Override
     public int getInterpolationDelay() {
-        return this.getHandle().getTransformationInterpolationDelay();
+        return getHandle().getTransformationInterpolationDelay();
     }
 
     @Override
     public void setInterpolationDelay(int ticks) {
-        this.getHandle().setTransformationInterpolationDelay(ticks);
+        getHandle().setTransformationInterpolationDelay(ticks);
     }
 
     @Override
     public Billboard getBillboard() {
-        return Billboard.valueOf(this.getHandle().getBillboardConstraints().name());
+        return Billboard.valueOf(getHandle().getBillboardConstraints().name());
     }
 
     @Override
     public void setBillboard(Billboard billboard) {
         Preconditions.checkArgument(billboard != null, "Billboard cannot be null");
 
-        this.getHandle().setBillboardConstraints(net.minecraft.world.entity.Display.BillboardConstraints.valueOf(billboard.name()));
+        getHandle().setBillboardConstraints(net.minecraft.world.entity.Display.BillboardConstraints.valueOf(billboard.name()));
     }
 
     @Override
     public Color getGlowColorOverride() {
-        int color = this.getHandle().getGlowColorOverride();
+        int color = getHandle().getGlowColorOverride();
 
         return (color == -1) ? null : Color.fromARGB(color);
     }
@@ -146,15 +146,15 @@ public class CraftDisplay extends CraftEntity implements Display {
     @Override
     public void setGlowColorOverride(Color color) {
         if (color == null) {
-            this.getHandle().setGlowColorOverride(-1);
+            getHandle().setGlowColorOverride(-1);
         } else {
-            this.getHandle().setGlowColorOverride(color.asARGB());
+            getHandle().setGlowColorOverride(color.asARGB());
         }
     }
 
     @Override
     public Brightness getBrightness() {
-        net.minecraft.util.Brightness nms = this.getHandle().getBrightnessOverride();
+        net.minecraft.util.Brightness nms = getHandle().getBrightnessOverride();
 
         return (nms != null) ? new Brightness(nms.block(), nms.sky()) : null;
     }
@@ -162,9 +162,9 @@ public class CraftDisplay extends CraftEntity implements Display {
     @Override
     public void setBrightness(Brightness brightness) {
         if (brightness != null) {
-            this.getHandle().setBrightnessOverride(new net.minecraft.util.Brightness(brightness.getBlockLight(), brightness.getSkyLight()));
+            getHandle().setBrightnessOverride(new net.minecraft.util.Brightness(brightness.getBlockLight(), brightness.getSkyLight()));
         } else {
-            this.getHandle().setBrightnessOverride(null);
+            getHandle().setBrightnessOverride(null);
         }
     }
 }

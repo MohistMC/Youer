@@ -4,15 +4,15 @@ import org.bukkit.block.data.Snowable;
 
 public abstract class CraftSnowable extends CraftBlockData implements Snowable {
 
-    private static final net.minecraft.world.level.block.state.properties.BooleanProperty SNOWY = getBoolean("snowy");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateBoolean SNOWY = getBoolean("snowy");
 
     @Override
     public boolean isSnowy() {
-        return this.get(CraftSnowable.SNOWY);
+        return get(SNOWY);
     }
 
     @Override
     public void setSnowy(boolean snowy) {
-        this.set(CraftSnowable.SNOWY, snowy);
+        set(SNOWY, snowy);
     }
 }

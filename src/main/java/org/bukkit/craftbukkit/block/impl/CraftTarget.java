@@ -9,26 +9,26 @@ public final class CraftTarget extends org.bukkit.craftbukkit.block.data.CraftBl
         super();
     }
 
-    public CraftTarget(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftTarget(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftAnaloguePowerable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty POWER = getInteger(net.minecraft.world.level.block.TargetBlock.class, "power");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger POWER = getInteger(net.minecraft.world.level.block.BlockTarget.class, "power");
 
     @Override
     public int getPower() {
-        return this.get(CraftTarget.POWER);
+        return get(POWER);
     }
 
     @Override
     public void setPower(int power) {
-        this.set(CraftTarget.POWER, power);
+        set(POWER, power);
     }
 
     @Override
     public int getMaximumPower() {
-        return getMax(CraftTarget.POWER);
+        return getMax(POWER);
     }
 }

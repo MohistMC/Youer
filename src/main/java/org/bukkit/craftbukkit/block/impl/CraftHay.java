@@ -9,26 +9,26 @@ public final class CraftHay extends org.bukkit.craftbukkit.block.data.CraftBlock
         super();
     }
 
-    public CraftHay(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftHay(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftOrientable
 
-    private static final net.minecraft.world.level.block.state.properties.EnumProperty<?> AXIS = getEnum(net.minecraft.world.level.block.HayBlock.class, "axis");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateEnum<?> AXIS = getEnum(net.minecraft.world.level.block.BlockHay.class, "axis");
 
     @Override
     public org.bukkit.Axis getAxis() {
-        return this.get(CraftHay.AXIS, org.bukkit.Axis.class);
+        return get(AXIS, org.bukkit.Axis.class);
     }
 
     @Override
     public void setAxis(org.bukkit.Axis axis) {
-        this.set(CraftHay.AXIS, axis);
+        set(AXIS, axis);
     }
 
     @Override
     public java.util.Set<org.bukkit.Axis> getAxes() {
-        return this.getValues(CraftHay.AXIS, org.bukkit.Axis.class);
+        return getValues(AXIS, org.bukkit.Axis.class);
     }
 }

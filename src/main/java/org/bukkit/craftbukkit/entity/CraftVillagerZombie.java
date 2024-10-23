@@ -2,6 +2,7 @@ package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.monster.EntityZombieVillager;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.craftbukkit.CraftServer;
@@ -10,13 +11,13 @@ import org.bukkit.entity.ZombieVillager;
 
 public class CraftVillagerZombie extends CraftZombie implements ZombieVillager {
 
-    public CraftVillagerZombie(CraftServer server, net.minecraft.world.entity.monster.ZombieVillager entity) {
+    public CraftVillagerZombie(CraftServer server, EntityZombieVillager entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.monster.ZombieVillager getHandle() {
-        return (net.minecraft.world.entity.monster.ZombieVillager) super.getHandle();
+    public EntityZombieVillager getHandle() {
+        return (EntityZombieVillager) super.getHandle();
     }
 
     @Override
@@ -26,58 +27,58 @@ public class CraftVillagerZombie extends CraftZombie implements ZombieVillager {
 
     @Override
     public Villager.Profession getVillagerProfession() {
-        return CraftVillager.CraftProfession.minecraftToBukkit(this.getHandle().getVillagerData().getProfession());
+        return CraftVillager.CraftProfession.minecraftToBukkit(getHandle().getVillagerData().getProfession());
     }
 
     @Override
     public void setVillagerProfession(Villager.Profession profession) {
         Preconditions.checkArgument(profession != null, "Villager.Profession cannot be null");
-        this.getHandle().setVillagerData(this.getHandle().getVillagerData().setProfession(CraftVillager.CraftProfession.bukkitToMinecraft(profession)));
+        getHandle().setVillagerData(getHandle().getVillagerData().setProfession(CraftVillager.CraftProfession.bukkitToMinecraft(profession)));
     }
 
     @Override
     public Villager.Type getVillagerType() {
-        return CraftVillager.CraftType.minecraftToBukkit(this.getHandle().getVillagerData().getType());
+        return CraftVillager.CraftType.minecraftToBukkit(getHandle().getVillagerData().getType());
     }
 
     @Override
     public void setVillagerType(Villager.Type type) {
         Preconditions.checkArgument(type != null, "Villager.Type cannot be null");
-        this.getHandle().setVillagerData(this.getHandle().getVillagerData().setType(CraftVillager.CraftType.bukkitToMinecraft(type)));
+        getHandle().setVillagerData(getHandle().getVillagerData().setType(CraftVillager.CraftType.bukkitToMinecraft(type)));
     }
 
     @Override
     public boolean isConverting() {
-        return this.getHandle().isConverting();
+        return getHandle().isConverting();
     }
 
     @Override
     public int getConversionTime() {
-        Preconditions.checkState(this.isConverting(), "Entity not converting");
+        Preconditions.checkState(isConverting(), "Entity not converting");
 
-        return this.getHandle().villagerConversionTime;
+        return getHandle().villagerConversionTime;
     }
 
     @Override
     public void setConversionTime(int time) {
         if (time < 0) {
-            this.getHandle().villagerConversionTime = -1;
-            this.getHandle().getEntityData().set(net.minecraft.world.entity.monster.ZombieVillager.DATA_CONVERTING_ID, false);
-            this.getHandle().conversionStarter = null;
-            this.getHandle().removeEffect(MobEffects.DAMAGE_BOOST, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
+            getHandle().villagerConversionTime = -1;
+            getHandle().getEntityData().set(EntityZombieVillager.DATA_CONVERTING_ID, false);
+            getHandle().conversionStarter = null;
+            getHandle().removeEffect(MobEffects.DAMAGE_BOOST, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
         } else {
-            this.getHandle().startConverting(null, time);
+            getHandle().startConverting(null, time);
         }
     }
 
     @Override
     public OfflinePlayer getConversionPlayer() {
-        return (this.getHandle().conversionStarter == null) ? null : Bukkit.getOfflinePlayer(this.getHandle().conversionStarter);
+        return (getHandle().conversionStarter == null) ? null : Bukkit.getOfflinePlayer(getHandle().conversionStarter);
     }
 
     @Override
     public void setConversionPlayer(OfflinePlayer conversionPlayer) {
         if (!this.isConverting()) return;
-        this.getHandle().conversionStarter = (conversionPlayer == null) ? null : conversionPlayer.getUniqueId();
+        getHandle().conversionStarter = (conversionPlayer == null) ? null : conversionPlayer.getUniqueId();
     }
 }

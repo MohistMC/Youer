@@ -4,10 +4,10 @@ import com.google.common.base.Preconditions;
 import java.lang.ref.WeakReference;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.block.ITileEntity;
+import net.minecraft.world.level.block.entity.TileEntity;
+import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.level.chunk.IChunkAccess;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -25,20 +25,20 @@ import org.bukkit.material.MaterialData;
 public final class CraftChunkData implements ChunkGenerator.ChunkData {
     private final int maxHeight;
     private final int minHeight;
-    private final WeakReference<ChunkAccess> weakChunk;
+    private final WeakReference<IChunkAccess> weakChunk;
 
-    public CraftChunkData(World world, ChunkAccess chunkAccess) {
+    public CraftChunkData(World world, IChunkAccess chunkAccess) {
         this(world.getMaxHeight(), world.getMinHeight(), chunkAccess);
     }
 
-    CraftChunkData(int maxHeight, int minHeight, ChunkAccess chunkAccess) {
+    CraftChunkData(int maxHeight, int minHeight, IChunkAccess chunkAccess) {
         this.maxHeight = maxHeight;
         this.minHeight = minHeight;
         this.weakChunk = new WeakReference<>(chunkAccess);
     }
 
-    public ChunkAccess getHandle() {
-        ChunkAccess access = this.weakChunk.get();
+    public IChunkAccess getHandle() {
+        IChunkAccess access = weakChunk.get();
 
         Preconditions.checkState(access != null, "IChunkAccess no longer present, are you using it in a different tick?");
 
@@ -46,79 +46,79 @@ public final class CraftChunkData implements ChunkGenerator.ChunkData {
     }
 
     public void breakLink() {
-        this.weakChunk.clear();
+        weakChunk.clear();
     }
 
     @Override
     public int getMaxHeight() {
-        return this.maxHeight;
+        return maxHeight;
     }
 
     @Override
     public int getMinHeight() {
-        return this.minHeight;
+        return minHeight;
     }
 
     @Override
     public Biome getBiome(int x, int y, int z) {
-        return CraftBiome.minecraftHolderToBukkit(this.getHandle().getNoiseBiome(x >> 2, y >> 2, z >> 2));
+        return CraftBiome.minecraftHolderToBukkit(getHandle().getNoiseBiome(x >> 2, y >> 2, z >> 2));
     }
 
     @Override
     public void setBlock(int x, int y, int z, Material material) {
-        this.setBlock(x, y, z, material.createBlockData());
+        setBlock(x, y, z, material.createBlockData());
     }
 
     @Override
     public void setBlock(int x, int y, int z, MaterialData material) {
-        this.setBlock(x, y, z, CraftMagicNumbers.getBlock(material));
+        setBlock(x, y, z, CraftMagicNumbers.getBlock(material));
     }
 
     @Override
     public void setBlock(int x, int y, int z, BlockData blockData) {
-        this.setBlock(x, y, z, ((CraftBlockData) blockData).getState());
+        setBlock(x, y, z, ((CraftBlockData) blockData).getState());
     }
 
     @Override
     public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, Material material) {
-        this.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, material.createBlockData());
+        setRegion(xMin, yMin, zMin, xMax, yMax, zMax, material.createBlockData());
     }
 
     @Override
     public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, MaterialData material) {
-        this.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, CraftMagicNumbers.getBlock(material));
+        setRegion(xMin, yMin, zMin, xMax, yMax, zMax, CraftMagicNumbers.getBlock(material));
     }
 
     @Override
     public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, BlockData blockData) {
-        this.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, ((CraftBlockData) blockData).getState());
+        setRegion(xMin, yMin, zMin, xMax, yMax, zMax, ((CraftBlockData) blockData).getState());
     }
 
     @Override
     public Material getType(int x, int y, int z) {
-        return CraftBlockType.minecraftToBukkit(this.getTypeId(x, y, z).getBlock());
+        return CraftBlockType.minecraftToBukkit(getTypeId(x, y, z).getBlock());
     }
 
     @Override
     public MaterialData getTypeAndData(int x, int y, int z) {
-        return CraftMagicNumbers.getMaterial(this.getTypeId(x, y, z));
+        return CraftMagicNumbers.getMaterial(getTypeId(x, y, z));
     }
 
     @Override
     public BlockData getBlockData(int x, int y, int z) {
-        return CraftBlockData.fromData(this.getTypeId(x, y, z));
+        return CraftBlockData.fromData(getTypeId(x, y, z));
     }
 
-    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, BlockState type) {
+    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, IBlockData type) {
         // Clamp to sane values.
-        if (xMin > 0xf || yMin >= this.maxHeight || zMin > 0xf) {
+        if (xMin > 0xf || yMin >= maxHeight || zMin > 0xf) {
             return;
         }
         if (xMin < 0) {
             xMin = 0;
         }
-        if (yMin < this.minHeight) {
-            yMin = this.minHeight;
+        if (yMin < minHeight) {
+            yMin = minHeight;
         }
         if (zMin < 0) {
             zMin = 0;
@@ -126,8 +126,8 @@ public final class CraftChunkData implements ChunkGenerator.ChunkData {
         if (xMax > 0x10) {
             xMax = 0x10;
         }
-        if (yMax > this.maxHeight) {
-            yMax = this.maxHeight;
+        if (yMax > maxHeight) {
+            yMax = maxHeight;
         }
         if (zMax > 0x10) {
             zMax = 0x10;
@@ -138,37 +138,37 @@ public final class CraftChunkData implements ChunkGenerator.ChunkData {
         for (int y = yMin; y < yMax; y++) {
             for (int x = xMin; x < xMax; x++) {
                 for (int z = zMin; z < zMax; z++) {
-                    this.setBlock(x, y, z, type);
+                    setBlock(x, y, z, type);
                 }
             }
         }
     }
 
-    public BlockState getTypeId(int x, int y, int z) {
-        if (x != (x & 0xf) || y < this.minHeight || y >= this.maxHeight || z != (z & 0xf)) {
+    public IBlockData getTypeId(int x, int y, int z) {
+        if (x != (x & 0xf) || y < minHeight || y >= maxHeight || z != (z & 0xf)) {
             return Blocks.AIR.defaultBlockState();
         }
 
-        ChunkAccess access = this.getHandle();
+        IChunkAccess access = getHandle();
         return access.getBlockState(new BlockPos(access.getPos().getMinBlockX() + x, y, access.getPos().getMinBlockZ() + z));
     }
 
     @Override
     public byte getData(int x, int y, int z) {
-        return CraftMagicNumbers.toLegacyData(this.getTypeId(x, y, z));
+        return CraftMagicNumbers.toLegacyData(getTypeId(x, y, z));
     }
 
-    private void setBlock(int x, int y, int z, BlockState type) {
-        if (x != (x & 0xf) || y < this.minHeight || y >= this.maxHeight || z != (z & 0xf)) {
+    private void setBlock(int x, int y, int z, IBlockData type) {
+        if (x != (x & 0xf) || y < minHeight || y >= maxHeight || z != (z & 0xf)) {
             return;
         }
 
-        ChunkAccess access = this.getHandle();
+        IChunkAccess access = getHandle();
         BlockPos blockPosition = new BlockPos(access.getPos().getMinBlockX() + x, y, access.getPos().getMinBlockZ() + z);
-        BlockState oldBlockData = access.setBlockState(blockPosition, type, false);
+        IBlockData oldBlockData = access.setBlockState(blockPosition, type, false);
 
         if (type.hasBlockEntity()) {
-            BlockEntity tileEntity = ((EntityBlock) type.getBlock()).newBlockEntity(blockPosition, type);
+            TileEntity tileEntity = ((ITileEntity) type.getBlock()).newBlockEntity(blockPosition, type);
 
             // createTile can return null, currently only the case with material MOVING_PISTON
             if (tileEntity == null) {

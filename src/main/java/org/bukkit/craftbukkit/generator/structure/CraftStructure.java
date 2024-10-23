@@ -1,5 +1,7 @@
 package org.bukkit.craftbukkit.generator.structure;
 
+import com.google.common.base.Suppliers;
+import java.util.function.Supplier;
 import net.minecraft.core.registries.Registries;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -20,26 +22,26 @@ public class CraftStructure extends Structure implements Handleable<net.minecraf
 
     private final NamespacedKey key;
     private final net.minecraft.world.level.levelgen.structure.Structure structure;
-    private final StructureType structureType;
+    private final Supplier<StructureType> structureType;
 
     public CraftStructure(NamespacedKey key, net.minecraft.world.level.levelgen.structure.Structure structure) {
         this.key = key;
         this.structure = structure;
-        this.structureType = CraftStructureType.minecraftToBukkit(structure.type());
+        this.structureType = Suppliers.memoize(() -> CraftStructureType.minecraftToBukkit(structure.type()));
     }
 
     @Override
     public net.minecraft.world.level.levelgen.structure.Structure getHandle() {
-        return this.structure;
+        return structure;
     }
 
     @Override
     public StructureType getStructureType() {
-        return this.structureType;
+        return structureType.get();
     }
 
     @Override
     public NamespacedKey getKey() {
-        return this.key;
+        return key;
     }
 }

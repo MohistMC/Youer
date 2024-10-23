@@ -9,26 +9,26 @@ public final class CraftBeetroot extends org.bukkit.craftbukkit.block.data.Craft
         super();
     }
 
-    public CraftBeetroot(net.minecraft.world.level.block.state.BlockState state) {
+    public CraftBeetroot(net.minecraft.world.level.block.state.IBlockData state) {
         super(state);
     }
 
     // org.bukkit.craftbukkit.block.data.CraftAgeable
 
-    private static final net.minecraft.world.level.block.state.properties.IntegerProperty AGE = getInteger(net.minecraft.world.level.block.BeetrootBlock.class, "age");
+    private static final net.minecraft.world.level.block.state.properties.BlockStateInteger AGE = getInteger(net.minecraft.world.level.block.BlockBeetroot.class, "age");
 
     @Override
     public int getAge() {
-        return this.get(CraftBeetroot.AGE);
+        return get(AGE);
     }
 
     @Override
     public void setAge(int age) {
-        this.set(CraftBeetroot.AGE, age);
+        set(AGE, age);
     }
 
     @Override
     public int getMaximumAge() {
-        return getMax(CraftBeetroot.AGE);
+        return getMax(AGE);
     }
 }
