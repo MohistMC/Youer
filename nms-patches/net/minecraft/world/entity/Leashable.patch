@@ -25,14 +25,14 @@
              return new Leashable.a(Either.left(nbttagcompound.getCompound("leash").getUUID("UUID")));
          } else {
              if (nbttagcompound.contains("leash", 11)) {
--                Either<UUID, BlockPos> either = (Either) GameProfileSerializer.readBlockPos(nbttagcompound, "leash").map(Either::right).orElse((Object) null);
-+                Either<UUID, BlockPos> either = (Either) GameProfileSerializer.readBlockPos(nbttagcompound, "leash").map(Either::right).orElse(null); // CraftBukkit - decompile error
+-                Either<UUID, BlockPosition> either = (Either) GameProfileSerializer.readBlockPos(nbttagcompound, "leash").map(Either::right).orElse((Object) null);
++                Either<UUID, BlockPosition> either = (Either) GameProfileSerializer.readBlockPos(nbttagcompound, "leash").map(Either::right).orElse(null); // CraftBukkit - decompile error
  
                  if (either != null) {
                      return new Leashable.a(either);
 @@ -69,6 +74,11 @@
          if (leashable_a != null) {
-             Either<UUID, BlockPos> either = leashable_a.delayedLeashInfo;
+             Either<UUID, BlockPosition> either = leashable_a.delayedLeashInfo;
              Entity entity = leashable_a.leashHolder;
 +            // CraftBukkit start - SPIGOT-7487: Don't save (and possible drop) leash, when the holder was removed by a plugin
 +            if (entity != null && entity.pluginRemoved) {

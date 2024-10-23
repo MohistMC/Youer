@@ -1,5 +1,13 @@
 --- a/net/minecraft/commands/CommandSourceStack.java
 +++ b/net/minecraft/commands/CommandSourceStack.java
+@@ -9,6 +_,7 @@
+ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+ import com.mojang.brigadier.suggestion.Suggestions;
+ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
++import com.mojang.brigadier.tree.CommandNode;
+ import java.util.Collection;
+ import java.util.Objects;
+ import java.util.Set;
 @@ -46,7 +_,7 @@
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
@@ -9,3 +17,22 @@
      public static final SimpleCommandExceptionType ERROR_NOT_PLAYER = new SimpleCommandExceptionType(Component.translatable("permissions.requires.player"));
      public static final SimpleCommandExceptionType ERROR_NOT_ENTITY = new SimpleCommandExceptionType(Component.translatable("permissions.requires.entity"));
      public final CommandSource source;
+@@ -64,6 +_,7 @@
+     private final Vec2 rotation;
+     private final CommandSigningContext signingContext;
+     private final TaskChainer chatMessageChainer;
++    public volatile CommandNode currentCommand; // CraftBukkit
+ 
+     public CommandSourceStack(
+         CommandSource p_81302_,
+@@ -598,4 +_,10 @@
+     public boolean isSilent() {
+         return this.silent;
+     }
++
++    // CraftBukkit start
++    public org.bukkit.command.CommandSender getBukkitSender() {
++        return source.getBukkitSender(this);
++    }
++    // CraftBukkit end
+ }

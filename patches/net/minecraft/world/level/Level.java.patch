@@ -1,15 +1,55 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -78,7 +_,7 @@
+@@ -2,9 +_,13 @@
+ 
+ import com.google.common.collect.Lists;
+ import com.mojang.serialization.Codec;
++import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+ import java.io.IOException;
++import java.util.HashMap;
+ import java.util.Iterator;
++import java.util.LinkedHashMap;
+ import java.util.List;
++import java.util.Map;
+ import java.util.function.Consumer;
+ import java.util.function.Predicate;
+ import javax.annotation.Nullable;
+@@ -41,6 +_,7 @@
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.boss.EnderDragonPart;
+ import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
++import net.minecraft.world.entity.item.ItemEntity;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.alchemy.PotionBrewing;
+@@ -60,6 +_,7 @@
+ import net.minecraft.world.level.chunk.LevelChunk;
+ import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.dimension.DimensionType;
++import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.entity.EntityTypeTest;
+ import net.minecraft.world.level.entity.LevelEntityGetter;
+ import net.minecraft.world.level.gameevent.GameEvent;
+@@ -77,8 +_,17 @@
+ import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.Scoreboard;
++import org.bukkit.Bukkit;
++import org.bukkit.World.Environment;
++import org.bukkit.craftbukkit.CraftServer;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.block.CapturedBlockState;
++import org.bukkit.entity.SpawnCategory;
++import org.bukkit.generator.BiomeProvider;
++import org.bukkit.generator.ChunkGenerator;
++import org.spigotmc.SpigotWorldConfig;
  
 -public abstract class Level implements LevelAccessor, AutoCloseable {
 +public abstract class Level extends net.neoforged.neoforge.attachment.AttachmentHolder implements LevelAccessor, AutoCloseable, net.neoforged.neoforge.common.extensions.ILevelExtension {
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("the_nether"));
-@@ -115,6 +_,11 @@
+@@ -115,6 +_,48 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -18,6 +58,43 @@
 +    public java.util.ArrayList<net.neoforged.neoforge.common.util.BlockSnapshot> capturedBlockSnapshots = new java.util.ArrayList<>();
 +    private final java.util.ArrayList<BlockEntity> freshBlockEntities = new java.util.ArrayList<>();
 +    private final java.util.ArrayList<BlockEntity> pendingFreshBlockEntities = new java.util.ArrayList<>();
++
++    // CraftBukkit start Added the following
++    public CraftWorld world;
++    public boolean pvpMode;
++    public boolean keepSpawnInMemory = true;
++    public static ChunkGenerator generator;
++    public static Environment environment;
++    public static BiomeProvider biomeProvider;
++
++    public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
++    public boolean captureBlockStates = false;
++    public boolean captureTreeGeneration = false;
++    public Map<BlockPos, CapturedBlockState> capturedBlockStates = new LinkedHashMap<>();
++    public Map<BlockPos, BlockEntity> capturedTileEntities = new HashMap<>();
++    public List<ItemEntity> captureDrops;
++    public final Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new Object2LongOpenHashMap<>();
++    public boolean populating;
++    public SpigotWorldConfig spigotConfig; // Spigot
++    public static BlockPos lastPhysicsProblem; // Spigot
++
++    public CraftWorld getWorld() {
++        return this.world;
++    }
++
++    public CraftServer getCraftServer() {
++        return (CraftServer) Bukkit.getServer();
++    }
++
++    public ResourceKey<LevelStem> getTypeKey() {
++        return Registries.levelToLevelStem(dimension);
++    }
++
++    public static void craftWorldData(ChunkGenerator gen, Environment env, BiomeProvider bp) {
++        generator = gen;
++        environment = env;
++        biomeProvider = bp;
++    }
  
      protected Level(
          WritableLevelData p_270739_,

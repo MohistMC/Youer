@@ -194,7 +194,7 @@
 +                        world.preventPoiUpdated = false;
 +
 +                        // Brute force all possible updates
-+                        BlockPos placedPos = ((CraftBlock) placeEvent.getBlock()).getPosition();
++                        BlockPosition placedPos = ((CraftBlock) placeEvent.getBlock()).getPosition();
 +                        for (EnumDirection dir : EnumDirection.values()) {
 +                            ((EntityPlayer) entityhuman).connection.send(new PacketPlayOutBlockChange(world, placedPos.relative(dir)));
 +                        }
@@ -206,14 +206,14 @@
 +                            this.setCount(newCount);
 +                        }
 +
-+                        for (Map.Entry<BlockPos, TileEntity> e : world.capturedTileEntities.entrySet()) {
++                        for (Map.Entry<BlockPosition, TileEntity> e : world.capturedTileEntities.entrySet()) {
 +                            world.setBlockEntity(e.getValue());
 +                        }
 +
 +                        for (BlockState blockstate : blocks) {
 +                            int updateFlag = ((CraftBlockState) blockstate).getFlag();
 +                            IBlockData oldBlock = ((CraftBlockState) blockstate).getHandle();
-+                            BlockPos newblockposition = ((CraftBlockState) blockstate).getPosition();
++                            BlockPosition newblockposition = ((CraftBlockState) blockstate).getPosition();
 +                            IBlockData block = world.getBlockState(newblockposition);
 +
 +                            if (!(block.getBlock() instanceof BlockTileEntity)) { // Containers get placed automatically
@@ -224,7 +224,7 @@
 +                        }
 +
 +                        if (this.item == Items.WITHER_SKELETON_SKULL) { // Special case skulls to allow wither spawns to be cancelled
-+                            BlockPos bp = blockposition;
++                            BlockPosition bp = blockposition;
 +                            if (!world.getBlockState(blockposition).canBeReplaced()) {
 +                                if (!world.getBlockState(blockposition).isSolid()) {
 +                                    bp = null;
@@ -255,7 +255,7 @@
 +
 +                        // SPIGOT-7315: Moved from BlockBed#setPlacedBy
 +                        if (placeEvent != null && this.item instanceof ItemBed) {
-+                            BlockPos position = ((CraftBlock) placeEvent.getBlock()).getPosition();
++                            BlockPosition position = ((CraftBlock) placeEvent.getBlock()).getPosition();
 +                            IBlockData blockData = world.getBlockState(position);
 +
 +                            if (blockData.getBlock() instanceof BlockBed) {

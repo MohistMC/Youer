@@ -14,7 +14,7 @@ public class MohistBlockSnapshot extends CraftBlock {
 
     public MohistBlockSnapshot(BlockSnapshot blockSnapshot, boolean current) {
         super(blockSnapshot.getLevel(), blockSnapshot.getPos());
-        this.blockState = current ? blockSnapshot.getCurrentBlock() : blockSnapshot.getReplacedBlock();
+        this.blockState = current ? blockSnapshot.getCurrentState() : blockSnapshot.getState();
     }
 
     @Override

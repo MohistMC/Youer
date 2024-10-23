@@ -106,7 +106,7 @@
 +
 +        List<org.bukkit.block.Block> blockList = new ObjectArrayList<>();
 +        for (int i1 = list.size() - 1; i1 >= 0; i1--) {
-+            BlockPos cpos = list.get(i1);
++            BlockPosition cpos = list.get(i1);
 +            org.bukkit.block.Block bblock = bworld.getBlockAt(cpos.getX(), cpos.getY(), cpos.getZ());
 +            if (!bblock.getType().isAir()) {
 +                blockList.add(bblock);
@@ -132,7 +132,7 @@
 +        list.clear();
 +
 +        for (org.bukkit.block.Block bblock : bukkitBlocks) {
-+            BlockPos coords = new BlockPos(bblock.getX(), bblock.getY(), bblock.getZ());
++            BlockPosition coords = new BlockPosition(bblock.getX(), bblock.getY(), bblock.getZ());
 +            list.add(coords);
 +        }
 +
@@ -143,13 +143,13 @@
          Iterator iterator = list.iterator();
  
          while (iterator.hasNext()) {
-             BlockPos blockposition = (BlockPos) iterator.next();
+             BlockPosition blockposition = (BlockPosition) iterator.next();
 +            // CraftBukkit start - TNTPrimeEvent
 +            IBlockData iblockdata = this.level.getBlockState(blockposition);
 +            Block block = iblockdata.getBlock();
 +            if (block instanceof net.minecraft.world.level.block.BlockTNT) {
 +                Entity sourceEntity = source == null ? null : source;
-+                BlockPos sourceBlock = sourceEntity == null ? BlockPos.containing(this.center) : null;
++                BlockPosition sourceBlock = sourceEntity == null ? BlockPosition.containing(this.center) : null;
 +                if (!CraftEventFactory.callTNTPrimeEvent(this.level, blockposition, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.EXPLOSION, sourceEntity, sourceBlock)) {
 +                    this.level.sendBlockUpdated(blockposition, Blocks.AIR.defaultBlockState(), iblockdata, 3); // Update the block on the client
 +                    continue;
@@ -160,7 +160,7 @@
              this.level.getBlockState(blockposition).onExplosionHit(this.level, blockposition, this, (itemstack, blockposition1) -> {
                  addOrAppendStack(list1, itemstack, blockposition1);
 @@ -262,13 +369,22 @@
-             BlockPos blockposition = (BlockPos) iterator.next();
+             BlockPosition blockposition = (BlockPosition) iterator.next();
  
              if (this.level.random.nextInt(3) == 0 && this.level.getBlockState(blockposition).isAir() && this.level.getBlockState(blockposition.below()).isSolidRender()) {
 -                this.level.setBlockAndUpdate(blockposition, BlockFireAbstract.getState(this.level, blockposition));
@@ -181,12 +181,12 @@
 +        }
 +        // CraftBukkit end
          this.level.gameEvent(this.source, (Holder) GameEvent.EXPLODE, this.center);
-         List<BlockPos> list = this.calculateExplodedPositions();
+         List<BlockPosition> list = this.calculateExplodedPositions();
  
 @@ -288,6 +404,7 @@
      }
  
-     private static void addOrAppendStack(List<ServerExplosion.a> list, ItemStack itemstack, BlockPos blockposition) {
+     private static void addOrAppendStack(List<ServerExplosion.a> list, ItemStack itemstack, BlockPosition blockposition) {
 +        if (itemstack.isEmpty()) return; // CraftBukkit - SPIGOT-5425
          Iterator iterator = list.iterator();
  

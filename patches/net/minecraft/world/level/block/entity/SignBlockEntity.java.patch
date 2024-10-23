@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/level/block/entity/SignBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/SignBlockEntity.java
+@@ -218,6 +_,13 @@
+         return flag;
+     }
+ 
++    // CraftBukkit start
++
++    @Override
++    public org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper) {
++        return wrapper.getEntity() != null ? wrapper.getEntity().getBukkitSender(wrapper) : new org.bukkit.craftbukkit.command.CraftBlockCommandSender(wrapper, this);
++    }
++
+     private static CommandSourceStack createCommandSourceStack(@Nullable Player p_279428_, Level p_279359_, BlockPos p_279430_) {
+         String s = p_279428_ == null ? "Sign" : p_279428_.getName().getString();
+         Component component = (Component)(p_279428_ == null ? Component.literal("Sign") : p_279428_.getDisplayName());

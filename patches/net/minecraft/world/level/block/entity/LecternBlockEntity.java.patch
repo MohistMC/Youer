@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/level/block/entity/LecternBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/LecternBlockEntity.java
+@@ -26,6 +_,7 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.Vec2;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.command.CraftBlockCommandSender;
+ 
+ public class LecternBlockEntity extends BlockEntity implements Clearable, MenuProvider {
+     public static final int DATA_PAGE = 0;
+@@ -244,5 +_,10 @@
+             WritableBookContent writablebookcontent = p_331229_.get(DataComponents.WRITABLE_BOOK_CONTENT);
+             return writablebookcontent != null ? writablebookcontent.pages().size() : 0;
+         }
++    }
++
++    @Override
++    public org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper) {
++        return wrapper.getEntity() != null ? wrapper.getEntity().getBukkitSender(wrapper) : new CraftBlockCommandSender(wrapper, this);
+     }
+ }

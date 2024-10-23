@@ -18,3 +18,26 @@
      }
  
      default Stream<BlockState> getBlockStates(AABB p_45557_) {
+@@ -82,6 +_,22 @@
+             return BlockHitResult.miss(p_360110_.getTo(), Direction.getApproximateNearest(vec3.x, vec3.y, vec3.z), BlockPos.containing(p_360110_.getTo()));
+         });
+     }
++
++    // CraftBukkit start
++    default BlockHitResult clip(ClipContext pContext, BlockPos p_217297_2_) {
++        BlockState blockstate = this.getBlockState(p_217297_2_);
++        FluidState fluidstate = this.getFluidState(p_217297_2_);
++        Vec3 vec3 = pContext.getFrom();
++        Vec3 vec31 = pContext.getTo();
++        VoxelShape voxelshape = pContext.getBlockShape(blockstate, this, p_217297_2_);
++        BlockHitResult blockraytraceresult = this.clipWithInteractionOverride(vec3, vec31, p_217297_2_, voxelshape, blockstate);
++        VoxelShape voxelshape1 = pContext.getFluidShape(fluidstate, this, p_217297_2_);
++        BlockHitResult blockraytraceresult1 = voxelshape1.clip(vec3, vec31, p_217297_2_);
++        double d0 = blockraytraceresult == null ? Double.MAX_VALUE : pContext.getFrom().distanceToSqr(blockraytraceresult.getLocation());
++        double d1 = blockraytraceresult1 == null ? Double.MAX_VALUE : pContext.getFrom().distanceToSqr(blockraytraceresult1.getLocation());
++        return d0 <= d1 ? blockraytraceresult : blockraytraceresult1;
++    }
++    // CraftBukkit end
+ 
+     @Nullable
+     default BlockHitResult clipWithInteractionOverride(Vec3 p_45559_, Vec3 p_45560_, BlockPos p_45561_, VoxelShape p_45562_, BlockState p_45563_) {

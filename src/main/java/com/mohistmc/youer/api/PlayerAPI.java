@@ -15,15 +15,6 @@ public class PlayerAPI {
     public static Map<SocketAddress, Integer> mods = new ConcurrentHashMap<>();
     public static Map<SocketAddress, List<String>> modlist = new ConcurrentHashMap<>();
 
-    /**
-     * Get Player ping
-     *
-     * @param player org.bukkit.entity.player
-     */
-    public static String getPing(Player player) {
-        return String.valueOf(getNMSPlayer(player).latency);
-    }
-
     public static ServerPlayer getNMSPlayer(Player player) {
         return ((CraftPlayer) player).getHandle();
     }

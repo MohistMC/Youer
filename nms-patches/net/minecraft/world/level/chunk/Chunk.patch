@@ -2,7 +2,7 @@
 +++ b/net/minecraft/world/level/chunk/Chunk.java
 @@ -78,7 +78,7 @@
      };
-     private final Map<BlockPos, Chunk.d> tickersInLevel;
+     private final Map<BlockPosition, Chunk.d> tickersInLevel;
      public boolean loaded;
 -    public final World level;
 +    public final WorldServer level; // CraftBukkit - type
@@ -48,12 +48,12 @@
 +    // CraftBukkit start
      @Nullable
      @Override
-     public IBlockData setBlockState(BlockPos blockposition, IBlockData iblockdata, boolean flag) {
+     public IBlockData setBlockState(BlockPosition blockposition, IBlockData iblockdata, boolean flag) {
 +        return this.setBlockState(blockposition, iblockdata, flag, true);
 +    }
 +
 +    @Nullable
-+    public IBlockData setBlockState(BlockPos blockposition, IBlockData iblockdata, boolean flag, boolean doPlace) {
++    public IBlockData setBlockState(BlockPosition blockposition, IBlockData iblockdata, boolean flag, boolean doPlace) {
 +        // CraftBukkit end
          int i = blockposition.getY();
          ChunkSection chunksection = this.getSection(this.getSectionIndex(i));
@@ -71,7 +71,7 @@
 @@ -370,7 +387,12 @@
  
      @Nullable
-     public TileEntity getBlockEntity(BlockPos blockposition, Chunk.EnumTileEntityState chunk_enumtileentitystate) {
+     public TileEntity getBlockEntity(BlockPosition blockposition, Chunk.EnumTileEntityState chunk_enumtileentitystate) {
 -        TileEntity tileentity = (TileEntity) this.blockEntities.get(blockposition);
 +        // CraftBukkit start
 +        TileEntity tileentity = level.capturedTileEntities.get(blockposition);

@@ -28,7 +28,7 @@ public class EnchantmentAPI {
     public static List<Enchantment> getNMS(org.bukkit.inventory.ItemStack itemStack) {
         if (has(itemStack)) {
             Map<org.bukkit.enchantments.Enchantment, Integer> map = itemStack.getEnchantments();
-            return map.keySet().stream().map(CraftEnchantment::getRaw).collect(Collectors.toList());
+            return map.keySet().stream().map(CraftEnchantment::bukkitToMinecraft).collect(Collectors.toList());
         }
         return Collections.emptyList();
     }
@@ -38,9 +38,5 @@ public class EnchantmentAPI {
             return new ArrayList<>(itemStack.getEnchantments().keySet());
         }
         return Collections.emptyList();
-    }
-
-    public static String getNameByNMS(net.minecraft.world.item.enchantment.Enchantment nms) {
-        return ForgeInjectBukkit.normalizeName(EnchantmentHelper.getEnchantmentId(nms).toString());
     }
 }

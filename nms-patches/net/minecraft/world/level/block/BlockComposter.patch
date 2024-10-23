@@ -31,7 +31,7 @@
 @@ -277,6 +289,14 @@
      }
  
-     public static IBlockData extractProduce(Entity entity, IBlockData iblockdata, World world, BlockPos blockposition) {
+     public static IBlockData extractProduce(Entity entity, IBlockData iblockdata, World world, BlockPosition blockposition) {
 +        // CraftBukkit start
 +        if (entity != null && !(entity instanceof EntityHuman)) {
 +            IBlockData iblockdata1 = empty(entity, iblockdata, DummyGeneratorAccess.INSTANCE, blockposition);
@@ -46,12 +46,12 @@
 @@ -300,10 +320,16 @@
      }
  
-     static IBlockData addItem(@Nullable Entity entity, IBlockData iblockdata, GeneratorAccess generatoraccess, BlockPos blockposition, ItemStack itemstack) {
+     static IBlockData addItem(@Nullable Entity entity, IBlockData iblockdata, GeneratorAccess generatoraccess, BlockPosition blockposition, ItemStack itemstack) {
 +        // CraftBukkit start
 +        return addItem(entity, iblockdata, generatoraccess, blockposition, itemstack, generatoraccess.getRandom().nextDouble());
 +    }
 +
-+    static IBlockData addItem(@Nullable Entity entity, IBlockData iblockdata, GeneratorAccess generatoraccess, BlockPos blockposition, ItemStack itemstack, double rand) {
++    static IBlockData addItem(@Nullable Entity entity, IBlockData iblockdata, GeneratorAccess generatoraccess, BlockPosition blockposition, ItemStack itemstack, double rand) {
 +        // CraftBukkit end
          int i = (Integer) iblockdata.getValue(BlockComposter.LEVEL);
          float f = BlockComposter.COMPOSTABLES.getFloat(itemstack.getItem());
@@ -62,7 +62,7 @@
          } else {
              int j = i + 1;
 @@ -352,7 +378,8 @@
-     public IWorldInventory getContainer(IBlockData iblockdata, GeneratorAccess generatoraccess, BlockPos blockposition) {
+     public IWorldInventory getContainer(IBlockData iblockdata, GeneratorAccess generatoraccess, BlockPosition blockposition) {
          int i = (Integer) iblockdata.getValue(BlockComposter.LEVEL);
  
 -        return (IWorldInventory) (i == 8 ? new BlockComposter.ContainerOutput(iblockdata, generatoraccess, blockposition, new ItemStack(Items.BONE_MEAL)) : (i < 7 ? new BlockComposter.ContainerInput(iblockdata, generatoraccess, blockposition) : new BlockComposter.ContainerEmpty()));
@@ -97,7 +97,7 @@
  
 @@ -405,6 +440,7 @@
  
-         public ContainerInput(IBlockData iblockdata, GeneratorAccess generatoraccess, BlockPos blockposition) {
+         public ContainerInput(IBlockData iblockdata, GeneratorAccess generatoraccess, BlockPosition blockposition) {
              super(1);
 +            this.bukkitOwner = new CraftBlockInventoryHolder(generatoraccess, blockposition, this); // CraftBukkit
              this.state = iblockdata;
@@ -108,7 +108,7 @@
      public static class ContainerEmpty extends InventorySubcontainer implements IWorldInventory {
  
 -        public ContainerEmpty() {
-+        public ContainerEmpty(GeneratorAccess generatoraccess, BlockPos blockposition) { // CraftBukkit
++        public ContainerEmpty(GeneratorAccess generatoraccess, BlockPosition blockposition) { // CraftBukkit
              super(0);
 +            this.bukkitOwner = new CraftBlockInventoryHolder(generatoraccess, blockposition, this); // CraftBukkit
          }

@@ -68,23 +68,23 @@
 @@ -262,7 +277,7 @@
  
      @Override
-     public DoubleBlockFinder.Result<? extends TileEntityChest> combine(IBlockData iblockdata, World world, BlockPos blockposition, boolean flag) {
+     public DoubleBlockFinder.Result<? extends TileEntityChest> combine(IBlockData iblockdata, World world, BlockPosition blockposition, boolean flag) {
 -        BiPredicate bipredicate;
-+        BiPredicate<GeneratorAccess, BlockPos> bipredicate; // CraftBukkit - decompile error
++        BiPredicate<GeneratorAccess, BlockPosition> bipredicate; // CraftBukkit - decompile error
  
          if (flag) {
              bipredicate = (generatoraccess, blockposition1) -> {
 @@ -278,7 +293,14 @@
      @Nullable
      @Override
-     protected ITileInventory getMenuProvider(IBlockData iblockdata, World world, BlockPos blockposition) {
+     protected ITileInventory getMenuProvider(IBlockData iblockdata, World world, BlockPosition blockposition) {
 -        return (ITileInventory) ((Optional) this.combine(iblockdata, world, blockposition, false).apply(BlockChest.MENU_PROVIDER_COMBINER)).orElse((Object) null);
 +        // CraftBukkit start
 +        return getMenuProvider(iblockdata, world, blockposition, false);
 +    }
 +
 +    @Nullable
-+    public ITileInventory getMenuProvider(IBlockData iblockdata, World world, BlockPos blockposition, boolean ignoreObstructions) {
++    public ITileInventory getMenuProvider(IBlockData iblockdata, World world, BlockPosition blockposition, boolean ignoreObstructions) {
 +        return (ITileInventory) ((Optional) this.combine(iblockdata, world, blockposition, ignoreObstructions).apply(BlockChest.MENU_PROVIDER_COMBINER)).orElse((Object) null);
 +        // CraftBukkit end
      }

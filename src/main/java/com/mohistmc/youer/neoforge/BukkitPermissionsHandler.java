@@ -22,10 +22,10 @@ import java.util.Set;
 import java.util.UUID;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.server.permission.handler.IPermissionHandler;
-import net.minecraftforge.server.permission.nodes.PermissionDynamicContext;
-import net.minecraftforge.server.permission.nodes.PermissionNode;
-import net.minecraftforge.server.permission.nodes.PermissionTypes;
+import net.neoforged.neoforge.server.permission.handler.IPermissionHandler;
+import net.neoforged.neoforge.server.permission.nodes.PermissionDynamicContext;
+import net.neoforged.neoforge.server.permission.nodes.PermissionNode;
+import net.neoforged.neoforge.server.permission.nodes.PermissionTypes;
 import org.bukkit.Bukkit;
 
 public class BukkitPermissionsHandler implements IPermissionHandler {
@@ -38,7 +38,7 @@ public class BukkitPermissionsHandler implements IPermissionHandler {
 
     @Override
     public ResourceLocation getIdentifier() {
-        return new ResourceLocation("mohist", "permission");
+        return ResourceLocation.fromNamespaceAndPath("mohist", "permission");
     }
 
     @Override

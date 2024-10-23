@@ -1,7 +1,59 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -275,7 +_,7 @@
+@@ -37,10 +_,12 @@
+ import java.util.Map;
+ import java.util.Objects;
+ import java.util.Optional;
++import java.util.Queue;
+ import java.util.Set;
+ import java.util.UUID;
+ import java.util.Map.Entry;
+ import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.ConcurrentLinkedQueue;
+ import java.util.concurrent.Executor;
+ import java.util.concurrent.RejectedExecutionException;
+ import java.util.concurrent.atomic.AtomicReference;
+@@ -51,6 +_,7 @@
+ import java.util.stream.Collectors;
+ import javax.annotation.Nullable;
+ import javax.imageio.ImageIO;
++import joptsimple.OptionSet;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.FileUtil;
+@@ -172,6 +_,10 @@
+ import net.minecraft.world.level.storage.WorldData;
+ import net.minecraft.world.phys.Vec2;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.Bukkit;
++import org.bukkit.command.ConsoleCommandSender;
++import org.bukkit.craftbukkit.CraftRegistry;
++import org.bukkit.craftbukkit.CraftServer;
+ import org.slf4j.Logger;
  
+ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements ServerInfo, ChunkIOErrorReporter, CommandSource {
+@@ -273,9 +_,27 @@
+     private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
+     private final DiscontinuousFrame tickFrame;
+ 
++    // CraftBukkit start
++    public static WorldLoader.DataLoadContext worldLoader;
++    public CraftServer server;
++    public static OptionSet options;
++    public ConsoleCommandSender console;
++    public static int currentTick = (int) (System.currentTimeMillis() / 50);
++    public Queue<Runnable> processQueue = new ConcurrentLinkedQueue<Runnable>();
++    public int autosavePeriod;
++    public Commands vanillaCommandDispatcher;
++    private boolean forceTicks;
++    // CraftBukkit end
++    // Spigot start
++    public static final int TPS = 20;
++    public static final int TICK_TIME = 1000000000 / TPS;
++    private static final int SAMPLE_INTERVAL = 100;
++    public final double[] recentTps = new double[ 3 ];
++    // Spigot end
++
      public static <S extends MinecraftServer> S spin(Function<Thread, S> p_129873_) {
          AtomicReference<S> atomicreference = new AtomicReference<>();
 -        Thread thread = new Thread(() -> atomicreference.get().runServer(), "Server thread");
@@ -289,14 +341,34 @@
      public void dumpServerProperties(Path p_177911_) throws IOException {
      }
  
-@@ -1921,6 +_,10 @@
- 
-     public WorldData getWorldData() {
+@@ -1923,6 +_,10 @@
          return this.worldData;
-+    }
-+
-+    public MinecraftServer.ReloadableResources getServerResources() {
-+         return resources;
      }
  
++    public MinecraftServer.ReloadableResources getServerResources() {
++         return resources;
++    }
++
      public RegistryAccess.Frozen registryAccess() {
+         return this.registries.compositeAccess();
+     }
+@@ -2121,4 +_,19 @@
+             };
+         }
+     }
++
++    // CraftBukkit start
++    public static MinecraftServer getServer() {
++        return (Bukkit.getServer() instanceof CraftServer) ? ((CraftServer) Bukkit.getServer()).getServer() : null;
++    }
++
++    @Deprecated
++    public static RegistryAccess getDefaultRegistryAccess() {
++        return CraftRegistry.getMinecraftRegistry();
++    }
++
++    public boolean isDebugging() {
++        return false;
++    }
++    // CraftBukkit end
+ }

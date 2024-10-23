@@ -9,7 +9,7 @@
 +        throw new UnsupportedOperationException("Not supported yet.");
 +    }
 +
-+    default BlockPos getPosition() {
++    default BlockPosition getPosition() {
 +        throw new UnsupportedOperationException("Not supported yet.");
 +    }
 +
@@ -20,10 +20,10 @@
 +
      ContainerAccess NULL = new ContainerAccess() {
          @Override
-         public <T> Optional<T> evaluate(BiFunction<World, BlockPos, T> bifunction) {
+         public <T> Optional<T> evaluate(BiFunction<World, BlockPosition, T> bifunction) {
 @@ -17,6 +31,18 @@
  
-     static ContainerAccess create(final World world, final BlockPos blockposition) {
+     static ContainerAccess create(final World world, final BlockPosition blockposition) {
          return new ContainerAccess() {
 +            // CraftBukkit start
 +            @Override
@@ -32,11 +32,11 @@
 +            }
 +
 +            @Override
-+            public BlockPos getPosition() {
++            public BlockPosition getPosition() {
 +                return blockposition;
 +            }
 +            // CraftBukkit end
 +
              @Override
-             public <T> Optional<T> evaluate(BiFunction<World, BlockPos, T> bifunction) {
+             public <T> Optional<T> evaluate(BiFunction<World, BlockPosition, T> bifunction) {
                  return Optional.of(bifunction.apply(world, blockposition));

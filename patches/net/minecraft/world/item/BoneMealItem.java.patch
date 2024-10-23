@@ -1,18 +1,84 @@
 --- a/net/minecraft/world/item/BoneMealItem.java
 +++ b/net/minecraft/world/item/BoneMealItem.java
-@@ -37,7 +_,7 @@
+@@ -37,31 +_,69 @@
          Level level = p_40637_.getLevel();
          BlockPos blockpos = p_40637_.getClickedPos();
          BlockPos blockpos1 = blockpos.relative(p_40637_.getClickedFace());
 -        if (growCrop(p_40637_.getItemInHand(), level, blockpos)) {
+-            if (!level.isClientSide) {
+-                p_40637_.getPlayer().gameEvent(GameEvent.ITEM_INTERACT_FINISH);
+-                level.levelEvent(1505, blockpos, 15);
+-            }
+-
+-            return InteractionResult.SUCCESS;
+-        } else {
+-            BlockState blockstate = level.getBlockState(blockpos);
+-            boolean flag = blockstate.isFaceSturdy(level, blockpos, p_40637_.getClickedFace());
+-            if (flag && growWaterPlant(p_40637_.getItemInHand(), level, blockpos1, p_40637_.getClickedFace())) {
+-                if (!level.isClientSide) {
+-                    p_40637_.getPlayer().gameEvent(GameEvent.ITEM_INTERACT_FINISH);
+-                    level.levelEvent(1505, blockpos1, 15);
+-                }
+-
+-                return InteractionResult.SUCCESS;
+-            } else {
+-                return InteractionResult.PASS;
+-            }
+-        }
+-    }
+-
 +        if (applyBonemeal(p_40637_.getItemInHand(), level, blockpos, p_40637_.getPlayer())) {
-             if (!level.isClientSide) {
-                 p_40637_.getPlayer().gameEvent(GameEvent.ITEM_INTERACT_FINISH);
-                 level.levelEvent(1505, blockpos, 15);
-@@ -60,8 +_,17 @@
-         }
-     }
- 
++            if (!level.isClientSide) {
++                p_40637_.getPlayer().gameEvent(GameEvent.ITEM_INTERACT_FINISH);
++                level.levelEvent(1505, blockpos, 15);
++            }
++
++            return InteractionResult.SUCCESS;
++        } else {
++            BlockState blockstate = level.getBlockState(blockpos);
++            boolean flag = blockstate.isFaceSturdy(level, blockpos, p_40637_.getClickedFace());
++            if (flag && growWaterPlant(p_40637_.getItemInHand(), level, blockpos1, p_40637_.getClickedFace())) {
++                if (!level.isClientSide) {
++                    p_40637_.getPlayer().gameEvent(GameEvent.ITEM_INTERACT_FINISH);
++                    level.levelEvent(1505, blockpos1, 15);
++                }
++
++                return InteractionResult.SUCCESS;
++            } else {
++                return InteractionResult.PASS;
++            }
++        }
++    }
++
++    // Mohist TODO fix mixin?
++    public static InteractionResult applyBonemeal(UseOnContext p_40637_) {
++        Level level = p_40637_.getLevel();
++        BlockPos blockpos = p_40637_.getClickedPos();
++        BlockPos blockpos1 = blockpos.relative(p_40637_.getClickedFace());
++        if (applyBonemeal(p_40637_.getItemInHand(), level, blockpos, p_40637_.getPlayer())) {
++            if (!level.isClientSide) {
++                p_40637_.getPlayer().gameEvent(GameEvent.ITEM_INTERACT_FINISH);
++                level.levelEvent(1505, blockpos, 15);
++            }
++
++            return InteractionResult.SUCCESS;
++        } else {
++            BlockState blockstate = level.getBlockState(blockpos);
++            boolean flag = blockstate.isFaceSturdy(level, blockpos, p_40637_.getClickedFace());
++            if (flag && growWaterPlant(p_40637_.getItemInHand(), level, blockpos1, p_40637_.getClickedFace())) {
++                if (!level.isClientSide) {
++                    p_40637_.getPlayer().gameEvent(GameEvent.ITEM_INTERACT_FINISH);
++                    level.levelEvent(1505, blockpos1, 15);
++                }
++
++                return InteractionResult.SUCCESS;
++            } else {
++                return InteractionResult.PASS;
++            }
++        }
++    }
++    // CraftBukkit Mohist end
++
 +    @Deprecated //Forge: Use Player/Hand version
      public static boolean growCrop(ItemStack p_40628_, Level p_40629_, BlockPos p_40630_) {
 +        if (p_40629_ instanceof net.minecraft.server.level.ServerLevel)

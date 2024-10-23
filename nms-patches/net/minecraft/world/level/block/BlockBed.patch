@@ -8,7 +8,7 @@
 +            // CraftBukkit - moved world and biome check into EntityHuman
 +            if (false && !canSetSpawn(world)) {
                  world.removeBlock(blockposition, false);
-                 BlockPos blockposition1 = blockposition.relative(((EnumDirection) iblockdata.getValue(BlockBed.FACING)).getOpposite());
+                 BlockPosition blockposition1 = blockposition.relative(((EnumDirection) iblockdata.getValue(BlockBed.FACING)).getOpposite());
  
 @@ -114,7 +115,16 @@
  
@@ -16,7 +16,7 @@
              } else {
 +                // CraftBukkit start
 +                IBlockData finaliblockdata = iblockdata;
-+                BlockPos finalblockposition = blockposition;
++                BlockPosition finalblockposition = blockposition;
 +                // CraftBukkit end
                  entityhuman.startSleepInBed(blockposition).ifLeft((entityhuman_enumbedresult) -> {
 +                    // CraftBukkit start - handling bed explosion from below here
@@ -32,12 +32,12 @@
      }
  
 +    // CraftBukkit start
-+    private EnumInteractionResult explodeBed(IBlockData iblockdata, World world, BlockPos blockposition) {
++    private EnumInteractionResult explodeBed(IBlockData iblockdata, World world, BlockPosition blockposition) {
 +        {
 +            {
 +                org.bukkit.block.BlockState blockState = org.bukkit.craftbukkit.block.CraftBlock.at(world, blockposition).getState(); // CraftBukkit - capture BlockState before remove block
 +                world.removeBlock(blockposition, false);
-+                BlockPos blockposition1 = blockposition.relative(((EnumDirection) iblockdata.getValue(BlockBed.FACING)).getOpposite());
++                BlockPosition blockposition1 = blockposition.relative(((EnumDirection) iblockdata.getValue(BlockBed.FACING)).getOpposite());
 +
 +                if (world.getBlockState(blockposition1).getBlock() == this) {
 +                    world.removeBlock(blockposition1, false);
@@ -58,9 +58,9 @@
 +        return true || world.dimensionType().bedWorks();
      }
  
-     private boolean kickVillagerOutOfBed(World world, BlockPos blockposition) {
+     private boolean kickVillagerOutOfBed(World world, BlockPosition blockposition) {
 @@ -325,6 +357,11 @@
-             BlockPos blockposition1 = blockposition.relative((EnumDirection) iblockdata.getValue(BlockBed.FACING));
+             BlockPosition blockposition1 = blockposition.relative((EnumDirection) iblockdata.getValue(BlockBed.FACING));
  
              world.setBlock(blockposition1, (IBlockData) iblockdata.setValue(BlockBed.PART, BlockPropertyBedPart.HEAD), 3);
 +            // CraftBukkit start - SPIGOT-7315: Don't updated if we capture block states

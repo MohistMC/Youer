@@ -14,7 +14,7 @@
      public static final MapCodec<SculkSensorBlock> CODEC = simpleCodec(SculkSensorBlock::new);
 @@ -104,6 +109,18 @@
      @Override
-     public void stepOn(World world, BlockPos blockposition, IBlockData iblockdata, Entity entity) {
+     public void stepOn(World world, BlockPosition blockposition, IBlockData iblockdata, Entity entity) {
          if (!world.isClientSide() && canActivate(iblockdata) && entity.getType() != EntityTypes.WARDEN) {
 +            // CraftBukkit start
 +            org.bukkit.event.Cancellable cancellable;
@@ -34,7 +34,7 @@
 @@ -207,6 +224,15 @@
      }
  
-     public static void deactivate(World world, BlockPos blockposition, IBlockData iblockdata) {
+     public static void deactivate(World world, BlockPosition blockposition, IBlockData iblockdata) {
 +        // CraftBukkit start
 +        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(world, blockposition), iblockdata.getValue(SculkSensorBlock.POWER), 0);
 +        world.getCraftServer().getPluginManager().callEvent(eventRedstone);
@@ -50,7 +50,7 @@
 @@ -218,6 +244,15 @@
      }
  
-     public void activate(@Nullable Entity entity, World world, BlockPos blockposition, IBlockData iblockdata, int i, int j) {
+     public void activate(@Nullable Entity entity, World world, BlockPosition blockposition, IBlockData iblockdata, int i, int j) {
 +        // CraftBukkit start
 +        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(world, blockposition), iblockdata.getValue(SculkSensorBlock.POWER), i);
 +        world.getCraftServer().getPluginManager().callEvent(eventRedstone);
@@ -65,13 +65,13 @@
          updateNeighbours(world, blockposition, iblockdata);
 @@ -298,9 +333,16 @@
      @Override
-     protected void spawnAfterBreak(IBlockData iblockdata, WorldServer worldserver, BlockPos blockposition, ItemStack itemstack, boolean flag) {
+     protected void spawnAfterBreak(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
          super.spawnAfterBreak(iblockdata, worldserver, blockposition, itemstack, flag);
 +        // CraftBukkit start - Delegate to getExpDrop
 +    }
 +
 +    @Override
-+    public int getExpDrop(IBlockData iblockdata, WorldServer worldserver, BlockPos blockposition, ItemStack itemstack, boolean flag) {
++    public int getExpDrop(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
          if (flag) {
 -            this.tryDropExperience(worldserver, blockposition, itemstack, ConstantInt.of(5));
 +            return this.tryDropExperience(worldserver, blockposition, itemstack, ConstantInt.of(5));

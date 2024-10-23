@@ -1,0 +1,23 @@
+--- a/net/minecraft/world/level/block/entity/CommandBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/CommandBlockEntity.java
+@@ -15,12 +_,20 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.Vec2;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.command.CraftBlockCommandSender;
+ 
+ public class CommandBlockEntity extends BlockEntity {
+     private boolean powered;
+     private boolean auto;
+     private boolean conditionMet;
+     private final BaseCommandBlock commandBlock = new BaseCommandBlock() {
++
++        @Override
++        public CommandSender getBukkitSender(CommandSourceStack wrapper) {
++            return new CraftBlockCommandSender(wrapper, CommandBlockEntity.this);
++        }
++
+         @Override
+         public void setCommand(String p_59157_) {
+             super.setCommand(p_59157_);

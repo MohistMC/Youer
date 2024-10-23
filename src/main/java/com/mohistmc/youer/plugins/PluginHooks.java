@@ -14,14 +14,6 @@ public class PluginHooks {
         if (plugin.getName().equals("PlaceholderAPI")){
             return true;
         }
-        return plugin.callForge();
-    }
-
-    public static void register(PluginEnableEvent e) {
-        Plugin plugin = e.getPlugin();
-        if (plugin.getName().equals("PlaceholderAPI")){
-            MohistPapiHook.init();
-            Youer.LOGGER.info("Hook PlaceholderAPI!");
-        }
+        return false;
     }
 }

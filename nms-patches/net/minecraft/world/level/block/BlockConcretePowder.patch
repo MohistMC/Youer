@@ -15,7 +15,7 @@
      public static final MapCodec<BlockConcretePowder> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
 @@ -38,7 +44,7 @@
      @Override
-     public void onLand(World world, BlockPos blockposition, IBlockData iblockdata, IBlockData iblockdata1, EntityFallingBlock entityfallingblock) {
+     public void onLand(World world, BlockPosition blockposition, IBlockData iblockdata, IBlockData iblockdata1, EntityFallingBlock entityfallingblock) {
          if (shouldSolidify(world, blockposition, iblockdata1)) {
 -            world.setBlock(blockposition, this.concrete.defaultBlockState(), 3);
 +            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(world, blockposition, this.concrete.defaultBlockState(), 3); // CraftBukkit
@@ -23,7 +23,7 @@
  
      }
 @@ -49,7 +55,24 @@
-         BlockPos blockposition = blockactioncontext.getClickedPos();
+         BlockPosition blockposition = blockactioncontext.getClickedPos();
          IBlockData iblockdata = world.getBlockState(blockposition);
  
 -        return shouldSolidify(world, blockposition, iblockdata) ? this.concrete.defaultBlockState() : super.getStateForPlacement(blockactioncontext);
@@ -47,11 +47,11 @@
 +        // CraftBukkit end
      }
  
-     private static boolean shouldSolidify(IBlockAccess iblockaccess, BlockPos blockposition, IBlockData iblockdata) {
+     private static boolean shouldSolidify(IBlockAccess iblockaccess, BlockPosition blockposition, IBlockData iblockdata) {
 @@ -85,7 +108,25 @@
  
      @Override
-     protected IBlockData updateShape(IBlockData iblockdata, IWorldReader iworldreader, ScheduledTickAccess scheduledtickaccess, BlockPos blockposition, EnumDirection enumdirection, BlockPos blockposition1, IBlockData iblockdata1, RandomSource randomsource) {
+     protected IBlockData updateShape(IBlockData iblockdata, IWorldReader iworldreader, ScheduledTickAccess scheduledtickaccess, BlockPosition blockposition, EnumDirection enumdirection, BlockPosition blockposition1, IBlockData iblockdata1, RandomSource randomsource) {
 -        return touchesLiquid(iworldreader, blockposition) ? this.concrete.defaultBlockState() : super.updateShape(iblockdata, iworldreader, scheduledtickaccess, blockposition, enumdirection, blockposition1, iblockdata1, randomsource);
 +        // CraftBukkit start
 +        if (touchesLiquid(iworldreader, blockposition)) {

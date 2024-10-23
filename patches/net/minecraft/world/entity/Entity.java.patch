@@ -1,7 +1,21 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -136,7 +_,7 @@
+@@ -24,6 +_,7 @@
+ import java.util.Set;
+ import java.util.UUID;
+ import java.util.concurrent.atomic.AtomicInteger;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.BiConsumer;
+ import java.util.function.Predicate;
+ import java.util.stream.Stream;
+@@ -134,9 +_,13 @@
+ import net.minecraft.world.scores.PlayerTeam;
+ import net.minecraft.world.scores.ScoreHolder;
  import net.minecraft.world.scores.Team;
++import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.entity.CraftEntity;
++import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
  import org.slf4j.Logger;
  
 -public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess, ScoreHolder {
@@ -28,6 +42,86 @@
      private final Set<TagKey<Fluid>> fluidOnEyes = new HashSet<>();
      public int invulnerableTime;
      protected boolean firstTick = true;
+@@ -252,6 +_,65 @@
+     private final Set<BlockState> blocksInside = new ReferenceArraySet<>();
+     private final LongSet visitedBlocks = new LongOpenHashSet();
+ 
++    // CraftBukkit start
++    public boolean persist = true;
++    public boolean visibleByDefault = true;
++    public boolean valid;
++    public boolean inWorld = false;
++    public boolean generation;
++    public int maxAirTicks = getDefaultMaxAirSupply(); // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
++    public org.bukkit.projectiles.ProjectileSource projectileSource; // For projectiles only
++    public boolean lastDamageCancelled; // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Keep track if the event was canceled
++    public boolean persistentInvisibility = false;
++    public BlockPos lastLavaContact;
++    // Marks an entity, that it was removed by a plugin via Entity#remove
++    // Main use case currently is for SPIGOT-7487, preventing dropping of leash when leash is removed
++    public boolean pluginRemoved = false;
++    // CraftBukkit end
++
++    // Spigot start
++    public final org.spigotmc.ActivationRange.ActivationType activationType = org.spigotmc.ActivationRange.initializeEntityActivationType(this);
++    public final boolean defaultActivationState;
++    public long activatedTick = Integer.MIN_VALUE;
++    // Spigot end
++
++    public AtomicReference<SpawnReason> spawnReason = new AtomicReference<>(CreatureSpawnEvent.SpawnReason.DEFAULT);
++
++    public void spawnReason(CreatureSpawnEvent.SpawnReason spawnReason) {
++        this.spawnReason.set(spawnReason);
++    }
++
++    public float getBukkitYaw() {
++        return this.yRot;
++    }
++
++    private static final int CURRENT_LEVEL = 2;
++    static boolean isLevelAtLeast(CompoundTag tag, int level) {
++        return tag.contains("Bukkit.updateLevel") && tag.getInt("Bukkit.updateLevel") >= level;
++    }
++
++    private CraftEntity bukkitEntity;
++    public CraftEntity getBukkitEntity() {
++        if (bukkitEntity == null) {
++            bukkitEntity = CraftEntity.getEntity(level.getCraftServer(), this);
++        }
++        return bukkitEntity;
++    }
++
++    public void setBukkitEntity(CraftEntity bukkitEntity) {
++        this.bukkitEntity = bukkitEntity;
++    }
++
++    // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
++    public int getDefaultMaxAirSupply() {
++        return TOTAL_AIR_SUPPLY;
++    }
++
++    public boolean isChunkLoaded() {
++        return level.hasChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4);
++    }
++    // CraftBukkit end
++
+     public Entity(EntityType<?> p_19870_, Level p_19871_) {
+         this.type = p_19870_;
+         this.level = p_19871_;
+@@ -259,6 +_,13 @@
+         this.position = Vec3.ZERO;
+         this.blockPosition = BlockPos.ZERO;
+         this.chunkPosition = ChunkPos.ZERO;
++        // Spigot start
++        if (p_19871_ != null && p_19871_ instanceof ServerLevel) {
++            this.defaultActivationState = org.spigotmc.ActivationRange.initializeEntityActivationState(this, p_19871_.spigotConfig);
++        } else {
++            this.defaultActivationState = false;
++        }
++        // Spigot end
+         SynchedEntityData.Builder synchedentitydata$builder = new SynchedEntityData.Builder(this);
+         synchedentitydata$builder.define(DATA_SHARED_FLAGS_ID, (byte)0);
+         synchedentitydata$builder.define(DATA_AIR_SUPPLY_ID, this.getMaxAirSupply());
 @@ -271,7 +_,10 @@
          this.defineSynchedData(synchedentitydata$builder);
          this.entityData = synchedentitydata$builder.build();

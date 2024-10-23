@@ -29,7 +29,7 @@
      }
  
      @Override
-     public void fallOn(World world, IBlockData iblockdata, BlockPos blockposition, Entity entity, float f) {
+     public void fallOn(World world, IBlockData iblockdata, BlockPosition blockposition, Entity entity, float f) {
 +        super.fallOn(world, iblockdata, blockposition, entity, f); // CraftBukkit - moved here as game rules / events shouldn't affect fall damage.
          if (world instanceof WorldServer worldserver) {
              if (world.random.nextFloat() < f - 0.5F && entity instanceof EntityLiving && (entity instanceof EntityHuman || worldserver.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) && entity.getBbWidth() * entity.getBbWidth() * entity.getBbHeight() > 0.512F) {
@@ -58,7 +58,7 @@
 +        // super.fallOn(world, iblockdata, blockposition, entity, f); // CraftBukkit - moved up
      }
  
-     public static void turnToDirt(@Nullable Entity entity, IBlockData iblockdata, World world, BlockPos blockposition) {
+     public static void turnToDirt(@Nullable Entity entity, IBlockData iblockdata, World world, BlockPosition blockposition) {
 +        // CraftBukkit start
 +        if (CraftEventFactory.callBlockFadeEvent(world, blockposition, Blocks.DIRT.defaultBlockState()).isCancelled()) {
 +            return;

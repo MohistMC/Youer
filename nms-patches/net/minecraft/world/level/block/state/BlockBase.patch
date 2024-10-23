@@ -14,15 +14,15 @@
      protected static final EnumDirection[] UPDATE_SHAPE_ORDER = new EnumDirection[]{EnumDirection.WEST, EnumDirection.EAST, EnumDirection.NORTH, EnumDirection.SOUTH, EnumDirection.DOWN, EnumDirection.UP};
 @@ -158,6 +163,12 @@
  
-     protected void onPlace(IBlockData iblockdata, World world, BlockPos blockposition, IBlockData iblockdata1, boolean flag) {}
+     protected void onPlace(IBlockData iblockdata, World world, BlockPosition blockposition, IBlockData iblockdata1, boolean flag) {}
  
 +    // CraftBukkit start
-+    protected void onPlace(IBlockData iblockdata, World world, BlockPos blockposition, IBlockData iblockdata1, boolean flag, @Nullable ItemActionContext context) {
++    protected void onPlace(IBlockData iblockdata, World world, BlockPosition blockposition, IBlockData iblockdata1, boolean flag, @Nullable ItemActionContext context) {
 +        this.onPlace(iblockdata, world, blockposition, iblockdata1, flag);
 +    }
 +    // CraftBukkit end
 +
-     protected void onRemove(IBlockData iblockdata, World world, BlockPos blockposition, IBlockData iblockdata1, boolean flag) {
+     protected void onRemove(IBlockData iblockdata, World world, BlockPosition blockposition, IBlockData iblockdata1, boolean flag) {
          if (iblockdata.hasBlockEntity() && !iblockdata.is(iblockdata1.getBlock())) {
              world.removeBlockEntity(blockposition);
 @@ -174,8 +185,10 @@
@@ -41,15 +41,15 @@
 @@ -1121,7 +1134,13 @@
          }
  
-         public void onPlace(World world, BlockPos blockposition, IBlockData iblockdata, boolean flag) {
+         public void onPlace(World world, BlockPosition blockposition, IBlockData iblockdata, boolean flag) {
 -            this.getBlock().onPlace(this.asState(), world, blockposition, iblockdata, flag);
 +            // CraftBukkit start
 +            this.onPlace(world, blockposition, iblockdata, flag, null);
 +        }
 +
-+        public void onPlace(World world, BlockPos blockposition, IBlockData iblockdata, boolean flag, @Nullable ItemActionContext context) {
++        public void onPlace(World world, BlockPosition blockposition, IBlockData iblockdata, boolean flag, @Nullable ItemActionContext context) {
 +            this.getBlock().onPlace(this.asState(), world, blockposition, iblockdata, flag, context);
 +            // CraftBukkit end
          }
  
-         public void onRemove(World world, BlockPos blockposition, IBlockData iblockdata, boolean flag) {
+         public void onRemove(World world, BlockPosition blockposition, IBlockData iblockdata, boolean flag) {
