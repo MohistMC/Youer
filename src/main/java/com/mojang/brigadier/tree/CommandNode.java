@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
-import net.minecraft.commands.CommandListenerWrapper; // CraftBukkit
+import net.minecraft.commands.CommandSourceStack; // CraftBukkit
 
 public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
     private final Map<String, CommandNode<S>> children = new LinkedHashMap<>();
@@ -73,12 +73,12 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
 
     // CraftBukkit start
     public synchronized boolean canUse(final S source) {
-        if (source instanceof CommandListenerWrapper) {
+        if (source instanceof CommandSourceStack) {
             try {
-                ((CommandListenerWrapper) source).currentCommand = this;
+                ((CommandSourceStack) source).currentCommand = this;
                 return requirement.test(source);
             } finally {
-                ((CommandListenerWrapper) source).currentCommand = null;
+                ((CommandSourceStack) source).currentCommand = null;
             }
         }
         // CraftBukkit end
