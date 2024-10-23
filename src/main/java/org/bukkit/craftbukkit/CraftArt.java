@@ -2,7 +2,6 @@ package org.bukkit.craftbukkit;
 
 import com.google.common.base.Preconditions;
 import net.minecraft.core.Holder;
-import net.minecraft.core.IRegistry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.decoration.PaintingVariant;
 import org.bukkit.Art;
@@ -14,7 +13,7 @@ public class CraftArt {
     public static Art minecraftToBukkit(PaintingVariant minecraft) {
         Preconditions.checkArgument(minecraft != null);
 
-        IRegistry<PaintingVariant> registry = CraftRegistry.getMinecraftRegistry(Registries.PAINTING_VARIANT);
+        net.minecraft.core.Registry<PaintingVariant> registry = CraftRegistry.getMinecraftRegistry(Registries.PAINTING_VARIANT);
         Art bukkit = Registry.ART.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location()));
 
         Preconditions.checkArgument(bukkit != null);
@@ -23,7 +22,7 @@ public class CraftArt {
     }
 
     public static Art minecraftHolderToBukkit(Holder<PaintingVariant> minecraft) {
-        return minecraftToBukkit(minecraft.value());
+        return CraftArt.minecraftToBukkit(minecraft.value());
     }
 
     public static PaintingVariant bukkitToMinecraft(Art bukkit) {
@@ -36,9 +35,9 @@ public class CraftArt {
     public static Holder<PaintingVariant> bukkitToMinecraftHolder(Art bukkit) {
         Preconditions.checkArgument(bukkit != null);
 
-        IRegistry<PaintingVariant> registry = CraftRegistry.getMinecraftRegistry(Registries.PAINTING_VARIANT);
+        net.minecraft.core.Registry<PaintingVariant> registry = CraftRegistry.getMinecraftRegistry(Registries.PAINTING_VARIANT);
 
-        if (registry.wrapAsHolder(bukkitToMinecraft(bukkit)) instanceof Holder.c<PaintingVariant> holder) {
+        if (registry.wrapAsHolder(CraftArt.bukkitToMinecraft(bukkit)) instanceof Holder.Reference<PaintingVariant> holder) {
             return holder;
         }
 

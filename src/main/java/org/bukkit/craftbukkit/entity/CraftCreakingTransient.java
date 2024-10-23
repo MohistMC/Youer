@@ -11,7 +11,7 @@ public class CraftCreakingTransient extends CraftCreaking implements org.bukkit.
 
     @Override
     public CreakingTransient getHandle() {
-        return (CreakingTransient) entity;
+        return (CreakingTransient) this.entity;
     }
 
     @Override

@@ -56,7 +56,7 @@ public class EnumEvil {
         ClassTraverser it = new ClassTraverser(clazz);
         LegacyRegistryData registryData;
         while (it.hasNext()) {
-            registryData = REGISTRIES.get(it.next());
+            registryData = EnumEvil.REGISTRIES.get(it.next());
             if (registryData != null) {
                 return registryData;
             }
@@ -67,7 +67,7 @@ public class EnumEvil {
 
     @DoNotReroute
     public static Registry<?> getRegistry(Class<?> clazz) {
-        LegacyRegistryData registryData = getRegistryData(clazz);
+        LegacyRegistryData registryData = EnumEvil.getRegistryData(clazz);
 
         if (registryData != null) {
             return registryData.registry();
@@ -134,7 +134,7 @@ public class EnumEvil {
             return Enums.getIfPresent(clazz, name);
         }
 
-        Registry registry = getRegistry(clazz);
+        Registry registry = EnumEvil.getRegistry(clazz);
         if (registry == null) {
             return com.google.common.base.Optional.absent();
         }
@@ -157,7 +157,7 @@ public class EnumEvil {
             return clazz.getEnumConstants();
         }
 
-        Registry<?> registry = getRegistry(clazz);
+        Registry<?> registry = EnumEvil.getRegistry(clazz);
 
         if (registry == null) {
             return clazz.getEnumConstants();
@@ -197,16 +197,16 @@ public class EnumEvil {
     }
 
     public static Optional<Enum.EnumDesc> describeConstable(@RerouteArgumentType("java/lang/Enum") Object object) {
-        return getDeclaringClass(object)
+        return EnumEvil.getDeclaringClass(object)
                 .describeConstable()
-                .map(c -> Enum.EnumDesc.of(c, name(object)));
+                .map(c -> Enum.EnumDesc.of(c, EnumEvil.name(object)));
     }
 
     @RerouteStatic("java/lang/Enum")
     @RerouteReturnType("java/lang/Enum")
     public static Object valueOf(Class enumClass, String name, @InjectPluginVersion ApiVersion apiVersion) {
         name = FieldRename.rename(apiVersion, enumClass.getName().replace('.', '/'), name);
-        LegacyRegistryData registryData = getRegistryData(enumClass);
+        LegacyRegistryData registryData = EnumEvil.getRegistryData(enumClass);
         if (registryData != null) {
             return registryData.function().apply(name);
         }
@@ -242,11 +242,11 @@ public class EnumEvil {
 
         @Override
         protected T doForward(String value) {
-            if (registryData == null) {
-                registryData = getRegistryData(clazz);
+            if (this.registryData == null) {
+                this.registryData = EnumEvil.getRegistryData(this.clazz);
             }
-            value = FieldRename.rename(apiVersion, clazz.getName().replace('.', '/'), value);
-            return (T) registryData.function().apply(value);
+            value = FieldRename.rename(this.apiVersion, this.clazz.getName().replace('.', '/'), value);
+            return (T) this.registryData.function().apply(value);
         }
 
         @Override
@@ -264,12 +264,12 @@ public class EnumEvil {
 
         @Override
         public int hashCode() {
-            return clazz.hashCode();
+            return this.clazz.hashCode();
         }
 
         @Override
         public String toString() {
-            return "Enums.stringConverter(" + clazz.getName() + ".class)";
+            return "Enums.stringConverter(" + this.clazz.getName() + ".class)";
         }
 
         private static final long serialVersionUID = 0L;
