@@ -43,8 +43,7 @@ import org.bukkit.plugin.TimedRegisteredListener;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.spigotmc.CustomTimingsHandler; // Spigot
-import com.mohistmc.org.yaml.snakeyaml .error.YAMLException;
+import org.yaml.snakeyaml.error.YAMLException;
 
 /**
  * Represents a Java plugin loader, allowing plugins in the form of .jar
@@ -54,7 +53,6 @@ public final class JavaPluginLoader implements PluginLoader {
     private final Pattern[] fileFilters = new Pattern[]{Pattern.compile("\\.jar$")};
     private final List<PluginClassLoader> loaders = new CopyOnWriteArrayList<PluginClassLoader>();
     private final LibraryLoader libraryLoader;
-    public static final CustomTimingsHandler pluginParentTimer = new CustomTimingsHandler("** Plugins"); // Spigot
 
     /**
      * This class was not meant to be constructed explicitly
@@ -68,7 +66,7 @@ public final class JavaPluginLoader implements PluginLoader {
 
         LibraryLoader libraryLoader = null;
         try {
-            libraryLoader = new LibraryLoader();
+            libraryLoader = new LibraryLoader(server.getLogger());
         } catch (NoClassDefFoundError ex) {
             // Provided depends were not added back
             server.getLogger().warning("Could not initialize LibraryLoader (missing dependencies?)");
@@ -307,7 +305,7 @@ public final class JavaPluginLoader implements PluginLoader {
                     }
                 }
             };
-            if (false) { // Spigot - RL handles useTimings check now
+            if (useTimings) {
                 eventSet.add(new TimedRegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));
             } else {
                 eventSet.add(new RegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));

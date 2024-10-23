@@ -2828,44 +2828,6 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     @Nullable
     StructureSearchResult locateNearestStructure(@NotNull Location origin, @NotNull Structure structure, int radius, boolean findUnexplored);
 
-    // Spigot start
-    public class Spigot {
-
-        /**
-         * Strikes lightning at the given {@link Location} and possibly without sound
-         *
-         * @param loc The location to strike lightning
-         * @param isSilent Whether this strike makes no sound
-         * @return The lightning entity.
-         * @deprecated sound is now client side and cannot be removed
-         * @see World#strikeLightning(org.bukkit.Location)
-         */
-        @NotNull
-        @Deprecated
-        public LightningStrike strikeLightning(@NotNull Location loc, boolean isSilent) {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-
-        /**
-         * Strikes lightning at the given {@link Location} without doing damage and possibly without sound
-         *
-         * @param loc The location to strike lightning
-         * @param isSilent Whether this strike makes no sound
-         * @return The lightning entity.
-         * @deprecated sound is now client side and cannot be removed
-         * @see World#strikeLightningEffect(org.bukkit.Location)
-         */
-        @NotNull
-        @Deprecated
-        public LightningStrike strikeLightningEffect(@NotNull Location loc, boolean isSilent) {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-    }
-
-    @NotNull
-    Spigot spigot();
-    // Spigot end
-
     /**
      * Find the closest nearby location with a biome matching the provided
      * {@link Biome}(s). Finding biomes can, and will, block if the world is looking
@@ -3046,29 +3008,4 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
             }
         }
     }
-
-    // Mohist start
-
-    /**
-     * Returns whether the current world was created by a plugin.
-     *
-     * @return whether the current world was created by a plugin
-     */
-    boolean isBukkit();
-    void setBukkit(boolean b);
-
-    /**
-     * Returns whether the current world was created by a mod.
-     *
-     * @return whether the current world was created by a mod
-     */
-    boolean isMods();
-
-    /**
-     * Returns the mod source for this world.
-     *
-     * @return the mod source for this world
-     */
-    String getModid();
-    // Mohist end
 }

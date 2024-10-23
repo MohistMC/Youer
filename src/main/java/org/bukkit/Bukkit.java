@@ -1,7 +1,6 @@
 package org.bukkit;
 
 import com.google.common.collect.ImmutableList;
-import com.mohistmc.youer.Mohist;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.Serializable;
@@ -97,7 +96,7 @@ public final class Bukkit {
         }
 
         Bukkit.server = server;
-        server.getLogger().info("This server is running " + getName() + " version " + getVersion() + " (Implementing API version " + getBukkitVersion() + ", Forge version " + Mohist.versionInfo.forge() + ")");
+        server.getLogger().info("This server is running " + getName() + " version " + getVersion() + " (Implementing API version " + getBukkitVersion() + ")");
     }
 
     /**
@@ -634,7 +633,10 @@ public final class Bukkit {
     }
 
     /**
-     * Gets a player object by the given username.
+     * Gets a player whose name matches the given name closest.
+     * <p>
+     * Use {@link #getPlayerExact(String)} to get the player matching the input exactly
+     * and {@link #matchPlayer(String)} if you want a list of all players matching the input.
      * <p>
      * This method may not return objects for offline players.
      *
@@ -2148,10 +2150,5 @@ public final class Bukkit {
     @NotNull
     public static UnsafeValues getUnsafe() {
         return server.getUnsafe();
-    }
-
-    @NotNull
-    public static Server.Spigot spigot() {
-        return server.spigot();
     }
 }

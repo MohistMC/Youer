@@ -2,7 +2,6 @@ package org.bukkit.event.inventory;
 
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.AnvilInventory;
-import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.view.AnvilView;
 import org.jetbrains.annotations.NotNull;

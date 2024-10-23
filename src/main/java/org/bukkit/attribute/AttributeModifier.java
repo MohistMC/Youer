@@ -28,22 +28,22 @@ public class AttributeModifier implements ConfigurationSerializable, Keyed {
     private final Operation operation;
     private final EquipmentSlotGroup slot;
 
-    @Deprecated
+    @Deprecated(since = "1.21", forRemoval = true)
     public AttributeModifier(@NotNull String name, double amount, @NotNull Operation operation) {
         this(UUID.randomUUID(), name, amount, operation);
     }
 
-    @Deprecated
+    @Deprecated(since = "1.21", forRemoval = true)
     public AttributeModifier(@NotNull UUID uuid, @NotNull String name, double amount, @NotNull Operation operation) {
         this(uuid, name, amount, operation, (EquipmentSlot) null);
     }
 
-    @Deprecated
+    @Deprecated(since = "1.21", forRemoval = true)
     public AttributeModifier(@NotNull UUID uuid, @NotNull String name, double amount, @NotNull Operation operation, @Nullable EquipmentSlot slot) {
         this(uuid, name, amount, operation, (slot) == null ? EquipmentSlotGroup.ANY : slot.getGroup());
     }
 
-    @Deprecated
+    @Deprecated(since = "1.21", forRemoval = true)
     public AttributeModifier(@NotNull UUID uuid, @NotNull String name, double amount, @NotNull Operation operation, @NotNull EquipmentSlotGroup slot) {
         this(NamespacedKey.fromString(uuid.toString()), amount, operation, slot);
     }
@@ -66,7 +66,7 @@ public class AttributeModifier implements ConfigurationSerializable, Keyed {
      * @deprecated attributes are now identified by keys
      */
     @NotNull
-    @Deprecated
+    @Deprecated(since = "1.21", forRemoval = true)
     public UUID getUniqueId() {
         NamespacedKey namespacedKey = getKey();
         if (namespacedKey.getNamespace().equals(NamespacedKey.MINECRAFT)) {

@@ -65,7 +65,7 @@ public abstract class CraftingRecipe implements Recipe, Keyed {
 
     /**
      * Gets the category which this recipe will appear in the recipe book under.
-     *
+     * <br>
      * Defaults to {@link CraftingBookCategory#MISC} if not set.
      *
      * @return recipe book category
@@ -77,7 +77,7 @@ public abstract class CraftingRecipe implements Recipe, Keyed {
 
     /**
      * Sets the category which this recipe will appear in the recipe book under.
-     *
+     * <br>
      * Defaults to {@link CraftingBookCategory#MISC} if not set.
      *
      * @param category recipe book category

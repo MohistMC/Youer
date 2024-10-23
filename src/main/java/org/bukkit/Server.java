@@ -544,7 +544,10 @@ public interface Server extends PluginMessageRecipient {
     public int getTicksPerSpawns(@NotNull SpawnCategory spawnCategory);
 
     /**
-     * Gets a player object by the given username.
+     * Gets a player whose name matches the given name closest.
+     * <p>
+     * Use {@link #getPlayerExact(String)} to get the player matching the input exactly
+     * and {@link #matchPlayer(String)} if you want a list of all players matching the input.
      * <p>
      * This method may not return objects for offline players.
      *
@@ -1831,42 +1834,4 @@ public interface Server extends PluginMessageRecipient {
     @Deprecated
     @NotNull
     UnsafeValues getUnsafe();
-
-    // Spigot start
-    public class Spigot {
-
-        @NotNull
-        public org.bukkit.configuration.file.YamlConfiguration getConfig() {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-
-        /**
-         * Sends the component to the player
-         *
-         * @param component the components to send
-         */
-        public void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent component) {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-
-        /**
-         * Sends an array of components as a single message to the player
-         *
-         * @param components the components to send
-         */
-        public void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-
-        /**
-         * Restart the server. If the server administrator has not configured restarting, the server will stop.
-         */
-        public void restart() {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-    }
-
-    @NotNull
-    Spigot spigot();
-    // Spigot end
 }

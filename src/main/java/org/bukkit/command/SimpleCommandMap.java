@@ -16,6 +16,7 @@ import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.command.defaults.HelpCommand;
 import org.bukkit.command.defaults.PluginsCommand;
 import org.bukkit.command.defaults.ReloadCommand;
+import org.bukkit.command.defaults.TimingsCommand;
 import org.bukkit.command.defaults.VersionCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
@@ -35,6 +36,7 @@ public class SimpleCommandMap implements CommandMap {
         register("bukkit", new VersionCommand("version"));
         register("bukkit", new ReloadCommand("reload"));
         register("bukkit", new PluginsCommand("plugins"));
+        register("bukkit", new TimingsCommand("timings"));
     }
 
     public void setFallbackCommands() {
