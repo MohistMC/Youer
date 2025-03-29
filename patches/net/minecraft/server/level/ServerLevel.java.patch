@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -199,7 +_,7 @@
+@@ -164,6 +_,7 @@
+ import net.minecraft.world.phys.shapes.Shapes;
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ import net.minecraft.world.ticks.LevelTicks;
++import org.bukkit.craftbukkit.util.WorldUUID;
+ import org.slf4j.Logger;
+ 
+ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -199,12 +_,21 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -9,8 +17,26 @@
      private final StructureManager structureManager;
      private final StructureCheck structureCheck;
      private final boolean tickTime;
-@@ -232,7 +_,6 @@
+     private final RandomSequences randomSequences;
+ 
++    public final LevelStorageSource.LevelStorageAccess convertable;
++    public final UUID uuid;
++
++    @Override
++    public ResourceKey<LevelStem> getTypeKey() {
++        //return convertable.dimensionType;
++        return null;
++    }
++
+     public ServerLevel(
+         MinecraftServer p_214999_,
+         Executor p_215000_,
+@@ -230,9 +_,10 @@
+             p_215007_,
+             p_214999_.getMaxChainedNeighborUpdates()
          );
++        convertable = p_215001_;
++        uuid = WorldUUID.getUUID(p_215001_.levelDirectory.path().toFile());
          this.tickTime = p_215009_;
          this.server = p_214999_;
 -        this.customSpawners = p_215008_;

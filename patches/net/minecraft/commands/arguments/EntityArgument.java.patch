@@ -1,5 +1,31 @@
 --- a/net/minecraft/commands/arguments/EntityArgument.java
 +++ b/net/minecraft/commands/arguments/EntityArgument.java
+@@ -13,6 +_,7 @@
+ import java.util.Collection;
+ import java.util.List;
+ import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import net.minecraft.commands.CommandBuildContext;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.commands.SharedSuggestionProvider;
+@@ -102,9 +_,17 @@
+         return this.parse(p_353128_, EntitySelectorParser.allowSelectors(p_353120_));
+     }
+ 
++
++    public AtomicBoolean parse$overridePermissions = new AtomicBoolean(false);
++    public EntitySelector parse(StringReader stringreader, boolean flag, boolean overridePermissions) throws CommandSyntaxException {
++        parse$overridePermissions.set(overridePermissions);
++        return parse(stringreader, flag);
++    }
++
+     private EntitySelector parse(StringReader p_353134_, boolean p_353142_) throws CommandSyntaxException {
+         int i = 0;
+         EntitySelectorParser entityselectorparser = new EntitySelectorParser(p_353134_, p_353142_);
++        entityselectorparser.parse$overridePermissions.set(parse$overridePermissions.getAndSet(false));
+         EntitySelector entityselector = entityselectorparser.parse();
+         if (entityselector.getMaxResults() > 1 && this.single) {
+             if (this.playersOnly) {
 @@ -127,7 +_,7 @@
          if (p_91482_.getSource() instanceof SharedSuggestionProvider sharedsuggestionprovider) {
              StringReader stringreader = new StringReader(p_91483_.getInput());

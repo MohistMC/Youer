@@ -28,6 +28,21 @@
                  ChunkAccess chunkaccess1 = chunkholder.getChunkIfPresent(ChunkStatus.FULL);
                  if (chunkaccess1 != null) {
                      this.storeInCache(i, chunkaccess1, ChunkStatus.FULL);
+@@ -303,6 +_,14 @@
+         this.chunkMap.close();
+     }
+ 
++    public void close(boolean save) throws IOException {
++        if (save) {
++            this.save(true);
++        }
++        this.lightEngine.close();
++        this.chunkMap.close();
++    }
++
+     @Override
+     public void tick(BooleanSupplier p_201913_, boolean p_201914_) {
+         this.level.getProfiler().push("purge");
 @@ -356,7 +_,7 @@
                  for (ServerChunkCache.ChunkAndHolder serverchunkcache$chunkandholder : list) {
                      LevelChunk levelchunk1 = serverchunkcache$chunkandholder.chunk;

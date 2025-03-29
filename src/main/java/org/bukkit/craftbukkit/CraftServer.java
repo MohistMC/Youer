@@ -8,6 +8,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
+import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.neoforge.ForgeInjectBukkit;
+import com.mohistmc.youer.plugins.MohistPlugin;
+import com.mohistmc.youer.util.Level2LevelStem;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -322,7 +326,7 @@ public final class CraftServer implements Server {
                 return player.getBukkitEntity();
             }
         }));
-        this.serverVersion = Mohist.versionInfo.mohist();
+        this.serverVersion = "1.21.1";
         this.structureManager = new CraftStructureManager(console.getStructureManager(), console.registryAccess());
         this.dataPackManager = new CraftDataPackManager(this.getServer().getPackRepository());
         this.serverTickManager = new CraftServerTickManager(console.tickRateManager());
@@ -942,7 +946,7 @@ public final class CraftServer implements Server {
 
     @Override
     public void reloadData() {
-        ReloadCommand.reload(this.console);
+        //ReloadCommand.reload(this.console);
     }
 
     private void loadIcon() {

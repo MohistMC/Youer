@@ -1,35 +1,51 @@
 --- a/net/minecraft/commands/arguments/selector/EntitySelectorParser.java
 +++ b/net/minecraft/commands/arguments/selector/EntitySelectorParser.java
-@@ -21,7 +_,6 @@
- import javax.annotation.Nullable;
- import net.minecraft.advancements.critereon.MinMaxBounds;
- import net.minecraft.advancements.critereon.WrappedMinMaxBounds;
--import net.minecraft.commands.SharedSuggestionProvider;
- import net.minecraft.commands.arguments.selector.options.EntitySelectorOptions;
- import net.minecraft.network.chat.Component;
- import net.minecraft.server.level.ServerPlayer;
-@@ -204,6 +_,14 @@
+@@ -12,6 +_,7 @@
+ import java.util.List;
+ import java.util.UUID;
+ import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.BiConsumer;
+ import java.util.function.BiFunction;
+ import java.util.function.Consumer;
+@@ -204,8 +_,14 @@
          };
      }
  
++    public AtomicBoolean parseSelector$overridePermissions = new AtomicBoolean(false);
 +    protected void parseSelector(boolean overridePermissions) throws CommandSyntaxException {
-+        throw new RuntimeException("Not Implemented");
-+    }
-+
-+    public EntitySelector parse(boolean overridePermissions) throws CommandSyntaxException {
-+        throw new RuntimeException("Not Implemented");
++        parseSelector$overridePermissions.set(overridePermissions);
++        parseSelector();
 +    }
 +
      protected void parseSelector() throws CommandSyntaxException {
-         this.usesSelectors = true;
+-        this.usesSelectors = true;
++        this.usesSelectors = !parseSelector$overridePermissions.getAndSet(false);
          this.suggestions = this::suggestSelector;
-@@ -481,6 +_,9 @@
+         if (!this.reader.canRead()) {
+             throw ERROR_MISSING_SELECTOR_TYPE.createWithContext(this.reader);
+@@ -472,6 +_,12 @@
+         this.order = p_121269_;
+     }
+ 
++    public AtomicBoolean parse$overridePermissions = new AtomicBoolean(false);
++    public EntitySelector parse(boolean overridePermissions) throws CommandSyntaxException {
++        parse$overridePermissions.set(overridePermissions);
++        return parse();
++    }
++
+     public EntitySelector parse() throws CommandSyntaxException {
+         this.startPosition = this.reader.getCursor();
+         this.suggestions = this::suggestNameOrSelector;
+@@ -481,6 +_,11 @@
              }
  
              this.reader.skip();
 +            EntitySelector forgeSelector = net.neoforged.neoforge.common.command.EntitySelectorManager.parseSelector(this);
 +            if (forgeSelector != null)
 +                return forgeSelector;
++
++            parseSelector$overridePermissions.set(parse$overridePermissions.getAndSet(false));
              this.parseSelector();
          } else {
              this.parseNameOrUUID();

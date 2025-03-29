@@ -1,7 +1,7 @@
 package com.mohistmc.youer.bukkit.inventory;
 
 import net.minecraft.world.item.crafting.Recipe;
-import net.minecraftforge.server.ServerLifecycleHooks;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.bukkit.NamespacedKey;
 import org.bukkit.craftbukkit.inventory.CraftComplexRecipe;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;

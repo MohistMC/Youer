@@ -1,7 +1,12 @@
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
-@@ -27,8 +_,9 @@
+@@ -25,10 +_,14 @@
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer;
++import org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry;
++import org.bukkit.inventory.InventoryHolder;
  import org.slf4j.Logger;
  
 -public abstract class BlockEntity {
@@ -11,12 +16,17 @@
      private final BlockEntityType<?> type;
      @Nullable
      public Level level;
-@@ -36,6 +_,8 @@
+@@ -36,6 +_,13 @@
      protected boolean remove;
      private BlockState blockState;
      private DataComponentMap components = DataComponentMap.EMPTY;
 +    @Nullable
 +    private CompoundTag customPersistentData;
++
++    // CraftBukkit start - data containers
++    private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
++    public CraftPersistentDataContainer persistentDataContainer;
++    // CraftBukkit end
  
      public BlockEntity(BlockEntityType<?> p_155228_, BlockPos p_155229_, BlockState p_155230_) {
          this.type = p_155228_;
@@ -91,7 +101,21 @@
      @Deprecated
      public void setBlockState(BlockState p_155251_) {
          this.validateBlockState(p_155251_);
-@@ -325,5 +_,15 @@
+@@ -320,10 +_,29 @@
+         }
+     }
+ 
++    // CraftBukkit start - add method
++    public InventoryHolder getOwner() {
++        if (level == null) return null;
++        org.bukkit.block.BlockState state = level.getWorld().getBlockAt(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ()).getState();
++        if (state instanceof InventoryHolder) return (InventoryHolder) state;
++        return null;
++    }
++    // CraftBukkit end
++
+     protected interface DataComponentInput {
+         @Nullable
          <T> T get(DataComponentType<T> p_338658_);
  
          <T> T getOrDefault(DataComponentType<? extends T> p_338573_, T p_338734_);

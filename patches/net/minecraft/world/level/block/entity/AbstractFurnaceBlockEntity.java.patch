@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
+@@ -45,6 +_,8 @@
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.entity.HumanEntity;
+ 
+ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer, RecipeCraftingHolder, StackedContentsCompatible {
+     protected static final int SLOT_INPUT = 0;
 @@ -60,6 +_,7 @@
      public static final int NUM_DATA_VALUES = 4;
      public static final int BURN_TIME_STANDARD = 200;
@@ -208,3 +217,42 @@
          }
      }
  
+@@ -495,4 +_,38 @@
+             p_58342_.accountStack(itemstack);
+         }
+     }
++
++    // CraftBukkit start - add fields and methods
++    private int maxStack = MAX_STACK;
++    public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
++
++    public List<ItemStack> getContents() {
++        return this.items;
++    }
++
++    public void onOpen(CraftHumanEntity who) {
++        transaction.add(who);
++    }
++
++    public void onClose(CraftHumanEntity who) {
++        transaction.remove(who);
++    }
++
++    public List<HumanEntity> getViewers() {
++        return transaction;
++    }
++
++    @Override
++    public int getMaxStackSize() {
++        return maxStack;
++    }
++
++    public void setMaxStackSize(int size) {
++        maxStack = size;
++    }
++
++    public Object2IntOpenHashMap<ResourceLocation> getRecipesUsed() {
++        return this.recipesUsed; // PAIL private -> public
++    }
++    // CraftBukkit end
+ }

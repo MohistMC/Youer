@@ -1,5 +1,47 @@
 --- a/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
 +++ b/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
+@@ -11,6 +_,7 @@
+ import java.util.Map;
+ import java.util.Objects;
+ import java.util.Optional;
++import java.util.UUID;
+ import java.util.function.Predicate;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.BlockPos;
+@@ -41,6 +_,8 @@
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.dimension.DimensionType;
+ import net.minecraft.world.level.saveddata.SavedData;
++import org.bukkit.craftbukkit.CraftServer;
++import org.bukkit.craftbukkit.map.CraftMapView;
+ import org.slf4j.Logger;
+ 
+ public class MapItemSavedData extends SavedData {
+@@ -65,6 +_,13 @@
+     private final Map<String, MapFrame> frameMarkers = Maps.newHashMap();
+     private int trackedDecorationCount;
+ 
++    // CraftBukkit start
++    public final CraftMapView mapView;
++    private CraftServer server;
++    public UUID uniqueId = null;
++    public MapId id;
++    // CraftBukkit end
++
+     public static SavedData.Factory<MapItemSavedData> factory() {
+         return new SavedData.Factory<>(() -> {
+             throw new IllegalStateException("Should never create an empty map saved data");
+@@ -82,6 +_,10 @@
+         this.unlimitedTracking = p_164772_;
+         this.locked = p_164773_;
+         this.setDirty();
++        // CraftBukkit start
++        mapView = new CraftMapView(this);
++        server = (CraftServer) org.bukkit.Bukkit.getServer();
++        // CraftBukkit end
+     }
+ 
+     public static MapItemSavedData createFresh(
 @@ -268,7 +_,7 @@
          }
      }
