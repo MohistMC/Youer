@@ -111,7 +111,6 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         
         CraftEntity modsEntity = null;
         switch (entity) {
-            case VehicleEntity vehicle -> modsEntity = new MohistModsVehicle(server, vehicle);
             case LivingEntity livingEntity -> modsEntity = new CraftLivingEntity(server, livingEntity);
             case Entity entity1 -> modsEntity = new MohistModsEntity(server, entity1);
         }

@@ -1,0 +1,113 @@
+--- a/net/minecraft/world/level/block/entity/LecternBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/LecternBlockEntity.java
+@@ -1,5 +_,8 @@
+ package net.minecraft.world.level.block.entity;
+ 
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.List;
+ import javax.annotation.Nullable;
+ import net.minecraft.commands.CommandSource;
+ import net.minecraft.commands.CommandSourceStack;
+@@ -27,13 +_,65 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.Vec2;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.Location;
++import org.bukkit.block.Lectern;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.entity.HumanEntity;
++import org.bukkit.inventory.InventoryHolder;
+ 
+-public class LecternBlockEntity extends BlockEntity implements Clearable, MenuProvider {
++public class LecternBlockEntity extends BlockEntity implements Clearable, MenuProvider, CommandSource {
+     public static final int DATA_PAGE = 0;
+     public static final int NUM_DATA = 1;
+     public static final int SLOT_BOOK = 0;
+     public static final int NUM_SLOTS = 1;
+-    public final Container bookAccess = new Container() {
++    public final Container bookAccess = new LecternInventory();
++    public class LecternInventory implements Container {
++
++        public List<HumanEntity> transaction = new ArrayList<>();
++        private int maxStack = 1;
++
++        @Override
++        public List<ItemStack> getContents() {
++            return Arrays.asList(book);
++        }
++
++        @Override
++        public void onOpen(CraftHumanEntity who) {
++            transaction.add(who);
++        }
++
++        @Override
++        public void onClose(CraftHumanEntity who) {
++            transaction.remove(who);
++        }
++
++        @Override
++        public List<HumanEntity> getViewers() {
++            return transaction;
++        }
++
++        @Override
++        public void setMaxStackSize(int i) {
++            maxStack = i;
++        }
++
++        @Override
++        public Location getLocation() {
++            if (level == null) return null;
++            return CraftLocation.toBukkit(worldPosition, level.getWorld());
++        }
++
++        @Override
++        public InventoryHolder getOwner() {
++            return (Lectern) LecternBlockEntity.this.getOwner();
++        }
++
++        public LecternBlockEntity getLectern() {
++            return LecternBlockEntity.this;
++        }
++        // CraftBukkit end
++
+         @Override
+         public int getContainerSize() {
+             return 1;
+@@ -179,6 +_,33 @@
+ 
+         return p_59555_;
+     }
++
++    // CraftBukkit start
++    @Override
++    public void sendSystemMessage(Component ichatbasecomponent) {
++    }
++
++    @Override
++    public org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper) {
++        return wrapper.getEntity() != null ? wrapper.getEntity().getBukkitSender(wrapper) : new org.bukkit.craftbukkit.command.CraftBlockCommandSender(wrapper, this);
++    }
++
++    @Override
++    public boolean acceptsSuccess() {
++        return false;
++    }
++
++    @Override
++    public boolean acceptsFailure() {
++        return false;
++    }
++
++    @Override
++    public boolean shouldInformAdmins() {
++        return false;
++    }
++
++    // CraftBukkit end
+ 
+     private CommandSourceStack createCommandSourceStack(@Nullable Player p_59535_) {
+         String s;

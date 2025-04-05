@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/entity/decoration/Painting.java
++++ b/net/minecraft/world/entity/decoration/Painting.java
+@@ -125,6 +_,21 @@
+         this.setDirection(this.direction);
+     }
+ 
++    public static AABB calculateBoundingBoxStatic(BlockPos p_344831_, Direction p_345917_, int width, int height) {
++        Vec3 vec3 = Vec3.atCenterOf(p_344831_).relative(p_345917_, -0.46875);
++        // CraftBukkit start
++        double d0 = mohist$offsetForPaintingSize(width);
++        double d1 = mohist$offsetForPaintingSize(height);
++        // CraftBukkit end
++        Direction direction = p_345917_.getCounterClockWise();
++        Vec3 vec31 = vec3.relative(direction, d0).relative(Direction.UP, d1);
++        Direction.Axis direction$axis = p_345917_.getAxis();
++        double d2 = direction$axis == Direction.Axis.X ? 0.0625 : (double)width;
++        double d3 = (double)height;
++        double d4 = direction$axis == Direction.Axis.Z ? 0.0625 : (double)width;
++        return AABB.ofSize(vec31, d2, d3, d4);
++    }
++
+     @Override
+     protected AABB calculateBoundingBox(BlockPos p_344831_, Direction p_345917_) {
+         float f = 0.46875F;
+@@ -139,6 +_,10 @@
+         double d3 = (double)paintingvariant.height();
+         double d4 = direction$axis == Direction.Axis.Z ? 0.0625 : (double)paintingvariant.width();
+         return AABB.ofSize(vec31, d2, d3, d4);
++    }
++
++    private static double mohist$offsetForPaintingSize(int p_345028_) { // CraftBukkit - static
++        return p_345028_ % 2 == 0 ? 0.5 : 0.0;
+     }
+ 
+     private double offsetForPaintingSize(int p_345028_) {

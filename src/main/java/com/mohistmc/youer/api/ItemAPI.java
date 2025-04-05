@@ -13,7 +13,9 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.Material;
@@ -50,14 +52,6 @@ public class ItemAPI {
 
     public static ItemStack getBukkit(Material material) {
         return new ItemStack(material);
-    }
-
-    public static CompoundTag getNbt(ItemStack itemStack) {
-        return toNMSItem(itemStack).getTag() == null ? null : toNMSItem(itemStack).getTag();
-    }
-
-    public static String getNBTAsString(ItemStack itemStack) {
-        return toNMSItem(itemStack).getTag() == null ? "null" : toNMSItem(itemStack).getTag().getAsString();
     }
 
     public static String getNbtAsString(CompoundTag compoundTag) {
@@ -104,17 +98,6 @@ public class ItemAPI {
         }
     }
 
-    public static String serializeNBT(ItemStack itemStack) {
-        return getNbt(itemStack) == null ? null : serializeNbt(getNbt(itemStack));
-    }
-
-    public static ItemStack deserializeNBT(String serializeNBT) {
-        if (serializeNBT != null && !serializeNBT.isEmpty()) {
-            return CraftItemStack.asBukkitCopy(new net.minecraft.world.item.ItemStack(ItemAPI.deserializeNbt(serializeNBT)));
-        }
-        return new ItemStack(Material.AIR);
-    }
-
     public static String serializeNbt(CompoundTag nbtTagCompound) {
         try {
             ByteArrayOutputStream buf = new ByteArrayOutputStream();
@@ -129,7 +112,7 @@ public class ItemAPI {
         if (serializeNBT != null) {
             ByteArrayInputStream buf = new ByteArrayInputStream(Base64.getDecoder().decode(serializeNBT));
             try {
-                return NbtIo.readCompressed(buf);
+                return NbtIo.readCompressed(buf, NbtAccounter.unlimitedHeap());
             } catch (IOException e) {
                 Youer.LOGGER.error("Reading nbt ", e);
             }
@@ -182,7 +165,7 @@ public class ItemAPI {
     public static TextComponent show(ItemStack itemStack) {
         net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
         CompoundTag compound = new CompoundTag();
-        nmsItemStack.save(compound);
+        nmsItemStack.save(MinecraftServer.getServer().registryAccess(), compound);
         String json = compound.toString();
         BaseComponent[] hoverEventComponents = new BaseComponent[]{
                 new TextComponent(json)

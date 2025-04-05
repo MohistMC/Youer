@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.server.MinecraftServer;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforgespi.language.IModInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -32,7 +33,7 @@ public class ServerAPI {
     };
 
     static {
-        for (IModInfo modInfo : ModLoader.getModList().getMods()) {
+        for (IModInfo modInfo : ModList.get().getMods()) {
             modlists_All.add(modInfo.getModId());
             for (IModInfo.ModVersion modVersion : modInfo.getDependencies()) {
                 if (modVersion.getSide().name().equals("CLIENT")) {
@@ -54,7 +55,7 @@ public class ServerAPI {
 
     // Don't count the default number of mods
     public static int getModSize() {
-        return ModLoader.getModList().size();
+        return ModList.get().size();
     }
 
     public static Boolean hasMod(String modid) {

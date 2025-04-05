@@ -1,7 +1,7 @@
 package org.bukkit;
 
 import com.google.common.collect.ImmutableList;
-import com.mohistmc.youer.Mohist;
+import com.mohistmc.youer.Youer;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.Serializable;
@@ -77,7 +77,7 @@ public final class Bukkit {
     /**
      * Gets the current {@link Server} singleton
      *
-     * @return Server instance being ran
+     * @return Server instance being run
      */
     @NotNull
     public static Server getServer() {
@@ -97,7 +97,7 @@ public final class Bukkit {
         }
 
         Bukkit.server = server;
-        server.getLogger().info("This server is running " + getName() + " version " + getVersion() + " (Implementing API version " + getBukkitVersion() + ", Forge version " + Mohist.versionInfo.forge() + ")");
+        server.getLogger().info("This server is running " + getName() + " version " + getVersion() + " (Implementing API version " + getBukkitVersion() + ", Forge version " + Youer.versionInfo.neoforge() + ")");
     }
 
     /**

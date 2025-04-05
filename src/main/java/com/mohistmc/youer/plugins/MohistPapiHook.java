@@ -43,6 +43,6 @@ public class MohistPapiHook extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getVersion() {
-        return "1.20.1";
+        return "1.21.1";
     }
 }
