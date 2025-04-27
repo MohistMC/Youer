@@ -110,7 +110,6 @@ public class MohistCommand extends Command {
             }
             case "version" -> {
                 sender.sendMessage("Mohist: " + Youer.versionInfo.mohist());
-                sender.sendMessage("Forge: " + Youer.versionInfo.forge());
                 sender.sendMessage("NeoForge: " + Youer.versionInfo.neoforge());
                 sender.sendMessage("Bukkit: " + Youer.versionInfo.bukkit());
                 sender.sendMessage("CraftBukkit: " + Youer.versionInfo.craftbukkit());

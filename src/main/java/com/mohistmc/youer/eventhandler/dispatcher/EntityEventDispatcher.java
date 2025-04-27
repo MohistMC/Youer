@@ -22,6 +22,7 @@ import io.izzel.tools.collection.XmapList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -82,12 +83,5 @@ public class EntityEventDispatcher {
             return itemEntity;
         });
 
-        CraftLivingEntity craftLivingEntity = livingEntity.getBukkitLivingEntity();
-        EntityDeathEvent eventCB = new EntityDeathEvent(craftLivingEntity, itemStackList, livingEntity.getExperienceReward());
-        Bukkit.getPluginManager().callEvent(eventCB);
-
-        if (drops.isEmpty()) {
-            event.setCanceled(true);
-        }
     }
 }

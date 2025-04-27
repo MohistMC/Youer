@@ -180,9 +180,6 @@ public class ItemsCommand extends Command {
         player.sendMessage(ChatColor.GRAY + "Name - %s".formatted(nmsItem.getHoverName().getString()));
         player.sendMessage(ChatColor.GRAY + "ForgeItem - %s".formatted(itemStack.getType().isForgeItem));
         player.sendMessage(ChatColor.GRAY + "ForgeBlock - %s".formatted(itemStack.getType().isForgeBlock));
-        sendMessageByCopy(player, ChatColor.GRAY + "NBT(CraftBukkit) - ", ItemAPI.getNBTAsString(itemStack));
-        sendMessageByCopy(player, ChatColor.GRAY + "NBT(Vanilla) - ", ItemAPI.getNbtAsString(PlayerAPI.getNMSPlayer(player).getMainHandItem().getTag()));
-        sendMessageByCopy(player, ChatColor.GRAY + "NBT(Forge) - ", ItemAPI.getNbtAsString(nmsItem.getForgeCaps()));
     }
 
     public static void sendMessageByCopy(Player player, String des, String info) {
