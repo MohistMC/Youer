@@ -66,6 +66,7 @@ public interface Skeleton extends AbstractSkeleton {
         /**
          * Bogged skeleton.
          */
-        BOGGED;
+        BOGGED,
+        FORGE_MODS;
     }
 }

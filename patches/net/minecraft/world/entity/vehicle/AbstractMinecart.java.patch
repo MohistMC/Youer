@@ -1,8 +1,10 @@
 --- a/net/minecraft/world/entity/vehicle/AbstractMinecart.java
 +++ b/net/minecraft/world/entity/vehicle/AbstractMinecart.java
-@@ -45,7 +_,7 @@
+@@ -44,8 +_,9 @@
+ import net.minecraft.world.level.block.state.properties.RailShape;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
++import org.bukkit.util.Vector;
  
 -public abstract class AbstractMinecart extends VehicleEntity {
 +public abstract class AbstractMinecart extends VehicleEntity implements net.neoforged.neoforge.common.extensions.IAbstractMinecartExtension {
@@ -17,11 +19,22 @@
      private static final Map<RailShape, Pair<Vec3i, Vec3i>> EXITS = Util.make(Maps.newEnumMap(RailShape.class), p_38135_ -> {
          Vec3i vec3i = Direction.WEST.getNormal();
          Vec3i vec3i1 = Direction.EAST.getNormal();
-@@ -83,6 +_,7 @@
+@@ -83,6 +_,18 @@
          p_38135_.put(RailShape.NORTH_WEST, Pair.of(vec3i2, vec3i));
          p_38135_.put(RailShape.NORTH_EAST, Pair.of(vec3i2, vec3i1));
      });
 +    private static net.neoforged.neoforge.common.IMinecartCollisionHandler COLLISIONS = null;
++
++    // CraftBukkit start
++    public boolean slowWhenEmpty = true;
++    private double derailedX = 0.5;
++    private double derailedY = 0.5;
++    private double derailedZ = 0.5;
++    private double flyingX = 0.95;
++    private double flyingY = 0.95;
++    private double flyingZ = 0.95;
++    public double maxSpeed = 0.4D;
++    // CraftBukkit end
  
      protected AbstractMinecart(EntityType<?> p_38087_, Level p_38088_) {
          super(p_38087_, p_38088_);
@@ -211,12 +224,10 @@
                                  p_38165_.setDeltaMovement(vec33.multiply(0.2, 1.0, 0.2));
                                  p_38165_.push(vec32.x + d0, 0.0, vec32.z + d1);
                                  this.setDeltaMovement(vec32.multiply(0.95, 1.0, 0.95));
-@@ -789,6 +_,93 @@
- 
-     public void setCustomDisplay(boolean p_38139_) {
+@@ -791,6 +_,93 @@
          this.getEntityData().set(DATA_ID_CUSTOM_DISPLAY, p_38139_);
-+    }
-+
+     }
+ 
 +    // Neo: Controls whether a Minecrart is allowed on Rails or not
 +    private boolean canUseRail = true;
 +
@@ -302,6 +313,35 @@
 +        double d25 = mc.getMaxSpeedWithRail();
 +        Vec3 vec3d1 = mc.getDeltaMovement();
 +        mc.move(MoverType.SELF, new Vec3(Mth.clamp(d24 * vec3d1.x, -d25, d25), 0.0D, Mth.clamp(d24 * vec3d1.z, -d25, d25)));
-     }
- 
++    }
++
      @Override
+     public ItemStack getPickResult() {
+         return new ItemStack(switch (this.getMinecartType()) {
+@@ -812,4 +_,26 @@
+         HOPPER,
+         COMMAND_BLOCK;
+     }
++
++    // CraftBukkit start - Methods for getting and setting flying and derailed velocity modifiers
++    public Vector getFlyingVelocityMod() {
++        return new Vector(flyingX, flyingY, flyingZ);
++    }
++
++    public void setFlyingVelocityMod(Vector flying) {
++        flyingX = flying.getX();
++        flyingY = flying.getY();
++        flyingZ = flying.getZ();
++    }
++
++    public Vector getDerailedVelocityMod() {
++        return new Vector(derailedX, derailedY, derailedZ);
++    }
++
++    public void setDerailedVelocityMod(Vector derailed) {
++        derailedX = derailed.getX();
++        derailedY = derailed.getY();
++        derailedZ = derailed.getZ();
++    }
++    // CraftBukkit end
+ }

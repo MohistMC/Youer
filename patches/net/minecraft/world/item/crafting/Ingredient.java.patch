@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/crafting/Ingredient.java
 +++ b/net/minecraft/world/item/crafting/Ingredient.java
-@@ -27,17 +_,56 @@
+@@ -27,17 +_,57 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.ItemLike;
  
@@ -39,6 +39,7 @@
      private IntList stackingIds;
 -    public static final Codec<Ingredient> CODEC = codec(true);
 -    public static final Codec<Ingredient> CODEC_NONEMPTY = codec(false);
++    public boolean exact; // CraftBukkit
 +    @Nullable
 +    private net.neoforged.neoforge.common.crafting.ICustomIngredient customIngredient = null;
 +
@@ -83,7 +84,7 @@
          }
  
          return this.itemStacks;
-@@ -58,6 +_,8 @@
+@@ -58,10 +_,21 @@
      public boolean test(@Nullable ItemStack p_43914_) {
          if (p_43914_ == null) {
              return false;
@@ -92,6 +93,19 @@
          } else if (this.isEmpty()) {
              return p_43914_.isEmpty();
          } else {
+             for (ItemStack itemstack : this.getItems()) {
++                // CraftBukkit start
++                if (exact) {
++                    if (itemstack.getItem() == itemstack.getItem() && ItemStack.isSameItemSameComponents(itemstack, itemstack)) {
++                        return true;
++                    }
++
++                    continue;
++                }
++                // CraftBukkit end
+                 if (itemstack.is(p_43914_.getItem())) {
+                     return true;
+                 }
 @@ -86,13 +_,65 @@
          return this.stackingIds;
      }
