@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/entity/AgeableMob.java
++++ b/net/minecraft/world/entity/AgeableMob.java
+@@ -19,6 +_,7 @@
+     protected int age;
+     protected int forcedAge;
+     protected int forcedAgeTimer;
++    public boolean ageLocked; // CraftBukkit
+ 
+     protected AgeableMob(EntityType<? extends AgeableMob> p_146738_, Level p_146739_) {
+         super(p_146738_, p_146739_);
+@@ -101,6 +_,7 @@
+         super.addAdditionalSaveData(p_146761_);
+         p_146761_.putInt("Age", this.getAge());
+         p_146761_.putInt("ForcedAge", this.forcedAge);
++        p_146761_.putBoolean("AgeLocked", this.ageLocked); // CraftBukkit
+     }
+ 
+     @Override
+@@ -108,6 +_,7 @@
+         super.readAdditionalSaveData(p_146752_);
+         this.setAge(p_146752_.getInt("Age"));
+         this.forcedAge = p_146752_.getInt("ForcedAge");
++        this.ageLocked = p_146752_.getBoolean("AgeLocked"); // CraftBukkit
+     }
+ 
+     @Override
+@@ -122,7 +_,7 @@
+     @Override
+     public void aiStep() {
+         super.aiStep();
+-        if (this.level().isClientSide) {
++        if (this.level().isClientSide || ageLocked) { // CraftBukkit
+             if (this.forcedAgeTimer > 0) {
+                 if (this.forcedAgeTimer % 4 == 0) {
+                     this.level().addParticle(ParticleTypes.HAPPY_VILLAGER, this.getRandomX(1.0), this.getRandomY() + 0.5, this.getRandomZ(1.0), 0.0, 0.0, 0.0);

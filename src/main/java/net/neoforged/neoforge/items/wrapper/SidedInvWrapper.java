@@ -16,7 +16,7 @@ import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.Nullable;
 
 public class SidedInvWrapper implements IItemHandlerModifiable {
-    protected final WorldlyContainer inv;
+    public final WorldlyContainer inv;
     @Nullable
     protected final Direction side;
 

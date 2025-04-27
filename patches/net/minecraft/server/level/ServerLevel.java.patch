@@ -1,5 +1,24 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
+@@ -2,6 +_,7 @@
+ 
+ import com.google.common.annotations.VisibleForTesting;
+ import com.google.common.collect.Lists;
++import com.mohistmc.youer.neoforge.MohistDerivedWorldInfo;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.logging.LogUtils;
+@@ -155,8 +_,10 @@
+ import net.minecraft.world.level.saveddata.maps.MapId;
+ import net.minecraft.world.level.saveddata.maps.MapIndex;
+ import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
++import net.minecraft.world.level.storage.DerivedLevelData;
+ import net.minecraft.world.level.storage.DimensionDataStorage;
+ import net.minecraft.world.level.storage.LevelStorageSource;
++import net.minecraft.world.level.storage.PrimaryLevelData;
+ import net.minecraft.world.level.storage.ServerLevelData;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
 @@ -164,6 +_,7 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
@@ -8,7 +27,7 @@
  import org.slf4j.Logger;
  
  public class ServerLevel extends Level implements WorldGenLevel {
-@@ -199,12 +_,21 @@
+@@ -199,12 +_,28 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -19,30 +38,55 @@
      private final boolean tickTime;
      private final RandomSequences randomSequences;
  
++    public PrimaryLevelData K;
 +    public final LevelStorageSource.LevelStorageAccess convertable;
 +    public final UUID uuid;
++    public ResourceKey<LevelStem> typeKey;
 +
 +    @Override
 +    public ResourceKey<LevelStem> getTypeKey() {
-+        //return convertable.dimensionType;
-+        return null;
++        return typeKey == null ? super.getTypeKey() : typeKey;
 +    }
++
++    @Override
++    public ServerLevel craftWorldData(org.bukkit.World.Environment env, org.bukkit.generator.ChunkGenerator generator, org.bukkit.generator.BiomeProvider bp) {
++        return (ServerLevel) super.craftWorldData(env, generator, bp);
++    }
++
 +
      public ServerLevel(
          MinecraftServer p_214999_,
          Executor p_215000_,
-@@ -230,9 +_,10 @@
+@@ -230,10 +_,28 @@
              p_215007_,
              p_214999_.getMaxChainedNeighborUpdates()
          );
 +        convertable = p_215001_;
++        var typeKey = p_215001_.dimensionType;
++        if (typeKey != null) {
++            this.typeKey = typeKey;
++        } else {
++            var dimensions = p_214999_.registryAccess().registryOrThrow(Registries.LEVEL_STEM);
++            var key = dimensions.getResourceKey(p_215004_);
++            if (key.isPresent()) {
++                this.typeKey = key.get();
++            } else {
++                this.typeKey = ResourceKey.create(Registries.LEVEL_STEM, dimension.location());
++            }
++        }
 +        uuid = WorldUUID.getUUID(p_215001_.levelDirectory.path().toFile());
          this.tickTime = p_215009_;
          this.server = p_214999_;
 -        this.customSpawners = p_215008_;
          this.serverLevelData = p_215002_;
++        if (p_215002_ instanceof PrimaryLevelData) {
++            this.K = (PrimaryLevelData) p_215002_;
++        } else if (p_215002_ instanceof DerivedLevelData) {
++            this.K = MohistDerivedWorldInfo.create((DerivedLevelData)p_215002_);
++        }
          ChunkGenerator chunkgenerator = p_215004_.generator();
          boolean flag = p_214999_.forceSynchronousWrites();
+         DataFixer datafixer = p_214999_.getFixerUpper();
 @@ -298,6 +_,11 @@
          this.randomSequences = Objects.requireNonNullElseGet(
              p_288977_, () -> this.getDataStorage().computeIfAbsent(RandomSequences.factory(i), "random_sequences")

@@ -20,7 +20,7 @@
  import java.util.function.Predicate;
  import javax.annotation.Nonnull;
  import javax.annotation.Nullable;
-@@ -126,13 +_,20 @@
+@@ -126,13 +_,21 @@
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
  import net.minecraft.world.phys.AABB;
@@ -32,6 +32,7 @@
 +import org.bukkit.craftbukkit.attribute.CraftAttributeMap;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.ArrowBodyCountChangeEvent;
 +import org.bukkit.event.entity.EntityPotionEffectEvent;
 +import org.bukkit.event.entity.EntityRegainHealthEvent;
 +import org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason;
@@ -51,8 +52,12 @@
      protected static final EntityDataAccessor<Byte> DATA_LIVING_ENTITY_FLAGS = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.BYTE);
      public static final EntityDataAccessor<Float> DATA_HEALTH_ID = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.FLOAT);
      private static final EntityDataAccessor<List<ParticleOptions>> DATA_EFFECT_PARTICLES = SynchedEntityData.defineId(
-@@ -254,10 +_,34 @@
-     private boolean skipDropExperience;
+@@ -251,13 +_,37 @@
+     private float swimAmount;
+     private float swimAmountO;
+     protected Brain<?> brain;
+-    private boolean skipDropExperience;
++    public boolean skipDropExperience;
      private final Reference2ObjectMap<Enchantment, Set<EnchantmentLocationBasedEffect>> activeLocationDependentEnchantments = new Reference2ObjectArrayMap<>();
      protected float appliedScale = 1.0F;
 +    /**
@@ -192,7 +197,18 @@
          return d0;
      }
  
-@@ -899,7 +_,9 @@
+@@ -891,6 +_,10 @@
+         this.entityData.set(DATA_EFFECT_PARTICLES, List.of());
+     }
+ 
++    private final AtomicReference<org.bukkit.event.entity.EntityPotionEffectEvent.Cause> removeAllEffects$cause = new AtomicReference<>(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
++    public void removeAllEffects$cause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
++        removeAllEffects$cause.set(cause);
++    }
+     public boolean removeAllEffects() {
+         if (this.level().isClientSide) {
+             return false;
+@@ -899,7 +_,16 @@
  
              boolean flag;
              for (flag = false; iterator.hasNext(); flag = true) {
@@ -200,9 +216,27 @@
 +                MobEffectInstance effect = iterator.next();
 +                if(net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, effect, null)) continue;
 +                this.onEffectRemoved(effect);
++                // CraftBukkit start
++                EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, effect, null, removeAllEffects$cause.getAndSet(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN), EntityPotionEffectEvent.Action.CLEARED);
++                if (event.isCancelled()) {
++                    continue;
++                }
++                this.onEffectRemoved(effect);
++                // CraftBukkit end
                  iterator.remove();
              }
  
+@@ -907,6 +_,10 @@
+         }
+     }
+ 
++    public boolean removeAllEffects(EntityPotionEffectEvent.Cause cause) {
++        return removeAllEffects();
++    }
++
+     public Collection<MobEffectInstance> getActiveEffects() {
+         return this.activeEffects.values();
+     }
 @@ -925,15 +_,28 @@
      }
  
@@ -663,6 +697,32 @@
          }
      }
  
+@@ -1722,10 +_,25 @@
+         return this.entityData.get(DATA_ARROW_COUNT_ID);
+     }
+ 
++
++    private final AtomicBoolean setArrowCount$flag = new AtomicBoolean(false);
++    public void setArrowCount$flag(boolean flag) {
++        this.setArrowCount$flag.set(flag);
++    }
+     public final void setArrowCount(int p_21318_) {
++        ArrowBodyCountChangeEvent event = CraftEventFactory.callArrowBodyCountChangeEvent(this, getArrowCount(), p_21318_, setArrowCount$flag.getAndSet(false));
++        if (event.isCancelled()) {
++            return;
++        }
+         this.entityData.set(DATA_ARROW_COUNT_ID, p_21318_);
+     }
+ 
++    public final void setArrowCount(int i, boolean flag) {
++        this.setArrowCount$flag(flag);
++        this.setArrowCount(i);
++    }
++    // CraftBukkit end
++
+     public final int getStingerCount() {
+         return this.entityData.get(DATA_STINGER_COUNT_ID);
+     }
 @@ -1747,6 +_,8 @@
      }
  

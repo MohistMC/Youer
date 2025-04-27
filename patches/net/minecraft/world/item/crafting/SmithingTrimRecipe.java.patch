@@ -1,11 +1,30 @@
 --- a/net/minecraft/world/item/crafting/SmithingTrimRecipe.java
 +++ b/net/minecraft/world/item/crafting/SmithingTrimRecipe.java
-@@ -89,7 +_,7 @@
+@@ -19,6 +_,9 @@
+ import net.minecraft.world.item.armortrim.TrimPattern;
+ import net.minecraft.world.item.armortrim.TrimPatterns;
+ import net.minecraft.world.level.Level;
++import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.inventory.CraftRecipe;
++import org.bukkit.craftbukkit.inventory.CraftSmithingTrimRecipe;
+ 
+ public class SmithingTrimRecipe implements SmithingRecipe {
+     final Ingredient template;
+@@ -89,8 +_,15 @@
  
      @Override
      public boolean isIncomplete() {
 -        return Stream.of(this.template, this.base, this.addition).anyMatch(Ingredient::isEmpty);
+-    }
 +        return Stream.of(this.template, this.base, this.addition).anyMatch(Ingredient::hasNoItems);
-     }
++    }
++
++    // CraftBukkit start
++    @Override
++    public org.bukkit.inventory.Recipe toBukkitRecipe(NamespacedKey id) {
++        return new CraftSmithingTrimRecipe(id, CraftRecipe.toBukkit(this.template), CraftRecipe.toBukkit(this.base), CraftRecipe.toBukkit(this.addition));
++    }
++    // CraftBukkit end
  
      public static class Serializer implements RecipeSerializer<SmithingTrimRecipe> {
+         private static final MapCodec<SmithingTrimRecipe> CODEC = RecordCodecBuilder.mapCodec(

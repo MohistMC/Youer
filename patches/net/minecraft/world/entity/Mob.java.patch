@@ -1,12 +1,23 @@
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
-@@ -131,6 +_,9 @@
+@@ -85,6 +_,9 @@
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+ import net.minecraft.world.phys.AABB;
++import org.bukkit.craftbukkit.entity.CraftLivingEntity;
++import org.bukkit.event.entity.EntityTargetEvent;
++import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
+ 
+ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashable, Targeting {
+     private static final EntityDataAccessor<Byte> DATA_MOB_FLAGS_ID = SynchedEntityData.defineId(Mob.class, EntityDataSerializers.BYTE);
+@@ -131,6 +_,10 @@
      private Leashable.LeashData leashData;
      private BlockPos restrictCenter = BlockPos.ZERO;
      private float restrictRadius = -1.0F;
 +    @Nullable
 +    private MobSpawnType spawnType;
 +    private boolean spawnCancelled = false;
++    public boolean aware = true; // CraftBukkit
  
      protected Mob(EntityType<? extends Mob> p_21368_, Level p_21369_) {
          super(p_21368_, p_21369_);
@@ -23,7 +34,7 @@
      protected void registerGoals() {
      }
  
-@@ -237,7 +_,10 @@
+@@ -237,7 +_,40 @@
      }
  
      public void setTarget(@Nullable LivingEntity p_21544_) {
@@ -32,6 +43,36 @@
 +        if(!changeTargetEvent.isCanceled()) {
 +             this.target = changeTargetEvent.getNewAboutToBeSetTarget();
 +        }
++    }
++
++    public boolean setTarget(LivingEntity entityliving, EntityTargetEvent.TargetReason reason, boolean fireEvent) {
++        if (getTarget() == entityliving) return false;
++        if (fireEvent) {
++            if (reason == EntityTargetEvent.TargetReason.UNKNOWN && getTarget() != null && entityliving == null) {
++                reason = getTarget().isAlive() ? EntityTargetEvent.TargetReason.FORGOT_TARGET : EntityTargetEvent.TargetReason.TARGET_DIED;
++            }
++            if (reason == EntityTargetEvent.TargetReason.UNKNOWN) {
++                this.level().getCraftServer().getLogger().log(java.util.logging.Level.WARNING, "Unknown target reason, please report on the issue tracker", new Exception());
++            }
++            CraftLivingEntity ctarget = null;
++            if (entityliving != null) {
++                ctarget = (CraftLivingEntity) entityliving.getBukkitEntity();
++            }
++            EntityTargetLivingEntityEvent event = new EntityTargetLivingEntityEvent(this.getBukkitEntity(), ctarget, reason);
++            this.level().getCraftServer().getPluginManager().callEvent(event);
++            if (event.isCancelled()) {
++                return false;
++            }
++
++            if (event.getTarget() != null) {
++                entityliving = ((CraftLivingEntity) event.getTarget()).getHandle();
++            } else {
++                entityliving = null;
++            }
++        }
++        this.target = entityliving;
++        return true;
++        // CraftBukkit end
      }
  
      @Override
@@ -48,6 +89,19 @@
      }
  
      protected void updateControlFlags() {
+@@ -367,6 +_,12 @@
+         return null;
+     }
+ 
++    // CraftBukkit start - Add delegate method
++    public SoundEvent getAmbientSound0() {
++        return getAmbientSound();
++    }
++    // CraftBukkit end
++
+     @Override
+     public void addAdditionalSaveData(CompoundTag p_21484_) {
+         super.addAdditionalSaveData(p_21484_);
 @@ -425,6 +_,9 @@
          if (this.isNoAi()) {
              p_21484_.putBoolean("NoAI", this.isNoAi());

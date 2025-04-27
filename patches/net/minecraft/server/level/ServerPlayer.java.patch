@@ -1,6 +1,19 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -125,6 +_,7 @@
+@@ -93,6 +_,7 @@
+ import net.minecraft.world.Container;
+ import net.minecraft.world.InteractionHand;
+ import net.minecraft.world.MenuProvider;
++import net.minecraft.world.damagesource.CombatTracker;
+ import net.minecraft.world.damagesource.DamageSource;
+ import net.minecraft.world.effect.MobEffectInstance;
+ import net.minecraft.world.effect.MobEffects;
+@@ -121,10 +_,12 @@
+ import net.minecraft.world.entity.projectile.AbstractArrow;
+ import net.minecraft.world.entity.vehicle.AbstractMinecart;
+ import net.minecraft.world.entity.vehicle.Boat;
++import net.minecraft.world.food.FoodData;
+ import net.minecraft.world.inventory.AbstractContainerMenu;
  import net.minecraft.world.inventory.ContainerListener;
  import net.minecraft.world.inventory.ContainerSynchronizer;
  import net.minecraft.world.inventory.HorseInventoryMenu;
@@ -8,11 +21,15 @@
  import net.minecraft.world.inventory.ResultSlot;
  import net.minecraft.world.inventory.Slot;
  import net.minecraft.world.item.ComplexItem;
-@@ -160,6 +_,9 @@
+@@ -158,8 +_,13 @@
+ import net.minecraft.world.scores.PlayerTeam;
+ import net.minecraft.world.scores.ScoreAccess;
  import net.minecraft.world.scores.ScoreHolder;
++import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.scores.criteria.ObjectiveCriteria;
 +import org.bukkit.Bukkit;
++import org.bukkit.WeatherType;
 +import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
  import org.slf4j.Logger;
@@ -448,14 +465,150 @@
      }
  
      public boolean allowsListing() {
-@@ -1968,4 +_,10 @@
+@@ -1968,4 +_,146 @@
              return (float)Mth.wrapDegrees(Mth.atan2(vec3.z, vec3.x) * 180.0F / (float)Math.PI - 90.0);
          }
      }
++
++    // CraftBukkit start - Add per-player time and weather.
++    public long timeOffset = 0;
++    public boolean relativeTime = true;
++
++    public long getPlayerTime() {
++        if (this.relativeTime) {
++            // Adds timeOffset to the current server time.
++            return this.level().getDayTime() + this.timeOffset;
++        } else {
++            // Adds timeOffset to the beginning of this day.
++            return this.level().getDayTime() - (this.level().getDayTime() % 24000) + this.timeOffset;
++        }
++    }
++
++    public WeatherType weather = null;
++
++    public WeatherType getPlayerWeather() {
++        return this.weather;
++    }
++
++    public void setPlayerWeather(WeatherType type, boolean plugin) {
++        if (!plugin && this.weather != null) {
++            return;
++        }
++        if (plugin) {
++            this.weather = type;
++        }
++
++        if (type == WeatherType.DOWNFALL) {
++            this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.STOP_RAINING, 0));
++        } else {
++            this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.START_RAINING, 0));
++        }
++    }
++
++    private float pluginRainPosition;
++    private float pluginRainPositionPrevious;
++
++    public void updateWeather(float oldRain, float newRain, float oldThunder, float newThunder) {
++        if (this.weather == null) {
++            // Vanilla
++            if (oldRain != newRain) {
++                this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, newRain));
++            }
++        } else {
++            // Plugin
++            if (pluginRainPositionPrevious != pluginRainPosition) {
++                this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, pluginRainPosition));
++            }
++        }
++
++        if (oldThunder != newThunder) {
++            if (weather == WeatherType.DOWNFALL || weather == null) {
++                this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, newThunder));
++            } else {
++                this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, 0));
++            }
++        }
++    }
++
++    public void tickWeather() {
++        if (this.weather == null) return;
++
++        pluginRainPositionPrevious = pluginRainPosition;
++        if (weather == WeatherType.DOWNFALL) {
++            pluginRainPosition += 0.01;
++        } else {
++            pluginRainPosition -= 0.01;
++        }
++
++        pluginRainPosition = Mth.clamp(pluginRainPosition, 0.0F, 1.0F);
++    }
++
++    public void resetPlayerWeather() {
++        this.weather = null;
++        this.setPlayerWeather(this.level().getLevelData().isRaining() ? WeatherType.DOWNFALL : WeatherType.CLEAR, false);
++    }
++
++    @Override
++    public String toString() {
++        return super.toString() + "(" + this.getScoreboardName() + " at " + this.getX() + "," + this.getY() + "," + this.getZ() + ")";
++    }
++
++    // SPIGOT-1903, MC-98153
++    public void forceSetPositionRotation(double x, double y, double z, float yaw, float pitch) {
++        this.moveTo(x, y, z, yaw, pitch);
++        this.connection.resetPosition();
++    }
++
++    @Override
++    public boolean isImmobile() {
++        return super.isImmobile() || !getBukkitEntity().isOnline();
++    }
++
++    @Override
++    public Scoreboard getScoreboard() {
++        return getBukkitEntity().getScoreboard().getHandle();
++    }
++
++    public void reset() {
++        float exp = 0;
++        boolean keepInventory = this.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY);
++
++        if (this.keepLevel) { // CraftBukkit - SPIGOT-6687: Only use keepLevel (was pre-set with RULE_KEEPINVENTORY value in PlayerDeathEvent)
++            exp = this.experienceProgress;
++            this.newTotalExp = this.totalExperience;
++            this.newLevel = this.experienceLevel;
++        }
++
++        this.setHealth(this.getMaxHealth());
++        this.stopUsingItem(); // CraftBukkit - SPIGOT-6682: Clear active item on reset
++        this.setRemainingFireTicks(0);
++        this.fallDistance = 0;
++        this.foodData = new FoodData().player(this);
++        this.experienceLevel = this.newLevel;
++        this.totalExperience = this.newTotalExp;
++        this.experienceProgress = 0;
++        this.deathTime = 0;
++        this.setArrowCount(0, true); // CraftBukkit - ArrowBodyCountChangeEvent
++        this.removeAllEffects(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.DEATH);
++        this.effectsDirty = true;
++        this.containerMenu = this.inventoryMenu;
++        this.lastHurtByPlayer = null;
++        this.lastHurtByMob = null;
++        this.combatTracker = new CombatTracker(this);
++        this.lastSentExp = -1;
++        if (this.keepLevel) { // CraftBukkit - SPIGOT-6687: Only use keepLevel (was pre-set with RULE_KEEPINVENTORY value in PlayerDeathEvent)
++            this.experienceProgress = exp;
++        } else {
++            this.giveExperiencePoints(this.newExp);
++        }
++        this.keepLevel = false;
++        this.setDeltaMovement(0, 0, 0); // CraftBukkit - SPIGOT-6948: Reset velocity on death
++        this.skipDropExperience = false; // CraftBukkit - SPIGOT-7462: Reset experience drop skip, so that further deaths drop xp
++    }
 +
 +    @Override
 +    public CraftPlayer getBukkitEntity() {
 +        return (CraftPlayer) super.getBukkitEntity();
 +    }
-+    // CraftBukkit end
++   // CraftBukkit end
  }

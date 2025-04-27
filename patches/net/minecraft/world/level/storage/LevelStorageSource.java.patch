@@ -1,5 +1,76 @@
 --- a/net/minecraft/world/level/storage/LevelStorageSource.java
 +++ b/net/minecraft/world/level/storage/LevelStorageSource.java
+@@ -351,15 +_,37 @@
+         }
+     }
+ 
++    public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String p_289980_, ResourceKey<LevelStem> dimensionType) throws IOException, ContentValidationException {
++        return validateAndCreateAccess(p_289980_);
++    }
++
+     public LevelStorageSource.LevelStorageAccess createAccess(String p_78261_) throws IOException {
+         Path path = this.getLevelPath(p_78261_);
+         return new LevelStorageSource.LevelStorageAccess(p_78261_, path);
+     }
+ 
++    public LevelStorageSource.LevelStorageAccess createAccess(String p_78261_, ResourceKey<LevelStem> dimensionType) throws IOException {
++        return createAccess(p_78261_);
++    }
++
+     public DirectoryValidator getWorldDirValidator() {
+         return this.worldDirValidator;
+     }
+ 
++    // CraftBukkit start
++    public static Path getStorageFolder(Path path, ResourceKey<LevelStem> dimensionType) {
++        if (dimensionType == LevelStem.OVERWORLD) {
++            return path;
++        } else if (dimensionType == LevelStem.NETHER) {
++            return path.resolve("DIM-1");
++        } else if (dimensionType == LevelStem.END) {
++            return path.resolve("DIM1");
++        } else {
++            return path.resolve("dimensions").resolve(dimensionType.location().getNamespace()).resolve(dimensionType.location().getPath());
++        }
++    }
++    // CraftBukkit end
++
+     public static record LevelCandidates(List<LevelStorageSource.LevelDirectory> levels) implements Iterable<LevelStorageSource.LevelDirectory> {
+         public boolean isEmpty() {
+             return this.levels.isEmpty();
+@@ -410,11 +_,22 @@
+         public final LevelStorageSource.LevelDirectory levelDirectory;
+         private final String levelId;
+         private final Map<LevelResource, Path> resources = Maps.newHashMap();
++        // CraftBukkit start
++        public final ResourceKey<LevelStem> dimensionType;
+ 
+         LevelStorageAccess(String p_289967_, Path p_289988_) throws IOException {
+             this.levelId = p_289967_;
+             this.levelDirectory = new LevelStorageSource.LevelDirectory(p_289988_);
+             this.lock = DirectoryLock.create(p_289988_);
++            dimensionType = null;
++        }
++
++        LevelStorageAccess(String p_289967_, Path p_289988_, final ResourceKey<LevelStem> dimensionType) throws IOException {
++            this.levelId = p_289967_;
++            this.levelDirectory = new LevelStorageSource.LevelDirectory(p_289988_);
++            this.lock = DirectoryLock.create(p_289988_);
++            this.dimensionType = dimensionType;
++            // CraftBukkit end
+         }
+ 
+         public long estimateDiskSpace() {
+@@ -454,7 +_,8 @@
+         }
+ 
+         public Path getDimensionPath(ResourceKey<Level> p_197395_) {
+-            return DimensionType.getStorageFolder(p_197395_, this.levelDirectory.path());
++            // return DimensionType.getStorageFolder(p_197395_, this.levelDirectory.path()); // TODO Youer
++            return getStorageFolder(this.levelDirectory.path(), this.dimensionType); // CraftBukkit
+         }
+ 
+         private void checkLock() {
 @@ -463,6 +_,18 @@
              }
          }

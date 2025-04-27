@@ -20,7 +20,7 @@ public class MohistModsAbstractHorse extends CraftAbstractHorse {
 
     @Override
     public @NotNull Horse.Variant getVariant() {
-        return Horse.Variant.FORGE_MOD_HORSE;
+        return Horse.Variant.MODS;
     }
 
     @Override

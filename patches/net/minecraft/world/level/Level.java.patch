@@ -42,7 +42,7 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("the_nether"));
-@@ -114,6 +_,35 @@
+@@ -114,6 +_,46 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -56,6 +56,8 @@
 +    private CraftWorld world;
 +    public boolean pvpMode;
 +    public org.bukkit.generator.ChunkGenerator generator;
++    public org.bukkit.World.Environment environment;
++    public org.bukkit.generator.BiomeProvider biomeProvider;
 +
 +    public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
 +    public boolean captureBlockStates = false;
@@ -74,7 +76,16 @@
 +        return (CraftServer) Bukkit.getServer();
 +    }
 +
-+    public abstract ResourceKey<LevelStem> getTypeKey();
++    public ResourceKey<LevelStem> getTypeKey() {
++        return Registries.levelToLevelStem(dimension);
++    }
++
++    public Level craftWorldData(org.bukkit.World.Environment env, org.bukkit.generator.ChunkGenerator generator, org.bukkit.generator.BiomeProvider bp) {
++        this.environment = env;
++        this.biomeProvider = bp;
++        this.generator = generator;
++        return this;
++    }
  
      protected Level(
          WritableLevelData p_270739_,
