@@ -1,5 +1,21 @@
 --- a/net/minecraft/client/server/IntegratedServer.java
 +++ b/net/minecraft/client/server/IntegratedServer.java
+@@ -16,6 +_,7 @@
+ import net.minecraft.client.Minecraft;
+ import net.minecraft.client.gui.components.toasts.SystemToast;
+ import net.minecraft.client.multiplayer.ClientPacketListener;
++import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.Services;
+ import net.minecraft.server.WorldStem;
+@@ -33,6 +_,7 @@
+ import net.minecraft.world.level.storage.LevelStorageSource;
+ import net.neoforged.api.distmarker.Dist;
+ import net.neoforged.api.distmarker.OnlyIn;
++import org.bukkit.command.CommandSender;
+ import org.slf4j.Logger;
+ 
+ @OnlyIn(Dist.CLIENT)
 @@ -73,10 +_,12 @@
          this.setPvpAllowed(true);
          this.setFlightAllowed(true);
@@ -21,3 +37,14 @@
          this.executeBlocking(() -> {
              for (ServerPlayer serverplayer : Lists.newArrayList(this.getPlayerList().getPlayers())) {
                  if (!serverplayer.getUUID().equals(this.uuid)) {
+@@ -320,5 +_,10 @@
+         super.reportChunkSaveFailure(p_352264_, p_352355_, p_331440_);
+         this.warnOnLowDiskSpace();
+         this.minecraft.execute(() -> SystemToast.onChunkSaveFailure(this.minecraft, p_331440_));
++    }
++
++    @Override
++    public CommandSender getBukkitSender(CommandSourceStack wrapper) {
++        return null;
+     }
+ }
