@@ -3,12 +3,10 @@ package com.mohistmc.youer.neoforge;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
+import com.mohistmc.dynamicenum.MohistDynamEnum;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.ServerAPI;
-import com.mohistmc.youer.bukkit.inventory.MohistPotionEffect;
-import com.mohistmc.dynamicenum.MohistDynamEnum;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -16,13 +14,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.stats.StatType;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -30,8 +27,6 @@ import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.Potion;
-import net.minecraft.world.item.alchemy.Potions;
-import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.SignBlock;
@@ -48,13 +43,11 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Statistic;
 import org.bukkit.World;
-import org.bukkit.WorldType;
 import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.block.CraftBlockStates;
 import org.bukkit.craftbukkit.block.CraftChest;
 import org.bukkit.craftbukkit.block.CraftHangingSign;
 import org.bukkit.craftbukkit.block.CraftSign;
-import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
 import org.bukkit.craftbukkit.potion.CraftPotionUtil;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.craftbukkit.util.CraftSpawnCategory;
@@ -62,7 +55,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.SpawnCategory;
 import org.bukkit.entity.Villager;
-import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 
 public class ForgeInjectBukkit {
@@ -92,10 +84,8 @@ public class ForgeInjectBukkit {
         addEnumMaterialInItems();
         addEnumMaterialsInBlocks();
         addEnumBiome();
-        addEnumEnchantment();
         addEnumEffectAndPotion();
         addFluid();
-        //addEnumPattern();
         addEnumEntity();
         addEnumVillagerProfession();
         addEnumArt();
@@ -108,7 +98,7 @@ public class ForgeInjectBukkit {
 
 
     public static void addEnumMaterialInItems() {
-        var registry = ForgeRegistries.ITEMS;
+        var registry = BuiltInRegistries.ITEM;
         for (Item item : registry) {
             ResourceLocation resourceLocation = registry.getKey(item);
             if (isMods(resourceLocation)) {
@@ -126,7 +116,7 @@ public class ForgeInjectBukkit {
 
 
     public static void addEnumMaterialsInBlocks() {
-        var registry = ForgeRegistries.BLOCKS;
+        var registry = BuiltInRegistries.BLOCK;
         for (Block block : registry) {
             ResourceLocation resourceLocation = registry.getKey(block);
             if (isMods(resourceLocation)) {
@@ -164,31 +154,13 @@ public class ForgeInjectBukkit {
         }
     }
 
-
-    public static void addEnumEnchantment() {
-        // Enchantment
-        for (Enchantment enchantment : ForgeRegistries.ENCHANTMENTS) {
-            org.bukkit.enchantments.Enchantment.registerEnchantment(new CraftEnchantment(enchantment));
-        }
-        org.bukkit.enchantments.Enchantment.stopAcceptingRegistrations();
-    }
-
     public static void addEnumEffectAndPotion() {
-        // Points
-        var registry_effect = ForgeRegistries.MOB_EFFECTS;
-        for (MobEffect effect : registry_effect) {
-            String name = normalizeName(registry_effect.getKey(effect).toString());
-            MohistPotionEffect pet = new MohistPotionEffect(effect, name);
-            PotionEffectType.registerPotionEffectType(pet);
-        }
-        PotionEffectType.stopAcceptingRegistrations();
-        var registry = ForgeRegistries.POTIONS;
-        for (Potion potion : ForgeRegistries.POTIONS) {
+        var registry = BuiltInRegistries.POTION;
+        for (Potion potion : registry) {
             ResourceLocation resourceLocation = registry.getKey(potion);
-            if (isMods(resourceLocation) && CraftPotionUtil.toBukkit(resourceLocation.toString()).getType() == PotionType.UNCRAFTABLE && potion != Potions.EMPTY) {
+            if (isMods(resourceLocation)) {
                 String name = normalizeName(resourceLocation.toString());
-                MobEffectInstance effectInstance = potion.getEffects().isEmpty() ? null : potion.getEffects().get(0);
-                PotionType potionType = MohistDynamEnum.addEnum(PotionType.class, name, Arrays.asList(PotionEffectType.class, Boolean.TYPE, Boolean.TYPE), Arrays.asList(effectInstance == null ? null : PotionEffectType.getById(MobEffect.getId(effectInstance.getEffect())), false, false));
+                PotionType potionType = MohistDynamEnum.addEnum(PotionType.class, name, List.of(String.class), List.of(resourceLocation.toString()));
                 if (potionType != null) {
                     CraftPotionUtil.mods.put(potionType, resourceLocation.toString());
                     Youer.LOGGER.debug("Save-PotionType:" + name + " - " + potionType.name());
@@ -198,14 +170,13 @@ public class ForgeInjectBukkit {
     }
 
     public static void addEnumParticle() {
-        var registry = ForgeRegistries.PARTICLE_TYPES;
-        for (ParticleType<?> particleType : ForgeRegistries.PARTICLE_TYPES) {
+        var registry = BuiltInRegistries.PARTICLE_TYPE;
+        for (ParticleType<?> particleType : registry) {
             ResourceLocation resourceLocation = registry.getKey(particleType);
             String name = normalizeName(resourceLocation.toString());
             if (!resourceLocation.getNamespace().equals(NamespacedKey.MINECRAFT)) {
                 Particle particle = MohistDynamEnum.addEnum(Particle.class, name);
                 if (particle != null) {
-                    org.bukkit.craftbukkit.CraftParticle.putParticles(particle, resourceLocation);
                     Youer.LOGGER.debug("Save-ParticleType:" + name + " - " + particle.name());
                 }
             }
@@ -214,7 +185,7 @@ public class ForgeInjectBukkit {
 
     public static void addEnumBiome() {
         List<String> map = new ArrayList<>();
-        var registry = ForgeRegistries.BIOMES;
+        var registry = ServerAPI.getNMSServer().registryAccess().registryOrThrow(Registries.BIOME);
         for (net.minecraft.world.level.biome.Biome biome : registry) {
             ResourceLocation resourceLocation = registry.getKey(biome);
             String biomeName = normalizeName(resourceLocation.toString());
@@ -247,17 +218,8 @@ public class ForgeInjectBukkit {
         }
     }
 
-
-    // TODO Get mods type?
-    public static WorldType addEnumWorldType(String name) {
-        WorldType worldType = MohistDynamEnum.addEnum(WorldType.class, name, List.of(String.class), List.of(name));
-        Map<String, WorldType> BY_NAME = ObfuscationReflectionHelper.getPrivateValue(WorldType.class, null, "BY_NAME");
-        BY_NAME.put(name.toUpperCase(), worldType);
-        return worldType;
-    }
-
     public static void addEnumEntity() {
-        var registry = ForgeRegistries.ENTITY_TYPES;
+        var registry = BuiltInRegistries.ENTITY_TYPE;
         for (net.minecraft.world.entity.EntityType<?> entity : registry) {
             ResourceLocation resourceLocation = registry.getKey(entity);
             if (resourceLocation != null) {
@@ -277,7 +239,7 @@ public class ForgeInjectBukkit {
     }
 
     public static void addEnumVillagerProfession() {
-        var registry = ForgeRegistries.VILLAGER_PROFESSIONS;
+        var registry = BuiltInRegistries.VILLAGER_PROFESSION;
         for (VillagerProfession villagerProfession : registry) {
             ResourceLocation resourceLocation = registry.getKey(villagerProfession);
             if (isMods(resourceLocation)) {
@@ -290,7 +252,7 @@ public class ForgeInjectBukkit {
     }
 
     public static void addEnumAttribute() {
-        var registry = ForgeRegistries.ATTRIBUTES;
+        var registry = BuiltInRegistries.ATTRIBUTE;
         for (Attribute attribute : registry) {
             ResourceLocation resourceLocation = registry.getKey(attribute);
             if (isMods(resourceLocation)) {
@@ -303,20 +265,19 @@ public class ForgeInjectBukkit {
     }
 
     public static void addFluid() {
-        var registry = ForgeRegistries.FLUIDS;
+        var registry = BuiltInRegistries.FLUID;
         for (net.minecraft.world.level.material.Fluid fluidType : registry) {
             ResourceLocation resourceLocation = registry.getKey(fluidType);
             if (isMods(resourceLocation)) {
                 String name = normalizeName(resourceLocation.getPath());
                 Fluid fluid = MohistDynamEnum.addEnum(Fluid.class, name);
-                CraftMagicNumbers.FLUIDTYPE_FLUID.put(fluidType, fluid);
                 Youer.LOGGER.debug("Registered forge Fluid as Fluid(Bukkit) {}", fluid.name());
             }
         }
     }
 
     public static void addStatistic() {
-        var registry = ForgeRegistries.STAT_TYPES;
+        var registry = BuiltInRegistries.STAT_TYPE;
         for (StatType<?> statType : registry) {
             ResourceLocation resourceLocation = registry.getKey(statType);
             if (isMods(resourceLocation)) {
@@ -352,10 +313,11 @@ public class ForgeInjectBukkit {
 
     public static void addEnumArt() {
         int i = Art.values().length;
-        for (var entry : ForgeRegistries.PAINTING_VARIANTS) {
-            int width = entry.getWidth();
-            int height = entry.getHeight();
-            ResourceLocation resourceLocation = ForgeRegistries.PAINTING_VARIANTS.getKey(entry);
+        var registry = ServerAPI.getNMSServer().registryAccess().registryOrThrow(Registries.PAINTING_VARIANT);
+        for (var entry : registry) {
+            int width = entry.width();
+            int height = entry.height();
+            ResourceLocation resourceLocation = registry.getKey(entry);
             if (isMods(resourceLocation)) {
                 String name = normalizeName(resourceLocation.toString());
                 String lookupName = resourceLocation.getPath().toLowerCase(Locale.ROOT);

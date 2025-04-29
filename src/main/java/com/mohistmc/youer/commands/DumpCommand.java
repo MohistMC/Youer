@@ -18,10 +18,10 @@
 
 package com.mohistmc.youer.commands;
 
+import com.mohistmc.tools.HasteUtils;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.ChatComponentAPI;
 import com.mohistmc.youer.api.ServerAPI;
-import com.mohistmc.tools.HasteUtils;
 import com.mohistmc.youer.util.I18n;
 import java.io.File;
 import java.io.IOException;
@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.server.MinecraftServer;
 import org.apache.commons.io.FileUtils;

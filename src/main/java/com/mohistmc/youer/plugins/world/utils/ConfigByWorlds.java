@@ -167,7 +167,7 @@ public class ConfigByWorlds {
                         world.getWorldBorder().setSize(config.getDouble("worlds." + w + ".worldborder"));
                     }
                     // Fix mods world
-                    ((CraftWorld)world).getHandle().keepSpawnInMemory = keepspawninmemory;
+                    // ((CraftWorld)world).getHandle().keepSpawnInMemory = keepspawninmemory;
                 }
             }
         }

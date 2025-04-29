@@ -1,7 +1,7 @@
 package com.mohistmc.youer;
 
-import com.mohistmc.youer.eventhandler.EventDispatcherRegistry;
 import com.mohistmc.i18n.i18n;
+import com.mohistmc.youer.eventhandler.EventDispatcherRegistry;
 import com.mohistmc.youer.plugins.MohistProxySelector;
 import com.mohistmc.youer.util.VersionInfo;
 import java.net.ProxySelector;

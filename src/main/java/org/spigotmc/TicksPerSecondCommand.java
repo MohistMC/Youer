@@ -37,7 +37,7 @@ public class TicksPerSecondCommand extends Command
         return true;
     }
 
-    public String format(double tps)
+    public static String format(double tps)
     {
         return ( ( tps > 18.0 ) ? ChatColor.GREEN : ( tps > 16.0 ) ? ChatColor.YELLOW : ChatColor.RED ).toString()
                 + ( ( tps > 20.0 ) ? "*" : "" ) + Math.min( Math.round( tps * 100.0 ) / 100.0, 20.0 );

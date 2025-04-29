@@ -18,8 +18,8 @@
 
 package com.mohistmc.youer.commands;
 
-import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.MohistConfig;
+import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.util.I18n;

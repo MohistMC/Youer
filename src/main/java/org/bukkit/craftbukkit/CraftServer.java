@@ -2497,6 +2497,11 @@ public final class CraftServer implements Server {
         return CraftMagicNumbers.INSTANCE;
     }
 
+    @Override
+    public double[] getTPS() {
+        return net.minecraft.server.MinecraftServer.getServer().recentTps;
+    }
+
     // Spigot start
     private final org.bukkit.Server.Spigot spigot = new org.bukkit.Server.Spigot()
     {

@@ -1,12 +1,12 @@
 package com.mohistmc.youer.plugins.ban;
 
+import com.mohistmc.tools.ListUtils;
 import com.mohistmc.youer.MohistConfig;
 import com.mohistmc.youer.api.EnchantmentAPI;
 import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.plugins.ban.utils.BanSaveInventory;
 import com.mohistmc.youer.plugins.ban.utils.BanUtils;
-import com.mohistmc.tools.ListUtils;
 import java.util.List;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;

@@ -14,7 +14,6 @@ import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
-
 import static org.objectweb.asm.Opcodes.ARETURN;
 
 public class PluginFixManager {

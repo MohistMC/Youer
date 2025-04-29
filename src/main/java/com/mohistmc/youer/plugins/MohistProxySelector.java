@@ -1,9 +1,9 @@
 package com.mohistmc.youer.plugins;
 
+import com.mohistmc.tools.IOUtil;
 import com.mohistmc.youer.MohistConfig;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.event.MohistNetworkEvent;
-import com.mohistmc.tools.IOUtil;
 import java.io.IOException;
 import java.net.Proxy;
 import java.net.ProxySelector;
