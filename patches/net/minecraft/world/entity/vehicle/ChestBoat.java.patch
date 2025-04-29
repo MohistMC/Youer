@@ -1,5 +1,23 @@
 --- a/net/minecraft/world/entity/vehicle/ChestBoat.java
 +++ b/net/minecraft/world/entity/vehicle/ChestBoat.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.entity.vehicle;
+ 
++import java.util.List;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.NonNullList;
+ import net.minecraft.nbt.CompoundTag;
+@@ -23,6 +_,10 @@
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.storage.loot.LootTable;
++import org.bukkit.Location;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.entity.HumanEntity;
++import org.bukkit.inventory.InventoryHolder;
+ 
+ public class ChestBoat extends Boat implements HasCustomInventoryScreen, ContainerEntity {
+     private static final int CONTAINER_SIZE = 27;
 @@ -122,7 +_,8 @@
              case DARK_OAK -> Items.DARK_OAK_CHEST_BOAT;
              case MANGROVE -> Items.MANGROVE_CHEST_BOAT;
@@ -10,3 +28,55 @@
          };
      }
  
+@@ -220,4 +_,51 @@
+     public void stopOpen(Player p_270286_) {
+         this.level().gameEvent(GameEvent.CONTAINER_CLOSE, this.position(), GameEvent.Context.of(p_270286_));
+     }
++
++    // CraftBukkit start
++    public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
++    private int maxStack = MAX_STACK;
++
++    @Override
++    public List<ItemStack> getContents() {
++        return this.itemStacks;
++    }
++
++    @Override
++    public void onOpen(CraftHumanEntity who) {
++        transaction.add(who);
++    }
++
++    @Override
++    public void onClose(CraftHumanEntity who) {
++        transaction.remove(who);
++    }
++
++    @Override
++    public List<HumanEntity> getViewers() {
++        return transaction;
++    }
++
++    @Override
++    public InventoryHolder getOwner() {
++        org.bukkit.entity.Entity entity = getBukkitEntity();
++        if (entity instanceof InventoryHolder) return (InventoryHolder) entity;
++        return null;
++    }
++
++    @Override
++    public int getMaxStackSize() {
++        return maxStack;
++    }
++
++    @Override
++    public void setMaxStackSize(int size) {
++        maxStack = size;
++    }
++
++    @Override
++    public Location getLocation() {
++        return getBukkitEntity().getLocation();
++    }
++    // CraftBukkit end
+ }

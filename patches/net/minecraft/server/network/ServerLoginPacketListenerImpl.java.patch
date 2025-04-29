@@ -13,7 +13,7 @@
  import net.minecraft.network.protocol.configuration.ConfigurationProtocols;
  import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
  import net.minecraft.network.protocol.login.ClientboundGameProfilePacket;
-@@ -42,9 +_,26 @@
+@@ -42,23 +_,46 @@
  import net.minecraft.util.RandomSource;
  import net.minecraft.util.StringUtil;
  import org.apache.commons.lang3.Validate;
@@ -30,7 +30,7 @@
 +
 +    @Override
 +    public ConnectionProtocol getProtocol() {
-+        return ConnectionProtocol.LOGIN;
++        return protocol();
 +    }
 +
 +    @Override
@@ -38,9 +38,32 @@
 +        this.connection.send(packet);
 +    }
 +
++    @Override
++    public void kickPlayer(Component reason) {
++        disconnect(reason);
++    }
++
      private static final AtomicInteger UNIQUE_THREAD_ID = new AtomicInteger(0);
      static final Logger LOGGER = LogUtils.getLogger();
      private static final int MAX_TICKS_BEFORE_LOGIN = 600;
+     private final byte[] challenge;
+-    final MinecraftServer server;
++    public final MinecraftServer server;
+     public final Connection connection;
+-    private volatile ServerLoginPacketListenerImpl.State state = ServerLoginPacketListenerImpl.State.HELLO;
++    public volatile ServerLoginPacketListenerImpl.State state = ServerLoginPacketListenerImpl.State.HELLO;
+     private int tick;
+     @Nullable
+     String requestedUsername;
+     @Nullable
+-    private GameProfile authenticatedProfile;
++    public GameProfile authenticatedProfile;
+     private final String serverId = "";
+     private final boolean transferred;
++    public int velocityLoginMessageId = -1; // Paper - Velocity support
+ 
+     public ServerLoginPacketListenerImpl(MinecraftServer p_10027_, Connection p_10028_, boolean p_320815_) {
+         this.server = p_10027_;
 @@ -86,6 +_,21 @@
      @Override
      public boolean isAcceptingMessages() {

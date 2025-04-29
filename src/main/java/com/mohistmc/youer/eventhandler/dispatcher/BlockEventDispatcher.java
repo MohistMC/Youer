@@ -46,7 +46,7 @@ public class BlockEventDispatcher {
             if (block instanceof AbstractCandleBlock) {
                 // CraftBukkit start
                 if (CraftEventFactory.callBlockIgniteEvent(level, projectile.getOnPos(), projectile).isCancelled()) {
-                    event.setImpactResult(ProjectileImpactEvent.ImpactResult.STOP_AT_CURRENT_NO_DAMAGE);
+                    event.setCanceled(true);
                 }
                 // CraftBukkit end
             }
@@ -66,11 +66,9 @@ public class BlockEventDispatcher {
             if (level instanceof ServerLevel) {
                 BlockBreakEvent bukkitEvent = new BlockBreakEvent(bblock, serverPlayer.getBukkitEntity());
                 bukkitEvent.setCancelled(event.isCanceled());
-                bukkitEvent.setExpToDrop(event.getExpToDrop());
                 Bukkit.getPluginManager().callEvent(bukkitEvent);
                 blockBreakEvent.set(bukkitEvent);
                 event.setCanceled(bukkitEvent.isCancelled());
-                event.setExpToDrop(bukkitEvent.getExpToDrop());
             }
             // CraftBukkit end
         }
@@ -96,7 +94,7 @@ public class BlockEventDispatcher {
                     bukkitHand = org.bukkit.inventory.EquipmentSlot.OFF_HAND;
                 }
                 CraftBlockState replacedBlockState = CraftBlockStates.getBlockState(event.getLevel(), event.getPos());
-                replacedBlockState.setData(event.getBlockSnapshot().getReplacedBlock());
+                replacedBlockState.setData(event.getBlockSnapshot().getState());
                 BlockPlaceEvent placeEvent = new BlockPlaceEvent(placedBlock, replacedBlockState, againstBlock, bukkitStack, player, !event.isCanceled(), bukkitHand);
                 placeEvent.setCancelled(event.isCanceled());
                 Bukkit.getPluginManager().callEvent(placeEvent);

@@ -1,5 +1,13 @@
 --- a/net/minecraft/server/level/DistanceManager.java
 +++ b/net/minecraft/server/level/DistanceManager.java
+@@ -33,6 +_,7 @@
+ import net.minecraft.util.thread.ProcessorHandle;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.chunk.LevelChunk;
++import org.bukkit.plugin.Plugin;
+ import org.slf4j.Logger;
+ 
+ public abstract class DistanceManager {
 @@ -54,6 +_,8 @@
      private long ticketTickCounter;
      public int simulationDistance = 10;
@@ -57,15 +65,33 @@
          long i = p_140851_.toLong();
          this.removeTicket(i, ticket);
          this.tickingTicketsTracker.removeTicket(i, ticket);
-@@ -267,6 +_,11 @@
- 
-     public String getDebugStatus() {
+@@ -269,6 +_,11 @@
          return this.ticketThrottler.getDebugStatus();
-+    }
-+
+     }
+ 
 +    public boolean shouldForceTicks(long chunkPos) {
 +         SortedArraySet<Ticket<?>> tickets = forcedTickets.get(chunkPos);
 +         return tickets != null && !tickets.isEmpty();
++    }
++
+     private void dumpTickets(String p_143208_) {
+         try (FileOutputStream fileoutputstream = new FileOutputStream(new File(p_143208_))) {
+             for (Entry<SortedArraySet<Ticket<?>>> entry : this.tickets.long2ObjectEntrySet()) {
+@@ -320,6 +_,17 @@
+ 
+     public boolean hasTickets() {
+         return !this.tickets.isEmpty();
++    }
++
++    public void removeAllTicketsFor(TicketType<Plugin> pluginTicket, int i, Plugin plugin) {
++    }
++
++    public boolean removeRegionTicketAtDistance(TicketType<Plugin> pluginTicket, ChunkPos chunkPos, int i, Plugin plugin) {
++        return true;
++    }
++
++    public boolean addRegionTicketAtDistance(TicketType<Plugin> pluginTicket, ChunkPos chunkPos, int i, Plugin plugin) {
++        return true;
      }
  
-     private void dumpTickets(String p_143208_) {
+     public class ChunkTicketTracker extends ChunkTracker {

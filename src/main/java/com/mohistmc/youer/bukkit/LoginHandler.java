@@ -19,9 +19,9 @@ public class LoginHandler {
             return;
         }
         // Paper end
-        String playerName = serverLoginPacketListener.gameProfile.getName();
+        String playerName = serverLoginPacketListener.authenticatedProfile.getName();
         java.net.InetAddress address = ((java.net.InetSocketAddress) serverLoginPacketListener.connection.getRemoteAddress()).getAddress();
-        java.util.UUID uniqueId = serverLoginPacketListener.gameProfile.getId();
+        java.util.UUID uniqueId = serverLoginPacketListener.authenticatedProfile.getId();
         final org.bukkit.craftbukkit.CraftServer server = serverLoginPacketListener.server.server;
 
         AsyncPlayerPreLoginEvent asyncEvent = new AsyncPlayerPreLoginEvent(playerName, address, uniqueId);
@@ -55,7 +55,7 @@ public class LoginHandler {
         serverLoginPacketListener.state = ServerLoginPacketListenerImpl.State.NEGOTIATING; // FORGE: continue NEGOTIATING, we move to READY_TO_ACCEPT after Forge is ready
     }
 
-    public static void disconnect(ServerGamePacketListenerImpl serverGamePacketListener, String pTextComponent){
+    public static void disconnect(ServerLoginPacketListenerImpl serverGamePacketListener, String pTextComponent){
         Waitable waitable = new Waitable() {
             @Override
             protected Object evaluate() {

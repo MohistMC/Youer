@@ -870,7 +870,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public double getHumidity(int x, int y, int z) {
-        return this.world.getNoiseBiome(x >> 2, y >> 2, z >> 2).value().i.downfall();
+        return this.world.getNoiseBiome(x >> 2, y >> 2, z >> 2).value().getModifiedClimateSettings().downfall();
     }
 
     @Override
@@ -892,7 +892,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public void addEntityWithPassengers(net.minecraft.world.entity.Entity entity, SpawnReason reason) {
-        this.getHandle().tryAddFreshEntityWithPassengers(entity, reason);
+        this.getHandle().tryAddFreshEntityWithPassengers(entity /* TODO , reason */);
     }
 
     @Override
@@ -1250,7 +1250,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         Preconditions.checkArgument(material != null, "Material cannot be null");
         Preconditions.checkArgument(material.isBlock(), "Material.%s must be a block", material);
 
-        FallingBlockEntity entity = FallingBlockEntity.fall(this.world, BlockPos.containing(location.getX(), location.getY(), location.getZ()), CraftBlockType.bukkitToMinecraft(material).defaultBlockState(), SpawnReason.CUSTOM);
+        FallingBlockEntity entity = FallingBlockEntity.fall(this.world, BlockPos.containing(location.getX(), location.getY(), location.getZ()), CraftBlockType.bukkitToMinecraft(material).defaultBlockState() /* TODO , SpawnReason.CUSTOM */);
         return (FallingBlock) entity.getBukkitEntity();
     }
 
@@ -1259,7 +1259,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         Preconditions.checkArgument(location != null, "Location cannot be null");
         Preconditions.checkArgument(data != null, "BlockData cannot be null");
 
-        FallingBlockEntity entity = FallingBlockEntity.fall(this.world, BlockPos.containing(location.getX(), location.getY(), location.getZ()), ((CraftBlockData) data).getState(), SpawnReason.CUSTOM);
+        FallingBlockEntity entity = FallingBlockEntity.fall(this.world, BlockPos.containing(location.getX(), location.getY(), location.getZ()), ((CraftBlockData) data).getState() /* TODO , SpawnReason.CUSTOM */);
         return (FallingBlock) entity.getBukkitEntity();
     }
 
@@ -1765,7 +1765,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
         GameRules.Value<?> handle = this.getHandle().getGameRules().getRule(CraftWorld.getGameRulesNMS().get(rule));
         handle.deserialize(value);
-        handle.onChanged(this.getHandle());
+        handle.onChanged(this.getHandle().getServer());
         return true;
     }
 
@@ -1802,7 +1802,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
         GameRules.Value<?> handle = this.getHandle().getGameRules().getRule(CraftWorld.getGameRulesNMS().get(rule.getName()));
         handle.deserialize(newValue.toString());
-        handle.onChanged(this.getHandle());
+        handle.onChanged(this.getHandle().getServer());
         return true;
     }
 
@@ -1897,13 +1897,11 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     @Override
     public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data, boolean force) {
         this.getHandle().sendParticles(
-                null, // Sender
                 CraftParticle.createParticleParam(particle, data), // Particle
                 x, y, z, // Position
                 count,  // Count
                 offsetX, offsetY, offsetZ, // Random offset
-                extra, // Speed?
-                force
+                extra // Speed?
         );
     }
 
