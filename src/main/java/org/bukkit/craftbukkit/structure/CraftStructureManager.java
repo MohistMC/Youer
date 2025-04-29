@@ -139,14 +139,14 @@ public class CraftStructureManager implements StructureManager {
         Preconditions.checkArgument(file != null, "File cannot be null");
 
         FileInputStream fileinputstream = new FileInputStream(file);
-        return this.loadStructure(fileinputstream);
+        return loadStructure(fileinputstream);
     }
 
     @Override
     public Structure loadStructure(InputStream inputStream) throws IOException {
         Preconditions.checkArgument(inputStream != null, "inputStream cannot be null");
 
-        return new CraftStructure(this.structureManager.readStructure(inputStream), this.registry);
+        return new CraftStructure(structureManager.readStructure(inputStream), registry);
     }
 
     @Override

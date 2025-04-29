@@ -139,6 +139,32 @@
              this.extinguishFire();
          }
  
+@@ -664,6 +_,25 @@
+         }
+     }
+ 
++    public void onEquipItem(EquipmentSlot p_238393_, ItemStack p_238394_, ItemStack p_238395_, boolean silent) {
++        boolean flag = p_238395_.isEmpty() && p_238394_.isEmpty();
++        if (!flag && !ItemStack.isSameItemSameComponents(p_238394_, p_238395_) && !this.firstTick) {
++            Equipable equipable = Equipable.get(p_238395_);
++            if (!this.level().isClientSide() && !this.isSpectator()) {
++                if (!this.isSilent() && equipable != null && equipable.getEquipmentSlot() == p_238393_ && !silent) {
++                    this.level()
++                            .playSeededSound(
++                                    null, this.getX(), this.getY(), this.getZ(), equipable.getEquipSound(), this.getSoundSource(), 1.0F, 1.0F, this.random.nextLong()
++                            );
++                }
++
++                if (this.doesEmitEquipEvent(p_238393_)) {
++                    this.gameEvent(equipable != null ? GameEvent.EQUIP : GameEvent.UNEQUIP);
++                }
++            }
++        }
++    }
++
+     @Override
+     public void remove(Entity.RemovalReason p_276115_) {
+         if (p_276115_ == Entity.RemovalReason.KILLED || p_276115_ == Entity.RemovalReason.DISCARDED) {
 @@ -764,6 +_,28 @@
          }
      }
@@ -545,16 +571,31 @@
      }
  
      protected void dropEquipment() {
-@@ -1399,7 +_,8 @@
+@@ -1399,8 +_,22 @@
                  this.isAlwaysExperienceDropper()
                      || this.lastHurtByPlayerTime > 0 && this.shouldDropExperience() && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)
              )) {
 -            ExperienceOrb.award(serverlevel, this.position(), this.getExperienceReward(serverlevel, p_345346_));
+-        }
 +            int reward = net.neoforged.neoforge.event.EventHooks.getExperienceDrop(this, this.lastHurtByPlayer, this.getExperienceReward(serverlevel, p_345346_));
 +            ExperienceOrb.award((ServerLevel) this.level(), this.position(), reward);
-         }
++        }
++    }
++
++    public int getExpReward(@Nullable Entity entity) { // CraftBukkit
++        if (this.level() instanceof ServerLevel serverlevel
++                && !this.wasExperienceConsumed()
++                && (
++                this.isAlwaysExperienceDropper()
++                        || this.lastHurtByPlayerTime > 0 && this.shouldDropExperience() && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)
++        )) {
++            int reward = net.neoforged.neoforge.event.EventHooks.getExperienceDrop(this, this.lastHurtByPlayer, this.getExperienceReward(serverlevel, entity));
++            return reward;
++        }
++        return 0; // CraftBukkit
      }
  
+     protected void dropCustomDeathLoot(ServerLevel p_348639_, DamageSource p_21018_, boolean p_21020_) {
 @@ -1440,6 +_,11 @@
      }
  
@@ -745,6 +786,19 @@
      }
  
      @Override
+@@ -1956,6 +_,12 @@
+ 
+     public abstract ItemStack getItemBySlot(EquipmentSlot p_21127_);
+ 
++    // CraftBukkit start
++    public void setItemSlot(EquipmentSlot enumitemslot, ItemStack itemstack, boolean silent) {
++        this.setItemSlot(enumitemslot, itemstack);
++    }
++    // CraftBukkit end
++
+     public abstract void setItemSlot(EquipmentSlot p_21036_, ItemStack p_21037_);
+ 
+     public Iterable<ItemStack> getHandSlots() {
 @@ -2064,15 +_,18 @@
              }
  

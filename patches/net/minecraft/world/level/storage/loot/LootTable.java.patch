@@ -1,5 +1,16 @@
 --- a/net/minecraft/world/level/storage/loot/LootTable.java
 +++ b/net/minecraft/world/level/storage/loot/LootTable.java
+@@ -27,6 +_,10 @@
+ import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSet;
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
++import org.bukkit.craftbukkit.CraftLootTable;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.event.world.LootGenerateEvent;
+ import org.slf4j.Logger;
+ 
+ public class LootTable {
 @@ -38,8 +_,8 @@
          p_338123_ -> p_338123_.group(
                      LootContextParamSets.CODEC.lenientOptionalFieldOf("type", DEFAULT_PARAM_SET).forGetter(p_298001_ -> p_298001_.paramSet),
@@ -11,7 +22,12 @@
                  )
                  .apply(p_338123_, LootTable::new)
      );
-@@ -53,7 +_,7 @@
+@@ -49,11 +_,12 @@
+     private final List<LootPool> pools;
+     private final List<LootItemFunction> functions;
+     private final BiFunction<ItemStack, LootContext, ItemStack> compositeFunction;
++    public CraftLootTable craftLootTable; // CraftBukkit
+ 
      LootTable(LootContextParamSet p_287716_, Optional<ResourceLocation> p_299055_, List<LootPool> p_298390_, List<LootItemFunction> p_298775_) {
          this.paramSet = p_287716_;
          this.randomSequence = p_299055_;
@@ -65,6 +81,40 @@
          return objectarraylist;
      }
  
+@@ -163,6 +_,33 @@
+         }
+     }
+ 
++    public void fillInventory(Container p_287662_, LootParams p_287743_, long p_287585_, boolean plugin) {
++        LootContext lootcontext = new LootContext.Builder(p_287743_).withOptionalRandomSeed(p_287585_).create(this.randomSequence);
++        ObjectArrayList<ItemStack> objectarraylist = this.getRandomItems(lootcontext);
++        RandomSource randomsource = lootcontext.getRandom();
++        LootGenerateEvent event = CraftEventFactory.callLootGenerateEvent(p_287662_, this, lootcontext, objectarraylist, plugin);
++        if (event.isCancelled()) {
++            return;
++        }
++        objectarraylist = event.getLoot().stream().map(CraftItemStack::asNMSCopy).collect(ObjectArrayList.toList());
++        // CraftBukkit end
++        List<Integer> list = this.getAvailableSlots(p_287662_, randomsource);
++        this.shuffleAndSplitItems(objectarraylist, list.size(), randomsource);
++
++        for (ItemStack itemstack : objectarraylist) {
++            if (list.isEmpty()) {
++                LOGGER.warn("Tried to over-fill a container");
++                return;
++            }
++
++            if (itemstack.isEmpty()) {
++                p_287662_.setItem(list.remove(list.size() - 1), ItemStack.EMPTY);
++            } else {
++                p_287662_.setItem(list.remove(list.size() - 1), itemstack);
++            }
++        }
++    }
++
+     private void shuffleAndSplitItems(ObjectArrayList<ItemStack> p_230925_, int p_230926_, RandomSource p_230927_) {
+         List<ItemStack> list = Lists.newArrayList();
+         Iterator<ItemStack> iterator = p_230925_.iterator();
 @@ -213,6 +_,62 @@
  
      public static LootTable.Builder lootTable() {

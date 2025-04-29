@@ -101,6 +101,39 @@
      @Deprecated
      public void setBlockState(BlockState p_155251_) {
          this.validateBlockState(p_155251_);
+@@ -281,6 +_,32 @@
+         this.components = datacomponentpatch.split().added();
+     }
+ 
++    public final Set<DataComponentType<?>> applyComponentsSet(DataComponentMap p_330364_, DataComponentPatch p_338381_) {
++        final Set<DataComponentType<?>> set = new HashSet<>();
++        set.add(DataComponents.BLOCK_ENTITY_DATA);
++        final DataComponentMap datacomponentmap = PatchedDataComponentMap.fromPatch(p_330364_, p_338381_);
++        this.applyImplicitComponents(new BlockEntity.DataComponentInput() {
++            @Nullable
++            @Override
++            public <T> T get(DataComponentType<T> p_338266_) {
++                set.add(p_338266_);
++                return datacomponentmap.get(p_338266_);
++            }
++
++            @Override
++            public <T> T getOrDefault(DataComponentType<? extends T> p_338358_, T p_338352_) {
++                set.add(p_338358_);
++                return datacomponentmap.getOrDefault(p_338358_, p_338352_);
++            }
++        });
++        DataComponentPatch datacomponentpatch = p_338381_.forget(set::contains);
++        this.components = datacomponentpatch.split().added();
++        // CraftBukkit start
++        set.remove(DataComponents.BLOCK_ENTITY_DATA); // Remove as never actually added by applyImplicitComponents
++        return set;
++        // CraftBukkit end
++    }
++
+     protected void collectImplicitComponents(DataComponentMap.Builder p_338210_) {
+     }
+ 
 @@ -320,10 +_,29 @@
          }
      }

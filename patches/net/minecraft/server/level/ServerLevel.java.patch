@@ -19,15 +19,17 @@
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
-@@ -164,6 +_,7 @@
+@@ -164,7 +_,9 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
 +import org.bukkit.craftbukkit.util.WorldUUID;
  import org.slf4j.Logger;
++import org.spigotmc.SpigotWorldConfig;
  
  public class ServerLevel extends Level implements WorldGenLevel {
-@@ -199,12 +_,28 @@
+     public static final BlockPos END_SPAWN_POINT = new BlockPos(100, 50, 0);
+@@ -199,12 +_,31 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -48,16 +50,19 @@
 +        return typeKey == null ? super.getTypeKey() : typeKey;
 +    }
 +
++    public LevelChunk getChunkIfLoaded(int x, int z) {
++        return this.chunkSource.getChunk(x, z, false);
++    }
++
 +    @Override
 +    public ServerLevel craftWorldData(org.bukkit.World.Environment env, org.bukkit.generator.ChunkGenerator generator, org.bukkit.generator.BiomeProvider bp) {
 +        return (ServerLevel) super.craftWorldData(env, generator, bp);
 +    }
 +
-+
      public ServerLevel(
          MinecraftServer p_214999_,
          Executor p_215000_,
-@@ -230,10 +_,28 @@
+@@ -230,10 +_,29 @@
              p_215007_,
              p_214999_.getMaxChainedNeighborUpdates()
          );
@@ -84,6 +89,7 @@
 +        } else if (p_215002_ instanceof DerivedLevelData) {
 +            this.K = MohistDerivedWorldInfo.create((DerivedLevelData)p_215002_);
 +        }
++        this.spigotConfig = new SpigotWorldConfig(name); // Spigot
          ChunkGenerator chunkgenerator = p_215004_.generator();
          boolean flag = p_214999_.forceSynchronousWrites();
          DataFixer datafixer = p_214999_.getFixerUpper();

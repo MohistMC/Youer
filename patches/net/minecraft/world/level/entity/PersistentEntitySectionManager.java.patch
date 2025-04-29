@@ -1,5 +1,22 @@
 --- a/net/minecraft/world/level/entity/PersistentEntitySectionManager.java
 +++ b/net/minecraft/world/level/entity/PersistentEntitySectionManager.java
+@@ -52,6 +_,16 @@
+         this.entityGetter = new LevelEntityGetterAdapter<>(this.visibleEntityStorage, this.sectionStorage);
+     }
+ 
++    // CraftBukkit start - add method to get all entities in chunk
++    public List<Entity> getEntities(ChunkPos chunkCoordIntPair) {
++        return sectionStorage.getExistingSectionsInChunk(chunkCoordIntPair.toLong()).flatMap(EntitySection::getEntities).map(entity -> (Entity) entity).collect(Collectors.toList());
++    }
++
++    public boolean isPending(long pair) {
++        return chunkLoadStatuses.get(pair) == PersistentEntitySectionManager.ChunkLoadStatus.PENDING;
++    }
++    // CraftBukkit end
++
+     void removeSectionIfEmpty(long p_157510_, EntitySection<T> p_157511_) {
+         if (p_157511_.isEmpty()) {
+             this.sectionStorage.remove(p_157510_);
 @@ -71,7 +_,16 @@
          return this.addEntity(p_157534_, false);
      }

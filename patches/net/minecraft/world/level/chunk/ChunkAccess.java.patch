@@ -1,7 +1,11 @@
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
-@@ -57,7 +_,7 @@
+@@ -55,9 +_,11 @@
+ import net.minecraft.world.level.material.Fluid;
+ import net.minecraft.world.ticks.SerializableTickContainer;
  import net.minecraft.world.ticks.TickContainerAccess;
++import org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry;
++import org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer;
  import org.slf4j.Logger;
  
 -public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiomeSource, LightChunk, StructureAccess {
@@ -9,6 +13,17 @@
      public static final int NO_FILLED_SECTION = -1;
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final LongSet EMPTY_REFERENCE_SET = new LongOpenHashSet();
+@@ -82,6 +_,10 @@
+     public final Map<BlockPos, BlockEntity> blockEntities = new Object2ObjectOpenHashMap<>();
+     protected final LevelHeightAccessor levelHeightAccessor;
+     protected final LevelChunkSection[] sections;
++    // CraftBukkit start - SPIGOT-6814: move to IChunkAccess to account for 1.17 to 1.18 chunk upgrading.
++    private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
++    public DirtyCraftPersistentDataContainer persistentDataContainer = new DirtyCraftPersistentDataContainer(DATA_TYPE_REGISTRY);
++    // CraftBukkit end
+ 
+     public ChunkAccess(
+         ChunkPos p_187621_,
 @@ -315,10 +_,19 @@
  
      @Override
@@ -42,6 +57,35 @@
                              }
                          }
                      }
+@@ -435,6 +_,28 @@
+         }
+     }
+ 
++    // CraftBukkit start
++    public void setBiome(int i, int j, int k, Holder<Biome> biome) {
++        try {
++            int l = QuartPos.fromBlock(this.getMinBuildHeight());
++            int i1 = l + QuartPos.fromBlock(this.getHeight()) - 1;
++            int j1 = Mth.clamp(j, l, i1);
++            int k1 = this.getSectionIndex(QuartPos.toBlock(j1));
++
++            this.sections[k1].setBiome(i & 3, j1 & 3, k & 3, biome);
++        } catch (Throwable throwable) {
++            CrashReport crashreport = CrashReport.forThrowable(throwable, "Setting biome");
++            CrashReportCategory crashreportsystemdetails = crashreport.addCategory("Biome being set");
++
++            crashreportsystemdetails.setDetail("Location", () -> {
++                return CrashReportCategory.formatLocation(this, i, j, k);
++            });
++            throw new ReportedException(crashreport);
++        }
++    }
++    // CraftBukkit end
++
++
+     public void fillBiomesFromNoise(BiomeResolver p_187638_, Climate.Sampler p_187639_) {
+         ChunkPos chunkpos = this.getPos();
+         int i = QuartPos.fromBlock(chunkpos.getMinBlockX());
 @@ -476,4 +_,72 @@
  
      public static record TicksToSave(SerializableTickContainer<Block> blocks, SerializableTickContainer<Fluid> fluids) {

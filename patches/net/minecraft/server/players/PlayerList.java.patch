@@ -130,6 +130,28 @@
  
              serverstatscounter = new ServerStatsCounter(this.server, file2);
              this.stats.put(uuid, serverstatscounter);
+@@ -823,6 +_,21 @@
+         return serverstatscounter;
+     }
+ 
++    public ServerStatsCounter getPlayerStats(UUID uuid, String displayName) {
++        ServerPlayer entityhuman = this.getPlayer(uuid);
++        ServerStatsCounter serverstatisticmanager = entityhuman == null ? null : entityhuman.getStats();
++        // CraftBukkit end
++        if (serverstatisticmanager == null) {
++            File file1 = this.server.getWorldPath(LevelResource.PLAYER_STATS_DIR).toFile();
++            File file2 = new File(file1, uuid + ".json");
++
++            serverstatisticmanager = new ServerStatsCounter(this.server, file2);
++            this.stats.put(uuid, serverstatisticmanager);
++        }
++
++        return serverstatisticmanager;
++    }
++
+     public PlayerAdvancements getPlayerAdvancements(ServerPlayer p_11297_) {
+         UUID uuid = p_11297_.getUUID();
+         PlayerAdvancements playeradvancements = this.advancements.get(uuid);
 @@ -832,6 +_,8 @@
              this.advancements.put(uuid, playeradvancements);
          }

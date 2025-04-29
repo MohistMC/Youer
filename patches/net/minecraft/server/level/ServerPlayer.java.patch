@@ -375,10 +375,32 @@
              this.level().addFreshEntity(itementity);
              ItemStack itemstack = itementity.getItem();
              if (p_9087_) {
-@@ -1781,6 +_,75 @@
+@@ -1781,6 +_,97 @@
          }
      }
  
++    @Override
++    public ItemEntity drop(ItemStack p_9085_, boolean p_9086_, boolean p_9087_, boolean callEvent) {
++        ItemEntity itementity = super.drop(p_9085_, p_9086_, p_9087_, callEvent);
++        if (itementity == null) {
++            return null;
++        } else {
++            if (captureDrops() != null) captureDrops().add(itementity);
++            else
++                this.level().addFreshEntity(itementity);
++            ItemStack itemstack = itementity.getItem();
++            if (p_9087_) {
++                if (!itemstack.isEmpty()) {
++                    this.awardStat(Stats.ITEM_DROPPED.get(itemstack.getItem()), p_9085_.getCount());
++                }
++
++                this.awardStat(Stats.DROP);
++            }
++
++            return itementity;
++        }
++    }
++
 +    /**
 +     * Returns the language last reported by the player as their local language.
 +     * Defaults to en_us if the value is unknown.

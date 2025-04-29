@@ -8,13 +8,71 @@
          } catch (Exception exception) {
              LOGGER.warn("Failed to save player data for {}", p_78434_.getName().getString());
          }
-@@ -80,7 +_,12 @@
+@@ -57,7 +_,20 @@
+         }
+     }
+ 
+-    private Optional<CompoundTag> load(Player p_316534_, String p_316666_) {
++    private void backup(String name, String s1, String s) { // name, uuid, extension
++        Path path = this.playerDir.toPath();
++        Path path1 = path.resolve(s1 + s);
++        Path path2 = path.resolve(s1 + "_corrupted_" + LocalDateTime.now().format(FORMATTER) + s);
++        if (Files.isRegularFile(path1)) {
++            try {
++                Files.copy(path1, path2, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
++            } catch (Exception exception) {
++                LOGGER.warn("Failed to copy the player.dat file for {}", name, exception);
++            }
++        }
++    }
++
++    public Optional<CompoundTag> load(Player p_316534_, String p_316666_) {
+         File file1 = new File(this.playerDir, p_316534_.getStringUUID() + p_316666_);
+         if (file1.exists() && file1.isFile()) {
+             try {
+@@ -70,6 +_,19 @@
+         return Optional.empty();
+     }
+ 
++    private Optional<CompoundTag> load(String name, String s1, String s) { // name, uuid, extension
++        File file1 = new File(this.playerDir, s1 + s);
++        if (file1.exists() && file1.isFile()) {
++            try {
++                return Optional.of(NbtIo.readCompressed(file1.toPath(), NbtAccounter.unlimitedHeap()));
++            } catch (Exception exception) {
++                LOGGER.warn("Failed to load player data for {}", name);
++            }
++        }
++
++        return Optional.empty();
++    }
++
+     public Optional<CompoundTag> load(Player p_78436_) {
+         Optional<CompoundTag> optional = this.load(p_78436_, ".dat");
+         if (optional.isEmpty()) {
+@@ -80,7 +_,26 @@
              int i = NbtUtils.getDataVersion(p_316252_, -1);
              p_316252_ = DataFixTypes.PLAYER.updateToCurrentVersion(this.fixerUpper, p_316252_, i);
              p_78436_.load(p_316252_);
+-            return p_316252_;
+-        });
 +            net.neoforged.neoforge.event.EventHooks.firePlayerLoadingEvent(p_78436_, playerDir, p_78436_.getStringUUID());
-             return p_316252_;
-         });
++            return p_316252_;
++        });
++    }
++
++    public Optional<CompoundTag> load(String p_78436_, String uuid) {
++        Optional<CompoundTag> optional = this.load(p_78436_, uuid, ".dat");
++        if (optional.isEmpty()) {
++            this.backup(p_78436_, uuid, ".dat");
++        }
++
++        return optional.or(() -> this.load(p_78436_, ".dat_old")).map(p_316252_ -> {
++            int i = NbtUtils.getDataVersion(p_316252_, -1);
++            p_316252_ = DataFixTypes.PLAYER.updateToCurrentVersion(this.fixerUpper, p_316252_, i);
++            // p_78436_.load(p_316252_);
++            return p_316252_;
++        });
 +    }
 +
 +    public File getPlayerDir() {

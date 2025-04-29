@@ -18,9 +18,6 @@ public class CraftEntityType {
 
         net.minecraft.core.Registry<net.minecraft.world.entity.EntityType<?>> registry = CraftRegistry.getMinecraftRegistry(Registries.ENTITY_TYPE);
         NamespacedKey key = CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location());
-        if (ForgeInjectBukkit.entityTypeMap.containsKey(key)) {
-            return ForgeInjectBukkit.entityTypeMap.get(key);
-        }
         EntityType bukkit = Registry.ENTITY_TYPE.get(key);
 
         Preconditions.checkArgument(bukkit != null);

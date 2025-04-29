@@ -123,10 +123,15 @@
      }
  
      @Nullable
-@@ -726,7 +_,12 @@
+@@ -726,7 +_,17 @@
          }
      }
  
++    @Nullable
++    public ItemEntity drop(ItemStack itemstack, boolean flag, boolean flag1, boolean callEvent) {
++        return drop(itemstack, flag, flag1);
++    }
++
 +    @Deprecated //Use location sensitive version below
      public float getDestroySpeed(BlockState p_36282_) {
 +        return getDigSpeed(p_36282_, null);
@@ -484,6 +489,25 @@
  
      public Optional<WardenSpawnTracker> getWardenSpawnTracker() {
          return Optional.empty();
+@@ -1764,6 +_,18 @@
+         }
+     }
+ 
++    @Override
++    public void setItemSlot(EquipmentSlot p_36161_, ItemStack p_36162_, boolean silent) {
++        this.verifyEquippedItem(p_36162_);
++        if (p_36161_ == EquipmentSlot.MAINHAND) {
++            this.onEquipItem(p_36161_, this.inventory.items.set(this.inventory.selected, p_36162_), p_36162_, silent);
++        } else if (p_36161_ == EquipmentSlot.OFFHAND) {
++            this.onEquipItem(p_36161_, this.inventory.offhand.set(0, p_36162_), p_36162_, silent); // CraftBukkit
++        } else if (p_36161_.getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
++            this.onEquipItem(p_36161_, this.inventory.armor.set(p_36161_.getIndex(), p_36162_), p_36162_, silent);
++        }
++    }
++
+     public boolean addItem(ItemStack p_36357_) {
+         return this.inventory.add(p_36357_);
+     }
 @@ -1847,7 +_,11 @@
  
      @Override

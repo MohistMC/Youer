@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -126,9 +_,15 @@
+@@ -126,9 +_,16 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreHolder;
  import net.minecraft.world.scores.Team;
@@ -11,6 +11,7 @@
 +import org.bukkit.event.entity.EntityRemoveEvent;
 +import org.bukkit.event.player.PlayerTeleportEvent;
  import org.slf4j.Logger;
++import org.spigotmc.ActivationRange;
  
 -public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess, CommandSource, ScoreHolder {
 +public abstract class Entity extends net.neoforged.neoforge.attachment.AttachmentHolder implements SyncedDataHolder, Nameable, EntityAccess, CommandSource, ScoreHolder, net.neoforged.neoforge.common.extensions.IEntityExtension {
@@ -36,7 +37,7 @@
      private final Set<TagKey<Fluid>> fluidOnEyes = new HashSet<>();
      public int invulnerableTime;
      protected boolean firstTick = true;
-@@ -243,6 +_,56 @@
+@@ -243,6 +_,63 @@
      public boolean hasVisualFire;
      @Nullable
      private BlockState inBlockState = null;
@@ -90,9 +91,35 @@
 +        return level.hasChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4);
 +    }
 +    // CraftBukkit end
++
++    // Spigot start
++    public final org.spigotmc.ActivationRange.ActivationType activationType = org.spigotmc.ActivationRange.initializeEntityActivationType(this);
++    public final boolean defaultActivationState;
++    public long activatedTick = Integer.MIN_VALUE;
++    public void inactiveTick() { }
++    // Spigot end
  
      public Entity(EntityType<?> p_19870_, Level p_19871_) {
          this.type = p_19870_;
+@@ -251,6 +_,18 @@
+         this.position = Vec3.ZERO;
+         this.blockPosition = BlockPos.ZERO;
+         this.chunkPosition = ChunkPos.ZERO;
++        // Spigot start
++        if (p_19871_ != null && p_19871_ instanceof ServerLevel) {
++            var config = p_19871_.spigotConfig;
++            if (config != null) {
++                this.defaultActivationState = ActivationRange.initializeEntityActivationState(this, config);
++            } else {
++                this.defaultActivationState = false;
++            }
++        } else {
++            this.defaultActivationState = false;
++        }
++        // Spigot end
+         SynchedEntityData.Builder synchedentitydata$builder = new SynchedEntityData.Builder(this);
+         synchedentitydata$builder.define(DATA_SHARED_FLAGS_ID, (byte)0);
+         synchedentitydata$builder.define(DATA_AIR_SUPPLY_ID, this.getMaxAirSupply());
 @@ -263,7 +_,10 @@
          this.defineSynchedData(synchedentitydata$builder);
          this.entityData = synchedentitydata$builder.build();

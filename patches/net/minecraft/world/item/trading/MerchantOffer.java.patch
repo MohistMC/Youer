@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/item/trading/MerchantOffer.java
++++ b/net/minecraft/world/item/trading/MerchantOffer.java
+@@ -8,6 +_,7 @@
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.util.Mth;
+ import net.minecraft.world.item.ItemStack;
++import org.bukkit.craftbukkit.inventory.CraftMerchantRecipe;
+ 
+ public class MerchantOffer {
+     public static final Codec<MerchantOffer> CODEC = RecordCodecBuilder.create(
+@@ -38,6 +_,19 @@
+     public int demand;
+     public float priceMultiplier;
+     public int xp;
++
++    // CraftBukkit start
++    private CraftMerchantRecipe bukkitHandle;
++
++    public CraftMerchantRecipe asBukkit() {
++        return (bukkitHandle == null) ? bukkitHandle = new CraftMerchantRecipe(this) : bukkitHandle;
++    }
++
++    public MerchantOffer(ItemCost baseCostA, Optional<ItemCost> costB, ItemStack result, int uses, int maxUses, int experience, float priceMultiplier, int demand, CraftMerchantRecipe bukkit) {
++        this(baseCostA, costB, result, uses, maxUses, experience, priceMultiplier, demand);
++        this.bukkitHandle = bukkit;
++    }
++    // CraftBukkit end
+ 
+     private MerchantOffer(
+         ItemCost p_330734_,

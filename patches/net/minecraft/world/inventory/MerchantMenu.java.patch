@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/inventory/MerchantMenu.java
++++ b/net/minecraft/world/inventory/MerchantMenu.java
+@@ -12,6 +_,7 @@
+ import net.minecraft.world.item.trading.Merchant;
+ import net.minecraft.world.item.trading.MerchantOffer;
+ import net.minecraft.world.item.trading.MerchantOffers;
++import org.bukkit.craftbukkit.inventory.view.CraftMerchantView;
+ 
+ public class MerchantMenu extends AbstractContainerMenu {
+     protected static final int PAYMENT1_SLOT = 0;
+@@ -30,6 +_,19 @@
+     private int merchantLevel;
+     private boolean showProgressBar;
+     private boolean canRestock;
++
++    // CraftBukkit start
++    private CraftMerchantView bukkitEntity = null;
++    private Inventory player;
++
++    @Override
++    public CraftMerchantView getBukkitView() {
++        if (bukkitEntity == null) {
++            bukkitEntity = new CraftMerchantView(this.player.player.getBukkitEntity(), new org.bukkit.craftbukkit.inventory.CraftInventoryMerchant(trader, tradeContainer), this, trader);
++        }
++        return bukkitEntity;
++    }
++    // CraftBukkit end
+ 
+     public MerchantMenu(int p_40033_, Inventory p_40034_) {
+         this(p_40033_, p_40034_, new ClientSideMerchant(p_40034_.player));
