@@ -33,14 +33,31 @@
                      if (ServerConnectionListener.this.server.repliesToStatus()) {
                          channelpipeline.addLast("legacy_query", new LegacyQueryHandler(ServerConnectionListener.this.getServer()));
                      }
-@@ -179,6 +_,10 @@
- 
+@@ -165,6 +_,10 @@
+                             connection.setReadOnly();
+                         }
+                     } else {
++                        // Spigot Start
++                        // Fix a race condition where a NetworkManager could be unregistered just before connection.
++                        if (connection.preparing) continue;
++                        // Spigot End
+                         iterator.remove();
+                         connection.handleDisconnection();
+                     }
+@@ -180,6 +_,16 @@
      public List<Connection> getConnections() {
          return this.connections;
-+    }
-+
-+    public void acceptConnections() {
-+
      }
++
++    // CraftBukkit start
++    public void acceptConnections() {
++        synchronized (this.channels) {
++            for (final ChannelFuture future : this.channels) {
++                future.channel().config().setAutoRead(true);
++            }
++        }
++    }
++    // CraftBukkit end
  
      static class LatencySimulator extends ChannelInboundHandlerAdapter {
+         private static final Timer TIMER = new HashedWheelTimer();

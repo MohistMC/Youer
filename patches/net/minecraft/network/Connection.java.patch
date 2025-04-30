@@ -1,16 +1,27 @@
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
-@@ -107,6 +_,9 @@
+@@ -107,6 +_,14 @@
      private volatile DisconnectionDetails delayedDisconnect;
      @Nullable
      BandwidthDebugMonitor bandwidthDebugMonitor;
 +    public String hostname = ""; // CraftBukkit - add field
 +    @Nullable
 +    private ProtocolInfo<?> inboundProtocol;
++    // Spigot Start
++    public java.util.UUID spoofedUUID;
++    public com.mojang.authlib.properties.Property[] spoofedProfile;
++    public boolean preparing = true;
++    // Spigot End
  
      public Connection(PacketFlow p_129482_) {
          this.receiving = p_129482_;
-@@ -120,11 +_,13 @@
+@@ -117,14 +_,19 @@
+         super.channelActive(p_129525_);
+         this.channel = p_129525_.channel();
+         this.address = this.channel.remoteAddress();
++        // Spigot Start
++        this.preparing = false;
++        // Spigot End
          if (this.delayedDisconnect != null) {
              this.disconnect(this.delayedDisconnect);
          }
@@ -69,6 +80,16 @@
          }
      }
  
+@@ -436,6 +_,9 @@
+     }
+ 
+     public void disconnect(DisconnectionDetails p_350867_) {
++        // Spigot Start
++        this.preparing = false;
++        // Spigot End
+         if (this.channel == null) {
+             this.delayedDisconnect = p_350867_;
+         }
 @@ -470,6 +_,7 @@
      }
  

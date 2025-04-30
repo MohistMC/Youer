@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit;
 
+import cn.mohistmc.youer.util.ProxyUtils;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -858,7 +859,7 @@ public final class CraftServer implements Server {
     @Override
     public long getConnectionThrottle() {
         // Spigot Start - Automatically set connection throttle for bungee configurations
-        if (org.spigotmc.SpigotConfig.bungee) {
+        if (ProxyUtils.is()) {
             return -1;
         } else {
             return this.configuration.getInt("settings.connection-throttle");

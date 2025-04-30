@@ -1,6 +1,15 @@
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-@@ -20,10 +_,12 @@
+@@ -1,5 +_,8 @@
+ package net.minecraft.server.network;
+ 
++import cn.mohistmc.youer.YouerConfig;
++import cn.mohistmc.youer.bukkit.LoginHandler;
++import cn.mohistmc.youer.proxy.VelocityProxy;
+ import com.google.common.primitives.Ints;
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
+@@ -20,12 +_,16 @@
  import net.minecraft.DefaultUncaughtExceptionHandler;
  import net.minecraft.core.UUIDUtil;
  import net.minecraft.network.Connection;
@@ -10,14 +19,28 @@
  import net.minecraft.network.TickablePacketListener;
  import net.minecraft.network.chat.Component;
 +import net.minecraft.network.protocol.Packet;
++import net.minecraft.network.protocol.PacketUtils;
  import net.minecraft.network.protocol.configuration.ConfigurationProtocols;
  import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
++import net.minecraft.network.protocol.login.ClientboundCustomQueryPacket;
  import net.minecraft.network.protocol.login.ClientboundGameProfilePacket;
-@@ -42,23 +_,46 @@
+ import net.minecraft.network.protocol.login.ClientboundHelloPacket;
+ import net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket;
+@@ -36,29 +_,57 @@
+ import net.minecraft.network.protocol.login.ServerboundKeyPacket;
+ import net.minecraft.network.protocol.login.ServerboundLoginAcknowledgedPacket;
+ import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.server.players.PlayerList;
+ import net.minecraft.util.Crypt;
+ import net.minecraft.util.CryptException;
  import net.minecraft.util.RandomSource;
  import net.minecraft.util.StringUtil;
  import org.apache.commons.lang3.Validate;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.craftbukkit.util.Waitable;
++import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
++import org.bukkit.event.player.PlayerPreLoginEvent;
  import org.slf4j.Logger;
  
 -public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener, TickablePacketListener {
@@ -60,29 +83,210 @@
 +    public GameProfile authenticatedProfile;
      private final String serverId = "";
      private final boolean transferred;
++    private ServerPlayer player; // CraftBukkit
 +    public int velocityLoginMessageId = -1; // Paper - Velocity support
  
      public ServerLoginPacketListenerImpl(MinecraftServer p_10027_, Connection p_10028_, boolean p_320815_) {
          this.server = p_10027_;
-@@ -86,6 +_,21 @@
-     @Override
-     public boolean isAcceptingMessages() {
-         return this.connection.isConnected();
-+    }
+@@ -73,6 +_,12 @@
+             this.verifyLoginAndFinishConnectionSetup(Objects.requireNonNull(this.authenticatedProfile));
+         }
+ 
++        // CraftBukkit start
++        if (this.state == ServerLoginPacketListenerImpl.State.WAITING_FOR_COOKIES && !this.player.getBukkitEntity().isAwaitingCookies()) {
++            this.postCookies(this.authenticatedProfile);
++        }
++        // CraftBukkit end
 +
+         if (this.state == ServerLoginPacketListenerImpl.State.WAITING_FOR_DUPE_DISCONNECT
+             && !this.isPlayerAlreadyInWorld(Objects.requireNonNull(this.authenticatedProfile))) {
+             this.finishLoginAndWaitForClient(this.authenticatedProfile);
+@@ -88,6 +_,24 @@
+         return this.connection.isConnected();
+     }
+ 
 +    // CraftBukkit start
 +    @Deprecated
 +    public void disconnect(String s) {
 +        disconnect(Component.literal(s));
 +    }
++
++    // CraftBukkit start
++    private GameProfile callPlayerPreLoginEvents(GameProfile gameprofile) throws Exception { // Paper - Add more fields to AsyncPlayerPreLoginEvent
++        // Paper start - Add Velocity IP Forwarding Support
++        if (ServerLoginPacketListenerImpl.this.velocityLoginMessageId == -1 && YouerConfig.velocity_enabled) {
++            disconnect("This server requires you to connect with Velocity.");
++            return gameprofile;
++        }
++
++        return gameprofile; // Paper - Add more fields to AsyncPlayerPreLoginEvent
++    }
 +    // CraftBukkit end
 +
-+    private void postCookies(GameProfile gameprofile) {
-+
-+    }
-+
-+    private void callPlayerPreLoginEvents(GameProfile gameprofile) throws Exception {
-+
+     public void disconnect(Component p_10054_) {
+         try {
+             LOGGER.info("Disconnecting {}: {}", this.getUserName(), p_10054_.getString());
+@@ -125,6 +_,16 @@
+                 this.state = ServerLoginPacketListenerImpl.State.KEY;
+                 this.connection.send(new ClientboundHelloPacket("", this.server.getKeyPair().getPublic().getEncoded(), this.challenge, true));
+             } else {
++                // Paper start - Velocity support
++                if (YouerConfig.velocity_enabled) {
++                    this.velocityLoginMessageId = java.util.concurrent.ThreadLocalRandom.current().nextInt();
++                    net.minecraft.network.FriendlyByteBuf buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
++                    buf.writeByte(VelocityProxy.MAX_SUPPORTED_FORWARDING_VERSION);
++                    net.minecraft.network.protocol.login.ClientboundCustomQueryPacket packet1 = new net.minecraft.network.protocol.login.ClientboundCustomQueryPacket(this.velocityLoginMessageId, ClientboundCustomQueryPacket.readPayload(VelocityProxy.PLAYER_INFO_CHANNEL, buf));
++                    this.connection.send(packet1);
++                    return;
++                }
++                // Paper end
+                 this.startClientVerification(UUIDUtil.createOfflineProfile(this.requestedUsername));
+             }
+         }
+@@ -158,11 +_,47 @@
+         }
      }
  
-     public void disconnect(Component p_10054_) {
++    private void postCookies(GameProfile gameprofile) {
++        PlayerList playerlist = this.server.getPlayerList();
++
++        if (this.player == null) {
++            // this.disconnect(ichatbasecomponent);
++            // CraftBukkit end
++        } else {
++            if (this.server.getCompressionThreshold() >= 0 && !this.connection.isMemoryConnection()) {
++                this.connection.send(new ClientboundLoginCompressionPacket(this.server.getCompressionThreshold()), PacketSendListener.thenRun(() -> {
++                    this.connection.setupCompression(this.server.getCompressionThreshold(), true);
++                }));
++            }
++
++            boolean flag = playerlist.disconnectAllPlayersWithProfile(gameprofile, this.player); // CraftBukkit - add player reference
++
++            if (flag) {
++                this.state = ServerLoginPacketListenerImpl.State.WAITING_FOR_DUPE_DISCONNECT;
++            } else {
++                this.finishLoginAndWaitForClient(gameprofile);
++            }
++        }
++    }
++
+     private void finishLoginAndWaitForClient(GameProfile p_295520_) {
+         this.state = ServerLoginPacketListenerImpl.State.PROTOCOL_SWITCHING;
+         this.connection.send(new ClientboundGameProfilePacket(p_295520_, true));
+     }
+ 
++    // Paper start - Cache authenticator threads
++    private static final AtomicInteger threadId = new AtomicInteger(0);
++    private static final java.util.concurrent.ExecutorService authenticatorPool = java.util.concurrent.Executors.newCachedThreadPool(
++            r -> {
++                Thread ret = new Thread(r, "User Authenticator #" + threadId.incrementAndGet());
++
++                ret.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
++
++                return ret;
++            }
++    );
++    // Paper end
++
+     @Override
+     public void handleKey(ServerboundKeyPacket p_10049_) {
+         Validate.validState(this.state == ServerLoginPacketListenerImpl.State.KEY, "Unexpected key packet");
+@@ -227,6 +_,49 @@
+ 
+     @Override
+     public void handleCustomQueryPacket(ServerboundCustomQueryAnswerPacket p_295398_) {
++        // Paper start - Velocity support
++        if (YouerConfig.velocity_enabled && p_295398_.transactionId() == this.velocityLoginMessageId) {
++            ServerboundCustomQueryAnswerPacket.QueryAnswerPayload payload = (ServerboundCustomQueryAnswerPacket.QueryAnswerPayload)p_295398_.payload();
++            if (payload == null) {
++                this.disconnect("This server requires you to connect with Velocity.");
++                return;
++            }
++            net.minecraft.network.FriendlyByteBuf buf = payload.buffer;
++            if (!VelocityProxy.checkIntegrity(buf)) {
++                this.disconnect("Unable to verify player details");
++                return;
++            }
++
++            int version = buf.readVarInt();
++            if (version > VelocityProxy.MAX_SUPPORTED_FORWARDING_VERSION) {
++                throw new IllegalStateException("Unsupported forwarding version " + version + ", wanted upto " + VelocityProxy.MAX_SUPPORTED_FORWARDING_VERSION);
++            }
++
++            java.net.SocketAddress listening = this.connection.getRemoteAddress();
++            int port = 0;
++            if (listening instanceof java.net.InetSocketAddress) {
++                port = ((java.net.InetSocketAddress) listening).getPort();
++            }
++            this.connection.address = new java.net.InetSocketAddress(VelocityProxy.readAddress(buf), port);
++
++            this.authenticatedProfile = VelocityProxy.createProfile(buf);
++
++            //TODO Update handling for lazy sessions, might not even have to do anything?
++
++            // Proceed with login
++            authenticatorPool.execute(() -> {
++                try {
++                    final GameProfile gameprofile = this.callPlayerPreLoginEvents(this.authenticatedProfile);
++                    ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
++                    ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
++                } catch (Exception ex) {
++                    disconnect("Failed to verify username!");
++                    server.server.getLogger().log(java.util.logging.Level.WARNING, "Exception verifying " + authenticatedProfile.getName(), ex);
++                }
++            });
++            return;
++        }
++        // Paper end
+         this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
+     }
+ 
+@@ -250,8 +_,40 @@
+ 
+     @Override
+     public void handleCookieResponse(ServerboundCookieResponsePacket p_320866_) {
++        // CraftBukkit start
++        PacketUtils.ensureRunningOnSameThread(p_320866_, this, this.server);
++        if (this.player != null && this.player.getBukkitEntity().handleCookieResponse(p_320866_)) {
++            return;
++        }
++        // CraftBukkit end
+         this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
+     }
++
++    // Spigot start
++    protected GameProfile createOfflineProfile(String s) {
++        java.util.UUID uuid;
++        if ( this.connection.spoofedUUID != null )
++        {
++            uuid = this.connection.spoofedUUID;
++        } else
++        {
++            uuid = UUIDUtil.createOfflinePlayerUUID( s );
++        }
++
++        GameProfile gameProfile = new GameProfile( uuid, s );
++
++        if (this.connection.spoofedProfile != null)
++        {
++            for ( com.mojang.authlib.properties.Property property : this.connection.spoofedProfile )
++            {
++                if ( !ServerHandshakePacketListenerImpl.PROP_PATTERN.matcher( property.name()).matches() ) continue;
++                gameProfile.getProperties().put( property.name(), property );
++            }
++        }
++
++        return gameProfile;
++    }
++    // Spigot end
+ 
+     public static enum State {
+         HELLO,
+@@ -259,6 +_,7 @@
+         AUTHENTICATING,
+         NEGOTIATING,
+         VERIFYING,
++        WAITING_FOR_COOKIES,
+         WAITING_FOR_DUPE_DISCONNECT,
+         PROTOCOL_SWITCHING,
+         ACCEPTED;

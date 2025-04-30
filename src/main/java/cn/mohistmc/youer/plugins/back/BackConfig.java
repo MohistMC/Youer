@@ -17,7 +17,7 @@ public class BackConfig extends MohistPluginConfig {
     }
 
     public static void init() {
-        INSTANCE = new BackConfig(new File("mohist-config", "back.yml"));
+        INSTANCE = new BackConfig(new File("youer-config", "back.yml"));
     }
 
     public void saveLocation(Player player, Location location, BackType backType) {

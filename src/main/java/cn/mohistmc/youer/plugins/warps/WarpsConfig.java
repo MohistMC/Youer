@@ -17,7 +17,7 @@ public class WarpsConfig extends MohistPluginConfig {
     }
 
     public static void init() {
-        INSTANCE = new WarpsConfig(new File("mohist-config", "warps.yml"));
+        INSTANCE = new WarpsConfig(new File("youer-config", "warps.yml"));
     }
 
     public Location get(String name) {

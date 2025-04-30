@@ -8,12 +8,11 @@
  import java.util.Optional;
  import java.util.Set;
  import java.util.UUID;
-@@ -48,6 +_,9 @@
+@@ -48,6 +_,8 @@
  import java.util.stream.Collectors;
  import javax.annotation.Nullable;
  import javax.imageio.ImageIO;
 +
-+import jline.console.ConsoleReader;
 +import joptsimple.OptionSet;
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;
@@ -26,13 +25,14 @@
  import net.minecraft.core.HolderGetter;
  import net.minecraft.core.LayeredRegistryAccess;
  import net.minecraft.core.Registry;
-@@ -165,6 +_,9 @@
+@@ -165,6 +_,10 @@
  import net.minecraft.world.level.storage.WorldData;
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
 +import org.bukkit.Bukkit;
 +import org.bukkit.craftbukkit.CraftRegistry;
 +import org.bukkit.craftbukkit.CraftServer;
++import org.bukkit.event.server.ServerLoadEvent;
  import org.slf4j.Logger;
  
  public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements ServerInfo, ChunkIOErrorReporter, CommandSource, AutoCloseable {
@@ -88,7 +88,7 @@
          }
      }
  
-@@ -325,6 +_,61 @@
+@@ -325,6 +_,86 @@
  
      protected abstract boolean initServer() throws IOException;
  
@@ -98,13 +98,38 @@
 +    private void loadWorld0(String s) {
 +    }
 +
-+    public void initWorld(ServerLevel worldserver, ServerLevelData iworlddataserver, LevelData saveData, WorldOptions worldoptions) {
++    // CraftBukkit start
++    public void initWorld(ServerLevel serverlevel, ServerLevelData serverleveldata, WorldData saveData,  WorldOptions worldoptions) {
++        boolean flag = saveData.isDebugWorld();
++        // CraftBukkit start
++        if (serverlevel.generator != null) {
++            serverlevel.getWorld().getPopulators().addAll(serverlevel.generator.getDefaultPopulators(serverlevel.getWorld()));
++        }
++        WorldBorder worldborder = serverlevel.getWorldBorder();
++        worldborder.applySettings(serverleveldata.getWorldBorder()); // CraftBukkit - move up so that WorldBorder is set during WorldInitEvent
 +
++        if (!serverleveldata.isInitialized()) {
++            try {
++                setInitialSpawn(serverlevel, serverleveldata, worldoptions.generateBonusChest(), flag);
++                serverleveldata.setInitialized(true);
++                if (flag) {
++                    this.setupDebugLevel(this.worldData);
++                }
++            } catch (Throwable throwable1) {
++                CrashReport crashreport = CrashReport.forThrowable(throwable1, "Exception initializing level");
++
++                try {
++                    serverlevel.fillReportDetails(crashreport);
++                } catch (Throwable throwable) {
++                }
++
++                throw new ReportedException(crashreport);
++            }
++
++            serverleveldata.setInitialized(true);
++        }
 +    }
-+
-+    public void prepareLevels(ChunkProgressListener worldloadlistener, ServerLevel worldserver) {
-+
-+    }
++    // CraftBukkit end
 +
 +    private boolean hasStopped = false;
 +    private final Object stopLock = new Object();
@@ -150,22 +175,74 @@
      protected void loadLevel() {
          if (!JvmProfiler.INSTANCE.isRunning()) {
          }
-@@ -372,6 +_,7 @@
+@@ -336,7 +_,7 @@
+             .create(this.worldData.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS));
+         this.createLevels(chunkprogresslistener);
+         this.forceDifficulty();
+-        this.prepareLevels(chunkprogresslistener);
++        // this.prepareLevels(chunkprogresslistener);
+         if (profiledduration != null) {
+             profiledduration.finish();
+         }
+@@ -367,11 +_,14 @@
+         ServerLevel serverlevel = new ServerLevel(
+             this, this.executor, this.storageSource, serverleveldata, Level.OVERWORLD, levelstem, p_129816_, flag, j, list, true, null
+         );
++        this.initWorld(serverlevel, serverleveldata, worldData, worldoptions); // CraftBukkit
+         this.levels.put(Level.OVERWORLD, serverlevel);
+         DimensionDataStorage dimensiondatastorage = serverlevel.getDataStorage();
          this.readScoreboard(dimensiondatastorage);
++        this.server.scoreboardManager = new org.bukkit.craftbukkit.scoreboard.CraftScoreboardManager(this, serverlevel.getScoreboard());
          this.commandStorage = new CommandStorage(dimensiondatastorage);
          WorldBorder worldborder = serverlevel.getWorldBorder();
 +        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.LevelEvent.Load(levels.get(Level.OVERWORLD)));
          if (!serverleveldata.isInitialized()) {
              try {
                  setInitialSpawn(serverlevel, serverleveldata, worldoptions.generateBonusChest(), flag);
-@@ -421,6 +_,7 @@
+@@ -405,6 +_,18 @@
+             if (resourcekey != LevelStem.OVERWORLD) {
+                 ResourceKey<Level> resourcekey1 = ResourceKey.create(Registries.DIMENSION, resourcekey.location());
+                 DerivedLevelData derivedleveldata = new DerivedLevelData(this.worldData, serverleveldata);
++                String name = (resourcekey == LevelStem.NETHER) ? "DIM-1" : "DIM1";
++                if (resourcekey == LevelStem.NETHER) {
++                    if (!this.server.getAllowNether()) {
++                        continue;
++                    }
++                } else if (resourcekey == LevelStem.END) {
++                    if (!this.server.getAllowEnd()) {
++                        continue;
++                    }
++                }
++                // Mohist start - split calculate for ServerLeverl Preparing
++                ChunkProgressListener mohist$progressListener = this.progressListenerFactory.create(11);
+                 ServerLevel serverlevel1 = new ServerLevel(
+                     this,
+                     this.executor,
+@@ -419,12 +_,24 @@
+                     false,
+                     randomsequences
                  );
++                this.initWorld(serverlevel1, derivedleveldata, worldData, worldoptions); // CraftBukkit
++                // Mohist end
                  worldborder.addListener(new BorderChangeListener.DelegateBorderChangeListener(serverlevel1.getWorldBorder()));
                  this.levels.put(resourcekey1, serverlevel1);
 +                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.LevelEvent.Load(levels.get(resourcekey)));
              }
          }
  
+         worldborder.applySettings(serverleveldata.getWorldBorder());
++        for (ServerLevel worldserver : this.getAllLevels()) {
++            this.prepareLevels(worldserver.getChunkSource().chunkMap.progressListener, worldserver);
++            worldserver.entityManager.tick(); // SPIGOT-6526: Load pending entities so they are available to the API
++            this.server.getPluginManager().callEvent(new org.bukkit.event.world.WorldLoadEvent(worldserver.getWorld()));
++        }
++
++        this.server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.POSTWORLD);
++        this.server.getPluginManager().callEvent(new ServerLoadEvent(ServerLoadEvent.LoadType.STARTUP));
++        this.connection.acceptConnections();
+     }
+ 
+     private static void setInitialSpawn(ServerLevel p_177897_, ServerLevelData p_177898_, boolean p_177899_, boolean p_177900_) {
 @@ -432,6 +_,7 @@
              p_177898_.setSpawn(BlockPos.ZERO.above(80), 0.0F);
          } else {
@@ -174,6 +251,24 @@
              ChunkPos chunkpos = new ChunkPos(serverchunkcache.randomState().sampler().findSpawnPosition());
              int i = serverchunkcache.getGenerator().getSpawnHeight(p_177897_);
              if (i < p_177897_.getMinBuildHeight()) {
+@@ -484,8 +_,16 @@
+         serverleveldata.setGameType(GameType.SPECTATOR);
+     }
+ 
++    public AtomicReference<ServerLevel> prepareLevels$serverlevel = new AtomicReference<>(this.overworld());
++
++    public void prepareLevels(ChunkProgressListener pListener, ServerLevel serverlevel) {
++        prepareLevels$serverlevel.set(serverlevel);
++        prepareLevels(pListener);
++    }
++
+     public void prepareLevels(ChunkProgressListener p_129941_) {
+-        ServerLevel serverlevel = this.overworld();
++        this.markWorldsDirty();
++        ServerLevel serverlevel = prepareLevels$serverlevel.getAndSet(this.overworld());
+         LOGGER.info("Preparing start region for dimension {}", serverlevel.dimension().location());
+         BlockPos blockpos = serverlevel.getSharedSpawnPos();
+         p_129941_.updateSpawnPos(new ChunkPos(blockpos));
 @@ -513,6 +_,7 @@
                      ChunkPos chunkpos = new ChunkPos(k);
                      serverlevel1.getChunkSource().updateChunkForced(chunkpos, true);

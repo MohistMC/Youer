@@ -87,7 +87,6 @@ public class ForgeInjectBukkit {
         addEnumEffectAndPotion();
         addFluid();
         addEnumEntity();
-        addEnumVillagerProfession();
         addEnumArt();
         addEnumParticle();
         addStatistic();
@@ -238,19 +237,6 @@ public class ForgeInjectBukkit {
         }
     }
 
-    public static void addEnumVillagerProfession() {
-        var registry = BuiltInRegistries.VILLAGER_PROFESSION;
-        for (VillagerProfession villagerProfession : registry) {
-            ResourceLocation resourceLocation = registry.getKey(villagerProfession);
-            if (isMods(resourceLocation)) {
-                String name = normalizeName(resourceLocation.toString());
-                Villager.Profession vp = MohistDynamEnum.addEnum(Villager.Profession.class, name);
-                profession.put(vp, resourceLocation);
-                Youer.LOGGER.debug("Registered forge VillagerProfession as Profession {}", vp.name());
-            }
-        }
-    }
-
     public static void addEnumAttribute() {
         var registry = BuiltInRegistries.ATTRIBUTE;
         for (Attribute attribute : registry) {
@@ -297,6 +283,7 @@ public class ForgeInjectBukkit {
                 String name = category.name();
                 SpawnCategory spawnCategory = MohistDynamEnum.addEnum(SpawnCategory.class, name);
                 spawnCategoryMap.put(category, spawnCategory);
+                spawnCategory.isMods = true;
                 Youer.LOGGER.debug("Registered forge MobCategory as SpawnCategory(Bukkit) {}", spawnCategory);
             }
         }

@@ -21,7 +21,7 @@ public class ItemsConfig extends MohistPluginConfig {
     }
 
     public static void init() {
-        INSTANCE = new ItemsConfig(new File("mohist-config", "items.yml"));
+        INSTANCE = new ItemsConfig(new File("youer-config", "items.yml"));
     }
 
     public List<ItemStack> getItems(){
