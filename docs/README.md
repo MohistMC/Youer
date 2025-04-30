@@ -4,7 +4,7 @@
 ### Minecraft NeoForge Hybrid server implementing the Spigot/Bukkit API
 
 [![](https://img.shields.io/github/stars/MohistMC/Mohist.svg?label=Stars&logo=github)](https://github.com/MohistMC/Mohist/stargazers)
-[![](https://img.shields.io/badge/NeoForge-21.1.168-brightgreen.svg?colorB=26303d)](https://neoforged.net/)
+[![](https://img.shields.io/badge/NeoForge-21.1.169-brightgreen.svg?colorB=26303d)](https://neoforged.net/)
 [![](https://img.shields.io/badge/JDK-21.0.3-brightgreen.svg?colorB=469C00&logo=java)](https://www.azul.com/downloads/?version=java-21-lts#zulu)
 [![](https://img.shields.io/badge/Gradle-8.3-brightgreen.svg?colorB=469C00&logo=gradle)](https://docs.gradle.org/8.3/release-notes.html)
 [![](https://img.shields.io/bstats/servers/6762?label=bStats)](https://bstats.org/plugin/server-implementation/Mohist/6762)
@@ -16,7 +16,7 @@
 Progress
 ------
 
-- [x] Rectify NeoForge([**9b92cf9899**](https://github.com/neoforged/NeoForge/commit/9b92cf9899))
+- [x] Rectify NeoForge([**863802b6df**](https://github.com/neoforged/NeoForge/commit/863802b6df))
 - [ ] Start patch
  * [x] Bukkit([**69fa4695**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/bukkit/commits/69fa4695))
  * [ ] CraftBukkit([**661afb43c**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/661afb43c))
