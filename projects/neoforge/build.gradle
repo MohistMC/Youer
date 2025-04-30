@@ -1,5 +1,5 @@
-import net.neoforged.jarcompatibilitychecker.gradle.JCCPlugin
 import net.neoforged.jarcompatibilitychecker.gradle.CompatibilityTask
+import net.neoforged.jarcompatibilitychecker.gradle.JCCPlugin
 import net.neoforged.jarcompatibilitychecker.gradle.ProvideNeoForgeJarTask
 
 plugins {
@@ -10,17 +10,12 @@ plugins {
     id 'neoforge.versioning'
 }
 
-apply plugin : net.neoforged.neodev.NeoDevPlugin
+apply plugin: net.neoforged.neodev.NeoDevPlugin
 
 // Because of the source set reference.
 evaluationDependsOn(":neoforge-coremods")
 
 gradleutils.setupSigning(project: project, signAllPublications: true)
-
-changelog {
-    from '21.0'
-    disableAutomaticPublicationRegistration()
-}
 
 sourceSets {
     main {
@@ -34,7 +29,7 @@ sourceSets {
 }
 
 final checkVersion = JCCPlugin.providePreviousVersion(
-        project.providers, project.providers.provider({['https://maven.neoforged.net/releases']}), project.providers.provider({'net.neoforged:neoforge'}),
+        project.providers, project.providers.provider({ ['https://maven.neoforged.net/releases'] }), project.providers.provider({ 'net.neoforged:neoforge' }),
         project.provider { project.version }.map { ver -> CompatibilityTask.VersionComponentTest.MINOR.predicate(ver) }
 )
 final createCompatJar = tasks.register('createCompatibilityCheckJar', ProvideNeoForgeJarTask) {
@@ -54,9 +49,9 @@ checkJarCompatibility {
 
 neoDev {
     mods {
-minecraft {
+        minecraft {
             sourceSet sourceSets.main
-}
+        }
         "neoforge-coremods" {
             sourceSet project(":neoforge-coremods").sourceSets.main
         }
@@ -93,11 +88,11 @@ dependencies {
     moduleLibraries "cpw.mods:bootstraplauncher:${project.bootstraplauncher_version}"
     moduleLibraries "net.neoforged:JarJarFileSystems:${project.jarjar_version}"
 
-    libraries ("net.neoforged.fancymodloader:loader:${project.fancy_mod_loader_version}") {
+    libraries("net.neoforged.fancymodloader:loader:${project.fancy_mod_loader_version}") {
         exclude group: 'org.slf4j'
         exclude group: 'net.fabricmc'
     }
-    libraries ("net.neoforged.fancymodloader:earlydisplay:${project.fancy_mod_loader_version}") {
+    libraries("net.neoforged.fancymodloader:earlydisplay:${project.fancy_mod_loader_version}") {
         exclude group: 'org.lwjgl'
         exclude group: 'org.slf4j'
         exclude group: 'net.fabricmc'
@@ -114,12 +109,12 @@ dependencies {
     libraries "net.minecrell:terminalconsoleappender:${project.terminalconsoleappender_version}"
     libraries("net.fabricmc:sponge-mixin:${project.mixin_version}") { transitive = false }
     libraries "org.openjdk.nashorn:nashorn-core:${project.nashorn_core_version}"
-    libraries ("net.neoforged:JarJarSelector:${project.jarjar_version}") {
+    libraries("net.neoforged:JarJarSelector:${project.jarjar_version}") {
         exclude group: 'org.slf4j'
     }
     // We depend on apache commons directly as there is a difference between the version the server uses and the one the client does
     libraries "org.apache.commons:commons-lang3:${project.apache_commons_lang3_version}"
-    libraries ("net.neoforged:JarJarMetadata:${project.jarjar_version}") {
+    libraries("net.neoforged:JarJarMetadata:${project.jarjar_version}") {
         exclude group: 'org.slf4j'
     }
 
@@ -129,7 +124,7 @@ dependencies {
 
     userdevTestFixtures("net.neoforged.fancymodloader:junit-fml:${project.fancy_mod_loader_version}") {
         endorseStrictVersions()
-}
+    }
 
     // Must be implementation instead of compileOnly so that running dependent projects such as tests will trigger (re)compilation of coremods.
     // (Only needed when compiling through IntelliJ non-delegated builds - otherwise `compileOnly` would work).
@@ -166,23 +161,23 @@ neoDev {
             gameDirectory = layout.projectDir.dir("run/$name")
             systemProperty("terminal.ansi", "true")
         }
-    client {
+        client {
             client()
-    }
+        }
 
-    server {
+        server {
             server()
-    }
+        }
 
-    gameTestServer {
+        gameTestServer {
             type = "gameTestServer"
-    }
-    data {
+        }
+        data {
             data()
             programArguments.addAll '--mod', 'neoforge', '--flat', '--all', '--validate',
                     '--existing', rootProject.file("src/main/resources").absolutePath,
                     '--output', rootProject.file("src/generated/resources").absolutePath
-}
+        }
     }
 }
 
@@ -272,15 +267,7 @@ configurations {
         // Publish it
         javaComponent.addVariantsFromConfiguration(it) {}
     }
-    changelog {
-        canBeDeclared = false
-        canBeResolved = false
-        attributes {
-            attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category, Category.DOCUMENTATION))
-            attribute(DocsType.DOCS_TYPE_ATTRIBUTE, objects.named(DocsType, "changelog"))
-        }
-        javaComponent.addVariantsFromConfiguration(it) {}
-    }
+
     modDevApiElements {
         canBeDeclared = false
         canBeResolved = false
@@ -350,18 +337,18 @@ processResources {
     }
 }
 
-    artifacts {
-        modDevBundle(userdevJar) {
-            setClassifier("userdev") // Legacy
-        }
-    modDevConfig(writeUserDevConfig.userDevConfig) {
-            setClassifier("moddev-config")
-        }
-    universalJar(universalJar) {
-            setClassifier("universal")
-        }
-    installerJar(installerJar) {
-            setClassifier("installer")
-        }
+artifacts {
+    modDevBundle(userdevJar) {
+        setClassifier("userdev") // Legacy
     }
+    modDevConfig(writeUserDevConfig.userDevConfig) {
+        setClassifier("moddev-config")
+    }
+    universalJar(universalJar) {
+        setClassifier("universal")
+    }
+    installerJar(installerJar) {
+        setClassifier("installer")
+    }
+}
 
