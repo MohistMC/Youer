@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -25,6 +26,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Contains helpers for performing file I/O in a resilient manner.
@@ -35,10 +38,41 @@ public final class IOUtilities {
             StandardOpenOption.WRITE,
             StandardOpenOption.TRUNCATE_EXISTING
     };
+    private static final Logger LOGGER = LoggerFactory.getLogger(IOUtilities.class);
 
     private static CompletableFuture<Void> saveDataTasks = CompletableFuture.completedFuture(null);
 
     private IOUtilities() {}
+
+    /**
+     * Tries to clean up any temporary files that may have been left over from interrupted
+     * calls to {@link #atomicWrite(Path, WriteCallback)}.
+     * <p>
+     * Failures to find or remove the temporary files are logged instead of thrown.
+     *
+     * @param targetPath The target path to clean up temporary files in.
+     * @param prefix     The prefix of temporary files to clean up, or null if all
+     *                   temporary files should be removed.
+     */
+    public static void tryCleanupTempFiles(Path targetPath, @Nullable String prefix) {
+        for (var file : tryListTempFiles(targetPath, prefix)) {
+            try {
+                Files.deleteIfExists(file);
+            } catch (IOException e) {
+                // Note: The stack trace of an I/O exception thrown by delete is not very useful, hence only logging the toString()
+                LOGGER.error("Could not delete temp file {}: {}", file, e.toString());
+            }
+        }
+    }
+
+    private static List<Path> tryListTempFiles(Path targetPath, @Nullable String prefix) {
+        try (var stream = Files.find(targetPath, 1, createPredicate(prefix))) {
+            return stream.toList();
+        } catch (IOException e) {
+            LOGGER.error("Failed to list temporary files in {}", targetPath, e);
+            return List.of();
+        }
+    }
 
     /**
      * Cleans up any temporary files that may have been left over from interrupted
@@ -49,7 +83,9 @@ public final class IOUtilities {
      *                   temporary files should be removed.
      *
      * @throws IOException if an I/O error occurs during deletion.
+     * @deprecated This method has been removed in 1.21.5
      */
+    @Deprecated(forRemoval = true)
     public static void cleanupTempFiles(Path targetPath, @Nullable String prefix) throws IOException {
         try (var filesToDelete = Files.find(targetPath, 1, createPredicate(prefix))) {
             for (var file : filesToDelete.toList()) {

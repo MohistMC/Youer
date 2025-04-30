@@ -8,14 +8,6 @@
  import net.minecraft.sounds.SoundEvent;
  import net.minecraft.sounds.SoundSource;
  import net.minecraft.tags.BlockTags;
-@@ -72,6 +_,7 @@
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.level.chunk.LevelChunk;
- import net.minecraft.world.level.dimension.DimensionType;
-+import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.entity.EntityTickList;
- import net.minecraft.world.level.entity.LevelCallback;
- import net.minecraft.world.level.entity.LevelEntityGetter;
 @@ -121,6 +_,7 @@
              p_194170_.put(
                  BiomeColors.WATER_COLOR_RESOLVER, new BlockTintCache(p_194168_ -> this.calculateBlockTint(p_194168_, BiomeColors.WATER_COLOR_RESOLVER))
@@ -33,15 +25,8 @@
  
      public void handleBlockChangedAck(int p_233652_) {
          this.blockStatePredictionHandler.endPredictionsUpTo(p_233652_, this);
-@@ -155,12 +_,22 @@
-     }
- 
+@@ -157,10 +_,15 @@
      @Override
-+    public ResourceKey<LevelStem> getTypeKey() {
-+        return null;
-+    }
-+
-+    @Override
      public boolean setBlock(BlockPos p_233643_, BlockState p_233644_, int p_233645_, int p_233646_) {
          if (this.blockStatePredictionHandler.isPredicting()) {
 +            // Neo: Record and store a snapshot in the prediction so that BE data can be restored if the break is denied.

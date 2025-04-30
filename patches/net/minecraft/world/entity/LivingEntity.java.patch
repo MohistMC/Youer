@@ -462,7 +462,7 @@
              }
  
              if (p_21016_.is(DamageTypeTags.IS_FREEZING) && this.getType().is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {
-@@ -1118,10 +_,12 @@
+@@ -1118,24 +_,28 @@
                  p_21017_ *= 0.75F;
              }
  
@@ -475,7 +475,9 @@
                      return false;
                  }
  
-@@ -1130,12 +_,13 @@
++                this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.INVULNERABILITY, this.lastHurt);
+                 this.actuallyHurt(p_21016_, p_21017_ - this.lastHurt);
+                 this.lastHurt = p_21017_;
                  flag1 = false;
              } else {
                  this.lastHurt = p_21017_;
@@ -955,7 +957,7 @@
      public void startUsingItem(InteractionHand p_21159_) {
          ItemStack itemstack = this.getItemInHand(p_21159_);
          if (!itemstack.isEmpty() && !this.isUsingItem()) {
-+            int duration = net.neoforged.neoforge.event.EventHooks.onItemUseStart(this, itemstack, itemstack.getUseDuration(this));
++            int duration = net.neoforged.neoforge.event.EventHooks.onItemUseStart(this, itemstack, p_21159_, itemstack.getUseDuration(this));
 +            if (duration < 0) return; // Neo: Early return for negative values, as that indicates event cancellation.
              this.useItem = itemstack;
 -            this.useItemRemaining = itemstack.getUseDuration(this);
