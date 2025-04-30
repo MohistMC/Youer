@@ -8,10 +8,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
-import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.neoforge.ForgeInjectBukkit;
-import com.mohistmc.youer.plugins.MohistPlugin;
-import com.mohistmc.youer.util.Level2LevelStem;
+import cn.mohistmc.youer.Youer;
+import cn.mohistmc.youer.neoforge.ForgeInjectBukkit;
+import cn.mohistmc.youer.plugins.MohistPlugin;
+import cn.mohistmc.youer.util.Level2LevelStem;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -48,7 +48,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
-import jline.console.ConsoleReader;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -67,7 +66,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ReloadableServerRegistries;
 import net.minecraft.server.WorldLoader;
 import net.minecraft.server.bossevents.CustomBossEvent;
-import net.minecraft.server.commands.ReloadCommand;
 import net.minecraft.server.dedicated.DedicatedPlayerList;
 import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.dedicated.DedicatedServerProperties;
@@ -270,7 +268,7 @@ import com.mohistmc.org.yaml.snakeyaml .error.MarkedYAMLException;
 import net.md_5.bungee.api.chat.BaseComponent; // Spigot
 
 public final class CraftServer implements Server {
-    private final String serverName = "Mohist";
+    private final String serverName = "Youer";
     private final String serverVersion;
     private final String bukkitVersion = Versioning.getBukkitVersion();
     private final Logger logger = Logger.getLogger("Minecraft");
@@ -331,7 +329,6 @@ public final class CraftServer implements Server {
         this.dataPackManager = new CraftDataPackManager(this.getServer().getPackRepository());
         this.serverTickManager = new CraftServerTickManager(console.tickRateManager());
         this.serverLinks = new CraftServerLinks(console);
-
         Bukkit.setServer(this);
 
         CraftRegistry.setMinecraftRegistry(console.registryAccess());
@@ -394,6 +391,47 @@ public final class CraftServer implements Server {
             MapPalette.setMapColorCache(new CraftMapColorCache(this.logger));
         }
     }
+
+    // Mohist start
+    public void initConfig() {
+        configuration = YamlConfiguration.loadConfiguration(getConfigFile());
+        configuration.options().copyDefaults(true);
+        configuration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("configurations/bukkit.yml"), Charsets.UTF_8)));
+        ConfigurationSection legacyAlias = null;
+        if (!configuration.isString("aliases")) {
+            legacyAlias = configuration.getConfigurationSection("aliases");
+            configuration.set("aliases", "now-in-commands.yml");
+        }
+        saveConfig();
+        if (getCommandsConfigFile().isFile()) {
+            legacyAlias = null;
+        }
+        commandsConfiguration = YamlConfiguration.loadConfiguration(getCommandsConfigFile());
+        commandsConfiguration.options().copyDefaults(true);
+        commandsConfiguration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("configurations/commands.yml"), Charsets.UTF_8)));
+        saveCommandsConfig();
+
+        // Migrate aliases from old file and add previously implicit $1- to pass all arguments
+        if (legacyAlias != null) {
+            ConfigurationSection aliases = commandsConfiguration.createSection("aliases");
+            for (String key : legacyAlias.getKeys(false)) {
+                ArrayList<String> commands = new ArrayList<String>();
+
+                if (legacyAlias.isList(key)) {
+                    for (String command : legacyAlias.getStringList(key)) {
+                        commands.add(command + " $1-");
+                    }
+                } else {
+                    commands.add(legacyAlias.getString(key) + " $1-");
+                }
+
+                aliases.set(key, commands);
+            }
+        }
+
+        saveCommandsConfig();
+    }
+    // Mohist end
 
     public boolean getCommandBlockOverride(String command) {
         return this.overrideAllCommandBlockCommands || this.commandsConfiguration.getStringList("command-block-overrides").contains(command);
@@ -962,7 +1000,7 @@ public final class CraftServer implements Server {
     }
 
     @SuppressWarnings({ "unchecked", "finally" })
-    private void loadCustomPermissions() {
+    public void loadCustomPermissions() {
         File file = new File(this.configuration.getString("settings.permissions-file"));
         FileInputStream stream;
 

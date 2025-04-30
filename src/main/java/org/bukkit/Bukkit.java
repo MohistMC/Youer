@@ -1,7 +1,6 @@
 package org.bukkit;
 
 import com.google.common.collect.ImmutableList;
-import com.mohistmc.youer.Youer;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.Serializable;
@@ -15,6 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
+import net.neoforged.neoforge.internal.versions.neoforge.NeoForgeVersion;
 import org.bukkit.Warning.WarningState;
 import org.bukkit.advancement.Advancement;
 import org.bukkit.block.data.BlockData;
@@ -97,7 +97,7 @@ public final class Bukkit {
         }
 
         Bukkit.server = server;
-        server.getLogger().info("This server is running " + getName() + " version " + getVersion() + " (Implementing API version " + getBukkitVersion() + ", Forge version " + Youer.versionInfo.neoforge() + ")");
+        server.getLogger().info("This server is running " + getName() + " version " + getVersion() + " (Implementing API version " + getBukkitVersion() + ", NeoForge version " + NeoForgeVersion.getVersion() + ")");
     }
 
     /**

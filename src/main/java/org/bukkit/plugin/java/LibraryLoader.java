@@ -1,9 +1,9 @@
 package org.bukkit.plugin.java;
 
 import com.mohistmc.mjson.Json;
-import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.bukkit.PluginsLibrarySource;
-import com.mohistmc.youer.bukkit.remapping.RemappingURLClassLoader;
+import cn.mohistmc.youer.Youer;
+import cn.mohistmc.youer.bukkit.PluginsLibrarySource;
+import cn.mohistmc.youer.bukkit.remapping.RemappingURLClassLoader;
 import com.mohistmc.tools.ConnectionUtil;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

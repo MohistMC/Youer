@@ -1,13 +1,37 @@
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -128,6 +_,7 @@
+@@ -67,6 +_,7 @@
+ import net.minecraft.server.PlayerAdvancements;
+ import net.minecraft.server.RegistryLayer;
+ import net.minecraft.server.ServerScoreboard;
++import net.minecraft.server.dedicated.DedicatedServer;
+ import net.minecraft.server.level.ClientInformation;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+@@ -98,6 +_,7 @@
+ import net.minecraft.world.scores.Objective;
+ import net.minecraft.world.scores.PlayerTeam;
+ import net.minecraft.world.scores.Team;
++import org.bukkit.craftbukkit.CraftServer;
+ import org.slf4j.Logger;
+ 
+ public abstract class PlayerList {
+@@ -128,8 +_,15 @@
      private boolean allowCommandsForAllPlayers;
      private static final boolean ALLOW_LOGOUTIVATOR = false;
      private int sendAllPlayerInfoIn;
 +    private final List<ServerPlayer> playersView = java.util.Collections.unmodifiableList(players);
++
++    // CraftBukkit start
++    private CraftServer cserver;
  
      public PlayerList(MinecraftServer p_203842_, LayeredRegistryAccess<RegistryLayer> p_251844_, PlayerDataStorage p_203844_, int p_203845_) {
++        this.cserver = p_203842_.server = new CraftServer((DedicatedServer) p_203842_, this);
++        p_203842_.console = org.bukkit.craftbukkit.command.ColouredConsoleSender.getInstance();
++       // CraftBukkit end
          this.server = p_203842_;
+         this.registries = p_251844_;
+         this.maxPlayers = p_203845_;
 @@ -177,7 +_,7 @@
          p_11263_.loadGameTypes(optional1.orElse(null));
          ServerGamePacketListenerImpl servergamepacketlistenerimpl = new ServerGamePacketListenerImpl(this.server, p_11262_, p_11263_, p_301988_);

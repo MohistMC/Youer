@@ -1,14 +1,35 @@
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -58,6 +_,8 @@
+@@ -1,5 +_,8 @@
+ package net.minecraft.server.dedicated;
+ 
++import cn.mohistmc.youer.Metrics;
++import cn.mohistmc.youer.YouerConfig;
++import cn.mohistmc.youer.WatchMohist;
+ import com.google.common.collect.Lists;
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.datafixers.DataFixer;
+@@ -58,6 +_,11 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.entity.SkullBlockEntity;
  import net.minecraft.world.level.storage.LevelStorageSource;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.io.IoBuilder;
 +import org.bukkit.command.CommandSender;
-+import org.bukkit.command.RemoteConsoleCommandSender;
++import org.bukkit.craftbukkit.util.ForwardLogHandler;
++import org.bukkit.event.server.RemoteServerCommandEvent;
  import org.slf4j.Logger;
  
  public class DedicatedServer extends MinecraftServer implements ServerInterface {
+@@ -67,7 +_,7 @@
+     private final List<ConsoleInput> consoleInput = Collections.synchronizedList(Lists.newArrayList());
+     @Nullable
+     private QueryThreadGs4 queryThreadGs4;
+-    public final RconConsoleSource rconConsoleSource;
++    // public final RconConsoleSource rconConsoleSource;
+     @Nullable
+     private RconThread rconThread;
+     public DedicatedServerSettings settings;
 @@ -80,6 +_,8 @@
      @Nullable
      private DebugSampleSubscriptionTracker debugSampleSubscriptionTracker;
@@ -18,14 +39,96 @@
  
      public DedicatedServer(
          Thread p_214789_,
-@@ -103,6 +_,7 @@
+@@ -93,7 +_,7 @@
+     ) {
+         super(p_214789_, p_214790_, p_214791_, p_214792_, Proxy.NO_PROXY, p_214794_, p_214795_, p_214796_);
+         this.settings = p_214793_;
+-        this.rconConsoleSource = new RconConsoleSource(this);
++        // this.rconConsoleSource = new RconConsoleSource(this);
+         this.textFilterClient = TextFilterClient.createFromConfig(p_214793_.getProperties().textFilteringConfig);
+         this.serverLinks = createServerLinks(p_214793_);
+     }
+@@ -103,18 +_,54 @@
          Thread thread = new Thread("Server console handler") {
              @Override
              public void run() {
 +                if (net.neoforged.neoforge.server.console.TerminalHandler.handleCommands(DedicatedServer.this)) return;
++                // CraftBukkit start
                  BufferedReader bufferedreader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
  
-                 String s1;
+-                String s1;
+-                try {
+-                    while (!DedicatedServer.this.isStopped() && DedicatedServer.this.isRunning() && (s1 = bufferedreader.readLine()) != null) {
+-                        DedicatedServer.this.handleConsoleInput(s1, DedicatedServer.this.createCommandSourceStack());
++                // MC-33041, SPIGOT-5538: if System.in is not valid due to javaw, then return
++                try {
++                    System.in.available();
++                } catch (IOException ex) {
++                    return;
++                }
++                // CraftBukkit end
++                String s;
++                try {
++                    // CraftBukkit start - JLine disabling compatibility
++                    while (!DedicatedServer.this.isStopped() && DedicatedServer.this.isRunning()) {
++                        s = bufferedreader.readLine();
++
++                        // SPIGOT-5220: Throttle if EOF (ctrl^d) or stdin is /dev/null
++                        if (s == null) {
++                            try {
++                                Thread.sleep(50L);
++                            } catch (InterruptedException ex) {
++                                Thread.currentThread().interrupt();
++                            }
++                            continue;
++                        }
++                        if (s.trim().length() > 0) { // Trim to filter lines which are just spaces
++                            DedicatedServer.this.handleConsoleInput(s, DedicatedServer.this.createCommandSourceStack());
++                        }
++                        // CraftBukkit end
+                     }
+                 } catch (IOException ioexception1) {
+                     DedicatedServer.LOGGER.error("Exception handling console input", (Throwable)ioexception1);
+                 }
+             }
+         };
++        // CraftBukkit start - TODO: handle command-line logging arguments
++        java.util.logging.Logger global = java.util.logging.Logger.getLogger("");
++        global.setUseParentHandlers(false);
++        for (java.util.logging.Handler handler : global.getHandlers()) {
++            global.removeHandler(handler);
++        }
++        global.addHandler(new ForwardLogHandler());
++        final org.apache.logging.log4j.Logger logger = LogManager.getRootLogger();
++
++        System.setOut(IoBuilder.forLogger(logger).setLevel(org.apache.logging.log4j.Level.INFO).buildPrintStream());
++        System.setErr(IoBuilder.forLogger(logger).setLevel(org.apache.logging.log4j.Level.WARN).buildPrintStream());
++        // CraftBukkit end
+         thread.setDaemon(true);
+         thread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
+         thread.start();
+@@ -178,6 +_,21 @@
+             return false;
+         } else {
+             this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
++            // Spigot start
++            org.spigotmc.SpigotConfig.init((java.io.File) options.valueOf("spigot-settings"));
++            org.spigotmc.SpigotConfig.registerCommands();
++            // Spigot end
++            // Mohsit start
++            YouerConfig.init((java.io.File) options.valueOf("youer-settings"));
++            YouerConfig.registerCommands();
++            if (YouerConfig.motdEnable) {
++                this.setMotd(YouerConfig.motd());
++            }
++            // Mohist end
++            // CraftBukkit start
++            server.loadPlugins();
++            server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
++            // CraftBukkit end
+             this.debugSampleSubscriptionTracker = new DebugSampleSubscriptionTracker(this.getPlayerList());
+             this.tickTimeLogger = new RemoteSampleLogger(
+                 TpsDebugDimensions.values().length, this.debugSampleSubscriptionTracker, RemoteDebugSampleType.TICK_TIME
 @@ -185,11 +_,13 @@
              long i = Util.getNanos();
              SkullBlockEntity.setup(this.services, this);
@@ -40,7 +143,16 @@
              if (dedicatedserverproperties.announcePlayerAchievements != null) {
                  this.getGameRules().getRule(GameRules.RULE_ANNOUNCE_ADVANCEMENTS).set(dedicatedserverproperties.announcePlayerAchievements, this);
              }
-@@ -217,6 +_,12 @@
+@@ -204,7 +_,7 @@
+                 this.rconThread = RconThread.create(this);
+             }
+ 
+-            if (this.getMaxTickLength() > 0L) {
++            if (false && this.getMaxTickLength() > 0L) { // Spigot - disable
+                 Thread thread1 = new Thread(new ServerWatchdog(this));
+                 thread1.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(LOGGER));
+                 thread1.setName("Server Watchdog");
+@@ -217,6 +_,13 @@
                  LOGGER.info("JMX monitoring enabled");
              }
  
@@ -48,7 +160,8 @@
 +                this.dediLanPinger = new net.minecraft.client.server.LanServerPinger(this.getMotd(), String.valueOf(this.getServerPort()));
 +                this.dediLanPinger.start();
 +            }
-+
++            Metrics.MohistMetrics.startMetrics();
++            WatchMohist.start();
 +            net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStarting(this);
              return true;
          }
@@ -64,17 +177,34 @@
      }
  
      @Override
-@@ -542,13 +_,22 @@
-         return this.rconConsoleSource.getCommandResponse();
-     }
+@@ -537,9 +_,23 @@
  
-+    public String runCommand(RconConsoleSource rconConsoleSource, String s) {
-+        return s;
+     @Override
+     public String runCommand(String p_139644_) {
+-        this.rconConsoleSource.prepareForCommand();
+-        this.executeBlocking(() -> this.getCommands().performPrefixedCommand(this.rconConsoleSource.createCommandSourceStack(), p_139644_));
+-        return this.rconConsoleSource.getCommandResponse();
++        throw new UnsupportedOperationException("Not supported - remote source required.");
 +    }
 +
-     public void storeUsingWhiteList(boolean p_139689_) {
-         this.settings.update(p_349962_ -> p_349962_.whiteList.update(this.registryAccess(), p_139689_));
++    public String runCommand(RconConsoleSource rconConsoleSource, String s) {
++        rconConsoleSource.prepareForCommand();
++        this.executeBlocking(() -> {
++            CommandSourceStack wrapper = rconConsoleSource.createCommandSourceStack();
++            RemoteServerCommandEvent event = new RemoteServerCommandEvent(rconConsoleSource.getBukkitSender(wrapper), s);
++            server.getPluginManager().callEvent(event);
++            if (event.isCancelled()) {
++                return;
++            }
++            ConsoleInput serverCommand = new ConsoleInput(event.getCommand(), wrapper);
++            server.dispatchServerCommand(event.getSender(), serverCommand);
++        });
++        return rconConsoleSource.getCommandResponse();
++        // CraftBukkit end
      }
+ 
+     public void storeUsingWhiteList(boolean p_139689_) {
+@@ -548,7 +_,12 @@
  
      @Override
      public void stopServer() {

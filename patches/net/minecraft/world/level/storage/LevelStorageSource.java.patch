@@ -38,36 +38,36 @@
      public static record LevelCandidates(List<LevelStorageSource.LevelDirectory> levels) implements Iterable<LevelStorageSource.LevelDirectory> {
          public boolean isEmpty() {
              return this.levels.isEmpty();
-@@ -410,11 +_,22 @@
+@@ -410,6 +_,8 @@
          public final LevelStorageSource.LevelDirectory levelDirectory;
          private final String levelId;
          private final Map<LevelResource, Path> resources = Maps.newHashMap();
 +        // CraftBukkit start
-+        public final ResourceKey<LevelStem> dimensionType;
++        public ResourceKey<LevelStem> dimensionType = null;
  
          LevelStorageAccess(String p_289967_, Path p_289988_) throws IOException {
              this.levelId = p_289967_;
-             this.levelDirectory = new LevelStorageSource.LevelDirectory(p_289988_);
+@@ -417,6 +_,14 @@
              this.lock = DirectoryLock.create(p_289988_);
-+            dimensionType = null;
-+        }
-+
+         }
+ 
 +        LevelStorageAccess(String p_289967_, Path p_289988_, final ResourceKey<LevelStem> dimensionType) throws IOException {
 +            this.levelId = p_289967_;
 +            this.levelDirectory = new LevelStorageSource.LevelDirectory(p_289988_);
 +            this.lock = DirectoryLock.create(p_289988_);
 +            this.dimensionType = dimensionType;
 +            // CraftBukkit end
-         }
- 
++        }
++
          public long estimateDiskSpace() {
-@@ -454,7 +_,8 @@
+             try {
+                 return Files.getFileStore(this.levelDirectory.path).getUsableSpace();
+@@ -454,7 +_,7 @@
          }
  
          public Path getDimensionPath(ResourceKey<Level> p_197395_) {
 -            return DimensionType.getStorageFolder(p_197395_, this.levelDirectory.path());
-+            // return DimensionType.getStorageFolder(p_197395_, this.levelDirectory.path()); // TODO Youer
-+            return getStorageFolder(this.levelDirectory.path(), this.dimensionType); // CraftBukkit
++            return dimensionType != null ? LevelStorageSource.getStorageFolder(this.levelDirectory.path(), this.dimensionType) : DimensionType.getStorageFolder(p_197395_, this.levelDirectory.path());
          }
  
          private void checkLock() {

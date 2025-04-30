@@ -1,5 +1,16 @@
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
+@@ -13,8 +_,10 @@
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+ import java.nio.file.Paths;
++import java.util.Arrays;
+ import java.util.Optional;
+ import java.util.concurrent.Executor;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.BooleanSupplier;
+ import javax.annotation.Nullable;
+ import joptsimple.OptionParser;
 @@ -64,7 +_,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
  
@@ -9,7 +20,7 @@
          SharedConstants.tryDetectVersion();
          OptionParser optionparser = new OptionParser();
          OptionSpec<Void> optionspec = optionparser.accepts("nogui");
-@@ -83,6 +_,15 @@
+@@ -83,6 +_,48 @@
          OptionSpec<Void> optionspec13 = optionparser.accepts("jfrProfile");
          OptionSpec<Path> optionspec14 = optionparser.accepts("pidFile").withRequiredArg().withValuesConvertedBy(new PathConverter());
          OptionSpec<String> optionspec15 = optionparser.nonOptions();
@@ -22,6 +33,39 @@
 +        } else {
 +             spawnPosOpt = null;
 +        }
++
++        optionparser.acceptsAll(Arrays.asList("b", "bukkit-settings"), "File for bukkit settings")
++                .withRequiredArg()
++                .ofType(File.class)
++                .defaultsTo(new File("bukkit.yml"))
++                .describedAs("Yml file");
++
++        optionparser.acceptsAll(Arrays.asList("C", "commands-settings"), "File for command settings")
++                .withRequiredArg()
++                .ofType(File.class)
++                .defaultsTo(new File("commands.yml"))
++                .describedAs("Yml file");
++
++        optionparser.acceptsAll(Arrays.asList("P", "plugins"), "Plugin directory to use")
++                .withRequiredArg()
++                .ofType(File.class)
++                .defaultsTo(new File("plugins"))
++                .describedAs("Plugin directory");
++
++        // Spigot Start
++        optionparser.acceptsAll(Arrays.asList("S", "spigot-settings"), "File for spigot settings")
++                .withRequiredArg()
++                .ofType(File.class)
++                .defaultsTo(new File("spigot.yml"))
++                .describedAs("Yml file");
++        // Spigot End
++        // Mohist Start
++        optionparser.acceptsAll(Arrays.asList("Y", "youer-settings"), "File for youer settings")
++                .withRequiredArg()
++                .ofType(File.class)
++                .defaultsTo(new File("youer.yml"))
++                .describedAs("Yml file");
++        // Mohist End
  
          try {
              OptionSet optionset = optionparser.parse(p_129699_);
@@ -97,10 +141,18 @@
 +                // or create a shutdown thread as the gametest server will always exit itself
 +                return;
 +            }
-+
++            AtomicReference<WorldLoader.DataLoadContext> worldLoader = new AtomicReference<>();
              WorldStem worldstem;
              try {
                  WorldLoader.InitConfig worldloader$initconfig = loadOrCreateConfig(dedicatedserversettings.getProperties(), dynamic1, flag, packrepository);
+@@ -180,6 +_,7 @@
+                         p_248086_ -> WorldLoader.load(
+                                 worldloader$initconfig,
+                                 p_307161_ -> {
++                                    worldLoader.set(p_307161_);
+                                     Registry<LevelStem> registry = p_307161_.datapackDimensions().registryOrThrow(Registries.LEVEL_STEM);
+                                     if (dynamic1 != null) {
+                                         LevelDataAndDimensions leveldataanddimensions = LevelStorageSource.getLevelDataAndDimensions(
 @@ -214,6 +_,9 @@
                                              worlddimensions = dedicatedserverproperties.createDimensions(p_307161_.datapackWorldgen());
                                          }
@@ -111,6 +163,21 @@
                                          WorldDimensions.Complete worlddimensions$complete = worlddimensions.bake(registry);
                                          Lifecycle lifecycle = worlddimensions$complete.lifecycle().add(p_307161_.datapackWorldgen().allRegistriesLifecycle());
                                          return new WorldLoader.DataLoadOutput<>(
+@@ -258,12 +_,13 @@
+                         services,
+                         LoggerChunkProgressListener::createFromGameruleRadius
+                     );
++                    dedicatedserver1.worldLoader(worldLoader.get(), optionset);
+                     dedicatedserver1.setPort(optionset.valueOf(optionspec11));
+                     dedicatedserver1.setDemo(optionset.has(optionspec2));
+                     dedicatedserver1.setId(optionset.valueOf(optionspec12));
+                     boolean flag2 = !optionset.has(optionspec) && !optionset.valuesOf(optionspec15).contains("nogui");
+                     if (flag2 && !GraphicsEnvironment.isHeadless()) {
+-                        dedicatedserver1.showGui();
++                        // dedicatedserver1.showGui();
+                     }
+ 
+                     return dedicatedserver1;
 @@ -273,6 +_,7 @@
                  @Override
                  public void run() {
