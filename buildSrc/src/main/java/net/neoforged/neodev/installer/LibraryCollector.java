@@ -61,6 +61,7 @@ class LibraryCollector {
 
     private static final URI MOJANG_MAVEN = URI.create("https://libraries.minecraft.net");
     private static final URI NEOFORGED_MAVEN = URI.create("https://maven.neoforged.net/releases");
+    private static final URI MOHISTMC_MAVEN = URI.create("https://maven.mohistmc.com");
 
     private final List<URI> repositoryUrls;
 
@@ -86,8 +87,10 @@ class LibraryCollector {
         // Always try Mojang Maven first, then our installer Maven
         repositoryUrls.removeIf(it -> it.getHost().equals(MOJANG_MAVEN.getHost()));
         repositoryUrls.removeIf(it -> it.getHost().equals(NEOFORGED_MAVEN.getHost()) && it.getPath().startsWith(NEOFORGED_MAVEN.getPath()));
+        repositoryUrls.removeIf(it -> it.getHost().equals(MOHISTMC_MAVEN.getHost()) && it.getPath().startsWith(MOHISTMC_MAVEN.getPath()));
         repositoryUrls.add(0, NEOFORGED_MAVEN);
         repositoryUrls.add(0, MOJANG_MAVEN);
+        repositoryUrls.add(0, MOHISTMC_MAVEN);
 
         LOGGER.info("Collecting libraries from:");
         for (var repo : repositoryUrls) {
