@@ -1,13 +1,20 @@
 --- a/net/minecraft/commands/Commands.java
 +++ b/net/minecraft/commands/Commands.java
-@@ -149,6 +_,7 @@
-     private final CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
+@@ -1,5 +_,6 @@
+ package net.minecraft.commands;
  
-     public Commands(Commands.CommandSelection p_230943_, CommandBuildContext p_230944_) {
-+        this(); // CraftBukkit
-         AdvancementCommands.register(this.dispatcher);
-         AttributeCommand.register(this.dispatcher, p_230944_);
-         ExecuteCommand.register(this.dispatcher, p_230944_);
++import com.google.common.base.Joiner;
+ import com.google.common.collect.Maps;
+ import com.mojang.brigadier.CommandDispatcher;
+ import com.mojang.brigadier.ParseResults;
+@@ -136,6 +_,7 @@
+ import net.minecraft.tags.TagKey;
+ import net.minecraft.util.profiling.jfr.JvmProfiler;
+ import net.minecraft.world.level.GameRules;
++import org.bukkit.event.server.ServerCommandEvent;
+ import org.slf4j.Logger;
+ 
+ public class Commands {
 @@ -214,7 +_,7 @@
              JfrCommand.register(this.dispatcher);
          }
@@ -17,16 +24,14 @@
              TestCommand.register(this.dispatcher);
              RaidCommand.register(this.dispatcher, p_230944_);
              DebugPathCommand.register(this.dispatcher);
-@@ -248,7 +_,15 @@
+@@ -248,7 +_,13 @@
          if (p_230943_.includeIntegrated) {
              PublishCommand.register(this.dispatcher);
          }
 -
 +        net.neoforged.neoforge.event.EventHooks.onCommandRegister(this.dispatcher, p_230943_, p_230944_);
 +
-+        if (false) {
-+            this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
-+        }
++        this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
 +    }
 +
 +    public Commands() {
@@ -34,13 +39,46 @@
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
      }
  
-@@ -258,6 +_,21 @@
+@@ -258,6 +_,54 @@
          return new ParseResults<>(commandcontextbuilder1, p_242928_.getReader(), p_242928_.getExceptions());
      }
  
++    // CraftBukkit start
 +    public void dispatchServerCommand(CommandSourceStack sender, String command) {
++        Joiner joiner = Joiner.on(" ");
++        if (command.startsWith("/")) {
++            command = command.substring(1);
++        }
 +
++        ServerCommandEvent event = new ServerCommandEvent(sender.getBukkitSender(), command);
++        org.bukkit.Bukkit.getPluginManager().callEvent(event);
++        if (event.isCancelled()) {
++            return;
++        }
++        command = event.getCommand();
++
++        String[] args = command.split(" ");
++
++        String cmd = args[0];
++        if (cmd.startsWith("minecraft:")) cmd = cmd.substring("minecraft:".length());
++        if (cmd.startsWith("bukkit:")) cmd = cmd.substring("bukkit:".length());
++
++        // Block disallowed commands
++        if (cmd.equalsIgnoreCase("stop") || cmd.equalsIgnoreCase("kick") || cmd.equalsIgnoreCase("op")
++                || cmd.equalsIgnoreCase("deop") || cmd.equalsIgnoreCase("ban") || cmd.equalsIgnoreCase("ban-ip")
++                || cmd.equalsIgnoreCase("pardon") || cmd.equalsIgnoreCase("pardon-ip") || cmd.equalsIgnoreCase("reload")) {
++            return;
++        }
++
++        // Handle vanilla commands;
++        if (sender.getLevel().getCraftServer().getCommandBlockOverride(args[0])) {
++            args[0] = "minecraft:" + args[0];
++        }
++
++        String newCommand = joiner.join(args);
++        this.performPrefixedCommand(sender, newCommand, newCommand);
 +    }
++    // CraftBukkit end
 +
 +    public void performPrefixedCommand(CommandSourceStack commandlistenerwrapper, String s, String label) {
 +

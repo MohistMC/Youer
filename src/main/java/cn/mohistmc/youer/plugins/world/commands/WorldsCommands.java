@@ -1,7 +1,7 @@
 package cn.mohistmc.youer.plugins.world.commands;
 
 import cn.mohistmc.youer.api.ItemAPI;
-import cn.mohistmc.youer.neoforge.ForgeInjectBukkit;
+import cn.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import cn.mohistmc.youer.plugins.world.WorldManage;
 import cn.mohistmc.youer.plugins.world.listener.InventoryClickListener;
 import cn.mohistmc.youer.plugins.world.utils.ConfigByWorlds;
@@ -67,7 +67,7 @@ public class WorldsCommands extends Command {
                             27,
                             I18n.as("worldmanage.gui.title0") + type);
                     Inventory inventory = worldCreateInventory.getInventory();
-                    for (World.Environment environment : ForgeInjectBukkit.environment.values()) {
+                    for (World.Environment environment : NeoForgeInjectBukkit.environment.values()) {
                         if (environment == World.Environment.CUSTOM) continue;
                         i++;
                         inventory.setItem(i, ItemAPI.doItem(Material.MAP, 1, environment.name(), null));

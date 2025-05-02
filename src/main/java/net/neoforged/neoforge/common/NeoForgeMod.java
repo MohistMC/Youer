@@ -77,7 +77,6 @@ import net.neoforged.fml.CrashReportCallables;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModLoader;
 import net.neoforged.fml.ModLoadingIssue;
-import net.neoforged.fml.VersionChecker;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.config.ModConfigs;
@@ -600,7 +599,7 @@ public class NeoForgeMod {
     }
 
     public void preInit(FMLCommonSetupEvent evt) {
-        VersionChecker.startVersionCheck();
+        // VersionChecker.startVersionCheck();
     }
 
     public void loadComplete(FMLLoadCompleteEvent event) {}

@@ -1,13 +1,25 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -126,9 +_,16 @@
+@@ -19,7 +_,9 @@
+ import java.util.Optional;
+ import java.util.Set;
+ import java.util.UUID;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.concurrent.atomic.AtomicInteger;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.BiConsumer;
+ import java.util.function.Predicate;
+ import java.util.stream.Stream;
+@@ -126,9 +_,18 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreHolder;
  import net.minecraft.world.scores.Team;
 +import org.bukkit.Location;
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.craftbukkit.entity.CraftEntity;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.event.CraftPortalEvent;
++import org.bukkit.event.entity.EntityPortalEvent;
 +import org.bukkit.event.entity.EntityRemoveEvent;
 +import org.bukkit.event.player.PlayerTeleportEvent;
  import org.slf4j.Logger;
@@ -131,7 +143,7 @@
      }
  
      public boolean isColliding(BlockPos p_20040_, BlockState p_20041_) {
-@@ -333,6 +_,76 @@
+@@ -333,6 +_,75 @@
          this.remove(Entity.RemovalReason.DISCARDED);
      }
  
@@ -176,33 +188,32 @@
 +        return isPushable();
 +    }
 +    // CraftBukkit end
-+
-+    public boolean saveAsPassenger(CompoundTag nbttagcompound, boolean includeAll) {
-+        return includeAll;
-+    }
-+
-+    public CompoundTag saveWithoutId(CompoundTag nbttagcompound, boolean includeAll) {
-+        return nbttagcompound;
-+    }
-+
++    // CraftBukkit start - allow excluding certain data when saving
 +    protected void addAdditionalSaveData(CompoundTag nbttagcompound, boolean includeAll) {
-+
++        this.addAdditionalSaveData(nbttagcompound);
 +    }
++    // CraftBukkit end
 +
 +    protected boolean bukkit$removePassenger(Entity entity) { // CraftBukkit
 +        return false;
 +    }
 +
++    // CraftBukkit start
 +    public CraftPortalEvent callPortalEvent(Entity entity, Location exit, PlayerTeleportEvent.TeleportCause cause, int searchRadius, int creationRadius) {
-+        return null;
++        org.bukkit.entity.Entity bukkitEntity = entity.getBukkitEntity();
++        Location enter = bukkitEntity.getLocation();
++
++        EntityPortalEvent event = new EntityPortalEvent(bukkitEntity, enter, exit, searchRadius, true, creationRadius);
++        event.getEntity().getServer().getPluginManager().callEvent(event);
++        if (event.isCancelled() || event.getTo() == null || event.getTo().getWorld() == null || !entity.isAlive()) {
++            return null;
++        }
++        return new CraftPortalEvent(event);
 +    }
++    // CraftBukkit end
 +
 +    public boolean teleportTo(ServerLevel worldserver, double d0, double d1, double d2, Set<RelativeMovement> set, float f, float f1, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
 +        return false;
-+    }
-+
-+    public final void setRemoved(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
-+
 +    }
 +
      protected abstract void defineSynchedData(SynchedEntityData.Builder p_326003_);
@@ -366,6 +377,69 @@
      }
  
      public void moveRelative(float p_19921_, Vec3 p_19922_) {
+@@ -1627,6 +_,13 @@
+         return p_19883_ < d0 * d0;
+     }
+ 
++    public AtomicBoolean saveAsPassenger$includeAll = new AtomicBoolean(true);
++
++    public boolean saveAsPassengerCB(CompoundTag nbttagcompound, boolean includeAll) {
++        saveAsPassenger$includeAll.set(includeAll);
++        return saveAsPassenger(nbttagcompound);
++    }
++
+     public boolean saveAsPassenger(CompoundTag p_20087_) {
+         if (this.removalReason != null && !this.removalReason.shouldSave()) {
+             return false;
+@@ -1636,6 +_,7 @@
+                 return false;
+             } else {
+                 p_20087_.putString("id", s);
++                saveWithoutId$includeAll.set(saveAsPassenger$includeAll.getAndSet(true));
+                 this.saveWithoutId(p_20087_);
+                 return true;
+             }
+@@ -1646,16 +_,36 @@
+         return this.isPassenger() ? false : this.saveAsPassenger(p_20224_);
+     }
+ 
++    public AtomicBoolean saveWithoutId$includeAll = new AtomicBoolean(true);
++
++    public CompoundTag saveWithoutIdCB(CompoundTag nbttagcompound, boolean includeAll) {
++        saveWithoutId$includeAll.set(includeAll);
++        return saveWithoutId(nbttagcompound);
++    }
++
+     public CompoundTag saveWithoutId(CompoundTag p_20241_) {
+         try {
+-            if (this.vehicle != null) {
+-                p_20241_.put("Pos", this.newDoubleList(this.vehicle.getX(), this.getY(), this.vehicle.getZ()));
+-            } else {
+-                p_20241_.put("Pos", this.newDoubleList(this.getX(), this.getY(), this.getZ()));
++            // CraftBukkit start - selectively save position
++            if (saveWithoutId$includeAll.getAndSet(true)) {
++                if (this.vehicle != null) {
++                    p_20241_.put("Pos", this.newDoubleList(this.vehicle.getX(), this.getY(), this.vehicle.getZ()));
++                } else {
++                    p_20241_.put("Pos", this.newDoubleList(this.getX(), this.getY(), this.getZ()));
++                }
+             }
+ 
+             Vec3 vec3 = this.getDeltaMovement();
+             p_20241_.put("Motion", this.newDoubleList(vec3.x, vec3.y, vec3.z));
++            // CraftBukkit start - Checking for NaN pitch/yaw and resetting to zero
++            // TODO: make sure this is the best way to address this.
++            if (Float.isNaN(this.yRot)) {
++                this.yRot = 0;
++            }
++
++            if (Float.isNaN(this.xRot)) {
++                this.xRot = 0;
++            }
++            // CraftBukkit end
+             p_20241_.put("Rotation", this.newFloatList(this.getYRot(), this.getXRot()));
+             p_20241_.putFloat("FallDistance", this.fallDistance);
+             p_20241_.putShort("Fire", (short)this.remainingFireTicks);
 @@ -1704,6 +_,10 @@
                  p_20241_.put("Tags", listtag);
              }
@@ -621,6 +695,37 @@
      }
  
      public void checkDespawn() {
+@@ -3410,8 +_,16 @@
+         return this.removalReason;
+     }
+ 
++    // Youer start
++    private final AtomicReference<EntityRemoveEvent.Cause> setRemoved$cause = new AtomicReference<>();
++
++    public void setRemoved$cause(EntityRemoveEvent.Cause cause) {
++        this.setRemoved$cause.set(cause);
++    }
++
+     @Override
+     public final void setRemoved(Entity.RemovalReason p_146876_) {
++        CraftEventFactory.callEntityRemoveEvent(this, setRemoved$cause.getAndSet(null));
+         if (this.removalReason == null) {
+             this.removalReason = p_146876_;
+         }
+@@ -3424,6 +_,13 @@
+         this.levelCallback.onRemove(p_146876_);
+     }
+ 
++    @Override
++    public final void setRemovedCB(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
++        this.setRemoved$cause.set(cause);
++        this.setRemoved(entity_removalreason);
++    }
++    // Youer end
++
+     public void unsetRemoved() {
+         this.removalReason = null;
+     }
 @@ -3449,6 +_,128 @@
  
      public boolean mayInteract(Level p_146843_, BlockPos p_146844_) {

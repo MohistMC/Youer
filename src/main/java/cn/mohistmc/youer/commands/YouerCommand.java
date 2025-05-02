@@ -40,11 +40,11 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.spigotmc.SpigotConfig;
 
-public class MohistCommand extends Command {
+public class YouerCommand extends Command {
 
     private final List<String> params = Arrays.asList("mods", "playermods", "reload", "version", "channels_incom", "channels_outgo", "speed", "printthreadcost");
 
-    public MohistCommand(String name) {
+    public YouerCommand(String name) {
         super(name);
         this.description = "Mohist related commands";
         this.usageMessage = "/mohist [mods|playermods|reload|version|channels_incom|channels_outgo|speed]";

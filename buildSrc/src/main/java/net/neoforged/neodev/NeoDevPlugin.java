@@ -1,5 +1,7 @@
 package net.neoforged.neodev;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import net.neoforged.minecraftdependencies.MinecraftDependenciesPlugin;
 import net.neoforged.moddevgradle.internal.NeoDevFacade;
 import net.neoforged.moddevgradle.tasks.JarJar;
@@ -331,6 +333,10 @@ public class NeoDevPlugin implements Plugin<Project> {
         var installerJar = tasks.register("installerJar", Zip.class, task -> {
             task.setGroup(INTERNAL_GROUP);
             task.getArchiveClassifier().set("installer");
+            // Youer start
+            String oldVersion = task.getArchiveVersion().get();
+            task.getArchiveVersion().set(oldVersion + "-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMdHHmm")));
+            // Youer end
             task.getArchiveExtension().set("jar");
             task.setMetadataCharset("UTF-8");
             task.getDestinationDirectory().convention(project.getExtensions().getByType(BasePluginExtension.class).getLibsDirectory());

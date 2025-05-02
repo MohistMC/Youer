@@ -20,7 +20,7 @@ public class ServerAPI {
 
     public static HashSet<String> modlists_Client = new HashSet<>();
     public static HashSet<String> modlists_Server = new HashSet<>();
-    public static Set<String> modlists_Inside = Set.of("minecraft", "forge", "mohist");
+    public static Set<String> modlists_Inside = Set.of("minecraft", "neoforge", "youer");
     public static List<String> modlists_All = new ArrayList<>();
     public static Map<String, String> forgecmdper = new ConcurrentHashMap<>();
     public static List<Command> forgecmd = new ArrayList<>();

@@ -1,11 +1,12 @@
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -1,5 +_,8 @@
+@@ -1,5 +_,9 @@
  package net.minecraft.server.dedicated;
  
 +import cn.mohistmc.youer.Metrics;
 +import cn.mohistmc.youer.YouerConfig;
 +import cn.mohistmc.youer.WatchMohist;
++import cn.mohistmc.youer.api.ServerAPI;
  import com.google.common.collect.Lists;
  import com.mojang.authlib.GameProfile;
  import com.mojang.datafixers.DataFixer;
@@ -166,13 +167,19 @@
              return true;
          }
      }
-@@ -295,6 +_,10 @@
+@@ -295,6 +_,16 @@
          if (this.queryThreadGs4 != null) {
              this.queryThreadGs4.stop();
          }
 +        if (this.dediLanPinger != null) {
 +            this.dediLanPinger.interrupt();
 +            this.dediLanPinger = null;
++        }
++
++        if (ServerAPI.yes_steve_model()) {
++            System.exit(0);
++        } else {
++            Runtime.getRuntime().halt(0);
 +        }
      }
  

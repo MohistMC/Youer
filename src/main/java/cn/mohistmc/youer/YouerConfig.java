@@ -7,7 +7,7 @@ import cn.mohistmc.youer.commands.BansCommand;
 import cn.mohistmc.youer.commands.DumpCommand;
 import cn.mohistmc.youer.commands.GetPluginListCommand;
 import cn.mohistmc.youer.commands.ItemsCommand;
-import cn.mohistmc.youer.commands.MohistCommand;
+import cn.mohistmc.youer.commands.YouerCommand;
 import cn.mohistmc.youer.commands.PermissionCommand;
 import cn.mohistmc.youer.commands.PingCommand;
 import cn.mohistmc.youer.commands.PluginCommand;
@@ -48,7 +48,7 @@ public class YouerConfig {
             Discord: https://discord.gg/mohistmc
             Forums: https://mohistmc.com/
             Forums (CN): https://mohistmc.cn/
-                        
+            
             """.split("\\n"));
     /*========================================================================*/
     public static YamlConfiguration config;
@@ -70,7 +70,7 @@ public class YouerConfig {
         config.options().copyDefaults(true);
 
         commands = new HashMap<>();
-        commands.put("youer", new MohistCommand("youer"));
+        commands.put("youer", new YouerCommand("youer"));
         commands.put("getpluginlist", new GetPluginListCommand("getpluginlist"));
         commands.put("dump", new DumpCommand("dump"));
         commands.put("plugin", new PluginCommand("plugin"));

@@ -332,7 +332,7 @@ public class Metrics {
                     Map<String, Integer> modslist = new HashMap<>();
                     String[] mods = ServerAPI.modlists_All.toString().replace("[", "").replace("]", "").split(", ");
                     for (String x : mods) {
-                        if (x.equals("minecraft") || x.equals("forge") || x.equals("youer")) {
+                        if (x.equals("minecraft") || x.equals("neoforge") || x.equals("youer")) {
                             continue;
                         }
                         modslist.put(x, 1);

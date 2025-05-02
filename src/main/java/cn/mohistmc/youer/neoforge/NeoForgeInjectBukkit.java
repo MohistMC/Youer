@@ -23,7 +23,6 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.Attribute;
-import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.Potion;
@@ -57,7 +56,7 @@ import org.bukkit.entity.SpawnCategory;
 import org.bukkit.entity.Villager;
 import org.bukkit.potion.PotionType;
 
-public class ForgeInjectBukkit {
+public class NeoForgeInjectBukkit {
 
     public static BiMap<ResourceKey<LevelStem>, World.Environment> environment =
             HashBiMap.create(ImmutableMap.<ResourceKey<LevelStem>, World.Environment>builder()

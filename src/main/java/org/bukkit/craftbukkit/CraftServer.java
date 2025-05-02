@@ -10,7 +10,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
 import cn.mohistmc.youer.Youer;
-import cn.mohistmc.youer.neoforge.ForgeInjectBukkit;
+import cn.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import cn.mohistmc.youer.plugins.MohistPlugin;
 import cn.mohistmc.youer.util.Level2LevelStem;
 import com.mojang.authlib.GameProfile;
@@ -334,7 +334,7 @@ public final class CraftServer implements Server {
 
         CraftRegistry.setMinecraftRegistry(console.registryAccess());
 
-        ForgeInjectBukkit.init();
+        NeoForgeInjectBukkit.init();
 
         if (!Main.useConsole) {
             this.getLogger().info("Console input is disabled due to --noconsole command argument");
@@ -1096,7 +1096,7 @@ public final class CraftServer implements Server {
             biomeProvider = this.getBiomeProvider(name);
         }
 
-        ResourceKey<LevelStem> actualDimension = ForgeInjectBukkit.environment0.get(creator.environment());
+        ResourceKey<LevelStem> actualDimension = NeoForgeInjectBukkit.environment0.get(creator.environment());
 
         LevelStorageSource.LevelStorageAccess worldSession;
         try {
