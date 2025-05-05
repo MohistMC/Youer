@@ -1,8 +1,9 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1,16 +_,25 @@
+@@ -1,16 +_,26 @@
  package net.minecraft.world.level;
  
++import cn.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
  import com.google.common.collect.Lists;
 +import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Codec;
@@ -26,7 +27,16 @@
  import net.minecraft.ReportedException;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
-@@ -26,6 +_,7 @@
+@@ -22,10 +_,16 @@
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.network.protocol.Packet;
++import net.minecraft.network.protocol.game.ClientboundSetBorderCenterPacket;
++import net.minecraft.network.protocol.game.ClientboundSetBorderLerpSizePacket;
++import net.minecraft.network.protocol.game.ClientboundSetBorderSizePacket;
++import net.minecraft.network.protocol.game.ClientboundSetBorderWarningDelayPacket;
++import net.minecraft.network.protocol.game.ClientboundSetBorderWarningDistancePacket;
+ import net.minecraft.resources.ResourceKey;
  import net.minecraft.resources.ResourceLocation;
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.FullChunkStatus;
@@ -42,7 +52,13 @@
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.alchemy.PotionBrewing;
-@@ -59,6 +_,7 @@
+@@ -54,11 +_,13 @@
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.entity.TickingBlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.border.BorderChangeListener;
+ import net.minecraft.world.level.border.WorldBorder;
+ import net.minecraft.world.level.chunk.ChunkAccess;
  import net.minecraft.world.level.chunk.LevelChunk;
  import net.minecraft.world.level.chunk.status.ChunkStatus;
  import net.minecraft.world.level.dimension.DimensionType;
@@ -50,7 +66,12 @@
  import net.minecraft.world.level.entity.EntityTypeTest;
  import net.minecraft.world.level.entity.LevelEntityGetter;
  import net.minecraft.world.level.gameevent.GameEvent;
-@@ -75,8 +_,25 @@
+@@ -71,12 +_,33 @@
+ import net.minecraft.world.level.saveddata.maps.MapId;
+ import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+ import net.minecraft.world.level.storage.LevelData;
++import net.minecraft.world.level.storage.ServerLevelData;
+ import net.minecraft.world.level.storage.WritableLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.Scoreboard;
@@ -66,6 +87,9 @@
 +import org.bukkit.craftbukkit.CraftServer;
 +import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.craftbukkit.block.CapturedBlockState;
++import org.bukkit.craftbukkit.generator.CraftWorldInfo;
++import org.bukkit.craftbukkit.generator.CustomChunkGenerator;
++import org.bukkit.craftbukkit.generator.CustomWorldChunkManager;
 +import org.bukkit.entity.SpawnCategory;
 +import org.bukkit.generator.BiomeProvider;
 +import org.bukkit.generator.ChunkGenerator;
@@ -77,7 +101,7 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("the_nether"));
-@@ -114,6 +_,49 @@
+@@ -114,6 +_,74 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -107,6 +131,31 @@
 +    public static BlockPos lastPhysicsProblem; // Spigot
 +
 +    public CraftWorld getWorld() {
++        if (this.world == null) {
++            if (environment == null) {
++                environment = NeoForgeInjectBukkit.environment.getOrDefault(getTypeKey(), World.Environment.CUSTOM);
++            }
++            if (generator == null) {
++                generator = this.getCraftServer().getGenerator(((ServerLevelData) this.getLevelData()).getLevelName());
++
++                if (this instanceof net.minecraft.server.level.ServerLevel serverLevel && generator != null) {
++                    CraftWorldInfo info = new CraftWorldInfo((ServerLevelData) getLevelData(), serverLevel.convertable, environment, dimensionType());
++
++                    net.minecraft.world.level.chunk.ChunkGenerator NMSgenerator = serverLevel.getChunkSource().getGenerator();
++                    if (biomeProvider != null) {
++                        net.minecraft.world.level.biome.BiomeSource source = new CustomWorldChunkManager(info, biomeProvider, serverLevel.registryAccess().registryOrThrow(Registries.BIOME));
++                        NMSgenerator.setBiomeSource(source);
++                    } else {
++                        biomeProvider = generator.getDefaultBiomeProvider(info);
++                    }
++
++                    CustomChunkGenerator gen = new CustomChunkGenerator(serverLevel, NMSgenerator, generator);
++                    serverLevel.getChunkSource().setChunkGenerator(gen);
++                }
++            }
++            this.world = new CraftWorld((ServerLevel) this, generator, biomeProvider, environment);
++            getCraftServer().addWorld(this.world);
++        }
 +        return this.world;
 +    }
 +
@@ -127,21 +176,58 @@
  
      protected Level(
          WritableLevelData p_270739_,
-@@ -156,6 +_,14 @@
+@@ -154,6 +_,51 @@
+         this.neighborUpdater = new CollectingNeighborUpdater(this, p_270466_);
+         this.registryAccess = p_270200_;
          this.damageSources = new DamageSources(p_270200_);
-     }
- 
++        // CraftBukkit start
++        getWorldBorder().world = this;
++        // From PlayerList.setPlayerFileData
++        getWorldBorder().addListener(new BorderChangeListener() {
++
++            @Override
++            public void onBorderSizeSet(WorldBorder pBorder, double pSize) {
++                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderSizePacket(pBorder), pBorder.world.dimension());
++            }
++
++            @Override
++            public void onBorderSizeLerping(WorldBorder pBorder, double pOldSize, double pNewSize, long pTime) {
++                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderLerpSizePacket(pBorder), pBorder.world.dimension());
++            }
++
++            @Override
++            public void onBorderCenterSet(WorldBorder pBorder, double pX, double pZ) {
++                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderCenterPacket(pBorder), pBorder.world.dimension());
++            }
++
++            @Override
++            public void onBorderSetWarningTime(WorldBorder pBorder, int pWarningTime) {
++                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderWarningDelayPacket(pBorder), pBorder.world.dimension());
++            }
++
++            @Override
++            public void onBorderSetWarningBlocks(WorldBorder pBorder, int pWarningBlocks) {
++                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderWarningDistancePacket(pBorder), pBorder.world.dimension());
++            }
++
++            @Override
++            public void onBorderSetDamagePerBlock(WorldBorder pBorder, double pDamagePerBlock) { }
++
++            @Override
++            public void onBorderSetDamageSafeZOne(WorldBorder pBorder, double pDamageSafeZone) { }
++        });
++        // CraftBukkit end
++    }
++
 +    public void notifyAndUpdatePhysics(BlockPos blockposition, LevelChunk chunk, BlockState oldBlock, BlockState newBlock, BlockState actualBlock, int i, int j) {
 +
 +    }
 +
 +    public BlockEntity getBlockEntity(BlockPos blockposition, boolean validate) {
 +        return null;
-+    }
-+
+     }
+ 
      @Override
-     public boolean isClientSide() {
-         return this.isClientSide;
 @@ -216,11 +_,40 @@
          } else {
              LevelChunk levelchunk = this.getChunkAt(p_46605_);

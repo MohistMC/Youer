@@ -509,7 +509,7 @@ public final class SimplePluginManager implements PluginManager {
 
     @Override
     public void disablePlugin(@NotNull final Plugin plugin) {
-        if (plugin.getName().equals("mohist")) {
+        if (plugin.getName().equals("youer")) {
             return;
         }
         if (plugin.isEnabled()) {

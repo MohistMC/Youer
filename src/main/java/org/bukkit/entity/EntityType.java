@@ -456,6 +456,7 @@ public enum EntityType implements Keyed, Translatable {
         NAME_MAP.put(name.toLowerCase(), this);
         ID_MAP.put(typeId, this);
         ServerAPI.entityTypeMap.put(entityType, name);
+        ServerAPI.entityTypeMap0.put(entityType, this);
         this.factory = bukkitLoc -> {
             if (bukkitLoc != null && bukkitLoc.getWorld() != null) {
                 ServerLevel serverLevel = ((CraftWorld) bukkitLoc.getWorld()).getHandle();

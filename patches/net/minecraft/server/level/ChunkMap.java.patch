@@ -1,5 +1,22 @@
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
+@@ -96,6 +_,7 @@
+ import net.minecraft.world.level.storage.LevelStorageSource;
+ import net.minecraft.world.phys.Vec3;
+ import org.apache.commons.lang3.mutable.MutableBoolean;
++import org.bukkit.craftbukkit.generator.CustomChunkGenerator;
+ import org.slf4j.Logger;
+ 
+ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider, GeneratingChunkMap {
+@@ -120,7 +_,7 @@
+     public final ServerLevel level;
+     private final ThreadedLevelLightEngine lightEngine;
+     private final BlockableEventLoop<Runnable> mainThreadExecutor;
+-    private final RandomState randomState;
++    private RandomState randomState;
+     private final ChunkGeneratorStructureState chunkGeneratorState;
+     private final Supplier<DimensionDataStorage> overworldDataStorage;
+     private final PoiManager poiManager;
 @@ -395,6 +_,7 @@
                  this.modified = true;
              }
@@ -57,10 +74,11 @@
              EntityType<?> entitytype = p_140200_.getType();
              int i = entitytype.clientTrackingRange() * 16;
              if (i != 0) {
-@@ -1313,5 +_,20 @@
+@@ -1312,6 +_,32 @@
+             for (ServerPlayer serverplayer : p_140488_) {
                  this.updatePlayer(serverplayer);
              }
-         }
++        }
 +    }
 +
 +    /**
@@ -76,5 +94,16 @@
 +     */
 +    public void scheduleOnMainThreadMailbox(ChunkTaskPriorityQueueSorter.Message<Runnable> msg) {
 +        mainThreadMailbox.tell(msg);
++    }
++
++    public void setChunkGenerator(ChunkGenerator generator) {
++        if (generator instanceof CustomChunkGenerator custom) {
++            generator = custom.getDelegate();
++        }
++        if (generator instanceof NoiseBasedChunkGenerator noisebasedchunkgenerator) {
++            this.randomState = RandomState.create(noisebasedchunkgenerator.generatorSettings().value(), this.level.registryAccess().lookupOrThrow(Registries.NOISE), this.level.getSeed());
++        } else {
++            this.randomState = RandomState.create(NoiseGeneratorSettings.dummy(), this.level.registryAccess().lookupOrThrow(Registries.NOISE), this.level.getSeed());
+         }
      }
  }

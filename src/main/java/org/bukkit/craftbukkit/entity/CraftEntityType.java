@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import cn.mohistmc.youer.api.ServerAPI;
 import com.google.common.base.Preconditions;
 import java.util.Locale;
 import net.minecraft.core.registries.Registries;
@@ -15,7 +16,9 @@ public class CraftEntityType {
 
     public static EntityType minecraftToBukkit(net.minecraft.world.entity.EntityType<?> minecraft) {
         Preconditions.checkArgument(minecraft != null);
-
+        if (ServerAPI.entityTypeMap0.containsKey(minecraft)) {
+            return ServerAPI.entityTypeMap0.get(minecraft);
+        }
         net.minecraft.core.Registry<net.minecraft.world.entity.EntityType<?>> registry = CraftRegistry.getMinecraftRegistry(Registries.ENTITY_TYPE);
         NamespacedKey key = CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location());
         EntityType bukkit = Registry.ENTITY_TYPE.get(key);
@@ -28,8 +31,7 @@ public class CraftEntityType {
     public static net.minecraft.world.entity.EntityType<?> bukkitToMinecraft(EntityType bukkit) {
         Preconditions.checkArgument(bukkit != null);
 
-        return CraftRegistry.getMinecraftRegistry(Registries.ENTITY_TYPE)
-                .getOptional(CraftNamespacedKey.toMinecraft(bukkit.getKey())).orElseThrow();
+        return CraftRegistry.getMinecraftRegistry(Registries.ENTITY_TYPE).getOptional(CraftNamespacedKey.toMinecraft(bukkit.getKey())).orElseThrow();
     }
 
     public static String bukkitToString(EntityType bukkit) {

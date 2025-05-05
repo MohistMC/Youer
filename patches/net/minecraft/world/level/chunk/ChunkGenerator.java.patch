@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
-@@ -76,6 +_,9 @@
+@@ -76,12 +_,15 @@
  import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
  import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
  import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -10,6 +10,13 @@
  
  public abstract class ChunkGenerator {
      public static final Codec<ChunkGenerator> CODEC = BuiltInRegistries.CHUNK_GENERATOR
+         .byNameCodec()
+         .dispatchStable(ChunkGenerator::codec, Function.identity());
+-    protected final BiomeSource biomeSource;
++    protected BiomeSource biomeSource;
+     private final Supplier<List<FeatureSorter.StepFeatureData>> featuresPerStep;
+     public final Function<Holder<Biome>, BiomeGenerationSettings> generationSettingsGetter;
+ 
 @@ -92,11 +_,16 @@
      public ChunkGenerator(BiomeSource p_255838_, Function<Holder<Biome>, BiomeGenerationSettings> p_256216_) {
          this.biomeSource = p_255838_;
@@ -28,12 +35,10 @@
      public void validate() {
          this.featuresPerStep.get();
      }
-@@ -311,6 +_,31 @@
-         } else {
-             return false;
+@@ -313,6 +_,31 @@
          }
-+    }
-+
+     }
+ 
 +    public void addVanillaDecorations(WorldGenLevel pLevel, ChunkAccess pChunk, StructureManager pStructureManager) { // CraftBukkit
 +        this.applyBiomeDecoration(pLevel, pChunk, pStructureManager);
 +    }
@@ -57,6 +62,19 @@
 +            limitedRegion.breakLink();
 +        }
 +        // CraftBukkit end
++    }
++
+     public void applyBiomeDecoration(WorldGenLevel p_223087_, ChunkAccess p_223088_, StructureManager p_223089_) {
+         ChunkPos chunkpos = p_223088_.getPos();
+         if (!SharedConstants.debugVoidTerrain(chunkpos)) {
+@@ -427,6 +_,10 @@
+ 
+     public BiomeSource getBiomeSource() {
+         return this.biomeSource;
++    }
++
++    public void setBiomeSource(BiomeSource biomeSource) {
++        this.biomeSource = biomeSource;
      }
  
-     public void applyBiomeDecoration(WorldGenLevel p_223087_, ChunkAccess p_223088_, StructureManager p_223089_) {
+     public abstract int getGenDepth();

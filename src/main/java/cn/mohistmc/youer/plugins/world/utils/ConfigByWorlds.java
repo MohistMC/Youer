@@ -58,13 +58,13 @@ public class ConfigByWorlds {
             World world = Bukkit.getWorld(w);
             String world_name = world.getName();
             if (ConfigByWorlds.f.exists()) {
-                if (config.getString("worlds." + world_name + ".mohist") == null) {
+                if (config.getString("worlds." + world_name + ".youer") == null) {
                     config.set("worlds." + world_name + ".seed", world.getSeed());
                     config.set("worlds." + world_name + ".environment", world.getEnvironment().name());
                     config.set("worlds." + world_name + ".name", world_name);
                     config.set("worlds." + world_name + ".info", "-/-");
                     config.set("worlds." + world_name + ".difficulty", world.getDifficulty().name());
-                    config.set("worlds." + world_name + ".mohist", isMohist);
+                    config.set("worlds." + world_name + ".youer", isMohist);
                     config.set("worlds." + world_name + ".keepspawninmemory", true);
                 }
                 init();
@@ -131,8 +131,8 @@ public class ConfigByWorlds {
                     if (config.get("worlds." + w + ".modName") != null) {
                         modName = config.getString("worlds." + w + ".modName");
                     }
-                    if (config.get("worlds." + w + ".mohist") != null) {
-                        isMohist = config.getBoolean("worlds." + w + ".mohist");
+                    if (config.get("worlds." + w + ".youer") != null) {
+                        isMohist = config.getBoolean("worlds." + w + ".youer");
                     }
                     if (config.get("worlds." + w + ".keepspawninmemory") != null) {
                         keepspawninmemory = config.getBoolean("worlds." + w + ".keepspawninmemory");

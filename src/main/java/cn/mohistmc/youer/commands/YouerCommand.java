@@ -46,9 +46,9 @@ public class YouerCommand extends Command {
 
     public YouerCommand(String name) {
         super(name);
-        this.description = "Mohist related commands";
-        this.usageMessage = "/mohist [mods|playermods|reload|version|channels_incom|channels_outgo|speed]";
-        this.setPermission("youer.command.mohist");
+        this.description = "Youer related commands";
+        this.usageMessage = "/youer [mods|playermods|reload|version|channels_incom|channels_outgo|speed]";
+        this.setPermission("youer.command.youer");
     }
 
     @Override

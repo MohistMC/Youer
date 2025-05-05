@@ -1271,7 +1271,10 @@ public final class CraftServer implements Server {
             this.getLogger().log(Level.SEVERE, null, ex);
         }
 
-        this.worlds.remove(world.getName().toLowerCase(java.util.Locale.ENGLISH));
+        String worldname = world.getName().contains("DIM") ? world.getName() : world.getName().toLowerCase(java.util.Locale.ENGLISH);
+        this.worldsByUUID.remove(world.getUID()); // MultiPaper - optimize getWorld(UUID)
+        this.worlds.remove(worldname);
+        Level2LevelStem.plugin_worlds.remove(worldname);
         this.console.removeLevel(handle);
         return true;
     }

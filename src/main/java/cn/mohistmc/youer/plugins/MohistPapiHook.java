@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class MohistPapiHook extends PlaceholderExpansion {
 
-    private static final String hook_name = "mohist";
+    private static final String hook_name = "youer";
 
     public static void init() {
         new MohistPapiHook().register();

@@ -9,7 +9,7 @@ import java.util.Map;
 public record VersionInfo(String mohist, String bukkit, String craftbukkit, String spigot, String neoforge) {
 
     public VersionInfo(Map<String, String> arguments) {
-        this(arguments.get("mohist"), arguments.get("bukkit"), arguments.get("craftbukkit"), arguments.get("spigot"), arguments.get("neoforge"));
+        this(arguments.get("youer"), arguments.get("bukkit"), arguments.get("craftbukkit"), arguments.get("spigot"), arguments.get("neoforge"));
     }
 
 }

@@ -38,7 +38,7 @@ public class BukkitPermissionsHandler implements IPermissionHandler {
 
     @Override
     public ResourceLocation getIdentifier() {
-        return ResourceLocation.fromNamespaceAndPath("mohist", "permission");
+        return ResourceLocation.fromNamespaceAndPath("youer", "permission");
     }
 
     @Override

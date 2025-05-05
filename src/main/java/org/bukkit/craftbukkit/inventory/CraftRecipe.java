@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.inventory;
 
+import cn.mohistmc.youer.bukkit.inventory.MohistSpecialIngredient;
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,16 +30,18 @@ public interface CraftRecipe extends Recipe {
         }
 
         stack.getItems();
-        if (requireNotEmpty) {
-            Preconditions.checkArgument(stack.itemStacks.length != 0, "Recipe requires at least one non-air choice");
+        if (stack.isVanilla() && requireNotEmpty && stack.getItems().length == 0) {
+            throw new IllegalArgumentException("Recipe requires at least one non-air choice!");
+        } else {
+            return stack;
         }
-
-        return stack;
     }
 
     public static RecipeChoice toBukkit(Ingredient list) {
         list.getItems();
-
+        if (!list.isVanilla()) {
+            return new MohistSpecialIngredient(list);
+        }
         if (list.itemStacks.length == 0) {
             return null;
         }
