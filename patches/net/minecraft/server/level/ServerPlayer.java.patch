@@ -1,5 +1,13 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -11,6 +_,7 @@
+ import java.util.Optional;
+ import java.util.OptionalInt;
+ import java.util.Set;
++import java.util.function.IntConsumer;
+ import java.util.stream.Collectors;
+ import javax.annotation.Nullable;
+ import net.minecraft.ChatFormatting;
 @@ -93,6 +_,7 @@
  import net.minecraft.world.Container;
  import net.minecraft.world.InteractionHand;
@@ -46,7 +54,7 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(p_143455_.containerId, p_143456_, p_143457_));
          }
      };
-@@ -276,6 +_,21 @@
+@@ -276,6 +_,20 @@
      public final Object object;
      private int containerCounter;
      public boolean wonGame;
@@ -64,19 +72,21 @@
 +    public boolean sentListPacket = false;
 +    public String kickLeaveMessage = null; // SPIGOT-3034: Forward leave message to PlayerQuitEvent
 +    // CraftBukkit end
-+
  
      public ServerPlayer(MinecraftServer p_254143_, ServerLevel p_254435_, GameProfile p_253651_, ClientInformation p_301997_) {
          super(p_254435_, p_254435_.getSharedSpawnPos(), p_254435_.getSharedSpawnAngle(), p_253651_);
-@@ -289,6 +_,77 @@
+@@ -289,6 +_,80 @@
          this.object = null;
      }
  
 +    // Use method to resend items in hands in case of client desync, because the item use got cancelled.
 +    // For example, when cancelling the leash event
 +    public void resendItemInHands() {
-+        containerMenu.findSlot(getInventory(), getInventory().selected).ifPresent(s -> {
-+            containerSynchronizer.sendSlotChange(containerMenu, s, getMainHandItem());
++        containerMenu.findSlot(getInventory(), getInventory().selected).ifPresent(new IntConsumer() {
++            @Override
++            public void accept(int s) {
++                containerSynchronizer.sendSlotChange(containerMenu, s, ServerPlayer.this.getMainHandItem());
++            }
 +        });
 +        containerSynchronizer.sendSlotChange(inventoryMenu, InventoryMenu.SHIELD_SLOT, getOffhandItem());
 +    }

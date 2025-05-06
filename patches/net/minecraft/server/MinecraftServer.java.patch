@@ -1,14 +1,41 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -33,7 +_,6 @@
+@@ -6,11 +_,14 @@
+ import com.google.common.collect.Lists;
+ import com.google.common.collect.Maps;
+ import com.google.common.collect.Sets;
++import com.google.common.util.concurrent.ThreadFactoryBuilder;
++import com.google.gson.Gson;
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.authlib.GameProfileRepository;
+ import com.mojang.authlib.minecraft.MinecraftSessionService;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
++import com.mojang.serialization.JsonOps;
+ import it.unimi.dsi.fastutil.longs.LongIterator;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import it.unimi.dsi.fastutil.objects.ObjectArraySet;
+@@ -33,21 +_,27 @@
  import java.util.List;
  import java.util.Locale;
  import java.util.Map;
 -import java.util.Objects;
  import java.util.Optional;
++import java.util.Queue;
  import java.util.Set;
  import java.util.UUID;
-@@ -48,6 +_,8 @@
+ import java.util.Map.Entry;
+ import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.ConcurrentLinkedQueue;
+ import java.util.concurrent.Executor;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
+ import java.util.concurrent.RejectedExecutionException;
+ import java.util.concurrent.atomic.AtomicReference;
++import java.util.concurrent.locks.LockSupport;
+ import java.util.function.BooleanSupplier;
+ import java.util.function.Consumer;
+ import java.util.function.Function;
  import java.util.stream.Collectors;
  import javax.annotation.Nullable;
  import javax.imageio.ImageIO;
@@ -25,28 +52,62 @@
  import net.minecraft.core.HolderGetter;
  import net.minecraft.core.LayeredRegistryAccess;
  import net.minecraft.core.Registry;
-@@ -165,6 +_,10 @@
+@@ -165,7 +_,27 @@
  import net.minecraft.world.level.storage.WorldData;
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
++import net.neoforged.fml.util.thread.SidedThreadGroups;
++import net.neoforged.neoforge.common.CommonHooks;
++import net.neoforged.neoforge.common.NeoForge;
++import net.neoforged.neoforge.common.world.chunk.ForcedChunkManager;
++import net.neoforged.neoforge.event.EventHooks;
++import net.neoforged.neoforge.event.level.LevelEvent;
++import net.neoforged.neoforge.gametest.GameTestHooks;
++import net.neoforged.neoforge.internal.BrandingControl;
++import net.neoforged.neoforge.network.payload.ClientboundCustomSetTimePayload;
++import net.neoforged.neoforge.resource.ResourcePackLoader;
++import net.neoforged.neoforge.server.ServerLifecycleHooks;
 +import org.bukkit.Bukkit;
++import org.bukkit.command.ConsoleCommandSender;
 +import org.bukkit.craftbukkit.CraftRegistry;
 +import org.bukkit.craftbukkit.CraftServer;
++import org.bukkit.craftbukkit.scoreboard.CraftScoreboardManager;
 +import org.bukkit.event.server.ServerLoadEvent;
++import org.bukkit.event.world.WorldLoadEvent;
++import org.bukkit.plugin.PluginLoadOrder;
  import org.slf4j.Logger;
++import org.spigotmc.SpigotConfig;
  
  public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements ServerInfo, ChunkIOErrorReporter, CommandSource, AutoCloseable {
-@@ -261,10 +_,28 @@
+     public static final Logger LOGGER = LogUtils.getLogger();
+@@ -198,7 +_,7 @@
+     };
+     private boolean willStartRecordingMetrics;
+     @Nullable
+-    private MinecraftServer.TimeProfiler debugCommandProfiler;
++    private TimeProfiler debugCommandProfiler;
+     private boolean debugCommandProfilerDelayStart;
+     public ServerConnectionListener connection;
+     public final ChunkProgressListenerFactory progressListenerFactory;
+@@ -254,17 +_,35 @@
+     public final Executor executor;
+     @Nullable
+     private String serverId;
+-    public MinecraftServer.ReloadableResources resources;
++    public ReloadableResources resources;
+     private final StructureTemplateManager structureTemplateManager;
+     private final ServerTickRateManager tickRateManager;
+     public WorldData worldData;
      private final PotionBrewing potionBrewing;
      private volatile boolean isSaving;
      private static final AtomicReference<RuntimeException> fatalException = new AtomicReference<>();
 +    // CraftBukkit start
 +    public WorldLoader.DataLoadContext worldLoader;
-+    public org.bukkit.craftbukkit.CraftServer server;
++    public CraftServer server;
 +    public OptionSet options;
-+    public org.bukkit.command.ConsoleCommandSender console;
++    public ConsoleCommandSender console;
 +    public static int currentTick = (int) (System.currentTimeMillis() / 50);
-+    public java.util.Queue<Runnable> processQueue = new java.util.concurrent.ConcurrentLinkedQueue<Runnable>();
++    public Queue<Runnable> processQueue = new ConcurrentLinkedQueue<Runnable>();
 +    public int autosavePeriod;
 +    public Commands vanillaCommandDispatcher;
 +    private boolean forceTicks;
@@ -62,7 +123,7 @@
      public static <S extends MinecraftServer> S spin(Function<Thread, S> p_129873_) {
          AtomicReference<S> atomicreference = new AtomicReference<>();
 -        Thread thread = new Thread(() -> atomicreference.get().runServer(), "Server thread");
-+        Thread thread = new Thread(net.neoforged.fml.util.thread.SidedThreadGroups.SERVER, () -> atomicreference.get().runServer(), "Server thread");
++        Thread thread = new Thread(SidedThreadGroups.SERVER, () -> atomicreference.get().runServer(), "Server thread");
          thread.setUncaughtExceptionHandler((p_177909_, p_177910_) -> LOGGER.error("Uncaught exception in server thread", p_177910_));
          if (Runtime.getRuntime().availableProcessors() > 4) {
              thread.setPriority(8);
@@ -78,6 +139,15 @@
      public MinecraftServer(
          Thread p_236723_,
          LevelStorageSource.LevelStorageAccess p_236724_,
+@@ -294,7 +_,7 @@
+         } else {
+             this.proxy = p_236727_;
+             this.packRepository = p_236725_;
+-            this.resources = new MinecraftServer.ReloadableResources(p_236726_.resourceManager(), p_236726_.dataPackResources());
++            this.resources = new ReloadableResources(p_236726_.resourceManager(), p_236726_.dataPackResources());
+             this.services = p_236729_;
+             if (p_236729_.profileCache() != null) {
+                 p_236729_.profileCache().setExecutor(this);
 @@ -315,7 +_,8 @@
              this.structureTemplateManager = new StructureTemplateManager(p_236726_.resourceManager(), p_236724_, p_236728_, holdergetter);
              this.serverThread = p_236723_;
@@ -88,7 +158,7 @@
          }
      }
  
-@@ -325,6 +_,86 @@
+@@ -325,6 +_,78 @@
  
      protected abstract boolean initServer() throws IOException;
  
@@ -131,17 +201,9 @@
 +    }
 +    // CraftBukkit end
 +
-+    private boolean hasStopped = false;
-+    private final Object stopLock = new Object();
-+    public final boolean hasStopped() {
-+        synchronized (stopLock) {
-+            return hasStopped;
-+        }
-+    }
-+
 +    private void executeModerately() {
 +        this.runAllTasks();
-+        java.util.concurrent.locks.LockSupport.parkNanos("executing tasks", 1000L);
++        LockSupport.parkNanos("executing tasks", 1000L);
 +        // CraftBukkit end
 +    }
 +
@@ -168,8 +230,8 @@
 +    }
 +
 +    // CraftBukkit start
-+    public final java.util.concurrent.ExecutorService chatExecutor = java.util.concurrent.Executors.newCachedThreadPool(
-+            new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Chat Thread - #%d").build());
++    public final ExecutorService chatExecutor = Executors.newCachedThreadPool(
++            new ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Chat Thread - #%d").build());
 +    // CraftBukkit end
 +
      protected void loadLevel() {
@@ -192,10 +254,10 @@
          this.levels.put(Level.OVERWORLD, serverlevel);
          DimensionDataStorage dimensiondatastorage = serverlevel.getDataStorage();
          this.readScoreboard(dimensiondatastorage);
-+        this.server.scoreboardManager = new org.bukkit.craftbukkit.scoreboard.CraftScoreboardManager(this, serverlevel.getScoreboard());
++        this.server.scoreboardManager = new CraftScoreboardManager(this, serverlevel.getScoreboard());
          this.commandStorage = new CommandStorage(dimensiondatastorage);
          WorldBorder worldborder = serverlevel.getWorldBorder();
-+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.LevelEvent.Load(levels.get(Level.OVERWORLD)));
++        NeoForge.EVENT_BUS.post(new LevelEvent.Load(levels.get(Level.OVERWORLD)));
          if (!serverleveldata.isInitialized()) {
              try {
                  setInitialSpawn(serverlevel, serverleveldata, worldoptions.generateBonusChest(), flag);
@@ -234,7 +296,7 @@
 +                // Mohist end
                  worldborder.addListener(new BorderChangeListener.DelegateBorderChangeListener(serverlevel1.getWorldBorder()));
                  this.levels.put(resourcekey1, serverlevel1);
-+                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.LevelEvent.Load(levels.get(resourcekey)));
++                NeoForge.EVENT_BUS.post(new LevelEvent.Load(levels.get(resourcekey)));
              }
          }
  
@@ -242,10 +304,10 @@
 +        for (ServerLevel worldserver : this.getAllLevels()) {
 +            this.prepareLevels(worldserver.getChunkSource().chunkMap.progressListener, worldserver);
 +            worldserver.entityManager.tick(); // SPIGOT-6526: Load pending entities so they are available to the API
-+            this.server.getPluginManager().callEvent(new org.bukkit.event.world.WorldLoadEvent(worldserver.getWorld()));
++            this.server.getPluginManager().callEvent(new WorldLoadEvent(worldserver.getWorld()));
 +        }
 +
-+        this.server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.POSTWORLD);
++        this.server.enablePlugins(PluginLoadOrder.POSTWORLD);
 +        this.server.getPluginManager().callEvent(new ServerLoadEvent(ServerLoadEvent.LoadType.STARTUP));
 +        this.connection.acceptConnections();
      }
@@ -255,7 +317,7 @@
              p_177898_.setSpawn(BlockPos.ZERO.above(80), 0.0F);
          } else {
              ServerChunkCache serverchunkcache = p_177897_.getChunkSource();
-+            if (net.neoforged.neoforge.event.EventHooks.onCreateWorldSpawn(p_177897_, p_177898_)) return;
++            if (EventHooks.onCreateWorldSpawn(p_177897_, p_177898_)) return;
              ChunkPos chunkpos = new ChunkPos(serverchunkcache.randomState().sampler().findSpawnPosition());
              int i = serverchunkcache.getGenerator().getSpawnHeight(p_177897_);
              if (i < p_177897_.getMinBuildHeight()) {
@@ -281,36 +343,156 @@
                      ChunkPos chunkpos = new ChunkPos(k);
                      serverlevel1.getChunkSource().updateChunkForced(chunkpos, true);
                  }
-+                net.neoforged.neoforge.common.world.chunk.ForcedChunkManager.reinstatePersistentChunks(serverlevel1, forcedchunkssaveddata);
++                ForcedChunkManager.reinstatePersistentChunks(serverlevel1, forcedchunkssaveddata);
              }
          }
  
+@@ -553,6 +_,15 @@
+         serverleveldata.setWorldBorder(serverlevel2.getWorldBorder().createSettings());
+         this.worldData.setCustomBossEvents(this.getCustomBossEvents().save(this.registryAccess()));
+         this.storageSource.saveDataTag(this.registryAccess(), this.worldData, this.getPlayerList().getSingleplayerData());
++        // CraftBukkit start
++        for (ServerLevel world : this.getAllLevels()) {
++            if (!world.getWorld().isBukkit() && world.convertable != this.storageSource) {
++                world.K.setWorldBorder(world.getWorldBorder().createSettings());
++                world.K.setCustomBossEvents(this.getCustomBossEvents().save(this.registryAccess()));
++                world.convertable.saveDataTag(this.registryAccess(), world.K, this.getPlayerList().getSingleplayerData());
++            }
++        }
++        // CraftBukkit end
+         if (p_129887_) {
+             for (ServerLevel serverlevel1 : this.getAllLevels()) {
+                 LOGGER.info("ThreadedAnvilChunkStorage ({}): All chunks are saved", serverlevel1.getChunkSource().chunkMap.getStorageName());
+@@ -582,18 +_,41 @@
+         this.stopServer();
+     }
+ 
++    // CraftBukkit start
++    private boolean hasStopped = false;
++    private final Object stopLock = new Object();
++    public final boolean hasStopped() {
++        synchronized (stopLock) {
++            return hasStopped;
++        }
++    }
++    // CraftBukkit end
++
+     public void stopServer() {
++        // CraftBukkit start - prevent double stopping on multiple threads
++        synchronized(stopLock) {
++            if (hasStopped) return;
++            hasStopped = true;
++        }
++        // CraftBukkit end
++
+         if (this.metricsRecorder.isRecording()) {
+             this.cancelRecordingMetrics();
+         }
+ 
+         LOGGER.info("Stopping server");
++        // CraftBukkit start
++        if (this.server != null) {
++            this.server.disablePlugins();
++        }
++        // CraftBukkit end
+         this.getConnection().stop();
+         this.isSaving = true;
+         if (this.playerList != null) {
+             LOGGER.info("Saving players");
+             this.playerList.saveAll();
+             this.playerList.removeAll();
++            try { Thread.sleep(100); } catch (InterruptedException ex) {} // CraftBukkit - SPIGOT-625 - give server at least a chance to send packets
+         }
+ 
+         LOGGER.info("Saving worlds");
 @@ -620,6 +_,7 @@
          for (ServerLevel serverlevel2 : this.getAllLevels()) {
              if (serverlevel2 != null) {
                  try {
-+                    net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.LevelEvent.Unload(serverlevel2));
++                    NeoForge.EVENT_BUS.post(new LevelEvent.Unload(serverlevel2));
                      serverlevel2.close();
                  } catch (IOException ioexception1) {
                      LOGGER.error("Exception closing the level", (Throwable)ioexception1);
-@@ -666,9 +_,11 @@
+@@ -635,6 +_,12 @@
+         } catch (IOException ioexception) {
+             LOGGER.error("Failed to unlock level {}", this.storageSource.getLevelId(), ioexception);
+         }
++        // Spigot start
++        if (SpigotConfig.saveUserCacheOnStopOnly) {
++            LOGGER.info("Saving usercache.json");
++            this.getProfileCache().save();
++        }
++        // Spigot end
+     }
+ 
+     public String getLocalIp() {
+@@ -660,16 +_,27 @@
+         }
+     }
+ 
++    // Spigot Start
++    private static double calcTps(double avg, double exp, double tps)
++    {
++        return ( avg * exp ) + ( tps * ( 1 - exp ) );
++    }// Spigot End
++
+     protected void runServer() {
+         try {
+             if (!this.initServer()) {
                  throw new IllegalStateException("Failed to initialize server");
              }
  
-+            net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStarted(this);
++            ServerLifecycleHooks.handleServerStarted(this);
              this.nextTickTimeNanos = Util.getNanos();
              this.statusIcon = this.loadStatusIcon().orElse(null);
              this.status = this.buildServerStatus();
 +            resetStatusCache(status);
  
++            // Spigot start
++            Arrays.fill( recentTps, 20 );
++            long tickSection = Util.getMillis(), tickCount = 1;
              while (this.running) {
                  long i;
+                 if (!this.isPaused() && this.tickRateManager.isSprinting() && this.tickRateManager.checkShouldSprintThisTick()) {
+@@ -682,18 +_,31 @@
+                     if (k > OVERLOADED_THRESHOLD_NANOS + 20L * i
+                         && this.nextTickTimeNanos - this.lastOverloadWarningNanos >= OVERLOADED_WARNING_INTERVAL_NANOS + 100L * i) {
+                         long j = k / i;
++                        if (server.getWarnOnOverload()) // CraftBukkit
+                         LOGGER.warn("Can't keep up! Is the server overloaded? Running {}ms or {} ticks behind", k / TimeUtil.NANOSECONDS_PER_MILLISECOND, j);
+                         this.nextTickTimeNanos += j * i;
+                         this.lastOverloadWarningNanos = this.nextTickTimeNanos;
+                     }
+                 }
+ 
++                if ( tickCount++ % SAMPLE_INTERVAL == 0)
++                {
++                    long curTime = Util.getMillis();
++                    double currentTps = 1E3 / ( curTime - tickSection ) * SAMPLE_INTERVAL;
++                    recentTps[0] = calcTps( recentTps[0], 0.92, currentTps ); // 1/exp(5sec/1min)
++                    recentTps[1] = calcTps( recentTps[1], 0.9835, currentTps ); // 1/exp(5sec/5min)
++                    recentTps[2] = calcTps( recentTps[2], 0.9945, currentTps ); // 1/exp(5sec/15min)
++                    tickSection = curTime;
++                }
++                // Spigot end
++
+                 boolean flag = i == 0L;
+                 if (this.debugCommandProfilerDelayStart) {
+                     this.debugCommandProfilerDelayStart = false;
+-                    this.debugCommandProfiler = new MinecraftServer.TimeProfiler(Util.getNanos(), this.tickCount);
++                    this.debugCommandProfiler = new TimeProfiler(Util.getNanos(), this.tickCount);
+                 }
+ 
++                MinecraftServer.currentTick = (int) (System.currentTimeMillis() / 50); // CraftBukkit
+                 this.nextTickTimeNanos += i;
+                 this.startMetricsRecordingTick();
+                 this.profiler.push("tick");
 @@ -714,6 +_,8 @@
                  this.isReady = true;
                  JvmProfiler.INSTANCE.onServerTick(this.smoothedTickTimeMillis);
              }
-+            net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStopping(this);
-+            net.neoforged.neoforge.server.ServerLifecycleHooks.expectServerStopped(); // Forge: Has to come before MinecraftServer#onServerCrash to avoid race conditions
++            ServerLifecycleHooks.handleServerStopping(this);
++            ServerLifecycleHooks.expectServerStopped(); // Forge: Has to come before MinecraftServer#onServerCrash to avoid race conditions
          } catch (Throwable throwable1) {
              LOGGER.error("Encountered an unexpected exception", throwable1);
              CrashReport crashreport = constructOrExtractCrashReport(throwable1);
@@ -318,7 +500,7 @@
                  LOGGER.error("We were unable to save this crash report to disk.");
              }
  
-+            net.neoforged.neoforge.server.ServerLifecycleHooks.expectServerStopped(); // Forge: Has to come before MinecraftServer#onServerCrash to avoid race conditions
++            ServerLifecycleHooks.expectServerStopped(); // Forge: Has to come before MinecraftServer#onServerCrash to avoid race conditions
              this.onServerCrash(crashreport);
          } finally {
              try {
@@ -326,7 +508,7 @@
                      this.services.profileCache().clearExecutor();
                  }
  
-+                net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStopped(this);
++                ServerLifecycleHooks.handleServerStopped(this);
                  this.onServerExit();
              }
          }
@@ -334,7 +516,7 @@
      public void tickServer(BooleanSupplier p_129871_) {
          long i = Util.getNanos();
          this.tickCount++;
-+        net.neoforged.neoforge.event.EventHooks.fireServerTickPre(p_129871_, this);
++        EventHooks.fireServerTickPre(p_129871_, this);
          this.tickRateManager.tick();
          this.tickChildren(p_129871_);
          if (i - this.lastServerStatus >= STATUS_EXPIRE_TIME_NANOS) {
@@ -348,7 +530,7 @@
          this.smoothedTickTimeMillis = this.smoothedTickTimeMillis * 0.8F + (float)j / (float)TimeUtil.NANOSECONDS_PER_MILLISECOND * 0.19999999F;
          this.logTickMethodTime(i);
          this.profiler.pop();
-+        net.neoforged.neoforge.event.EventHooks.fireServerTickPost(p_129871_, this);
++        EventHooks.fireServerTickPost(p_129871_, this);
      }
  
      private void logTickMethodTime(long p_321837_) {
@@ -356,10 +538,10 @@
          }
      }
  
-+    private static final com.google.gson.Gson GSON = new com.google.gson.Gson();
++    private static final Gson GSON = new Gson();
 +    private String cachedServerStatus; // Neo: cache the server status json in case a client spams requests
 +    private void resetStatusCache(ServerStatus status) {
-+        this.cachedServerStatus = GSON.toJson(ServerStatus.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, status)
++        this.cachedServerStatus = GSON.toJson(ServerStatus.CODEC.encodeStart(JsonOps.INSTANCE, status)
 +                .result().orElseThrow());
 +    }
 +    public String getStatusJson() {
@@ -393,7 +575,7 @@
              }
  
              this.profiler.push("tick");
-+            net.neoforged.neoforge.event.EventHooks.fireLevelTickPre(serverlevel, p_129954_);
++            EventHooks.fireLevelTickPre(serverlevel, p_129954_);
  
              try {
                  serverlevel.tick(p_129954_);
@@ -401,7 +583,7 @@
                  serverlevel.fillReportDetails(crashreport);
                  throw new ReportedException(crashreport);
              }
-+            net.neoforged.neoforge.event.EventHooks.fireLevelTickPost(serverlevel, p_129954_);
++            EventHooks.fireLevelTickPost(serverlevel, p_129954_);
  
              this.profiler.pop();
              this.profiler.pop();
@@ -413,7 +595,7 @@
          this.profiler.popPush("players");
          this.playerList.tick();
 -        if (SharedConstants.IS_RUNNING_IN_IDE && this.tickRateManager.runsNormally()) {
-+        if (net.neoforged.neoforge.gametest.GameTestHooks.isGametestEnabled() && this.tickRateManager.runsNormally()) {
++        if (GameTestHooks.isGametestEnabled() && this.tickRateManager.runsNormally()) {
              GameTestTicker.SINGLETON.tick();
          }
  
@@ -427,10 +609,10 @@
 -                p_276371_.dimension()
 -            );
 +        ClientboundSetTimePacket vanillaPacket = new ClientboundSetTimePacket(p_276371_.getGameTime(), p_276371_.getDayTime(), p_276371_.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT));
-+        net.neoforged.neoforge.network.payload.ClientboundCustomSetTimePayload neoPacket = new net.neoforged.neoforge.network.payload.ClientboundCustomSetTimePayload(p_276371_.getGameTime(), p_276371_.getDayTime(), p_276371_.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT), p_276371_.getDayTimeFraction(), p_276371_.getDayTimePerTick());
++        ClientboundCustomSetTimePayload neoPacket = new ClientboundCustomSetTimePayload(p_276371_.getGameTime(), p_276371_.getDayTime(), p_276371_.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT), p_276371_.getDayTimeFraction(), p_276371_.getDayTimePerTick());
 +        for (ServerPlayer serverplayer : playerList.getPlayers()) {
 +            if (serverplayer.level().dimension() == p_276371_.dimension()) {
-+                if (serverplayer.connection.hasChannel(net.neoforged.neoforge.network.payload.ClientboundCustomSetTimePayload.TYPE)) {
++                if (serverplayer.connection.hasChannel(ClientboundCustomSetTimePayload.TYPE)) {
 +                    serverplayer.connection.send(neoPacket);
 +                } else {
 +                    serverplayer.connection.send(vanillaPacket);
@@ -445,10 +627,25 @@
      @DontObfuscate
      public String getServerModName() {
 -        return "vanilla";
-+        return net.neoforged.neoforge.internal.BrandingControl.getServerBranding();
++        return BrandingControl.getServerBranding();
      }
  
      public SystemReport fillSystemReport(SystemReport p_177936_) {
+@@ -1230,12 +_,12 @@
+         this.isDemo = p_129976_;
+     }
+ 
+-    public Optional<MinecraftServer.ServerResourcePackInfo> getServerResourcePack() {
++    public Optional<ServerResourcePackInfo> getServerResourcePack() {
+         return Optional.empty();
+     }
+ 
+     public boolean isResourcePackRequired() {
+-        return this.getServerResourcePack().filter(MinecraftServer.ServerResourcePackInfo::isRequired).isPresent();
++        return this.getServerResourcePack().filter(ServerResourcePackInfo::isRequired).isPresent();
+     }
+ 
+     public abstract boolean isDedicatedServer();
 @@ -1441,7 +_,7 @@
  
      public CompletableFuture<Void> reloadResources(Collection<String> p_129862_) {
@@ -458,6 +655,15 @@
                  this
              )
              .thenCompose(
+@@ -1461,7 +_,7 @@
+                                 closeableresourcemanager.close();
+                             }
+                         })
+-                        .thenApply(p_212904_ -> new MinecraftServer.ReloadableResources(closeableresourcemanager, p_212904_));
++                        .thenApply(p_212904_ -> new ReloadableResources(closeableresourcemanager, p_212904_));
+                 }
+             )
+             .thenAcceptAsync(
 @@ -1478,6 +_,7 @@
                      this.getPlayerList().reloadResources();
                      this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
@@ -470,11 +676,11 @@
          FeatureFlagSet featureflagset = p_249869_ ? FeatureFlagSet.of() : p_341632_.enabledFeatures();
          FeatureFlagSet featureflagset1 = p_249869_ ? FeatureFlags.REGISTRY.allFlags() : p_341632_.enabledFeatures();
          p_248681_.reload();
-+        DataPackConfig.DEFAULT.addModPacks(net.neoforged.neoforge.common.CommonHooks.getModDataPacks());
-+        datapackconfig.addModPacks(net.neoforged.neoforge.common.CommonHooks.getModDataPacks());
++        DataPackConfig.DEFAULT.addModPacks(CommonHooks.getModDataPacks());
++        datapackconfig.addModPacks(CommonHooks.getModDataPacks());
          if (p_341620_) {
 -            return configureRepositoryWithSelection(p_248681_, List.of("vanilla"), featureflagset, false);
-+            return configureRepositoryWithSelection(p_248681_, net.neoforged.neoforge.common.CommonHooks.getModDataPacksWithVanilla(), featureflagset, false);
++            return configureRepositoryWithSelection(p_248681_, CommonHooks.getModDataPacksWithVanilla(), featureflagset, false);
          } else {
              Set<String> set = Sets.newLinkedHashSet();
  
@@ -482,7 +688,7 @@
                  set.add("vanilla");
              }
  
-+            net.neoforged.neoforge.resource.ResourcePackLoader.reorderNewlyDiscoveredPacks(set, datapackconfig.getEnabled(), p_248681_);
++            ResourcePackLoader.reorderNewlyDiscoveredPacks(set, datapackconfig.getEnabled(), p_248681_);
 +
              return configureRepositoryWithSelection(p_248681_, set, featureflagset, true);
          }
@@ -525,7 +731,7 @@
          return this.worldData;
 +    }
 +
-+    public MinecraftServer.ReloadableResources getServerResources() {
++    public ReloadableResources getServerResources() {
 +         return resources;
      }
  

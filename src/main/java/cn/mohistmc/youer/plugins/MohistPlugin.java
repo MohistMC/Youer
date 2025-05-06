@@ -1,6 +1,7 @@
 package cn.mohistmc.youer.plugins;
 
 import cn.mohistmc.youer.YouerConfig;
+import cn.mohistmc.youer.api.gui.GuiListener;
 import cn.mohistmc.youer.plugins.back.BackCommands;
 import cn.mohistmc.youer.plugins.back.BackConfig;
 import cn.mohistmc.youer.plugins.ban.BanListener;
@@ -37,8 +38,6 @@ import org.bukkit.plugin.Plugin;
  */
 public class MohistPlugin {
 
-    public static Plugin plugin;
-
     public static Logger LOGGER = LogManager.getLogger("MohistPlugin");
 
     public static void init(Server server) {
@@ -46,24 +45,6 @@ public class MohistPlugin {
         ItemsConfig.init();
         BackConfig.init();
         WarpsConfig.init();
-        File out = new File("libraries/com/mohistmc/cache", "libPath.txt");
-        if (out.exists()) {
-            String data = null;
-            try {
-                data = Files.readString(out.toPath());
-            } catch (IOException e) {
-                data = "libraries";
-            }
-            File file = new File(data, "com/mohistmc/mohistplugins/mohistplugins-1.20.1.jar");
-            if (file.exists()) {
-                plugin = Control.loadPlugin(file);
-                if (plugin != null) {
-                    server.getPluginManager().enablePlugin(plugin);
-                } else {
-                    LOGGER.error("Failed to load mohistplugins.jar");
-                }
-            }
-        }
         EntityClear.start();
     }
 
@@ -85,12 +66,14 @@ public class MohistPlugin {
     public static void registerListener(Event event) {
         if (event instanceof InventoryClickEvent inventoryClickEvent) {
             InventoryClickListener.init(inventoryClickEvent);
+            GuiListener.onInventoryClickEvent(inventoryClickEvent);
         }
         if (event instanceof PrepareAnvilEvent prepareAnvilEvent) {
             EnchantmentFix.anvilListener(prepareAnvilEvent);
         }
         if (event instanceof InventoryCloseEvent event1) {
             BanListener.save(event1);
+            GuiListener.onInventoryCloseEvent(event1);
         }
         if (event instanceof PluginEnableEvent event1) {
             PluginHooks.register(event1);

@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.event;
 
+import cn.mohistmc.youer.bukkit.inventory.MohistModsInventory;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -92,7 +93,9 @@ import org.bukkit.craftbukkit.entity.CraftLivingEntity;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.craftbukkit.entity.CraftRaider;
 import org.bukkit.craftbukkit.entity.CraftSpellcaster;
+import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.craftbukkit.inventory.CraftInventoryCrafting;
+import org.bukkit.craftbukkit.inventory.CraftInventoryView;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.inventory.CraftItemType;
 import org.bukkit.craftbukkit.potion.CraftPotionUtil;
@@ -1439,7 +1442,15 @@ public class CraftEventFactory {
     }
 
     public static void handleInventoryCloseEvent(net.minecraft.world.entity.player.Player human) {
-        InventoryCloseEvent event = new InventoryCloseEvent(human.containerMenu.getBukkitView());
+        human.inventoryMenu.containerOwner = human;
+        human.containerMenu.containerOwner = human;
+        InventoryView view = human.containerMenu.getBukkitView();
+        if (view == null) {
+            org.bukkit.inventory.Inventory inventory = new CraftInventory(new MohistModsInventory(human.containerMenu, human));
+            inventory.getType().setMods(true);
+            view = new CraftInventoryView(human.getBukkitEntity(), inventory, human.containerMenu);
+        }
+        InventoryCloseEvent event = new InventoryCloseEvent(view);
         human.level().getCraftServer().getPluginManager().callEvent(event);
         human.containerMenu.transferTo(human.inventoryMenu, human.getBukkitEntity());
     }

@@ -20,7 +20,7 @@ package cn.mohistmc.youer.commands;
 
 import cn.mohistmc.youer.api.ItemAPI;
 import cn.mohistmc.youer.api.gui.GUIItem;
-import cn.mohistmc.youer.api.gui.Warehouse;
+import cn.mohistmc.youer.api.gui.DemoGUI;
 import cn.mohistmc.youer.plugins.item.ItemsConfig;
 import cn.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
@@ -150,7 +150,7 @@ public class ItemsCommand extends Command {
                 return true;
             }
             case "list" ->{
-                Warehouse wh = new Warehouse("Items");
+                DemoGUI wh = new DemoGUI("Items");
                 for (ItemStack s : ItemsConfig.INSTANCE.getItems()) {
                     wh.addItem(new GUIItem(s) {
                         @Override

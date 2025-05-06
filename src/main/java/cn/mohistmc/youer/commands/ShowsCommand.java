@@ -3,7 +3,7 @@ package cn.mohistmc.youer.commands;
 import cn.mohistmc.youer.api.ItemAPI;
 import cn.mohistmc.youer.api.gui.GUIItem;
 import cn.mohistmc.youer.api.gui.ItemStackFactory;
-import cn.mohistmc.youer.api.gui.Warehouse;
+import cn.mohistmc.youer.api.gui.DemoGUI;
 import cn.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,7 +76,7 @@ public class ShowsCommand extends Command {
 
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
             case "sound" -> {
-                Warehouse wh = new Warehouse("Sounds");
+                DemoGUI wh = new DemoGUI("Sounds");
                 wh.getGUI().setItem(47, new GUIItem(new ItemStackFactory(Material.REDSTONE)
                         .setDisplayName("§cStop all sounds")
                         .toItemStack()) {
@@ -116,7 +116,7 @@ public class ShowsCommand extends Command {
                     allSize.addAndGet(entity.getValue());
                 }
 
-                Warehouse wh = new Warehouse("Entitys: " + allSize.getAndSet(0));
+                DemoGUI wh = new DemoGUI("Entitys: " + allSize.getAndSet(0));
                 for (Map.Entry<EntityType, Integer> s : newMap.entrySet()) {
                     wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(s.getKey()))
                             .setDisplayName("§6Size: §4" + s.getValue())
@@ -145,7 +145,7 @@ public class ShowsCommand extends Command {
                     allSize.addAndGet(entity.getValue());
                 }
 
-                Warehouse wh = new Warehouse("BlockEntitys: " + allSize.getAndSet(0));
+                DemoGUI wh = new DemoGUI("BlockEntitys: " + allSize.getAndSet(0));
                 for (Map.Entry<Material, Integer> s : newMap.entrySet()) {
                     Material material = s.getKey().name().contains("_WALL") ? Material.getMaterial(s.getKey().name().replace("_WALL", "")) : s.getKey();
                     wh.addItem(new GUIItem(new ItemStackFactory(material)

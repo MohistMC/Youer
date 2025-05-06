@@ -2,7 +2,7 @@ package cn.mohistmc.youer.plugins.warps;
 
 import cn.mohistmc.youer.api.gui.GUIItem;
 import cn.mohistmc.youer.api.gui.ItemStackFactory;
-import cn.mohistmc.youer.api.gui.Warehouse;
+import cn.mohistmc.youer.api.gui.DemoGUI;
 import cn.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,7 +69,7 @@ public class WarpsCommands extends Command {
                 }
             }
             if (args.length == 1 && args[0].equalsIgnoreCase("gui")) {
-                Warehouse wh = new Warehouse(I18n.as("warpscommands.prefix"));
+                DemoGUI wh = new DemoGUI(I18n.as("warpscommands.prefix"));
                 for (String w : WarpsConfig.INSTANCE.yaml.getKeys(false)) {
                     wh.addItem(new GUIItem(new ItemStackFactory(Material.BAMBOO_SIGN)
                             .setDisplayName(w)

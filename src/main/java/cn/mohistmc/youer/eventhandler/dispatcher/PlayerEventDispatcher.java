@@ -45,6 +45,7 @@ public class PlayerEventDispatcher {
     public void onContainerClose(PlayerContainerEvent.Close event) {
         // Mohist start - Custom Container compatible with mods
         AbstractContainerMenu abstractcontainermenu = event.getContainer();
+        abstractcontainermenu.containerOwner = event.getEntity();
         if (abstractcontainermenu.getBukkitView() == null) {
             org.bukkit.inventory.Inventory inventory = new CraftInventory(new MohistModsInventory(abstractcontainermenu, event.getEntity()));
             inventory.getType().setMods(true);
@@ -52,10 +53,5 @@ public class PlayerEventDispatcher {
         }
         // Mohist end
         CraftEventFactory.handleInventoryCloseEvent(event.getEntity()); // CraftBukkit
-    }
-
-    @SubscribeEvent
-    public void onPlayerRightClickBlock(PlayerInteractEvent.RightClickBlock  event) {
-
     }
 }

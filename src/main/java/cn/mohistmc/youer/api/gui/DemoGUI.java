@@ -10,17 +10,17 @@ import org.bukkit.inventory.ItemStack;
 /**
  * @author LSeng
  */
-public class Warehouse {
+public class DemoGUI {
 
     GUI gui;
     List<GUIItem> items = new ArrayList<>();
     String tempName;
     int pageChoose = 0;
 
-    private Warehouse() {
+    private DemoGUI() {
     }
 
-    public Warehouse(String name) {
+    public DemoGUI(String name) {
         this.gui = new GUI(GUIType.SIXBYNINE, name);
 
         for (int i = 36; i < 46; i++) {
@@ -121,7 +121,7 @@ public class Warehouse {
                     .toItemStack()) {
                 @Override
                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
-                    Warehouse.this.pageChoose--;
+                    DemoGUI.this.pageChoose--;
                     openGUI(u);
                 }
             });
@@ -137,7 +137,7 @@ public class Warehouse {
                     .toItemStack()) {
                 @Override
                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
-                    Warehouse.this.pageChoose++;
+                    DemoGUI.this.pageChoose++;
                     openGUI(u);
                 }
             });

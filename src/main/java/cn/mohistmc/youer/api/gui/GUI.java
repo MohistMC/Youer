@@ -20,7 +20,6 @@ import org.bukkit.inventory.ItemStack;
  */
 public class GUI {
 
-    static Map<Player, GUI> openGUI = new HashMap<>();
     public GUIItem[] items;
     public Inventory inv;
     GUIType type;
@@ -54,36 +53,6 @@ public class GUI {
                 this.items = new GUIItem[54];
                 break;
         }
-
-        Bukkit.getPluginManager().registerEvents(new Listener() {
-
-            @EventHandler
-            public void onInventoryClickEvent(InventoryClickEvent event) {
-                if (!(event.getWhoClicked() instanceof Player p)) {
-                    return;
-                }
-                if (event.getCurrentItem() == null) {
-                    return;
-                }
-                if (openGUI.containsKey(p) && openGUI.get(p) == GUI.this) {
-                    event.setCancelled(true);
-
-                    if (items[event.getSlot()] != null) {
-                        items[event.getSlot()].ClickAction(event.getClick(), p, items[event.getSlot()].display);
-                    }
-                }
-            }
-
-            @EventHandler
-            public void onInventoryCloseEvent(InventoryCloseEvent event) {
-                if (event.getInventory() == inv) {
-                    HandlerList.unregisterAll(this);
-                    openGUI.remove((Player) event.getPlayer());
-                }
-            }
-
-        }, MohistPlugin.plugin);
-
     }
 
     public final void setItem(GUIItem item, int... index) {
@@ -116,8 +85,7 @@ public class GUI {
         }
         this.inv = inv;
         p.getPlayer().openInventory(inv);
-        openGUI.put(p, this);
-
+        GuiListener.openGUI.put(p, this);
     }
 
 }

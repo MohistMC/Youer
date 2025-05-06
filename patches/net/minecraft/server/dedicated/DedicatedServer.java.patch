@@ -10,7 +10,7 @@
  import com.google.common.collect.Lists;
  import com.mojang.authlib.GameProfile;
  import com.mojang.datafixers.DataFixer;
-@@ -58,6 +_,11 @@
+@@ -58,6 +_,12 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.entity.SkullBlockEntity;
  import net.minecraft.world.level.storage.LevelStorageSource;
@@ -19,6 +19,7 @@
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.craftbukkit.util.ForwardLogHandler;
 +import org.bukkit.event.server.RemoteServerCommandEvent;
++import org.bukkit.event.server.ServerCommandEvent;
  import org.slf4j.Logger;
  
  public class DedicatedServer extends MinecraftServer implements ServerInterface {
@@ -184,6 +185,23 @@
      }
  
      @Override
+@@ -315,7 +_,15 @@
+     public void handleConsoleInputs() {
+         while (!this.consoleInput.isEmpty()) {
+             ConsoleInput consoleinput = this.consoleInput.remove(0);
+-            this.getCommands().performPrefixedCommand(consoleinput.source, consoleinput.msg);
++            // CraftBukkit start - ServerCommand for preprocessing
++            ServerCommandEvent event = new ServerCommandEvent(console, consoleinput.msg);
++            server.getPluginManager().callEvent(event);
++            if (event.isCancelled()) continue;
++            consoleinput = new ConsoleInput(event.getCommand(), consoleinput.source);
++
++            // this.getCommands().performCommand(servercommand.source, servercommand.msg); // Called in dispatchServerCommand
++            server.dispatchServerCommand(console, consoleinput);
++            // CraftBukkit end
+         }
+     }
+ 
 @@ -537,9 +_,23 @@
  
      @Override

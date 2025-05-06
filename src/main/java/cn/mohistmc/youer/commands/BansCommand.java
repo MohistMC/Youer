@@ -5,7 +5,7 @@ import cn.mohistmc.youer.api.EntityAPI;
 import cn.mohistmc.youer.api.ItemAPI;
 import cn.mohistmc.youer.api.gui.GUIItem;
 import cn.mohistmc.youer.api.gui.ItemStackFactory;
-import cn.mohistmc.youer.api.gui.Warehouse;
+import cn.mohistmc.youer.api.gui.DemoGUI;
 import cn.mohistmc.youer.plugins.ban.BanListener;
 import cn.mohistmc.youer.plugins.ban.BanType;
 import cn.mohistmc.youer.plugins.ban.utils.BanSaveInventory;
@@ -106,7 +106,7 @@ public class BansCommand extends Command {
                 }
                 switch (args[1]) {
                     case "item" -> {
-                        Warehouse wh = new Warehouse("§2Show bans item");
+                        DemoGUI wh = new DemoGUI("§2Show bans item");
                         for (String s : YouerConfig.ban_item_materials) {
                             wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getMaterial(s))
                                     .setDisplayName(s)
@@ -116,7 +116,7 @@ public class BansCommand extends Command {
                         return true;
                     }
                     case "entity" -> {
-                        Warehouse wh = new Warehouse("§2Show bans entity");
+                        DemoGUI wh = new DemoGUI("§2Show bans entity");
                         for (String s : YouerConfig.ban_entity_types) {
                             wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(EntityAPI.entityType(s)))
                                     .setDisplayName(s)
@@ -126,7 +126,7 @@ public class BansCommand extends Command {
                         return true;
                     }
                     case "enchantment" -> {
-                        Warehouse wh = new Warehouse("§2Show bans enchantment");
+                        DemoGUI wh = new DemoGUI("§2Show bans enchantment");
                         for (String s : YouerConfig.ban_enchantment_list) {
                             wh.addItem(new GUIItem(new ItemStackFactory(Material.ENCHANTED_BOOK)
                                     .setDisplayName(s)

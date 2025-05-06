@@ -117,7 +117,7 @@ public class YouerCommand extends Command {
                 return true;
             }
             case "version" -> {
-                sender.sendMessage("Mohist: " + Youer.versionInfo.mohist());
+                sender.sendMessage("Youer: " + Youer.versionInfo.mohist());
                 sender.sendMessage("NeoForge: " + Youer.versionInfo.neoforge());
                 sender.sendMessage("Bukkit: " + Youer.versionInfo.bukkit());
                 sender.sendMessage("CraftBukkit: " + Youer.versionInfo.craftbukkit());
