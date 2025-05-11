@@ -1,11 +1,17 @@
 --- a/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
-@@ -45,6 +_,8 @@
+@@ -45,6 +_,14 @@
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.phys.Vec3;
++import net.neoforged.neoforge.client.event.ClientChatReceivedEvent;
++import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.block.CraftBlock;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.craftbukkit.inventory.CraftItemType;
 +import org.bukkit.entity.HumanEntity;
++import org.bukkit.event.block.BlockExpEvent;
++import org.bukkit.event.inventory.FurnaceExtractEvent;
  
  public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer, RecipeCraftingHolder, StackedContentsCompatible {
      protected static final int SLOT_INPUT = 0;
@@ -215,6 +221,65 @@
 -            return isFuel(p_58390_) || p_58390_.is(Items.BUCKET) && !itemstack.is(Items.BUCKET);
 +            return p_58390_.getBurnTime(this.recipeType) > 0 || p_58390_.is(Items.BUCKET) && !itemstack.is(Items.BUCKET);
          }
+     }
+ 
+@@ -453,8 +_,8 @@
+     public void awardUsedRecipes(Player p_58396_, List<ItemStack> p_282202_) {
+     }
+ 
+-    public void awardUsedRecipesAndPopExperience(ServerPlayer p_155004_) {
+-        List<RecipeHolder<?>> list = this.getRecipesToAwardAndPopExperience(p_155004_.serverLevel(), p_155004_.position());
++    public void awardUsedRecipesAndPopExperience(ServerPlayer p_155004_, ItemStack itemstack, int amount) { // CraftBukkit
++        List<RecipeHolder<?>> list = this.getRecipesToAwardAndPopExperience(p_155004_.serverLevel(), p_155004_.position(), this.worldPosition, p_155004_, itemstack, amount);
+         p_155004_.awardRecipes(list);
+ 
+         for (RecipeHolder<?> recipeholder : list) {
+@@ -467,25 +_,44 @@
+     }
+ 
+     public List<RecipeHolder<?>> getRecipesToAwardAndPopExperience(ServerLevel p_154996_, Vec3 p_154997_) {
++        // CraftBukkit start
++        return this.getRecipesToAwardAndPopExperience(p_154996_, p_154997_, this.worldPosition, null, null, 0);
++    }
++
++    public List<RecipeHolder<?>> getRecipesToAwardAndPopExperience(ServerLevel worldserver, Vec3 vec3d, BlockPos blockposition, Player entityplayer, ItemStack itemstack, int amount) {
++        // CraftBukkit end
+         List<RecipeHolder<?>> list = Lists.newArrayList();
+ 
+         for (Entry<ResourceLocation> entry : this.recipesUsed.object2IntEntrySet()) {
+-            p_154996_.getRecipeManager().byKey(entry.getKey()).ifPresent(p_300839_ -> {
++            worldserver.getRecipeManager().byKey(entry.getKey()).ifPresent(p_300839_ -> {
+                 list.add((RecipeHolder<?>)p_300839_);
+-                createExperience(p_154996_, p_154997_, entry.getIntValue(), ((AbstractCookingRecipe)p_300839_.value()).getExperience());
++                createExperience(worldserver, vec3d, entry.getIntValue(), ((AbstractCookingRecipe)p_300839_.value()).getExperience(), blockposition, entityplayer, itemstack, amount);
+             });
+         }
+ 
+         return list;
+     }
+ 
+-    private static void createExperience(ServerLevel p_154999_, Vec3 p_155000_, int p_155001_, float p_155002_) {
++
++
++    private static void createExperience(ServerLevel p_154999_, Vec3 p_155000_, int p_155001_, float p_155002_, BlockPos blockposition, Player entityhuman, ItemStack itemstack, int amount) {
+         int i = Mth.floor((float)p_155001_ * p_155002_);
+         float f = Mth.frac((float)p_155001_ * p_155002_);
+         if (f != 0.0F && Math.random() < (double)f) {
+             i++;
+         }
+ 
++        // CraftBukkit start - fire FurnaceExtractEvent / BlockExpEvent
++        BlockExpEvent event;
++        if (amount != 0) {
++            event = new FurnaceExtractEvent((org.bukkit.entity.Player) entityhuman.getBukkitEntity(), CraftBlock.at(p_154999_, blockposition), CraftItemType.minecraftToBukkit(itemstack.getItem()), amount, i);
++        } else {
++            event = new BlockExpEvent(CraftBlock.at(p_154999_, blockposition), i);
++        }
++        Bukkit.getPluginManager().callEvent(event);
++        i = event.getExpToDrop();
++        // CraftBukkit end
++
+         ExperienceOrb.award(p_154999_, p_155000_, i);
      }
  
 @@ -495,4 +_,38 @@

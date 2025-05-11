@@ -1,0 +1,50 @@
+--- a/net/minecraft/world/inventory/DispenserMenu.java
++++ b/net/minecraft/world/inventory/DispenserMenu.java
+@@ -5,6 +_,8 @@
+ import net.minecraft.world.entity.player.Inventory;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.ItemStack;
++import org.bukkit.craftbukkit.inventory.CraftInventory;
++import org.bukkit.craftbukkit.inventory.CraftInventoryView;
+ 
+ public class DispenserMenu extends AbstractContainerMenu {
+     private static final int SLOT_COUNT = 9;
+@@ -13,6 +_,20 @@
+     private static final int USE_ROW_SLOT_START = 36;
+     private static final int USE_ROW_SLOT_END = 45;
+     public final Container dispenser;
++    // CraftBukkit start
++    private CraftInventoryView bukkitEntity = null;
++    private Inventory player;
++    @Override
++    public CraftInventoryView getBukkitView() {
++        if (bukkitEntity != null) {
++            return bukkitEntity;
++        }
++
++        CraftInventory inventory = new CraftInventory(this.dispenser);
++        bukkitEntity = new CraftInventoryView(this.player.player.getBukkitEntity(), inventory, this);
++        return bukkitEntity;
++    }
++    // CraftBukkit end
+ 
+     public DispenserMenu(int p_39433_, Inventory p_39434_) {
+         this(p_39433_, p_39434_, new SimpleContainer(9));
+@@ -20,6 +_,9 @@
+ 
+     public DispenserMenu(int p_39436_, Inventory p_39437_, Container p_39438_) {
+         super(MenuType.GENERIC_3x3, p_39436_);
++        // CraftBukkit start - Save player
++        this.player = p_39437_;
++        // CraftBukkit end
+         checkContainerSize(p_39438_, 9);
+         this.dispenser = p_39438_;
+         p_39438_.startOpen(p_39437_.player);
+@@ -43,6 +_,7 @@
+ 
+     @Override
+     public boolean stillValid(Player p_39440_) {
++        if (!this.checkReachable) return true; // CraftBukkit
+         return this.dispenser.stillValid(p_39440_);
+     }
+ 

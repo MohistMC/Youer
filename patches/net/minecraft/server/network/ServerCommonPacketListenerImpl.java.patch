@@ -8,13 +8,17 @@
  import net.minecraft.network.DisconnectionDetails;
  import net.minecraft.network.PacketSendListener;
  import net.minecraft.network.chat.Component;
-@@ -23,10 +_,33 @@
+@@ -21,12 +_,37 @@
+ import net.minecraft.network.protocol.common.ServerboundPongPacket;
+ import net.minecraft.network.protocol.common.ServerboundResourcePackPacket;
  import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
++import net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket;
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ClientInformation;
 +import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.util.VisibleForDebug;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.craftbukkit.util.CraftLocation;
  import org.slf4j.Logger;
  
 -public abstract class ServerCommonPacketListenerImpl implements ServerCommonPacketListener {
@@ -43,7 +47,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final int LATENCY_CHECK_INTERVAL = 15000;
      private static final int CLOSED_LISTENER_TIMEOUT = 15000;
-@@ -42,6 +_,19 @@
+@@ -42,6 +_,18 @@
      private boolean closed = false;
      private int latency;
      private volatile boolean suspendFlushingOnServerThread = false;
@@ -56,19 +60,25 @@
 +    public boolean processedDisconnect;
 +
 +    public CraftPlayer getCraftPlayer() {
-+        //return (this.player == null) ? null : (CraftPlayer) this.player.getBukkitEntity();
++        return (this.player == null) ? null : (CraftPlayer) this.player.getBukkitEntity();
 +        // CraftBukkit end
-+        return null;
 +    }
  
      public ServerCommonPacketListenerImpl(MinecraftServer p_295057_, Connection p_294822_, CommonListenerCookie p_301980_) {
          this.server = p_295057_;
-@@ -49,6 +_,8 @@
+@@ -49,6 +_,15 @@
          this.keepAliveTime = Util.getMillis();
          this.latency = p_301980_.latency();
          this.transferred = p_301980_.transferred();
 +        // Neo: Set the connection type based on the cookie from the previous phase.
 +        this.connectionType = p_301980_.connectionType();
++        // CraftBukkit start - add fields and methods
++        this.cserver = p_295057_.server;
++    }
++
++    public void setPlayer(ServerPlayer player) {
++        this.player = player;
++        //this.player.transferCookieConnection = this;
      }
  
      private void close() {
@@ -105,14 +115,21 @@
      }
  
      @Override
-@@ -141,7 +_,10 @@
+@@ -141,7 +_,17 @@
          this.send(p_294278_, null);
      }
  
 +    @Override
      public void send(Packet<?> p_295099_, @Nullable PacketSendListener p_296321_) {
 +        net.neoforged.neoforge.network.registration.NetworkRegistry.checkPacket(p_295099_, this);
-+
++        // CraftBukkit start
++        if (p_295099_ == null || this.processedDisconnect) { // Spigot
++            return;
++        } else if (p_295099_ instanceof ClientboundSetDefaultSpawnPositionPacket) {
++            ClientboundSetDefaultSpawnPositionPacket packet6 = (ClientboundSetDefaultSpawnPositionPacket) p_295099_;
++            this.player.compassTarget = CraftLocation.toBukkit(packet6.pos, this.getCraftPlayer().getWorld());
++        }
++        // CraftBukkit end
          if (p_295099_.isTerminal()) {
              this.close();
          }

@@ -15,7 +15,7 @@ import org.bukkit.potion.PotionType;
 
 public class CraftPotionUtil {
 
-    public static Map<PotionType, String> mods = new HashMap<>(); // Mohist
+    public static Map<PotionType, String> mods = new HashMap<>(); // Youer
 
     private static final BiMap<PotionType, PotionType> upgradeable = ImmutableBiMap.<PotionType, PotionType>builder()
             .put(PotionType.LEAPING, PotionType.STRONG_LEAPING)

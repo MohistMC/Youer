@@ -1,14 +1,17 @@
 --- a/net/minecraft/world/inventory/LecternMenu.java
 +++ b/net/minecraft/world/inventory/LecternMenu.java
-@@ -2,8 +_,11 @@
+@@ -2,8 +_,14 @@
  
  import net.minecraft.world.Container;
  import net.minecraft.world.SimpleContainer;
 +import net.minecraft.world.entity.player.Inventory;
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.level.block.entity.LecternBlockEntity;
++import org.bukkit.Bukkit;
 +import org.bukkit.craftbukkit.inventory.CraftInventoryLectern;
 +import org.bukkit.craftbukkit.inventory.CraftInventoryView;
++import org.bukkit.event.player.PlayerTakeLecternBookEvent;
  
  public class LecternMenu extends AbstractContainerMenu {
      private static final int DATA_COUNT = 1;
@@ -36,12 +39,11 @@
      public LecternMenu(int p_39822_) {
          this(p_39822_, new SimpleContainer(1), new SimpleContainerData(1));
      }
-@@ -34,6 +_,29 @@
-         });
+@@ -35,6 +_,29 @@
          this.addDataSlots(p_39826_);
      }
-+
-+    // Mohist start
+ 
++    // Youer start
 +    public LecternMenu player(Inventory playerinventory) {
 +        player = (org.bukkit.entity.Player) playerinventory.player.getBukkitEntity(); // CraftBukkit
 +        return this;
@@ -62,7 +64,32 @@
 +        this.addDataSlots(pLecternData);
 +        player = (org.bukkit.entity.Player) playerinventory.player.getBukkitEntity(); // CraftBukkit
 +    }
-+    // Mohist end
- 
++    // Youer end
++
      @Override
      public boolean clickMenuButton(Player p_39833_, int p_39834_) {
+         if (p_39834_ >= 100) {
+@@ -55,7 +_,13 @@
+                     if (!p_39833_.mayBuild()) {
+                         return false;
+                     }
+-
++                    // CraftBukkit start - Event for taking the book
++                    PlayerTakeLecternBookEvent event = new PlayerTakeLecternBookEvent(player, ((CraftInventoryLectern) getBukkitView().getTopInventory()).getHolder());
++                    Bukkit.getServer().getPluginManager().callEvent(event);
++                    if (event.isCancelled()) {
++                        return false;
++                    }
++                    // CraftBukkit end
+                     ItemStack itemstack = this.lectern.removeItemNoUpdate(0);
+                     this.lectern.setChanged();
+                     if (!p_39833_.getInventory().add(itemstack)) {
+@@ -82,6 +_,8 @@
+ 
+     @Override
+     public boolean stillValid(Player p_39831_) {
++        if (lectern instanceof LecternBlockEntity.LecternInventory && !((LecternBlockEntity.LecternInventory) lectern).getLectern().hasBook()) return false; // CraftBukkit
++        if (!this.checkReachable) return true; // CraftBukkit
+         return this.lectern.stillValid(p_39831_);
+     }
+ 

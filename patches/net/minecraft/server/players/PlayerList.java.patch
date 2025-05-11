@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -67,6 +_,7 @@
+@@ -17,6 +_,7 @@
+ import java.util.Optional;
+ import java.util.Set;
+ import java.util.UUID;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.Function;
+ import java.util.function.Predicate;
+ import javax.annotation.Nullable;
+@@ -67,11 +_,13 @@
  import net.minecraft.server.PlayerAdvancements;
  import net.minecraft.server.RegistryLayer;
  import net.minecraft.server.ServerScoreboard;
@@ -8,6 +16,12 @@
  import net.minecraft.server.level.ClientInformation;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.server.network.CommonListenerCookie;
+ import net.minecraft.server.network.ServerGamePacketListenerImpl;
++import net.minecraft.server.network.ServerLoginPacketListenerImpl;
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.stats.ServerStatsCounter;
 @@ -98,6 +_,7 @@
  import net.minecraft.world.scores.Objective;
  import net.minecraft.world.scores.PlayerTeam;
@@ -81,6 +95,39 @@
          ServerLevel serverlevel = p_11287_.serverLevel();
          p_11287_.awardStat(Stats.LEAVE_GAME);
          this.save(p_11287_);
+@@ -379,8 +_,17 @@
+         this.broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(p_11287_.getUUID())));
+     }
+ 
++    // Youer start
++    private final AtomicReference<ServerPlayer> entity = new AtomicReference<>(null);
++    private final AtomicReference<ServerLoginPacketListenerImpl> handler = new AtomicReference<>(null);
++
++    public void mohist$putHandler(ServerLoginPacketListenerImpl handler) {
++        this.handler.set(handler);
++    }
+     @Nullable
+     public Component canPlayerLogin(SocketAddress p_11257_, GameProfile p_11258_) {
++        ServerPlayer serverPlayer = getPlayerForLogin(p_11258_, ClientInformation.createDefault());
++        entity.set(serverPlayer);
+         if (this.bans.isBanned(p_11258_)) {
+             UserBanListEntry userbanlistentry = this.bans.get(p_11258_);
+             MutableComponent mutablecomponent1 = Component.translatable("multiplayer.disconnect.banned.reason", userbanlistentry.getReason());
+@@ -411,7 +_,13 @@
+     }
+ 
+     public ServerPlayer getPlayerForLogin(GameProfile p_215625_, ClientInformation p_302018_) {
+-        return new ServerPlayer(this.server, this.server.overworld(), p_215625_, p_302018_);
++        if(entity.get() != null) {
++            return entity.getAndSet(null);
++        }
++        ServerPlayer serverplayer = new ServerPlayer(this.server, this.server.overworld(), p_215625_, p_302018_);
++        serverplayer.transferCookieConnection = handler.getAndSet(null);
++        serverplayer.updateOptions(p_302018_);
++        return serverplayer;
+     }
+ 
+     public boolean disconnectAllPlayersWithProfile(GameProfile p_295670_) {
 @@ -436,17 +_,28 @@
          return !set.isEmpty();
      }

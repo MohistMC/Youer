@@ -4631,13 +4631,13 @@ public enum Material implements Keyed, Translatable {
         this(id, 64);
     }
 
-    // Mohist start - constructor used to set if the Material is a block or not
+    // Youer start - constructor used to set if the Material is a block or not
     private Material(final int id, final int stack, boolean isForgeBlock, boolean isForgeItem) {
         this(id, stack);
         this.isForgeBlock = isForgeBlock;
         this.isForgeItem = isForgeItem;
     }
-    // Mohist end
+    // Youer end
 
     private Material(final int id, final int stack) {
         this(id, stack, MaterialData.class);

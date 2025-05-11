@@ -143,6 +143,14 @@
                  this.startClientVerification(UUIDUtil.createOfflineProfile(this.requestedUsername));
              }
          }
+@@ -137,6 +_,7 @@
+ 
+     private void verifyLoginAndFinishConnectionSetup(GameProfile p_294502_) {
+         PlayerList playerlist = this.server.getPlayerList();
++        this.server.getPlayerList().mohist$putHandler(this);
+         Component component = playerlist.canPlayerLogin(this.connection.getRemoteAddress(), p_294502_);
+         if (component != null) {
+             this.disconnect(component);
 @@ -158,11 +_,47 @@
          }
      }
@@ -241,6 +249,14 @@
          this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
      }
  
+@@ -238,6 +_,7 @@
+         ServerConfigurationPacketListenerImpl serverconfigurationpacketlistenerimpl = new ServerConfigurationPacketListenerImpl(
+             this.server, this.connection, commonlistenercookie
+         );
++        serverconfigurationpacketlistenerimpl.setPlayer(this.player);
+         this.connection.setupInboundProtocol(ConfigurationProtocols.SERVERBOUND, serverconfigurationpacketlistenerimpl);
+         serverconfigurationpacketlistenerimpl.startConfiguration();
+         this.state = ServerLoginPacketListenerImpl.State.ACCEPTED;
 @@ -250,8 +_,40 @@
  
      @Override

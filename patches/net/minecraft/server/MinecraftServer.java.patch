@@ -139,7 +139,7 @@
      public MinecraftServer(
          Thread p_236723_,
          LevelStorageSource.LevelStorageAccess p_236724_,
-@@ -294,7 +_,7 @@
+@@ -294,13 +_,13 @@
          } else {
              this.proxy = p_236727_;
              this.packRepository = p_236725_;
@@ -148,6 +148,13 @@
              this.services = p_236729_;
              if (p_236729_.profileCache() != null) {
                  p_236729_.profileCache().setExecutor(this);
+             }
+ 
+-            this.connection = new ServerConnectionListener(this);
++            // this.connection = new ServerConnectionListener(this); // Spigot
+             this.tickRateManager = new ServerTickRateManager(this);
+             this.progressListenerFactory = p_236730_;
+             this.storageSource = p_236724_;
 @@ -315,7 +_,8 @@
              this.structureTemplateManager = new StructureTemplateManager(p_236726_.resourceManager(), p_236724_, p_236728_, holdergetter);
              this.serverThread = p_236723_;
@@ -275,7 +282,7 @@
 +                        continue;
 +                    }
 +                }
-+                // Mohist start - split calculate for ServerLeverl Preparing
++                // Youer start - split calculate for ServerLeverl Preparing
 +                ChunkProgressListener mohist$progressListener = this.progressListenerFactory.create(11);
                  ServerLevel serverlevel1 = new ServerLevel(
                      this,
@@ -293,7 +300,7 @@
                      randomsequences
                  );
 +                this.initWorld(serverlevel1, derivedleveldata, worldData, worldoptions); // CraftBukkit
-+                // Mohist end
++                // Youer end
                  worldborder.addListener(new BorderChangeListener.DelegateBorderChangeListener(serverlevel1.getWorldBorder()));
                  this.levels.put(resourcekey1, serverlevel1);
 +                NeoForge.EVENT_BUS.post(new LevelEvent.Load(levels.get(resourcekey)));
@@ -646,6 +653,15 @@
      }
  
      public abstract boolean isDedicatedServer();
+@@ -1314,7 +_,7 @@
+     }
+ 
+     public ServerConnectionListener getConnection() {
+-        return this.connection;
++        return this.connection == null ? this.connection = new ServerConnectionListener(this) : this.connection; // Spigot
+     }
+ 
+     public boolean isReady() {
 @@ -1441,7 +_,7 @@
  
      public CompletableFuture<Void> reloadResources(Collection<String> p_129862_) {

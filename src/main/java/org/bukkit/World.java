@@ -3047,7 +3047,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
         }
     }
 
-    // Mohist start
+    // Youer start
 
     /**
      * Returns whether the current world was created by a plugin.
@@ -3070,5 +3070,5 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return the mod source for this world
      */
     String getModid();
-    // Mohist end
+    // Youer end
 }

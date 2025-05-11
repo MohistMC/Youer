@@ -191,7 +191,7 @@ public interface Plugin extends TabExecutor {
     @NotNull
     public String getName();
 
-    // Mohist start
+    // Youer start
     public boolean callForge();
     public void initCallForge();
     public void registerForgeEvent(IEventBus bus, Object target);
@@ -199,5 +199,5 @@ public interface Plugin extends TabExecutor {
     public void unregisterForgeEvents(IEventBus bus, Object target);
     public void unregisterForgeEvents(IEventBus bus);
     public void unregisterAllForgeEvents();
-    // Mohist end
+    // Youer end
 }

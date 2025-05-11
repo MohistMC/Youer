@@ -43,7 +43,7 @@ public class PlayerEventDispatcher {
 
     @SubscribeEvent
     public void onContainerClose(PlayerContainerEvent.Close event) {
-        // Mohist start - Custom Container compatible with mods
+        // Youer start - Custom Container compatible with mods
         AbstractContainerMenu abstractcontainermenu = event.getContainer();
         abstractcontainermenu.containerOwner = event.getEntity();
         if (abstractcontainermenu.getBukkitView() == null) {
@@ -51,7 +51,7 @@ public class PlayerEventDispatcher {
             inventory.getType().setMods(true);
             abstractcontainermenu.bukkitView = new CraftInventoryView(event.getEntity().getBukkitEntity(), inventory, abstractcontainermenu);
         }
-        // Mohist end
+        // Youer end
         CraftEventFactory.handleInventoryCloseEvent(event.getEntity()); // CraftBukkit
     }
 }

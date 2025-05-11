@@ -2099,7 +2099,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     }
     // Spigot end
 
-    // Mohist start
+    // Youer start
     private boolean isbukkit = false;
     @Override
     public boolean isBukkit() {
@@ -2126,5 +2126,5 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         }
         return modName;
     }
-    // Mohist end
+    // Youer end
 }

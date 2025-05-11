@@ -1,5 +1,55 @@
 --- a/net/minecraft/world/inventory/BeaconMenu.java
 +++ b/net/minecraft/world/inventory/BeaconMenu.java
+@@ -8,10 +_,12 @@
+ import net.minecraft.world.Container;
+ import net.minecraft.world.SimpleContainer;
+ import net.minecraft.world.effect.MobEffect;
++import net.minecraft.world.entity.player.Inventory;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Blocks;
++import org.bukkit.craftbukkit.inventory.view.CraftBeaconView;
+ 
+ public class BeaconMenu extends AbstractContainerMenu {
+     private static final int PAYMENT_SLOT = 0;
+@@ -36,6 +_,20 @@
+     private final BeaconMenu.PaymentSlot paymentSlot;
+     private final ContainerLevelAccess access;
+     private final ContainerData beaconData;
++    // CraftBukkit start
++    private CraftBeaconView bukkitEntity = null;
++    private Inventory player;
++    @Override
++    public CraftBeaconView getBukkitView() {
++        if (bukkitEntity != null) {
++            return bukkitEntity;
++        }
++
++        org.bukkit.craftbukkit.inventory.CraftInventory inventory = new org.bukkit.craftbukkit.inventory.CraftInventoryBeacon(this.beacon);
++        bukkitEntity = new CraftBeaconView(this.player.player.getBukkitEntity(), inventory, this);
++        return bukkitEntity;
++    }
++    // CraftBukkit end
+ 
+     public BeaconMenu(int p_39036_, Container p_39037_) {
+         this(p_39036_, p_39037_, new SimpleContainerData(3), ContainerLevelAccess.NULL);
+@@ -44,6 +_,7 @@
+     public BeaconMenu(int p_39039_, Container p_39040_, ContainerData p_39041_, ContainerLevelAccess p_39042_) {
+         super(MenuType.BEACON, p_39039_);
+         checkContainerDataCount(p_39041_, 3);
++        this.player = (Inventory) p_39040_; // CraftBukkit - TODO: check this
+         this.beaconData = p_39041_;
+         this.access = p_39042_;
+         this.paymentSlot = new BeaconMenu.PaymentSlot(this.beacon, 0, 136, 110);
+@@ -76,6 +_,7 @@
+ 
+     @Override
+     public boolean stillValid(Player p_39047_) {
++        if (!this.checkReachable) return true; // CraftBukkit
+         return stillValid(this.access, p_39047_, Blocks.BEACON);
+     }
+ 
 @@ -98,10 +_,8 @@
                  }
  

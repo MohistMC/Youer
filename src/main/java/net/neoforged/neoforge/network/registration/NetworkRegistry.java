@@ -408,7 +408,7 @@ public class NetworkRegistry {
             if (!negotiationResult.success()) {
                 listener.disconnect(Component.translatableWithFallback("neoforge.network.negotiation.failure.vanilla.client.not_supported",
                         "You are trying to connect to a server that is running NeoForge, but you are not. Please install NeoForge Version: %s to connect to this server.", NeoForgeVersion.getVersion()));
-                return false;
+                //return false;
             }
         }
 

@@ -77,7 +77,7 @@ public class ConfigByWorlds {
     }
 
     public static void initMods(Level level, double pSize) {
-        // Mohist - set worldborder size to worlds.ymls
+        // Youer - set worldborder size to worlds.ymls
         if (level != null && level instanceof ServerLevel serverLevel) {
             CraftWorld world = serverLevel.getWorld();
             config.set("worlds." + world.getName() + ".worldborder", pSize);

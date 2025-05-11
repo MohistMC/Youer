@@ -1,14 +1,41 @@
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -184,6 +_,8 @@
+@@ -22,11 +_,13 @@
+ import java.util.Set;
+ import java.util.concurrent.CancellationException;
+ import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.function.BiFunction;
+ import java.util.function.Consumer;
+ import java.util.stream.Collectors;
+ import java.util.stream.Stream;
+ import javax.annotation.Nullable;
++import net.md_5.bungee.api.ChatMessageType;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.Util;
+ import net.minecraft.advancements.AdvancementHolder;
+@@ -184,6 +_,10 @@
  import net.minecraft.world.phys.shapes.BooleanOp;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
 +import org.bukkit.Location;
++import org.bukkit.craftbukkit.util.LazyPlayerSet;
++import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 +import org.bukkit.event.player.PlayerTeleportEvent;
  import org.slf4j.Logger;
  
  public class ServerGamePacketListenerImpl
+@@ -202,7 +_,9 @@
+     public final PlayerChunkSender chunkSender;
+     private int tickCount;
+     private int ackBlockChangesUpTo = -1;
+-    private int chatSpamTickCount;
++    // CraftBukkit start - multithreaded fields
++    private final AtomicInteger chatSpamTickCount = new AtomicInteger();
++    // CraftBukkit end
+     private int dropSpamTickCount;
+     private double firstGoodX;
+     private double firstGoodY;
 @@ -235,6 +_,21 @@
      private final MessageSignatureCache messageSignatureCache = MessageSignatureCache.createDefault();
      private final FutureChain chatMessageChain;
@@ -31,6 +58,30 @@
  
      public ServerGamePacketListenerImpl(MinecraftServer p_9770_, Connection p_9771_, ServerPlayer p_9772_, CommonListenerCookie p_301978_) {
          super(p_9770_, p_9771_, p_301978_);
+@@ -244,6 +_,7 @@
+         p_9772_.getTextFilter().join();
+         this.signedMessageDecoder = SignedMessageChain.Decoder.unsigned(p_9772_.getUUID(), p_9770_::enforceSecureProfile);
+         this.chatMessageChain = new FutureChain(p_9770_);
++        setPlayer(p_9772_);
+     }
+ 
+     @Override
+@@ -297,9 +_,14 @@
+         }
+ 
+         this.keepConnectionAlive();
++        // CraftBukkit start
++        for (int spam; (spam = this.chatSpamTickCount.get()) > 0 && !this.chatSpamTickCount.compareAndSet(spam, spam - 1); ) ;
++        /* Use thread-safe field access instead
+         if (this.chatSpamTickCount > 0) {
+-            this.chatSpamTickCount--;
++            --this.chatSpamTickCount;
+         }
++        */
++        // CraftBukkit end
+ 
+         if (this.dropSpamTickCount > 0) {
+             this.dropSpamTickCount--;
 @@ -439,9 +_,11 @@
                  }
  
@@ -145,7 +196,7 @@
          ServerLevel serverlevel = this.player.serverLevel();
          InteractionHand interactionhand = p_9930_.getHand();
          ItemStack itemstack = this.player.getItemInHand(interactionhand);
-@@ -1231,8 +_,9 @@
+@@ -1231,24 +_,42 @@
                  }
  
                  CompletableFuture<FilteredText> completablefuture = this.filterTextPacket(playerchatmessage.signedContent());
@@ -156,6 +207,118 @@
                      PlayerChatMessage playerchatmessage1 = playerchatmessage.withUnsignedContent(component).filter(p_300785_.mask());
                      this.broadcastChatMessage(playerchatmessage1);
                  });
+-            });
++            }, false); // CraftBukkit - async chat
+         }
+     }
+ 
+     @Override
+     public void handleChatCommand(ServerboundChatCommandPacket p_215225_) {
+         this.tryHandleChat(p_215225_.command(), () -> {
++            // CraftBukkit start - SPIGOT-7346: Prevent disconnected players from executing commands
++            if (this.player.hasDisconnected()) {
++                return;
++            }
++            // CraftBukkit end
+             this.performUnsignedChatCommand(p_215225_.command());
+-            this.detectRateSpam();
+-        });
++            this.detectRateSpam("/" + p_215225_.command()); // Spigot
++        }, true); // CraftBukkit - sync commands
+     }
+ 
+     private void performUnsignedChatCommand(String p_338482_) {
++        // CraftBukkit start
++        String command1 = "/" + p_338482_;
++        ServerGamePacketListenerImpl.LOGGER.info(this.player.getScoreboardName() + " issued server command: " + command1);
++
++        PlayerCommandPreprocessEvent event = new PlayerCommandPreprocessEvent(this.getCraftPlayer(), command1, new LazyPlayerSet(this.server));
++        this.cserver.getPluginManager().callEvent(event);
++
++        if (event.isCancelled()) {
++            return;
++        }
++        p_338482_ = event.getMessage().substring(1);
++        // CraftBukkit end
+         ParseResults<CommandSourceStack> parseresults = this.parseCommand(p_338482_);
+         if (this.server.enforceSecureProfile() && SignableCommand.hasSignableArguments(parseresults)) {
+             LOGGER.error(
+@@ -1265,9 +_,14 @@
+         Optional<LastSeenMessages> optional = this.unpackAndApplyLastSeen(p_338604_.lastSeenMessages());
+         if (!optional.isEmpty()) {
+             this.tryHandleChat(p_338604_.command(), () -> {
++                // CraftBukkit start - SPIGOT-7346: Prevent disconnected players from executing commands
++                if (this.player.hasDisconnected()) {
++                    return;
++                }
++                // CraftBukkit end
+                 this.performSignedChatCommand(p_338604_, optional.get());
+-                this.detectRateSpam();
+-            });
++                this.detectRateSpam("/" + p_338604_.command()); // Spigot
++            }, true); // CraftBukkit - sync commands
+         }
+     }
+ 
+@@ -1348,14 +_,20 @@
+         return commanddispatcher.parse(p_242938_, this.player.createCommandSourceStack());
+     }
+ 
+-    private void tryHandleChat(String p_338775_, Runnable p_338235_) {
++    private void tryHandleChat(String p_338775_, Runnable p_338235_, boolean sync) { // CraftBukkit
+         if (isChatMessageIllegal(p_338775_)) {
+             this.disconnect(Component.translatable("multiplayer.disconnect.illegal_characters"));
+         } else if (this.player.getChatVisibility() == ChatVisiblity.HIDDEN) {
+             this.send(new ClientboundSystemChatPacket(Component.translatable("chat.disabled.options").withStyle(ChatFormatting.RED), false));
+         } else {
+             this.player.resetLastActionTime();
+-            this.server.execute(p_338235_);
++            // CraftBukkit start
++            if (sync) {
++                this.server.execute(p_338235_);
++            } else {
++                p_338235_.run();
++            }
++            // CraftBukkit end
+         }
+     }
+ 
+@@ -1388,16 +_,27 @@
+ 
+     private void broadcastChatMessage(PlayerChatMessage p_243277_) {
+         this.server.getPlayerList().broadcastChatMessage(p_243277_, this.player, ChatType.bind(ChatType.CHAT, this.player));
+-        this.detectRateSpam();
++        this.detectRateSpam(p_243277_.signedContent()); // Spigot
+     }
+ 
+-    private void detectRateSpam() {
+-        this.chatSpamTickCount += 20;
+-        if (this.chatSpamTickCount > 200
+-            && !this.server.getPlayerList().isOp(this.player.getGameProfile())
+-            && !this.server.isSingleplayerOwner(this.player.getGameProfile())) {
+-            this.disconnect(Component.translatable("disconnect.spam"));
+-        }
++    private void detectRateSpam(String s) {
++        // CraftBukkit start - replaced with thread safe throttle
++        boolean counted = true;
++        for ( String exclude : org.spigotmc.SpigotConfig.spamExclusions )
++        {
++            if ( exclude != null && s.startsWith( exclude ) )
++            {
++                counted = false;
++                break;
++            }
++        }
++        // Spigot end
++        // this.chatSpamTickCount += 20;
++        if (this.chatSpamTickCount.addAndGet(20) > 200 && !this.server.getPlayerList().isOp(this.player.getGameProfile()) && !this.server.isSingleplayerOwner(this.player.getGameProfile())) {
++            // CraftBukkit end
++            this.disconnect((Component) Component.translatable("disconnect.spam"));
++        }
++
+     }
+ 
+     @Override
 @@ -1507,6 +_,13 @@
          return this.connection.getRemoteAddress();
      }

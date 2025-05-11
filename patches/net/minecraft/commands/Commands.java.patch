@@ -7,10 +7,19 @@
  import com.google.common.collect.Maps;
  import com.mojang.brigadier.CommandDispatcher;
  import com.mojang.brigadier.ParseResults;
-@@ -136,6 +_,7 @@
+@@ -16,6 +_,7 @@
+ import com.mojang.brigadier.tree.RootCommandNode;
+ import com.mojang.logging.LogUtils;
+ import java.util.Collection;
++import java.util.LinkedHashSet;
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.Set;
+@@ -136,6 +_,8 @@
  import net.minecraft.tags.TagKey;
  import net.minecraft.util.profiling.jfr.JvmProfiler;
  import net.minecraft.world.level.GameRules;
++import org.bukkit.event.player.PlayerCommandSendEvent;
 +import org.bukkit.event.server.ServerCommandEvent;
  import org.slf4j.Logger;
  
@@ -39,10 +48,13 @@
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
      }
  
-@@ -258,6 +_,54 @@
+@@ -258,15 +_,72 @@
          return new ParseResults<>(commandcontextbuilder1, p_242928_.getReader(), p_242928_.getExceptions());
      }
  
+-    public void performPrefixedCommand(CommandSourceStack p_230958_, String p_230959_) {
+-        p_230959_ = p_230959_.startsWith("/") ? p_230959_.substring(1) : p_230959_;
+-        this.performCommand(this.dispatcher.parse(p_230959_, p_230958_), p_230959_);
 +    // CraftBukkit start
 +    public void dispatchServerCommand(CommandSourceStack sender, String command) {
 +        Joiner joiner = Joiner.on(" ");
@@ -80,23 +92,22 @@
 +    }
 +    // CraftBukkit end
 +
++    public void performPrefixedCommand(CommandSourceStack source, String command) {
++        // CraftBukkit start
++        this.performPrefixedCommand(source, command, command);
++    }
++
 +    public void performPrefixedCommand(CommandSourceStack commandlistenerwrapper, String s, String label) {
-+
-+    }
-+
-+    public void performCommand(ParseResults<CommandSourceStack> parseresults, String s, String label) { // CraftBukkit
-+    }
-+
-+    private static ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> parseresults, String s, CommandSourceStack commandlistenerwrapper, String label) {
-+        return null;
-+    }
-+
-     public void performPrefixedCommand(CommandSourceStack p_230958_, String p_230959_) {
-         p_230959_ = p_230959_.startsWith("/") ? p_230959_.substring(1) : p_230959_;
-         this.performCommand(this.dispatcher.parse(p_230959_, p_230958_), p_230959_);
-@@ -265,6 +_,16 @@
++        s = s.startsWith("/") ? s.substring(1) : s;
++        this.performCommand(this.dispatcher.parse(s, commandlistenerwrapper), s, label);
++        // CraftBukkit end
+     }
  
      public void performCommand(ParseResults<CommandSourceStack> p_242844_, String p_242841_) {
++        this.performCommand(p_242844_, p_242841_, p_242841_);
++    }
++
++    public void performCommand(ParseResults<CommandSourceStack> p_242844_, String p_242841_, String label) {
          CommandSourceStack commandsourcestack = p_242844_.getContext().getSource();
 +        net.neoforged.neoforge.event.CommandEvent event = new net.neoforged.neoforge.event.CommandEvent(p_242844_);
 +        if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled()) {
@@ -109,15 +120,63 @@
 +        p_242844_ = event.getParseResults();
 +
          commandsourcestack.getServer().getProfiler().push(() -> "/" + p_242841_);
-         ContextChain<CommandSourceStack> contextchain = finishParsing(p_242844_, p_242841_, commandsourcestack);
+-        ContextChain<CommandSourceStack> contextchain = finishParsing(p_242844_, p_242841_, commandsourcestack);
++        ContextChain<CommandSourceStack> contextchain = finishParsing(p_242844_, p_242841_, commandsourcestack, label);
  
-@@ -362,7 +_,8 @@
-         Map<CommandNode<CommandSourceStack>, CommandNode<SharedSuggestionProvider>> map = Maps.newHashMap();
+         try {
+             if (contextchain != null) {
+@@ -307,7 +_,7 @@
+     }
+ 
+     @Nullable
+-    private static ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> p_307220_, String p_307311_, CommandSourceStack p_307676_) {
++    private static ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> p_307220_, String p_307311_, CommandSourceStack p_307676_, String label) {
+         try {
+             validateParseResults(p_307220_);
+             return ContextChain.tryFlatten(p_307220_.getContext().build(p_307311_))
+@@ -318,7 +_,7 @@
+                 int i = Math.min(commandsyntaxexception.getInput().length(), commandsyntaxexception.getCursor());
+                 MutableComponent mutablecomponent = Component.empty()
+                     .withStyle(ChatFormatting.GRAY)
+-                    .withStyle(p_82134_ -> p_82134_.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + p_307311_)));
++                    .withStyle(p_82134_ -> p_82134_.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, label))); // CraftBukkit
+                 if (i > 10) {
+                     mutablecomponent.append(CommonComponents.ELLIPSIS);
+                 }
+@@ -359,10 +_,34 @@
+     }
+ 
+     public void sendCommands(ServerPlayer p_82096_) {
+-        Map<CommandNode<CommandSourceStack>, CommandNode<SharedSuggestionProvider>> map = Maps.newHashMap();
++        if ( org.spigotmc.SpigotConfig.tabComplete < 0 ) return; // Spigot
++        // CraftBukkit start
++        // Register Vanilla commands into builtRoot as before
++        Map<CommandNode<CommandSourceStack>, CommandNode<SharedSuggestionProvider>> map = Maps.newIdentityHashMap(); // Use identity to prevent aliasing issues
++        RootCommandNode vanillaRoot = new RootCommandNode();
++
++        RootCommandNode<CommandSourceStack> vanilla = p_82096_.server.vanillaCommandDispatcher.getDispatcher().getRoot();
++        map.put(vanilla, vanillaRoot);
++        this.fillUsableCommands(vanilla, vanillaRoot, p_82096_.createCommandSourceStack(), (Map) map);
++
          RootCommandNode<SharedSuggestionProvider> rootcommandnode = new RootCommandNode<>();
          map.put(this.dispatcher.getRoot(), rootcommandnode);
 -        this.fillUsableCommands(this.dispatcher.getRoot(), rootcommandnode, p_82096_.createCommandSourceStack(), map);
 +        // FORGE: Use our own command node merging method to handle redirect nodes properly, see issue #7551
 +        net.neoforged.neoforge.server.command.CommandHelper.mergeCommandNode(this.dispatcher.getRoot(), rootcommandnode, map, p_82096_.createCommandSourceStack(), ctx -> 0, suggest -> SuggestionProviders.safelySwap((com.mojang.brigadier.suggestion.SuggestionProvider<SharedSuggestionProvider>) (com.mojang.brigadier.suggestion.SuggestionProvider<?>) suggest));
++        Collection<String> bukkit = new LinkedHashSet<>();
++        for (CommandNode node : rootcommandnode.getChildren()) {
++            bukkit.add(node.getName());
++        }
++        PlayerCommandSendEvent event = new PlayerCommandSendEvent(p_82096_.getBukkitEntity(), new LinkedHashSet<>(bukkit));
++        event.getPlayer().getServer().getPluginManager().callEvent(event);
++
++        // Remove labels that were removed during the event
++        for (String orig : bukkit) {
++            if (!event.getCommands().contains(orig)) {
++                //rootcommandnode.removeCommand(orig);
++            }
++        }
++        // CraftBukkit end
          p_82096_.connection.send(new ClientboundCommandsPacket(rootcommandnode));
      }
  
