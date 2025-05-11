@@ -1,0 +1,51 @@
+--- a/net/minecraft/server/commands/TimeCommand.java
++++ b/net/minecraft/server/commands/TimeCommand.java
+@@ -3,11 +_,14 @@
+ import com.mojang.brigadier.CommandDispatcher;
+ import com.mojang.brigadier.arguments.IntegerArgumentType;
+ import com.mojang.brigadier.context.CommandContext;
++import java.util.List;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.commands.Commands;
+ import net.minecraft.commands.arguments.TimeArgument;
+ import net.minecraft.network.chat.Component;
+ import net.minecraft.server.level.ServerLevel;
++import org.bukkit.Bukkit;
++import org.bukkit.event.world.TimeSkipEvent;
+ 
+ public class TimeCommand {
+     public static void register(CommandDispatcher<CommandSourceStack> p_139072_) {
+@@ -59,8 +_,14 @@
+     }
+ 
+     public static int setTime(CommandSourceStack p_139078_, int p_139079_) {
+-        for (ServerLevel serverlevel : p_139078_.getServer().getAllLevels()) {
+-            serverlevel.setDayTime((long)p_139079_);
++        for (ServerLevel serverlevel : List.of(p_139078_.getLevel())) { // Youer
++            // CraftBukkit start
++            TimeSkipEvent event = new TimeSkipEvent(serverlevel.getWorld(), TimeSkipEvent.SkipReason.COMMAND, p_139079_ - serverlevel.getDayTime());
++            Bukkit.getPluginManager().callEvent(event);
++            if (!event.isCancelled()) {
++                serverlevel.setDayTime((long) serverlevel.getDayTime() + event.getSkipAmount());
++            }
++            // CraftBukkit end
+         }
+ 
+         p_139078_.sendSuccess(() -> Component.translatable("commands.time.set", p_139079_), true);
+@@ -68,8 +_,14 @@
+     }
+ 
+     public static int addTime(CommandSourceStack p_139083_, int p_139084_) {
+-        for (ServerLevel serverlevel : p_139083_.getServer().getAllLevels()) {
+-            serverlevel.setDayTime(serverlevel.getDayTime() + (long)p_139084_);
++        for (ServerLevel serverlevel :  List.of(p_139083_.getLevel())) { // Youer
++            // CraftBukkit start
++            TimeSkipEvent event = new TimeSkipEvent(serverlevel.getWorld(), TimeSkipEvent.SkipReason.COMMAND, p_139084_);
++            Bukkit.getPluginManager().callEvent(event);
++            if (!event.isCancelled()) {
++                serverlevel.setDayTime(serverlevel.getDayTime() + event.getSkipAmount());
++            }
++            // CraftBukkit end
+         }
+ 
+         int i = getDayTime(p_139083_.getLevel());

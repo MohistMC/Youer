@@ -20,7 +20,7 @@
  import java.util.function.Predicate;
  import javax.annotation.Nonnull;
  import javax.annotation.Nullable;
-@@ -126,13 +_,21 @@
+@@ -126,13 +_,22 @@
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
  import net.minecraft.world.phys.AABB;
@@ -33,6 +33,7 @@
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.event.entity.ArrowBodyCountChangeEvent;
++import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.entity.EntityPotionEffectEvent;
 +import org.bukkit.event.entity.EntityRegainHealthEvent;
 +import org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason;
@@ -277,9 +278,9 @@
 +    }
 +
 +    // Youer start
-+    public static AtomicReference<EntityPotionEffectEvent.Cause> addEffectCause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
++    private static AtomicReference<EntityPotionEffectEvent.Cause> addEffectCause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
 +
-+    public void pushEffectCause(EntityPotionEffectEvent.Cause cause) {
++    public void addEffectCause(EntityPotionEffectEvent.Cause cause) {
 +        addEffectCause.set(cause);
      }
  
@@ -324,12 +325,15 @@
              MobEffectInstance mobeffectinstance = this.activeEffects.put(p_147216_.getEffect(), p_147216_);
              if (mobeffectinstance == null) {
                  this.onEffectAdded(p_147216_, p_147217_);
-@@ -977,12 +_,36 @@
+@@ -977,12 +_,39 @@
          return this.getType().is(EntityTypeTags.INVERTED_HEALING_AND_HARM);
      }
  
 +    // Youer start
-+    public AtomicReference<EntityPotionEffectEvent.Cause> removeEffectNoUpdateCause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
++    private AtomicReference<EntityPotionEffectEvent.Cause> removeEffectNoUpdateCause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
++    public void removeEffectNoUpdateCause(EntityPotionEffectEvent.Cause cause) {
++        removeEffectNoUpdateCause.set(cause);
++    }
      @Nullable
      public MobEffectInstance removeEffectNoUpdate(Holder<MobEffect> p_316233_) {
 +        if (isTickingEffects) {

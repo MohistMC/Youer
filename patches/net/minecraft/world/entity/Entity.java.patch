@@ -10,7 +10,7 @@
  import java.util.function.BiConsumer;
  import java.util.function.Predicate;
  import java.util.stream.Stream;
-@@ -126,9 +_,18 @@
+@@ -126,9 +_,19 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreHolder;
  import net.minecraft.world.scores.Team;
@@ -19,6 +19,7 @@
 +import org.bukkit.craftbukkit.entity.CraftEntity;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.event.CraftPortalEvent;
++import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.entity.EntityPortalEvent;
 +import org.bukkit.event.entity.EntityRemoveEvent;
 +import org.bukkit.event.player.PlayerTeleportEvent;
@@ -49,7 +50,7 @@
      private final Set<TagKey<Fluid>> fluidOnEyes = new HashSet<>();
      public int invulnerableTime;
      protected boolean firstTick = true;
-@@ -243,6 +_,63 @@
+@@ -243,6 +_,67 @@
      public boolean hasVisualFire;
      @Nullable
      private BlockState inBlockState = null;
@@ -95,6 +96,10 @@
 +    // Main use case currently is for SPIGOT-7487, preventing dropping of leash when leash is removed
 +    public boolean pluginRemoved = false;
 +
++    private CreatureSpawnEvent.SpawnReason spawnReason = CreatureSpawnEvent.SpawnReason.DEFAULT;
++    public void spawnReason(CreatureSpawnEvent.SpawnReason spawnReason) {
++        this.spawnReason =  spawnReason;
++    }
 +    public float getBukkitYaw() {
 +        return this.yRot;
 +    }

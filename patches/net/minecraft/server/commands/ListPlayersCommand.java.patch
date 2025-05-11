@@ -1,0 +1,18 @@
+--- a/net/minecraft/server/commands/ListPlayersCommand.java
++++ b/net/minecraft/server/commands/ListPlayersCommand.java
+@@ -34,7 +_,14 @@
+ 
+     private static int format(CommandSourceStack p_137827_, Function<ServerPlayer, Component> p_137828_) {
+         PlayerList playerlist = p_137827_.getServer().getPlayerList();
+-        List<ServerPlayer> list = playerlist.getPlayers();
++        // CraftBukkit start
++        List<ServerPlayer> players = playerlist.getPlayers();
++        if (p_137827_.getBukkitSender() instanceof org.bukkit.entity.Player) {
++            org.bukkit.entity.Player sender = (org.bukkit.entity.Player) p_137827_.getBukkitSender();
++            players = players.stream().filter((ep) -> sender.canSee(ep.getBukkitEntity())).collect(java.util.stream.Collectors.toList());
++        }
++        List<ServerPlayer> list = players;
++        // CraftBukkit end
+         Component component = ComponentUtils.formatList(list, p_137828_);
+         p_137827_.sendSuccess(() -> Component.translatable("commands.list.players", list.size(), playerlist.getMaxPlayers(), component), false);
+         return list.size();

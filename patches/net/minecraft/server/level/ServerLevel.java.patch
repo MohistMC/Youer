@@ -18,6 +18,14 @@
  import java.io.IOException;
  import java.io.Writer;
  import java.nio.file.Files;
+@@ -79,6 +_,7 @@
+ import net.minecraft.util.profiling.ProfilerFiller;
+ import net.minecraft.util.valueproviders.IntProvider;
+ import net.minecraft.util.valueproviders.UniformInt;
++import net.minecraft.world.Container;
+ import net.minecraft.world.DifficultyInstance;
+ import net.minecraft.world.RandomSequences;
+ import net.minecraft.world.TickRateManager;
 @@ -98,7 +_,6 @@
  import net.minecraft.world.entity.animal.Animal;
  import net.minecraft.world.entity.animal.WaterAnimal;
@@ -26,6 +34,14 @@
  import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
  import net.minecraft.world.entity.npc.Npc;
  import net.minecraft.world.entity.player.Player;
+@@ -122,6 +_,7 @@
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.SnowLayerBlock;
++import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.entity.TickingBlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.chunk.ChunkAccess;
 @@ -132,6 +_,7 @@
  import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
  import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
@@ -45,12 +61,14 @@
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
-@@ -164,7 +_,11 @@
+@@ -164,7 +_,13 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.util.WorldUUID;
++import org.bukkit.entity.HumanEntity;
++import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.weather.LightningStrikeEvent;
  import org.slf4j.Logger;
 +import org.spigotmc.SpigotWorldConfig;
@@ -68,7 +86,7 @@
      private final boolean tickTime;
      private final RandomSequences randomSequences;
  
-+    public PrimaryLevelData K;
++    public PrimaryLevelData K = null;
 +    public final LevelStorageSource.LevelStorageAccess convertable;
 +    public final UUID uuid;
 +    public ResourceKey<LevelStem> typeKey;
@@ -252,7 +270,7 @@
      }
  
      private boolean addEntity(Entity p_8873_) {
-@@ -911,7 +_,12 @@
+@@ -911,7 +_,28 @@
              LOGGER.warn("Tried to add entity {} but it was marked as removed already", EntityType.getKey(p_8873_.getType()));
              return false;
          } else {
@@ -263,9 +281,41 @@
 +            } else {
 +                return false;
 +            }
++        }
++    }
++
++    // Mohist start
++    public boolean addEntityByReason(Entity entity, CreatureSpawnEvent.SpawnReason spawnReason) {
++        entity.spawnReason(spawnReason);
++        return addEntity(entity);
++    }
++    // Mohist end
++
++    public boolean tryAddFreshEntityWithPassengers(Entity pEntity, CreatureSpawnEvent.SpawnReason reason) {
++        if (pEntity.getSelfAndPassengers().map(Entity::getUUID).anyMatch(this.entityManager::isLoaded)) {
++            return false;
++        } else {
++            this.addFreshEntityWithPassengers(pEntity, reason);
++            return true;
          }
      }
  
+@@ -925,6 +_,15 @@
+     }
+ 
+     public void unload(LevelChunk p_8713_) {
++        // Spigot Start
++        for (BlockEntity tileentity : p_8713_.getBlockEntities().values()) {
++            if (tileentity instanceof Container container) {
++                for (HumanEntity h : Lists.newArrayList(container.getViewers())) {
++                    h.closeInventory();
++                }
++            }
++        }
++        // Spigot End
+         p_8713_.clearAllBlockEntities();
+         p_8713_.unregisterTickContainerFromLevel(this);
+     }
 @@ -933,6 +_,21 @@
          p_143262_.remove(p_143263_);
      }
