@@ -75,9 +75,6 @@ public class MohistPlugin {
             BanListener.save(event1);
             GuiListener.onInventoryCloseEvent(event1);
         }
-        if (event instanceof PluginEnableEvent event1) {
-            PluginHooks.register(event1);
-        }
         if (event instanceof PlayerTeleportEvent event1) {
             BackCommands.hookTeleport(event1);
         }
