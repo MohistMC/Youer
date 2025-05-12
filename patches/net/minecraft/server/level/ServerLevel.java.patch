@@ -18,6 +18,14 @@
  import java.io.IOException;
  import java.io.Writer;
  import java.nio.file.Files;
+@@ -27,6 +_,7 @@
+ import java.util.Set;
+ import java.util.UUID;
+ import java.util.concurrent.Executor;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.BooleanSupplier;
+ import java.util.function.Function;
+ import java.util.function.Predicate;
 @@ -79,6 +_,7 @@
  import net.minecraft.util.profiling.ProfilerFiller;
  import net.minecraft.util.valueproviders.IntProvider;
@@ -252,6 +260,59 @@
          }
      }
  
+@@ -870,22 +_,45 @@
+         return list.isEmpty() ? null : list.get(this.random.nextInt(list.size()));
+     }
+ 
++    // Mohist start
++    public AtomicBoolean canaddFreshEntity = new AtomicBoolean(false);
++
++    public boolean canAddFreshEntity() {
++        return canaddFreshEntity.getAndSet(false);
++    }
++    // Mohist end
++
+     @Override
+     public boolean addFreshEntity(Entity p_8837_) {
+-        return this.addEntity(p_8837_);
++        boolean add = this.addEntity(p_8837_);
++        canaddFreshEntity.set(add);
++        return add;
++    }
++
++    public boolean addFreshEntity(Entity entity, CreatureSpawnEvent.SpawnReason reason) {
++        return this.addEntityByReason(entity, reason);
+     }
+ 
+     public boolean addWithUUID(Entity p_8848_) {
+         return this.addEntity(p_8848_);
+     }
+ 
++    public boolean addWithUUID(Entity entity, CreatureSpawnEvent.SpawnReason reason) {
++        return this.addEntityByReason(entity, reason);
++    }
++
+     public void addDuringTeleport(Entity p_143335_) {
+-        if (p_143335_ instanceof ServerPlayer serverplayer) {
+-            this.addPlayer(serverplayer);
+-        } else {
+-            this.addEntity(p_143335_);
+-        }
+-    }
++        // SPIGOT-6415: Don't call spawn event for entities which travel trough worlds,
++        // since it is only an implementation detail, that a new entity is created when
++        // they are traveling between worlds.
++        p_143335_.spawnReason(null); // Mohist
++        this.addEntity(p_143335_);
++    }
++
++    public void addDuringTeleport(Entity entity, CreatureSpawnEvent.SpawnReason reason) {
++        this.addEntityByReason(entity, reason);
++    }
++    // CraftBukkit end
+ 
+     public void addNewPlayer(ServerPlayer p_8835_) {
+         this.addPlayer(p_8835_);
 @@ -896,6 +_,7 @@
      }
  

@@ -53,7 +53,7 @@
      protected static final EntityDataAccessor<Byte> DATA_LIVING_ENTITY_FLAGS = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.BYTE);
      public static final EntityDataAccessor<Float> DATA_HEALTH_ID = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.FLOAT);
      private static final EntityDataAccessor<List<ParticleOptions>> DATA_EFFECT_PARTICLES = SynchedEntityData.defineId(
-@@ -251,13 +_,37 @@
+@@ -251,13 +_,39 @@
      private float swimAmount;
      private float swimAmountO;
      protected Brain<?> brain;
@@ -83,6 +83,8 @@
 +        return getYHeadRot();
 +    }
 +    // CraftBukkit end
++    // Youer start
++    private RegainReason heal$regainReason = RegainReason.CUSTOM;
  
      protected LivingEntity(EntityType<? extends LivingEntity> p_20966_, Level p_20967_) {
          super(p_20966_, p_20967_);
@@ -378,14 +380,12 @@
      protected void onEffectAdded(MobEffectInstance p_147190_, @Nullable Entity p_147191_) {
          this.effectsDirty = true;
          if (!this.level().isClientSide) {
-@@ -1060,18 +_,51 @@
+@@ -1060,18 +_,49 @@
          }
      }
  
-+    public AtomicReference<RegainReason> regainReason0 = new AtomicReference<>(RegainReason.CUSTOM);
-+
 +    public void pushHealReason(EntityRegainHealthEvent.RegainReason regainReason) {
-+        this.regainReason0.set(regainReason);
++        this.heal$regainReason = regainReason;
 +    }
 +
      public void heal(float p_21116_) {
@@ -398,7 +398,7 @@
      }
  
 +    public void heal(float f, EntityRegainHealthEvent.RegainReason regainReason) {
-+        this.regainReason0.set(regainReason);
++        this.pushHealReason(regainReason);
 +        this.heal(f);
 +    }
 +

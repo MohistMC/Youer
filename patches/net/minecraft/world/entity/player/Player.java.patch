@@ -25,7 +25,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final HumanoidArm DEFAULT_MAIN_HAND = HumanoidArm.RIGHT;
      public static final int DEFAULT_MODEL_CUSTOMIZATION = 0;
-@@ -193,11 +_,27 @@
+@@ -193,11 +_,29 @@
      public Entity currentExplosionCause;
      private boolean ignoreFallDamageFromCurrentImpulse;
      private int currentImpulseContextResetGraceTime;
@@ -44,6 +44,8 @@
 +        return (CraftHumanEntity) super.getBukkitEntity();
 +    }
 +    // CraftBukkit end
++    // Youer start
++    private EntityExhaustionEvent.ExhaustionReason causeFoodExhaustion$reason = ExhaustionReason.UNKNOWN;
  
      public Player(Level p_250508_, BlockPos p_250289_, float p_251702_, GameProfile p_252153_) {
          super(EntityType.PLAYER, p_250508_);
@@ -468,12 +470,12 @@
          this.experienceLevel += p_36276_;
          if (this.experienceLevel < 0) {
              this.experienceLevel = 0;
-@@ -1665,9 +_,28 @@
+@@ -1665,9 +_,27 @@
          if (!this.abilities.invulnerable) {
              if (!this.level().isClientSide) {
                  this.foodData.addExhaustion(p_36400_);
 +                // CraftBukkit start
-+                EntityExhaustionEvent event = CraftEventFactory.callPlayerExhaustionEvent(this, reason.getAndSet(EntityExhaustionEvent.ExhaustionReason.UNKNOWN), p_36400_);
++                EntityExhaustionEvent event = CraftEventFactory.callPlayerExhaustionEvent(this, causeFoodExhaustion$reason, p_36400_);
 +                if (!event.isCancelled()) {
 +                      this.foodData.addExhaustion(event.getExhaustion());
 +                }
@@ -484,9 +486,8 @@
 +
 +    // Youer start
 +    // CraftBukkit start
-+    private AtomicReference<ExhaustionReason> reason = new AtomicReference<>(EntityExhaustionEvent.ExhaustionReason.UNKNOWN);
 +    public void exhaustionReason(EntityExhaustionEvent.ExhaustionReason exhaustionReason) {
-+        reason.set(exhaustionReason);
++        causeFoodExhaustion$reason = exhaustionReason;
 +    }
 +    public void causeFoodExhaustion(float f, EntityExhaustionEvent.ExhaustionReason reason) {
 +        this.exhaustionReason(reason);

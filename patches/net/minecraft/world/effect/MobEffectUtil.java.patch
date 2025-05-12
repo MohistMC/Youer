@@ -1,0 +1,40 @@
+--- a/net/minecraft/world/effect/MobEffectUtil.java
++++ b/net/minecraft/world/effect/MobEffectUtil.java
+@@ -1,6 +_,7 @@
+ package net.minecraft.world.effect;
+ 
+ import java.util.List;
++import java.util.concurrent.atomic.AtomicReference;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.Holder;
+ import net.minecraft.network.chat.Component;
+@@ -44,6 +_,10 @@
+         return p_19589_.hasEffect(MobEffects.WATER_BREATHING) || p_19589_.hasEffect(MobEffects.CONDUIT_POWER);
+     }
+ 
++    private final static AtomicReference<org.bukkit.event.entity.EntityPotionEffectEvent.Cause> addEffectToPlayersAround$cause = new AtomicReference<>(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
++    public static void addEffectToPlayersAround$cause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
++        addEffectToPlayersAround$cause.set(cause);
++    }
+     public static List<ServerPlayer> addEffectToPlayersAround(
+         ServerLevel p_216947_, @Nullable Entity p_216948_, Vec3 p_216949_, double p_216950_, MobEffectInstance p_216951_, int p_216952_
+     ) {
+@@ -58,7 +_,17 @@
+                             || p_267925_.getEffect(holder).endsWithin(p_216952_ - 1)
+                     )
+         );
+-        list.forEach(p_238232_ -> p_238232_.addEffect(new MobEffectInstance(p_216951_), p_216948_));
++        list.forEach(p_238232_ -> {
++            p_238232_.addEffectCause(addEffectToPlayersAround$cause.getAndSet(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN));
++            p_238232_.addEffect(new MobEffectInstance(p_216951_), p_216948_);
++        });
+         return list;
++    }
++
++    public static List<ServerPlayer> addEffectToPlayersAround(
++            ServerLevel p_216947_, @Nullable Entity p_216948_, Vec3 p_216949_, double p_216950_, MobEffectInstance p_216951_, int p_216952_, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause
++    ) {
++        addEffectToPlayersAround$cause(cause);
++        return addEffectToPlayersAround(p_216947_, p_216948_, p_216949_, p_216950_, p_216951_, p_216952_);
+     }
+ }
