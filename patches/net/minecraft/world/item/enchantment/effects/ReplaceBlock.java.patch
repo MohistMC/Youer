@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/item/enchantment/effects/ReplaceBlock.java
++++ b/net/minecraft/world/item/enchantment/effects/ReplaceBlock.java
+@@ -14,6 +_,7 @@
+ import net.minecraft.world.level.levelgen.blockpredicates.BlockPredicate;
+ import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
+ 
+ public record ReplaceBlock(Vec3i offset, Optional<BlockPredicate> predicate, BlockStateProvider blockState, Optional<Holder<GameEvent>> triggerGameEvent)
+     implements EnchantmentEntityEffect {
+@@ -31,7 +_,7 @@
+     public void apply(ServerLevel p_345756_, int p_346215_, EnchantedItemInUse p_345202_, Entity p_346293_, Vec3 p_345339_) {
+         BlockPos blockpos = BlockPos.containing(p_345339_).offset(this.offset);
+         if (this.predicate.map(p_345193_ -> p_345193_.test(p_345756_, blockpos)).orElse(true)
+-            && p_345756_.setBlockAndUpdate(blockpos, this.blockState.getState(p_346293_.getRandom(), blockpos))) {
++            && CraftEventFactory.handleBlockFormEvent(p_345756_, blockpos, this.blockState.getState(p_346293_.getRandom(), blockpos), p_346293_)) {
+             this.triggerGameEvent.ifPresent(p_347354_ -> p_345756_.gameEvent(p_346293_, (Holder<GameEvent>)p_347354_, blockpos));
+         }
+     }

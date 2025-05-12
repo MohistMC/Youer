@@ -43,6 +43,34 @@
      public static ItemStack getHeldProjectile(LivingEntity p_43011_, Predicate<ItemStack> p_43012_) {
          if (p_43012_.test(p_43011_.getItemInHand(InteractionHand.OFF_HAND))) {
              return p_43011_.getItemInHand(InteractionHand.OFF_HAND);
+@@ -68,7 +_,26 @@
+                 f3 = -f3;
+                 Projectile projectile = this.createProjectile(p_346125_, p_330728_, p_330646_, itemstack, p_331107_);
+                 this.shootProjectile(p_330728_, projectile, i, p_331007_, p_331445_, f4, p_331167_);
+-                p_346125_.addFreshEntity(projectile);
++                if (p_331167_ != null) {
++                    // CraftBukkit start
++                    org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(p_331167_, p_330646_, itemstack, projectile, p_331152_, p_331007_, true);
++                    if (event.isCancelled()) {
++                        event.getProjectile().remove();
++                        return;
++                    }
++                    if (event.getProjectile() == projectile.getBukkitEntity()) {
++                        p_346125_.addFreshEntity(projectile);
++                        if (!p_346125_.canAddFreshEntity()) {
++                            if (p_331167_ instanceof net.minecraft.server.level.ServerPlayer) {
++                                ((net.minecraft.server.level.ServerPlayer) p_331167_).getBukkitEntity().updateInventory();
++                            }
++                            return;
++                        }
++                    }
++                    // CraftBukkit end
++                } else {
++                    p_346125_.addFreshEntity(projectile);
++                }
+                 p_330646_.hurtAndBreak(this.getDurabilityUse(itemstack), p_330728_, LivingEntity.getSlotForHand(p_331152_));
+                 if (p_330646_.isEmpty()) {
+                     break;
 @@ -92,7 +_,7 @@
              abstractarrow.setCritArrow(true);
          }

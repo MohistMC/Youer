@@ -8,11 +8,10 @@
  
  public class MerchantOffer {
      public static final Codec<MerchantOffer> CODEC = RecordCodecBuilder.create(
-@@ -38,6 +_,19 @@
-     public int demand;
+@@ -39,6 +_,19 @@
      public float priceMultiplier;
      public int xp;
-+
+ 
 +    // CraftBukkit start
 +    private CraftMerchantRecipe bukkitHandle;
 +
@@ -25,6 +24,20 @@
 +        this.bukkitHandle = bukkit;
 +    }
 +    // CraftBukkit end
- 
++
      private MerchantOffer(
          ItemCost p_330734_,
+         Optional<ItemCost> p_331500_,
+@@ -206,7 +_,11 @@
+         if (!this.satisfiedBy(p_45362_, p_45363_)) {
+             return false;
+         } else {
+-            p_45362_.shrink(this.getCostA().getCount());
++            // CraftBukkit start
++            if (!this.getCostA().isEmpty()) {
++                p_45362_.shrink(this.getCostA().getCount());
++            }
++            // CraftBukkit end
+             if (!this.getCostB().isEmpty()) {
+                 p_45363_.shrink(this.getCostB().getCount());
+             }

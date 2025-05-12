@@ -1,6 +1,23 @@
 --- a/net/minecraft/world/item/crafting/RecipeManager.java
 +++ b/net/minecraft/world/item/crafting/RecipeManager.java
-@@ -50,16 +_,22 @@
+@@ -3,6 +_,8 @@
+ import com.google.common.annotations.VisibleForTesting;
+ import com.google.common.collect.ImmutableMap;
+ import com.google.common.collect.ImmutableMultimap;
++import com.google.common.collect.LinkedHashMultimap;
++import com.google.common.collect.Maps;
+ import com.google.common.collect.Multimap;
+ import com.google.common.collect.ImmutableMultimap.Builder;
+ import com.google.gson.Gson;
+@@ -14,6 +_,7 @@
+ import com.mojang.serialization.JsonOps;
+ import java.util.Collection;
+ import java.util.Comparator;
++import java.util.Iterator;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Optional;
+@@ -50,23 +_,31 @@
          this.hasErrors = false;
          Builder<RecipeType<?>, RecipeHolder<?>> builder = ImmutableMultimap.builder();
          com.google.common.collect.ImmutableMap.Builder<ResourceLocation, RecipeHolder<?>> builder1 = ImmutableMap.builder();
@@ -25,21 +42,61 @@
              } catch (IllegalArgumentException | JsonParseException jsonparseexception) {
                  LOGGER.error("Parsing error loading recipe {}", resourcelocation, jsonparseexception);
              }
-@@ -193,5 +_,17 @@
+         }
+ 
+-        this.byType = builder.build();
+-        this.byName = builder1.build();
++        // CraftBukkit start - mutable
++        this.byType = LinkedHashMultimap.create(builder.build());
++        this.byName = Maps.newHashMap(builder1.build());
++        // CraftBukkit end
+         LOGGER.info("Loaded {} recipes", this.byType.size());
+     }
+ 
+@@ -167,8 +_,10 @@
+             builder1.put(recipeholder.id(), recipeholder);
+         }
+ 
+-        this.byType = builder.build();
+-        this.byName = builder1.build();
++        // CraftBukkit start - mutable
++        this.byType = LinkedHashMultimap.create(builder.build());
++        this.byName = Maps.newHashMap(builder1.build());
++        // CraftBukkit end
+     }
+ 
+     public static <I extends RecipeInput, T extends Recipe<I>> RecipeManager.CachedCheck<I, T> createCheck(final RecipeType<T> p_220268_) {
+@@ -193,5 +_,33 @@
  
      public interface CachedCheck<I extends RecipeInput, T extends Recipe<I>> {
          Optional<RecipeHolder<T>> getRecipeFor(I p_344938_, Level p_220281_);
 +    }
 +
 +    public void addRecipe(RecipeHolder<?> irecipe) {
++        Collection<RecipeHolder<?>> map = this.byType.get(irecipe.value().getType()); // CraftBukkit
 +
++        if (byName.containsKey(irecipe.id())) {
++            throw new IllegalStateException("Duplicate recipe ignored with ID " + irecipe.id());
++        } else {
++            map.add(irecipe);
++            byName.put(irecipe.id(), irecipe);
++        }
 +    }
 +
 +    public boolean removeRecipe(ResourceLocation mcKey) {
++        Iterator<RecipeHolder<?>> iter = byType.values().iterator();
++        while (iter.hasNext()) {
++            RecipeHolder<?> recipe = iter.next();
++            if (recipe.id().equals(mcKey)) {
++                iter.remove();
++            }
++        }
++
 +        return byName.remove(mcKey) != null;
 +    }
 +
 +    public void clearRecipes() {
-+
++        this.byType = LinkedHashMultimap.create();
++        this.byName = Maps.newHashMap();
      }
  }

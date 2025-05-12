@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/FireChargeItem.java
 +++ b/net/minecraft/world/item/FireChargeItem.java
-@@ -33,7 +_,8 @@
+@@ -33,17 +_,34 @@
          BlockPos blockpos = p_41204_.getClickedPos();
          BlockState blockstate = level.getBlockState(blockpos);
          boolean flag = false;
@@ -9,10 +9,28 @@
 +        if (blockstate2 == null) {
              blockpos = blockpos.relative(p_41204_.getClickedFace());
              if (BaseFireBlock.canBePlacedAt(level, blockpos, p_41204_.getHorizontalDirection())) {
++                // CraftBukkit start - fire BlockIgniteEvent // Youer add null check
++                if (p_41204_.getPlayer() != null && org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, blockpos, org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FIREBALL, p_41204_.getPlayer()).isCancelled()) {
++                    if (!p_41204_.getPlayer().getAbilities().instabuild) {
++                        p_41204_.getItemInHand().shrink(1);
++                    }
++                    return InteractionResult.PASS;
++                }
++                // CraftBukkit end
                  this.playSound(level, blockpos);
-@@ -43,7 +_,7 @@
+                 level.setBlockAndUpdate(blockpos, BaseFireBlock.getState(level, blockpos));
+                 level.gameEvent(p_41204_.getPlayer(), GameEvent.BLOCK_PLACE, blockpos);
+                 flag = true;
              }
          } else {
++            // CraftBukkit start - fire BlockIgniteEvent // Youer add null check
++            if (p_41204_.getPlayer() != null &&  org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, blockpos, org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FIREBALL, p_41204_.getPlayer()).isCancelled()) {
++                if (!p_41204_.getPlayer().getAbilities().instabuild) {
++                    p_41204_.getItemInHand().shrink(1);
++                }
++                return InteractionResult.PASS;
++            }
++            // CraftBukkit end
              this.playSound(level, blockpos);
 -            level.setBlockAndUpdate(blockpos, blockstate.setValue(BlockStateProperties.LIT, Boolean.valueOf(true)));
 +            level.setBlockAndUpdate(blockpos, blockstate2);

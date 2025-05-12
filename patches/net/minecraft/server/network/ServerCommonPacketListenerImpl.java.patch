@@ -1,6 +1,17 @@
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -8,6 +_,7 @@
+@@ -2,12 +_,18 @@
+ 
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.logging.LogUtils;
++import io.netty.buffer.ByteBuf;
++import java.nio.charset.StandardCharsets;
++import java.util.Objects;
++import java.util.concurrent.ExecutionException;
+ import javax.annotation.Nullable;
++import net.minecraft.ChatFormatting;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
  import net.minecraft.ReportedException;
  import net.minecraft.Util;
  import net.minecraft.network.Connection;
@@ -8,17 +19,27 @@
  import net.minecraft.network.DisconnectionDetails;
  import net.minecraft.network.PacketSendListener;
  import net.minecraft.network.chat.Component;
-@@ -21,12 +_,37 @@
+@@ -20,13 +_,47 @@
+ import net.minecraft.network.protocol.common.ServerboundKeepAlivePacket;
  import net.minecraft.network.protocol.common.ServerboundPongPacket;
  import net.minecraft.network.protocol.common.ServerboundResourcePackPacket;
++import net.minecraft.network.protocol.common.custom.DiscardedPayload;
  import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
 +import net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket;
++import net.minecraft.resources.ResourceLocation;
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ClientInformation;
 +import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.util.StringUtil;
  import net.minecraft.util.VisibleForDebug;
++import net.minecraft.util.thread.BlockableEventLoop;
++import net.neoforged.neoforge.server.ServerLifecycleHooks;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.craftbukkit.util.CraftChatMessage;
 +import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.craftbukkit.util.Waitable;
++import org.bukkit.event.player.PlayerKickEvent;
++import org.bukkit.event.player.PlayerResourcePackStatusEvent;
  import org.slf4j.Logger;
  
 -public abstract class ServerCommonPacketListenerImpl implements ServerCommonPacketListener {
@@ -78,14 +99,29 @@
 +
 +    public void setPlayer(ServerPlayer player) {
 +        this.player = player;
-+        //this.player.transferCookieConnection = this;
++        this.player.transferCookieConnection = this;
      }
  
      private void close() {
-@@ -83,6 +_,32 @@
+@@ -68,6 +_,7 @@
  
      @Override
+     public void handleKeepAlive(ServerboundKeepAlivePacket p_294627_) {
++        PacketUtils.ensureRunningOnSameThread(p_294627_, this, this.player.serverLevel()); // CraftBukkit
+         if (this.keepAlivePending && p_294627_.getId() == this.keepAliveChallenge) {
+             int i = (int)(Util.getMillis() - this.keepAliveTime);
+             this.latency = (this.latency * 3 + i) / 4;
+@@ -81,9 +_,90 @@
+     public void handlePong(ServerboundPongPacket p_295142_) {
+     }
+ 
++    // CraftBukkit start
++    private static final ResourceLocation CUSTOM_REGISTER = ResourceLocation.withDefaultNamespace("register");
++    private static final ResourceLocation CUSTOM_UNREGISTER = ResourceLocation.withDefaultNamespace("unregister");
++
+     @Override
      public void handleCustomPayload(ServerboundCustomPayloadPacket p_294276_) {
+-    }
 +        // Neo: Unconditionally handle register/unregister payloads.
 +        if (p_294276_.payload() instanceof net.neoforged.neoforge.network.payload.MinecraftRegisterPayload minecraftRegisterPayload) {
 +            net.neoforged.neoforge.network.registration.NetworkRegistry.onMinecraftRegister(this.getConnection(), minecraftRegisterPayload.newChannels());
@@ -112,9 +148,87 @@
 +            net.neoforged.neoforge.network.registration.NetworkRegistry.handleModdedPayload(this, p_294276_);
 +            return;
 +        }
++
++        if (p_294276_.payload() instanceof DiscardedPayload payload) {
++            ResourceLocation identifier = payload.type().id();
++            ByteBuf buf = ((DiscardedPayload)p_294276_.payload()).data();
++            ServerLifecycleHooks.getCurrentServer().executeIfPossible(() -> {
++                if (ServerLifecycleHooks.getCurrentServer().hasStopped() || processedDisconnect) {
++                    return;
++                }
++                if (this.connection.isConnected()) {
++                    if (identifier.equals(CUSTOM_REGISTER)) {
++                        try {
++                            String channels = buf.toString(com.google.common.base.Charsets.UTF_8);
++                            for (String channel : channels.split("\0")) {
++                                if (!StringUtil.isNullOrEmpty(channel)) {
++                                    this.getCraftPlayer().addChannel(channel);
++                                }
++                            }
++                        } catch (Exception ex) {
++                            LOGGER.error("Couldn't register custom payload", ex);
++                            this.disconnect(Component.literal("Invalid payload REGISTER!"));
++                        }
++                    } else if (identifier.equals(CUSTOM_UNREGISTER)) {
++                        try {
++                            final String channels = buf.toString(com.google.common.base.Charsets.UTF_8);
++                            for (String channel : channels.split("\0")) {
++                                if (!StringUtil.isNullOrEmpty(channel)) {
++                                    this.getCraftPlayer().removeChannel(channel);
++                                }
++                            }
++                        } catch (Exception ex) {
++                            LOGGER.error("Couldn't unregister custom payload", ex);
++                            this.disconnect(Component.literal("Invalid payload UNREGISTER!"));
++                        }
++                    } else {
++                        try {
++                            byte[] data = new byte[buf.readableBytes()];
++                            buf.readBytes(data);
++                            this.cserver.getMessenger().dispatchIncomingMessage(this.player.getBukkitEntity(), payload.id().toString(), data);
++                        } catch (Exception ex) {
++                            LOGGER.error("Couldn't dispatch custom payload", ex);
++                            this.disconnect(Component.literal("Invalid custom payload!"));
++                        }
++                    }
++                }
++            });
++        }
++    }
++
++    public final boolean isDisconnected() {
++        return !this.player.joining && !this.connection.isConnected();
++    }
++    // CraftBukkit end
+ 
+     @Override
+     public void handleResourcePackResponse(ServerboundResourcePackPacket p_295695_) {
+@@ -92,17 +_,24 @@
+             LOGGER.info("Disconnecting {} due to resource pack {} rejection", this.playerProfile().getName(), p_295695_.id());
+             this.disconnect(Component.translatable("multiplayer.requiredTexturePrompt.disconnect"));
+         }
++        this.cserver.getPluginManager().callEvent(new PlayerResourcePackStatusEvent(getCraftPlayer(), p_295695_.id(), PlayerResourcePackStatusEvent.Status.values()[p_295695_.action().ordinal()])); // CraftBukkit
      }
  
      @Override
+     public void handleCookieResponse(ServerboundCookieResponsePacket p_320918_) {
++        // CraftBukkit start
++        PacketUtils.ensureRunningOnSameThread(p_320918_, this, (BlockableEventLoop) this.server);
++        if (this.player.getBukkitEntity().handleCookieResponse(p_320918_)) {
++            return;
++        }
++        // CraftBukkit end
+         this.disconnect(DISCONNECT_UNEXPECTED_QUERY);
+     }
+ 
+     protected void keepConnectionAlive() {
+         this.server.getProfiler().push("keepAlive");
+         long i = Util.getMillis();
+-        if (!this.isSingleplayerOwner() && i - this.keepAliveTime >= 15000L) {
++        if (!this.isSingleplayerOwner() && i - this.keepAliveTime >= 25000L) { // CraftBukkit
+             if (this.keepAlivePending) {
+                 this.disconnect(TIMEOUT_DISCONNECTION_MESSAGE);
+             } else if (this.checkIfClosed(i)) {
 @@ -141,7 +_,17 @@
          this.send(p_294278_, null);
      }
@@ -133,6 +247,68 @@
          if (p_295099_.isTerminal()) {
              this.close();
          }
+@@ -163,10 +_,59 @@
+     }
+ 
+     public void disconnect(DisconnectionDetails p_350316_) {
+-        this.connection.send(new ClientboundDisconnectPacket(p_350316_.reason()), PacketSendListener.thenRun(() -> this.connection.disconnect(p_350316_)));
++        // CraftBukkit start - fire PlayerKickEvent
++        if (this.processedDisconnect) {
++            return;
++        }
++        if (!this.cserver.isPrimaryThread()) {
++            Waitable waitable = new Waitable() {
++                @Override
++                protected Object evaluate() {
++                    ServerCommonPacketListenerImpl.this.disconnect(p_350316_);
++                    return null;
++                }
++            };
++
++            this.server.processQueue.add(waitable);
++
++            try {
++                waitable.get();
++            } catch (InterruptedException e) {
++                Thread.currentThread().interrupt();
++            } catch (ExecutionException e) {
++                throw new RuntimeException(e);
++            }
++            return;
++        }
++
++        String leaveMessage = ChatFormatting.YELLOW + this.player.getScoreboardName() + " left the game.";
++
++        PlayerKickEvent event = new PlayerKickEvent(this.player.getBukkitEntity(), CraftChatMessage.fromComponent(p_350316_.reason()), leaveMessage);
++
++        if (this.cserver.getServer().isRunning()) {
++            this.cserver.getPluginManager().callEvent(event);
++        }
++
++        if (event.isCancelled()) {
++            // Do not kick the player
++            return;
++        }
++        this.player.kickLeaveMessage = event.getLeaveMessage(); // CraftBukkit - SPIGOT-3034: Forward leave message to PlayerQuitEvent
++        // Send the possibly modified leave message
++        this.disconnect0(new DisconnectionDetails(CraftChatMessage.fromString(event.getReason(), true)[0], p_350316_.report(), p_350316_.bugReportLink()));
++    }
++    private void disconnect0(DisconnectionDetails disconnectiondetails) {
++        // CraftBukkit end
++        this.connection.send(new ClientboundDisconnectPacket(disconnectiondetails.reason()), PacketSendListener.thenRun(() -> {
++            this.connection.disconnect(disconnectiondetails);
++        }));
++        this.onDisconnect(disconnectiondetails); // CraftBukkit - fire quit instantly
+         this.connection.setReadOnly();
+-        this.server.executeBlocking(this.connection::handleDisconnection);
++        MinecraftServer minecraftserver = this.server;
++        Connection networkmanager = this.connection;
++        minecraftserver.wrapRunnable(networkmanager::handleDisconnection);
+     }
++
+ 
+     protected boolean isSingleplayerOwner() {
+         return this.server.isSingleplayerOwner(this.playerProfile());
 @@ -183,7 +_,41 @@
          return this.latency;
      }

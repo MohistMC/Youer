@@ -1,12 +1,56 @@
 --- a/net/minecraft/world/item/TridentItem.java
 +++ b/net/minecraft/world/item/TridentItem.java
-@@ -160,4 +_,9 @@
+@@ -80,7 +_,7 @@
+                         Holder<SoundEvent> holder = EnchantmentHelper.pickHighestLevel(p_43394_, EnchantmentEffectComponents.TRIDENT_SOUND)
+                             .orElse(SoundEvents.TRIDENT_THROW);
+                         if (!p_43395_.isClientSide) {
+-                            p_43394_.hurtAndBreak(1, player, LivingEntity.getSlotForHand(p_43396_.getUsedItemHand()));
++
+                             if (f == 0.0F) {
+                                 ThrownTrident throwntrident = new ThrownTrident(p_43395_, player, p_43394_);
+                                 throwntrident.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, 2.5F, 1.0F);
+@@ -89,10 +_,25 @@
+                                 }
+ 
+                                 p_43395_.addFreshEntity(throwntrident);
++                                // CraftBukkit start
++                                if (!p_43395_.canAddFreshEntity()) {
++                                    if (player instanceof net.minecraft.server.level.ServerPlayer) {
++                                        ((net.minecraft.server.level.ServerPlayer) player).getBukkitEntity().updateInventory();
++                                    }
++                                    return;
++                                }
++
++                                p_43394_.hurtAndBreak(1, player, LivingEntity.getSlotForHand(p_43396_.getUsedItemHand()));
++                                throwntrident.pickupItemStack = p_43394_.copy(); // SPIGOT-4511 update since damage call moved
++                                // CraftBukkit end
+                                 p_43395_.playSound(null, throwntrident, holder.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
+                                 if (!player.hasInfiniteMaterials()) {
+                                     player.getInventory().removeItem(p_43394_);
+                                 }
++                                // CraftBukkit start - SPIGOT-5458 also need in this branch :(
++                            } else {
++                                p_43394_.hurtAndBreak(1, player, LivingEntity.getSlotForHand(p_43396_.getUsedItemHand()));
++                                // CraftBukkkit end
+                             }
+                         }
+ 
+@@ -107,6 +_,7 @@
+                             f2 *= f / f5;
+                             f3 *= f / f5;
+                             f4 *= f / f5;
++                            org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerRiptideEvent(player, p_43394_, f2, f3, f4); // CraftBukkit
+                             player.push((double)f2, (double)f3, (double)f4);
+                             player.startAutoSpinAttack(20, 8.0F, p_43394_);
+                             if (player.onGround()) {
+@@ -159,5 +_,10 @@
+         ThrownTrident throwntrident = new ThrownTrident(p_338505_, p_338277_.x(), p_338277_.y(), p_338277_.z(), p_338353_.copyWithCount(1));
          throwntrident.pickup = AbstractArrow.Pickup.ALLOWED;
          return throwntrident;
-     }
++    }
 +
 +    @Override
 +    public boolean canPerformAction(ItemStack stack, net.neoforged.neoforge.common.ItemAbility itemAbility) {
 +        return net.neoforged.neoforge.common.ItemAbilities.DEFAULT_TRIDENT_ACTIONS.contains(itemAbility);
-+    }
+     }
  }

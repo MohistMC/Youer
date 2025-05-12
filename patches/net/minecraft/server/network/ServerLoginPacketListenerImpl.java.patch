@@ -53,7 +53,7 @@
 +
 +    @Override
 +    public ConnectionProtocol getProtocol() {
-+        return protocol();
++        return ConnectionProtocol.LOGIN;
 +    }
 +
 +    @Override
@@ -112,7 +112,7 @@
 +    }
 +
 +    // CraftBukkit start
-+    private GameProfile callPlayerPreLoginEvents(GameProfile gameprofile) throws Exception { // Paper - Add more fields to AsyncPlayerPreLoginEvent
++    private GameProfile callPlayerPreLoginEvents(GameProfile gameprofile) { // Paper - Add more fields to AsyncPlayerPreLoginEvent
 +        // Paper start - Add Velocity IP Forwarding Support
 +        if (ServerLoginPacketListenerImpl.this.velocityLoginMessageId == -1 && YouerConfig.velocity_enabled) {
 +            disconnect("This server requires you to connect with Velocity.");
@@ -143,14 +143,16 @@
                  this.startClientVerification(UUIDUtil.createOfflineProfile(this.requestedUsername));
              }
          }
-@@ -137,6 +_,7 @@
+@@ -137,7 +_,9 @@
  
      private void verifyLoginAndFinishConnectionSetup(GameProfile p_294502_) {
          PlayerList playerlist = this.server.getPlayerList();
 +        this.server.getPlayerList().mohist$putHandler(this);
          Component component = playerlist.canPlayerLogin(this.connection.getRemoteAddress(), p_294502_);
++        this.player = playerlist.getEntity(); // CraftBukkit
          if (component != null) {
              this.disconnect(component);
+         } else {
 @@ -158,11 +_,47 @@
          }
      }
@@ -199,7 +201,32 @@
      @Override
      public void handleKey(ServerboundKeyPacket p_10049_) {
          Validate.validState(this.state == ServerLoginPacketListenerImpl.State.KEY, "Unexpected key packet");
-@@ -227,6 +_,49 @@
+@@ -193,6 +_,12 @@
+                     ProfileResult profileresult = ServerLoginPacketListenerImpl.this.server.getSessionService().hasJoinedServer(s1, s, this.getAddress());
+                     if (profileresult != null) {
+                         GameProfile gameprofile = profileresult.profile();
++                        // CraftBukkit start - fire PlayerPreLoginEvent
++                        if (!connection.isConnected()) {
++                            return;
++                        }
++                        ServerLoginPacketListenerImpl.this.callPlayerPreLoginEvents(gameprofile);
++                        // CraftBukkit end
+                         ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
+                         ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
+                     } else if (ServerLoginPacketListenerImpl.this.server.isSingleplayer()) {
+@@ -210,6 +_,11 @@
+                         ServerLoginPacketListenerImpl.this.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
+                         ServerLoginPacketListenerImpl.LOGGER.error("Couldn't verify username because servers are unavailable");
+                     }
++                    // CraftBukkit start - catch all exceptions
++                } catch (Exception exception) {
++                    disconnect("Failed to verify username!");
++                    server.server.getLogger().log(java.util.logging.Level.WARNING, "Exception verifying " + s1, exception);
++                    // CraftBukkit end
+                 }
+             }
+ 
+@@ -227,17 +_,62 @@
  
      @Override
      public void handleCustomQueryPacket(ServerboundCustomQueryAnswerPacket p_295398_) {
@@ -249,7 +276,12 @@
          this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
      }
  
-@@ -238,6 +_,7 @@
+     @Override
+     public void handleLoginAcknowledgement(ServerboundLoginAcknowledgedPacket p_295661_) {
++        PacketUtils.ensureRunningOnSameThread(p_295661_, this, this.server); // CraftBukkit
+         Validate.validState(this.state == ServerLoginPacketListenerImpl.State.PROTOCOL_SWITCHING, "Unexpected login acknowledgement packet");
+         this.connection.setupOutboundProtocol(ConfigurationProtocols.CLIENTBOUND);
+         CommonListenerCookie commonlistenercookie = CommonListenerCookie.createInitial(Objects.requireNonNull(this.authenticatedProfile), this.transferred);
          ServerConfigurationPacketListenerImpl serverconfigurationpacketlistenerimpl = new ServerConfigurationPacketListenerImpl(
              this.server, this.connection, commonlistenercookie
          );

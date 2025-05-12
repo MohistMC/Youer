@@ -1,0 +1,18 @@
+--- a/net/minecraft/world/item/SuspiciousStewItem.java
++++ b/net/minecraft/world/item/SuspiciousStewItem.java
+@@ -42,4 +_,15 @@
+ 
+         return super.finishUsingItem(p_43263_, p_43264_, p_43265_);
+     }
++
++    // CraftBukkit start
++    public void cancelUsingItem(net.minecraft.server.level.ServerPlayer entityplayer, ItemStack itemstack) {
++        SuspiciousStewEffects suspicioussteweffects = (SuspiciousStewEffects) itemstack.getOrDefault(DataComponents.SUSPICIOUS_STEW_EFFECTS, SuspiciousStewEffects.EMPTY);
++
++        for (SuspiciousStewEffects.Entry suspicioussteweffects_a : suspicioussteweffects.effects()) {
++            entityplayer.connection.send(new net.minecraft.network.protocol.game.ClientboundRemoveMobEffectPacket(entityplayer.getId(), suspicioussteweffects_a.effect()));
++        }
++        entityplayer.server.getPlayerList().sendActivePlayerEffects(entityplayer);
++    }
++    // CraftBukkit end
+ }

@@ -31,3 +31,44 @@
          switch (p_9975_.intention()) {
              case LOGIN:
                  this.beginLogin(p_9975_, false);
+@@ -54,6 +_,40 @@
+ 
+     private void beginLogin(ClientIntentionPacket p_320524_, boolean p_320853_) {
+         this.connection.setupOutboundProtocol(LoginProtocols.CLIENTBOUND);
++        // CraftBukkit start - Connection throttle
++        try {
++            long currentTime = System.currentTimeMillis();
++            long connectionThrottle = this.server.server.getConnectionThrottle();
++            InetAddress address = ((java.net.InetSocketAddress) this.connection.getRemoteAddress()).getAddress();
++
++            synchronized (throttleTracker) {
++                if (throttleTracker.containsKey(address) && !"127.0.0.1".equals(address.getHostAddress()) && currentTime - throttleTracker.get(address) < connectionThrottle) {
++                    throttleTracker.put(address, currentTime);
++                    Component chatmessage = Component.literal("Connection throttled! Please wait before reconnecting.");
++                    this.connection.send(new ClientboundLoginDisconnectPacket(chatmessage));
++                    this.connection.disconnect(chatmessage);
++                    return;
++                }
++
++                throttleTracker.put(address, currentTime);
++                throttleCounter++;
++                if (throttleCounter > 200) {
++                    throttleCounter = 0;
++
++                    // Cleanup stale entries
++                    java.util.Iterator iter = throttleTracker.entrySet().iterator();
++                    while (iter.hasNext()) {
++                        java.util.Map.Entry<InetAddress, Long> entry = (java.util.Map.Entry) iter.next();
++                        if (entry.getValue() > connectionThrottle) {
++                            iter.remove();
++                        }
++                    }
++                }
++            }
++        } catch (Throwable t) {
++            org.apache.logging.log4j.LogManager.getLogger().debug("Failed to check connection throttle", t);
++        }
++        // CraftBukkit end
+         if (p_320524_.protocolVersion() != SharedConstants.getCurrentVersion().getProtocolVersion()) {
+             Component component;
+             if (p_320524_.protocolVersion() < 754) {

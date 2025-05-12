@@ -50,7 +50,7 @@
          this.textFilterClient = TextFilterClient.createFromConfig(p_214793_.getProperties().textFilteringConfig);
          this.serverLinks = createServerLinks(p_214793_);
      }
-@@ -103,18 +_,54 @@
+@@ -103,18 +_,59 @@
          Thread thread = new Thread("Server console handler") {
              @Override
              public void run() {
@@ -101,7 +101,12 @@
 +            global.removeHandler(handler);
 +        }
 +        global.addHandler(new ForwardLogHandler());
-+        final org.apache.logging.log4j.Logger logger = LogManager.getRootLogger();
++        final org.apache.logging.log4j.core.Logger logger = ((org.apache.logging.log4j.core.Logger) LogManager.getRootLogger());
++        for (org.apache.logging.log4j.core.Appender appender : logger.getAppenders().values()) {
++            if (appender instanceof org.apache.logging.log4j.core.appender.ConsoleAppender) {
++                logger.removeAppender(appender);
++            }
++        }
 +
 +        System.setOut(IoBuilder.forLogger(logger).setLevel(org.apache.logging.log4j.Level.INFO).buildPrintStream());
 +        System.setErr(IoBuilder.forLogger(logger).setLevel(org.apache.logging.log4j.Level.WARN).buildPrintStream());
@@ -109,6 +114,15 @@
          thread.setDaemon(true);
          thread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
          thread.start();
+@@ -138,7 +_,7 @@
+         this.setMotd(dedicatedserverproperties.motd);
+         super.setPlayerIdleTimeout(dedicatedserverproperties.playerIdleTimeout.get());
+         this.setEnforceWhitelist(dedicatedserverproperties.enforceWhitelist);
+-        this.worldData.setGameType(dedicatedserverproperties.gamemode);
++        // this.worldData.setGameType(dedicatedserverproperties.gamemode); // CraftBukkit - moved to world loading
+         LOGGER.info("Default game type: {}", dedicatedserverproperties.gamemode);
+         InetAddress inetaddress = null;
+         if (!this.getLocalIp().isEmpty()) {
 @@ -178,6 +_,21 @@
              return false;
          } else {
@@ -202,7 +216,36 @@
          }
      }
  
-@@ -537,9 +_,23 @@
+@@ -532,14 +_,51 @@
+ 
+     @Override
+     public String getPluginNames() {
+-        return "";
++        // CraftBukkit start - Whole method
++        StringBuilder result = new StringBuilder();
++        org.bukkit.plugin.Plugin[] plugins = this.server.getPluginManager().getPlugins();
++
++        result.append(this.server.getName());
++        result.append(" on Bukkit ");
++        result.append(this.server.getBukkitVersion());
++
++        if (plugins.length > 0 && this.server.getQueryPlugins()) {
++            result.append(": ");
++
++            for (int i = 0; i < plugins.length; i++) {
++                if (i > 0) {
++                    result.append("; ");
++                }
++
++                result.append(plugins[i].getDescription().getName());
++                result.append(" ");
++                result.append(plugins[i].getDescription().getVersion().replaceAll(";", ","));
++            }
++        }
++
++        return result.toString();
++        // CraftBukkit end
+     }
  
      @Override
      public String runCommand(String p_139644_) {

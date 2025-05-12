@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/item/HangingEntityItem.java
++++ b/net/minecraft/world/item/HangingEntityItem.java
+@@ -22,6 +_,7 @@
+ import net.minecraft.world.item.context.UseOnContext;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.gameevent.GameEvent;
++import org.bukkit.event.hanging.HangingPlaceEvent;
+ 
+ public class HangingEntityItem extends Item {
+     private static final Component TOOLTIP_RANDOM_VARIANT = Component.translatable("painting.random").withStyle(ChatFormatting.GRAY);
+@@ -68,6 +_,19 @@
+ 
+             if (hangingentity.survives()) {
+                 if (!level.isClientSide) {
++                    // CraftBukkit start - fire HangingPlaceEvent
++                    org.bukkit.entity.Player who = (p_41331_.getPlayer() == null) ? null : (org.bukkit.entity.Player) p_41331_.getPlayer().getBukkitEntity();
++                    org.bukkit.block.Block blockClicked = level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
++                    org.bukkit.block.BlockFace blockFace = org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction);
++                    org.bukkit.inventory.EquipmentSlot hand = org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(p_41331_.getHand());
++
++                    HangingPlaceEvent event = new HangingPlaceEvent((org.bukkit.entity.Hanging) hangingentity.getBukkitEntity(), who, blockClicked, blockFace, hand, org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemstack));
++                    level.getCraftServer().getPluginManager().callEvent(event);
++
++                    if (event.isCancelled()) {
++                        return InteractionResult.FAIL;
++                    }
++                    // CraftBukkit end
+                     hangingentity.playPlacementSound();
+                     level.gameEvent(player, GameEvent.ENTITY_PLACE, hangingentity.position());
+                     level.addFreshEntity(hangingentity);
