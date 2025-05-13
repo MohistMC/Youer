@@ -8,15 +8,18 @@
  import net.minecraft.core.RegistryAccess;
  import net.minecraft.core.UUIDUtil;
  import net.minecraft.nbt.CompoundTag;
-@@ -25,6 +_,7 @@
+@@ -24,7 +_,10 @@
+ import net.minecraft.nbt.NbtUtils;
  import net.minecraft.nbt.StringTag;
  import net.minecraft.nbt.Tag;
++import net.minecraft.network.protocol.game.ClientboundChangeDifficultyPacket;
  import net.minecraft.server.MinecraftServer;
 +import net.minecraft.server.level.ServerLevel;
++import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.world.Difficulty;
  import net.minecraft.world.level.GameRules;
  import net.minecraft.world.level.GameType;
-@@ -32,6 +_,7 @@
+@@ -32,11 +_,15 @@
  import net.minecraft.world.level.LevelSettings;
  import net.minecraft.world.level.WorldDataConfiguration;
  import net.minecraft.world.level.border.WorldBorder;
@@ -24,6 +27,14 @@
  import net.minecraft.world.level.dimension.end.EndDragonFight;
  import net.minecraft.world.level.levelgen.WorldGenSettings;
  import net.minecraft.world.level.levelgen.WorldOptions;
+ import net.minecraft.world.level.timers.TimerCallbacks;
+ import net.minecraft.world.level.timers.TimerQueue;
++import org.bukkit.Bukkit;
++import org.bukkit.event.weather.ThunderChangeEvent;
++import org.bukkit.event.weather.WeatherChangeEvent;
+ import org.slf4j.Logger;
+ 
+ public class PrimaryLevelData implements ServerLevelData, WorldData {
 @@ -74,6 +_,28 @@
      private boolean wasModded;
      private final Set<String> removedFeatureFlags;
@@ -75,7 +86,7 @@
      }
  
      @Override
-@@ -273,6 +_,11 @@
+@@ -273,6 +_,14 @@
          if (this.wanderingTraderId != null) {
              p_78547_.putUUID("WanderingTraderId", this.wanderingTraderId);
          }
@@ -84,9 +95,67 @@
 +        // Neo:
 +        p_78547_.putFloat("neoDayTimeFraction", dayTimeFraction);
 +        p_78547_.putFloat("neoDayTimePerTick", dayTimePerTick);
++
++        p_78547_.putString("Bukkit.Version", Bukkit.getName() + "/" + Bukkit.getVersion() + "/" + Bukkit.getBukkitVersion()); // CraftBukkit
++        world.getWorld().storeBukkitValues(p_78547_); // CraftBukkit - add pdc
      }
  
      private static ListTag stringCollectionToTag(Set<String> p_277880_) {
+@@ -350,6 +_,20 @@
+ 
+     @Override
+     public void setThundering(boolean p_78562_) {
++        // CraftBukkit start
++        if (this.thundering == p_78562_) {
++            return;
++        }
++
++        org.bukkit.World world = Bukkit.getWorld(getLevelName());
++        if (world != null) {
++            ThunderChangeEvent thunder = new ThunderChangeEvent(world, p_78562_);
++            Bukkit.getServer().getPluginManager().callEvent(thunder);
++            if (thunder.isCancelled()) {
++                return;
++            }
++        }
++        // CraftBukkit end
+         this.thundering = p_78562_;
+     }
+ 
+@@ -370,6 +_,20 @@
+ 
+     @Override
+     public void setRaining(boolean p_78576_) {
++        // CraftBukkit start
++        if (this.raining == p_78576_) {
++            return;
++        }
++
++        org.bukkit.World world = Bukkit.getWorld(this.getLevelName());
++        if (world != null) {
++            WeatherChangeEvent weather = new WeatherChangeEvent(world, p_78576_);
++            Bukkit.getServer().getPluginManager().callEvent(weather);
++            if (weather.isCancelled()) {
++                return;
++            }
++        }
++        // CraftBukkit end
+         this.raining = p_78576_;
+     }
+ 
+@@ -436,6 +_,12 @@
+     @Override
+     public void setDifficulty(Difficulty p_78521_) {
+         this.settings = this.settings.withDifficulty(p_78521_);
++        // CraftBukkit start
++        ClientboundChangeDifficultyPacket packet = new ClientboundChangeDifficultyPacket(this.getDifficulty(), this.isDifficultyLocked());
++        for (ServerPlayer player : (java.util.List<ServerPlayer>) (java.util.List) this.world.players()) {
++            player.connection.send(packet);
++        }
++        // CraftBukkit end
+     }
+ 
+     @Override
 @@ -572,10 +_,44 @@
          return this.settings.copy();
      }

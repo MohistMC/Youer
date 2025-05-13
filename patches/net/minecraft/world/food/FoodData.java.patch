@@ -1,6 +1,19 @@
 --- a/net/minecraft/world/food/FoodData.java
 +++ b/net/minecraft/world/food/FoodData.java
-@@ -13,8 +_,20 @@
+@@ -1,9 +_,12 @@
+ package net.minecraft.world.food;
+ 
+ import net.minecraft.nbt.CompoundTag;
++import net.minecraft.network.protocol.game.ClientboundSetHealthPacket;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.util.Mth;
+ import net.minecraft.world.Difficulty;
+ import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.level.GameRules;
+ 
+ public class FoodData {
+@@ -13,10 +_,22 @@
      private int tickTimer;
      private int lastFoodLevel = 20;
  
@@ -13,11 +26,81 @@
 +
      public FoodData() {
          this.saturationLevel = 5.0F;
-+    }
-+
+     }
+ 
 +    public FoodData player(Player player) {
 +        this.entityhuman = player;
 +        return this;
++    }
++
+     private void add(int p_340988_, float p_340961_) {
+         this.foodLevel = Mth.clamp(p_340988_ + this.foodLevel, 0, 20);
+         this.saturationLevel = Mth.clamp(p_340961_ + this.saturationLevel, 0.0F, (float)this.foodLevel);
+@@ -30,6 +_,21 @@
+         this.add(p_347533_.nutrition(), p_347533_.saturation());
      }
  
-     private void add(int p_340988_, float p_340961_) {
++    // CraftBukkit start
++    public void eat(ItemStack itemstack, FoodProperties foodinfo) {
++        int oldFoodLevel = this.foodLevel;
++
++        org.bukkit.event.entity.FoodLevelChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callFoodLevelChangeEvent(this.entityhuman, foodinfo.nutrition() + oldFoodLevel, itemstack);
++
++        if (!event.isCancelled()) {
++            this.add(event.getFoodLevel() - oldFoodLevel, foodinfo.saturation());
++        }
++
++        ((ServerPlayer) this.entityhuman).getBukkitEntity().sendHealthUpdate();
++    }
++    // CraftBukkit end
++
++
+     public void tick(Player p_38711_) {
+         Difficulty difficulty = p_38711_.level().getDifficulty();
+         this.lastFoodLevel = this.foodLevel;
+@@ -38,29 +_,41 @@
+             if (this.saturationLevel > 0.0F) {
+                 this.saturationLevel = Math.max(this.saturationLevel - 1.0F, 0.0F);
+             } else if (difficulty != Difficulty.PEACEFUL) {
+-                this.foodLevel = Math.max(this.foodLevel - 1, 0);
++                // CraftBukkit start
++                org.bukkit.event.entity.FoodLevelChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callFoodLevelChangeEvent(p_38711_, Math.max(this.foodLevel - 1, 0));
++
++                if (!event.isCancelled()) {
++                    this.foodLevel = event.getFoodLevel();
++                }
++
++                ((ServerPlayer) p_38711_).connection.send(new ClientboundSetHealthPacket(((ServerPlayer) p_38711_).getBukkitEntity().getScaledHealth(), this.foodLevel, this.saturationLevel));
++                // CraftBukkit end
+             }
+         }
+ 
+         boolean flag = p_38711_.level().getGameRules().getBoolean(GameRules.RULE_NATURAL_REGENERATION);
+         if (flag && this.saturationLevel > 0.0F && p_38711_.isHurt() && this.foodLevel >= 20) {
+             this.tickTimer++;
+-            if (this.tickTimer >= 10) {
++            if (this.tickTimer >= this.saturatedRegenRate) { // CraftBukkit
+                 float f = Math.min(this.saturationLevel, 6.0F);
++                p_38711_.pushHealReason(org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.SATIATED);
+                 p_38711_.heal(f / 6.0F);
++                p_38711_.exhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.REGEN); // CraftBukkit - EntityExhaustionEvent
+                 this.addExhaustion(f);
+                 this.tickTimer = 0;
+             }
+         } else if (flag && this.foodLevel >= 18 && p_38711_.isHurt()) {
+             this.tickTimer++;
+-            if (this.tickTimer >= 80) {
++            if (this.tickTimer >= this.unsaturatedRegenRate) { // CraftBukkit - add regen rate manipulation
++                p_38711_.pushHealReason(org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.SATIATED);
+                 p_38711_.heal(1.0F);
++                p_38711_.exhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.REGEN); // CraftBukkit - EntityExhaustionEvent
+                 this.addExhaustion(6.0F);
+                 this.tickTimer = 0;
+             }
+         } else if (this.foodLevel <= 0) {
+             this.tickTimer++;
+-            if (this.tickTimer >= 80) {
++            if (this.tickTimer >= this.starvationRate) { // CraftBukkit - add regen rate manipulation
+                 if (p_38711_.getHealth() > 10.0F || difficulty == Difficulty.HARD || p_38711_.getHealth() > 1.0F && difficulty == Difficulty.NORMAL) {
+                     p_38711_.hurt(p_38711_.damageSources().starve(), 1.0F);
+                 }

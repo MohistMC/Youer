@@ -1,17 +1,69 @@
 --- a/net/minecraft/world/level/dimension/end/EndDragonFight.java
 +++ b/net/minecraft/world/level/dimension/end/EndDragonFight.java
-@@ -544,6 +_,14 @@
-         }
+@@ -15,6 +_,7 @@
+ import java.util.Optional;
+ import java.util.Set;
+ import java.util.UUID;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.Predicate;
+ import javax.annotation.Nullable;
+ import net.minecraft.Util;
+@@ -477,6 +_,10 @@
+         return this.previouslyKilled;
      }
  
++    private AtomicBoolean tryRespawnBoolean = new AtomicBoolean(false);
++    public boolean tryRespawnBoolean(){
++        return tryRespawnBoolean.getAndSet(false);
++    }
+     public void tryRespawn() {
+         if (this.dragonKilled && this.respawnStage == null) {
+             BlockPos blockpos = this.portalLocation;
+@@ -499,6 +_,7 @@
+             for (Direction direction : Direction.Plane.HORIZONTAL) {
+                 List<EndCrystal> list = this.level.getEntitiesOfClass(EndCrystal.class, new AABB(blockpos1.relative(direction, 2)));
+                 if (list.isEmpty()) {
++                    tryRespawnBoolean.set(false);
+                     return;
+                 }
+ 
+@@ -507,7 +_,14 @@
+ 
+             LOGGER.debug("Found all crystals, respawning dragon.");
+             this.respawnDragon(list1);
++            tryRespawnBoolean.set(respawnDragonBoolean());
+         }
++        tryRespawnBoolean.set(false);
++    }
++
++    private AtomicBoolean respawnDragonBoolean = new AtomicBoolean(false);
++    public boolean respawnDragonBoolean(){
++        return tryRespawnBoolean.getAndSet(false);
+     }
+ 
+     public void respawnDragon(List<EndCrystal> p_64092_) {
+@@ -532,7 +_,9 @@
+             this.respawnTime = 0;
+             this.spawnExitPortal(false);
+             this.respawnCrystals = p_64092_;
++            respawnDragonBoolean.set(true);
+         }
++        respawnDragonBoolean.set(false);
+     }
+ 
+     public void resetSpikeCrystals() {
+@@ -542,6 +_,14 @@
+                 endcrystal.setBeamTarget(null);
+             }
+         }
++    }
++
 +    public void addPlayer(ServerPlayer player) {
 +        this.dragonEvent.addPlayer(player);
 +    }
 +
 +    public void removePlayer(ServerPlayer player) {
 +        this.dragonEvent.removePlayer(player);
-+    }
-+
+     }
+ 
      @Nullable
-     public UUID getDragonUUID() {
-         return this.dragonUUID;

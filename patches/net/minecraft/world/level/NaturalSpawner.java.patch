@@ -1,7 +1,14 @@
 --- a/net/minecraft/world/level/NaturalSpawner.java
 +++ b/net/minecraft/world/level/NaturalSpawner.java
-@@ -45,6 +_,7 @@
+@@ -42,9 +_,14 @@
+ import net.minecraft.world.level.levelgen.structure.Structure;
+ import net.minecraft.world.level.levelgen.structure.structures.NetherFortressStructure;
+ import net.minecraft.world.level.material.FluidState;
++import net.minecraft.world.level.storage.LevelData;
  import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.util.CraftSpawnCategory;
++import org.bukkit.entity.SpawnCategory;
++import org.bukkit.event.entity.CreatureSpawnEvent;
  import org.slf4j.Logger;
  
 +// TODO: ForgeHooks.canEntitySpawn
@@ -17,11 +24,48 @@
              if (mobcategory != MobCategory.MISC) {
                  BlockPos blockpos = entity.blockPosition();
                  p_186527_.query(
-@@ -199,7 +_,7 @@
-                                     l1++;
+@@ -103,12 +_,24 @@
+         ServerLevel p_47030_, LevelChunk p_47031_, NaturalSpawner.SpawnState p_47032_, boolean p_47033_, boolean p_47034_, boolean p_47035_
+     ) {
+         p_47030_.getProfiler().push("spawner");
++        LevelData worlddata = p_47030_.getLevelData(); // CraftBukkit - Other mob type spawn tick rate
+ 
+         for (MobCategory mobcategory : SPAWNING_CATEGORIES) {
++            // CraftBukkit start - Use per-world spawn limits
++            boolean spawnThisTick = true;
++            int limit = mobcategory.getMaxInstancesPerChunk();
++            SpawnCategory spawnCategory = CraftSpawnCategory.toBukkit(mobcategory);
++            if (CraftSpawnCategory.isValidForLimits(spawnCategory)) {
++                spawnThisTick = p_47030_.ticksPerSpawnCategory.getLong(spawnCategory) != 0 && worlddata.getGameTime() % p_47030_.ticksPerSpawnCategory.getLong(spawnCategory) == 0;
++                limit = p_47030_.getWorld().getSpawnLimit(spawnCategory);
++            }
++            if (!spawnThisTick || limit == 0) {
++                continue;
++            }
+             if ((p_47033_ || !mobcategory.isFriendly())
+                 && (p_47034_ || mobcategory.isFriendly())
+                 && (p_47035_ || !mobcategory.isPersistent())
+-                && p_47032_.canSpawnForCategory(mobcategory, p_47031_.getPos())) {
++                && p_47032_.canSpawnForCategory(mobcategory, p_47031_.getPos(), limit)) {
+                 spawnCategoryForChunk(mobcategory, p_47030_, p_47031_, p_47032_::canSpawn, p_47032_::afterSpawn);
+             }
+         }
+@@ -195,11 +_,15 @@
+                                     spawngroupdata = mob.finalizeSpawn(
+                                         p_47040_, p_47040_.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.NATURAL, spawngroupdata
+                                     );
+-                                    j++;
+-                                    l1++;
++
++                                    mob.spawnReason((mob instanceof net.minecraft.world.entity.animal.Ocelot && !((org.bukkit.entity.Ageable) mob.getBukkitEntity()).isAdult()) ? CreatureSpawnEvent.SpawnReason.OCELOT_BABY : CreatureSpawnEvent.SpawnReason.NATURAL);
                                      p_47040_.addFreshEntityWithPassengers(mob);
-                                     p_47044_.run(mob, p_47041_);
+-                                    p_47044_.run(mob, p_47041_);
 -                                    if (j >= mob.getMaxSpawnClusterSize()) {
++                                    if (p_47040_.canAddFreshEntity()) {
++                                        j++;
++                                        l1++;
++                                        p_47044_.run(mob, p_47041_);
++                                    }
 +                                    if (j >= net.neoforged.neoforge.event.EventHooks.getMaxSpawnClusterSize(mob)) {
                                          return;
                                      }
@@ -53,7 +97,7 @@
      }
  
      public static boolean isInNetherFortressBounds(BlockPos p_220456_, ServerLevel p_220457_, MobCategory p_220458_, StructureManager p_220459_) {
-@@ -392,8 +_,7 @@
+@@ -392,11 +_,11 @@
  
                                  entity.moveTo(d0, (double)blockpos.getY(), d1, p_220454_.nextFloat() * 360.0F, 0.0F);
                                  if (entity instanceof Mob mob
@@ -63,3 +107,19 @@
                                      spawngroupdata = mob.finalizeSpawn(
                                          p_220451_, p_220451_.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.CHUNK_GENERATION, spawngroupdata
                                      );
++                                    mob.spawnReason(CreatureSpawnEvent.SpawnReason.CHUNK_GEN); // CraftBukkit
+                                     p_220451_.addFreshEntityWithPassengers(mob);
+                                     flag = true;
+                                 }
+@@ -518,6 +_,11 @@
+ 
+         boolean canSpawnForCategory(MobCategory p_186549_, ChunkPos p_186550_) {
+             int i = p_186549_.getMaxInstancesPerChunk() * this.spawnableChunkCount / NaturalSpawner.MAGIC_NUMBER;
++            return this.mobCategoryCounts.getInt(p_186549_) >= i ? false : this.localMobCapCalculator.canSpawn(p_186549_, p_186550_);
++        }
++
++        boolean canSpawnForCategory(MobCategory p_186549_, ChunkPos p_186550_, int limit) {
++            int i = limit * this.spawnableChunkCount / NaturalSpawner.MAGIC_NUMBER;
+             return this.mobCategoryCounts.getInt(p_186549_) >= i ? false : this.localMobCapCalculator.canSpawn(p_186549_, p_186550_);
+         }
+     }

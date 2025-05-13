@@ -1,0 +1,98 @@
+--- a/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
++++ b/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
+@@ -6,10 +_,24 @@
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.DispenserBlock;
++import org.bukkit.craftbukkit.block.CraftBlock;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.craftbukkit.util.CraftVector;
++import org.bukkit.event.block.BlockDispenseEvent;
+ 
+ public class DefaultDispenseItemBehavior implements DispenseItemBehavior {
+     private static final int DEFAULT_ACCURACY = 6;
+ 
++    // CraftBukkit start
++    private boolean dropper;
++
++    public DefaultDispenseItemBehavior(boolean dropper) {
++        this.dropper = dropper;
++    }
++    // CraftBukkit end
++
++    public DefaultDispenseItemBehavior() {} // Youer fix decompile
++
+     @Override
+     public final ItemStack dispense(BlockSource p_302432_, ItemStack p_123392_) {
+         ItemStack itemstack = this.execute(p_302432_, p_123392_);
+@@ -22,11 +_,61 @@
+         Direction direction = p_302420_.state().getValue(DispenserBlock.FACING);
+         Position position = DispenserBlock.getDispensePosition(p_302420_);
+         ItemStack itemstack = p_123386_.split(1);
+-        spawnItem(p_302420_.level(), itemstack, 6, direction, position);
++        // CraftBukkit start
++        if (!DefaultDispenseItemBehavior.spawnItem(p_302420_.level(), itemstack, 6, direction, p_302420_, this.dropper)) {
++            p_123386_.grow(1);
++        }
++        // CraftBukkit end
+         return p_123386_;
+     }
+ 
+     public static void spawnItem(Level p_123379_, ItemStack p_123380_, int p_123381_, Direction p_123382_, Position p_123383_) {
++        // CraftBukkit start
++        ItemEntity entityitem = DefaultDispenseItemBehavior.prepareItem(p_123379_, p_123380_, p_123381_, p_123382_, p_123383_);
++        p_123379_.addFreshEntity(entityitem);
++    }
++
++    // CraftBukkit - void -> boolean return, IPosition -> ISourceBlock last argument, dropper
++    public static boolean spawnItem(Level world, ItemStack itemstack, int i, Direction enumdirection, BlockSource sourceblock, boolean dropper) {
++        if (itemstack.isEmpty()) return true;
++        Position iposition = DispenserBlock.getDispensePosition(sourceblock);
++        ItemEntity entityitem = DefaultDispenseItemBehavior.prepareItem(world, itemstack, i, enumdirection, iposition);
++
++        org.bukkit.block.Block block = CraftBlock.at(world, sourceblock.pos());
++        CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack);
++
++        BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), CraftVector.toBukkit(entityitem.getDeltaMovement()));
++        if (!DispenserBlock.eventFired) {
++            world.getCraftServer().getPluginManager().callEvent(event);
++        }
++
++        if (event.isCancelled()) {
++            return false;
++        }
++
++        entityitem.setItem(CraftItemStack.asNMSCopy(event.getItem()));
++        entityitem.setDeltaMovement(CraftVector.toNMS(event.getVelocity()));
++
++        if (!dropper && !event.getItem().getType().equals(craftItem.getType())) {
++            // Chain to handler for new item
++            ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
++            DispenseItemBehavior idispensebehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
++            if (idispensebehavior != DispenseItemBehavior.NOOP && idispensebehavior.getClass() != DefaultDispenseItemBehavior.class) {
++                idispensebehavior.dispense(sourceblock, eventStack);
++            } else {
++                world.addFreshEntity(entityitem);
++            }
++            return false;
++        }
++
++        world.addFreshEntity(entityitem);
++
++        return true;
++        // CraftBukkit end
++    }
++
++    private static ItemEntity prepareItem(Level p_123379_, ItemStack p_123380_, int p_123381_, Direction p_123382_, Position p_123383_) {
++        // CraftBukkit end
+         double d0 = p_123383_.x();
+         double d1 = p_123383_.y();
+         double d2 = p_123383_.z();
+@@ -44,6 +_,7 @@
+             p_123379_.random.triangle((double)p_123382_.getStepZ() * d3, 0.0172275 * (double)p_123381_)
+         );
+         p_123379_.addFreshEntity(itementity);
++        return itementity;
+     }
+ 
+     protected void playSound(BlockSource p_302471_) {

@@ -1,7 +1,10 @@
 --- a/net/minecraft/world/level/BaseSpawner.java
 +++ b/net/minecraft/world/level/BaseSpawner.java
-@@ -26,7 +_,7 @@
+@@ -24,9 +_,10 @@
+ import net.minecraft.world.level.entity.EntityTypeTest;
+ import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.phys.AABB;
++import org.bukkit.event.entity.CreatureSpawnEvent;
  import org.slf4j.Logger;
  
 -public abstract class BaseSpawner {
@@ -9,7 +12,15 @@
      public static final String SPAWN_DATA_TAG = "SpawnData";
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final int EVENT_SPAWN = 1;
-@@ -151,15 +_,14 @@
+@@ -49,6 +_,7 @@
+         this.getOrCreateNextSpawnData(p_254041_, p_254221_, p_254050_)
+             .getEntityToSpawn()
+             .putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(p_253682_).toString());
++        this.spawnPotentials = SimpleWeightedRandomList.empty(); // CraftBukkit - SPIGOT-3496, MC-92282
+     }
+ 
+     private boolean isNearPlayer(Level p_151344_, BlockPos p_151345_) {
+@@ -151,19 +_,22 @@
  
                          entity.moveTo(entity.getX(), entity.getY(), entity.getZ(), randomsource.nextFloat() * 360.0F, 0.0F);
                          if (entity instanceof Mob mob) {
@@ -29,6 +40,15 @@
  
                              spawndata.getEquipment().ifPresent(mob::equip);
                          }
+-
++                        // CraftBukkit start
++                        if (org.bukkit.craftbukkit.event.CraftEventFactory.callSpawnerSpawnEvent(entity, p_151313_).isCancelled()) {
++                            continue;
++                        }
++                        entity.spawnReason(CreatureSpawnEvent.SpawnReason.SPAWNER); // Mohist
+                         if (!p_151312_.tryAddFreshEntityWithPassengers(entity)) {
+                             this.delay(p_151312_, p_151313_);
+                             return;
 @@ -308,5 +_,12 @@
  
      public double getoSpin() {

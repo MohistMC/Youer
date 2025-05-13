@@ -10,7 +10,15 @@
  import java.util.function.BiConsumer;
  import java.util.function.Predicate;
  import java.util.stream.Stream;
-@@ -126,9 +_,19 @@
+@@ -52,6 +_,7 @@
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.game.ClientGamePacketListener;
+ import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
++import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
+ import net.minecraft.network.protocol.game.VecDeltaCodec;
+ import net.minecraft.network.syncher.EntityDataAccessor;
+ import net.minecraft.network.syncher.EntityDataSerializers;
+@@ -126,9 +_,20 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreHolder;
  import net.minecraft.world.scores.Team;
@@ -20,6 +28,7 @@
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.event.CraftPortalEvent;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.entity.EntityCombustEvent;
 +import org.bukkit.event.entity.EntityPortalEvent;
 +import org.bukkit.event.entity.EntityRemoveEvent;
 +import org.bukkit.event.player.PlayerTeleportEvent;
@@ -148,31 +157,36 @@
      }
  
      public boolean isColliding(BlockPos p_20040_, BlockState p_20041_) {
-@@ -333,6 +_,75 @@
+@@ -333,6 +_,80 @@
          this.remove(Entity.RemovalReason.DISCARDED);
      }
  
 +    public final void discard(EntityRemoveEvent.Cause cause) {
-+
++        this.remove(Entity.RemovalReason.DISCARDED, cause);
 +    }
 +
 +    // CraftBukkit start
 +    public void refreshEntityData(ServerPlayer to) {
++        List<SynchedEntityData.DataValue<?>> list = this.getEntityData().getNonDefaultValues();
 +
++        if (list != null) {
++            to.connection.send(new ClientboundSetEntityDataPacket(this.getId(), list));
++        }
 +    }
 +    // CraftBukkit end
 +
 +    public void remove(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
-+
++        this.setRemovedCB(entity_removalreason, cause);
 +    }
 +
++    // CraftBukkit start
 +    public void postTick() {
-+
++        // No clean way to break out of ticking once the entity has been copied to a new world, so instead we move the portalling later in the tick cycle
++        if (!(this instanceof ServerPlayer)) {
++            this.handlePortal();
++        }
 +    }
-+
-+    public final void igniteForSeconds(float f, boolean callEvent) {
-+
-+    }
++    // CraftBukkit end
 +
 +    // CraftBukkit start - Add delegate methods
 +    public SoundEvent getSwimSound0() {
@@ -233,6 +247,30 @@
          }
  
          this.checkBelowWorld();
+@@ -524,7 +_,23 @@
+         }
+     }
+ 
++    public boolean igniteForSeconds$callEvent = true;
++    public final void igniteForSeconds(float f, boolean callEvent) {
++        igniteForSeconds$callEvent = callEvent;
++        this.igniteForSeconds(f);
++    }
+     public final void igniteForSeconds(float p_345382_) {
++        if (igniteForSeconds$callEvent) {
++            EntityCombustEvent event = new EntityCombustEvent(this.getBukkitEntity(), p_345382_);
++            this.level.getCraftServer().getPluginManager().callEvent(event);
++
++            if (event.isCancelled()) {
++                return;
++            }
++
++            p_345382_ = event.getDuration();
++        }
++        // CraftBukkit end
+         this.igniteForTicks(Mth.floor(p_345382_ * 20.0F));
+     }
+ 
 @@ -673,7 +_,7 @@
                      double d1 = vec3.x;
                      double d2 = vec3.y;
