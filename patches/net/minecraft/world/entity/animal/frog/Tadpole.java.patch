@@ -11,3 +11,22 @@
                  frog.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
                  frog.finalizeSpawn(serverlevel, this.level().getCurrentDifficultyAt(frog.blockPosition()), MobSpawnType.CONVERSION, null);
                  frog.setNoAi(this.isNoAi());
+@@ -236,10 +_,16 @@
+                 }
+ 
+                 frog.setPersistenceRequired();
++                // CraftBukkit start
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTransformEvent(this, frog, org.bukkit.event.entity.EntityTransformEvent.TransformReason.METAMORPHOSIS).isCancelled()) {
++                    this.setAge(0); // Sets the age to 0 for avoid a loop if the event is canceled
++                    return;
++                }
++                // CraftBukkit end
+                 frog.fudgePositionAfterSizeChange(this.getDimensions(this.getPose()));
+                 this.playSound(SoundEvents.TADPOLE_GROW_UP, 0.15F, 1.0F);
+-                serverlevel.addFreshEntityWithPassengers(frog);
+-                this.discard();
++                serverlevel.addFreshEntityWithPassengers(frog, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.METAMORPHOSIS); // CraftBukkit - add SpawnReason
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
+             }
+         }
+     }

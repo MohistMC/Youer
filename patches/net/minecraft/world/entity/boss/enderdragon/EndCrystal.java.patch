@@ -1,0 +1,44 @@
+--- a/net/minecraft/world/entity/boss/enderdragon/EndCrystal.java
++++ b/net/minecraft/world/entity/boss/enderdragon/EndCrystal.java
+@@ -56,7 +_,11 @@
+         if (this.level() instanceof ServerLevel) {
+             BlockPos blockpos = this.blockPosition();
+             if (((ServerLevel)this.level()).getDragonFight() != null && this.level().getBlockState(blockpos).isAir()) {
+-                this.level().setBlockAndUpdate(blockpos, BaseFireBlock.getState(this.level(), blockpos));
++                // CraftBukkit start
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(this.level(), blockpos, this).isCancelled()) {
++                    this.level().setBlockAndUpdate(blockpos, BaseFireBlock.getState(this.level(), blockpos));
++                }
++                // CraftBukkit end
+             }
+         }
+     }
+@@ -91,11 +_,27 @@
+             return false;
+         } else {
+             if (!this.isRemoved() && !this.level().isClientSide) {
+-                this.remove(Entity.RemovalReason.KILLED);
++                // CraftBukkit start - All non-living entities need this
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, p_31050_, p_31051_, false)) {
++                    return false;
++                }
++                // CraftBukkit end
+                 if (!p_31050_.is(DamageTypeTags.IS_EXPLOSION)) {
+                     DamageSource damagesource = p_31050_.getEntity() != null ? this.damageSources().explosion(this, p_31050_.getEntity()) : null;
+                     this.level().explode(this, damagesource, null, this.getX(), this.getY(), this.getZ(), 6.0F, false, Level.ExplosionInteraction.BLOCK);
++
++                    // CraftBukkit start
++                    org.bukkit.event.entity.ExplosionPrimeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExplosionPrimeEvent(this, 6.0F, false);
++                    if (event.isCancelled()) {
++                        return false;
++                    }
++
++                    this.remove(Entity.RemovalReason.KILLED, org.bukkit.event.entity.EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
++                    this.level().explode(this, damagesource, (net.minecraft.world.level.ExplosionDamageCalculator) null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.BLOCK);
++                } else {
++                    this.remove(Entity.RemovalReason.KILLED, org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
+                 }
++                // CraftBukkit end
+ 
+                 this.onDestroyedBy(p_31050_);
+             }

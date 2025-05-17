@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/entity/projectile/ThrownExperienceBottle.java
++++ b/net/minecraft/world/entity/projectile/ThrownExperienceBottle.java
+@@ -38,10 +_,19 @@
+     protected void onHit(HitResult p_37521_) {
+         super.onHit(p_37521_);
+         if (this.level() instanceof ServerLevel) {
+-            this.level().levelEvent(2002, this.blockPosition(), PotionContents.getColor(Potions.WATER));
++            // CraftBukkit - moved to after event
+             int i = 3 + this.level().random.nextInt(5) + this.level().random.nextInt(5);
++
++            // CraftBukkit start
++            org.bukkit.event.entity.ExpBottleEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExpBottleEvent(this, p_37521_, i);
++            i = event.getExperience();
++            if (event.getShowEffect()) {
++                this.level().levelEvent(2002, this.blockPosition(), PotionContents.getColor(Potions.WATER));
++            }
++            // CraftBukkit end
++
+             ExperienceOrb.award((ServerLevel)this.level(), this.position(), i);
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ }

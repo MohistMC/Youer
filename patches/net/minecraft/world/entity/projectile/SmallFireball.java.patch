@@ -1,5 +1,32 @@
 --- a/net/minecraft/world/entity/projectile/SmallFireball.java
 +++ b/net/minecraft/world/entity/projectile/SmallFireball.java
+@@ -23,6 +_,11 @@
+ 
+     public SmallFireball(Level p_37375_, LivingEntity p_37376_, Vec3 p_347501_) {
+         super(EntityType.SMALL_FIREBALL, p_37376_, p_347501_, p_37375_);
++        // CraftBukkit start
++        if (this.getOwner() != null && this.getOwner() instanceof Mob) {
++            isIncendiary = this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);
++        }
++        // CraftBukkit end
+     }
+ 
+     public SmallFireball(Level p_37367_, double p_37368_, double p_37369_, double p_37370_, Vec3 p_347543_) {
+@@ -36,7 +_,13 @@
+             Entity entity1 = p_37386_.getEntity();
+             Entity $$4 = this.getOwner();
+             int $$5 = entity1.getRemainingFireTicks();
+-            entity1.igniteForSeconds(5.0F);
++            // CraftBukkit start - Entity damage by entity event + combust event
++            org.bukkit.event.entity.EntityCombustByEntityEvent event = new org.bukkit.event.entity.EntityCombustByEntityEvent((org.bukkit.entity.Projectile) this.getBukkitEntity(), entity1.getBukkitEntity(), 5.0F);
++            entity1.level().getCraftServer().getPluginManager().callEvent(event);
++            if (!event.isCancelled()) {
++                entity1.igniteForSeconds(event.getDuration(), false);
++            }
++            // CraftBukkit end
+             DamageSource $$6 = this.damageSources().fireball(this, $$4);
+             if (!entity1.hurt($$6, 5.0F)) {
+                 entity1.setRemainingFireTicks($$5);
 @@ -51,7 +_,7 @@
          super.onHitBlock(p_37384_);
          if (!this.level().isClientSide) {
@@ -9,3 +36,12 @@
                  BlockPos blockpos = p_37384_.getBlockPos().relative(p_37384_.getDirection());
                  if (this.level().isEmptyBlock(blockpos)) {
                      this.level().setBlockAndUpdate(blockpos, BaseFireBlock.getState(this.level(), blockpos));
+@@ -64,7 +_,7 @@
+     protected void onHit(HitResult p_37388_) {
+         super.onHit(p_37388_);
+         if (!this.level().isClientSide) {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 

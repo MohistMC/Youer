@@ -1,5 +1,15 @@
 --- a/net/minecraft/world/level/block/SculkShriekerBlock.java
 +++ b/net/minecraft/world/level/block/SculkShriekerBlock.java
+@@ -65,6 +_,9 @@
+         if (p_222177_ instanceof ServerLevel serverlevel) {
+             ServerPlayer serverplayer = SculkShriekerBlockEntity.tryGetPlayer(p_222180_);
+             if (serverplayer != null) {
++                // CraftBukkit start
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(serverplayer, org.bukkit.event.block.Action.PHYSICAL, p_222178_, null, null, null).isCancelled()) return;
++                // CraftBukkit end
+                 serverlevel.getBlockEntity(p_222178_, BlockEntityType.SCULK_SHRIEKER).ifPresent(p_222163_ -> p_222163_.tryShriek(serverlevel, serverplayer));
+             }
+         }
 @@ -141,9 +_,14 @@
      @Override
      protected void spawnAfterBreak(BlockState p_222192_, ServerLevel p_222193_, BlockPos p_222194_, ItemStack p_222195_, boolean p_222196_) {

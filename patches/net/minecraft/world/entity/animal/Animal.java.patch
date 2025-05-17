@@ -1,6 +1,56 @@
 --- a/net/minecraft/world/entity/animal/Animal.java
 +++ b/net/minecraft/world/entity/animal/Animal.java
-@@ -201,6 +_,17 @@
+@@ -34,6 +_,7 @@
+     public int inLove;
+     @Nullable
+     public UUID loveCause;
++    public ItemStack breedItem; // CraftBukkit - Add breedItem variable
+ 
+     protected Animal(EntityType<? extends Animal> p_27557_, Level p_27558_) {
+         super(p_27557_, p_27558_);
+@@ -68,10 +_,20 @@
+         }
+     }
+ 
++    // CraftBukkit start
++    public boolean actuallyHurt(DamageSource damagesource, float f, org.bukkit.event.entity.EntityDamageEvent event) {
++        this.entityDamageEvent = event;
++        return super.actuallyHurtCB(damagesource, f);
++    }
++
+     @Override
+-    protected void actuallyHurt(DamageSource p_341676_, float p_341648_) {
++    protected void actuallyHurt(DamageSource damagesource, float f) {
++        boolean damageResult = super.actuallyHurtCB(damagesource, f);
++        if (!damageResult) {
++            return;
++        }
+         this.resetLove();
+-        super.actuallyHurt(p_341676_, p_341648_);
++        // CraftBukkit end
+     }
+ 
+     @Override
+@@ -157,10 +_,17 @@
+     }
+ 
+     public void setInLove(@Nullable Player p_27596_) {
+-        this.inLove = 600;
++        // CraftBukkit start
++        org.bukkit.event.entity.EntityEnterLoveModeEvent entityEnterLoveModeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityEnterLoveModeEvent(p_27596_, this, 600);
++        if (entityEnterLoveModeEvent.isCancelled()) {
++            return;
++        }
++        this.inLove = entityEnterLoveModeEvent.getTicksInLove();
++        // CraftBukkit end
+         if (p_27596_ != null) {
+             this.loveCause = p_27596_.getUUID();
+         }
++        this.breedItem = p_27596_.getInventory().getSelected(); // CraftBukkit
+ 
+         this.level().broadcastEntityEvent(this, (byte)18);
+     }
+@@ -201,15 +_,43 @@
  
      public void spawnChildFromBreeding(ServerLevel p_27564_, Animal p_27565_) {
          AgeableMob ageablemob = this.getBreedOffspring(p_27564_, p_27565_);
@@ -18,3 +68,44 @@
          if (ageablemob != null) {
              ageablemob.setBaby(true);
              ageablemob.moveTo(this.getX(), this.getY(), this.getZ(), 0.0F, 0.0F);
+-            this.finalizeSpawnChildFromBreeding(p_27564_, p_27565_, ageablemob);
+-            p_27564_.addFreshEntityWithPassengers(ageablemob);
++            // CraftBukkit start - call EntityBreedEvent
++            ServerPlayer breeder = Optional.ofNullable(this.getLoveCause()).or(() -> {
++                return Optional.ofNullable(p_27565_.getLoveCause());
++            }).orElse(null);
++            int experience = this.getRandom().nextInt(7) + 1;
++            org.bukkit.event.entity.EntityBreedEvent entityBreedEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityBreedEvent(ageablemob, this, p_27565_, breeder, this.breedItem, experience);
++            if (entityBreedEvent.isCancelled()) {
++                return;
++            }
++            experience = entityBreedEvent.getExperience();
++            this.finalizeSpawnChildFromBreeding(p_27564_, p_27565_, ageablemob, experience);
++            p_27564_.addFreshEntityWithPassengers(ageablemob, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING);
++            // CraftBukkit end
+         }
+     }
+ 
+     public void finalizeSpawnChildFromBreeding(ServerLevel p_277963_, Animal p_277357_, @Nullable AgeableMob p_277516_) {
++        // CraftBukkit start
++        this.finalizeSpawnChildFromBreeding(p_277963_, p_277357_, p_277516_, this.getRandom().nextInt(7) + 1);
++    }
++
++    public void finalizeSpawnChildFromBreeding(ServerLevel p_277963_, Animal p_277357_, @Nullable AgeableMob p_277516_, int experience) {
++        // CraftBukkit end
+         Optional.ofNullable(this.getLoveCause()).or(() -> Optional.ofNullable(p_277357_.getLoveCause())).ifPresent(p_277486_ -> {
+             p_277486_.awardStat(Stats.ANIMALS_BRED);
+             CriteriaTriggers.BRED_ANIMALS.trigger(p_277486_, this, p_277357_, p_277516_);
+@@ -220,7 +_,11 @@
+         p_277357_.resetLove();
+         p_277963_.broadcastEntityEvent(this, (byte)18);
+         if (p_277963_.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
+-            p_277963_.addFreshEntity(new ExperienceOrb(p_277963_, this.getX(), this.getY(), this.getZ(), this.getRandom().nextInt(7) + 1));
++            // CraftBukkit start - use event experience
++            if (experience > 0) {
++                p_277963_.addFreshEntity(new ExperienceOrb(p_277963_, this.getX(), this.getY(), this.getZ(), experience));
++            }
++            // CraftBukkit end
+         }
+     }
+ 

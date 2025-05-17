@@ -1,5 +1,57 @@
 --- a/net/minecraft/world/entity/animal/Wolf.java
 +++ b/net/minecraft/world/entity/animal/Wolf.java
+@@ -352,11 +_,14 @@
+         if (this.isInvulnerableTo(p_30386_)) {
+             return false;
+         } else {
+-            if (!this.level().isClientSide) {
++            // CraftBukkit start
++            boolean result = super.hurt(p_30386_, p_30387_);
++            if (!this.level().isClientSide && result) {
++                // CraftBukkit end
+                 this.setOrderedToSit(false);
+             }
+ 
+-            return super.hurt(p_30386_, p_30387_);
++            return result; // CraftBukkit
+         }
+     }
+ 
+@@ -366,10 +_,15 @@
+     }
+ 
+     @Override
+-    protected void actuallyHurt(DamageSource p_331935_, float p_330695_) {
++    public boolean actuallyHurt(DamageSource p_331935_, float p_330695_, org.bukkit.event.entity.EntityDamageEvent event) { // CraftBukkit - void -> boolean
+         if (!this.canArmorAbsorb(p_331935_)) {
+-            super.actuallyHurt(p_331935_, p_330695_);
++            return super.actuallyHurt(p_331935_, p_330695_, event); // CraftBukkit
+         } else {
++            // CraftBukkit start - SPIGOT-7815: if the damage was cancelled, no need to run the wolf armor behaviour
++            if (event.isCancelled()) {
++                return false;
++            }
++            // CraftBukkit end
+             ItemStack itemstack = this.getBodyArmorItem();
+             int i = itemstack.getDamageValue();
+             int j = itemstack.getMaxDamage();
+@@ -391,6 +_,7 @@
+                 }
+             }
+         }
++        return false; // CraftBukkit
+     }
+ 
+     private boolean canArmorAbsorb(DamageSource p_331524_) {
+@@ -401,7 +_,7 @@
+     protected void applyTamingSideEffects() {
+         if (this.isTame()) {
+             this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(40.0);
+-            this.setHealth(40.0F);
++            this.setHealth(this.getMaxHealth()); // CraftBukkit - 40.0 -> getMaxHealth()
+         } else {
+             this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(8.0);
+         }
 @@ -419,10 +_,11 @@
          if (!this.level().isClientSide || this.isBaby() && this.isFood(itemstack)) {
              if (this.isTame()) {
@@ -8,13 +60,14 @@
 -                    FoodProperties foodproperties = itemstack.get(DataComponents.FOOD);
 +                    FoodProperties foodproperties = itemstack.getFoodProperties(this);
                      float f = foodproperties != null ? (float)foodproperties.nutrition() : 1.0F;
-                     this.heal(2.0F * f);
+-                    this.heal(2.0F * f);
++                    this.heal(2.0F * f, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.EATING); // CraftBukkit
 +                    itemstack.consume(1, p_30412_);
 +                    this.gameEvent(GameEvent.EAT); // Neo: add EAT game event
                      return InteractionResult.sidedSuccess(this.level().isClientSide());
                  } else {
                      if (item instanceof DyeItem dyeitem && this.isOwnedBy(p_30412_)) {
-@@ -440,7 +_,7 @@
+@@ -440,14 +_,16 @@
                          this.setBodyArmorItem(itemstack.copyWithCount(1));
                          itemstack.consume(1, p_30412_);
                          return InteractionResult.SUCCESS;
@@ -23,12 +76,31 @@
                          && this.isOwnedBy(p_30412_)
                          && this.hasArmor()
                          && (!EnchantmentHelper.has(this.getBodyArmorItem(), EnchantmentEffectComponents.PREVENT_ARMOR_CHANGE) || p_30412_.isCreative())) {
-@@ -488,7 +_,7 @@
+                         itemstack.hurtAndBreak(1, p_30412_, getSlotForHand(p_30413_));
+                         this.playSound(SoundEvents.ARMOR_UNEQUIP_WOLF);
+                         ItemStack itemstack1 = this.getBodyArmorItem();
++                        this.forceDrops = true; // CraftBukkit
+                         this.setBodyArmorItem(ItemStack.EMPTY);
++                        this.forceDrops = false; // CraftBukkit
+                         this.spawnAtLocation(itemstack1);
+                         return InteractionResult.SUCCESS;
+                     } else if (ArmorMaterials.ARMADILLO.value().repairIngredient().get().test(itemstack)
+@@ -467,7 +_,7 @@
+                             this.setOrderedToSit(!this.isOrderedToSit());
+                             this.jumping = false;
+                             this.navigation.stop();
+-                            this.setTarget(null);
++                            this.setTarget(null, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET, true); // CraftBukkit - reason
+                             return InteractionResult.SUCCESS_NO_ITEM_USED;
+                         } else {
+                             return interactionresult;
+@@ -488,7 +_,8 @@
      }
  
      private void tryToTame(Player p_333736_) {
 -        if (this.random.nextInt(3) == 0) {
-+        if (this.random.nextInt(3) == 0  && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_333736_)) {
++        // CraftBukkit - added event call and isCancelled check.
++        if (this.random.nextInt(3) == 0  && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_333736_) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, p_333736_).isCancelled()) {
              this.tame(p_333736_);
              this.navigation.stop();
              this.setTarget(null);

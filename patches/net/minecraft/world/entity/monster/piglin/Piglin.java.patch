@@ -29,6 +29,32 @@
  
      public Piglin(EntityType<? extends AbstractPiglin> p_34683_, Level p_34684_) {
          super(p_34683_, p_34684_);
+@@ -134,6 +_,14 @@
+         }
+ 
+         this.writeInventoryToTag(p_34751_, this.registryAccess());
++        // CraftBukkit start
++        net.minecraft.nbt.ListTag barterList = new net.minecraft.nbt.ListTag();
++        allowedBarterItems.stream().map(net.minecraft.core.registries.BuiltInRegistries.ITEM::getKey).map(ResourceLocation::toString).map(net.minecraft.nbt.StringTag::valueOf).forEach(barterList::add);
++        p_34751_.put("Bukkit.BarterList", barterList);
++        net.minecraft.nbt.ListTag interestList = new net.minecraft.nbt.ListTag();
++        interestItems.stream().map(net.minecraft.core.registries.BuiltInRegistries.ITEM::getKey).map(ResourceLocation::toString).map(net.minecraft.nbt.StringTag::valueOf).forEach(interestList::add);
++        p_34751_.put("Bukkit.InterestList", interestList);
++        // CraftBukkit end
+     }
+ 
+     @Override
+@@ -142,6 +_,10 @@
+         this.setBaby(p_34725_.getBoolean("IsBaby"));
+         this.setCannotHunt(p_34725_.getBoolean("CannotHunt"));
+         this.readInventoryFromTag(p_34725_, this.registryAccess());
++        // CraftBukkit start
++        this.allowedBarterItems = p_34725_.getList("Bukkit.BarterList", 8).stream().map(net.minecraft.nbt.Tag::getAsString).map(ResourceLocation::tryParse).map(net.minecraft.core.registries.BuiltInRegistries.ITEM::get).collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
++        this.interestItems = p_34725_.getList("Bukkit.InterestList", 8).stream().map(net.minecraft.nbt.Tag::getAsString).map(ResourceLocation::tryParse).map(net.minecraft.core.registries.BuiltInRegistries.ITEM::get).collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
++        // CraftBukkit end
+     }
+ 
+     @VisibleForDebug
 @@ -349,7 +_,7 @@
          } else if (this.isChargingCrossbow()) {
              return PiglinArmPose.CROSSBOW_CHARGE;
@@ -56,3 +82,14 @@
      }
  
      protected boolean canReplaceCurrentItem(ItemStack p_34788_) {
+@@ -414,8 +_,8 @@
+         if (EnchantmentHelper.has(p_34713_, EnchantmentEffectComponents.PREVENT_ARMOR_CHANGE)) {
+             return false;
+         } else {
+-            boolean flag = PiglinAi.isLovedItem(p_34712_) || p_34712_.is(Items.CROSSBOW);
+-            boolean flag1 = PiglinAi.isLovedItem(p_34713_) || p_34713_.is(Items.CROSSBOW);
++            boolean flag = PiglinAi.isLovedItem(p_34712_, this) || p_34712_.is(Items.CROSSBOW); // CraftBukkit
++            boolean flag1 = PiglinAi.isLovedItem(p_34713_, this) || p_34713_.is(Items.CROSSBOW); // CraftBukkit
+             if (flag && !flag1) {
+                 return true;
+             } else if (!flag && flag1) {

@@ -9,3 +9,83 @@
      private static final float SAFE_TRAVEL_MAX_ENTITY_XY = 4.0F;
      private static final double SAFE_TRAVEL_MAX_VERTICAL_DELTA = 1.0;
      private final LevelAccessor level;
+@@ -38,6 +_,7 @@
+     private BlockPos bottomLeft;
+     private int height;
+     private final int width;
++    org.bukkit.craftbukkit.util.BlockStateListPopulator blocks; // CraftBukkit - add field
+ 
+     public static Optional<PortalShape> findEmptyPortalShape(LevelAccessor p_77709_, BlockPos p_77710_, Direction.Axis p_77711_) {
+         return findPortalShape(p_77709_, p_77710_, p_77727_ -> p_77727_.isValid() && p_77727_.numPortalBlocks == 0, p_77711_);
+@@ -54,6 +_,7 @@
+     }
+ 
+     public PortalShape(LevelAccessor p_77695_, BlockPos p_77696_, Direction.Axis p_77697_) {
++        blocks = new org.bukkit.craftbukkit.util.BlockStateListPopulator(p_77695_.getMinecraftWorld()); // CraftBukkit
+         this.level = p_77695_;
+         this.axis = p_77697_;
+         this.rightDir = p_77697_ == Direction.Axis.X ? Direction.WEST : Direction.SOUTH;
+@@ -96,6 +_,7 @@
+             BlockState blockstate = this.level.getBlockState(blockpos$mutableblockpos);
+             if (!isEmpty(blockstate)) {
+                 if (FRAME.test(blockstate, this.level, blockpos$mutableblockpos)) {
++                    blocks.setBlock(blockpos$mutableblockpos, blockstate, 18); // CraftBukkit - lower left / right
+                     return i;
+                 }
+                 break;
+@@ -105,6 +_,7 @@
+             if (!FRAME.test(blockstate1, this.level, blockpos$mutableblockpos)) {
+                 break;
+             }
++            blocks.setBlock(blockpos$mutableblockpos, blockstate1, 18); // CraftBukkit - bottom row
+         }
+ 
+         return 0;
+@@ -122,6 +_,7 @@
+             if (!FRAME.test(this.level.getBlockState(blockpos$mutableblockpos), this.level, blockpos$mutableblockpos)) {
+                 return false;
+             }
++            blocks.setBlock(blockpos$mutableblockpos, this.level.getBlockState(blockpos$mutableblockpos), 18); // CraftBukkit - upper row
+         }
+ 
+         return true;
+@@ -150,6 +_,10 @@
+                     this.numPortalBlocks++;
+                 }
+             }
++            // CraftBukkit start - left and right
++            blocks.setBlock(p_77729_.set(this.bottomLeft).move(Direction.UP, i).move(this.rightDir, -1), this.level.getBlockState(p_77729_), 18);
++            blocks.setBlock(p_77729_.set(this.bottomLeft).move(Direction.UP, i).move(this.rightDir, this.width), this.level.getBlockState(p_77729_), 18);
++            // CraftBukkit end
+         }
+ 
+         return 21;
+@@ -163,10 +_,27 @@
+         return this.bottomLeft != null && this.width >= 2 && this.width <= 21 && this.height >= 3 && this.height <= 21;
+     }
+ 
+-    public void createPortalBlocks() {
++    // CraftBukkit start - return boolean
++    public boolean createPortalBlocks() {
++        org.bukkit.World bworld = this.level.getMinecraftWorld().getWorld();
++
++        // Copy below for loop
+         BlockState blockstate = Blocks.NETHER_PORTAL.defaultBlockState().setValue(NetherPortalBlock.AXIS, this.axis);
++
++        BlockPos.betweenClosed(this.bottomLeft, this.bottomLeft.relative(Direction.UP, this.height - 1).relative(this.rightDir, this.width - 1)).forEach((blockposition) -> {
++            blocks.setBlock(blockposition, blockstate, 18);
++        });
++
++        org.bukkit.event.world.PortalCreateEvent event = new org.bukkit.event.world.PortalCreateEvent((java.util.List<org.bukkit.block.BlockState>) (java.util.List) blocks.getList(), bworld, null, org.bukkit.event.world.PortalCreateEvent.CreateReason.FIRE);
++        this.level.getMinecraftWorld().getServer().server.getPluginManager().callEvent(event);
++
++        if (event.isCancelled()) {
++            return false;
++        }
++        // CraftBukkit end
+         BlockPos.betweenClosed(this.bottomLeft, this.bottomLeft.relative(Direction.UP, this.height - 1).relative(this.rightDir, this.width - 1))
+             .forEach(p_77725_ -> this.level.setBlock(p_77725_, blockstate, 18));
++        return true; // CraftBukkit
+     }
+ 
+     public boolean isComplete() {

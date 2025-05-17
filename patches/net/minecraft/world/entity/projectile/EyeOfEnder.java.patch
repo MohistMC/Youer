@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/entity/projectile/EyeOfEnder.java
++++ b/net/minecraft/world/entity/projectile/EyeOfEnder.java
+@@ -145,7 +_,7 @@
+             this.life++;
+             if (this.life > 80 && !this.level().isClientSide) {
+                 this.playSound(SoundEvents.ENDER_EYE_DEATH, 1.0F, 1.0F);
+-                this.discard();
++                this.discard(this.surviveAfterDeath ? org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP : org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                 if (this.surviveAfterDeath) {
+                     this.level().addFreshEntity(new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), this.getItem()));
+                 } else {
+@@ -165,7 +_,12 @@
+     @Override
+     public void readAdditionalSaveData(CompoundTag p_36970_) {
+         if (p_36970_.contains("Item", 10)) {
+-            this.setItem(ItemStack.parse(this.registryAccess(), p_36970_.getCompound("Item")).orElse(this.getDefaultItem()));
++            // CraftBukkit start - SPIGOT-6103 summon, see also SPIGOT-5474
++            ItemStack itemstack = (ItemStack) ItemStack.parse(this.registryAccess(), p_36970_.getCompound("Item")).orElse(this.getDefaultItem());
++            if (!itemstack.isEmpty()) {
++                this.setItem(itemstack);
++            }
++            // CraftBukkit end
+         } else {
+             this.setItem(this.getDefaultItem());
+         }

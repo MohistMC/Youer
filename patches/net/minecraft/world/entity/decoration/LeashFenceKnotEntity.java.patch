@@ -1,0 +1,52 @@
+--- a/net/minecraft/world/entity/decoration/LeashFenceKnotEntity.java
++++ b/net/minecraft/world/entity/decoration/LeashFenceKnotEntity.java
+@@ -80,6 +_,15 @@
+ 
+             for (Leashable leashable : list) {
+                 if (leashable.getLeashHolder() == p_31842_) {
++                    // CraftBukkit start
++                    if (leashable instanceof Entity leashed) {
++                        if (org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerLeashEntityEvent(leashed, this, p_31842_, p_31843_).isCancelled()) {
++                            ((net.minecraft.server.level.ServerPlayer) p_31842_).connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket(leashed, leashable.getLeashHolder()));
++                            flag = true; // Also set true when the event is cancelled otherwise it tries to unleash the entities
++                            continue;
++                        }
++                    }
++                    // CraftBukkit end
+                     leashable.setLeashedTo(this, true);
+                     flag = true;
+                 }
+@@ -87,14 +_,30 @@
+ 
+             boolean flag1 = false;
+             if (!flag) {
+-                this.discard();
+-                if (p_31842_.getAbilities().instabuild) {
++                // CraftBukkit start - Move below
++                // this.discard();
++                boolean die = true;
++                // CraftBukkit end
++                if (true || p_31842_.getAbilities().instabuild) { // CraftBukkit - Process for non-creative as well
+                     for (Leashable leashable1 : list) {
+                         if (leashable1.isLeashed() && leashable1.getLeashHolder() == this) {
+-                            leashable1.dropLeash(true, false);
++                            // CraftBukkit start
++                            if (leashable1 instanceof Entity leashed) {
++                                if (org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerUnleashEntityEvent(leashed, p_31842_, p_31843_).isCancelled()) {
++                                    die = false;
++                                    continue;
++                                }
++                            }
++                            leashable1.dropLeash(true, !p_31842_.getAbilities().instabuild); // false -> survival mode boolean
++                            // CraftBukkit end
+                             flag1 = true;
+                         }
+                     }
++                    // CraftBukkit start
++                    if (die) {
++                        this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
++                    }
++                    // CraftBukkit end
+                 }
+             }
+ 

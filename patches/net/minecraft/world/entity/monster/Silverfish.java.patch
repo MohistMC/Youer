@@ -9,11 +9,32 @@
                      this.selectedDirection = Direction.getRandom(randomsource);
                      BlockPos blockpos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5, this.mob.getZ()).relative(this.selectedDirection);
                      BlockState blockstate = this.mob.level().getBlockState(blockpos);
-@@ -211,7 +_,7 @@
+@@ -169,9 +_,14 @@
+                 BlockPos blockpos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5, this.mob.getZ()).relative(this.selectedDirection);
+                 BlockState blockstate = levelaccessor.getBlockState(blockpos);
+                 if (InfestedBlock.isCompatibleHostBlock(blockstate)) {
++                    // CraftBukkit start
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.mob, blockpos, InfestedBlock.infestedStateByHost(blockstate))) {
++                        return;
++                    }
++                    // CraftBukkit end
+                     levelaccessor.setBlock(blockpos, InfestedBlock.infestedStateByHost(blockstate), 3);
+                     this.mob.spawnAnim();
+-                    this.mob.discard();
++                    this.mob.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.ENTER_BLOCK); // CraftBukkit - add Bukkit remove cause
+                 }
+             }
+         }
+@@ -211,7 +_,12 @@
                              BlockState blockstate = level.getBlockState(blockpos1);
                              Block block = blockstate.getBlock();
                              if (block instanceof InfestedBlock) {
 -                                if (level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
++                                // CraftBukkit start
++                                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.silverfish, blockpos1, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())) {
++                                    continue;
++                                }
++                                // CraftBukkit end
 +                                if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, this.silverfish)) {
                                      level.destroyBlock(blockpos1, true, this.silverfish);
                                  } else {

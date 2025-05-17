@@ -13,9 +13,39 @@
      public StructureStart(Structure p_226846_, ChunkPos p_226847_, int p_226848_, PiecesContainer p_226849_) {
          this.structure = p_226846_;
          this.chunkPos = p_226847_;
-@@ -100,6 +_,9 @@
+@@ -86,12 +_,18 @@
+             BoundingBox boundingbox = list.get(0).boundingBox;
+             BlockPos blockpos = boundingbox.getCenter();
+             BlockPos blockpos1 = new BlockPos(blockpos.getX(), boundingbox.minY(), blockpos.getZ());
+-
+-            for (StructurePiece structurepiece : list) {
+-                if (structurepiece.getBoundingBox().intersects(p_226855_)) {
+-                    structurepiece.postProcess(p_226851_, p_226852_, p_226853_, p_226854_, p_226855_, p_226856_, blockpos1);
++            // CraftBukkit start
++            List<StructurePiece> pieces = list.stream().filter(piece -> piece.getBoundingBox().intersects(p_226855_)).toList();
++            if (!pieces.isEmpty()) {
++                org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess = new org.bukkit.craftbukkit.util.TransformerGeneratorAccess();
++                transformerAccess.setHandle(p_226851_);
++                transformerAccess.setStructureTransformer(new org.bukkit.craftbukkit.util.CraftStructureTransformer(generationEventCause, p_226851_, p_226852_, structure, p_226855_, p_226856_));
++                for (StructurePiece piece : pieces) {
++                    piece.postProcess(transformerAccess, p_226852_, p_226853_, p_226854_, p_226855_, p_226856_, blockpos1);
+                 }
++                transformerAccess.getStructureTransformer().discard();
+             }
++            // CraftBukkit end
+ 
+             this.structure.afterPlace(p_226851_, p_226852_, p_226853_, p_226854_, p_226855_, p_226856_, this.pieceContainer);
+         }
+@@ -99,7 +_,16 @@
+ 
      public CompoundTag createTag(StructurePieceSerializationContext p_192661_, ChunkPos p_192662_) {
          CompoundTag compoundtag = new CompoundTag();
++        // CraftBukkit start - store persistent data in nbt
++        if (!persistentDataContainer.isEmpty()) {
++            compoundtag.put("StructureBukkitValues", persistentDataContainer.toTagCompound());
++        }
++        // CraftBukkit end
++
          if (this.isValid()) {
 +            if (p_192661_.registryAccess().registryOrThrow(Registries.STRUCTURE).getKey(this.getStructure()) == null) { // FORGE: This is just a more friendly error instead of the 'Null String' below
 +                throw new RuntimeException("StructureStart \"" + this.getClass().getName() + "\": \"" + this.getStructure() + "\" unregistered, serializing impossible.");

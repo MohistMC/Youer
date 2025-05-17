@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import cn.mohistmc.youer.neoforge.EntityClassLookup;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
@@ -104,18 +105,8 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         if (entityTypeData != null) {
             return (CraftEntity) entityTypeData.convertFunction().apply(server, entity);
         }
-        
-        CraftEntity modsEntity = null;
-        switch (entity) {
-            case LivingEntity livingEntity -> modsEntity = new CraftLivingEntity(server, livingEntity);
-            case Entity entity1 -> modsEntity = new MohistModsEntity(server, entity1);
-        }
-        
-        if (modsEntity != null) {
-            return modsEntity;
-        }
 
-        throw new AssertionError("Unknown entity " + (entity == null ? null : entity.getClass()));
+        return (CraftEntity) EntityClassLookup.getEntityTypeData(entity).convertFunction().apply(server, entity);
     }
 
     @Override

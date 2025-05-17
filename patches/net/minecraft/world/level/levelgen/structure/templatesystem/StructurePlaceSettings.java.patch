@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/level/levelgen/structure/templatesystem/StructurePlaceSettings.java
++++ b/net/minecraft/world/level/levelgen/structure/templatesystem/StructurePlaceSettings.java
+@@ -21,7 +_,7 @@
+     private LiquidSettings liquidSettings = LiquidSettings.APPLY_WATERLOGGING;
+     @Nullable
+     private RandomSource random;
+-    public int palette;
++    public int palette = -1; // CraftBukkit - Set initial value so we know if the palette has been set forcefully
+     private final List<StructureProcessor> processors = Lists.newArrayList();
+     private boolean knownShape;
+     private boolean finalizeEntities;
+@@ -142,6 +_,13 @@
+         int i = p_74388_.size();
+         if (i == 0) {
+             throw new IllegalStateException("No palettes");
++        // CraftBukkit start
++        } else if (this.palette >= 0) {
++            if (this.palette >= i) {
++                throw new IllegalArgumentException("Palette index out of bounds. Got " + this.palette + " where there are only " + i + " palettes available.");
++            }
++            return p_74388_.get(this.palette);
++        // CraftBukkit end
+         } else {
+             return p_74388_.get(this.getRandom(p_74389_).nextInt(i));
+         }

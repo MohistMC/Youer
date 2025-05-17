@@ -1,0 +1,29 @@
+--- a/net/minecraft/server/players/GameProfileCache.java
++++ b/net/minecraft/server/players/GameProfileCache.java
+@@ -111,7 +_,7 @@
+         Date date = calendar.getTime();
+         GameProfileCache.GameProfileInfo gameprofilecache$gameprofileinfo = new GameProfileCache.GameProfileInfo(p_10992_, date);
+         this.safeAdd(gameprofilecache$gameprofileinfo);
+-        this.save();
++        if( !org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly ) this.save(); // Spigot - skip saving if disabled
+     }
+ 
+     private long getNextOperation() {
+@@ -141,7 +_,7 @@
+             }
+         }
+ 
+-        if (flag) {
++        if (flag && !org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly) { // Spigot - skip saving if disabled
+             this.save();
+         }
+ 
+@@ -216,7 +_,7 @@
+     public void save() {
+         JsonArray jsonarray = new JsonArray();
+         DateFormat dateformat = createDateFormat();
+-        this.getTopMRUProfiles(1000).forEach(p_143962_ -> jsonarray.add(writeGameProfile(p_143962_, dateformat)));
++        this.getTopMRUProfiles(org.spigotmc.SpigotConfig.userCacheCap).forEach(p_143962_ -> jsonarray.add(writeGameProfile(p_143962_, dateformat))); // Spigot
+         String s = this.gson.toJson((JsonElement)jsonarray);
+ 
+         try (Writer writer = Files.newWriter(this.file, StandardCharsets.UTF_8)) {

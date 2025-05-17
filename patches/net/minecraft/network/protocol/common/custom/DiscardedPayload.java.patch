@@ -1,20 +1,22 @@
 --- a/net/minecraft/network/protocol/common/custom/DiscardedPayload.java
 +++ b/net/minecraft/network/protocol/common/custom/DiscardedPayload.java
-@@ -4,14 +_,15 @@
+@@ -4,14 +_,16 @@
  import net.minecraft.network.codec.StreamCodec;
  import net.minecraft.resources.ResourceLocation;
  
 -public record DiscardedPayload(ResourceLocation id) implements CustomPacketPayload {
-+public record DiscardedPayload(ResourceLocation id, io.netty.buffer.ByteBuf data) implements CustomPacketPayload {
++public record DiscardedPayload(ResourceLocation id, io.netty.buffer.ByteBuf data) implements CustomPacketPayload { // CraftBukkit - store data
      public static <T extends FriendlyByteBuf> StreamCodec<T, DiscardedPayload> codec(ResourceLocation p_320106_, int p_319929_) {
          return CustomPacketPayload.codec((p_320462_, p_319882_) -> {
 +            p_319882_.writeBytes(p_320462_.data); // CraftBukkit - serialize
          }, p_319935_ -> {
              int i = p_319935_.readableBytes();
              if (i >= 0 && i <= p_319929_) {
-                 p_319935_.skipBytes(i);
+-                p_319935_.skipBytes(i);
 -                return new DiscardedPayload(p_320106_);
++                // CraftBukkit start
 +                return new DiscardedPayload(p_320106_, p_319935_.readBytes(i));
++                // CraftBukkit end
              } else {
                  throw new IllegalArgumentException("Payload may not be larger than " + p_319929_ + " bytes");
              }

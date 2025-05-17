@@ -1,5 +1,37 @@
 --- a/net/minecraft/world/level/block/ChestBlock.java
 +++ b/net/minecraft/world/level/block/ChestBlock.java
+@@ -79,29 +_,8 @@
+     };
+     private static final DoubleBlockCombiner.Combiner<ChestBlockEntity, Optional<MenuProvider>> MENU_PROVIDER_COMBINER = new DoubleBlockCombiner.Combiner<ChestBlockEntity, Optional<MenuProvider>>() {
+         public Optional<MenuProvider> acceptDouble(final ChestBlockEntity p_51604_, final ChestBlockEntity p_51605_) {
+-            final Container container = new CompoundContainer(p_51604_, p_51605_);
+-            return Optional.of(new MenuProvider() {
+-                @Nullable
+-                @Override
+-                public AbstractContainerMenu createMenu(int p_51622_, Inventory p_51623_, Player p_51624_) {
+-                    if (p_51604_.canOpen(p_51624_) && p_51605_.canOpen(p_51624_)) {
+-                        p_51604_.unpackLootTable(p_51623_.player);
+-                        p_51605_.unpackLootTable(p_51623_.player);
+-                        return ChestMenu.sixRows(p_51622_, p_51623_, container);
+-                    } else {
+-                        return null;
+-                    }
+-                }
+-
+-                @Override
+-                public Component getDisplayName() {
+-                    if (p_51604_.hasCustomName()) {
+-                        return p_51604_.getDisplayName();
+-                    } else {
+-                        return (Component)(p_51605_.hasCustomName() ? p_51605_.getDisplayName() : Component.translatable("container.chestDouble"));
+-                    }
+-                }
+-            });
++            final CompoundContainer container = new CompoundContainer(p_51604_, p_51605_);
++            return Optional.of(new DoubleInventory(p_51604_, p_51605_, container)); // CraftBukkit // CraftBukkit - decompile error
+         }
+ 
+         public Optional<MenuProvider> acceptSingle(ChestBlockEntity p_51602_) {
 @@ -113,6 +_,38 @@
          }
      };
@@ -39,25 +71,24 @@
      @Override
      public MapCodec<? extends ChestBlock> codec() {
          return CODEC;
-@@ -277,10 +_,17 @@
+@@ -277,8 +_,15 @@
  
      @Nullable
      @Override
 -    protected MenuProvider getMenuProvider(BlockState p_51574_, Level p_51575_, BlockPos p_51576_) {
+-        return this.combine(p_51574_, p_51575_, p_51576_, false).apply(MENU_PROVIDER_COMBINER).orElse(null);
 +    public MenuProvider getMenuProvider(BlockState p_51574_, Level p_51575_, BlockPos p_51576_) {
-         return this.combine(p_51574_, p_51575_, p_51576_, false).apply(MENU_PROVIDER_COMBINER).orElse(null);
-     }
- 
-+    // CraftBukkit start
++        // CraftBukkit start
++        return getMenuProvider(p_51574_, p_51575_, p_51576_, false);
++    }
++
 +    @Nullable
 +    public MenuProvider getMenuProvider(BlockState p_51574_, Level p_51575_, BlockPos p_51576_, boolean ignoreObstructions) {
-+        return this.combine(p_51574_, p_51575_, p_51576_, ignoreObstructions).apply(MENU_PROVIDER_COMBINER).orElse(null);
-+    }
-+    // CraftBukkit end
-+
++        return (MenuProvider) ((Optional) this.combine(p_51574_, p_51575_, p_51576_, ignoreObstructions).apply(ChestBlock.MENU_PROVIDER_COMBINER)).orElse((Object) null);
++        // CraftBukkit end
+     }
+ 
      public static DoubleBlockCombiner.Combiner<ChestBlockEntity, Float2FloatFunction> opennessCombiner(final LidBlockEntity p_51518_) {
-         return new DoubleBlockCombiner.Combiner<ChestBlockEntity, Float2FloatFunction>() {
-             public Float2FloatFunction acceptDouble(ChestBlockEntity p_51633_, ChestBlockEntity p_51634_) {
 @@ -357,7 +_,8 @@
  
      @Override

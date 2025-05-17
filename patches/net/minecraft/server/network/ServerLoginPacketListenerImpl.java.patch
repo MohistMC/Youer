@@ -143,45 +143,41 @@
                  this.startClientVerification(UUIDUtil.createOfflineProfile(this.requestedUsername));
              }
          }
-@@ -137,7 +_,9 @@
+@@ -137,9 +_,21 @@
  
      private void verifyLoginAndFinishConnectionSetup(GameProfile p_294502_) {
          PlayerList playerlist = this.server.getPlayerList();
-+        this.server.getPlayerList().mohist$putHandler(this);
-         Component component = playerlist.canPlayerLogin(this.connection.getRemoteAddress(), p_294502_);
-+        this.player = playerlist.getEntity(); // CraftBukkit
-         if (component != null) {
-             this.disconnect(component);
-         } else {
-@@ -158,11 +_,47 @@
-         }
-     }
- 
-+    private void postCookies(GameProfile gameprofile) {
-+        PlayerList playerlist = this.server.getPlayerList();
-+
-+        if (this.player == null) {
-+            // this.disconnect(ichatbasecomponent);
-+            // CraftBukkit end
-+        } else {
-+            if (this.server.getCompressionThreshold() >= 0 && !this.connection.isMemoryConnection()) {
-+                this.connection.send(new ClientboundLoginCompressionPacket(this.server.getCompressionThreshold()), PacketSendListener.thenRun(() -> {
-+                    this.connection.setupCompression(this.server.getCompressionThreshold(), true);
-+                }));
-+            }
-+
-+            boolean flag = playerlist.disconnectAllPlayersWithProfile(gameprofile, this.player); // CraftBukkit - add player reference
-+
-+            if (flag) {
-+                this.state = ServerLoginPacketListenerImpl.State.WAITING_FOR_DUPE_DISCONNECT;
+-        Component component = playerlist.canPlayerLogin(this.connection.getRemoteAddress(), p_294502_);
+-        if (component != null) {
+-            this.disconnect(component);
++        // CraftBukkit start - fire PlayerLoginEvent
++        this.player = playerlist.canPlayerLogin(this, p_294502_); // CraftBukkit
++        if (this.player != null) {
++            if (this.player.getBukkitEntity().isAwaitingCookies()) {
++                this.state = ServerLoginPacketListenerImpl.State.WAITING_FOR_COOKIES;
 +            } else {
-+                this.finishLoginAndWaitForClient(gameprofile);
++                this.postCookies(p_294502_);
 +            }
 +        }
 +    }
 +
-     private void finishLoginAndWaitForClient(GameProfile p_295520_) {
-         this.state = ServerLoginPacketListenerImpl.State.PROTOCOL_SWITCHING;
++    private void postCookies(GameProfile p_294502_) {
++        PlayerList playerlist = this.server.getPlayerList();
++        if (this.player == null) {
++            // CraftBukkit end
+         } else {
+             if (this.server.getCompressionThreshold() >= 0 && !this.connection.isMemoryConnection()) {
+                 this.connection
+@@ -149,7 +_,7 @@
+                     );
+             }
+ 
+-            boolean flag = playerlist.disconnectAllPlayersWithProfile(p_294502_);
++            boolean flag = playerlist.disconnectAllPlayersWithProfile(p_294502_, this.player); // CraftBukkit - add player reference
+             if (flag) {
+                 this.state = ServerLoginPacketListenerImpl.State.WAITING_FOR_DUPE_DISCONNECT;
+             } else {
+@@ -163,6 +_,19 @@
          this.connection.send(new ClientboundGameProfilePacket(p_295520_, true));
      }
  
@@ -201,7 +197,7 @@
      @Override
      public void handleKey(ServerboundKeyPacket p_10049_) {
          Validate.validState(this.state == ServerLoginPacketListenerImpl.State.KEY, "Unexpected key packet");
-@@ -193,6 +_,12 @@
+@@ -193,11 +_,17 @@
                      ProfileResult profileresult = ServerLoginPacketListenerImpl.this.server.getSessionService().hasJoinedServer(s1, s, this.getAddress());
                      if (profileresult != null) {
                          GameProfile gameprofile = profileresult.profile();
@@ -214,7 +210,19 @@
                          ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
                          ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
                      } else if (ServerLoginPacketListenerImpl.this.server.isSingleplayer()) {
-@@ -210,6 +_,11 @@
+                         ServerLoginPacketListenerImpl.LOGGER.warn("Failed to verify username but will let them in anyway!");
+-                        ServerLoginPacketListenerImpl.this.startClientVerification(UUIDUtil.createOfflineProfile(s1));
++                        ServerLoginPacketListenerImpl.this.startClientVerification(createOfflineProfile(s1)); // Spigot
+                     } else {
+                         ServerLoginPacketListenerImpl.this.disconnect(Component.translatable("multiplayer.disconnect.unverified_username"));
+                         ServerLoginPacketListenerImpl.LOGGER.error("Username '{}' tried to join with an invalid session", s1);
+@@ -205,11 +_,16 @@
+                 } catch (AuthenticationUnavailableException authenticationunavailableexception) {
+                     if (ServerLoginPacketListenerImpl.this.server.isSingleplayer()) {
+                         ServerLoginPacketListenerImpl.LOGGER.warn("Authentication servers are down but will let them in anyway!");
+-                        ServerLoginPacketListenerImpl.this.startClientVerification(UUIDUtil.createOfflineProfile(s1));
++                        ServerLoginPacketListenerImpl.this.startClientVerification(createOfflineProfile(s1)); // Spigot
+                     } else {
                          ServerLoginPacketListenerImpl.this.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
                          ServerLoginPacketListenerImpl.LOGGER.error("Couldn't verify username because servers are unavailable");
                      }

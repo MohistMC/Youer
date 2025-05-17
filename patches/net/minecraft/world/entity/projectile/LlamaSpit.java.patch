@@ -1,10 +1,32 @@
 --- a/net/minecraft/world/entity/projectile/LlamaSpit.java
 +++ b/net/minecraft/world/entity/projectile/LlamaSpit.java
-@@ -43,6 +_,7 @@
+@@ -43,16 +_,17 @@
          super.tick();
          Vec3 vec3 = this.getDeltaMovement();
          HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
+-        this.hitTargetOrDeflectSelf(hitresult);
 +        if (hitresult.getType() != HitResult.Type.MISS && !net.neoforged.neoforge.event.EventHooks.onProjectileImpact(this, hitresult))
-         this.hitTargetOrDeflectSelf(hitresult);
++        this.preHitTargetOrDeflectSelf(hitresult); // CraftBukkit - projectile hit event
          double d0 = this.getX() + vec3.x;
          double d1 = this.getY() + vec3.y;
+         double d2 = this.getZ() + vec3.z;
+         this.updateRotation();
+         float f = 0.99F;
+         if (this.level().getBlockStates(this.getBoundingBox()).noneMatch(BlockBehaviour.BlockStateBase::isAir)) {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         } else if (this.isInWaterOrBubble()) {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         } else {
+             this.setDeltaMovement(vec3.scale(0.99F));
+             this.applyGravity();
+@@ -76,7 +_,7 @@
+     protected void onHitBlock(BlockHitResult p_37239_) {
+         super.onHitBlock(p_37239_);
+         if (!this.level().isClientSide) {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 

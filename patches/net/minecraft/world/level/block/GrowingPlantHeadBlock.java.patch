@@ -1,14 +1,29 @@
 --- a/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
 +++ b/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
-@@ -42,10 +_,11 @@
+@@ -42,10 +_,25 @@
  
      @Override
      protected void randomTick(BlockState p_221350_, ServerLevel p_221351_, BlockPos p_221352_, RandomSource p_221353_) {
 -        if (p_221350_.getValue(AGE) < 25 && p_221353_.nextDouble() < this.growPerTickProbability) {
-+        if (p_221350_.getValue(AGE) < 25 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_221351_, p_221352_.relative(this.growthDirection), p_221350_, p_221353_.nextDouble() < this.growPerTickProbability)) {
++        // Spigot start
++        int modifier;
++        if (this == Blocks.KELP) {
++            modifier = p_221351_.spigotConfig.kelpModifier;
++        } else if (this == Blocks.TWISTING_VINES) {
++            modifier = p_221351_.spigotConfig.twistingVinesModifier;
++        } else if (this == Blocks.WEEPING_VINES) {
++            modifier = p_221351_.spigotConfig.weepingVinesModifier;
++        } else {
++            modifier = p_221351_.spigotConfig.caveVinesModifier;
++        }
++
++        if (p_221350_.getValue(AGE) < 25 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_221351_, p_221352_.relative(this.growthDirection), p_221350_, p_221353_.nextDouble() < ((modifier / 100.0D) * this.growPerTickProbability))) { // Spigot - SPIGOT-7159: Better modifier resolution
              BlockPos blockpos = p_221352_.relative(this.growthDirection);
              if (this.canGrowInto(p_221351_.getBlockState(blockpos))) {
-                 p_221351_.setBlockAndUpdate(blockpos, this.getGrowIntoState(p_221350_, p_221351_.random));
+-                p_221351_.setBlockAndUpdate(blockpos, this.getGrowIntoState(p_221350_, p_221351_.random));
++                // CraftBukkit start - Use event for block spread
++                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_221351_, p_221352_, blockpos, this.getGrowIntoState(p_221350_, p_221351_.random));
++                // CraftBukkit end
 +                net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_221351_, blockpos, p_221351_.getBlockState(blockpos));
              }
          }

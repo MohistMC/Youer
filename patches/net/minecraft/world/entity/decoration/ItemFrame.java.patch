@@ -16,6 +16,18 @@
      @Override
      protected AABB calculateBoundingBox(BlockPos p_345363_, Direction p_344892_) {
          float f = 0.46875F;
+@@ -138,6 +_,11 @@
+             return false;
+         } else if (!p_31776_.is(DamageTypeTags.IS_EXPLOSION) && !this.getItem().isEmpty()) {
+             if (!this.level().isClientSide) {
++                // CraftBukkit start - fire EntityDamageEvent
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, p_31776_, p_31777_, false) || this.isRemoved()) {
++                    return true;
++                }
++                // CraftBukkit end
+                 this.dropItem(p_31776_.getEntity(), false);
+                 this.gameEvent(GameEvent.BLOCK_CHANGE, p_31776_.getEntity());
+                 this.playSound(this.getRemoveItemSound(), 1.0F, 1.0F);
 @@ -212,7 +_,7 @@
      private void removeFramedMap(ItemStack p_31811_) {
          MapId mapid = this.getFramedMapId(p_31811_);

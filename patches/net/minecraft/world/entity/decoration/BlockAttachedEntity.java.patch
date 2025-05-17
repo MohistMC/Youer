@@ -1,0 +1,97 @@
+--- a/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
++++ b/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
+@@ -35,10 +_,28 @@
+     public void tick() {
+         if (!this.level().isClientSide) {
+             this.checkBelowWorld();
+-            if (this.checkInterval++ == 100) {
++            if (this.checkInterval++ == this.level().spigotConfig.hangingTickFrequency) { // Spigot
+                 this.checkInterval = 0;
+                 if (!this.isRemoved() && !this.survives()) {
+-                    this.discard();
++                    // CraftBukkit start - fire break events
++                    net.minecraft.world.level.block.state.BlockState material = this.level().getBlockState(this.blockPosition());
++                    org.bukkit.event.hanging.HangingBreakEvent.RemoveCause cause;
++
++                    if (!material.isAir()) {
++                        // TODO: This feels insufficient to catch 100% of suffocation cases
++                        cause = org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.OBSTRUCTION;
++                    } else {
++                        cause = org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.PHYSICS;
++                    }
++
++                    org.bukkit.event.hanging.HangingBreakEvent event = new org.bukkit.event.hanging.HangingBreakEvent((org.bukkit.entity.Hanging) this.getBukkitEntity(), cause);
++                    this.level().getCraftServer().getPluginManager().callEvent(event);
++
++                    if (this.isRemoved() || event.isCancelled()) {
++                        return;
++                    }
++                    // CraftBukkit end
++                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
+                     this.dropItem(null);
+                 }
+             }
+@@ -67,6 +_,22 @@
+             return false;
+         } else {
+             if (!this.isRemoved() && !this.level().isClientSide) {
++                // CraftBukkit start - fire break events
++                Entity damager = (p_345749_.isDirect()) ? p_345749_.getDirectEntity() : p_345749_.getEntity();
++                org.bukkit.event.hanging.HangingBreakEvent event;
++                if (damager != null) {
++                    event = new org.bukkit.event.hanging.HangingBreakByEntityEvent((org.bukkit.entity.Hanging) this.getBukkitEntity(), damager.getBukkitEntity(), p_345749_.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION) ? org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.EXPLOSION : org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.ENTITY);
++                } else {
++                    event = new org.bukkit.event.hanging.HangingBreakEvent((org.bukkit.entity.Hanging) this.getBukkitEntity(), p_345749_.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION) ? org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.EXPLOSION : org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.DEFAULT);
++                }
++
++                this.level().getCraftServer().getPluginManager().callEvent(event);
++
++                if (this.isRemoved() || event.isCancelled()) {
++                    return true;
++                }
++                // CraftBukkit end
++
+                 this.kill();
+                 this.markHurt();
+                 this.dropItem(p_345749_.getEntity());
+@@ -79,6 +_,18 @@
+     @Override
+     public void move(MoverType p_345778_, Vec3 p_345301_) {
+         if (!this.level().isClientSide && !this.isRemoved() && p_345301_.lengthSqr() > 0.0) {
++            if (this.isRemoved()) return; // CraftBukkit
++
++            // CraftBukkit start - fire break events
++            // TODO - Does this need its own cause? Seems to only be triggered by pistons
++            org.bukkit.event.hanging.HangingBreakEvent event = new org.bukkit.event.hanging.HangingBreakEvent((org.bukkit.entity.Hanging) this.getBukkitEntity(), org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.PHYSICS);
++            this.level().getCraftServer().getPluginManager().callEvent(event);
++
++            if (this.isRemoved() || event.isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
++
+             this.kill();
+             this.dropItem(null);
+         }
+@@ -86,11 +_,20 @@
+ 
+     @Override
+     public void push(double p_345288_, double p_346171_, double p_345389_) {
+-        if (!this.level().isClientSide && !this.isRemoved() && p_345288_ * p_345288_ + p_346171_ * p_346171_ + p_345389_ * p_345389_ > 0.0) {
++        if (false && !this.level().isClientSide && !this.isRemoved() && p_345288_ * p_345288_ + p_346171_ * p_346171_ + p_345389_ * p_345389_ > 0.0) {
+             this.kill();
+             this.dropItem(null);
+         }
+     }
++
++    // CraftBukkit start - selectively save tile position
++    @Override
++    public void addAdditionalSaveData(CompoundTag nbttagcompound, boolean includeAll) {
++        if (includeAll) {
++            addAdditionalSaveData(nbttagcompound);
++        }
++    }
++    // CraftBukkit end
+ 
+     @Override
+     public void addAdditionalSaveData(CompoundTag p_344925_) {

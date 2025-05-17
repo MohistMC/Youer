@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/level/block/DragonEggBlock.java
++++ b/net/minecraft/world/level/block/DragonEggBlock.java
+@@ -55,6 +_,18 @@
+                 p_52937_.random.nextInt(16) - p_52937_.random.nextInt(16)
+             );
+             if (p_52937_.getBlockState(blockpos).isAir() && worldborder.isWithinBounds(blockpos)) {
++                // CraftBukkit start
++                org.bukkit.block.Block from = p_52937_.getWorld().getBlockAt(p_52938_.getX(), p_52938_.getY(), p_52938_.getZ());
++                org.bukkit.block.Block to = p_52937_.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
++                org.bukkit.event.block.BlockFromToEvent event = new org.bukkit.event.block.BlockFromToEvent(from, to);
++                org.bukkit.Bukkit.getPluginManager().callEvent(event);
++
++                if (event.isCancelled()) {
++                    return;
++                }
++
++                blockpos = new BlockPos(event.getToBlock().getX(), event.getToBlock().getY(), event.getToBlock().getZ());
++                // CraftBukkit end
+                 if (p_52937_.isClientSide) {
+                     for (int j = 0; j < 128; j++) {
+                         double d0 = p_52937_.random.nextDouble();

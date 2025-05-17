@@ -31,7 +31,7 @@
  
      public Codec<TrialSpawner> codec() {
          return RecordCodecBuilder.create(
-@@ -229,9 +_,9 @@
+@@ -229,15 +_,20 @@
                                  }
  
                                  boolean flag = spawndata.getEntityToSpawn().size() == 1 && spawndata.getEntityToSpawn().contains("id", 8);
@@ -44,6 +44,18 @@
  
                                  mob.setPersistenceRequired();
                                  spawndata.getEquipment().ifPresent(mob::equip);
+                             }
+ 
+-                            if (!p_312582_.tryAddFreshEntityWithPassengers(entity)) {
++                            // CraftBukkit start
++                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callTrialSpawnerSpawnEvent(entity, p_312518_).isCancelled()) {
++                                return Optional.empty();
++                            }
++                            if (!p_312582_.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.TRIAL_SPAWNER)) {
++                                // CraftBukkit end
+                                 return Optional.empty();
+                             } else {
+                                 TrialSpawner.FlameParticle trialspawner$flameparticle = this.isOminous
 @@ -405,5 +_,14 @@
          TrialSpawnerState getState();
  

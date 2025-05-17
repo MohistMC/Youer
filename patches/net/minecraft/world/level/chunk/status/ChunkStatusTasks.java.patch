@@ -22,3 +22,26 @@
                  return levelchunk;
              },
              p_347404_ -> p_347565_.mainThreadMailBox()
+@@ -214,7 +_,21 @@
+ 
+     private static void postLoadProtoChunk(ServerLevel p_347492_, List<CompoundTag> p_347609_) {
+         if (!p_347609_.isEmpty()) {
+-            p_347492_.addWorldGenChunkEntities(EntityType.loadEntitiesRecursive(p_347609_, p_347492_));
++            // CraftBukkit start - these are spawned serialized (DefinedStructure) and we don't call an add event below at the moment due to ordering complexities
++            p_347492_.addWorldGenChunkEntities(EntityType.loadEntitiesRecursive(p_347609_, p_347492_).filter((entity) -> {
++                boolean needsRemoval = false;
++                net.minecraft.server.dedicated.DedicatedServer server = p_347492_.getCraftServer().getServer();
++                if (!server.areNpcsEnabled() && entity instanceof net.minecraft.world.entity.npc.Npc) {
++                    entity.discard(null); // CraftBukkit - add Bukkit remove cause
++                    needsRemoval = true;
++                }
++                if (!server.isSpawningAnimals() && (entity instanceof net.minecraft.world.entity.animal.Animal || entity instanceof net.minecraft.world.entity.animal.WaterAnimal)) {
++                    entity.discard(null); // CraftBukkit - add Bukkit remove cause
++                    needsRemoval = true;
++                }
++                return !needsRemoval;
++            }));
++            // CraftBukkit end
+         }
+     }
+ }

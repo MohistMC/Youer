@@ -1,0 +1,57 @@
+--- a/net/minecraft/world/entity/Leashable.java
++++ b/net/minecraft/world/entity/Leashable.java
+@@ -62,6 +_,12 @@
+     default void writeLeashData(CompoundTag p_352349_, @Nullable Leashable.LeashData p_352363_) {
+         if (p_352363_ != null) {
+             Either<UUID, BlockPos> either = p_352363_.delayedLeashInfo;
++            // CraftBukkit start - SPIGOT-7487: Don't save (and possible drop) leash, when the holder was removed by a plugin
++            Entity entity = p_352363_.leashHolder;
++            if (entity != null && entity.pluginRemoved) {
++                return;
++            }
++            // CraftBukkit end
+             if (p_352363_.leashHolder instanceof LeashFenceKnotEntity leashfenceknotentity) {
+                 either = Either.right(leashfenceknotentity.getPos());
+             } else if (p_352363_.leashHolder != null) {
+@@ -94,7 +_,9 @@
+             }
+ 
+             if (p_352354_.tickCount > 100) {
++                p_352354_.forceDrops = true; // CraftBukkit
+                 p_352354_.spawnAtLocation(Items.LEAD);
++                p_352354_.forceDrops = false; // CraftBukkit
+                 p_352354_.setLeashData(null);
+             }
+         }
+@@ -109,7 +_,9 @@
+         if (leashable$leashdata != null && leashable$leashdata.leashHolder != null) {
+             p_352163_.setLeashData(null);
+             if (!p_352163_.level().isClientSide && p_352272_) {
++                p_352163_.forceDrops = true; // CraftBukkit
+                 p_352163_.spawnAtLocation(Items.LEAD);
++                p_352163_.forceDrops = false; // CraftBukkit
+             }
+ 
+             if (p_352286_ && p_352163_.level() instanceof ServerLevel serverlevel) {
+@@ -126,7 +_,8 @@
+ 
+         if (leashable$leashdata != null && leashable$leashdata.leashHolder != null) {
+             if (!p_352082_.isAlive() || !leashable$leashdata.leashHolder.isAlive()) {
+-                dropLeash(p_352082_, true, true);
++                p_352082_.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.entity.EntityUnleashEvent(p_352082_.getBukkitEntity(), (!p_352082_.isAlive()) ? org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.PLAYER_UNLEASH : org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.HOLDER_GONE)); // CraftBukkit
++                dropLeash(p_352082_, true, !p_352082_.pluginRemoved); // CraftBukkit - SPIGOT-7487: Don't drop leash, when the holder was removed by a plugin
+             }
+ 
+             Entity entity = p_352082_.getLeashHolder();
+@@ -153,6 +_,11 @@
+     }
+ 
+     default void leashTooFarBehaviour() {
++        // CraftBukkit start
++        if (this instanceof Entity entity) {
++            entity.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.entity.EntityUnleashEvent(entity.getBukkitEntity(), org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.DISTANCE));
++        }
++        // CraftBukkit end
+         this.dropLeash(true, true);
+     }
+ 

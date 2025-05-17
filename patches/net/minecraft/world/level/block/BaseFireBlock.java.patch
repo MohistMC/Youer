@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/level/block/BaseFireBlock.java
 +++ b/net/minecraft/world/level/block/BaseFireBlock.java
+@@ -130,7 +_,14 @@
+         if (!p_49263_.fireImmune()) {
+             p_49263_.setRemainingFireTicks(p_49263_.getRemainingFireTicks() + 1);
+             if (p_49263_.getRemainingFireTicks() == 0) {
+-                p_49263_.igniteForSeconds(8.0F);
++                // CraftBukkit start
++                org.bukkit.event.entity.EntityCombustEvent event = new org.bukkit.event.entity.EntityCombustByBlockEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_49261_, p_49262_), p_49263_.getBukkitEntity(), 8.0F);
++                p_49261_.getCraftServer().getPluginManager().callEvent(event);
++
++                if (!event.isCancelled()) {
++                    p_49263_.igniteForSeconds(event.getDuration(), false);
++                }
++                // CraftBukkit end
+             }
+         }
+ 
 @@ -143,6 +_,7 @@
          if (!p_49282_.is(p_49279_.getBlock())) {
              if (inPortalDimension(p_49280_)) {
@@ -8,6 +24,15 @@
                  if (optional.isPresent()) {
                      optional.get().createPortalBlocks();
                      return;
+@@ -150,7 +_,7 @@
+             }
+ 
+             if (!p_49279_.canSurvive(p_49280_, p_49281_)) {
+-                p_49280_.removeBlock(p_49281_, false);
++                fireExtinguished(p_49280_, p_49281_); // CraftBukkit - fuel block broke
+             }
+         }
+     }
 @@ -185,7 +_,7 @@
              boolean flag = false;
  
@@ -17,3 +42,16 @@
                      flag = true;
                      break;
                  }
+@@ -201,4 +_,12 @@
+             }
+         }
+     }
++
++    // CraftBukkit start
++    protected void fireExtinguished(net.minecraft.world.level.LevelAccessor world, BlockPos position) {
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, position, Blocks.AIR.defaultBlockState()).isCancelled()) {
++            world.removeBlock(position, false);
++        }
++    }
++    // CraftBukkit end
+ }

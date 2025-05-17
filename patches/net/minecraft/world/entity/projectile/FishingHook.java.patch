@@ -19,7 +19,22 @@
      private FishingHook(EntityType<? extends FishingHook> p_150141_, Level p_150142_, int p_150143_, int p_150144_) {
          super(p_150141_, p_150142_);
          this.noCulling = true;
-@@ -240,8 +_,8 @@
+@@ -141,12 +_,12 @@
+         super.tick();
+         Player player = this.getPlayerOwner();
+         if (player == null) {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         } else if (this.level().isClientSide || !this.shouldStopFishing(player)) {
+             if (this.onGround()) {
+                 this.life++;
+                 if (this.life >= 1200) {
+-                    this.discard();
++                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                     return;
+                 }
+             } else {
+@@ -240,19 +_,19 @@
      private boolean shouldStopFishing(Player p_37137_) {
          ItemStack itemstack = p_37137_.getMainHandItem();
          ItemStack itemstack1 = p_37137_.getOffhandItem();
@@ -30,7 +45,11 @@
          if (!p_37137_.isRemoved() && p_37137_.isAlive() && (flag || flag1) && !(this.distanceToSqr(p_37137_) > 1024.0)) {
              return false;
          } else {
-@@ -252,7 +_,7 @@
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             return true;
+         }
+     }
  
      private void checkCollision() {
          HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
@@ -39,15 +58,84 @@
      }
  
      @Override
-@@ -441,6 +_,7 @@
+@@ -283,11 +_,11 @@
+         ServerLevel serverlevel = (ServerLevel)this.level();
+         int i = 1;
+         BlockPos blockpos = p_37146_.above();
+-        if (this.random.nextFloat() < 0.25F && this.level().isRainingAt(blockpos)) {
++        if (this.rainInfluenced && this.random.nextFloat() < 0.25F && this.level().isRainingAt(blockpos)) { // CraftBukkit
+             i++;
+         }
+ 
+-        if (this.random.nextFloat() < 0.5F && !this.level().canSeeSky(blockpos)) {
++        if (this.skyInfluenced && this.random.nextFloat() < 0.5F && !this.level().canSeeSky(blockpos)) { // CraftBukkit
+             i--;
+         }
+ 
+@@ -297,6 +_,10 @@
+                 this.timeUntilLured = 0;
+                 this.timeUntilHooked = 0;
+                 this.getEntityData().set(DATA_BITING, false);
++                // CraftBukkit start
++                org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) this.getPlayerOwner().getBukkitEntity(), null, (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.event.player.PlayerFishEvent.State.FAILED_ATTEMPT);
++                this.level().getCraftServer().getPluginManager().callEvent(playerFishEvent);
++                // CraftBukkit end
+             }
+         } else if (this.timeUntilHooked > 0) {
+             this.timeUntilHooked -= i;
+@@ -320,6 +_,13 @@
+                     serverlevel.sendParticles(ParticleTypes.FISHING, d0, d1, d2, 0, (double)(-f4), 0.01, (double)f3, 1.0);
+                 }
+             } else {
++                // CraftBukkit start
++                org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) this.getPlayerOwner().getBukkitEntity(), null, (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.event.player.PlayerFishEvent.State.BITE);
++                this.level().getCraftServer().getPluginManager().callEvent(playerFishEvent);
++                if (playerFishEvent.isCancelled()) {
++                    return;
++                }
++                // CraftBukkit end
+                 this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
+                 double d3 = this.getY() + 0.5;
+                 serverlevel.sendParticles(
+@@ -371,12 +_,16 @@
+             }
+ 
+             if (this.timeUntilLured <= 0) {
+-                this.fishAngle = Mth.nextFloat(this.random, 0.0F, 360.0F);
+-                this.timeUntilHooked = Mth.nextInt(this.random, 20, 80);
++                // CraftBukkit start - logic to modify fishing wait time, lure time, and lure angle
++                this.fishAngle = Mth.nextFloat(this.random, this.minLureAngle, this.maxLureAngle);
++                this.timeUntilHooked = Mth.nextInt(this.random, this.minLureTime, this.maxLureTime);
++                // CraftBukkit end
+             }
+         } else {
+-            this.timeUntilLured = Mth.nextInt(this.random, 100, 600);
+-            this.timeUntilLured = this.timeUntilLured - this.lureSpeed;
++            // CraftBukkit start - logic to modify fishing wait time
++            this.timeUntilLured = Mth.nextInt(this.random, this.minWaitTime, this.maxWaitTime);
++            this.timeUntilLured -= (this.applyLure) ? this.lureSpeed : 0;
++            // CraftBukkit end
+         }
+     }
+ 
+@@ -441,7 +_,16 @@
          Player player = this.getPlayerOwner();
          if (!this.level().isClientSide && player != null && !this.shouldStopFishing(player)) {
              int i = 0;
 +            net.neoforged.neoforge.event.entity.player.ItemFishedEvent event = null;
              if (this.hookedIn != null) {
++                // CraftBukkit start
++                org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), this.hookedIn.getBukkitEntity(), (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.event.player.PlayerFishEvent.State.CAUGHT_ENTITY);
++                this.level().getCraftServer().getPluginManager().callEvent(playerFishEvent);
++
++                if (playerFishEvent.isCancelled()) {
++                    return 0;
++                }
++                // CraftBukkit end
                  this.pullEntity(this.hookedIn);
                  CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer)player, p_37157_, this, Collections.emptyList());
-@@ -451,10 +_,17 @@
+                 this.level().broadcastEntityEvent(this, (byte)31);
+@@ -451,14 +_,30 @@
                      .withParameter(LootContextParams.ORIGIN, this.position())
                      .withParameter(LootContextParams.TOOL, p_37157_)
                      .withParameter(LootContextParams.THIS_ENTITY, this)
@@ -65,11 +153,63 @@
                  CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer)player, p_37157_, this, list);
  
                  for (ItemStack itemstack : list) {
-@@ -480,6 +_,7 @@
+                     ItemEntity itementity = new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), itemstack);
++                    // CraftBukkit start
++                    org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), itementity.getBukkitEntity(), (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.event.player.PlayerFishEvent.State.CAUGHT_FISH);
++                    playerFishEvent.setExpToDrop(this.random.nextInt(6) + 1);
++                    this.level().getCraftServer().getPluginManager().callEvent(playerFishEvent);
++
++                    if (playerFishEvent.isCancelled()) {
++                        return 0;
++                    }
++                    // CraftBukkit end
+                     double d0 = player.getX() - this.getX();
+                     double d1 = player.getY() - this.getY();
+                     double d2 = player.getZ() - this.getZ();
+@@ -476,10 +_,28 @@
              }
  
-             this.discard();
+             if (this.onGround()) {
++                // CraftBukkit start
++                org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), null, (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.event.player.PlayerFishEvent.State.IN_GROUND);
++                this.level().getCraftServer().getPluginManager().callEvent(playerFishEvent);
++
++                if (playerFishEvent.isCancelled()) {
++                    return 0;
++                }
++                // CraftBukkit end
+                 i = 2;
+             }
++            // CraftBukkit start
++            if (i == 0) {
++                org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), null, (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.event.player.PlayerFishEvent.State.REEL_IN);
++                this.level().getCraftServer().getPluginManager().callEvent(playerFishEvent);
++                if (playerFishEvent.isCancelled()) {
++                    return 0;
++                }
++            }
++            // CraftBukkit end
+ 
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
 +            if (event != null) return event.getRodDamage();
              return i;
          } else {
              return 0;
+@@ -510,8 +_,15 @@
+ 
+     @Override
+     public void remove(Entity.RemovalReason p_150146_) {
++        // CraftBukkit start - add Bukkit remove cause
++        this.remove(p_150146_, null);
++    }
++
++    @Override
++    public void remove(Entity.RemovalReason p_150146_, org.bukkit.event.entity.EntityRemoveEvent.Cause cause) {
++        // CraftBukkit end
+         this.updateOwnerInfo(null);
+-        super.remove(p_150146_);
++        super.remove(p_150146_, cause); // CraftBukkit - add Bukkit remove cause
+     }
+ 
+     @Override

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/BushBlock.java
 +++ b/net/minecraft/world/level/block/BushBlock.java
-@@ -20,7 +_,7 @@
+@@ -20,20 +_,28 @@
      protected abstract MapCodec<? extends BushBlock> codec();
  
      protected boolean mayPlaceOn(BlockState p_51042_, BlockGetter p_51043_, BlockPos p_51044_) {
@@ -9,7 +9,20 @@
      }
  
      @Override
-@@ -33,7 +_,10 @@
+     protected BlockState updateShape(BlockState p_51032_, Direction p_51033_, BlockState p_51034_, LevelAccessor p_51035_, BlockPos p_51036_, BlockPos p_51037_) {
+-        return !p_51032_.canSurvive(p_51035_, p_51036_)
+-            ? Blocks.AIR.defaultBlockState()
+-            : super.updateShape(p_51032_, p_51033_, p_51034_, p_51035_, p_51036_, p_51037_);
++        // CraftBukkit start
++        if (!p_51032_.canSurvive(p_51035_, p_51036_)) {
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(p_51035_, p_51036_).isCancelled()) {
++                return Blocks.AIR.defaultBlockState();
++            }
++        }
++        return super.updateShape(p_51032_, p_51033_, p_51034_, p_51035_, p_51036_, p_51037_);
++        // CraftBukkit end
+     }
+ 
      @Override
      protected boolean canSurvive(BlockState p_51028_, LevelReader p_51029_, BlockPos p_51030_) {
          BlockPos blockpos = p_51030_.below();

@@ -33,6 +33,36 @@
              .yRot(-this.getYRot() * (float) (Math.PI / 180.0));
      }
  
+@@ -194,9 +_,29 @@
+     public void push(Entity p_38373_) {
+         if (p_38373_ instanceof Boat) {
+             if (p_38373_.getBoundingBox().minY < this.getBoundingBox().maxY) {
++                // CraftBukkit start
++                if (!this.isPassengerOfSameVehicle(p_38373_)) {
++                    org.bukkit.event.vehicle.VehicleEntityCollisionEvent event = new org.bukkit.event.vehicle.VehicleEntityCollisionEvent((org.bukkit.entity.Vehicle) this.getBukkitEntity(), p_38373_.getBukkitEntity());
++                    this.level().getCraftServer().getPluginManager().callEvent(event);
++
++                    if (event.isCancelled()) {
++                        return;
++                    }
++                }
++                // CraftBukkit end
+                 super.push(p_38373_);
+             }
+         } else if (p_38373_.getBoundingBox().minY <= this.getBoundingBox().minY) {
++            // CraftBukkit start
++            if (!this.isPassengerOfSameVehicle(p_38373_)) {
++                org.bukkit.event.vehicle.VehicleEntityCollisionEvent event = new org.bukkit.event.vehicle.VehicleEntityCollisionEvent((org.bukkit.entity.Vehicle) this.getBukkitEntity(), p_38373_.getBukkitEntity());
++                this.level().getCraftServer().getPluginManager().callEvent(event);
++
++                if (event.isCancelled()) {
++                    return;
++                }
++            }
++            // CraftBukkit end
+             super.push(p_38373_);
+         }
+     }
 @@ -212,7 +_,8 @@
              case DARK_OAK -> Items.DARK_OAK_BOAT;
              case MANGROVE -> Items.MANGROVE_BOAT;
@@ -43,6 +73,36 @@
          };
      }
  
+@@ -268,6 +_,7 @@
+         return this.getDirection().getClockWise();
+     }
+ 
++    private org.bukkit.Location lastLocation; // CraftBukkit
+     @Override
+     public void tick() {
+         this.oldStatus = this.status;
+@@ -308,6 +_,21 @@
+             this.setDeltaMovement(Vec3.ZERO);
+         }
+ 
++        // CraftBukkit start
++        org.bukkit.Server server = this.level().getCraftServer();
++        org.bukkit.World bworld = this.level().getWorld();
++
++        org.bukkit.Location to = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.position(), bworld, this.getYRot(), this.getXRot());
++        org.bukkit.entity.Vehicle vehicle = (org.bukkit.entity.Vehicle) this.getBukkitEntity();
++
++        server.getPluginManager().callEvent(new org.bukkit.event.vehicle.VehicleUpdateEvent(vehicle));
++        if (lastLocation != null && !lastLocation.equals(to)) {
++            org.bukkit.event.vehicle.VehicleMoveEvent event = new org.bukkit.event.vehicle.VehicleMoveEvent(vehicle, lastLocation, to);
++            server.getPluginManager().callEvent(event);
++        }
++        lastLocation = vehicle.getLocation();
++        // CraftBukkit end
++
+         this.tickBubbleColumn();
+ 
+         for (int i = 0; i <= 1; i++) {
 @@ -498,7 +_,7 @@
                  for (int i2 = i1; i2 < j1; i2++) {
                      blockpos$mutableblockpos.set(l1, k1, i2);
@@ -79,7 +139,33 @@
                          && d0 < (double)((float)blockpos$mutableblockpos.getY() + fluidstate.getHeight(this.level(), blockpos$mutableblockpos))) {
                          if (!fluidstate.isSource()) {
                              return Boat.Status.UNDER_FLOWING_WATER;
-@@ -832,14 +_,15 @@
+@@ -805,6 +_,13 @@
+ 
+     @Override
+     public void remove(Entity.RemovalReason p_352927_) {
++        // CraftBukkit start - add Bukkit remove cause
++        this.remove(p_352927_, null);
++    }
++
++    @Override
++    public void remove(Entity.RemovalReason p_352927_, org.bukkit.event.entity.EntityRemoveEvent.Cause cause) {
++        // CraftBukkit end
+         if (!this.level().isClientSide && p_352927_.shouldDestroy() && this.isLeashed()) {
+             this.dropLeash(true, true);
+         }
+@@ -825,6 +_,11 @@
+ 
+                     this.causeFallDamage(this.fallDistance, 1.0F, this.damageSources().fall());
+                     if (!this.level().isClientSide && !this.isRemoved()) {
++                        // CraftBukkit start
++                        org.bukkit.entity.Vehicle vehicle = (org.bukkit.entity.Vehicle) this.getBukkitEntity();
++                        org.bukkit.event.vehicle.VehicleDestroyEvent destroyEvent = new org.bukkit.event.vehicle.VehicleDestroyEvent(vehicle, null);
++                        this.level().getCraftServer().getPluginManager().callEvent(destroyEvent);
++                        if (!destroyEvent.isCancelled()) {
+                         this.kill();
+                         if (this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+                             for (int i = 0; i < 3; i++) {
+@@ -832,14 +_,16 @@
                              }
  
                              for (int j = 0; j < 2; j++) {
@@ -89,6 +175,7 @@
                              }
                          }
                      }
++                    } // CraftBukkit end
                  }
  
                  this.resetFallDistance();

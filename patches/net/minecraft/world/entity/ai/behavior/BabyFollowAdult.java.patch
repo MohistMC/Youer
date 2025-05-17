@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/entity/ai/behavior/BabyFollowAdult.java
++++ b/net/minecraft/world/entity/ai/behavior/BabyFollowAdult.java
+@@ -28,9 +_,20 @@
+                                 if (!p_258327_.isBaby()) {
+                                     return false;
+                                 } else {
+-                                    AgeableMob ageablemob = p_258331_.get(p_258317_);
++                                    LivingEntity ageablemob = p_258331_.get(p_258317_); // CraftBukkit - type
+                                     if (p_258327_.closerThan(ageablemob, (double)(p_259321_.getMaxValue() + 1))
+                                         && !p_258327_.closerThan(ageablemob, (double)p_259321_.getMinValue())) {
++                                        // CraftBukkit start
++                                        org.bukkit.event.entity.EntityTargetLivingEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(p_258327_, ageablemob, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FOLLOW_LEADER);
++                                        if (event.isCancelled()) {
++                                            return false;
++                                        }
++                                        if (event.getTarget() == null) {
++                                            p_258317_.erase();
++                                            return true;
++                                        }
++                                        ageablemob = ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle();
++                                        // CraftBukkit end
+                                         WalkTarget walktarget = new WalkTarget(
+                                             new EntityTracker(ageablemob, false), p_259190_.apply(p_258327_), p_259321_.getMinValue() - 1
+                                         );

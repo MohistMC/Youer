@@ -1,28 +1,62 @@
 --- a/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
 +++ b/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
-@@ -66,6 +_,8 @@
+@@ -66,23 +_,29 @@
  
                  if (entity instanceof ServerPlayer serverplayer) {
                      if (serverplayer.connection.isAcceptingMessages()) {
++                        // CraftBukkit start
++                        Entity tp = entity.changeDimension(new DimensionTransition(serverlevel, this.position(), entity.getDeltaMovement(), entity.getYRot(), entity.getXRot(), DimensionTransition.DO_NOTHING, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.ENDER_PEARL));
++                        if (tp == null) {
++                            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT);
++                            return;
++                        }
++                        // CraftBukkit end
 +                        net.neoforged.neoforge.event.entity.EntityTeleportEvent.EnderPearl event = net.neoforged.neoforge.event.EventHooks.onEnderPearlLand(serverplayer, this.getX(), this.getY(), this.getZ(), this, 5.0F, p_37504_);
 +                        if (!event.isCanceled()) { // Don't indent to lower patch size
                          if (this.random.nextFloat() < 0.05F && serverlevel.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {
                              Endermite endermite = EntityType.ENDERMITE.create(serverlevel);
                              if (endermite != null) {
-@@ -76,13 +_,14 @@
+                                 endermite.moveTo(entity.getX(), entity.getY(), entity.getZ(), entity.getYRot(), entity.getXRot());
+-                                serverlevel.addFreshEntity(endermite);
++                                serverlevel.addFreshEntity(endermite, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.ENDER_PEARL);
+                             }
+                         }
  
-                         entity.changeDimension(
-                             new DimensionTransition(
+-                        entity.changeDimension(
+-                            new DimensionTransition(
 -                                serverlevel, this.position(), entity.getDeltaMovement(), entity.getYRot(), entity.getXRot(), DimensionTransition.DO_NOTHING
-+                                serverlevel, event.getTarget(), entity.getDeltaMovement(), entity.getYRot(), entity.getXRot(), DimensionTransition.DO_NOTHING
-                             )
-                         );
+-                            )
+-                        );
++
                          entity.resetFallDistance();
                          serverplayer.resetCurrentImpulseContext();
 -                        entity.hurt(this.damageSources().fall(), 5.0F);
-+                        entity.hurt(this.damageSources().fall(), event.getAttackDamage());
++                        entity.hurt(this.damageSources().fall().customEntityDamager(this), event.getAttackDamage()); // CraftBukkit
                          this.playSound(serverlevel, this.position());
 +                        } //Forge: End
                      }
                  } else {
                      entity.changeDimension(
+@@ -94,11 +_,11 @@
+                     this.playSound(serverlevel, this.position());
+                 }
+ 
+-                this.discard();
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+                 return;
+             }
+ 
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+             return;
+         }
+     }
+@@ -115,7 +_,7 @@
+     public void tick() {
+         Entity entity = this.getOwner();
+         if (entity instanceof ServerPlayer && !entity.isAlive() && this.level().getGameRules().getBoolean(GameRules.RULE_ENDER_PEARLS_VANISH_ON_DEATH)) {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         } else {
+             super.tick();
+         }

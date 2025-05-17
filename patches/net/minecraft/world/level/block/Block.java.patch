@@ -97,6 +97,17 @@
      public float getExplosionResistance() {
          return this.explosionResistance;
      }
+@@ -356,7 +_,9 @@
+ 
+     public void playerDestroy(Level p_49827_, Player p_49828_, BlockPos p_49829_, BlockState p_49830_, @Nullable BlockEntity p_49831_, ItemStack p_49832_) {
+         p_49828_.awardStat(Stats.BLOCK_MINED.get(this));
+-        p_49828_.causeFoodExhaustion(0.005F);
++        // CraftBukkit start - EntityExhaustionEvent
++        p_49828_.causeFoodExhaustion(0.005F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.BLOCK_MINED);
++        // CraftBukkit end
+         dropResources(p_49830_, p_49827_, p_49829_, p_49831_, p_49828_, p_49832_);
+     }
+ 
 @@ -385,8 +_,10 @@
  
      public void updateEntityAfterFallOn(BlockGetter p_49821_, Entity p_49822_) {
@@ -116,7 +127,7 @@
      public boolean dropFromExplosion(Explosion p_49826_) {
          return true;
      }
-@@ -485,6 +_,43 @@
+@@ -485,17 +_,70 @@
          return this.stateDefinition.getPossibleStates().stream().collect(ImmutableMap.toImmutableMap(Function.identity(), p_152459_));
      }
  
@@ -160,3 +171,30 @@
      @Deprecated
      public Holder.Reference<Block> builtInRegistryHolder() {
          return this.builtInRegistryHolder;
+     }
+ 
++    public int getExpDrop(BlockState p_220827_, ServerLevel p_220828_, BlockPos p_220829_, ItemStack p_220830_, boolean flag) {
++        return 0;
++    }
++
+     protected void tryDropExperience(ServerLevel p_220823_, BlockPos p_220824_, ItemStack p_220825_, IntProvider p_220826_) {
+         int i = EnchantmentHelper.processBlockExperience(p_220823_, p_220825_, p_220826_.sample(p_220823_.getRandom()));
+         if (i > 0) {
+             this.popExperience(p_220823_, p_220824_, i);
+         }
+     }
++
++    // Spigot start
++    public static float range(float min, float value, float max) {
++        if (value < min) {
++            return min;
++        }
++        if (value > max) {
++            return max;
++        }
++        return value;
++    }
++    // Spigot end
+ 
+     public static final class BlockStatePairKey {
+         private final BlockState first;

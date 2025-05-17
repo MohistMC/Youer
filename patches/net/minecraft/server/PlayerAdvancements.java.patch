@@ -1,5 +1,21 @@
 --- a/net/minecraft/server/PlayerAdvancements.java
 +++ b/net/minecraft/server/PlayerAdvancements.java
+@@ -129,6 +_,7 @@
+     }
+ 
+     public void save() {
++        if (org.spigotmc.SpigotConfig.disableAdvancementSaving) return; // Spigot
+         JsonElement jsonelement = this.codec.encodeStart(JsonOps.INSTANCE, this.asData()).getOrThrow();
+ 
+         try {
+@@ -146,6 +_,7 @@
+         p_301198_.forEach((p_300732_, p_300733_) -> {
+             AdvancementHolder advancementholder = p_301166_.get(p_300732_);
+             if (advancementholder == null) {
++                if (!p_300732_.getNamespace().equals("minecraft")) return; // CraftBukkit
+                 LOGGER.warn("Ignored advancement '{}' in progress file {} - it doesn't exist anymore?", p_300732_, this.playerSavePath);
+             } else {
+                 this.startProgress(advancementholder, p_300733_);
 @@ -166,6 +_,8 @@
      }
  
@@ -9,12 +25,13 @@
          boolean flag = false;
          AdvancementProgress advancementprogress = this.getOrStartProgress(p_300979_);
          boolean flag1 = advancementprogress.isDone();
-@@ -173,12 +_,14 @@
+@@ -173,12 +_,15 @@
              this.unregisterListeners(p_300979_);
              this.progressChanged.add(p_300979_);
              flag = true;
 +            net.neoforged.neoforge.event.EventHooks.onAdvancementProgressedEvent(this.player, p_300979_, advancementprogress, p_135990_, net.neoforged.neoforge.event.entity.player.AdvancementEvent.AdvancementProgressEvent.ProgressType.GRANT);
              if (!flag1 && advancementprogress.isDone()) {
++                this.player.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.player.PlayerAdvancementDoneEvent(this.player.getBukkitEntity(), p_300979_.toBukkit())); // CraftBukkit
                  p_300979_.value().rewards().grant(this.player);
                  p_300979_.value().display().ifPresent(p_352686_ -> {
                      if (p_352686_.shouldAnnounceChat() && this.player.level().getGameRules().getBoolean(GameRules.RULE_ANNOUNCE_ADVANCEMENTS)) {

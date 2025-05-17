@@ -1,0 +1,40 @@
+--- a/net/minecraft/world/entity/vehicle/MinecartTNT.java
++++ b/net/minecraft/world/entity/vehicle/MinecartTNT.java
+@@ -92,26 +_,23 @@
+         this.explode(null, p_38689_);
+     }
+ 
+-    public void explode(@Nullable DamageSource p_259539_, double p_260287_) {
++    protected void explode(@Nullable DamageSource p_259539_, double p_260287_) {
+         if (!this.level().isClientSide) {
+             double d0 = Math.sqrt(p_260287_);
+             if (d0 > 5.0) {
+                 d0 = 5.0;
+             }
+ 
+-            this.level()
+-                .explode(
+-                    this,
+-                    p_259539_,
+-                    null,
+-                    this.getX(),
+-                    this.getY(),
+-                    this.getZ(),
+-                    (float)(4.0 + this.random.nextDouble() * 1.5 * d0),
+-                    false,
+-                    Level.ExplosionInteraction.TNT
+-                );
+-            this.discard();
++            // CraftBukkit start
++            org.bukkit.event.entity.ExplosionPrimeEvent event = new org.bukkit.event.entity.ExplosionPrimeEvent(this.getBukkitEntity(), (float) (4.0D + this.random.nextDouble() * 1.5D * d0), false);
++            this.level().getCraftServer().getPluginManager().callEvent(event);
++            if (event.isCancelled()) {
++                fuse = -1;
++                return;
++            }
++            this.level().explode(this, p_259539_, (net.minecraft.world.level.ExplosionDamageCalculator) null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.TNT);
++            // CraftBukkit end
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 

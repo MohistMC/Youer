@@ -1,6 +1,15 @@
 --- a/net/minecraft/server/ServerAdvancementManager.java
 +++ b/net/minecraft/server/ServerAdvancementManager.java
-@@ -39,11 +_,15 @@
+@@ -29,7 +_,7 @@
+ public class ServerAdvancementManager extends SimpleJsonResourceReloadListener {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public static final Gson GSON = new GsonBuilder().create();
+-    public Map<ResourceLocation, AdvancementHolder> advancements = Map.of();
++    public Map<ResourceLocation, AdvancementHolder> advancements = new java.util.HashMap<>(); // CraftBukkit - SPIGOT-7734: mutable
+     private AdvancementTree tree = new AdvancementTree();
+     private final HolderLookup.Provider registries;
+ 
+@@ -39,18 +_,27 @@
      }
  
      protected void apply(Map<ResourceLocation, JsonElement> p_136034_, ResourceManager p_136035_, ProfilerFiller p_136036_) {
@@ -8,6 +17,11 @@
 +        RegistryOps<JsonElement> registryops = this.makeConditionalOps(); // Neo: add condition context
          Builder<ResourceLocation, AdvancementHolder> builder = ImmutableMap.builder();
          p_136034_.forEach((p_337529_, p_337530_) -> {
++            // Spigot start
++            if (org.spigotmc.SpigotConfig.disabledAdvancements != null && (org.spigotmc.SpigotConfig.disabledAdvancements.contains("*") || org.spigotmc.SpigotConfig.disabledAdvancements.contains(p_337529_.toString()) || org.spigotmc.SpigotConfig.disabledAdvancements.contains(p_337529_.getNamespace()))) {
++                return;
++            }
++            // Spigot end
              try {
 -                Advancement advancement = Advancement.CODEC.parse(registryops, p_337530_).getOrThrow(JsonParseException::new);
 +                Advancement advancement = net.neoforged.neoforge.common.conditions.ICondition.getWithWithConditionsCodec(Advancement.CONDITIONAL_CODEC, registryops, p_337530_).orElse(null);
@@ -18,3 +32,11 @@
                  this.validate(p_337529_, advancement);
                  builder.put(p_337529_, new AdvancementHolder(p_337529_, advancement));
              } catch (Exception exception) {
+                 LOGGER.error("Parsing error loading custom advancement {}: {}", p_337529_, exception.getMessage());
+             }
+         });
+-        this.advancements = builder.buildOrThrow();
++        this.advancements = new java.util.HashMap<>(builder.buildOrThrow()); // CraftBukkit - SPIGOT-7734: mutable
+         AdvancementTree advancementtree = new AdvancementTree();
+         advancementtree.addAll(this.advancements.values());
+ 

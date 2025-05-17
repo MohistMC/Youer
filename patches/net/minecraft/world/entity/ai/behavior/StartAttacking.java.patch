@@ -1,10 +1,21 @@
 --- a/net/minecraft/world/entity/ai/behavior/StartAttacking.java
 +++ b/net/minecraft/world/entity/ai/behavior/StartAttacking.java
-@@ -30,7 +_,11 @@
+@@ -30,7 +_,22 @@
                                      if (!p_258774_.canAttack(livingentity)) {
                                          return false;
                                      } else {
 -                                        p_258778_.set(livingentity);
++                                        // CraftBukkit start
++                                        org.bukkit.event.entity.EntityTargetEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(p_258774_, livingentity, (livingentity instanceof net.minecraft.server.level.ServerPlayer) ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER : org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
++                                        if (event.isCancelled()) {
++                                            return false;
++                                        }
++                                        if (event.getTarget() == null) {
++                                            p_258778_.erase();
++                                            return true;
++                                        }
++                                        livingentity = ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle();
++                                        // CraftBukkit end
 +                                        net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.neoforged.neoforge.common.CommonHooks.onLivingChangeTarget(p_258774_, livingentity, net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.BEHAVIOR_TARGET);
 +                                        if (changeTargetEvent.isCanceled() || changeTargetEvent.getNewAboutToBeSetTarget() == null)
 +                                            return false;

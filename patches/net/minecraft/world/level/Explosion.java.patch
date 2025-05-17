@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/Explosion.java
 +++ b/net/minecraft/world/level/Explosion.java
+@@ -38,6 +_,7 @@
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.HitResult;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.Location;
+ 
+ public class Explosion {
+     private static final ExplosionDamageCalculator EXPLOSION_DAMAGE_CALCULATOR = new ExplosionDamageCalculator();
 @@ -59,6 +_,10 @@
      private final Holder<SoundEvent> explosionSound;
      private final ObjectArrayList<BlockPos> toBlow = new ObjectArrayList<>();
@@ -11,6 +19,35 @@
  
      public static DamageSource getDefaultDamageSource(Level p_312716_, @Nullable Entity p_312608_) {
          return p_312716_.damageSources().explosion(p_312608_, getIndirectSourceEntityInternal(p_312608_));
+@@ -154,7 +_,7 @@
+     ) {
+         this.level = p_46024_;
+         this.source = p_46025_;
+-        this.radius = p_46029_;
++        this.radius = (float) Math.max(p_46029_, 0.0); // CraftBukkit - clamp bad values
+         this.x = p_46026_;
+         this.y = p_46027_;
+         this.z = p_46028_;
+@@ -165,6 +_,7 @@
+         this.smallExplosionParticles = p_312158_;
+         this.largeExplosionParticles = p_311904_;
+         this.explosionSound = p_320270_;
++        this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F; // CraftBukkit
+     }
+ 
+     private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity p_46063_) {
+@@ -214,6 +_,11 @@
+     }
+ 
+     public void explode() {
++        // CraftBukkit start
++        if (this.radius < 0.1F) {
++            return;
++        }
++        // CraftBukkit end
+         this.level.gameEvent(this.source, GameEvent.EXPLODE, new Vec3(this.x, this.y, this.z));
+         Set<BlockPos> set = Sets.newHashSet();
+         int i = 16;
 @@ -269,6 +_,7 @@
          int j2 = Mth.floor(this.z - (double)f2 - 1.0);
          int j1 = Mth.floor(this.z + (double)f2 + 1.0);
@@ -19,11 +56,159 @@
          Vec3 vec3 = new Vec3(this.x, this.y, this.z);
  
          for (Entity entity : list) {
-@@ -299,6 +_,7 @@
+@@ -284,7 +_,34 @@
+                         d7 /= d12;
+                         d9 /= d12;
+                         if (this.damageCalculator.shouldDamageEntity(this, entity)) {
+-                            entity.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity));
++                            // CraftBukkit start
++                            // Special case ender dragon only give knockback if no damage is cancelled
++                            // Thinks to note:
++                            // - Setting a velocity to a ComplexEntityPart is ignored (and therefore not needed)
++                            // - Damaging ComplexEntityPart while forward the damage to EntityEnderDragon
++                            // - Damaging EntityEnderDragon does nothing
++                            // - EntityEnderDragon hitbock always covers the other parts and is therefore always present
++                            if (entity instanceof net.minecraft.world.entity.boss.EnderDragonPart) {
++                                continue;
++                            }
++
++                            entity.lastDamageCancelled = false;
++
++                            if (entity instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon) {
++                                for (net.minecraft.world.entity.boss.EnderDragonPart entityComplexPart : ((net.minecraft.world.entity.boss.enderdragon.EnderDragon) entity).subEntities) {
++                                    // Calculate damage separately for each EntityComplexPart
++                                    if (list.contains(entityComplexPart)) {
++                                        entityComplexPart.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity));
++                                    }
++                                }
++                            } else {
++                                entity.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity));
++                            }
++
++                            if (entity.lastDamageCancelled) { // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Skip entity if damage event was cancelled
++                                continue;
++                            }
++                            // CraftBukkit end
+                         }
+ 
+                         double d13 = (1.0 - d11) * (double)getSeenPercent(vec3, entity) * (double)this.damageCalculator.getKnockbackMultiplier(entity);
+@@ -299,6 +_,20 @@
                          d7 *= d10;
                          d9 *= d10;
                          Vec3 vec31 = new Vec3(d5, d7, d9);
++
++                        // CraftBukkit start - Call EntityKnockbackEvent
++                        if (entity instanceof LivingEntity) {
++                            Vec3 result = entity.getDeltaMovement().add(vec31);
++                            org.bukkit.event.entity.EntityKnockbackEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) entity.getBukkitEntity(), source, org.bukkit.event.entity.EntityKnockbackEvent.KnockbackCause.EXPLOSION, d10, vec31, result.x, result.y, result.z);
++
++                            // SPIGOT-7640: Need to subtract entity movement from the event result,
++                            // since the code below (the setDeltaMovement call as well as the hitPlayers map)
++                            // want the vector to be the relative velocity will the event provides the absolute velocity
++                            vec31 = (event.isCancelled()) ? Vec3.ZERO : new Vec3(event.getFinalKnockback().getX(), event.getFinalKnockback().getY(), event.getFinalKnockback().getZ()).subtract(entity.getDeltaMovement());
++                        }
++                        // CraftBukkit end
++
 +                        vec31 = net.neoforged.neoforge.event.EventHooks.getExplosionKnockback(this.level, this, entity, vec31);
                          entity.setDeltaMovement(entity.getDeltaMovement().add(vec31));
                          if (entity instanceof Player) {
                              Player player = (Player)entity;
+@@ -314,6 +_,12 @@
+         }
+     }
+ 
++    // Mohist start
++    org.bukkit.World bworld;
++    Location location;
++    List<org.bukkit.block.Block> blockList;
++    List<org.bukkit.block.Block> bukkitBlocks;
++
+     public void finalizeExplosion(boolean p_46076_) {
+         if (this.level.isClientSide) {
+             this.level
+@@ -344,9 +_,61 @@
+         if (flag) {
+             this.level.getProfiler().push("explosion_blocks");
+             List<Pair<ItemStack, BlockPos>> list = new ArrayList<>();
++
++            // CraftBukkit start
++            bworld = this.level.getWorld();
++            location = new org.bukkit.Location(bworld, this.x, this.y, this.z);
++
++            blockList = new ObjectArrayList<>();
++            for (int i1 = this.toBlow.size() - 1; i1 >= 0; i1--) {
++                BlockPos cpos = this.toBlow.get(i1);
++                org.bukkit.block.Block bblock = bworld.getBlockAt(cpos.getX(), cpos.getY(), cpos.getZ());
++                if (!bblock.getType().isAir()) {
++                    blockList.add(bblock);
++                }
++            }
++
++            if (this.source != null) {
++                org.bukkit.event.entity.EntityExplodeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityExplodeEvent(this.source, blockList, this.yield, getBlockInteraction());
++                this.wasCanceled = event.isCancelled();
++                bukkitBlocks = event.blockList();
++                this.yield = event.getYield();
++            } else {
++                org.bukkit.block.Block block = location.getBlock();
++                org.bukkit.block.BlockState blockState = (damageSource.getDirectBlockState() != null) ? damageSource.getDirectBlockState() : block.getState();
++                org.bukkit.event.block.BlockExplodeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockExplodeEvent(block, blockState, blockList, this.yield, getBlockInteraction());
++                this.wasCanceled = event.isCancelled();
++                bukkitBlocks = event.blockList();
++                this.yield = event.getYield();
++            }
++
++            this.toBlow.clear();
++
++            for (org.bukkit.block.Block bblock : bukkitBlocks) {
++                BlockPos coords = new BlockPos(bblock.getX(), bblock.getY(), bblock.getZ());
++                toBlow.add(coords);
++            }
++
++            if (this.wasCanceled) {
++                return;
++            }
++            // CraftBukkit end
+             Util.shuffle(this.toBlow, this.level.random);
+ 
+             for (BlockPos blockpos : this.toBlow) {
++                // CraftBukkit start - TNTPrimeEvent
++                BlockState blockstate = this.level.getBlockState(blockpos);
++                Block block = blockstate.getBlock();
++                if (block instanceof net.minecraft.world.level.block.TntBlock) {
++                    Entity sourceEntity = source == null ? null : source;
++                    BlockPos sourceBlock = sourceEntity == null ? BlockPos.containing(this.x, this.y, this.z) : null;
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callTNTPrimeEvent(this.level, blockpos, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.EXPLOSION, sourceEntity, sourceBlock)) {
++                        this.level.sendBlockUpdated(blockpos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), blockstate, 3); // Update the block on the client
++                        continue;
++                    }
++                }
++                // CraftBukkit end
++
+                 this.level
+                     .getBlockState(blockpos)
+                     .onExplosionHit(this.level, blockpos, this, (p_311741_, p_311742_) -> addOrAppendStack(list, p_311741_, p_311742_));
+@@ -362,15 +_,20 @@
+         if (this.fire) {
+             for (BlockPos blockpos1 : this.toBlow) {
+                 if (this.random.nextInt(3) == 0
+-                    && this.level.getBlockState(blockpos1).isAir()
+-                    && this.level.getBlockState(blockpos1.below()).isSolidRender(this.level, blockpos1.below())) {
+-                    this.level.setBlockAndUpdate(blockpos1, BaseFireBlock.getState(this.level, blockpos1));
++                        && this.level.getBlockState(blockpos1).isAir()
++                        && this.level.getBlockState(blockpos1.below()).isSolidRender(this.level, blockpos1.below())) {
++                    // CraftBukkit start - Ignition by explosion
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(this.level, blockpos1, this).isCancelled()) {
++                        this.level.setBlockAndUpdate(blockpos1, BaseFireBlock.getState(this.level, blockpos1));
++                    }
++                    // CraftBukkit end
+                 }
+             }
+         }
+     }
+ 
+     private static void addOrAppendStack(List<Pair<ItemStack, BlockPos>> p_312455_, ItemStack p_312913_, BlockPos p_312738_) {
++        if (p_312913_.isEmpty()) return; // CraftBukkit - SPIGOT-5425
+         for (int i = 0; i < p_312455_.size(); i++) {
+             Pair<ItemStack, BlockPos> pair = p_312455_.get(i);
+             ItemStack itemstack = pair.getFirst();

@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.java
++++ b/net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.java
+@@ -73,7 +_,16 @@
+         Brain<?> brain = p_147737_.getBrain();
+         brain.getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)
+             .flatMap(p_186049_ -> p_186049_.findClosest(p_147789_ -> this.ramTargeting.test(p_147737_, p_147789_)))
+-            .ifPresent(p_147778_ -> this.chooseRamPosition(p_147737_, p_147778_));
++            .ifPresent(p_147778_ -> {
++                // CraftBukkit start
++                org.bukkit.event.entity.EntityTargetEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(p_147737_, p_147778_, (p_147778_ instanceof net.minecraft.server.level.ServerPlayer) ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER : org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
++                if (event.isCancelled() || event.getTarget() == null) {
++                    return;
++                }
++                p_147778_ = ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle();
++                // CraftBukkit end
++                this.chooseRamPosition(p_147737_, p_147778_);
++            });
+     }
+ 
+     protected void stop(ServerLevel p_147762_, E p_147763_, long p_147764_) {

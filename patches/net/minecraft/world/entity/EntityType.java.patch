@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/EntityType.java
 +++ b/net/minecraft/world/entity/EntityType.java
+@@ -190,7 +_,7 @@
+             .fireImmune()
+             .sized(6.0F, 0.5F)
+             .clientTrackingRange(10)
+-            .updateInterval(Integer.MAX_VALUE)
++            .updateInterval(10) // CraftBukkit - SPIGOT-3729: track area effect clouds
+     );
+     public static final EntityType<Armadillo> ARMADILLO = register(
+         "armadillo", EntityType.Builder.of(Armadillo::new, MobCategory.CREATURE).sized(0.7F, 0.65F).eyeHeight(0.26F).clientTrackingRange(10)
 @@ -834,6 +_,10 @@
      private final float spawnDimensionsScale;
      private final FeatureFlagSet requiredFeatures;
@@ -48,6 +57,78 @@
      }
  
      @Nullable
+@@ -884,6 +_,21 @@
+         boolean p_20598_,
+         boolean p_20599_
+     ) {
++        // CraftBukkit start
++        return this.spawn(p_20593_, p_20594_, p_20595_, p_20596_, p_20597_, p_20598_, p_20599_, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER_EGG);
++    }
++
++    @Nullable
++    public T spawn(
++            ServerLevel p_20593_,
++            @Nullable ItemStack p_20594_,
++            @Nullable Player p_20595_,
++            BlockPos p_20596_,
++            MobSpawnType p_20597_,
++            boolean p_20598_,
++            boolean p_20599_,
++            org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason
++    ) {
+         Consumer<T> consumer;
+         if (p_20594_ != null) {
+             consumer = createDefaultStackConfig(p_20593_, p_20594_, p_20595_);
+@@ -892,7 +_,7 @@
+             };
+         }
+ 
+-        return this.spawn(p_20593_, consumer, p_20596_, p_20597_, p_20598_, p_20599_);
++        return this.spawn(p_20593_, consumer, p_20596_, p_20597_, p_20598_, p_20599_, spawnReason); // CraftBukkit
+     }
+ 
+     public static <T extends Entity> Consumer<T> createDefaultStackConfig(ServerLevel p_263583_, ItemStack p_263568_, @Nullable Player p_263575_) {
+@@ -915,19 +_,37 @@
+         Consumer<T> p_263579_, ServerLevel p_263571_, ItemStack p_263582_, @Nullable Player p_263574_
+     ) {
+         CustomData customdata = p_263582_.getOrDefault(DataComponents.ENTITY_DATA, CustomData.EMPTY);
+-        return !customdata.isEmpty() ? p_263579_.andThen(p_329995_ -> updateCustomEntityTag(p_263571_, p_263574_, p_329995_, customdata)) : p_263579_;
++        return !customdata.isEmpty() ? p_263579_.andThen(p_329995_ -> {
++            try { updateCustomEntityTag(p_263571_, p_263574_, p_329995_, customdata); } catch (Throwable t) { LOGGER.warn("Error loading spawn egg NBT", t); } // CraftBukkit - SPIGOT-5665
++        }) : p_263579_;
+     }
+ 
+     @Nullable
+     public T spawn(ServerLevel p_262634_, BlockPos p_262707_, MobSpawnType p_262597_) {
+-        return this.spawn(p_262634_, null, p_262707_, p_262597_, false, false);
++        // CraftBukkit start
++        return this.spawn(p_262634_, p_262707_, p_262597_, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
++    }
++
++    @Nullable
++    public T spawn(ServerLevel worldserver, BlockPos blockposition, MobSpawnType enummobspawn, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason) {
++        return this.spawn(worldserver, (Consumer<T>) null, blockposition, enummobspawn, false, false, spawnReason); // CraftBukkit - decompile error
++        // CraftBukkit end
+     }
+ 
+     @Nullable
+     public T spawn(ServerLevel p_262704_, @Nullable Consumer<T> p_262621_, BlockPos p_262672_, MobSpawnType p_262644_, boolean p_262690_, boolean p_262590_) {
++        // CraftBukkit start
++        return this.spawn(p_262704_, p_262621_, p_262672_, p_262644_, p_262690_, p_262590_, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
++    }
++
++    @Nullable
++    public T spawn(ServerLevel p_262704_, @Nullable Consumer<T> p_262621_, BlockPos p_262672_, MobSpawnType p_262644_, boolean p_262690_, boolean p_262590_, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason) {
++        // CraftBukkit end
+         T t = this.create(p_262704_, p_262621_, p_262672_, p_262644_, p_262690_, p_262590_);
+         if (t != null) {
+-            p_262704_.addFreshEntityWithPassengers(t);
++            p_262704_.addFreshEntityWithPassengers(t, spawnReason);
++            return !t.isRemoved() ? t : null; // Don't return an entity when CreatureSpawnEvent is canceled
++            // CraftBukkit end
+         }
+ 
+         return t;
 @@ -958,6 +_,15 @@
                  mob.yHeadRot = mob.getYRot();
                  mob.yBodyRot = mob.getYRot();

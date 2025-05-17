@@ -1,10 +1,24 @@
 --- a/net/minecraft/world/level/block/CauldronBlock.java
 +++ b/net/minecraft/world/level/block/CauldronBlock.java
-@@ -58,6 +_,7 @@
+@@ -58,15 +_,15 @@
  
      @Override
      protected void receiveStalactiteDrip(BlockState p_152940_, Level p_152941_, BlockPos p_152942_, Fluid p_152943_) {
 +        if (p_152943_.getFluidType().handleCauldronDrip(p_152943_, p_152941_, p_152942_)) return;
++        BlockState blockstate;
          if (p_152943_ == Fluids.WATER) {
-             BlockState blockstate = Blocks.WATER_CAULDRON.defaultBlockState();
-             p_152941_.setBlockAndUpdate(p_152942_, blockstate);
+-            BlockState blockstate = Blocks.WATER_CAULDRON.defaultBlockState();
+-            p_152941_.setBlockAndUpdate(p_152942_, blockstate);
+-            p_152941_.gameEvent(GameEvent.BLOCK_CHANGE, p_152942_, GameEvent.Context.of(blockstate));
++            blockstate = Blocks.WATER_CAULDRON.defaultBlockState();
++            LayeredCauldronBlock.changeLevel(p_152940_, p_152941_, p_152942_, blockstate, null, org.bukkit.event.block.CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL); // CraftBukkit
+             p_152941_.levelEvent(1047, p_152942_, 0);
+         } else if (p_152943_ == Fluids.LAVA) {
+-            BlockState blockstate1 = Blocks.LAVA_CAULDRON.defaultBlockState();
+-            p_152941_.setBlockAndUpdate(p_152942_, blockstate1);
+-            p_152941_.gameEvent(GameEvent.BLOCK_CHANGE, p_152942_, GameEvent.Context.of(blockstate1));
++            blockstate = Blocks.LAVA_CAULDRON.defaultBlockState();
++            LayeredCauldronBlock.changeLevel(p_152940_, p_152941_, p_152942_, blockstate, null, org.bukkit.event.block.CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL); // CraftBukkit
+             p_152941_.levelEvent(1046, p_152942_, 0);
+         }
+     }

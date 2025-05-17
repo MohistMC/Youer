@@ -1,5 +1,39 @@
 --- a/net/minecraft/server/rcon/thread/RconClient.java
 +++ b/net/minecraft/server/rcon/thread/RconClient.java
+@@ -23,11 +_,14 @@
+     private final Socket client;
+     private final byte[] buf = new byte[1460];
+     private final String rconPassword;
+-    private final ServerInterface serverInterface;
++    // CraftBukkit start
++    private final net.minecraft.server.dedicated.DedicatedServer serverInterface;
++    private final net.minecraft.server.rcon.RconConsoleSource rconConsoleSource;
++    // CraftBukkit end
+ 
+     RconClient(ServerInterface p_11587_, String p_11588_, Socket p_11589_) {
+         super("RCON Client " + p_11589_.getInetAddress());
+-        this.serverInterface = p_11587_;
++        this.serverInterface = (net.minecraft.server.dedicated.DedicatedServer) p_11587_; // CraftBukkit
+         this.client = p_11589_;
+ 
+         try {
+@@ -37,6 +_,7 @@
+         }
+ 
+         this.rconPassword = p_11588_;
++        this.rconConsoleSource = new net.minecraft.server.rcon.RconConsoleSource(this.serverInterface, p_11589_.getRemoteSocketAddress()); // CraftBukkit
+     }
+ 
+     @Override
+@@ -67,7 +_,7 @@
+                                 String s1 = PktUtils.stringFromByteArray(this.buf, j, i);
+ 
+                                 try {
+-                                    this.sendCmdResponse(l, this.serverInterface.runCommand(s1));
++                                    this.sendCmdResponse(l, this.serverInterface.runCommand(this.rconConsoleSource, s1)); // CraftBukkit
+                                 } catch (Exception exception) {
+                                     this.sendCmdResponse(l, "Error executing: " + s1 + " (" + exception.getMessage() + ")");
+                                 }
 @@ -123,13 +_,14 @@
      }
  

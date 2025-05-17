@@ -17,7 +17,43 @@
  
      private void tryToTame(Player p_333858_) {
 -        if (this.random.nextInt(3) == 0) {
-+        if (this.random.nextInt(3) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_333858_)) {
++        if (this.random.nextInt(3) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_333858_) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, p_333858_).isCancelled()) { // CraftBukkit
              this.tame(p_333858_);
              this.setOrderedToSit(true);
              this.level().broadcastEntityEvent(this, (byte)7);
+@@ -567,17 +_,15 @@
+                 .create(LootContextParamSets.GIFT);
+ 
+             for (ItemStack itemstack : loottable.getRandomItems(lootparams)) {
+-                this.cat
+-                    .level()
+-                    .addFreshEntity(
+-                        new ItemEntity(
+-                            this.cat.level(),
+-                            (double)blockpos$mutableblockpos.getX() - (double)Mth.sin(this.cat.yBodyRot * (float) (Math.PI / 180.0)),
+-                            (double)blockpos$mutableblockpos.getY(),
+-                            (double)blockpos$mutableblockpos.getZ() + (double)Mth.cos(this.cat.yBodyRot * (float) (Math.PI / 180.0)),
+-                            itemstack
+-                        )
+-                    );
++                // CraftBukkit start
++                ItemEntity entityitem = new ItemEntity(this.cat.level(), (double) blockpos$mutableblockpos.getX() - (double) Mth.sin(this.cat.yBodyRot * 0.017453292F), (double) blockpos$mutableblockpos.getY(), (double) blockpos$mutableblockpos.getZ() + (double) Mth.cos(this.cat.yBodyRot * 0.017453292F), itemstack);
++                org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.cat.getBukkitEntity(), (org.bukkit.entity.Item) entityitem.getBukkitEntity());
++                entityitem.level().getCraftServer().getPluginManager().callEvent(event);
++                if (event.isCancelled()) {
++                    continue;
++                }
++                this.cat.level().addFreshEntity(entityitem);
++                // CraftBukkit end
+             }
+         }
+ 
+@@ -604,7 +_,7 @@
+ 
+     static class CatTemptGoal extends TemptGoal {
+         @Nullable
+-        private Player selectedPlayer;
++        private LivingEntity selectedPlayer; // CraftBukkit
+         private final Cat cat;
+ 
+         public CatTemptGoal(Cat p_28219_, double p_28220_, Predicate<ItemStack> p_335450_, boolean p_28222_) {

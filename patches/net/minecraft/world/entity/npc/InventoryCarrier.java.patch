@@ -1,0 +1,23 @@
+--- a/net/minecraft/world/entity/npc/InventoryCarrier.java
++++ b/net/minecraft/world/entity/npc/InventoryCarrier.java
+@@ -21,12 +_,19 @@
+                 return;
+             }
+ 
++            // CraftBukkit start
++            ItemStack remaining = new SimpleContainer(simplecontainer).addItem(itemstack);
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(p_219612_, p_219614_, remaining.getCount(), false).isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
++
+             p_219612_.onItemPickup(p_219614_);
+             int i = itemstack.getCount();
+             ItemStack itemstack1 = simplecontainer.addItem(itemstack);
+             p_219612_.take(p_219614_, i - itemstack1.getCount());
+             if (itemstack1.isEmpty()) {
+-                p_219614_.discard();
++                p_219614_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             } else {
+                 itemstack.setCount(itemstack1.getCount());
+             }

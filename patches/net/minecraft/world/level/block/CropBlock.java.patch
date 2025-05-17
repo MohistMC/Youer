@@ -9,7 +9,7 @@
      }
  
      protected IntegerProperty getAgeProperty() {
-@@ -84,12 +_,14 @@
+@@ -84,12 +_,28 @@
  
      @Override
      protected void randomTick(BlockState p_221050_, ServerLevel p_221051_, BlockPos p_221052_, RandomSource p_221053_) {
@@ -19,14 +19,37 @@
              if (i < this.getMaxAge()) {
 -                float f = getGrowthSpeed(this, p_221051_, p_221052_);
 -                if (p_221053_.nextInt((int)(25.0F / f) + 1) == 0) {
+-                    p_221051_.setBlock(p_221052_, this.getStateForAge(i + 1), 2);
 +                float f = getGrowthSpeed(p_221050_, p_221051_, p_221052_);
-+                if (net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_221051_, p_221052_, p_221050_, p_221053_.nextInt((int)(25.0F / f) + 1) == 0)) {
-                     p_221051_.setBlock(p_221052_, this.getStateForAge(i + 1), 2);
++
++                // Spigot start
++                int modifier;
++                if (this == Blocks.BEETROOTS) {
++                    modifier = p_221051_.spigotConfig.beetrootModifier;
++                } else if (this == Blocks.CARROTS) {
++                    modifier = p_221051_.spigotConfig.carrotModifier;
++                } else if (this == Blocks.POTATOES) {
++                    modifier = p_221051_.spigotConfig.potatoModifier;
++                } else {
++                    modifier = p_221051_.spigotConfig.wheatModifier;
++                }
++
++                if (net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_221051_, p_221052_, p_221050_, p_221053_.nextFloat() < (modifier / (100.0f * (Math.floor((25.0F / f) + 1)))))) { // Spigot - SPIGOT-7159: Better modifier resolution
++                    // Spigot end
++                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_221051_, p_221052_, this.getStateForAge(i + 1), 2); // CraftBukkit
 +                    net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_221051_, p_221052_, p_221050_);
                  }
              }
          }
-@@ -109,7 +_,8 @@
+@@ -102,14 +_,15 @@
+             i = j;
+         }
+ 
+-        p_52264_.setBlock(p_52265_, this.getStateForAge(i), 2);
++        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_52264_, p_52265_, this.getStateForAge(i), 2); // CraftBukkit
+     }
+ 
+     protected int getBonemealAgeIncrease(Level p_52262_) {
          return Mth.nextInt(p_52262_.random, 2, 5);
      }
  
@@ -58,12 +81,14 @@
          return hasSufficientLight(p_52283_, p_52284_) && super.canSurvive(p_52282_, p_52283_, p_52284_);
      }
  
-@@ -164,7 +_,7 @@
+@@ -164,7 +_,9 @@
  
      @Override
      protected void entityInside(BlockState p_52277_, Level p_52278_, BlockPos p_52279_, Entity p_52280_) {
 -        if (p_52280_ instanceof Ravager && p_52278_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
-+        if (p_52280_ instanceof Ravager && net.neoforged.neoforge.event.EventHooks.canEntityGrief(p_52278_, p_52280_)) {
++        if (p_52280_ instanceof Ravager &&
++            net.neoforged.neoforge.event.EventHooks.canEntityGrief(p_52278_, p_52280_) &&
++            org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_52280_, p_52279_, Blocks.AIR.defaultBlockState(), true)) { // CraftBukkit
              p_52278_.destroyBlock(p_52279_, true, p_52280_);
          }
  

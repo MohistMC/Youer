@@ -30,3 +30,21 @@
      }
  
      protected abstract void rewardTradeXp(MerchantOffer p_35299_);
+@@ -236,7 +_,16 @@
+         while (i < p_35280_ && !arraylist.isEmpty()) {
+             MerchantOffer merchantoffer = arraylist.remove(this.random.nextInt(arraylist.size())).getOffer(this, this.random);
+             if (merchantoffer != null) {
+-                p_35278_.add(merchantoffer);
++                // CraftBukkit start
++                org.bukkit.event.entity.VillagerAcquireTradeEvent event = new org.bukkit.event.entity.VillagerAcquireTradeEvent((org.bukkit.entity.AbstractVillager) getBukkitEntity(), merchantoffer.asBukkit());
++                // Suppress during worldgen
++                if (this.valid) {
++                    org.bukkit.Bukkit.getPluginManager().callEvent(event);
++                }
++                if (!event.isCancelled()) {
++                    p_35278_.add(org.bukkit.craftbukkit.inventory.CraftMerchantRecipe.fromBukkit(event.getRecipe()).toMinecraft());
++                }
++                // CraftBukkit end
+                 i++;
+             }
+         }

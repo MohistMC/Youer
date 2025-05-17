@@ -1,5 +1,54 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
+@@ -38,6 +_,10 @@
+     @Nullable
+     private Entity lastDeflectedBy;
+ 
++    // CraftBukkit start
++    private boolean hitCancelled = false;
++    // CraftBukkit end
++
+     protected Projectile(EntityType<? extends Projectile> p_37248_, Level p_37249_) {
+         super(p_37248_, p_37249_);
+     }
+@@ -47,6 +_,7 @@
+             this.ownerUUID = p_37263_.getUUID();
+             this.cachedOwner = p_37263_;
+         }
++        this.projectileSource = (p_37263_ != null && p_37263_.getBukkitEntity() instanceof org.bukkit.projectiles.ProjectileSource) ? (org.bukkit.projectiles.ProjectileSource) p_37263_.getBukkitEntity() : null; // CraftBukkit
+     }
+ 
+     @Nullable
+@@ -165,6 +_,17 @@
+         this.setDeltaMovement(this.getDeltaMovement().add(vec3.x, p_37252_.onGround() ? 0.0 : vec3.y, vec3.z));
+     }
+ 
++    // CraftBukkit start - call projectile hit event
++    protected ProjectileDeflection preHitTargetOrDeflectSelf(HitResult movingobjectposition) {
++        org.bukkit.event.entity.ProjectileHitEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callProjectileHitEvent(this, movingobjectposition);
++        this.hitCancelled = event != null && event.isCancelled();
++        if (movingobjectposition.getType() == HitResult.Type.BLOCK || !this.hitCancelled) {
++            return this.hitTargetOrDeflectSelf(movingobjectposition);
++        }
++        return ProjectileDeflection.NONE;
++    }
++    // CraftBukkit end
++
+     protected ProjectileDeflection hitTargetOrDeflectSelf(HitResult p_341949_) {
+         if (p_341949_.getType() == HitResult.Type.ENTITY) {
+             EntityHitResult entityhitresult = (EntityHitResult)p_341949_;
+@@ -219,6 +_,11 @@
+     }
+ 
+     protected void onHitBlock(BlockHitResult p_37258_) {
++        // CraftBukkit start - cancellable hit event
++        if (hitCancelled) {
++            return;
++        }
++        // CraftBukkit end
+         BlockState blockstate = this.level().getBlockState(p_37258_.getBlockPos());
+         blockstate.onProjectileHit(this.level(), blockstate, p_37258_, this);
+     }
 @@ -284,7 +_,7 @@
          Entity entity = this.getOwner();
          return entity instanceof Player

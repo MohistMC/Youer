@@ -1,0 +1,49 @@
+--- a/net/minecraft/world/entity/vehicle/VehicleEntity.java
++++ b/net/minecraft/world/entity/vehicle/VehicleEntity.java
+@@ -30,6 +_,18 @@
+         } else if (this.isInvulnerableTo(p_305898_)) {
+             return false;
+         } else {
++            // CraftBukkit start
++            org.bukkit.entity.Vehicle vehicle = (org.bukkit.entity.Vehicle) this.getBukkitEntity();
++            org.bukkit.entity.Entity attacker = (p_305898_.getEntity() == null) ? null : p_305898_.getEntity().getBukkitEntity();
++
++            org.bukkit.event.vehicle.VehicleDamageEvent event = new org.bukkit.event.vehicle.VehicleDamageEvent(vehicle, attacker, (double) p_305999_);
++            this.level().getCraftServer().getPluginManager().callEvent(event);
++
++            if (event.isCancelled()) {
++                return false;
++            }
++            p_305999_ = (float) event.getDamage();
++            // CraftBukkit end
+             this.setHurtDir(-this.getHurtDir());
+             this.setHurtTime(10);
+             this.markHurt();
+@@ -38,9 +_,26 @@
+             boolean flag = p_305898_.getEntity() instanceof Player && ((Player)p_305898_.getEntity()).getAbilities().instabuild;
+             if ((flag || !(this.getDamage() > 40.0F)) && !this.shouldSourceDestroy(p_305898_)) {
+                 if (flag) {
+-                    this.discard();
++                    // CraftBukkit start
++                    org.bukkit.event.vehicle.VehicleDestroyEvent destroyEvent = new org.bukkit.event.vehicle.VehicleDestroyEvent(vehicle, attacker);
++                    this.level().getCraftServer().getPluginManager().callEvent(destroyEvent);
++
++                    if (destroyEvent.isCancelled()) {
++                        this.setDamage(40.0F); // Maximize damage so this doesn't get triggered again right away
++                        return true;
++                    }
++                    // CraftBukkit end
++                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
+                 }
+             } else {
++                // CraftBukkit start
++                org.bukkit.event.vehicle.VehicleDestroyEvent destroyEvent = new org.bukkit.event.vehicle.VehicleDestroyEvent(vehicle, attacker);
++                this.level().getCraftServer().getPluginManager().callEvent(destroyEvent);
++                if (destroyEvent.isCancelled()) {
++                    this.setDamage(40.0F); // Maximize damage so this doesn't get triggered again right away
++                    return true;
++                }
++                // CraftBukkit end
+                 this.destroy(p_305898_);
+             }
+ 

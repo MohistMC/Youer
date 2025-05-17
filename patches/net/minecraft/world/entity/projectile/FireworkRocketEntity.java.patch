@@ -1,16 +1,87 @@
 --- a/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
 +++ b/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
-@@ -177,6 +_,13 @@
-         }
+@@ -83,6 +_,21 @@
+         this.setOwner(p_37052_);
      }
  
++    // Spigot Start - copied from tick
++    @Override
++    public void inactiveTick() {
++        this.life += 1;
++        if (!this.level().isClientSide && this.life > this.lifetime) {
++            // CraftBukkit start
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callFireworkExplodeEvent(this).isCancelled()) {
++                this.explode();
++            }
++            // CraftBukkit end
++        }
++        super.inactiveTick();
++    }
++    // Spigot End
++
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder p_326171_) {
+         p_326171_.define(DATA_ID_FIREWORKS_ITEM, getDefaultItem());
+@@ -149,7 +_,7 @@
+ 
+         HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
+         if (!this.noPhysics) {
+-            this.hitTargetOrDeflectSelf(hitresult);
++            this.preHitTargetOrDeflectSelf(hitresult); // CraftBukkit - projectile hit event
+             this.hasImpulse = true;
+         }
+ 
+@@ -173,7 +_,18 @@
+         }
+ 
+         if (!this.level().isClientSide && this.life > this.lifetime) {
+-            this.explode();
++            // CraftBukkit start
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callFireworkExplodeEvent(this).isCancelled()) {
++                this.explode();
++            }
++            // CraftBukkit end
++        }
++    }
++
 +    @Override
 +    protected void onHit(HitResult result) {
 +        if (result.getType() == HitResult.Type.MISS || !net.neoforged.neoforge.event.EventHooks.onProjectileImpact(this, result)) {
 +            super.onHit(result);
-+        }
-+    }
-+
-     private void explode() {
+         }
+     }
+ 
+@@ -181,14 +_,18 @@
          this.level().broadcastEntityEvent(this, (byte)17);
          this.gameEvent(GameEvent.EXPLODE, this.getOwner());
+         this.dealExplosionDamage();
+-        this.discard();
++        this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
+     }
+ 
+     @Override
+     protected void onHitEntity(EntityHitResult p_37071_) {
+         super.onHitEntity(p_37071_);
+         if (!this.level().isClientSide) {
+-            this.explode();
++            // CraftBukkit start
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callFireworkExplodeEvent(this).isCancelled()) {
++                this.explode();
++            }
++            // CraftBukkit end
+         }
+     }
+ 
+@@ -197,7 +_,11 @@
+         BlockPos blockpos = new BlockPos(p_37069_.getBlockPos());
+         this.level().getBlockState(blockpos).entityInside(this.level(), blockpos, this);
+         if (!this.level().isClientSide() && this.hasExplosion()) {
+-            this.explode();
++            // CraftBukkit start
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callFireworkExplodeEvent(this).isCancelled()) {
++                this.explode();
++            }
++            // CraftBukkit end
+         }
+ 
+         super.onHitBlock(p_37069_);

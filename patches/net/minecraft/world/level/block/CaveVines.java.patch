@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/level/block/CaveVines.java
++++ b/net/minecraft/world/level/block/CaveVines.java
+@@ -23,7 +_,24 @@
+ 
+     static InteractionResult use(@Nullable Entity p_270738_, BlockState p_270772_, Level p_270721_, BlockPos p_270587_) {
+         if (p_270772_.getValue(BERRIES)) {
+-            Block.popResource(p_270721_, p_270587_, new ItemStack(Items.GLOW_BERRIES, 1));
++            // CraftBukkit start
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_270738_, p_270587_, p_270772_.setValue(BERRIES, false))) {
++                return InteractionResult.SUCCESS;
++            }
++
++            if (p_270738_ instanceof net.minecraft.world.entity.player.Player) {
++                org.bukkit.event.player.PlayerHarvestBlockEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerHarvestBlockEvent(p_270721_, p_270587_, (net.minecraft.world.entity.player.Player) p_270738_, net.minecraft.world.InteractionHand.MAIN_HAND, java.util.Collections.singletonList(new ItemStack(Items.GLOW_BERRIES, 1)));
++                if (event.isCancelled()) {
++                    return InteractionResult.SUCCESS; // We need to return a success either way, because making it PASS or FAIL will result in a bug where cancelling while harvesting w/ block in hand places block
++                }
++                for (org.bukkit.inventory.ItemStack itemStack : event.getItemsHarvested()) {
++                    Block.popResource(p_270721_, p_270587_, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(itemStack));
++                }
++            } else {
++                Block.popResource(p_270721_, p_270587_, new ItemStack(Items.GLOW_BERRIES, 1));
++            }
++            // CraftBukkit end
++
+             float f = Mth.randomBetween(p_270721_.random, 0.8F, 1.2F);
+             p_270721_.playSound(null, p_270587_, SoundEvents.CAVE_VINES_PICK_BERRIES, SoundSource.BLOCKS, 1.0F, f);
+             BlockState blockstate = p_270772_.setValue(BERRIES, Boolean.valueOf(false));

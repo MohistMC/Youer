@@ -1,0 +1,38 @@
+--- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
++++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
+@@ -84,6 +_,20 @@
+         int i = this.getSignalStrength(p_152145_, p_152146_);
+         boolean flag = p_152148_ > 0;
+         boolean flag1 = i > 0;
++
++        // CraftBukkit start - Interact Pressure Plate
++        org.bukkit.World bworld = p_152145_.getWorld();
++        org.bukkit.plugin.PluginManager manager = p_152145_.getCraftServer().getPluginManager();
++
++        if (flag != flag1) {
++            org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(bworld.getBlockAt(p_152146_.getX(), p_152146_.getY(), p_152146_.getZ()), p_152148_, i);
++            manager.callEvent(eventRedstone);
++
++            flag1 = eventRedstone.getNewCurrent() > 0;
++            i = eventRedstone.getNewCurrent();
++        }
++        // CraftBukkit end
++
+         if (p_152148_ != i) {
+             BlockState blockstate = this.setSignalForState(p_152147_, i);
+             p_152145_.setBlock(p_152146_, blockstate, 2);
+@@ -136,7 +_,13 @@
+     }
+ 
+     protected static int getEntityCount(Level p_289656_, AABB p_289647_, Class<? extends Entity> p_289686_) {
+-        return p_289656_.getEntitiesOfClass(p_289686_, p_289647_, EntitySelector.NO_SPECTATORS.and(p_289691_ -> !p_289691_.isIgnoringBlockTriggers())).size();
++        // CraftBukkit start
++        return getEntities(p_289656_, p_289647_, p_289686_).size();
++    }
++
++    protected static <T extends Entity> java.util.List<T> getEntities(Level level, AABB aabb, Class<T> entityClass) {
++        return level.getEntitiesOfClass(entityClass, aabb, EntitySelector.NO_SPECTATORS.and(entity -> !entity.isIgnoringBlockTriggers()));
++        // CraftBukkit end
+     }
+ 
+     protected abstract int getSignalStrength(Level p_49336_, BlockPos p_49337_);

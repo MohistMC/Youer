@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/block/BigDripleafBlock.java
 +++ b/net/minecraft/world/level/block/BigDripleafBlock.java
+@@ -134,7 +_,7 @@
+ 
+     @Override
+     protected void onProjectileHit(Level p_152228_, BlockState p_152229_, BlockHitResult p_152230_, Projectile p_152231_) {
+-        this.setTiltAndScheduleTick(p_152229_, p_152228_, p_152230_.getBlockPos(), Tilt.FULL, SoundEvents.BIG_DRIPLEAF_TILT_DOWN);
++        this.setTiltAndScheduleTick(p_152229_, p_152228_, p_152230_.getBlockPos(), Tilt.FULL, SoundEvents.BIG_DRIPLEAF_TILT_DOWN, p_152231_); // CraftBukkit
+     }
+ 
+     @Override
 @@ -146,6 +_,8 @@
      protected boolean canSurvive(BlockState p_152289_, LevelReader p_152290_, BlockPos p_152291_) {
          BlockPos blockpos = p_152291_.below();
@@ -9,3 +18,77 @@
          return blockstate.is(this) || blockstate.is(Blocks.BIG_DRIPLEAF_STEM) || blockstate.is(BlockTags.BIG_DRIPLEAF_PLACEABLE);
      }
  
+@@ -192,7 +_,20 @@
+     protected void entityInside(BlockState p_152266_, Level p_152267_, BlockPos p_152268_, Entity p_152269_) {
+         if (!p_152267_.isClientSide) {
+             if (p_152266_.getValue(TILT) == Tilt.NONE && canEntityTilt(p_152268_, p_152269_) && !p_152267_.hasNeighborSignal(p_152268_)) {
+-                this.setTiltAndScheduleTick(p_152266_, p_152267_, p_152268_, Tilt.UNSTABLE, null);
++                // CraftBukkit start - tilt dripleaf
++                org.bukkit.event.Cancellable cancellable;
++                if (p_152269_ instanceof net.minecraft.world.entity.player.Player) {
++                    cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((net.minecraft.world.entity.player.Player) p_152269_, org.bukkit.event.block.Action.PHYSICAL, p_152268_, null, null, null);
++                } else {
++                    cancellable = new org.bukkit.event.entity.EntityInteractEvent(p_152269_.getBukkitEntity(), p_152267_.getWorld().getBlockAt(p_152268_.getX(), p_152268_.getY(), p_152268_.getZ()));
++                    p_152267_.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
++                }
++
++                if (cancellable.isCancelled()) {
++                    return;
++                }
++                this.setTiltAndScheduleTick(p_152266_, p_152267_, p_152268_, Tilt.UNSTABLE, null, p_152269_);
++                // CraftBukkit end
+             }
+         }
+     }
+@@ -204,9 +_,9 @@
+         } else {
+             Tilt tilt = p_220798_.getValue(TILT);
+             if (tilt == Tilt.UNSTABLE) {
+-                this.setTiltAndScheduleTick(p_220798_, p_220799_, p_220800_, Tilt.PARTIAL, SoundEvents.BIG_DRIPLEAF_TILT_DOWN);
++                this.setTiltAndScheduleTick(p_220798_, p_220799_, p_220800_, Tilt.PARTIAL, SoundEvents.BIG_DRIPLEAF_TILT_DOWN, null); // CraftBukkit
+             } else if (tilt == Tilt.PARTIAL) {
+-                this.setTiltAndScheduleTick(p_220798_, p_220799_, p_220800_, Tilt.FULL, SoundEvents.BIG_DRIPLEAF_TILT_DOWN);
++                this.setTiltAndScheduleTick(p_220798_, p_220799_, p_220800_, Tilt.FULL, SoundEvents.BIG_DRIPLEAF_TILT_DOWN, null); // CraftBukkit
+             } else if (tilt == Tilt.FULL) {
+                 resetTilt(p_220798_, p_220799_, p_220800_);
+             }
+@@ -229,8 +_,8 @@
+         return p_152303_.onGround() && p_152303_.position().y > (double)((float)p_152302_.getY() + 0.6875F);
+     }
+ 
+-    private void setTiltAndScheduleTick(BlockState p_152283_, Level p_152284_, BlockPos p_152285_, Tilt p_152286_, @Nullable SoundEvent p_152287_) {
+-        setTilt(p_152283_, p_152284_, p_152285_, p_152286_);
++    private void setTiltAndScheduleTick(BlockState p_152283_, Level p_152284_, BlockPos p_152285_, Tilt p_152286_, @Nullable SoundEvent p_152287_, @Nullable Entity entity) {
++        if (!setTilt(p_152283_, p_152284_, p_152285_, p_152286_, entity)) return; // CraftBukkit
+         if (p_152287_ != null) {
+             playTiltSound(p_152284_, p_152285_, p_152287_);
+         }
+@@ -242,18 +_,26 @@
+     }
+ 
+     private static void resetTilt(BlockState p_152314_, Level p_152315_, BlockPos p_152316_) {
+-        setTilt(p_152314_, p_152315_, p_152316_, Tilt.NONE);
++        setTilt(p_152314_, p_152315_, p_152316_, Tilt.NONE, null); // CraftBukkit
+         if (p_152314_.getValue(TILT) != Tilt.NONE) {
+             playTiltSound(p_152315_, p_152316_, SoundEvents.BIG_DRIPLEAF_TILT_UP);
+         }
+     }
+ 
+-    private static void setTilt(BlockState p_152278_, Level p_152279_, BlockPos p_152280_, Tilt p_152281_) {
++    private static boolean setTilt(BlockState p_152278_, Level p_152279_, BlockPos p_152280_, Tilt p_152281_, @Nullable Entity entity) {
++        // CraftBukkit start
++        if (entity != null) {
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, p_152280_, p_152278_.setValue(TILT, p_152281_))) {
++                return false;
++            }
++        }
++        // CraftBukkit end
+         Tilt tilt = p_152278_.getValue(TILT);
+         p_152279_.setBlock(p_152280_, p_152278_.setValue(TILT, p_152281_), 2);
+         if (p_152281_.causesVibration() && p_152281_ != tilt) {
+             p_152279_.gameEvent(null, GameEvent.BLOCK_CHANGE, p_152280_);
+         }
++        return true; // CraftBukkit
+     }
+ 
+     @Override

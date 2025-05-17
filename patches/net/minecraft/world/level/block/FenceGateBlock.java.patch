@@ -58,7 +58,24 @@
                  SoundSource.BLOCKS,
                  1.0F,
                  p_311813_.getRandom().nextFloat() * 0.1F + 0.9F
-@@ -207,7 +_,7 @@
+@@ -201,13 +_,24 @@
+     protected void neighborChanged(BlockState p_53372_, Level p_53373_, BlockPos p_53374_, Block p_53375_, BlockPos p_53376_, boolean p_53377_) {
+         if (!p_53373_.isClientSide) {
+             boolean flag = p_53373_.hasNeighborSignal(p_53374_);
++            // CraftBukkit start
++            boolean oldPowered = p_53372_.getValue(POWERED);
++            if (oldPowered != flag) {
++                int newPower = flag ? 15 : 0;
++                int oldPower = oldPowered ? 15 : 0;
++                org.bukkit.block.Block bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_53373_, p_53374_);
++                org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(bukkitBlock, oldPower, newPower);
++                p_53373_.getCraftServer().getPluginManager().callEvent(eventRedstone);
++                flag = eventRedstone.getNewCurrent() > 0;
++            }
++            // CraftBukkit end
+             if (p_53372_.getValue(POWERED) != flag) {
+                 p_53373_.setBlock(p_53374_, p_53372_.setValue(POWERED, Boolean.valueOf(flag)).setValue(OPEN, Boolean.valueOf(flag)), 2);
+                 if (p_53372_.getValue(OPEN) != flag) {
                      p_53373_.playSound(
                          null,
                          p_53374_,

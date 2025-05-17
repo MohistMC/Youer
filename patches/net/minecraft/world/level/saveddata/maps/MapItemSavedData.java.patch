@@ -42,6 +42,74 @@
      }
  
      public static MapItemSavedData createFresh(
+@@ -100,9 +_,29 @@
+     }
+ 
+     public static MapItemSavedData load(CompoundTag p_164808_, HolderLookup.Provider p_324560_) {
++        // CraftBukkit start
+         ResourceKey<Level> resourcekey = DimensionType.parseLegacy(new Dynamic<>(NbtOps.INSTANCE, p_164808_.get("dimension")))
+             .resultOrPartial(LOGGER::error)
+-            .orElseThrow(() -> new IllegalArgumentException("Invalid map dimension: " + p_164808_.get("dimension")));
++            .orElseGet(() -> {
++                long least = p_164808_.getLong("UUIDLeast");
++                long most = p_164808_.getLong("UUIDMost");
++
++                if (least != 0L && most != 0L) {
++                    java.util.UUID uniqueId = new java.util.UUID(most, least);
++
++                    org.bukkit.craftbukkit.CraftWorld world = (org.bukkit.craftbukkit.CraftWorld) org.bukkit.Bukkit.getWorld(uniqueId);
++                    // Check if the stored world details are correct.
++                    if (world == null) {
++                        /* All Maps which do not have their valid world loaded are set to a dimension which hopefully won't be reached.
++                           This is to prevent them being corrupted with the wrong map data. */
++                        // PAIL: Use Vanilla exception handling for now
++                    } else {
++                        return world.getHandle().dimension();
++                    }
++                }
++                throw new IllegalArgumentException("Invalid map dimension: " + String.valueOf(p_164808_.get("dimension")));
++            });
++        // CraftBukkit end
+         int i = p_164808_.getInt("xCenter");
+         int j = p_164808_.getInt("zCenter");
+         byte b0 = (byte)Mth.clamp(p_164808_.getByte("scale"), 0, 4);
+@@ -156,10 +_,32 @@
+ 
+     @Override
+     public CompoundTag save(CompoundTag p_77956_, HolderLookup.Provider p_323858_) {
+-        ResourceLocation.CODEC
+-            .encodeStart(NbtOps.INSTANCE, this.dimension.location())
+-            .resultOrPartial(LOGGER::error)
+-            .ifPresent(p_77954_ -> p_77956_.put("dimension", p_77954_));
++        // CraftBukkit start
++        com.mojang.serialization.DataResult<net.minecraft.nbt.Tag> dataresult = ResourceLocation.CODEC.encodeStart(NbtOps.INSTANCE, this.dimension.location());
++        Logger logger = LOGGER;
++
++        Objects.requireNonNull(logger);
++        dataresult.resultOrPartial(logger::error).ifPresent((nbtbase) -> {
++            p_77956_.put("dimension", nbtbase);
++        });
++        if (true) {
++            if (this.uniqueId == null) {
++                for (org.bukkit.World world : server.getWorlds()) {
++                    org.bukkit.craftbukkit.CraftWorld cWorld = (org.bukkit.craftbukkit.CraftWorld) world;
++                    if (cWorld.getHandle().dimension() == this.dimension) {
++                        this.uniqueId = cWorld.getUID();
++                        break;
++                    }
++                }
++            }
++            /* Perform a second check to see if a matching world was found, this is a necessary
++               change incase Maps are forcefully unlinked from a World and lack a UID.*/
++            if (this.uniqueId != null) {
++                p_77956_.putLong("UUIDLeast", this.uniqueId.getLeastSignificantBits());
++                p_77956_.putLong("UUIDMost", this.uniqueId.getMostSignificantBits());
++            }
++        }
++        // CraftBukkit end
+         p_77956_.putInt("xCenter", this.centerX);
+         p_77956_.putInt("zCenter", this.centerZ);
+         p_77956_.putByte("scale", this.scale);
 @@ -268,7 +_,7 @@
          }
      }
@@ -60,3 +128,62 @@
          Holder<MapDecorationType> p_335830_,
          @Nullable LevelAccessor p_77939_,
          String p_77940_,
+@@ -507,6 +_,10 @@
+         }
+ 
+         private MapItemSavedData.MapPatch createPatch() {
++            // CraftBukkit start
++            org.bukkit.craftbukkit.map.RenderData render = MapItemSavedData.this.mapView.render((org.bukkit.craftbukkit.entity.CraftPlayer) this.player.getBukkitEntity());
++            byte[] buffer = render.buffer;
++
+             int i = this.minDirtyX;
+             int j = this.minDirtyY;
+             int k = this.maxDirtyX + 1 - this.minDirtyX;
+@@ -515,15 +_,18 @@
+ 
+             for (int i1 = 0; i1 < k; i1++) {
+                 for (int j1 = 0; j1 < l; j1++) {
+-                    abyte[i1 + j1 * k] = MapItemSavedData.this.colors[i + i1 + (j + j1) * 128];
++                    abyte[i1 + j1 * k] = buffer[i + i1 + (j + j1) * 128];
+                 }
+             }
++            // CraftBukkit end
+ 
+             return new MapItemSavedData.MapPatch(i, j, k, l, abyte);
+         }
+ 
+         @Nullable
+         Packet<?> nextUpdatePacket(MapId p_324558_) {
++            org.bukkit.craftbukkit.map.RenderData render = MapItemSavedData.this.mapView.render((org.bukkit.craftbukkit.entity.CraftPlayer) this.player.getBukkitEntity()); // CraftBukkit
++
+             MapItemSavedData.MapPatch mapitemsaveddata$mappatch;
+             if (this.dirtyData) {
+                 this.dirtyData = false;
+@@ -533,9 +_,25 @@
+             }
+ 
+             Collection<MapDecoration> collection;
+-            if (this.dirtyDecorations && this.tick++ % 5 == 0) {
++            // CraftBukkit start
++            if ((true || this.dirtyDecorations) && this.tick++ % 5 == 0) { // custom maps don't update this yet
+                 this.dirtyDecorations = false;
+-                collection = MapItemSavedData.this.decorations.values();
++
++                java.util.Collection<MapDecoration> icons = new java.util.ArrayList<MapDecoration>();
++
++                for (org.bukkit.map.MapCursor cursor : render.cursors) {
++                    if (cursor.isVisible()) {
++                        icons.add(new MapDecoration(
++                            org.bukkit.craftbukkit.map.CraftMapCursor.CraftType.bukkitToMinecraftHolder(cursor.getType()),
++                            cursor.getX(),
++                            cursor.getY(),
++                            cursor.getDirection(),
++                            org.bukkit.craftbukkit.util.CraftChatMessage.fromStringOrOptional(cursor.getCaption())
++                        ));
++                    }
++                }
++                collection = icons;
++                // CraftBukkit end
+             } else {
+                 collection = null;
+             }

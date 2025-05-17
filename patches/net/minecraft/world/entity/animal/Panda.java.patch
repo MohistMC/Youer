@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/entity/animal/Panda.java
++++ b/net/minecraft/world/entity/animal/Panda.java
+@@ -548,7 +_,7 @@
+ 
+     @Override
+     protected void pickUpItem(ItemEntity p_29121_) {
+-        if (this.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty() && PANDA_ITEMS.test(p_29121_)) {
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(this, p_29121_, 0, !(this.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty() && Panda.PANDA_ITEMS.test(p_29121_))).isCancelled()) { // CraftBukkit
+             this.onItemPickup(p_29121_);
+             ItemStack itemstack = p_29121_.getItem();
+             this.setItemSlot(EquipmentSlot.MAINHAND, itemstack);
+@@ -883,7 +_,7 @@
+         @Override
+         protected void alertOther(Mob p_29295_, LivingEntity p_29296_) {
+             if (p_29295_ instanceof Panda && p_29295_.isAggressive()) {
+-                p_29295_.setTarget(p_29296_);
++                p_29295_.setTarget(p_29296_, org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_ENTITY, true); // CraftBukkit;
+             }
+         }
+     }

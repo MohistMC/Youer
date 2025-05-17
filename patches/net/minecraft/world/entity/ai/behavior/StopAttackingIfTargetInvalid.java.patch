@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/entity/ai/behavior/StopAttackingIfTargetInvalid.java
++++ b/net/minecraft/world/entity/ai/behavior/StopAttackingIfTargetInvalid.java
+@@ -41,6 +_,17 @@
+                                     && !p_260357_.test(livingentity)) {
+                                     return true;
+                                 } else {
++                                    // CraftBukkit start
++                                    LivingEntity old = livingentity.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null);
++                                    org.bukkit.event.entity.EntityTargetEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(livingentity, null, (old != null && !old.isAlive()) ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_DIED : org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET);
++                                    if (event.isCancelled()) {
++                                        return false;
++                                    }
++                                    if (event.getTarget() != null) {
++                                        livingentity.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle());
++                                        return true;
++                                    }
++                                    // CraftBukkit end
+                                     p_259568_.accept(p_258796_, livingentity);
+                                     p_258787_.erase();
+                                     return true;

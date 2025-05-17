@@ -1,0 +1,55 @@
+--- a/net/minecraft/world/level/levelgen/feature/EndPlatformFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/EndPlatformFeature.java
+@@ -19,6 +_,14 @@
+     }
+ 
+     public static void createEndPlatform(ServerLevelAccessor p_352905_, BlockPos p_352961_, boolean p_352931_) {
++        createEndPlatform(p_352905_, p_352961_, p_352931_, null);
++        // CraftBukkit start
++    }
++
++    public static void createEndPlatform(ServerLevelAccessor p_352905_, BlockPos p_352961_, boolean p_352931_, net.minecraft.world.entity.Entity entity) {
++        org.bukkit.craftbukkit.util.BlockStateListPopulator blockList = new org.bukkit.craftbukkit.util.BlockStateListPopulator(p_352905_);
++        // CraftBukkit end
++
+         BlockPos.MutableBlockPos blockpos$mutableblockpos = p_352961_.mutable();
+ 
+         for (int i = -2; i <= 2; i++) {
+@@ -26,15 +_,33 @@
+                 for (int k = -1; k < 3; k++) {
+                     BlockPos blockpos = blockpos$mutableblockpos.set(p_352961_).move(j, k, i);
+                     Block block = k == -1 ? Blocks.OBSIDIAN : Blocks.AIR;
+-                    if (!p_352905_.getBlockState(blockpos).is(block)) {
++                    // CraftBukkit start
++                    if (!blockList.getBlockState(blockpos).is(block)) {
+                         if (p_352931_) {
+-                            p_352905_.destroyBlock(blockpos, true, null);
++                            blockList.destroyBlock(blockpos, true, null);
+                         }
+ 
+-                        p_352905_.setBlock(blockpos, block.defaultBlockState(), 3);
++                        blockList.setBlock(blockpos, block.defaultBlockState(), 3);
++                        // CraftBukkit end
++                    }
+                     }
+                 }
+             }
+-        }
++
++        // CraftBukkit start
++        if (entity == null) {
++            // SPIGOT-7746: Entity will only be null during world generation, which is async, so just generate without event
++            blockList.updateList();
++            return;
++        }
++
++        org.bukkit.World bworld = p_352905_.getLevel().getWorld();
++        org.bukkit.event.world.PortalCreateEvent portalEvent = new org.bukkit.event.world.PortalCreateEvent((java.util.List<org.bukkit.block.BlockState>) (java.util.List) blockList.getList(), bworld, entity.getBukkitEntity(), org.bukkit.event.world.PortalCreateEvent.CreateReason.END_PLATFORM);
++
++        p_352905_.getLevel().getCraftServer().getPluginManager().callEvent(portalEvent);
++        if (!portalEvent.isCancelled()) {
++            blockList.updateList();
++        }
++        // CraftBukkit end
+     }
+ }

@@ -1,6 +1,24 @@
 --- a/net/minecraft/world/level/block/MushroomBlock.java
 +++ b/net/minecraft/world/level/block/MushroomBlock.java
-@@ -85,15 +_,24 @@
+@@ -48,7 +_,7 @@
+ 
+     @Override
+     protected void randomTick(BlockState p_221784_, ServerLevel p_221785_, BlockPos p_221786_, RandomSource p_221787_) {
+-        if (p_221787_.nextInt(25) == 0) {
++        if (p_221787_.nextFloat() < (p_221785_.spigotConfig.mushroomModifier / (100.0f * 25))) { // Spigot - SPIGOT-7159: Better modifier resolution
+             int i = 5;
+             int j = 4;
+ 
+@@ -71,7 +_,7 @@
+             }
+ 
+             if (p_221785_.isEmptyBlock(blockpos1) && p_221784_.canSurvive(p_221785_, blockpos1)) {
+-                p_221785_.setBlock(blockpos1, p_221784_, 2);
++                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_221785_, p_221786_, blockpos1, p_221784_, 2); // CraftBukkit
+             }
+         }
+     }
+@@ -85,19 +_,31 @@
      protected boolean canSurvive(BlockState p_54880_, LevelReader p_54881_, BlockPos p_54882_) {
          BlockPos blockpos = p_54882_.below();
          BlockState blockstate = p_54881_.getBlockState(blockpos);
@@ -26,3 +44,10 @@
          if (optional.isEmpty()) {
              return false;
          } else {
+             p_221774_.removeBlock(p_221775_, false);
++            // CraftBukkit start
++            SaplingBlock.treeType = (this == Blocks.BROWN_MUSHROOM) ? org.bukkit.TreeType.BROWN_MUSHROOM : org.bukkit.TreeType.RED_MUSHROOM;
++            // CraftBukkit end
+             if (optional.get().value().place(p_221774_, p_221774_.getChunkSource().getGenerator(), p_221777_, p_221775_)) {
+                 return true;
+             } else {

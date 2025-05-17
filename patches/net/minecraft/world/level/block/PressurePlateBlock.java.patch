@@ -1,0 +1,36 @@
+--- a/net/minecraft/world/level/block/PressurePlateBlock.java
++++ b/net/minecraft/world/level/block/PressurePlateBlock.java
+@@ -47,7 +_,32 @@
+             case EVERYTHING -> Entity.class;
+             case MOBS -> LivingEntity.class;
+         };
+-        return getEntityCount(p_55264_, TOUCH_AABB.move(p_55265_), oclass) > 0 ? 15 : 0;
++
++        // CraftBukkit start - Call interact event when turning on a pressure plate
++        for (Entity entity : getEntities(p_55264_, TOUCH_AABB.move(p_55265_), oclass)) {
++            if (this.getSignalForState(p_55264_.getBlockState(p_55265_)) == 0) {
++                org.bukkit.World bworld = p_55264_.getWorld();
++                org.bukkit.plugin.PluginManager manager = p_55264_.getCraftServer().getPluginManager();
++                org.bukkit.event.Cancellable cancellable;
++
++                if (entity instanceof net.minecraft.world.entity.player.Player) {
++                    cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((net.minecraft.world.entity.player.Player) entity, org.bukkit.event.block.Action.PHYSICAL, p_55265_, null, null, null);
++                } else {
++                    cancellable = new org.bukkit.event.entity.EntityInteractEvent(entity.getBukkitEntity(), bworld.getBlockAt(p_55265_.getX(), p_55265_.getY(), p_55265_.getZ()));
++                    manager.callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
++                }
++
++                // We only want to block turning the plate on if all events are cancelled
++                if (cancellable.isCancelled()) {
++                    continue;
++                }
++            }
++
++            return 15;
++        }
++
++        return 0;
++        // CraftBukkit end
+     }
+ 
+     @Override

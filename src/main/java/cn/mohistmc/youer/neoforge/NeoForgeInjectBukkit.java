@@ -232,8 +232,8 @@ public class NeoForgeInjectBukkit {
                     ServerAPI.entityTypeMap.put(entity, normalizeName(resourceLocation.getPath()));
                 }
             }
-
         }
+        EntityClassLookup.init();
     }
 
     public static void addEnumAttribute() {

@@ -77,11 +77,40 @@
          @Override
          public int getContainerSize() {
              return 1;
-@@ -179,6 +_,33 @@
+@@ -77,11 +_,19 @@
  
+         @Override
+         public void setItem(int p_59585_, ItemStack p_59586_) {
++            // CraftBukkit start
++            if (p_59585_ == 0) {
++                LecternBlockEntity.this.setBook(p_59586_);
++                if (LecternBlockEntity.this.getLevel() != null) {
++                    LecternBlock.resetBookState(null, LecternBlockEntity.this.getLevel(), LecternBlockEntity.this.getBlockPos(), LecternBlockEntity.this.getBlockState(), LecternBlockEntity.this.hasBook());
++                }
++            }
++            // CraftBukkit end
+         }
+ 
+         @Override
+         public int getMaxStackSize() {
+-            return 1;
++            return maxStack; // CraftBukkit
+         }
+ 
+         @Override
+@@ -159,7 +_,7 @@
+         if (i != this.page) {
+             this.page = i;
+             this.setChanged();
+-            LecternBlock.signalPageChange(this.getLevel(), this.getBlockPos(), this.getBlockState());
++            if (this.level != null) LecternBlock.signalPageChange(this.getLevel(), this.getBlockPos(), this.getBlockState());  // CraftBukkit
+         }
+     }
+ 
+@@ -180,6 +_,33 @@
          return p_59555_;
      }
-+
+ 
 +    // CraftBukkit start
 +    @Override
 +    public void sendSystemMessage(Component ichatbasecomponent) {
@@ -108,6 +137,25 @@
 +    }
 +
 +    // CraftBukkit end
- 
++
      private CommandSourceStack createCommandSourceStack(@Nullable Player p_59535_) {
          String s;
+         Component component;
+@@ -192,7 +_,7 @@
+         }
+ 
+         Vec3 vec3 = Vec3.atCenterOf(this.worldPosition);
+-        return new CommandSourceStack(CommandSource.NULL, vec3, Vec2.ZERO, (ServerLevel)this.level, 2, s, component, this.level.getServer(), p_59535_);
++        return new CommandSourceStack(this, vec3, Vec2.ZERO, (ServerLevel)this.level, 2, s, component, this.level.getServer(), p_59535_); // CraftBukkit - this
+     }
+ 
+     @Override
+@@ -229,7 +_,7 @@
+ 
+     @Override
+     public AbstractContainerMenu createMenu(int p_59562_, Inventory p_59563_, Player p_59564_) {
+-        return new LecternMenu(p_59562_, this.bookAccess, this.dataAccess);
++        return new LecternMenu(p_59562_, this.bookAccess, this.dataAccess, p_59563_); // CraftBukkit
+     }
+ 
+     @Override

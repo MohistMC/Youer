@@ -1,0 +1,37 @@
+--- a/net/minecraft/world/entity/animal/Turtle.java
++++ b/net/minecraft/world/entity/animal/Turtle.java
+@@ -303,7 +_,9 @@
+     protected void ageBoundaryReached() {
+         super.ageBoundaryReached();
+         if (!this.isBaby() && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
++            this.forceDrops = true; // CraftBukkit
+             this.spawnAtLocation(Items.TURTLE_SCUTE, 1);
++            this.forceDrops = false; // CraftBukkit
+         }
+     }
+ 
+@@ -328,7 +_,7 @@
+ 
+     @Override
+     public void thunderHit(ServerLevel p_30140_, LightningBolt p_30141_) {
+-        this.hurt(this.damageSources().lightningBolt(), Float.MAX_VALUE);
++        this.hurt(this.damageSources().lightningBolt().customEntityDamager(p_30141_), Float.MAX_VALUE); // CraftBukkit
+     }
+ 
+     @Override
+@@ -509,6 +_,7 @@
+                     this.turtle.setLayingEgg(true);
+                 } else if (this.turtle.layEggCounter > this.adjustedTickDelay(200)) {
+                     Level level = this.turtle.level();
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.turtle, this.blockPos.above(), (BlockState) Blocks.TURTLE_EGG.defaultBlockState().setValue(TurtleEggBlock.EGGS, this.turtle.random.nextInt(4) + 1))) { // CraftBukkit
+                     level.playSound(null, blockpos, SoundEvents.TURTLE_LAY_EGG, SoundSource.BLOCKS, 0.3F, 0.9F + level.random.nextFloat() * 0.2F);
+                     BlockPos blockpos1 = this.blockPos.above();
+                     BlockState blockstate = Blocks.TURTLE_EGG
+@@ -516,6 +_,7 @@
+                         .setValue(TurtleEggBlock.EGGS, Integer.valueOf(this.turtle.random.nextInt(4) + 1));
+                     level.setBlock(blockpos1, blockstate, 3);
+                     level.gameEvent(GameEvent.BLOCK_PLACE, blockpos1, GameEvent.Context.of(this.turtle, blockstate));
++                    } // CraftBukkit
+                     this.turtle.setHasEgg(false);
+                     this.turtle.setLayingEgg(false);
+                     this.turtle.setInLoveTime(600);

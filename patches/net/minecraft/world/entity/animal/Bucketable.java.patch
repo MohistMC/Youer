@@ -1,0 +1,34 @@
+--- a/net/minecraft/world/entity/animal/Bucketable.java
++++ b/net/minecraft/world/entity/animal/Bucketable.java
+@@ -88,9 +_,21 @@
+     static <T extends LivingEntity & Bucketable> Optional<InteractionResult> bucketMobPickup(Player p_148829_, InteractionHand p_148830_, T p_148831_) {
+         ItemStack itemstack = p_148829_.getItemInHand(p_148830_);
+         if (itemstack.getItem() == Items.WATER_BUCKET && p_148831_.isAlive()) {
+-            p_148831_.playSound(p_148831_.getPickupSound(), 1.0F, 1.0F);
++            // CraftBukkit start
+             ItemStack itemstack1 = p_148831_.getBucketItemStack();
+             p_148831_.saveToBucketTag(itemstack1);
++
++            org.bukkit.event.player.PlayerBucketEntityEvent playerBucketFishEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerFishBucketEvent(p_148831_, p_148829_, itemstack, itemstack1, p_148830_);
++            itemstack1 = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(playerBucketFishEvent.getEntityBucket());
++            if (playerBucketFishEvent.isCancelled()) {
++                ((ServerPlayer) p_148829_).containerMenu.sendAllDataToRemote(); // We need to update inventory to resync client's bucket
++                p_148831_.getBukkitEntity().update((ServerPlayer) p_148829_); // We need to play out these packets as the client assumes the fish is gone
++                p_148831_.refreshEntityData((ServerPlayer) p_148829_); // Need to send data such as the display name to client
++                return Optional.of(InteractionResult.FAIL);
++            }
++            p_148831_.playSound(((Bucketable) p_148831_).getPickupSound(), 1.0F, 1.0F);
++            // CraftBukkit end
++
+             ItemStack itemstack2 = ItemUtils.createFilledResult(itemstack, p_148829_, itemstack1, false);
+             p_148829_.setItemInHand(p_148830_, itemstack2);
+             Level level = p_148831_.level();
+@@ -98,7 +_,7 @@
+                 CriteriaTriggers.FILLED_BUCKET.trigger((ServerPlayer)p_148829_, itemstack1);
+             }
+ 
+-            p_148831_.discard();
++            p_148831_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             return Optional.of(InteractionResult.sidedSuccess(level.isClientSide));
+         } else {
+             return Optional.empty();

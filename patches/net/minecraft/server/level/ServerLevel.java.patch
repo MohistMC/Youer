@@ -151,6 +151,17 @@
          ChunkGenerator chunkgenerator = p_215004_.generator();
          boolean flag = p_214999_.forceSynchronousWrites();
          DataFixer datafixer = p_214999_.getFixerUpper();
+@@ -256,8 +_,8 @@
+             p_214999_.getStructureManager(),
+             p_215000_,
+             chunkgenerator,
+-            p_214999_.getPlayerList().getViewDistance(),
+-            p_214999_.getPlayerList().getSimulationDistance(),
++            this.spigotConfig.viewDistance, // Spigot
++            this.spigotConfig.simulationDistance, // Spigot
+             flag,
+             p_215005_,
+             this.entityManager::updateChunkStatus,
 @@ -298,6 +_,14 @@
          this.randomSequences = Objects.requireNonNullElseGet(
              p_288977_, () -> this.getDataStorage().computeIfAbsent(RandomSequences.factory(i), "random_sequences")
@@ -204,14 +215,57 @@
              }
          }
      }
-@@ -542,6 +_,7 @@
+@@ -471,7 +_,7 @@
+         int j = chunkpos.getMinBlockZ();
+         ProfilerFiller profilerfiller = this.getProfiler();
+         profilerfiller.push("thunder");
+-        if (flag && this.isThundering() && this.random.nextInt(100000) == 0) {
++        if (flag && this.isThundering() && this.spigotConfig.thunderChance > 0 && this.random.nextInt(this.spigotConfig.thunderChance) == 0) { // Spigot
+             BlockPos blockpos = this.findLightningTargetAround(this.getBlockRandomPos(i, 0, j, 15));
+             if (this.isRainingAt(blockpos)) {
+                 DifficultyInstance difficultyinstance = this.getCurrentDifficultyAt(blockpos);
+@@ -484,7 +_,7 @@
+                         skeletonhorse.setTrap(true);
+                         skeletonhorse.setAge(0);
+                         skeletonhorse.setPos((double)blockpos.getX(), (double)blockpos.getY(), (double)blockpos.getZ());
+-                        this.addFreshEntity(skeletonhorse);
++                        this.addFreshEntity(skeletonhorse, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING); // CraftBukkit
+                     }
+                 }
+ 
+@@ -492,7 +_,7 @@
+                 if (lightningbolt != null) {
+                     lightningbolt.moveTo(Vec3.atBottomCenterOf(blockpos));
+                     lightningbolt.setVisualOnly(flag1);
+-                    this.addFreshEntity(lightningbolt);
++                    this.strikeLightning(lightningbolt, org.bukkit.event.weather.LightningStrikeEvent.Cause.WEATHER); // CraftBukkit
+                 }
+             }
+         }
+@@ -542,8 +_,9 @@
          BlockPos blockpos = this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, p_295060_);
          BlockPos blockpos1 = blockpos.below();
          Biome biome = this.getBiome(blockpos).value();
 +        if (this.isAreaLoaded(blockpos1, 1)) // Forge: check area to avoid loading neighbors in unloaded chunks
          if (biome.shouldFreeze(this, blockpos1)) {
-             this.setBlockAndUpdate(blockpos1, Blocks.ICE.defaultBlockState());
+-            this.setBlockAndUpdate(blockpos1, Blocks.ICE.defaultBlockState());
++            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this, blockpos1, Blocks.ICE.defaultBlockState(), null); // CraftBukkit
          }
+ 
+         if (this.isRaining()) {
+@@ -555,10 +_,10 @@
+                     if (j < Math.min(i, 8)) {
+                         BlockState blockstate1 = blockstate.setValue(SnowLayerBlock.LAYERS, Integer.valueOf(j + 1));
+                         Block.pushEntitiesUp(blockstate, blockstate1, this, blockpos);
+-                        this.setBlockAndUpdate(blockpos, blockstate1);
++                        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this, blockpos, blockstate1, null); // CraftBukkit
+                     }
+                 } else {
+-                    this.setBlockAndUpdate(blockpos, Blocks.SNOW.defaultBlockState());
++                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this, blockpos, Blocks.SNOW.defaultBlockState(), null); // CraftBukkit
+                 }
+             }
+ 
 @@ -714,15 +_,19 @@
                  .broadcastAll(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, this.thunderLevel), this.dimension());
          }
@@ -236,7 +290,19 @@
          }
      }
  
-@@ -758,7 +_,11 @@
+@@ -753,12 +_,24 @@
+     }
+ 
+     public void tickNonPassenger(Entity p_8648_) {
++        // Spigot start
++        if (!org.spigotmc.ActivationRange.checkIfActive(p_8648_)) {
++            p_8648_.tickCount++;
++            p_8648_.inactiveTick();
++            return;
++        }
++        // Spigot end
+         p_8648_.setOldPosAndRot();
+         ProfilerFiller profilerfiller = this.getProfiler();
          p_8648_.tickCount++;
          this.getProfiler().push(() -> BuiltInRegistries.ENTITY_TYPE.getKey(p_8648_.getType()).toString());
          profilerfiller.incrementCounter("tickNonPassenger");
@@ -244,11 +310,20 @@
 +        // Neo: Permit cancellation of Entity#tick via EntityTickEvent.Pre
 +        if (!net.neoforged.neoforge.event.EventHooks.fireEntityTickPre(p_8648_).isCanceled()) {
 +            p_8648_.tick();
++            p_8648_.postTick(); // CraftBukkit
 +            net.neoforged.neoforge.event.EventHooks.fireEntityTickPost(p_8648_);
 +        }
          this.getProfiler().pop();
  
          for (Entity entity : p_8648_.getPassengers()) {
+@@ -793,6 +_,7 @@
+         ServerChunkCache serverchunkcache = this.getChunkSource();
+         if (!p_8646_) {
+             if (p_8644_ != null) {
++                org.bukkit.Bukkit.getPluginManager().callEvent(new org.bukkit.event.world.WorldSaveEvent(getWorld())); // CraftBukkit
+                 p_8644_.progressStartNoAbort(Component.translatable("menu.savingLevel"));
+             }
+ 
 @@ -807,6 +_,10 @@
              } else {
                  this.entityManager.autoSave();
@@ -377,7 +452,7 @@
          p_8713_.clearAllBlockEntities();
          p_8713_.unregisterTickContainerFromLevel(this);
      }
-@@ -933,6 +_,21 @@
+@@ -933,13 +_,42 @@
          p_143262_.remove(p_143263_);
      }
  
@@ -398,7 +473,28 @@
 +
      @Override
      public void destroyBlockProgress(int p_8612_, BlockPos p_8613_, int p_8614_) {
++
++        // CraftBukkit start
++        Player entityhuman = null;
++        Entity entity = this.getEntity(p_8612_);
++        if (entity instanceof Player) entityhuman = (Player) entity;
++        // CraftBukkit end
++
          for (ServerPlayer serverplayer : this.server.getPlayerList().getPlayers()) {
+             if (serverplayer != null && serverplayer.level() == this && serverplayer.getId() != p_8612_) {
+                 double d0 = (double)p_8613_.getX() - serverplayer.getX();
+                 double d1 = (double)p_8613_.getY() - serverplayer.getY();
+                 double d2 = (double)p_8613_.getZ() - serverplayer.getZ();
++
++                // CraftBukkit start
++                if (entityhuman != null && !serverplayer.getBukkitEntity().canSee(entityhuman.getBukkitEntity())) {
++                    continue;
++                }
++                // CraftBukkit end
++
+                 if (d0 * d0 + d1 * d1 + d2 * d2 < 1024.0) {
+                     serverplayer.connection.send(new ClientboundBlockDestructionPacket(p_8612_, p_8613_, p_8614_));
+                 }
 @@ -959,6 +_,12 @@
          float p_263390_,
          long p_263403_
@@ -450,6 +546,78 @@
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(p_215052_, p_215053_, p_215054_);
      }
  
+@@ -1107,6 +_,11 @@
+         Explosion explosion = this.explode(
+             p_256039_, p_255778_, p_256002_, p_256067_, p_256370_, p_256153_, p_256045_, p_255686_, p_255827_, false, p_312436_, p_312391_, p_320497_
+         );
++        // CraftBukkit start
++        if (explosion.wasCanceled) {
++            return explosion;
++        }
++        // CraftBukkit end
+         if (!explosion.interactsWithBlocks()) {
+             explosion.clearToBlow();
+         }
+@@ -1196,14 +_,19 @@
+     public <T extends ParticleOptions> int sendParticles(
+         T p_8768_, double p_8769_, double p_8770_, double p_8771_, int p_8772_, double p_8773_, double p_8774_, double p_8775_, double p_8776_
+     ) {
+-        ClientboundLevelParticlesPacket clientboundlevelparticlespacket = new ClientboundLevelParticlesPacket(
+-            p_8768_, false, p_8769_, p_8770_, p_8771_, (float)p_8773_, (float)p_8774_, (float)p_8775_, (float)p_8776_, p_8772_
+-        );
++        // CraftBukkit - visibility api support
++        return sendParticles(null, p_8768_, p_8769_, p_8770_, p_8771_, p_8772_, p_8773_, p_8774_, p_8775_, p_8776_, false);
++    }
++
++    public <T extends ParticleOptions> int sendParticles(ServerPlayer sender, T p_8768_, double p_8769_, double p_8770_, double p_8771_, int p_8772_, double p_8773_, double p_8774_, double p_8775_, double p_8776_, boolean force) {
++        ClientboundLevelParticlesPacket clientboundlevelparticlespacket = new ClientboundLevelParticlesPacket( p_8768_, force, p_8769_, p_8770_, p_8771_, (float)p_8773_, (float)p_8774_, (float)p_8775_, (float)p_8776_, p_8772_);
++        // CraftBukkit end
+         int i = 0;
+ 
+         for (int j = 0; j < this.players.size(); j++) {
+             ServerPlayer serverplayer = this.players.get(j);
+-            if (this.sendParticles(serverplayer, false, p_8769_, p_8770_, p_8771_, clientboundlevelparticlespacket)) {
++            if (sender != null && !serverplayer.getBukkitEntity().canSee(sender.getBukkitEntity())) continue; // CraftBukkit
++            if (this.sendParticles(serverplayer, force, p_8769_, p_8770_, p_8771_, clientboundlevelparticlespacket)) { // CraftBukkit
+                 i++;
+             }
+         }
+@@ -1309,11 +_,22 @@
+     @Nullable
+     @Override
+     public MapItemSavedData getMapData(MapId p_323746_) {
+-        return this.getServer().overworld().getDataStorage().get(MapItemSavedData.factory(), p_323746_.key());
++        // CraftBukkit start
++        MapItemSavedData worldmap = (MapItemSavedData) this.getServer().overworld().getDataStorage().get(MapItemSavedData.factory(), p_323746_.key());
++        if (worldmap != null) {
++            worldmap.id = p_323746_;
++        }
++        return worldmap;
++        // CraftBukkit end
+     }
+ 
+     @Override
+     public void setMapData(MapId p_323697_, MapItemSavedData p_143306_) {
++        // CraftBukkit start
++        p_143306_.id = p_323697_;
++        org.bukkit.event.server.MapInitializeEvent event = new org.bukkit.event.server.MapInitializeEvent(p_143306_.mapView);
++        org.bukkit.Bukkit.getServer().getPluginManager().callEvent(event);
++        // CraftBukkit end
+         this.getServer().overworld().getDataStorage().set(p_323697_.key(), p_143306_);
+     }
+ 
+@@ -1525,6 +_,11 @@
+     @Override
+     public void blockUpdated(BlockPos p_8743_, Block p_8744_) {
+         if (!this.isDebug()) {
++            // CraftBukkit start
++            if (populating) {
++                return;
++            }
++            // CraftBukkit end
+             this.updateNeighborsAt(p_8743_, p_8744_);
+         }
+     }
 @@ -1713,8 +_,8 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
@@ -461,7 +629,44 @@
                      ServerLevel.this.dragonParts.put(enderdragonpart.getId(), enderdragonpart);
                  }
              }
-@@ -1733,24 +_,106 @@
+@@ -1723,6 +_,36 @@
+         }
+ 
+         public void onTrackingEnd(Entity p_143375_) {
++            // Spigot start
++            if ( p_143375_ instanceof Player )
++            {
++                com.google.common.collect.Streams.stream( getServer().getAllLevels() ).map( ServerLevel::getDataStorage ).forEach( (worldData) ->
++                {
++                    for (Object o : worldData.cache.values() )
++                    {
++                        if ( o instanceof MapItemSavedData )
++                        {
++                            MapItemSavedData map = (MapItemSavedData) o;
++                            map.carriedByPlayers.remove( (Player) p_143375_ );
++                            for ( java.util.Iterator<net.minecraft.world.level.saveddata.maps.MapItemSavedData.HoldingPlayer> iter = (java.util.Iterator<net.minecraft.world.level.saveddata.maps.MapItemSavedData.HoldingPlayer>) map.carriedBy.iterator(); iter.hasNext(); )
++                            {
++                                if ( iter.next().player == p_143375_ )
++                                {
++                                    iter.remove();
++                                }
++                            }
++                        }
++                    }
++                } );
++            }
++            // Spigot end
++            // Spigot Start
++            if (p_143375_.getBukkitEntity() instanceof org.bukkit.inventory.InventoryHolder && (!(p_143375_ instanceof ServerPlayer) || p_143375_.getRemovalReason() != Entity.RemovalReason.KILLED)) { // SPIGOT-6876: closeInventory clears death message
++                for (org.bukkit.entity.HumanEntity h : Lists.newArrayList(((org.bukkit.inventory.InventoryHolder) p_143375_.getBukkitEntity()).getInventory().getViewers())) {
++                    h.closeInventory();
++                }
++            }
++            // Spigot End
+             ServerLevel.this.getChunkSource().removeEntity(p_143375_);
+             if (p_143375_ instanceof ServerPlayer serverplayer) {
+                 ServerLevel.this.players.remove(serverplayer);
+@@ -1733,24 +_,115 @@
                  if (ServerLevel.this.isUpdatingNavigations) {
                      String s = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
@@ -482,6 +687,15 @@
              }
  
              p_143375_.updateDynamicGameEventListener(DynamicGameEventListener::remove);
++
++            // CraftBukkit start
++            p_143375_.valid = false;
++            if (!(p_143375_ instanceof ServerPlayer)) {
++                for (ServerPlayer player : players) {
++                    player.getBukkitEntity().onEntityRemove(p_143375_);
++                }
++            }
++            // CraftBukkit end
 +
 +            p_143375_.onRemovedFromLevel();
 +            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent(p_143375_, ServerLevel.this));

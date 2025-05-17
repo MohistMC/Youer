@@ -39,12 +39,20 @@
      }
  
      public static BlockPos getPosFromTag(CompoundTag p_187473_) {
-@@ -72,6 +_,8 @@
+@@ -72,6 +_,16 @@
      }
  
      protected void loadAdditional(CompoundTag p_338466_, HolderLookup.Provider p_338445_) {
 +        if (p_338466_.contains("NeoForgeData", net.minecraft.nbt.Tag.TAG_COMPOUND)) this.customPersistentData = p_338466_.getCompound("NeoForgeData");
 +        if (p_338466_.contains(ATTACHMENTS_NBT_KEY, net.minecraft.nbt.Tag.TAG_COMPOUND)) deserializeAttachments(p_338445_, p_338466_.getCompound(ATTACHMENTS_NBT_KEY));
++
++        // CraftBukkit start - read container
++        this.persistentDataContainer = new org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer(DATA_TYPE_REGISTRY);
++        net.minecraft.nbt.Tag persistentDataTag = p_338466_.get("PublicBukkitValues");
++        if (persistentDataTag instanceof CompoundTag) {
++            this.persistentDataContainer.putAll((CompoundTag) persistentDataTag);
++        }
++        // CraftBukkit end
      }
  
      public final void loadWithComponents(CompoundTag p_338356_, HolderLookup.Provider p_338558_) {
@@ -58,6 +66,18 @@
      }
  
      public final CompoundTag saveWithFullMetadata(HolderLookup.Provider p_323767_) {
+@@ -108,6 +_,11 @@
+             .encodeStart(p_324030_.createSerializationContext(NbtOps.INSTANCE), this.components)
+             .resultOrPartial(p_337988_ -> LOGGER.warn("Failed to save components: {}", p_337988_))
+             .ifPresent(p_337994_ -> compoundtag.merge((CompoundTag)p_337994_));
++        // CraftBukkit start - store container
++        if (this.persistentDataContainer != null && !this.persistentDataContainer.isEmpty()) {
++            compoundtag.put("PublicBukkitValues", this.persistentDataContainer.toTagCompound());
++        }
++        // CraftBukkit end
+         return compoundtag;
+     }
+ 
 @@ -216,10 +_,14 @@
  
      public void setRemoved() {

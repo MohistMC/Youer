@@ -1,12 +1,46 @@
 --- a/net/minecraft/world/entity/projectile/LargeFireball.java
 +++ b/net/minecraft/world/entity/projectile/LargeFireball.java
-@@ -29,7 +_,8 @@
+@@ -18,20 +_,30 @@
+ 
+     public LargeFireball(EntityType<? extends LargeFireball> p_37199_, Level p_37200_) {
+         super(p_37199_, p_37200_);
++        isIncendiary = this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING); // CraftBukkit
+     }
+ 
+     public LargeFireball(Level p_181151_, LivingEntity p_181152_, Vec3 p_347580_, int p_181156_) {
+         super(EntityType.FIREBALL, p_181152_, p_347580_, p_181151_);
+         this.explosionPower = p_181156_;
++        isIncendiary = this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING); // CraftBukkit
+     }
+ 
+     @Override
      protected void onHit(HitResult p_37218_) {
          super.onHit(p_37218_);
          if (!this.level().isClientSide) {
 -            boolean flag = this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);
+-            this.level().explode(this, this.getX(), this.getY(), this.getZ(), (float)this.explosionPower, flag, Level.ExplosionInteraction.MOB);
+-            this.discard();
 +            // TODO 1.19.3: The creation of Level.ExplosionInteraction means this code path will fire EntityMobGriefingEvent twice. Should we try and fix it? -SS
 +            boolean flag = net.neoforged.neoforge.event.EventHooks.canEntityGrief(this.level(), this.getOwner());
-             this.level().explode(this, this.getX(), this.getY(), this.getZ(), (float)this.explosionPower, flag, Level.ExplosionInteraction.MOB);
-             this.discard();
++            // CraftBukkit start - fire ExplosionPrimeEvent
++            org.bukkit.event.entity.ExplosionPrimeEvent event = new org.bukkit.event.entity.ExplosionPrimeEvent((org.bukkit.entity.Explosive) this.getBukkitEntity());
++            this.level().getCraftServer().getPluginManager().callEvent(event);
++            if (!event.isCancelled()) {
++                // give 'this' instead of (Entity) null so we know what causes the damage
++                this.level().explode(this, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB);
++            }
++            // CraftBukkit end
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
          }
+     }
+ 
+@@ -57,7 +_,8 @@
+     public void readAdditionalSaveData(CompoundTag p_37220_) {
+         super.readAdditionalSaveData(p_37220_);
+         if (p_37220_.contains("ExplosionPower", 99)) {
+-            this.explosionPower = p_37220_.getByte("ExplosionPower");
++            // CraftBukkit - set bukkitYield when setting explosionpower
++            bukkitYield = this.explosionPower = p_37220_.getByte("ExplosionPower");
+         }
+     }
+ }

@@ -1,5 +1,26 @@
 --- a/net/minecraft/world/level/block/NoteBlock.java
 +++ b/net/minecraft/world/level/block/NoteBlock.java
+@@ -83,6 +_,7 @@
+         if (flag != p_55041_.getValue(POWERED)) {
+             if (flag) {
+                 this.playNote(null, p_55041_, p_55042_, p_55043_);
++                p_55041_ = p_55042_.getBlockState(p_55043_); // CraftBukkit - SPIGOT-5617: update in case changed in event
+             }
+ 
+             p_55042_.setBlock(p_55043_, p_55041_.setValue(POWERED, Boolean.valueOf(flag)), 3);
+@@ -91,6 +_,12 @@
+ 
+     private void playNote(@Nullable Entity p_261664_, BlockState p_261606_, Level p_261819_, BlockPos p_262042_) {
+         if (p_261606_.getValue(INSTRUMENT).worksAboveNoteBlock() || p_261819_.getBlockState(p_262042_.above()).isAir()) {
++            // CraftBukkit start
++            org.bukkit.event.block.NotePlayEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callNotePlayEvent(p_261819_, p_262042_, p_261606_.getValue(INSTRUMENT), p_261606_.getValue(NOTE));
++            if (event.isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
+             p_261819_.blockEvent(p_262042_, this, 0, 0);
+             p_261819_.gameEvent(p_261664_, GameEvent.NOTE_BLOCK_PLAY, p_262042_);
+         }
 @@ -110,7 +_,9 @@
          if (p_316774_.isClientSide) {
              return InteractionResult.SUCCESS;

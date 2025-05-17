@@ -1,5 +1,36 @@
 --- a/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
 +++ b/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+@@ -99,6 +_,7 @@
+         LevelLightEngine levellightengine = chunksource.getLightEngine();
+         Registry<Biome> registry = p_188231_.registryAccess().registryOrThrow(Registries.BIOME);
+         Codec<PalettedContainerRO<Holder<Biome>>> codec = makeBiomeCodec(registry);
++        Codec<PalettedContainer<Holder<Biome>>> codecRW = makeBiomeCodecRW(registry); // CraftBukkit - read/write
+         boolean flag2 = false;
+ 
+         for (int j = 0; j < listtag.size(); j++) {
+@@ -117,18 +_,18 @@
+                     );
+                 }
+ 
+-                PalettedContainerRO<Holder<Biome>> palettedcontainerro;
++                PalettedContainer<Holder<Biome>> palettedcontainerrw; // CraftBukkit - read/write
+                 if (compoundtag.contains("biomes", 10)) {
+-                    palettedcontainerro = codec.parse(NbtOps.INSTANCE, compoundtag.getCompound("biomes"))
++                    palettedcontainerrw = codecRW.parse(NbtOps.INSTANCE, compoundtag.getCompound("biomes")) // CraftBukkit - read/write
+                         .promotePartial(p_188274_ -> logErrors(p_188233_, k, p_188274_))
+                         .getOrThrow(ChunkSerializer.ChunkReadException::new);
+                 } else {
+-                    palettedcontainerro = new PalettedContainer<>(
++                    palettedcontainerrw = new PalettedContainer<>(
+                         registry.asHolderIdMap(), registry.getHolderOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES
+                     );
+                 }
+ 
+-                LevelChunkSection levelchunksection = new LevelChunkSection(palettedcontainer, palettedcontainerro);
++                LevelChunkSection levelchunksection = new LevelChunkSection(palettedcontainer, palettedcontainerrw); // CraftBukkit - read/write
+                 alevelchunksection[l] = levelchunksection;
+                 SectionPos sectionpos = SectionPos.of(p_188233_, k);
+                 p_188232_.checkConsistencyWithBlocks(sectionpos, levelchunksection);
 @@ -183,6 +_,8 @@
                  postLoadChunk(p_188231_, p_188234_),
                  blendingdata
@@ -9,10 +40,17 @@
          } else {
              ProtoChunkTicks<Block> protochunkticks = ProtoChunkTicks.load(
                  p_188234_.getList("block_ticks", 10), p_258992_ -> BuiltInRegistries.BLOCK.getOptional(ResourceLocation.tryParse(p_258992_)), p_188233_
-@@ -209,6 +_,8 @@
+@@ -209,6 +_,15 @@
              }
          }
  
++        // CraftBukkit start - load chunk persistent data from nbt
++        CompoundTag persistentBase = p_188234_.getCompound("ChunkBukkitValues");
++        if (persistentBase != null) {
++            chunkaccess.persistentDataContainer.putAll(persistentBase);
++        }
++        // CraftBukkit end
++
 +        if (p_188234_.contains(net.neoforged.neoforge.attachment.AttachmentHolder.ATTACHMENTS_NBT_KEY, net.minecraft.nbt.Tag.TAG_COMPOUND))
 +            chunkaccess.readAttachmentsFromNBT(p_188231_.registryAccess(), p_188234_.getCompound(net.neoforged.neoforge.attachment.AttachmentHolder.ATTACHMENTS_NBT_KEY));
          chunkaccess.setLightCorrect(flag);
@@ -26,6 +64,27 @@
              return new ImposterProtoChunk((LevelChunk)chunkaccess, false);
          } else {
              ProtoChunk protochunk1 = (ProtoChunk)chunkaccess;
+@@ -254,6 +_,20 @@
+ 
+             for (int j1 = 0; j1 < listtag4.size(); j1++) {
+                 CompoundTag compoundtag1 = listtag4.getCompound(j1);
++
++                // CraftBukkit start - load persistent data for block entities
++                CompoundTag persistentDataTag = compoundtag1.getCompound("BlockEntityBukkitValues");
++                if (persistentDataTag != null && !persistentDataTag.isEmpty()) {
++                    BlockPos pos = BlockEntity.getPosFromTag(compoundtag1);
++                    if (pos != null) {
++                        BlockEntity blockEntity = chunkaccess.getBlockEntity(pos);
++                        if (blockEntity != null) {
++                            blockEntity.persistentDataContainer.putAll(persistentDataTag);
++                        }
++                    }
++                }
++                // CraftBukkit end
++
+                 chunkaccess.setBlockEntityNbt(compoundtag1);
+             }
+ 
 @@ -264,6 +_,7 @@
                  protochunk1.setCarvingMask(generationstep$carving, new CarvingMask(compoundtag4.getLongArray(s1), chunkaccess.getMinBuildHeight()));
              }
@@ -34,6 +93,21 @@
              return protochunk1;
          }
      }
+@@ -278,6 +_,14 @@
+         );
+     }
+ 
++    // CraftBukkit start - read/write
++    private static Codec<PalettedContainer<Holder<Biome>>> makeBiomeCodecRW(Registry<Biome> p_188261_) {
++        return PalettedContainer.codecRW(
++            p_188261_.asHolderIdMap(), p_188261_.holderByNameCodec(), PalettedContainer.Strategy.SECTION_BIOMES, p_188261_.getHolderOrThrow(Biomes.PLAINS)
++        );
++    }
++    // CraftBukkit end
++
+     public static CompoundTag write(ServerLevel p_63455_, ChunkAccess p_63456_) {
+         ChunkPos chunkpos = p_63456_.getPos();
+         CompoundTag compoundtag = NbtUtils.addCurrentDataVersion(new CompoundTag());
 @@ -374,6 +_,11 @@
  
              compoundtag.put("CarvingMasks", compoundtag4);
@@ -46,7 +120,7 @@
  
          saveTicks(p_63455_, compoundtag, p_63456_.getTicksForSerialization());
          compoundtag.put("PostProcessing", packOffsets(p_63456_.getPostProcessing()));
-@@ -385,6 +_,12 @@
+@@ -385,11 +_,24 @@
              }
          }
  
@@ -59,3 +133,32 @@
          compoundtag.put("Heightmaps", compoundtag2);
          compoundtag.put(
              "structures",
+             packStructureData(StructurePieceSerializationContext.fromLevel(p_63455_), chunkpos, p_63456_.getAllStarts(), p_63456_.getAllReferences())
+         );
++
++        // CraftBukkit start - store chunk persistent data in nbt
++        if (!p_63456_.persistentDataContainer.isEmpty()) {
++            compoundtag.put("ChunkBukkitValues", p_63456_.persistentDataContainer.toTagCompound());
++        }
++        // CraftBukkit end
++
+         return compoundtag;
+     }
+ 
+@@ -473,8 +_,15 @@
+             if (structure == null) {
+                 LOGGER.error("Unknown structure start: {}", resourcelocation);
+             } else {
+-                StructureStart structurestart = StructureStart.loadStaticStart(p_188255_, compoundtag.getCompound(s), p_188257_);
++                CompoundTag startTag = compoundtag.getCompound(s);
++                StructureStart structurestart = StructureStart.loadStaticStart(p_188255_, startTag, p_188257_);
+                 if (structurestart != null) {
++                    // CraftBukkit start - load persistent data for structure starts
++                    CompoundTag persistentBase = startTag.getCompound("StructureBukkitValues");
++                    if (persistentBase != null && !persistentBase.isEmpty()) {
++                        structurestart.persistentDataContainer.putAll(persistentBase);
++                    }
++                    // CraftBukkit end
+                     map.put(structure, structurestart);
+                 }
+             }

@@ -1,5 +1,24 @@
 --- a/net/minecraft/world/level/block/DiodeBlock.java
 +++ b/net/minecraft/world/level/block/DiodeBlock.java
+@@ -53,8 +_,18 @@
+             boolean flag = p_221065_.getValue(POWERED);
+             boolean flag1 = this.shouldTurnOn(p_221066_, p_221067_, p_221065_);
+             if (flag && !flag1) {
++                // CraftBukkit start
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(p_221066_, p_221067_, 15, 0).getNewCurrent() != 0) {
++                    return;
++                }
++                // CraftBukkit end
+                 p_221066_.setBlock(p_221067_, p_221065_.setValue(POWERED, Boolean.valueOf(false)), 2);
+             } else if (!flag) {
++                // CraftBukkit start
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(p_221066_, p_221067_, 0, 15).getNewCurrent() != 15) {
++                    return;
++                }
++                // CraftBukkit end
+                 p_221066_.setBlock(p_221067_, p_221065_.setValue(POWERED, Boolean.valueOf(true)), 2);
+                 if (!flag1) {
+                     p_221066_.scheduleTick(p_221067_, this, this.getDelay(p_221065_), TickPriority.VERY_HIGH);
 @@ -173,6 +_,8 @@
      protected void updateNeighborsInFront(Level p_52581_, BlockPos p_52582_, BlockState p_52583_) {
          Direction direction = p_52583_.getValue(FACING);

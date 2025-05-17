@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/animal/Fox.java
 +++ b/net/minecraft/world/entity/animal/Fox.java
+@@ -500,7 +_,7 @@
+     @Override
+     protected void pickUpItem(ItemEntity p_28514_) {
+         ItemStack itemstack = p_28514_.getItem();
+-        if (this.canHoldItem(itemstack)) {
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(this, p_28514_, itemstack.getCount() - 1, !this.canHoldItem(itemstack)).isCancelled()) { // CraftBukkit - call EntityPickupItemEvent
+             int i = itemstack.getCount();
+             if (i > 1) {
+                 this.dropItemStack(itemstack.split(i - 1));
 @@ -677,13 +_,16 @@
  
      @Override
@@ -36,6 +45,45 @@
              if (fox != null) {
                  ServerPlayer serverplayer = this.animal.getLoveCause();
                  ServerPlayer serverplayer1 = this.partner.getLoveCause();
+@@ -855,6 +_,16 @@
+                 if (serverplayer1 != null && serverplayer != serverplayer1) {
+                     fox.addTrustedUUID(serverplayer1.getUUID());
+                 }
++                // CraftBukkit start - call EntityBreedEvent
++                fox.setAge(-24000);
++                fox.moveTo(this.animal.getX(), this.animal.getY(), this.animal.getZ(), 0.0F, 0.0F);
++                int experience = this.animal.getRandom().nextInt(7) + 1;
++                org.bukkit.event.entity.EntityBreedEvent entityBreedEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityBreedEvent(fox, animal, partner, serverplayer, this.animal.breedItem, experience);
++                if (entityBreedEvent.isCancelled()) {
++                    return;
++                }
++                experience = entityBreedEvent.getExperience();
++                // CraftBukkit end
+ 
+                 if (serverplayer2 != null) {
+                     serverplayer2.awardStat(Stats.ANIMALS_BRED);
+@@ -865,15 +_,14 @@
+                 this.partner.setAge(6000);
+                 this.animal.resetLove();
+                 this.partner.resetLove();
+-                fox.setAge(-24000);
+-                fox.moveTo(this.animal.getX(), this.animal.getY(), this.animal.getZ(), 0.0F, 0.0F);
+-                serverlevel.addFreshEntityWithPassengers(fox);
++                serverlevel.addFreshEntityWithPassengers(fox, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING); // CraftBukkit - added SpawnReason
+                 this.level.broadcastEntityEvent(this.animal, (byte)18);
+                 if (this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
+-                    this.level
+-                        .addFreshEntity(
+-                            new ExperienceOrb(this.level, this.animal.getX(), this.animal.getY(), this.animal.getZ(), this.animal.getRandom().nextInt(7) + 1)
+-                        );
++                    // CraftBukkit start - use event experience
++                    if (experience > 0) {
++                        this.level.addFreshEntity(new ExperienceOrb(this.level, this.animal.getX(), this.animal.getY(), this.animal.getZ(), experience));
++                    }
++                    // CraftBukkit end
+                 }
+             }
+         }
 @@ -919,7 +_,7 @@
          }
  
@@ -45,6 +93,18 @@
                  BlockState blockstate = Fox.this.level().getBlockState(this.blockPos);
                  if (blockstate.is(Blocks.SWEET_BERRY_BUSH)) {
                      this.pickSweetBerries(blockstate);
+@@ -936,6 +_,11 @@
+         private void pickSweetBerries(BlockState p_148929_) {
+             int i = p_148929_.getValue(SweetBerryBushBlock.AGE);
+             p_148929_.setValue(SweetBerryBushBlock.AGE, Integer.valueOf(1));
++            // CraftBukkit start - call EntityChangeBlockEvent
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(Fox.this, this.blockPos, p_148929_.setValue(SweetBerryBushBlock.AGE, 1))) {
++                return;
++            }
++            // CraftBukkit end
+             int j = 1 + Fox.this.level().random.nextInt(2) + (i == 3 ? 1 : 0);
+             ItemStack itemstack = Fox.this.getItemBySlot(EquipmentSlot.MAINHAND);
+             if (itemstack.isEmpty()) {
 @@ -978,7 +_,7 @@
  
          @Override

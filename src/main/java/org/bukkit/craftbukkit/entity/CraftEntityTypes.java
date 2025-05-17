@@ -440,10 +440,10 @@ public final class CraftEntityTypes {
         return CraftEntityTypes.combine(CraftEntityTypes.fromEntityType(entityTypes), CraftEntityTypes.POS);
     }
 
-    private record HangingData(boolean randomize, BlockPos position, Direction direction) {
+    public record HangingData(boolean randomize, BlockPos position, Direction direction) {
     }
 
-    private static <E extends Hanging, R extends HangingEntity> Function<SpawnData, R> createHanging(Class<E> clazz, BiFunction<SpawnData, HangingData, R> spawnFunction) {
+    public static <E extends Hanging, R extends HangingEntity> Function<SpawnData, R> createHanging(Class<E> clazz, BiFunction<SpawnData, HangingData, R> spawnFunction) {
         return spawnData -> {
             boolean randomizeData = spawnData.randomizeData();
             BlockFace face = BlockFace.SELF;

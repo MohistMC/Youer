@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/entity/projectile/ThrownPotion.java
++++ b/net/minecraft/world/entity/projectile/ThrownPotion.java
+@@ -86,7 +_,7 @@
+             PotionContents potioncontents = itemstack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
+             if (potioncontents.is(Potions.WATER)) {
+                 this.applyWater();
+-            } else if (potioncontents.hasEffects()) {
++            } else if (true || potioncontents.hasEffects()) { // CraftBukkit - Call event even if no effects to apply
+                 if (this.isLingering()) {
+                     this.makeAreaOfEffectCloud(potioncontents);
+                 } else {
+@@ -98,7 +_,7 @@
+ 
+             int i = potioncontents.potion().isPresent() && potioncontents.potion().get().value().hasInstantEffects() ? 2007 : 2002;
+             this.level().levelEvent(i, this.blockPosition(), potioncontents.getColor());
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 
+@@ -126,6 +_,7 @@
+     private void applySplash(Iterable<MobEffectInstance> p_330815_, @Nullable Entity p_37549_) {
+         AABB aabb = this.getBoundingBox().inflate(4.0, 2.0, 4.0);
+         List<LivingEntity> list = this.level().getEntitiesOfClass(LivingEntity.class, aabb);
++        java.util.Map<org.bukkit.entity.LivingEntity, Double> affected = new java.util.HashMap<>(); // CraftBukkit
+         if (!list.isEmpty()) {
+             Entity entity = this.getEffectSource();
+ 

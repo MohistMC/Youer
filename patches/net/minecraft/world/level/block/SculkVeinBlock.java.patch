@@ -1,0 +1,34 @@
+--- a/net/minecraft/world/level/block/SculkVeinBlock.java
++++ b/net/minecraft/world/level/block/SculkVeinBlock.java
+@@ -97,14 +_,15 @@
+     public int attemptUseCharge(
+         SculkSpreader.ChargeCursor p_222369_, LevelAccessor p_222370_, BlockPos p_222371_, RandomSource p_222372_, SculkSpreader p_222373_, boolean p_222374_
+     ) {
+-        if (p_222374_ && this.attemptPlaceSculk(p_222373_, p_222370_, p_222369_.getPos(), p_222372_)) {
++        // CraftBukkit - add source block
++        if (p_222374_ && this.attemptPlaceSculk(p_222373_, p_222370_, p_222369_.getPos(), p_222372_, p_222371_)) {
+             return p_222369_.getCharge() - 1;
+         } else {
+             return p_222372_.nextInt(p_222373_.chargeDecayRate()) == 0 ? Mth.floor((float)p_222369_.getCharge() * 0.5F) : p_222369_.getCharge();
+         }
+     }
+ 
+-    private boolean attemptPlaceSculk(SculkSpreader p_222376_, LevelAccessor p_222377_, BlockPos p_222378_, RandomSource p_222379_) {
++    private boolean attemptPlaceSculk(SculkSpreader p_222376_, LevelAccessor p_222377_, BlockPos p_222378_, RandomSource p_222379_, BlockPos sourceBlock) { // CraftBukkit
+         BlockState blockstate = p_222377_.getBlockState(p_222378_);
+         TagKey<Block> tagkey = p_222376_.replaceableBlocks();
+ 
+@@ -114,7 +_,12 @@
+                 BlockState blockstate1 = p_222377_.getBlockState(blockpos);
+                 if (blockstate1.is(tagkey)) {
+                     BlockState blockstate2 = Blocks.SCULK.defaultBlockState();
+-                    p_222377_.setBlock(blockpos, blockstate2, 3);
++
++                    // CraftBukkit start - Call BlockSpreadEvent
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_222377_, sourceBlock, blockpos, blockstate2, 3)) {
++                        return false;
++                    }
++                    // CraftBukkit end
+                     Block.pushEntitiesUp(blockstate1, blockstate2, p_222377_, blockpos);
+                     p_222377_.playSound(null, blockpos, SoundEvents.SCULK_BLOCK_SPREAD, SoundSource.BLOCKS, 1.0F, 1.0F);
+                     this.veinSpreader.spreadAll(blockstate2, p_222377_, blockpos, p_222376_.isWorldGeneration());

@@ -1,0 +1,56 @@
+--- a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
++++ b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
+@@ -28,7 +_,7 @@
+         this.info = p_326161_;
+     }
+ 
+-    private RegionFile getRegionFile(ChunkPos p_63712_) throws IOException {
++    private RegionFile getRegionFile(ChunkPos p_63712_, boolean existingOnly) throws IOException { // CraftBukkit
+         long i = ChunkPos.asLong(p_63712_.getRegionX(), p_63712_.getRegionZ());
+         RegionFile regionfile = this.regionCache.getAndMoveToFirst(i);
+         if (regionfile != null) {
+@@ -40,6 +_,7 @@
+ 
+             FileUtil.createDirectoriesSafe(this.folder);
+             Path path = this.folder.resolve("r." + p_63712_.getRegionX() + "." + p_63712_.getRegionZ() + ".mca");
++            if (existingOnly && !java.nio.file.Files.exists(path)) return null; // CraftBukkit
+             RegionFile regionfile1 = new RegionFile(this.info, path, this.folder, this.sync);
+             this.regionCache.putAndMoveToFirst(i, regionfile1);
+             return regionfile1;
+@@ -48,7 +_,12 @@
+ 
+     @Nullable
+     public CompoundTag read(ChunkPos p_63707_) throws IOException {
+-        RegionFile regionfile = this.getRegionFile(p_63707_);
++        // CraftBukkit start - SPIGOT-5680: There's no good reason to preemptively create files on read, save that for writing
++        RegionFile regionfile = this.getRegionFile(p_63707_, true);
++        if (regionfile == null) {
++            return null;
++        }
++        // CraftBukkit end
+ 
+         CompoundTag compoundtag;
+         try (DataInputStream datainputstream = regionfile.getChunkDataInputStream(p_63707_)) {
+@@ -63,7 +_,12 @@
+     }
+ 
+     public void scanChunk(ChunkPos p_196957_, StreamTagVisitor p_196958_) throws IOException {
+-        RegionFile regionfile = this.getRegionFile(p_196957_);
++        // CraftBukkit start - SPIGOT-5680: There's no good reason to preemptively create files on read, save that for writing
++        RegionFile regionfile = this.getRegionFile(p_196957_, true);
++        if (regionfile == null) {
++            return;
++        }
++        // CraftBukkit end
+ 
+         try (DataInputStream datainputstream = regionfile.getChunkDataInputStream(p_196957_)) {
+             if (datainputstream != null) {
+@@ -73,7 +_,7 @@
+     }
+ 
+     protected void write(ChunkPos p_63709_, @Nullable CompoundTag p_63710_) throws IOException {
+-        RegionFile regionfile = this.getRegionFile(p_63709_);
++        RegionFile regionfile = this.getRegionFile(p_63709_, false); // CraftBukkit
+         if (p_63710_ == null) {
+             regionfile.clear(p_63709_);
+         } else {

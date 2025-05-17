@@ -11,7 +11,7 @@
                  int i = this.getHardAttackInterval();
                  if (this.level().getDifficulty() != Difficulty.HARD) {
                      i = this.getAttackInterval();
-@@ -182,9 +_,11 @@
+@@ -182,16 +_,29 @@
  
      @Override
      public void performRangedAttack(LivingEntity p_32141_, float p_32142_) {
@@ -26,3 +26,22 @@
          double d0 = p_32141_.getX() - this.getX();
          double d1 = p_32141_.getY(0.3333333333333333) - abstractarrow.getY();
          double d2 = p_32141_.getZ() - this.getZ();
+         double d3 = Math.sqrt(d0 * d0 + d2 * d2);
+         abstractarrow.shoot(d0, d1 + d3 * 0.2F, d2, 1.6F, (float)(14 - this.level().getDifficulty().getId() * 4));
++        // CraftBukkit start
++        org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(this, this.getMainHandItem(), null, abstractarrow, net.minecraft.world.InteractionHand.MAIN_HAND, 0.8F, true);
++        if (event.isCancelled()) {
++            event.getProjectile().remove();
++            return;
++        }
++
++        if (event.getProjectile() == abstractarrow.getBukkitEntity()) {
++            this.level().addFreshEntity(abstractarrow);
++        }
++        // CraftBukkit end
+         this.playSound(SoundEvents.SKELETON_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
+-        this.level().addFreshEntity(abstractarrow);
++        // this.level().addFreshEntity(abstractarrow); // CraftBukkit - moved up
+     }
+ 
+     protected AbstractArrow getArrow(ItemStack p_32156_, float p_32157_, @Nullable ItemStack p_346155_) {

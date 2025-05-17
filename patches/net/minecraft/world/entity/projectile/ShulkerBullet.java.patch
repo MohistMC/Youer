@@ -19,12 +19,72 @@
      @Override
      public SoundSource getSoundSource() {
          return SoundSource.HOSTILE;
-@@ -218,7 +_,7 @@
+@@ -187,7 +_,7 @@
+     @Override
+     public void checkDespawn() {
+         if (this.level().getDifficulty() == Difficulty.PEACEFUL) {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 
+@@ -218,8 +_,8 @@
              }
  
              HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
 -            if (hitresult.getType() != HitResult.Type.MISS) {
+-                this.hitTargetOrDeflectSelf(hitresult);
 +            if (hitresult.getType() != HitResult.Type.MISS && !net.neoforged.neoforge.event.EventHooks.onProjectileImpact(this, hitresult)) {
-                 this.hitTargetOrDeflectSelf(hitresult);
++                this.preHitTargetOrDeflectSelf(hitresult); // CraftBukkit - projectile hit event
              }
          }
+ 
+@@ -288,7 +_,7 @@
+             }
+ 
+             if (entity instanceof LivingEntity livingentity1) {
+-                livingentity1.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 200), MoreObjects.firstNonNull(entity1, this));
++                livingentity1.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 200), MoreObjects.firstNonNull(entity1, this), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK); // CraftBukkit
+             }
+         }
+     }
+@@ -301,14 +_,20 @@
+     }
+ 
+     private void destroy() {
+-        this.discard();
++        // CraftBukkit start - add Bukkit remove cause
++        this.destroy(null);
++    }
++
++    private void destroy(org.bukkit.event.entity.EntityRemoveEvent.Cause cause) {
++        this.discard(cause);
++        // CraftBukkit end
+         this.level().gameEvent(GameEvent.ENTITY_DAMAGE, this.position(), GameEvent.Context.of(this));
+     }
+ 
+     @Override
+     protected void onHit(HitResult p_37347_) {
+         super.onHit(p_37347_);
+-        this.destroy();
++        this.destroy(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+     }
+ 
+     @Override
+@@ -318,10 +_,15 @@
+ 
+     @Override
+     public boolean hurt(DamageSource p_37338_, float p_37339_) {
++        // CraftBukkit start
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, p_37338_, p_37339_, false)) {
++            return false;
++        }
++        // CraftBukkit end
+         if (!this.level().isClientSide) {
+             this.playSound(SoundEvents.SHULKER_BULLET_HURT, 1.0F, 1.0F);
+             ((ServerLevel)this.level()).sendParticles(ParticleTypes.CRIT, this.getX(), this.getY(), this.getZ(), 15, 0.2, 0.2, 0.2, 0.0);
+-            this.destroy();
++            this.destroy(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
+         }
+ 
+         return true;

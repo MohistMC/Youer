@@ -4,17 +4,35 @@
  
      @Override
      public void die(DamageSource p_21809_) {
+-        if (!this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES) && this.getOwner() instanceof ServerPlayer) {
+-            this.getOwner().sendSystemMessage(this.getCombatTracker().getDeathMessage());
+-        }
+-
 +        // FORGE: Super moved to top so that death message would be cancelled properly
 +        net.minecraft.network.chat.Component deathMessage = this.getCombatTracker().getDeathMessage();
-+        super.die(p_21809_);
+         super.die(p_21809_);
 +
 +        if (this.dead)
-         if (!this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES) && this.getOwner() instanceof ServerPlayer) {
--            this.getOwner().sendSystemMessage(this.getCombatTracker().getDeathMessage());
++        if (!this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES) && this.getOwner() instanceof ServerPlayer) {
 +            this.getOwner().sendSystemMessage(deathMessage);
-         }
- 
--        super.die(p_21809_);
++        }
++
      }
  
      public boolean isOrderedToSit() {
+@@ -264,7 +_,14 @@
+         if (!this.canTeleportTo(new BlockPos(p_350930_, p_350303_, p_350410_))) {
+             return false;
+         } else {
+-            this.moveTo((double)p_350930_ + 0.5, (double)p_350303_, (double)p_350410_ + 0.5, this.getYRot(), this.getXRot());
++            // CraftBukkit start
++            org.bukkit.event.entity.EntityTeleportEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTeleportEvent(this, (double) p_350930_ + 0.5D, (double) p_350303_, (double) p_350410_ + 0.5D);
++            if (event.isCancelled()) {
++                return false;
++            }
++            org.bukkit.Location to = event.getTo();
++            this.moveTo(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch());
++            // CraftBukkit end
+             this.navigation.stop();
+             return true;
+         }

@@ -1,0 +1,42 @@
+--- a/net/minecraft/world/level/block/MultifaceSpreader.java
++++ b/net/minecraft/world/level/block/MultifaceSpreader.java
+@@ -155,14 +_,14 @@
+                     p_221702_.getChunk(p_221703_.pos()).markPosForPostprocessing(p_221703_.pos());
+                 }
+ 
+-                return p_221702_.setBlock(p_221703_.pos(), blockstate, 2);
++                return org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_221702_, p_221703_.source(), p_221703_.pos(), blockstate, 2); // CraftBukkit
+             } else {
+                 return false;
+             }
+         }
+     }
+ 
+-    public static record SpreadPos(BlockPos pos, Direction face) {
++    public static record SpreadPos(BlockPos pos, Direction face, BlockPos source) { // CraftBukkit - added source
+     }
+ 
+     @FunctionalInterface
+@@ -174,19 +_,19 @@
+         SAME_POSITION {
+             @Override
+             public MultifaceSpreader.SpreadPos getSpreadPos(BlockPos p_221751_, Direction p_221752_, Direction p_221753_) {
+-                return new MultifaceSpreader.SpreadPos(p_221751_, p_221752_);
++                return new MultifaceSpreader.SpreadPos(p_221751_, p_221752_, p_221751_); // CraftBukkit - added source
+             }
+         },
+         SAME_PLANE {
+             @Override
+             public MultifaceSpreader.SpreadPos getSpreadPos(BlockPos p_221758_, Direction p_221759_, Direction p_221760_) {
+-                return new MultifaceSpreader.SpreadPos(p_221758_.relative(p_221759_), p_221760_);
++                return new MultifaceSpreader.SpreadPos(p_221758_.relative(p_221759_), p_221760_, p_221758_); // CraftBukkit - added source
+             }
+         },
+         WRAP_AROUND {
+             @Override
+             public MultifaceSpreader.SpreadPos getSpreadPos(BlockPos p_221765_, Direction p_221766_, Direction p_221767_) {
+-                return new MultifaceSpreader.SpreadPos(p_221765_.relative(p_221766_).relative(p_221767_), p_221766_.getOpposite());
++                return new MultifaceSpreader.SpreadPos(p_221765_.relative(p_221766_).relative(p_221767_), p_221766_.getOpposite(), p_221765_); // CraftBukkit - added source
+             }
+         };
+ 

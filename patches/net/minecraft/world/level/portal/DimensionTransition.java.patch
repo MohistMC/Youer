@@ -1,0 +1,61 @@
+--- a/net/minecraft/world/level/portal/DimensionTransition.java
++++ b/net/minecraft/world/level/portal/DimensionTransition.java
+@@ -7,6 +_,7 @@
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.phys.Vec3;
+ 
++// CraftBukkit start
+ public record DimensionTransition(
+     ServerLevel newLevel,
+     Vec3 pos,
+@@ -14,23 +_,39 @@
+     float yRot,
+     float xRot,
+     boolean missingRespawnBlock,
+-    DimensionTransition.PostDimensionTransition postDimensionTransition
++    DimensionTransition.PostDimensionTransition postDimensionTransition,
++    org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause
+ ) {
++    public DimensionTransition(ServerLevel newLevel, Vec3 pos, Vec3 speed, float yRot, float xRot, boolean missingRespawnBlock, DimensionTransition.PostDimensionTransition postDimensionTransition) {
++        this(newLevel, pos, speed, yRot, xRot, missingRespawnBlock, postDimensionTransition, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    }
++    public DimensionTransition(org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
++        this(null, Vec3.ZERO, Vec3.ZERO, 0.0F, 0.0F, false, DO_NOTHING, cause);
++    }
++    // CraftBukkit end
++
+     public static final DimensionTransition.PostDimensionTransition DO_NOTHING = p_352417_ -> {
+     };
+     public static final DimensionTransition.PostDimensionTransition PLAY_PORTAL_SOUND = DimensionTransition::playPortalSound;
+     public static final DimensionTransition.PostDimensionTransition PLACE_PORTAL_TICKET = DimensionTransition::placePortalTicket;
+ 
+-    public DimensionTransition(
+-        ServerLevel p_348637_, Vec3 p_348645_, Vec3 p_348472_, float p_348548_, float p_348664_, DimensionTransition.PostDimensionTransition p_352139_
+-    ) {
+-        this(p_348637_, p_348645_, p_348472_, p_348548_, p_348664_, false, p_352139_);
+-    }
+-
+-    public DimensionTransition(ServerLevel p_348609_, Entity p_352432_, DimensionTransition.PostDimensionTransition p_352373_) {
+-        this(p_348609_, findAdjustedSharedSpawnPos(p_348609_, p_352432_), Vec3.ZERO, 0.0F, 0.0F, false, p_352373_);
+-    }
+-
++    public DimensionTransition(ServerLevel worldserver, Vec3 vec3d, Vec3 vec3d1, float f, float f1, DimensionTransition.PostDimensionTransition dimensiontransition_a) {
++        // CraftBukkit start
++        this(worldserver, vec3d, vec3d1, f, f1, dimensiontransition_a, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    }
++
++    public DimensionTransition(ServerLevel worldserver, Vec3 vec3d, Vec3 vec3d1, float f, float f1, DimensionTransition.PostDimensionTransition dimensiontransition_a, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
++        this(worldserver, vec3d, vec3d1, f, f1, false, dimensiontransition_a, cause);
++    }
++
++    public DimensionTransition(ServerLevel worldserver, Entity entity, DimensionTransition.PostDimensionTransition dimensiontransition_a) {
++        this(worldserver, entity, dimensiontransition_a, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    }
++
++    public DimensionTransition(ServerLevel worldserver, Entity entity, DimensionTransition.PostDimensionTransition dimensiontransition_a, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
++        this(worldserver, findAdjustedSharedSpawnPos(worldserver, entity), Vec3.ZERO, 0.0F, 0.0F, false, dimensiontransition_a, cause);
++        // CraftBukkit end
++    }
+     private static void playPortalSound(Entity p_352075_) {
+         if (p_352075_ instanceof ServerPlayer serverplayer) {
+             serverplayer.connection.send(new ClientboundLevelEventPacket(1032, BlockPos.ZERO, 0, false));

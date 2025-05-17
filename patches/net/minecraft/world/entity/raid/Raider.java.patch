@@ -1,0 +1,29 @@
+--- a/net/minecraft/world/entity/raid/Raider.java
++++ b/net/minecraft/world/entity/raid/Raider.java
+@@ -222,7 +_,7 @@
+             this.onItemPickup(p_37866_);
+             this.setItemSlot(equipmentslot, itemstack);
+             this.take(p_37866_, itemstack.getCount());
+-            p_37866_.discard();
++            p_37866_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             this.getCurrentRaid().setLeader(this.getWave(), this);
+             this.setPatrolLeader(true);
+         } else {
+@@ -295,7 +_,7 @@
+             for (Raider raider : this.mob
+                 .level()
+                 .getNearbyEntities(Raider.class, this.shoutTargeting, this.mob, this.mob.getBoundingBox().inflate(8.0, 8.0, 8.0))) {
+-                raider.setTarget(this.mob.getTarget());
++                raider.setTarget(this.mob.getTarget(), org.bukkit.event.entity.EntityTargetEvent.TargetReason.FOLLOW_LEADER, true); // CraftBukkit
+             }
+         }
+ 
+@@ -307,7 +_,7 @@
+                 for (Raider raider : this.mob
+                     .level()
+                     .getNearbyEntities(Raider.class, this.shoutTargeting, this.mob, this.mob.getBoundingBox().inflate(8.0, 8.0, 8.0))) {
+-                    raider.setTarget(livingentity);
++                    raider.setTarget(livingentity, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FOLLOW_LEADER, true); // CraftBukkit
+                     raider.setAggressive(true);
+                 }
+ 

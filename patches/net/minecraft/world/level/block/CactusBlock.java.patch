@@ -8,24 +8,32 @@
          if (!p_220908_.canSurvive(p_220909_, p_220910_)) {
              p_220909_.destroyBlock(p_220910_, true);
          }
-@@ -58,6 +_,7 @@
+@@ -58,13 +_,17 @@
  
              if (i < 3) {
                  int j = p_220913_.getValue(AGE);
-+                if(net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_220914_, blockpos, p_220913_, true)) {
-                 if (j == 15) {
-                     p_220914_.setBlockAndUpdate(blockpos, this.defaultBlockState());
-                     BlockState blockstate = p_220913_.setValue(AGE, Integer.valueOf(0));
-@@ -66,6 +_,8 @@
-                 } else {
-                     p_220914_.setBlock(p_220915_, p_220913_.setValue(AGE, Integer.valueOf(j + 1)), 4);
+-                if (j == 15) {
+-                    p_220914_.setBlockAndUpdate(blockpos, this.defaultBlockState());
+-                    BlockState blockstate = p_220913_.setValue(AGE, Integer.valueOf(0));
+-                    p_220914_.setBlock(p_220915_, blockstate, 4);
+-                    p_220914_.neighborChanged(blockstate, blockpos, this, p_220915_, false);
+-                } else {
+-                    p_220914_.setBlock(p_220915_, p_220913_.setValue(AGE, Integer.valueOf(j + 1)), 4);
++                if (net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_220914_, blockpos, p_220913_, true)) {
++                    int modifier = p_220914_.spigotConfig.cactusModifier; // Spigot - SPIGOT-7159: Better modifier resolution
++                    if (j >= 15 || (modifier != 100 && p_220916_.nextFloat() < (modifier / (100.0f * 16)))) { // Spigot - SPIGOT-7159: Better modifier resolution
++                        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_220914_, blockpos, this.defaultBlockState()); // CraftBukkit
++                        BlockState blockstate = p_220913_.setValue(AGE, Integer.valueOf(0));
++                        p_220914_.setBlock(p_220915_, blockstate, 4);
++                        p_220914_.neighborChanged(blockstate, blockpos, this, p_220915_, false);
++                    } else if (modifier == 100 || p_220916_.nextFloat() < (modifier / (100.0f * 16))) { // Spigot - SPIGOT-7159: Better modifier resolution
++                        p_220914_.setBlock(p_220915_, p_220913_.setValue(AGE, Integer.valueOf(j + 1)), 4);
++                    }
++                    net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_220914_, p_220915_, p_220913_);
                  }
-+                net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_220914_, p_220915_, p_220913_);
-+                }
              }
          }
-     }
-@@ -99,6 +_,8 @@
+@@ -99,12 +_,14 @@
          }
  
          BlockState blockstate1 = p_51154_.getBlockState(p_51155_.below());
@@ -34,3 +42,10 @@
          return (blockstate1.is(Blocks.CACTUS) || blockstate1.is(BlockTags.SAND)) && !p_51154_.getBlockState(p_51155_.above()).liquid();
      }
  
+     @Override
+     protected void entityInside(BlockState p_51148_, Level p_51149_, BlockPos p_51150_, Entity p_51151_) {
+-        p_51151_.hurt(p_51149_.damageSources().cactus(), 1.0F);
++        p_51151_.hurt(p_51149_.damageSources().cactus().directBlock(p_51149_, p_51150_), 1.0F); // CraftBukkit
+     }
+ 
+     @Override

@@ -1,15 +1,20 @@
 --- a/net/minecraft/world/entity/animal/MushroomCow.java
 +++ b/net/minecraft/world/entity/animal/MushroomCow.java
-@@ -108,7 +_,7 @@
+@@ -108,7 +_,12 @@
  
              this.playSound(soundevent, 1.0F, 1.0F);
              return InteractionResult.sidedSuccess(this.level().isClientSide);
 -        } else if (itemstack.is(Items.SHEARS) && this.readyForShearing()) {
 +        } else if (false && itemstack.is(Items.SHEARS) && this.readyForShearing()) { // Neo: Shear logic is handled by IShearable
++            // CraftBukkit start
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(p_28941_, this, itemstack, p_28942_)) {
++                return InteractionResult.PASS;
++            }
++            // CraftBukkit end
              this.shear(SoundSource.PLAYERS);
              this.gameEvent(GameEvent.SHEAR, p_28941_);
              if (!this.level().isClientSide) {
-@@ -165,8 +_,10 @@
+@@ -165,10 +_,11 @@
      public void shear(SoundSource p_28924_) {
          this.level().playSound(null, this, SoundEvents.MOOSHROOM_SHEAR, p_28924_, 1.0F, 1.0F);
          if (!this.level().isClientSide()) {
@@ -18,16 +23,36 @@
              if (cow != null) {
 +                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, cow);
                  ((ServerLevel)this.level()).sendParticles(ParticleTypes.EXPLOSION, this.getX(), this.getY(0.5), this.getZ(), 1, 0.0, 0.0, 0.0, 0.0);
-                 this.discard();
+-                this.discard();
                  cow.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
-@@ -185,10 +_,13 @@
-                 this.level().addFreshEntity(cow);
+                 cow.setHealth(this.getHealth());
+                 cow.yBodyRot = this.yBodyRot;
+@@ -182,13 +_,30 @@
+                 }
+ 
+                 cow.setInvulnerable(this.isInvulnerable());
+-                this.level().addFreshEntity(cow);
++                // CraftBukkit start
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTransformEvent(this, cow, org.bukkit.event.entity.EntityTransformEvent.TransformReason.SHEARED).isCancelled()) {
++                    return;
++                }
++                this.level().addFreshEntity(cow, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SHEARED);
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - from above and add Bukkit remove cause
++                // CraftBukkit end
  
                  for (int i = 0; i < 5; i++) {
 -                    this.level()
 -                        .addFreshEntity(
 -                            new ItemEntity(this.level(), this.getX(), this.getY(1.0), this.getZ(), new ItemStack(this.getVariant().blockState.getBlock()))
 -                        );
++                    // CraftBukkit start
++                    ItemEntity entityitem = new ItemEntity(this.level(), this.getX(), this.getY(1.0D), this.getZ(), new ItemStack(this.getVariant().blockState.getBlock()));
++                    org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) entityitem.getBukkitEntity());
++                    org.bukkit.Bukkit.getPluginManager().callEvent(event);
++                    if (event.isCancelled()) {
++                        continue;
++                    }
++                    // CraftBukkit end
 +                    // Neo: Change from addFreshEntity to spawnAtLocation to ensure captureDrops can capture this, we also need to unset the default pickup delay from the item
 +                    // Vanilla uses this.getY(1.0) for the y-level, which is this.getY() + this.getBbHeight() * 1.0, so we pass the BB height as the Y-offset.
 +                    ItemEntity item = spawnAtLocation(new ItemStack(this.getVariant().blockState.getBlock()), this.getBbHeight());

@@ -31,7 +31,7 @@
          switch (p_9975_.intention()) {
              case LOGIN:
                  this.beginLogin(p_9975_, false);
-@@ -54,6 +_,40 @@
+@@ -54,18 +_,77 @@
  
      private void beginLogin(ClientIntentionPacket p_320524_, boolean p_320853_) {
          this.connection.setupOutboundProtocol(LoginProtocols.CLIENTBOUND);
@@ -44,7 +44,7 @@
 +            synchronized (throttleTracker) {
 +                if (throttleTracker.containsKey(address) && !"127.0.0.1".equals(address.getHostAddress()) && currentTime - throttleTracker.get(address) < connectionThrottle) {
 +                    throttleTracker.put(address, currentTime);
-+                    Component chatmessage = Component.literal("Connection throttled! Please wait before reconnecting.");
++                    net.minecraft.network.chat.MutableComponent chatmessage = Component.literal("Connection throttled! Please wait before reconnecting.");
 +                    this.connection.send(new ClientboundLoginDisconnectPacket(chatmessage));
 +                    this.connection.disconnect(chatmessage);
 +                    return;
@@ -71,4 +71,44 @@
 +        // CraftBukkit end
          if (p_320524_.protocolVersion() != SharedConstants.getCurrentVersion().getProtocolVersion()) {
              Component component;
-             if (p_320524_.protocolVersion() < 754) {
+-            if (p_320524_.protocolVersion() < 754) {
+-                component = Component.translatable("multiplayer.disconnect.outdated_client", SharedConstants.getCurrentVersion().getName());
++            if (p_320524_.protocolVersion() < SharedConstants.getCurrentVersion().getProtocolVersion()) { // Spigot - SPIGOT-7546: Handle version check correctly for outdated client message
++                component = Component.literal( java.text.MessageFormat.format( org.spigotmc.SpigotConfig.outdatedClientMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().getName() ) ); // Spigot
+             } else {
+-                component = Component.translatable("multiplayer.disconnect.incompatible", SharedConstants.getCurrentVersion().getName());
++                component = Component.literal( java.text.MessageFormat.format( org.spigotmc.SpigotConfig.outdatedServerMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().getName() ) ); // Spigot
+             }
+ 
+             this.connection.send(new ClientboundLoginDisconnectPacket(component));
+             this.connection.disconnect(component);
+         } else {
+             this.connection.setupInboundProtocol(LoginProtocols.SERVERBOUND, new ServerLoginPacketListenerImpl(this.server, this.connection, p_320853_));
++            // Spigot Start
++            String[] split = p_320524_.hostName().split("\00");
++            if (org.spigotmc.SpigotConfig.bungee) {
++                if ( ( split.length == 3 || split.length == 4 ) && ( HOST_PATTERN.matcher( split[1] ).matches() ) ) {
++                    connection.hostname = split[0];
++                    connection.address = new java.net.InetSocketAddress(split[1], ((java.net.InetSocketAddress) connection.getRemoteAddress()).getPort());
++                    connection.spoofedUUID = com.mojang.util.UndashedUuid.fromStringLenient( split[2] );
++                } else
++                {
++                    Component chatmessage = Component.literal("If you wish to use IP forwarding, please enable it in your BungeeCord config as well!");
++                    this.connection.send(new ClientboundLoginDisconnectPacket(chatmessage));
++                    this.connection.disconnect(chatmessage);
++                    return;
++                }
++                if ( split.length == 4 )
++                {
++                    connection.spoofedProfile = gson.fromJson(split[3], com.mojang.authlib.properties.Property[].class);
++                }
++            } else if ( ( split.length == 3 || split.length == 4 ) && ( HOST_PATTERN.matcher( split[1] ).matches() ) ) {
++                Component chatmessage = Component.literal("Unknown data in login hostname, did you forget to enable BungeeCord in spigot.yml?");
++                this.connection.send(new ClientboundLoginDisconnectPacket(chatmessage));
++                this.connection.disconnect(chatmessage);
++                return;
++            }
++            // Spigot End
+         }
+     }
+ 

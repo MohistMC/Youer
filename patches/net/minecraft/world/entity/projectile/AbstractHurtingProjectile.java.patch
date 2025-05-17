@@ -9,12 +9,29 @@
  
      protected AbstractHurtingProjectile(EntityType<? extends AbstractHurtingProjectile> p_36833_, Level p_36834_) {
          super(p_36833_, p_36834_);
-@@ -78,7 +_,7 @@
+@@ -78,8 +_,14 @@
              }
  
              HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity, this.getClipType());
 -            if (hitresult.getType() != HitResult.Type.MISS) {
+-                this.hitTargetOrDeflectSelf(hitresult);
 +            if (hitresult.getType() != HitResult.Type.MISS && !net.neoforged.neoforge.event.EventHooks.onProjectileImpact(this, hitresult)) {
-                 this.hitTargetOrDeflectSelf(hitresult);
++                this.preHitTargetOrDeflectSelf(hitresult); // CraftBukkit - projectile hit event
++
++                // CraftBukkit start - Fire ProjectileHitEvent
++                if (this.isRemoved()) {
++                    org.bukkit.craftbukkit.event.CraftEventFactory.callProjectileHitEvent(this, hitresult);
++                }
++                // CraftBukkit end
              }
+ 
+             this.checkInsideBlocks();
+@@ -108,7 +_,7 @@
+ 
+             this.setPos(d0, d1, d2);
+         } else {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         }
+     }
  

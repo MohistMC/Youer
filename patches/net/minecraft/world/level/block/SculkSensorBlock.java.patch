@@ -1,5 +1,70 @@
 --- a/net/minecraft/world/level/block/SculkSensorBlock.java
 +++ b/net/minecraft/world/level/block/SculkSensorBlock.java
+@@ -101,13 +_,25 @@
+ 
+     @Override
+     public void stepOn(Level p_222132_, BlockPos p_222133_, BlockState p_222134_, Entity p_222135_) {
+-        if (!p_222132_.isClientSide()
+-            && canActivate(p_222134_)
+-            && p_222135_.getType() != EntityType.WARDEN
+-            && p_222132_.getBlockEntity(p_222133_) instanceof SculkSensorBlockEntity sculksensorblockentity
+-            && p_222132_ instanceof ServerLevel serverlevel
+-            && sculksensorblockentity.getVibrationUser().canReceiveVibration(serverlevel, p_222133_, GameEvent.STEP, GameEvent.Context.of(p_222134_))) {
+-            sculksensorblockentity.getListener().forceScheduleVibration(serverlevel, GameEvent.STEP, GameEvent.Context.of(p_222135_), p_222135_.position());
++        if (!p_222132_.isClientSide() && canActivate(p_222134_) && p_222135_.getType() != EntityType.WARDEN) {
++            // CraftBukkit start
++            org.bukkit.event.Cancellable cancellable;
++            if (p_222135_ instanceof net.minecraft.world.entity.player.Player) {
++                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((net.minecraft.world.entity.player.Player) p_222135_, org.bukkit.event.block.Action.PHYSICAL, p_222133_, null, null, null);
++            } else {
++                cancellable = new org.bukkit.event.entity.EntityInteractEvent(p_222135_.getBukkitEntity(), p_222132_.getWorld().getBlockAt(p_222133_.getX(), p_222133_.getY(), p_222133_.getZ()));
++                p_222132_.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
++            }
++            if (cancellable.isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
++
++            if (p_222132_.getBlockEntity(p_222133_) instanceof SculkSensorBlockEntity sculksensorblockentity
++                    && p_222132_ instanceof ServerLevel serverlevel
++                    && sculksensorblockentity.getVibrationUser().canReceiveVibration(serverlevel, p_222133_, GameEvent.STEP, GameEvent.Context.of(p_222134_))) {
++                sculksensorblockentity.getListener().forceScheduleVibration(serverlevel, GameEvent.STEP, GameEvent.Context.of(p_222135_), p_222135_.position());
++            }
+         }
+ 
+         super.stepOn(p_222132_, p_222133_, p_222134_, p_222135_);
+@@ -203,6 +_,15 @@
+     }
+ 
+     public static void deactivate(Level p_154408_, BlockPos p_154409_, BlockState p_154410_) {
++        // CraftBukkit start
++        org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_154408_, p_154409_), p_154410_.getValue(SculkSensorBlock.POWER), 0);
++        p_154408_.getCraftServer().getPluginManager().callEvent(eventRedstone);
++
++        if (eventRedstone.getNewCurrent() > 0) {
++            p_154408_.setBlock(p_154409_, p_154410_.setValue(PHASE, SculkSensorPhase.COOLDOWN).setValue(POWER, eventRedstone.getNewCurrent()), 3);
++            return;
++        }
++        // CraftBukkit end
+         p_154408_.setBlock(p_154409_, p_154410_.setValue(PHASE, SculkSensorPhase.COOLDOWN).setValue(POWER, Integer.valueOf(0)), 3);
+         p_154408_.scheduleTick(p_154409_, p_154410_.getBlock(), 10);
+         updateNeighbours(p_154408_, p_154409_, p_154410_);
+@@ -214,6 +_,15 @@
+     }
+ 
+     public void activate(@Nullable Entity p_277529_, Level p_277340_, BlockPos p_277386_, BlockState p_277799_, int p_277993_, int p_278003_) {
++        // CraftBukkit start
++        org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_277340_, p_277386_), p_277799_.getValue(SculkSensorBlock.POWER), p_277993_);
++        p_277340_.getCraftServer().getPluginManager().callEvent(eventRedstone);
++
++        if (eventRedstone.getNewCurrent() <= 0) {
++            return;
++        }
++        p_277993_ = eventRedstone.getNewCurrent();
++        // CraftBukkit end
+         p_277340_.setBlock(p_277386_, p_277799_.setValue(PHASE, SculkSensorPhase.ACTIVE).setValue(POWER, Integer.valueOf(p_277993_)), 3);
+         p_277340_.scheduleTick(p_277386_, p_277799_.getBlock(), this.getActiveTicks());
+         updateNeighbours(p_277340_, p_277386_, p_277799_);
 @@ -291,8 +_,13 @@
      @Override
      protected void spawnAfterBreak(BlockState p_222142_, ServerLevel p_222143_, BlockPos p_222144_, ItemStack p_222145_, boolean p_222146_) {

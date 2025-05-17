@@ -1,14 +1,63 @@
 --- a/net/minecraft/world/entity/monster/piglin/PiglinAi.java
 +++ b/net/minecraft/world/entity/monster/piglin/PiglinAi.java
-@@ -377,7 +_,7 @@
+@@ -330,23 +_,26 @@
+     protected static void pickUpItem(Piglin p_34844_, ItemEntity p_34845_) {
+         stopWalking(p_34844_);
+         ItemStack itemstack;
+-        if (p_34845_.getItem().is(Items.GOLD_NUGGET)) {
++        // CraftBukkit start
++        if (p_34845_.getItem().is(Items.GOLD_NUGGET) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(p_34844_, p_34845_, 0, false).isCancelled()) {
+             p_34844_.take(p_34845_, p_34845_.getItem().getCount());
+             itemstack = p_34845_.getItem();
+-            p_34845_.discard();
+-        } else {
++            p_34845_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
++        } else if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(p_34844_, p_34845_, p_34845_.getItem().getCount() - 1, false).isCancelled()) {
+             p_34844_.take(p_34845_, 1);
+             itemstack = removeOneItemFromItemEntity(p_34845_);
++        } else {
++            return;
+         }
+ 
+-        if (isLovedItem(itemstack)) {
++        if (isLovedItem(itemstack, p_34844_)) { // CraftBukkit - Changes to allow for custom payment in bartering
+             p_34844_.getBrain().eraseMemory(MemoryModuleType.TIME_TRYING_TO_REACH_ADMIRE_ITEM);
+             holdInOffhand(p_34844_, itemstack);
+             admireGoldItem(p_34844_);
+         } else if (isFood(itemstack) && !hasEatenRecently(p_34844_)) {
+             eat(p_34844_);
+         } else {
+-            boolean flag = !p_34844_.equipItemIfPossible(itemstack).equals(ItemStack.EMPTY);
++            boolean flag = !p_34844_.equipItemIfPossible(itemstack, p_34845_).equals(ItemStack.EMPTY); // CraftBukkit
+             if (!flag) {
+                 putInInventory(p_34844_, itemstack);
+             }
+@@ -377,9 +_,14 @@
          ItemStack itemstack = p_34868_.getItemInHand(InteractionHand.OFF_HAND);
          p_34868_.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
          if (p_34868_.isAdult()) {
 -            boolean flag = isBarterCurrency(itemstack);
 +            boolean flag = itemstack.isPiglinCurrency();
              if (p_34869_ && flag) {
-                 throwItems(p_34868_, getBarterResponseItems(p_34868_));
+-                throwItems(p_34868_, getBarterResponseItems(p_34868_));
++                // CraftBukkit start
++                org.bukkit.event.entity.PiglinBarterEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPiglinBarterEvent(p_34868_, getBarterResponseItems(p_34868_), itemstack);
++                if (!event.isCancelled()) {
++                    throwItems(p_34868_, event.getOutcome().stream().map(org.bukkit.craftbukkit.inventory.CraftItemStack::asNMSCopy).collect(java.util.stream.Collectors.toList()));
++                }
++                // CraftBukkit end
              } else if (!flag) {
+                 boolean flag1 = !p_34868_.equipItemIfPossible(itemstack).isEmpty();
+                 if (!flag1) {
+@@ -390,7 +_,7 @@
+             boolean flag2 = !p_34868_.equipItemIfPossible(itemstack).isEmpty();
+             if (!flag2) {
+                 ItemStack itemstack1 = p_34868_.getMainHandItem();
+-                if (isLovedItem(itemstack1)) {
++                if (isLovedItem(itemstack1, p_34868_)) { // CraftBukkit - Changes to allow for custom payment in bartering
+                     putInInventory(p_34868_, itemstack1);
+                 } else {
+                     throwItems(p_34868_, Collections.singletonList(itemstack1));
 @@ -461,7 +_,7 @@
              return false;
          } else if (isAdmiringDisabled(p_34858_) && p_34858_.getBrain().hasMemoryValue(MemoryModuleType.ATTACK_TARGET)) {
@@ -18,6 +67,21 @@
              return isNotHoldingLovedItemInOffHand(p_34858_);
          } else {
              boolean flag = p_34858_.canAddToInventory(p_34859_);
+@@ -475,7 +_,13 @@
+         }
+     }
+ 
+-    public static boolean isLovedItem(ItemStack p_149966_) {
++    // CraftBukkit start - Added method to allow checking for custom payment items
++    protected static boolean isLovedItem(ItemStack itemstack, Piglin piglin) {
++        return isLovedItem(itemstack) || (piglin.interestItems.contains(itemstack.getItem()) || piglin.allowedBarterItems.contains(itemstack.getItem()));
++    }
++    // CraftBukkit end
++
++    protected static boolean isLovedItem(ItemStack p_149966_) {
+         return p_149966_.is(ItemTags.PIGLIN_LOVED);
+     }
+ 
 @@ -551,7 +_,7 @@
      }
  
@@ -45,3 +109,25 @@
      }
  
      private static void admireGoldItem(LivingEntity p_34939_) {
+@@ -803,6 +_,12 @@
+         return p_35021_.getBrain().hasMemoryValue(MemoryModuleType.ADMIRING_ITEM);
+     }
+ 
++    // CraftBukkit start - Changes to allow custom payment for bartering
++    private static boolean isBarterCurrency(ItemStack itemstack, Piglin piglin) {
++        return isBarterCurrency(itemstack) || piglin.allowedBarterItems.contains(itemstack.getItem());
++    }
++    // CraftBukkit end
++
+     private static boolean isBarterCurrency(ItemStack p_149968_) {
+         return p_149968_.is(BARTERING_ITEM);
+     }
+@@ -840,7 +_,7 @@
+     }
+ 
+     private static boolean isNotHoldingLovedItemInOffHand(Piglin p_35029_) {
+-        return p_35029_.getOffhandItem().isEmpty() || !isLovedItem(p_35029_.getOffhandItem());
++        return p_35029_.getOffhandItem().isEmpty() || !isLovedItem(p_35029_.getOffhandItem(), p_35029_); // CraftBukkit - Changes to allow custom payment for bartering
+     }
+ 
+     public static boolean isZombified(EntityType<?> p_34807_) {

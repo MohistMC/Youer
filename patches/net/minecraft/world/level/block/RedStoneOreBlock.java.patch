@@ -1,5 +1,72 @@
 --- a/net/minecraft/world/level/block/RedStoneOreBlock.java
 +++ b/net/minecraft/world/level/block/RedStoneOreBlock.java
+@@ -37,14 +_,27 @@
+ 
+     @Override
+     protected void attack(BlockState p_55467_, Level p_55468_, BlockPos p_55469_, Player p_55470_) {
+-        interact(p_55467_, p_55468_, p_55469_);
++        interact(p_55467_, p_55468_, p_55469_, p_55470_); // CraftBukkit - add player
+         super.attack(p_55467_, p_55468_, p_55469_, p_55470_);
+     }
+ 
+     @Override
+     public void stepOn(Level p_154299_, BlockPos p_154300_, BlockState p_154301_, Entity p_154302_) {
+         if (!p_154302_.isSteppingCarefully()) {
+-            interact(p_154301_, p_154299_, p_154300_);
++            // CraftBukkit start
++            if (p_154302_ instanceof Player) {
++                org.bukkit.event.player.PlayerInteractEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) p_154302_, org.bukkit.event.block.Action.PHYSICAL, p_154300_, null, null, null);
++                if (!event.isCancelled()) {
++                    interact(p_154301_, p_154299_, p_154300_, p_154302_); // add entity
++                }
++            } else {
++                org.bukkit.event.entity.EntityInteractEvent event = new org.bukkit.event.entity.EntityInteractEvent(p_154302_.getBukkitEntity(), p_154299_.getWorld().getBlockAt(p_154300_.getX(), p_154300_.getY(), p_154300_.getZ()));
++                p_154299_.getCraftServer().getPluginManager().callEvent(event);
++                if (!event.isCancelled()) {
++                    interact(p_154301_, p_154299_, p_154300_, p_154302_); // add entity
++                }
++            }
++            // CraftBukkit end
+         }
+ 
+         super.stepOn(p_154299_, p_154300_, p_154301_, p_154302_);
+@@ -57,7 +_,7 @@
+         if (p_316432_.isClientSide) {
+             spawnParticles(p_316432_, p_316592_);
+         } else {
+-            interact(p_316208_, p_316432_, p_316592_);
++            interact(p_316208_, p_316432_, p_316592_, p_316564_); // CraftBukkit - add player
+         }
+ 
+         return p_316235_.getItem() instanceof BlockItem && new BlockPlaceContext(p_316564_, p_316389_, p_316235_, p_316390_).canPlace()
+@@ -65,9 +_,14 @@
+             : ItemInteractionResult.SUCCESS;
+     }
+ 
+-    private static void interact(BlockState p_55493_, Level p_55494_, BlockPos p_55495_) {
++    private static void interact(BlockState p_55493_, Level p_55494_, BlockPos p_55495_, Entity entity) { // CraftBukkit - add Entity
+         spawnParticles(p_55494_, p_55495_);
+         if (!p_55493_.getValue(LIT)) {
++            // CraftBukkit start
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, p_55495_, p_55493_.setValue(LIT, Boolean.valueOf(true)))) {
++                return;
++            }
++            // CraftBukkit end
+             p_55494_.setBlock(p_55495_, p_55493_.setValue(LIT, Boolean.valueOf(true)), 3);
+         }
+     }
+@@ -80,6 +_,11 @@
+     @Override
+     protected void randomTick(BlockState p_221918_, ServerLevel p_221919_, BlockPos p_221920_, RandomSource p_221921_) {
+         if (p_221918_.getValue(LIT)) {
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(p_221919_, p_221920_, p_221918_.setValue(LIT, Boolean.valueOf(false))).isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
+             p_221919_.setBlock(p_221920_, p_221918_.setValue(LIT, Boolean.valueOf(false)), 3);
+         }
+     }
 @@ -87,9 +_,14 @@
      @Override
      protected void spawnAfterBreak(BlockState p_221907_, ServerLevel p_221908_, BlockPos p_221909_, ItemStack p_221910_, boolean p_221911_) {

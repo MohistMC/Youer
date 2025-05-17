@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/entity/ai/sensing/TemptingSensor.java
++++ b/net/minecraft/world/entity/ai/sensing/TemptingSensor.java
+@@ -38,7 +_,17 @@
+             .collect(Collectors.toList());
+         if (!list.isEmpty()) {
+             Player player = list.get(0);
+-            brain.setMemory(MemoryModuleType.TEMPTING_PLAYER, player);
++            // CraftBukkit start
++            org.bukkit.event.entity.EntityTargetLivingEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(p_148332_, player, org.bukkit.event.entity.EntityTargetEvent.TargetReason.TEMPT);
++            if (event.isCancelled()) {
++                return;
++            }
++            if (event.getTarget() instanceof org.bukkit.entity.HumanEntity) {
++                brain.setMemory(MemoryModuleType.TEMPTING_PLAYER, ((org.bukkit.craftbukkit.entity.CraftHumanEntity) event.getTarget()).getHandle());
++            } else {
++                brain.eraseMemory(MemoryModuleType.TEMPTING_PLAYER);
++            }
++            // CraftBukkit end
+         } else {
+             brain.eraseMemory(MemoryModuleType.TEMPTING_PLAYER);
+         }

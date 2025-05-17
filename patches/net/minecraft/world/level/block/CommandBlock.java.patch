@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/level/block/CommandBlock.java
++++ b/net/minecraft/world/level/block/CommandBlock.java
+@@ -64,6 +_,17 @@
+             if (p_51839_.getBlockEntity(p_51840_) instanceof CommandBlockEntity commandblockentity) {
+                 boolean flag = p_51839_.hasNeighborSignal(p_51840_);
+                 boolean flag1 = commandblockentity.isPowered();
++
++                // CraftBukkit start
++                org.bukkit.block.Block bukkitBlock = p_51839_.getWorld().getBlockAt(p_51840_.getX(), p_51840_.getY(), p_51840_.getZ());
++                int old = flag1 ? 15 : 0;
++                int current = flag ? 15 : 0;
++
++                org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(bukkitBlock, old, current);
++                p_51839_.getCraftServer().getPluginManager().callEvent(eventRedstone);
++                flag = eventRedstone.getNewCurrent() > 0;
++                // CraftBukkit end
++
+                 commandblockentity.setPowered(flag);
+                 if (!flag1 && !commandblockentity.isAutomatic() && commandblockentity.getMode() != CommandBlockEntity.Mode.SEQUENCE) {
+                     if (flag) {

@@ -24,6 +24,31 @@
  
      public ChunkAccess(
          ChunkPos p_187621_,
+@@ -109,7 +_,11 @@
+         }
+ 
+         replaceMissingSections(p_187624_, this.sections);
++        // CraftBukkit start
++        this.biomeRegistry = p_187624_;
+     }
++    public final Registry<Biome> biomeRegistry;
++    // CraftBukkit end
+ 
+     private static void replaceMissingSections(Registry<Biome> p_281389_, LevelChunkSection[] p_282796_) {
+         for (int i = 0; i < p_282796_.length; i++) {
+@@ -268,10 +_,11 @@
+ 
+     public void setUnsaved(boolean p_62094_) {
+         this.unsaved = p_62094_;
++        if (!p_62094_) this.persistentDataContainer.dirty(false); // CraftBukkit - SPIGOT-6814: chunk was saved, pdc is no longer dirty
+     }
+ 
+     public boolean isUnsaved() {
+-        return this.unsaved;
++        return this.unsaved || this.persistentDataContainer.dirty(); // CraftBukkit - SPIGOT-6814: chunk is unsaved if pdc was mutated
+     }
+ 
+     public abstract ChunkStatus getPersistedStatus();
 @@ -315,10 +_,19 @@
  
      @Override

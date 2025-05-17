@@ -1,0 +1,26 @@
+--- a/net/minecraft/world/level/block/RedstoneLampBlock.java
++++ b/net/minecraft/world/level/block/RedstoneLampBlock.java
+@@ -40,6 +_,11 @@
+                 if (flag) {
+                     p_55667_.scheduleTick(p_55668_, this, 4);
+                 } else {
++                    // CraftBukkit start
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(p_55667_, p_55668_, 0, 15).getNewCurrent() != 15) {
++                        return;
++                    }
++                    // CraftBukkit end
+                     p_55667_.setBlock(p_55668_, p_55666_.cycle(LIT), 2);
+                 }
+             }
+@@ -49,6 +_,11 @@
+     @Override
+     protected void tick(BlockState p_221937_, ServerLevel p_221938_, BlockPos p_221939_, RandomSource p_221940_) {
+         if (p_221937_.getValue(LIT) && !p_221938_.hasNeighborSignal(p_221939_)) {
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(p_221938_, p_221939_, 15, 0).getNewCurrent() != 0) {
++                return;
++            }
++            // CraftBukkit end
+             p_221938_.setBlock(p_221939_, p_221937_.cycle(LIT), 2);
+         }
+     }

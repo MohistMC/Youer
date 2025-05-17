@@ -1,0 +1,36 @@
+--- a/net/minecraft/world/level/block/entity/CampfireBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/CampfireBlockEntity.java
+@@ -56,6 +_,20 @@
+                         .map(p_344662_ -> p_344662_.value().assemble(singlerecipeinput, p_155307_.registryAccess()))
+                         .orElse(itemstack);
+                     if (itemstack1.isItemEnabled(p_155307_.enabledFeatures())) {
++                        // CraftBukkit start - fire BlockCookEvent
++                        org.bukkit.craftbukkit.inventory.CraftItemStack source = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack);
++                        org.bukkit.inventory.ItemStack result = org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemstack1);
++
++                        org.bukkit.event.block.BlockCookEvent blockCookEvent = new org.bukkit.event.block.BlockCookEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_155307_, p_155308_), source, result);
++                        p_155307_.getCraftServer().getPluginManager().callEvent(blockCookEvent);
++
++                        if (blockCookEvent.isCancelled()) {
++                            return;
++                        }
++
++                        result = blockCookEvent.getResult();
++                        itemstack1 = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(result);
++                        // CraftBukkit end
+                         Containers.dropItemStack(p_155307_, (double)p_155308_.getX(), (double)p_155308_.getY(), (double)p_155308_.getZ(), itemstack1);
+                         p_155310_.items.set(i, ItemStack.EMPTY);
+                         p_155307_.sendBlockUpdated(p_155308_, p_155309_, p_155309_, 3);
+@@ -163,7 +_,11 @@
+         for (int i = 0; i < this.items.size(); i++) {
+             ItemStack itemstack = this.items.get(i);
+             if (itemstack.isEmpty()) {
+-                this.cookingTime[i] = p_238287_;
++                // CraftBukkit start
++                org.bukkit.event.block.CampfireStartEvent event = new org.bukkit.event.block.CampfireStartEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this.level,this.worldPosition), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack), (org.bukkit.inventory.CampfireRecipe) getCookableRecipe(itemstack).get().toBukkitRecipe());
++                this.level.getCraftServer().getPluginManager().callEvent(event);
++                this.cookingTime[i] = event.getTotalCookTime(); // i -> event.getTotalCookTime()
++                // CraftBukkit end
+                 this.cookingProgress[i] = 0;
+                 this.items.set(i, p_238286_.consumeAndReturn(1, p_347582_));
+                 this.level.gameEvent(GameEvent.BLOCK_CHANGE, this.getBlockPos(), GameEvent.Context.of(p_347582_, this.getBlockState()));

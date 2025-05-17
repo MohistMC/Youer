@@ -18,11 +18,10 @@
  import org.slf4j.Logger;
  
  public class ChiseledBookShelfBlockEntity extends BlockEntity implements Container {
-@@ -26,6 +_,42 @@
-     private static final Logger LOGGER = LogUtils.getLogger();
+@@ -27,6 +_,42 @@
      private final NonNullList<ItemStack> items = NonNullList.withSize(6, ItemStack.EMPTY);
      public int lastInteractedSlot = -1;
-+
+ 
 +    // CraftBukkit start - add fields and methods
 +    public List<HumanEntity> transaction = new java.util.ArrayList<>();
 +    private int maxStack = 1;
@@ -58,6 +57,34 @@
 +        return new org.bukkit.Location(level.getWorld(), worldPosition.getX(), worldPosition.getY(), worldPosition.getZ());
 +    }
 +    // CraftBukkit end
- 
++
      public ChiseledBookShelfBlockEntity(BlockPos p_249541_, BlockState p_251752_) {
          super(BlockEntityType.CHISELED_BOOKSHELF, p_249541_, p_251752_);
+     }
+@@ -93,7 +_,7 @@
+         ItemStack itemstack = Objects.requireNonNullElse(this.items.get(p_255828_), ItemStack.EMPTY);
+         this.items.set(p_255828_, ItemStack.EMPTY);
+         if (!itemstack.isEmpty()) {
+-            this.updateState(p_255828_);
++            if (level != null) this.updateState(p_255828_); // CraftBukkit - SPIGOT-7381: check for null world
+         }
+ 
+         return itemstack;
+@@ -108,7 +_,7 @@
+     public void setItem(int p_256610_, ItemStack p_255789_) {
+         if (p_255789_.is(ItemTags.BOOKSHELF_BOOKS)) {
+             this.items.set(p_256610_, p_255789_);
+-            this.updateState(p_256610_);
++            if (level != null) this.updateState(p_256610_); // CraftBukkit - SPIGOT-7381: check for null world
+         } else if (p_255789_.isEmpty()) {
+             this.removeItem(p_256610_, 1);
+         }
+@@ -126,7 +_,7 @@
+ 
+     @Override
+     public int getMaxStackSize() {
+-        return 1;
++        return maxStack; // CraftBukkit
+     }
+ 
+     @Override

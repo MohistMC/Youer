@@ -1,5 +1,58 @@
 --- a/net/minecraft/world/entity/projectile/AbstractArrow.java
 +++ b/net/minecraft/world/entity/projectile/AbstractArrow.java
+@@ -72,6 +_,18 @@
+     @Nullable
+     public ItemStack firedFromWeapon = null;
+ 
++    // Spigot Start
++    @Override
++    public void inactiveTick()
++    {
++        if ( this.inGround )
++        {
++            this.life += 1;
++        }
++        super.inactiveTick();
++    }
++    // Spigot End
++
+     protected AbstractArrow(EntityType<? extends AbstractArrow> p_331098_, Level p_331626_) {
+         super(p_331098_, p_331626_);
+     }
+@@ -85,7 +_,23 @@
+         ItemStack p_309031_,
+         @Nullable ItemStack p_345487_
+     ) {
++        // CraftBukkit start - handle the owner before the rest of things
++        this(p_36717_, p_346045_, p_344855_, p_345999_, p_36719_, p_309031_, p_345487_, null);
++    }
++
++    protected AbstractArrow(
++        EntityType<? extends AbstractArrow> p_36717_,
++        double p_346045_,
++        double p_344855_,
++        double p_345999_,
++        Level p_36719_,
++        ItemStack p_309031_,
++        @Nullable ItemStack p_345487_,
++        @Nullable LivingEntity ownerEntity
++    ) {
+         this(p_36717_, p_36719_);
++        this.setOwner(ownerEntity);
++        // CraftBukkit end
+         this.pickupItemStack = p_309031_.copy();
+         this.setCustomName(p_309031_.get(DataComponents.CUSTOM_NAME));
+         Unit unit = p_309031_.remove(DataComponents.INTANGIBLE_PROJECTILE);
+@@ -112,8 +_,7 @@
+     protected AbstractArrow(
+         EntityType<? extends AbstractArrow> p_36721_, LivingEntity p_345310_, Level p_36722_, ItemStack p_309145_, @Nullable ItemStack p_345000_
+     ) {
+-        this(p_36721_, p_345310_.getX(), p_345310_.getEyeY() - 0.1F, p_345310_.getZ(), p_36722_, p_309145_, p_345000_);
+-        this.setOwner(p_345310_);
++        this(p_36721_, p_345310_.getX(), p_345310_.getEyeY() - 0.1F, p_345310_.getZ(), p_36722_, p_309145_, p_345000_, p_345310_);
+     }
+ 
+     public void setSoundEvent(SoundEvent p_36741_) {
 @@ -188,7 +_,7 @@
              this.shakeTime--;
          }
@@ -9,14 +62,97 @@
              this.clearFire();
          }
  
-@@ -224,7 +_,9 @@
+@@ -224,8 +_,10 @@
                      }
                  }
  
 -                if (hitresult != null && !flag) {
+-                    ProjectileDeflection projectiledeflection = this.hitTargetOrDeflectSelf(hitresult);
 +                if (hitresult != null && hitresult.getType() != HitResult.Type.MISS && !flag) {
 +                    if (net.neoforged.neoforge.event.EventHooks.onProjectileImpact(this, hitresult))
 +                        break;
-                     ProjectileDeflection projectiledeflection = this.hitTargetOrDeflectSelf(hitresult);
++                    ProjectileDeflection projectiledeflection = this.preHitTargetOrDeflectSelf(hitresult); // CraftBukkit - projectile hit event
                      this.hasImpulse = true;
                      if (projectiledeflection != ProjectileDeflection.NONE) {
+                         break;
+@@ -319,8 +_,8 @@
+ 
+     protected void tickDespawn() {
+         this.life++;
+-        if (this.life >= 1200) {
+-            this.discard();
++        if (this.life >= ((this instanceof ThrownTrident) ? this.level().spigotConfig.tridentDespawnRate : this.level().spigotConfig.arrowDespawnRate)) { // Spigot
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 
+@@ -357,7 +_,7 @@
+             }
+ 
+             if (this.piercingIgnoreEntityIds.size() >= this.getPierceLevel() + 1) {
+-                this.discard();
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+                 return;
+             }
+ 
+@@ -376,7 +_,14 @@
+         boolean flag = entity.getType() == EntityType.ENDERMAN;
+         int i = entity.getRemainingFireTicks();
+         if (this.isOnFire() && !flag) {
+-            entity.igniteForSeconds(5.0F);
++            // CraftBukkit start
++            org.bukkit.event.entity.EntityCombustByEntityEvent combustEvent = new org.bukkit.event.entity.EntityCombustByEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity(), 5.0F);
++            org.bukkit.Bukkit.getPluginManager().callEvent(combustEvent);
++            if (!combustEvent.isCancelled()) {
++                entity.igniteForSeconds$callEvent = false;
++                entity.igniteForSeconds(combustEvent.getDuration());
++            }
++            // CraftBukkit end
+         }
+ 
+         if (entity.hurt(damagesource, (float)j)) {
+@@ -414,7 +_,7 @@
+ 
+             this.playSound(this.soundEvent, 1.0F, 1.2F / (this.random.nextFloat() * 0.2F + 0.9F));
+             if (this.getPierceLevel() <= 0) {
+-                this.discard();
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+             }
+         } else {
+             entity.setRemainingFireTicks(i);
+@@ -425,7 +_,7 @@
+                     this.spawnAtLocation(this.getPickupItem(), 0.1F);
+                 }
+ 
+-                this.discard();
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+             }
+         }
+     }
+@@ -580,9 +_,24 @@
+     @Override
+     public void playerTouch(Player p_36766_) {
+         if (!this.level().isClientSide && (this.inGround || this.isNoPhysics()) && this.shakeTime <= 0) {
+-            if (this.tryPickup(p_36766_)) {
++            // CraftBukkit start
++            ItemStack itemstack = this.getPickupItem();
++            if (this.pickup == Pickup.ALLOWED && !itemstack.isEmpty() && p_36766_.getInventory().canHold(itemstack) > 0) {
++                net.minecraft.world.entity.item.ItemEntity item = new net.minecraft.world.entity.item.ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), itemstack);
++                org.bukkit.event.player.PlayerPickupArrowEvent event = new org.bukkit.event.player.PlayerPickupArrowEvent((org.bukkit.entity.Player) p_36766_.getBukkitEntity(), new org.bukkit.craftbukkit.entity.CraftItem(this.level().getCraftServer(), item), (org.bukkit.entity.AbstractArrow) this.getBukkitEntity());
++                // event.setCancelled(!entityhuman.canPickUpLoot); TODO
++                this.level().getCraftServer().getPluginManager().callEvent(event);
++
++                if (event.isCancelled()) {
++                    return;
++                }
++                itemstack = item.getItem();
++            }
++
++            if ((this.pickup == AbstractArrow.Pickup.ALLOWED && p_36766_.getInventory().add(itemstack)) || (this.pickup == AbstractArrow.Pickup.CREATIVE_ONLY && p_36766_.getAbilities().instabuild)) {
++                // CraftBukkit end
+                 p_36766_.take(this, 1);
+-                this.discard();
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             }
+         }
+     }

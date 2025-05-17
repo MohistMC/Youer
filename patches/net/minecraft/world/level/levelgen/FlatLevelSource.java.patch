@@ -1,0 +1,29 @@
+--- a/net/minecraft/world/level/levelgen/FlatLevelSource.java
++++ b/net/minecraft/world/level/levelgen/FlatLevelSource.java
+@@ -34,17 +_,23 @@
+     private final FlatLevelGeneratorSettings settings;
+ 
+     public FlatLevelSource(FlatLevelGeneratorSettings p_256337_) {
+-        super(new FixedBiomeSource(p_256337_.getBiome()), Util.memoize(p_256337_::adjustGenerationSettings));
++        // CraftBukkit start
++        this(p_256337_, new FixedBiomeSource(p_256337_.getBiome()));
++    }
++
++    public FlatLevelSource(FlatLevelGeneratorSettings p_256337_, net.minecraft.world.level.biome.BiomeSource worldchunkmanager) {
++        super(worldchunkmanager, Util.memoize(p_256337_::adjustGenerationSettings));
++        // CraftBukkit end
+         this.settings = p_256337_;
+     }
+ 
+     @Override
+-    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256602_, RandomState p_255830_, long p_256355_) {
++    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256602_, RandomState p_255830_, long p_256355_, org.spigotmc.SpigotWorldConfig conf) { // Spigot
+         Stream<Holder<StructureSet>> stream = this.settings
+             .structureOverrides()
+             .map(HolderSet::stream)
+             .orElseGet(() -> p_256602_.listElements().map(p_255579_ -> (Holder<StructureSet>)p_255579_));
+-        return ChunkGeneratorStructureState.createForFlat(p_255830_, p_256355_, this.biomeSource, stream);
++        return ChunkGeneratorStructureState.createForFlat(p_255830_, p_256355_, this.biomeSource, stream, conf); // Spigot
+     }
+ 
+     @Override

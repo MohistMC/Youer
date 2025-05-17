@@ -18,6 +18,26 @@
  
  public class ChestBoat extends Boat implements HasCustomInventoryScreen, ContainerEntity {
      private static final int CONTAINER_SIZE = 27;
+@@ -73,11 +_,18 @@
+ 
+     @Override
+     public void remove(Entity.RemovalReason p_219894_) {
++        // CraftBukkit start - add Bukkit remove cause
++        this.remove(p_219894_, null);
++    }
++
++    @Override
++    public void remove(Entity.RemovalReason p_219894_, org.bukkit.event.entity.EntityRemoveEvent.Cause cause) {
++        // CraftBukkit end
+         if (!this.level().isClientSide && p_219894_.shouldDestroy()) {
+             Containers.dropContents(this.level(), this, this);
+         }
+ 
+-        super.remove(p_219894_);
++        super.remove(p_219894_, cause); // CraftBukkit - add Bukkit remove cause
+     }
+ 
+     @Override
 @@ -122,7 +_,8 @@
              case DARK_OAK -> Items.DARK_OAK_CHEST_BOAT;
              case MANGROVE -> Items.MANGROVE_CHEST_BOAT;

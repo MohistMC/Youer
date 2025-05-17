@@ -1,17 +1,69 @@
 --- a/net/minecraft/world/level/block/FarmBlock.java
 +++ b/net/minecraft/world/level/block/FarmBlock.java
-@@ -100,10 +_,7 @@
+@@ -88,29 +_,56 @@
+         int i = p_221139_.getValue(MOISTURE);
+         if (!isNearWater(p_221140_, p_221141_) && !p_221140_.isRainingAt(p_221141_.above())) {
+             if (i > 0) {
+-                p_221140_.setBlock(p_221141_, p_221139_.setValue(MOISTURE, Integer.valueOf(i - 1)), 2);
++                // CraftBukkit start
++                org.bukkit.craftbukkit.event.CraftEventFactory.handleMoistureChangeEvent(p_221140_, p_221141_, p_221139_.setValue(MOISTURE, Integer.valueOf(i - 1)), 2);
++                // CraftBukkit end
+             } else if (!shouldMaintainFarmland(p_221140_, p_221141_)) {
+                 turnToDirt(null, p_221139_, p_221140_, p_221141_);
+             }
+         } else if (i < 7) {
++            p_221140_.fake$setBlock = true;
+             p_221140_.setBlock(p_221141_, p_221139_.setValue(MOISTURE, Integer.valueOf(7)), 2);
++            // CraftBukkit start
++            org.bukkit.craftbukkit.event.CraftEventFactory.handleMoistureChangeEvent(p_221140_, p_221141_, p_221140_.fake$setBlockBlockState, 2);
+         }
+     }
+ 
      @Override
      public void fallOn(Level p_153227_, BlockState p_153228_, BlockPos p_153229_, Entity p_153230_, float p_153231_) {
++        // CraftBukkit start - moved here as game rules / events shouldn't affect fall damage
++        super.fallOn(p_153227_, p_153228_, p_153229_, p_153230_, p_153231_);
++
          if (!p_153227_.isClientSide
 -            && p_153227_.random.nextFloat() < p_153231_ - 0.5F
 -            && p_153230_ instanceof LivingEntity
 -            && (p_153230_ instanceof Player || p_153227_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING))
 -            && p_153230_.getBbWidth() * p_153230_.getBbWidth() * p_153230_.getBbHeight() > 0.512F) {
-+            && net.neoforged.neoforge.common.CommonHooks.onFarmlandTrample(p_153227_, p_153229_, Blocks.DIRT.defaultBlockState(), p_153231_, p_153230_)) { // Forge: Move logic to Entity#canTrample
++            && net.neoforged.neoforge.common.CommonHooks.onFarmlandTrample(p_153227_, p_153229_, Blocks.DIRT.defaultBlockState(), p_153231_, p_153230_)) {
++            // CraftBukkit start - Interact soil
++            org.bukkit.event.Cancellable cancellable;
++            if (p_153230_ instanceof Player) {
++                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) p_153230_, org.bukkit.event.block.Action.PHYSICAL, p_153229_, null, null, null);
++            } else {
++                cancellable = new org.bukkit.event.entity.EntityInteractEvent(p_153230_.getBukkitEntity(), p_153227_.getWorld().getBlockAt(p_153229_.getX(), p_153229_.getY(), p_153229_.getZ()));
++                p_153227_.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
++            }
++
++            if (cancellable.isCancelled()) {
++                return;
++            }
++
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_153230_, p_153229_, Blocks.DIRT.defaultBlockState())) {
++                return;
++            }
++            // CraftBukkit end
++
              turnToDirt(p_153230_, p_153228_, p_153227_, p_153229_);
          }
+-
+-        super.fallOn(p_153227_, p_153228_, p_153229_, p_153230_, p_153231_);
+     }
  
+     public static void turnToDirt(@Nullable Entity p_270981_, BlockState p_270402_, Level p_270568_, BlockPos p_270551_) {
++        // CraftBukkit start
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(p_270568_, p_270551_, Blocks.DIRT.defaultBlockState()).isCancelled()) {
++            return;
++        }
++        // CraftBukkit end
++
+         BlockState blockstate = pushEntitiesUp(p_270402_, Blocks.DIRT.defaultBlockState(), p_270568_, p_270551_);
+         p_270568_.setBlockAndUpdate(p_270551_, blockstate);
+         p_270568_.gameEvent(GameEvent.BLOCK_CHANGE, p_270551_, GameEvent.Context.of(p_270981_, blockstate));
 @@ -121,13 +_,14 @@
      }
  

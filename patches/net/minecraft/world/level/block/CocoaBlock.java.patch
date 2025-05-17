@@ -8,8 +8,9 @@
 +        if (true) {
              int i = p_221000_.getValue(AGE);
 -            if (i < 2) {
-+            if (i < 2 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_221001_, p_221002_, p_221000_, p_221001_.random.nextInt(5) == 0)) {
-                 p_221001_.setBlock(p_221002_, p_221000_.setValue(AGE, Integer.valueOf(i + 1)), 2);
+-                p_221001_.setBlock(p_221002_, p_221000_.setValue(AGE, Integer.valueOf(i + 1)), 2);
++            if (i < 2 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_221001_, p_221002_, p_221000_, p_221001_.random.nextFloat() < (p_221001_.spigotConfig.cocoaModifier / (100.0f * 5)))) { // Spigot - SPIGOT-7159: Better modifier resolution
++                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_221001_, p_221002_, p_221000_.setValue(AGE, Integer.valueOf(i + 1)), 2); // CraftBukkit
 +                net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_221001_, p_221002_, p_221000_);
              }
          }
@@ -23,3 +24,12 @@
          return blockstate.is(BlockTags.JUNGLE_LOGS);
      }
  
+@@ -132,7 +_,7 @@
+ 
+     @Override
+     public void performBonemeal(ServerLevel p_220990_, RandomSource p_220991_, BlockPos p_220992_, BlockState p_220993_) {
+-        p_220990_.setBlock(p_220992_, p_220993_.setValue(AGE, Integer.valueOf(p_220993_.getValue(AGE) + 1)), 2);
++        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_220990_, p_220992_, p_220993_.setValue(AGE, Integer.valueOf(p_220993_.getValue(AGE) + 1)), 2); // CraftBukkit
+     }
+ 
+     @Override

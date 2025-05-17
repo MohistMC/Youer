@@ -1,0 +1,29 @@
+--- a/net/minecraft/world/level/block/SculkSpreader.java
++++ b/net/minecraft/world/level/block/SculkSpreader.java
+@@ -51,6 +_,7 @@
+     private final int additionalDecayRate;
+     private List<SculkSpreader.ChargeCursor> cursors = new ArrayList<>();
+     private static final Logger LOGGER = LogUtils.getLogger();
++    public net.minecraft.world.level.Level level; // CraftBukkit
+ 
+     public SculkSpreader(boolean p_222248_, TagKey<Block> p_222249_, int p_222250_, int p_222251_, int p_222252_, int p_222253_) {
+         this.isWorldGeneration = p_222248_;
+@@ -136,6 +_,18 @@
+ 
+     private void addCursor(SculkSpreader.ChargeCursor p_222261_) {
+         if (this.cursors.size() < 32) {
++            // CraftBukkit start
++            if (!isWorldGeneration()) { // CraftBukkit - SPIGOT-7475: Don't call event during world generation
++                org.bukkit.craftbukkit.block.CraftBlock bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(level, p_222261_.pos);
++                org.bukkit.event.block.SculkBloomEvent event = new org.bukkit.event.block.SculkBloomEvent(bukkitBlock, p_222261_.getCharge());
++                org.bukkit.Bukkit.getPluginManager().callEvent(event);
++                if (event.isCancelled()) {
++                    return;
++                }
++
++                p_222261_.charge = event.getCharge();
++            }
++            // CraftBukkit end
+             this.cursors.add(p_222261_);
+         }
+     }

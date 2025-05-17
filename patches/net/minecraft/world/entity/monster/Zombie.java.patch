@@ -1,14 +1,66 @@
 --- a/net/minecraft/world/entity/monster/Zombie.java
 +++ b/net/minecraft/world/entity/monster/Zombie.java
-@@ -63,6 +_,7 @@
+@@ -8,6 +_,7 @@
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.NbtOps;
++import net.minecraft.nbt.Tag;
+ import net.minecraft.network.syncher.EntityDataAccessor;
+ import net.minecraft.network.syncher.EntityDataSerializers;
+ import net.minecraft.network.syncher.SynchedEntityData;
+@@ -63,6 +_,8 @@
  import net.minecraft.world.level.ServerLevelAccessor;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.state.BlockState;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.entity.EntityTransformEvent;
  
  public class Zombie extends Monster {
      private static final ResourceLocation SPEED_MODIFIER_BABY_ID = ResourceLocation.withDefaultNamespace("baby");
-@@ -259,6 +_,7 @@
+@@ -89,6 +_,7 @@
+     private boolean canBreakDoors;
+     private int inWaterTime;
+     public int conversionTime;
++    private int lastTick = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit - add field
+ 
+     public Zombie(EntityType<? extends Zombie> p_34271_, Level p_34272_) {
+         super(p_34271_, p_34272_);
+@@ -112,7 +_,7 @@
+         this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0));
+         this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(ZombifiedPiglin.class));
+         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+-        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, AbstractVillager.class, false));
++        if ( this.level().spigotConfig.zombieAggressiveTowardsVillager ) this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, AbstractVillager.class, false)); // Spigot
+         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
+         this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Turtle.class, 10, true, false, Turtle.BABY_ON_LAND_SELECTOR));
+     }
+@@ -206,7 +_,10 @@
+     public void tick() {
+         if (!this.level().isClientSide && this.isAlive() && !this.isNoAi()) {
+             if (this.isUnderWaterConverting()) {
+-                this.conversionTime--;
++                // CraftBukkit start - Use wall time instead of ticks for conversion
++                int elapsedTicks = net.minecraft.server.MinecraftServer.currentTick - this.lastTick;
++                this.conversionTime -= elapsedTicks;
++                // CraftBukkit end
+                 if (this.conversionTime < 0) {
+                     this.doUnderWaterConversion();
+                 }
+@@ -223,6 +_,7 @@
+         }
+ 
+         super.tick();
++        this.lastTick = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit
+     }
+ 
+     @Override
+@@ -254,11 +_,13 @@
+     }
+ 
+     public void startUnderWaterConversion(int p_34279_) {
++        this.lastTick = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit
+         this.conversionTime = p_34279_;
+         this.getEntityData().set(DATA_DROWNED_CONVERSION_ID, true);
      }
  
      protected void doUnderWaterConversion() {
@@ -16,26 +68,52 @@
          this.convertToZombieType(EntityType.DROWNED);
          if (!this.isSilent()) {
              this.level().levelEvent(null, 1040, this.blockPosition(), 0);
-@@ -270,6 +_,7 @@
+@@ -266,10 +_,15 @@
+     }
+ 
+     protected void convertToZombieType(EntityType<? extends Zombie> p_34311_) {
+-        Zombie zombie = this.convertTo(p_34311_, true);
++        Zombie zombie = this.convertTo(p_34311_, true, org.bukkit.event.entity.EntityTransformEvent.TransformReason.DROWNED, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DROWNED);
          if (zombie != null) {
              zombie.handleAttributes(zombie.level().getCurrentDifficultyAt(zombie.blockPosition()).getSpecialMultiplier());
              zombie.setCanBreakDoors(zombie.supportsBreakDoorGoal() && this.canBreakDoors());
 +            net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, zombie);
++            // CraftBukkit start - SPIGOT-5208: End conversion to stop event spam
++        } else {
++            ((org.bukkit.entity.Zombie) getBukkitEntity()).setConversionTime(-1);
++            // CraftBukkit end
          }
      }
  
-@@ -383,6 +_,10 @@
-         }
-     }
- 
-+    public static ZombieVillager zombifyVillager(ServerLevel worldserver, Villager entityvillager, net.minecraft.core.BlockPos blockPosition, boolean silent, CreatureSpawnEvent.SpawnReason spawnReason) {
-+        return null;
-+    }
+@@ -312,9 +_,9 @@
+                             && this.level().isUnobstructed(zombie)
+                             && this.level().noCollision(zombie)
+                             && !this.level().containsAnyLiquid(zombie.getBoundingBox())) {
+-                            zombie.setTarget(livingentity);
++                            zombie.setTarget(livingentity, org.bukkit.event.entity.EntityTargetEvent.TargetReason.REINFORCEMENT_TARGET, true); // CraftBukkit
+                             zombie.finalizeSpawn(serverlevel, this.level().getCurrentDifficultyAt(zombie.blockPosition()), MobSpawnType.REINFORCEMENT, null);
+-                            serverlevel.addFreshEntityWithPassengers(zombie);
++                            serverlevel.addFreshEntityWithPassengers(zombie, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.REINFORCEMENTS); // CraftBukkit
+                             AttributeInstance attributeinstance = this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE);
+                             AttributeModifier attributemodifier = attributeinstance.getModifier(REINFORCEMENT_CALLER_CHARGE_ID);
+                             double d0 = attributemodifier != null ? attributemodifier.amount() : 0.0;
+@@ -339,7 +_,14 @@
+         if (flag) {
+             float f = this.level().getCurrentDifficultyAt(this.blockPosition()).getEffectiveDifficulty();
+             if (this.getMainHandItem().isEmpty() && this.isOnFire() && this.random.nextFloat() < f * 0.3F) {
+-                p_34276_.igniteForSeconds((float)(2 * (int)f));
++                // CraftBukkit start
++                org.bukkit.event.entity.EntityCombustByEntityEvent event = new org.bukkit.event.entity.EntityCombustByEntityEvent(this.getBukkitEntity(), p_34276_.getBukkitEntity(), (float) (2 * (int) f)); // PAIL: fixme
++                this.level().getCraftServer().getPluginManager().callEvent(event);
 +
-     @Override
-     public void addAdditionalSaveData(CompoundTag p_34319_) {
-         super.addAdditionalSaveData(p_34319_);
-@@ -406,7 +_,7 @@
++                if (!event.isCancelled()) {
++                    p_34276_.igniteForSeconds(event.getDuration(), false);
++                }
++                // CraftBukkit end
+             }
+         }
+ 
+@@ -406,32 +_,38 @@
      @Override
      public boolean killedEntity(ServerLevel p_219160_, LivingEntity p_219161_) {
          boolean flag = super.killedEntity(p_219160_, p_219161_);
@@ -44,11 +122,61 @@
              if (p_219160_.getDifficulty() != Difficulty.HARD && this.random.nextBoolean()) {
                  return flag;
              }
-@@ -423,6 +_,7 @@
-                 zombievillager.setGossips(villager.getGossips().store(NbtOps.INSTANCE));
-                 zombievillager.setTradeOffers(villager.getOffers().copy());
-                 zombievillager.setVillagerXp(villager.getVillagerXp());
-+                net.neoforged.neoforge.event.EventHooks.onLivingConvert(p_219161_, zombievillager);
-                 if (!this.isSilent()) {
-                     p_219160_.levelEvent(null, 1026, this.blockPosition(), 0);
+-
+-            ZombieVillager zombievillager = villager.convertTo(EntityType.ZOMBIE_VILLAGER, false);
+-            if (zombievillager != null) {
+-                zombievillager.finalizeSpawn(
+-                    p_219160_,
+-                    p_219160_.getCurrentDifficultyAt(zombievillager.blockPosition()),
+-                    MobSpawnType.CONVERSION,
+-                    new Zombie.ZombieGroupData(false, true)
+-                );
+-                zombievillager.setVillagerData(villager.getVillagerData());
+-                zombievillager.setGossips(villager.getGossips().store(NbtOps.INSTANCE));
+-                zombievillager.setTradeOffers(villager.getOffers().copy());
+-                zombievillager.setVillagerXp(villager.getVillagerXp());
+-                if (!this.isSilent()) {
+-                    p_219160_.levelEvent(null, 1026, this.blockPosition(), 0);
++            // CraftBukkit start
++            flag = zombifyVillager(p_219160_, villager, this.blockPosition(), this.isSilent(), org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.INFECTION) == null;
++        }
++        return flag;
++    }
++
++    public static ZombieVillager zombifyVillager(ServerLevel worldserver, Villager entityvillager, net.minecraft.core.BlockPos blockPosition, boolean silent, CreatureSpawnEvent.SpawnReason spawnReason) {
++        {
++            ZombieVillager entityzombievillager = (ZombieVillager) entityvillager.convertTo(EntityType.ZOMBIE_VILLAGER, false, EntityTransformEvent.TransformReason.INFECTION, spawnReason);
++            // CraftBukkit end
++
++            if (entityzombievillager != null) {
++                entityzombievillager.finalizeSpawn(worldserver, worldserver.getCurrentDifficultyAt(entityzombievillager.blockPosition()), MobSpawnType.CONVERSION, new Zombie.ZombieGroupData(false, true));
++                entityzombievillager.setVillagerData(entityvillager.getVillagerData());
++                entityzombievillager.setGossips((Tag) entityvillager.getGossips().store(NbtOps.INSTANCE));
++                entityzombievillager.setTradeOffers(entityvillager.getOffers().copy());
++                entityzombievillager.setVillagerXp(entityvillager.getVillagerXp());
++                // CraftBukkit start
++                if (!silent) {
++                    worldserver.levelEvent((Player) null, 1026, blockPosition, 0);
+                 }
+ 
+-                flag = false;
++                // flag = false;
+             }
+-        }
+ 
+-        return flag;
++            return entityzombievillager;
++        }
++        // CraftBukkit end
+     }
+ 
+     @Override
+@@ -480,7 +_,7 @@
+                             chicken1.finalizeSpawn(p_34297_, p_34298_, MobSpawnType.JOCKEY, null);
+                             chicken1.setChickenJockey(true);
+                             this.startRiding(chicken1);
+-                            p_34297_.addFreshEntity(chicken1);
++                            p_34297_.addFreshEntity(chicken1, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.MOUNT); // CraftBukkit
+                         }
+                     }
                  }

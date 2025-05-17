@@ -1,0 +1,37 @@
+--- a/net/minecraft/world/entity/npc/WanderingTrader.java
++++ b/net/minecraft/world/entity/npc/WanderingTrader.java
+@@ -54,6 +_,7 @@
+ 
+     public WanderingTrader(EntityType<? extends WanderingTrader> p_35843_, Level p_35844_) {
+         super(p_35843_, p_35844_);
++        this.setDespawnDelay(48000); // CraftBukkit - set default from MobSpawnerTrader
+     }
+ 
+     @Override
+@@ -144,7 +_,16 @@
+                 VillagerTrades.ItemListing villagertrades$itemlisting = avillagertrades$itemlisting1[i];
+                 MerchantOffer merchantoffer = villagertrades$itemlisting.getOffer(this, this.random);
+                 if (merchantoffer != null) {
+-                    merchantoffers.add(merchantoffer);
++                    // CraftBukkit start
++                    org.bukkit.event.entity.VillagerAcquireTradeEvent event = new org.bukkit.event.entity.VillagerAcquireTradeEvent((org.bukkit.entity.AbstractVillager) getBukkitEntity(), merchantoffer.asBukkit());
++                    // Suppress during worldgen
++                    if (this.valid) {
++                        org.bukkit.Bukkit.getPluginManager().callEvent(event);
++                    }
++                    if (!event.isCancelled()) {
++                        merchantoffers.add(org.bukkit.craftbukkit.inventory.CraftMerchantRecipe.fromBukkit(event.getRecipe()).toMinecraft());
++                    }
++                    // CraftBukkit end
+                 }
+             }
+         }
+@@ -240,7 +_,7 @@
+ 
+     private void maybeDespawn() {
+         if (this.despawnDelay > 0 && !this.isTrading() && --this.despawnDelay == 0) {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 

@@ -17,7 +17,7 @@
      private final Supplier<List<FeatureSorter.StepFeatureData>> featuresPerStep;
      public final Function<Holder<Biome>, BiomeGenerationSettings> generationSettingsGetter;
  
-@@ -92,11 +_,16 @@
+@@ -92,19 +_,24 @@
      public ChunkGenerator(BiomeSource p_255838_, Function<Holder<Biome>, BiomeGenerationSettings> p_256216_) {
          this.biomeSource = p_255838_;
          this.generationSettingsGetter = p_256216_;
@@ -35,6 +35,16 @@
      public void validate() {
          this.featuresPerStep.get();
      }
+ 
+     protected abstract MapCodec<? extends ChunkGenerator> codec();
+ 
+-    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256405_, RandomState p_256101_, long p_256018_) {
+-        return ChunkGeneratorStructureState.createForNormal(p_256101_, p_256018_, this.biomeSource, p_256405_);
++    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256405_, RandomState p_256101_, long p_256018_, org.spigotmc.SpigotWorldConfig conf) { // Spigot
++        return ChunkGeneratorStructureState.createForNormal(p_256101_, p_256018_, this.biomeSource, p_256405_, conf); // Spigot
+     }
+ 
+     public Optional<ResourceKey<MapCodec<? extends ChunkGenerator>>> getTypeNameForDataFixer() {
 @@ -313,6 +_,31 @@
          }
      }
@@ -67,14 +77,35 @@
      public void applyBiomeDecoration(WorldGenLevel p_223087_, ChunkAccess p_223088_, StructureManager p_223089_) {
          ChunkPos chunkpos = p_223088_.getPos();
          if (!SharedConstants.debugVoidTerrain(chunkpos)) {
-@@ -427,6 +_,10 @@
- 
-     public BiomeSource getBiomeSource() {
+@@ -429,6 +_,10 @@
          return this.biomeSource;
-+    }
-+
-+    public void setBiomeSource(BiomeSource biomeSource) {
-+        this.biomeSource = biomeSource;
      }
  
++    public void setBiomeSource(BiomeSource biomeSource) {
++        this.biomeSource = biomeSource;
++    }
++
      public abstract int getGenDepth();
+ 
+     public WeightedRandomList<MobSpawnSettings.SpawnerData> getMobsAt(
+@@ -551,6 +_,20 @@
+             p_223107_, this, this.biomeSource, p_223108_, p_223109_, p_223110_, p_223112_, i, p_223111_, predicate
+         );
+         if (structurestart.isValid()) {
++            // CraftBukkit start
++            BoundingBox box = structurestart.getBoundingBox();
++            org.bukkit.event.world.AsyncStructureSpawnEvent event = new org.bukkit.event.world.AsyncStructureSpawnEvent(
++                p_223106_.level.getMinecraftWorld().getWorld(),
++                org.bukkit.craftbukkit.generator.structure.CraftStructure.minecraftToBukkit(structure),
++                new org.bukkit.util.BoundingBox(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()),
++                p_223112_.x,
++                p_223112_.z
++            );
++            org.bukkit.Bukkit.getPluginManager().callEvent(event);
++            if (event.isCancelled()) {
++                return true;
++            }
++            // CraftBukkit end
+             p_223106_.setStartForStructure(p_223113_, structure, structurestart, p_223111_);
+             return true;
+         } else {

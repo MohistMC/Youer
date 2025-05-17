@@ -9,3 +9,31 @@
              DoublePlantBlock.preventDropFromBottomPart(p_52755_, p_52756_, p_52757_, p_52758_);
          }
  
+@@ -223,9 +_,24 @@
+ 
+     @Override
+     protected void neighborChanged(BlockState p_52776_, Level p_52777_, BlockPos p_52778_, Block p_52779_, BlockPos p_52780_, boolean p_52781_) {
+-        boolean flag = p_52777_.hasNeighborSignal(p_52778_)
+-            || p_52777_.hasNeighborSignal(p_52778_.relative(p_52776_.getValue(HALF) == DoubleBlockHalf.LOWER ? Direction.UP : Direction.DOWN));
+-        if (!this.defaultBlockState().is(p_52779_) && flag != p_52776_.getValue(POWERED)) {
++        // CraftBukkit start
++        BlockPos otherHalf = p_52778_.relative(p_52776_.getValue(HALF) == DoubleBlockHalf.LOWER ? Direction.UP : Direction.DOWN);
++
++        org.bukkit.World bworld = p_52777_.getWorld();
++        org.bukkit.block.Block bukkitBlock = bworld.getBlockAt(p_52778_.getX(), p_52778_.getY(), p_52778_.getZ());
++        org.bukkit.block.Block blockTop = bworld.getBlockAt(otherHalf.getX(), otherHalf.getY(), otherHalf.getZ());
++
++        int power = bukkitBlock.getBlockPower();
++        int powerTop = blockTop.getBlockPower();
++        if (powerTop > power) power = powerTop;
++        int oldPower = p_52776_.getValue(POWERED) ? 15 : 0;
++
++        if (oldPower == 0 ^ power == 0) {
++            org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(bukkitBlock, oldPower, power);
++            p_52777_.getCraftServer().getPluginManager().callEvent(eventRedstone);
++
++            boolean flag = eventRedstone.getNewCurrent() > 0;
++            // CraftBukkit end
+             if (flag != p_52776_.getValue(OPEN)) {
+                 this.playSound(null, p_52777_, p_52778_, flag);
+                 p_52777_.gameEvent(null, flag ? GameEvent.BLOCK_OPEN : GameEvent.BLOCK_CLOSE, p_52778_);

@@ -1,11 +1,40 @@
 --- a/net/minecraft/world/entity/animal/Sheep.java
 +++ b/net/minecraft/world/entity/animal/Sheep.java
-@@ -212,7 +_,7 @@
+@@ -212,8 +_,13 @@
      @Override
      public InteractionResult mobInteract(Player p_29853_, InteractionHand p_29854_) {
          ItemStack itemstack = p_29853_.getItemInHand(p_29854_);
 -        if (itemstack.is(Items.SHEARS)) {
 +        if (false && itemstack.is(Items.SHEARS)) { // Neo: Shear logic is handled by IShearable
              if (!this.level().isClientSide && this.readyForShearing()) {
++                // CraftBukkit start
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(p_29853_, this, itemstack, p_29854_)) {
++                    return InteractionResult.PASS;
++                }
++                // CraftBukkit end
                  this.shear(SoundSource.PLAYERS);
                  this.gameEvent(GameEvent.SHEAR, p_29853_);
+                 itemstack.hurtAndBreak(1, p_29853_, getSlotForHand(p_29854_));
+@@ -233,7 +_,9 @@
+         int i = 1 + this.random.nextInt(3);
+ 
+         for (int j = 0; j < i; j++) {
++            this.forceDrops = true; // CraftBukkit
+             ItemEntity itementity = this.spawnAtLocation(ITEM_BY_DYE.get(this.getColor()), 1);
++            this.forceDrops = false; // CraftBukkit
+             if (itementity != null) {
+                 itementity.setDeltaMovement(
+                     itementity.getDeltaMovement()
+@@ -335,6 +_,12 @@
+ 
+     @Override
+     public void ate() {
++        // CraftBukkit start
++        org.bukkit.event.entity.SheepRegrowWoolEvent event = new org.bukkit.event.entity.SheepRegrowWoolEvent((org.bukkit.entity.Sheep) this.getBukkitEntity());
++        this.level().getCraftServer().getPluginManager().callEvent(event);
++
++        if (event.isCancelled()) return;
++        // CraftBukkit end
+         super.ate();
+         this.setSheared(false);
+         if (this.isBaby()) {

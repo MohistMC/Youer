@@ -9,11 +9,16 @@
      static final Logger LOGGER = LogUtils.getLogger();
      private static final TickingBlockEntity NULL_TICKER = new TickingBlockEntity() {
          @Override
-@@ -82,6 +_,7 @@
+@@ -82,6 +_,12 @@
      private final Int2ObjectMap<GameEventListenerRegistry> gameEventListenerRegistrySections;
      private final LevelChunkTicks<Block> blockTicks;
      private final LevelChunkTicks<Fluid> fluidTicks;
 +    public ServerLevel r; // Youer
++	// CraftBukkit start
++    public boolean mustNotSave;
++    public boolean needsDecoration;
++    // CraftBukkit end
++
  
      public LevelChunk(Level p_187945_, ChunkPos p_187946_) {
          this(p_187945_, p_187946_, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, null, null, null);
@@ -35,19 +40,55 @@
          for (Entry<Heightmap.Types, Heightmap> entry : p_196851_.getHeightmaps()) {
              if (ChunkStatus.FULL.heightmapsAfter().contains(entry.getKey())) {
                  this.setHeightmap(entry.getKey(), entry.getValue().getRawData());
-@@ -278,7 +_,7 @@
+@@ -148,6 +_,10 @@
+         this.skyLightSources = p_196851_.skyLightSources;
+         this.setLightCorrect(p_196851_.isLightCorrect());
+         this.unsaved = true;
++        this.needsDecoration = true; // CraftBukkit
++        // CraftBukkit start
++        this.persistentDataContainer = p_196851_.persistentDataContainer; // SPIGOT-6814: copy PDC to account for 1.17 to 1.18 chunk upgrading.
++        // CraftBukkit end
+     }
+ 
+     @Override
+@@ -233,6 +_,15 @@
+         }
+     }
+ 
++    public boolean setBlockState$doPlace = true;
++
++    // CraftBukkit start - ChunkMap#setBlockState() -> ChunkMap#setBlockState(BlockPos, IBlockData, boolean, boolean)
++    @Nullable
++    public BlockState setBlockState(BlockPos p_62865_, BlockState p_62866_, boolean p_62867_, boolean doPlace) {
++        setBlockState$doPlace = doPlace;
++        return setBlockState(p_62865_, p_62866_, p_62867_);
++    }
++
+     @Nullable
+     @Override
+     public BlockState setBlockState(BlockPos p_62865_, BlockState p_62866_, boolean p_62867_) {
+@@ -278,7 +_,8 @@
                  if (!levelchunksection.getBlockState(j, k, l).is(block)) {
                      return null;
                  } else {
 -                    if (!this.level.isClientSide) {
-+                    if (!this.level.isClientSide && !this.level.captureBlockSnapshots) {
++                    // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer
++                    if (!this.level.isClientSide && setBlockState$doPlace && (!this.level.captureBlockStates || block instanceof EntityBlock)) {
                          p_62866_.onPlace(this.level, p_62865_, blockstate, p_62867_);
                      }
  
-@@ -327,6 +_,10 @@
+@@ -326,7 +_,17 @@
+ 
      @Nullable
      public BlockEntity getBlockEntity(BlockPos p_62868_, LevelChunk.EntityCreationType p_62869_) {
-         BlockEntity blockentity = this.blockEntities.get(p_62868_);
+-        BlockEntity blockentity = this.blockEntities.get(p_62868_);
++        // CraftBukkit start
++        BlockEntity blockentity = level.capturedTileEntities.get(p_62868_);
++        if (blockentity == null) {
++            blockentity = this.blockEntities.get(p_62868_);
++        }
++        // CraftBukkit end
++
 +        if (blockentity != null && blockentity.isRemoved()) {
 +            blockEntities.remove(p_62868_);
 +            blockentity = null;
@@ -73,6 +114,14 @@
          }
      }
  
+@@ -383,6 +_,7 @@
+         BlockState blockstate = this.getBlockState(blockpos);
+         if (!blockstate.hasBlockEntity()) {
+             LOGGER.warn("Trying to set block entity {} at position {}, but state {} does not allow it", p_156374_, blockpos, blockstate);
++            new Exception().printStackTrace(); // CraftBukkit
+         } else {
+             BlockState blockstate1 = p_156374_.getBlockState();
+             if (blockstate != blockstate1) {
 @@ -403,6 +_,7 @@
              BlockEntity blockentity = this.blockEntities.put(blockpos.immutable(), p_156374_);
              if (blockentity != null && blockentity != p_156374_) {
@@ -96,7 +145,20 @@
          } else {
              CompoundTag compoundtag = this.pendingBlockEntities.get(p_62932_);
              if (compoundtag != null) {
-@@ -436,6 +_,7 @@
+@@ -430,12 +_,20 @@
+     public void removeBlockEntity(BlockPos p_62919_) {
+         if (this.isInLevel()) {
+             BlockEntity blockentity = this.blockEntities.remove(p_62919_);
++
++            // CraftBukkit start - SPIGOT-5561: Also remove from pending map
++            if (!pendingBlockEntities.isEmpty()) {
++                pendingBlockEntities.remove(p_62919_);
++            }
++            // CraftBukkit end
++
+             if (blockentity != null) {
+                 if (this.level instanceof ServerLevel serverlevel) {
+                     this.removeGameEventListener(blockentity, serverlevel);
                  }
  
                  blockentity.setRemoved();
@@ -129,7 +191,7 @@
          this.blockEntities.values().forEach(p_187988_ -> {
              if (this.level instanceof ServerLevel serverlevel) {
                  this.addGameEventListener(p_187988_, serverlevel);
-@@ -662,6 +_,14 @@
+@@ -662,6 +_,65 @@
          return new LevelChunk.BoundTickingBlockEntity<>(p_156376_, p_156377_);
      }
  
@@ -140,6 +202,57 @@
 +    public net.neoforged.neoforge.common.world.LevelChunkAuxiliaryLightManager getAuxLightManager(ChunkPos pos) {
 +        return auxLightManager;
 +    }
++
++    // CraftBukkit start
++    public void loadCallback() {
++        org.bukkit.Server server = this.level.getCraftServer();
++        if (server != null) {
++            /*
++             * If it's a new world, the first few chunks are generated inside
++             * the World constructor. We can't reliably alter that, so we have
++             * no way of creating a CraftWorld/CraftServer at that point.
++             */
++            org.bukkit.Chunk bukkitChunk = new org.bukkit.craftbukkit.CraftChunk(this);
++            server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkLoadEvent(bukkitChunk, this.needsDecoration));
++
++            if (this.needsDecoration) {
++                this.needsDecoration = false;
++                java.util.Random random = new java.util.Random();
++                random.setSeed(r.getSeed());
++                long xRand = random.nextLong() / 2L * 2L + 1L;
++                long zRand = random.nextLong() / 2L * 2L + 1L;
++                random.setSeed((long) this.chunkPos.x * xRand + (long) this.chunkPos.z * zRand ^ r.getSeed());
++
++                org.bukkit.World world = this.level.getWorld();
++                if (world != null) {
++                    this.level.populating = true;
++                    try {
++                        for (org.bukkit.generator.BlockPopulator populator : world.getPopulators()) {
++                            populator.populate(world, random, bukkitChunk);
++                        }
++                    } finally {
++                        this.level.populating = false;
++                    }
++                }
++                server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkPopulateEvent(bukkitChunk));
++            }
++        }
++    }
++
++    public void unloadCallback() {
++        org.bukkit.Server server = this.level.getCraftServer();
++        org.bukkit.Chunk bukkitChunk = new org.bukkit.craftbukkit.CraftChunk(this);
++        org.bukkit.event.world.ChunkUnloadEvent unloadEvent = new org.bukkit.event.world.ChunkUnloadEvent(bukkitChunk, this.isUnsaved());
++        server.getPluginManager().callEvent(unloadEvent);
++        // note: saving can be prevented, but not forced if no saving is actually required
++        this.mustNotSave = !unloadEvent.isSaveChunk();
++    }
++
++    @Override
++    public boolean isUnsaved() {
++        return super.isUnsaved() && !this.mustNotSave;
++    }
++    // CraftBukkit end
 +
      class BoundTickingBlockEntity<T extends BlockEntity> implements TickingBlockEntity {
          private final T blockEntity;

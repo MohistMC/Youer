@@ -1,5 +1,37 @@
 --- a/net/minecraft/world/entity/ExperienceOrb.java
 +++ b/net/minecraft/world/entity/ExperienceOrb.java
+@@ -67,6 +_,7 @@
+     @Override
+     public void tick() {
+         super.tick();
++        Player prevTarget = this.followingPlayer;// CraftBukkit - store old target
+         this.xo = this.getX();
+         this.yo = this.getY();
+         this.zo = this.getZ();
+@@ -96,7 +_,22 @@
+             this.followingPlayer = null;
+         }
+ 
+-        if (this.followingPlayer != null) {
++        // CraftBukkit start
++        boolean cancelled = false;
++        if (this.followingPlayer != prevTarget) {
++            org.bukkit.event.entity.EntityTargetLivingEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(this, followingPlayer, (followingPlayer != null) ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER : org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET);
++            LivingEntity target = (event.getTarget() == null) ? null : ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle();
++            cancelled = event.isCancelled();
++
++            if (cancelled) {
++                followingPlayer = prevTarget;
++            } else {
++                followingPlayer = (target instanceof Player) ? (Player) target : null;
++            }
++        }
++
++        if (this.followingPlayer != null && !cancelled) {
++        // CraftBukkit end
+             Vec3 vec3 = new Vec3(
+                 this.followingPlayer.getX() - this.getX(),
+                 this.followingPlayer.getY() + (double)this.followingPlayer.getEyeHeight() / 2.0 - this.getY(),
 @@ -112,7 +_,8 @@
          this.move(MoverType.SELF, this.getDeltaMovement());
          float f = 0.98F;
@@ -10,6 +42,15 @@
          }
  
          this.setDeltaMovement(this.getDeltaMovement().multiply((double)f, 0.98, (double)f));
+@@ -122,7 +_,7 @@
+ 
+         this.age++;
+         if (this.age >= 6000) {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 
 @@ -133,7 +_,7 @@
  
      private void scanForEntities() {
@@ -19,20 +60,91 @@
          }
  
          if (this.level() instanceof ServerLevel) {
-@@ -228,6 +_,7 @@
+@@ -179,6 +_,7 @@
+     private void merge(ExperienceOrb p_147101_) {
+         this.count = this.count + p_147101_.count;
+         this.age = Math.min(this.age, p_147101_.age);
++        p_147101_.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.MERGE);  // CraftBukkit - add Bukkit remove cause
+         p_147101_.discard();
+     }
+ 
+@@ -201,7 +_,7 @@
+             this.markHurt();
+             this.health = (int)((float)this.health - p_20786_);
+             if (this.health <= 0) {
+-                this.discard();
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
+             }
+ 
+             return true;
+@@ -228,16 +_,18 @@
      public void playerTouch(Player p_20792_) {
          if (p_20792_ instanceof ServerPlayer serverplayer) {
              if (p_20792_.takeXpDelay == 0) {
+-                p_20792_.takeXpDelay = 2;
 +                if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerXpEvent.PickupXp(p_20792_, this)).isCanceled()) return;
-                 p_20792_.takeXpDelay = 2;
++                p_20792_.takeXpDelay = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerXpCooldownEvent(p_20792_, 2, org.bukkit.event.player.PlayerExpCooldownChangeEvent.ChangeReason.PICKUP_ORB).getNewCooldown(); // CraftBukkit - p_20792_.takeXpDelay = 2;
                  p_20792_.take(this, 1);
                  int i = this.repairPlayerItems(serverplayer, this.value);
-@@ -247,7 +_,7 @@
++
+                 if (i > 0) {
+-                    p_20792_.giveExperiencePoints(i);
++                    p_20792_.giveExperiencePoints(org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerExpChangeEvent(p_20792_, i).getAmount()); // CraftBukkit - this.value -> event.getAmount()
+                 }
+ 
+                 this.count--;
+                 if (this.count == 0) {
+-                    this.discard();
++                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+                 }
+             }
+         }
+@@ -247,12 +_,21 @@
          Optional<EnchantedItemInUse> optional = EnchantmentHelper.getRandomItemWith(EnchantmentEffectComponents.REPAIR_WITH_XP, p_344821_, ItemStack::isDamaged);
          if (optional.isPresent()) {
              ItemStack itemstack = optional.get().itemStack();
 -            int i = EnchantmentHelper.modifyDurabilityToRepairFromXp(p_344821_.serverLevel(), itemstack, p_147094_);
 +            int i = EnchantmentHelper.modifyDurabilityToRepairFromXp(p_344821_.serverLevel(), itemstack, (int) (p_147094_ * itemstack.getXpRepairRatio()));
              int j = Math.min(i, itemstack.getDamageValue());
++            // CraftBukkit start
++            org.bukkit.event.player.PlayerItemMendEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemMendEvent(p_344821_, this, itemstack, optional.get().inSlot(), j);
++            j = event.getRepairAmount();
++            if (event.isCancelled()) {
++                return p_147094_;
++            }
++            // CraftBukkit end
++
              itemstack.setDamageValue(itemstack.getDamageValue() - j);
              if (j > 0) {
+                 int k = p_147094_ - j * p_147094_ / i;
+                 if (k > 0) {
++                    this.value = k; // CraftBukkit - update exp value of orb for PlayerItemMendEvent calls
+                     return this.repairPlayerItems(p_344821_, k);
+                 }
+             }
+@@ -292,6 +_,25 @@
+     }
+ 
+     public static int getExperienceValue(int p_20783_) {
++        // CraftBukkit start
++        if (p_20783_ > 162670129) return p_20783_ - 100000;
++        if (p_20783_ > 81335063) return 81335063;
++        if (p_20783_ > 40667527) return 40667527;
++        if (p_20783_ > 20333759) return 20333759;
++        if (p_20783_ > 10166857) return 10166857;
++        if (p_20783_ > 5083423) return 5083423;
++        if (p_20783_ > 2541701) return 2541701;
++        if (p_20783_ > 1270849) return 1270849;
++        if (p_20783_ > 635413) return 635413;
++        if (p_20783_ > 317701) return 317701;
++        if (p_20783_ > 158849) return 158849;
++        if (p_20783_ > 79423) return 79423;
++        if (p_20783_ > 39709) return 39709;
++        if (p_20783_ > 19853) return 19853;
++        if (p_20783_ > 9923) return 9923;
++        if (p_20783_ > 4957) return 4957;
++        // CraftBukkit end
++
+         if (p_20783_ >= 2477) {
+             return 2477;
+         } else if (p_20783_ >= 1237) {

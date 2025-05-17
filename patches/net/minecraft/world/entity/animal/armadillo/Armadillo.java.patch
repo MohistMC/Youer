@@ -1,6 +1,39 @@
 --- a/net/minecraft/world/entity/animal/armadillo/Armadillo.java
 +++ b/net/minecraft/world/entity/animal/armadillo/Armadillo.java
-@@ -300,7 +_,7 @@
+@@ -139,7 +_,9 @@
+         this.level().getProfiler().pop();
+         if (this.isAlive() && !this.isBaby() && --this.scuteTime <= 0) {
+             this.playSound(SoundEvents.ARMADILLO_SCUTE_DROP, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F);
++            this.forceDrops = true; // CraftBukkit
+             this.spawnAtLocation(Items.ARMADILLO_SCUTE);
++            this.forceDrops = false; // CraftBukkit
+             this.gameEvent(GameEvent.ENTITY_PLACE);
+             this.scuteTime = this.pickNextScuteDropTime();
+         }
+@@ -282,9 +_,13 @@
+         return super.hurt(p_321611_, p_321629_);
+     }
+ 
+-    @Override
+-    protected void actuallyHurt(DamageSource p_316204_, float p_316801_) {
+-        super.actuallyHurt(p_316204_, p_316801_);
++    // CraftBukkit start - void -> boolean
++    public boolean actuallyHurt(DamageSource p_316204_, float p_316801_, org.bukkit.event.entity.EntityDamageEvent event) {
++        boolean damageResult = super.actuallyHurt(p_316204_, p_316801_, event);
++        if (!damageResult) {
++            return false;
++        }
++        // CraftBukkit end
+         if (!this.isNoAi() && !this.isDeadOrDying()) {
+             if (p_316204_.getEntity() instanceof LivingEntity) {
+                 this.getBrain().setMemoryWithExpiry(MemoryModuleType.DANGER_DETECTED_RECENTLY, true, 80L);
+@@ -295,12 +_,13 @@
+                 this.rollOut();
+             }
+         }
++        return true; // CraftBukkit
+     }
+ 
      @Override
      public InteractionResult mobInteract(Player p_316559_, InteractionHand p_316119_) {
          ItemStack itemstack = p_316559_.getItemInHand(p_316119_);
@@ -9,3 +42,13 @@
              itemstack.hurtAndBreak(16, p_316559_, getSlotForHand(p_316119_));
              return InteractionResult.sidedSuccess(this.level().isClientSide);
          } else {
+@@ -321,7 +_,9 @@
+         if (this.isBaby()) {
+             return false;
+         } else {
++            this.forceDrops = true; // CraftBukkit
+             this.spawnAtLocation(new ItemStack(Items.ARMADILLO_SCUTE));
++            this.forceDrops = false; // CraftBukkit
+             this.gameEvent(GameEvent.ENTITY_INTERACT);
+             this.playSound(SoundEvents.ARMADILLO_BRUSH);
+             return true;

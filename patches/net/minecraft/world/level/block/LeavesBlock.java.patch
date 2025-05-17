@@ -9,3 +9,18 @@
      public static final MapCodec<LeavesBlock> CODEC = simpleCodec(LeavesBlock::new);
      public static final int DECAY_DISTANCE = 7;
      public static final IntegerProperty DISTANCE = BlockStateProperties.DISTANCE;
+@@ -61,6 +_,14 @@
+     @Override
+     protected void randomTick(BlockState p_221379_, ServerLevel p_221380_, BlockPos p_221381_, RandomSource p_221382_) {
+         if (this.decaying(p_221379_)) {
++            // CraftBukkit start
++            org.bukkit.event.block.LeavesDecayEvent event = new org.bukkit.event.block.LeavesDecayEvent(p_221380_.getWorld().getBlockAt(p_221381_.getX(), p_221381_.getY(), p_221381_.getZ()));
++            p_221380_.getCraftServer().getPluginManager().callEvent(event);
++
++            if (event.isCancelled() || p_221380_.getBlockState(p_221381_).getBlock() != this) {
++                return;
++            }
++            // CraftBukkit end
+             dropResources(p_221379_, p_221380_, p_221381_);
+             p_221380_.removeBlock(p_221381_, false);
+         }

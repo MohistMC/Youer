@@ -8,16 +8,78 @@
  
      public Creeper(EntityType<? extends Creeper> p_32278_, Level p_32279_) {
          super(p_32278_, p_32279_);
-@@ -208,6 +_,12 @@
+@@ -206,9 +_,20 @@
+     @Override
+     public void thunderHit(ServerLevel p_32286_, LightningBolt p_32287_) {
          super.thunderHit(p_32286_, p_32287_);
++        // CraftBukkit start
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.callCreeperPowerEvent(this, p_32287_, org.bukkit.event.entity.CreeperPowerEvent.PowerCause.LIGHTNING).isCancelled()) {
++            return;
++        }
++        // CraftBukkit end
          this.entityData.set(DATA_IS_POWERED, true);
      }
-+
+ 
 +    // CraftBukkit start
 +    public void setPowered(boolean powered) {
-+        this.entityData.set(DATA_IS_POWERED, powered);
++        this.entityData.set(Creeper.DATA_IS_POWERED, powered);
 +    }
 +    // CraftBukkit end
- 
++
      @Override
      protected InteractionResult mobInteract(Player p_32301_, InteractionHand p_32302_) {
+         ItemStack itemstack = p_32301_.getItemInHand(p_32302_);
+@@ -217,8 +_,9 @@
+             this.level()
+                 .playSound(p_32301_, this.getX(), this.getY(), this.getZ(), soundevent, this.getSoundSource(), 1.0F, this.random.nextFloat() * 0.4F + 0.8F);
+             if (!this.level().isClientSide) {
++                this.entityIgniter = p_32301_; // CraftBukkit
+                 this.ignite();
+-                if (!itemstack.isDamageableItem()) {
++                if (itemstack.getMaxDamage() == 0) { // CraftBukkit - fix MC-264285: unbreakable flint and steels are completely consumed when igniting a creeper
+                     itemstack.shrink(1);
+                 } else {
+                     itemstack.hurtAndBreak(1, p_32301_, getSlotForHand(p_32302_));
+@@ -234,11 +_,20 @@
+     public void explodeCreeper() {
+         if (!this.level().isClientSide) {
+             float f = this.isPowered() ? 2.0F : 1.0F;
+-            this.dead = true;
+-            this.level().explode(this, this.getX(), this.getY(), this.getZ(), (float)this.explosionRadius * f, Level.ExplosionInteraction.MOB);
+-            this.spawnLingeringCloud();
+-            this.triggerOnDeathMobEffects(Entity.RemovalReason.KILLED);
+-            this.discard();
++            // CraftBukkit start
++            org.bukkit.event.entity.ExplosionPrimeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExplosionPrimeEvent(this, this.explosionRadius * f, false);
++            if (!event.isCancelled()) {
++                // CraftBukkit end
++                this.dead = true;
++                this.level().explode(this, this.getX(), this.getY(), this.getZ(), (float)this.explosionRadius * f, Level.ExplosionInteraction.MOB);
++                this.spawnLingeringCloud();
++                this.triggerOnDeathMobEffects(Entity.RemovalReason.KILLED);
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
++                // CraftBukkit start
++            } else {
++                swell = 0;
++            }
++            // CraftBukkit end
+         }
+     }
+ 
+@@ -246,6 +_,7 @@
+         Collection<MobEffectInstance> collection = this.getActiveEffects();
+         if (!collection.isEmpty()) {
+             AreaEffectCloud areaeffectcloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());
++            areaeffectcloud.setOwner(this); // CraftBukkit
+             areaeffectcloud.setRadius(2.5F);
+             areaeffectcloud.setRadiusOnUse(-0.5F);
+             areaeffectcloud.setWaitTime(10);
+@@ -256,7 +_,7 @@
+                 areaeffectcloud.addEffect(new MobEffectInstance(mobeffectinstance));
+             }
+ 
+-            this.level().addFreshEntity(areaeffectcloud);
++            this.level().addFreshEntity(areaeffectcloud, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.EXPLOSION); // CraftBukkit
+         }
+     }
+ 

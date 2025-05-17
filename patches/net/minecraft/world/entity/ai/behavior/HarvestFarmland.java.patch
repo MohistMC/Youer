@@ -18,8 +18,14 @@
      }
  
      protected void start(ServerLevel p_23177_, Villager p_23178_, long p_23179_) {
-@@ -109,7 +_,7 @@
-                     p_23196_.destroyBlock(this.aboveFarmlandPos, true, p_23197_);
+@@ -106,10 +_,12 @@
+                 Block block = blockstate.getBlock();
+                 Block block1 = p_23196_.getBlockState(this.aboveFarmlandPos.below()).getBlock();
+                 if (block instanceof CropBlock && ((CropBlock)block).isMaxAge(blockstate)) {
+-                    p_23196_.destroyBlock(this.aboveFarmlandPos, true, p_23197_);
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_23197_, this.aboveFarmlandPos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())) { // CraftBukkit
++                        p_23196_.destroyBlock(this.aboveFarmlandPos, true, p_23197_);
++                    } // CraftBukkit
                  }
  
 -                if (blockstate.isAir() && block1 instanceof FarmBlock && p_23197_.hasFarmSeeds()) {
@@ -27,10 +33,18 @@
                      SimpleContainer simplecontainer = p_23197_.getInventory();
  
                      for (int i = 0; i < simplecontainer.getContainerSize(); i++) {
-@@ -120,6 +_,11 @@
-                             p_23196_.setBlockAndUpdate(this.aboveFarmlandPos, blockstate1);
-                             p_23196_.gameEvent(GameEvent.BLOCK_PLACE, this.aboveFarmlandPos, GameEvent.Context.of(p_23197_, blockstate1));
-                             flag = true;
+@@ -117,9 +_,16 @@
+                         boolean flag = false;
+                         if (!itemstack.isEmpty() && itemstack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) && itemstack.getItem() instanceof BlockItem blockitem) {
+                             BlockState blockstate1 = blockitem.getBlock().defaultBlockState();
+-                            p_23196_.setBlockAndUpdate(this.aboveFarmlandPos, blockstate1);
+-                            p_23196_.gameEvent(GameEvent.BLOCK_PLACE, this.aboveFarmlandPos, GameEvent.Context.of(p_23197_, blockstate1));
+-                            flag = true;
++                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_23197_, this.aboveFarmlandPos, blockstate1)) { // CraftBukkit
++                                p_23196_.setBlockAndUpdate(this.aboveFarmlandPos, blockstate1);
++                                p_23196_.gameEvent(GameEvent.BLOCK_PLACE, this.aboveFarmlandPos, GameEvent.Context.of(p_23197_, blockstate1));
++                                flag = true;
++                            } // CraftBukkit
 +                        } else if (itemstack.getItem() instanceof net.neoforged.neoforge.common.SpecialPlantable specialPlantable && specialPlantable.villagerCanPlantItem(p_23197_)) {
 +                            if (specialPlantable.canPlacePlantAtPosition(itemstack, p_23196_, aboveFarmlandPos, net.minecraft.core.Direction.DOWN)) {
 +                                specialPlantable.spawnPlantAtPosition(itemstack, p_23196_, aboveFarmlandPos, net.minecraft.core.Direction.DOWN);

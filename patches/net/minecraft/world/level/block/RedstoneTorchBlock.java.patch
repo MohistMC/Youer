@@ -1,0 +1,44 @@
+--- a/net/minecraft/world/level/block/RedstoneTorchBlock.java
++++ b/net/minecraft/world/level/block/RedstoneTorchBlock.java
+@@ -71,8 +_,25 @@
+             list.remove(0);
+         }
+ 
++        // CraftBukkit start
++        org.bukkit.plugin.PluginManager manager = p_221950_.getCraftServer().getPluginManager();
++        org.bukkit.block.Block block = p_221950_.getWorld().getBlockAt(p_221951_.getX(), p_221951_.getY(), p_221951_.getZ());
++        int oldCurrent = ((Boolean) p_221949_.getValue(RedstoneTorchBlock.LIT)).booleanValue() ? 15 : 0;
++
++        org.bukkit.event.block.BlockRedstoneEvent event = new org.bukkit.event.block.BlockRedstoneEvent(block, oldCurrent, oldCurrent);
++        // CraftBukkit end
++
+         if (p_221949_.getValue(LIT)) {
+             if (flag) {
++                // CraftBukkit start
++                if (oldCurrent != 0) {
++                    event.setNewCurrent(0);
++                    manager.callEvent(event);
++                    if (event.getNewCurrent() != 0) {
++                        return;
++                    }
++                }
++                // CraftBukkit end
+                 p_221950_.setBlock(p_221951_, p_221949_.setValue(LIT, Boolean.valueOf(false)), 3);
+                 if (isToggledTooFrequently(p_221950_, p_221951_, true)) {
+                     p_221950_.levelEvent(1502, p_221951_, 0);
+@@ -80,6 +_,15 @@
+                 }
+             }
+         } else if (!flag && !isToggledTooFrequently(p_221950_, p_221951_, false)) {
++            // CraftBukkit start
++            if (oldCurrent != 15) {
++                event.setNewCurrent(15);
++                manager.callEvent(event);
++                if (event.getNewCurrent() != 15) {
++                    return;
++                }
++            }
++            // CraftBukkit end
+             p_221950_.setBlock(p_221951_, p_221949_.setValue(LIT, Boolean.valueOf(true)), 3);
+         }
+     }

@@ -9,3 +9,44 @@
              p_57615_.setBlock(p_57616_, p_57617_.setValue(DISARMED, Boolean.valueOf(true)), 4);
              p_57615_.gameEvent(p_57618_, GameEvent.SHEAR, p_57616_);
          }
+@@ -160,6 +_,40 @@
+                 }
+             }
+         }
++
++        // CraftBukkit start - Call interact even when triggering connected tripwire
++        if (flag != flag1 && flag1 && blockstate.getValue(ATTACHED)) {
++            org.bukkit.World bworld = p_57608_.getWorld();
++            org.bukkit.plugin.PluginManager manager = p_57608_.getCraftServer().getPluginManager();
++            org.bukkit.block.Block block = bworld.getBlockAt(p_57609_.getX(), p_57609_.getY(), p_57609_.getZ());
++            boolean allowed = false;
++
++            // If all of the events are cancelled block the tripwire trigger, else allow
++            for (Object object : list) {
++                if (object != null) {
++                    org.bukkit.event.Cancellable cancellable;
++
++                    if (object instanceof Player) {
++                        cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) object, org.bukkit.event.block.Action.PHYSICAL, p_57609_, null, null, null);
++                    } else if (object instanceof Entity) {
++                        cancellable = new org.bukkit.event.entity.EntityInteractEvent(((Entity) object).getBukkitEntity(), block);
++                        manager.callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
++                    } else {
++                        continue;
++                    }
++
++                    if (!cancellable.isCancelled()) {
++                        allowed = true;
++                        break;
++                    }
++                }
++            }
++
++            if (!allowed) {
++                return;
++            }
++        }
++        // CraftBukkit end
+ 
+         if (flag1 != flag) {
+             blockstate = blockstate.setValue(POWERED, Boolean.valueOf(flag1));

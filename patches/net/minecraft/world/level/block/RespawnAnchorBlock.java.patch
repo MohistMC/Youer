@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/level/block/RespawnAnchorBlock.java
++++ b/net/minecraft/world/level/block/RespawnAnchorBlock.java
+@@ -101,7 +_,7 @@
+             if (!p_316150_.isClientSide) {
+                 ServerPlayer serverplayer = (ServerPlayer)p_316889_;
+                 if (serverplayer.getRespawnDimension() != p_316150_.dimension() || !p_316161_.equals(serverplayer.getRespawnPosition())) {
+-                    serverplayer.setRespawnPosition(p_316150_.dimension(), p_316161_, 0.0F, false, true);
++                    serverplayer.setRespawnPosition(p_316150_.dimension(), p_316161_, 0.0F, false, true, org.bukkit.event.player.PlayerSpawnChangeEvent.Cause.RESPAWN_ANCHOR); // CraftBukkit
+                     p_316150_.playSound(
+                         null,
+                         (double)p_316161_.getX() + 0.5,
+@@ -146,6 +_,7 @@
+     }
+ 
+     private void explode(BlockState p_55891_, Level p_55892_, final BlockPos p_55893_) {
++        org.bukkit.block.BlockState blockState = org.bukkit.craftbukkit.block.CraftBlock.at(p_55892_, p_55893_).getState(); // CraftBukkit - capture BlockState before remove block
+         p_55892_.removeBlock(p_55893_, false);
+         boolean flag = Direction.Plane.HORIZONTAL.stream().map(p_55893_::relative).anyMatch(p_55854_ -> isWaterThatWouldFlow(p_55854_, p_55892_));
+         final boolean flag1 = flag || p_55892_.getFluidState(p_55893_.above()).is(FluidTags.WATER);
+@@ -161,8 +_,8 @@
+         };
+         Vec3 vec3 = p_55893_.getCenter();
+         p_55892_.explode(
+-            null, p_55892_.damageSources().badRespawnPointExplosion(vec3), explosiondamagecalculator, vec3, 5.0F, true, Level.ExplosionInteraction.BLOCK
+-        );
++            null, p_55892_.damageSources().badRespawnPointExplosionCB(vec3, blockState), explosiondamagecalculator, vec3, 5.0F, true, Level.ExplosionInteraction.BLOCK
++        ); // CraftBukkit - add state
+     }
+ 
+     public static boolean canSetSpawn(Level p_55851_) {

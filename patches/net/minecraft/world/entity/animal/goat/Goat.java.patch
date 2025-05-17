@@ -1,0 +1,18 @@
+--- a/net/minecraft/world/entity/animal/goat/Goat.java
++++ b/net/minecraft/world/entity/animal/goat/Goat.java
+@@ -216,8 +_,14 @@
+     public InteractionResult mobInteract(Player p_149379_, InteractionHand p_149380_) {
+         ItemStack itemstack = p_149379_.getItemInHand(p_149380_);
+         if (itemstack.is(Items.BUCKET) && !this.isBaby()) {
++            // CraftBukkit start - Got milk?
++            org.bukkit.event.player.PlayerBucketFillEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) p_149379_.level(), p_149379_, this.blockPosition(), this.blockPosition(), null, itemstack, Items.MILK_BUCKET, p_149380_);
++            if (event.isCancelled()) {
++                return InteractionResult.PASS;
++            }
++            // CraftBukkit end
+             p_149379_.playSound(this.getMilkingSound(), 1.0F, 1.0F);
+-            ItemStack itemstack1 = ItemUtils.createFilledResult(itemstack, p_149379_, Items.MILK_BUCKET.getDefaultInstance());
++            ItemStack itemstack1 = ItemUtils.createFilledResult(itemstack, p_149379_, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItemStack())); // CraftBukkit
+             p_149379_.setItemInHand(p_149380_, itemstack1);
+             return InteractionResult.sidedSuccess(this.level().isClientSide);
+         } else {

@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/entity/NeutralMob.java
++++ b/net/minecraft/world/entity/NeutralMob.java
+@@ -42,12 +_,12 @@
+                 Entity entity = ((ServerLevel)p_147286_).getEntity(uuid);
+                 if (entity != null) {
+                     if (entity instanceof Mob mob) {
+-                        this.setTarget(mob);
++                        this.setTarget(mob, org.bukkit.event.entity.EntityTargetEvent.TargetReason.UNKNOWN, false); // CraftBukkit
+                         this.setLastHurtByMob(mob);
+                     }
+ 
+                     if (entity instanceof Player player) {
+-                        this.setTarget(player);
++                        this.setTarget(player, org.bukkit.event.entity.EntityTargetEvent.TargetReason.UNKNOWN, false); // CraftBukkit
+                         this.setLastHurtByPlayer(player);
+                     }
+                 }
+@@ -109,7 +_,7 @@
+     default void stopBeingAngry() {
+         this.setLastHurtByMob(null);
+         this.setPersistentAngerTarget(null);
+-        this.setTarget(null);
++        this.setTarget(null, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET, true); // CraftBukkit
+         this.setRemainingPersistentAngerTime(0);
+     }
+ 
+@@ -121,6 +_,8 @@
+     void setLastHurtByPlayer(@Nullable Player p_21680_);
+ 
+     void setTarget(@Nullable LivingEntity p_21681_);
++
++    boolean setTarget(@Nullable LivingEntity entityliving, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent); // CraftBukkit
+ 
+     boolean canAttack(LivingEntity p_181126_);
+ 

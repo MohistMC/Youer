@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/level/block/SignBlock.java
++++ b/net/minecraft/world/level/block/SignBlock.java
+@@ -127,7 +_,7 @@
+             } else if (!this.otherPlayerIsEditingSign(p_316173_, signblockentity)
+                 && p_316173_.mayBuild()
+                 && this.hasEditableText(p_316173_, signblockentity, flag1)) {
+-                this.openTextEdit(p_316173_, signblockentity, flag1);
++                this.openTextEdit(p_316173_, signblockentity, flag1, org.bukkit.event.player.PlayerSignOpenEvent.Cause.INTERACT); // CraftBukkit
+                 return InteractionResult.SUCCESS;
+             } else {
+                 return InteractionResult.PASS;
+@@ -170,6 +_,15 @@
+     }
+ 
+     public void openTextEdit(Player p_277738_, SignBlockEntity p_277467_, boolean p_277771_) {
++        // CraftBukkit start
++        openTextEdit(p_277738_, p_277467_, p_277771_, org.bukkit.event.player.PlayerSignOpenEvent.Cause.UNKNOWN);
++    }
++
++    public void openTextEdit(Player p_277738_, SignBlockEntity p_277467_, boolean p_277771_, org.bukkit.event.player.PlayerSignOpenEvent.Cause cause) {
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerSignOpenEvent(p_277738_, p_277467_, p_277771_, cause)) {
++            return;
++        }
++        // CraftBukkit end
+         p_277467_.setAllowedPlayerEditor(p_277738_.getUUID());
+         p_277738_.openTextEdit(p_277467_, p_277771_);
+     }
+@@ -182,6 +_,6 @@
+     @Nullable
+     @Override
+     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level p_277367_, BlockState p_277896_, BlockEntityType<T> p_277724_) {
+-        return createTickerHelper(p_277724_, BlockEntityType.SIGN, SignBlockEntity::tick);
++        return null; // CraftBukkit - remove unnecessary sign ticking
+     }
+ }

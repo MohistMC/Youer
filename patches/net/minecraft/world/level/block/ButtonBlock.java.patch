@@ -1,0 +1,56 @@
+--- a/net/minecraft/world/level/block/ButtonBlock.java
++++ b/net/minecraft/world/level/block/ButtonBlock.java
+@@ -113,6 +_,19 @@
+         if (p_316833_.getValue(POWERED)) {
+             return InteractionResult.CONSUME;
+         } else {
++            // CraftBukkit start
++            boolean powered = p_316833_.getValue(POWERED);
++            org.bukkit.block.Block block = p_316124_.getWorld().getBlockAt(p_316184_.getX(), p_316184_.getY(), p_316184_.getZ());
++            int old = (powered) ? 15 : 0;
++            int current = (!powered) ? 15 : 0;
++
++            org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(block, old, current);
++            p_316124_.getCraftServer().getPluginManager().callEvent(eventRedstone);
++
++            if ((eventRedstone.getNewCurrent() > 0) != (!powered)) {
++                return InteractionResult.SUCCESS;
++            }
++            // CraftBukkit end
+             this.press(p_316833_, p_316124_, p_316184_, p_316845_);
+             return InteractionResult.sidedSuccess(p_316124_.isClientSide);
+         }
+@@ -189,7 +_,33 @@
+             : null;
+         boolean flag = abstractarrow != null;
+         boolean flag1 = p_51121_.getValue(POWERED);
++
++        // CraftBukkit start - Call interact event when arrows turn on wooden buttons
++        if (flag1 != flag && flag) {
++            org.bukkit.block.Block block = p_51122_.getWorld().getBlockAt(p_51123_.getX(), p_51123_.getY(), p_51123_.getZ());
++            org.bukkit.event.entity.EntityInteractEvent event = new org.bukkit.event.entity.EntityInteractEvent(abstractarrow.getBukkitEntity(), block);
++            p_51122_.getCraftServer().getPluginManager().callEvent(event);
++
++            if (event.isCancelled()) {
++                return;
++            }
++        }
++        // CraftBukkit end
++
+         if (flag != flag1) {
++            // CraftBukkit start
++            boolean powered = flag1;
++            org.bukkit.block.Block block = p_51122_.getWorld().getBlockAt(p_51123_.getX(), p_51123_.getY(), p_51123_.getZ());
++            int old = (powered) ? 15 : 0;
++            int current = (!powered) ? 15 : 0;
++
++            org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(block, old, current);
++            p_51122_.getCraftServer().getPluginManager().callEvent(eventRedstone);
++
++            if ((flag && eventRedstone.getNewCurrent() <= 0) || (!flag && eventRedstone.getNewCurrent() > 0)) {
++                return;
++            }
++            // CraftBukkit end
+             p_51122_.setBlock(p_51123_, p_51121_.setValue(POWERED, Boolean.valueOf(flag)), 3);
+             this.updateNeighbours(p_51121_, p_51122_, p_51123_);
+             this.playSound(null, p_51122_, p_51123_, flag);

@@ -27,16 +27,49 @@
                          }
                      }
                  }
-@@ -184,7 +_,11 @@
+@@ -178,13 +_,19 @@
+         if (!list.isEmpty()) {
+             for (Player player : list) {
+                 if (p_155445_.closerThan(player.blockPosition(), (double)j) && player.isInWaterOrRain()) {
+-                    player.addEffect(new MobEffectInstance(MobEffects.CONDUIT_POWER, 260, 0, true, true));
++                    player.addEffect(new MobEffectInstance(MobEffects.CONDUIT_POWER, 260, 0, true, true), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONDUIT); // CraftBukkit
+                 }
+             }
          }
      }
  
--    private static void updateDestroyTarget(Level p_155409_, BlockPos p_155410_, BlockState p_155411_, List<BlockPos> p_155412_, ConduitBlockEntity p_155413_) {
-+    public static void updateDestroyTarget(Level p_155409_, BlockPos p_155410_, BlockState p_155411_, List<BlockPos> p_155412_, ConduitBlockEntity p_155413_, boolean damageTarget) {
-+        updateDestroyTarget(p_155409_, p_155410_, p_155411_, p_155412_, p_155413_);
+     private static void updateDestroyTarget(Level p_155409_, BlockPos p_155410_, BlockState p_155411_, List<BlockPos> p_155412_, ConduitBlockEntity p_155413_) {
++        // CraftBukkit start - add "damageTarget" boolean
++        updateDestroyTarget(p_155409_, p_155410_, p_155411_, p_155412_, p_155413_, true);
 +    }
 +
-+    public static void updateDestroyTarget(Level p_155409_, BlockPos p_155410_, BlockState p_155411_, List<BlockPos> p_155412_, ConduitBlockEntity p_155413_) {
++    public static void updateDestroyTarget(Level p_155409_, BlockPos p_155410_, BlockState p_155411_, List<BlockPos> p_155412_, ConduitBlockEntity p_155413_, boolean damageTarget) {
++        // CraftBukkit end
          LivingEntity livingentity = p_155413_.destroyTarget;
          int i = p_155412_.size();
          if (i < 42) {
+@@ -203,18 +_,12 @@
+             p_155413_.destroyTarget = null;
+         }
+ 
+-        if (p_155413_.destroyTarget != null) {
+-            p_155409_.playSound(
+-                null,
+-                p_155413_.destroyTarget.getX(),
+-                p_155413_.destroyTarget.getY(),
+-                p_155413_.destroyTarget.getZ(),
+-                SoundEvents.CONDUIT_ATTACK_TARGET,
+-                SoundSource.BLOCKS,
+-                1.0F,
+-                1.0F
+-            );
+-            p_155413_.destroyTarget.hurt(p_155409_.damageSources().magic(), 4.0F);
++        // CraftBukkit start
++        if (damageTarget && p_155413_.destroyTarget != null) {
++            if (p_155413_.destroyTarget.hurt(p_155409_.damageSources().magic().directBlock(p_155409_, p_155410_), 4.0F)) {
++                p_155409_.playSound(null, p_155413_.destroyTarget.getX(), p_155413_.destroyTarget.getY(), p_155413_.destroyTarget.getZ(), SoundEvents.CONDUIT_ATTACK_TARGET, SoundSource.BLOCKS, 1.0F, 1.0F);
++            }
++            // CraftBukkit end
+         }
+ 
+         if (livingentity != p_155413_.destroyTarget) {

@@ -1,5 +1,23 @@
 --- a/net/minecraft/world/entity/Interaction.java
 +++ b/net/minecraft/world/entity/Interaction.java
+@@ -130,9 +_,16 @@
+     @Override
+     public boolean skipAttackInteraction(Entity p_273553_) {
+         if (p_273553_ instanceof Player player) {
++            // CraftBukkit start
++            net.minecraft.world.damagesource.DamageSource source = player.damageSources().playerAttack(player);
++            org.bukkit.event.entity.EntityDamageEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callNonLivingEntityDamageEvent(this, source, 1.0F, false);
++            if (event.isCancelled()) {
++                return true;
++            }
++            // CraftBukkit end
+             this.attack = new Interaction.PlayerAction(player.getUUID(), this.level().getGameTime());
+             if (player instanceof ServerPlayer serverplayer) {
+-                CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(serverplayer, this, player.damageSources().generic(), 1.0F, 1.0F, false);
++                CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(serverplayer, this, source, (float) event.getFinalDamage(), 1.0F, false); // CraftBukkit
+             }
+ 
+             return !this.getResponse();
 @@ -205,7 +_,7 @@
          return this.getDimensions().makeBoundingBox(this.position());
      }

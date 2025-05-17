@@ -73,6 +73,35 @@
      public Inventory(Player p_35983_) {
          this.player = p_35983_;
      }
+@@ -56,6 +_,28 @@
+             && p_36015_.getCount() < this.getMaxStackSize(p_36015_);
+     }
+ 
++    // CraftBukkit start - Watch method above! :D
++    public int canHold(ItemStack itemstack) {
++        int remains = itemstack.getCount();
++        for (int i = 0; i < this.items.size(); ++i) {
++            ItemStack itemstack1 = this.getItem(i);
++            if (itemstack1.isEmpty()) return itemstack.getCount();
++
++            if (this.hasRemainingSpaceForItem(itemstack1, itemstack)) {
++                remains -= (itemstack1.getMaxStackSize() < this.getMaxStackSize() ? itemstack1.getMaxStackSize() : this.getMaxStackSize()) - itemstack1.getCount();
++            }
++            if (remains <= 0) return itemstack.getCount();
++        }
++        ItemStack offhandItemStack = this.getItem(this.items.size() + this.armor.size());
++        if (this.hasRemainingSpaceForItem(offhandItemStack, itemstack)) {
++            remains -= (offhandItemStack.getMaxStackSize() < this.getMaxStackSize() ? offhandItemStack.getMaxStackSize() : this.getMaxStackSize()) - offhandItemStack.getCount();
++        }
++        if (remains <= 0) return itemstack.getCount();
++
++        return itemstack.getCount() - remains;
++    }
++    // CraftBukkit end
++
+     public int getFreeSlot() {
+         for (int i = 0; i < this.items.size(); i++) {
+             if (this.items.get(i).isEmpty()) {
 @@ -133,7 +_,7 @@
  
          for (int k = 0; k < 9; k++) {

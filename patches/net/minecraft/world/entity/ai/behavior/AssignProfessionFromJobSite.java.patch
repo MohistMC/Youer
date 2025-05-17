@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/entity/ai/behavior/AssignProfessionFromJobSite.java
++++ b/net/minecraft/world/entity/ai/behavior/AssignProfessionFromJobSite.java
+@@ -40,7 +_,13 @@
+                                                         .findFirst()
+                                             )
+                                             .ifPresent(p_22464_ -> {
+-                                                p_258310_.setVillagerData(p_258310_.getVillagerData().setProfession(p_22464_));
++                                                // CraftBukkit start - Fire VillagerCareerChangeEvent where Villager gets employed
++                                                org.bukkit.event.entity.VillagerCareerChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callVillagerCareerChangeEvent(p_258310_, org.bukkit.craftbukkit.entity.CraftVillager.CraftProfession.minecraftToBukkit(p_22464_), org.bukkit.event.entity.VillagerCareerChangeEvent.ChangeReason.EMPLOYED);
++                                                if (event.isCancelled()) {
++                                                    return;
++                                                }
++                                                p_258310_.setVillagerData(p_258310_.getVillagerData().setProfession(org.bukkit.craftbukkit.entity.CraftVillager.CraftProfession.bukkitToMinecraft(event.getProfession())));
++                                                // CraftBukkit end
+                                                 p_258310_.refreshBrain(p_258309_);
+                                             });
+                                         return true;

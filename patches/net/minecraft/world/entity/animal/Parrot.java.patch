@@ -22,6 +22,15 @@
                      this.tame(p_29414_);
                      this.level().broadcastEntityEvent(this, (byte)7);
                  } else {
+@@ -278,7 +_,7 @@
+             }
+         } else {
+             itemstack.consume(1, p_29414_);
+-            this.addEffect(new MobEffectInstance(MobEffects.POISON, 900));
++            this.addEffect(new MobEffectInstance(MobEffects.POISON, 900), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.FOOD); // CraftBukkit
+             if (p_29414_.isCreative() || !this.isInvulnerable()) {
+                 this.hurt(this.damageSources().playerAttack(p_29414_), Float.MAX_VALUE);
+             }
 @@ -321,7 +_,10 @@
  
      public static SoundEvent getAmbient(Level p_218239_, RandomSource p_218240_) {
@@ -45,3 +54,29 @@
      }
  
      @Override
+@@ -374,7 +_,7 @@
+ 
+     @Override
+     public boolean isPushable() {
+-        return true;
++        return super.isPushable(); // CraftBukkit - collidable API
+     }
+ 
+     @Override
+@@ -389,11 +_,14 @@
+         if (this.isInvulnerableTo(p_29378_)) {
+             return false;
+         } else {
+-            if (!this.level().isClientSide) {
++            // CraftBukkit start
++            boolean result = super.hurt(p_29378_, p_29379_);
++            if (!this.level().isClientSide && result) {
++                // CraftBukkit end
+                 this.setOrderedToSit(false);
+             }
+ 
+-            return super.hurt(p_29378_, p_29379_);
++            return result; // CraftBukkit
+         }
+     }
+ 

@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/block/BambooSaplingBlock.java
 +++ b/net/minecraft/world/level/block/BambooSaplingBlock.java
-@@ -50,6 +_,8 @@
+@@ -43,13 +_,15 @@
+ 
+     @Override
+     protected void randomTick(BlockState p_220753_, ServerLevel p_220754_, BlockPos p_220755_, RandomSource p_220756_) {
+-        if (p_220756_.nextInt(3) == 0 && p_220754_.isEmptyBlock(p_220755_.above()) && p_220754_.getRawBrightness(p_220755_.above(), 0) >= 9) {
++        if (p_220756_.nextFloat() < (p_220754_.spigotConfig.bambooModifier / (100.0f * 3)) && p_220754_.isEmptyBlock(p_220755_.above()) && p_220754_.getRawBrightness(p_220755_.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
+             this.growBamboo(p_220754_, p_220755_);
+         }
+     }
  
      @Override
      protected boolean canSurvive(BlockState p_48986_, LevelReader p_48987_, BlockPos p_48988_) {
@@ -9,7 +17,7 @@
          return p_48987_.getBlockState(p_48988_.below()).is(BlockTags.BAMBOO_PLANTABLE_ON);
      }
  
-@@ -88,7 +_,7 @@
+@@ -88,10 +_,10 @@
  
      @Override
      protected float getDestroyProgress(BlockState p_48981_, Player p_48982_, BlockGetter p_48983_, BlockPos p_48984_) {
@@ -18,3 +26,7 @@
      }
  
      protected void growBamboo(Level p_48973_, BlockPos p_48974_) {
+-        p_48973_.setBlock(p_48974_.above(), Blocks.BAMBOO.defaultBlockState().setValue(BambooStalkBlock.LEAVES, BambooLeaves.SMALL), 3);
++        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_48973_, p_48974_, p_48974_.above(), Blocks.BAMBOO.defaultBlockState().setValue(BambooStalkBlock.LEAVES, BambooLeaves.SMALL), 3); // CraftBukkit - BlockSpreadEvent
+     }
+ }

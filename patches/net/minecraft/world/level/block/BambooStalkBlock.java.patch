@@ -18,7 +18,7 @@
 +            if (p_261751_.isEmptyBlock(p_261616_.above()) && p_261751_.getRawBrightness(p_261616_.above(), 0) >= 9) {
                  int i = this.getHeightBelowUpToMax(p_261751_, p_261616_) + 1;
 -                if (i < 16) {
-+                if (i < 16 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_261751_, p_261616_, p_261931_, p_261766_.nextInt(3) == 0)) {
++                if (i < 16 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_261751_, p_261616_, p_261931_, p_261766_.nextFloat() < (p_261751_.spigotConfig.bambooModifier / (100.0f * 3)))) { // Spigot
                      this.growBamboo(p_261931_, p_261751_, p_261616_, p_261766_, i);
 +                    net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_261751_, p_261616_, p_261931_);
                  }
@@ -42,3 +42,45 @@
      }
  
      protected void growBamboo(BlockState p_261855_, Level p_262076_, BlockPos p_262109_, RandomSource p_261633_, int p_261759_) {
+@@ -201,23 +_,36 @@
+         BlockPos blockpos = p_262109_.below(2);
+         BlockState blockstate1 = p_262076_.getBlockState(blockpos);
+         BambooLeaves bambooleaves = BambooLeaves.NONE;
++        boolean shouldUpdateOthers = false; // CraftBukkit
++
+         if (p_261759_ >= 1) {
+             if (!blockstate.is(Blocks.BAMBOO) || blockstate.getValue(LEAVES) == BambooLeaves.NONE) {
+                 bambooleaves = BambooLeaves.SMALL;
+             } else if (blockstate.is(Blocks.BAMBOO) && blockstate.getValue(LEAVES) != BambooLeaves.NONE) {
+                 bambooleaves = BambooLeaves.LARGE;
+                 if (blockstate1.is(Blocks.BAMBOO)) {
+-                    p_262076_.setBlock(p_262109_.below(), blockstate.setValue(LEAVES, BambooLeaves.SMALL), 3);
+-                    p_262076_.setBlock(blockpos, blockstate1.setValue(LEAVES, BambooLeaves.NONE), 3);
++                    // CraftBukkit start - moved down
++                    // p_262076_.setBlock(p_262109_.below(), blockstate.setValue(LEAVES, BambooLeaves.SMALL), 3);
++                    // p_262076_.setBlock(blockpos, blockstate1.setValue(LEAVES, BambooLeaves.NONE), 3);
++                    shouldUpdateOthers = true;
++                    // CraftBukkit end
+                 }
+             }
+         }
+ 
+         int i = p_261855_.getValue(AGE) != 1 && !blockstate1.is(Blocks.BAMBOO) ? 0 : 1;
+         int j = (p_261759_ < 11 || !(p_261633_.nextFloat() < 0.25F)) && p_261759_ != 15 ? 0 : 1;
+-        p_262076_.setBlock(
+-            p_262109_.above(), this.defaultBlockState().setValue(AGE, Integer.valueOf(i)).setValue(LEAVES, bambooleaves).setValue(STAGE, Integer.valueOf(j)), 3
+-        );
++
++        // CraftBukkit start
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(
++                p_262076_, p_262109_, p_262109_.above(),
++                this.defaultBlockState().setValue(AGE, i).setValue(LEAVES, bambooleaves).setValue(STAGE, j), 3)) {
++            if (shouldUpdateOthers) {
++                p_262076_.setBlock(p_262109_.below(), blockstate.setValue(LEAVES, BambooLeaves.SMALL), 3);
++                p_262076_.setBlock(blockpos, blockstate1.setValue(LEAVES, BambooLeaves.NONE), 3);
++            }
++        }
++        // CraftBukkit end
+     }
+ 
+     protected int getHeightAboveUpToMax(BlockGetter p_261541_, BlockPos p_261593_) {
