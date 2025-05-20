@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/block/SweetBerryBushBlock.java
 +++ b/net/minecraft/world/level/block/SweetBerryBushBlock.java
+@@ -28,6 +_,8 @@
+ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
+ 
+ public class SweetBerryBushBlock extends BushBlock implements BonemealableBlock {
+     public static final MapCodec<SweetBerryBushBlock> CODEC = simpleCodec(SweetBerryBushBlock::new);
 @@ -69,9 +_,14 @@
      @Override
      protected void randomTick(BlockState p_222563_, ServerLevel p_222564_, BlockPos p_222565_, RandomSource p_222566_) {
@@ -10,7 +19,7 @@
 -            p_222564_.setBlock(p_222565_, blockstate, 2);
 +
 +            // CraftBukkit start
-+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_222564_, p_222565_, blockstate, 2)) return;
++            if (!CraftEventFactory.handleBlockGrowEvent(p_222564_, p_222565_, blockstate, 2)) return;
 +            // CraftBukkit end
 +
 +            net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_222564_, p_222565_, p_222563_);
@@ -33,12 +42,12 @@
 -            popResource(p_316429_, p_316748_, new ItemStack(Items.SWEET_BERRIES, j + (flag ? 1 : 0)));
 +
 +            // CraftBukkit start - useWithoutItem is always MAIN_HAND
-+            org.bukkit.event.player.PlayerHarvestBlockEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerHarvestBlockEvent(p_316429_, p_316748_, p_316431_, InteractionHand.MAIN_HAND, java.util.Collections.singletonList(new ItemStack(Items.SWEET_BERRIES, j + (flag ? 1 : 0))));
++            org.bukkit.event.player.PlayerHarvestBlockEvent event = CraftEventFactory.callPlayerHarvestBlockEvent(p_316429_, p_316748_, p_316431_, InteractionHand.MAIN_HAND, java.util.Collections.singletonList(new ItemStack(Items.SWEET_BERRIES, j + (flag ? 1 : 0))));
 +            if (event.isCancelled()) {
 +                return InteractionResult.SUCCESS; // We need to return a success either way, because making it PASS or FAIL will result in a bug where cancelling while harvesting w/ block in hand places block
 +            }
 +            for (org.bukkit.inventory.ItemStack itemStack : event.getItemsHarvested()) {
-+                popResource(p_316429_, p_316748_, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(itemStack));
++                popResource(p_316429_, p_316748_, CraftItemStack.asNMSCopy(itemStack));
 +            }
 +            // CraftBukkit end
 +

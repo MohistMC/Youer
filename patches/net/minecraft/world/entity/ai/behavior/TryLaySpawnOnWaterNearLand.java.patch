@@ -1,12 +1,31 @@
 --- a/net/minecraft/world/entity/ai/behavior/TryLaySpawnOnWaterNearLand.java
 +++ b/net/minecraft/world/entity/ai/behavior/TryLaySpawnOnWaterNearLand.java
+@@ -2,17 +_,16 @@
+ 
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+-import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;
+-import net.minecraft.world.entity.ai.behavior.declarative.MemoryAccessor;
+ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.material.Fluids;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class TryLaySpawnOnWaterNearLand {
+     public static BehaviorControl<LivingEntity> create(Block p_259207_) {
 @@ -35,6 +_,14 @@
                                              BlockPos blockpos2 = blockpos1.above();
                                              if (p_269881_.getBlockState(blockpos2).isAir()) {
                                                  BlockState blockstate = p_259207_.defaultBlockState();
 +
 +                                                // CraftBukkit start
-+                                                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_269882_, blockpos2, blockstate)) {
++                                                if (!CraftEventFactory.callEntityChangeBlockEvent(p_269882_, blockpos2, blockstate)) {
 +                                                    p_259602_.erase();
 +                                                    return true;
 +                                                }

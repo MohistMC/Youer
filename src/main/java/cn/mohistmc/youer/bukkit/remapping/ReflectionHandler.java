@@ -429,7 +429,7 @@ public class ReflectionHandler extends ClassLoader {
     }
 
     public static String findMappedResource(Class<?> cl, String name) {
-        if (name.isEmpty() || !name.endsWith(".class")) return null;
+        if (!name.endsWith(".class")) return null;
         name = name.substring(0, name.length() - 6);
         String className;
         if (cl != null) {
@@ -456,7 +456,7 @@ public class ReflectionHandler extends ClassLoader {
         else return className + ".class";
     }
 
-    public static URL redirectClassGetResource(Class<?> cl, String name) throws MalformedURLException {
+    public static URL redirectClassGetResource(Class<?> cl, String name) {
         String mappedResource = findMappedResource(cl, name);
         if (mappedResource == null) {
             if (name.startsWith("/java/") || name.startsWith("/jdk/") || name.startsWith("/javax/")) {
@@ -464,8 +464,7 @@ public class ReflectionHandler extends ClassLoader {
             }
             return cl.getResource(name);
         } else {
-            URL resource = cl.getResource(mappedResource);
-            return resource == null ? null : new URL("remap:" + resource);
+            return cl.getResource(mappedResource);
         }
     }
 
@@ -479,11 +478,11 @@ public class ReflectionHandler extends ClassLoader {
         } else {
             URL resource = cl.getResource(mappedResource);
             if (resource == null) return null;
-            return new URL("remap:" + resource).openStream();
+            return resource.openStream();
         }
     }
 
-    public static URL redirectClassLoaderGetResource(ClassLoader loader, String name) throws MalformedURLException {
+    public static URL redirectClassLoaderGetResource(ClassLoader loader, String name) {
         String mappedResource = findMappedResource(null, name);
         if (mappedResource == null) {
             if (name.startsWith("java/") || name.startsWith("jdk/") || name.startsWith("javax/")) {
@@ -491,8 +490,7 @@ public class ReflectionHandler extends ClassLoader {
             }
             return loader.getResource(name);
         } else {
-            URL resource = loader.getResource(mappedResource);
-            return resource == null ? null : new URL("remap:" + resource);
+            return loader.getResource(mappedResource);
         }
     }
 
@@ -504,8 +502,7 @@ public class ReflectionHandler extends ClassLoader {
             }
             return loader.getResources(name);
         } else {
-            Enumeration<URL> resources = loader.getResources(mappedResource);
-            return Enumerations.remapped(resources);
+            return loader.getResources(mappedResource);
         }
     }
 

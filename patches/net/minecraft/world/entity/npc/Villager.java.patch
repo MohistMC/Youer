@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/entity/npc/Villager.java
 +++ b/net/minecraft/world/entity/npc/Villager.java
+@@ -12,7 +_,6 @@
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.Set;
+-import java.util.Map.Entry;
+ import java.util.function.BiPredicate;
+ import java.util.stream.Collectors;
+ import javax.annotation.Nullable;
+@@ -88,6 +_,7 @@
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.ServerLevelAccessor;
+ import net.minecraft.world.phys.AABB;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ import org.slf4j.Logger;
+ 
+ public class Villager extends AbstractVillager implements ReputationEventHandler, VillagerDataHolder {
 @@ -269,6 +_,16 @@
      }
  
@@ -101,7 +117,7 @@
 -                p_35409_.addFreshEntityWithPassengers(witch);
 +                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, witch);
 +                // CraftBukkit start
-+                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTransformEvent(this, witch, org.bukkit.event.entity.EntityTransformEvent.TransformReason.LIGHTNING).isCancelled()) {
++                if (CraftEventFactory.callEntityTransformEvent(this, witch, org.bukkit.event.entity.EntityTransformEvent.TransformReason.LIGHTNING).isCancelled()) {
 +                    return;
 +                }
 +                p_35409_.addFreshEntityWithPassengers(witch, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING);

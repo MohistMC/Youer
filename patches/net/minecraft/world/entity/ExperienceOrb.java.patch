@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/ExperienceOrb.java
 +++ b/net/minecraft/world/entity/ExperienceOrb.java
+@@ -23,6 +_,8 @@
+ import net.minecraft.world.level.entity.EntityTypeTest;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftLivingEntity;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class ExperienceOrb extends Entity {
+     private static final int LIFETIME = 6000;
 @@ -67,6 +_,7 @@
      @Override
      public void tick() {
@@ -16,8 +25,8 @@
 +        // CraftBukkit start
 +        boolean cancelled = false;
 +        if (this.followingPlayer != prevTarget) {
-+            org.bukkit.event.entity.EntityTargetLivingEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(this, followingPlayer, (followingPlayer != null) ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER : org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET);
-+            LivingEntity target = (event.getTarget() == null) ? null : ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle();
++            org.bukkit.event.entity.EntityTargetLivingEntityEvent event = CraftEventFactory.callEntityTargetLivingEvent(this, followingPlayer, (followingPlayer != null) ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER : org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET);
++            LivingEntity target = (event.getTarget() == null) ? null : ((CraftLivingEntity) event.getTarget()).getHandle();
 +            cancelled = event.isCancelled();
 +
 +            if (cancelled) {
@@ -83,13 +92,13 @@
              if (p_20792_.takeXpDelay == 0) {
 -                p_20792_.takeXpDelay = 2;
 +                if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerXpEvent.PickupXp(p_20792_, this)).isCanceled()) return;
-+                p_20792_.takeXpDelay = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerXpCooldownEvent(p_20792_, 2, org.bukkit.event.player.PlayerExpCooldownChangeEvent.ChangeReason.PICKUP_ORB).getNewCooldown(); // CraftBukkit - p_20792_.takeXpDelay = 2;
++                p_20792_.takeXpDelay = CraftEventFactory.callPlayerXpCooldownEvent(p_20792_, 2, org.bukkit.event.player.PlayerExpCooldownChangeEvent.ChangeReason.PICKUP_ORB).getNewCooldown(); // CraftBukkit - p_20792_.takeXpDelay = 2;
                  p_20792_.take(this, 1);
                  int i = this.repairPlayerItems(serverplayer, this.value);
 +
                  if (i > 0) {
 -                    p_20792_.giveExperiencePoints(i);
-+                    p_20792_.giveExperiencePoints(org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerExpChangeEvent(p_20792_, i).getAmount()); // CraftBukkit - this.value -> event.getAmount()
++                    p_20792_.giveExperiencePoints(CraftEventFactory.callPlayerExpChangeEvent(p_20792_, i).getAmount()); // CraftBukkit - this.value -> event.getAmount()
                  }
  
                  this.count--;
@@ -107,7 +116,7 @@
 +            int i = EnchantmentHelper.modifyDurabilityToRepairFromXp(p_344821_.serverLevel(), itemstack, (int) (p_147094_ * itemstack.getXpRepairRatio()));
              int j = Math.min(i, itemstack.getDamageValue());
 +            // CraftBukkit start
-+            org.bukkit.event.player.PlayerItemMendEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemMendEvent(p_344821_, this, itemstack, optional.get().inSlot(), j);
++            org.bukkit.event.player.PlayerItemMendEvent event = CraftEventFactory.callPlayerItemMendEvent(p_344821_, this, itemstack, optional.get().inSlot(), j);
 +            j = event.getRepairAmount();
 +            if (event.isCancelled()) {
 +                return p_147094_;

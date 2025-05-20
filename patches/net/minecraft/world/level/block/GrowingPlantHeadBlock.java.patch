@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
 +++ b/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
+@@ -15,6 +_,7 @@
+ import net.minecraft.world.level.block.state.properties.IntegerProperty;
+ import net.minecraft.world.level.material.Fluids;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public abstract class GrowingPlantHeadBlock extends GrowingPlantBlock implements BonemealableBlock {
+     public static final IntegerProperty AGE = BlockStateProperties.AGE_25;
 @@ -42,10 +_,25 @@
  
      @Override
@@ -22,7 +30,7 @@
              if (this.canGrowInto(p_221351_.getBlockState(blockpos))) {
 -                p_221351_.setBlockAndUpdate(blockpos, this.getGrowIntoState(p_221350_, p_221351_.random));
 +                // CraftBukkit start - Use event for block spread
-+                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_221351_, p_221352_, blockpos, this.getGrowIntoState(p_221350_, p_221351_.random));
++                CraftEventFactory.handleBlockSpreadEvent(p_221351_, p_221352_, blockpos, this.getGrowIntoState(p_221350_, p_221351_.random));
 +                // CraftBukkit end
 +                net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_221351_, blockpos, p_221351_.getBlockState(blockpos));
              }

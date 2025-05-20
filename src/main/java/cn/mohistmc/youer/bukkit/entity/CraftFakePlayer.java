@@ -2,8 +2,8 @@ package cn.mohistmc.youer.bukkit.entity;
 
 import com.mojang.authlib.GameProfile;
 import net.neoforged.neoforge.common.util.FakePlayer;
-import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
 
 public class CraftFakePlayer extends CraftPlayer {
 

@@ -1,11 +1,20 @@
 --- a/net/minecraft/world/entity/animal/Cow.java
 +++ b/net/minecraft/world/entity/animal/Cow.java
+@@ -30,6 +_,8 @@
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
+ 
+ public class Cow extends Animal {
+     private static final EntityDimensions BABY_DIMENSIONS = EntityType.COW.getDimensions().scale(0.5F).withEyeHeight(0.665F);
 @@ -88,8 +_,15 @@
      public InteractionResult mobInteract(Player p_28298_, InteractionHand p_28299_) {
          ItemStack itemstack = p_28298_.getItemInHand(p_28299_);
          if (itemstack.is(Items.BUCKET) && !this.isBaby()) {
 +            // CraftBukkit start - Got milk?
-+            org.bukkit.event.player.PlayerBucketFillEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) p_28298_.level(), p_28298_, this.blockPosition(), this.blockPosition(), null, itemstack, Items.MILK_BUCKET, p_28299_);
++            org.bukkit.event.player.PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) p_28298_.level(), p_28298_, this.blockPosition(), this.blockPosition(), null, itemstack, Items.MILK_BUCKET, p_28299_);
 +
 +            if (event.isCancelled()) {
 +                return InteractionResult.PASS;
@@ -13,7 +22,7 @@
 +            // CraftBukkit end
              p_28298_.playSound(SoundEvents.COW_MILK, 1.0F, 1.0F);
 -            ItemStack itemstack1 = ItemUtils.createFilledResult(itemstack, p_28298_, Items.MILK_BUCKET.getDefaultInstance());
-+            ItemStack itemstack1 = ItemUtils.createFilledResult(itemstack, p_28298_, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItemStack())); // CraftBukkit
++            ItemStack itemstack1 = ItemUtils.createFilledResult(itemstack, p_28298_, CraftItemStack.asNMSCopy(event.getItemStack())); // CraftBukkit
              p_28298_.setItemInHand(p_28299_, itemstack1);
              return InteractionResult.sidedSuccess(this.level().isClientSide);
          } else {

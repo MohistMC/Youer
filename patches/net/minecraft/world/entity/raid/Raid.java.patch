@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/raid/Raid.java
 +++ b/net/minecraft/world/entity/raid/Raid.java
+@@ -58,6 +_,7 @@
+ import net.minecraft.world.level.block.entity.BannerPatterns;
+ import net.minecraft.world.level.levelgen.Heightmap;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class Raid {
+     private static final int SECTION_RADIUS_FOR_FINDING_NEW_VILLAGE_CENTER = 2;
 @@ -162,6 +_,12 @@
          return this.status == Raid.RaidStatus.LOSS;
      }
@@ -17,7 +25,7 @@
                  boolean flag = this.active;
                  this.active = this.level.hasChunkAt(this.center);
                  if (this.level.getDifficulty() == Difficulty.PEACEFUL) {
-+                    org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, org.bukkit.event.raid.RaidStopEvent.Reason.PEACE); // CraftBukkit
++                    CraftEventFactory.callRaidStopEvent(this, org.bukkit.event.raid.RaidStopEvent.Reason.PEACE); // CraftBukkit
                      this.stop();
                      return;
                  }
@@ -25,16 +33,16 @@
                  if (!this.level.isVillage(this.center)) {
                      if (this.groupsSpawned > 0) {
                          this.status = Raid.RaidStatus.LOSS;
-+                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidFinishEvent(this, new java.util.ArrayList<>()); // CraftBukkit
++                        CraftEventFactory.callRaidFinishEvent(this, new java.util.ArrayList<>()); // CraftBukkit
                      } else {
-+                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, org.bukkit.event.raid.RaidStopEvent.Reason.NOT_IN_VILLAGE); // CraftBukkit
++                        CraftEventFactory.callRaidStopEvent(this, org.bukkit.event.raid.RaidStopEvent.Reason.NOT_IN_VILLAGE); // CraftBukkit
                          this.stop();
                      }
                  }
  
                  this.ticksActive++;
                  if (this.ticksActive >= 48000L) {
-+                    org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, org.bukkit.event.raid.RaidStopEvent.Reason.TIMEOUT); // CraftBukkit
++                    CraftEventFactory.callRaidStopEvent(this, org.bukkit.event.raid.RaidStopEvent.Reason.TIMEOUT); // CraftBukkit
                      this.stop();
                      return;
                  }
@@ -42,7 +50,7 @@
                      }
  
                      if (k > 3) {
-+                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, org.bukkit.event.raid.RaidStopEvent.Reason.UNSPAWNABLE);  // CraftBukkit
++                        CraftEventFactory.callRaidStopEvent(this, org.bukkit.event.raid.RaidStopEvent.Reason.UNSPAWNABLE);  // CraftBukkit
                          this.stop();
                          break;
                      }
@@ -63,7 +71,7 @@
                                  }
                              }
                          }
-+                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidFinishEvent(this, winners); // CraftBukkit
++                        CraftEventFactory.callRaidFinishEvent(this, winners); // CraftBukkit
                      }
                  }
  
@@ -71,7 +79,7 @@
              } else if (this.isOver()) {
                  this.celebrationTicks++;
                  if (this.celebrationTicks >= 600) {
-+                    org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, org.bukkit.event.raid.RaidStopEvent.Reason.FINISHED); // CraftBukkit
++                    CraftEventFactory.callRaidStopEvent(this, org.bukkit.event.raid.RaidStopEvent.Reason.FINISHED); // CraftBukkit
                      this.stop();
                      return;
                  }
@@ -120,7 +128,7 @@
          this.groupsSpawned++;
          this.updateBossbar();
          this.setDirty();
-+        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidSpawnWaveEvent(this, leader, raiders); // CraftBukkit
++        CraftEventFactory.callRaidSpawnWaveEvent(this, leader, raiders); // CraftBukkit
      }
  
      public void joinRaid(int p_37714_, Raider p_37715_, @Nullable BlockPos p_37716_, boolean p_37717_) {

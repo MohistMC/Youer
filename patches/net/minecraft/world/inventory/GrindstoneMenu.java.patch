@@ -1,12 +1,21 @@
 --- a/net/minecraft/world/inventory/GrindstoneMenu.java
 +++ b/net/minecraft/world/inventory/GrindstoneMenu.java
-@@ -19,6 +_,9 @@
+@@ -1,7 +_,6 @@
+ package net.minecraft.world.inventory;
+ 
+ import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
+-import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.server.level.ServerLevel;
+@@ -19,6 +_,10 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.phys.Vec3;
 +import org.bukkit.Location;
-+import org.bukkit.craftbukkit.inventory.CraftInventoryGrindstone;
-+import org.bukkit.craftbukkit.inventory.CraftInventoryView;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventoryGrindstone;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventoryView;
  
  public class GrindstoneMenu extends AbstractContainerMenu {
      public static final int MAX_NAME_LENGTH = 35;
@@ -82,7 +91,7 @@
 -        this.resultSlots.setItem(0, this.computeResult(this.repairSlots.getItem(0), this.repairSlots.getItem(1)));
 +        this.xp = net.neoforged.neoforge.common.CommonHooks.onGrindstoneChange(this.repairSlots.getItem(0), this.repairSlots.getItem(1), this.resultSlots, -1);
 +        if (this.xp == Integer.MIN_VALUE)
-+        org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareGrindstoneEvent(getBukkitView(), this.computeResult(this.repairSlots.getItem(0), this.repairSlots.getItem(1))); // CraftBukkit
++        CraftEventFactory.callPrepareGrindstoneEvent(getBukkitView(), this.computeResult(this.repairSlots.getItem(0), this.repairSlots.getItem(1))); // CraftBukkit
 +        sendAllDataToRemote(); // CraftBukkit - SPIGOT-6686: Always send completed inventory to stay in sync with client
 +
          this.broadcastChanges();

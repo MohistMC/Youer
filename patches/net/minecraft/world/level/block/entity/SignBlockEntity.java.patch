@@ -1,7 +1,13 @@
 --- a/net/minecraft/world/level/block/entity/SignBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/SignBlockEntity.java
-@@ -32,7 +_,7 @@
+@@ -30,9 +_,13 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftSign;
++import org.bukkit.craftbukkit.v1_21_R1.command.CraftBlockCommandSender;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage;
  import org.slf4j.Logger;
  
 -public class SignBlockEntity extends BlockEntity {
@@ -37,17 +43,17 @@
 +        String[] lines = new String[4];
 +
 +        for (int i = 0; i < p_277744_.size(); ++i) {
-+            lines[i] = org.bukkit.craftbukkit.util.CraftChatMessage.fromComponent(p_277359_.getMessage(i, p_277396_.isTextFilteringEnabled()));
++            lines[i] = CraftChatMessage.fromComponent(p_277359_.getMessage(i, p_277396_.isTextFilteringEnabled()));
 +        }
 +
-+        org.bukkit.event.block.SignChangeEvent event = new org.bukkit.event.block.SignChangeEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this.level, this.worldPosition), player, lines.clone(), (front) ? org.bukkit.block.sign.Side.FRONT : org.bukkit.block.sign.Side.BACK);
++        org.bukkit.event.block.SignChangeEvent event = new org.bukkit.event.block.SignChangeEvent(CraftBlock.at(this.level, this.worldPosition), player, lines.clone(), (front) ? org.bukkit.block.sign.Side.FRONT : org.bukkit.block.sign.Side.BACK);
 +        p_277396_.level().getCraftServer().getPluginManager().callEvent(event);
 +
 +        if (event.isCancelled()) {
 +            return originalText;
 +        }
 +
-+        Component[] components = org.bukkit.craftbukkit.block.CraftSign.sanitizeLines(event.getLines());
++        Component[] components = CraftSign.sanitizeLines(event.getLines());
 +        for (int i = 0; i < components.length; i++) {
 +            if (!java.util.Objects.equals(lines[i], event.getLine(i))) {
 +                p_277359_ = p_277359_.setMessage(i, components[i]);
@@ -69,7 +75,7 @@
 +
 +    @Override
 +    public org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper) {
-+        return wrapper.getEntity() != null ? wrapper.getEntity().getBukkitSender(wrapper) : new org.bukkit.craftbukkit.command.CraftBlockCommandSender(wrapper, this);
++        return wrapper.getEntity() != null ? wrapper.getEntity().getBukkitSender(wrapper) : new CraftBlockCommandSender(wrapper, this);
 +    }
 +
 +    @Override

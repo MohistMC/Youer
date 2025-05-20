@@ -1,11 +1,25 @@
 --- a/net/minecraft/world/entity/ai/behavior/InteractWithDoor.java
 +++ b/net/minecraft/world/entity/ai/behavior/InteractWithDoor.java
+@@ -18,12 +_,12 @@
+ import net.minecraft.world.entity.ai.behavior.declarative.MemoryAccessor;
+ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+ import net.minecraft.world.level.block.DoorBlock;
+-import net.minecraft.world.level.block.state.BlockBehaviour;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.pathfinder.Node;
+ import net.minecraft.world.level.pathfinder.Path;
+ import org.apache.commons.lang3.mutable.MutableInt;
+ import org.apache.commons.lang3.mutable.MutableObject;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
+ 
+ public class InteractWithDoor {
+     private static final int COOLDOWN_BEFORE_RERUNNING_IN_SAME_NODE = 20;
 @@ -59,6 +_,13 @@
                                      if (blockstate.is(BlockTags.MOB_INTERACTABLE_DOORS, p_201959_ -> p_201959_.getBlock() instanceof DoorBlock)) {
                                          DoorBlock doorblock = (DoorBlock)blockstate.getBlock();
                                          if (!doorblock.isOpen(blockstate)) {
 +                                            // CraftBukkit start - entities opening doors
-+                                            org.bukkit.event.entity.EntityInteractEvent event = new org.bukkit.event.entity.EntityInteractEvent(p_258470_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_258470_.level(), blockpos));
++                                            org.bukkit.event.entity.EntityInteractEvent event = new org.bukkit.event.entity.EntityInteractEvent(p_258470_.getBukkitEntity(), CraftBlock.at(p_258470_.level(), blockpos));
 +                                            p_258470_.level().getCraftServer().getPluginManager().callEvent(event);
 +                                            if (event.isCancelled()) {
 +                                                return false;
@@ -19,7 +33,7 @@
                                          DoorBlock doorblock1 = (DoorBlock)blockstate1.getBlock();
                                          if (!doorblock1.isOpen(blockstate1)) {
 +                                            // CraftBukkit start - entities opening doors
-+                                            org.bukkit.event.entity.EntityInteractEvent event = new org.bukkit.event.entity.EntityInteractEvent(p_258470_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_258470_.level(), blockpos1));
++                                            org.bukkit.event.entity.EntityInteractEvent event = new org.bukkit.event.entity.EntityInteractEvent(p_258470_.getBukkitEntity(), CraftBlock.at(p_258470_.level(), blockpos1));
 +                                            p_258470_.level().getCraftServer().getPluginManager().callEvent(event);
 +                                            if (event.isCancelled()) {
 +                                                return false;

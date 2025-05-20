@@ -1,5 +1,22 @@
 --- a/net/minecraft/world/entity/ai/behavior/BabyFollowAdult.java
 +++ b/net/minecraft/world/entity/ai/behavior/BabyFollowAdult.java
+@@ -1,14 +_,14 @@
+ package net.minecraft.world.entity.ai.behavior;
+ 
+ import java.util.function.Function;
+-import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.valueproviders.UniformInt;
+ import net.minecraft.world.entity.AgeableMob;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;
+-import net.minecraft.world.entity.ai.behavior.declarative.MemoryAccessor;
+ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+ import net.minecraft.world.entity.ai.memory.WalkTarget;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftLivingEntity;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class BabyFollowAdult {
+     public static OneShot<AgeableMob> create(UniformInt p_260109_, float p_259621_) {
 @@ -28,9 +_,20 @@
                                  if (!p_258327_.isBaby()) {
                                      return false;
@@ -9,7 +26,7 @@
                                      if (p_258327_.closerThan(ageablemob, (double)(p_259321_.getMaxValue() + 1))
                                          && !p_258327_.closerThan(ageablemob, (double)p_259321_.getMinValue())) {
 +                                        // CraftBukkit start
-+                                        org.bukkit.event.entity.EntityTargetLivingEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(p_258327_, ageablemob, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FOLLOW_LEADER);
++                                        org.bukkit.event.entity.EntityTargetLivingEntityEvent event = CraftEventFactory.callEntityTargetLivingEvent(p_258327_, ageablemob, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FOLLOW_LEADER);
 +                                        if (event.isCancelled()) {
 +                                            return false;
 +                                        }
@@ -17,7 +34,7 @@
 +                                            p_258317_.erase();
 +                                            return true;
 +                                        }
-+                                        ageablemob = ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle();
++                                        ageablemob = ((CraftLivingEntity) event.getTarget()).getHandle();
 +                                        // CraftBukkit end
                                          WalkTarget walktarget = new WalkTarget(
                                              new EntityTracker(ageablemob, false), p_259190_.apply(p_258327_), p_259321_.getMinValue() - 1

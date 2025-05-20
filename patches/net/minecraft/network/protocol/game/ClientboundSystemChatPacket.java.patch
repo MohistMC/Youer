@@ -1,15 +1,23 @@
 --- a/net/minecraft/network/protocol/game/ClientboundSystemChatPacket.java
 +++ b/net/minecraft/network/protocol/game/ClientboundSystemChatPacket.java
-@@ -17,6 +_,12 @@
+@@ -7,6 +_,7 @@
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.PacketType;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage;
+ 
+ public record ClientboundSystemChatPacket(Component content, boolean overlay) implements Packet<ClientGamePacketListener> {
+     public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundSystemChatPacket> STREAM_CODEC = StreamCodec.composite(
+@@ -16,6 +_,12 @@
+         ClientboundSystemChatPacket::overlay,
          ClientboundSystemChatPacket::new
      );
- 
++
 +    // Spigot start
 +    public ClientboundSystemChatPacket(net.md_5.bungee.api.chat.BaseComponent[] content, boolean overlay) {
-+        this(org.bukkit.craftbukkit.util.CraftChatMessage.fromJSON(net.md_5.bungee.chat.ComponentSerializer.toString(content)), overlay);
++        this(CraftChatMessage.fromJSON(net.md_5.bungee.chat.ComponentSerializer.toString(content)), overlay);
 +    }
 +    // Spigot end
-+
+ 
      @Override
      public PacketType<ClientboundSystemChatPacket> type() {
-         return GamePacketTypes.CLIENTBOUND_SYSTEM_CHAT;

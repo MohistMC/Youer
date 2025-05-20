@@ -1,10 +1,21 @@
 --- a/net/minecraft/world/inventory/SmithingMenu.java
 +++ b/net/minecraft/world/inventory/SmithingMenu.java
-@@ -14,6 +_,7 @@
+@@ -3,7 +_,6 @@
+ import java.util.List;
+ import java.util.OptionalInt;
+ import javax.annotation.Nullable;
+-import net.minecraft.core.BlockPos;
+ import net.minecraft.world.entity.player.Inventory;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.ItemStack;
+@@ -14,6 +_,10 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.state.BlockState;
-+import org.bukkit.craftbukkit.inventory.CraftInventoryView;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventory;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventorySmithing;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventoryView;
  
  public class SmithingMenu extends ItemCombinerMenu {
      public static final int TEMPLATE_SLOT = 0;
@@ -21,7 +32,7 @@
 +            return bukkitEntity;
 +        }
 +
-+        org.bukkit.craftbukkit.inventory.CraftInventory inventory = new org.bukkit.craftbukkit.inventory.CraftInventorySmithing(
++        CraftInventory inventory = new CraftInventorySmithing(
 +                access.getLocation(), this.inputSlots, this.resultSlots);
 +        bukkitEntity = new CraftInventoryView(this.player.getBukkitEntity(), inventory, this);
 +        return bukkitEntity;
@@ -35,7 +46,7 @@
          List<RecipeHolder<SmithingRecipe>> list = this.level.getRecipeManager().getRecipesFor(RecipeType.SMITHING, smithingrecipeinput, this.level);
          if (list.isEmpty()) {
 -            this.resultSlots.setItem(0, ItemStack.EMPTY);
-+            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareSmithingEvent(getBukkitView(), ItemStack.EMPTY); // CraftBukkit
++            CraftEventFactory.callPrepareSmithingEvent(getBukkitView(), ItemStack.EMPTY); // CraftBukkit
          } else {
              RecipeHolder<SmithingRecipe> recipeholder = list.get(0);
              ItemStack itemstack = recipeholder.value().assemble(smithingrecipeinput, this.level.registryAccess());
@@ -44,7 +55,7 @@
                  this.resultSlots.setRecipeUsed(recipeholder);
 -                this.resultSlots.setItem(0, itemstack);
 +                // CraftBukkit start
-+                org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareSmithingEvent(getBukkitView(), itemstack);
++                CraftEventFactory.callPrepareSmithingEvent(getBukkitView(), itemstack);
 +                // CraftBukkit end
              }
          }

@@ -1,13 +1,16 @@
 --- a/net/minecraft/world/item/BoatItem.java
 +++ b/net/minecraft/world/item/BoatItem.java
-@@ -16,6 +_,7 @@
+@@ -16,8 +_,10 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.phys.AABB;
 +import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
  
+ public class BoatItem extends Item {
+     private static final Predicate<Entity> ENTITY_PREDICATE = EntitySelector.NO_SPECTATORS.and(Entity::isPickable);
 @@ -33,7 +_,7 @@
      @Override
      public InteractionResultHolder<ItemStack> use(Level p_40622_, Player p_40623_, InteractionHand p_40624_) {
@@ -22,7 +25,7 @@
  
              if (hitresult.getType() == HitResult.Type.BLOCK) {
 +                // CraftBukkit start - Boat placement
-+                org.bukkit.event.player.PlayerInteractEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(p_40623_, org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK, hitresult.getBlockPos(), hitresult.getDirection(), itemstack, false, p_40624_, hitresult.getLocation());
++                org.bukkit.event.player.PlayerInteractEvent event = CraftEventFactory.callPlayerInteractEvent(p_40623_, org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK, hitresult.getBlockPos(), hitresult.getDirection(), itemstack, false, p_40624_, hitresult.getLocation());
 +
 +                if (event.isCancelled()) {
 +                    return InteractionResultHolder.pass(itemstack);
@@ -36,7 +39,7 @@
                  } else {
                      if (!p_40622_.isClientSide) {
 +                        // CraftBukkit start
-+                        if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPlaceEvent(p_40622_, hitresult.getBlockPos(), hitresult.getDirection(), p_40623_, boat, p_40624_).isCancelled()) {
++                        if (CraftEventFactory.callEntityPlaceEvent(p_40622_, hitresult.getBlockPos(), hitresult.getDirection(), p_40623_, boat, p_40624_).isCancelled()) {
 +                            return InteractionResultHolder.fail(itemstack);
 +                        }
                          p_40622_.addFreshEntity(boat);

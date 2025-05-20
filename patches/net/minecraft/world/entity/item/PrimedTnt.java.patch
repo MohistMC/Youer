@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -23,6 +_,7 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.material.FluidState;
+ import net.minecraft.world.level.portal.DimensionTransition;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class PrimedTnt extends Entity implements TraceableEntity {
+     private static final EntityDataAccessor<Integer> DATA_FUSE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.INT);
 @@ -48,6 +_,8 @@
      @Nullable
      public LivingEntity owner;
@@ -52,7 +60,7 @@
 -            );
 +    protected void explode() {
 +        // CraftBukkit start
-+        org.bukkit.event.entity.ExplosionPrimeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExplosionPrimeEvent((org.bukkit.entity.Explosive)this.getBukkitEntity());
++        org.bukkit.event.entity.ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent((org.bukkit.entity.Explosive)this.getBukkitEntity());
 +        if (!event.isCancelled()) {
 +            this.level().explode(this, Explosion.getDefaultDamageSource(this.level(), this), this.usedPortal ? PrimedTnt.USED_PORTAL_DAMAGE_CALCULATOR : null, this.getX(), this.getY(0.0625D), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.TNT);
 +        }

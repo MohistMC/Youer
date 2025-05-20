@@ -1,17 +1,32 @@
 --- a/net/minecraft/world/entity/ai/behavior/StopAttackingIfTargetInvalid.java
 +++ b/net/minecraft/world/entity/ai/behavior/StopAttackingIfTargetInvalid.java
+@@ -3,12 +_,12 @@
+ import java.util.Optional;
+ import java.util.function.BiConsumer;
+ import java.util.function.Predicate;
+-import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.Mob;
+ import net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;
+-import net.minecraft.world.entity.ai.behavior.declarative.MemoryAccessor;
+ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftLivingEntity;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class StopAttackingIfTargetInvalid {
+     private static final int TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE = 200;
 @@ -41,6 +_,17 @@
                                      && !p_260357_.test(livingentity)) {
                                      return true;
                                  } else {
 +                                    // CraftBukkit start
 +                                    LivingEntity old = livingentity.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null);
-+                                    org.bukkit.event.entity.EntityTargetEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(livingentity, null, (old != null && !old.isAlive()) ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_DIED : org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET);
++                                    org.bukkit.event.entity.EntityTargetEvent event = CraftEventFactory.callEntityTargetLivingEvent(livingentity, null, (old != null && !old.isAlive()) ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_DIED : org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET);
 +                                    if (event.isCancelled()) {
 +                                        return false;
 +                                    }
 +                                    if (event.getTarget() != null) {
-+                                        livingentity.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle());
++                                        livingentity.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, ((CraftLivingEntity) event.getTarget()).getHandle());
 +                                        return true;
 +                                    }
 +                                    // CraftBukkit end

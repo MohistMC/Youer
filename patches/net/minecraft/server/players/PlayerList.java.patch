@@ -1,14 +1,14 @@
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -17,6 +_,7 @@
- import java.util.Optional;
- import java.util.Set;
- import java.util.UUID;
-+import java.util.concurrent.atomic.AtomicReference;
- import java.util.function.Function;
+@@ -21,7 +_,6 @@
  import java.util.function.Predicate;
  import javax.annotation.Nullable;
-@@ -67,11 +_,13 @@
+ import net.minecraft.ChatFormatting;
+-import net.minecraft.FileUtil;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.LayeredRegistryAccess;
+@@ -67,6 +_,7 @@
  import net.minecraft.server.PlayerAdvancements;
  import net.minecraft.server.RegistryLayer;
  import net.minecraft.server.ServerScoreboard;
@@ -16,17 +16,15 @@
  import net.minecraft.server.level.ClientInformation;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
- import net.minecraft.server.network.CommonListenerCookie;
- import net.minecraft.server.network.ServerGamePacketListenerImpl;
-+import net.minecraft.server.network.ServerLoginPacketListenerImpl;
- import net.minecraft.sounds.SoundEvents;
- import net.minecraft.sounds.SoundSource;
- import net.minecraft.stats.ServerStatsCounter;
-@@ -98,6 +_,7 @@
+@@ -98,6 +_,11 @@
  import net.minecraft.world.scores.Objective;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Team;
-+import org.bukkit.craftbukkit.CraftServer;
++import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
++import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
++import org.bukkit.craftbukkit.v1_21_R1.command.ColouredConsoleSender;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage;
  import org.slf4j.Logger;
  
  public abstract class PlayerList {
@@ -37,12 +35,12 @@
 +    private final List<ServerPlayer> playersView = java.util.Collections.unmodifiableList(players);
 +
 +    // CraftBukkit start
-+    private org.bukkit.craftbukkit.CraftServer cserver;
++    private CraftServer cserver;
 +    private final Map<String,ServerPlayer> playersByName = new java.util.HashMap<>();
  
      public PlayerList(MinecraftServer p_203842_, LayeredRegistryAccess<RegistryLayer> p_251844_, PlayerDataStorage p_203844_, int p_203845_) {
 +        this.cserver = p_203842_.server = new CraftServer((DedicatedServer) p_203842_, this);
-+        p_203842_.console = org.bukkit.craftbukkit.command.ColouredConsoleSender.getInstance();
++        p_203842_.console = ColouredConsoleSender.getInstance();
 +        // CraftBukkit end
          this.server = p_203842_;
          this.registries = p_251844_;
@@ -57,7 +55,7 @@
 +        org.spigotmc.event.player.PlayerSpawnLocationEvent ev = new org.spigotmc.event.player.PlayerSpawnLocationEvent(spawnPlayer, spawnPlayer.getLocation());
 +        cserver.getPluginManager().callEvent(ev);
 +        org.bukkit.Location loc = ev.getSpawnLocation();
-+        serverlevel1 = ((org.bukkit.craftbukkit.CraftWorld) loc.getWorld()).getHandle();
++        serverlevel1 = ((CraftWorld) loc.getWorld()).getHandle();
 +        p_11263_.spawnIn(serverlevel1);
 +        p_11263_.gameMode.setLevel((net.minecraft.server.level.ServerLevel) p_11263_.level());
 +        p_11263_.absMoveTo(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
@@ -110,7 +108,7 @@
 -        this.broadcastSystemMessage(mutablecomponent.withStyle(ChatFormatting.YELLOW), false);
 +        // CraftBukkit start
 +        mutablecomponent.withStyle(ChatFormatting.YELLOW);
-+        String joinMessage = org.bukkit.craftbukkit.util.CraftChatMessage.fromComponent(mutablecomponent);
++        String joinMessage = CraftChatMessage.fromComponent(mutablecomponent);
 +
          servergamepacketlistenerimpl.teleport(p_11263_.getX(), p_11263_.getY(), p_11263_.getZ(), p_11263_.getYRot(), p_11263_.getXRot());
          ServerStatus serverstatus = this.server.getStatus();
@@ -127,7 +125,7 @@
 +        // this.broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(p_11263_)));
 +
 +        // CraftBukkit start
-+        org.bukkit.craftbukkit.entity.CraftPlayer bukkitPlayer = p_11263_.getBukkitEntity();
++        CraftPlayer bukkitPlayer = p_11263_.getBukkitEntity();
 +        // Ensure that player inventory is populated with its viewer
 +        p_11263_.containerMenu.transferTo(p_11263_.containerMenu, bukkitPlayer);
 +        org.bukkit.event.player.PlayerJoinEvent playerJoinEvent = new org.bukkit.event.player.PlayerJoinEvent(bukkitPlayer, joinMessage);
@@ -137,7 +135,7 @@
 +        }
 +        joinMessage = playerJoinEvent.getJoinMessage();
 +        if (joinMessage != null && joinMessage.length() > 0) {
-+            for (Component line : org.bukkit.craftbukkit.util.CraftChatMessage.fromString(joinMessage)) {
++            for (Component line : CraftChatMessage.fromString(joinMessage)) {
 +                server.getPlayerList().broadcastSystemMessage(line, false);
 +            }
 +        }
@@ -358,7 +356,7 @@
              }
  
 -            return mutablecomponent1;
-+            event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_BANNED, org.bukkit.craftbukkit.util.CraftChatMessage.fromComponent(mutablecomponent1));
++            event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_BANNED, CraftChatMessage.fromComponent(mutablecomponent1));
          } else if (!this.isWhiteListed(p_11258_)) {
 -            return Component.translatable("multiplayer.disconnect.not_whitelisted");
 +            MutableComponent ichatmutablecomponent = Component.translatable("multiplayer.disconnect.not_whitelisted");
@@ -371,7 +369,7 @@
              }
  
 -            return mutablecomponent;
-+            event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_BANNED, org.bukkit.craftbukkit.util.CraftChatMessage.fromComponent(mutablecomponent));
++            event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_BANNED, CraftChatMessage.fromComponent(mutablecomponent));
          } else {
 -            return this.players.size() >= this.maxPlayers && !this.canBypassPlayerLimit(p_11258_)
 -                ? Component.translatable("multiplayer.disconnect.server_full")
@@ -621,7 +619,7 @@
 -    }
 +        // CraftBukkit start - disconnect safely
 +        for (ServerPlayer player : this.players) {
-+            player.connection.disconnect(org.bukkit.craftbukkit.util.CraftChatMessage.fromStringOrEmpty(this.server.server.getShutdownMessage())); // CraftBukkit - add custom shutdown message
++            player.connection.disconnect(CraftChatMessage.fromStringOrEmpty(this.server.server.getShutdownMessage())); // CraftBukkit - add custom shutdown message
 +        }
 +        // CraftBukkit end
 +    }

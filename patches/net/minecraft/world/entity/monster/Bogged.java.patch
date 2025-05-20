@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/monster/Bogged.java
 +++ b/net/minecraft/world/entity/monster/Bogged.java
+@@ -30,6 +_,7 @@
+ import net.minecraft.world.level.storage.loot.LootTable;
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class Bogged extends AbstractSkeleton implements Shearable {
+     private static final int HARD_ATTACK_INTERVAL = 50;
 @@ -74,7 +_,13 @@
      @Override
      protected InteractionResult mobInteract(Player p_330736_, InteractionHand p_331786_) {
@@ -7,7 +15,7 @@
 -        if (itemstack.is(Items.SHEARS) && this.readyForShearing()) {
 +        if (false && itemstack.is(Items.SHEARS) && this.readyForShearing()) { // Neo: Shear logic is handled by IShearable
 +            // CraftBukkit start
-+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(p_330736_, this, itemstack, p_331786_)) {
++            if (!CraftEventFactory.handlePlayerShearEntityEvent(p_330736_, this, itemstack, p_331786_)) {
 +                this.getEntityData().markDirty(Bogged.DATA_SHEARED); // CraftBukkit - mark dirty to restore sheared state to clients
 +                return InteractionResult.PASS;
 +            }

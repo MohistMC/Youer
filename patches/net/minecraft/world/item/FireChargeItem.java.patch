@@ -1,5 +1,29 @@
 --- a/net/minecraft/world/item/FireChargeItem.java
 +++ b/net/minecraft/world/item/FireChargeItem.java
+@@ -3,7 +_,6 @@
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.Position;
+-import net.minecraft.core.dispenser.BlockSource;
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.util.RandomSource;
+@@ -13,14 +_,11 @@
+ import net.minecraft.world.item.context.UseOnContext;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.BaseFireBlock;
+-import net.minecraft.world.level.block.CampfireBlock;
+-import net.minecraft.world.level.block.CandleBlock;
+-import net.minecraft.world.level.block.CandleCakeBlock;
+ import net.minecraft.world.level.block.DispenserBlock;
+ import net.minecraft.world.level.block.state.BlockState;
+-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class FireChargeItem extends Item implements ProjectileItem {
+     public FireChargeItem(Item.Properties p_41202_) {
 @@ -33,17 +_,34 @@
          BlockPos blockpos = p_41204_.getClickedPos();
          BlockState blockstate = level.getBlockState(blockpos);
@@ -10,7 +34,7 @@
              blockpos = blockpos.relative(p_41204_.getClickedFace());
              if (BaseFireBlock.canBePlacedAt(level, blockpos, p_41204_.getHorizontalDirection())) {
 +                // CraftBukkit start - fire BlockIgniteEvent // Youer add null check
-+                if (p_41204_.getPlayer() != null && org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, blockpos, org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FIREBALL, p_41204_.getPlayer()).isCancelled()) {
++                if (p_41204_.getPlayer() != null && CraftEventFactory.callBlockIgniteEvent(level, blockpos, org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FIREBALL, p_41204_.getPlayer()).isCancelled()) {
 +                    if (!p_41204_.getPlayer().getAbilities().instabuild) {
 +                        p_41204_.getItemInHand().shrink(1);
 +                    }
@@ -24,7 +48,7 @@
              }
          } else {
 +            // CraftBukkit start - fire BlockIgniteEvent // Youer add null check
-+            if (p_41204_.getPlayer() != null &&  org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, blockpos, org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FIREBALL, p_41204_.getPlayer()).isCancelled()) {
++            if (p_41204_.getPlayer() != null &&  CraftEventFactory.callBlockIgniteEvent(level, blockpos, org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FIREBALL, p_41204_.getPlayer()).isCancelled()) {
 +                if (!p_41204_.getPlayer().getAbilities().instabuild) {
 +                    p_41204_.getItemInHand().shrink(1);
 +                }

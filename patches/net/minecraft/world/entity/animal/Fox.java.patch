@@ -1,11 +1,19 @@
 --- a/net/minecraft/world/entity/animal/Fox.java
 +++ b/net/minecraft/world/entity/animal/Fox.java
+@@ -91,6 +_,7 @@
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.pathfinder.PathType;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class Fox extends Animal implements VariantHolder<Fox.Type> {
+     private static final EntityDataAccessor<Integer> DATA_TYPE_ID = SynchedEntityData.defineId(Fox.class, EntityDataSerializers.INT);
 @@ -500,7 +_,7 @@
      @Override
      protected void pickUpItem(ItemEntity p_28514_) {
          ItemStack itemstack = p_28514_.getItem();
 -        if (this.canHoldItem(itemstack)) {
-+        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(this, p_28514_, itemstack.getCount() - 1, !this.canHoldItem(itemstack)).isCancelled()) { // CraftBukkit - call EntityPickupItemEvent
++        if (!CraftEventFactory.callEntityPickupItemEvent(this, p_28514_, itemstack.getCount() - 1, !this.canHoldItem(itemstack)).isCancelled()) { // CraftBukkit - call EntityPickupItemEvent
              int i = itemstack.getCount();
              if (i > 1) {
                  this.dropItemStack(itemstack.split(i - 1));
@@ -53,7 +61,7 @@
 +                fox.setAge(-24000);
 +                fox.moveTo(this.animal.getX(), this.animal.getY(), this.animal.getZ(), 0.0F, 0.0F);
 +                int experience = this.animal.getRandom().nextInt(7) + 1;
-+                org.bukkit.event.entity.EntityBreedEvent entityBreedEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityBreedEvent(fox, animal, partner, serverplayer, this.animal.breedItem, experience);
++                org.bukkit.event.entity.EntityBreedEvent entityBreedEvent = CraftEventFactory.callEntityBreedEvent(fox, animal, partner, serverplayer, this.animal.breedItem, experience);
 +                if (entityBreedEvent.isCancelled()) {
 +                    return;
 +                }
@@ -98,7 +106,7 @@
              int i = p_148929_.getValue(SweetBerryBushBlock.AGE);
              p_148929_.setValue(SweetBerryBushBlock.AGE, Integer.valueOf(1));
 +            // CraftBukkit start - call EntityChangeBlockEvent
-+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(Fox.this, this.blockPos, p_148929_.setValue(SweetBerryBushBlock.AGE, 1))) {
++            if (!CraftEventFactory.callEntityChangeBlockEvent(Fox.this, this.blockPos, p_148929_.setValue(SweetBerryBushBlock.AGE, 1))) {
 +                return;
 +            }
 +            // CraftBukkit end

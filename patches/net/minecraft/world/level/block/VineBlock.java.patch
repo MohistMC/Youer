@@ -1,8 +1,18 @@
 --- a/net/minecraft/world/level/block/VineBlock.java
 +++ b/net/minecraft/world/level/block/VineBlock.java
-@@ -25,7 +_,7 @@
+@@ -3,7 +_,6 @@
+ import com.google.common.collect.ImmutableMap;
+ import com.mojang.serialization.MapCodec;
+ import java.util.Map;
+-import java.util.Map.Entry;
+ import java.util.function.Function;
+ import java.util.stream.Collectors;
+ import javax.annotation.Nullable;
+@@ -24,8 +_,9 @@
+ import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
  
 -public class VineBlock extends Block {
 +public class VineBlock extends Block implements net.neoforged.neoforge.common.IShearable {
@@ -28,10 +38,10 @@
 +
                              if (flag && isAcceptableNeighbour(p_222656_, blockpos2, direction3)) {
 -                                p_222656_.setBlock(blockpos4, this.defaultBlockState().setValue(getPropertyForFace(direction3), Boolean.valueOf(true)), 2);
-+                                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos4, this.defaultBlockState().setValue(getPropertyForFace(direction3), Boolean.valueOf(true)), 2);
++                                CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos4, this.defaultBlockState().setValue(getPropertyForFace(direction3), Boolean.valueOf(true)), 2);
                              } else if (flag1 && isAcceptableNeighbour(p_222656_, blockpos3, direction4)) {
 -                                p_222656_.setBlock(blockpos4, this.defaultBlockState().setValue(getPropertyForFace(direction4), Boolean.valueOf(true)), 2);
-+                                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos4, this.defaultBlockState().setValue(getPropertyForFace(direction4), Boolean.valueOf(true)), 2);
++                                CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos4, this.defaultBlockState().setValue(getPropertyForFace(direction4), Boolean.valueOf(true)), 2);
                              } else {
                                  Direction direction1 = direction.getOpposite();
                                  if (flag && p_222656_.isEmptyBlock(blockpos2) && isAcceptableNeighbour(p_222656_, p_222657_.relative(direction3), direction1)) {
@@ -40,25 +50,25 @@
 -                                    && p_222656_.isEmptyBlock(blockpos3)
 -                                    && isAcceptableNeighbour(p_222656_, p_222657_.relative(direction4), direction1)) {
 -                                    p_222656_.setBlock(blockpos3, this.defaultBlockState().setValue(getPropertyForFace(direction1), Boolean.valueOf(true)), 2);
-+                                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos2, this.defaultBlockState().setValue(getPropertyForFace(direction1), Boolean.valueOf(true)), 2);
++                                    CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos2, this.defaultBlockState().setValue(getPropertyForFace(direction1), Boolean.valueOf(true)), 2);
 +                                } else if (flag1 && p_222656_.isEmptyBlock(blockpos3) && isAcceptableNeighbour(p_222656_, p_222657_.relative(direction4), direction1)) {
-+                                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos3, this.defaultBlockState().setValue(getPropertyForFace(direction1), Boolean.valueOf(true)), 2);
++                                    CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos3, this.defaultBlockState().setValue(getPropertyForFace(direction1), Boolean.valueOf(true)), 2);
                                  } else if ((double)p_222658_.nextFloat() < 0.05 && isAcceptableNeighbour(p_222656_, blockpos4.above(), Direction.UP)) {
 -                                    p_222656_.setBlock(blockpos4, this.defaultBlockState().setValue(UP, Boolean.valueOf(true)), 2);
-+                                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos4, this.defaultBlockState().setValue(UP, Boolean.valueOf(true)), 2);
++                                    CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos4, this.defaultBlockState().setValue(UP, Boolean.valueOf(true)), 2);
                                  }
 +                                // CraftBukkit end
                              }
                          } else if (isAcceptableNeighbour(p_222656_, blockpos4, direction)) {
 -                            p_222656_.setBlock(p_222657_, p_222655_.setValue(getPropertyForFace(direction), Boolean.valueOf(true)), 2);
-+                            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_222656_, p_222657_, p_222655_.setValue(getPropertyForFace(direction), Boolean.valueOf(true)), 2); // CraftBukkit
++                            CraftEventFactory.handleBlockGrowEvent(p_222656_, p_222657_, p_222655_.setValue(getPropertyForFace(direction), Boolean.valueOf(true)), 2); // CraftBukkit
                          }
                      }
                  } else {
                      if (direction == Direction.UP && p_222657_.getY() < p_222656_.getMaxBuildHeight() - 1) {
                          if (this.canSupportAtFace(p_222656_, p_222657_, direction)) {
 -                            p_222656_.setBlock(p_222657_, p_222655_.setValue(UP, Boolean.valueOf(true)), 2);
-+                            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_222656_, p_222657_, p_222655_.setValue(UP, Boolean.valueOf(true)), 2); // CraftBukkit
++                            CraftEventFactory.handleBlockGrowEvent(p_222656_, p_222657_, p_222655_.setValue(UP, Boolean.valueOf(true)), 2); // CraftBukkit
                              return;
                          }
  
@@ -67,7 +77,7 @@
  
                              if (this.hasHorizontalConnection(blockstate3)) {
 -                                p_222656_.setBlock(blockpos, blockstate3, 2);
-+                                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_222656_, p_222657_, blockpos, blockstate3, 2); // CraftBukkit
++                                CraftEventFactory.handleBlockSpreadEvent(p_222656_, p_222657_, blockpos, blockstate3, 2); // CraftBukkit
                              }
  
                              return;
@@ -76,7 +86,7 @@
                              BlockState blockstate2 = this.copyRandomFaces(p_222655_, blockstate1, p_222658_);
                              if (blockstate1 != blockstate2 && this.hasHorizontalConnection(blockstate2)) {
 -                                p_222656_.setBlock(blockpos1, blockstate2, 2);
-+                                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_222656_, p_222657_, blockpos1, blockstate2, 2); // CraftBukkit
++                                CraftEventFactory.handleBlockSpreadEvent(p_222656_, p_222657_, blockpos1, blockstate2, 2); // CraftBukkit
                              }
                          }
                      }

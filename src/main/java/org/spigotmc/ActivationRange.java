@@ -27,7 +27,6 @@ import net.minecraft.world.entity.projectile.ThrownTrident;
 import net.minecraft.world.entity.raid.Raider;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import org.bukkit.craftbukkit.SpigotTimings;
 
 public class ActivationRange
 {
@@ -107,7 +106,6 @@ public class ActivationRange
      */
     public static void activateEntities(Level world)
     {
-        SpigotTimings.entityActivationCheckTimer.startTiming();
         final int miscActivationRange = world.spigotConfig.miscActivationRange;
         final int raiderActivationRange = world.spigotConfig.raiderActivationRange;
         final int animalActivationRange = world.spigotConfig.animalActivationRange;
@@ -132,9 +130,11 @@ public class ActivationRange
             ActivationType.ANIMAL.boundingBox = player.getBoundingBox().inflate( animalActivationRange, 256, animalActivationRange );
             ActivationType.MONSTER.boundingBox = player.getBoundingBox().inflate( monsterActivationRange, 256, monsterActivationRange );
 
-            world.getEntities().get(ActivationRange.maxBB, ActivationRange::activateEntity);
+            try {
+                world.getEntities().get(maxBB, ActivationRange::activateEntity);
+            } catch (Exception ignored) {
+            }
         }
-        SpigotTimings.entityActivationCheckTimer.stopTiming();
     }
 
     /**
@@ -229,10 +229,8 @@ public class ActivationRange
      */
     public static boolean checkIfActive(Entity entity)
     {
-        SpigotTimings.checkIfActiveTimer.startTiming();
         // Never safe to skip fireworks or entities not yet added to chunk
         if ( entity instanceof FireworkRocketEntity ) {
-            SpigotTimings.checkIfActiveTimer.stopTiming();
             return true;
         }
 
@@ -256,7 +254,6 @@ public class ActivationRange
         {
             isActive = false;
         }
-        SpigotTimings.checkIfActiveTimer.stopTiming();
         return isActive;
     }
 }

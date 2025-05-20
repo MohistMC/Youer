@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/raid/Raids.java
 +++ b/net/minecraft/world/entity/raid/Raids.java
+@@ -22,6 +_,7 @@
+ import net.minecraft.world.level.dimension.DimensionType;
+ import net.minecraft.world.level.saveddata.SavedData;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class Raids extends SavedData {
+     private static final String RAID_FILE_ID = "raids";
 @@ -111,11 +_,23 @@
                  }
  
@@ -14,7 +22,7 @@
 +
 +                if (!raid.isStarted() || (raid.isInProgress() && raid.getRaidOmenLevel() < raid.getMaxRaidOmenLevel())) { // CraftBukkit - fixed a bug with raid: players could add up Bad Omen level even when the raid had finished
 +                    // CraftBukkit start
-+                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callRaidTriggerEvent(raid, p_37964_)) {
++                    if (!CraftEventFactory.callRaidTriggerEvent(raid, p_37964_)) {
 +                        p_37964_.removeEffect(net.minecraft.world.effect.MobEffects.RAID_OMEN);
 +                        return null;
 +                    }

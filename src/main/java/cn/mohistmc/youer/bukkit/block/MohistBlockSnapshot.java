@@ -2,7 +2,7 @@ package cn.mohistmc.youer.bukkit.block;
 
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.common.util.BlockSnapshot;
-import org.bukkit.craftbukkit.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
 
 /**
  * @author Mgazul by MohistMC

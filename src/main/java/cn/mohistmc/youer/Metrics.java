@@ -294,7 +294,7 @@ public class Metrics {
             String serverUUID = config.getString("serverUuid");
 
             if (config.getBoolean("enabled", true)) {
-                Metrics metrics = new Metrics("Youer", serverUUID);
+                Metrics metrics = new Metrics("Mohist", serverUUID);
 
                 metrics.addCustomChart(new SingleLineChart("players", () -> Bukkit.getOnlinePlayers().size()));
                 metrics.addCustomChart(new SimplePie("online_mode", () -> Bukkit.getOnlineMode() ? "online" : "offline"));

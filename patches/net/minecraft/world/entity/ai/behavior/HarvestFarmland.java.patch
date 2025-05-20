@@ -1,5 +1,19 @@
 --- a/net/minecraft/world/entity/ai/behavior/HarvestFarmland.java
 +++ b/net/minecraft/world/entity/ai/behavior/HarvestFarmland.java
+@@ -17,12 +_,12 @@
+ import net.minecraft.world.entity.npc.VillagerProfession;
+ import net.minecraft.world.item.BlockItem;
+ import net.minecraft.world.item.ItemStack;
+-import net.minecraft.world.level.GameRules;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.CropBlock;
+ import net.minecraft.world.level.block.FarmBlock;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.gameevent.GameEvent;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class HarvestFarmland extends Behavior<Villager> {
+     private static final int HARVEST_DURATION = 200;
 @@ -47,7 +_,7 @@
      }
  
@@ -23,7 +37,7 @@
                  Block block1 = p_23196_.getBlockState(this.aboveFarmlandPos.below()).getBlock();
                  if (block instanceof CropBlock && ((CropBlock)block).isMaxAge(blockstate)) {
 -                    p_23196_.destroyBlock(this.aboveFarmlandPos, true, p_23197_);
-+                    if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_23197_, this.aboveFarmlandPos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())) { // CraftBukkit
++                    if (CraftEventFactory.callEntityChangeBlockEvent(p_23197_, this.aboveFarmlandPos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())) { // CraftBukkit
 +                        p_23196_.destroyBlock(this.aboveFarmlandPos, true, p_23197_);
 +                    } // CraftBukkit
                  }
@@ -40,7 +54,7 @@
 -                            p_23196_.setBlockAndUpdate(this.aboveFarmlandPos, blockstate1);
 -                            p_23196_.gameEvent(GameEvent.BLOCK_PLACE, this.aboveFarmlandPos, GameEvent.Context.of(p_23197_, blockstate1));
 -                            flag = true;
-+                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_23197_, this.aboveFarmlandPos, blockstate1)) { // CraftBukkit
++                            if (CraftEventFactory.callEntityChangeBlockEvent(p_23197_, this.aboveFarmlandPos, blockstate1)) { // CraftBukkit
 +                                p_23196_.setBlockAndUpdate(this.aboveFarmlandPos, blockstate1);
 +                                p_23196_.gameEvent(GameEvent.BLOCK_PLACE, this.aboveFarmlandPos, GameEvent.Context.of(p_23197_, blockstate1));
 +                                flag = true;

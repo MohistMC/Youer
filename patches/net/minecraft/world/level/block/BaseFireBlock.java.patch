@@ -1,12 +1,21 @@
 --- a/net/minecraft/world/level/block/BaseFireBlock.java
 +++ b/net/minecraft/world/level/block/BaseFireBlock.java
+@@ -18,6 +_,8 @@
+ import net.minecraft.world.level.portal.PortalShape;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public abstract class BaseFireBlock extends Block {
+     private static final int SECONDS_ON_FIRE = 8;
 @@ -130,7 +_,14 @@
          if (!p_49263_.fireImmune()) {
              p_49263_.setRemainingFireTicks(p_49263_.getRemainingFireTicks() + 1);
              if (p_49263_.getRemainingFireTicks() == 0) {
 -                p_49263_.igniteForSeconds(8.0F);
 +                // CraftBukkit start
-+                org.bukkit.event.entity.EntityCombustEvent event = new org.bukkit.event.entity.EntityCombustByBlockEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_49261_, p_49262_), p_49263_.getBukkitEntity(), 8.0F);
++                org.bukkit.event.entity.EntityCombustEvent event = new org.bukkit.event.entity.EntityCombustByBlockEvent(CraftBlock.at(p_49261_, p_49262_), p_49263_.getBukkitEntity(), 8.0F);
 +                p_49261_.getCraftServer().getPluginManager().callEvent(event);
 +
 +                if (!event.isCancelled()) {
@@ -49,7 +58,7 @@
 +
 +    // CraftBukkit start
 +    protected void fireExtinguished(net.minecraft.world.level.LevelAccessor world, BlockPos position) {
-+        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, position, Blocks.AIR.defaultBlockState()).isCancelled()) {
++        if (!CraftEventFactory.callBlockFadeEvent(world, position, Blocks.AIR.defaultBlockState()).isCancelled()) {
 +            world.removeBlock(position, false);
 +        }
 +    }

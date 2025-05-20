@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/entity/animal/Wolf.java
 +++ b/net/minecraft/world/entity/animal/Wolf.java
+@@ -8,7 +_,6 @@
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.Registry;
+ import net.minecraft.core.RegistryAccess;
+-import net.minecraft.core.component.DataComponents;
+ import net.minecraft.core.particles.ItemParticleOption;
+ import net.minecraft.core.particles.ParticleTypes;
+ import net.minecraft.core.registries.Registries;
+@@ -86,6 +_,7 @@
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.pathfinder.PathType;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class Wolf extends TamableAnimal implements NeutralMob, VariantHolder<Holder<WolfVariant>> {
+     private static final EntityDataAccessor<Boolean> DATA_INTERESTED_ID = SynchedEntityData.defineId(Wolf.class, EntityDataSerializers.BOOLEAN);
 @@ -352,11 +_,14 @@
          if (this.isInvulnerableTo(p_30386_)) {
              return false;
@@ -100,7 +116,7 @@
      private void tryToTame(Player p_333736_) {
 -        if (this.random.nextInt(3) == 0) {
 +        // CraftBukkit - added event call and isCancelled check.
-+        if (this.random.nextInt(3) == 0  && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_333736_) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, p_333736_).isCancelled()) {
++        if (this.random.nextInt(3) == 0  && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, p_333736_) && !CraftEventFactory.callEntityTameEvent(this, p_333736_).isCancelled()) {
              this.tame(p_333736_);
              this.navigation.stop();
              this.setTarget(null);

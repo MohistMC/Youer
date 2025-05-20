@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/TntBlock.java
 +++ b/net/minecraft/world/level/block/TntBlock.java
+@@ -25,6 +_,7 @@
+ import net.minecraft.world.level.block.state.properties.BooleanProperty;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.phys.BlockHitResult;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class TntBlock extends Block {
+     public static final MapCodec<TntBlock> CODEC = simpleCodec(TntBlock::new);
 @@ -41,10 +_,14 @@
      }
  
@@ -12,7 +20,7 @@
          if (!p_57469_.is(p_57466_.getBlock())) {
 -            if (p_57467_.hasNeighborSignal(p_57468_)) {
 -                explode(p_57467_, p_57468_);
-+            if (p_57467_.hasNeighborSignal(p_57468_) && org.bukkit.craftbukkit.event.CraftEventFactory.callTNTPrimeEvent(p_57467_, p_57468_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.REDSTONE, null, null)) { // CraftBukkit - TNTPrimeEvent
++            if (p_57467_.hasNeighborSignal(p_57468_) && CraftEventFactory.callTNTPrimeEvent(p_57467_, p_57468_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.REDSTONE, null, null)) { // CraftBukkit - TNTPrimeEvent
 +                onCaughtFire(p_57466_, p_57467_, p_57468_, null, null);
                  p_57467_.removeBlock(p_57468_, false);
              }
@@ -23,7 +31,7 @@
      protected void neighborChanged(BlockState p_57457_, Level p_57458_, BlockPos p_57459_, Block p_57460_, BlockPos p_57461_, boolean p_57462_) {
 -        if (p_57458_.hasNeighborSignal(p_57459_)) {
 -            explode(p_57458_, p_57459_);
-+        if (p_57458_.hasNeighborSignal(p_57459_) && org.bukkit.craftbukkit.event.CraftEventFactory.callTNTPrimeEvent(p_57458_, p_57459_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.REDSTONE, null, p_57461_)) { // CraftBukkit - TNTPrimeEvent
++        if (p_57458_.hasNeighborSignal(p_57459_) && CraftEventFactory.callTNTPrimeEvent(p_57458_, p_57459_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.REDSTONE, null, p_57461_)) { // CraftBukkit - TNTPrimeEvent
 +            onCaughtFire(p_57457_, p_57458_, p_57459_, null, null);
              p_57458_.removeBlock(p_57459_, false);
          }
@@ -33,7 +41,7 @@
      public BlockState playerWillDestroy(Level p_57445_, BlockPos p_57446_, BlockState p_57447_, Player p_57448_) {
 -        if (!p_57445_.isClientSide() && !p_57448_.isCreative() && p_57447_.getValue(UNSTABLE)) {
 -            explode(p_57445_, p_57446_);
-+        if (!p_57445_.isClientSide() && !p_57448_.isCreative() && p_57447_.getValue(UNSTABLE) && org.bukkit.craftbukkit.event.CraftEventFactory.callTNTPrimeEvent(p_57445_, p_57446_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.BLOCK_BREAK, p_57448_, null)) { // CraftBukkit - TNTPrimeEvent
++        if (!p_57445_.isClientSide() && !p_57448_.isCreative() && p_57447_.getValue(UNSTABLE) && CraftEventFactory.callTNTPrimeEvent(p_57445_, p_57446_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.BLOCK_BREAK, p_57448_, null)) { // CraftBukkit - TNTPrimeEvent
 +            onCaughtFire(p_57447_, p_57445_, p_57446_, null, null);
          }
  
@@ -57,7 +65,7 @@
          } else {
 -            explode(p_316520_, p_316601_, p_316770_);
 +            // CraftBukkit start - TNTPrimeEvent
-+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callTNTPrimeEvent(p_316520_, p_316601_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.PLAYER, p_316770_, null)) {
++            if (!CraftEventFactory.callTNTPrimeEvent(p_316520_, p_316601_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.PLAYER, p_316770_, null)) {
 +                return ItemInteractionResult.CONSUME;
 +            }
 +            // CraftBukkit end
@@ -71,7 +79,7 @@
              if (p_57432_.isOnFire() && p_57432_.mayInteract(p_57429_, blockpos)) {
 -                explode(p_57429_, blockpos, entity instanceof LivingEntity ? (LivingEntity)entity : null);
 +                // CraftBukkit start
-+                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_57432_, blockpos, Blocks.AIR.defaultBlockState()) || !org.bukkit.craftbukkit.event.CraftEventFactory.callTNTPrimeEvent(p_57429_, blockpos, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.PROJECTILE, p_57432_, null)) {
++                if (!CraftEventFactory.callEntityChangeBlockEvent(p_57432_, blockpos, Blocks.AIR.defaultBlockState()) || !CraftEventFactory.callTNTPrimeEvent(p_57429_, blockpos, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.PROJECTILE, p_57432_, null)) {
 +                    return;
 +                }
 +                // CraftBukkit end

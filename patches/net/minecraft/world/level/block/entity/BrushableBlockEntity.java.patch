@@ -1,12 +1,21 @@
 --- a/net/minecraft/world/level/block/entity/BrushableBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BrushableBlockEntity.java
+@@ -29,6 +_,8 @@
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ import org.slf4j.Logger;
+ 
+ public class BrushableBlockEntity extends BlockEntity {
 @@ -141,6 +_,10 @@
                  ItemEntity itementity = new ItemEntity(this.level, d3, d4, d5, this.item.split(this.level.random.nextInt(21) + 10));
                  itementity.setDeltaMovement(Vec3.ZERO);
                  this.level.addFreshEntity(itementity);
 +                // CraftBukkit start
-+                org.bukkit.block.Block bblock = org.bukkit.craftbukkit.block.CraftBlock.at(this.level, this.worldPosition);
-+                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDropItemEvent(bblock, bblock.getState(), (ServerPlayer) p_278006_, java.util.Arrays.asList(itementity));
++                org.bukkit.block.Block bblock = CraftBlock.at(this.level, this.worldPosition);
++                CraftEventFactory.handleBlockDropItemEvent(bblock, bblock.getState(), (ServerPlayer) p_278006_, java.util.Arrays.asList(itementity));
 +                // CraftBukkit end
                  this.item = ItemStack.EMPTY;
              }

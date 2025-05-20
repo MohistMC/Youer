@@ -1,24 +1,12 @@
 --- a/net/minecraft/server/network/ServerStatusPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerStatusPacketListenerImpl.java
-@@ -1,5 +_,10 @@
- package net.minecraft.server.network;
- 
-+import cn.mohistmc.youer.api.event.MohistServerListPingEvent;
-+import com.mojang.authlib.GameProfile;
-+import java.util.Collections;
-+import java.util.Optional;
-+import net.minecraft.SharedConstants;
- import net.minecraft.network.Connection;
- import net.minecraft.network.DisconnectionDetails;
- import net.minecraft.network.chat.Component;
-@@ -9,16 +_,25 @@
+@@ -9,16 +_,24 @@
  import net.minecraft.network.protocol.status.ServerStatus;
  import net.minecraft.network.protocol.status.ServerStatusPacketListener;
  import net.minecraft.network.protocol.status.ServerboundStatusRequestPacket;
-+import net.minecraft.server.MinecraftServer;
-+import net.minecraft.server.level.ServerPlayer;
-+import org.bukkit.Bukkit;
-+import org.bukkit.craftbukkit.util.CraftChatMessage;
++import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftIconCache;
  
  public class ServerStatusPacketListenerImpl implements ServerStatusPacketListener {
      private static final Component DISCONNECT_REASON = Component.translatable("multiplayer.status.request_handled");
@@ -46,7 +34,7 @@
 +            net.minecraft.server.MinecraftServer server = net.minecraft.server.MinecraftServer.getServer();
 +            final Object[] players = server.getPlayerList().players.toArray();
 +            class ServerListPingEvent extends org.bukkit.event.server.ServerListPingEvent {
-+                org.bukkit.craftbukkit.util.CraftIconCache icon = server.server.getServerIcon();
++                CraftIconCache icon = server.server.getServerIcon();
 +
 +                ServerListPingEvent() {
 +                    super(connection.hostname, ((java.net.InetSocketAddress) connection.getRemoteAddress()).getAddress(), server.getMotd(), server.getPlayerList().getMaxPlayers());
@@ -54,10 +42,10 @@
 +
 +                @Override
 +                public void setServerIcon(org.bukkit.util.CachedServerIcon icon) {
-+                    if (!(icon instanceof org.bukkit.craftbukkit.util.CraftIconCache)) {
-+                        throw new IllegalArgumentException(icon + " was not created by " + org.bukkit.craftbukkit.CraftServer.class);
++                    if (!(icon instanceof CraftIconCache)) {
++                        throw new IllegalArgumentException(icon + " was not created by " + CraftServer.class);
 +                    }
-+                    this.icon = (org.bukkit.craftbukkit.util.CraftIconCache) icon;
++                    this.icon = (CraftIconCache) icon;
 +                }
 +
 +                @Override
@@ -131,7 +119,7 @@
 +            ServerStatus.Players playerSample = new ServerStatus.Players(event.getMaxPlayers(), event.getNumPlayers(), (server.hidesOnlinePlayers()) ? java.util.Collections.emptyList() : profiles);
 +
 +            ServerStatus ping = new ServerStatus(
-+                    org.bukkit.craftbukkit.util.CraftChatMessage.fromString(event.getMotd(), true)[0],
++                    CraftChatMessage.fromString(event.getMotd(), true)[0],
 +                    java.util.Optional.of(playerSample),
 +                    java.util.Optional.of(new ServerStatus.Version(server.getServerModName() + " " + server.getServerVersion(), net.minecraft.SharedConstants.getCurrentVersion().getProtocolVersion())),
 +                    (event.icon.value != null) ? java.util.Optional.of(new ServerStatus.Favicon(event.icon.value)) : java.util.Optional.empty(),

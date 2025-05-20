@@ -1,5 +1,22 @@
 --- a/net/minecraft/world/level/block/SculkSensorBlock.java
 +++ b/net/minecraft/world/level/block/SculkSensorBlock.java
+@@ -12,7 +_,6 @@
+ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.tags.BlockTags;
+ import net.minecraft.util.RandomSource;
+-import net.minecraft.util.valueproviders.ConstantInt;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.item.ItemStack;
+@@ -39,6 +_,8 @@
+ import net.minecraft.world.level.pathfinder.PathComputationType;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class SculkSensorBlock extends BaseEntityBlock implements SimpleWaterloggedBlock {
+     public static final MapCodec<SculkSensorBlock> CODEC = simpleCodec(SculkSensorBlock::new);
 @@ -101,13 +_,25 @@
  
      @Override
@@ -15,7 +32,7 @@
 +            // CraftBukkit start
 +            org.bukkit.event.Cancellable cancellable;
 +            if (p_222135_ instanceof net.minecraft.world.entity.player.Player) {
-+                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((net.minecraft.world.entity.player.Player) p_222135_, org.bukkit.event.block.Action.PHYSICAL, p_222133_, null, null, null);
++                cancellable = CraftEventFactory.callPlayerInteractEvent((net.minecraft.world.entity.player.Player) p_222135_, org.bukkit.event.block.Action.PHYSICAL, p_222133_, null, null, null);
 +            } else {
 +                cancellable = new org.bukkit.event.entity.EntityInteractEvent(p_222135_.getBukkitEntity(), p_222132_.getWorld().getBlockAt(p_222133_.getX(), p_222133_.getY(), p_222133_.getZ()));
 +                p_222132_.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
@@ -38,7 +55,7 @@
  
      public static void deactivate(Level p_154408_, BlockPos p_154409_, BlockState p_154410_) {
 +        // CraftBukkit start
-+        org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_154408_, p_154409_), p_154410_.getValue(SculkSensorBlock.POWER), 0);
++        org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(CraftBlock.at(p_154408_, p_154409_), p_154410_.getValue(SculkSensorBlock.POWER), 0);
 +        p_154408_.getCraftServer().getPluginManager().callEvent(eventRedstone);
 +
 +        if (eventRedstone.getNewCurrent() > 0) {
@@ -54,7 +71,7 @@
  
      public void activate(@Nullable Entity p_277529_, Level p_277340_, BlockPos p_277386_, BlockState p_277799_, int p_277993_, int p_278003_) {
 +        // CraftBukkit start
-+        org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_277340_, p_277386_), p_277799_.getValue(SculkSensorBlock.POWER), p_277993_);
++        org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(CraftBlock.at(p_277340_, p_277386_), p_277799_.getValue(SculkSensorBlock.POWER), p_277993_);
 +        p_277340_.getCraftServer().getPluginManager().callEvent(eventRedstone);
 +
 +        if (eventRedstone.getNewCurrent() <= 0) {

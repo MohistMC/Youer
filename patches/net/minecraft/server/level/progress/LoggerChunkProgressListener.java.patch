@@ -1,0 +1,23 @@
+--- a/net/minecraft/server/level/progress/LoggerChunkProgressListener.java
++++ b/net/minecraft/server/level/progress/LoggerChunkProgressListener.java
+@@ -15,6 +_,7 @@
+     private int count;
+     private long startTime;
+     private long nextTickTime = Long.MAX_VALUE;
++    private int progress = 0;
+ 
+     private LoggerChunkProgressListener(int p_9629_) {
+         this.maxCount = p_9629_;
+@@ -48,7 +_,11 @@
+         int i = this.getProgress();
+         if (Util.getMillis() > this.nextTickTime) {
+             this.nextTickTime += 500L;
+-            LOGGER.info(Component.translatable("menu.preparingSpawn", Mth.clamp(i, 0, 100)).getString());
++            int s = Mth.clamp(i, 0, 100);
++            if (progress != s) {
++                progress = s;
++                LOGGER.info(Component.translatable("menu.preparingSpawn", s).getString());
++            }
+         }
+     }
+ 

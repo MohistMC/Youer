@@ -45,8 +45,9 @@ public class GlobalClassRepo implements ClassRepo {
     public ClassNode findClass(String internalName, int parsingOptions) {
         if (parsingOptions == ClassReader.SKIP_CODE) {
             return findClass(internalName);
+        } else {
+            return this.findMinecraft(internalName);
         }
-        return null;
     }
 
     private ClassNode findParallel(String internalName) {

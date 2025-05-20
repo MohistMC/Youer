@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/NetherWartBlock.java
 +++ b/net/minecraft/world/level/block/NetherWartBlock.java
+@@ -15,6 +_,7 @@
+ import net.minecraft.world.level.block.state.properties.IntegerProperty;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class NetherWartBlock extends BushBlock {
+     public static final MapCodec<NetherWartBlock> CODEC = simpleCodec(NetherWartBlock::new);
 @@ -55,9 +_,10 @@
      @Override
      protected void randomTick(BlockState p_221806_, ServerLevel p_221807_, BlockPos p_221808_, RandomSource p_221809_) {
@@ -8,7 +16,7 @@
 +        if (i < 3 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_221807_, p_221808_, p_221806_, p_221809_.nextFloat() < (p_221807_.spigotConfig.wartModifier / (100.0f * 10)))) { // Spigot - SPIGOT-7159: Better modifier resolution
              p_221806_ = p_221806_.setValue(AGE, Integer.valueOf(i + 1));
 -            p_221807_.setBlock(p_221808_, p_221806_, 2);
-+            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_221807_, p_221808_, p_221806_, 2); // CraftBukkit
++            CraftEventFactory.handleBlockGrowEvent(p_221807_, p_221808_, p_221806_, 2); // CraftBukkit
 +            net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_221807_, p_221808_, p_221806_);
          }
      }

@@ -1,7 +1,10 @@
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -50,7 +_,7 @@
+@@ -48,9 +_,10 @@
+ import net.minecraft.world.level.material.Fluids;
+ import net.minecraft.world.ticks.LevelChunkTicks;
  import net.minecraft.world.ticks.TickContainerAccess;
++import org.bukkit.craftbukkit.v1_21_R1.CraftChunk;
  import org.slf4j.Logger;
  
 -public class LevelChunk extends ChunkAccess {
@@ -59,7 +62,7 @@
 +
 +    // CraftBukkit start - ChunkMap#setBlockState() -> ChunkMap#setBlockState(BlockPos, IBlockData, boolean, boolean)
 +    @Nullable
-+    public BlockState setBlockState(BlockPos p_62865_, BlockState p_62866_, boolean p_62867_, boolean doPlace) {
++    public BlockState setBlockStateCB(BlockPos p_62865_, BlockState p_62866_, boolean p_62867_, boolean doPlace) {
 +        setBlockState$doPlace = doPlace;
 +        return setBlockState(p_62865_, p_62866_, p_62867_);
 +    }
@@ -212,7 +215,7 @@
 +             * the World constructor. We can't reliably alter that, so we have
 +             * no way of creating a CraftWorld/CraftServer at that point.
 +             */
-+            org.bukkit.Chunk bukkitChunk = new org.bukkit.craftbukkit.CraftChunk(this);
++            org.bukkit.Chunk bukkitChunk = new CraftChunk(this);
 +            server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkLoadEvent(bukkitChunk, this.needsDecoration));
 +
 +            if (this.needsDecoration) {
@@ -241,7 +244,7 @@
 +
 +    public void unloadCallback() {
 +        org.bukkit.Server server = this.level.getCraftServer();
-+        org.bukkit.Chunk bukkitChunk = new org.bukkit.craftbukkit.CraftChunk(this);
++        org.bukkit.Chunk bukkitChunk = new CraftChunk(this);
 +        org.bukkit.event.world.ChunkUnloadEvent unloadEvent = new org.bukkit.event.world.ChunkUnloadEvent(bukkitChunk, this.isUnsaved());
 +        server.getPluginManager().callEvent(unloadEvent);
 +        // note: saving can be prevented, but not forced if no saving is actually required

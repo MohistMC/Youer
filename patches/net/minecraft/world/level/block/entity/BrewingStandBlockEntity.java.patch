@@ -16,11 +16,13 @@
  import net.minecraft.world.ContainerHelper;
  import net.minecraft.world.Containers;
  import net.minecraft.world.WorldlyContainer;
-@@ -22,6 +_,8 @@
+@@ -22,6 +_,10 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.BrewingStandBlock;
  import net.minecraft.world.level.block.state.BlockState;
-+import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftHumanEntity;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
 +import org.bukkit.entity.HumanEntity;
  
  public class BrewingStandBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer {
@@ -70,7 +72,7 @@
 -            p_155289_.fuel = 20;
 -            itemstack.shrink(1);
 +            // CraftBukkit start
-+            org.bukkit.event.inventory.BrewingStandFuelEvent event = new org.bukkit.event.inventory.BrewingStandFuelEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_155286_, p_155287_), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack), 20);
++            org.bukkit.event.inventory.BrewingStandFuelEvent event = new org.bukkit.event.inventory.BrewingStandFuelEvent(CraftBlock.at(p_155286_, p_155287_), CraftItemStack.asCraftMirror(itemstack), 20);
 +            p_155286_.getCraftServer().getPluginManager().callEvent(event);
 +
 +            if (event.isCancelled()) {
@@ -130,11 +132,11 @@
 -        itemstack.shrink(1);
 -        if (itemstack.getItem().hasCraftingRemainingItem()) {
 -            ItemStack itemstack1 = new ItemStack(itemstack.getItem().getCraftingRemainingItem());
-+            brewResults.add(i, org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(potionbrewing.mix(itemstack, (ItemStack) p_155293_.get(i))));
++            brewResults.add(i, CraftItemStack.asCraftMirror(potionbrewing.mix(itemstack, (ItemStack) p_155293_.get(i))));
 +        }
 +
 +        if (owner != null) {
-+            org.bukkit.event.inventory.BrewEvent event = new org.bukkit.event.inventory.BrewEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_155291_, p_155292_), (org.bukkit.inventory.BrewerInventory) owner.getInventory(), brewResults, tileentitybrewingstand.fuel);
++            org.bukkit.event.inventory.BrewEvent event = new org.bukkit.event.inventory.BrewEvent(CraftBlock.at(p_155291_, p_155292_), (org.bukkit.inventory.BrewerInventory) owner.getInventory(), brewResults, tileentitybrewingstand.fuel);
 +            org.bukkit.Bukkit.getPluginManager().callEvent(event);
 +            if (event.isCancelled()) {
 +                return;
@@ -145,7 +147,7 @@
 +        for (int i = 0; i < 3; ++i) {
 +            // CraftBukkit start - validate index in case it is cleared by plugins
 +            if (i < brewResults.size()) {
-+                p_155293_.set(i, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(brewResults.get(i)));
++                p_155293_.set(i, CraftItemStack.asNMSCopy(brewResults.get(i)));
 +            } else {
 +                p_155293_.set(i, ItemStack.EMPTY);
 +            }

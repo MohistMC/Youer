@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 +++ b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+@@ -5,7 +_,6 @@
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Map.Entry;
+@@ -39,6 +_,7 @@
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.Shapes;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
+ 
+ public class PistonBaseBlock extends DirectionalBlock {
+     public static final MapCodec<PistonBaseBlock> CODEC = RecordCodecBuilder.mapCodec(
 @@ -143,6 +_,18 @@
                  i = 2;
              }
@@ -7,7 +23,7 @@
 +            // CraftBukkit start
 +            if (!this.isSticky) {
 +                org.bukkit.block.Block block = p_60168_.getWorld().getBlockAt(p_60169_.getX(), p_60169_.getY(), p_60169_.getZ());
-+                org.bukkit.event.block.BlockPistonRetractEvent event = new org.bukkit.event.block.BlockPistonRetractEvent(block, com.google.common.collect.ImmutableList.<org.bukkit.block.Block>of(), org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction));
++                org.bukkit.event.block.BlockPistonRetractEvent event = new org.bukkit.event.block.BlockPistonRetractEvent(block, com.google.common.collect.ImmutableList.<org.bukkit.block.Block>of(), CraftBlock.notchToBlockFace(direction));
 +                p_60168_.getCraftServer().getPluginManager().callEvent(event);
 +                if (event.isCancelled()) {
 +                    return;
@@ -43,47 +59,50 @@
          return true;
      }
  
-@@ -309,13 +_,50 @@
+@@ -309,13 +_,53 @@
              Direction direction = p_60185_ ? p_60184_ : p_60184_.getOpposite();
              int i = 0;
  
-+            // CraftBukkit start
-+            final org.bukkit.block.Block bblock = p_60182_.getWorld().getBlockAt(p_60183_.getX(), p_60183_.getY(), p_60183_.getZ());
-+            final List<BlockPos> moved = pistonstructureresolver.getToPush();
-+            final List<BlockPos> broken = pistonstructureresolver.getToDestroy();
-+            List<org.bukkit.block.Block> blocks = new java.util.AbstractList<org.bukkit.block.Block>() {
-+                @Override
-+                public int size() {
-+                    return moved.size() + broken.size();
-+                }
-+                @Override
-+                public org.bukkit.block.Block get(int index) {
-+                    if (index >= size() || index < 0) {
-+                        throw new ArrayIndexOutOfBoundsException(index);
++            {
++                // CraftBukkit start
++                final org.bukkit.block.Block bblock = p_60182_.getWorld().getBlockAt(p_60183_.getX(), p_60183_.getY(), p_60183_.getZ());
++                final List<BlockPos> moved = pistonstructureresolver.getToPush();
++                final List<BlockPos> broken = pistonstructureresolver.getToDestroy();
++                List<org.bukkit.block.Block> blocks = new java.util.AbstractList<>() {
++                    @Override
++                    public int size() {
++                        return moved.size() + broken.size();
 +                    }
-+                    BlockPos pos = (BlockPos) (index < moved.size() ? moved.get(index) : broken.get(index - moved.size()));
-+                    return bblock.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++
++                    @Override
++                    public org.bukkit.block.Block get(int index) {
++                        if (index >= size() || index < 0) {
++                            throw new ArrayIndexOutOfBoundsException(index);
++                        }
++                        BlockPos pos = (BlockPos) (index < moved.size() ? moved.get(index) : broken.get(index - moved.size()));
++                        return bblock.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++                    }
++                };
++                org.bukkit.event.block.BlockPistonEvent event;
++                if (p_60185_) {
++                    event = new org.bukkit.event.block.BlockPistonExtendEvent(bblock, blocks, CraftBlock.notchToBlockFace(direction));
++                } else {
++                    event = new org.bukkit.event.block.BlockPistonRetractEvent(bblock, blocks, CraftBlock.notchToBlockFace(direction));
 +                }
-+            };
-+            org.bukkit.event.block.BlockPistonEvent event;
-+            if (p_60185_) {
-+                event = new org.bukkit.event.block.BlockPistonExtendEvent(bblock, blocks, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction));
-+            } else {
-+                event = new org.bukkit.event.block.BlockPistonRetractEvent(bblock, blocks, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction));
++                p_60182_.getCraftServer().getPluginManager().callEvent(event);
++                if (event.isCancelled()) {
++                    for (BlockPos b : broken) {
++                        p_60182_.sendBlockUpdated(b, Blocks.AIR.defaultBlockState(), p_60182_.getBlockState(b), 3);
++                    }
++                    for (BlockPos b : moved) {
++                        p_60182_.sendBlockUpdated(b, Blocks.AIR.defaultBlockState(), p_60182_.getBlockState(b), 3);
++                        b = b.relative(direction);
++                        p_60182_.sendBlockUpdated(b, Blocks.AIR.defaultBlockState(), p_60182_.getBlockState(b), 3);
++                    }
++                    return false;
++                }
++                // CraftBukkit end
 +            }
-+            p_60182_.getCraftServer().getPluginManager().callEvent(event);
-+            if (event.isCancelled()) {
-+                for (BlockPos b : broken) {
-+                    p_60182_.sendBlockUpdated(b, Blocks.AIR.defaultBlockState(), p_60182_.getBlockState(b), 3);
-+                }
-+                for (BlockPos b : moved) {
-+                    p_60182_.sendBlockUpdated(b, Blocks.AIR.defaultBlockState(), p_60182_.getBlockState(b), 3);
-+                    b = b.relative(direction);
-+                    p_60182_.sendBlockUpdated(b, Blocks.AIR.defaultBlockState(), p_60182_.getBlockState(b), 3);
-+                }
-+                return false;
-+            }
-+            // CraftBukkit end
 +
              for (int j = list2.size() - 1; j >= 0; j--) {
                  BlockPos blockpos2 = list2.get(j);

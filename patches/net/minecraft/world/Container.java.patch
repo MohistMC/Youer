@@ -1,32 +1,57 @@
 --- a/net/minecraft/world/Container.java
 +++ b/net/minecraft/world/Container.java
-@@ -8,6 +_,7 @@
+@@ -1,5 +_,7 @@
+ package net.minecraft.world;
+ 
++import cn.mohistmc.youer.bukkit.inventory.InventoryOwner;
++import java.util.Collections;
+ import java.util.Set;
+ import java.util.function.Predicate;
+ import net.minecraft.core.BlockPos;
+@@ -8,6 +_,8 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.entity.BlockEntity;
-+import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.Location;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftHumanEntity;
  
  public interface Container extends Clearable {
      float DEFAULT_DISTANCE_BUFFER = 4.0F;
-@@ -91,4 +_,22 @@
+@@ -91,4 +_,38 @@
              return level.getBlockEntity(blockpos) != p_272877_ ? false : p_272670_.canInteractWithBlock(blockpos, (double)p_320837_);
          }
      }
 +
 +    // CraftBukkit start
-+    java.util.List<ItemStack> getContents();
++    default java.util.List<ItemStack> getContents() {
++        return Collections.emptyList();
++    }
 +
-+    void onOpen(CraftHumanEntity who);
++    default void onOpen(CraftHumanEntity who) {
++    }
 +
-+    void onClose(CraftHumanEntity who);
++    default void onClose(CraftHumanEntity who) {
++    }
 +
-+    java.util.List<org.bukkit.entity.HumanEntity> getViewers();
++    default java.util.List<org.bukkit.entity.HumanEntity> getViewers() {
++        return Collections.emptyList();
++    }
 +
-+    org.bukkit.inventory.InventoryHolder getOwner();
++    default org.bukkit.inventory.InventoryHolder getOwner() {
++        return this instanceof BlockEntity blockEntity ? InventoryOwner.get(blockEntity) : null;
++    }
 +
-+    void setMaxStackSize(int size);
++    default void setMaxStackSize(int size) {
++    }
 +
-+    org.bukkit.Location getLocation();
++    default org.bukkit.Location getLocation(){
++        if (this instanceof BlockEntity entity) {
++            BlockPos blockPos = entity.getBlockPos();
++            return new Location(entity.getLevel().getWorld(), blockPos.getX(), blockPos.getY(), blockPos.getZ());
++        } else {
++            return null;
++        }
++    }
 +
 +    int MAX_STACK = 99;
 +    // CraftBukkit end

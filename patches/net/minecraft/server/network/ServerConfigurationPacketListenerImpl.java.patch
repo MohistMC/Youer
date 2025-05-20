@@ -1,11 +1,14 @@
 --- a/net/minecraft/server/network/ServerConfigurationPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerConfigurationPacketListenerImpl.java
-@@ -36,6 +_,8 @@
+@@ -32,10 +_,10 @@
+ import net.minecraft.server.network.config.JoinWorldTask;
+ import net.minecraft.server.network.config.ServerResourcePackConfigurationTask;
+ import net.minecraft.server.network.config.SynchronizeRegistriesTask;
+-import net.minecraft.server.packs.PackResources;
  import net.minecraft.server.packs.repository.KnownPack;
  import net.minecraft.server.players.PlayerList;
  import net.minecraft.world.flag.FeatureFlags;
-+import org.bukkit.craftbukkit.CraftServerLinks;
-+import org.bukkit.event.player.PlayerLinksSendEvent;
++import org.bukkit.craftbukkit.v1_21_R1.CraftServerLinks;
  import org.slf4j.Logger;
  
  public class ServerConfigurationPacketListenerImpl extends ServerCommonPacketListenerImpl implements ServerConfigurationPacketListener, TickablePacketListener {
@@ -25,7 +28,7 @@
          this.send(new ClientboundCustomPayloadPacket(new BrandPayload(this.server.getServerModName())));
          ServerLinks serverlinks = this.server.serverLinks();
 +        // CraftBukkit start
-+        org.bukkit.craftbukkit.CraftServerLinks wrapper = new org.bukkit.craftbukkit.CraftServerLinks(serverlinks);
++        CraftServerLinks wrapper = new CraftServerLinks(serverlinks);
 +        org.bukkit.event.player.PlayerLinksSendEvent event = new org.bukkit.event.player.PlayerLinksSendEvent(player.getBukkitEntity(), wrapper);
 +        player.getBukkitEntity().getServer().getPluginManager().callEvent(event);
 +        serverlinks = wrapper.getServerLinks();

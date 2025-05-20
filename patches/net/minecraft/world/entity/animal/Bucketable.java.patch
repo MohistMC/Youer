@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/animal/Bucketable.java
 +++ b/net/minecraft/world/entity/animal/Bucketable.java
+@@ -16,6 +_,8 @@
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.item.component.CustomData;
+ import net.minecraft.world.level.Level;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
+ 
+ public interface Bucketable {
+     boolean fromBucket();
 @@ -88,9 +_,21 @@
      static <T extends LivingEntity & Bucketable> Optional<InteractionResult> bucketMobPickup(Player p_148829_, InteractionHand p_148830_, T p_148831_) {
          ItemStack itemstack = p_148829_.getItemInHand(p_148830_);
@@ -9,8 +18,8 @@
              ItemStack itemstack1 = p_148831_.getBucketItemStack();
              p_148831_.saveToBucketTag(itemstack1);
 +
-+            org.bukkit.event.player.PlayerBucketEntityEvent playerBucketFishEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerFishBucketEvent(p_148831_, p_148829_, itemstack, itemstack1, p_148830_);
-+            itemstack1 = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(playerBucketFishEvent.getEntityBucket());
++            org.bukkit.event.player.PlayerBucketEntityEvent playerBucketFishEvent = CraftEventFactory.callPlayerFishBucketEvent(p_148831_, p_148829_, itemstack, itemstack1, p_148830_);
++            itemstack1 = CraftItemStack.asNMSCopy(playerBucketFishEvent.getEntityBucket());
 +            if (playerBucketFishEvent.isCancelled()) {
 +                ((ServerPlayer) p_148829_).containerMenu.sendAllDataToRemote(); // We need to update inventory to resync client's bucket
 +                p_148831_.getBukkitEntity().update((ServerPlayer) p_148829_); // We need to play out these packets as the client assumes the fish is gone

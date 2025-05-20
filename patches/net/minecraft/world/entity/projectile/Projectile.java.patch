@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
+@@ -27,6 +_,7 @@
+ import net.minecraft.world.phys.EntityHitResult;
+ import net.minecraft.world.phys.HitResult;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public abstract class Projectile extends Entity implements TraceableEntity {
+     @Nullable
 @@ -38,6 +_,10 @@
      @Nullable
      private Entity lastDeflectedBy;
@@ -25,7 +33,7 @@
  
 +    // CraftBukkit start - call projectile hit event
 +    protected ProjectileDeflection preHitTargetOrDeflectSelf(HitResult movingobjectposition) {
-+        org.bukkit.event.entity.ProjectileHitEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callProjectileHitEvent(this, movingobjectposition);
++        org.bukkit.event.entity.ProjectileHitEvent event = CraftEventFactory.callProjectileHitEvent(this, movingobjectposition);
 +        this.hitCancelled = event != null && event.isCancelled();
 +        if (movingobjectposition.getType() == HitResult.Type.BLOCK || !this.hitCancelled) {
 +            return this.hitTargetOrDeflectSelf(movingobjectposition);

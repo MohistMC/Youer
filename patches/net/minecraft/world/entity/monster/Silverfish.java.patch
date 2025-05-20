@@ -1,5 +1,20 @@
 --- a/net/minecraft/world/entity/monster/Silverfish.java
 +++ b/net/minecraft/world/entity/monster/Silverfish.java
+@@ -22,13 +_,13 @@
+ import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
+ import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+ import net.minecraft.world.entity.player.Player;
+-import net.minecraft.world.level.GameRules;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.LevelReader;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.InfestedBlock;
+ import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class Silverfish extends Monster {
+     @Nullable
 @@ -140,7 +_,7 @@
                  return false;
              } else {
@@ -14,7 +29,7 @@
                  BlockState blockstate = levelaccessor.getBlockState(blockpos);
                  if (InfestedBlock.isCompatibleHostBlock(blockstate)) {
 +                    // CraftBukkit start
-+                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.mob, blockpos, InfestedBlock.infestedStateByHost(blockstate))) {
++                    if (!CraftEventFactory.callEntityChangeBlockEvent(this.mob, blockpos, InfestedBlock.infestedStateByHost(blockstate))) {
 +                        return;
 +                    }
 +                    // CraftBukkit end
@@ -31,7 +46,7 @@
                              if (block instanceof InfestedBlock) {
 -                                if (level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
 +                                // CraftBukkit start
-+                                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.silverfish, blockpos1, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())) {
++                                if (!CraftEventFactory.callEntityChangeBlockEvent(this.silverfish, blockpos1, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())) {
 +                                    continue;
 +                                }
 +                                // CraftBukkit end

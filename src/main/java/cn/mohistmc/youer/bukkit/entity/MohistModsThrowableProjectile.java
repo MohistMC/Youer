@@ -1,8 +1,8 @@
 package cn.mohistmc.youer.bukkit.entity;
 
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
-import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.craftbukkit.entity.CraftThrowableProjectile;
+import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_21_R1.entity.CraftThrowableProjectile;
 
 public class MohistModsThrowableProjectile extends CraftThrowableProjectile {
 

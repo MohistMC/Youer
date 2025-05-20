@@ -1,18 +1,26 @@
 --- a/net/minecraft/world/level/block/DiodeBlock.java
 +++ b/net/minecraft/world/level/block/DiodeBlock.java
+@@ -20,6 +_,7 @@
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ import net.minecraft.world.ticks.TickPriority;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public abstract class DiodeBlock extends HorizontalDirectionalBlock {
+     protected static final VoxelShape SHAPE = Block.box(0.0, 0.0, 0.0, 16.0, 2.0, 16.0);
 @@ -53,8 +_,18 @@
              boolean flag = p_221065_.getValue(POWERED);
              boolean flag1 = this.shouldTurnOn(p_221066_, p_221067_, p_221065_);
              if (flag && !flag1) {
 +                // CraftBukkit start
-+                if (org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(p_221066_, p_221067_, 15, 0).getNewCurrent() != 0) {
++                if (CraftEventFactory.callRedstoneChange(p_221066_, p_221067_, 15, 0).getNewCurrent() != 0) {
 +                    return;
 +                }
 +                // CraftBukkit end
                  p_221066_.setBlock(p_221067_, p_221065_.setValue(POWERED, Boolean.valueOf(false)), 2);
              } else if (!flag) {
 +                // CraftBukkit start
-+                if (org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(p_221066_, p_221067_, 0, 15).getNewCurrent() != 15) {
++                if (CraftEventFactory.callRedstoneChange(p_221066_, p_221067_, 0, 15).getNewCurrent() != 15) {
 +                    return;
 +                }
 +                // CraftBukkit end

@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/entity/ai/behavior/GoToWantedItem.java
 +++ b/net/minecraft/world/entity/ai/behavior/GoToWantedItem.java
+@@ -2,13 +_,14 @@
+ 
+ import com.mojang.datafixers.kinds.K1;
+ import java.util.function.Predicate;
+-import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;
+ import net.minecraft.world.entity.ai.behavior.declarative.MemoryAccessor;
+ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+ import net.minecraft.world.entity.ai.memory.WalkTarget;
+ import net.minecraft.world.entity.item.ItemEntity;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftEntity;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class GoToWantedItem {
+     public static BehaviorControl<LivingEntity> create(float p_260027_, boolean p_259769_, int p_259671_) {
 @@ -35,6 +_,22 @@
                                      && p_259490_.test(p_258381_)
                                      && itementity.closerThan(p_258381_, (double)p_259054_)
@@ -7,7 +23,7 @@
 +
 +                                    // CraftBukkit start
 +                                    if (p_258381_ instanceof net.minecraft.world.entity.animal.allay.Allay) {
-+                                        org.bukkit.event.entity.EntityTargetEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetEvent(p_258381_, itementity, org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
++                                        org.bukkit.event.entity.EntityTargetEvent event = CraftEventFactory.callEntityTargetEvent(p_258381_, itementity, org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
 +
 +                                        if (event.isCancelled()) {
 +                                            return false;
@@ -16,7 +32,7 @@
 +                                            p_258389_.erase();
 +                                        }
 +
-+                                        itementity = (ItemEntity) ((org.bukkit.craftbukkit.entity.CraftEntity) event.getTarget()).getHandle();
++                                        itementity = (ItemEntity) ((CraftEntity) event.getTarget()).getHandle();
 +                                    }
 +                                    // CraftBukkit end
 +

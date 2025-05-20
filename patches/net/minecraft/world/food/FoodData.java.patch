@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/food/FoodData.java
 +++ b/net/minecraft/world/food/FoodData.java
-@@ -1,9 +_,12 @@
+@@ -1,10 +_,14 @@
  package net.minecraft.world.food;
  
  import net.minecraft.nbt.CompoundTag;
@@ -11,8 +11,10 @@
  import net.minecraft.world.entity.player.Player;
 +import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.GameRules;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
  
  public class FoodData {
+     public int foodLevel = 20;
 @@ -13,10 +_,22 @@
      private int tickTimer;
      private int lastFoodLevel = 20;
@@ -44,7 +46,7 @@
 +    public void eat(ItemStack itemstack, FoodProperties foodinfo) {
 +        int oldFoodLevel = this.foodLevel;
 +
-+        org.bukkit.event.entity.FoodLevelChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callFoodLevelChangeEvent(this.entityhuman, foodinfo.nutrition() + oldFoodLevel, itemstack);
++        org.bukkit.event.entity.FoodLevelChangeEvent event = CraftEventFactory.callFoodLevelChangeEvent(this.entityhuman, foodinfo.nutrition() + oldFoodLevel, itemstack);
 +
 +        if (!event.isCancelled()) {
 +            this.add(event.getFoodLevel() - oldFoodLevel, foodinfo.saturation());
@@ -64,7 +66,7 @@
              } else if (difficulty != Difficulty.PEACEFUL) {
 -                this.foodLevel = Math.max(this.foodLevel - 1, 0);
 +                // CraftBukkit start
-+                org.bukkit.event.entity.FoodLevelChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callFoodLevelChangeEvent(p_38711_, Math.max(this.foodLevel - 1, 0));
++                org.bukkit.event.entity.FoodLevelChangeEvent event = CraftEventFactory.callFoodLevelChangeEvent(p_38711_, Math.max(this.foodLevel - 1, 0));
 +
 +                if (!event.isCancelled()) {
 +                    this.foodLevel = event.getFoodLevel();

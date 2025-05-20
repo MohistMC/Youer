@@ -1,27 +1,29 @@
 package cn.mohistmc.youer.bukkit;
 
 import cn.mohistmc.youer.YouerConfig;
+import com.mojang.authlib.GameProfile;
 import java.util.concurrent.ExecutionException;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
-import org.bukkit.craftbukkit.util.Waitable;
+import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_21_R1.util.Waitable;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerPreLoginEvent.Result;
 
 public class LoginHandler {
 
-    public void fireEvents(ServerLoginPacketListenerImpl serverLoginPacketListener) throws Exception {
+    public void fireEvents(ServerLoginPacketListenerImpl serverLoginPacketListener, GameProfile gameprofile) throws Exception {
         // Paper start - Velocity support
         if (serverLoginPacketListener.velocityLoginMessageId == -1 && YouerConfig.velocity_enabled) {
             serverLoginPacketListener.disconnect("This server requires you to connect with Velocity.");
             return;
         }
         // Paper end
-        String playerName = serverLoginPacketListener.authenticatedProfile.getName();
+        String playerName = gameprofile.getName();
         java.net.InetAddress address = ((java.net.InetSocketAddress) serverLoginPacketListener.connection.getRemoteAddress()).getAddress();
-        java.util.UUID uniqueId = serverLoginPacketListener.authenticatedProfile.getId();
-        final org.bukkit.craftbukkit.CraftServer server = serverLoginPacketListener.server.server;
+        java.util.UUID uniqueId = gameprofile.getId();
+        final CraftServer server = serverLoginPacketListener.server.server;
 
         AsyncPlayerPreLoginEvent asyncEvent = new AsyncPlayerPreLoginEvent(playerName, address, uniqueId);
         server.getPluginManager().callEvent(asyncEvent);
@@ -50,8 +52,8 @@ public class LoginHandler {
                 return;
             }
         }
+        ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
         // CraftBukkit end
-        serverLoginPacketListener.state = ServerLoginPacketListenerImpl.State.NEGOTIATING; // FORGE: continue NEGOTIATING, we move to READY_TO_ACCEPT after Forge is ready
     }
 
     public static void disconnect(ServerLoginPacketListenerImpl serverGamePacketListener, String pTextComponent){

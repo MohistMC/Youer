@@ -1,11 +1,27 @@
 --- a/net/minecraft/world/level/block/SculkShriekerBlock.java
 +++ b/net/minecraft/world/level/block/SculkShriekerBlock.java
+@@ -7,7 +_,6 @@
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.util.RandomSource;
+-import net.minecraft.util.valueproviders.ConstantInt;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.context.BlockPlaceContext;
+@@ -28,6 +_,7 @@
+ import net.minecraft.world.level.material.Fluids;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class SculkShriekerBlock extends BaseEntityBlock implements SimpleWaterloggedBlock {
+     public static final MapCodec<SculkShriekerBlock> CODEC = simpleCodec(SculkShriekerBlock::new);
 @@ -65,6 +_,9 @@
          if (p_222177_ instanceof ServerLevel serverlevel) {
              ServerPlayer serverplayer = SculkShriekerBlockEntity.tryGetPlayer(p_222180_);
              if (serverplayer != null) {
 +                // CraftBukkit start
-+                if (org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(serverplayer, org.bukkit.event.block.Action.PHYSICAL, p_222178_, null, null, null).isCancelled()) return;
++                if (CraftEventFactory.callPlayerInteractEvent(serverplayer, org.bukkit.event.block.Action.PHYSICAL, p_222178_, null, null, null).isCancelled()) return;
 +                // CraftBukkit end
                  serverlevel.getBlockEntity(p_222178_, BlockEntityType.SCULK_SHRIEKER).ifPresent(p_222163_ -> p_222163_.tryShriek(serverlevel, serverplayer));
              }

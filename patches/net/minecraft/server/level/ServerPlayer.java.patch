@@ -1,5 +1,12 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.server.level;
+ 
++import cn.mohistmc.youer.bukkit.inventory.MohistModsInventory;
+ import com.google.common.net.InetAddresses;
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.datafixers.util.Either;
 @@ -11,6 +_,8 @@
  import java.util.Optional;
  import java.util.OptionalInt;
@@ -9,6 +16,14 @@
  import java.util.stream.Collectors;
  import javax.annotation.Nullable;
  import net.minecraft.ChatFormatting;
+@@ -38,7 +_,6 @@
+ import net.minecraft.network.chat.HoverEvent;
+ import net.minecraft.network.chat.OutgoingChatMessage;
+ import net.minecraft.network.chat.RemoteChatSession;
+-import net.minecraft.network.chat.Style;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.game.ClientboundAnimatePacket;
+ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 @@ -93,6 +_,7 @@
  import net.minecraft.world.Container;
  import net.minecraft.world.InteractionHand;
@@ -30,7 +45,7 @@
  import net.minecraft.world.inventory.ResultSlot;
  import net.minecraft.world.inventory.Slot;
  import net.minecraft.world.item.ComplexItem;
-@@ -158,8 +_,16 @@
+@@ -158,8 +_,22 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreAccess;
  import net.minecraft.world.scores.ScoreHolder;
@@ -40,9 +55,15 @@
 +import org.bukkit.Bukkit;
 +import org.bukkit.Location;
 +import org.bukkit.WeatherType;
-+import org.bukkit.craftbukkit.CraftWorld;
-+import org.bukkit.craftbukkit.entity.CraftPlayer;
-+import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
++import org.bukkit.craftbukkit.v1_21_R1.CraftWorldBorder;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventory;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventoryView;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftLocation;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage;
 +import org.bukkit.event.player.PlayerSpawnChangeEvent;
  import org.slf4j.Logger;
  
@@ -179,7 +200,7 @@
  
 +        // CraftBukkit start
 +        String spawnWorld = p_9131_.getString("SpawnWorld");
-+        org.bukkit.craftbukkit.CraftWorld oldWorld = (org.bukkit.craftbukkit.CraftWorld) org.bukkit.Bukkit.getWorld(spawnWorld);
++        CraftWorld oldWorld = (CraftWorld) org.bukkit.Bukkit.getWorld(spawnWorld);
 +        if (oldWorld != null) {
 +            this.respawnDimension = oldWorld.getHandle().dimension();
 +        }
@@ -196,16 +217,16 @@
 +
 +        // CraftBukkit start - handle non-persistent vehicles
 +        boolean persistVehicle = true;
-+        if (entity1 != null) {
++        if (entity != null) {
 +            Entity vehicle;
-+            for (vehicle = entity1; vehicle != null; vehicle = vehicle.getVehicle()) {
++            for (vehicle = entity; vehicle != null; vehicle = vehicle.getVehicle()) {
 +                if (!vehicle.persist) {
 +                    persistVehicle = false;
 +                    break;
 +                }
 +            }
 +        }
-+        if (persistVehicle && entity1 != null && entity != this && entity.hasExactlyOnePlayerPassenger()) {
++        if (persistVehicle && entity != null && entity1 != this && entity1.hasExactlyOnePlayerPassenger()) {
 +            // CraftBukkit end
              CompoundTag compoundtag1 = new CompoundTag();
              CompoundTag compoundtag2 = new CompoundTag();
@@ -271,12 +292,12 @@
 +            }
 +
 +            if (this.oldLevel != this.experienceLevel) {
-+                org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerLevelChangeEvent(this.getBukkitEntity(), this.oldLevel, this.experienceLevel);
++                CraftEventFactory.callPlayerLevelChangeEvent(this.getBukkitEntity(), this.oldLevel, this.experienceLevel);
 +                this.oldLevel = this.experienceLevel;
 +            }
 +
 +            if (this.getBukkitEntity().hasClientWorldBorder()) {
-+                ((org.bukkit.craftbukkit.CraftWorldBorder) this.getBukkitEntity().getWorldBorder()).getHandle().tick();
++                ((CraftWorldBorder) this.getBukkitEntity().getWorldBorder()).getHandle().tick();
 +            }
 +            // CraftBukkit end
 +
@@ -302,7 +323,7 @@
 +        if (!keepInventory) {
 +            for (ItemStack item : this.getInventory().getContents()) {
 +                if (!item.isEmpty() && !EnchantmentHelper.has(item, net.minecraft.world.item.enchantment.EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP)) {
-+                    loot.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(item).markForInventoryDrop());
++                    loot.add(CraftItemStack.asCraftMirror(item).markForInventoryDrop());
 +                }
 +            }
 +        }
@@ -314,7 +335,7 @@
 +        Component defaultMessage = this.getCombatTracker().getDeathMessage();
 +        String deathmessage = defaultMessage.getString();
 +        keepLevel = keepInventory; // SPIGOT-2222: pre-set keepLevel
-+        org.bukkit.event.entity.PlayerDeathEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerDeathEvent(this, p_9035_, loot, deathmessage, keepInventory);
++        org.bukkit.event.entity.PlayerDeathEvent event = CraftEventFactory.callPlayerDeathEvent(this, p_9035_, loot, deathmessage, keepInventory);
 +        // SPIGOT-943 - only call if they have an inventory open
 +        if (this.containerMenu != this.inventoryMenu) {
 +            this.closeContainer();
@@ -325,7 +346,7 @@
 +            if (deathMessage.equals(deathmessage)) {
 +                component = this.getCombatTracker().getDeathMessage();
 +            } else {
-+                component = org.bukkit.craftbukkit.util.CraftChatMessage.fromStringOrNull(deathMessage);
++                component = CraftChatMessage.fromStringOrNull(deathMessage);
 +            }
 +
              this.connection
@@ -395,7 +416,7 @@
 +        }
 +
 +        org.bukkit.entity.Player respawnPlayer = this.getBukkitEntity();
-+        org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(dimensionTransition.pos(), dimensionTransition.newLevel().getWorld(), dimensionTransition.yRot(), dimensionTransition.xRot());
++        org.bukkit.Location location = CraftLocation.toBukkit(dimensionTransition.pos(), dimensionTransition.newLevel().getWorld(), dimensionTransition.yRot(), dimensionTransition.xRot());
 +        org.bukkit.event.player.PlayerRespawnEvent respawnEvent = new org.bukkit.event.player.PlayerRespawnEvent(respawnPlayer, location, isBedSpawn, isAnchorSpawn, reason);
 +        this.level().getCraftServer().getPluginManager().callEvent(respawnEvent);
 +        // Spigot Start
@@ -404,7 +425,7 @@
 +        }
 +        // Spigot End
 +        location = respawnEvent.getRespawnLocation();
-+        return new DimensionTransition(((org.bukkit.craftbukkit.CraftWorld) location.getWorld()).getHandle(), org.bukkit.craftbukkit.util.CraftLocation.toVec3D(location), dimensionTransition.speed(), location.getYaw(), location.getPitch(), dimensionTransition.missingRespawnBlock(), dimensionTransition.postDimensionTransition(), dimensionTransition.cause());
++        return new DimensionTransition(((CraftWorld) location.getWorld()).getHandle(), CraftLocation.toVec3D(location), dimensionTransition.speed(), location.getYaw(), location.getPitch(), dimensionTransition.missingRespawnBlock(), dimensionTransition.postDimensionTransition(), dimensionTransition.cause());
 +        // CraftBukkit end
      }
  
@@ -518,7 +539,7 @@
      public void stopSleepInBed(boolean p_9165_, boolean p_9166_) {
 +        if (!this.isSleeping()) return; // CraftBukkit - Can't leave bed if not in one!
 +        // CraftBukkit start - fire PlayerBedLeaveEvent
-+        org.bukkit.craftbukkit.entity.CraftPlayer player = this.getBukkitEntity();
++        CraftPlayer player = this.getBukkitEntity();
 +        BlockPos bedPosition = this.getSleepingPos().orElse(null);
 +        org.bukkit.block.Block bed;
 +        if (bedPosition != null) {
@@ -535,7 +556,7 @@
          if (this.isSleeping()) {
              this.serverLevel().getChunkSource().broadcastAndSend(this, new ClientboundAnimatePacket(this, 2));
          }
-@@ -1072,17 +_,49 @@
+@@ -1072,17 +_,70 @@
          this.containerCounter = this.containerCounter % 100 + 1;
      }
  
@@ -554,12 +575,16 @@
          if (p_9033_ == null) {
              return OptionalInt.empty();
          } else {
++            // CraftBukkit start - SPIGOT-6552: Handle inventory closing in CraftEventFactory#callInventoryOpenEvent(...)
++            /*
              if (this.containerMenu != this.inventoryMenu) {
 +                if (p_9033_.shouldTriggerClientSideContainerClosingOnOpen())
                  this.closeContainer();
 +                else
 +                    this.doCloseContainer();
              }
++            */
++            // CraftBukkit end
  
              this.nextContainerCounter();
              AbstractContainerMenu abstractcontainermenu = p_9033_.createMenu(this.containerCounter, this.getInventory(), this);
@@ -567,8 +592,25 @@
 +            // CraftBukkit start - Inventory open hook
 +            if (abstractcontainermenu != null) {
 +                abstractcontainermenu.setTitle(p_9033_.getDisplayName());
++                // Mohist start - Custom Container compatible with mods
++                if (abstractcontainermenu.getBukkitView() == null) {
++                    org.bukkit.inventory.Inventory inventory = new CraftInventory(new MohistModsInventory(abstractcontainermenu, this));
++                    inventory.getType().setMods(true);
++                    abstractcontainermenu.bukkitView = new CraftInventoryView(this.getBukkitEntity(), inventory, abstractcontainermenu);
++                }
++                // Mohist end
++
 +                boolean cancelled = false;
-+                abstractcontainermenu = org.bukkit.craftbukkit.event.CraftEventFactory.callInventoryOpenEvent(this, abstractcontainermenu, cancelled);
++                // Mohist start - Moved from CraftEventFactory#callInventoryOpenEvent(...) to fix mixin issues
++                if (this.containerMenu != this.inventoryMenu) {
++                    if (p_9033_.shouldTriggerClientSideContainerClosingOnOpen())
++                        this.closeContainer();
++                    else
++                        this.doCloseContainer();
++                    CraftEventFactory.alreadyProcessed = true;
++                }
++                // Mohist end
++                abstractcontainermenu = CraftEventFactory.callInventoryOpenEvent(this, abstractcontainermenu, cancelled);
 +                if (abstractcontainermenu == null && !cancelled) { // Let pre-cancelled events fall through
 +                    // SPIGOT-5263 - close chest if cancelled
 +                    if (p_9033_ instanceof Container) {
@@ -631,7 +673,7 @@
          this.nextContainerCounter();
 +        AbstractContainerMenu container = new HorseInventoryMenu(this.containerCounter, this.getInventory(), p_9060_, p_9059_, p_9059_.getInventoryColumns());
 +        container.setTitle(p_9059_.getDisplayName());
-+        container = org.bukkit.craftbukkit.event.CraftEventFactory.callInventoryOpenEvent(this, container);
++        container = CraftEventFactory.callInventoryOpenEvent(this, container);
 +        if (container == null) {
 +            p_9060_.stopOpen(this);
 +            return;

@@ -1,12 +1,23 @@
 --- a/net/minecraft/world/level/levelgen/structure/StructureStart.java
 +++ b/net/minecraft/world/level/levelgen/structure/StructureStart.java
+@@ -17,6 +_,10 @@
+ import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
+ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
+ import net.minecraft.world.level.levelgen.structure.structures.OceanMonumentStructure;
++import org.bukkit.craftbukkit.v1_21_R1.persistence.CraftPersistentDataTypeRegistry;
++import org.bukkit.craftbukkit.v1_21_R1.persistence.DirtyCraftPersistentDataContainer;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftStructureTransformer;
++import org.bukkit.craftbukkit.v1_21_R1.util.TransformerGeneratorAccess;
+ import org.slf4j.Logger;
+ 
+ public final class StructureStart {
 @@ -30,6 +_,12 @@
      @Nullable
      private volatile BoundingBox cachedBoundingBox;
  
 +    // CraftBukkit start
-+    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
-+    public org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer(DATA_TYPE_REGISTRY);
++    private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
++    public DirtyCraftPersistentDataContainer persistentDataContainer = new DirtyCraftPersistentDataContainer(DATA_TYPE_REGISTRY);
 +    public org.bukkit.event.world.AsyncStructureGenerateEvent.Cause generationEventCause = org.bukkit.event.world.AsyncStructureGenerateEvent.Cause.WORLD_GENERATION;
 +    // CraftBukkit end
 +
@@ -24,9 +35,9 @@
 +            // CraftBukkit start
 +            List<StructurePiece> pieces = list.stream().filter(piece -> piece.getBoundingBox().intersects(p_226855_)).toList();
 +            if (!pieces.isEmpty()) {
-+                org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess = new org.bukkit.craftbukkit.util.TransformerGeneratorAccess();
++                TransformerGeneratorAccess transformerAccess = new TransformerGeneratorAccess();
 +                transformerAccess.setHandle(p_226851_);
-+                transformerAccess.setStructureTransformer(new org.bukkit.craftbukkit.util.CraftStructureTransformer(generationEventCause, p_226851_, p_226852_, structure, p_226855_, p_226856_));
++                transformerAccess.setStructureTransformer(new CraftStructureTransformer(generationEventCause, p_226851_, p_226852_, structure, p_226855_, p_226856_));
 +                for (StructurePiece piece : pieces) {
 +                    piece.postProcess(transformerAccess, p_226852_, p_226853_, p_226854_, p_226855_, p_226856_, blockpos1);
                  }

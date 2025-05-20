@@ -32,8 +32,8 @@ import net.neoforged.neoforge.items.wrapper.PlayerArmorInvWrapper;
 import net.neoforged.neoforge.items.wrapper.PlayerInvWrapper;
 import net.neoforged.neoforge.items.wrapper.PlayerMainInvWrapper;
 import net.neoforged.neoforge.items.wrapper.SidedInvWrapper;
-import org.bukkit.craftbukkit.block.CraftBlock;
-import org.bukkit.craftbukkit.block.CraftBlockEntityState;
+import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockEntityState;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 

@@ -1,10 +1,12 @@
 --- a/net/minecraft/world/level/Explosion.java
 +++ b/net/minecraft/world/level/Explosion.java
-@@ -38,6 +_,7 @@
+@@ -38,6 +_,9 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
 +import org.bukkit.Location;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftLivingEntity;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
  
  public class Explosion {
      private static final ExplosionDamageCalculator EXPLOSION_DAMAGE_CALCULATOR = new ExplosionDamageCalculator();
@@ -100,7 +102,7 @@
 +                        // CraftBukkit start - Call EntityKnockbackEvent
 +                        if (entity instanceof LivingEntity) {
 +                            Vec3 result = entity.getDeltaMovement().add(vec31);
-+                            org.bukkit.event.entity.EntityKnockbackEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) entity.getBukkitEntity(), source, org.bukkit.event.entity.EntityKnockbackEvent.KnockbackCause.EXPLOSION, d10, vec31, result.x, result.y, result.z);
++                            org.bukkit.event.entity.EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((CraftLivingEntity) entity.getBukkitEntity(), source, org.bukkit.event.entity.EntityKnockbackEvent.KnockbackCause.EXPLOSION, d10, vec31, result.x, result.y, result.z);
 +
 +                            // SPIGOT-7640: Need to subtract entity movement from the event result,
 +                            // since the code below (the setDeltaMovement call as well as the hitPlayers map)
@@ -145,14 +147,14 @@
 +            }
 +
 +            if (this.source != null) {
-+                org.bukkit.event.entity.EntityExplodeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityExplodeEvent(this.source, blockList, this.yield, getBlockInteraction());
++                org.bukkit.event.entity.EntityExplodeEvent event = CraftEventFactory.callEntityExplodeEvent(this.source, blockList, this.yield, getBlockInteraction());
 +                this.wasCanceled = event.isCancelled();
 +                bukkitBlocks = event.blockList();
 +                this.yield = event.getYield();
 +            } else {
 +                org.bukkit.block.Block block = location.getBlock();
 +                org.bukkit.block.BlockState blockState = (damageSource.getDirectBlockState() != null) ? damageSource.getDirectBlockState() : block.getState();
-+                org.bukkit.event.block.BlockExplodeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockExplodeEvent(block, blockState, blockList, this.yield, getBlockInteraction());
++                org.bukkit.event.block.BlockExplodeEvent event = CraftEventFactory.callBlockExplodeEvent(block, blockState, blockList, this.yield, getBlockInteraction());
 +                this.wasCanceled = event.isCancelled();
 +                bukkitBlocks = event.blockList();
 +                this.yield = event.getYield();
@@ -178,7 +180,7 @@
 +                if (block instanceof net.minecraft.world.level.block.TntBlock) {
 +                    Entity sourceEntity = source == null ? null : source;
 +                    BlockPos sourceBlock = sourceEntity == null ? BlockPos.containing(this.x, this.y, this.z) : null;
-+                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callTNTPrimeEvent(this.level, blockpos, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.EXPLOSION, sourceEntity, sourceBlock)) {
++                    if (!CraftEventFactory.callTNTPrimeEvent(this.level, blockpos, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.EXPLOSION, sourceEntity, sourceBlock)) {
 +                        this.level.sendBlockUpdated(blockpos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), blockstate, 3); // Update the block on the client
 +                        continue;
 +                    }
@@ -198,7 +200,7 @@
 +                        && this.level.getBlockState(blockpos1).isAir()
 +                        && this.level.getBlockState(blockpos1.below()).isSolidRender(this.level, blockpos1.below())) {
 +                    // CraftBukkit start - Ignition by explosion
-+                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(this.level, blockpos1, this).isCancelled()) {
++                    if (!CraftEventFactory.callBlockIgniteEvent(this.level, blockpos1, this).isCancelled()) {
 +                        this.level.setBlockAndUpdate(blockpos1, BaseFireBlock.getState(this.level, blockpos1));
 +                    }
 +                    // CraftBukkit end

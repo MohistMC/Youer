@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/level/block/CropBlock.java
 +++ b/net/minecraft/world/level/block/CropBlock.java
+@@ -10,7 +_,6 @@
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.level.BlockGetter;
+-import net.minecraft.world.level.GameRules;
+ import net.minecraft.world.level.ItemLike;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.LevelReader;
+@@ -21,6 +_,7 @@
+ import net.minecraft.world.level.block.state.properties.IntegerProperty;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class CropBlock extends BushBlock implements BonemealableBlock {
+     public static final MapCodec<CropBlock> CODEC = simpleCodec(CropBlock::new);
 @@ -54,7 +_,7 @@
  
      @Override
@@ -36,7 +52,7 @@
 +
 +                if (net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_221051_, p_221052_, p_221050_, p_221053_.nextFloat() < (modifier / (100.0f * (Math.floor((25.0F / f) + 1)))))) { // Spigot - SPIGOT-7159: Better modifier resolution
 +                    // Spigot end
-+                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_221051_, p_221052_, this.getStateForAge(i + 1), 2); // CraftBukkit
++                    CraftEventFactory.handleBlockGrowEvent(p_221051_, p_221052_, this.getStateForAge(i + 1), 2); // CraftBukkit
 +                    net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_221051_, p_221052_, p_221050_);
                  }
              }
@@ -46,7 +62,7 @@
          }
  
 -        p_52264_.setBlock(p_52265_, this.getStateForAge(i), 2);
-+        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_52264_, p_52265_, this.getStateForAge(i), 2); // CraftBukkit
++        CraftEventFactory.handleBlockGrowEvent(p_52264_, p_52265_, this.getStateForAge(i), 2); // CraftBukkit
      }
  
      protected int getBonemealAgeIncrease(Level p_52262_) {
@@ -88,7 +104,7 @@
 -        if (p_52280_ instanceof Ravager && p_52278_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
 +        if (p_52280_ instanceof Ravager &&
 +            net.neoforged.neoforge.event.EventHooks.canEntityGrief(p_52278_, p_52280_) &&
-+            org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_52280_, p_52279_, Blocks.AIR.defaultBlockState(), true)) { // CraftBukkit
++            CraftEventFactory.callEntityChangeBlockEvent(p_52280_, p_52279_, Blocks.AIR.defaultBlockState(), true)) { // CraftBukkit
              p_52278_.destroyBlock(p_52279_, true, p_52280_);
          }
  

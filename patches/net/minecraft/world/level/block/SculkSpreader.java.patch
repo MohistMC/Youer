@@ -1,5 +1,29 @@
 --- a/net/minecraft/world/level/block/SculkSpreader.java
 +++ b/net/minecraft/world/level/block/SculkSpreader.java
+@@ -7,7 +_,6 @@
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.Dynamic;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
+ import it.unimi.dsi.fastutil.objects.Object2IntMap;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+@@ -26,7 +_,6 @@
+ import net.minecraft.core.Vec3i;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.NbtOps;
+-import net.minecraft.nbt.Tag;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.sounds.SoundSource;
+@@ -35,6 +_,7 @@
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
+ import org.slf4j.Logger;
+ 
+ public class SculkSpreader {
 @@ -51,6 +_,7 @@
      private final int additionalDecayRate;
      private List<SculkSpreader.ChargeCursor> cursors = new ArrayList<>();
@@ -14,7 +38,7 @@
          if (this.cursors.size() < 32) {
 +            // CraftBukkit start
 +            if (!isWorldGeneration()) { // CraftBukkit - SPIGOT-7475: Don't call event during world generation
-+                org.bukkit.craftbukkit.block.CraftBlock bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(level, p_222261_.pos);
++                CraftBlock bukkitBlock = CraftBlock.at(level, p_222261_.pos);
 +                org.bukkit.event.block.SculkBloomEvent event = new org.bukkit.event.block.SculkBloomEvent(bukkitBlock, p_222261_.getCharge());
 +                org.bukkit.Bukkit.getPluginManager().callEvent(event);
 +                if (event.isCancelled()) {

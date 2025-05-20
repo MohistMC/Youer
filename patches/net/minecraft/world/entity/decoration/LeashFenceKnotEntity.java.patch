@@ -1,12 +1,20 @@
 --- a/net/minecraft/world/entity/decoration/LeashFenceKnotEntity.java
 +++ b/net/minecraft/world/entity/decoration/LeashFenceKnotEntity.java
+@@ -24,6 +_,7 @@
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class LeashFenceKnotEntity extends BlockAttachedEntity {
+     public static final double OFFSET_Y = 0.375;
 @@ -80,6 +_,15 @@
  
              for (Leashable leashable : list) {
                  if (leashable.getLeashHolder() == p_31842_) {
 +                    // CraftBukkit start
 +                    if (leashable instanceof Entity leashed) {
-+                        if (org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerLeashEntityEvent(leashed, this, p_31842_, p_31843_).isCancelled()) {
++                        if (CraftEventFactory.callPlayerLeashEntityEvent(leashed, this, p_31842_, p_31843_).isCancelled()) {
 +                            ((net.minecraft.server.level.ServerPlayer) p_31842_).connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket(leashed, leashable.getLeashHolder()));
 +                            flag = true; // Also set true when the event is cancelled otherwise it tries to unleash the entities
 +                            continue;
@@ -32,7 +40,7 @@
 -                            leashable1.dropLeash(true, false);
 +                            // CraftBukkit start
 +                            if (leashable1 instanceof Entity leashed) {
-+                                if (org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerUnleashEntityEvent(leashed, p_31842_, p_31843_).isCancelled()) {
++                                if (CraftEventFactory.callPlayerUnleashEntityEvent(leashed, p_31842_, p_31843_).isCancelled()) {
 +                                    die = false;
 +                                    continue;
 +                                }

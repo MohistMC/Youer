@@ -1,16 +1,31 @@
 --- a/net/minecraft/world/entity/ai/behavior/ResetProfession.java
 +++ b/net/minecraft/world/entity/ai/behavior/ResetProfession.java
+@@ -1,12 +_,12 @@
+ package net.minecraft.world.entity.ai.behavior;
+ 
+-import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;
+-import net.minecraft.world.entity.ai.behavior.declarative.MemoryAccessor;
+ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+ import net.minecraft.world.entity.npc.Villager;
+ import net.minecraft.world.entity.npc.VillagerData;
+ import net.minecraft.world.entity.npc.VillagerProfession;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftVillager;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class ResetProfession {
+     public static BehaviorControl<Villager> create() {
 @@ -20,7 +_,13 @@
                                      && villagerdata.getProfession() != VillagerProfession.NITWIT
                                      && p_260084_.getVillagerXp() == 0
                                      && villagerdata.getLevel() <= 1) {
 -                                    p_260084_.setVillagerData(p_260084_.getVillagerData().setProfession(VillagerProfession.NONE));
 +                                    // CraftBukkit start
-+                                    org.bukkit.event.entity.VillagerCareerChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callVillagerCareerChangeEvent(p_260084_, org.bukkit.craftbukkit.entity.CraftVillager.CraftProfession.minecraftToBukkit(VillagerProfession.NONE), org.bukkit.event.entity.VillagerCareerChangeEvent.ChangeReason.LOSING_JOB);
++                                    org.bukkit.event.entity.VillagerCareerChangeEvent event = CraftEventFactory.callVillagerCareerChangeEvent(p_260084_, CraftVillager.CraftProfession.minecraftToBukkit(VillagerProfession.NONE), org.bukkit.event.entity.VillagerCareerChangeEvent.ChangeReason.LOSING_JOB);
 +                                    if (event.isCancelled()) {
 +                                        return false;
 +                                    }
-+                                    p_260084_.setVillagerData(p_260084_.getVillagerData().setProfession(org.bukkit.craftbukkit.entity.CraftVillager.CraftProfession.bukkitToMinecraft(event.getProfession())));
++                                    p_260084_.setVillagerData(p_260084_.getVillagerData().setProfession(CraftVillager.CraftProfession.bukkitToMinecraft(event.getProfession())));
 +                                    // CraftBukkit end
                                      p_260084_.refreshBrain(p_260244_);
                                      return true;

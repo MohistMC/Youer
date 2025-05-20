@@ -1,7 +1,7 @@
 package cn.mohistmc.youer.bukkit.pluginfix;
 
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;

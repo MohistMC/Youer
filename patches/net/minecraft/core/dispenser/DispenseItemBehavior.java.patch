@@ -28,8 +28,13 @@
  import net.minecraft.world.item.DispensibleContainerItem;
  import net.minecraft.world.item.DyeColor;
  import net.minecraft.world.item.HoneycombItem;
-@@ -47,7 +_,9 @@
- import net.minecraft.world.level.block.CandleCakeBlock;
+@@ -42,12 +_,11 @@
+ import net.minecraft.world.level.block.BeehiveBlock;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.BucketPickup;
+-import net.minecraft.world.level.block.CampfireBlock;
+-import net.minecraft.world.level.block.CandleBlock;
+-import net.minecraft.world.level.block.CandleCakeBlock;
  import net.minecraft.world.level.block.CarvedPumpkinBlock;
  import net.minecraft.world.level.block.DispenserBlock;
 +import net.minecraft.world.level.block.LiquidBlockContainer;
@@ -38,16 +43,24 @@
  import net.minecraft.world.level.block.ShulkerBoxBlock;
  import net.minecraft.world.level.block.SkullBlock;
  import net.minecraft.world.level.block.TntBlock;
-@@ -61,6 +_,16 @@
+@@ -55,12 +_,22 @@
+ import net.minecraft.world.level.block.entity.BeehiveBlockEntity;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.entity.SkullBlockEntity;
+-import net.minecraft.world.level.block.state.BlockBehaviour;
+ import net.minecraft.world.level.block.state.BlockState;
+-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
  import net.minecraft.world.level.block.state.properties.RotationSegment;
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.phys.AABB;
 +import org.bukkit.Bukkit;
 +import org.bukkit.Location;
 +import org.bukkit.TreeType;
-+import org.bukkit.craftbukkit.block.CraftBlock;
-+import org.bukkit.craftbukkit.inventory.CraftItemStack;
-+import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftLivingEntity;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftLocation;
 +import org.bukkit.event.block.BlockDispenseArmorEvent;
 +import org.bukkit.event.block.BlockDispenseEvent;
 +import org.bukkit.event.block.BlockFertilizeEvent;
@@ -152,7 +165,7 @@
 +                        org.bukkit.block.Block block = CraftBlock.at(world, p_338360_.pos());
 +                        CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
 +
-+                        BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) list.get(0).getBukkitEntity());
++                        BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (CraftLivingEntity) list.get(0).getBukkitEntity());
 +                        if (!DispenserBlock.eventFired) {
 +                            world.getCraftServer().getPluginManager().callEvent(event);
 +                        }
@@ -188,7 +201,7 @@
 +                        org.bukkit.block.Block block = CraftBlock.at(world, p_338193_.pos());
 +                        CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
 +
-+                        BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) abstracthorse.getBukkitEntity());
++                        BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (CraftLivingEntity) abstracthorse.getBukkitEntity());
 +                        if (!DispenserBlock.eventFired) {
 +                            world.getCraftServer().getPluginManager().callEvent(event);
 +                        }
@@ -228,7 +241,7 @@
 +                            org.bukkit.block.Block block = CraftBlock.at(world, p_338297_.pos());
 +                            CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
 +
-+                            BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) abstractchestedhorse.getBukkitEntity());
++                            BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (CraftLivingEntity) abstractchestedhorse.getBukkitEntity());
 +                            if (!DispenserBlock.eventFired) {
 +                                world.getCraftServer().getPluginManager().callEvent(event);
 +                            }
@@ -363,7 +376,7 @@
 -                } else if (CampfireBlock.canLight(blockstate) || CandleBlock.canLight(blockstate) || CandleCakeBlock.canLight(blockstate)) {
 -                    serverlevel.setBlockAndUpdate(blockpos, blockstate.setValue(BlockStateProperties.LIT, Boolean.valueOf(true)));
 +                    // CraftBukkit start - Ignition by dispensing flint and steel
-+                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(serverlevel, blockpos, p_338494_.pos()).isCancelled()) {
++                    if (!CraftEventFactory.callBlockIgniteEvent(serverlevel, blockpos, p_338494_.pos()).isCancelled()) {
 +                        serverlevel.setBlockAndUpdate(blockpos, BaseFireBlock.getState(serverlevel, blockpos));
 +                        serverlevel.gameEvent((Entity) null, (Holder) GameEvent.BLOCK_PLACE, blockpos);
 +                    }
@@ -592,7 +605,7 @@
 +                    org.bukkit.block.Block block = CraftBlock.at(world, p_302435_.pos());
 +                    CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
 +
-+                    BlockDispenseEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) list.get(0).getBukkitEntity());
++                    BlockDispenseEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (CraftLivingEntity) list.get(0).getBukkitEntity());
 +                    if (!DispenserBlock.eventFired) {
 +                        Bukkit.getPluginManager().callEvent(event);
 +                    }

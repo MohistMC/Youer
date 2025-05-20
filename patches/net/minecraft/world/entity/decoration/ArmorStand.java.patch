@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/entity/decoration/ArmorStand.java
 +++ b/net/minecraft/world/entity/decoration/ArmorStand.java
+@@ -37,12 +_,14 @@
+ import net.minecraft.world.level.Explosion;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.LightLayer;
+-import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.material.PushReaction;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.CraftEquipmentSlot;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
+ 
+ public class ArmorStand extends LivingEntity {
+     public static final int WOBBLE_TIME = 5;
 @@ -73,7 +_,7 @@
      public static final EntityDataAccessor<Rotations> DATA_LEFT_LEG_POSE = SynchedEntityData.defineId(ArmorStand.class, EntityDataSerializers.ROTATIONS);
      public static final EntityDataAccessor<Rotations> DATA_RIGHT_LEG_POSE = SynchedEntityData.defineId(ArmorStand.class, EntityDataSerializers.ROTATIONS);
@@ -52,14 +68,14 @@
 -        } else if (p_31589_.hasInfiniteMaterials() && itemstack.isEmpty() && !p_31591_.isEmpty()) {
 +            // CraftBukkit start
 +        } else {
-+            org.bukkit.inventory.ItemStack armorStandItem = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack);
-+            org.bukkit.inventory.ItemStack playerHeldItem = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(p_31591_);
++            org.bukkit.inventory.ItemStack armorStandItem = CraftItemStack.asCraftMirror(itemstack);
++            org.bukkit.inventory.ItemStack playerHeldItem = CraftItemStack.asCraftMirror(p_31591_);
 +
 +            org.bukkit.entity.Player player = (org.bukkit.entity.Player) p_31589_.getBukkitEntity();
 +            org.bukkit.entity.ArmorStand self = (org.bukkit.entity.ArmorStand) this.getBukkitEntity();
 +
-+            org.bukkit.inventory.EquipmentSlot slot = org.bukkit.craftbukkit.CraftEquipmentSlot.getSlot(p_31590_);
-+            org.bukkit.inventory.EquipmentSlot hand = org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(p_31592_);
++            org.bukkit.inventory.EquipmentSlot slot = CraftEquipmentSlot.getSlot(p_31590_);
++            org.bukkit.inventory.EquipmentSlot hand = CraftEquipmentSlot.getHand(p_31592_);
 +            org.bukkit.event.player.PlayerArmorStandManipulateEvent armorStandManipulateEvent = new org.bukkit.event.player.PlayerArmorStandManipulateEvent(player, self, playerHeldItem, armorStandItem, slot, hand);
 +            this.level().getCraftServer().getPluginManager().callEvent(armorStandManipulateEvent);
 +
@@ -86,7 +102,7 @@
              if (p_31579_.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
 -                this.kill();
 +                // CraftBukkit start
-+                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, p_31579_, p_31580_)) {
++                if (CraftEventFactory.handleNonLivingEntityDamageEvent(this, p_31579_, p_31580_)) {
 +                    return false;
 +                }
 +                this.kill(p_31579_); // CraftBukkit
@@ -95,7 +111,7 @@
 -            } else if (this.isInvulnerableTo(p_31579_) || this.invisible || this.isMarker()) {
 +            } else if (!this.isInvulnerableTo(p_31579_) && (true || !this.invisible) && !this.isMarker()) { // CraftBukkit
 +                // CraftBukkit start
-+                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, p_31579_, p_31580_, true, this.invisible)) {
++                if (CraftEventFactory.handleNonLivingEntityDamageEvent(this, p_31579_, p_31580_, true, this.invisible)) {
 +                    return false;
 +                }
 +                // CraftBukkit end
@@ -139,7 +155,7 @@
          ItemStack itemstack = new ItemStack(Items.ARMOR_STAND);
          itemstack.set(DataComponents.CUSTOM_NAME, this.getCustomName());
 -        Block.popResource(this.level(), this.blockPosition(), itemstack);
-+        drops.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemstack)); // CraftBukkit - add to drops
++        drops.add(CraftItemStack.asBukkitCopy(itemstack)); // CraftBukkit - add to drops
          this.brokenByAnything(p_348677_, p_31647_);
      }
  
@@ -152,7 +168,7 @@
              ItemStack itemstack = this.handItems.get(i);
              if (!itemstack.isEmpty()) {
 -                Block.popResource(this.level(), this.blockPosition().above(), itemstack);
-+                drops.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemstack)); // CraftBukkit - add to drops
++                drops.add(CraftItemStack.asBukkitCopy(itemstack)); // CraftBukkit - add to drops
                  this.handItems.set(i, ItemStack.EMPTY);
              }
          }
@@ -161,7 +177,7 @@
              ItemStack itemstack1 = this.armorItems.get(j);
              if (!itemstack1.isEmpty()) {
 -                Block.popResource(this.level(), this.blockPosition().above(), itemstack1);
-+                drops.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemstack1)); // CraftBukkit - add to drops
++                drops.add(CraftItemStack.asBukkitCopy(itemstack1)); // CraftBukkit - add to drops
                  this.armorItems.set(j, ItemStack.EMPTY);
              }
          }
@@ -187,7 +203,7 @@
 +    }
 +
 +    public void kill(DamageSource damageSource) {
-+        org.bukkit.craftbukkit.event.CraftEventFactory.callEntityDeathEvent(this, (damageSource == null ? this.damageSources().genericKill() : damageSource), drops); // CraftBukkit - call event
++        CraftEventFactory.callEntityDeathEvent(this, (damageSource == null ? this.damageSources().genericKill() : damageSource), drops); // CraftBukkit - call event
 +        this.remove(Entity.RemovalReason.KILLED, org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
 +        // CraftBukkit end
          this.remove(Entity.RemovalReason.KILLED);

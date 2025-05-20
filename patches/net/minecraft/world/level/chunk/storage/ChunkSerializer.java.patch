@@ -1,22 +1,14 @@
 --- a/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
 +++ b/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
-@@ -99,6 +_,7 @@
-         LevelLightEngine levellightengine = chunksource.getLightEngine();
-         Registry<Biome> registry = p_188231_.registryAccess().registryOrThrow(Registries.BIOME);
-         Codec<PalettedContainerRO<Holder<Biome>>> codec = makeBiomeCodec(registry);
-+        Codec<PalettedContainer<Holder<Biome>>> codecRW = makeBiomeCodecRW(registry); // CraftBukkit - read/write
-         boolean flag2 = false;
- 
-         for (int j = 0; j < listtag.size(); j++) {
 @@ -117,18 +_,18 @@
                      );
                  }
  
 -                PalettedContainerRO<Holder<Biome>> palettedcontainerro;
-+                PalettedContainer<Holder<Biome>> palettedcontainerrw; // CraftBukkit - read/write
++                PalettedContainerRO<Holder<Biome>> palettedcontainerrw;
                  if (compoundtag.contains("biomes", 10)) {
 -                    palettedcontainerro = codec.parse(NbtOps.INSTANCE, compoundtag.getCompound("biomes"))
-+                    palettedcontainerrw = codecRW.parse(NbtOps.INSTANCE, compoundtag.getCompound("biomes")) // CraftBukkit - read/write
++                    palettedcontainerrw = codec.parse(NbtOps.INSTANCE, compoundtag.getCompound("biomes"))
                          .promotePartial(p_188274_ -> logErrors(p_188233_, k, p_188274_))
                          .getOrThrow(ChunkSerializer.ChunkReadException::new);
                  } else {
@@ -27,7 +19,7 @@
                  }
  
 -                LevelChunkSection levelchunksection = new LevelChunkSection(palettedcontainer, palettedcontainerro);
-+                LevelChunkSection levelchunksection = new LevelChunkSection(palettedcontainer, palettedcontainerrw); // CraftBukkit - read/write
++                LevelChunkSection levelchunksection = new LevelChunkSection(palettedcontainer, palettedcontainerrw);
                  alevelchunksection[l] = levelchunksection;
                  SectionPos sectionpos = SectionPos.of(p_188233_, k);
                  p_188232_.checkConsistencyWithBlocks(sectionpos, levelchunksection);

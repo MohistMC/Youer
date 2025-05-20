@@ -1,7 +1,39 @@
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
-@@ -92,7 +_,7 @@
+@@ -7,7 +_,6 @@
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.DataResult.Error;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
+ import io.netty.handler.codec.DecoderException;
+ import io.netty.handler.codec.EncoderException;
+ import java.util.List;
+@@ -44,7 +_,6 @@
+ import net.minecraft.network.chat.ComponentUtils;
+ import net.minecraft.network.chat.HoverEvent;
+ import net.minecraft.network.chat.MutableComponent;
+-import net.minecraft.network.chat.Style;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.resources.RegistryOps;
+@@ -55,7 +_,6 @@
+ import net.minecraft.tags.DamageTypeTags;
+ import net.minecraft.tags.TagKey;
+ import net.minecraft.util.ExtraCodecs;
+-import net.minecraft.util.Mth;
+ import net.minecraft.util.NullOps;
+ import net.minecraft.util.Unit;
+ import net.minecraft.world.InteractionHand;
+@@ -90,9 +_,15 @@
+ import net.minecraft.world.level.block.state.pattern.BlockInWorld;
+ import net.minecraft.world.level.saveddata.maps.MapId;
  import org.apache.commons.lang3.mutable.MutableBoolean;
++import org.bukkit.craftbukkit.v1_21_R1.block.CapturedBlockState;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockState;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftLocation;
  import org.slf4j.Logger;
  
 -public final class ItemStack implements DataComponentHolder {
@@ -15,7 +47,7 @@
                  p_320527_.writeVarInt(p_320873_.getCount());
 +                // Spigot start - filter
 +                p_320873_ = p_320873_.copy();
-+                org.bukkit.craftbukkit.inventory.CraftItemStack.setItemMeta(p_320873_, org.bukkit.craftbukkit.inventory.CraftItemStack.getItemMeta(p_320873_));
++                CraftItemStack.setItemMeta(p_320873_, CraftItemStack.getItemMeta(p_320873_));
 +                // Spigot end
                  ITEM_STREAM_CODEC.encode(p_320527_, p_320873_.getItemHolder());
                  DataComponentPatch.STREAM_CODEC.encode(p_320527_, p_320873_.components.asPatch());
@@ -91,10 +123,10 @@
 +            this.restorePatch(oldData);
 +            if (enuminteractionresult.consumesAction() && world.captureTreeGeneration && world.capturedBlockStates.size() > 0) {
 +                world.captureTreeGeneration = false;
-+                org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(blockpos, world.getWorld());
++                org.bukkit.Location location = CraftLocation.toBukkit(blockpos, world.getWorld());
 +                org.bukkit.TreeType treeType = net.minecraft.world.level.block.SaplingBlock.treeType;
 +                net.minecraft.world.level.block.SaplingBlock.treeType = null;
-+                List<org.bukkit.craftbukkit.block.CraftBlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
++                List<CraftBlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
 +                world.capturedBlockStates.clear();
 +                org.bukkit.event.world.StructureGrowEvent structureEvent = null;
 +                if (treeType != null) {
@@ -103,7 +135,7 @@
 +                    org.bukkit.Bukkit.getPluginManager().callEvent(structureEvent);
 +                }
 +
-+                org.bukkit.event.block.BlockFertilizeEvent fertilizeEvent = new org.bukkit.event.block.BlockFertilizeEvent(org.bukkit.craftbukkit.block.CraftBlock.at(world, blockpos), (org.bukkit.entity.Player) player.getBukkitEntity(), (List<org.bukkit.block.BlockState>) (List<? extends org.bukkit.block.BlockState>) blocks);
++                org.bukkit.event.block.BlockFertilizeEvent fertilizeEvent = new org.bukkit.event.block.BlockFertilizeEvent(CraftBlock.at(world, blockpos), (org.bukkit.entity.Player) player.getBukkitEntity(), (List<org.bukkit.block.BlockState>) (List<? extends org.bukkit.block.BlockState>) blocks);
 +                fertilizeEvent.setCancelled(structureEvent != null && structureEvent.isCancelled());
 +                org.bukkit.Bukkit.getPluginManager().callEvent(fertilizeEvent);
 +
@@ -112,8 +144,8 @@
 +                        this.restorePatch(newData);
 +                        this.setCount(newCount);
 +                    }
-+                    for (org.bukkit.craftbukkit.block.CraftBlockState blockstate : blocks) {
-+                        org.bukkit.craftbukkit.block.CapturedBlockState.setBlockState(blockstate);
++                    for (CraftBlockState blockstate : blocks) {
++                        CapturedBlockState.setBlockState(blockstate);
 +                    }
 +                    player.awardStat(Stats.ITEM_USED.get(item));
 +                }
@@ -129,9 +161,9 @@
 +                List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
 +                world.capturedBlockStates.clear();
 +                if (blocks.size() > 1) {
-+                    placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockMultiPlaceEvent(world, player, enumhand, blocks, blockpos.getX(), blockpos.getY(), blockpos.getZ());
++                    placeEvent = CraftEventFactory.callBlockMultiPlaceEvent(world, player, enumhand, blocks, blockpos.getX(), blockpos.getY(), blockpos.getZ());
 +                } else if (blocks.size() == 1) {
-+                    placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPlaceEvent(world, player, enumhand, blocks.get(0), blockpos.getX(), blockpos.getY(), blockpos.getZ());
++                    placeEvent = CraftEventFactory.callBlockPlaceEvent(world, player, enumhand, blocks.get(0), blockpos.getX(), blockpos.getY(), blockpos.getZ());
 +                }
 +
 +                if (placeEvent != null && (placeEvent.isCancelled() || !placeEvent.canBuild())) {
@@ -143,7 +175,7 @@
 +                    }
 +                    world.preventPoiUpdated = false;
 +
-+                    BlockPos placedPos = ((org.bukkit.craftbukkit.block.CraftBlock) placeEvent.getBlock()).getPosition();
++                    BlockPos placedPos = ((CraftBlock) placeEvent.getBlock()).getPosition();
 +                    for (net.minecraft.core.Direction dir : net.minecraft.core.Direction.values()) {
 +                        ((net.minecraft.server.level.ServerPlayer) player).connection.send(new net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket(world, placedPos.relative(dir)));
 +                    }
@@ -159,9 +191,9 @@
 +                    }
 +
 +                    for (org.bukkit.block.BlockState blockstate : blocks) {
-+                        int updateFlag = ((org.bukkit.craftbukkit.block.CraftBlockState) blockstate).getFlag();
-+                        BlockState oldBlock = ((org.bukkit.craftbukkit.block.CraftBlockState) blockstate).getHandle();
-+                        BlockPos newblockposition = ((org.bukkit.craftbukkit.block.CraftBlockState) blockstate).getPosition();
++                        int updateFlag = ((CraftBlockState) blockstate).getFlag();
++                        BlockState oldBlock = ((CraftBlockState) blockstate).getHandle();
++                        BlockPos newblockposition = ((CraftBlockState) blockstate).getPosition();
 +                        BlockState block = world.getBlockState(newblockposition);
 +
 +                        if (!(block.getBlock() instanceof net.minecraft.world.level.block.BaseEntityBlock)) {
@@ -201,7 +233,7 @@
 +                    }
 +
 +                    if (placeEvent != null && this.item instanceof BedItem) {
-+                        BlockPos position = ((org.bukkit.craftbukkit.block.CraftBlock) placeEvent.getBlock()).getPosition();
++                        BlockPos position = ((CraftBlock) placeEvent.getBlock()).getPosition();
 +                        BlockState blockData = world.getBlockState(position);
 +
 +                        if (blockData.getBlock() instanceof net.minecraft.world.level.block.BedBlock) {
@@ -288,7 +320,7 @@
                  if (p_220158_ > 0) {
                      p_220158_ = EnchantmentHelper.processDurabilityChange(p_346256_, this, p_220158_);
 +                    if (p_220160_ instanceof ServerPlayer) {
-+                        org.bukkit.event.player.PlayerItemDamageEvent event = new org.bukkit.event.player.PlayerItemDamageEvent((org.bukkit.entity.Player) p_220160_.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(this), p_220158_);
++                        org.bukkit.event.player.PlayerItemDamageEvent event = new org.bukkit.event.player.PlayerItemDamageEvent((org.bukkit.entity.Player) p_220160_.getBukkitEntity(), CraftItemStack.asCraftMirror(this), p_220158_);
 +                        event.getPlayer().getServer().getPluginManager().callEvent(event);
 +
 +                        if (p_220158_ != event.getDamage() || event.isCancelled()) {
@@ -321,7 +353,7 @@
 +                p_41624_,
 +                p_348383_ -> {
 +                    if (this.count == 1 && p_41624_ instanceof ServerPlayer player) {
-+                        org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemBreakEvent(player, this);
++                        CraftEventFactory.callPlayerItemBreakEvent(player, this);
 +                    }
 +                    p_41624_.onEquippedItemBroken(p_348383_, p_319898_);
 +                }

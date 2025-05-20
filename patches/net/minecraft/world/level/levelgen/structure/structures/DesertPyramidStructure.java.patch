@@ -1,13 +1,32 @@
 --- a/net/minecraft/world/level/levelgen/structure/structures/DesertPyramidStructure.java
 +++ b/net/minecraft/world/level/levelgen/structure/structures/DesertPyramidStructure.java
+@@ -13,7 +_,6 @@
+ import net.minecraft.world.level.WorldGenLevel;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.entity.BlockEntityType;
+-import net.minecraft.world.level.block.entity.BrushableBlockEntity;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+ import net.minecraft.world.level.levelgen.structure.BoundingBox;
+ import net.minecraft.world.level.levelgen.structure.SinglePieceStructure;
+@@ -22,6 +_,10 @@
+ import net.minecraft.world.level.levelgen.structure.StructureType;
+ import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
+ import net.minecraft.world.level.storage.loot.BuiltInLootTables;
++import org.bukkit.craftbukkit.v1_21_R1.CraftLootTable;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockStates;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBrushableBlock;
++import org.bukkit.craftbukkit.v1_21_R1.util.TransformerGeneratorAccess;
+ 
+ public class DesertPyramidStructure extends SinglePieceStructure {
+     public static final MapCodec<DesertPyramidStructure> CODEC = simpleCodec(DesertPyramidStructure::new);
 @@ -66,6 +_,15 @@
  
      private static void placeSuspiciousSand(BoundingBox p_279472_, WorldGenLevel p_279193_, BlockPos p_279136_) {
          if (p_279472_.isInside(p_279136_)) {
 +            // CraftBukkit start
-+            if (p_279193_ instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess) {
-+                org.bukkit.craftbukkit.block.CraftBrushableBlock brushableState = (org.bukkit.craftbukkit.block.CraftBrushableBlock) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(p_279193_, p_279136_, Blocks.SUSPICIOUS_SAND.defaultBlockState(), null);
-+                brushableState.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(BuiltInLootTables.DESERT_PYRAMID_ARCHAEOLOGY));
++            if (p_279193_ instanceof TransformerGeneratorAccess transformerAccess) {
++                CraftBrushableBlock brushableState = (CraftBrushableBlock) CraftBlockStates.getBlockState(p_279193_, p_279136_, Blocks.SUSPICIOUS_SAND.defaultBlockState(), null);
++                brushableState.setLootTable(CraftLootTable.minecraftToBukkit(BuiltInLootTables.DESERT_PYRAMID_ARCHAEOLOGY));
 +                brushableState.setSeed(p_279136_.asLong());
 +                transformerAccess.setCraftBlock(p_279136_, brushableState, 2);
 +                return;

@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/entity/BellBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BellBlockEntity.java
+@@ -17,6 +_,7 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.AABB;
+ import org.apache.commons.lang3.mutable.MutableInt;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class BellBlockEntity extends BlockEntity {
+     private static final int DURATION = 50;
 @@ -131,7 +_,10 @@
      }
  
@@ -7,7 +15,7 @@
 -        p_155189_.stream().filter(p_155219_ -> isRaiderWithinRange(p_155188_, p_155219_)).forEach(BellBlockEntity::glow);
 +        // CraftBukkit start
 +        List<org.bukkit.entity.LivingEntity> entities = p_155189_.stream().filter(p_155219_ -> isRaiderWithinRange(p_155188_, p_155219_)).map((entity) -> (org.bukkit.entity.LivingEntity) entity.getBukkitEntity()).collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new)); // CraftBukkit
-+        org.bukkit.craftbukkit.event.CraftEventFactory.handleBellResonateEvent(p_155187_, p_155188_, entities).forEach(BellBlockEntity::glow);
++        CraftEventFactory.handleBellResonateEvent(p_155187_, p_155188_, entities).forEach(BellBlockEntity::glow);
 +        // CraftBukkit end
      }
  

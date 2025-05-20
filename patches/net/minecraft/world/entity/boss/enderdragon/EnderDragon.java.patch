@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
 +++ b/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
+@@ -49,6 +_,8 @@
+ import net.minecraft.world.level.pathfinder.Path;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ import org.slf4j.Logger;
+ 
+ public class EnderDragon extends Mob implements Enemy {
 @@ -87,6 +_,7 @@
      private final Node[] nodes = new Node[24];
      private final int[] nodeAdjacency = new int[24];
@@ -81,7 +90,7 @@
 +                        if (net.neoforged.neoforge.common.CommonHooks.canEntityDestroy(this.level(), blockpos, this) && !blockstate.is(BlockTags.DRAGON_IMMUNE)) {
 +                            // CraftBukkit start - Add blocks to list rather than destroying them
 +                            flag1 = true;
-+                            destroyedBlocks.add(org.bukkit.craftbukkit.block.CraftBlock.at(this.level(), blockpos));
++                            destroyedBlocks.add(CraftBlock.at(this.level(), blockpos));
 +                            // CraftBukkit end
                          } else {
                              flag = true;
@@ -96,7 +105,7 @@
 +            return flag;
 +        }
 +
-+        org.bukkit.event.entity.EntityExplodeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityExplodeEvent(this, destroyedBlocks, 0F, explosionSource.getBlockInteraction());
++        org.bukkit.event.entity.EntityExplodeEvent event = CraftEventFactory.callEntityExplodeEvent(this, destroyedBlocks, 0F, explosionSource.getBlockInteraction());
 +        if (event.isCancelled()) {
 +            // This flag literally means 'Dragon hit something hard' (Obsidian, White Stone or Bedrock) and will cause the dragon to slow down.
 +            // We should consider adding an event extension for it, or perhaps returning true if the event is cancelled.
@@ -113,7 +122,7 @@
 +                    continue;
 +                }
 +
-+                org.bukkit.craftbukkit.block.CraftBlock craftBlock = ((org.bukkit.craftbukkit.block.CraftBlock) block);
++                CraftBlock craftBlock = ((CraftBlock) block);
 +                BlockPos blockposition = craftBlock.getPosition();
 +
 +                net.minecraft.world.level.block.Block nmsBlock = craftBlock.getNMS().getBlock();

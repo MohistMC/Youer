@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/monster/Creeper.java
 +++ b/net/minecraft/world/entity/monster/Creeper.java
+@@ -40,6 +_,7 @@
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.gameevent.GameEvent;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class Creeper extends Monster implements PowerableMob {
+     private static final EntityDataAccessor<Integer> DATA_SWELL_DIR = SynchedEntityData.defineId(Creeper.class, EntityDataSerializers.INT);
 @@ -50,6 +_,7 @@
      public int maxSwell = 30;
      public int explosionRadius = 3;
@@ -13,7 +21,7 @@
      public void thunderHit(ServerLevel p_32286_, LightningBolt p_32287_) {
          super.thunderHit(p_32286_, p_32287_);
 +        // CraftBukkit start
-+        if (org.bukkit.craftbukkit.event.CraftEventFactory.callCreeperPowerEvent(this, p_32287_, org.bukkit.event.entity.CreeperPowerEvent.PowerCause.LIGHTNING).isCancelled()) {
++        if (CraftEventFactory.callCreeperPowerEvent(this, p_32287_, org.bukkit.event.entity.CreeperPowerEvent.PowerCause.LIGHTNING).isCancelled()) {
 +            return;
 +        }
 +        // CraftBukkit end
@@ -50,7 +58,7 @@
 -            this.triggerOnDeathMobEffects(Entity.RemovalReason.KILLED);
 -            this.discard();
 +            // CraftBukkit start
-+            org.bukkit.event.entity.ExplosionPrimeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExplosionPrimeEvent(this, this.explosionRadius * f, false);
++            org.bukkit.event.entity.ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent(this, this.explosionRadius * f, false);
 +            if (!event.isCancelled()) {
 +                // CraftBukkit end
 +                this.dead = true;

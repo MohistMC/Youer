@@ -1,11 +1,19 @@
 --- a/net/minecraft/world/level/block/AbstractCandleBlock.java
 +++ b/net/minecraft/world/level/block/AbstractCandleBlock.java
+@@ -22,6 +_,7 @@
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.phys.BlockHitResult;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public abstract class AbstractCandleBlock extends Block {
+     public static final int LIGHT_PER_CANDLE = 3;
 @@ -43,6 +_,11 @@
      @Override
      protected void onProjectileHit(Level p_151905_, BlockState p_151906_, BlockHitResult p_151907_, Projectile p_151908_) {
          if (!p_151905_.isClientSide && p_151908_.isOnFire() && this.canBeLit(p_151906_)) {
 +            // CraftBukkit start
-+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(p_151905_, p_151907_.getBlockPos(), p_151908_).isCancelled()) {
++            if (CraftEventFactory.callBlockIgniteEvent(p_151905_, p_151907_.getBlockPos(), p_151908_).isCancelled()) {
 +                return;
 +            }
 +            // CraftBukkit end

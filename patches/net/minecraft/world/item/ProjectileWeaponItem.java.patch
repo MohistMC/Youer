@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/item/ProjectileWeaponItem.java
 +++ b/net/minecraft/world/item/ProjectileWeaponItem.java
+@@ -15,6 +_,7 @@
+ import net.minecraft.world.entity.projectile.Projectile;
+ import net.minecraft.world.item.enchantment.EnchantmentHelper;
+ import net.minecraft.world.level.Level;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public abstract class ProjectileWeaponItem extends Item {
+     public static final Predicate<ItemStack> ARROW_ONLY = p_43017_ -> p_43017_.is(ItemTags.ARROWS);
 @@ -24,12 +_,42 @@
          super(p_43009_);
      }
@@ -50,7 +58,7 @@
 -                p_346125_.addFreshEntity(projectile);
 +                if (p_331167_ != null) {
 +                    // CraftBukkit start
-+                    org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(p_331167_, p_330646_, itemstack, projectile, p_331152_, p_331007_, true);
++                    org.bukkit.event.entity.EntityShootBowEvent event = CraftEventFactory.callEntityShootBowEvent(p_331167_, p_330646_, itemstack, projectile, p_331152_, p_331007_, true);
 +                    if (event.isCancelled()) {
 +                        event.getProjectile().remove();
 +                        return;

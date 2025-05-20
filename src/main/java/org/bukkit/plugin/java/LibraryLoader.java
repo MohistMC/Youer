@@ -5,8 +5,6 @@ import cn.mohistmc.youer.Youer;
 import cn.mohistmc.youer.bukkit.PluginsLibrarySource;
 import cn.mohistmc.youer.bukkit.remapping.RemappingURLClassLoader;
 import com.mohistmc.tools.ConnectionUtil;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.HashSet;
 import java.util.Set;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -52,7 +50,6 @@ class LibraryLoader {
                 dependencies.add(dependency);
             }
         }
-        var mohistLibs = mohistLibs();
 
         for (Dependency dependency : dependencies) {
             String group = dependency.group().replace(".", "/");
@@ -60,15 +57,13 @@ class LibraryLoader {
             if (has(dependency)) {
                 continue;
             }
-            if (!mohistLibs.contains(fileName)) {
-                if (dependency.version().equalsIgnoreCase("LATEST")) {
-                    newDependencies.add(findDependency(group, dependency.name(), false));
-                } else {
-                    newDependencies.add(dependency);
-                    String pomUrl = PluginsLibrarySource.DEFAULT + "%s/%s/%s/%s".formatted(group, dependency.name(), dependency.version(), fileName.replace("jar", "pom"));
-                    if (ConnectionUtil.isValid(pomUrl)) {
-                        newDependencies.addAll(initDependencies0(pomUrl));
-                    }
+            if (dependency.version().equalsIgnoreCase("LATEST")) {
+                newDependencies.add(findDependency(group, dependency.name(), false));
+            } else {
+                newDependencies.add(dependency);
+                String pomUrl = PluginsLibrarySource.DEFAULT + "%s/%s/%s/%s".formatted(group, dependency.name(), dependency.version(), fileName.replace("jar", "pom"));
+                if (ConnectionUtil.isValid(pomUrl)) {
+                    newDependencies.addAll(initDependencies0(pomUrl));
                 }
             }
         }
@@ -221,20 +216,6 @@ class LibraryLoader {
         }
 
         return list;
-    }
-
-    public List<String> mohistLibs() {
-        List<String> temp = new ArrayList<>();
-        BufferedReader b = new BufferedReader(new InputStreamReader(LibraryLoader.class.getClassLoader().getResourceAsStream("libraries.txt")));
-        String str;
-        try {
-            while ((str = b.readLine()) != null) {
-                String[] s = str.split("\\|");
-                temp.add(new File("libraries", s[0]).getName());
-            }
-            b.close();
-        } catch (Exception ignored) {}
-        return temp;
     }
 
     public boolean has(Dependency dependency) {

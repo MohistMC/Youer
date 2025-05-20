@@ -1,11 +1,27 @@
 --- a/net/minecraft/world/level/block/PointedDripstoneBlock.java
 +++ b/net/minecraft/world/level/block/PointedDripstoneBlock.java
+@@ -11,7 +_,6 @@
+ import net.minecraft.core.particles.ParticleOptions;
+ import net.minecraft.core.particles.ParticleTypes;
+ import net.minecraft.server.level.ServerLevel;
+-import net.minecraft.tags.FluidTags;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.damagesource.DamageSource;
+ import net.minecraft.world.entity.Entity;
+@@ -42,6 +_,7 @@
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.Shapes;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class PointedDripstoneBlock extends Block implements Fallable, SimpleWaterloggedBlock {
+     public static final MapCodec<PointedDripstoneBlock> CODEC = simpleCodec(PointedDripstoneBlock::new);
 @@ -139,6 +_,11 @@
                  && p_154045_.mayBreak(p_154042_)
                  && p_154045_ instanceof ThrownTrident
                  && p_154045_.getDeltaMovement().length() > 0.6) {
 +                // CraftBukkit start
-+                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_154045_, blockpos, Blocks.AIR.defaultBlockState())) {
++                if (!CraftEventFactory.callEntityChangeBlockEvent(p_154045_, blockpos, Blocks.AIR.defaultBlockState())) {
 +                    return;
 +                }
 +                // CraftBukkit end
@@ -68,7 +84,7 @@
              .setValue(WATERLOGGED, Boolean.valueOf(p_154088_.getFluidState(p_154089_).getType() == Fluids.WATER));
 -        p_154088_.setBlock(p_154089_, blockstate, 3);
 +
-+        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_154088_, source, p_154089_, blockstate, 3); // CraftBukkit
++        CraftEventFactory.handleBlockSpreadEvent(p_154088_, source, p_154089_, blockstate, 3); // CraftBukkit
      }
  
      private static void createMergedTips(BlockState p_154231_, LevelAccessor p_154232_, BlockPos p_154233_) {

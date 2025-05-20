@@ -1,19 +1,22 @@
 --- a/net/minecraft/world/level/block/FireBlock.java
 +++ b/net/minecraft/world/level/block/FireBlock.java
-@@ -6,6 +_,7 @@
+@@ -5,7 +_,7 @@
+ import it.unimi.dsi.fastutil.objects.Object2IntMap;
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  import java.util.Map;
- import java.util.Map.Entry;
+-import java.util.Map.Entry;
 +import java.util.concurrent.atomic.AtomicReference;
  import java.util.function.Function;
  import java.util.stream.Collectors;
  import net.minecraft.Util;
-@@ -29,6 +_,8 @@
+@@ -29,6 +_,10 @@
  import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
-+import org.bukkit.craftbukkit.block.CraftBlock;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockState;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockStates;
  
  public class FireBlock extends BaseFireBlock {
      public static final MapCodec<FireBlock> CODEC = simpleCodec(FireBlock::new);
@@ -30,7 +33,7 @@
 +            if (!(p_53461_ instanceof Level)) {
 +                return Blocks.AIR.defaultBlockState();
 +            }
-+            org.bukkit.craftbukkit.block.CraftBlockState blockState = org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(p_53461_, p_53462_);
++            CraftBlockState blockState = CraftBlockStates.getBlockState(p_53461_, p_53462_);
 +            blockState.setData(Blocks.AIR.defaultBlockState());
 +
 +            org.bukkit.event.block.BlockFadeEvent event = new org.bukkit.event.block.BlockFadeEvent(blockState.getBlock(), blockState);
@@ -139,7 +142,7 @@
 +
 +                                        // CraftBukkit start - Call to stop spread of fire
 +                                        if (p_221161_.getBlockState(blockpos$mutableblockpos).getBlock() != Blocks.FIRE) {
-+                                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(p_221161_, blockpos$mutableblockpos, p_221162_).isCancelled()) {
++                                            if (CraftEventFactory.callBlockIgniteEvent(p_221161_, blockpos$mutableblockpos, p_221162_).isCancelled()) {
 +                                                continue;
 +                                            }
 +
@@ -195,7 +198,7 @@
 +                return;
 +            }
 +
-+            if (iblockdata.getBlock() instanceof TntBlock && !org.bukkit.craftbukkit.event.CraftEventFactory.callTNTPrimeEvent(world, blockposition, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.FIRE, null, sourceposition.getAndSet(BlockPos.ZERO))) {
++            if (iblockdata.getBlock() instanceof TntBlock && !CraftEventFactory.callTNTPrimeEvent(world, blockposition, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.FIRE, null, sourceposition.getAndSet(BlockPos.ZERO))) {
 +                return;
 +            }
 +            // CraftBukkit end

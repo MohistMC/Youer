@@ -1,5 +1,6 @@
 package org.bukkit.inventory;
 
+import cn.mohistmc.youer.Youer;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
@@ -530,7 +531,10 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
         if (args.containsKey("amount")) {
             amount = ((Number) args.get("amount")).intValue();
         }
-
+        if (type == null) {
+            Youer.LOGGER.error(Youer.i18n.as("bukkit.ItemStack.typenull", args.get("type")));
+            type = Material.BROWN_MUSHROOM;
+        }
         ItemStack result = new ItemStack(type, amount, damage);
 
         if (args.containsKey("enchantments")) { // Backward compatiblity, @deprecated

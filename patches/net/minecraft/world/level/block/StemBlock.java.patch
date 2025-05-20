@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/level/block/StemBlock.java
 +++ b/net/minecraft/world/level/block/StemBlock.java
+@@ -3,7 +_,6 @@
+ import com.mojang.datafixers.DataFixUtils;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
+ import java.util.Optional;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+@@ -26,6 +_,7 @@
+ import net.minecraft.world.level.block.state.properties.IntegerProperty;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class StemBlock extends BushBlock implements BonemealableBlock {
+     public static final MapCodec<StemBlock> CODEC = RecordCodecBuilder.mapCodec(
 @@ -74,32 +_,38 @@
  
      @Override
@@ -21,7 +37,7 @@
 -                    p_222538_ = p_222538_.setValue(AGE, Integer.valueOf(i + 1));
 -                    p_222539_.setBlock(p_222540_, p_222538_, 2);
 +                    BlockState blockstate = p_222538_.setValue(AGE, Integer.valueOf(i + 1));
-+                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_222539_, p_222540_, blockstate, 2); // CraftBukkit
++                    CraftEventFactory.handleBlockGrowEvent(p_222539_, p_222540_, blockstate, 2); // CraftBukkit
                  } else {
                      Direction direction = Direction.Plane.HORIZONTAL.getRandomDirection(p_222541_);
                      BlockPos blockpos = p_222540_.relative(direction);
@@ -34,7 +50,7 @@
                          if (optional.isPresent() && optional1.isPresent()) {
 -                            p_222539_.setBlockAndUpdate(blockpos, optional.get().defaultBlockState());
 +                            // CraftBukkit start
-+                            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_222539_, blockpos, optional.get().defaultBlockState())) {
++                            if (!CraftEventFactory.handleBlockGrowEvent(p_222539_, blockpos, optional.get().defaultBlockState())) {
 +                                return;
 +                            }
 +                            // CraftBukkit end
@@ -51,7 +67,7 @@
          int i = Math.min(7, p_222531_.getValue(AGE) + Mth.nextInt(p_222528_.random, 2, 5));
          BlockState blockstate = p_222531_.setValue(AGE, Integer.valueOf(i));
 -        p_222528_.setBlock(p_222530_, blockstate, 2);
-+        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_222528_, p_222530_, blockstate, 2); // CraftBukkit
++        CraftEventFactory.handleBlockGrowEvent(p_222528_, p_222530_, blockstate, 2); // CraftBukkit
          if (i == 7) {
              blockstate.randomTick(p_222528_, p_222530_, p_222528_.random);
          }

@@ -1,5 +1,22 @@
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -15,7 +_,6 @@
+ import net.minecraft.world.ItemInteractionResult;
+ import net.minecraft.world.MenuProvider;
+ import net.minecraft.world.entity.EquipmentSlot;
+-import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.context.UseOnContext;
+ import net.minecraft.world.item.enchantment.EnchantmentHelper;
+@@ -27,6 +_,8 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.BlockHitResult;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ import org.slf4j.Logger;
+ 
+ public class ServerPlayerGameMode {
 @@ -54,12 +_,19 @@
          if (p_143474_ == this.gameModeForPlayer) {
              return false;
@@ -57,7 +74,7 @@
              if (p_215121_ == ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK) {
                  if (!this.level.mayInteract(this.player, p_215120_)) {
 +                    // CraftBukkit start - fire PlayerInteractEvent
-+                    org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(this.player, org.bukkit.event.block.Action.LEFT_CLICK_BLOCK, p_215120_, p_215122_, this.player.getInventory().getSelected(), InteractionHand.MAIN_HAND);
++                    CraftEventFactory.callPlayerInteractEvent(this.player, org.bukkit.event.block.Action.LEFT_CLICK_BLOCK, p_215120_, p_215122_, this.player.getInventory().getSelected(), InteractionHand.MAIN_HAND);
                      this.player.connection.send(new ClientboundBlockUpdatePacket(p_215120_, this.level.getBlockState(p_215120_)));
                      this.debugLogging(p_215120_, false, p_215124_, "may not interact");
 -                    return;
@@ -72,7 +89,7 @@
 +                }
 +
 +                // CraftBukkit start
-+                org.bukkit.event.player.PlayerInteractEvent eventCB = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(this.player, org.bukkit.event.block.Action.LEFT_CLICK_BLOCK, p_215120_, p_215122_, this.player.getInventory().getSelected(), InteractionHand.MAIN_HAND);
++                org.bukkit.event.player.PlayerInteractEvent eventCB = CraftEventFactory.callPlayerInteractEvent(this.player, org.bukkit.event.block.Action.LEFT_CLICK_BLOCK, p_215120_, p_215122_, this.player.getInventory().getSelected(), InteractionHand.MAIN_HAND);
 +                if (eventCB.isCancelled()) {
 +                    // Let the client know the block still exists
 +                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, p_215120_));
@@ -138,7 +155,7 @@
 +                    }
 +                    return;
 +                }
-+                org.bukkit.event.block.BlockDamageEvent blockEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockDamageEvent(this.player, p_215120_, this.player.getInventory().getSelected(), f >= 1.0f);
++                org.bukkit.event.block.BlockDamageEvent blockEvent = CraftEventFactory.callBlockDamageEvent(this.player, p_215120_, this.player.getInventory().getSelected(), f >= 1.0f);
 +                if (blockEvent.isCancelled()) {
 +                    // Let the client know the block still exists
 +                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, p_215120_));
@@ -166,7 +183,7 @@
                  this.level.destroyBlockProgress(this.player.getId(), p_215120_, -1);
                  this.debugLogging(p_215120_, true, p_215124_, "aborted destroying");
 +
-+                org.bukkit.craftbukkit.event.CraftEventFactory.callBlockDamageAbortEvent(this.player, p_215120_, this.player.getInventory().getSelected()); // CraftBukkit
++                CraftEventFactory.callBlockDamageAbortEvent(this.player, p_215120_, this.player.getInventory().getSelected()); // CraftBukkit
              }
          }
      }
@@ -176,7 +193,7 @@
          BlockState blockstate1 = this.level.getBlockState(p_9281_);
 -        if (!this.player.getMainHandItem().getItem().canAttackBlock(blockstate1, this.level, p_9281_, this.player)) {
 +        // CraftBukkit start - fire BlockBreakEvent
-+        org.bukkit.block.Block bblock = org.bukkit.craftbukkit.block.CraftBlock.at(level, p_9281_);
++        org.bukkit.block.Block bblock = CraftBlock.at(level, p_9281_);
 +        org.bukkit.event.block.BlockBreakEvent event = null;
 +
 +        // Sword + Creative mode pre-cancel
@@ -294,7 +311,7 @@
 +            }
 +            // CraftBukkit start
 +            if (event.isDropItems()) {
-+                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDropItemEvent(bblock, state, this.player, capturedDrops);
++                CraftEventFactory.handleBlockDropItemEvent(bblock, state, this.player, capturedDrops);
 +            }
 +            // Drop event experience
 +            if (flag && event != null) {

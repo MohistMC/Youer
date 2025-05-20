@@ -1,6 +1,13 @@
 --- a/net/minecraft/world/level/block/DropperBlock.java
 +++ b/net/minecraft/world/level/block/DropperBlock.java
-@@ -23,7 +_,7 @@
+@@ -18,12 +_,14 @@
+ import net.minecraft.world.level.block.entity.HopperBlockEntity;
+ import net.minecraft.world.level.block.state.BlockBehaviour;
+ import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventoryDoubleChest;
++import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
+ import org.slf4j.Logger;
+ 
  public class DropperBlock extends DispenserBlock {
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final MapCodec<DropperBlock> CODEC = simpleCodec(DropperBlock::new);
@@ -24,12 +31,12 @@
 -                        itemstack1 = HopperBlockEntity.addItem(dispenserblockentity, container, itemstack.copyWithCount(1), direction.getOpposite());
 -                        if (itemstack1.isEmpty()) {
 +                        // CraftBukkit start - Fire event when pushing items into other inventories
-+                        org.bukkit.craftbukkit.inventory.CraftItemStack oitemstack = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack.copyWithCount(1));
++                        CraftItemStack oitemstack = CraftItemStack.asCraftMirror(itemstack.copyWithCount(1));
 +
 +                        org.bukkit.inventory.Inventory destinationInventory;
 +                        // Have to special case large chests as they work oddly
 +                        if (container instanceof net.minecraft.world.CompoundContainer) {
-+                            destinationInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest((net.minecraft.world.CompoundContainer) container);
++                            destinationInventory = new CraftInventoryDoubleChest((net.minecraft.world.CompoundContainer) container);
 +                        } else {
 +                            destinationInventory = container.getOwner().getInventory();
 +                        }
@@ -39,7 +46,7 @@
 +                        if (event.isCancelled()) {
 +                            return;
 +                        }
-+                        itemstack1 = HopperBlockEntity.addItem(dispenserblockentity, container, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItem()), direction.getOpposite());
++                        itemstack1 = HopperBlockEntity.addItem(dispenserblockentity, container, CraftItemStack.asNMSCopy(event.getItem()), direction.getOpposite());
 +                        if (event.getItem().equals(oitemstack) && itemstack1.isEmpty()) {
 +                        // CraftBukkit end
                              itemstack1 = itemstack.copy();

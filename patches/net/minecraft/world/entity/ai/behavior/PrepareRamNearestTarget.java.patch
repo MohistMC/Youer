@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.java
 +++ b/net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.java
+@@ -18,13 +_,14 @@
+ import net.minecraft.world.entity.ai.Brain;
+ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+ import net.minecraft.world.entity.ai.memory.MemoryStatus;
+-import net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;
+ import net.minecraft.world.entity.ai.memory.WalkTarget;
+ import net.minecraft.world.entity.ai.navigation.PathNavigation;
+ import net.minecraft.world.entity.ai.targeting.TargetingConditions;
+ import net.minecraft.world.level.pathfinder.Path;
+ import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftLivingEntity;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class PrepareRamNearestTarget<E extends PathfinderMob> extends Behavior<E> {
+     public static final int TIME_OUT_DURATION = 160;
 @@ -73,7 +_,16 @@
          Brain<?> brain = p_147737_.getBrain();
          brain.getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)
@@ -7,11 +23,11 @@
 -            .ifPresent(p_147778_ -> this.chooseRamPosition(p_147737_, p_147778_));
 +            .ifPresent(p_147778_ -> {
 +                // CraftBukkit start
-+                org.bukkit.event.entity.EntityTargetEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(p_147737_, p_147778_, (p_147778_ instanceof net.minecraft.server.level.ServerPlayer) ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER : org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
++                org.bukkit.event.entity.EntityTargetEvent event = CraftEventFactory.callEntityTargetLivingEvent(p_147737_, p_147778_, (p_147778_ instanceof net.minecraft.server.level.ServerPlayer) ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER : org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
 +                if (event.isCancelled() || event.getTarget() == null) {
 +                    return;
 +                }
-+                p_147778_ = ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle();
++                p_147778_ = ((CraftLivingEntity) event.getTarget()).getHandle();
 +                // CraftBukkit end
 +                this.chooseRamPosition(p_147737_, p_147778_);
 +            });

@@ -69,15 +69,16 @@
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
-@@ -164,7 +_,13 @@
+@@ -164,7 +_,14 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.craftbukkit.util.WorldUUID;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.util.WorldUUID;
 +import org.bukkit.entity.HumanEntity;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.weather.LightningStrikeEvent;
++import org.bukkit.event.world.TimeSkipEvent;
  import org.slf4j.Logger;
 +import org.spigotmc.SpigotWorldConfig;
  
@@ -177,12 +178,24 @@
      }
  
      @Deprecated
-@@ -342,7 +_,7 @@
+@@ -342,7 +_,19 @@
          if (this.sleepStatus.areEnoughSleeping(i) && this.sleepStatus.areEnoughDeepSleeping(i, this.players)) {
              if (this.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)) {
                  long j = this.levelData.getDayTime() + 24000L;
 -                this.setDayTime(j - j % 24000L);
-+                this.setDayTime(net.neoforged.neoforge.event.EventHooks.onSleepFinished(this, j - j % 24000L, this.getDayTime()));
++                // CraftBukkit start
++                TimeSkipEvent event = new TimeSkipEvent(this.getWorld(), TimeSkipEvent.SkipReason.NIGHT_SKIP, net.neoforged.neoforge.event.EventHooks.onSleepFinished(this, j - j % 24000L, this.getDayTime()));
++                if (this.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)) {
++                    this.getCraftServer().getPluginManager().callEvent(event);
++                    if (!event.isCancelled()) {
++                        this.setDayTime(this.getDayTime() + event.getSkipAmount());
++                    }
++                }
++
++                if (!event.isCancelled()) {
++                    this.wakeUpAllPlayers();
++                }
++                // CraftBukkit end
              }
  
              this.wakeUpAllPlayers();
@@ -195,6 +208,15 @@
          if (flag1) {
              this.resetEmptyTime();
          }
+@@ -392,7 +_,7 @@
+                 this.dragonFight.tick();
+                 profilerfiller.pop();
+             }
+-
++            org.spigotmc.ActivationRange.activateEntities(this); // Spigot
+             this.entityTickList.forEach(p_308566_ -> {
+                 if (!p_308566_.isRemoved()) {
+                     if (this.shouldDiscardEntity(p_308566_)) {
 @@ -412,7 +_,9 @@
                              }
  
@@ -206,6 +228,14 @@
                              profilerfiller.pop();
                          }
                      }
+@@ -420,6 +_,7 @@
+             });
+             profilerfiller.pop();
+             this.tickBlockEntities();
++            spigotConfig.currentPrimedTnt = 0; // Spigot // Mohist move form Level#tickBlockEntities
+         }
+ 
+         profilerfiller.push("entityManagement");
 @@ -438,7 +_,7 @@
              this.serverLevelData.setGameTime(i);
              this.serverLevelData.getScheduledEvents().tick(this.server, i);
@@ -224,21 +254,26 @@
              BlockPos blockpos = this.findLightningTargetAround(this.getBlockRandomPos(i, 0, j, 15));
              if (this.isRainingAt(blockpos)) {
                  DifficultyInstance difficultyinstance = this.getCurrentDifficultyAt(blockpos);
-@@ -484,7 +_,7 @@
+@@ -484,6 +_,7 @@
                          skeletonhorse.setTrap(true);
                          skeletonhorse.setAge(0);
                          skeletonhorse.setPos((double)blockpos.getX(), (double)blockpos.getY(), (double)blockpos.getZ());
--                        this.addFreshEntity(skeletonhorse);
-+                        this.addFreshEntity(skeletonhorse, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING); // CraftBukkit
++                        skeletonhorse.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING);
+                         this.addFreshEntity(skeletonhorse);
                      }
                  }
- 
-@@ -492,7 +_,7 @@
+@@ -492,7 +_,14 @@
                  if (lightningbolt != null) {
                      lightningbolt.moveTo(Vec3.atBottomCenterOf(blockpos));
                      lightningbolt.setVisualOnly(flag1);
--                    this.addFreshEntity(lightningbolt);
-+                    this.strikeLightning(lightningbolt, org.bukkit.event.weather.LightningStrikeEvent.Cause.WEATHER); // CraftBukkit
++                    // Youer start - fix mixin
++                    LightningStrikeEvent lightning = CraftEventFactory.callLightningStrikeEvent((org.bukkit.entity.LightningStrike) lightningbolt.getBukkitEntity(), org.bukkit.event.weather.LightningStrikeEvent.Cause.WEATHER);
++
++                    if (lightning.isCancelled()) {
++                        return;
++                    }
+                     this.addFreshEntity(lightningbolt);
++                    // Youer end
                  }
              }
          }
@@ -249,7 +284,7 @@
 +        if (this.isAreaLoaded(blockpos1, 1)) // Forge: check area to avoid loading neighbors in unloaded chunks
          if (biome.shouldFreeze(this, blockpos1)) {
 -            this.setBlockAndUpdate(blockpos1, Blocks.ICE.defaultBlockState());
-+            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this, blockpos1, Blocks.ICE.defaultBlockState(), null); // CraftBukkit
++            CraftEventFactory.handleBlockFormEvent(this, blockpos1, Blocks.ICE.defaultBlockState(), null); // CraftBukkit
          }
  
          if (this.isRaining()) {
@@ -258,11 +293,11 @@
                          BlockState blockstate1 = blockstate.setValue(SnowLayerBlock.LAYERS, Integer.valueOf(j + 1));
                          Block.pushEntitiesUp(blockstate, blockstate1, this, blockpos);
 -                        this.setBlockAndUpdate(blockpos, blockstate1);
-+                        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this, blockpos, blockstate1, null); // CraftBukkit
++                        CraftEventFactory.handleBlockFormEvent(this, blockpos, blockstate1, null); // CraftBukkit
                      }
                  } else {
 -                    this.setBlockAndUpdate(blockpos, Blocks.SNOW.defaultBlockState());
-+                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this, blockpos, Blocks.SNOW.defaultBlockState(), null); // CraftBukkit
++                    CraftEventFactory.handleBlockFormEvent(this, blockpos, Blocks.SNOW.defaultBlockState(), null); // CraftBukkit
                  }
              }
  
@@ -290,14 +325,17 @@
          }
      }
  
-@@ -753,12 +_,24 @@
+@@ -753,12 +_,27 @@
      }
  
      public void tickNonPassenger(Entity p_8648_) {
 +        // Spigot start
 +        if (!org.spigotmc.ActivationRange.checkIfActive(p_8648_)) {
 +            p_8648_.tickCount++;
-+            p_8648_.inactiveTick();
++            if (!net.neoforged.neoforge.event.EventHooks.fireEntityTickPre(p_8648_).isCanceled()) { // Youer
++                p_8648_.inactiveTick();
++                net.neoforged.neoforge.event.EventHooks.fireEntityTickPost(p_8648_);
++            }
 +            return;
 +        }
 +        // Spigot end
@@ -324,7 +362,7 @@
                  p_8644_.progressStartNoAbort(Component.translatable("menu.savingLevel"));
              }
  
-@@ -807,6 +_,10 @@
+@@ -807,12 +_,20 @@
              } else {
                  this.entityManager.autoSave();
              }
@@ -335,6 +373,17 @@
          }
      }
  
+     private void saveLevelData() {
+         if (this.dragonFight != null) {
+-            this.server.getWorldData().setEndDragonFightData(this.dragonFight.saveData());
++            if (K != null) {
++                this.K.setEndDragonFightData(this.dragonFight.saveData()); // CraftBukkit
++            } else {
++                this.server.getWorldData().setEndDragonFightData(this.dragonFight.saveData());
++            }
+         }
+ 
+         this.getChunkSource().getDataStorage().save();
 @@ -870,22 +_,45 @@
          return list.isEmpty() ? null : list.get(this.random.nextInt(list.size()));
      }
@@ -618,6 +667,21 @@
              this.updateNeighborsAt(p_8743_, p_8744_);
          }
      }
+@@ -1544,12 +_,12 @@
+     }
+ 
+     public boolean isFlat() {
+-        return this.server.getWorldData().isFlatWorld();
++        return this.K == null ?  this.server.getWorldData().isFlatWorld() : this.K.isFlatWorld(); // CraftBukkit // Mohist
+     }
+ 
+     @Override
+     public long getSeed() {
+-        return this.server.getWorldData().worldGenOptions().seed();
++        return this.K == null ?  this.server.getWorldData().worldGenOptions().seed() : this.K.worldGenOptions().seed(); // CraftBukkit // Mohist
+     }
+ 
+     @Nullable
 @@ -1713,8 +_,8 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }

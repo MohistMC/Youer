@@ -1,5 +1,19 @@
 --- a/net/minecraft/world/entity/animal/SnowGolem.java
 +++ b/net/minecraft/world/entity/animal/SnowGolem.java
+@@ -31,12 +_,12 @@
+ import net.minecraft.world.entity.projectile.Snowball;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.Items;
+-import net.minecraft.world.level.GameRules;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class SnowGolem extends AbstractGolem implements Shearable, RangedAttackMob {
+     private static final EntityDataAccessor<Byte> DATA_PUMPKIN_ID = SynchedEntityData.defineId(SnowGolem.class, EntityDataSerializers.BYTE);
 @@ -89,10 +_,10 @@
          super.aiStep();
          if (!this.level().isClientSide) {
@@ -19,7 +33,7 @@
                  if (this.level().getBlockState(blockpos).isAir() && blockstate.canSurvive(this.level(), blockpos)) {
 -                    this.level().setBlockAndUpdate(blockpos, blockstate);
 +                    // CraftBukkit start
-+                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this.level(), blockpos, blockstate, this)) {
++                    if (!CraftEventFactory.handleBlockFormEvent(this.level(), blockpos, blockstate, this)) {
 +                        continue;
 +                    }
 +                    // CraftBukkit end
@@ -33,7 +47,7 @@
 -        if (itemstack.is(Items.SHEARS) && this.readyForShearing()) {
 +        if (false && itemstack.is(Items.SHEARS) && this.readyForShearing()) { // Neo: Shear logic is handled by IShearable
 +            // CraftBukkit start
-+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(p_29920_, this, itemstack, p_29921_)) {
++            if (!CraftEventFactory.handlePlayerShearEntityEvent(p_29920_, this, itemstack, p_29921_)) {
 +                return InteractionResult.PASS;
 +            }
 +            // CraftBukkit end

@@ -1,5 +1,22 @@
 --- a/net/minecraft/world/level/block/SpongeBlock.java
 +++ b/net/minecraft/world/level/block/SpongeBlock.java
+@@ -1,7 +_,6 @@
+ package net.minecraft.world.level.block;
+ 
+ import com.mojang.serialization.MapCodec;
+-import java.util.function.Consumer;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.sounds.SoundEvents;
+@@ -12,6 +_,8 @@
+ import net.minecraft.world.level.block.state.BlockBehaviour;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.material.FluidState;
++import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockState;
++import org.bukkit.craftbukkit.v1_21_R1.util.BlockStateListPopulator;
+ 
+ public class SpongeBlock extends Block {
+     public static final MapCodec<SpongeBlock> CODEC = simpleCodec(SpongeBlock::new);
 @@ -49,7 +_,10 @@
      }
  
@@ -7,7 +24,7 @@
 -        return BlockPos.breadthFirstTraversal(
 +        BlockState spongeState = p_56808_.getBlockState(p_56809_);
 +        // CraftBukkit start - Use BlockStateListPopulator
-+        org.bukkit.craftbukkit.util.BlockStateListPopulator blockList = new org.bukkit.craftbukkit.util.BlockStateListPopulator(p_56808_);
++        BlockStateListPopulator blockList = new BlockStateListPopulator(p_56808_);
 +        BlockPos.breadthFirstTraversal(
                  p_56809_,
                  6,
@@ -55,7 +72,7 @@
 +            }
 +        );
 +
-+        java.util.List<org.bukkit.craftbukkit.block.CraftBlockState> blocks = blockList.getList(); // Is a clone
++        java.util.List<CraftBlockState> blocks = blockList.getList(); // Is a clone
 +        if (!blocks.isEmpty()) {
 +            final org.bukkit.block.Block bblock = p_56808_.getWorld().getBlockAt(p_56809_.getX(), p_56809_.getY(), p_56809_.getZ());
 +
@@ -66,7 +83,7 @@
 +                return false;
 +            }
 +
-+            for (org.bukkit.craftbukkit.block.CraftBlockState block : blocks) {
++            for (CraftBlockState block : blocks) {
 +                BlockPos blockPos = block.getPosition();
 +                BlockState blockState = p_56808_.getBlockState(blockPos);
 +                FluidState fluidState = p_56808_.getFluidState(blockPos);

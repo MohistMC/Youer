@@ -1,11 +1,27 @@
 --- a/net/minecraft/world/level/block/CoralFanBlock.java
 +++ b/net/minecraft/world/level/block/CoralFanBlock.java
+@@ -2,7 +_,6 @@
+ 
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -12,6 +_,7 @@
+ import net.minecraft.world.level.block.state.BlockBehaviour;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.material.Fluids;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class CoralFanBlock extends BaseCoralFanBlock {
+     public static final MapCodec<CoralFanBlock> CODEC = RecordCodecBuilder.mapCodec(
 @@ -38,6 +_,11 @@
      @Override
      protected void tick(BlockState p_221025_, ServerLevel p_221026_, BlockPos p_221027_, RandomSource p_221028_) {
          if (!scanForWater(p_221025_, p_221026_, p_221027_)) {
 +            // CraftBukkit start
-+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(p_221026_, p_221027_, this.deadBlock.defaultBlockState().setValue(CoralFanBlock.WATERLOGGED, false)).isCancelled()) {
++            if (CraftEventFactory.callBlockFadeEvent(p_221026_, p_221027_, this.deadBlock.defaultBlockState().setValue(CoralFanBlock.WATERLOGGED, false)).isCancelled()) {
 +                return;
 +            }
 +            // CraftBukkit end

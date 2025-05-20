@@ -1,10 +1,20 @@
 --- a/net/minecraft/world/level/block/SaplingBlock.java
 +++ b/net/minecraft/world/level/block/SaplingBlock.java
-@@ -17,6 +_,7 @@
+@@ -2,7 +_,6 @@
+ 
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.RandomSource;
+@@ -17,6 +_,9 @@
  import net.minecraft.world.level.block.state.properties.IntegerProperty;
  import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.VoxelShape;
 +import org.bukkit.TreeType;
++import org.bukkit.craftbukkit.v1_21_R1.block.CapturedBlockState;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftLocation;
  
  public class SaplingBlock extends BushBlock implements BonemealableBlock {
      public static final MapCodec<SaplingBlock> CODEC = RecordCodecBuilder.mapCodec(
@@ -40,7 +50,7 @@
 +                if (p_222001_.capturedBlockStates.size() > 0) {
 +                    org.bukkit.TreeType treeType = SaplingBlock.treeType;
 +                    SaplingBlock.treeType = null;
-+                    org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(p_222002_, p_222001_.getWorld());
++                    org.bukkit.Location location = CraftLocation.toBukkit(p_222002_, p_222001_.getWorld());
 +                    java.util.List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(p_222001_.capturedBlockStates.values());
 +                    p_222001_.capturedBlockStates.clear();
 +                    org.bukkit.event.world.StructureGrowEvent event = null;
@@ -50,7 +60,7 @@
 +                    }
 +                    if (event == null || !event.isCancelled()) {
 +                        for (org.bukkit.block.BlockState blockstate : blocks) {
-+                            org.bukkit.craftbukkit.block.CapturedBlockState.setBlockState(blockstate);
++                            CapturedBlockState.setBlockState(blockstate);
 +                        }
 +                    }
 +                }

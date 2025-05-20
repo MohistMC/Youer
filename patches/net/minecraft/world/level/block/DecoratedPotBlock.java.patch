@@ -1,11 +1,28 @@
 --- a/net/minecraft/world/level/block/DecoratedPotBlock.java
 +++ b/net/minecraft/world/level/block/DecoratedPotBlock.java
+@@ -2,8 +_,6 @@
+ 
+ import com.mojang.serialization.MapCodec;
+ import java.util.List;
+-import java.util.Optional;
+-import java.util.function.Consumer;
+ import java.util.stream.Stream;
+ import javax.annotation.Nullable;
+ import net.minecraft.ChatFormatting;
+@@ -55,6 +_,7 @@
+ import net.minecraft.world.phys.BlockHitResult;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+ 
+ public class DecoratedPotBlock extends BaseEntityBlock implements SimpleWaterloggedBlock {
+     public static final MapCodec<DecoratedPotBlock> CODEC = simpleCodec(DecoratedPotBlock::new);
 @@ -243,6 +_,11 @@
      protected void onProjectileHit(Level p_306322_, BlockState p_306005_, BlockHitResult p_306105_, Projectile p_305851_) {
          BlockPos blockpos = p_306105_.getBlockPos();
          if (!p_306322_.isClientSide && p_305851_.mayInteract(p_306322_, blockpos) && p_305851_.mayBreak(p_306322_)) {
 +            // CraftBukkit start - call EntityChangeBlockEvent
-+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(p_305851_, blockpos, this.getFluidState(p_306005_).createLegacyBlock())) {
++            if (!CraftEventFactory.callEntityChangeBlockEvent(p_305851_, blockpos, this.getFluidState(p_306005_).createLegacyBlock())) {
 +                return;
 +            }
 +            // CraftBukkit end

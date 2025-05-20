@@ -8,12 +8,17 @@
  import java.util.function.Predicate;
  import javax.annotation.Nullable;
  import net.minecraft.core.BlockPos;
-@@ -41,6 +_,8 @@
+@@ -41,6 +_,13 @@
  import net.minecraft.world.level.LevelAccessor;
  import net.minecraft.world.level.dimension.DimensionType;
  import net.minecraft.world.level.saveddata.SavedData;
-+import org.bukkit.craftbukkit.CraftServer;
-+import org.bukkit.craftbukkit.map.CraftMapView;
++import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
++import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
++import org.bukkit.craftbukkit.v1_21_R1.map.CraftMapView;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
++import org.bukkit.craftbukkit.v1_21_R1.map.CraftMapCursor;
++import org.bukkit.craftbukkit.v1_21_R1.map.RenderData;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage;
  import org.slf4j.Logger;
  
  public class MapItemSavedData extends SavedData {
@@ -57,7 +62,7 @@
 +                if (least != 0L && most != 0L) {
 +                    java.util.UUID uniqueId = new java.util.UUID(most, least);
 +
-+                    org.bukkit.craftbukkit.CraftWorld world = (org.bukkit.craftbukkit.CraftWorld) org.bukkit.Bukkit.getWorld(uniqueId);
++                    CraftWorld world = (CraftWorld) org.bukkit.Bukkit.getWorld(uniqueId);
 +                    // Check if the stored world details are correct.
 +                    if (world == null) {
 +                        /* All Maps which do not have their valid world loaded are set to a dimension which hopefully won't be reached.
@@ -92,7 +97,7 @@
 +        if (true) {
 +            if (this.uniqueId == null) {
 +                for (org.bukkit.World world : server.getWorlds()) {
-+                    org.bukkit.craftbukkit.CraftWorld cWorld = (org.bukkit.craftbukkit.CraftWorld) world;
++                    CraftWorld cWorld = (CraftWorld) world;
 +                    if (cWorld.getHandle().dimension() == this.dimension) {
 +                        this.uniqueId = cWorld.getUID();
 +                        break;
@@ -133,7 +138,7 @@
  
          private MapItemSavedData.MapPatch createPatch() {
 +            // CraftBukkit start
-+            org.bukkit.craftbukkit.map.RenderData render = MapItemSavedData.this.mapView.render((org.bukkit.craftbukkit.entity.CraftPlayer) this.player.getBukkitEntity());
++            RenderData render = MapItemSavedData.this.mapView.render((CraftPlayer) this.player.getBukkitEntity());
 +            byte[] buffer = render.buffer;
 +
              int i = this.minDirtyX;
@@ -154,7 +159,7 @@
  
          @Nullable
          Packet<?> nextUpdatePacket(MapId p_324558_) {
-+            org.bukkit.craftbukkit.map.RenderData render = MapItemSavedData.this.mapView.render((org.bukkit.craftbukkit.entity.CraftPlayer) this.player.getBukkitEntity()); // CraftBukkit
++            RenderData render = MapItemSavedData.this.mapView.render((CraftPlayer) this.player.getBukkitEntity()); // CraftBukkit
 +
              MapItemSavedData.MapPatch mapitemsaveddata$mappatch;
              if (this.dirtyData) {
@@ -174,11 +179,11 @@
 +                for (org.bukkit.map.MapCursor cursor : render.cursors) {
 +                    if (cursor.isVisible()) {
 +                        icons.add(new MapDecoration(
-+                            org.bukkit.craftbukkit.map.CraftMapCursor.CraftType.bukkitToMinecraftHolder(cursor.getType()),
++                            CraftMapCursor.CraftType.bukkitToMinecraftHolder(cursor.getType()),
 +                            cursor.getX(),
 +                            cursor.getY(),
 +                            cursor.getDirection(),
-+                            org.bukkit.craftbukkit.util.CraftChatMessage.fromStringOrOptional(cursor.getCaption())
++                            CraftChatMessage.fromStringOrOptional(cursor.getCaption())
 +                        ));
 +                    }
 +                }

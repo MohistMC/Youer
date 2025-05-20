@@ -7,7 +7,7 @@ import cn.mohistmc.youer.util.StackTraceUtil;
 import java.util.HashMap;
 import java.util.Map;
 import org.bukkit.ChatColor;
-import org.bukkit.craftbukkit.entity.CraftHumanEntity;
+import org.bukkit.craftbukkit.v1_21_R1.entity.CraftHumanEntity;
 
 public class PermissionUtils {
 
