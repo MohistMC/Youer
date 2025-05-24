@@ -16,13 +16,13 @@ import org.bukkit.inventory.InventoryHolder;
  * @author Mgazul by MohistMC
  * @date 2023/7/10 22:30:10
  */
-public class MohistModsInventory implements Container {
+public class YouerModsInventory implements Container {
 
     private final AbstractContainerMenu container;
     private final InventoryHolder owner;
     private final List<HumanEntity> viewers = new ArrayList<>();
 
-    public MohistModsInventory(AbstractContainerMenu container, Player owner) {
+    public YouerModsInventory(AbstractContainerMenu container, Player owner) {
         this.container = container;
         this.owner = owner.getBukkitEntity();
     }

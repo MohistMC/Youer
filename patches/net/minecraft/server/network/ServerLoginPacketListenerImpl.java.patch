@@ -158,7 +158,7 @@
              }
          }
      }
-@@ -137,9 +_,21 @@
+@@ -137,9 +_,34 @@
  
      private void verifyLoginAndFinishConnectionSetup(GameProfile p_294502_) {
          PlayerList playerlist = this.server.getPlayerList();
@@ -171,7 +171,20 @@
 +            if (this.player.getBukkitEntity().isAwaitingCookies()) {
 +                this.state = ServerLoginPacketListenerImpl.State.WAITING_FOR_COOKIES;
 +            } else {
-+                this.postCookies(p_294502_);
++                if (this.server.getCompressionThreshold() >= 0 && !this.connection.isMemoryConnection()) {
++                    this.connection
++                            .send(
++                                    new ClientboundLoginCompressionPacket(this.server.getCompressionThreshold()),
++                                    PacketSendListener.thenRun(() -> this.connection.setupCompression(this.server.getCompressionThreshold(), true))
++                            );
++                }
++
++                boolean flag = playerlist.disconnectAllPlayersWithProfile(p_294502_, this.player); // CraftBukkit - add player reference
++                if (flag) {
++                    this.state = ServerLoginPacketListenerImpl.State.WAITING_FOR_DUPE_DISCONNECT;
++                } else {
++                    this.finishLoginAndWaitForClient(p_294502_);
++                }
 +            }
 +        }
 +    }

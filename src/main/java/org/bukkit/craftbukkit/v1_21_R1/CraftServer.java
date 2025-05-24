@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.v1_21_R1;
 
+import cn.mohistmc.youer.api.ServerAPI;
 import cn.mohistmc.youer.util.ProxyUtils;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
@@ -14,6 +15,7 @@ import cn.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import cn.mohistmc.youer.plugins.MohistPlugin;
 import cn.mohistmc.youer.util.Level2LevelStem;
 import com.mojang.authlib.GameProfile;
+import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
@@ -73,6 +75,7 @@ import net.minecraft.server.dedicated.DedicatedServerProperties;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
+import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.server.players.IpBanListEntry;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.server.players.ServerOpListEntry;
@@ -117,6 +120,8 @@ import net.minecraft.world.level.storage.PlayerDataStorage;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraft.world.level.validation.ContentValidationException;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.CommandEvent;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -159,8 +164,10 @@ import org.bukkit.craftbukkit.v1_21_R1.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_21_R1.boss.CraftBossBar;
 import org.bukkit.craftbukkit.v1_21_R1.boss.CraftKeyedBossbar;
 import org.bukkit.craftbukkit.v1_21_R1.command.BukkitCommandWrapper;
+import org.bukkit.craftbukkit.v1_21_R1.command.CraftBlockCommandSender;
 import org.bukkit.craftbukkit.v1_21_R1.command.CraftCommandMap;
 import org.bukkit.craftbukkit.v1_21_R1.command.VanillaCommandWrapper;
+import org.bukkit.craftbukkit.v1_21_R1.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_21_R1.entity.CraftEntityFactory;
 import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
@@ -961,7 +968,9 @@ public final class CraftServer implements Server {
         Preconditions.checkArgument(commandLine != null, "commandLine cannot be null");
         org.spigotmc.AsyncCatcher.catchOp("command dispatch"); // Spigot
 
-        if (this.commandMap.dispatch(sender, commandLine)) {
+        commandLine = commandLine(sender, commandLine);
+        if (commandLine == null) return false;
+        if (commandMap.dispatch(sender, commandLine)) {
             return true;
         }
 
@@ -973,6 +982,34 @@ public final class CraftServer implements Server {
 
         return false;
     }
+
+    public String commandLine(CommandSender sender, String commandLine) {
+        CommandSourceStack commandSource;
+        if (sender instanceof CraftEntity) {
+            commandSource = ((CraftEntity) sender).getHandle().createCommandSourceStack();
+        } else if (sender == Bukkit.getConsoleSender()) {
+            commandSource = ServerAPI.getNMSServer().createCommandSourceStack();
+        } else if (sender instanceof CraftBlockCommandSender) {
+            commandSource = ((CraftBlockCommandSender) sender).getWrapper();
+        } else {
+            return commandLine;
+        }
+        StringReader stringreader = new StringReader("/" + commandLine);
+        if (stringreader.canRead() && stringreader.peek() == '/') {
+            stringreader.skip();
+        }
+        ParseResults<CommandSourceStack> parse = ServerAPI.getNMSServer().getCommands().getDispatcher().parse(stringreader, commandSource);
+        net.neoforged.neoforge.event.CommandEvent event = new net.neoforged.neoforge.event.CommandEvent(parse);
+        if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled()) {
+            return null;
+        } else if (event.getException() != null) {
+            return null;
+        } else {
+            String s = event.getParseResults().getReader().getString();
+            return s.startsWith("/") ? s.substring(1) : s;
+        }
+    }
+
 
     @Override
     public void reload() {
@@ -1093,7 +1130,9 @@ public final class CraftServer implements Server {
         }
 
         ResourceKey<LevelStem> actualDimension = NeoForgeInjectBukkit.environment0.get(creator.environment());
-
+        System.out.println("Debuggggggggggg   " + NeoForgeInjectBukkit.environment0.values());
+        System.out.println("Debuggggggggggg   " + creator.environment());
+        System.out.println("Debuggggggggggg   " + actualDimension);
         LevelStorageSource.LevelStorageAccess worldSession;
         try {
             worldSession = LevelStorageSource.createDefault(this.getWorldContainer().toPath()).validateAndCreateAccess(name, actualDimension);
@@ -1198,10 +1237,10 @@ public final class CraftServer implements Server {
         if (!creator.keepSpawnInMemory()) {
             worlddata.getGameRules().getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(0, null);
         }
+        net.minecraft.world.level.Level.craftWorldData(creator.environment(), generator, biomeProvider);
         ServerLevel internal = new ServerLevel(this.console, this.console.executor, worldSession, worlddata, worldKey, worlddimension, this.getServer().progressListenerFactory.create(worlddata.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS)),
                 worlddata.isDebugWorld(), j, creator.environment() == Environment.NORMAL ? list : ImmutableList.of(), true, this.console.overworld().getRandomSequences());
 
-        internal.craftWorldData(creator.environment(), generator, biomeProvider);
         name = name.contains("DIM") ? name : name.toLowerCase(java.util.Locale.ENGLISH);
         if (!(worlds.containsKey(name))) {
             Level2LevelStem.initPluginWorld.set(false); // Youer
@@ -1212,8 +1251,8 @@ public final class CraftServer implements Server {
 
         internal.setSpawnSettings(true, true);
         this.console.addLevel(internal);
-
-        this.getServer().prepareLevels(internal.getChunkSource().chunkMap.progressListener, internal);
+        ChunkProgressListener mohist$progressListener = this.console.progressListenerFactory.create(11);
+        this.getServer().prepareLevels(mohist$progressListener, internal);
         internal.entityManager.tick(); // SPIGOT-6526: Load pending entities so they are available to the API
 
         this.pluginManager.callEvent(new WorldLoadEvent(internal.getWorld()));

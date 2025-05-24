@@ -1,6 +1,10 @@
 package org.bukkit.craftbukkit.v1_21_R1.entity;
 
+import cn.mohistmc.youer.Youer;
 import com.google.common.base.Preconditions;
+import com.mohistmc.dynamicenum.MohistDynamEnum;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.world.entity.monster.SpellcasterIllager;
 import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
 import org.bukkit.entity.Spellcaster;
@@ -34,7 +38,17 @@ public class CraftSpellcaster extends CraftIllager implements Spellcaster {
     }
 
     public static Spell toBukkitSpell(SpellcasterIllager.IllagerSpell spell) {
-        return Spell.valueOf(spell.name());
+        try {
+            return Spellcaster.Spell.valueOf(spell.name());
+        } catch (IllegalArgumentException e) {
+            int forgeCount = SpellcasterIllager.IllagerSpell.values().length;
+            for (var id = Spellcaster.Spell.values().length; id < forgeCount; id++) {
+                String name = SpellcasterIllager.IllagerSpell.values()[id].name();
+                Spell newPhase = MohistDynamEnum.addEnum(Spellcaster.Spell.class, name);
+                Youer.LOGGER.debug("Save-IllagerSpell:{} - {}", name, newPhase);
+            }
+            return toBukkitSpell(spell);
+        }
     }
 
     public static SpellcasterIllager.IllagerSpell toNMSSpell(Spell spell) {

@@ -177,8 +177,8 @@ public class ItemsCommand extends Command {
 
         sendMessageByCopy(player, ChatColor.GRAY + "Type - ", itemStack.getType().name());
         player.sendMessage(ChatColor.GRAY + "Name - %s".formatted(nmsItem.getHoverName().getString()));
-        player.sendMessage(ChatColor.GRAY + "ForgeItem - %s".formatted(itemStack.getType().isForgeItem));
-        player.sendMessage(ChatColor.GRAY + "ForgeBlock - %s".formatted(itemStack.getType().isForgeBlock));
+        player.sendMessage(ChatColor.GRAY + "ModItem - %s".formatted(itemStack.getType().isModItem));
+        player.sendMessage(ChatColor.GRAY + "ModBlock - %s".formatted(itemStack.getType().isModBlock));
     }
 
     public static void sendMessageByCopy(Player player, String des, String info) {

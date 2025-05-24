@@ -225,6 +225,7 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
     }
 
     public Method tryMapMethodToSrg(Class<?> cl, String bukkitName, Class<?>[] pTypes) {
+        if (cl == null) return null;
         String internalName = Type.getInternalName(cl);
         if (shouldRemap(internalName)) {
             return getMethods(cl, internalName).getValue().get(new WrappedMethod(bukkitName, pTypes));

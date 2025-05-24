@@ -13,6 +13,7 @@ import cn.mohistmc.youer.commands.PingCommand;
 import cn.mohistmc.youer.commands.PluginCommand;
 import cn.mohistmc.youer.commands.ShowsCommand;
 import cn.mohistmc.youer.plugins.MohistPlugin;
+import cn.mohistmc.youer.plugins.world.WorldManage;
 import cn.mohistmc.youer.util.YamlUtils;
 import com.google.common.base.Throwables;
 import java.io.File;

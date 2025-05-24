@@ -16,7 +16,7 @@
  import net.minecraft.server.level.ClientInformation;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
-@@ -98,6 +_,11 @@
+@@ -98,6 +_,12 @@
  import net.minecraft.world.scores.Objective;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Team;
@@ -25,6 +25,7 @@
 +import org.bukkit.craftbukkit.v1_21_R1.command.ColouredConsoleSender;
 +import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage;
++import org.bukkit.event.player.PlayerChangedWorldEvent;
  import org.slf4j.Logger;
  
  public abstract class PlayerList {
@@ -407,7 +408,7 @@
          UUID uuid = p_295670_.getId();
          Set<ServerPlayer> set = Sets.newIdentityHashSet();
  
-@@ -434,19 +_,39 @@
+@@ -434,19 +_,34 @@
          }
  
          return !set.isEmpty();
@@ -417,20 +418,14 @@
      }
  
 +    // CraftBukkit start
++    org.bukkit.event.player.PlayerRespawnEvent.RespawnReason reason = null;
++    org.bukkit.Location location = null;
      public ServerPlayer respawn(ServerPlayer p_11237_, boolean p_11238_, Entity.RemovalReason p_348558_) {
-+        return this.respawn(p_11237_, p_11238_, p_348558_, null, null);
-+    }
-+
-+    public ServerPlayer respawn(ServerPlayer p_11237_, boolean p_11238_, Entity.RemovalReason p_348558_, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason reason) {
-+        return this.respawn(p_11237_, p_11238_, p_348558_, reason, null);
-+    }
-+
-+    public ServerPlayer respawn(ServerPlayer p_11237_, boolean p_11238_, Entity.RemovalReason p_348558_, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason reason, org.bukkit.Location location) {
          this.players.remove(p_11237_);
 +        this.playersByName.remove(p_11237_.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot
          p_11237_.serverLevel().removePlayerImmediately(p_11237_, p_348558_);
--        DimensionTransition dimensiontransition = p_11237_.findRespawnPositionAndUseSpawnBlock(p_11238_, DimensionTransition.DO_NOTHING);
-+        DimensionTransition dimensiontransition = p_11237_.findRespawnPositionAndUseSpawnBlock(p_11238_, DimensionTransition.DO_NOTHING, reason);
++        p_11237_.reason = reason;
+         DimensionTransition dimensiontransition = p_11237_.findRespawnPositionAndUseSpawnBlock(p_11238_, DimensionTransition.DO_NOTHING);
 +
 +        // Neo: Allow changing the respawn position of players. The local dimension transition is updated with the new target.
 +        var event = net.neoforged.neoforge.event.EventHooks.firePlayerRespawnPositionEvent(p_11237_, dimensiontransition, p_11238_);
@@ -449,7 +444,7 @@
              serverplayer.copyRespawnPosition(p_11237_);
          }
  
-@@ -464,6 +_,8 @@
+@@ -464,42 +_,71 @@
          ServerLevel serverlevel1 = serverplayer.serverLevel();
          LevelData leveldata = serverlevel1.getLevelData();
          serverplayer.connection.send(new ClientboundRespawnPacket(serverplayer.createCommonSpawnInfo(serverlevel1), b0));
@@ -458,7 +453,11 @@
          serverplayer.connection.teleport(serverplayer.getX(), serverplayer.getY(), serverplayer.getZ(), serverplayer.getYRot(), serverplayer.getXRot());
          serverplayer.connection.send(new ClientboundSetDefaultSpawnPositionPacket(serverlevel.getSharedSpawnPos(), serverlevel.getSharedSpawnAngle()));
          serverplayer.connection.send(new ClientboundChangeDifficultyPacket(leveldata.getDifficulty(), leveldata.isDifficultyLocked()));
-@@ -474,9 +_,11 @@
+         serverplayer.connection
+-            .send(new ClientboundSetExperiencePacket(serverplayer.experienceProgress, serverplayer.totalExperience, serverplayer.experienceLevel));
++                .send(new ClientboundSetExperiencePacket(serverplayer.experienceProgress, serverplayer.totalExperience, serverplayer.experienceLevel));
+         this.sendActivePlayerEffects(serverplayer);
+         this.sendLevelInfo(serverplayer, serverlevel);
          this.sendPlayerPermissionLevel(serverplayer);
          serverlevel.addRespawnedPlayer(serverplayer);
          this.players.add(serverplayer);
@@ -470,6 +469,66 @@
          if (!p_11238_) {
              BlockPos blockpos = BlockPos.containing(dimensiontransition.pos());
              BlockState blockstate = serverlevel.getBlockState(blockpos);
+             if (blockstate.is(Blocks.RESPAWN_ANCHOR)) {
+                 serverplayer.connection
+-                    .send(
+-                        new ClientboundSoundPacket(
+-                            SoundEvents.RESPAWN_ANCHOR_DEPLETE,
+-                            SoundSource.BLOCKS,
+-                            (double)blockpos.getX(),
+-                            (double)blockpos.getY(),
+-                            (double)blockpos.getZ(),
+-                            1.0F,
+-                            1.0F,
+-                            serverlevel.getRandom().nextLong()
+-                        )
+-                    );
++                        .send(
++                                new ClientboundSoundPacket(
++                                        SoundEvents.RESPAWN_ANCHOR_DEPLETE,
++                                        SoundSource.BLOCKS,
++                                        (double)blockpos.getX(),
++                                        (double)blockpos.getY(),
++                                        (double)blockpos.getZ(),
++                                        1.0F,
++                                        1.0F,
++                                        serverlevel.getRandom().nextLong()
++                                )
++                        );
+             }
++        }
++        // Added from changeDimension
++        this.sendAllPlayerInfo(serverplayer); // Update health, etc...
++        serverplayer.onUpdateAbilities();
++        for (MobEffectInstance mobEffect : serverplayer.getActiveEffects()) {
++            serverplayer.connection.send(new ClientboundUpdateMobEffectPacket(serverplayer.getId(), mobEffect, false)); // blend = false
++        }
++
++        // Fire advancement trigger
++        serverplayer.triggerDimensionChangeTriggers(serverlevel);
++
++        // Save player file again if they were disconnected
++        if (serverplayer.connection.isDisconnected()) {
++            this.save(serverplayer);
+         }
+ 
+         return serverplayer;
+     }
+ 
++    public ServerPlayer respawn(ServerPlayer p_11237_, boolean p_11238_, Entity.RemovalReason p_348558_, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason reason) {
++        this.reason = reason;
++        return this.respawn(p_11237_, p_11238_, p_348558_);
++    }
++
++    public ServerPlayer respawn(ServerPlayer p_11237_, boolean p_11238_, Entity.RemovalReason p_348558_, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason reason, org.bukkit.Location location) {
++        this.reason = reason;
++        this.location = location;
++        return this.respawn(p_11237_, p_11238_, p_348558_);
++    }
++
+     public void sendActivePlayerEffects(ServerPlayer p_348494_) {
+         this.sendActiveEffects(p_348494_, p_348494_.connection);
+     }
 @@ -518,7 +_,17 @@
  
      public void tick() {
@@ -609,19 +668,15 @@
      }
  
      public int getPlayerCount() {
-@@ -751,10 +_,20 @@
-     }
+@@ -752,9 +_,17 @@
  
      public void removeAll() {
--        for (int i = 0; i < this.players.size(); i++) {
+         for (int i = 0; i < this.players.size(); i++) {
 -            this.players.get(i).connection.disconnect(Component.translatable("multiplayer.disconnect.server_shutdown"));
 -        }
 -    }
-+        // CraftBukkit start - disconnect safely
-+        for (ServerPlayer player : this.players) {
-+            player.connection.disconnect(CraftChatMessage.fromStringOrEmpty(this.server.server.getShutdownMessage())); // CraftBukkit - add custom shutdown message
++            this.players.get(i).connection.disconnect(CraftChatMessage.fromStringOrEmpty(this.server.server.getShutdownMessage())); // CraftBukkit - add custom shutdown message
 +        }
-+        // CraftBukkit end
 +    }
 +
 +    // CraftBukkit start

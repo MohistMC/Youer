@@ -75,7 +75,7 @@ public final class PermissionNode<T> {
      * @param dynamics        PermissionDynamicContextKey is a dynamic component for permission nodes, similar to BlockState Properties.
      *                        They <strong>must</strong> be passed into the constructor if you want to use them.
      */
-    private PermissionNode(String nodeName, PermissionType<T> type, PermissionResolver<T> defaultResolver, PermissionDynamicContextKey... dynamics) {
+    public PermissionNode(String nodeName, PermissionType<T> type, PermissionResolver<T> defaultResolver, PermissionDynamicContextKey... dynamics) {
         this.nodeName = nodeName;
         this.type = type;
         this.dynamics = dynamics;

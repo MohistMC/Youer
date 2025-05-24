@@ -1,6 +1,13 @@
 --- a/net/minecraft/server/level/DistanceManager.java
 +++ b/net/minecraft/server/level/DistanceManager.java
-@@ -33,6 +_,7 @@
+@@ -27,12 +_,14 @@
+ import java.util.Set;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.Executor;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.SectionPos;
+ import net.minecraft.util.SortedArraySet;
  import net.minecraft.util.thread.ProcessorHandle;
  import net.minecraft.world.level.ChunkPos;
  import net.minecraft.world.level.chunk.LevelChunk;
@@ -17,28 +24,47 @@
      protected DistanceManager(Executor p_140774_, Executor p_140775_) {
          ProcessorHandle<Runnable> processorhandle = ProcessorHandle.of("player ticket throttler", p_140775_::execute);
          ChunkTaskPriorityQueueSorter chunktaskpriorityqueuesorter = new ChunkTaskPriorityQueueSorter(ImmutableList.of(processorhandle), p_140774_, 4);
-@@ -144,7 +_,7 @@
+@@ -113,6 +_,9 @@
+         }
+ 
+         if (!this.chunksToUpdateFutures.isEmpty()) {
++            // CraftBukkit start - SPIGOT-7780: Call chunk unload events before updateHighestAllowedStatus
++            this.chunksToUpdateFutures.forEach((playerchunk) -> playerchunk.callEventIfUnloading(p_140806_));
++            // CraftBukkit end
+             this.chunksToUpdateFutures.forEach(p_347062_ -> p_347062_.updateHighestAllowedStatus(p_140806_));
+             this.chunksToUpdateFutures.forEach(p_183908_ -> p_183908_.updateFutures(p_140806_, this.mainThreadExecutor));
+             this.chunksToUpdateFutures.clear();
+@@ -144,6 +_,9 @@
          }
      }
  
--    void addTicket(long p_140785_, Ticket<?> p_140786_) {
-+    boolean addTicket(long p_140785_, Ticket<?> p_140786_) { // CraftBukkit - void -> boolean
++    public AtomicBoolean removeTicketCB = new AtomicBoolean(false);
++    public AtomicBoolean addTicketCB = new AtomicBoolean(false);
++
+     void addTicket(long p_140785_, Ticket<?> p_140786_) {
          SortedArraySet<Ticket<?>> sortedarrayset = this.getTickets(p_140785_);
          int i = getTicketLevelAt(sortedarrayset);
-         Ticket<?> ticket = sortedarrayset.addOrGet(p_140786_);
-@@ -152,11 +_,18 @@
+@@ -152,11 +_,26 @@
          if (p_140786_.getTicketLevel() < i) {
              this.ticketTracker.update(p_140785_, p_140786_.getTicketLevel(), true);
          }
+-    }
 +        if (p_140786_.isForceTicks()) {
 +             SortedArraySet<Ticket<?>> tickets = forcedTickets.computeIfAbsent(p_140785_, e -> SortedArraySet.create(4));
 +             tickets.addOrGet(ticket);
 +        }
-+        return p_140786_ == ticket; // CraftBukkit
-     }
++        addTicketCB.set(p_140786_ == ticket);
++    }
++
++    // CraftBukkit start
++    boolean addTicketCB(long p_140785_, Ticket<?> p_140786_) {
++        addTicket(p_140785_, p_140786_);
++        return addTicketCB.getAndSet(false);
++    }
++    // CraftBukkit end
++
  
--    void removeTicket(long p_140819_, Ticket<?> p_140820_) {
-+    boolean removeTicket(long p_140819_, Ticket<?> p_140820_) { // CraftBukkit - void -> boolean
+     void removeTicket(long p_140819_, Ticket<?> p_140820_) {
          SortedArraySet<Ticket<?>> sortedarrayset = this.getTickets(p_140819_);
 +        boolean removed = false; // CraftBukkit
          if (sortedarrayset.remove(p_140820_)) {
@@ -46,10 +72,11 @@
          }
  
          if (sortedarrayset.isEmpty()) {
-@@ -164,6 +_,15 @@
+@@ -164,7 +_,22 @@
          }
  
          this.ticketTracker.update(p_140819_, getTicketLevelAt(sortedarrayset), false);
+-    }
 +
 +        if (p_140820_.isForceTicks()) {
 +             SortedArraySet<Ticket<?>> tickets = forcedTickets.get(p_140819_);
@@ -57,11 +84,18 @@
 +                  tickets.remove(p_140820_);
 +             }
 +        }
++        removeTicketCB.set(removed);
++    }
 +
-+        return removed; // CraftBukkit
-     }
++    // CraftBukkit start
++    boolean removeTicketCB(long p_140819_, Ticket<?> p_140820_) {
++        removeTicket(p_140819_, p_140820_);
++        return removeTicketCB.getAndSet(false);
++    }
++    // CraftBukkit end
  
      public <T> void addTicket(TicketType<T> p_140793_, ChunkPos p_140794_, int p_140795_, T p_140796_) {
+         this.addTicket(p_140794_.toLong(), new Ticket<>(p_140793_, p_140795_, p_140796_));
 @@ -176,17 +_,45 @@
      }
  
@@ -83,7 +117,7 @@
 +        Ticket<T> ticket = new Ticket<>(p_140841_, ChunkLevel.byStatus(FullChunkStatus.FULL) - p_140843_, p_140844_, forceTicks);
          long i = p_140842_.toLong();
 -        this.addTicket(i, ticket);
-+        boolean added = this.addTicket(i, ticket); // CraftBukkit
++        boolean added = this.addTicketCB(i, ticket); // CraftBukkit
          this.tickingTicketsTracker.addTicket(i, ticket);
 +        return added; // CraftBukkit
      }
@@ -106,7 +140,7 @@
 +        Ticket<T> ticket = new Ticket<>(p_140850_, ChunkLevel.byStatus(FullChunkStatus.FULL) - p_140852_, p_140853_, forceTicks);
          long i = p_140851_.toLong();
 -        this.removeTicket(i, ticket);
-+        boolean removed = this.removeTicket(i, ticket); // CraftBukkit
++        boolean removed = this.removeTicketCB(i, ticket); // CraftBukkit
          this.tickingTicketsTracker.removeTicket(i, ticket);
 +        return removed; // CraftBukkit
      }

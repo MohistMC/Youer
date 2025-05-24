@@ -167,7 +167,7 @@ public enum Particle implements Keyed {
 
     Particle(String key, /*@NotNull*/ Class<?> data, boolean register) {
         if (key != null) {
-            this.key = NamespacedKey.minecraft(key);
+            this.key = NamespacedKey.fromString(key);
         } else {
             this.key = null;
         }

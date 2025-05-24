@@ -7,7 +7,7 @@
  import com.google.common.collect.Maps;
  import com.mojang.brigadier.CommandDispatcher;
  import com.mojang.brigadier.ParseResults;
-@@ -16,6 +_,7 @@
+@@ -16,9 +_,11 @@
  import com.mojang.brigadier.tree.RootCommandNode;
  import com.mojang.logging.LogUtils;
  import java.util.Collection;
@@ -15,6 +15,10 @@
  import java.util.Map;
  import java.util.Optional;
  import java.util.Set;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.Consumer;
+ import java.util.function.Predicate;
+ import java.util.function.UnaryOperator;
 @@ -136,6 +_,8 @@
  import net.minecraft.tags.TagKey;
  import net.minecraft.util.profiling.jfr.JvmProfiler;
@@ -48,13 +52,14 @@
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
      }
  
-@@ -258,15 +_,72 @@
+@@ -258,15 +_,75 @@
          return new ParseResults<>(commandcontextbuilder1, p_242928_.getReader(), p_242928_.getExceptions());
      }
  
 -    public void performPrefixedCommand(CommandSourceStack p_230958_, String p_230959_) {
 -        p_230959_ = p_230959_.startsWith("/") ? p_230959_.substring(1) : p_230959_;
 -        this.performCommand(this.dispatcher.parse(p_230959_, p_230958_), p_230959_);
+-    }
 +    // CraftBukkit start
 +    public void dispatchServerCommand(CommandSourceStack sender, String command) {
 +        Joiner joiner = Joiner.on(" ");
@@ -101,13 +106,16 @@
 +        s = s.startsWith("/") ? s.substring(1) : s;
 +        this.performCommand(this.dispatcher.parse(s, commandlistenerwrapper), s, label);
 +        // CraftBukkit end
-     }
- 
-     public void performCommand(ParseResults<CommandSourceStack> p_242844_, String p_242841_) {
-+        this.performCommand(p_242844_, p_242841_, p_242841_);
 +    }
 +
-+    public void performCommand(ParseResults<CommandSourceStack> p_242844_, String p_242841_, String label) {
++    // Mohist start - add field to compat with mods
++    private AtomicReference<String> mohist$label = new AtomicReference<>();
+ 
+     public void performCommand(ParseResults<CommandSourceStack> p_242844_, String p_242841_) {
++        var label = mohist$label.get();
++        label = label == null ? "/" + p_242841_ : label;
++        String finalLabel = label;
++        // Mohist end
          CommandSourceStack commandsourcestack = p_242844_.getContext().getSource();
 +        net.neoforged.neoforge.event.CommandEvent event = new net.neoforged.neoforge.event.CommandEvent(p_242844_);
 +        if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled()) {
@@ -121,13 +129,19 @@
 +
          commandsourcestack.getServer().getProfiler().push(() -> "/" + p_242841_);
 -        ContextChain<CommandSourceStack> contextchain = finishParsing(p_242844_, p_242841_, commandsourcestack);
-+        ContextChain<CommandSourceStack> contextchain = finishParsing(p_242844_, p_242841_, commandsourcestack, label);
++        ContextChain<CommandSourceStack> contextchain = finishParsing(p_242844_, p_242841_, commandsourcestack, finalLabel);
  
          try {
              if (contextchain != null) {
-@@ -307,7 +_,7 @@
+@@ -306,8 +_,13 @@
+         }
      }
  
++    public void performCommand(ParseResults<CommandSourceStack> pParseResults, String pCommand, String label) { // CraftBukkit
++        mohist$label.set(label);
++        this.performCommand(pParseResults, pCommand);
++    }
++
      @Nullable
 -    private static ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> p_307220_, String p_307311_, CommandSourceStack p_307676_) {
 +    private static ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> p_307220_, String p_307311_, CommandSourceStack p_307676_, String label) {

@@ -1,6 +1,6 @@
 package org.bukkit.craftbukkit.v1_21_R1.event;
 
-import cn.mohistmc.youer.bukkit.inventory.MohistModsInventory;
+import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -377,6 +377,7 @@ public class CraftEventFactory {
      * Trade Index Change Event
      */
     public static TradeSelectEvent callTradeSelectEvent(ServerPlayer player, int newIndex, MerchantMenu merchant) {
+        merchant.containerOwner = player;
         TradeSelectEvent tradeSelectEvent = new TradeSelectEvent(merchant.getBukkitView(), newIndex);
         Bukkit.getPluginManager().callEvent(tradeSelectEvent);
         return tradeSelectEvent;
@@ -1275,7 +1276,7 @@ public class CraftEventFactory {
         player.containerMenu.transferTo(container, craftPlayer);
         InventoryView bukkitView = container.getBukkitView();
         if (bukkitView == null) {
-            org.bukkit.inventory.Inventory view = new CraftInventory(new MohistModsInventory(container, player));
+            org.bukkit.inventory.Inventory view = new CraftInventory(new YouerModsInventory(container, player));
             view.getType().setMods(true);
             bukkitView = new CraftInventoryView(player.getBukkitEntity(), view, container);
         }
@@ -1456,7 +1457,7 @@ public class CraftEventFactory {
         human.containerMenu.containerOwner = human;
         InventoryView view = human.containerMenu.getBukkitView();
         if (view == null) {
-            org.bukkit.inventory.Inventory inventory = new CraftInventory(new MohistModsInventory(human.containerMenu, human));
+            org.bukkit.inventory.Inventory inventory = new CraftInventory(new YouerModsInventory(human.containerMenu, human));
             inventory.getType().setMods(true);
             view = new CraftInventoryView(human.getBukkitEntity(), inventory, human.containerMenu);
         }

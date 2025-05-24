@@ -634,9 +634,9 @@ public class CommonHooks {
 
             boolean eventResult = false;
             if (blockSnapshots.size() > 1) {
-                eventResult = EventHooks.onMultiBlockPlace(player, blockSnapshots, side);
+                eventResult = EventHooks.onMultiBlockPlace(player, blockSnapshots, side, context.getHand());
             } else if (blockSnapshots.size() == 1) {
-                eventResult = EventHooks.onBlockPlace(player, blockSnapshots.get(0), side);
+                eventResult = EventHooks.onBlockPlace(player, blockSnapshots.get(0), side, context.getHand());
             }
 
             if (eventResult) {

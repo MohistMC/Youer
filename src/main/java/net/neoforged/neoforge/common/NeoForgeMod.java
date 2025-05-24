@@ -5,6 +5,8 @@
 
 package net.neoforged.neoforge.common;
 
+import cn.mohistmc.youer.eventhandler.EventDispatcherRegistry;
+import cn.mohistmc.youer.eventhandler.dispatcher.BlockEventDispatcher;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;

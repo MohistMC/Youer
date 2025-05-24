@@ -41,10 +41,11 @@ public class InventoryClickListener {
         if (itemMeta != null && itemMeta.hasDisplayName()) {
             String itemName = itemMeta.getDisplayName();
             boolean isVoid = itemName.equals("void");
-            WorldCreator wc = new WorldCreator(worldName);
+            World.Environment environment = World.Environment.valueOf(itemName);
+            WorldCreator wc = new WorldCreator(worldName).environment(environment);
             if (isVoid) wc.generator(new WorldAPI.VoidGenerator());
             wc.seed((new Random()).nextLong());
-            wc.environment(isVoid ? Environment.NORMAL : World.Environment.valueOf(itemName));
+            wc.environment(isVoid ? Environment.NORMAL : environment);
 
             wc.createWorld();
 

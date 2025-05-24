@@ -1,8 +1,11 @@
 package org.bukkit.craftbukkit.v1_21_R1.block;
 
+import cn.mohistmc.youer.Youer;
+import cn.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.google.common.base.Preconditions;
 import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
@@ -66,6 +69,7 @@ public class CraftBlockType<B extends BlockData> implements BlockType.Typed<B>, 
     }
 
     private static boolean isInteractable(Block block) {
+        if (NeoForgeInjectBukkit.isMods(BuiltInRegistries.BLOCK.getKey(block))) return true;
         Class<?> clazz = block.getClass();
 
         boolean hasMethod = hasMethod(clazz, "useWithoutItem", BlockState.class, net.minecraft.world.level.Level.class, BlockPos.class, Player.class, BlockHitResult.class)

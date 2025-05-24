@@ -1,28 +1,5 @@
 --- a/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
 +++ b/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
-@@ -117,18 +_,18 @@
-                     );
-                 }
- 
--                PalettedContainerRO<Holder<Biome>> palettedcontainerro;
-+                PalettedContainerRO<Holder<Biome>> palettedcontainerrw;
-                 if (compoundtag.contains("biomes", 10)) {
--                    palettedcontainerro = codec.parse(NbtOps.INSTANCE, compoundtag.getCompound("biomes"))
-+                    palettedcontainerrw = codec.parse(NbtOps.INSTANCE, compoundtag.getCompound("biomes"))
-                         .promotePartial(p_188274_ -> logErrors(p_188233_, k, p_188274_))
-                         .getOrThrow(ChunkSerializer.ChunkReadException::new);
-                 } else {
--                    palettedcontainerro = new PalettedContainer<>(
-+                    palettedcontainerrw = new PalettedContainer<>(
-                         registry.asHolderIdMap(), registry.getHolderOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES
-                     );
-                 }
- 
--                LevelChunkSection levelchunksection = new LevelChunkSection(palettedcontainer, palettedcontainerro);
-+                LevelChunkSection levelchunksection = new LevelChunkSection(palettedcontainer, palettedcontainerrw);
-                 alevelchunksection[l] = levelchunksection;
-                 SectionPos sectionpos = SectionPos.of(p_188233_, k);
-                 p_188232_.checkConsistencyWithBlocks(sectionpos, levelchunksection);
 @@ -183,6 +_,8 @@
                  postLoadChunk(p_188231_, p_188234_),
                  blendingdata

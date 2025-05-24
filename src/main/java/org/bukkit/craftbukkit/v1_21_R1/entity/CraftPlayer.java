@@ -1076,6 +1076,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
             entity.portalProcess = null; // SPIGOT-7785: there is no need to carry this over as it contains the old world/location and we might run into trouble if there is a portal in the same spot in both worlds
             // The respawn reason should never be used if the passed location is non null.
             // this.server.getHandle().respawn(entity, true, Entity.RemovalReason.CHANGED_DIMENSION, null, to); // Youer TODO
+            entity.teleportTo(toWorld, to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch());
         }
         return true;
     }

@@ -4624,8 +4624,8 @@ public enum Material implements Keyed, Translatable {
     public final Class<?> data;
     private final boolean legacy;
     public NamespacedKey key;
-    public boolean isForgeBlock = false;
-    public boolean isForgeItem = false;
+    public boolean isModBlock = false;
+    public boolean isModItem = false;
 
     private Material(final int id) {
         this(id, 64);
@@ -4634,8 +4634,8 @@ public enum Material implements Keyed, Translatable {
     // Youer start - constructor used to set if the Material is a block or not
     private Material(final int id, final int stack, boolean isForgeBlock, boolean isForgeItem) {
         this(id, stack);
-        this.isForgeBlock = isForgeBlock;
-        this.isForgeItem = isForgeItem;
+        this.isModBlock = isForgeBlock;
+        this.isModItem = isForgeItem;
     }
     // Youer end
 
@@ -4810,6 +4810,7 @@ public enum Material implements Keyed, Translatable {
      * @return true if this material is a block
      */
     public boolean isBlock() {
+        if (isModBlock) return true;
         return asBlockType() != null;
     }
 
@@ -5537,7 +5538,7 @@ public enum Material implements Keyed, Translatable {
         if (isBlock) {
             Material material = BY_NAME.get(materialName);
             if (material != null){
-                material.isForgeBlock = true;
+                material.isModBlock = true;
             }else {
                 material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
             }
@@ -5548,6 +5549,7 @@ public enum Material implements Keyed, Translatable {
             Material material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
             BY_NAME.put(materialName, material);
             material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
+            material.isModItem = true;
             return material;
         }
     }

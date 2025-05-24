@@ -3,7 +3,7 @@
 @@ -1,5 +_,6 @@
  package net.minecraft.world.inventory;
  
-+import cn.mohistmc.youer.bukkit.inventory.MohistModsInventory;
++import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
  import com.google.common.base.Suppliers;
  import com.google.common.collect.HashBasedTable;
  import com.google.common.collect.Lists;
@@ -48,52 +48,32 @@
  import org.slf4j.Logger;
  
  public abstract class AbstractContainerMenu {
-@@ -62,6 +_,70 @@
+@@ -62,6 +_,50 @@
      private ContainerSynchronizer synchronizer;
      private boolean suppressRemoteUpdates;
  
 +    // CraftBukkit start
 +    public boolean checkReachable = true;
 +    // Youer start
-+    public InventoryView bukkitView = null;
++    public InventoryView bukkitView ;
 +    public Player containerOwner = null;
 +
 +    public InventoryView getBukkitView(){
 +        if (bukkitView == null && containerOwner != null) {
-+            org.bukkit.inventory.Inventory view = new CraftInventory(new MohistModsInventory(this, containerOwner));
-+            view.getType().setMods(true);
-+            bukkitView = new CraftInventoryView(containerOwner.getBukkitEntity(), view, this);
++            org.bukkit.inventory.Inventory view = new CraftInventory(new YouerModsInventory(this, containerOwner));
++            bukkitView = new CraftInventoryView<>(containerOwner.getBukkitEntity(), view, this);
 +        }
 +        return bukkitView;
 +    }
 +
-+    public InventoryView getBukkitView(AbstractContainerMenu other){
-+        if (other.bukkitView == null && other.containerOwner != null) {
-+            org.bukkit.inventory.Inventory view = new CraftInventory(new MohistModsInventory(other, containerOwner));
-+            view.getType().setMods(true);
-+            return new CraftInventoryView(other.containerOwner.getBukkitEntity(), view, other);
-+        }
-+        return other.bukkitView;
-+    }
-+
 +    public void transferTo(AbstractContainerMenu other, CraftHumanEntity player) {
-+        other.containerOwner = player.getHandle();
-+        this.containerOwner = player.getHandle();
 +        InventoryView source = this.getBukkitView(), destination = other.getBukkitView();
-+        if (destination == null) {
-+            destination = this.getBukkitView(other);
-+        }
-+        if (source == null) {
-+            org.bukkit.inventory.Inventory view = new CraftInventory(new MohistModsInventory(this, containerOwner));
-+            view.getType().setMods(true);
-+            source = new CraftInventoryView(containerOwner.getBukkitEntity(), view, this);
-+        }
 +        ((CraftInventory) source.getTopInventory()).getInventory().onClose(player);
 +        ((CraftInventory) source.getBottomInventory()).getInventory().onClose(player);
 +        ((CraftInventory) destination.getTopInventory()).getInventory().onOpen(player);
 +        ((CraftInventory) destination.getBottomInventory()).getInventory().onOpen(player);
 +    }
-+    private Component title;
++    private Component title = null;
 +    public Component getTitle() {
 +        // Youer: null title -> empty title
 +        if (this.title == null) {

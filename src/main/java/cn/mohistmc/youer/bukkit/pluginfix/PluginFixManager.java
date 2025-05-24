@@ -28,7 +28,7 @@ public class PluginFixManager {
         Consumer<ClassNode> patcher = switch (className) {
             case "com.sk89q.worldedit.bukkit.BukkitAdapter" -> WorldEdit::handleBukkitAdapter;
             case "com.sk89q.worldedit.bukkit.adapter.Refraction" -> WorldEdit::handlePickName;
-            case "com.sk89q.worldedit.bukkit.adapter.impl.PaperweightAdapter$SpigotWatchdog" -> WorldEdit::handleWatchdog;
+            case "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter$SpigotWatchdog" -> WorldEdit::handleWatchdog;
             case "com.earth2me.essentials.utils.VersionUtil" -> node -> {
                 helloWorld(node, 110, 109);
                 helloWorld(node, "brand:", "peace");

@@ -5,6 +5,8 @@
 
 package net.neoforged.neoforge.server.permission;
 
+import cn.mohistmc.youer.YouerConfig;
+import cn.mohistmc.youer.neoforge.BukkitPermissionsHandler;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -35,6 +37,10 @@ public final class PermissionAPI {
     }
 
     private PermissionAPI() {}
+
+    public static IPermissionHandler getActiveHandler() {
+        return activeHandler;
+    }
 
     /**
      * @return the Identifier of the currently active permission handler
@@ -117,6 +123,11 @@ public final class PermissionAPI {
             LOGGER.info("Successfully initialized permission handler {}", PermissionAPI.activeHandler.getIdentifier());
         } catch (ResourceLocationException e) {
             LOGGER.error("Error parsing config value 'permissionHandler'", e);
+        }
+        if (YouerConfig.bukkitpermissionshandler) {
+            var handler = new BukkitPermissionsHandler(activeHandler);
+            LOGGER.info("Forwarding neoforge permission[{}] to bukkit[{}]", activeHandler.getIdentifier(), handler.getIdentifier());
+            activeHandler = handler;
         }
     }
 }

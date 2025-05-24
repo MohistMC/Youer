@@ -84,7 +84,7 @@
  
  public class ServerLevel extends Level implements WorldGenLevel {
      public static final BlockPos END_SPAWN_POINT = new BlockPos(100, 50, 0);
-@@ -199,12 +_,31 @@
+@@ -199,12 +_,26 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -107,11 +107,6 @@
 +
 +    public LevelChunk getChunkIfLoaded(int x, int z) {
 +        return this.chunkSource.getChunk(x, z, false);
-+    }
-+
-+    @Override
-+    public ServerLevel craftWorldData(org.bukkit.World.Environment env, org.bukkit.generator.ChunkGenerator generator, org.bukkit.generator.BiomeProvider bp) {
-+        return (ServerLevel) super.craftWorldData(env, generator, bp);
 +    }
 +
      public ServerLevel(
@@ -277,14 +272,15 @@
                  }
              }
          }
-@@ -542,8 +_,9 @@
+@@ -542,8 +_,11 @@
          BlockPos blockpos = this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, p_295060_);
          BlockPos blockpos1 = blockpos.below();
          Biome biome = this.getBiome(blockpos).value();
 +        if (this.isAreaLoaded(blockpos1, 1)) // Forge: check area to avoid loading neighbors in unloaded chunks
          if (biome.shouldFreeze(this, blockpos1)) {
--            this.setBlockAndUpdate(blockpos1, Blocks.ICE.defaultBlockState());
-+            CraftEventFactory.handleBlockFormEvent(this, blockpos1, Blocks.ICE.defaultBlockState(), null); // CraftBukkit
++            this.callEvent(true);
+             this.setBlockAndUpdate(blockpos1, Blocks.ICE.defaultBlockState());
++            CraftEventFactory.handleBlockFormEvent(this, blockpos1, this.mohist$defaultBlockState, null); // CraftBukkit
          }
  
          if (this.isRaining()) {

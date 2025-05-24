@@ -53,7 +53,7 @@ public class ColouredConsoleSender extends CraftConsoleCommandSender {
     @Override
     public void sendMessage(String message) {
         if (!this.conversationTracker.isConversingModaly()) {
-            LOGGER.info(convertRGBColors(message));
+            LOGGER.info(message);
         }
     }
 

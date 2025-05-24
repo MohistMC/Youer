@@ -17,7 +17,7 @@
  import java.util.List;
  import java.util.Map;
  import java.util.Optional;
-@@ -50,23 +_,31 @@
+@@ -50,16 +_,22 @@
          this.hasErrors = false;
          Builder<RecipeType<?>, RecipeHolder<?>> builder = ImmutableMultimap.builder();
          com.google.common.collect.ImmutableMap.Builder<ResourceLocation, RecipeHolder<?>> builder1 = ImmutableMap.builder();
@@ -42,30 +42,6 @@
              } catch (IllegalArgumentException | JsonParseException jsonparseexception) {
                  LOGGER.error("Parsing error loading recipe {}", resourcelocation, jsonparseexception);
              }
-         }
- 
--        this.byType = builder.build();
--        this.byName = builder1.build();
-+        // CraftBukkit start - mutable
-+        this.byType = LinkedHashMultimap.create(builder.build());
-+        this.byName = Maps.newHashMap(builder1.build());
-+        // CraftBukkit end
-         LOGGER.info("Loaded {} recipes", this.byType.size());
-     }
- 
-@@ -167,8 +_,10 @@
-             builder1.put(recipeholder.id(), recipeholder);
-         }
- 
--        this.byType = builder.build();
--        this.byName = builder1.build();
-+        // CraftBukkit start - mutable
-+        this.byType = LinkedHashMultimap.create(builder.build());
-+        this.byName = Maps.newHashMap(builder1.build());
-+        // CraftBukkit end
-     }
- 
-     public static <I extends RecipeInput, T extends Recipe<I>> RecipeManager.CachedCheck<I, T> createCheck(final RecipeType<T> p_220268_) {
 @@ -193,5 +_,33 @@
  
      public interface CachedCheck<I extends RecipeInput, T extends Recipe<I>> {

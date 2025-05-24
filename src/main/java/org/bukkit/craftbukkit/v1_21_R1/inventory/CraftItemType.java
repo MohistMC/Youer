@@ -1,12 +1,13 @@
 package org.bukkit.craftbukkit.v1_21_R1.inventory;
 
 import cn.mohistmc.youer.Youer;
-import cn.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
+import com.mohistmc.dynamicenum.MohistDynamEnum;
 import java.util.function.Consumer;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -68,9 +69,10 @@ public class CraftItemType<M extends ItemMeta> implements ItemType.Typed<M>, Han
     private Class<M> getItemMetaClass(Item item) {
         Material type = asMaterial();
         if (type == null) {
-            type = Material.getMaterial(NeoForgeInjectBukkit.normalizeName(item.toString()));
+            String args = MohistDynamEnum.normalizeName(BuiltInRegistries.ITEM.getKey(item).toString());
+            type = Material.getMaterial(args);
             if (type == null) {
-                Youer.LOGGER.error(Youer.i18n.as("bukkit.ItemStack.typenull", item.toString()));
+                Youer.LOGGER.error(Youer.i18n.as("bukkit.ItemStack.typenull", args));
                 type = Material.BROWN_MUSHROOM;
             }
         }

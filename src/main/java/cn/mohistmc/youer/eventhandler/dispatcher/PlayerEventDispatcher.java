@@ -18,27 +18,16 @@
 
 package cn.mohistmc.youer.eventhandler.dispatcher;
 
-import cn.mohistmc.youer.bukkit.inventory.MohistModsInventory;
-import net.minecraft.server.level.ServerPlayer;
+import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent;
-import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
 import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventory;
 import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventoryView;
-import org.bukkit.event.player.PlayerAdvancementDoneEvent;
+
 
 public class PlayerEventDispatcher {
-
-    //For PlayerAdvancementDoneEvent
-    @SubscribeEvent
-    public void onAdvancementDone(AdvancementEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) {
-            Bukkit.getPluginManager().callEvent(new PlayerAdvancementDoneEvent(player.getBukkitEntity(), event.getAdvancement().toBukkit()));
-        }
-    }
 
     @SubscribeEvent
     public void onContainerClose(PlayerContainerEvent.Close event) {
@@ -46,7 +35,7 @@ public class PlayerEventDispatcher {
         AbstractContainerMenu abstractcontainermenu = event.getContainer();
         abstractcontainermenu.containerOwner = event.getEntity();
         if (abstractcontainermenu.getBukkitView() == null) {
-            org.bukkit.inventory.Inventory inventory = new CraftInventory(new MohistModsInventory(abstractcontainermenu, event.getEntity()));
+            org.bukkit.inventory.Inventory inventory = new CraftInventory(new YouerModsInventory(abstractcontainermenu, event.getEntity()));
             inventory.getType().setMods(true);
             abstractcontainermenu.bukkitView = new CraftInventoryView(event.getEntity().getBukkitEntity(), inventory, abstractcontainermenu);
         }

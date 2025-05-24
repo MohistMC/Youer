@@ -1,5 +1,6 @@
 package cn.mohistmc.youer;
 
+import cn.mohistmc.youer.eventhandler.EventDispatcherRegistry;
 import cn.mohistmc.youer.plugins.MohistProxySelector;
 import cn.mohistmc.youer.util.VersionInfo;
 import com.mohistmc.i18n.i18n;
@@ -25,7 +26,7 @@ public class Youer {
     public static Logger LOGGER = LogManager.getLogger();
     public static i18n i18n;
     public static String version = "1.21.1";
-    public static String modid = "youer";
+    public static final String modid = "youer";
     public static ClassLoader classLoader;
     public static VersionInfo versionInfo;
 
@@ -56,5 +57,6 @@ public class Youer {
         arguments.put("spigot", version);
         arguments.put("neoforge", NeoForgeVersion.getVersion());
         versionInfo = new VersionInfo(arguments);
+        EventDispatcherRegistry.init();
     }
 }

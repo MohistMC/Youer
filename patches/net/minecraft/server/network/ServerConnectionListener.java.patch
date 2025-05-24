@@ -56,17 +56,6 @@
              Iterator<Connection> iterator = this.connections.iterator();
  
              while (iterator.hasNext()) {
-@@ -165,6 +_,10 @@
-                             connection.setReadOnly();
-                         }
-                     } else {
-+                        // Spigot Start
-+                        // Fix a race condition where a NetworkManager could be unregistered just before connection.
-+                        if (connection.preparing) continue;
-+                        // Spigot End
-                         iterator.remove();
-                         connection.handleDisconnection();
-                     }
 @@ -180,6 +_,16 @@
      public List<Connection> getConnections() {
          return this.connections;

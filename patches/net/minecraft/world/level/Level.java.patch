@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1,16 +_,26 @@
+@@ -1,16 +_,27 @@
  package net.minecraft.world.level;
  
 +import cn.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
@@ -17,6 +17,7 @@
 +import java.util.LinkedHashMap;
  import java.util.List;
 +import java.util.Map;
++import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.function.Consumer;
  import java.util.function.Predicate;
  import java.util.function.Supplier;
@@ -110,7 +111,7 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("the_nether"));
-@@ -114,6 +_,74 @@
+@@ -114,6 +_,73 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -123,9 +124,9 @@
 +    // CraftBukkit start Added the following
 +    public CraftWorld world;
 +    public boolean pvpMode;
-+    public ChunkGenerator generator;
-+    public World.Environment environment;
-+    public BiomeProvider biomeProvider;
++    public static ChunkGenerator generator;
++    public static World.Environment environment;
++    public static BiomeProvider biomeProvider;
 +
 +    public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
 +    public boolean captureBlockStates = false;
@@ -176,11 +177,10 @@
 +        return Registries.levelToLevelStem(dimension);
 +    }
 +
-+    public Level craftWorldData(World.Environment env, ChunkGenerator generator, BiomeProvider bp) {
-+        this.environment = env;
-+        this.biomeProvider = bp;
-+        this.generator = generator;
-+        return this;
++    public static void craftWorldData(World.Environment env, ChunkGenerator cg, BiomeProvider bp) {
++        environment = env;
++        biomeProvider = bp;
++        generator = cg;
 +    }
  
      protected Level(
@@ -267,7 +267,6 @@
          } else {
              LevelChunk levelchunk = this.getChunkAt(p_46605_);
              Block block = p_46606_.getBlock();
--            BlockState blockstate = levelchunk.setBlockState(p_46605_, p_46606_, (p_46607_ & 64) != 0);
 +
 +            p_46605_ = p_46605_.immutable(); // Forge - prevent mutable BlockPos leaks
 +            BlockSnapshot blockSnapshot = null;
@@ -288,8 +287,8 @@
 +            BlockState old = getBlockState(p_46605_);
 +            int oldLight = old.getLightEmission(this, p_46605_);
 +            int oldOpacity = old.getLightBlock(this, p_46605_);
-+
-+            BlockState blockstate = levelchunk.setBlockStateCB(p_46605_, p_46606_, (p_46607_ & 64) != 0, (p_46607_ & 1024) == 0); // CraftBukkit custom NO_PLACE flag
++            levelchunk.setBlockState$doPlace = (p_46607_ & 1024) == 0; // CraftBukkit custom NO_PLACE flag
+             BlockState blockstate = levelchunk.setBlockState(p_46605_, p_46606_, (p_46607_ & 64) != 0);
              if (blockstate == null) {
 +                if (blockSnapshot != null) this.capturedBlockSnapshots.remove(blockSnapshot);
 +                // CraftBukkit start - remove blockstate if failed (or the same)
@@ -392,6 +391,27 @@
  
      public void onBlockStateChange(BlockPos p_46609_, BlockState p_46610_, BlockState p_46611_) {
      }
+@@ -291,9 +_,20 @@
+     public void addDestroyBlockEffect(BlockPos p_151531_, BlockState p_151532_) {
+     }
+ 
++    // Mohist start
++    private AtomicBoolean callEvent = new AtomicBoolean(false);
++
++    public void callEvent(boolean call) {
++        callEvent.set(call);
++    }
++    public BlockState mohist$defaultBlockState;
++
+     public boolean setBlockAndUpdate(BlockPos p_46598_, BlockState p_46599_) {
++        mohist$defaultBlockState = p_46599_;
++        if (callEvent.getAndSet(false)) return false;
+         return this.setBlock(p_46598_, p_46599_, 3);
+     }
++    // Mohist end
+ 
+     public abstract void sendBlockUpdated(BlockPos p_46612_, BlockState p_46613_, BlockState p_46614_, int p_46615_);
+ 
 @@ -301,6 +_,7 @@
      }
  

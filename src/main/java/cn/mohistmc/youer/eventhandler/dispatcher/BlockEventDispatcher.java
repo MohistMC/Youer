@@ -1,6 +1,7 @@
 package cn.mohistmc.youer.eventhandler.dispatcher;
 
 import cn.mohistmc.youer.bukkit.block.MohistBlockSnapshot;
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -22,6 +23,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.util.BlockSnapshot;
 import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
+import net.neoforged.neoforge.event.level.BlockDropsEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
@@ -30,6 +32,7 @@ import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockStates;
 import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityInteractEvent;
@@ -53,8 +56,6 @@ public class BlockEventDispatcher {
         }
     }
 
-    public static AtomicReference<BlockBreakEvent> blockBreakEvent = new AtomicReference<>();
-
     @SubscribeEvent(receiveCanceled = true)
     public void onBlockBreak(BlockEvent.BreakEvent event) {
         LevelAccessor level = event.getLevel();
@@ -66,11 +67,27 @@ public class BlockEventDispatcher {
             if (level instanceof ServerLevel) {
                 BlockBreakEvent bukkitEvent = new BlockBreakEvent(bblock, serverPlayer.getBukkitEntity());
                 bukkitEvent.setCancelled(event.isCanceled());
+                event.setDropItems(bukkitEvent.isDropItems());
                 Bukkit.getPluginManager().callEvent(bukkitEvent);
-                blockBreakEvent.set(bukkitEvent);
                 event.setCanceled(bukkitEvent.isCancelled());
             }
             // CraftBukkit end
+        }
+    }
+
+    @SubscribeEvent(receiveCanceled = true)
+    public void onBlockPlace(BlockDropsEvent event) {
+        org.bukkit.block.Block block = org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock.at(event.getLevel(), event.getPos());
+        org.bukkit.block.BlockState state = block.getState();
+        Entity entity = event.getBreaker();
+        if (entity != null) {
+            org.bukkit.entity.Player player = entity instanceof ServerPlayer serverPlayer ? serverPlayer.getBukkitEntity() : null;
+            if (player != null) {
+                BlockDropItemEvent bukkitEvent = new BlockDropItemEvent(block, state, player, Lists.transform(event.getDrops(), (item) -> (org.bukkit.entity.Item) item.getBukkitEntity()));
+                Bukkit.getPluginManager().callEvent(bukkitEvent);
+                bukkitEvent.setCancelled(event.isCanceled());
+                event.setCanceled(bukkitEvent.isCancelled());
+            }
         }
     }
 
@@ -98,6 +115,9 @@ public class BlockEventDispatcher {
                 BlockPlaceEvent placeEvent = new BlockPlaceEvent(placedBlock, replacedBlockState, againstBlock, bukkitStack, player, !event.isCanceled(), bukkitHand);
                 placeEvent.setCancelled(event.isCanceled());
                 Bukkit.getPluginManager().callEvent(placeEvent);
+                if (placeEvent.isCancelled()) {
+                    player.updateInventory();
+                }
                 event.setCanceled(placeEvent.isCancelled() || !placeEvent.canBuild());
             }
         }

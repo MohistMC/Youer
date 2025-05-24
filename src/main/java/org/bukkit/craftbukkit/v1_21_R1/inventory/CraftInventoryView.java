@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.v1_21_R1.inventory;
 
+import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import com.google.common.base.Preconditions;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.server.level.ServerPlayer;
@@ -18,7 +19,7 @@ import org.bukkit.inventory.ItemStack;
 public class CraftInventoryView<T extends AbstractContainerMenu> extends CraftAbstractInventoryView {
     protected final T container;
     private final CraftHumanEntity player;
-    private final CraftInventory viewing;
+    private CraftInventory viewing;
     private final String originalTitle;
     private String title;
 
@@ -29,6 +30,9 @@ public class CraftInventoryView<T extends AbstractContainerMenu> extends CraftAb
         this.container = container;
         this.originalTitle = CraftChatMessage.fromComponent(container.getTitle());
         this.title = this.originalTitle;
+        if (container.slots.size() > this.countSlots()) {
+            this.viewing = new CraftInventory(new YouerModsInventory(container, ((CraftHumanEntity) player).getHandle()));
+        }
     }
 
     @Override

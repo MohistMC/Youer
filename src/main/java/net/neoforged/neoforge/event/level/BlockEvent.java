@@ -27,6 +27,7 @@ import net.neoforged.bus.api.ICancellableEvent;
 import net.neoforged.neoforge.common.ItemAbilities;
 import net.neoforged.neoforge.common.ItemAbility;
 import net.neoforged.neoforge.common.util.BlockSnapshot;
+import org.bukkit.event.block.BlockDropItemEvent;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class BlockEvent extends Event {
@@ -69,10 +70,12 @@ public abstract class BlockEvent extends Event {
      */
     public static class BreakEvent extends BlockEvent implements ICancellableEvent {
         private final Player player;
+        private boolean dropItems;
 
         public BreakEvent(Level level, BlockPos pos, BlockState state, Player player) {
             super(level, pos, state);
             this.player = player;
+            this.dropItems = true; // Defaults to dropping items as it normally would
         }
 
         /**
@@ -88,6 +91,31 @@ public abstract class BlockEvent extends Event {
         @Override
         public void setCanceled(boolean canceled) {
             ICancellableEvent.super.setCanceled(canceled);
+        }
+
+        /**
+         * Sets whether or not the block will attempt to drop items as it normally
+         * would.
+         *
+         * If and only if this is false then {@link BlockDropItemEvent} will not be
+         * called after this event.
+         *
+         * @param dropItems Whether or not the block will attempt to drop items
+         */
+        public void setDropItems(boolean dropItems) {
+            this.dropItems = dropItems;
+        }
+
+        /**
+         * Gets whether or not the block will attempt to drop items.
+         *
+         * If and only if this is false then {@link BlockDropItemEvent} will not be
+         * called after this event.
+         *
+         * @return Whether or not the block will attempt to drop items
+         */
+        public boolean isDropItems() {
+            return this.dropItems;
         }
     }
 

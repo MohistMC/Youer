@@ -31,20 +31,11 @@ public class WatchdogThread extends Thread
 
     public static void doStart(int timeoutTime, boolean restart)
     {
-        if ( WatchdogThread.instance == null )
-        {
-            WatchdogThread.instance = new WatchdogThread( timeoutTime * 1000L, restart );
-            WatchdogThread.instance.start();
-        } else
-        {
-            WatchdogThread.instance.timeoutTime = timeoutTime * 1000L;
-            WatchdogThread.instance.restart = restart;
-        }
     }
 
     public static void tick()
     {
-        WatchdogThread.instance.lastTick = WatchdogThread.monotonicMillis();
+        //WatchdogThread.instance.lastTick = WatchdogThread.monotonicMillis();
     }
 
     public static void doStop()

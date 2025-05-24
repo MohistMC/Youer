@@ -180,19 +180,41 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class EventHooks {
+
+    public static boolean onMultiBlockPlace(@Nullable Entity entity, List<BlockSnapshot> blockSnapshots, Direction direction, InteractionHand hand)
+    {
+        BlockSnapshot snap = blockSnapshots.get(0);
+        BlockState placedAgainst = snap.getLevel().getBlockState(snap.getPos().relative(direction.getOpposite()));
+        EntityMultiPlaceEvent event = new EntityMultiPlaceEvent(blockSnapshots, placedAgainst, entity);
+        event.setPlaceEventDirection(direction); // Mohist
+        event.setPlaceEventHand(hand); // Mohist
+        return NeoForge.EVENT_BUS.post(event).isCanceled();
+    }
     public static boolean onMultiBlockPlace(@Nullable Entity entity, List<BlockSnapshot> blockSnapshots, Direction direction) {
         BlockSnapshot snap = blockSnapshots.get(0);
         BlockState placedAgainst = snap.getLevel().getBlockState(snap.getPos().relative(direction.getOpposite()));
         EntityMultiPlaceEvent event = new EntityMultiPlaceEvent(blockSnapshots, placedAgainst, entity);
+        event.setPlaceEventDirection(direction); // Mohist
+        return NeoForge.EVENT_BUS.post(event).isCanceled();
+    }
+
+    public static boolean onBlockPlace(@Nullable Entity entity, @NotNull BlockSnapshot blockSnapshot, @NotNull Direction direction, InteractionHand hand)
+    {
+        BlockState placedAgainst = blockSnapshot.getLevel().getBlockState(blockSnapshot.getPos().relative(direction.getOpposite()));
+        EntityPlaceEvent event = new BlockEvent.EntityPlaceEvent(blockSnapshot, placedAgainst, entity);
+        event.setPlaceEventDirection(direction); // Mohist
+        event.setPlaceEventHand(hand); // Mohist
         return NeoForge.EVENT_BUS.post(event).isCanceled();
     }
 
     public static boolean onBlockPlace(@Nullable Entity entity, BlockSnapshot blockSnapshot, Direction direction) {
         BlockState placedAgainst = blockSnapshot.getLevel().getBlockState(blockSnapshot.getPos().relative(direction.getOpposite()));
         EntityPlaceEvent event = new BlockEvent.EntityPlaceEvent(blockSnapshot, placedAgainst, entity);
+        event.setPlaceEventDirection(direction); // Mohist
         return NeoForge.EVENT_BUS.post(event).isCanceled();
     }
 

@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.v1_21_R1.legacy;
 
+import cn.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.google.common.base.Preconditions;
 import com.mojang.serialization.Dynamic;
 import java.util.Arrays;
@@ -234,15 +235,54 @@ public final class CraftLegacy {
     }
 
     public static Material valueOf(String name) {
-        return (name.startsWith(Material.LEGACY_PREFIX)) ? Material.valueOf(name) : Material.valueOf(Material.LEGACY_PREFIX + name);
+        if (name.startsWith(Material.LEGACY_PREFIX)) {
+            return Material.valueOf(name);
+        } else {
+            try {
+                Material material = Material.valueOf(name);
+                if (material != null && NeoForgeInjectBukkit.isMods(material.getKey())) {
+                    return material;
+                } else {
+                    return Material.valueOf(Material.LEGACY_PREFIX + name);
+                }
+            } catch (IllegalArgumentException e) {
+                return Material.valueOf(Material.LEGACY_PREFIX + name);
+            }
+        }
     }
 
     public static Material getMaterial(String name) {
-        return (name.startsWith(Material.LEGACY_PREFIX)) ? Material.getMaterial(name) : Material.getMaterial(Material.LEGACY_PREFIX + name);
+        if (name.startsWith(Material.LEGACY_PREFIX)) {
+            return Material.getMaterial(name);
+        } else {
+            try {
+                Material material = Material.getMaterial(name);
+                if (material != null && NeoForgeInjectBukkit.isMods(material.getKey())) {
+                    return material;
+                } else {
+                    return Material.getMaterial(Material.LEGACY_PREFIX + name);
+                }
+            } catch (IllegalArgumentException e) {
+                return Material.getMaterial(Material.LEGACY_PREFIX + name);
+            }
+        }
     }
 
     public static Material matchMaterial(String name) {
-        return (name.startsWith(Material.LEGACY_PREFIX)) ? Material.matchMaterial(name) : Material.matchMaterial(Material.LEGACY_PREFIX + name);
+        if (name.startsWith(Material.LEGACY_PREFIX)) {
+            return Material.matchMaterial(name);
+        } else {
+            try {
+                Material material = Material.matchMaterial(name);
+                if (material != null && NeoForgeInjectBukkit.isMods(material.getKey())) {
+                    return material;
+                } else {
+                    return Material.matchMaterial(Material.LEGACY_PREFIX + name);
+                }
+            } catch (IllegalArgumentException e) {
+                return Material.matchMaterial(Material.LEGACY_PREFIX + name);
+            }
+        }
     }
 
     public static int ordinal(Material material) {
@@ -252,8 +292,13 @@ public final class CraftLegacy {
     }
 
     public static String name(Material material) {
-        return material.name().substring(Material.LEGACY_PREFIX.length());
+        if (NeoForgeInjectBukkit.isMods(material.getKey())) {
+            return material.name();
+        } else {
+            return material.name().startsWith(Material.LEGACY_PREFIX) ? material.name().substring(Material.LEGACY_PREFIX.length()) : material.name();
+        }
     }
+
 
     public static String toString(Material material) {
         return CraftLegacy.name(material);

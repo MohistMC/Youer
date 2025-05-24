@@ -275,7 +275,9 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
 
     @Override
     public InventoryView getOpenInventory() {
-        return this.getHandle().containerMenu.getBukkitView();
+        AbstractContainerMenu container = this.getHandle().containerMenu;
+        container.containerOwner = this.getHandle();
+        return container.getBukkitView();
     }
 
     @Override

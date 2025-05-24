@@ -1,6 +1,6 @@
 package cn.mohistmc.youer.api;
 
-import cn.mohistmc.youer.bukkit.inventory.MohistModsInventory;
+import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventory;
 import org.bukkit.inventory.Inventory;
 
@@ -15,7 +15,7 @@ public class InventoryAPI {
     }
 
     public static String getModsInvName(Inventory bukkit) {
-        if (((CraftInventory) bukkit).getInventory() instanceof MohistModsInventory mohistModsInventory) {
+        if (((CraftInventory) bukkit).getInventory() instanceof YouerModsInventory mohistModsInventory) {
             return mohistModsInventory.getContainer().getClass().getSimpleName();
         }
         bukkit.getType().setMods(false);
