@@ -1,6 +1,7 @@
 import net.neoforged.jarcompatibilitychecker.gradle.CompatibilityTask
 import net.neoforged.jarcompatibilitychecker.gradle.JCCPlugin
 import net.neoforged.jarcompatibilitychecker.gradle.ProvideNeoForgeJarTask
+import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
     id 'java-library'
@@ -8,6 +9,7 @@ plugins {
     id 'net.neoforged.jarcompatibilitychecker' version '0.1.12'
     id 'net.neoforged.gradleutils'
     id 'neoforge.versioning'
+    id 'de.undercouch.download' version '5.6.0'
 }
 
 apply plugin: net.neoforged.neodev.NeoDevPlugin
@@ -101,12 +103,11 @@ dependencies {
     libraries "net.neoforged:bus:${project.eventbus_version}"
     libraries "net.neoforged:coremods:${project.coremods_version}"
     libraries "cpw.mods:modlauncher:${project.modlauncher_version}"
-    libraries "net.neoforged:mergetool:${project.mergetool_version}:api"
+    libraries "net.neoforged:mergetool:${project.mergetool_version}-api"
     libraries "com.electronwill.night-config:core:${project.nightconfig_version}"
     libraries "com.electronwill.night-config:toml:${project.nightconfig_version}"
     libraries "org.apache.maven:maven-artifact:${project.apache_maven_artifact_version}"
     libraries "net.jodah:typetools:${project.typetools_version}"
-    libraries "net.minecrell:terminalconsoleappender:${project.terminalconsoleappender_version}"
     libraries("net.fabricmc:sponge-mixin:${project.mixin_version}") { transitive = false }
     libraries "org.openjdk.nashorn:nashorn-core:${project.nashorn_core_version}"
     libraries("net.neoforged:JarJarSelector:${project.jarjar_version}") {
@@ -136,7 +137,7 @@ dependencies {
     libraries 'com.googlecode.json-simple:json-simple:1.1.1'
     libraries 'org.xerial:sqlite-jdbc:3.46.0.0'
     libraries 'com.mysql:mysql-connector-j:8.4.0'
-    libraries ('net.md-5:SpecialSource:1.11.2') {
+    libraries('net.md-5:SpecialSource:1.11.2') {
         exclude group: 'com.opencsv'
     }
     libraries 'org.apache.logging.log4j:log4j-iostreams:2.20.0'
@@ -149,12 +150,15 @@ dependencies {
     libraries 'com.mohistmc:dynamicenum:0.3.1'
     libraries 'com.mohistmc:i18n:0.6'
     libraries 'com.mohistmc:json:0.5'
-    libraries 'com.mohistmc:tools:0.5.1'
+    libraries 'com.mohistmc:tools:0.6'
     libraries ('com.mohistmc:librariesvault:1.20.2') {
         exclude group: 'org.yaml'
     }
-    libraries 'commons-lang:commons-lang:2.6-mohist'
-    compileOnly(jarJar(project(":neoforge-coremods")))
+    implementation(jarJar('commons-lang:commons-lang:2.6-mohist'))
+    libraries "net.minecrell:terminalconsoleappender:1.4.0"
+    libraries "org.jline:jline-reader:3.21.0"   // Dep of TerminalConsoleAppender
+    libraries "org.jline:jline-terminal:3.21.0" // Dep of TerminalConsoleAppender
+    libraries "org.jline:jline-terminal-jansi:3.21.0" // Dep of TerminalConsoleAppender
 }
 
 neoDev {
@@ -351,6 +355,102 @@ artifacts {
     }
     installerJar(installerJar) {
         setClassifier("installer")
+    }
+}
+
+task downloadMultipleFiles(type: Download) {
+    src([
+            'https://maven.mohistmc.com/libraries/1.21.1/youer/libraries.zip'
+    ])
+    dest layout.buildDirectory.dir("libraries")
+}
+
+configurations {
+    installer {
+        // Don't pull all libraries, if we're missing something, add it to the installer list so the installer knows to download it.
+        transitive = false
+    }
+}
+
+def installerDeps = {
+    installer "net.neoforged.installertools:installertools:${project.installertools_version}"
+    installer "net.neoforged.installertools:binarypatcher:${project.installertools_version}:fatjar"
+    installer "net.neoforged.installertools:jarsplitter:${project.installertools_version}"
+    installer "net.neoforged.installertools:cli-utils:${project.installertools_version}"
+    installer "net.neoforged:AutoRenamingTool:${project.art_version}:all"
+    installer "net.neoforged:srgutils:1.0.0"
+    installer "de.siegmar:fastcsv:2.0.0"
+}
+
+dependencies installerDeps
+
+task youerJar(type: Jar, dependsOn: [youerJar0, downloadMultipleFiles, project(':youerlauncher').tasks.jar]) {
+    archiveClassifier = 'server'
+    archiveExtension = 'jar'
+    archiveBaseName = 'youer'
+    archiveVersion = '1.21.1-' + gradleutils.gitInfo.abbreviatedId
+    destinationDirectory = file('build/libs')
+
+    doFirst {
+        manifest.attributes([
+                'Premain-Class'       : 'com.mohistmc.launcher.youer.util.JarLoader',
+                'Launcher-Agent-Class': 'com.mohistmc.launcher.youer.util.JarLoader',
+                'Main-Class'          : 'com.mohistmc.launcher.youer.Main'
+        ])
+    }
+
+    //println(CLASS_PATH)
+
+    from(zipTree(project(':youerlauncher').tasks.jar.outputs.getFiles().asPath.replace(".jar", "-all.jar"))) {
+        into ""
+    }
+    from(zipTree(youerJar0.outputs.getFiles().asPath)) {
+        into ""
+    }
+
+    from(zipTree(downloadMultipleFiles.outputs.getFiles().asPath)) {
+        into 'META-INF/libraries'
+    }
+
+    configurations.libraries.resolvedConfiguration.resolvedArtifacts.collect {
+        def moduleVersion = it.moduleVersion
+        if (!moduleVersion.id.name.startsWith("asm")) {
+            from(it.file) {
+                into("META-INF/libraries/${moduleVersion.id.group.replace('.', '/')}/${moduleVersion.id.name}/${moduleVersion.id.version}/")
+            }
+        }
+    }
+    configurations.installer.resolvedConfiguration.resolvedArtifacts.collect {
+        def moduleVersion = it.moduleVersion
+        from(it.file) {
+            into("META-INF/libraries/${moduleVersion.id.group.replace('.', '/')}/${moduleVersion.id.name}/${moduleVersion.id.version}/")
+        }
+    }
+
+    configurations.moduleLibraries.resolvedConfiguration.resolvedArtifacts.collect {
+        def moduleVersion = it.moduleVersion
+        if (moduleVersion.id.name != "JarJarFileSystems") {
+            from(it.file) {
+                into("META-INF/libraries/${moduleVersion.id.group.replace('.', '/')}/${moduleVersion.id.name}/${moduleVersion.id.version}/")
+            }
+        }
+    }
+
+    from(rootProject.file('server_files/version.txt')) {
+        filter(ReplaceTokens, tokens: [VERSION: gradleutils.gitInfo.abbreviatedId])
+        rename { 'versions/youer.txt' }
+    }
+    from(rootProject.file('server_files/version.txt')) {
+        filter(ReplaceTokens, tokens: [VERSION: minecraft_version])
+        rename { 'versions/minecraft.txt' }
+    }
+    from(rootProject.file('server_files/version.txt')) {
+        filter(ReplaceTokens, tokens: [VERSION: neoforge_version])
+        rename { 'versions/neoforge.txt' }
+    }
+    from(rootProject.file('server_files/version.txt')) {
+        filter(ReplaceTokens, tokens: [VERSION: minecraft_version + '-' + neoform_version])
+        rename { 'versions/mcp.txt' }
     }
 }
 

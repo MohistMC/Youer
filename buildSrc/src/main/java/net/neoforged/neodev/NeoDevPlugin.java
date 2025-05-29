@@ -333,10 +333,6 @@ public class NeoDevPlugin implements Plugin<Project> {
         var installerJar = tasks.register("installerJar", Zip.class, task -> {
             task.setGroup(INTERNAL_GROUP);
             task.getArchiveClassifier().set("installer");
-            // Youer start
-            String oldVersion = task.getArchiveVersion().get();
-            task.getArchiveVersion().set(oldVersion + "-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMdHHmm")));
-            // Youer end
             task.getArchiveExtension().set("jar");
             task.setMetadataCharset("UTF-8");
             task.getDestinationDirectory().convention(project.getExtensions().getByType(BasePluginExtension.class).getLibsDirectory());
@@ -385,6 +381,40 @@ public class NeoDevPlugin implements Plugin<Project> {
             if (project.getProperties().containsKey(installerDebugProperty) && Boolean.parseBoolean(project.getProperties().get(installerDebugProperty).toString())) {
                 task.from(universalJar.flatMap(AbstractArchiveTask::getArchiveFile), spec -> {
                     spec.into(String.format("/maven/net/neoforged/neoforge/%s/", neoForgeVersion.get()));
+                    spec.rename(name -> String.format("neoforge-%s-universal.jar", neoForgeVersion.get()));
+                });
+            }
+        });
+
+        var youerJar0 = tasks.register("youerJar0", Zip.class, task -> {
+            task.from(createUnixServerArgsFile.flatMap(CreateArgsFile::getArgsFile), spec -> {
+                spec.into("data");
+                spec.rename(s -> "unix_args.txt");
+            });
+            task.from(createWindowsServerArgsFile.flatMap(CreateArgsFile::getArgsFile), spec -> {
+                spec.into("data");
+                spec.rename(s -> "win_args.txt");
+            });
+            task.from(binaryPatchOutputs.binaryPatchesForServer(), spec -> {
+                spec.into("data");
+                spec.rename(s -> "server.lzma");
+            });
+
+            var mavenPath = neoForgeVersion.map(v -> "net/neoforged/neoforge/" + v);
+            task.getInputs().property("mavenPath", mavenPath);
+            task.from(project.getRootProject().files("server_files"), spec -> {
+                spec.into("data");
+                spec.exclude("args.txt");
+                spec.filter(s -> {
+                    return s.replaceAll("@MAVEN_PATH@", mavenPath.get());
+                });
+            });
+
+            // This is true by default (see gradle.properties), and needs to be disabled explicitly when building (see release.yml).
+            String installerDebugProperty = "neogradle.runtime.platform.installer.debug";
+            if (project.getProperties().containsKey(installerDebugProperty) && Boolean.parseBoolean(project.getProperties().get(installerDebugProperty).toString())) {
+                task.from(universalJar.flatMap(AbstractArchiveTask::getArchiveFile), spec -> {
+                    spec.into("data");
                     spec.rename(name -> String.format("neoforge-%s-universal.jar", neoForgeVersion.get()));
                 });
             }

@@ -52,7 +52,7 @@
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
      }
  
-@@ -258,15 +_,75 @@
+@@ -258,14 +_,75 @@
          return new ParseResults<>(commandcontextbuilder1, p_242928_.getReader(), p_242928_.getExceptions());
      }
  
@@ -109,12 +109,12 @@
 +    }
 +
 +    // Mohist start - add field to compat with mods
-+    private AtomicReference<String> mohist$label = new AtomicReference<>();
++    private final AtomicReference<String> mohist$label = new AtomicReference<>();
++    private static final AtomicReference<String> finishParsing$label = new AtomicReference<>();
  
      public void performCommand(ParseResults<CommandSourceStack> p_242844_, String p_242841_) {
 +        var label = mohist$label.get();
 +        label = label == null ? "/" + p_242841_ : label;
-+        String finalLabel = label;
 +        // Mohist end
          CommandSourceStack commandsourcestack = p_242844_.getContext().getSource();
 +        net.neoforged.neoforge.event.CommandEvent event = new net.neoforged.neoforge.event.CommandEvent(p_242844_);
@@ -128,12 +128,11 @@
 +        p_242844_ = event.getParseResults();
 +
          commandsourcestack.getServer().getProfiler().push(() -> "/" + p_242841_);
--        ContextChain<CommandSourceStack> contextchain = finishParsing(p_242844_, p_242841_, commandsourcestack);
-+        ContextChain<CommandSourceStack> contextchain = finishParsing(p_242844_, p_242841_, commandsourcestack, finalLabel);
++        finishParsing$label.set(label);
+         ContextChain<CommandSourceStack> contextchain = finishParsing(p_242844_, p_242841_, commandsourcestack);
  
          try {
-             if (contextchain != null) {
-@@ -306,8 +_,13 @@
+@@ -306,6 +_,11 @@
          }
      }
  
@@ -143,17 +142,14 @@
 +    }
 +
      @Nullable
--    private static ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> p_307220_, String p_307311_, CommandSourceStack p_307676_) {
-+    private static ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> p_307220_, String p_307311_, CommandSourceStack p_307676_, String label) {
+     private static ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> p_307220_, String p_307311_, CommandSourceStack p_307676_) {
          try {
-             validateParseResults(p_307220_);
-             return ContextChain.tryFlatten(p_307220_.getContext().build(p_307311_))
 @@ -318,7 +_,7 @@
                  int i = Math.min(commandsyntaxexception.getInput().length(), commandsyntaxexception.getCursor());
                  MutableComponent mutablecomponent = Component.empty()
                      .withStyle(ChatFormatting.GRAY)
 -                    .withStyle(p_82134_ -> p_82134_.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + p_307311_)));
-+                    .withStyle(p_82134_ -> p_82134_.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, label))); // CraftBukkit
++                    .withStyle(p_82134_ -> p_82134_.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, finishParsing$label.get()))); // CraftBukkit
                  if (i > 10) {
                      mutablecomponent.append(CommonComponents.ELLIPSIS);
                  }

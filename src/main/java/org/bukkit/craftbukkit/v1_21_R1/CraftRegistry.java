@@ -59,7 +59,6 @@ import org.jetbrains.annotations.NotNull;
 
 public class CraftRegistry<B extends Keyed, M> implements Registry<B> {
 
-    private static final BiFunction<NamespacedKey, ApiVersion, NamespacedKey> NONE = (namespacedKey, apiVersion) -> namespacedKey;
     private static RegistryAccess registry;
 
     public static void setMinecraftRegistry(RegistryAccess registry) {
@@ -276,6 +275,16 @@ public class CraftRegistry<B extends Keyed, M> implements Registry<B> {
         cache.put(namespacedKey, bukkit);
 
         return bukkit;
+    }
+
+    @NotNull
+    @Override
+    public B getOrThrow(@NotNull NamespacedKey namespacedKey) {
+        B object = get(namespacedKey);
+
+        Preconditions.checkArgument(object != null, "No %s registry entry found for key %s.", minecraftRegistry.key(), namespacedKey);
+
+        return object;
     }
 
     @NotNull

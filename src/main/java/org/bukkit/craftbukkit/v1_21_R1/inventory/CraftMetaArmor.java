@@ -23,34 +23,6 @@ import org.bukkit.inventory.meta.trim.TrimPattern;
 @DelegateDeserialization(SerializableMeta.class)
 public class CraftMetaArmor extends CraftMetaItem implements ArmorMeta {
 
-    private static final Set<Material> ARMOR_MATERIALS = Sets.newHashSet(
-            Material.CHAINMAIL_HELMET,
-            Material.CHAINMAIL_CHESTPLATE,
-            Material.CHAINMAIL_LEGGINGS,
-            Material.CHAINMAIL_BOOTS,
-            Material.DIAMOND_HELMET,
-            Material.DIAMOND_CHESTPLATE,
-            Material.DIAMOND_LEGGINGS,
-            Material.DIAMOND_BOOTS,
-            Material.GOLDEN_HELMET,
-            Material.GOLDEN_CHESTPLATE,
-            Material.GOLDEN_LEGGINGS,
-            Material.GOLDEN_BOOTS,
-            Material.IRON_HELMET,
-            Material.IRON_CHESTPLATE,
-            Material.IRON_LEGGINGS,
-            Material.IRON_BOOTS,
-            Material.LEATHER_HELMET,
-            Material.LEATHER_CHESTPLATE,
-            Material.LEATHER_LEGGINGS,
-            Material.LEATHER_BOOTS,
-            Material.NETHERITE_HELMET,
-            Material.NETHERITE_CHESTPLATE,
-            Material.NETHERITE_LEGGINGS,
-            Material.NETHERITE_BOOTS,
-            Material.TURTLE_HELMET
-    );
-
     static final ItemMetaKeyType<net.minecraft.world.item.armortrim.ArmorTrim> TRIM = new ItemMetaKeyType<>(DataComponents.TRIM, "trim");
     static final ItemMetaKey TRIM_MATERIAL = new ItemMetaKey("material");
     static final ItemMetaKey TRIM_PATTERN = new ItemMetaKey("pattern");
@@ -111,11 +83,6 @@ public class CraftMetaArmor extends CraftMetaItem implements ArmorMeta {
         if (this.hasTrim()) {
             itemTag.put(CraftMetaArmor.TRIM, new net.minecraft.world.item.armortrim.ArmorTrim(CraftTrimMaterial.bukkitToMinecraftHolder(this.trim.getMaterial()), CraftTrimPattern.bukkitToMinecraftHolder(this.trim.getPattern()), !this.hasItemFlag(ItemFlag.HIDE_ARMOR_TRIM)));
         }
-    }
-
-    @Override
-    boolean applicableTo(Material type) {
-        return CraftMetaArmor.ARMOR_MATERIALS.contains(type);
     }
 
     @Override

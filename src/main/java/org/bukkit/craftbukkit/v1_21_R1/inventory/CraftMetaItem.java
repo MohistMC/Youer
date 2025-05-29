@@ -133,6 +133,7 @@ import org.bukkit.persistence.PersistentDataContainer;
  * <li> SerializableMeta.Deserializers deserializer()
  */
 @DelegateDeserialization(SerializableMeta.class)
+// Important: ItemMeta needs to be the first interface see #applicableTo(Material)
 class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
 
     static class ItemMetaKey {
@@ -878,6 +879,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
             }
         }
 
+        CompoundTag customTag = (this.customTag != null) ? this.customTag.copy() : null;
         if (!this.persistentDataContainer.isEmpty()) {
             CompoundTag bukkitCustomCompound = new CompoundTag();
             Map<String, Tag> rawPublicMap = this.persistentDataContainer.getRaw();
@@ -886,26 +888,28 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
                 bukkitCustomCompound.put(nbtBaseEntry.getKey(), nbtBaseEntry.getValue());
             }
 
-            if (this.customTag == null) {
-                this.customTag = new CompoundTag();
+            if (customTag == null) {
+                customTag = new CompoundTag();
             }
-            this.customTag.put(CraftMetaItem.BUKKIT_CUSTOM_TAG.BUKKIT, bukkitCustomCompound);
+            customTag.put(CraftMetaItem.BUKKIT_CUSTOM_TAG.BUKKIT, bukkitCustomCompound);
         }
 
-        if (this.customTag != null) {
-            itemTag.put(CraftMetaItem.CUSTOM_DATA, CustomData.of(this.customTag));
+        if (customTag != null) {
+            itemTag.put(CraftMetaItem.CUSTOM_DATA, CustomData.of(customTag));
         }
     }
 
     void applyEnchantments(Map<Enchantment, Integer> enchantments, CraftMetaItem.Applicator tag, ItemMetaKeyType<ItemEnchantments> key, ItemFlag itemFlag) {
-        if (enchantments == null) {
+        if (enchantments == null && !hasItemFlag(itemFlag)) {
             return;
         }
 
         ItemEnchantments.Mutable list = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
 
-        for (Map.Entry<Enchantment, Integer> entry : enchantments.entrySet()) {
-            list.set(CraftEnchantment.bukkitToMinecraftHolder(entry.getKey()), entry.getValue());
+        if (enchantments != null) {
+            for (Map.Entry<Enchantment, Integer> entry : enchantments.entrySet()) {
+                list.set(CraftEnchantment.bukkitToMinecraftHolder(entry.getKey()), entry.getValue());
+            }
         }
 
         list.showInTooltip = !this.hasItemFlag(itemFlag);
@@ -938,14 +942,22 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
         tag.put(CraftMetaItem.ATTRIBUTES, list.build().withTooltip(!this.hasItemFlag(ItemFlag.HIDE_ATTRIBUTES)));
     }
 
-    @Overridden
     boolean applicableTo(Material type) {
-        return type != Material.AIR;
+        if (type == Material.AIR || !type.isItem()) {
+            return false;
+        }
+
+        if (getClass() == CraftMetaItem.class) {
+            return true;
+        }
+
+        // We assume that the corresponding bukkit interface is always the first one
+        return type.asItemType().getItemMetaClass() == getClass().getInterfaces()[0];
     }
 
     @Overridden
     boolean isEmpty() {
-        return !(hasDisplayName() || hasItemName() || hasLocalizedName() || hasEnchants() || (lore != null) || hasCustomModelData() || hasBlockData() || hasRepairCost() || !unhandledTags.build().isEmpty() || !removedTags.isEmpty() || !persistentDataContainer.isEmpty() || hideFlag != 0 || isHideTooltip() || isUnbreakable() || hasEnchantmentGlintOverride() || isFireResistant() || hasMaxStackSize() || hasRarity() || hasFood() || hasTool() || hasDamage() || hasMaxDamage() || hasAttributeModifiers() || customTag != null);
+        return !(hasDisplayName() || hasItemName() || hasLocalizedName() || hasEnchants() || (lore != null) || hasCustomModelData() || hasBlockData() || hasRepairCost() || !unhandledTags.build().isEmpty() || !removedTags.isEmpty() || !persistentDataContainer.isEmpty() || hideFlag != 0 || isHideTooltip() || isUnbreakable() || hasEnchantmentGlintOverride() || isFireResistant() || hasMaxStackSize() || hasRarity() || hasFood() || hasTool() || hasJukeboxPlayable() || hasDamage() || hasMaxDamage() || hasAttributeModifiers() || customTag != null);
     }
 
     @Override
@@ -1779,7 +1791,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
             builder.put(CraftMetaItem.BUKKIT_CUSTOM_TAG.BUKKIT, this.persistentDataContainer.serialize());
         }
 
-        if (this.customTag != null && !this.customTag.isEmpty()) {
+        if (customTag != null) {
             try {
                 ByteArrayOutputStream buf = new ByteArrayOutputStream();
                 NbtIo.writeCompressed(this.customTag, buf);
@@ -1917,6 +1929,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
                         CraftMetaMap.MAP_COLOR.TYPE,
                         CraftMetaMap.MAP_ID.TYPE,
                         CraftMetaPotion.POTION_CONTENTS.TYPE,
+                        CraftMetaShield.BASE_COLOR.TYPE,
                         CraftMetaSkull.SKULL_PROFILE.TYPE,
                         CraftMetaSkull.NOTE_BLOCK_SOUND.TYPE,
                         CraftMetaSpawnEgg.ENTITY_TAG.TYPE,

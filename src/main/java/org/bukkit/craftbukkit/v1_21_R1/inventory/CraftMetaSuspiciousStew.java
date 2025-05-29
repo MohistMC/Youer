@@ -87,12 +87,7 @@ public class CraftMetaSuspiciousStew extends CraftMetaItem implements Suspicious
     }
 
     boolean isStewEmpty() {
-        return !this.hasCustomEffects();
-    }
-
-    @Override
-    boolean applicableTo(Material type) {
-        return type == Material.SUSPICIOUS_STEW;
+        return !hasCustomEffects();
     }
 
     @Override

@@ -389,6 +389,7 @@ public final class CraftServer implements Server {
         this.minimumAPI = ApiVersion.getOrCreateVersion(this.configuration.getString("settings.minimum-api"));
         this.loadIcon();
         loadCompatibilities();
+        CraftMagicNumbers.INSTANCE.getCommodore().updateReroute(activeCompatibilities::contains);
 
         // Set map color cache
         if (this.configuration.getBoolean("settings.use-map-color-cache")) {
@@ -655,10 +656,10 @@ public final class CraftServer implements Server {
             return found;
         }
 
-        String lowerName = name.toLowerCase(java.util.Locale.ENGLISH);
+        String lowerName = name.toLowerCase(Locale.ROOT);
         int delta = Integer.MAX_VALUE;
-        for (Player player : this.getOnlinePlayers()) {
-            if (player.getName().toLowerCase(java.util.Locale.ENGLISH).startsWith(lowerName)) {
+        for (Player player : getOnlinePlayers()) {
+            if (player.getName().toLowerCase(Locale.ROOT).startsWith(lowerName)) {
                 int curDelta = Math.abs(player.getName().length() - lowerName.length());
                 if (curDelta < delta) {
                     found = player;
@@ -712,7 +713,7 @@ public final class CraftServer implements Server {
                 matchedPlayers.add(iterPlayer);
                 break;
             }
-            if (iterPlayerName.toLowerCase(java.util.Locale.ENGLISH).contains(partialName.toLowerCase(java.util.Locale.ENGLISH))) {
+            if (iterPlayerName.toLowerCase(Locale.ROOT).contains(partialName.toLowerCase(Locale.ROOT))) {
                 // Partial match
                 matchedPlayers.add(iterPlayer);
             }

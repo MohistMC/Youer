@@ -32,13 +32,6 @@ import org.bukkit.potion.PotionType;
 @DelegateDeserialization(SerializableMeta.class)
 class CraftMetaPotion extends CraftMetaItem implements PotionMeta {
 
-    private static final Set<Material> POTION_MATERIALS = Sets.newHashSet(
-            Material.POTION,
-            Material.SPLASH_POTION,
-            Material.LINGERING_POTION,
-            Material.TIPPED_ARROW
-    );
-
     @ItemMetaKey.Specific(ItemMetaKey.Specific.To.NBT)
     static final ItemMetaKeyType<PotionContents> POTION_CONTENTS = new ItemMetaKeyType<>(DataComponents.POTION_CONTENTS);
     static final ItemMetaKey POTION_EFFECTS = new ItemMetaKey("custom-effects");
@@ -125,8 +118,12 @@ class CraftMetaPotion extends CraftMetaItem implements PotionMeta {
     void applyToItem(CraftMetaItem.Applicator tag) {
         super.applyToItem(tag);
 
-        Optional<Holder<Potion>> defaultPotion = (this.hasBasePotionType()) ? Optional.of(CraftPotionType.bukkitToMinecraftHolder(this.type)) : Optional.empty();
-        Optional<Integer> potionColor = (this.hasColor()) ? Optional.of(this.color.asRGB()) : Optional.empty();
+        if (isPotionEmpty()) {
+            return;
+        }
+
+        Optional<Holder<Potion>> defaultPotion = (hasBasePotionType()) ? Optional.of(CraftPotionType.bukkitToMinecraftHolder(type)) : Optional.empty();
+        Optional<Integer> potionColor = (hasColor()) ? Optional.of(this.color.asRGB()) : Optional.empty();
 
         List<MobEffectInstance> effectList = new ArrayList<>();
         if (this.customEffects != null) {
@@ -145,11 +142,6 @@ class CraftMetaPotion extends CraftMetaItem implements PotionMeta {
 
     boolean isPotionEmpty() {
         return (this.type == null) && !(this.hasCustomEffects() || this.hasColor());
-    }
-
-    @Override
-    boolean applicableTo(Material type) {
-        return CraftMetaPotion.POTION_MATERIALS.contains(type);
     }
 
     @Override
@@ -189,7 +181,7 @@ class CraftMetaPotion extends CraftMetaItem implements PotionMeta {
 
     @Override
     public boolean hasCustomEffects() {
-        return this.customEffects != null;
+        return customEffects != null && !customEffects.isEmpty();
     }
 
     @Override

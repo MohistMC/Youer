@@ -103,12 +103,7 @@ public class CraftMetaCompass extends CraftMetaItem implements CompassMeta {
     }
 
     boolean isCompassEmpty() {
-        return !(this.hasLodestone() || this.hasLodestoneTracked());
-    }
-
-    @Override
-    boolean applicableTo(Material type) {
-        return type == Material.COMPASS;
+        return !(hasLodestone() || hasLodestoneTracked());
     }
 
     @Override

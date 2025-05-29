@@ -1,6 +1,5 @@
 package org.bukkit.craftbukkit.v1_21_R1.inventory;
 
-import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import com.google.common.base.Preconditions;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,27 +15,24 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
-public class CraftInventoryView<T extends AbstractContainerMenu> extends CraftAbstractInventoryView {
+public class CraftInventoryView<T extends AbstractContainerMenu, I extends Inventory> extends CraftAbstractInventoryView {
     protected final T container;
     private final CraftHumanEntity player;
-    private CraftInventory viewing;
+    private final I viewing;
     private final String originalTitle;
     private String title;
 
-    public CraftInventoryView(HumanEntity player, Inventory viewing, T container) {
+    public CraftInventoryView(HumanEntity player, I viewing, T container) {
         // TODO: Should we make sure it really IS a CraftHumanEntity first? And a CraftInventory?
         this.player = (CraftHumanEntity) player;
-        this.viewing = (CraftInventory) viewing;
+        this.viewing = viewing;
         this.container = container;
         this.originalTitle = CraftChatMessage.fromComponent(container.getTitle());
         this.title = this.originalTitle;
-        if (container.slots.size() > this.countSlots()) {
-            this.viewing = new CraftInventory(new YouerModsInventory(container, ((CraftHumanEntity) player).getHandle()));
-        }
     }
 
     @Override
-    public Inventory getTopInventory() {
+    public I getTopInventory() {
         return this.viewing;
     }
 

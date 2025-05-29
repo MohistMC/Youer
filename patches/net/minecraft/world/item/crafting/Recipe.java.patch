@@ -1,6 +1,17 @@
 --- a/net/minecraft/world/item/crafting/Recipe.java
 +++ b/net/minecraft/world/item/crafting/Recipe.java
-@@ -15,6 +_,7 @@
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.item.crafting;
+ 
++import cn.mohistmc.youer.neoforge.ModSpecialRecipe;
+ import com.mojang.serialization.Codec;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.NonNullList;
+@@ -12,9 +_,11 @@
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Blocks;
++import org.bukkit.NamespacedKey;
  
  public interface Recipe<T extends RecipeInput> {
      Codec<Recipe<?>> CODEC = BuiltInRegistries.RECIPE_SERIALIZER.byNameCodec().dispatch(Recipe::getSerializer, RecipeSerializer::codec);
@@ -20,13 +31,15 @@
              }
          }
  
-@@ -65,6 +_,8 @@
+@@ -65,6 +_,10 @@
  
      default boolean isIncomplete() {
          NonNullList<Ingredient> nonnulllist = this.getIngredients();
 -        return nonnulllist.isEmpty() || nonnulllist.stream().anyMatch(p_151268_ -> p_151268_.getItems().length == 0);
 +        return nonnulllist.isEmpty() || nonnulllist.stream().anyMatch(Ingredient::hasNoItems);
-     }
++    }
 +
-+    org.bukkit.inventory.Recipe toBukkitRecipe(org.bukkit.NamespacedKey id); // CraftBukkit
++    default org.bukkit.inventory.Recipe toBukkitRecipe(NamespacedKey id) {
++        return new ModSpecialRecipe(id, this);
+     }
  }

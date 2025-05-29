@@ -69,7 +69,7 @@
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
-@@ -164,7 +_,14 @@
+@@ -164,7 +_,15 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
@@ -80,6 +80,7 @@
 +import org.bukkit.event.weather.LightningStrikeEvent;
 +import org.bukkit.event.world.TimeSkipEvent;
  import org.slf4j.Logger;
++import org.spigotmc.AsyncCatcher;
 +import org.spigotmc.SpigotWorldConfig;
  
  public class ServerLevel extends Level implements WorldGenLevel {
@@ -173,27 +174,33 @@
      }
  
      @Deprecated
-@@ -342,7 +_,19 @@
-         if (this.sleepStatus.areEnoughSleeping(i) && this.sleepStatus.areEnoughDeepSleeping(i, this.players)) {
-             if (this.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)) {
-                 long j = this.levelData.getDayTime() + 24000L;
--                this.setDayTime(j - j % 24000L);
-+                // CraftBukkit start
-+                TimeSkipEvent event = new TimeSkipEvent(this.getWorld(), TimeSkipEvent.SkipReason.NIGHT_SKIP, net.neoforged.neoforge.event.EventHooks.onSleepFinished(this, j - j % 24000L, this.getDayTime()));
-+                if (this.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)) {
-+                    this.getCraftServer().getPluginManager().callEvent(event);
-+                    if (!event.isCancelled()) {
-+                        this.setDayTime(this.getDayTime() + event.getSkipAmount());
-+                    }
-+                }
-+
-+                if (!event.isCancelled()) {
-+                    this.wakeUpAllPlayers();
-+                }
-+                // CraftBukkit end
-             }
+@@ -340,12 +_,21 @@
  
-             this.wakeUpAllPlayers();
+         int i = this.getGameRules().getInt(GameRules.RULE_PLAYERS_SLEEPING_PERCENTAGE);
+         if (this.sleepStatus.areEnoughSleeping(i) && this.sleepStatus.areEnoughDeepSleeping(i, this.players)) {
++            long j = this.levelData.getDayTime() + 24000L;
++            // CraftBukkit start
++            TimeSkipEvent event = new TimeSkipEvent(this.getWorld(), TimeSkipEvent.SkipReason.NIGHT_SKIP, net.neoforged.neoforge.event.EventHooks.onSleepFinished(this, j - j % 24000L, this.getDayTime()) - this.getDayTime());
+             if (this.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)) {
+-                long j = this.levelData.getDayTime() + 24000L;
+-                this.setDayTime(j - j % 24000L);
+-            }
+-
+-            this.wakeUpAllPlayers();
++                this.getCraftServer().getPluginManager().callEvent(event);
++                if (!event.isCancelled()) {
++                    this.setDayTime(this.getDayTime() + event.getSkipAmount());
++                }
++            }
++
++            if (!event.isCancelled()) {
++                this.wakeUpAllPlayers();
++            }
++            // CraftBukkit end
++
+             if (this.getGameRules().getBoolean(GameRules.RULE_WEATHER_CYCLE) && this.isRaining()) {
+                 this.resetWeatherCycle();
+             }
 @@ -380,7 +_,7 @@
  
          this.handlingTick = false;
@@ -441,7 +448,7 @@
          Entity entity = this.getEntities().get(p_8854_.getUUID());
          if (entity != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", p_8854_.getUUID());
-@@ -903,7 +_,8 @@
+@@ -903,15 +_,40 @@
              this.removePlayerImmediately((ServerPlayer)entity, Entity.RemovalReason.DISCARDED);
          }
  
@@ -451,11 +458,17 @@
      }
  
      private boolean addEntity(Entity p_8873_) {
-@@ -911,7 +_,28 @@
-             LOGGER.warn("Tried to add entity {} but it was marked as removed already", EntityType.getKey(p_8873_.getType()));
-             return false;
-         } else {
+         if (p_8873_.isRemoved()) {
+-            LOGGER.warn("Tried to add entity {} but it was marked as removed already", EntityType.getKey(p_8873_.getType()));
+-            return false;
+-        } else {
 -            return this.entityManager.addNewEntity(p_8873_);
++            if (false) LOGGER.warn("Tried to add entity {} but it was marked as removed already", EntityType.getKey(p_8873_.getType()));
++            return false;
++        } else {
++            if (!AsyncCatcher.catchAsync() && !CraftEventFactory.doEntityAddEventCalling(this, p_8873_, p_8873_.spawnReason)) {
++                return false;
++            }
 +            if (this.entityManager.addNewEntity(p_8873_)) {
 +                p_8873_.onAddedToLevel();
 +                return true;

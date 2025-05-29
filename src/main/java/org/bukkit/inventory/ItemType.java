@@ -31,6 +31,7 @@ import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.MusicInstrumentMeta;
 import org.bukkit.inventory.meta.OminousBottleMeta;
 import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.inventory.meta.ShieldMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.inventory.meta.SpawnEggMeta;
 import org.bukkit.inventory.meta.SuspiciousStewMeta;
@@ -1891,9 +1892,9 @@ public interface ItemType extends Keyed, Translatable {
      */
     ItemType.Typed<PotionMeta> LINGERING_POTION = getItemType("lingering_potion");
     /**
-     * ItemMeta: {@link BlockStateMeta}
+     * ItemMeta: {@link ShieldMeta}
      */
-    ItemType.Typed<BlockStateMeta> SHIELD = getItemType("shield");
+    ItemType.Typed<ShieldMeta> SHIELD = getItemType("shield");
     ItemType.Typed<ItemMeta> TOTEM_OF_UNDYING = getItemType("totem_of_undying");
     ItemType.Typed<ItemMeta> SHULKER_SHELL = getItemType("shulker_shell");
     ItemType.Typed<ItemMeta> IRON_NUGGET = getItemType("iron_nugget");
@@ -2115,11 +2116,8 @@ public interface ItemType extends Keyed, Translatable {
 
     @NotNull
     private static <M extends ItemType> M getItemType(@NotNull String key) {
-        NamespacedKey namespacedKey = NamespacedKey.minecraft(key);
-        ItemType itemType = Registry.ITEM.get(namespacedKey);
-        Preconditions.checkNotNull(itemType, "No ItemType found for %s. This is a bug.", namespacedKey);
         // Cast instead of using ItemType#typed, since item type can be a mock during testing and would return null
-        return (M) itemType;
+        return (M) Registry.ITEM.getOrThrow(NamespacedKey.minecraft(key));
     }
 
     /**

@@ -1272,15 +1272,9 @@ public class CraftEventFactory {
 
         CraftServer server = player.level().getCraftServer();
         CraftPlayer craftPlayer = player.getBukkitEntity();
-        container.containerOwner = player;
         player.containerMenu.transferTo(container, craftPlayer);
-        InventoryView bukkitView = container.getBukkitView();
-        if (bukkitView == null) {
-            org.bukkit.inventory.Inventory view = new CraftInventory(new YouerModsInventory(container, player));
-            view.getType().setMods(true);
-            bukkitView = new CraftInventoryView(player.getBukkitEntity(), view, container);
-        }
-        InventoryOpenEvent event = new InventoryOpenEvent(bukkitView);
+
+        InventoryOpenEvent event = new InventoryOpenEvent(container.getBukkitView());
         event.setCancelled(cancelled);
         server.getPluginManager().callEvent(event);
 

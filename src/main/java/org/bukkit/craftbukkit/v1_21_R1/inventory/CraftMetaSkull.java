@@ -29,23 +29,6 @@ import org.bukkit.profile.PlayerProfile;
 @DelegateDeserialization(SerializableMeta.class)
 class CraftMetaSkull extends CraftMetaItem implements SkullMeta {
 
-    private static final Set<Material> SKULL_MATERIALS = Sets.newHashSet(
-            Material.CREEPER_HEAD,
-            Material.CREEPER_WALL_HEAD,
-            Material.DRAGON_HEAD,
-            Material.DRAGON_WALL_HEAD,
-            Material.PIGLIN_HEAD,
-            Material.PIGLIN_WALL_HEAD,
-            Material.PLAYER_HEAD,
-            Material.PLAYER_WALL_HEAD,
-            Material.SKELETON_SKULL,
-            Material.SKELETON_WALL_SKULL,
-            Material.WITHER_SKELETON_SKULL,
-            Material.WITHER_SKELETON_WALL_SKULL,
-            Material.ZOMBIE_HEAD,
-            Material.ZOMBIE_WALL_HEAD
-    );
-
     @ItemMetaKey.Specific(ItemMetaKey.Specific.To.NBT)
     static final ItemMetaKeyType<ResolvableProfile> SKULL_PROFILE = new ItemMetaKeyType<>(DataComponents.PROFILE, "SkullProfile");
 
@@ -151,11 +134,6 @@ class CraftMetaSkull extends CraftMetaItem implements SkullMeta {
 
     boolean isSkullEmpty() {
         return this.profile == null && this.noteBlockSound == null;
-    }
-
-    @Override
-    boolean applicableTo(Material type) {
-        return CraftMetaSkull.SKULL_MATERIALS.contains(type);
     }
 
     @Override

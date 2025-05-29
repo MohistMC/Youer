@@ -212,11 +212,6 @@ class CraftMetaFirework extends CraftMetaItem implements FireworkMeta {
     }
 
     @Override
-    boolean applicableTo(Material type) {
-        return type == Material.FIREWORK_ROCKET;
-    }
-
-    @Override
     boolean isEmpty() {
         return super.isEmpty() && this.isFireworkEmpty();
     }

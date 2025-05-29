@@ -1,0 +1,50 @@
+plugins {
+    id 'java'
+    id 'io.github.goooler.shadow' version '8.1.8'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.warnings = false
+}
+
+dependencies {
+    compileOnly 'org.jetbrains:annotations:23.0.0'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+
+    implementation(libs.yaml)
+    implementation(libs.i18n)
+    implementation(libs.json)
+    implementation(libs.tools)
+    implementation(libs.progressbar)
+    implementation "cpw.mods:bootstraplauncher:2.0.2"
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                'Automatic-Module-Name': 'com.mohistmc.youerlauncher'
+        ] as LinkedHashMap)
+        attributes([
+                'Specification-Title'   : 'MohistMC',
+                'Specification-Vendor'  : 'MohistMC',
+                'Implementation-Title'  : 'Mohist',
+                'Implementation-Version': version,
+                'Implementation-Vendor' : 'MohistMC'
+        ] as LinkedHashMap, 'com/mohistmc/youerlauncher/')
+    }
+}
+
+shadowJar {
+    dependencies {
+        include(dependency('com.mohistmc:yaml'))
+        include(dependency('com.mohistmc:i18n'))
+        include(dependency('com.mohistmc:json'))
+        include(dependency('com.mohistmc:tools'))
+        include(dependency('me.tongfei:progressbar'))
+        include(dependency('org.jline:jline'))
+    }
+}
+
+jar.dependsOn(shadowJar)

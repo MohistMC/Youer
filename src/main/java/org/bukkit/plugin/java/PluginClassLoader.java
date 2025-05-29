@@ -213,7 +213,7 @@ final class PluginClassLoader extends URLClassLoader implements RemappingClassLo
                     byteSource = () -> {
                         try (InputStream is = connection.getInputStream()) {
                             byte[] classBytes = ByteStreams.toByteArray(is);
-                            classBytes = Bukkit.getUnsafe().processClass(description, path, classBytes);
+                            //classBytes = Bukkit.getUnsafe().processClass(description, path, classBytes);
                             classBytes = PluginFixManager.injectPluginFix(name, classBytes); // Youer - Inject plugin fix
                             return classBytes;
                         }

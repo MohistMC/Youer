@@ -100,17 +100,12 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
             if (bucketEntityTag == null) {
                 bucketEntityTag = new CompoundTag();
             }
-            bucketEntityTag.putInt("Variant", this.variant);
+            bucketEntityTag.putInt(VARIANT.NBT, variant);
         }
 
         if (bucketEntityTag != null) {
             tag.put(CraftMetaAxolotlBucket.ENTITY_TAG, CustomData.of(bucketEntityTag));
         }
-    }
-
-    @Override
-    boolean applicableTo(Material type) {
-        return type == Material.AXOLOTL_BUCKET;
     }
 
     @Override

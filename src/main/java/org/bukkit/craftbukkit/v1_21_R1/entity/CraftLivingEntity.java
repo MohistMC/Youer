@@ -47,6 +47,7 @@ import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_21_R1.potion.CraftPotionEffectType;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.BreezeWindCharge;
 import org.bukkit.entity.DragonFireball;
 import org.bukkit.entity.Egg;
 import org.bukkit.entity.EnderPearl;
@@ -509,9 +510,14 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
             } else if (DragonFireball.class.isAssignableFrom(projectile)) {
                 launch = new net.minecraft.world.entity.projectile.DragonFireball(world, this.getHandle(), vec);
             } else if (WindCharge.class.isAssignableFrom(projectile)) {
-                launch = EntityType.WIND_CHARGE.create(world);
-                ((net.minecraft.world.entity.projectile.windcharge.WindCharge) launch).setOwner(this.getHandle());
-                ((net.minecraft.world.entity.projectile.windcharge.WindCharge) launch).assignDirectionalMovement(vec, 1.0D);
+                if (BreezeWindCharge.class.isAssignableFrom(projectile)) {
+                    launch = net.minecraft.world.entity.EntityType.BREEZE_WIND_CHARGE.create(world);
+                } else {
+                    launch = net.minecraft.world.entity.EntityType.WIND_CHARGE.create(world);
+                }
+
+                ((net.minecraft.world.entity.projectile.windcharge.AbstractWindCharge) launch).setOwner(getHandle());
+                ((net.minecraft.world.entity.projectile.windcharge.AbstractWindCharge) launch).shootFromRotation(getHandle(), getHandle().getXRot(), getHandle().getYRot(), 0.0F, 1.5F, 1.0F); // WindChargeItem
             } else {
                 launch = new LargeFireball(world, this.getHandle(), vec, 1);
             }

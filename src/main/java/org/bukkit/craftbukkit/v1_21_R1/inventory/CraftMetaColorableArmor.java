@@ -14,14 +14,6 @@ import org.bukkit.inventory.meta.ColorableArmorMeta;
 @DelegateDeserialization(SerializableMeta.class)
 public class CraftMetaColorableArmor extends CraftMetaArmor implements ColorableArmorMeta {
 
-    private static final Set<Material> LEATHER_ARMOR_MATERIALS = Sets.newHashSet(
-            Material.LEATHER_HELMET,
-            Material.LEATHER_CHESTPLATE,
-            Material.LEATHER_LEGGINGS,
-            Material.LEATHER_BOOTS,
-            Material.WOLF_ARMOR
-    );
-
     private Color color = DEFAULT_LEATHER_COLOR;
 
     CraftMetaColorableArmor(CraftMetaItem meta) {
@@ -51,12 +43,7 @@ public class CraftMetaColorableArmor extends CraftMetaArmor implements Colorable
     }
 
     boolean isLeatherArmorEmpty() {
-        return !(this.hasColor());
-    }
-
-    @Override
-    boolean applicableTo(Material type) {
-        return CraftMetaColorableArmor.LEATHER_ARMOR_MATERIALS.contains(type);
+        return !(hasColor());
     }
 
     @Override

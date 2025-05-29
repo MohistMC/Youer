@@ -107,11 +107,6 @@ class CraftMetaMap extends CraftMetaItem implements MapMeta {
     }
 
     @Override
-    boolean applicableTo(Material type) {
-        return type == Material.FILLED_MAP;
-    }
-
-    @Override
     boolean isEmpty() {
         return super.isEmpty() && this.isMapEmpty();
     }

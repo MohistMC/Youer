@@ -74,7 +74,7 @@
  import net.minecraft.world.level.entity.EntityTypeTest;
  import net.minecraft.world.level.entity.LevelEntityGetter;
  import net.minecraft.world.level.gameevent.GameEvent;
-@@ -71,12 +_,35 @@
+@@ -71,12 +_,36 @@
  import net.minecraft.world.level.saveddata.maps.MapId;
  import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
  import net.minecraft.world.level.storage.LevelData;
@@ -99,6 +99,7 @@
 +import org.bukkit.craftbukkit.v1_21_R1.generator.CraftWorldInfo;
 +import org.bukkit.craftbukkit.v1_21_R1.generator.CustomChunkGenerator;
 +import org.bukkit.craftbukkit.v1_21_R1.generator.CustomWorldChunkManager;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftSpawnCategory;
 +import org.bukkit.entity.SpawnCategory;
 +import org.bukkit.event.block.BlockPhysicsEvent;
 +import org.bukkit.generator.BiomeProvider;
@@ -185,6 +186,19 @@
  
      protected Level(
          WritableLevelData p_270739_,
+@@ -128,6 +_,12 @@
+     ) {
+         this.profiler = p_270692_;
+         this.levelData = p_270739_;
++        // CraftBukkit Ticks things
++        for (SpawnCategory spawnCategory : SpawnCategory.values()) {
++            if (CraftSpawnCategory.isValidForLimits(spawnCategory) && getCraftServer() != null) {
++                this.ticksPerSpawnCategory.put(spawnCategory, (long) this.getCraftServer().getTicksPerSpawns(spawnCategory));
++            }
++        }
+         this.dimensionTypeRegistration = p_270240_;
+         final DimensionType dimensiontype = p_270240_.value();
+         this.dimension = p_270683_;
 @@ -154,6 +_,43 @@
          this.neighborUpdater = new CollectingNeighborUpdater(this, p_270466_);
          this.registryAccess = p_270200_;

@@ -54,11 +54,6 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
     }
 
     @Override
-    boolean applicableTo(Material type) {
-        return type == Material.GOAT_HORN;
-    }
-
-    @Override
     boolean equalsCommon(CraftMetaItem meta) {
         if (!super.equalsCommon(meta)) {
             return false;

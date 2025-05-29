@@ -54,12 +54,7 @@ public class CraftMetaOminousBottle extends CraftMetaItem implements OminousBott
     }
 
     boolean isBottleEmpty() {
-        return !(this.hasAmplifier());
-    }
-
-    @Override
-    boolean applicableTo(Material type) {
-        return type == Material.OMINOUS_BOTTLE;
+        return !(hasAmplifier());
     }
 
     @Override

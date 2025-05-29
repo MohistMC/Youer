@@ -230,12 +230,7 @@ public abstract class Enchantment implements Keyed, Translatable {
 
     @NotNull
     private static Enchantment getEnchantment(@NotNull String key) {
-        NamespacedKey namespacedKey = NamespacedKey.minecraft(key);
-        Enchantment enchantment = Registry.ENCHANTMENT.get(namespacedKey);
-
-        Preconditions.checkNotNull(enchantment, "No Enchantment found for %s. This is a bug.", namespacedKey);
-
-        return enchantment;
+        return Registry.ENCHANTMENT.getOrThrow(NamespacedKey.minecraft(key));
     }
 
     /**
@@ -345,13 +340,10 @@ public abstract class Enchantment implements Keyed, Translatable {
     @Contract("null -> null")
     @Nullable
     public static Enchantment getByName(@Nullable String name) {
-
         if (name == null) {
             return null;
         }
-        if (name.equals("ARROW_DAMAGE")) {
-            name = "POWER";
-        }
+
         return getByKey(NamespacedKey.fromString(name.toLowerCase(Locale.ROOT)));
     }
 

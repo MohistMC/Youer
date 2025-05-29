@@ -58,11 +58,6 @@ class CraftMetaEnchantedBook extends CraftMetaItem implements EnchantmentStorage
     }
 
     @Override
-    boolean applicableTo(Material type) {
-        return type == Material.ENCHANTED_BOOK;
-    }
-
-    @Override
     boolean isEmpty() {
         return super.isEmpty() && this.isEnchantedEmpty();
     }

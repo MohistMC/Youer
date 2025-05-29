@@ -59,7 +59,7 @@
  import net.minecraft.world.item.ElytraItem;
  import net.minecraft.world.item.Equipable;
  import net.minecraft.world.item.Item;
-@@ -126,13 +_,25 @@
+@@ -126,13 +_,26 @@
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
  import net.minecraft.world.phys.AABB;
@@ -80,6 +80,7 @@
 +import org.bukkit.event.entity.EntityRegainHealthEvent;
 +import org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason;
  import org.slf4j.Logger;
++import org.spigotmc.AsyncCatcher;
  
 -public abstract class LivingEntity extends Entity implements Attackable {
 +public abstract class LivingEntity extends Entity implements Attackable, net.neoforged.neoforge.common.extensions.ILivingEntityExtension {
@@ -400,7 +401,7 @@
      public Collection<MobEffectInstance> getActiveEffects() {
          return this.activeEffects.values();
      }
-@@ -925,22 +_,51 @@
+@@ -925,22 +_,55 @@
      }
  
      public final boolean addEffect(MobEffectInstance p_21165_) {
@@ -422,6 +423,7 @@
  
      public boolean addEffect(MobEffectInstance p_147208_, @Nullable Entity p_147209_) {
 -        if (!this.canBeAffected(p_147208_)) {
++        boolean isAsync = AsyncCatcher.catchAsync();
 +        if (!net.neoforged.neoforge.common.CommonHooks.canMobEffectBeApplied(this, p_147208_)) {
              return false;
          } else {
@@ -434,9 +436,12 @@
 +                override = new MobEffectInstance(mobeffectinstance).update(p_147208_);
 +            }
 +
-+            org.bukkit.event.entity.EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, mobeffectinstance, p_147208_, addEffectCause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), override);
-+            if (event.isCancelled()) {
-+                return false;
++            if (!isAsync) {
++                org.bukkit.event.entity.EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, mobeffectinstance, p_147208_, addEffectCause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), override);
++                if (event.isCancelled()) {
++                    return false;
++                }
++                override = event.isOverride();
 +            }
 +            // CraftBukkit end
 +
@@ -448,7 +453,7 @@
                  p_147208_.onEffectAdded(this);
 -            } else if (mobeffectinstance.update(p_147208_)) {
 +                // CraftBukkit start
-+            } else if (event.isOverride()) {
++            } else if (override) {
 +                mobeffectinstance.update(p_147208_);
                  this.onEffectUpdated(mobeffectinstance, true, p_147209_);
 +                // CraftBukkit end

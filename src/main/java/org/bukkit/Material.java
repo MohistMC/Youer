@@ -1,6 +1,7 @@
 package org.bukkit;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.mohistmc.dynamicenum.MohistDynamEnum;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import net.minecraft.resources.ResourceLocation;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
@@ -4624,6 +4626,8 @@ public enum Material implements Keyed, Translatable {
     public final Class<?> data;
     private final boolean legacy;
     public NamespacedKey key;
+    private final Supplier<ItemType> itemType;
+    private final Supplier<BlockType> blockType;
     public boolean isModBlock = false;
     public boolean isModItem = false;
 
@@ -4674,6 +4678,21 @@ public enum Material implements Keyed, Translatable {
         } catch (SecurityException ex) {
             throw new AssertionError(ex);
         }
+
+        this.itemType = Suppliers.memoize(() -> {
+            Material material = this;
+            if (isLegacy()) {
+                material = Bukkit.getUnsafe().fromLegacy(new MaterialData(this), true);
+            }
+            return Registry.ITEM.get(material.key);
+        });
+        this.blockType = Suppliers.memoize(() -> {
+            Material material = this;
+            if (isLegacy()) {
+                material = Bukkit.getUnsafe().fromLegacy(new MaterialData(this), false);
+            }
+            return Registry.BLOCK.get(material.key);
+        });
     }
 
     /**
@@ -5511,11 +5530,7 @@ public enum Material implements Keyed, Translatable {
     @ApiStatus.Internal
     @Nullable
     public ItemType asItemType() {
-        Material material = this;
-        if (isLegacy()) {
-            material = Bukkit.getUnsafe().fromLegacy(this);
-        }
-        return Registry.ITEM.get(material.key);
+        return itemType.get();
     }
 
     /**
@@ -5527,11 +5542,7 @@ public enum Material implements Keyed, Translatable {
     @ApiStatus.Internal
     @Nullable
     public BlockType asBlockType() {
-        Material material = this;
-        if (isLegacy()) {
-            material = Bukkit.getUnsafe().fromLegacy(this);
-        }
-        return Registry.BLOCK.get(material.key);
+        return blockType.get();
     }
 
     public static Material addMaterial(String materialName, int id, int stack, boolean isBlock, boolean isItem, ResourceLocation resourceLocation) {
