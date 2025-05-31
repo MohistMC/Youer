@@ -29,7 +29,7 @@ Getting Help
 ------
 
 [MohistWiki](https://mohistmc.com/youer/docs) (Here is everything you need related to Youer)  
-[MohistWiki CN](https://www.mohistmc.cn/youer/docs) (Here is everything you need related to Youer)
+[MohistWiki CN](https://www.mohistmc.cn/docs/youer) (Here is everything you need related to Youer)
 
 Upstream Projects
 ------
