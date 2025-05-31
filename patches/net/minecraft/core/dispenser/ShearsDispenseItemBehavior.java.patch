@@ -1,6 +1,13 @@
 --- a/net/minecraft/core/dispenser/ShearsDispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/ShearsDispenseItemBehavior.java
-@@ -7,24 +_,48 @@
+@@ -1,5 +_,6 @@
+ package net.minecraft.core.dispenser;
+ 
++import java.util.concurrent.atomic.AtomicReference;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.sounds.SoundEvents;
+@@ -7,24 +_,50 @@
  import net.minecraft.tags.BlockTags;
  import net.minecraft.world.entity.EntitySelector;
  import net.minecraft.world.entity.LivingEntity;
@@ -14,6 +21,7 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.phys.AABB;
++import org.bukkit.block.Block;
 +import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
 +import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
@@ -49,22 +57,31 @@
          if (!serverlevel.isClientSide()) {
              BlockPos blockpos = p_302443_.pos().relative(p_302443_.state().getValue(DispenserBlock.FACING));
 -            this.setSuccess(tryShearBeehive(serverlevel, blockpos) || tryShearLivingEntity(serverlevel, blockpos));
-+            this.setSuccess(net.neoforged.neoforge.common.CommonHooks.tryDispenseShearsHarvestBlock(p_302443_, p_123581_, serverlevel, blockpos) || tryShearBeehive(serverlevel, blockpos) || tryShearLivingEntity(serverlevel, blockpos, p_123581_, bukkitBlock, craftItem)); // CraftBukkit
++            bukkitBlockAndcraftItem(bukkitBlock, craftItem); // Mohist
++            this.setSuccess(net.neoforged.neoforge.common.CommonHooks.tryDispenseShearsHarvestBlock(p_302443_, p_123581_, serverlevel, blockpos) || tryShearBeehive(serverlevel, blockpos) || tryShearLivingEntity(serverlevel, blockpos, p_123581_)); // CraftBukkit
              if (this.isSuccess()) {
                  p_123581_.hurtAndBreak(1, serverlevel, null, p_348118_ -> {
                  });
-@@ -51,10 +_,16 @@
+@@ -51,10 +_,24 @@
          return false;
      }
  
 -    private static boolean tryShearLivingEntity(ServerLevel p_123583_, BlockPos p_123584_) {
-+    private static boolean tryShearLivingEntity(ServerLevel p_123583_, BlockPos p_123584_, ItemStack stack, org.bukkit.block.Block bukkitBlock, CraftItemStack craftItem) { // CraftBukkit - add args
++    // Mohist start
++    private static AtomicReference<Block> bukkitBlock0 = new AtomicReference<>();
++    private static AtomicReference<CraftItemStack> craftItem0 = new AtomicReference<>();
++    private static void bukkitBlockAndcraftItem(org.bukkit.block.Block bukkitBlock, CraftItemStack craftItem) {
++        bukkitBlock0.set(bukkitBlock);
++        craftItem0.set(craftItem);
++    }
++
++    private static boolean tryShearLivingEntity(ServerLevel p_123583_, BlockPos p_123584_, ItemStack stack) { // CraftBukkit - add args
          for (LivingEntity livingentity : p_123583_.getEntitiesOfClass(LivingEntity.class, new AABB(p_123584_), EntitySelector.NO_SPECTATORS)) {
 -            if (livingentity instanceof Shearable shearable && shearable.readyForShearing()) {
 -                shearable.shear(SoundSource.BLOCKS);
 +            if (livingentity instanceof net.neoforged.neoforge.common.IShearable shearable && shearable.isShearable(null, stack, p_123583_, p_123584_)) {
 +                // CraftBukkit start
-+                if (CraftEventFactory.callBlockShearEntityEvent(livingentity, bukkitBlock, craftItem).isCancelled()) {
++                if (bukkitBlock0.get() != null && craftItem0.get() != null && CraftEventFactory.callBlockShearEntityEvent(livingentity, bukkitBlock0.getAndSet(null), craftItem0.getAndSet(null)).isCancelled()) {
 +                    continue;
 +                }
 +                // CraftBukkit end
