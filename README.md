@@ -28,7 +28,8 @@ Progress
 Getting Help
 ------
 
-[CN-YouerWiki](https://www.mohistmc.cn/youer/docs) (Here is everything you need related to Youer)
+[MohistWiki](https://mohistmc.com/youer/docs) (Here is everything you need related to Youer)  
+[MohistWiki CN](https://www.mohistmc.cn/youer/docs) (Here is everything you need related to Youer)
 
 Upstream Projects
 ------
