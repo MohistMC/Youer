@@ -30,10 +30,11 @@
  import net.minecraft.world.level.block.HoneyBlock;
  import net.minecraft.world.level.block.Mirror;
  import net.minecraft.world.level.block.Portal;
-@@ -126,9 +_,24 @@
+@@ -126,9 +_,28 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreHolder;
  import net.minecraft.world.scores.Team;
++import org.bukkit.Bukkit;
 +import org.bukkit.Location;
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
@@ -43,11 +44,14 @@
 +import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.v1_21_R1.event.CraftPortalEvent;
 +import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
++import org.bukkit.entity.Vehicle;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.entity.EntityCombustEvent;
++import org.bukkit.event.entity.EntityDismountEvent;
 +import org.bukkit.event.entity.EntityPortalEvent;
 +import org.bukkit.event.entity.EntityRemoveEvent;
 +import org.bukkit.event.player.PlayerTeleportEvent;
++import org.bukkit.event.vehicle.VehicleExitEvent;
  import org.slf4j.Logger;
 +import org.spigotmc.ActivationRange;
  
@@ -121,7 +125,7 @@
 +    // Main use case currently is for SPIGOT-7487, preventing dropping of leash when leash is removed
 +    public boolean pluginRemoved = false;
 +
-+    public CreatureSpawnEvent.SpawnReason spawnReason = CreatureSpawnEvent.SpawnReason.DEFAULT;
++    public CreatureSpawnEvent.SpawnReason spawnReason;
 +    public void spawnReason(CreatureSpawnEvent.SpawnReason spawnReason) {
 +        this.spawnReason =  spawnReason;
 +    }
@@ -173,7 +177,7 @@
      }
  
      public boolean isColliding(BlockPos p_20040_, BlockState p_20041_) {
-@@ -333,6 +_,67 @@
+@@ -333,6 +_,63 @@
          this.remove(Entity.RemovalReason.DISCARDED);
      }
  
@@ -219,10 +223,6 @@
 +        this.addAdditionalSaveData(nbttagcompound);
 +    }
 +    // CraftBukkit end
-+
-+    protected boolean bukkit$removePassenger(Entity entity) { // CraftBukkit
-+        return false;
-+    }
 +
 +    // CraftBukkit start
 +    public CraftPortalEvent callPortalEvent(Entity entity, Location exit, PlayerTeleportEvent.TeleportCause cause, int searchRadius, int creationRadius) {
@@ -547,6 +547,14 @@
      }
  
      public void moveRelative(float p_19921_, Vec3 p_19922_) {
+@@ -1407,6 +_,7 @@
+         this.yo = p_20250_;
+         this.zo = d1;
+         this.setPos(d0, p_20250_, d1);
++        if (this.valid) this.level.getChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4); // CraftBukkit
+     }
+ 
+     public void moveTo(Vec3 p_20220_) {
 @@ -1627,6 +_,13 @@
          return p_19883_ < d0 * d0;
      }
@@ -769,15 +777,68 @@
              if (p_19967_ || this.canRide(p_19966_) && p_19966_.canAddPassenger(this)) {
                  if (this.isPassenger()) {
                      this.stopRiding();
-@@ -2024,6 +_,7 @@
+@@ -2024,8 +_,10 @@
      public void removeVehicle() {
          if (this.vehicle != null) {
              Entity entity = this.vehicle;
 +            if (!net.neoforged.neoforge.event.EventHooks.canMountEntity(this, entity, false)) return;
              this.vehicle = null;
              entity.removePassenger(this);
++            if (!removePassenger) this.vehicle = entity; // CraftBukkit
          }
-@@ -2073,6 +_,8 @@
+     }
+ 
+@@ -2054,10 +_,42 @@
+         }
+     }
+ 
++    protected boolean removePassenger = true;
++
+     protected void removePassenger(Entity p_20352_) {
+         if (p_20352_.getVehicle() == this) {
+             throw new IllegalStateException("Use x.stopRiding(y), not y.removePassenger(x)");
+         } else {
++            // CraftBukkit start
++            CraftEntity craft = (CraftEntity) p_20352_.getBukkitEntity().getVehicle();
++            Entity orig = craft == null ? null : craft.getHandle();
++            if (this.getBukkitEntity() instanceof Vehicle && p_20352_.getBukkitEntity() instanceof org.bukkit.entity.LivingEntity) {
++                VehicleExitEvent event = new VehicleExitEvent(
++                        (Vehicle) this.getBukkitEntity(),
++                        (org.bukkit.entity.LivingEntity) p_20352_.getBukkitEntity()
++                );
++                // Suppress during worldgen
++                if (this.valid) {
++                    Bukkit.getPluginManager().callEvent(event);
++                }
++                CraftEntity craftn = (CraftEntity) p_20352_.getBukkitEntity().getVehicle();
++                Entity n = craftn == null ? null : craftn.getHandle();
++                if (event.isCancelled() || n != orig) {
++                    removePassenger = false;
++                    return;
++                }
++            }
++
++            EntityDismountEvent event = new EntityDismountEvent(p_20352_.getBukkitEntity(), this.getBukkitEntity());
++            // Suppress during worldgen
++            if (this.valid) {
++                Bukkit.getPluginManager().callEvent(event);
++            }
++            if (event.isCancelled()) {
++                removePassenger = false;
++                return;
++            }
++            // CraftBukkit end
+             if (this.passengers.size() == 1 && this.passengers.get(0) == p_20352_) {
+                 this.passengers = ImmutableList.of();
+             } else {
+@@ -2067,12 +_,15 @@
+             p_20352_.boardingCooldown = 60;
+             this.gameEvent(GameEvent.ENTITY_DISMOUNT, p_20352_);
+         }
++        removePassenger = true;
+     }
+ 
+     protected boolean canAddPassenger(Entity p_20354_) {
          return this.passengers.isEmpty();
      }
  
@@ -924,6 +985,23 @@
          if (this.level() instanceof ServerLevel serverlevel && !this.isRemoved()) {
              ServerLevel serverlevel1 = p_350951_.newLevel();
              List<Entity> list = this.getPassengers();
+@@ -2563,11 +_,15 @@
+                 if (this != entity2) {
+                     entity2.restoreFrom(this);
+                     this.removeAfterChangingDimensions();
++                    // CraftBukkit start - Forward the CraftEntity to the new entity
++                    this.getBukkitEntity().setHandle(entity2);
++                    entity2.bukkitEntity = this.getBukkitEntity();
++                    // CraftBukkit end
+                 }
+ 
+                 entity2.moveTo(p_350951_.pos().x, p_350951_.pos().y, p_350951_.pos().z, p_350951_.yRot(), entity2.getXRot());
+                 entity2.setDeltaMovement(p_350951_.speed());
+-                if (this != entity2) {
++                if (this != entity2 && this.inWorld) { // CraftBukkit - Don't spawn the new entity if the current entity isn't spawned
+                     serverlevel1.addDuringTeleport(entity2);
+                 }
+ 
 @@ -2667,6 +_,7 @@
          return this.stringUUID;
      }
@@ -945,6 +1023,19 @@
      public boolean teleportTo(
          ServerLevel p_265257_, double p_265407_, double p_265727_, double p_265410_, Set<RelativeMovement> p_265083_, float p_265573_, float p_265094_
      ) {
+@@ -2727,7 +_,11 @@
+             entity.moveTo(p_265407_, p_265727_, p_265410_, p_265573_, f);
+             entity.setYHeadRot(p_265573_);
+             this.setRemoved(Entity.RemovalReason.CHANGED_DIMENSION);
+-            p_265257_.addDuringTeleport(entity);
++            // CraftBukkit start - Don't spawn the new entity if the current entity isn't spawned
++            if (inWorld) {
++                p_265257_.addDuringTeleport(entity);
++            }
++            // CraftBukkit end
+         }
+ 
+         return true;
 @@ -2783,6 +_,8 @@
          EntityDimensions entitydimensions = this.dimensions;
          Pose pose = this.getPose();

@@ -42,7 +42,11 @@
  import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
  import net.minecraft.world.entity.npc.Npc;
  import net.minecraft.world.entity.player.Player;
-@@ -122,6 +_,7 @@
+@@ -119,9 +_,11 @@
+ import net.minecraft.world.level.StructureManager;
+ import net.minecraft.world.level.WorldGenLevel;
+ import net.minecraft.world.level.biome.Biome;
++import net.minecraft.world.level.biome.BiomeSource;
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.SnowLayerBlock;
@@ -58,6 +62,16 @@
  import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.dimension.end.EndDragonFight;
  import net.minecraft.world.level.entity.EntityPersistentStorage;
+@@ -143,7 +_,9 @@
+ import net.minecraft.world.level.gameevent.DynamicGameEventListener;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.gameevent.GameEventDispatcher;
++import net.minecraft.world.level.levelgen.FlatLevelSource;
+ import net.minecraft.world.level.levelgen.Heightmap;
++import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
+ import net.minecraft.world.level.levelgen.structure.BoundingBox;
+ import net.minecraft.world.level.levelgen.structure.Structure;
+ import net.minecraft.world.level.levelgen.structure.StructureCheck;
 @@ -155,8 +_,10 @@
  import net.minecraft.world.level.saveddata.maps.MapId;
  import net.minecraft.world.level.saveddata.maps.MapIndex;
@@ -69,16 +83,21 @@
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
-@@ -164,7 +_,15 @@
+@@ -164,7 +_,20 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
++import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
 +import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_21_R1.generator.CraftWorldInfo;
++import org.bukkit.craftbukkit.v1_21_R1.generator.CustomChunkGenerator;
++import org.bukkit.craftbukkit.v1_21_R1.generator.CustomWorldChunkManager;
 +import org.bukkit.craftbukkit.v1_21_R1.util.WorldUUID;
 +import org.bukkit.entity.HumanEntity;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.weather.LightningStrikeEvent;
 +import org.bukkit.event.world.TimeSkipEvent;
++import org.bukkit.generator.WorldInfo;
  import org.slf4j.Logger;
 +import org.spigotmc.AsyncCatcher;
 +import org.spigotmc.SpigotWorldConfig;
@@ -96,7 +115,7 @@
      private final boolean tickTime;
      private final RandomSequences randomSequences;
  
-+    public PrimaryLevelData K = null;
++    public PrimaryLevelData K;
 +    public final LevelStorageSource.LevelStorageAccess convertable;
 +    public final UUID uuid;
 +    public ResourceKey<LevelStem> typeKey;
@@ -113,7 +132,7 @@
      public ServerLevel(
          MinecraftServer p_214999_,
          Executor p_215000_,
-@@ -230,10 +_,33 @@
+@@ -230,11 +_,51 @@
              p_215007_,
              p_214999_.getMaxChainedNeighborUpdates()
          );
@@ -144,10 +163,28 @@
 +        } else if (p_215002_ instanceof DerivedLevelData) {
 +            this.K = MohistDerivedWorldInfo.create((DerivedLevelData)p_215002_);
 +        }
-+        this.spigotConfig = new SpigotWorldConfig(name); // Spigot
          ChunkGenerator chunkgenerator = p_215004_.generator();
++        if (biomeProvider != null) {
++            WorldInfo worldInfo = new CraftWorldInfo(K, p_215001_, environment, p_215004_.type().value());
++            BiomeSource worldChunkManager = new CustomWorldChunkManager(worldInfo, biomeProvider, server.registryAccess().registryOrThrow(Registries.BIOME));
++            if (chunkgenerator instanceof NoiseBasedChunkGenerator cga) {
++                chunkgenerator = new NoiseBasedChunkGenerator(worldChunkManager, cga.settings);
++            } else if (chunkgenerator instanceof FlatLevelSource cpf) {
++                chunkgenerator = new FlatLevelSource(cpf.settings(), worldChunkManager);
++            }
++        } else {
++            biomeProvider = getCraftServer().getBiomeProvider(p_215002_.getLevelName());
++        }
++
++        if (generator != null) {
++            chunkgenerator = new CustomChunkGenerator(this, chunkgenerator, generator);
++        } else {
++            generator = getCraftServer().getGenerator(p_215002_.getLevelName());
++        }
++        this.spigotConfig = new SpigotWorldConfig(name); // Spigot
          boolean flag = p_214999_.forceSynchronousWrites();
          DataFixer datafixer = p_214999_.getFixerUpper();
+         EntityPersistentStorage<Entity> entitypersistentstorage = new EntityStorage(
 @@ -256,8 +_,8 @@
              p_214999_.getStructureManager(),
              p_215000_,
@@ -159,7 +196,7 @@
              flag,
              p_215005_,
              this.entityManager::updateChunkStatus,
-@@ -298,6 +_,14 @@
+@@ -298,6 +_,16 @@
          this.randomSequences = Objects.requireNonNullElseGet(
              p_288977_, () -> this.getDataStorage().computeIfAbsent(RandomSequences.factory(i), "random_sequences")
          );
@@ -168,6 +205,8 @@
 +        // Neo: Move the initialization of customSpawners to the end of costructor
 +        // Providing a fully initialized ServerLevel instance for the ServerLevelEvent.CustomSpawners
 +        this.customSpawners = net.neoforged.neoforge.event.EventHooks.getCustomSpawners(this, p_215008_);
++        this.world = new CraftWorld(this, generator, biomeProvider, environment);
++        this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
 +        if (K != null) {
 +            K.setWorld(this);
 +        }
@@ -466,7 +505,7 @@
 +            if (false) LOGGER.warn("Tried to add entity {} but it was marked as removed already", EntityType.getKey(p_8873_.getType()));
 +            return false;
 +        } else {
-+            if (!AsyncCatcher.catchAsync() && !CraftEventFactory.doEntityAddEventCalling(this, p_8873_, p_8873_.spawnReason)) {
++            if (!AsyncCatcher.catchAsync() && p_8873_.spawnReason != null && !CraftEventFactory.doEntityAddEventCalling(this, p_8873_, p_8873_.spawnReason)) {
 +                return false;
 +            }
 +            if (this.entityManager.addNewEntity(p_8873_)) {
@@ -691,7 +730,7 @@
      }
  
      @Nullable
-@@ -1713,8 +_,8 @@
+@@ -1713,16 +_,48 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -702,7 +741,10 @@
                      ServerLevel.this.dragonParts.put(enderdragonpart.getId(), enderdragonpart);
                  }
              }
-@@ -1723,6 +_,36 @@
+ 
+             p_143371_.updateDynamicGameEventListener(DynamicGameEventListener::add);
++            p_143371_.inWorld = true; // CraftBukkit - Mark entity as in world
++            p_143371_.valid = true; // CraftBukkit
          }
  
          public void onTrackingEnd(Entity p_143375_) {

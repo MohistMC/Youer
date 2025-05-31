@@ -19,7 +19,7 @@
 package com.mohistmc.launcher.youer.util;
 
 import com.mohistmc.launcher.youer.config.YouerConfigUtil;
-import com.mohistmc.tools.OSUtil;
+import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -29,8 +29,11 @@ import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
 import java.lang.module.ResolvedModule;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.AccessControlContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -40,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.SneakyThrows;
 
 /**
  * @author Shawiiz_z
@@ -48,14 +52,14 @@ import java.util.stream.Collectors;
  */
 public class YouerModuleManager {
 
+    public static final sun.misc.Unsafe unsafe;
     private static final MethodHandles.Lookup IMPL_LOOKUP;
-    private static String MODULE_PATH = null;
 
     static {
         try {
             Field theUnsafe = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
             theUnsafe.setAccessible(true);
-            sun.misc.Unsafe unsafe = (sun.misc.Unsafe) theUnsafe.get(null);
+            unsafe = (sun.misc.Unsafe) theUnsafe.get(null);
             MethodHandles.lookup().ensureInitialized(MethodHandles.Lookup.class);
             Field field = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
             Object base = unsafe.staticFieldBase(field);
@@ -67,21 +71,9 @@ public class YouerModuleManager {
     }
 
     public YouerModuleManager(List<String> args) {
-        this.applyLaunchArgs(args);
+        applyLaunchArgs(args);
         YouerConfigUtil.yml.set("youer.installation-finished", false);
         YouerConfigUtil.save();
-    }
-
-    public static void addExports(String module, String pkg, String target) {
-        if (target == null) {
-            target = "ALL-UNNAMED";
-        }
-
-        try {
-            addExports(List.of(module + "/" + pkg + "=" + target));
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
     }
 
     private static void addExports(List<String> exports) throws Throwable {
@@ -89,18 +81,6 @@ public class YouerModuleManager {
         MethodHandle implAddExportsToAllUnnamedMH = IMPL_LOOKUP.findVirtual(Module.class, "implAddExportsToAllUnnamed", MethodType.methodType(void.class, String.class));
 
         addExtra(exports, implAddExportsMH, implAddExportsToAllUnnamedMH);
-    }
-
-    public static void addOpens(String module, String pkg, String target) {
-        if (target == null) {
-            target = "ALL-UNNAMED";
-        }
-
-        try {
-            addOpens(List.of(module + "/" + pkg + "=" + target));
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
     }
 
     private static void addOpens(List<String> opens) throws Throwable {
@@ -131,12 +111,10 @@ public class YouerModuleManager {
                     try {
                         if ("ALL-UNNAMED".equals(data.target)) {
                             implAddExtraToAllUnnamedMH.invokeWithArguments(m, data.packages);
-                            // System.out.println("Added extra to all unnamed modules: " + data);
                         } else {
                             ModuleLayer.boot().findModule(data.target).ifPresent(tm -> {
                                 try {
                                     implAddExtraMH.invokeWithArguments(m, data.packages, tm);
-                                    // System.out.println("Added extra: " + data);
                                 } catch (Throwable t) {
                                     throw new RuntimeException(t);
                                 }
@@ -150,38 +128,33 @@ public class YouerModuleManager {
         });
     }
 
-    public void applyLaunchArgs(List<String> args) {
-        //Just read each line of launch args
+    @SneakyThrows
+    public static void applyLaunchArgs(List<String> args) {
         List<String> opens = new ArrayList<>();
+        opens.add("java.base/java.util=ALL-UNNAMED");
+        opens.add("java.base/java.lang=ALL-UNNAMED");
         List<String> exports = new ArrayList<>();
-
-        args.parallelStream().forEach(arg -> {
-            if (arg.startsWith("-p ")) {
-                MODULE_PATH = arg.substring(2).trim();
-            } else if (arg.startsWith("--add-opens")) {
-                opens.add(arg.substring("--add-opens ".length()).trim());
-            } else if (arg.startsWith("--add-exports")) {
-                exports.add(arg.substring("--add-exports ".length()).trim());
-            } else if (arg.startsWith("-D")) {
-                String[] params = arg.substring(2).split("=", 2);
-                System.setProperty(params[0], params[1]);
+        for (String arg : args) {
+            if (arg.startsWith("-")) {
+                if (arg.startsWith("-p ")) {
+                    loadModules(arg.substring(2).trim());
+                } else if (arg.startsWith("--add-opens")) {
+                    opens.add(arg.substring("--add-opens ".length()).trim());
+                } else if (arg.startsWith("--add-exports")) {
+                    exports.add(arg.substring("--add-exports ".length()).trim());
+                } else if (arg.startsWith("-D")) {
+                    var split = arg.substring(2).split("=", 2);
+                    System.setProperty(split[0], split[1]);
+                }
             }
-        });
-
-        try {
-            loadModules(MODULE_PATH);
-            Thread.sleep(500);
-            addOpens(opens);
-            addExports(exports);
-            Thread.sleep(500);
-        } catch (Throwable ignored) {
         }
-
+        addOpens(opens);
+        addExports(exports);
     }
 
-    public void loadModules(String modulePath) throws Throwable {
+    public static void loadModules(String modulePath) throws Throwable {
         // Find all extra modules
-        ModuleFinder finder = ModuleFinder.of(Arrays.stream(modulePath.split(OSUtil.getOS() == OSUtil.OS.WINDOWS ? ";" : ":")).map(Paths::get).peek(JarLoader::loadJar).toArray(Path[]::new));
+        ModuleFinder finder = ModuleFinder.of(Arrays.stream(modulePath.split(File.pathSeparator)).map(Paths::get).peek(YouerModuleManager::addToPath).toArray(Path[]::new));
         MethodHandle loadModuleMH = IMPL_LOOKUP.findVirtual(Class.forName("jdk.internal.loader.BuiltinClassLoader"), "loadModule", MethodType.methodType(void.class, ModuleReference.class));
 
         // Resolve modules to a new config
@@ -248,6 +221,30 @@ public class YouerModuleManager {
                 throw new RuntimeException(throwable);
             }
         }))));
+    }
+
+    public static void addToPath(Path path) {
+        try {
+            ClassLoader loader = ClassLoader.getPlatformClassLoader();
+            Field ucpField;
+            try {
+                ucpField = loader.getClass().getDeclaredField("ucp");
+            } catch (NoSuchFieldException e) {
+                ucpField = loader.getClass().getSuperclass().getDeclaredField("ucp");
+            }
+            long offset = unsafe.objectFieldOffset(ucpField);
+            Object ucp = unsafe.getObject(loader, offset);
+            if (ucp == null) {
+                var cl = Class.forName("jdk.internal.loader.URLClassPath");
+                var handle = IMPL_LOOKUP.findConstructor(cl, MethodType.methodType(void.class, URL[].class, AccessControlContext.class));
+                ucp = handle.invoke(new URL[]{}, (AccessControlContext) null);
+                unsafe.putObjectVolatile(loader, offset, ucp);
+            }
+            Method method = ucp.getClass().getDeclaredMethod("addURL", URL.class);
+            IMPL_LOOKUP.unreflect(method).invoke(ucp, path.toUri().toURL());
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
     }
 
     private record ParserData(String module, String packages, String target) {

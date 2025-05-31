@@ -240,6 +240,24 @@ public class NeoDevPlugin implements Plugin<Project> {
                                 "Implementation-Version", mcAndNeoFormVersion,
                                 "Implementation-Vendor", "NeoForged"),
                         "net/neoforged/neoforge/versions/neoform/");
+                manifest.attributes(
+                        Map.of(
+                                "Specification-Title", "Spigot",
+                                "Specification-Vendor", "SpigotMC",
+                                "Specification-Version", minecraftVersion,
+                                "Implementation-Title", "Spigot",
+                                "Implementation-Version", minecraftVersion,
+                                "Implementation-Vendor", "SpigotMC"),
+                        "org/bukkit/craftbukkit/v1_21_R1/");
+                manifest.attributes(
+                        Map.of(
+                                "Specification-Title", "Mohist",
+                                "Specification-Vendor", "MohistMC",
+                                "Specification-Version", minecraftVersion,
+                                "Implementation-Title", "Mohist",
+                                "Implementation-Version", minecraftVersion,
+                                "Implementation-Vendor", "MohistMC"),
+                        "com/mohistmc/");
             });
         });
 
@@ -386,7 +404,7 @@ public class NeoDevPlugin implements Plugin<Project> {
             }
         });
 
-        var youerJar0 = tasks.register("youerJar0", Zip.class, task -> {
+        var youerJar0 = tasks.register("youerJar0", Jar.class, task -> {
             task.from(createUnixServerArgsFile.flatMap(CreateArgsFile::getArgsFile), spec -> {
                 spec.into("data");
                 spec.rename(s -> "unix_args.txt");

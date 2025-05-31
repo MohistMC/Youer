@@ -21,6 +21,7 @@ package com.mohistmc.launcher.youer;
 import com.mohistmc.i18n.i18n;
 import com.mohistmc.launcher.youer.action.Action;
 import com.mohistmc.launcher.youer.config.YouerConfigUtil;
+import com.mohistmc.launcher.youer.feature.AutoDeleteMods;
 import com.mohistmc.launcher.youer.feature.DefaultLibraries;
 import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.YouerModuleManager;
@@ -33,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Stream;
 
 public class Main {
     public static final boolean DEBUG = Boolean.getBoolean("youer.debug");
@@ -87,13 +87,13 @@ public class Main {
         if (System.getProperty("log4j.configurationFile") == null) {
             System.setProperty("log4j.configurationFile", "log4j2_youer.xml");
         }
-        //ZipTree.init();
         if (YouerConfigUtil.INSTALLATIONFINISHED()) {
-            DefaultLibraries.run();
+           DefaultLibraries.run();
         }
         if (YouerConfigUtil.INSTALLATIONFINISHED()) {
             new Action();
         }
+        AutoDeleteMods.jar();
 
         // [--launchTarget, forgeserver, --fml.neoForgeVersion, 21.1.172, --fml.fmlVersion, 4.0.39, --fml.mcVersion, 1.21.1, --fml.neoFormVersion, 20240808.144430]
         List<String> forgeArgs = new ArrayList<>();
@@ -115,7 +115,6 @@ public class Main {
             }
             MojangEulaUtil.writeInfos(i18n.as("eula.text", "https://account.mojang.com/documents/minecraft_eula") + "\n" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\neula=true");
         }
-        String[] args_ = Stream.concat(forgeArgs.stream(), mainArgs.stream()).toArray(String[]::new);
-        BootstrapLauncher.main(args_);
+        BootstrapLauncher.main(forgeArgs.toArray(String[]::new));
     }
 }

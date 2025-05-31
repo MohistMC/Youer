@@ -274,6 +274,7 @@ import com.mohistmc.org.yaml.snakeyaml .constructor.SafeConstructor;
 import com.mohistmc.org.yaml.snakeyaml .error.MarkedYAMLException;
 
 import net.md_5.bungee.api.chat.BaseComponent; // Spigot
+import org.jetbrains.annotations.NotNull;
 
 public final class CraftServer implements Server {
     private final String serverName = "Youer";
@@ -2118,6 +2119,7 @@ public final class CraftServer implements Server {
         return this.helpMap;
     }
 
+    @Override // Paper - add override
     public SimpleCommandMap getCommandMap() {
         return this.commandMap;
     }

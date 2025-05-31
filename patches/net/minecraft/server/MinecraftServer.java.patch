@@ -22,13 +22,14 @@
  import it.unimi.dsi.fastutil.longs.LongIterator;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import it.unimi.dsi.fastutil.objects.ObjectArraySet;
-@@ -33,21 +_,27 @@
+@@ -33,21 +_,28 @@
  import java.util.List;
  import java.util.Locale;
  import java.util.Map;
 -import java.util.Objects;
  import java.util.Optional;
 +import java.util.Queue;
++import java.util.Random;
  import java.util.Set;
  import java.util.UUID;
  import java.util.Map.Entry;
@@ -256,10 +257,11 @@
          if (!serverleveldata.isInitialized()) {
              try {
                  setInitialSpawn(serverlevel, serverleveldata, worldoptions.generateBonusChest(), flag);
-@@ -405,6 +_,16 @@
+@@ -405,6 +_,18 @@
              if (resourcekey != LevelStem.OVERWORLD) {
                  ResourceKey<Level> resourcekey1 = ResourceKey.create(Registries.DIMENSION, resourcekey.location());
                  DerivedLevelData derivedleveldata = new DerivedLevelData(this.worldData, serverleveldata);
++                String name = resourcekey == LevelStem.NETHER ? "DIM1" : "DIM-1";
 +                if (resourcekey == LevelStem.NETHER) {
 +                    if (!this.server.getAllowNether()) {
 +                        continue;
@@ -270,6 +272,7 @@
 +                    }
 +                }
 +                NeoForgeInjectBukkit.addEnumEnvironment(this.registryAccess().registryOrThrow(Registries.LEVEL_STEM));
++                Level.craftWorldData(NeoForgeInjectBukkit.environment.get(resourcekey), this.server.getGenerator(name), this.server.getBiomeProvider(name));
                  ServerLevel serverlevel1 = new ServerLevel(
                      this,
                      this.executor,
@@ -289,14 +292,30 @@
      }
  
      private static void setInitialSpawn(ServerLevel p_177897_, ServerLevelData p_177898_, boolean p_177899_, boolean p_177900_) {
-@@ -432,6 +_,7 @@
+@@ -432,7 +_,23 @@
              p_177898_.setSpawn(BlockPos.ZERO.above(80), 0.0F);
          } else {
              ServerChunkCache serverchunkcache = p_177897_.getChunkSource();
 +            if (EventHooks.onCreateWorldSpawn(p_177897_, p_177898_)) return;
              ChunkPos chunkpos = new ChunkPos(serverchunkcache.randomState().sampler().findSpawnPosition());
++            // CraftBukkit start
++            if (p_177897_.generator != null) {
++                Random rand = new Random(p_177897_.getSeed());
++                org.bukkit.Location spawn = p_177897_.generator.getFixedSpawnLocation(p_177897_.getWorld(), rand);
++
++                if (spawn != null) {
++                    if (spawn.getWorld() != p_177897_.getWorld()) {
++                        throw new IllegalStateException("Cannot set spawn point for " + p_177898_.getLevelName() + " to be in another world (" + spawn.getWorld().getName() + ")");
++                    } else {
++                        p_177898_.setSpawn(new BlockPos(spawn.getBlockX(), spawn.getBlockY(), spawn.getBlockZ()), spawn.getYaw());
++                        return;
++                    }
++                }
++            }
++            // CraftBukkit end
              int i = serverchunkcache.getGenerator().getSpawnHeight(p_177897_);
              if (i < p_177897_.getMinBuildHeight()) {
+                 BlockPos blockpos = chunkpos.getWorldPosition();
 @@ -484,25 +_,64 @@
          serverleveldata.setGameType(GameType.SPECTATOR);
      }

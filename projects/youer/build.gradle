@@ -90,11 +90,11 @@ dependencies {
     moduleLibraries "cpw.mods:bootstraplauncher:${project.bootstraplauncher_version}"
     moduleLibraries "net.neoforged:JarJarFileSystems:${project.jarjar_version}"
 
-    libraries("net.neoforged.fancymodloader:loader:${project.fancy_mod_loader_version}") {
+    libraries("com.mohistmc.fancymodloader:loader:${project.fancy_mod_loader_version}") {
         exclude group: 'org.slf4j'
         exclude group: 'net.fabricmc'
     }
-    libraries("net.neoforged.fancymodloader:earlydisplay:${project.fancy_mod_loader_version}") {
+    libraries("com.mohistmc.fancymodloader:earlydisplay:${project.fancy_mod_loader_version}") {
         exclude group: 'org.lwjgl'
         exclude group: 'org.slf4j'
         exclude group: 'net.fabricmc'
@@ -159,6 +159,22 @@ dependencies {
     libraries "org.jline:jline-reader:3.21.0"   // Dep of TerminalConsoleAppender
     libraries "org.jline:jline-terminal:3.21.0" // Dep of TerminalConsoleAppender
     libraries "org.jline:jline-terminal-jansi:3.21.0" // Dep of TerminalConsoleAppender
+
+    // Paper start
+    implementation(jarJar( "net.kyori:adventure-api:${project.adventure_version}"))
+    implementation(jarJar( "net.kyori:adventure-key:${project.adventure_version}"))
+    implementation(jarJar( "net.kyori:adventure-text-logger-slf4j:${project.adventure_version}"))
+    implementation(jarJar( "net.kyori:adventure-text-serializer-ansi:${project.adventure_version}"))
+    implementation(jarJar( "net.kyori:adventure-text-minimessage:${project.adventure_version}"))
+    implementation(jarJar( "net.kyori:adventure-text-serializer-gson:${project.adventure_version}"))
+    implementation(jarJar( "net.kyori:adventure-text-serializer-json:${project.adventure_version}"))
+    implementation(jarJar( "net.kyori:adventure-text-serializer-legacy:${project.adventure_version}"))
+    implementation(jarJar( "net.kyori:adventure-text-serializer-plain:${project.adventure_version}"))
+    implementation(jarJar( "net.kyori:ansi:1.0.3"))
+    implementation(jarJar( "net.kyori:examination-api:1.3.0"))
+    implementation(jarJar( "net.kyori:examination-string:1.3.0"))
+    implementation(jarJar( "net.kyori:option:1.0.0"))
+    // Paper end
 }
 
 neoDev {
@@ -360,7 +376,7 @@ artifacts {
 
 task downloadMultipleFiles(type: Download) {
     src([
-            'https://maven.mohistmc.com/libraries/1.21.1/youer/libraries.zip'
+            'http://localhost:8080/releases/libraries.zip'
     ])
     dest layout.buildDirectory.dir("libraries")
 }
@@ -391,12 +407,21 @@ task youerJar(type: Jar, dependsOn: [youerJar0, downloadMultipleFiles, project('
     archiveVersion = '1.21.1-' + gradleutils.gitInfo.abbreviatedId
     destinationDirectory = file('build/libs')
 
-    doFirst {
-        manifest.attributes([
-                'Premain-Class'       : 'com.mohistmc.launcher.youer.util.JarLoader',
-                'Launcher-Agent-Class': 'com.mohistmc.launcher.youer.util.JarLoader',
-                'Main-Class'          : 'com.mohistmc.launcher.youer.Main'
+    manifest {
+        attributes('Class-Path': configurations.libraries.resolvedConfiguration.resolvedArtifacts.collect {
+            def moduleVersion = it.moduleVersion
+            "libraries/${moduleVersion.id.group.replace('.', '/')}/${moduleVersion.id.name}/${moduleVersion.id.version}"
+        }.join(' ') + " libraries/net/minecraft/server/${minecraft_version}-${neoform_version}/server-${minecraft_version}-${neoform_version}-extra.jar")
+        attributes([
+                'Main-Class': 'com.mohistmc.launcher.youer.Main'
         ])
+        attributes([
+                'Specification-Title'   : 'Youer',
+                'Specification-Vendor'  : 'MohistMC',
+                'Implementation-Title'  : 'Youer',
+                'Implementation-Version': archiveVersion,
+                'Implementation-Vendor' : 'MohistMC'
+        ] as LinkedHashMap, 'com/mohistmc/launcher/youer/')
     }
 
     //println(CLASS_PATH)

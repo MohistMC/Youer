@@ -1678,6 +1678,14 @@ public interface Server extends PluginMessageRecipient {
     public double[] getTPS();
 
     /**
+     * Gets the active {@link org.bukkit.command.CommandMap}
+     *
+     * @return the active command map
+     */
+    @NotNull
+    org.bukkit.command.CommandMap getCommandMap();
+
+    /**
      * Get the advancement specified by this key.
      *
      * @param key unique advancement key

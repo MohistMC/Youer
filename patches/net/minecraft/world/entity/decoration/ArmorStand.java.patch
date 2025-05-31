@@ -109,7 +109,7 @@
 +                // CraftBukkit end
                  return false;
 -            } else if (this.isInvulnerableTo(p_31579_) || this.invisible || this.isMarker()) {
-+            } else if (!this.isInvulnerableTo(p_31579_) && (true || !this.invisible) && !this.isMarker()) { // CraftBukkit
++             } else if (this.isInvulnerableTo(p_31579_) || this.invisible || this.isMarker()) {
 +                // CraftBukkit start
 +                if (CraftEventFactory.handleNonLivingEntityDamageEvent(this, p_31579_, p_31580_, true, this.invisible)) {
 +                    return false;
@@ -185,7 +185,7 @@
      }
  
      private void playBrokenSound() {
-@@ -598,8 +_,23 @@
+@@ -598,9 +_,26 @@
          return this.isSmall();
      }
  
@@ -198,14 +198,18 @@
 +
      @Override
      public void kill() {
-+        // CraftBukkit start - pass DamageSource for kill
-+        this.kill(null);
+-        this.remove(Entity.RemovalReason.KILLED);
++        CraftEventFactory.callEntityDeathEvent(this, this.damageSources().genericKill(), drops); // CraftBukkit - call event
++        setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH);
++        this.remove(Entity.RemovalReason.KILLED); // CraftBukkit - add Bukkit remove cause
++        // CraftBukkit end
++        this.gameEvent(GameEvent.ENTITY_DIE);
 +    }
 +
 +    public void kill(DamageSource damageSource) {
 +        CraftEventFactory.callEntityDeathEvent(this, (damageSource == null ? this.damageSources().genericKill() : damageSource), drops); // CraftBukkit - call event
 +        this.remove(Entity.RemovalReason.KILLED, org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
 +        // CraftBukkit end
-         this.remove(Entity.RemovalReason.KILLED);
          this.gameEvent(GameEvent.ENTITY_DIE);
      }
+ 

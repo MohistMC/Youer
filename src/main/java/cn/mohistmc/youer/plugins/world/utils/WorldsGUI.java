@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.WorldType;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -49,6 +50,12 @@ public class WorldsGUI {
                 }
                 if (w.isBukkit()) {
                     infoLore.add("§bPluginWorld §8>> §7" + w.isBukkit());
+                }
+                if (config.get("worlds." + w.getName() + ".void") != null) {
+                    infoLore.add("§bVoid §8>> §7" + config.getBoolean("worlds." + w.getName() + ".void"));
+                }
+                if (w.getWorldType() == WorldType.FLAT) {
+                    infoLore.add("§bFlat §8>> §7" + config.getBoolean("worlds." + w.getName() + ".flat"));
                 }
             }
             inv.setItem(pos, ItemAPI.doItem(Material.MAP, 1, "§7>> §6" + w.getName(), infoLore));

@@ -14,6 +14,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.WorldCreator;
+import org.bukkit.WorldType;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -40,12 +41,14 @@ public class InventoryClickListener {
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta != null && itemMeta.hasDisplayName()) {
             String itemName = itemMeta.getDisplayName();
-            boolean isVoid = itemName.equals("void");
-            World.Environment environment = World.Environment.valueOf(itemName);
+            boolean isVoid = itemName.equals("VOID");
+            boolean isFlat = itemName.equals("FLAT");
+            World.Environment environment = isVoid ? Environment.NORMAL : (isFlat ? Environment.NORMAL : Environment.valueOf(itemName));
             WorldCreator wc = new WorldCreator(worldName).environment(environment);
+            if (isFlat) wc.type(WorldType.FLAT);
             if (isVoid) wc.generator(new WorldAPI.VoidGenerator());
             wc.seed((new Random()).nextLong());
-            wc.environment(isVoid ? Environment.NORMAL : environment);
+            wc.environment(environment);
 
             wc.createWorld();
 
@@ -66,7 +69,8 @@ public class InventoryClickListener {
             try {
                 ConfigByWorlds.addWorld(world.getName(), true);
                 ConfigByWorlds.addSpawn(spawnLocation);
-                if (isVoid) ConfigByWorlds.aVoid(world.getName(), isVoid);
+                if (isVoid) ConfigByWorlds.aVoid(world.getName(), true);
+                if (isFlat) ConfigByWorlds.aFlat(world.getName(), true);
             } catch (Exception e) {
                 e.fillInStackTrace();
             }

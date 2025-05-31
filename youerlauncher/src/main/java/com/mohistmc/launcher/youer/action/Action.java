@@ -105,7 +105,6 @@ public class Action {
         this.MINECRAFT_JAR = new File(libPath + "net/minecraft/server/" + mcVer + "/server-" + mcVer + ".jar");
         this.PATCHED = new File(forgeStart + "-server.jar");
 
-
         install();
     }
 
@@ -119,11 +118,10 @@ public class Action {
 
         if (!needsInstall()) return;
         System.out.println(I18n.as("installation.start"));
-
         copyFileFromJar(universalJar, "data/neoforge-" + neoforgeVer + "-universal.jar", true);
 
         if (mohistVer == null || mcpVer == null) {
-            System.out.println("[Mohist] There is an error with the installation, the forge / mcp version is not set.");
+            System.out.println("[Youer] There is an error with the installation, the forge / mcp version is not set.");
             System.exit(0);
         }
 
@@ -233,7 +231,7 @@ public class Action {
 
     protected void run(String mainClass, String... args) throws Exception {
         List<URL> classPath = installerTourls;
-        System.out.println("[Mohist] Loading " + classPath);
+        System.out.println("[Youer] Loading " + classPath);
         URLClassLoader loader = URLClassLoader.newInstance(classPath.toArray(new URL[0]));
         Class.forName(mainClass, true, loader).getDeclaredMethod("main", String[].class).invoke(null, new Object[]{args});
         loader.clearAssertionStatus();
@@ -262,13 +260,17 @@ public class Action {
             // Clear old version
             if (clearOld) {
                 File parentfile = file.getParentFile();
-                if (file.getAbsolutePath().contains("minecraftforge")) {
+                if (file.getAbsolutePath().contains("neoforge")) {
                     int lastSlashIndex = parentfile.getAbsolutePath().replaceAll("\\\\", "/").lastIndexOf("/");
                     String result = parentfile.getAbsolutePath().substring(0, lastSlashIndex + 1);
                     File old = new File(result);
                     if (old.exists()) {
                         FileUtils.deleteFolders(old);
                     }
+                }
+            } else {
+                if (pathInJar.contains("-universal.jar")) {
+                    file.delete();
                 }
             }
             if (is != null) {
@@ -278,7 +280,7 @@ public class Action {
                 } catch (IOException ignored) {
                 }
             } else {
-                System.out.println("[Mohist] The file " + file.getName() + " doesn't exists in the Mohist jar !");
+                System.out.println("[Youer] The file " + file.getName() + " doesn't exists in the Youer jar !");
                 System.exit(0);
             }
         }

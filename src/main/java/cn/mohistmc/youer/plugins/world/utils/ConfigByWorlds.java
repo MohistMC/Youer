@@ -12,6 +12,7 @@ import org.bukkit.Difficulty;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.WorldType;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -53,7 +54,7 @@ public class ConfigByWorlds {
         }
     }
 
-    public static void addWorld(String w, boolean isMohist) {
+    public static void addWorld(String w, boolean isYouer) {
         if (Bukkit.getWorld(w) != null) {
             World world = Bukkit.getWorld(w);
             String world_name = world.getName();
@@ -64,7 +65,7 @@ public class ConfigByWorlds {
                     config.set("worlds." + world_name + ".name", world_name);
                     config.set("worlds." + world_name + ".info", "-/-");
                     config.set("worlds." + world_name + ".difficulty", world.getDifficulty().name());
-                    config.set("worlds." + world_name + ".youer", isMohist);
+                    config.set("worlds." + world_name + ".youer", isYouer);
                     config.set("worlds." + world_name + ".keepspawninmemory", true);
                 }
                 init();
@@ -114,6 +115,7 @@ public class ConfigByWorlds {
                 String modName = null;
                 boolean keepspawninmemory = true;
                 boolean isVoid = false;
+                boolean isFlat = false;
                 if (Bukkit.getWorld(w) == null) {
                     long seed = -1L;
                     if (config.get("worlds." + w + ".seed") != null) {
@@ -140,6 +142,9 @@ public class ConfigByWorlds {
                     if (config.get("worlds." + w + ".void") != null) {
                         isVoid = config.getBoolean("worlds." + w + ".void");
                     }
+                    if (config.get("worlds." + w + ".flat") != null) {
+                        isFlat = config.getBoolean("worlds." + w + ".flat");
+                    }
                     // Worlds created by mods are no longer loaded when the mod is unloaded
                     if (isMods && !ServerAPI.hasMod(modName)) {
                         config.set("worlds." + w, null);
@@ -152,6 +157,7 @@ public class ConfigByWorlds {
                     if (canload) {
                         WorldCreator wc = new WorldCreator(w);
                         if (isVoid) wc.generator(new WorldAPI.VoidGenerator());
+                        if (isFlat) wc.type(WorldType.FLAT);
                         wc.seed(seed);
                         wc.environment(World.Environment.valueOf(environment));
                         wc.keepSpawnInMemory(keepspawninmemory);
@@ -220,9 +226,13 @@ public class ConfigByWorlds {
         init();
     }
 
-    @Deprecated
     public static void aVoid(String w, boolean isVoid) {
         config.set("worlds." + w + ".void", isVoid);
+        init();
+    }
+
+    public static void aFlat(String w, boolean isVoid) {
+        config.set("worlds." + w + ".flat", isVoid);
         init();
     }
 }
