@@ -6,7 +6,7 @@
 [![](https://img.shields.io/github/stars/MohistMC/Mohist.svg?label=Stars&logo=github)](https://github.com/MohistMC/Mohist/stargazers)
 [![](https://img.shields.io/badge/NeoForge-21.1.173-brightgreen.svg?colorB=26303d)](https://neoforged.net/)
 [![](https://img.shields.io/badge/JDK-21.0.3-brightgreen.svg?colorB=469C00&logo=java)](https://www.azul.com/downloads/?version=java-21-lts#zulu)
-[![](https://img.shields.io/badge/Gradle-8.3-brightgreen.svg?colorB=469C00&logo=gradle)](https://docs.gradle.org/8.3/release-notes.html)
+[![](https://img.shields.io/badge/Gradle-8.13-brightgreen.svg?colorB=469C00&logo=gradle)](https://docs.gradle.org/8.13/release-notes.html)
 [![](https://img.shields.io/bstats/servers/6762?label=bStats)](https://bstats.org/plugin/server-implementation/Mohist/6762)
 [![](https://img.shields.io/discord/311256119005937665.svg?color=%237289da&label=Discord&logo=discord&logoColor=%237289da)](https://discord.gg/mohistmc)
 
@@ -17,11 +17,13 @@ Progress
 
 - [x] Rectify NeoForge([**73f44410b4**](https://github.com/neoforged/NeoForge/commit/73f44410b4))
 - [x] Start patch
- * [x] Bukkit([**69fa4695**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/bukkit/commits/69fa4695))
- * [x] CraftBukkit([**661afb43c**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/661afb43c))
- * [x] Spigot ([**d2eba2c8**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/spigot/commits/d2eba2c8))
-  * [ ] Bukkit-Patches
-  * [ ] CraftBukkit-Patches
+  * [x] Bukkit([**69fa4695**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/bukkit/commits/69fa4695))
+  * [x] CraftBukkit([**661afb43c**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/661afb43c))
+  * [x] Spigot ([**d2eba2c8**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/spigot/commits/d2eba2c8))
+    * [x] Bukkit-Patches
+    * [x] CraftBukkit-Patches
+  * [ ] Paper ([**3cb8529bd**](https://github.com/PaperMC/Paper-archive/commit/3cb8529bd))
+  * [ ] PurPur ([**803bf624**](https://github.com/PurpurMC/Purpur/commit/803bf624))
 
 Getting Help
 ------
@@ -35,6 +37,8 @@ Upstream Projects
 * [**CraftBukkit**](https://hub.spigotmc.org/stash/scm/spigot/craftbukkit.git) - plugin support.
 * [**Spigot**](https://hub.spigotmc.org/stash/scm/spigot/spigot.git) - plugin support.
 * [**Arclight**](https://github.com/IzzelAliz/Arclight.git) - Remapper support.
+* [**Paper**](https://github.com/PaperMC/Paper.git) - plugin support.
+* [**PurPur**](https://github.com/PurpurMC/Purpur.git) - plugin support.
 
 Special Thanks To:
 -------------
