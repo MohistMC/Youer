@@ -16,13 +16,14 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.LevelAccessor;
  import net.minecraft.world.level.LevelReader;
-@@ -85,6 +_,10 @@
+@@ -85,6 +_,11 @@
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
  import net.minecraft.world.phys.AABB;
 +import org.bukkit.craftbukkit.v1_21_R1.entity.CraftLivingEntity;
 +import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.entity.EntityTargetEvent;
 +import org.bukkit.event.entity.EntityTransformEvent;
  
  public abstract class Mob extends LivingEntity implements EquipmentUser, Leashable, Targeting {
@@ -51,43 +52,34 @@
      protected void registerGoals() {
      }
  
-@@ -237,7 +_,39 @@
+@@ -236,8 +_,30 @@
+         return this.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null);
      }
  
-     public void setTarget(@Nullable LivingEntity p_21544_) {
--        this.target = p_21544_;
-+        // CraftBukkit start - fire event
-+        setTarget(p_21544_, org.bukkit.event.entity.EntityTargetEvent.TargetReason.UNKNOWN, true);
++    private EntityTargetEvent.TargetReason reason = EntityTargetEvent.TargetReason.UNKNOWN;
++    private boolean fireCBEvent = true;
++    public boolean canSetTarget = true;
++    public void setTargetReason(EntityTargetEvent.TargetReason reason, boolean fireCBEvent) {
++        this.reason = reason;
++        this.fireCBEvent = fireCBEvent;
 +    }
 +
-+    public boolean setTarget(LivingEntity p_21544_, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent) {
-+        if (getTarget() == p_21544_) return false;
-+        if (fireEvent) {
-+            if (reason == org.bukkit.event.entity.EntityTargetEvent.TargetReason.UNKNOWN && getTarget() != null && p_21544_ == null) {
-+                reason = getTarget().isAlive() ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET : org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_DIED;
-+            }
-+            CraftLivingEntity ctarget = null;
-+            if (p_21544_ != null) {
-+                ctarget = (CraftLivingEntity) p_21544_.getBukkitEntity();
-+            }
-+            org.bukkit.event.entity.EntityTargetLivingEntityEvent event = new org.bukkit.event.entity.EntityTargetLivingEntityEvent(this.getBukkitEntity(), ctarget, reason);
-+            this.level().getCraftServer().getPluginManager().callEvent(event);
-+            if (event.isCancelled()) {
-+                return false;
-+            }
-+            if (event.getTarget() != null) {
-+                p_21544_ = ((CraftLivingEntity) event.getTarget()).getHandle();
-+            } else {
-+                p_21544_ = null;
-+            }
-+        }
-+
+     public void setTarget(@Nullable LivingEntity p_21544_) {
+-        this.target = p_21544_;
 +        net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.neoforged.neoforge.common.CommonHooks.onLivingChangeTarget(this, p_21544_, net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.MOB_TARGET);
++        changeTargetEvent.setReason(reason);
++        changeTargetEvent.setfireCBEvent(fireCBEvent);
 +        if(!changeTargetEvent.isCanceled()) {
 +             this.target = changeTargetEvent.getNewAboutToBeSetTarget();
++        } else {
++            this.canSetTarget = false;
 +        }
++    }
 +
-+        return true;
++    public boolean setTargetCB(LivingEntity p_21544_, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent) {
++        if (getTarget() == p_21544_) return false;
++        setTargetReason(reason, fireEvent);
++        return canSetTarget;
 +        // CraftBukkit end
      }
  

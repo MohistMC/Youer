@@ -59,7 +59,7 @@
  import net.minecraft.world.item.ElytraItem;
  import net.minecraft.world.item.Equipable;
  import net.minecraft.world.item.Item;
-@@ -126,13 +_,26 @@
+@@ -126,11 +_,24 @@
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
  import net.minecraft.world.phys.AABB;
@@ -82,11 +82,8 @@
  import org.slf4j.Logger;
 +import org.spigotmc.AsyncCatcher;
  
--public abstract class LivingEntity extends Entity implements Attackable {
-+public abstract class LivingEntity extends Entity implements Attackable, net.neoforged.neoforge.common.extensions.ILivingEntityExtension {
+ public abstract class LivingEntity extends Entity implements Attackable, net.neoforged.neoforge.common.extensions.ILivingEntityExtension {
      private static final Logger LOGGER = LogUtils.getLogger();
-     private static final String TAG_ACTIVE_EFFECTS = "active_effects";
-     private static final ResourceLocation SPEED_MODIFIER_POWDER_SNOW_ID = ResourceLocation.withDefaultNamespace("powder_snow");
 @@ -158,7 +_,7 @@
      private static final double MAX_LINE_OF_SIGHT_TEST_RANGE = 128.0;
      protected static final int LIVING_ENTITY_FLAG_IS_USING = 1;
@@ -794,7 +791,7 @@
              }
  
              this.dead = true;
-@@ -1361,46 +_,71 @@
+@@ -1361,24 +_,33 @@
          if (!this.level().isClientSide) {
              boolean flag = false;
              if (p_21269_ instanceof WitherBoss) {
@@ -832,10 +829,8 @@
          boolean flag = this.lastHurtByPlayerTime > 0;
          if (this.shouldDropLoot() && p_348524_.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
              this.dropFromLootTable(p_21192_, flag);
-             this.dropCustomDeathLoot(p_348524_, p_21192_, flag);
-         }
+@@ -1387,6 +_,10 @@
  
-+
          this.dropEquipment();
          this.dropExperience(p_21192_.getEntity());
 +
@@ -845,34 +840,16 @@
      }
  
      protected void dropEquipment() {
-     }
- 
--    protected void dropExperience(@Nullable Entity p_345346_) {
-+    public int getExpReward(@Nullable Entity p_345346_) { // CraftBukkit
-         if (this.level() instanceof ServerLevel serverlevel
-             && !this.wasExperienceConsumed()
-             && (
+@@ -1399,7 +_,8 @@
                  this.isAlwaysExperienceDropper()
                      || this.lastHurtByPlayerTime > 0 && this.shouldDropExperience() && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)
              )) {
 -            ExperienceOrb.award(serverlevel, this.position(), this.getExperienceReward(serverlevel, p_345346_));
--        }
 +            int reward = net.neoforged.neoforge.event.EventHooks.getExperienceDrop(this, this.lastHurtByPlayer, this.getExperienceReward(serverlevel, p_345346_));
 +            ExperienceOrb.award((ServerLevel) this.level(), this.position(), reward);
-+        }
-+        return 0; // CraftBukkit
-+    }
-+
-+    protected void dropExperience(@Nullable Entity entity) {
-+        // CraftBukkit start - Update getExpReward() above if the removed if() changes!
-+        if (!(this instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon)) { // CraftBukkit - SPIGOT-2420: Special case ender dragon will drop the xp over time
-+            ExperienceOrb.award((ServerLevel) this.level(), this.position(), this.expToDrop);
-+            this.expToDrop = 0;
-+        }
-+        // CraftBukkit end
+         }
      }
  
-     protected void dropCustomDeathLoot(ServerLevel p_348639_, DamageSource p_21018_, boolean p_21020_) {
 @@ -1439,7 +_,14 @@
          loottable.getRandomItems(lootparams, this.getLootTableSeed(), this::spawnAtLocation);
      }

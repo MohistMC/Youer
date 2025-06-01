@@ -8,38 +8,28 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.Blocks;
-@@ -66,6 +_,7 @@
+@@ -66,6 +_,8 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.Vec3;
 +import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityTargetEvent;
  
  public class EnderMan extends Monster implements NeutralMob {
      private static final ResourceLocation SPEED_MODIFIER_ATTACKING_ID = ResourceLocation.withDefaultNamespace("attacking");
-@@ -118,7 +_,14 @@
+@@ -118,7 +_,6 @@
  
      @Override
      public void setTarget(@Nullable LivingEntity p_32537_) {
 -        super.setTarget(p_32537_);
-+        // CraftBukkit start - fire event
-+        setTarget(p_32537_, org.bukkit.event.entity.EntityTargetEvent.TargetReason.UNKNOWN, true);
-+    }
-+
-+    @Override
-+    public boolean setTarget(LivingEntity p_32537_, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent) {
-+        p_32537_ = getTarget();
-+        // CraftBukkit end
          AttributeInstance attributeinstance = this.getAttribute(Attributes.MOVEMENT_SPEED);
          if (p_32537_ == null) {
              this.targetChangeTime = 0;
-@@ -132,6 +_,10 @@
+@@ -132,6 +_,7 @@
                  attributeinstance.addTransientModifier(SPEED_MODIFIER_ATTACKING);
              }
          }
-+        if (!super.setTarget(p_32537_, reason, fireEvent)) { //Forge: Moved down to allow event handlers to write data manager values.
-+            return false;
-+        }
-+        return true;
++        super.setTarget(p_32537_); //Forge: Moved down to allow event handlers to write data manager values.
      }
  
      @Override
