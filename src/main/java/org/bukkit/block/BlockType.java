@@ -3310,7 +3310,7 @@ public interface BlockType extends Keyed, Translatable {
     @NotNull
     private static <B extends BlockType> B getBlockType(@NotNull String key) {
         // Cast instead of using BlockType#typed, since block type can be a mock during testing and would return null
-        return (B) Registry.BLOCK.getOrThrow(NamespacedKey.minecraft(key));
+        return (B) Registry.BLOCK.getOrThrow(NamespacedKey.fromString(key));
     }
 
     /**

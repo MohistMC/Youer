@@ -1,21 +1,31 @@
 --- a/net/minecraft/world/inventory/ContainerLevelAccess.java
 +++ b/net/minecraft/world/inventory/ContainerLevelAccess.java
-@@ -7,6 +_,21 @@
+@@ -5,8 +_,31 @@
+ import java.util.function.BiFunction;
+ import net.minecraft.core.BlockPos;
  import net.minecraft.world.level.Level;
++import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
  
  public interface ContainerLevelAccess {
 +
 +    // CraftBukkit start
 +    default Level getWorld() {
-+        throw new UnsupportedOperationException("Not supported yet.");
++        return this.evaluate((level, blockpos) -> level).orElse(null); // Mohist
 +    }
 +
 +    default BlockPos getPosition() {
-+        throw new UnsupportedOperationException("Not supported yet.");
++        return this.evaluate((level, blockpos) -> blockpos).orElse(null); // Mohist
 +    }
 +
 +    default org.bukkit.Location getLocation() {
-+        return new org.bukkit.Location(getWorld().getWorld(), getPosition().getX(), getPosition().getY(), getPosition().getZ());
++        BlockPos blockPos = getPosition();
++        if (blockPos == null) {
++            return null;
++        } else {
++            Level level = getWorld();
++            CraftWorld world = level == null ? null : level.getWorld();
++            return new org.bukkit.Location(world, blockPos.getX(), blockPos.getY(), blockPos.getZ());
++        }
 +    }
 +    // CraftBukkit end
 +
