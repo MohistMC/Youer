@@ -1,8 +1,9 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,7 +_,9 @@
+@@ -1,7 +_,10 @@
  package net.minecraft.server.level;
  
++import cn.mohistmc.youer.plugins.world.utils.ConfigByWorlds;
 +import cn.mohistmc.youer.util.Level2LevelStem;
  import com.google.common.annotations.VisibleForTesting;
  import com.google.common.collect.Lists;
@@ -143,7 +144,7 @@
 +        this.convertable = p_215001_;
 +        // Youer start
 +        File worldFile = DimensionType.getStorageFolder(p_215003_, p_215001_.levelDirectory.path()).toFile();
-+        uuid = WorldUUID.getUUID(p_215001_.levelDirectory.path().toFile());
++        uuid = Level2LevelStem.bukkit != null ? WorldUUID.getUUID(Level2LevelStem.bukkit) : WorldUUID.getUUID(worldFile);
 +        name = Level2LevelStem.bukkit != null ? Level2LevelStem.bukkit_name : worldFile.getName();
 +        var typeKey = p_215001_.dimensionType;
 +        if (typeKey != null) {
@@ -199,7 +200,7 @@
              flag,
              p_215005_,
              this.entityManager::updateChunkStatus,
-@@ -298,6 +_,16 @@
+@@ -298,6 +_,18 @@
          this.randomSequences = Objects.requireNonNullElseGet(
              p_288977_, () -> this.getDataStorage().computeIfAbsent(RandomSequences.factory(i), "random_sequences")
          );
@@ -213,6 +214,8 @@
 +        if (K != null) {
 +            K.setWorld(this);
 +        }
++        ConfigByWorlds.addWorld(name, false);
++        ConfigByWorlds.initMods(this);
      }
  
      @Deprecated

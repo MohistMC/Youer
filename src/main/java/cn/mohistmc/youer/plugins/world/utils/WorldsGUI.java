@@ -58,7 +58,7 @@ public class WorldsGUI {
                     infoLore.add("§bFlat §8>> §7" + config.getBoolean("worlds." + w.getName() + ".flat"));
                 }
             }
-            inv.setItem(pos, ItemAPI.doItem(Material.MAP, 1, "§7>> §6" + w.getName(), infoLore));
+            inv.setItem(pos, ItemAPI.doItem(getMaterial(w), 1, "§7>> §6" + w.getName(), infoLore));
             ++pos;
             infoLore.clear();
         }
@@ -66,4 +66,31 @@ public class WorldsGUI {
         p.openInventory(inv);
         InventoryClickListener.worldInventory = worldListInventory;
     }
+
+    public static Material getMaterial(World w) {
+        if (w.getWorldType() == WorldType.FLAT) {
+            return Material.GREEN_CARPET;
+        }
+        Material material = Material.GRASS_BLOCK;
+        if (w.getEnvironment() == null) {
+            return material;
+        }
+        switch (w.getEnvironment().name()) {
+            case "NETHER":
+                material = Material.NETHERRACK;
+                break;
+            case "THE_END":
+                material = Material.END_STONE;
+                break;
+            case "CUSTOM":
+                material = Material.STRUCTURE_VOID;
+                break;
+            case "TWILIGHTFOREST_TWILIGHT_FOREST":
+                material = Material.getMaterial("TWILIGHTFOREST_TWILIGHT_PORTAL_MINIATURE_STRUCTURE");
+                break;
+            default:
+        }
+        return material;
+    }
+
 }

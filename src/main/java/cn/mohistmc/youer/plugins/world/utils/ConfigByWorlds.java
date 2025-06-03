@@ -98,11 +98,9 @@ public class ConfigByWorlds {
         YamlUtils.save(f, config);
     }
 
-    public static void initMods(Level level, double pSize) {
-        // Youer - set worldborder size to worlds.ymls
+    public static void initMods(Level level) {
         if (level != null && level instanceof ServerLevel serverLevel) {
             CraftWorld world = serverLevel.getWorld();
-            config.set("worlds." + world.getName() + ".worldborder", pSize);
             if (world.isMods()) {
                 config.set("worlds." + world.getName() + ".ismods", world.isMods());
                 config.set("worlds." + world.getName() + ".modName", world.getModid());
