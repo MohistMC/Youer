@@ -158,16 +158,19 @@
              }
          }
      }
-@@ -137,9 +_,34 @@
+@@ -137,10 +_,41 @@
  
      private void verifyLoginAndFinishConnectionSetup(GameProfile p_294502_) {
          PlayerList playerlist = this.server.getPlayerList();
--        Component component = playerlist.canPlayerLogin(this.connection.getRemoteAddress(), p_294502_);
--        if (component != null) {
--            this.disconnect(component);
 +        // CraftBukkit start - fire PlayerLoginEvent
-+        this.player = playerlist.canPlayerLogin(this, p_294502_); // CraftBukkit
-+        if (this.player != null) {
++        this.server.getPlayerList().youer$putHandler(this);
+         Component component = playerlist.canPlayerLogin(this.connection.getRemoteAddress(), p_294502_);
+         if (component != null) {
+             this.disconnect(component);
+         } else {
++            if (player == null) {
++                player = playerlist.youer$canPlayerLogin$entity.get();
++            }
 +            if (this.player.getBukkitEntity().isAwaitingCookies()) {
 +                this.state = ServerLoginPacketListenerImpl.State.WAITING_FOR_COOKIES;
 +            } else {
@@ -193,9 +196,10 @@
 +        PlayerList playerlist = this.server.getPlayerList();
 +        if (this.player == null) {
 +            // CraftBukkit end
-         } else {
++        } else {
              if (this.server.getCompressionThreshold() >= 0 && !this.connection.isMemoryConnection()) {
                  this.connection
+                     .send(
 @@ -149,7 +_,7 @@
                      );
              }
