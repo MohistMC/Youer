@@ -83,10 +83,11 @@
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
-@@ -164,7 +_,20 @@
+@@ -164,7 +_,22 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
++import org.bukkit.Bukkit;
 +import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
 +import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.v1_21_R1.generator.CraftWorldInfo;
@@ -97,6 +98,7 @@
 +import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.weather.LightningStrikeEvent;
 +import org.bukkit.event.world.TimeSkipEvent;
++import org.bukkit.event.world.WorldSaveEvent;
 +import org.bukkit.generator.WorldInfo;
  import org.slf4j.Logger;
 +import org.spigotmc.AsyncCatcher;
@@ -397,18 +399,28 @@
          this.getProfiler().pop();
  
          for (Entity entity : p_8648_.getPassengers()) {
-@@ -793,6 +_,7 @@
+@@ -792,6 +_,7 @@
+     public void save(@Nullable ProgressListener p_8644_, boolean p_8645_, boolean p_8646_) {
          ServerChunkCache serverchunkcache = this.getChunkSource();
          if (!p_8646_) {
++            Bukkit.getPluginManager().callEvent(new WorldSaveEvent(getWorld())); // CraftBukkit
              if (p_8644_ != null) {
-+                org.bukkit.Bukkit.getPluginManager().callEvent(new org.bukkit.event.world.WorldSaveEvent(getWorld())); // CraftBukkit
                  p_8644_.progressStartNoAbort(Component.translatable("menu.savingLevel"));
              }
- 
-@@ -807,12 +_,20 @@
+@@ -807,12 +_,30 @@
              } else {
                  this.entityManager.autoSave();
              }
++
++            // CraftBukkit start
++            ServerLevel worldserver1 = this;
++            if (worldserver1.getWorld().isBukkit() && worldserver1 != this.server.overworld()) {
++                this.K.setWorldBorder(worldserver1.getWorldBorder().createSettings());
++                this.K.setCustomBossEvents(this.server.getCustomBossEvents().save(this.registryAccess()));
++                this.convertable.saveDataTag(this.server.registryAccess(), this.K, this.server.getPlayerList().getSingleplayerData());
++            }
++            // CraftBukkit end
++
 +            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.LevelEvent.Save(this));
 +            if (p_8645_) {
 +                net.neoforged.neoforge.common.IOUtilities.waitUntilIOWorkerComplete();

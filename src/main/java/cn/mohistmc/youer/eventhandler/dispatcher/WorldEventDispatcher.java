@@ -26,7 +26,6 @@ import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
 import org.bukkit.event.world.WorldInitEvent;
 import org.bukkit.event.world.WorldLoadEvent;
-import org.bukkit.event.world.WorldSaveEvent;
 
 public class WorldEventDispatcher {
 
@@ -37,15 +36,6 @@ public class WorldEventDispatcher {
             CraftWorld craftWorld = handle.getWorld();
             Bukkit.getPluginManager().callEvent(new WorldLoadEvent(craftWorld));
             Bukkit.getPluginManager().callEvent(new WorldInitEvent(craftWorld));
-        }
-    }
-
-    //For WorldSaveEvent
-    @SubscribeEvent(receiveCanceled = true)
-    public void onWorldSaveEvent(LevelEvent.Save event) {
-        if (event.getLevel() instanceof ServerLevel handle) {
-            WorldSaveEvent save = new WorldSaveEvent(handle.getWorld());
-            Bukkit.getPluginManager().callEvent(save);
         }
     }
 
