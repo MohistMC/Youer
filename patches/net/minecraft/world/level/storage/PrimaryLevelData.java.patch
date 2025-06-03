@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/level/storage/PrimaryLevelData.java
 +++ b/net/minecraft/world/level/storage/PrimaryLevelData.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.storage;
+ 
++import cn.mohistmc.youer.plugins.world.utils.ConfigByWorlds;
+ import com.google.common.collect.ImmutableSet;
+ import com.google.common.collect.Sets;
+ import com.mojang.logging.LogUtils;
 @@ -16,6 +_,7 @@
  import net.minecraft.SharedConstants;
  import net.minecraft.Util;
@@ -145,13 +152,14 @@
          this.raining = p_78576_;
      }
  
-@@ -436,6 +_,12 @@
+@@ -436,6 +_,13 @@
      @Override
      public void setDifficulty(Difficulty p_78521_) {
          this.settings = this.settings.withDifficulty(p_78521_);
++        ConfigByWorlds.difficulty(getLevelName(), p_78521_.name());
 +        // CraftBukkit start
 +        ClientboundChangeDifficultyPacket packet = new ClientboundChangeDifficultyPacket(this.getDifficulty(), this.isDifficultyLocked());
-+        for (ServerPlayer player : (java.util.List<ServerPlayer>) (java.util.List) this.world.players()) {
++        for (ServerPlayer player : this.world.players()) {
 +            player.connection.send(packet);
 +        }
 +        // CraftBukkit end

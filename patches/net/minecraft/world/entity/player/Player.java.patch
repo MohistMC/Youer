@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.entity.player;
+ 
++import cn.mohistmc.youer.plugins.KeepInventory;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableMap;
+ import com.google.common.collect.Lists;
 @@ -11,6 +_,7 @@
  import java.util.Map;
  import java.util.Optional;
@@ -200,6 +207,14 @@
          super.die(p_36152_);
          this.reapplyPosition();
          if (!this.isSpectator() && this.level() instanceof ServerLevel serverlevel) {
+@@ -656,6 +_,7 @@
+ 
+     @Override
+     protected void dropEquipment() {
++        if (KeepInventory.inventory(this)) return;
+         super.dropEquipment();
+         if (!this.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)) {
+             this.destroyVanishingCursedItems();
 @@ -684,11 +_,18 @@
  
      @Nullable
@@ -766,6 +781,14 @@
  
      public Optional<WardenSpawnTracker> getWardenSpawnTracker() {
          return Optional.empty();
+@@ -1701,6 +_,7 @@
+ 
+     @Override
+     protected int getBaseExperienceReward() {
++        if (KeepInventory.exp(this)) return 0;
+         if (!this.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) && !this.isSpectator()) {
+             int i = this.experienceLevel * 7;
+             return i > 100 ? 100 : i;
 @@ -1764,6 +_,18 @@
          }
      }

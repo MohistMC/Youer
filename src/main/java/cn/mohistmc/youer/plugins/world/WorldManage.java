@@ -1,8 +1,15 @@
 package cn.mohistmc.youer.plugins.world;
 
+import cn.mohistmc.youer.api.PlayerAPI;
 import cn.mohistmc.youer.api.ServerAPI;
 import cn.mohistmc.youer.plugins.world.utils.ConfigByWorlds;
 import java.io.File;
+import java.util.Objects;
+import net.minecraft.server.level.ServerPlayer;
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 public class WorldManage {
 
@@ -26,12 +33,19 @@ public class WorldManage {
         }
     }
 
-    public static boolean isInteger(String value) {
-        try {
-            Integer.parseInt(value);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
+    public static void changeGameMode(World world, GameMode gameMode) {
+        for (Player player : world.getPlayers()) {
+            if (!player.isOp()) {
+                player.setGameMode(gameMode);
+            }
         }
+        ConfigByWorlds.setGameMode(world, gameMode.name());
+    }
+
+    public static void changeGameMode(ServerPlayer serverPlayer, World world) {
+        if (PlayerAPI.isOp(serverPlayer)) return;
+        Player player = serverPlayer.getBukkitEntity();
+        GameMode gameMode = ConfigByWorlds.getGameMode(world);
+        player.setGameMode(Objects.requireNonNullElseGet(gameMode, Bukkit::getDefaultGameMode));
     }
 }

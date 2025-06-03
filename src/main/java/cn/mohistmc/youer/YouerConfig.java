@@ -56,6 +56,8 @@ public class YouerConfig {
     static int version;
     static Map<String, Command> commands;
     private static File CONFIG_FILE;
+    public static File youeryml = new File( "youer.yml");
+    public static YamlConfiguration yml = YamlConfiguration.loadConfiguration(youeryml);
 
     public static void init(File configFile) {
         CONFIG_FILE = configFile;
@@ -99,7 +101,7 @@ public class YouerConfig {
     }
 
     public static void save() {
-        YamlUtils.save(CONFIG_FILE, config);
+        YamlUtils.save(youeryml, yml);
     }
 
     public static void registerCommands() {
@@ -189,6 +191,7 @@ public class YouerConfig {
     public static List<String> networkmanager_intercept;
     public static boolean keepinventory_global;
     public static boolean keepinventory_inventory;
+    public static boolean keepinventory_permission_enable;
     public static String keepinventory_inventory_permission;
     public static boolean keepinventory_exp;
     public static String keepinventory_exp_permission;

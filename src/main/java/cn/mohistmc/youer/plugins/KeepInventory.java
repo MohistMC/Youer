@@ -12,31 +12,62 @@ import org.bukkit.entity.Player;
  */
 public class KeepInventory {
 
+    public static boolean inventory(net.minecraft.world.entity.player.Player player) {
+        if (player instanceof ServerPlayer nmsPlayer) {
+            return inventory(nmsPlayer);
+        }
+        return false;
+    }
+
     public static boolean inventory(ServerPlayer player) {
         if (player.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)) {
             return true;
         }
         Player bukkit_player = player.getBukkitEntity();
-        if (bukkit_player.hasPermission(YouerConfig.keepinventory_inventory_permission)) {
+        if (hasPermission(bukkit_player, Type.INVENTORY)) {
             return true;
         }
         String world = bukkit_player.getWorld().getName();
-        boolean i = YouerConfig.keepinventory_global ? YouerConfig.keepinventory_inventory : YouerConfig.config.getBoolean("keepinventory." + world + ".inventory");
+        boolean i = YouerConfig.keepinventory_global ? YouerConfig.keepinventory_inventory : YouerConfig.yml.getBoolean("keepinventory." + world + ".inventory");
         player.getBukkitEntity().getWorld().setGameRule(GameRule.KEEP_INVENTORY, i);
         return i;
     }
+
+    public static boolean exp(net.minecraft.world.entity.player.Player player) {
+        if (player instanceof ServerPlayer nmsPlayer) {
+            return exp(nmsPlayer);
+        }
+        return false;
+    }
+
 
     public static boolean exp(ServerPlayer player) {
         if (player.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)) {
             return true;
         }
         Player bukkit_player = player.getBukkitEntity();
-        if (bukkit_player.hasPermission(YouerConfig.keepinventory_exp_permission)) {
+        if (hasPermission(bukkit_player, Type.EXP)) {
             return true;
         }
         String world = bukkit_player.getWorld().getName();
-        boolean i = YouerConfig.keepinventory_global ? YouerConfig.keepinventory_exp : YouerConfig.config.getBoolean("keepinventory." + world + ".exp");
+        boolean i = YouerConfig.keepinventory_global ? YouerConfig.keepinventory_exp : YouerConfig.yml.getBoolean("keepinventory." + world + ".exp");
         player.keepLevel = i;
         return i;
+    }
+
+    private static boolean hasPermission(Player bukkit_player, Type type){
+        if (!YouerConfig.keepinventory_permission_enable) return false;
+        return bukkit_player.hasPermission(type.permission);
+    }
+
+    enum Type {
+        INVENTORY("keepinventory.permission"),
+        EXP("keepinventory.permission");
+
+        final String permission;
+
+        Type(String s) {
+            this.permission = s;
+        }
     }
 }

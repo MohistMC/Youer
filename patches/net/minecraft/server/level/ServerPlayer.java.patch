@@ -1,9 +1,10 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -1,16 +_,23 @@
+@@ -1,16 +_,24 @@
  package net.minecraft.server.level;
  
 +import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
++import cn.mohistmc.youer.plugins.KeepInventory;
  import com.google.common.net.InetAddresses;
  import com.mojang.authlib.GameProfile;
  import com.mojang.datafixers.util.Either;
@@ -422,13 +423,11 @@
              this.connection
                  .send(
                      new ClientboundPlayerCombatKillPacket(this.getId(), component),
-@@ -693,9 +_,14 @@
+@@ -693,9 +_,12 @@
              this.tellNeutralMobsThatIDied();
          }
  
 -        if (!this.isSpectator()) {
-+        // SPIGOT-5478 must be called manually now
-+        this.dropExperience(p_9035_.getEntity());
 +        // we clean the player's inventory after the EntityDeathEvent is called so plugins can get the exact state of the inventory.
 +        if (!event.getKeepInventory()) {
              this.dropAllDeathLoot(this.serverLevel(), p_9035_);
@@ -868,6 +867,24 @@
      }
  
      @Override
+@@ -1354,11 +_,13 @@
+             this.experienceProgress = p_9016_.experienceProgress;
+             this.setScore(p_9016_.getScore());
+             this.portalProcess = p_9016_.portalProcess;
+-        } else if (this.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) || p_9016_.isSpectator()) {
++        } else if (KeepInventory.inventory(p_9016_) || p_9016_.isSpectator()) {
+             this.getInventory().replaceWith(p_9016_.getInventory());
+-            this.experienceLevel = p_9016_.experienceLevel;
+-            this.totalExperience = p_9016_.totalExperience;
+-            this.experienceProgress = p_9016_.experienceProgress;
++            if (KeepInventory.exp(p_9016_) || this.keepLevel) {
++                this.experienceLevel = p_9016_.experienceLevel;
++                this.totalExperience = p_9016_.totalExperience;
++                this.experienceProgress = p_9016_.experienceProgress;
++            }
+             this.setScore(p_9016_.getScore());
+         }
+ 
 @@ -1375,6 +_,15 @@
          this.setShoulderEntityLeft(p_9016_.getShoulderEntityLeft());
          this.setShoulderEntityRight(p_9016_.getShoulderEntityRight());

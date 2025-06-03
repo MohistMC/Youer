@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -52,6 +53,26 @@ public class ConfigByWorlds {
             }
             init();
         }
+    }
+
+    public static void setGameMode(World world, String nandu) {
+        if (ConfigByWorlds.f.exists()) {
+            if (config.getString("worlds." + world.getName()) != null) {
+                config.set("worlds." + world.getName() + ".gamemode", nandu);
+            }
+            init();
+        }
+    }
+
+    public static GameMode getGameMode(World world) {
+        if (ConfigByWorlds.f.exists()) {
+            if (config.getString("worlds." + world.getName()) != null) {
+                if (config.get("worlds." + world.getName() + ".gamemode") != null) {
+                    return GameMode.valueOf(config.getString("worlds." + world.getName() + ".gamemode"));
+                }
+            }
+        }
+        return null;
     }
 
     public static void addWorld(String w, boolean isYouer) {
