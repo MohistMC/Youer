@@ -1,10 +1,11 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1,16 +_,21 @@
+@@ -1,16 +_,22 @@
  package net.minecraft.server;
  
 +import cn.mohistmc.youer.Youer;
 +import cn.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
++import cn.mohistmc.youer.util.I18n;
  import com.google.common.base.Preconditions;
  import com.google.common.base.Splitter;
  import com.google.common.collect.ImmutableList;
@@ -407,6 +408,15 @@
      }
  
      public GameType getDefaultGameType() {
+@@ -541,7 +_,7 @@
+ 
+         for (ServerLevel serverlevel : this.getAllLevels()) {
+             if (!p_129886_) {
+-                LOGGER.info("Saving chunks for level '{}'/{}", serverlevel, serverlevel.dimension().location());
++                LOGGER.info(I18n.as("minecraftserver.savingchunks", serverlevel, serverlevel.dimension().location()));
+             }
+ 
+             serverlevel.save(null, p_129887_, serverlevel.noSave && !p_129888_);
 @@ -550,9 +_,18 @@
  
          ServerLevel serverlevel2 = this.overworld();
@@ -518,12 +528,14 @@
              while (this.running) {
                  long i;
                  if (!this.isPaused() && this.tickRateManager.isSprinting() && this.tickRateManager.checkShouldSprintThisTick()) {
-@@ -682,18 +_,31 @@
+@@ -682,18 +_,32 @@
                      if (k > OVERLOADED_THRESHOLD_NANOS + 20L * i
                          && this.nextTickTimeNanos - this.lastOverloadWarningNanos >= OVERLOADED_WARNING_INTERVAL_NANOS + 100L * i) {
                          long j = k / i;
-+                        if (server.getWarnOnOverload()) // CraftBukkit
-                         LOGGER.warn("Can't keep up! Is the server overloaded? Running {}ms or {} ticks behind", k / TimeUtil.NANOSECONDS_PER_MILLISECOND, j);
+-                        LOGGER.warn("Can't keep up! Is the server overloaded? Running {}ms or {} ticks behind", k / TimeUtil.NANOSECONDS_PER_MILLISECOND, j);
++                        if (server.getWarnOnOverload()) {
++                            LOGGER.warn(I18n.as("minecraftserver.cantkeepup", k / TimeUtil.NANOSECONDS_PER_MILLISECOND, j));
++                        }
                          this.nextTickTimeNanos += j * i;
                          this.lastOverloadWarningNanos = this.nextTickTimeNanos;
                      }
@@ -551,7 +563,7 @@
                  this.nextTickTimeNanos += i;
                  this.startMetricsRecordingTick();
                  this.profiler.push("tick");
-@@ -714,6 +_,8 @@
+@@ -714,17 +_,20 @@
                  this.isReady = true;
                  JvmProfiler.INSTANCE.onServerTick(this.smoothedTickTimeMillis);
              }
@@ -560,8 +572,14 @@
          } catch (Throwable throwable1) {
              LOGGER.error("Encountered an unexpected exception", throwable1);
              CrashReport crashreport = constructOrExtractCrashReport(throwable1);
-@@ -725,6 +_,7 @@
-                 LOGGER.error("We were unable to save this crash report to disk.");
+             this.fillSystemReport(crashreport.getSystemReport());
+             Path path = this.getServerDirectory().resolve("crash-reports").resolve("crash-" + Util.getFilenameFormattedDateTime() + "-server.txt");
+             if (crashreport.saveToFile(path, ReportType.CRASH)) {
+-                LOGGER.error("This crash report has been saved to: {}", path.toAbsolutePath());
++                LOGGER.error(I18n.as("minecraftserver.crashreportsave.saved", path.toAbsolutePath()));
+             } else {
+-                LOGGER.error("We were unable to save this crash report to disk.");
++                LOGGER.error(I18n.as("minecraftserver.crashreportsave.error"));
              }
  
 +            ServerLifecycleHooks.expectServerStopped(); // Forge: Has to come before MinecraftServer#onServerCrash to avoid race conditions

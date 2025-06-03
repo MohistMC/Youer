@@ -878,7 +878,7 @@ public final class Bukkit {
     public static void reloadData() {
         server.reloadData();
     }
-
+    public static final Logger logger = Logger.getLogger("Bukkit");
     /**
      * Returns the primary logger associated with this server instance.
      *
@@ -886,7 +886,7 @@ public final class Bukkit {
      */
     @NotNull
     public static Logger getLogger() {
-        return server.getLogger();
+        return logger;
     }
 
     /**

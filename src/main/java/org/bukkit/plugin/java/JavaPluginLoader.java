@@ -1,5 +1,7 @@
 package org.bukkit.plugin.java;
 
+import cn.mohistmc.youer.Youer;
+import cn.mohistmc.youer.util.I18n;
 import com.google.common.base.Preconditions;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -321,7 +323,7 @@ public final class JavaPluginLoader implements PluginLoader {
         Preconditions.checkArgument(plugin instanceof JavaPlugin, "Plugin is not associated with this PluginLoader");
 
         if (!plugin.isEnabled()) {
-            plugin.getLogger().info("Enabling " + plugin.getDescription().getFullName());
+            Youer.LOGGER.info(I18n.as("minecraftserver.plugin.load.enabling", plugin.getDescription().getFullName()));
 
             JavaPlugin jPlugin = (JavaPlugin) plugin;
 
@@ -329,13 +331,17 @@ public final class JavaPluginLoader implements PluginLoader {
 
             if (!loaders.contains(pluginLoader)) {
                 loaders.add(pluginLoader);
-                server.getLogger().log(Level.WARNING, "Enabled plugin with unregistered PluginClassLoader " + plugin.getDescription().getFullName());
+                Youer.LOGGER.warn(I18n.as( "mohist.i18n.20", plugin.getDescription().getFullName()));
             }
 
             try {
                 jPlugin.setEnabled(true);
             } catch (Throwable ex) {
-                server.getLogger().log(Level.SEVERE, "Error occurred while enabling " + plugin.getDescription().getFullName() + " (Is it up to date?)", ex);
+                Youer.LOGGER.error(I18n.as("mohist.i18n.21", plugin.getDescription().getFullName()), ex);
+                // Mohist start - Disable plugins that fail to load
+                this.server.getPluginManager().disablePlugin(jPlugin);
+                return;
+                // Mohist end
             }
 
             // Perhaps abort here, rather than continue going, but as it stands,
@@ -349,8 +355,7 @@ public final class JavaPluginLoader implements PluginLoader {
         Preconditions.checkArgument(plugin instanceof JavaPlugin, "Plugin is not associated with this PluginLoader");
 
         if (plugin.isEnabled()) {
-            String message = String.format("Disabling %s", plugin.getDescription().getFullName());
-            plugin.getLogger().info(message);
+            plugin.getLogger().info(I18n.as("minecraftserver.plugin.load.disabling",plugin.getDescription().getFullName()));
 
             server.getPluginManager().callEvent(new PluginDisableEvent(plugin));
 
@@ -360,7 +365,7 @@ public final class JavaPluginLoader implements PluginLoader {
             try {
                 jPlugin.setEnabled(false);
             } catch (Throwable ex) {
-                server.getLogger().log(Level.SEVERE, "Error occurred while disabling " + plugin.getDescription().getFullName() + " (Is it up to date?)", ex);
+                server.getLogger().log(Level.SEVERE, I18n.as( "mohist.i18n.22", plugin.getDescription().getFullName()), ex);
             }
 
             if (cloader instanceof PluginClassLoader) {

@@ -66,9 +66,10 @@ class LibraryLoader {
                     newDependencies.addAll(initDependencies0(pomUrl));
                 }
             }
+
         }
 
-        Youer.LOGGER.info("[{}] Loading {} extra libraries... please wait", desc.getName(), newDependencies.size() - desc.getLibraries().size());
+        Youer.LOGGER.info(Youer.i18n.as("mohist.i18n.23", desc.getName(), newDependencies.size() - desc.getLibraries().size()));
 
         for (Dependency dependency : newDependencies) {
             String group = dependency.group().replace(".", "/");
@@ -101,7 +102,7 @@ class LibraryLoader {
         for (File file : libraries) {
             try {
                 jarFiles.add(file.toURI().toURL());
-                Youer.LOGGER.info("[{}] Loaded libraries {}", desc.getName(), file);
+                Youer.LOGGER.info(Youer.i18n.as("mohist.i18n.24", desc.getName(), file));
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
@@ -137,20 +138,24 @@ class LibraryLoader {
         Json json = Json.readXml(url);
         if (json != null) {
             Json json2Json = json.at("project");
-            String version = json2Json.has("parent") ? json2Json.at("parent").asString("version") : json2Json.asString("version");
-            String groupId = json2Json.has("parent") ? json2Json.at("parent").asString("groupId") : json2Json.asString("groupId");
+            if (json2Json != null) {
+                String version = json2Json.has("parent") ? json2Json.at("parent").asString("version") : json2Json.asString("version");
+                String groupId = json2Json.has("parent") ? json2Json.at("parent").asString("groupId") : json2Json.asString("groupId");
 
-            if (!json2Json.has("dependencies")) return list;
-            if (!json2Json.at("dependencies").toString().startsWith("{\"dependency\"")) return list;
-            Json json3Json = json2Json.at("dependencies").at("dependency");
-            if (json3Json.isArray()) {
-                for (Json o : json2Json.at("dependencies").asJsonList("dependency")) {
-                    dependency(o, list, version, groupId);
+                if (!json2Json.has("dependencies")) return list;
+                if (!json2Json.at("dependencies").toString().startsWith("{\"dependency\"")) return list;
+                Json json3Json = json2Json.at("dependencies").at("dependency");
+                if (json3Json != null) {
+                    if (json3Json.isArray()) {
+                        for (Json o : json2Json.at("dependencies").asJsonList("dependency")) {
+                            dependency(o, list, version, groupId);
+                        }
+                    } else {
+                        dependency(json3Json, list, version, groupId);
+                    }
                 }
-            } else {
-                dependency(json3Json, list, version, groupId);
+                list.addAll(findDependency(list));
             }
-            list.addAll(findDependency(list));
         }
         return list;
     }
@@ -226,7 +231,7 @@ class LibraryLoader {
             if (!dependencyIgnoreVersion.contains(dependency.toIgnoreVersion())) {
                 libraries.add(file);
                 dependencyIgnoreVersion.add(dependency.toIgnoreVersion());
-                Youer.LOGGER.info("[{}] Found libraries {}", dependency.name, file);
+                Youer.LOGGER.info(Youer.i18n.as("mohist.i18n.25", dependency.name, file));
                 return true;
             }
         }
@@ -243,3 +248,4 @@ class LibraryLoader {
     public record DependencyIgnoreVersion(String group, String name) {
     }
 }
+

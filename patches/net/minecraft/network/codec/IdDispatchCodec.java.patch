@@ -1,0 +1,20 @@
+--- a/net/minecraft/network/codec/IdDispatchCodec.java
++++ b/net/minecraft/network/codec/IdDispatchCodec.java
+@@ -7,6 +_,7 @@
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+ import java.util.ArrayList;
+ import java.util.List;
++import java.util.Objects;
+ import java.util.function.Function;
+ import net.minecraft.network.VarInt;
+ 
+@@ -39,6 +_,9 @@
+ 
+     public void encode(B p_319955_, V p_320138_) {
+         T t = (T)this.typeGetter.apply(p_320138_);
++        if (!this.toId.containsKey(t) && Objects.equals(String.valueOf(t), "clientbound/minecraft:disconnect")) {
++            return;
++        }
+         int i = this.toId.getOrDefault(t, -1);
+         if (i == -1) {
+             throw new EncoderException("Sending unknown packet '" + t + "'");

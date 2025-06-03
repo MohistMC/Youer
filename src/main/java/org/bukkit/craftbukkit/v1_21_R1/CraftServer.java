@@ -1132,9 +1132,6 @@ public final class CraftServer implements Server {
         }
 
         ResourceKey<LevelStem> actualDimension = NeoForgeInjectBukkit.environment0.get(creator.environment());
-        System.out.println("Debuggggggggggg   " + NeoForgeInjectBukkit.environment0.values());
-        System.out.println("Debuggggggggggg   " + creator.environment());
-        System.out.println("Debuggggggggggg   " + actualDimension);
         LevelStorageSource.LevelStorageAccess worldSession;
         try {
             worldSession = LevelStorageSource.createDefault(this.getWorldContainer().toPath()).validateAndCreateAccess(name, actualDimension);

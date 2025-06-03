@@ -29,8 +29,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.levelgen.presets.WorldPreset;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -47,7 +50,7 @@ public class YouerCommand extends Command {
     public YouerCommand(String name) {
         super(name);
         this.description = "Youer related commands";
-        this.usageMessage = "/youer [mods|playermods|reload|version|channels_incom|channels_outgo|speed]";
+        this.usageMessage = "/youer [mods|playermods|reload|version|channels_incom|channels_outgo|speed|debug]";
         this.setPermission("youer.command.youer");
     }
 
@@ -122,6 +125,12 @@ public class YouerCommand extends Command {
                 sender.sendMessage("Bukkit: " + Youer.versionInfo.bukkit());
                 sender.sendMessage("CraftBukkit: " + Youer.versionInfo.craftbukkit());
                 sender.sendMessage("Spigot: " + Youer.versionInfo.spigot());
+            }
+            case "debug" -> {
+                var registry = ServerAPI.getNMSServer().registryAccess().registryOrThrow(Registries.WORLD_PRESET);
+                for (var dd : registry) {
+                    sender.sendMessage("Youer: " + registry.getKey(dd));
+                }
             }
             case "channels_incom" -> sender.sendMessage(ServerAPI.channels_Incoming().toString());
             case "printthreadcost" -> MohistThreadCost.dumpThreadCpuTime();

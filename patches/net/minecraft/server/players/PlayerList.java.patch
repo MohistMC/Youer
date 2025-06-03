@@ -16,7 +16,7 @@
  import net.minecraft.server.level.ClientInformation;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
-@@ -98,6 +_,12 @@
+@@ -98,6 +_,14 @@
  import net.minecraft.world.scores.Objective;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Team;
@@ -26,6 +26,8 @@
 +import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage;
 +import org.bukkit.event.player.PlayerChangedWorldEvent;
++import org.bukkit.event.player.PlayerJoinEvent;
++import org.bukkit.event.player.PlayerQuitEvent;
  import org.slf4j.Logger;
  
  public abstract class PlayerList {
@@ -46,10 +48,40 @@
          this.server = p_203842_;
          this.registries = p_251844_;
          this.maxPlayers = p_203845_;
-@@ -164,6 +_,18 @@
+@@ -149,10 +_,19 @@
+         }
+ 
+         Optional<CompoundTag> optional1 = this.load(p_11263_);
++        // CraftBukkit start - Better rename detection
++        if (optional1.isPresent()) {
++            CompoundTag nbttagcompound = optional1.get();
++            if (nbttagcompound.contains("bukkit")) {
++                CompoundTag bukkit = nbttagcompound.getCompound("bukkit");
++                s = bukkit.contains("lastKnownName", 8) ? bukkit.getString("lastKnownName") : s;
++            }
++        }
++        // CraftBukkit end
+         ResourceKey<Level> resourcekey = optional1.<ResourceKey<Level>>flatMap(
+                 p_337568_ -> DimensionType.parseLegacy(new Dynamic<>(NbtOps.INSTANCE, p_337568_.get("Dimension"))).resultOrPartial(LOGGER::error)
+             )
+-            .orElse(Level.OVERWORLD);
++            .orElse(p_11263_.serverLevel().dimension());
+         ServerLevel serverlevel = this.server.getLevel(resourcekey);
+         ServerLevel serverlevel1;
+         if (serverlevel == null) {
+@@ -164,33 +_,37 @@
  
          p_11263_.setServerLevel(serverlevel1);
          String s1 = p_11262_.getLoggableAddress(this.server.logIPs());
+-        LOGGER.info(
+-            "{}[{}] logged in with entity id {} at ({}, {}, {})",
+-            p_11263_.getName().getString(),
+-            s1,
+-            p_11263_.getId(),
+-            p_11263_.getX(),
+-            p_11263_.getY(),
+-            p_11263_.getZ()
+-        );
 +
 +        // Spigot start - spawn location event
 +        org.bukkit.entity.Player spawnPlayer = p_11263_.getBukkitEntity();
@@ -62,10 +94,7 @@
 +        p_11263_.absMoveTo(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
 +        // Spigot end
 +
-         LOGGER.info(
-             "{}[{}] logged in with entity id {} at ({}, {}, {})",
-             p_11263_.getName().getString(),
-@@ -177,20 +_,21 @@
+         LevelData leveldata = serverlevel1.getLevelData();
          p_11263_.loadGameTypes(optional1.orElse(null));
          ServerGamePacketListenerImpl servergamepacketlistenerimpl = new ServerGamePacketListenerImpl(this.server, p_11262_, p_11263_, p_301988_);
          p_11262_.setupInboundProtocol(
@@ -129,7 +158,7 @@
 +        CraftPlayer bukkitPlayer = p_11263_.getBukkitEntity();
 +        // Ensure that player inventory is populated with its viewer
 +        p_11263_.containerMenu.transferTo(p_11263_.containerMenu, bukkitPlayer);
-+        org.bukkit.event.player.PlayerJoinEvent playerJoinEvent = new org.bukkit.event.player.PlayerJoinEvent(bukkitPlayer, joinMessage);
++        PlayerJoinEvent playerJoinEvent = new PlayerJoinEvent(bukkitPlayer, joinMessage);
 +        cserver.getPluginManager().callEvent(playerJoinEvent);
 +        if (!p_11263_.connection.isAcceptingMessages()) {
 +            return;
@@ -179,7 +208,7 @@
              );
              if (entity != null) {
                  UUID uuid;
-@@ -255,16 +_,17 @@
+@@ -255,16 +_,27 @@
  
                  if (!p_11263_.isPassenger()) {
                      LOGGER.warn("Couldn't reattach entity to player");
@@ -196,6 +225,16 @@
  
          p_11263_.initInventoryMenu();
 +        net.neoforged.neoforge.event.EventHooks.firePlayerLoggedIn( p_11263_ );
++        // CraftBukkit - Moved from above, added world
++        LOGGER.info(
++                "{}[{}] logged in with entity id {} at ({}, {}, {})",
++                p_11263_.getName().getString(),
++                s1,
++                p_11263_.getId(),
++                p_11263_.getX(),
++                p_11263_.getY(),
++                p_11263_.getZ()
++        );
      }
  
      public void updateEntireScoreboard(ServerScoreboard p_11274_, ServerPlayer p_11275_) {
@@ -266,7 +305,7 @@
 +        if (p_11287_.containerMenu != p_11287_.inventoryMenu) {
 +            p_11287_.closeContainer();
 +        }
-+        org.bukkit.event.player.PlayerQuitEvent playerQuitEvent = new org.bukkit.event.player.PlayerQuitEvent(p_11287_.getBukkitEntity(), p_11287_.kickLeaveMessage != null ? p_11287_.kickLeaveMessage : "\u00A7e" + p_11287_.getScoreboardName() + " left the game");
++        PlayerQuitEvent playerQuitEvent = new PlayerQuitEvent(p_11287_.getBukkitEntity(), p_11287_.kickLeaveMessage != null ? p_11287_.kickLeaveMessage : "\u00A7e" + p_11287_.getScoreboardName() + " left the game");
 +        cserver.getPluginManager().callEvent(playerQuitEvent);
 +        p_11287_.getBukkitEntity().disconnect(playerQuitEvent.getQuitMessage());
 +        p_11287_.doTick(); // SPIGOT-924
@@ -720,7 +759,7 @@
  
              serverstatscounter = new ServerStatsCounter(this.server, file2);
 -            this.stats.put(uuid, serverstatscounter);
-+            // this.stats.put(uuid, serverstatscounter);  // CraftBukkit
++            this.stats.put(uuid, serverstatscounter);  // CraftBukkit
          }
  
          return serverstatscounter;

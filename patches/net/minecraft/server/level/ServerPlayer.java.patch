@@ -92,7 +92,7 @@
  import net.minecraft.world.level.block.HorizontalDirectionalBlock;
  import net.minecraft.world.level.block.RespawnAnchorBlock;
  import net.minecraft.world.level.block.entity.BlockEntity;
-@@ -158,8 +_,40 @@
+@@ -158,8 +_,41 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreAccess;
  import net.minecraft.world.scores.ScoreHolder;
@@ -128,6 +128,7 @@
 +import org.bukkit.event.player.PlayerLocaleChangeEvent;
 +import org.bukkit.event.player.PlayerRespawnEvent;
 +import org.bukkit.event.player.PlayerSpawnChangeEvent;
++import org.bukkit.event.player.PlayerTeleportEvent;
 +import org.bukkit.event.player.PlayerToggleSneakEvent;
 +import org.bukkit.inventory.MainHand;
  import org.slf4j.Logger;
@@ -883,6 +884,42 @@
      }
  
      @Override
+@@ -1418,6 +_,9 @@
+             .teleport(this.getX() + p_251611_, this.getY() + p_248861_, this.getZ() + p_252266_, this.getYRot(), this.getXRot(), RelativeMovement.ALL);
+     }
+ 
++    // Youer start
++    public AtomicReference<PlayerTeleportEvent.TeleportCause> teleportToS$cause = new AtomicReference<>(PlayerTeleportEvent.TeleportCause.UNKNOWN);
++
+     @Override
+     public boolean teleportTo(
+         ServerLevel p_265564_, double p_265424_, double p_265680_, double p_265312_, Set<RelativeMovement> p_265192_, float p_265059_, float p_265266_
+@@ -1430,8 +_,10 @@
+         }
+ 
+         if (p_265564_ == this.level()) {
++            this.connection.teleport$cause(teleportToS$cause.getAndSet(PlayerTeleportEvent.TeleportCause.UNKNOWN));
+             this.connection.teleport(p_265424_, p_265680_, p_265312_, p_265059_, p_265266_, p_265192_);
+         } else {
++            this.teleportTo$cause.set(teleportToS$cause.getAndSet(PlayerTeleportEvent.TeleportCause.UNKNOWN));
+             this.teleportTo(p_265564_, p_265424_, p_265680_, p_265312_, p_265059_, p_265266_);
+         }
+ 
+@@ -1440,6 +_,14 @@
+     }
+ 
+     @Override
++    public boolean teleportTo(
++            ServerLevel p_265564_, double p_265424_, double p_265680_, double p_265312_, Set<RelativeMovement> p_265192_, float p_265059_, float p_265266_, PlayerTeleportEvent.TeleportCause cause
++    ) {
++        teleportToS$cause.set(cause);
++        return teleportTo(p_265564_, p_265424_, p_265680_, p_265312_, p_265192_, p_265059_, p_265266_);
++    }
++
++    @Override
+     public void moveTo(double p_9171_, double p_9172_, double p_9173_) {
+         super.moveTo(p_9171_, p_9172_, p_9173_);
+         this.connection.resetPosition();
 @@ -1469,6 +_,8 @@
  
      public boolean setGameMode(GameType p_143404_) {
@@ -934,6 +971,16 @@
      }
  
      @Override
+@@ -1674,6 +_,9 @@
+         return this.advancements;
+     }
+ 
++    // Mohist start
++    public AtomicReference<PlayerTeleportEvent.TeleportCause> teleportTo$cause = new AtomicReference<>(PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    // CraftBukkit start
+     public void teleportTo(ServerLevel p_9000_, double p_9001_, double p_9002_, double p_9003_, float p_9004_, float p_9005_) {
+         this.setCamera(this);
+         this.stopRiding();
 @@ -1709,7 +_,36 @@
          );
      }
