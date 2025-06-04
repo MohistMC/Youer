@@ -36,7 +36,7 @@
  import net.minecraft.sounds.SoundEvents;
  import net.minecraft.sounds.SoundSource;
  import net.minecraft.stats.ServerStatsCounter;
-@@ -98,6 +_,14 @@
+@@ -98,6 +_,15 @@
  import net.minecraft.world.scores.Objective;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Team;
@@ -45,6 +45,7 @@
 +import org.bukkit.craftbukkit.v1_21_R1.command.ColouredConsoleSender;
 +import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.v1_21_R1.util.CraftChatMessage;
++import org.bukkit.craftbukkit.v1_21_R1.util.CraftLocation;
 +import org.bukkit.event.player.PlayerChangedWorldEvent;
 +import org.bukkit.event.player.PlayerJoinEvent;
 +import org.bukkit.event.player.PlayerQuitEvent;
@@ -478,7 +479,7 @@
          UUID uuid = p_295670_.getId();
          Set<ServerPlayer> set = Sets.newIdentityHashSet();
  
-@@ -434,19 +_,34 @@
+@@ -434,19 +_,43 @@
          }
  
          return !set.isEmpty();
@@ -491,12 +492,22 @@
 +    org.bukkit.event.player.PlayerRespawnEvent.RespawnReason reason = null;
 +    org.bukkit.Location location = null;
      public ServerPlayer respawn(ServerPlayer p_11237_, boolean p_11238_, Entity.RemovalReason p_348558_) {
++        p_11237_.stopRiding();
          this.players.remove(p_11237_);
 +        this.playersByName.remove(p_11237_.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot
          p_11237_.serverLevel().removePlayerImmediately(p_11237_, p_348558_);
+-        DimensionTransition dimensiontransition = p_11237_.findRespawnPositionAndUseSpawnBlock(p_11238_, DimensionTransition.DO_NOTHING);
 +        p_11237_.reason = reason;
-         DimensionTransition dimensiontransition = p_11237_.findRespawnPositionAndUseSpawnBlock(p_11238_, DimensionTransition.DO_NOTHING);
++        DimensionTransition dimensiontransition;
++        if (location == null) {
++            dimensiontransition = p_11237_.findRespawnPositionAndUseSpawnBlock(p_11238_, DimensionTransition.DO_NOTHING, reason);
 +
++            if (!p_11238_) p_11237_.reset(); // SPIGOT-4785
++        } else {
++            dimensiontransition = new DimensionTransition(((CraftWorld) location.getWorld()).getHandle(), CraftLocation.toVec3D(location), Vec3.ZERO, location.getYaw(), location.getPitch(), DimensionTransition.DO_NOTHING);
++        }
++        reason = null;
++        location = null;
 +        // Neo: Allow changing the respawn position of players. The local dimension transition is updated with the new target.
 +        var event = net.neoforged.neoforge.event.EventHooks.firePlayerRespawnPositionEvent(p_11237_, dimensiontransition, p_11238_);
 +        dimensiontransition = event.getDimensionTransition();
@@ -514,13 +525,14 @@
              serverplayer.copyRespawnPosition(p_11237_);
          }
  
-@@ -464,42 +_,71 @@
+@@ -464,42 +_,78 @@
          ServerLevel serverlevel1 = serverplayer.serverLevel();
          LevelData leveldata = serverlevel1.getLevelData();
          serverplayer.connection.send(new ClientboundRespawnPacket(serverplayer.createCommonSpawnInfo(serverlevel1), b0));
+-        serverplayer.connection.teleport(serverplayer.getX(), serverplayer.getY(), serverplayer.getZ(), serverplayer.getYRot(), serverplayer.getXRot());
 +        serverplayer.connection.send(new ClientboundSetChunkCacheRadiusPacket(serverlevel1.spigotConfig.viewDistance)); // Spigot
 +        serverplayer.connection.send(new ClientboundSetSimulationDistancePacket(serverlevel1.spigotConfig.simulationDistance)); // Spigot
-         serverplayer.connection.teleport(serverplayer.getX(), serverplayer.getY(), serverplayer.getZ(), serverplayer.getYRot(), serverplayer.getXRot());
++        serverplayer.connection.teleport(CraftLocation.toBukkit(serverplayer.position(), serverlevel1.getWorld(), serverplayer.getYRot(), serverplayer.getXRot())); // CraftBukkit
          serverplayer.connection.send(new ClientboundSetDefaultSpawnPositionPacket(serverlevel.getSharedSpawnPos(), serverlevel.getSharedSpawnAngle()));
          serverplayer.connection.send(new ClientboundChangeDifficultyPacket(leveldata.getDifficulty(), leveldata.isDifficultyLocked()));
          serverplayer.connection
@@ -576,6 +588,13 @@
 +
 +        // Fire advancement trigger
 +        serverplayer.triggerDimensionChangeTriggers(serverlevel);
++        Level fromWorld = p_11237_.level();
++        // Don't fire on respawn
++        if (fromWorld != serverlevel) {
++            PlayerChangedWorldEvent eventCWE = new PlayerChangedWorldEvent(p_11237_.getBukkitEntity(), fromWorld.getWorld());
++            this.server.server.getPluginManager().callEvent(eventCWE);
++        }
++
 +
 +        // Save player file again if they were disconnected
 +        if (serverplayer.connection.isDisconnected()) {

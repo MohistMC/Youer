@@ -54,7 +54,7 @@ public class WorldsGUI {
                 if (config.get("worlds." + w.getName() + ".void") != null) {
                     infoLore.add("§bVoid §8>> §7" + config.getBoolean("worlds." + w.getName() + ".void"));
                 }
-                if (w.getWorldType() == WorldType.FLAT) {
+                if (config.get("worlds." + w.getName() + ".flat") != null) {
                     infoLore.add("§bFlat §8>> §7" + config.getBoolean("worlds." + w.getName() + ".flat"));
                 }
             }
