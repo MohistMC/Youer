@@ -24,30 +24,38 @@
      public StructureStart(Structure p_226846_, ChunkPos p_226847_, int p_226848_, PiecesContainer p_226849_) {
          this.structure = p_226846_;
          this.chunkPos = p_226847_;
-@@ -86,12 +_,18 @@
-             BoundingBox boundingbox = list.get(0).boundingBox;
+@@ -78,6 +_,8 @@
+         return boundingbox;
+     }
+ 
++    List<StructurePiece> placeInChunk$pieces;
++    TransformerGeneratorAccess placeInChunk$transformerAccess;
+     public void placeInChunk(
+         WorldGenLevel p_226851_, StructureManager p_226852_, ChunkGenerator p_226853_, RandomSource p_226854_, BoundingBox p_226855_, ChunkPos p_226856_
+     ) {
+@@ -87,19 +_,34 @@
              BlockPos blockpos = boundingbox.getCenter();
              BlockPos blockpos1 = new BlockPos(blockpos.getX(), boundingbox.minY(), blockpos.getZ());
--
+ 
 -            for (StructurePiece structurepiece : list) {
 -                if (structurepiece.getBoundingBox().intersects(p_226855_)) {
 -                    structurepiece.postProcess(p_226851_, p_226852_, p_226853_, p_226854_, p_226855_, p_226856_, blockpos1);
 +            // CraftBukkit start
-+            List<StructurePiece> pieces = list.stream().filter(piece -> piece.getBoundingBox().intersects(p_226855_)).toList();
-+            if (!pieces.isEmpty()) {
-+                TransformerGeneratorAccess transformerAccess = new TransformerGeneratorAccess();
-+                transformerAccess.setHandle(p_226851_);
-+                transformerAccess.setStructureTransformer(new CraftStructureTransformer(generationEventCause, p_226851_, p_226852_, structure, p_226855_, p_226856_));
-+                for (StructurePiece piece : pieces) {
-+                    piece.postProcess(transformerAccess, p_226852_, p_226853_, p_226854_, p_226855_, p_226856_, blockpos1);
++            placeInChunk$pieces = list.stream().filter(piece -> piece.getBoundingBox().intersects(p_226855_)).toList();
++            if (!placeInChunk$pieces.isEmpty()) {
++                placeInChunk$transformerAccess = new TransformerGeneratorAccess();
++                placeInChunk$transformerAccess.setHandle(p_226851_);
++                placeInChunk$transformerAccess.setStructureTransformer(new CraftStructureTransformer(generationEventCause, p_226851_, p_226852_, structure, p_226855_, p_226856_));
++                for (StructurePiece piece : placeInChunk$pieces) {
++                    piece.postProcess(placeInChunk$transformerAccess, p_226852_, p_226853_, p_226854_, p_226855_, p_226856_, blockpos1);
                  }
-+                transformerAccess.getStructureTransformer().discard();
++                placeInChunk$transformerAccess.getStructureTransformer().discard();
++                // CraftBukkit end
              }
-+            // CraftBukkit end
- 
+-
              this.structure.afterPlace(p_226851_, p_226852_, p_226853_, p_226854_, p_226855_, p_226856_, this.pieceContainer);
          }
-@@ -99,7 +_,16 @@
+     }
  
      public CompoundTag createTag(StructurePieceSerializationContext p_192661_, ChunkPos p_192662_) {
          CompoundTag compoundtag = new CompoundTag();
