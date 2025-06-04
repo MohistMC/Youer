@@ -3059,6 +3059,8 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
 
     boolean isVoid();
     void setVoid(boolean b);
+    boolean isFlat();
+    void setFlat(boolean b);
     /**
      * Returns whether the current world was created by a mod.
      *

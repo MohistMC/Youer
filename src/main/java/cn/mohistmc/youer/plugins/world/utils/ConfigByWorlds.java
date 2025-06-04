@@ -191,6 +191,7 @@ public class ConfigByWorlds {
                 World world = Bukkit.getWorld(w);
                 if (world != null) {
                     world.setVoid(isVoid);
+                    world.setFlat(isFlat);
                     if (difficulty != null) {
                         world.setDifficulty(Difficulty.valueOf(difficulty));
                     }

@@ -176,7 +176,7 @@ public final class OldCraftChunkData implements ChunkGenerator.ChunkData {
         int offset = (y - this.minHeight) >> 4;
         LevelChunkSection section = this.sections[offset];
         if (create && section == null) {
-            this.sections[offset] = section = new LevelChunkSection(this.biomes);
+            this.sections[offset] = section = new LevelChunkSection().fix(this.biomes);
         }
         return section;
     }

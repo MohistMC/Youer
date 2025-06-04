@@ -81,7 +81,7 @@ public class WorldsGUI {
         return material;
     }
     public static Material getMaterial(World w) {
-        if (w.getWorldType() == WorldType.FLAT) {
+        if (w.isFlat()) {
             return Material.GREEN_CARPET;
         }
         if (w.isVoid()) {

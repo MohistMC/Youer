@@ -2124,6 +2124,17 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         isvoid = b;
     }
 
+    private boolean isflat = false;
+    @Override
+    public boolean isFlat() {
+        return isflat;
+    }
+
+    @Override
+    public void setFlat(boolean b) {
+        isflat = b;
+    }
+
     @Override
     public boolean isMods() {
         String path = getWorldFolder().getAbsolutePath().replaceAll("\\\\", "/");
