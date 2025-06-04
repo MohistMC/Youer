@@ -47,4 +47,40 @@ public class WorldAPI {
             return chunkData;
         }
     }
+
+    public static class FlatGenerator extends ChunkGenerator {
+        private static final Material[] DEFAULT_FLAT_LAYERS = {
+                Material.BEDROCK,        // 底层基岩
+                Material.DIRT,           // 3层泥土
+                Material.DIRT,
+                Material.DIRT,
+                Material.GRASS_BLOCK     // 表层草方块
+        };
+
+        public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome) {
+            ChunkData chunkData = this.createChunkData(world);
+
+            // 设置生物群系为平原
+            for (int i = 0; i < 16; i++) {
+                for (int j = 0; j < 16; j++) {
+                    biome.setBiome(i, j, Biome.PLAINS);
+                }
+            }
+
+            // 生成超平坦地形层
+            for (int i = 0; i < 16; i++) {
+                for (int j = 0; j < 16; j++) {
+                    for (int layer = 0; layer < DEFAULT_FLAT_LAYERS.length; layer++) {
+                        chunkData.setBlock(i, layer, j, DEFAULT_FLAT_LAYERS[layer]);
+                    }
+                    // 其余部分为空气
+                    for (int y = DEFAULT_FLAT_LAYERS.length; y < world.getMaxHeight(); y++) {
+                        chunkData.setBlock(i, y, j, Material.AIR);
+                    }
+                }
+            }
+
+            return chunkData;
+        }
+    }
 }

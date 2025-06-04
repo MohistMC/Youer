@@ -2113,6 +2113,17 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         isbukkit = b;
     }
 
+    private boolean isvoid = false;
+    @Override
+    public boolean isVoid() {
+        return isvoid;
+    }
+
+    @Override
+    public void setVoid(boolean b) {
+        isvoid = b;
+    }
+
     @Override
     public boolean isMods() {
         String path = getWorldFolder().getAbsolutePath().replaceAll("\\\\", "/");

@@ -80,7 +80,8 @@ public class ConfigByWorlds {
             World world = Bukkit.getWorld(w);
             String world_name = world.getName();
             if (ConfigByWorlds.f.exists()) {
-                if (config.getString("worlds." + world_name + ".youer") == null) {
+                config.set("worlds." + world_name + ".youer", isYouer);
+                if (config.getString("worlds." + world_name + ".info") == null) {
                     config.set("worlds." + world_name + ".seed", world.getSeed());
                     config.set("worlds." + world_name + ".environment", world.getEnvironment().name());
                     config.set("worlds." + world_name + ".name", world_name);
@@ -102,6 +103,7 @@ public class ConfigByWorlds {
         if (level != null && level instanceof ServerLevel serverLevel) {
             CraftWorld world = serverLevel.getWorld();
             if (world.isMods()) {
+                ConfigByWorlds.addWorld(world.getName(), false);
                 config.set("worlds." + world.getName() + ".ismods", world.isMods());
                 config.set("worlds." + world.getName() + ".modName", world.getModid());
             }
@@ -176,7 +178,10 @@ public class ConfigByWorlds {
                     if (canload) {
                         WorldCreator wc = new WorldCreator(w);
                         if (isVoid) wc.generator(new WorldAPI.VoidGenerator());
-                        if (isFlat) wc.type(WorldType.FLAT);
+                        if (isFlat) {
+                            wc.type(WorldType.FLAT);
+                            wc.generator(new WorldAPI.FlatGenerator());
+                        }
                         wc.seed(seed);
                         wc.environment(World.Environment.valueOf(environment));
                         wc.keepSpawnInMemory(keepspawninmemory);
@@ -185,14 +190,13 @@ public class ConfigByWorlds {
                 }
                 World world = Bukkit.getWorld(w);
                 if (world != null) {
+                    world.setVoid(isVoid);
                     if (difficulty != null) {
                         world.setDifficulty(Difficulty.valueOf(difficulty));
                     }
                     if (config.get("worlds." + w + ".worldborder") != null) {
                         world.getWorldBorder().setSize(config.getDouble("worlds." + w + ".worldborder"));
                     }
-                    // Fix mods world
-                    // ((CraftWorld)world).getHandle().keepSpawnInMemory = keepspawninmemory;
                 }
             }
         }

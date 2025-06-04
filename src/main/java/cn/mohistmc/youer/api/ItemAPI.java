@@ -35,11 +35,12 @@ public class ItemAPI {
 
     public static final Logger LOGGER = LogManager.getLogger("ItemAPI");
 
-    public static ItemStack doItem(Material material, int menge, String name, List<String> lore) {
+    public static ItemStack doItem(Material material, int menge, String name, List<String> lore, Integer customModelData) {
         ItemStack item = new ItemStack(material, menge);
         ItemMeta meta = item.getItemMeta();
         meta.setLore(lore);
         meta.setDisplayName(name);
+        if (customModelData != null) meta.setCustomModelData(customModelData);
         item.setItemMeta(meta);
         return item;
     }

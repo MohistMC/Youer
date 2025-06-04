@@ -78,9 +78,10 @@ public class WorldsCommands extends Command {
                     for (World.Environment environment : NeoForgeInjectBukkit.environment.values()) {
                         if (environment == World.Environment.CUSTOM) continue;
                         i++;
-                        inventory.setItem(i, ItemAPI.doItem(Material.MAP, 1, environment.name(), null));
+                        inventory.setItem(i, ItemAPI.doItem(WorldsGUI.getMaterial(environment), 1, environment.name(), null, 2025604));
                     }
-                    inventory.addItem(ItemAPI.doItem(Material.MAP, 1, "void", null));
+                    inventory.addItem(ItemAPI.doItem(WorldsGUI.getMaterial("VOID"), 1, "VOID", null, 2025604));
+                    inventory.addItem(ItemAPI.doItem(WorldsGUI.getMaterial("FLAT"), 1, "FLAT", null, 2025604));
                     player.openInventory(inventory);
                     InventoryClickListener.worldInventory = worldCreateInventory;
                     return true;

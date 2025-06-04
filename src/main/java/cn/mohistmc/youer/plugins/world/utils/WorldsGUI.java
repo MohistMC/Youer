@@ -58,24 +58,44 @@ public class WorldsGUI {
                     infoLore.add("§bFlat §8>> §7" + config.getBoolean("worlds." + w.getName() + ".flat"));
                 }
             }
-            inv.setItem(pos, ItemAPI.doItem(getMaterial(w), 1, "§7>> §6" + w.getName(), infoLore));
+            inv.setItem(pos, ItemAPI.doItem(getMaterial(w), 1, "§7>> §6" + w.getName(), infoLore, 2025604));
             ++pos;
             infoLore.clear();
         }
-        inv.setItem(53, ItemAPI.doItem(Material.REDSTONE_BLOCK, 1, I18n.as("worldmanage.gui.close"), null));
+        inv.setItem(53, ItemAPI.doItem(Material.REDSTONE_BLOCK, 1, I18n.as("worldmanage.gui.close"), null, 2025604));
         p.openInventory(inv);
         InventoryClickListener.worldInventory = worldListInventory;
     }
 
+    public static Material getMaterial(String type) {
+        Material material = Material.GRASS_BLOCK;
+        switch (type) {
+            case "VOID":
+                material = Material.BARRIER;
+                break;
+            case "FLAT":
+                material = Material.GREEN_CARPET;
+                break;
+            default:
+        }
+        return material;
+    }
     public static Material getMaterial(World w) {
         if (w.getWorldType() == WorldType.FLAT) {
             return Material.GREEN_CARPET;
         }
+        if (w.isVoid()) {
+            return Material.BARRIER;
+        }
+        return getMaterial(w.getEnvironment());
+    }
+
+    public static Material getMaterial(World.Environment environment) {
         Material material = Material.GRASS_BLOCK;
-        if (w.getEnvironment() == null) {
+        if (environment == null) {
             return material;
         }
-        switch (w.getEnvironment().name()) {
+        switch (environment.name()) {
             case "NETHER":
                 material = Material.NETHERRACK;
                 break;

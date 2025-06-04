@@ -45,7 +45,10 @@ public class InventoryClickListener {
             boolean isFlat = itemName.equals("FLAT");
             World.Environment environment = isVoid ? Environment.NORMAL : (isFlat ? Environment.NORMAL : Environment.valueOf(itemName));
             WorldCreator wc = new WorldCreator(worldName).environment(environment);
-            if (isFlat) wc.type(WorldType.FLAT);
+            if (isFlat) {
+                wc.type(WorldType.FLAT);
+                wc.generator(new WorldAPI.FlatGenerator());
+            }
             if (isVoid) wc.generator(new WorldAPI.VoidGenerator());
             wc.seed((new Random()).nextLong());
             wc.environment(environment);
@@ -90,7 +93,7 @@ public class InventoryClickListener {
                 if (worldInventory.worldInventoryType() == WorldInventoryType.CREATE) {
                     event.setCancelled(true);
 
-                    if (itemStack.getType() == Material.MAP) {
+                    if (itemMeta != null && itemMeta.hasCustomModelData() && itemMeta.getCustomModelData() == 2025604) {
                         createWorld(event, p);
                     }
                 } else if (worldInventory.worldInventoryType() == WorldInventoryType.LIST) {
