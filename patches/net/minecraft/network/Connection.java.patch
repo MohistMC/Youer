@@ -1,6 +1,6 @@
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
-@@ -107,6 +_,14 @@
+@@ -107,6 +_,15 @@
      private volatile DisconnectionDetails delayedDisconnect;
      @Nullable
      BandwidthDebugMonitor bandwidthDebugMonitor;
@@ -12,6 +12,7 @@
 +    public com.mojang.authlib.properties.Property[] spoofedProfile;
 +    public boolean preparing = true;
 +    // Spigot End
++    private volatile boolean mohist$isClosing; //mohist
  
      public Connection(PacketFlow p_129482_) {
          this.receiving = p_129482_;
@@ -35,7 +36,15 @@
      }
  
      @Override
-@@ -141,6 +_,13 @@
+@@ -134,13 +_,20 @@
+         } else {
+             boolean flag = !this.handlingFault;
+             this.handlingFault = true;
+-            if (this.channel.isOpen()) {
++            if (this.channel.isOpen() && !this.mohist$isClosing) {
+                 if (p_129534_ instanceof TimeoutException) {
+                     LOGGER.debug("Timeout", p_129534_);
+                     this.disconnect(Component.translatable("disconnect.timeout"));
                  } else {
                      Component component = Component.translatable("disconnect.genericReason", "Internal Exception: " + p_129534_);
                      PacketListener packetlistener = this.packetListener;
@@ -49,6 +58,15 @@
                      DisconnectionDetails disconnectiondetails;
                      if (packetlistener != null) {
                          disconnectiondetails = packetlistener.createDisconnectionInfo(component, p_129534_);
+@@ -170,7 +_,7 @@
+     }
+ 
+     protected void channelRead0(ChannelHandlerContext p_129487_, Packet<?> p_129488_) {
+-        if (this.channel.isOpen()) {
++        if (this.channel.isOpen() && !this.mohist$isClosing) {
+             PacketListener packetlistener = this.packetListener;
+             if (packetlistener == null) {
+                 throw new IllegalStateException("Received a packet before the packet listener was initialized");
 @@ -226,6 +_,7 @@
          if (p_320903_.flow() != this.getReceiving()) {
              throw new IllegalStateException("Invalid inbound protocol: " + p_320903_.id());
@@ -71,6 +89,15 @@
                  );
              }
  
+@@ -379,7 +_,7 @@
+     }
+ 
+     private void flushQueue() {
+-        if (this.channel != null && this.channel.isOpen()) {
++        if (this.channel != null && this.channel.isOpen() && !this.mohist$isClosing) {
+             synchronized (this.pendingActions) {
+                 Consumer<Connection> consumer;
+                 while ((consumer = this.pendingActions.poll()) != null) {
 @@ -427,7 +_,7 @@
          if (this.address == null) {
              return "local";
@@ -80,7 +107,7 @@
          }
      }
  
-@@ -436,12 +_,15 @@
+@@ -436,12 +_,16 @@
      }
  
      public void disconnect(DisconnectionDetails p_350867_) {
@@ -93,6 +120,7 @@
  
          if (this.isConnected()) {
 -            this.channel.close().awaitUninterruptibly();
++            this.mohist$isClosing = true; // Mohist fix vmp mixin
 +            this.channel.close(); // We can't wait as this may be called from an event loop.
              this.disconnectionDetails = p_350867_;
          }
@@ -105,6 +133,15 @@
          Class<? extends SocketChannel> oclass;
          EventLoopGroup eventloopgroup;
          if (Epoll.isAvailable() && p_290035_) {
+@@ -563,7 +_,7 @@
+     }
+ 
+     public boolean isConnected() {
+-        return this.channel != null && this.channel.isOpen();
++        return this.channel != null && this.channel.isOpen() && !this.mohist$isClosing;
+     }
+ 
+     public boolean isConnecting() {
 @@ -624,6 +_,7 @@
                      );
                      packetlistener1.onDisconnect(disconnectiondetails);

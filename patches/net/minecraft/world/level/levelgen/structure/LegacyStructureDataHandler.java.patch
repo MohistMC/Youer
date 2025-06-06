@@ -1,0 +1,47 @@
+--- a/net/minecraft/world/level/levelgen/structure/LegacyStructureDataHandler.java
++++ b/net/minecraft/world/level/levelgen/structure/LegacyStructureDataHandler.java
+@@ -20,6 +_,7 @@
+ import net.minecraft.util.datafix.DataFixTypes;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
++import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.storage.DimensionDataStorage;
+ 
+ public class LegacyStructureDataHandler {
+@@ -233,7 +_,35 @@
+             List<String> list = ImmutableList.of("EndCity");
+             return new LegacyStructureDataHandler(p_71333_, list, list);
+         } else {
+-            throw new RuntimeException(String.format(Locale.ROOT, "Unknown dimension type : %s", p_71332_));
++            return new LegacyStructureDataHandler(
++                    p_71333_,
++                    ImmutableList.of("Monument", "Stronghold", "Village", "Mineshaft", "Temple", "Mansion"),
++                    ImmutableList.of("Village", "Mineshaft", "Mansion", "Igloo", "Desert_Pyramid", "Jungle_Pyramid", "Swamp_Hut", "Stronghold", "Monument")
++            );
++        }
++    }
++
++    public static LegacyStructureDataHandler getLegacyStructureHandlerCB(ResourceKey<?> world, @Nullable DimensionDataStorage persistentStateManager) { // CraftBukkit
++        if (world == LevelStem.OVERWORLD) { // CraftBukkit
++            return new LegacyStructureDataHandler(
++                    persistentStateManager,
++                    ImmutableList.of("Monument", "Stronghold", "Village", "Mineshaft", "Temple", "Mansion"),
++                    ImmutableList.of("Village", "Mineshaft", "Mansion", "Igloo", "Desert_Pyramid", "Jungle_Pyramid", "Swamp_Hut", "Stronghold", "Monument")
++            );
++        } else {
++            if (world == LevelStem.NETHER) { // CraftBukkit
++                List<String> list1 = ImmutableList.of("Fortress");
++                return new LegacyStructureDataHandler(persistentStateManager, list1, list1);
++            } else if (world == LevelStem.END) { // CraftBukkit
++                List<String> list = ImmutableList.of("EndCity");
++                return new LegacyStructureDataHandler(persistentStateManager, list, list);
++            } else {
++                return new LegacyStructureDataHandler(
++                        persistentStateManager,
++                        ImmutableList.of("Monument", "Stronghold", "Village", "Mineshaft", "Temple", "Mansion"),
++                        ImmutableList.of("Village", "Mineshaft", "Mansion", "Igloo", "Desert_Pyramid", "Jungle_Pyramid", "Swamp_Hut", "Stronghold", "Monument")
++                );
++            }
+         }
+     }
+ }

@@ -84,7 +84,7 @@
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
-@@ -164,7 +_,22 @@
+@@ -164,7 +_,23 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
@@ -97,6 +97,7 @@
 +import org.bukkit.craftbukkit.v1_21_R1.util.WorldUUID;
 +import org.bukkit.entity.HumanEntity;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.server.MapInitializeEvent;
 +import org.bukkit.event.weather.LightningStrikeEvent;
 +import org.bukkit.event.world.TimeSkipEvent;
 +import org.bukkit.event.world.WorldSaveEvent;
@@ -698,18 +699,28 @@
                  i++;
              }
          }
-@@ -1309,11 +_,22 @@
+@@ -1309,11 +_,32 @@
      @Nullable
      @Override
      public MapItemSavedData getMapData(MapId p_323746_) {
 -        return this.getServer().overworld().getDataStorage().get(MapItemSavedData.factory(), p_323746_.key());
-+        // CraftBukkit start
-+        MapItemSavedData worldmap = (MapItemSavedData) this.getServer().overworld().getDataStorage().get(MapItemSavedData.factory(), p_323746_.key());
-+        if (worldmap != null) {
-+            worldmap.id = p_323746_;
++        // Paper start - Call missing map initialize event and set id
++        final DimensionDataStorage storage = this.getServer().overworld().getDataStorage();
++
++        final net.minecraft.world.level.saveddata.SavedData existing = storage.cache.get(p_323746_.key());
++        if (existing == null && !storage.cache.containsKey(p_323746_.key())) {
++            final MapItemSavedData worldmap = (MapItemSavedData) this.getServer().overworld().getDataStorage().get(MapItemSavedData.factory(), p_323746_.key());
++            storage.cache.put(p_323746_.key(), worldmap);
++            if (worldmap != null) {
++                worldmap.id = p_323746_;
++                new MapInitializeEvent(worldmap.mapView).callEvent();
++                return worldmap;
++            }
++        } else if (existing instanceof MapItemSavedData mapItemSavedData) {
++            mapItemSavedData.id = p_323746_;
 +        }
-+        return worldmap;
-+        // CraftBukkit end
++
++        return existing instanceof MapItemSavedData data ? data : null;
      }
  
      @Override

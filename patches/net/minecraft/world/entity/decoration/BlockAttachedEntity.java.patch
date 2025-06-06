@@ -1,6 +1,15 @@
 --- a/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
 +++ b/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
-@@ -35,10 +_,28 @@
+@@ -17,7 +_,7 @@
+ 
+ public abstract class BlockAttachedEntity extends Entity {
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    private int checkInterval;
++    private int checkInterval; { this.checkInterval = this.getId() % this.level().spigotConfig.hangingTickFrequency; } // Paper - Perf: offset item frame ticking
+     protected BlockPos pos;
+ 
+     protected BlockAttachedEntity(EntityType<? extends BlockAttachedEntity> p_345070_, Level p_345079_) {
+@@ -35,9 +_,28 @@
      public void tick() {
          if (!this.level().isClientSide) {
              this.checkBelowWorld();
@@ -8,7 +17,6 @@
 +            if (this.checkInterval++ == this.level().spigotConfig.hangingTickFrequency) { // Spigot
                  this.checkInterval = 0;
                  if (!this.isRemoved() && !this.survives()) {
--                    this.discard();
 +                    // CraftBukkit start - fire break events
 +                    net.minecraft.world.level.block.state.BlockState material = this.level().getBlockState(this.blockPosition());
 +                    org.bukkit.event.hanging.HangingBreakEvent.RemoveCause cause;
@@ -27,10 +35,10 @@
 +                        return;
 +                    }
 +                    // CraftBukkit end
-+                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
++                    this.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP);  // CraftBukkit - add Bukkit remove cause
+                     this.discard();
                      this.dropItem(null);
                  }
-             }
 @@ -67,6 +_,22 @@
              return false;
          } else {

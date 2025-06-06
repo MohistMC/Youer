@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/chunk/storage/ChunkStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/ChunkStorage.java
-@@ -38,17 +_,63 @@
+@@ -38,6 +_,38 @@
          return this.worker.isOldChunkAround(p_223452_, p_223453_);
      }
  
@@ -35,43 +35,18 @@
 +        return false;
 +    }
 +    // CraftBukkit end
-+
++    public @Nullable net.minecraft.server.level.ServerLevel generatoraccess; // CraftBukkit
      public CompoundTag upgradeChunkTag(
          ResourceKey<Level> p_188289_,
          Supplier<DimensionDataStorage> p_188290_,
-         CompoundTag p_188291_,
--        Optional<ResourceKey<MapCodec<? extends ChunkGenerator>>> p_188292_
-+        Optional<ResourceKey<MapCodec<? extends ChunkGenerator>>> p_188292_,
-+        ChunkPos pos, // CraftBukkit
-+        @Nullable net.minecraft.server.level.ServerLevel generatoraccess // CraftBukkit
-     ) {
-         int i = getVersion(p_188291_);
-         if (i == SharedConstants.getCurrentVersion().getDataVersion().getVersion()) {
-             return p_188291_;
-         } else {
-             try {
-+                // CraftBukkit start
-+                if (i < 1466) {
-+                    CompoundTag level = p_188291_.getCompound("Level");
-+                    if (level.getBoolean("TerrainPopulated") && !level.getBoolean("LightPopulated")) {
-+                        net.minecraft.server.level.ServerChunkCache cps = (generatoraccess == null) ? null : generatoraccess.getChunkSource();
-+                        if (check(cps, pos.x - 1, pos.z) && check(cps, pos.x - 1, pos.z - 1) && check(cps, pos.x, pos.z - 1)) {
-+                            level.putBoolean("LightPopulated", true);
-+                        }
-+                    }
-+                }
-+                // CraftBukkit end
-+
-                 if (i < 1493) {
-                     p_188291_ = DataFixTypes.CHUNK.update(this.fixerUpper, p_188291_, i, 1493);
-                     if (p_188291_.getCompound("Level").getBoolean("hasLegacyStructureData")) {
-@@ -57,8 +_,21 @@
+@@ -57,8 +_,22 @@
                      }
                  }
  
 +                // Spigot start - SPIGOT-6806: Quick and dirty way to prevent below zero generation in old chunks, by setting the status to heightmap instead of empty
 +                boolean stopBelowZero = false;
-+                boolean belowZeroGenerationInExistingChunks = (generatoraccess != null) ? ((net.minecraft.server.level.ServerLevel) generatoraccess).spigotConfig.belowZeroGenerationInExistingChunks : org.spigotmc.SpigotConfig.belowZeroGenerationInExistingChunks;
++                boolean belowZeroGenerationInExistingChunks = (generatoraccess != null) ? generatoraccess.spigotConfig.belowZeroGenerationInExistingChunks : org.spigotmc.SpigotConfig.belowZeroGenerationInExistingChunks;
++                generatoraccess = null;
 +                if (i <= 2730 && !belowZeroGenerationInExistingChunks) {
 +                    stopBelowZero = "full".equals(p_188291_.getCompound("Level").getString("Status"));
 +                }
@@ -87,3 +62,12 @@
                  removeDatafixingContext(p_188291_);
                  NbtUtils.addCurrentDataVersion(p_188291_);
                  return p_188291_;
+@@ -77,7 +_,7 @@
+             synchronized (this) {
+                 legacystructuredatahandler = this.legacyStructureHandler;
+                 if (legacystructuredatahandler == null) {
+-                    this.legacyStructureHandler = legacystructuredatahandler = LegacyStructureDataHandler.getLegacyStructureHandler(p_223449_, p_223450_.get());
++                    this.legacyStructureHandler = legacystructuredatahandler = LegacyStructureDataHandler.getLegacyStructureHandlerCB(p_223449_, p_223450_.get());
+                 }
+             }
+         }

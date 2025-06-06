@@ -8,14 +8,16 @@
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-@@ -36,6 +_,7 @@
+@@ -36,7 +_,9 @@
  import java.util.concurrent.CancellationException;
  import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.CompletionException;
 +import java.util.concurrent.ConcurrentLinkedQueue;
  import java.util.concurrent.Executor;
++import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.concurrent.atomic.AtomicInteger;
  import java.util.function.BooleanSupplier;
+ import java.util.function.Consumer;
 @@ -68,7 +_,6 @@
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.EntityType;
@@ -132,32 +134,23 @@
          p_294215_.connection.chunkSender.dropChunk(p_294215_, p_294758_);
      }
  
-@@ -907,19 +_,31 @@
+@@ -910,16 +_,25 @@
+         return this.read(p_214964_).thenApplyAsync(p_214907_ -> p_214907_.map(this::upgradeChunkTag), Util.backgroundExecutor());
      }
  
-     private CompletableFuture<Optional<CompoundTag>> readChunk(ChunkPos p_214964_) {
--        return this.read(p_214964_).thenApplyAsync(p_214907_ -> p_214907_.map(this::upgradeChunkTag), Util.backgroundExecutor());
-+        return this.read(p_214964_).thenApplyAsync(p_214907_ -> p_214907_.map((nbttagcompound) -> upgradeChunkTag(nbttagcompound, p_214964_)), Util.backgroundExecutor()); // CraftBukkit
-     }
- 
--    private CompoundTag upgradeChunkTag(CompoundTag p_214948_) {
--        return this.upgradeChunkTag(this.level.dimension(), this.overworldDataStorage, p_214948_, this.generator().getTypeNameForDataFixer());
 +    // CraftBukkit start
-+    private CompoundTag upgradeChunkTag(CompoundTag nbttagcompound, ChunkPos chunkcoordintpair) {
-+        return this.upgradeChunkTag(this.level.dimension(), this.overworldDataStorage, nbttagcompound, this.generator().getTypeNameForDataFixer(), chunkcoordintpair, level);
+     private CompoundTag upgradeChunkTag(CompoundTag p_214948_) {
++        this.generatoraccess = level;
+         return this.upgradeChunkTag(this.level.dimension(), this.overworldDataStorage, p_214948_, this.generator().getTypeNameForDataFixer());
      }
 +    // CraftBukkit end
  
++    AtomicBoolean reducedRange = new AtomicBoolean(false);
      boolean anyPlayerCloseEnoughForSpawning(ChunkPos p_183880_) {
-+        // Spigot start
-+        return anyPlayerCloseEnoughForSpawning(p_183880_, false);
-+    }
-+
-+    boolean anyPlayerCloseEnoughForSpawning(ChunkPos p_183880_, boolean reducedRange) {
 +        int chunkRange = level.spigotConfig.mobSpawnRange;
 +        chunkRange = (chunkRange > level.spigotConfig.viewDistance) ? (byte) level.spigotConfig.viewDistance : chunkRange;
 +        chunkRange = (chunkRange > 8) ? 8 : chunkRange;
-+        double blockRange = (reducedRange) ? Math.pow(chunkRange << 4, 2) : 16384.0D;
++        double blockRange = (reducedRange.getAndSet(false)) ? Math.pow(chunkRange << 4, 2) : 16384.0D;
 +        // Spigot end
          if (!this.distanceManager.hasPlayersNearby(p_183880_.toLong())) {
              return false;
@@ -168,6 +161,18 @@
                      return true;
                  }
              }
+@@ -928,6 +_,11 @@
+         }
+     }
+ 
++    boolean anyPlayerCloseEnoughForSpawning(ChunkPos p_183880_, boolean reducedRange) {
++        this.reducedRange.set(reducedRange);
++        return this.anyPlayerCloseEnoughForSpawning(p_183880_);
++    }
++
+     public List<ServerPlayer> getPlayersCloseForSpawning(ChunkPos p_183889_) {
+         long i = p_183889_.toLong();
+         if (!this.distanceManager.hasPlayersNearby(i)) {
 @@ -936,7 +_,7 @@
              Builder<ServerPlayer> builder = ImmutableList.builder();
  
