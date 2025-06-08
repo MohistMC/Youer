@@ -11,7 +11,7 @@ index 14b27eaaf744736b3e56bb1383481df98a218c43..84703b5d174625b1a4a995a244e6400d
 @@ -11,16 +11,28 @@ import org.jetbrains.annotations.Nullable;
  public class PlayerQuitEvent extends PlayerEvent {
      private static final HandlerList handlers = new HandlerList();
-     private net.kyori.adventure.text.Component quitMessage; // Paper
+     private com.mohistmc.net.kyori.adventure.text.Component quitMessage; // Paper
 +    private final QuitReason reason; // Paper
  
      @Deprecated // Paper
@@ -22,15 +22,15 @@ index 14b27eaaf744736b3e56bb1383481df98a218c43..84703b5d174625b1a4a995a244e6400d
 +    @Deprecated // Paper
 +    public PlayerQuitEvent(@NotNull final Player who, @Nullable final String quitMessage, @Nullable QuitReason quitReason) {
          super(who);
-         this.quitMessage = quitMessage != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(quitMessage) : null; // Paper
+         this.quitMessage = quitMessage != null ? com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(quitMessage) : null; // Paper
 +        this.reason = quitReason == null ? QuitReason.DISCONNECTED : quitReason;
      }
      // Paper start
 +    @Deprecated
-     public PlayerQuitEvent(@NotNull final Player who, @Nullable final net.kyori.adventure.text.Component quitMessage) {
+     public PlayerQuitEvent(@NotNull final Player who, @Nullable final com.mohistmc.net.kyori.adventure.text.Component quitMessage) {
 +        this(who, quitMessage, null);
 +    }
-+    public PlayerQuitEvent(@NotNull final Player who, @Nullable final net.kyori.adventure.text.Component quitMessage, @Nullable QuitReason quitReason) {
++    public PlayerQuitEvent(@NotNull final Player who, @Nullable final com.mohistmc.net.kyori.adventure.text.Component quitMessage, @Nullable QuitReason quitReason) {
          super(who);
          this.quitMessage = quitMessage;
 +        this.reason = quitReason == null ? QuitReason.DISCONNECTED : quitReason;

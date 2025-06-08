@@ -5,6 +5,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -960,16 +961,40 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
         return !(hasDisplayName() || hasItemName() || hasLocalizedName() || hasEnchants() || (lore != null) || hasCustomModelData() || hasBlockData() || hasRepairCost() || !unhandledTags.build().isEmpty() || !removedTags.isEmpty() || !persistentDataContainer.isEmpty() || hideFlag != 0 || isHideTooltip() || isUnbreakable() || hasEnchantmentGlintOverride() || isFireResistant() || hasMaxStackSize() || hasRarity() || hasFood() || hasTool() || hasJukeboxPlayable() || hasDamage() || hasMaxDamage() || hasAttributeModifiers() || customTag != null);
     }
 
+    // Paper start
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.Component displayName() {
+        return displayName == null ? null : io.papermc.paper.adventure.PaperAdventure.asAdventure(displayName);
+    }
+
+    @Override
+    public void displayName(final com.mohistmc.net.kyori.adventure.text.Component displayName) {
+        this.displayName = displayName == null ? null : io.papermc.paper.adventure.PaperAdventure.asVanilla(displayName);
+    }
+    // Paper end
+
     @Override
     public String getDisplayName() {
         return CraftChatMessage.fromComponent(this.displayName);
     }
 
+    // Paper start
+    @Override
+    public net.md_5.bungee.api.chat.BaseComponent[] getDisplayNameComponent() {
+        return displayName == null ? new net.md_5.bungee.api.chat.BaseComponent[0] : net.md_5.bungee.chat.ComponentSerializer.parse(CraftChatMessage.toJSON(displayName));
+    }
+    // Paper end
     @Override
     public final void setDisplayName(String name) {
         this.displayName = CraftChatMessage.fromStringOrNull(name);
     }
 
+    // Paper start
+    @Override
+    public void setDisplayNameComponent(net.md_5.bungee.api.chat.BaseComponent[] component) {
+        this.displayName = CraftChatMessage.fromJSON(net.md_5.bungee.chat.ComponentSerializer.toString(component));
+    }
+    // Paper end
     @Override
     public boolean hasDisplayName() {
         return this.displayName != null;
@@ -990,6 +1015,18 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
         return this.itemName != null;
     }
 
+    // Paper start - Adventure
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.Component itemName() {
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.itemName);
+    }
+
+    @Override
+    public void itemName(final com.mohistmc.net.kyori.adventure.text.Component name) {
+        this.itemName = io.papermc.paper.adventure.PaperAdventure.asVanilla(name);
+    }
+    // Paper end - Adventure
+
     @Override
     public String getLocalizedName() {
         return this.getDisplayName();
@@ -1008,6 +1045,19 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
     public boolean hasLore() {
         return this.lore != null && !this.lore.isEmpty();
     }
+
+    // Paper start
+    @Override
+    public List<com.mohistmc.net.kyori.adventure.text.Component> lore() {
+        return this.lore != null ? io.papermc.paper.adventure.PaperAdventure.asAdventure(this.lore) : null;
+    }
+
+    @Override
+    public void lore(final List<? extends com.mohistmc.net.kyori.adventure.text.Component> lore) {
+        Preconditions.checkArgument(lore == null || lore.size() <= ItemLore.MAX_LINES, "lore cannot have more than %s lines", ItemLore.MAX_LINES); // Paper - limit lore lines
+        this.lore = lore != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(lore) : null;
+    }
+    // Paper end
 
     @Override
     public boolean hasRepairCost() {
@@ -1120,7 +1170,15 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
     }
 
     @Override
+    public List<net.md_5.bungee.api.chat.BaseComponent[]> getLoreComponents() {
+        return this.lore == null ? null : new ArrayList<>(this.lore.stream().map(entry ->
+            net.md_5.bungee.chat.ComponentSerializer.parse(CraftChatMessage.toJSON(entry))
+        ).collect(java.util.stream.Collectors.toList()));
+    }
+    // Paper end
+    @Override
     public void setLore(List<String> lore) {
+        Preconditions.checkArgument(lore == null || lore.size() <= ItemLore.MAX_LINES, "lore cannot have more than %s lines", ItemLore.MAX_LINES); // Paper - limit lore lines
         if (lore == null || lore.isEmpty()) {
             this.lore = null;
         } else {
@@ -1133,6 +1191,22 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
         }
     }
 
+    // Paper start
+    @Override
+    public void setLoreComponents(List<net.md_5.bungee.api.chat.BaseComponent[]> lore) {
+        Preconditions.checkArgument(lore == null || lore.size() <= ItemLore.MAX_LINES, "lore cannot have more than %s lines", ItemLore.MAX_LINES); // Paper - limit lore lines
+        if (lore == null) {
+            this.lore = null;
+        } else {
+            if (this.lore == null) {
+                safelyAdd(lore, this.lore = new ArrayList<>(lore.size()), false);
+            } else {
+                this.lore.clear();
+                safelyAdd(lore, this.lore, false);
+            }
+        }
+    }
+    // Paper end
     @Override
     public boolean hasCustomModelData() {
         return this.customModelData != null;

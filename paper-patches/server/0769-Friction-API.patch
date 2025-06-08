@@ -12,7 +12,7 @@ index f662a791e8cb045903a0de29778e5f30892fb766..2bb61084b628582ded44926d7697ee26
      public boolean bukkitPickUpLoot;
      public org.bukkit.craftbukkit.entity.CraftLivingEntity getBukkitLivingEntity() { return (org.bukkit.craftbukkit.entity.CraftLivingEntity) super.getBukkitEntity(); } // Paper
      public boolean silentDeath = false; // Paper - mark entity as dying silently for cancellable death event
-+    public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
++    public com.mohistmc.net.kyori.adventure.util.TriState frictionState = com.mohistmc.net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
  
      @Override
      public float getBukkitYaw() {
@@ -30,7 +30,7 @@ index f662a791e8cb045903a0de29778e5f30892fb766..2bb61084b628582ded44926d7697ee26
      @Override
      public void addAdditionalSaveData(CompoundTag nbt) {
 +        // Paper start - Friction API
-+        if (this.frictionState != net.kyori.adventure.util.TriState.NOT_SET) {
++        if (this.frictionState != com.mohistmc.net.kyori.adventure.util.TriState.NOT_SET) {
 +            nbt.putString("Paper.FrictionState", this.frictionState.toString());
 +        }
 +        // Paper end - Friction API
@@ -45,7 +45,7 @@ index f662a791e8cb045903a0de29778e5f30892fb766..2bb61084b628582ded44926d7697ee26
 +        if (nbt.contains("Paper.FrictionState")) {
 +            String fs = nbt.getString("Paper.FrictionState");
 +            try {
-+                frictionState = net.kyori.adventure.util.TriState.valueOf(fs);
++                frictionState = com.mohistmc.net.kyori.adventure.util.TriState.valueOf(fs);
 +            } catch (Exception ignored) {
 +                LOGGER.error("Unknown friction state " + fs + " for " + this);
 +            }
@@ -62,7 +62,7 @@ index 446c319524183d6a1b4d0e6f0613a8db690677da..cbfb07bdf8d5e2e5a462835184be2d47
      private int lastTick = MinecraftServer.currentTick - 1; // CraftBukkit
      public boolean canMobPickup = true; // Paper - Item#canEntityPickup
      private int despawnRate = -1; // Paper - Alternative item-despawn-rate
-+    public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
++    public com.mohistmc.net.kyori.adventure.util.TriState frictionState = com.mohistmc.net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
  
      public ItemEntity(EntityType<? extends ItemEntity> type, Level world) {
          super(type, world);
@@ -72,7 +72,7 @@ index 446c319524183d6a1b4d0e6f0613a8db690677da..cbfb07bdf8d5e2e5a462835184be2d47
  
 -                if (this.onGround()) {
 +                // Paper start - Friction API
-+                if (frictionState == net.kyori.adventure.util.TriState.FALSE) {
++                if (frictionState == com.mohistmc.net.kyori.adventure.util.TriState.FALSE) {
 +                    f = 1F;
 +                } else if (this.onGround()) {
 +                    // Paper end - Friction API
@@ -84,7 +84,7 @@ index 446c319524183d6a1b4d0e6f0613a8db690677da..cbfb07bdf8d5e2e5a462835184be2d47
      @Override
      public void addAdditionalSaveData(CompoundTag nbt) {
 +        // Paper start - Friction API
-+        if (this.frictionState != net.kyori.adventure.util.TriState.NOT_SET) {
++        if (this.frictionState != com.mohistmc.net.kyori.adventure.util.TriState.NOT_SET) {
 +            nbt.putString("Paper.FrictionState", this.frictionState.toString());
 +        }
 +        // Paper end - Friction API
@@ -99,7 +99,7 @@ index 446c319524183d6a1b4d0e6f0613a8db690677da..cbfb07bdf8d5e2e5a462835184be2d47
 +        if (nbt.contains("Paper.FrictionState")) {
 +            String fs = nbt.getString("Paper.FrictionState");
 +            try {
-+                frictionState = net.kyori.adventure.util.TriState.valueOf(fs);
++                frictionState = com.mohistmc.net.kyori.adventure.util.TriState.valueOf(fs);
 +            } catch (Exception ignored) {
 +                com.mojang.logging.LogUtils.getLogger().error("Unknown friction state " + fs + " for " + this);
 +            }
@@ -119,12 +119,12 @@ index 1a291dd8a287db30e71dcb315599fc4b038764c4..30d62ee4d5cd2ddacb8783b5bbbf475d
  
 +     @org.jetbrains.annotations.NotNull
 +     @Override
-+     public net.kyori.adventure.util.TriState getFrictionState() {
++     public com.mohistmc.net.kyori.adventure.util.TriState getFrictionState() {
 +        return this.getHandle().frictionState;
 +     }
 +
 +     @Override
-+     public void setFrictionState(@org.jetbrains.annotations.NotNull net.kyori.adventure.util.TriState state) {
++     public void setFrictionState(@org.jetbrains.annotations.NotNull com.mohistmc.net.kyori.adventure.util.TriState state) {
 +         java.util.Objects.requireNonNull(state, "state may not be null");
 +         this.getHandle().frictionState = state;
 +     }
@@ -143,12 +143,12 @@ index 2332f40fed84510741e63073aaf0a18aab85303e..516ea1ec9ae5069c3c0e4708f62164a9
 +    // Paper start - friction API
 +    @org.jetbrains.annotations.NotNull
 +    @Override
-+    public net.kyori.adventure.util.TriState getFrictionState() {
++    public com.mohistmc.net.kyori.adventure.util.TriState getFrictionState() {
 +        return this.getHandle().frictionState;
 +    }
 +
 +    @Override
-+    public void setFrictionState(@org.jetbrains.annotations.NotNull net.kyori.adventure.util.TriState state) {
++    public void setFrictionState(@org.jetbrains.annotations.NotNull com.mohistmc.net.kyori.adventure.util.TriState state) {
 +        java.util.Objects.requireNonNull(state, "state may not be null");
 +        this.getHandle().frictionState = state;
 +    }

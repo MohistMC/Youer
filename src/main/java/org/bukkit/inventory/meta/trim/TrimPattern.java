@@ -89,4 +89,31 @@ public interface TrimPattern extends Keyed, Translatable {
     private static TrimPattern getTrimPattern(@NotNull String key) {
         return Registry.TRIM_PATTERN.getOrThrow(NamespacedKey.minecraft(key));
     }
+
+    // Paper start - adventure
+    /**
+     * Get the description of this {@link TrimPattern}.
+     *
+     * @return the description
+     */
+    com.mohistmc.net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component description();
+
+    /**
+     * @deprecated this method assumes that {@link #description()} will
+     * always be a translatable component which is not guaranteed.
+     */
+    @Override
+    @Deprecated(forRemoval = true)
+    @org.jetbrains.annotations.NotNull String getTranslationKey();
+    // Paper end - adventure
+
+    // Paper start - Registry#getKey
+    /**
+     * @deprecated use {@link Registry#getKey(Keyed)}, {@link io.papermc.paper.registry.RegistryAccess#getRegistry(io.papermc.paper.registry.RegistryKey)},
+     * and {@link io.papermc.paper.registry.RegistryKey#TRIM_PATTERN}. TrimPatterns can exist without a key.
+     */
+    @Deprecated(forRemoval = true, since = "1.20.4")
+    @Override
+    org.bukkit.@org.jetbrains.annotations.NotNull NamespacedKey getKey();
+    // Paper end - Registry#getKey
 }

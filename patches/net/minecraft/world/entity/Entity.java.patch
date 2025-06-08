@@ -79,7 +79,7 @@
      private final Set<TagKey<Fluid>> fluidOnEyes = new HashSet<>();
      public int invulnerableTime;
      protected boolean firstTick = true;
-@@ -243,6 +_,71 @@
+@@ -243,6 +_,77 @@
      public boolean hasVisualFire;
      @Nullable
      private BlockState inBlockState = null;
@@ -148,6 +148,12 @@
 +    public long activatedTick = Integer.MIN_VALUE;
 +    public void inactiveTick() { }
 +    // Spigot end
++
++    // Paper start
++    public final AABB getBoundingBoxAt(double x, double y, double z) {
++        return this.dimensions.makeBoundingBox(x, y, z);
++    }
++    // Paper end
  
      public Entity(EntityType<?> p_19870_, Level p_19871_) {
          this.type = p_19870_;
@@ -573,7 +579,7 @@
      public boolean saveAsPassenger(CompoundTag p_20087_) {
          if (this.removalReason != null && !this.removalReason.shouldSave()) {
              return false;
-@@ -1636,6 +_,7 @@
+@@ -1636,26 +_,57 @@
                  return false;
              } else {
                  p_20087_.putString("id", s);
@@ -581,7 +587,20 @@
                  this.saveWithoutId(p_20087_);
                  return true;
              }
-@@ -1646,16 +_,36 @@
+         }
+     }
+ 
++    // Paper start - Entity serialization api
++    public boolean serializeEntity(CompoundTag compound) {
++        List<Entity> pass = new java.util.ArrayList<>(this.getPassengers());
++        this.passengers = ImmutableList.of();
++        boolean result = save(compound);
++        this.passengers = ImmutableList.copyOf(pass);
++        return result;
++    }
++    // Paper end - Entity serialization api
++
+     public boolean save(CompoundTag p_20224_) {
          return this.isPassenger() ? false : this.saveAsPassenger(p_20224_);
      }
  
@@ -1229,12 +1248,10 @@
      public void unsetRemoved() {
          this.removalReason = null;
      }
-@@ -3449,6 +_,128 @@
- 
-     public boolean mayInteract(Level p_146843_, BlockPos p_146844_) {
+@@ -3451,6 +_,128 @@
          return true;
-+    }
-+
+     }
+ 
 +    /**
 +     * Neo: Short-lived holder of dropped item entities. Used mainly for Neo hooks and event logic.
 +     * <p>
@@ -1355,6 +1372,23 @@
 +    @Nullable
 +    public final <T> T getCapability(net.neoforged.neoforge.capabilities.EntityCapability<T, @org.jetbrains.annotations.Nullable Void> capability) {
 +        return capability.getCapability(this, null);
-     }
- 
++    }
++
      public Level level() {
+         return this.level;
+     }
+@@ -3550,4 +_,14 @@
+             return this.save;
+         }
+     }
++
++    // Paper start - Expose entity id counter
++    public static int nextEntityId() {
++        return ENTITY_COUNTER.incrementAndGet();
++    }
++
++    public boolean isTicking() {
++        return ((net.minecraft.server.level.ServerChunkCache) level.getChunkSource()).isPositionTicking(this);
++    }
++    // Paper end - Expose entity id counter
+ }

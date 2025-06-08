@@ -20,13 +20,35 @@ public interface Objective {
     @NotNull
     String getName();
 
+    // Paper start - Adventure
+    /**
+     * Gets the display name for this objective
+     *
+     * @return this objective's display name
+     * @throws IllegalStateException if this objective has been unregistered
+     */
+    com.mohistmc.net.kyori.adventure.text.@NotNull Component displayName();
+    /**
+     * Sets the name displayed to players for this objective.
+     *
+     * @param displayName Display name to set
+     * @throws IllegalStateException if this objective has been unregistered
+     * @throws IllegalArgumentException if displayName is null
+     * @throws IllegalArgumentException if displayName is longer than 128
+     *     characters.
+     */
+    void displayName(com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName);
+    // Paper end - Adventure
+
     /**
      * Gets the name displayed to players for this objective
      *
      * @return this objective's display name
      * @throws IllegalStateException if this objective has been unregistered
+     * @deprecated in favour of {@link #displayName()}
      */
     @NotNull
+    @Deprecated // Paper
     String getDisplayName();
 
     /**
@@ -34,7 +56,9 @@ public interface Objective {
      *
      * @param displayName Display name to set
      * @throws IllegalStateException if this objective has been unregistered
+     * @deprecated in favour of {@link #displayName(com.mohistmc.net.kyori.adventure.text.Component)}
      */
+    @Deprecated // Paper
     void setDisplayName(@NotNull String displayName);
 
     /**
@@ -62,7 +86,7 @@ public interface Objective {
      *
      * @return true if scores are modifiable
      * @throws IllegalStateException if this objective has been unregistered
-     * @see Criterias#HEALTH
+     * @see Criteria#HEALTH
      */
     boolean isModifiable();
 

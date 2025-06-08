@@ -77,7 +77,7 @@ public class Main {
                 System.out.println("|                                                      |");
                 System.out.println("| 官方交流QQ群: 570870451                              |");
                 System.out.println("| 官网(中国): https://www.mohistmc.cn/                 |");
-                System.out.println("| 爱发电: https://afdian.com/a/MohistMC                |");
+                System.out.println("| 爱发电: https://afdian.net/a/MohistMC                |");
                 System.out.println("|                                                      |");
                 System.out.println("+------------------------------------------------------+");
             }
@@ -87,7 +87,7 @@ public class Main {
         if (System.getProperty("log4j.configurationFile") == null) {
             System.setProperty("log4j.configurationFile", "log4j2_youer.xml");
         }
-        if (YouerConfigUtil.INSTALLATIONFINISHED()) {
+        if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_LIBRARIES()) {
            DefaultLibraries.run();
         }
         if (YouerConfigUtil.INSTALLATIONFINISHED()) {

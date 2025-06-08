@@ -30,6 +30,15 @@ import org.jetbrains.annotations.Nullable;
  */
 @Deprecated
 public interface UnsafeValues {
+    // Paper start
+    com.mohistmc.net.kyori.adventure.text.flattener.ComponentFlattener componentFlattener();
+    @Deprecated(forRemoval = true) com.mohistmc.net.kyori.adventure.text.serializer.plain.PlainComponentSerializer plainComponentSerializer();
+    @Deprecated(forRemoval = true) com.mohistmc.net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer plainTextSerializer();
+    @Deprecated(forRemoval = true) com.mohistmc.net.kyori.adventure.text.serializer.gson.GsonComponentSerializer gsonComponentSerializer();
+    @Deprecated(forRemoval = true) com.mohistmc.net.kyori.adventure.text.serializer.gson.GsonComponentSerializer colorDownsamplingGsonComponentSerializer();
+    @Deprecated(forRemoval = true) com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer legacyComponentSerializer();
+    com.mohistmc.net.kyori.adventure.text.Component resolveWithContext(com.mohistmc.net.kyori.adventure.text.Component component, org.bukkit.command.CommandSender context, org.bukkit.entity.Entity scoreboardSubject, boolean bypassPermissions) throws java.io.IOException;
+    // Paper end
 
     Material toLegacy(Material material);
 
@@ -127,4 +136,98 @@ public interface UnsafeValues {
 
     @ApiStatus.Internal
     <B extends Keyed> B get(Registry<B> registry, NamespacedKey key);
+
+    // Paper start
+    @Deprecated(forRemoval = true)
+    boolean isSupportedApiVersion(String apiVersion);
+
+    @Deprecated(forRemoval = true)
+    static boolean isLegacyPlugin(org.bukkit.plugin.Plugin plugin) {
+        return !Bukkit.getUnsafe().isSupportedApiVersion(plugin.getDescription().getAPIVersion());
+    }
+    // Paper end
+
+    /**
+     * Creates and returns the next EntityId available.
+     * <p>
+     * Use this when sending custom packets, so that there are no collisions on the client or server.
+     */
+    public int nextEntityId();
+
+    /**
+     * Just don't use it.
+     */
+    @org.jetbrains.annotations.NotNull String getMainLevelName();
+
+    /**
+     * Returns the server's protocol version.
+     *
+     * @return the server's protocol version
+     */
+    int getProtocolVersion();
+
+    /**
+     * Checks if an itemstack can be repaired with another itemstack.
+     * Returns false if either argument's type is not an item ({@link Material#isItem()}).
+     *
+     * @param itemToBeRepaired the itemstack to be repaired
+     * @param repairMaterial the repair material
+     * @return true if valid repair, false if not
+     */
+    public boolean isValidRepairItemStack(@org.jetbrains.annotations.NotNull ItemStack itemToBeRepaired, @org.jetbrains.annotations.NotNull ItemStack repairMaterial);
+
+    /**
+     * Checks if the entity represented by the namespaced key has default attributes.
+     *
+     * @param entityKey the entity's key
+     * @return true if it has default attributes
+     */
+    boolean hasDefaultEntityAttributes(@org.jetbrains.annotations.NotNull NamespacedKey entityKey);
+    // Paper end
+
+    // Paper start - namespaced key biome methods
+    /**
+     * Gets the {@link NamespacedKey} for the biome at the given location.
+     *
+     * @param accessor The {@link RegionAccessor} of the provided coordinates
+     * @param x X-coordinate of the block
+     * @param y Y-coordinate of the block
+     * @param z Z-coordinate of the block
+     * @return the biome's {@link NamespacedKey}
+     */
+    @org.jetbrains.annotations.NotNull
+    NamespacedKey getBiomeKey(RegionAccessor accessor, int x, int y, int z);
+
+    /**
+     * Sets the biome at the given location to a biome registered
+     * to the given {@link NamespacedKey}. If no biome by the given
+     * {@link NamespacedKey} exists, an {@link IllegalStateException}
+     * will be thrown.
+     *
+     * @param accessor The {@link RegionAccessor} of the provided coordinates
+     * @param x X-coordinate of the block
+     * @param y Y-coordinate of the block
+     * @param z Z-coordinate of the block
+     * @param biomeKey Biome key
+     * @throws IllegalStateException if no biome by the given key is registered.
+     */
+    void setBiomeKey(RegionAccessor accessor, int x, int y, int z, NamespacedKey biomeKey);
+    // Paper end - namespaced key biome methods
+
+    String getStatisticCriteriaKey(@NotNull org.bukkit.Statistic statistic); // Paper - fix custom stats criteria creation
+
+    // Paper start - spawn egg color visibility
+    /**
+     * Obtains the underlying color informating for a spawn egg of a given
+     * entity type, or null if the entity passed does not have a spawn egg.
+     * Spawn eggs have two colors - the background layer (0), and the
+     * foreground layer (1)
+     * @param entityType The entity type to get the color for
+     * @param layer The texture layer to get a color for
+     * @return The color of the layer for the entity's spawn egg
+     */
+    @Nullable org.bukkit.Color getSpawnEggLayerColor(org.bukkit.entity.EntityType entityType, int layer);
+    // Paper end - spawn egg color visibility
+
+    ItemStack createEmptyStack(); // Paper - proxy ItemStack
 }

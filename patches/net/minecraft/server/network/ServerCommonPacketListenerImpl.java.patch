@@ -50,7 +50,7 @@
 +
 +    @Override
 +    public void sendPacket(Packet<?> packet) {
-+        send(packet);
++        this.send(packet);
 +    }
 +
 +    @Override
@@ -188,7 +188,31 @@
          if (p_295099_.isTerminal()) {
              this.close();
          }
-@@ -163,10 +_,59 @@
+@@ -151,22 +_,83 @@
+         try {
+             this.connection.send(p_295099_, p_296321_, flag);
+         } catch (Throwable throwable) {
++            /* Youer remove this
+             CrashReport crashreport = CrashReport.forThrowable(throwable, "Sending packet");
+             CrashReportCategory crashreportcategory = crashreport.addCategory("Packet being sent");
+             crashreportcategory.setDetail("Packet class", () -> p_295099_.getClass().getCanonicalName());
+             throw new ReportedException(crashreport);
++            */
+         }
+     }
++
++    // Paper start - adventure
++    public void disconnect(final com.mohistmc.net.kyori.adventure.text.Component reason) {
++        this.disconnect(reason, PlayerKickEvent.Cause.UNKNOWN);
++    }
++    public void disconnect(final com.mohistmc.net.kyori.adventure.text.Component reason, PlayerKickEvent.Cause cause) {
++        this.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(reason));
++        // Paper end - kick event causes
++    }
++    // Paper end - adventure
+ 
+     public void disconnect(Component p_294116_) {
+         this.disconnect(new DisconnectionDetails(p_294116_));
      }
  
      public void disconnect(DisconnectionDetails p_350316_) {

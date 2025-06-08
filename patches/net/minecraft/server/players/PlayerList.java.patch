@@ -69,6 +69,15 @@
          this.server = p_203842_;
          this.registries = p_251844_;
          this.maxPlayers = p_203845_;
+@@ -137,6 +_,8 @@
+     }
+ 
+     public void placeNewPlayer(Connection p_11262_, ServerPlayer p_11263_, CommonListenerCookie p_301988_) {
++        p_11263_.isRealPlayer = true; // Paper
++        p_11263_.loginTime = System.currentTimeMillis(); // Paper - Replace OfflinePlayer#getLastPlayed
+         GameProfile gameprofile = p_11263_.getGameProfile();
+         GameProfileCache gameprofilecache = this.server.getProfileCache();
+         String s;
 @@ -149,10 +_,19 @@
          }
  
@@ -778,7 +787,23 @@
  
      public void broadcastSystemMessage(Component p_240618_, boolean p_240644_) {
          this.broadcastSystemMessage(p_240618_, p_215639_ -> p_240618_, p_240644_);
-@@ -802,22 +_,22 @@
+@@ -779,8 +_,8 @@
+         this.broadcastChatMessage(p_243264_, p_243234_::shouldFilterMessageTo, p_243234_, p_243204_);
+     }
+ 
+-    private void broadcastChatMessage(
+-        PlayerChatMessage p_249952_, Predicate<ServerPlayer> p_250784_, @Nullable ServerPlayer p_249623_, ChatType.Bound p_250276_
++    public void broadcastChatMessage(
++            PlayerChatMessage p_249952_, Predicate<ServerPlayer> p_250784_, @Nullable ServerPlayer p_249623_, ChatType.Bound p_250276_
+     ) {
+         boolean flag = this.verifyChatTrusted(p_249952_);
+         this.server.logChatMessage(p_249952_.decoratedContent(), p_250276_, flag ? null : "Not Secure");
+@@ -798,26 +_,26 @@
+         }
+     }
+ 
+-    private boolean verifyChatTrusted(PlayerChatMessage p_251384_) {
++    public boolean verifyChatTrusted(PlayerChatMessage p_251384_) {
          return p_251384_.hasSignature() && !p_251384_.hasExpiredServer(Instant.now());
      }
  

@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
  * guarantee values will not be removed from this Enum. As such, you should not
  * depend on the ordinal values of this class.
  */
-public enum Sound implements Keyed {
+public enum Sound implements Keyed { // Paper - implement Sound.Type
 
     AMBIENT_BASALT_DELTAS_ADDITIONS("ambient.basalt_deltas.additions"),
     AMBIENT_BASALT_DELTAS_LOOP("ambient.basalt_deltas.loop"),
@@ -1630,6 +1630,13 @@ public enum Sound implements Keyed {
         this.key = NamespacedKey.minecraft(key);
     }
 
+    // Paper start - deprecate getKey
+    /**
+     * @deprecated use {@link Registry#getKey(Keyed)} and {@link Registry#SOUNDS}. Sounds
+     * can exist without a key.
+     */
+    @Deprecated(since = "1.20.5")
+    // Paper end - deprecate getKey
     @NotNull
     @Override
     public NamespacedKey getKey() {

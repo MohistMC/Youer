@@ -29,7 +29,7 @@ public interface ItemFactory {
      * @return a new ItemMeta that could be applied to an item stack of the
      *     specified material
      */
-    @Nullable
+    @org.bukkit.UndefinedNullability // Paper
     ItemMeta getItemMeta(@NotNull final Material material);
 
     /**
@@ -197,7 +197,21 @@ public interface ItemFactory {
      * @param level the level to use, which is the level in the enchantment table
      * @param allowTreasures allow treasure enchantments, e.g. mending, if true.
      * @return a new ItemStack containing the result of the Enchantment
+     * @deprecated use {@link #enchantWithLevels(ItemStack, int, boolean, java.util.Random)}. This method's implementation is poorly
+     * designed and was originally broken.
      */
     @NotNull
+    @Deprecated(since = "1.19.3") // Paper
     ItemStack enchantItem(@NotNull final ItemStack item, final int level, final boolean allowTreasures);
+
+    // Paper start - Adventure
+    /**
+     * Get the formatted display name of the {@link ItemStack}.
+     *
+     * @param itemStack the {@link ItemStack}
+     * @return display name of the {@link ItemStack}
+     */
+    @NotNull
+    com.mohistmc.net.kyori.adventure.text.Component displayName(@NotNull ItemStack itemStack);
+    // Paper end - Adventure
 }

@@ -37,10 +37,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 public class YouerConfig {
 
     private static final List<String> HEADER = Arrays.asList("""
-            This is the main configuration file for Mohist.
+            This is the main configuration file for Youer.
             As you can see, there's tons to configure. Some options may impact gameplay, so use
             with caution, and make sure you know what each option does before configuring.
-            For a reference for any variable inside this file, check out the Mohist wiki at
+            For a reference for any variable inside this file, check out the Youer wiki at
             https://wiki.mohistmc.com/
 
             If you need help with the configuration or have any questions related to Spigot,
@@ -48,7 +48,7 @@ public class YouerConfig {
 
             Discord: https://discord.gg/mohistmc
             Forums: https://mohistmc.com/
-            Forums (CN): https://mohistmc.cn/
+            Forums (CN): https://www.mohistmc.cn/
             
             """.split("\\n"));
     /*========================================================================*/
@@ -56,7 +56,7 @@ public class YouerConfig {
     static int version;
     static Map<String, Command> commands;
     private static File CONFIG_FILE;
-    public static File youeryml = new File( "youer.yml");
+    public static File youeryml = new File( "youer-config","youer.yml");
     public static YamlConfiguration yml = YamlConfiguration.loadConfiguration(youeryml);
 
     public static void init(File configFile) {
@@ -169,10 +169,6 @@ public class YouerConfig {
         return ColorsAPI.of(YouerConfig.motdFirstLine) + "\n" + ColorsAPI.of(YouerConfig.motdSecondLine);
     }
 
-    public static boolean isProxyOnlineMode() {
-        return org.bukkit.Bukkit.getOnlineMode()  || (velocity_enabled && velocity_onlineMode);
-    }
-
     public static boolean show_logo;
     public static String mohist_lang;
     public static boolean check_update;
@@ -230,9 +226,6 @@ public class YouerConfig {
     public static boolean worldmanage;
 
     public static boolean bukkitpermissionshandler;
-    public static boolean velocity_enabled;
-    public static boolean velocity_onlineMode;
-    public static String velocity_secret;
 
     public static boolean recipe_warn;
 
@@ -264,6 +257,7 @@ public class YouerConfig {
         networkmanager_debug = getBoolean("networkmanager.debug", false);
         networkmanager_intercept = getStringList("networkmanager.intercept", new ArrayList<>());
         keepinventory_global = getBoolean("keepinventory.global.enable", false);
+        keepinventory_permission_enable = getBoolean("keepinventory.permission.enable", false);
         keepinventory_inventory = getBoolean("keepinventory.global.inventory", true);
         keepinventory_inventory_permission = getString("keepinventory.permission.inventory", "youer.keepinventory.inventory");
         keepinventory_exp = getBoolean("keepinventory.global.exp", true);
@@ -296,9 +290,6 @@ public class YouerConfig {
         explosion = getBoolean("events.explosion", false);
         bukkitpermissionshandler = getBoolean("forge.bukkitpermissionshandler", true);
         worldmanage = getBoolean("worldmanage", true);
-        velocity_enabled = getBoolean("velocity.enabled", false);
-        velocity_onlineMode = getBoolean("velocity.onlineMode", false);
-        velocity_secret = getString("velocity.secret", "");
 
         recipe_warn = getBoolean("recipe.warn", false);
         tpa_enable = getBoolean("tpa.enable", false);

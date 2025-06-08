@@ -26,13 +26,13 @@ import java.util.Locale;
 
 public class YouerConfigUtil {
 
-    public static final File mohistyml = new File("youer.yml");
-    public static final YamlConfiguration yml = YamlConfiguration.loadConfiguration(mohistyml);
+    public static final File youer_yml = new File("youer-config", "youer.yml");
+    public static final YamlConfiguration yml = YamlConfiguration.loadConfiguration(youer_yml);
 
     public static void init() {
         try {
-            if (!mohistyml.exists()) {
-                mohistyml.createNewFile();
+            if (!youer_yml.exists()) {
+                youer_yml.createNewFile();
             }
         } catch (Exception ignored) {
         }
@@ -49,6 +49,15 @@ public class YouerConfigUtil {
             save();
         }
         return yml.getBoolean(key, false);
+    }
+
+    public static boolean CHECK_LIBRARIES() {
+        String key = "youer.libraries.check";
+        if (yml.get(key) == null) {
+            yml.set(key, true);
+            save();
+        }
+        return yml.getBoolean(key, true);
     }
 
     public static boolean CHECK_UPDATE() {
@@ -70,9 +79,8 @@ public class YouerConfigUtil {
 
     public static void save() {
         try {
-            yml.save(mohistyml);
-        } catch (Exception e) {
-            e.printStackTrace();
+            yml.save(youer_yml);
+        } catch (Exception ignored) {
         }
     }
 

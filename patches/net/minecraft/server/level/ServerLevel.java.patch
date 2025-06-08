@@ -136,7 +136,7 @@
      public ServerLevel(
          MinecraftServer p_214999_,
          Executor p_215000_,
-@@ -230,11 +_,52 @@
+@@ -230,11 +_,61 @@
              p_215007_,
              p_214999_.getMaxChainedNeighborUpdates()
          );
@@ -187,6 +187,15 @@
 +            generator = getCraftServer().getGenerator(p_215002_.getLevelName());
 +        }
 +        this.spigotConfig = new SpigotWorldConfig(name); // Spigot
++        paperWorldConfigCreator = spigotConfig -> p_214999_.paperConfigurations.createWorldConfig(
++                io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(
++                        p_215001_.levelDirectory.path(),
++                        name, // Youer  - use world name
++                        p_215003_.location(),
++                        spigotConfig,
++                        p_214999_.registryAccess(),
++                        K.getGameRules()));
++        this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
          boolean flag = p_214999_.forceSynchronousWrites();
          DataFixer datafixer = p_214999_.getFixerUpper();
          EntityPersistentStorage<Entity> entitypersistentstorage = new EntityStorage(

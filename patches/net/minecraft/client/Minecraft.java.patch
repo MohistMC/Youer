@@ -317,7 +317,16 @@
      }
  
      private boolean isLevelRunningNormally() {
-@@ -2056,7 +_,8 @@
+@@ -2003,7 +_,7 @@
+ 
+         try {
+             p_261564_.saveDataTag(p_261470_.registries().compositeAccess(), p_261470_.worldData());
+-            Services services = Services.create(this.authenticationService, this.gameDirectory);
++            Services services = Services.create(this.authenticationService, this.gameDirectory, null);
+             services.profileCache().setExecutor(this);
+             SkullBlockEntity.setup(services, this);
+             GameProfileCache.setUsesAuthentication(false);
+@@ -2056,11 +_,17 @@
      }
  
      public void setLevel(ClientLevel p_91157_, ReceivingLevelScreen.Reason p_341652_) {
@@ -327,6 +336,16 @@
          this.level = p_91157_;
          this.updateLevelInEngines(p_91157_);
          if (!this.isLocalServer) {
+-            Services services = Services.create(this.authenticationService, this.gameDirectory);
++            Services services = null;
++            try {
++                services = Services.create(this.authenticationService, this.gameDirectory, null);
++            } catch (Exception e) {
++                throw new RuntimeException(e);
++            }
+             services.profileCache().setExecutor(this);
+             SkullBlockEntity.setup(services, this);
+             GameProfileCache.setUsesAuthentication(false);
 @@ -2093,13 +_,16 @@
          IntegratedServer integratedserver = this.singleplayerServer;
          this.singleplayerServer = null;

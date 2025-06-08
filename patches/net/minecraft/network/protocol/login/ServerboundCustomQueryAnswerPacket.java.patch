@@ -1,41 +1,46 @@
 --- a/net/minecraft/network/protocol/login/ServerboundCustomQueryAnswerPacket.java
 +++ b/net/minecraft/network/protocol/login/ServerboundCustomQueryAnswerPacket.java
-@@ -20,7 +_,17 @@
+@@ -1,5 +_,7 @@
+ package net.minecraft.network.protocol.login;
+ 
++import io.netty.buffer.ByteBuf;
++import io.netty.buffer.Unpooled;
+ import javax.annotation.Nullable;
+ import net.minecraft.network.FriendlyByteBuf;
+ import net.minecraft.network.codec.StreamCodec;
+@@ -20,7 +_,20 @@
      }
  
      private static CustomQueryAnswerPayload readPayload(int p_296215_, FriendlyByteBuf p_295168_) {
 -        return readUnknownPayload(p_295168_);
 +        // Paper start - MC Utils - default query payloads
-+        FriendlyByteBuf buffer = p_295168_.readNullable((buf2) -> {
-+            int i = buf2.readableBytes();
-+            if (i >= 0 && i <= MAX_PAYLOAD_SIZE) {
-+                return new FriendlyByteBuf(buf2.readBytes(i));
-+            } else {
-+                throw new IllegalArgumentException("Payload may not be larger than " + MAX_PAYLOAD_SIZE + " bytes");
-+            }
-+        });
-+        return buffer == null ? null : new net.minecraft.network.protocol.login.ServerboundCustomQueryAnswerPacket.QueryAnswerPayload(buffer);
++        boolean hasPayload = p_295168_.readBoolean();
++        if (!hasPayload) {
++            return DiscardedQueryAnswerPayload.INSTANCE;
++        }
++        int i = p_295168_.readableBytes();
++        if (i >= 0 && i < MAX_PAYLOAD_SIZE) {
++            var payload = Unpooled.buffer(i);
++            p_295168_.readBytes(payload);
++            return new net.minecraft.network.protocol.login.ServerboundCustomQueryAnswerPacket.QueryAnswerPayload(Unpooled.wrappedBuffer(Unpooled.copyBoolean(true), payload));
++        } else {
++            throw new IllegalArgumentException("Payload may not be larger than 1048576 bytes");
++        }
 +        // Paper end - MC Utils - default query payloads
      }
  
      private static CustomQueryAnswerPayload readUnknownPayload(FriendlyByteBuf p_294928_) {
-@@ -46,4 +_,20 @@
+@@ -46,4 +_,14 @@
      public void handle(ServerLoginPacketListener p_294750_) {
          p_294750_.handleCustomQueryPacket(this);
      }
 +
 +    // Paper start - MC Utils - default query payloads
-+    public static final class QueryAnswerPayload implements CustomQueryAnswerPayload {
-+
-+        public final FriendlyByteBuf buffer;
-+
-+        public QueryAnswerPayload(final net.minecraft.network.FriendlyByteBuf buffer) {
-+            this.buffer = buffer;
-+        }
++    public record QueryAnswerPayload(ByteBuf buffer) implements CustomQueryAnswerPayload {
 +
 +        @Override
-+        public void write(final net.minecraft.network.FriendlyByteBuf buf) {
-+            buf.writeBytes(this.buffer.copy());
++        public void write(final FriendlyByteBuf buf) {
++            buf.writeBytes(buf.slice());
 +        }
 +    }
 +    // Paper end - MC Utils - default query payloads

@@ -85,6 +85,20 @@ public final class Bukkit {
     }
 
     /**
+     * Returns the de facto plugins directory, generally used for storing plugin jars to be loaded,
+     * as well as their {@link org.bukkit.plugin.Plugin#getDataFolder() data folders}.
+     *
+     * <p>Plugins should use {@link org.bukkit.plugin.Plugin#getDataFolder()} rather than traversing this
+     * directory manually when determining the location in which to store their data and configuration files.</p>
+     *
+     * @return plugins directory
+     */
+    @NotNull
+    public static File getPluginsFolder() {
+        return server.getPluginsFolder();
+    }
+
+    /**
      * Attempts to set the {@link Server} singleton.
      * <p>
      * This cannot be done if the Server is already set.
@@ -129,6 +143,20 @@ public final class Bukkit {
     public static String getBukkitVersion() {
         return server.getBukkitVersion();
     }
+
+    // Paper start - expose game version
+    /**
+     * Gets the version of game this server implements
+     *
+     * @return version of game
+     * @see io.papermc.paper.ServerBuildInfo#minecraftVersionId()
+     * @see io.papermc.paper.ServerBuildInfo#minecraftVersionName()
+     */
+    @NotNull
+    public static String getMinecraftVersion() {
+        return server.getMinecraftVersion();
+    }
+    // Paper end
 
     /**
      * Gets a view of all currently logged in players. This {@linkplain
@@ -424,10 +452,36 @@ public final class Bukkit {
      *
      * @param message the message
      * @return the number of players
+     * @deprecated in favour of {@link Server#broadcast(com.mohistmc.net.kyori.adventure.text.Component)}
      */
+    @Deprecated // Paper
     public static int broadcastMessage(@NotNull String message) {
         return server.broadcastMessage(message);
     }
+
+    // Paper start
+    /**
+     * Sends the component to all online players.
+     *
+     * @param component the component to send
+     * @deprecated use {@code sendMessage} methods on {@link #getServer()} that accept {@link com.mohistmc.net.kyori.adventure.text.Component}
+     */
+    @Deprecated
+    public static void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent component) {
+        server.broadcast(component);
+    }
+
+    /**
+     * Sends an array of components as a single message to all online players.
+     *
+     * @param components the components to send
+     * @deprecated use {@code sendMessage} methods on {@link #getServer()} that accept {@link com.mohistmc.net.kyori.adventure.text.Component}
+     */
+    @Deprecated
+    public static void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
+        server.broadcast(components);
+    }
+    // Paper end
 
     /**
      * Gets the name of the update folder. The update folder is used to safely
@@ -1237,6 +1291,19 @@ public final class Bukkit {
         server.shutdown();
     }
 
+    // Paper start
+    /**
+     * Broadcast a message to all players.
+     * <p>
+     * This is the same as calling {@link #broadcast(com.mohistmc.net.kyori.adventure.text.Component,
+     * java.lang.String)} with the {@link Server#BROADCAST_CHANNEL_USERS} permission.
+     *
+     * @param message the message
+     * @return the number of players
+     */
+    public static int broadcast(com.mohistmc.net.kyori.adventure.text.@NotNull Component message) {
+        return server.broadcast(message);
+    }
     /**
      * Broadcasts the specified message to every user with the given
      * permission name.
@@ -1246,6 +1313,21 @@ public final class Bukkit {
      *     permissibles} must have to receive the broadcast
      * @return number of message recipients
      */
+    public static int broadcast(com.mohistmc.net.kyori.adventure.text.@NotNull Component message, @NotNull String permission) {
+        return server.broadcast(message, permission);
+    }
+    // Paper end
+    /**
+     * Broadcasts the specified message to every user with the given
+     * permission name.
+     *
+     * @param message message to broadcast
+     * @param permission the required permission {@link Permissible
+     *     permissibles} must have to receive the broadcast
+     * @return number of message recipients
+     * @deprecated in favour of {@link #broadcast(com.mohistmc.net.kyori.adventure.text.Component, String)}
+     */
+    @Deprecated // Paper
     public static int broadcast(@NotNull String message, @NotNull String permission) {
         return server.broadcast(message, permission);
     }
@@ -1507,6 +1589,7 @@ public final class Bukkit {
         return server.createInventory(owner, type);
     }
 
+    // Paper start
     /**
      * Creates an empty inventory with the specified type and title. If the type
      * is {@link InventoryType#CHEST}, the new inventory has a size of 27;
@@ -1532,6 +1615,38 @@ public final class Bukkit {
      * @see InventoryType#isCreatable()
      */
     @NotNull
+    public static Inventory createInventory(@Nullable InventoryHolder owner, @NotNull InventoryType type, com.mohistmc.net.kyori.adventure.text.@NotNull Component title) {
+        return server.createInventory(owner, type, title);
+    }
+    // Paper end
+
+    /**
+     * Creates an empty inventory with the specified type and title. If the type
+     * is {@link InventoryType#CHEST}, the new inventory has a size of 27;
+     * otherwise the new inventory has the normal size for its type.<br>
+     * It should be noted that some inventory types do not support titles and
+     * may not render with said titles on the Minecraft client.
+     * <br>
+     * {@link InventoryType#WORKBENCH} will not process crafting recipes if
+     * created with this method. Use
+     * {@link Player#openWorkbench(Location, boolean)} instead.
+     * <br>
+     * {@link InventoryType#ENCHANTING} will not process {@link ItemStack}s
+     * for possible enchanting results. Use
+     * {@link Player#openEnchanting(Location, boolean)} instead.
+     *
+     * @param owner The holder of the inventory; can be null if there's no holder.
+     * @param type The type of inventory to create.
+     * @param title The title of the inventory, to be displayed when it is viewed.
+     * @return The new inventory.
+     * @throws IllegalArgumentException if the {@link InventoryType} cannot be
+     * viewed.
+     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, com.mohistmc.net.kyori.adventure.text.Component)}
+     *
+     * @see InventoryType#isCreatable()
+     */
+    @Deprecated // Paper
+    @NotNull
     public static Inventory createInventory(@Nullable InventoryHolder owner, @NotNull InventoryType type, @NotNull String title) {
         return server.createInventory(owner, type, title);
     }
@@ -1550,6 +1665,7 @@ public final class Bukkit {
         return server.createInventory(owner, size);
     }
 
+    // Paper start
     /**
      * Creates an empty inventory of type {@link InventoryType#CHEST} with the
      * specified size and title.
@@ -1562,10 +1678,30 @@ public final class Bukkit {
      * @throws IllegalArgumentException if the size is not a multiple of 9
      */
     @NotNull
+    public static Inventory createInventory(@Nullable InventoryHolder owner, int size, com.mohistmc.net.kyori.adventure.text.@NotNull Component title) throws IllegalArgumentException {
+        return server.createInventory(owner, size, title);
+    }
+    // Paper end
+
+    /**
+     * Creates an empty inventory of type {@link InventoryType#CHEST} with the
+     * specified size and title.
+     *
+     * @param owner the holder of the inventory, or null to indicate no holder
+     * @param size a multiple of 9 as the size of inventory to create
+     * @param title the title of the inventory, displayed when inventory is
+     *     viewed
+     * @return a new inventory
+     * @throws IllegalArgumentException if the size is not a multiple of 9
+     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, com.mohistmc.net.kyori.adventure.text.Component)}
+     */
+    @Deprecated // Paper
+    @NotNull
     public static Inventory createInventory(@Nullable InventoryHolder owner, int size, @NotNull String title) throws IllegalArgumentException {
         return server.createInventory(owner, size, title);
     }
 
+    // Paper start
     /**
      * Creates an empty merchant.
      *
@@ -1573,7 +1709,20 @@ public final class Bukkit {
      * when the merchant inventory is viewed
      * @return a new merchant
      */
+    public static @NotNull Merchant createMerchant(com.mohistmc.net.kyori.adventure.text.@Nullable Component title) {
+        return server.createMerchant(title);
+    }
+    // Paper start
+    /**
+     * Creates an empty merchant.
+     *
+     * @param title the title of the corresponding merchant inventory, displayed
+     * when the merchant inventory is viewed
+     * @return a new merchant
+     * @deprecated in favour of {@link #createMerchant(com.mohistmc.net.kyori.adventure.text.Component)}
+     */
     @NotNull
+    @Deprecated // Paper
     public static Merchant createMerchant(@Nullable String title) {
         return server.createMerchant(title);
     }
@@ -1690,12 +1839,43 @@ public final class Bukkit {
         return server.isPrimaryThread();
     }
 
+    // Paper start
+    /**
+     * Gets the message that is displayed on the server list.
+     *
+     * @return the server's MOTD
+     */
+    @NotNull public static com.mohistmc.net.kyori.adventure.text.Component motd() {
+        return server.motd();
+    }
+
+    /**
+     * Set the message that is displayed on the server list.
+     *
+     * @param motd The message to be displayed
+     */
+    public static void motd(final com.mohistmc.net.kyori.adventure.text.@NotNull Component motd) {
+        server.motd(motd);
+    }
+
+    /**
+     * Gets the default message that is displayed when the server is stopped.
+     *
+     * @return the shutdown message
+     */
+    public static com.mohistmc.net.kyori.adventure.text.@Nullable Component shutdownMessage() {
+        return server.shutdownMessage();
+    }
+    // Paper end
+
     /**
      * Gets the message that is displayed on the server list.
      *
      * @return the servers MOTD
+     * @deprecated in favour of {@link #motd()}
      */
     @NotNull
+    @Deprecated // Paper
     public static String getMotd() {
         return server.getMotd();
     }
@@ -1704,7 +1884,9 @@ public final class Bukkit {
      * Set the message that is displayed on the server list.
      *
      * @param motd The message to be displayed
+     * @deprecated in favour of {@link #motd(com.mohistmc.net.kyori.adventure.text.Component)}
      */
+    @Deprecated // Paper
     public static void setMotd(@NotNull String motd) {
         server.setMotd(motd);
     }
@@ -1724,8 +1906,10 @@ public final class Bukkit {
      * Gets the default message that is displayed when the server is stopped.
      *
      * @return the shutdown message
+     * @deprecated in favour of {@link #shutdownMessage()}
      */
     @Nullable
+    @Deprecated // Paper
     public static String getShutdownMessage() {
         return server.getShutdownMessage();
     }
@@ -1769,7 +1953,7 @@ public final class Bukkit {
      *
      * @return the scoreboard manager or null if no worlds are loaded.
      */
-    @Nullable
+    @NotNull // Paper
     public static ScoreboardManager getScoreboardManager() {
         return server.getScoreboardManager();
     }
@@ -2173,7 +2357,7 @@ public final class Bukkit {
         return server.getUnsafe();
     }
 
-    // Paper start
+// Paper start
     /**
      * Gets the active {@link org.bukkit.command.CommandMap}
      *
@@ -2182,6 +2366,28 @@ public final class Bukkit {
     @NotNull
     public static org.bukkit.command.CommandMap getCommandMap() {
         return server.getCommandMap();
+    }
+
+    /**
+     * Gets the default no permission message used on the server
+     *
+     * @return the default message
+     * @deprecated use {@link #permissionMessage()}
+     */
+    @NotNull
+    @Deprecated
+    public static String getPermissionMessage() {
+        return server.getPermissionMessage();
+    }
+
+    /**
+     * Gets the default no permission message used on the server
+     *
+     * @return the default message
+     */
+    @NotNull
+    public static com.mohistmc.net.kyori.adventure.text.Component permissionMessage() {
+        return server.permissionMessage();
     }
     // Paper end
 

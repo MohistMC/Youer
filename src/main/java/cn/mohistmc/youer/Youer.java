@@ -17,7 +17,6 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.internal.versions.neoforge.NeoForgeVersion;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 @Mod("youer")
 @OnlyIn(Dist.DEDICATED_SERVER)
@@ -35,19 +34,8 @@ public class Youer {
 
         //TODO: do something when mod loading
         LOGGER.info("Youer mod loading.....");
-        //EventDispatcherRegistry.init();
         ProxySelector.setDefault(new MohistProxySelector(ProxySelector.getDefault()));
-        File CONFIG_FILE = new File("youer.yml");
-        try {
-            if (!CONFIG_FILE.exists()) {
-                System.out.println("Youer config file not found, creating new one...");
-                CONFIG_FILE.createNewFile();
-            }
-        } catch (Exception e) {
-            System.out.println("File init exception!");
-        }
-        YouerConfig.config = YamlConfiguration.loadConfiguration(CONFIG_FILE);
-        String mohist_lang = YouerConfig.config.getString("youer.lang", Locale.getDefault().toString());
+        String mohist_lang = YouerConfig.yml.getString("youer.lang", Locale.getDefault().toString());
         i18n = new i18n(Youer.class.getClassLoader(), mohist_lang);
 
         Map<String, String> arguments = new HashMap<>();

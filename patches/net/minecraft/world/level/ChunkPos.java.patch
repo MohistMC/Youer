@@ -1,0 +1,39 @@
+--- a/net/minecraft/world/level/ChunkPos.java
++++ b/net/minecraft/world/level/ChunkPos.java
+@@ -20,6 +_,7 @@
+     public static final int REGION_MAX_INDEX = 31;
+     public final int x;
+     public final int z;
++    public final long longKey; // Paper
+     private static final int HASH_A = 1664525;
+     private static final int HASH_C = 1013904223;
+     private static final int HASH_Z_XOR = -559038737;
+@@ -27,16 +_,19 @@
+     public ChunkPos(int p_45582_, int p_45583_) {
+         this.x = p_45582_;
+         this.z = p_45583_;
++        this.longKey = asLong(this.x, this.z); // Paper
+     }
+ 
+     public ChunkPos(BlockPos p_45587_) {
+         this.x = SectionPos.blockToSectionCoord(p_45587_.getX());
+         this.z = SectionPos.blockToSectionCoord(p_45587_.getZ());
++        this.longKey = asLong(this.x, this.z); // Paper
+     }
+ 
+     public ChunkPos(long p_45585_) {
+         this.x = (int)p_45585_;
+         this.z = (int)(p_45585_ >> 32);
++        this.longKey = asLong(this.x, this.z); // Paper
+     }
+ 
+     public static ChunkPos minFromRegion(int p_220338_, int p_220339_) {
+@@ -48,7 +_,7 @@
+     }
+ 
+     public long toLong() {
+-        return asLong(this.x, this.z);
++        return longKey; // Paper
+     }
+ 
+     public static long asLong(int p_45590_, int p_45591_) {

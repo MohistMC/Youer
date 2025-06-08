@@ -1,14 +1,14 @@
 package cn.mohistmc.youer.neoforge;
 
-import cn.mohistmc.youer.bukkit.entity.MohistModsAbstractHorse;
-import cn.mohistmc.youer.bukkit.entity.MohistModsChestHorse;
-import cn.mohistmc.youer.bukkit.entity.MohistModsEntity;
-import cn.mohistmc.youer.bukkit.entity.MohistModsMinecart;
-import cn.mohistmc.youer.bukkit.entity.MohistModsMinecartContainer;
-import cn.mohistmc.youer.bukkit.entity.MohistModsProjectileEntity;
-import cn.mohistmc.youer.bukkit.entity.MohistModsRaider;
-import cn.mohistmc.youer.bukkit.entity.MohistModsSkeleton;
-import cn.mohistmc.youer.bukkit.entity.MohistModsThrowableProjectile;
+import cn.mohistmc.youer.bukkit.entity.YouerModsAbstractHorse;
+import cn.mohistmc.youer.bukkit.entity.YouerModsChestHorse;
+import cn.mohistmc.youer.bukkit.entity.YouerModsEntity;
+import cn.mohistmc.youer.bukkit.entity.YouerModsMinecart;
+import cn.mohistmc.youer.bukkit.entity.YouerModsMinecartContainer;
+import cn.mohistmc.youer.bukkit.entity.YouerModsProjectileEntity;
+import cn.mohistmc.youer.bukkit.entity.YouerModsRaider;
+import cn.mohistmc.youer.bukkit.entity.YouerModsSkeleton;
+import cn.mohistmc.youer.bukkit.entity.YouerModsThrowableProjectile;
 import cn.mohistmc.youer.bukkit.entity.YouerModsMob;
 import cn.mohistmc.youer.bukkit.entity.YouerModsVehicle;
 import cn.mohistmc.youer.bukkit.entity.YouerModsWindCharge;
@@ -490,15 +490,15 @@ public class EntityClassLookup {
 
     static {
         // abstract types
-        add(Entity.class, new EntityClass<>(org.bukkit.entity.Entity.class, MohistModsEntity.class, MohistModsEntity::new));
-        add(AbstractSkeleton.class, new EntityClass<>(org.bukkit.entity.AbstractSkeleton.class, MohistModsSkeleton.class, MohistModsSkeleton::new));
+        add(Entity.class, new EntityClass<>(org.bukkit.entity.Entity.class, YouerModsEntity.class, YouerModsEntity::new));
+        add(AbstractSkeleton.class, new EntityClass<>(org.bukkit.entity.AbstractSkeleton.class, YouerModsSkeleton.class, YouerModsSkeleton::new));
         add(Mob.class, new EntityClass<>(org.bukkit.entity.Mob.class, YouerModsMob.class, YouerModsMob::new));
-        add(AbstractMinecart.class, new EntityClass<>(org.bukkit.entity.Minecart.class, MohistModsMinecart.class, MohistModsMinecart::new));
-        add(AbstractMinecartContainer.class, new EntityClass<>(org.bukkit.entity.Minecart.class, MohistModsMinecartContainer.class, MohistModsMinecartContainer::new));
-        add(AbstractHorse.class, new EntityClass<>(org.bukkit.entity.AbstractHorse.class, MohistModsAbstractHorse.class, MohistModsAbstractHorse::new));
-        add(AbstractChestedHorse.class, new EntityClass<>(org.bukkit.entity.ChestedHorse.class, MohistModsChestHorse.class, MohistModsChestHorse::new));
-        add(Projectile.class, new EntityClass<>(org.bukkit.entity.Projectile.class, MohistModsProjectileEntity.class, MohistModsProjectileEntity::new));
-        add(Raider.class, new EntityClass<>(org.bukkit.entity.Raider.class, MohistModsRaider.class, MohistModsRaider::new));
+        add(AbstractMinecart.class, new EntityClass<>(org.bukkit.entity.Minecart.class, YouerModsMinecart.class, YouerModsMinecart::new));
+        add(AbstractMinecartContainer.class, new EntityClass<>(org.bukkit.entity.Minecart.class, YouerModsMinecartContainer.class, YouerModsMinecartContainer::new));
+        add(AbstractHorse.class, new EntityClass<>(org.bukkit.entity.AbstractHorse.class, YouerModsAbstractHorse.class, YouerModsAbstractHorse::new));
+        add(AbstractChestedHorse.class, new EntityClass<>(org.bukkit.entity.ChestedHorse.class, YouerModsChestHorse.class, YouerModsChestHorse::new));
+        add(Projectile.class, new EntityClass<>(org.bukkit.entity.Projectile.class, YouerModsProjectileEntity.class, YouerModsProjectileEntity::new));
+        add(Raider.class, new EntityClass<>(org.bukkit.entity.Raider.class, YouerModsRaider.class, YouerModsRaider::new));
         add(VehicleEntity.class, new EntityClass<>(org.bukkit.entity.Vehicle.class, YouerModsVehicle.class, YouerModsVehicle::new));
         add(AbstractWindCharge.class, new EntityClass<>(org.bukkit.entity.AbstractWindCharge.class, YouerModsWindCharge.class, YouerModsWindCharge::new));
         add(LivingEntity.class, new EntityClass<>(org.bukkit.entity.LivingEntity.class, CraftLivingEntity.class, CraftLivingEntity::new));
@@ -512,7 +512,7 @@ public class EntityClassLookup {
         add(AbstractHurtingProjectile.class, new EntityClass<>(org.bukkit.entity.Fireball.class, CraftFireball.class, CraftFireball::new));
         add(Display.class, new EntityClass<>(org.bukkit.entity.Display.class, CraftDisplay.class, CraftDisplay::new));
         add(AbstractIllager.class, new EntityClass<>(org.bukkit.entity.Illager.class, CraftIllager.class, CraftIllager::new));
-        add(ThrowableItemProjectile.class, new EntityClass<>(org.bukkit.entity.ThrowableProjectile.class, MohistModsThrowableProjectile.class, MohistModsThrowableProjectile::new));
+        add(ThrowableItemProjectile.class, new EntityClass<>(org.bukkit.entity.ThrowableProjectile.class, YouerModsThrowableProjectile.class, YouerModsThrowableProjectile::new));
         add(HangingEntity.class, new EntityClass<>(org.bukkit.entity.Hanging.class, CraftHanging.class, CraftHanging::new));
         add(SpellcasterIllager.class, new EntityClass<>(org.bukkit.entity.Spellcaster.class, CraftSpellcaster.class, CraftSpellcaster::new));
         add(AmbientCreature.class, new EntityClass<>(org.bukkit.entity.Ambient.class, CraftAmbient.class, CraftAmbient::new));

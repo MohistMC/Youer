@@ -4,6 +4,8 @@ import cn.mohistmc.youer.YouerConfig;
 import com.google.common.net.InetAddresses;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
+import io.netty.buffer.Unpooled;
+import io.papermc.paper.configuration.GlobalConfiguration;
 import java.net.InetAddress;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -12,8 +14,10 @@ import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.login.custom.CustomQueryPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.ProfilePublicKey;
+import org.jetbrains.annotations.NotNull;
 
 public class VelocityProxy {
     private static final int SUPPORTED_FORWARDING_VERSION = 1;
@@ -32,7 +36,7 @@ public class VelocityProxy {
 
         try {
             final Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(YouerConfig.velocity_secret.getBytes(java.nio.charset.StandardCharsets.UTF_8), "HmacSHA256"));
+            mac.init(new SecretKeySpec(GlobalConfiguration.get().proxies.velocity.secret.getBytes(java.nio.charset.StandardCharsets.UTF_8), "HmacSHA256"));
             final byte[] mySignature = mac.doFinal(data);
             if (!MessageDigest.isEqual(signature, mySignature)) {
                 return false;

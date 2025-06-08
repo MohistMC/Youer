@@ -28,6 +28,7 @@ import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockDropsEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ExplosionEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockState;
@@ -186,5 +187,10 @@ public class BlockEventDispatcher {
         ItemStack itemstack = player.getItemInHand(interactionhand);
         org.bukkit.event.player.PlayerInteractEvent eventBukkit = CraftEventFactory.callPlayerInteractEvent(player, Action.RIGHT_CLICK_BLOCK, blockposition, hitResult.getDirection(), itemstack, event.getUseItem().isFalse(), interactionhand, hitResult.getLocation());
         event.setCanceled(eventBukkit.isCancelled());
+    }
+
+    @SubscribeEvent
+    public void onProjectileHit(ExplosionEvent.Start event) {
+
     }
 }

@@ -26,6 +26,40 @@ public interface Scoreboard {
     @NotNull
     Objective registerNewObjective(@NotNull String name, @NotNull String criteria);
 
+    // Paper start - Adventure
+    /**
+     * Registers an Objective on this Scoreboard
+     *
+     * @param name Name of the Objective
+     * @param criteria Criteria for the Objective
+     * @param displayName display name for the Objective.
+     * @return The registered Objective
+     * @throws IllegalArgumentException if name is longer than 32767
+     *     characters.
+     * @throws IllegalArgumentException if an objective by that name already
+     *     exists
+     * @deprecated use {@link #registerNewObjective(String, Criteria, com.mohistmc.net.kyori.adventure.text.Component)}
+     */
+    @NotNull
+    @Deprecated
+    Objective registerNewObjective(@NotNull String name, @NotNull String criteria, com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName);
+    /**
+     * Registers an Objective on this Scoreboard
+     *
+     * @param name Name of the Objective
+     * @param criteria Criteria for the Objective
+     * @param displayName Name displayed to players for the Objective.
+     * @param renderType Manner of rendering the Objective
+     * @return The registered Objective
+     * @throws IllegalArgumentException if name is longer than 32767
+     *     characters.
+     * @throws IllegalArgumentException if an objective by that name already
+     *     exists
+     * @deprecated use {@link #registerNewObjective(String, Criteria, com.mohistmc.net.kyori.adventure.text.Component, RenderType)}
+     */
+    @NotNull
+    @Deprecated
+    Objective registerNewObjective(@NotNull String name, @NotNull String criteria, com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName, @NotNull RenderType renderType) throws IllegalArgumentException;
     /**
      * Registers an Objective on this Scoreboard
      *
@@ -37,7 +71,38 @@ public interface Scoreboard {
      *     characters.
      * @throws IllegalArgumentException if an objective by that name already
      *     exists
-     * @deprecated use {@link #registerNewObjective(String, Criteria, String)}
+     */
+    @NotNull
+    Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName) throws IllegalArgumentException;
+    /**
+     * Registers an Objective on this Scoreboard
+     *
+     * @param name Name of the Objective
+     * @param criteria Criteria for the Objective
+     * @param displayName Name displayed to players for the Objective.
+     * @param renderType Manner of rendering the Objective
+     * @return The registered Objective
+     * @throws IllegalArgumentException if name is longer than 32767
+     *     characters.
+     * @throws IllegalArgumentException if an objective by that name already
+     *     exists
+     */
+    @NotNull
+    Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName, @NotNull RenderType renderType) throws IllegalArgumentException;
+    // Paper end - Adventure
+
+    /**
+     * Registers an Objective on this Scoreboard
+     *
+     * @param name Name of the Objective
+     * @param criteria Criteria for the Objective
+     * @param displayName Name displayed to players for the Objective.
+     * @return The registered Objective
+     * @throws IllegalArgumentException if name is longer than 32767
+     *     characters.
+     * @throws IllegalArgumentException if an objective by that name already
+     *     exists
+     * @deprecated use {@link #registerNewObjective(String, Criteria, com.mohistmc.net.kyori.adventure.text.Component)}
      */
     @Deprecated
     @NotNull
@@ -55,7 +120,7 @@ public interface Scoreboard {
      *     characters.
      * @throws IllegalArgumentException if an objective by that name already
      *     exists
-     * @deprecated use {@link #registerNewObjective(String, Criteria, String, RenderType)}
+     * @deprecated use {@link #registerNewObjective(String, Criteria, com.mohistmc.net.kyori.adventure.text.Component, RenderType)}
      */
     @Deprecated
     @NotNull
@@ -72,8 +137,10 @@ public interface Scoreboard {
      *     characters.
      * @throws IllegalArgumentException if an objective by that name already
      *     exists
+     * @deprecated in favour of {@link #registerNewObjective(String, Criteria, com.mohistmc.net.kyori.adventure.text.Component)}
      */
     @NotNull
+    @Deprecated // Paper
     Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, @NotNull String displayName);
 
     /**
@@ -88,8 +155,10 @@ public interface Scoreboard {
      *     characters.
      * @throws IllegalArgumentException if an objective by that name already
      *     exists
+     * @deprecated in favour of {@link #registerNewObjective(String, Criteria, com.mohistmc.net.kyori.adventure.text.Component, RenderType)}
      */
     @NotNull
+    @Deprecated // Paper
     Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, @NotNull String displayName, @NotNull RenderType renderType);
 
     /**
@@ -146,9 +215,8 @@ public interface Scoreboard {
      * @param player the player whose scores are being retrieved
      * @return immutable set of all scores tracked for the player
      * @see #getScores(String)
-     * @deprecated Scoreboards can contain entries that aren't players
      */
-    @Deprecated
+    // @Deprecated // Paper
     @NotNull
     Set<Score> getScores(@NotNull OfflinePlayer player);
 
@@ -166,9 +234,8 @@ public interface Scoreboard {
      *
      * @param player the player to drop all current scores for
      * @see #resetScores(String)
-     * @deprecated Scoreboards can contain entries that aren't players
      */
-    @Deprecated
+    // @Deprecated // Paper
     void resetScores(@NotNull OfflinePlayer player);
 
     /**
@@ -184,9 +251,8 @@ public interface Scoreboard {
      * @param player the player to search for
      * @return the player's Team or null if the player is not on a team
      * @see #getEntryTeam(String)
-     * @deprecated Scoreboards can contain entries that aren't players
      */
-    @Deprecated
+    // @Deprecated // Paper
     @Nullable
     Team getPlayerTeam(@NotNull OfflinePlayer player);
 

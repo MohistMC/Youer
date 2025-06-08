@@ -32,6 +32,19 @@ public abstract class CraftContainer<T extends BaseContainerBlockEntity> extends
         this.getSnapshot().lockKey = (key == null) ? LockCode.NO_LOCK : new LockCode(key);
     }
 
+    // Paper start
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.Component customName() {
+        final T be = this.getSnapshot();
+        return be.hasCustomName() ? io.papermc.paper.adventure.PaperAdventure.asAdventure(be.getCustomName()) : null;
+    }
+
+    @Override
+    public void customName(final com.mohistmc.net.kyori.adventure.text.Component customName) {
+        this.getSnapshot().name = (customName != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(customName) : null);
+    }
+    // Paper end
+
     @Override
     public String getCustomName() {
         T container = this.getSnapshot();

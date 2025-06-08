@@ -3,6 +3,7 @@ package org.bukkit.entity;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.bukkit.Chunk; // Paper
 import org.bukkit.EntityEffect;
 import org.bukkit.Location;
 import org.bukkit.Nameable;
@@ -30,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
  * Not all methods are guaranteed to work/may have side effects when
  * {@link #isInWorld()} is false.
  */
-public interface Entity extends Metadatable, CommandSender, Nameable, PersistentDataHolder {
+public interface Entity extends Metadatable, CommandSender, Nameable, PersistentDataHolder, com.mohistmc.net.kyori.adventure.sound.Sound.Emitter { // Paper
 
     /**
      * Gets the entity's current position
@@ -776,4 +777,13 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
     @Override
     Spigot spigot();
     // Spigot end
+
+    // Paper start
+    /**
+     * Gets the entity's display name formatted with their team prefix/suffix and
+     * the entity's default hover/click events.
+     *
+     * @return the team display name
+     */
+    com.mohistmc.net.kyori.adventure.text.@NotNull Component teamDisplayName();
 }

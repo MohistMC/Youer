@@ -362,6 +362,32 @@
      @Nullable
      public <T> T set(DataComponentType<? super T> p_331064_, @Nullable T p_330775_) {
          return this.components.set(p_331064_, p_330775_);
+@@ -694,6 +_,25 @@
+         }
+     }
+ 
++    // Paper start - (this is just a good no conflict location)
++    public org.bukkit.inventory.ItemStack asBukkitMirror() {
++        return CraftItemStack.asCraftMirror(this);
++    }
++    public org.bukkit.inventory.ItemStack asBukkitCopy() {
++        return CraftItemStack.asCraftMirror(this.copy());
++    }
++    public static ItemStack fromBukkitCopy(org.bukkit.inventory.ItemStack itemstack) {
++        return CraftItemStack.asNMSCopy(itemstack);
++    }
++    private org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack bukkitStack;
++    public org.bukkit.inventory.ItemStack getBukkitStack() {
++        if (bukkitStack == null || bukkitStack.handle != this) {
++            bukkitStack = org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack.asCraftMirror(this);
++        }
++        return bukkitStack;
++    }
++    // Paper end
++
+     public void applyComponents(DataComponentPatch p_332097_) {
+         this.components.applyPatch(p_332097_);
+         this.getItem().verifyComponentsAfterLoad(this);
 @@ -728,7 +_,7 @@
              return List.of();
          } else {
@@ -449,7 +475,7 @@
          ItemAttributeModifiers itemattributemodifiers = this.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
          if (!itemattributemodifiers.modifiers().isEmpty()) {
              itemattributemodifiers.forEach(p_332001_, p_330882_);
-@@ -940,9 +_,19 @@
+@@ -940,9 +_,20 @@
              this.getItem().getDefaultAttributeModifiers().forEach(p_332001_, p_330882_);
          }
  
@@ -462,6 +488,7 @@
 +    // CraftBukkit start
 +    @Deprecated
 +    public void setItem(Item item) {
++        this.bukkitStack = null; // Paper
 +        this.item = item;
 +    }
 +    // CraftBukkit end

@@ -25,4 +25,14 @@ public interface Chest extends Container, Lootable, Lidded {
      */
     @NotNull
     Inventory getBlockInventory();
+
+    // Paper start - More Chest Block API
+    /**
+     * Checks whether this chest is blocked
+     * by either a block above or a sitting cat
+     *
+     * @return whether this chest is blocked
+     */
+    boolean isBlocked();
+    // Paper end - More Chest Block API
 }

@@ -97,7 +97,16 @@
      private boolean debugCommandProfilerDelayStart;
      public ServerConnectionListener connection;
      public final ChunkProgressListenerFactory progressListenerFactory;
-@@ -254,17 +_,35 @@
+@@ -223,7 +_,7 @@
+     private boolean pvp;
+     private boolean allowFlight;
+     @Nullable
+-    private String motd;
++    private com.mohistmc.net.kyori.adventure.text.Component motd; // Paper - Adventure
+     private int playerIdleTimeout;
+     private final long[] tickTimesNanos = new long[100];
+     private long aggregatedTickTimesNanos = 0L;
+@@ -254,17 +_,36 @@
      public final Executor executor;
      @Nullable
      private String serverId;
@@ -127,6 +136,7 @@
 +    private static final int SAMPLE_INTERVAL = 100;
 +    public final double[] recentTps = new double[ 3 ];
 +    // Spigot end
++    public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> p_129873_) {
          AtomicReference<S> atomicreference = new AtomicReference<>();
@@ -156,13 +166,14 @@
              this.services = p_236729_;
              if (p_236729_.profileCache() != null) {
                  p_236729_.profileCache().setExecutor(this);
-@@ -315,7 +_,8 @@
+@@ -315,7 +_,9 @@
              this.structureTemplateManager = new StructureTemplateManager(p_236726_.resourceManager(), p_236724_, p_236728_, holdergetter);
              this.serverThread = p_236723_;
              this.executor = Util.backgroundExecutor();
 -            this.potionBrewing = PotionBrewing.bootstrap(this.worldData.enabledFeatures());
 +            this.potionBrewing = PotionBrewing.bootstrap(this.worldData.enabledFeatures(), this.registryAccess());
 +            this.vanillaCommandDispatcher = p_236726_.dataPackResources().commands;
++            this.paperConfigurations = services.paperConfigurations(); // Paper - add paper configuration files
          }
      }
  
@@ -487,10 +498,14 @@
                      serverlevel2.close();
                  } catch (IOException ioexception1) {
                      LOGGER.error("Exception closing the level", (Throwable)ioexception1);
-@@ -635,6 +_,12 @@
+@@ -635,6 +_,16 @@
          } catch (IOException ioexception) {
              LOGGER.error("Failed to unlock level {}", this.storageSource.getLevelId(), ioexception);
          }
++        // Spigot start
++        io.papermc.paper.util.MCUtil.asyncExecutor.shutdown(); // Paper
++        try { io.papermc.paper.util.MCUtil.asyncExecutor.awaitTermination(30, java.util.concurrent.TimeUnit.SECONDS); // Paper
++        } catch (java.lang.InterruptedException ignored) {} // Paper
 +        // Spigot start
 +        if (SpigotConfig.saveUserCacheOnStopOnly) {
 +            LOGGER.info("Saving usercache.json");
@@ -642,7 +657,13 @@
      private int computeNextAutosaveInterval() {
          float f;
          if (this.tickRateManager.isSprinting()) {
-@@ -966,7 +_,8 @@
+@@ -961,12 +_,12 @@
+ 
+     private ServerStatus buildServerStatus() {
+         ServerStatus.Players serverstatus$players = this.buildPlayerStatus();
+-        return new ServerStatus(
+-            Component.nullToEmpty(this.motd),
++        return new ServerStatus(io.papermc.paper.adventure.PaperAdventure.asVanilla(this.motd),
              Optional.of(serverstatus$players),
              Optional.of(ServerStatus.Version.current()),
              Optional.ofNullable(this.statusIcon),
@@ -746,6 +767,43 @@
      }
  
      public abstract boolean isDedicatedServer();
+@@ -1258,6 +_,12 @@
+         this.preventProxyConnections = p_129994_;
+     }
+ 
++    // Paper start
++    public java.io.File getPluginsFolder() {
++        return (java.io.File) this.options.valueOf("plugins");
++    }
++    // Paper end
++
+     public boolean isSpawningAnimals() {
+         return true;
+     }
+@@ -1288,11 +_,21 @@
+ 
+     @Override
+     public String getMotd() {
++        return com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.motd); // Paper - Adventure
++    }
++
++    public void setMotd(String motd) {
++        // Paper start - Adventure
++        this.motd = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserializeOr(motd, com.mohistmc.net.kyori.adventure.text.Component.empty());
++    }
++
++    public com.mohistmc.net.kyori.adventure.text.Component motd() {
+         return this.motd;
+     }
+ 
+-    public void setMotd(String p_129990_) {
+-        this.motd = p_129990_;
++    public void motd(com.mohistmc.net.kyori.adventure.text.Component motd) {
++        // Paper end - Adventure
++        this.motd = motd;
+     }
+ 
+     public boolean isStopped() {
 @@ -1314,7 +_,7 @@
      }
  

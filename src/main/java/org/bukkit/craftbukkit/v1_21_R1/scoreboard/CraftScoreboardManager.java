@@ -47,6 +47,13 @@ public final class CraftScoreboardManager implements ScoreboardManager {
         return scoreboard;
     }
 
+    // Paper start
+    public void registerScoreboardForVanilla(CraftScoreboard scoreboard) {
+        org.spigotmc.AsyncCatcher.catchOp("scoreboard registration");
+        scoreboards.add(scoreboard);
+    }
+    // Paper end
+
     // CraftBukkit method
     public CraftScoreboard getPlayerBoard(CraftPlayer player) {
         CraftScoreboard board = this.playerBoards.get(player);

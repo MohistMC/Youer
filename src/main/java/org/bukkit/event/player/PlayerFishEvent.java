@@ -163,6 +163,13 @@ public class PlayerFishEvent extends PlayerEvent implements Cancellable {
          * Called when there is a bite on the hook and it is ready to be reeled
          * in.
          */
-        BITE
+        BITE,
+        // Paper start - Add missing fishing event state
+        /**
+         * Called when a bobber was lured, and is now waiting to be hooked
+         * (when a "fish" starts to swim toward the bobber to bite it).
+         */
+        LURED
+        // Paper end - Add missing fishing event state
     }
 }

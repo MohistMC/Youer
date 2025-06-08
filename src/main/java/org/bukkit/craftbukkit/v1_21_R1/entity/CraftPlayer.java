@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.v1_21_R1.entity;
 
+import cn.mohistmc.youer.util.PluginsDiscardedPayload;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
@@ -108,6 +109,8 @@ import net.minecraft.world.level.border.BorderChangeListener;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraft.world.level.saveddata.maps.MapId;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.payload.MinecraftRegisterPayload;
 import org.bukkit.BanEntry;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
@@ -174,6 +177,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerExpCooldownChangeEvent;
 import org.bukkit.event.player.PlayerHideEntityEvent;
 import org.bukkit.event.player.PlayerRegisterChannelEvent;
+import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 import org.bukkit.event.player.PlayerShowEntityEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerUnregisterChannelEvent;
@@ -208,6 +212,10 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     private double healthScale = 20;
     private CraftWorldBorder clientWorldBorder = null;
     private BorderChangeListener clientWorldBorderListener = this.createWorldBorderListener();
+    protected com.mohistmc.net.kyori.adventure.pointer.Pointers adventure$pointers; // Paper - implement pointers
+    public org.bukkit.event.player.PlayerResourcePackStatusEvent.Status resourcePackStatus; // Paper - more resource pack API
+    private static final boolean DISABLE_CHANNEL_LIMIT = System.getProperty("paper.disableChannelLimit") != null; // Paper - add a flag to disable the channel limit
+    private long lastSaveTime; // Paper - getLastPlayed replacement API
 
     public CraftPlayer(CraftServer server, ServerPlayer entity) {
         super(server, entity);
@@ -390,14 +398,40 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public String getDisplayName() {
+        if(true) return io.papermc.paper.adventure.DisplayNames.getLegacy(this); // Paper
         return this.getHandle().displayName;
     }
 
     @Override
     public void setDisplayName(final String name) {
+        this.getHandle().adventure$displayName = name != null ? com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(name) : com.mohistmc.net.kyori.adventure.text.Component.text(this.getName()); // Paper
         this.getHandle().displayName = name == null ? this.getName() : name;
     }
 
+    // Paper start
+    @Override
+    public void playerListName(com.mohistmc.net.kyori.adventure.text.Component name) {
+        getHandle().setTabListDisplayName(name == null ? null : io.papermc.paper.adventure.PaperAdventure.asVanilla(name));
+        if (getHandle().connection == null) return; // Updates are possible before the player has fully joined
+        for (ServerPlayer player : server.getHandle().players) {
+            if (player.getBukkitEntity().canSee(this)) {
+                player.connection.send(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME, getHandle()));
+            }
+        }
+    }
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.Component playerListName() {
+        return getHandle().getTabListDisplayName() == null ? com.mohistmc.net.kyori.adventure.text.Component.text(getName()) : io.papermc.paper.adventure.PaperAdventure.asAdventure(getHandle().getTabListDisplayName());
+    }
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.Component playerListHeader() {
+        return playerListHeader;
+    }
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.Component playerListFooter() {
+        return playerListFooter;
+    }
+    // Paper end
     @Override
     public String getPlayerListName() {
         return this.getHandle().getTabListDisplayName() == null ? this.getName() : CraftChatMessage.fromComponent(this.getHandle().getTabListDisplayName());
@@ -408,7 +442,8 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         if (name == null) {
             name = this.getName();
         }
-        getHandle().setTabListDisplayName(name.equals(getName()) ? null : CraftChatMessage.fromStringOrNull(name));
+        this.getHandle().setTabListDisplayName(name.equals(this.getName()) ? null : CraftChatMessage.fromStringOrNull(name));
+        if (this.getHandle().connection == null) return; // Paper - Updates are possible before the player has fully joined
         for (ServerPlayer player : (List<ServerPlayer>) this.server.getHandle().players) {
             if (player.getBukkitEntity().canSee(this)) {
                 player.connection.send(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME, this.getHandle()));
@@ -416,42 +451,42 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         }
     }
 
-    private Component playerListHeader;
-    private Component playerListFooter;
+    private com.mohistmc.net.kyori.adventure.text.Component playerListHeader; // Paper - Adventure
+    private com.mohistmc.net.kyori.adventure.text.Component playerListFooter; // Paper - Adventure
 
     @Override
     public String getPlayerListHeader() {
-        return (this.playerListHeader == null) ? null : CraftChatMessage.fromComponent(this.playerListHeader);
+        return (this.playerListHeader == null) ? null : com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.playerListHeader);
     }
 
     @Override
     public String getPlayerListFooter() {
-        return (this.playerListFooter == null) ? null : CraftChatMessage.fromComponent(this.playerListFooter);
+        return (this.playerListFooter == null) ? null : com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.playerListFooter); // Paper - Adventure
     }
 
     @Override
     public void setPlayerListHeader(String header) {
-        this.playerListHeader = CraftChatMessage.fromStringOrNull(header, true);
+        this.playerListHeader = header == null ? null : com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(header); // Paper - Adventure
         this.updatePlayerListHeaderFooter();
     }
 
     @Override
     public void setPlayerListFooter(String footer) {
-        this.playerListFooter = CraftChatMessage.fromStringOrNull(footer, true);
+        this.playerListFooter = footer == null ? null : com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(footer); // Paper - Adventure
         this.updatePlayerListHeaderFooter();
     }
 
     @Override
     public void setPlayerListHeaderFooter(String header, String footer) {
-        this.playerListHeader = CraftChatMessage.fromStringOrNull(header, true);
-        this.playerListFooter = CraftChatMessage.fromStringOrNull(footer, true);
+        this.playerListHeader = header == null ? null : com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(header); // Paper - Adventure
+        this.playerListFooter = footer == null ? null : com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(footer); // Paper - Adventure
         this.updatePlayerListHeaderFooter();
     }
 
     private void updatePlayerListHeaderFooter() {
         if (this.getHandle().connection == null) return;
 
-        ClientboundTabListPacket packet = new ClientboundTabListPacket((this.playerListHeader == null) ? Component.empty() : this.playerListHeader, (this.playerListFooter == null) ? Component.empty() : this.playerListFooter);
+        ClientboundTabListPacket packet = new ClientboundTabListPacket(io.papermc.paper.adventure.PaperAdventure.asVanillaNullToEmpty(this.playerListHeader), io.papermc.paper.adventure.PaperAdventure.asVanillaNullToEmpty(this.playerListFooter)); // Paper - adventure
         this.getHandle().connection.send(packet);
     }
 
@@ -478,6 +513,27 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     @Override
     public void kickPlayer(String message) {
         getHandle().transferCookieConnection.kickPlayer(CraftChatMessage.fromStringOrEmpty(message, true));
+    }
+
+    // Paper start
+    private static final com.mohistmc.net.kyori.adventure.text.Component DEFAULT_KICK_COMPONENT = com.mohistmc.net.kyori.adventure.text.Component.translatable("multiplayer.disconnect.kicked");
+    @Override
+    public void kick() {
+        this.kick(DEFAULT_KICK_COMPONENT);
+    }
+
+    @Override
+    public void kick(final com.mohistmc.net.kyori.adventure.text.Component message) {
+        kick(message, org.bukkit.event.player.PlayerKickEvent.Cause.PLUGIN);
+    }
+
+    @Override
+    public void kick(com.mohistmc.net.kyori.adventure.text.Component message, org.bukkit.event.player.PlayerKickEvent.Cause cause) {
+        org.spigotmc.AsyncCatcher.catchOp("player kick");
+        final ServerGamePacketListenerImpl connection = this.getHandle().connection;
+        if (connection != null) {
+            connection.disconnect(message == null ? com.mohistmc.net.kyori.adventure.text.Component.empty() : message, cause);
+        }
     }
 
     @Override
@@ -776,6 +832,25 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         this.getHandle().connection.send(packet);
     }
 
+    // Paper start
+    @Override
+    public void sendSignChange(Location loc, @Nullable List<? extends com.mohistmc.net.kyori.adventure.text.Component> lines, DyeColor dyeColor, boolean hasGlowingText) {
+        if (getHandle().connection == null) {
+            return;
+        }
+        if (lines == null) {
+            lines = new java.util.ArrayList<>(4);
+        }
+        Preconditions.checkArgument(loc != null, "Location cannot be null");
+        Preconditions.checkArgument(dyeColor != null, "DyeColor cannot be null");
+        if (lines.size() < 4) {
+            throw new IllegalArgumentException("Must have at least 4 lines");
+        }
+        Component[] components = CraftSign.sanitizeLines(lines);
+        this.sendSignChange0(components, loc, dyeColor, hasGlowingText);
+    }
+    // Paper end
+
     @Override
     public void sendSignChange(Location loc, String[] lines) {
         this.sendSignChange(loc, lines, DyeColor.BLACK);
@@ -799,6 +874,12 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         if (this.getHandle().connection == null) return;
 
         Component[] components = CraftSign.sanitizeLines(lines);
+        // Paper start - adventure
+        this.sendSignChange0(components, loc, dyeColor, hasGlowingText);
+    }
+
+    private void sendSignChange0(Component[] components, Location loc, DyeColor dyeColor, boolean hasGlowingText) {
+        // Paper end
         SignBlockEntity sign = new SignBlockEntity(CraftLocation.toBlockPosition(loc), Blocks.OAK_SIGN.defaultBlockState());
         SignText text = sign.getFrontText();
         text = text.setColor(net.minecraft.world.item.DyeColor.byId(dyeColor.getWoolData()));
@@ -1730,6 +1811,18 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         this.firstPlayed = firstPlayed;
     }
 
+    // Paper start - getLastPlayed replacement API
+    @Override
+    public long getLastLogin() {
+        return this.getHandle().loginTime;
+    }
+
+    @Override
+    public long getLastSeen() {
+        return this.isOnline() ? System.currentTimeMillis() : this.lastSaveTime;
+    }
+    // Paper end - getLastPlayed replacement API
+
     public void readExtraData(CompoundTag nbttagcompound) {
         this.hasPlayedBefore = true;
         if (nbttagcompound.contains("bukkit")) {
@@ -1752,6 +1845,8 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     public void setExtraData(CompoundTag nbttagcompound) {
+        this.lastSaveTime = System.currentTimeMillis(); // Paper
+
         if (!nbttagcompound.contains("bukkit")) {
             nbttagcompound.put("bukkit", new CompoundTag());
         }
@@ -1766,6 +1861,16 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         data.putLong("firstPlayed", this.getFirstPlayed());
         data.putLong("lastPlayed", System.currentTimeMillis());
         data.putString("lastKnownName", handle.getScoreboardName());
+
+        // Paper start - persist for use in offline save data
+        if (!nbttagcompound.contains("Paper")) {
+            nbttagcompound.put("Paper", new CompoundTag());
+        }
+
+        CompoundTag paper = nbttagcompound.getCompound("Paper");
+        paper.putLong("LastLogin", handle.loginTime);
+        paper.putLong("LastSeen", System.currentTimeMillis());
+        // Paper end
     }
 
     @Override
@@ -1805,8 +1910,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     private void sendCustomPayload(ResourceLocation id, byte[] message) {
-        ClientboundCustomPayloadPacket packet = new ClientboundCustomPayloadPacket(new DiscardedPayload(id));
-        //this.getHandle().connection.send(packet);
+        PacketDistributor.sendToPlayer(this.getHandle(), new PluginsDiscardedPayload(id, Unpooled.wrappedBuffer(message)));
     }
 
     @Override
@@ -1816,7 +1920,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void setResourcePack(String url) {
-        this.setResourcePack(url, null);
+        this.setResourcePack(url, (byte[]) null);
     }
 
     @Override
@@ -1831,7 +1935,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void setResourcePack(String url, byte[] hash, boolean force) {
-        this.setResourcePack(url, hash, null, force);
+        this.setResourcePack(url, hash, (String) null, force);
     }
 
     @Override
@@ -1867,6 +1971,47 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
         this.handlePushResourcePack(new ClientboundResourcePackPushPacket(id, url, hashStr, force, CraftChatMessage.fromStringOrOptional(prompt, true)), false);
     }
+
+    // Paper start - adventure
+    @Override
+    public void setResourcePack(final UUID uuid, final String url, final byte[] hashBytes, final com.mohistmc.net.kyori.adventure.text.Component prompt, final boolean force) {
+        Preconditions.checkArgument(uuid != null, "Resource pack UUID cannot be null");
+        Preconditions.checkArgument(url != null, "Resource pack URL cannot be null");
+        final String hash;
+        if (hashBytes != null) {
+            Preconditions.checkArgument(hashBytes.length == 20, "Resource pack hash should be 20 bytes long but was " + hashBytes.length);
+            hash = BaseEncoding.base16().lowerCase().encode(hashBytes);
+        } else {
+            hash = "";
+        }
+        this.getHandle().connection.send(new ClientboundResourcePackPopPacket(Optional.empty()));
+        this.getHandle().connection.send(new ClientboundResourcePackPushPacket(uuid, url, hash, force, Optional.ofNullable(prompt).map(io.papermc.paper.adventure.PaperAdventure::asVanilla)));
+    }
+
+    // Paper start - more resource pack API
+    @Override
+    public org.bukkit.event.player.PlayerResourcePackStatusEvent.Status getResourcePackStatus() {
+        return this.resourcePackStatus;
+    }
+    // Paper end - more resource pack API
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void sendBundle(final List<? extends net.minecraft.network.protocol.Packet<? extends net.minecraft.network.protocol.common.ClientCommonPacketListener>> packet) {
+        this.getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundBundlePacket((List) packet));
+    }
+
+    @Override
+    public void removeResourcePacks(final UUID id, final UUID ... others) {
+        if (this.getHandle().connection == null) return;
+        this.sendBundle(com.mohistmc.net.kyori.adventure.util.MonkeyBars.nonEmptyArrayToList(pack -> new ClientboundResourcePackPopPacket(Optional.of(pack)), id, others));
+    }
+
+    @Override
+    public void clearResourcePacks() {
+        if (this.getHandle().connection == null) return;
+        this.getHandle().connection.send(new ClientboundResourcePackPopPacket(Optional.empty()));
+    }
+    // Paper end - adventure
 
     @Override
     public void removeResourcePack(UUID id) {
@@ -1915,18 +2060,11 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         Set<String> listening = this.server.getMessenger().getIncomingChannels();
 
         if (!listening.isEmpty()) {
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-
+            Set<ResourceLocation> newChannels = new HashSet<>();
             for (String channel : listening) {
-                try {
-                    stream.write(channel.getBytes("UTF8"));
-                    stream.write((byte) 0);
-                } catch (IOException ex) {
-                    Logger.getLogger(CraftPlayer.class.getName()).log(Level.SEVERE, "Could not send Plugin Channel REGISTER to " + this.getName(), ex);
-                }
+                newChannels.add(ResourceLocation.parse(channel));
             }
-
-            this.sendCustomPayload(ResourceLocation.withDefaultNamespace("register"), stream.toByteArray());
+            PacketDistributor.sendToPlayer(this.getHandle(), new MinecraftRegisterPayload(newChannels));
         }
     }
 
@@ -2293,6 +2431,12 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         return (this.getHandle().requestedViewDistance() == 0) ? Bukkit.getViewDistance() : this.getHandle().requestedViewDistance();
     }
 
+    // Paper start
+    @Override
+    public java.util.Locale locale() {
+        return getHandle().adventure$locale;
+    }
+    // Paper end
     @Override
     public int getPing() {
         return this.getHandle().connection.latency();
@@ -2300,7 +2444,10 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public String getLocale() {
-        return this.getHandle().language;
+        // Paper start - Locale change event
+        final String locale = this.getHandle().language;
+        return locale != null ? locale : "en_us";
+        // Paper end
     }
 
     @Override
@@ -2343,6 +2490,248 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         return this.getHandle().allowsListing();
     }
 
+    // Paper start
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.Component displayName() {
+        return this.getHandle().adventure$displayName;
+    }
+
+    @Override
+    public void displayName(final com.mohistmc.net.kyori.adventure.text.Component displayName) {
+        this.getHandle().adventure$displayName = displayName != null ? displayName : com.mohistmc.net.kyori.adventure.text.Component.text(this.getName());
+        this.getHandle().displayName = null;
+    }
+
+    @Override
+    public void deleteMessage(com.mohistmc.net.kyori.adventure.chat.SignedMessage.Signature signature) {
+        if (getHandle().connection == null) return;
+        net.minecraft.network.chat.MessageSignature sig = new net.minecraft.network.chat.MessageSignature(signature.bytes());
+
+        this.getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundDeleteChatPacket(new net.minecraft.network.chat.MessageSignature.Packed(sig)));
+    }
+
+    private net.minecraft.network.chat.ChatType.Bound toHandle(com.mohistmc.net.kyori.adventure.chat.ChatType.Bound boundChatType) {
+        net.minecraft.core.Registry<net.minecraft.network.chat.ChatType> chatTypeRegistry = this.getHandle().level().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.CHAT_TYPE);
+
+        return new net.minecraft.network.chat.ChatType.Bound(
+            chatTypeRegistry.getHolderOrThrow(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.CHAT_TYPE, io.papermc.paper.adventure.PaperAdventure.asVanilla(boundChatType.type().key()))),
+            io.papermc.paper.adventure.PaperAdventure.asVanilla(boundChatType.name()),
+            Optional.ofNullable(io.papermc.paper.adventure.PaperAdventure.asVanilla(boundChatType.target()))
+        );
+    }
+
+    @Override
+    public void sendMessage(com.mohistmc.net.kyori.adventure.text.Component message, com.mohistmc.net.kyori.adventure.chat.ChatType.Bound boundChatType) {
+        if (getHandle().connection == null) return;
+
+        net.minecraft.network.chat.Component component = io.papermc.paper.adventure.PaperAdventure.asVanilla(message);
+        this.getHandle().sendChatMessage(new net.minecraft.network.chat.OutgoingChatMessage.Disguised(component), this.getHandle().isTextFilteringEnabled(), this.toHandle(boundChatType));
+    }
+
+    @Override
+    public void sendMessage(com.mohistmc.net.kyori.adventure.chat.SignedMessage signedMessage, com.mohistmc.net.kyori.adventure.chat.ChatType.Bound boundChatType) {
+        if (getHandle().connection == null) return;
+
+        if (signedMessage instanceof PlayerChatMessage.AdventureView view) {
+            this.getHandle().sendChatMessage(net.minecraft.network.chat.OutgoingChatMessage.create(view.playerChatMessage()), this.getHandle().isTextFilteringEnabled(), this.toHandle(boundChatType));
+            return;
+        }
+        com.mohistmc.net.kyori.adventure.text.Component message = signedMessage.unsignedContent() == null ? com.mohistmc.net.kyori.adventure.text.Component.text(signedMessage.message()) : signedMessage.unsignedContent();
+        if (signedMessage.isSystem()) {
+            this.sendMessage(message, boundChatType);
+        } else {
+            super.sendMessage(signedMessage, boundChatType);
+        }
+//        net.minecraft.network.chat.PlayerChatMessage playerChatMessage = new net.minecraft.network.chat.PlayerChatMessage(
+//            null, // TODO:
+//            new net.minecraft.network.chat.MessageSignature(signedMessage.signature().bytes()),
+//            null, // TODO
+//            io.papermc.paper.adventure.PaperAdventure.asVanilla(signedMessage.unsignedContent()),
+//            net.minecraft.network.chat.FilterMask.PASS_THROUGH
+//        );
+//
+//        this.getHandle().sendChatMessage(net.minecraft.network.chat.OutgoingChatMessage.create(playerChatMessage), this.getHandle().isTextFilteringEnabled(), this.toHandle(boundChatType));
+    }
+
+    @Deprecated(forRemoval = true)
+    @Override
+    public void sendMessage(final com.mohistmc.net.kyori.adventure.identity.Identity identity, final com.mohistmc.net.kyori.adventure.text.Component message, final com.mohistmc.net.kyori.adventure.audience.MessageType type) {
+        if (getHandle().connection == null) return;
+        final net.minecraft.core.Registry<net.minecraft.network.chat.ChatType> chatTypeRegistry = this.getHandle().level().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.CHAT_TYPE);
+        this.getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundSystemChatPacket(message, false));
+    }
+
+    @Override
+    public void sendActionBar(final com.mohistmc.net.kyori.adventure.text.Component message) {
+        final net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket packet = new net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket(io.papermc.paper.adventure.PaperAdventure.asVanillaNullToEmpty(message));
+        this.getHandle().connection.send(packet);
+    }
+
+    @Override
+    public void sendPlayerListHeader(final com.mohistmc.net.kyori.adventure.text.Component header) {
+        this.playerListHeader = header;
+        this.adventure$sendPlayerListHeaderAndFooter();
+    }
+
+    @Override
+    public void sendPlayerListFooter(final com.mohistmc.net.kyori.adventure.text.Component footer) {
+        this.playerListFooter = footer;
+        this.adventure$sendPlayerListHeaderAndFooter();
+    }
+
+    @Override
+    public void sendPlayerListHeaderAndFooter(final com.mohistmc.net.kyori.adventure.text.Component header, final com.mohistmc.net.kyori.adventure.text.Component footer) {
+        this.playerListHeader = header;
+        this.playerListFooter = footer;
+        this.adventure$sendPlayerListHeaderAndFooter();
+    }
+
+    private void adventure$sendPlayerListHeaderAndFooter() {
+        final ServerGamePacketListenerImpl connection = this.getHandle().connection;
+        if (connection == null) return;
+        final ClientboundTabListPacket packet = new ClientboundTabListPacket(
+            io.papermc.paper.adventure.PaperAdventure.asVanillaNullToEmpty(this.playerListHeader),
+            io.papermc.paper.adventure.PaperAdventure.asVanillaNullToEmpty(this.playerListFooter)
+        );
+        connection.send(packet);
+    }
+
+    @Override
+    public void showTitle(final com.mohistmc.net.kyori.adventure.title.Title title) {
+        final ServerGamePacketListenerImpl connection = this.getHandle().connection;
+        final com.mohistmc.net.kyori.adventure.title.Title.Times times = title.times();
+        if (times != null) {
+            connection.send(new ClientboundSetTitlesAnimationPacket(ticks(times.fadeIn()), ticks(times.stay()), ticks(times.fadeOut())));
+        }
+        final ClientboundSetSubtitleTextPacket sp = new ClientboundSetSubtitleTextPacket(io.papermc.paper.adventure.PaperAdventure.asVanilla(title.subtitle()));
+        connection.send(sp);
+        final ClientboundSetTitleTextPacket tp = new ClientboundSetTitleTextPacket(io.papermc.paper.adventure.PaperAdventure.asVanilla(title.title()));
+        connection.send(tp);
+    }
+
+    @Override
+    public <T> void sendTitlePart(final com.mohistmc.net.kyori.adventure.title.TitlePart<T> part, T value) {
+        java.util.Objects.requireNonNull(part, "part");
+        java.util.Objects.requireNonNull(value, "value");
+        if (part == com.mohistmc.net.kyori.adventure.title.TitlePart.TITLE) {
+            final ClientboundSetTitleTextPacket tp = new ClientboundSetTitleTextPacket(io.papermc.paper.adventure.PaperAdventure.asVanilla((com.mohistmc.net.kyori.adventure.text.Component)value));
+            this.getHandle().connection.send(tp);
+        } else if (part == com.mohistmc.net.kyori.adventure.title.TitlePart.SUBTITLE) {
+            final ClientboundSetSubtitleTextPacket sp = new ClientboundSetSubtitleTextPacket(io.papermc.paper.adventure.PaperAdventure.asVanilla((com.mohistmc.net.kyori.adventure.text.Component)value));
+            this.getHandle().connection.send(sp);
+        } else if (part == com.mohistmc.net.kyori.adventure.title.TitlePart.TIMES) {
+            final com.mohistmc.net.kyori.adventure.title.Title.Times times = (com.mohistmc.net.kyori.adventure.title.Title.Times) value;
+            this.getHandle().connection.send(new ClientboundSetTitlesAnimationPacket(ticks(times.fadeIn()), ticks(times.stay()), ticks(times.fadeOut())));
+        } else {
+            throw new IllegalArgumentException("Unknown TitlePart");
+        }
+    }
+
+    private static int ticks(final java.time.Duration duration) {
+        if (duration == null) {
+            return -1;
+        }
+        return (int) (duration.toMillis() / 50L);
+    }
+
+    @Override
+    public void clearTitle() {
+        this.getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundClearTitlesPacket(false));
+    }
+
+    // resetTitle implemented above
+
+    private @Nullable Set<com.mohistmc.net.kyori.adventure.bossbar.BossBar> activeBossBars;
+
+    @Override
+    public @NotNull Iterable<? extends com.mohistmc.net.kyori.adventure.bossbar.BossBar> activeBossBars() {
+        if (this.activeBossBars != null) {
+            return java.util.Collections.unmodifiableSet(this.activeBossBars);
+        }
+        return Set.of();
+    }
+
+    @Override
+    public void showBossBar(final com.mohistmc.net.kyori.adventure.bossbar.BossBar bar) {
+        com.mohistmc.net.kyori.adventure.bossbar.BossBarImplementation.get(bar, io.papermc.paper.adventure.BossBarImplementationImpl.class).playerShow(this);
+        if (this.activeBossBars == null) {
+            this.activeBossBars = new HashSet<>();
+        }
+        this.activeBossBars.add(bar);
+    }
+
+    @Override
+    public void hideBossBar(final com.mohistmc.net.kyori.adventure.bossbar.BossBar bar) {
+        com.mohistmc.net.kyori.adventure.bossbar.BossBarImplementation.get(bar, io.papermc.paper.adventure.BossBarImplementationImpl.class).playerHide(this);
+        if (this.activeBossBars != null) {
+            this.activeBossBars.remove(bar);
+            if (this.activeBossBars.isEmpty()) {
+                this.activeBossBars = null;
+            }
+        }
+    }
+
+    @Override
+    public void playSound(final com.mohistmc.net.kyori.adventure.sound.Sound sound) {
+        final net.minecraft.world.phys.Vec3 pos = this.getHandle().position();
+        this.playSound(sound, pos.x, pos.y, pos.z);
+    }
+
+    @Override
+    public void playSound(final com.mohistmc.net.kyori.adventure.sound.Sound sound, final double x, final double y, final double z) {
+        this.getHandle().connection.send(io.papermc.paper.adventure.PaperAdventure.asSoundPacket(sound, x, y, z, sound.seed().orElseGet(this.getHandle().getRandom()::nextLong), null));
+    }
+
+    @Override
+    public void playSound(final com.mohistmc.net.kyori.adventure.sound.Sound sound, final com.mohistmc.net.kyori.adventure.sound.Sound.Emitter emitter) {
+        final Entity entity;
+        if (emitter == com.mohistmc.net.kyori.adventure.sound.Sound.Emitter.self()) {
+            entity = this.getHandle();
+        } else if (emitter instanceof CraftEntity craftEntity) {
+            entity = craftEntity.getHandle();
+        } else {
+            throw new IllegalArgumentException("Sound emitter must be an Entity or self(), but was: " + emitter);
+        }
+        this.getHandle().connection.send(io.papermc.paper.adventure.PaperAdventure.asSoundPacket(sound, entity, sound.seed().orElseGet(this.getHandle().getRandom()::nextLong), null));
+    }
+
+    @Override
+    public void stopSound(final com.mohistmc.net.kyori.adventure.sound.SoundStop stop) {
+        this.getHandle().connection.send(new ClientboundStopSoundPacket(
+            io.papermc.paper.adventure.PaperAdventure.asVanillaNullable(stop.sound()),
+            io.papermc.paper.adventure.PaperAdventure.asVanillaNullable(stop.source())
+        ));
+    }
+
+    @Override
+    public void openBook(final com.mohistmc.net.kyori.adventure.inventory.Book book) {
+        final java.util.Locale locale = this.getHandle().adventure$locale;
+        final net.minecraft.world.item.ItemStack item = io.papermc.paper.adventure.PaperAdventure.asItemStack(book, locale);
+        final ServerPlayer player = this.getHandle();
+        final ServerGamePacketListenerImpl connection = player.connection;
+        final net.minecraft.world.entity.player.Inventory inventory = player.getInventory();
+        final int slot = inventory.items.size() + inventory.selected;
+        final int stateId = getHandle().containerMenu.getStateId();
+        connection.send(new net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket(0, stateId, slot, item));
+        connection.send(new net.minecraft.network.protocol.game.ClientboundOpenBookPacket(net.minecraft.world.InteractionHand.MAIN_HAND));
+        connection.send(new net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket(0, stateId, slot, inventory.getSelected()));
+    }
+
+    @Override
+    public com.mohistmc.net.kyori.adventure.pointer.Pointers pointers() {
+        if (this.adventure$pointers == null) {
+            this.adventure$pointers = com.mohistmc.net.kyori.adventure.pointer.Pointers.builder()
+                .withDynamic(com.mohistmc.net.kyori.adventure.identity.Identity.DISPLAY_NAME, this::displayName)
+                .withDynamic(com.mohistmc.net.kyori.adventure.identity.Identity.NAME, this::getName)
+                .withDynamic(com.mohistmc.net.kyori.adventure.identity.Identity.UUID, this::getUniqueId)
+                .withStatic(com.mohistmc.net.kyori.adventure.permission.PermissionChecker.POINTER, this::permissionValue)
+                .withDynamic(com.mohistmc.net.kyori.adventure.identity.Identity.LOCALE, this::locale)
+                .build();
+        }
+
+        return this.adventure$pointers;
+    }
+    // Paper end
     // Spigot start
     private final Player.Spigot spigot = new Player.Spigot()
     {

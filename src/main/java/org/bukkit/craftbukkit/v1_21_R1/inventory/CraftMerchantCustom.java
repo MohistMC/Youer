@@ -20,6 +20,14 @@ public class CraftMerchantCustom implements CraftMerchant {
         this.getMerchant().craftMerchant = this;
     }
 
+    // Paper start
+    public CraftMerchantCustom(com.mohistmc.net.kyori.adventure.text.Component title) {
+        this.merchant = new MinecraftMerchant(title);
+        getMerchant().craftMerchant = this;
+    }
+    // Paper end
+
+
     @Override
     public String toString() {
         return "CraftMerchantCustom";
@@ -41,6 +49,13 @@ public class CraftMerchantCustom implements CraftMerchant {
             Preconditions.checkArgument(title != null, "Title cannot be null");
             this.title = CraftChatMessage.fromString(title)[0];
         }
+
+        // Paper start
+        public MinecraftMerchant(com.mohistmc.net.kyori.adventure.text.Component title) {
+            Preconditions.checkArgument(title != null, "Title cannot be null");
+            this.title = io.papermc.paper.adventure.PaperAdventure.asVanilla(title);
+        }
+        // Paper end
 
         @Override
         public CraftMerchant getCraftMerchant() {

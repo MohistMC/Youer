@@ -83,7 +83,7 @@ public class SpigotConfig
         }
     }
 
-    static void readConfig(Class<?> clazz, Object instance)
+    public static void readConfig(Class<?> clazz, Object instance)
     {
         for ( Method method : clazz.getDeclaredMethods() )
         {

@@ -3,7 +3,7 @@
 
 ### Minecraft NeoForge Hybrid server implementing the Bukkit/Spigot/Paper API
 
-[![](https://img.shields.io/github/stars/MohistMC/Mohist.svg?label=Stars&logo=github)](https://github.com/MohistMC/Mohist/stargazers)
+[![](https://img.shields.io/github/stars/MohistMC/Youer.svg?label=Stars&logo=github)](https://github.com/MohistMC/Youer/stargazers)
 [![](https://img.shields.io/badge/NeoForge-21.1.176-brightgreen.svg?colorB=26303d)](https://neoforged.net/)
 [![](https://img.shields.io/badge/JDK-21.0.3-brightgreen.svg?colorB=469C00&logo=java)](https://www.azul.com/downloads/?version=java-21-lts#zulu)
 [![](https://img.shields.io/badge/Gradle-8.13-brightgreen.svg?colorB=469C00&logo=gradle)](https://docs.gradle.org/8.13/release-notes.html)

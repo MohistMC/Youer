@@ -26,6 +26,63 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
 
         return this.team.getName();
     }
+    // Paper start
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.Component displayName() throws IllegalStateException {
+        CraftScoreboard scoreboard = checkState();
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(team.getDisplayName());
+    }
+    @Override
+    public void displayName(com.mohistmc.net.kyori.adventure.text.Component displayName) throws IllegalStateException, IllegalArgumentException {
+        if (displayName == null) displayName = com.mohistmc.net.kyori.adventure.text.Component.empty();
+        CraftScoreboard scoreboard = checkState();
+        team.setDisplayName(io.papermc.paper.adventure.PaperAdventure.asVanilla(displayName));
+    }
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.Component prefix() throws IllegalStateException {
+        CraftScoreboard scoreboard = checkState();
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(team.getPlayerPrefix());
+    }
+    @Override
+    public void prefix(com.mohistmc.net.kyori.adventure.text.Component prefix) throws IllegalStateException, IllegalArgumentException {
+        if (prefix == null) prefix = com.mohistmc.net.kyori.adventure.text.Component.empty();
+        CraftScoreboard scoreboard = checkState();
+        team.setPlayerPrefix(io.papermc.paper.adventure.PaperAdventure.asVanilla(prefix));
+    }
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.Component suffix() throws IllegalStateException {
+        CraftScoreboard scoreboard = checkState();
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(team.getPlayerSuffix());
+    }
+    @Override
+    public void suffix(com.mohistmc.net.kyori.adventure.text.Component suffix) throws IllegalStateException, IllegalArgumentException {
+        if (suffix == null) suffix = com.mohistmc.net.kyori.adventure.text.Component.empty();
+        CraftScoreboard scoreboard = checkState();
+        team.setPlayerSuffix(io.papermc.paper.adventure.PaperAdventure.asVanilla(suffix));
+    }
+    @Override
+    public boolean hasColor() {
+        CraftScoreboard scoreboard = checkState();
+        return this.team.getColor().getColor() != null;
+    }
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.format.TextColor color() throws IllegalStateException {
+        CraftScoreboard scoreboard = checkState();
+        if (team.getColor().getColor() == null) throw new IllegalStateException("Team colors must have hex values");
+        com.mohistmc.net.kyori.adventure.text.format.TextColor color = com.mohistmc.net.kyori.adventure.text.format.TextColor.color(team.getColor().getColor());
+        if (!(color instanceof com.mohistmc.net.kyori.adventure.text.format.NamedTextColor)) throw new IllegalStateException("Team doesn't have a NamedTextColor");
+        return (com.mohistmc.net.kyori.adventure.text.format.NamedTextColor) color;
+    }
+    @Override
+    public void color(com.mohistmc.net.kyori.adventure.text.format.NamedTextColor color) {
+        CraftScoreboard scoreboard = checkState();
+        if (color == null) {
+            this.team.setColor(net.minecraft.ChatFormatting.RESET);
+        } else {
+            this.team.setColor(io.papermc.paper.adventure.PaperAdventure.asVanilla(color));
+        }
+    }
+    // Paper end
 
     @Override
     public String getDisplayName() {
@@ -302,5 +359,21 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
         final CraftTeam other = (CraftTeam) obj;
         return !(this.team != other.team && (this.team == null || !this.team.equals(other.team)));
     }
+
+    // Paper start - make Team extend ForwardingAudience
+    @Override
+    public @org.jetbrains.annotations.NotNull Iterable<? extends com.mohistmc.net.kyori.adventure.audience.Audience> audiences() {
+        this.checkState();
+        java.util.List<com.mohistmc.net.kyori.adventure.audience.Audience> audiences = new java.util.ArrayList<>();
+        for (String playerName : this.team.getPlayers()) {
+            org.bukkit.entity.Player player = Bukkit.getPlayerExact(playerName);
+            if (player != null) {
+                audiences.add(player);
+            }
+        }
+
+        return audiences;
+    }
+    // Paper end - make Team extend ForwardingAudience
 
 }

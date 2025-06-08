@@ -532,6 +532,18 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         return this.getHandle().getVehicle().getBukkitEntity();
     }
 
+    // Paper start
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.Component customName() {
+        final Component name = this.getHandle().getCustomName();
+        return name != null ? io.papermc.paper.adventure.PaperAdventure.asAdventure(name) : null;
+    }
+
+    @Override
+    public void customName(final com.mohistmc.net.kyori.adventure.text.Component customName) {
+        this.getHandle().setCustomName(customName != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(customName) : null);
+    }
+
     @Override
     public void setCustomName(String name) {
         // sane limit for name length
@@ -628,6 +640,17 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
     public String getName() {
         return CraftChatMessage.fromComponent(this.getHandle().getName());
     }
+    // Paper start
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component name() {
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.getHandle().getName());
+    }
+
+    @Override
+    public com.mohistmc.net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component teamDisplayName() {
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.getHandle().getDisplayName());
+    }
+    // Paper end
 
     @Override
     public boolean isPermissionSet(String name) {

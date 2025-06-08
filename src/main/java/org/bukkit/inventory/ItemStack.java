@@ -6,6 +6,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.UnaryOperator;
+import com.mohistmc.net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -27,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
  * use this class to encapsulate Materials for which {@link Material#isItem()}
  * returns false.</b>
  */
-public class ItemStack implements Cloneable, ConfigurationSerializable, Translatable {
+public class ItemStack implements Cloneable, ConfigurationSerializable, Translatable { // Paper
     private Material type = Material.AIR;
     private int amount = 0;
     private MaterialData data = null;
@@ -605,6 +607,14 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
         return setItemMeta0(itemMeta, type);
     }
 
+    /**
+     * Get the formatted display name of the {@link ItemStack}.
+     *
+     * @return display name of the {@link ItemStack}
+     */
+    public com.mohistmc.net.kyori.adventure.text.@NotNull Component displayName() {
+        return Bukkit.getServer().getItemFactory().displayName(this);
+    }
     /*
      * Cannot be overridden, so it's safe for constructor call
      */
@@ -630,4 +640,17 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     public String getTranslationKey() {
         return Bukkit.getUnsafe().getTranslationKey(this);
     }
+
+    /**
+     * Returns an empty item stack, consists of an air material and a stack size of 0.
+     *
+     * Any item stack with a material of air or a stack size of 0 is seen
+     * as being empty by {@link ItemStack#isEmpty}.
+     */
+    @NotNull
+    public static ItemStack empty() {
+        //noinspection deprecation
+        return Bukkit.getUnsafe().createEmptyStack(); // Paper - proxy ItemStack
+    }
+    // Paper end
 }

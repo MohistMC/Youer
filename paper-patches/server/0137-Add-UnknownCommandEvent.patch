@@ -51,9 +51,9 @@ index f94c0106b44d614483184e372c01c1504cb886b0..72756ef14b8ec8afd80313b9f6aaf767
          } catch (CommandSyntaxException commandsyntaxexception) {
 -            commandlistenerwrapper.sendFailure(ComponentUtils.fromMessage(commandsyntaxexception.getRawMessage()));
 +            // Paper start - Add UnknownCommandEvent
-+            final net.kyori.adventure.text.TextComponent.Builder builder = net.kyori.adventure.text.Component.text();
++            final com.mohistmc.net.kyori.adventure.text.TextComponent.Builder builder = com.mohistmc.net.kyori.adventure.text.Component.text();
 +            // commandlistenerwrapper.sendFailure(ComponentUtils.fromMessage(commandsyntaxexception.getRawMessage()));
-+            builder.color(net.kyori.adventure.text.format.NamedTextColor.RED).append(io.papermc.paper.brigadier.PaperBrigadier.componentFromMessage(commandsyntaxexception.getRawMessage()));
++            builder.color(com.mohistmc.net.kyori.adventure.text.format.NamedTextColor.RED).append(io.papermc.paper.brigadier.PaperBrigadier.componentFromMessage(commandsyntaxexception.getRawMessage()));
 +            // Paper end - Add UnknownCommandEvent
              if (commandsyntaxexception.getInput() != null && commandsyntaxexception.getCursor() >= 0) {
                  int i = Math.min(commandsyntaxexception.getInput().length(), commandsyntaxexception.getCursor());
@@ -66,7 +66,7 @@ index f94c0106b44d614483184e372c01c1504cb886b0..72756ef14b8ec8afd80313b9f6aaf767
 +                // Paper start - Add UnknownCommandEvent
 +                // commandlistenerwrapper.sendFailure(ichatmutablecomponent);
 +                builder
-+                    .append(net.kyori.adventure.text.Component.newline())
++                    .append(com.mohistmc.net.kyori.adventure.text.Component.newline())
 +                    .append(io.papermc.paper.adventure.PaperAdventure.asAdventure(ichatmutablecomponent));
 +            }
 +            org.bukkit.event.command.UnknownCommandEvent event = new org.bukkit.event.command.UnknownCommandEvent(commandlistenerwrapper.getBukkitSender(), s, org.spigotmc.SpigotConfig.unknownCommandMessage.isEmpty() ? null : builder.build());
@@ -87,7 +87,7 @@ index f2b2a352cdc0301601ffd4b4fb7a99304ba526e5..31f87ce0865dd7560cd9ba634855a1de
          if (!org.spigotmc.SpigotConfig.unknownCommandMessage.isEmpty()) {
 -            sender.sendMessage(org.spigotmc.SpigotConfig.unknownCommandMessage);
 +            // Paper start
-+            org.bukkit.event.command.UnknownCommandEvent event = new org.bukkit.event.command.UnknownCommandEvent(sender, commandLine, net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.unknownCommandMessage));
++            org.bukkit.event.command.UnknownCommandEvent event = new org.bukkit.event.command.UnknownCommandEvent(sender, commandLine, com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.unknownCommandMessage));
 +            this.getPluginManager().callEvent(event);
 +            if (event.message() != null) {
 +                sender.sendMessage(event.message());

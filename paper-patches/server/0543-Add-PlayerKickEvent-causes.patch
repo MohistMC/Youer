@@ -50,8 +50,8 @@ index 6651afa50cfaf53959f89108904d4bf65a0fc495..56589fee8dd09783e01f2ae290ffacb5
                  ServerPlayer entityplayer = (ServerPlayer) iterator.next();
  
                  if (!whitelist.isWhiteListed(entityplayer.getGameProfile()) && !this.getPlayerList().isOp(entityplayer.getGameProfile())) { // Paper - Fix kicking ops when whitelist is reloaded (MC-171420)
--                    entityplayer.connection.disconnect(net.kyori.adventure.text.Component.text(org.spigotmc.SpigotConfig.whitelistMessage));
-+                    entityplayer.connection.disconnect(net.kyori.adventure.text.Component.text(org.spigotmc.SpigotConfig.whitelistMessage), org.bukkit.event.player.PlayerKickEvent.Cause.WHITELIST); // Paper - use configurable message & kick event cause
+-                    entityplayer.connection.disconnect(com.mohistmc.net.kyori.adventure.text.Component.text(org.spigotmc.SpigotConfig.whitelistMessage));
++                    entityplayer.connection.disconnect(com.mohistmc.net.kyori.adventure.text.Component.text(org.spigotmc.SpigotConfig.whitelistMessage), org.bukkit.event.player.PlayerKickEvent.Cause.WHITELIST); // Paper - use configurable message & kick event cause
                  }
              }
  
@@ -184,11 +184,11 @@ index a1124405412cdac673f34a63988e7be957506dba..64450024ce8094874875321537ddab71
 @@ -323,15 +323,25 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
  
      // Paper start - adventure
-     public void disconnect(final net.kyori.adventure.text.Component reason) {
+     public void disconnect(final com.mohistmc.net.kyori.adventure.text.Component reason) {
 -        this.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(reason));
 +        this.disconnect(reason, PlayerKickEvent.Cause.UNKNOWN);
 +    }
-+    public void disconnect(final net.kyori.adventure.text.Component reason, PlayerKickEvent.Cause cause) {
++    public void disconnect(final com.mohistmc.net.kyori.adventure.text.Component reason, PlayerKickEvent.Cause cause) {
 +        this.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(reason), cause);
 +        // Paper end - kick event causes
      }
@@ -221,7 +221,7 @@ index a1124405412cdac673f34a63988e7be957506dba..64450024ce8094874875321537ddab71
              };
 @@ -359,7 +369,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
  
-         net.kyori.adventure.text.Component leaveMessage = net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? this.player.getBukkitEntity().displayName() : net.kyori.adventure.text.Component.text(this.player.getScoreboardName())); // Paper - Adventure
+         com.mohistmc.net.kyori.adventure.text.Component leaveMessage = com.mohistmc.net.kyori.adventure.text.Component.translatable("multiplayer.player.left", com.mohistmc.net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? this.player.getBukkitEntity().displayName() : com.mohistmc.net.kyori.adventure.text.Component.text(this.player.getScoreboardName())); // Paper - Adventure
  
 -        PlayerKickEvent event = new PlayerKickEvent(this.player.getBukkitEntity(), io.papermc.paper.adventure.PaperAdventure.asAdventure(disconnectionInfo.reason()), leaveMessage); // Paper - adventure
 +        PlayerKickEvent event = new PlayerKickEvent(this.player.getBukkitEntity(), io.papermc.paper.adventure.PaperAdventure.asAdventure(disconnectionInfo.reason()), leaveMessage, cause); // Paper - adventure & kick event causes
@@ -459,9 +459,9 @@ index f7e442cd5eff3d7c6932d16c93a7a097f11251f9..393a93198b3a1d95a6cc5eb1d19e392f
          // Paper end
          // CraftBukkit start - disconnect safely
          for (ServerPlayer player : this.players) {
--            if (isRestarting) player.connection.disconnect(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.restartMessage)); else // Paper
-+            if (isRestarting) player.connection.disconnect(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.restartMessage), org.bukkit.event.player.PlayerKickEvent.Cause.UNKNOWN); else // Paper - kick event cause (cause is never used here)
-             player.connection.disconnect(java.util.Objects.requireNonNullElseGet(this.server.server.shutdownMessage(), net.kyori.adventure.text.Component::empty)); // CraftBukkit - add custom shutdown message // Paper - Adventure
+-            if (isRestarting) player.connection.disconnect(com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.restartMessage)); else // Paper
++            if (isRestarting) player.connection.disconnect(com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.restartMessage), org.bukkit.event.player.PlayerKickEvent.Cause.UNKNOWN); else // Paper - kick event cause (cause is never used here)
+             player.connection.disconnect(java.util.Objects.requireNonNullElseGet(this.server.server.shutdownMessage(), com.mohistmc.net.kyori.adventure.text.Component::empty)); // CraftBukkit - add custom shutdown message // Paper - Adventure
          }
          // CraftBukkit end
 diff --git a/src/main/java/net/minecraft/world/entity/player/ProfilePublicKey.java b/src/main/java/net/minecraft/world/entity/player/ProfilePublicKey.java
@@ -519,17 +519,17 @@ index a85983b947147a1557908846b8773aab29c17fae..b747df28b862990d5db08329149272c6
 @@ -647,10 +647,15 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
  
      @Override
-     public void kick(final net.kyori.adventure.text.Component message) {
+     public void kick(final com.mohistmc.net.kyori.adventure.text.Component message) {
 +        kick(message, org.bukkit.event.player.PlayerKickEvent.Cause.PLUGIN);
 +    }
 +
 +    @Override
-+    public void kick(net.kyori.adventure.text.Component message, org.bukkit.event.player.PlayerKickEvent.Cause cause) {
++    public void kick(com.mohistmc.net.kyori.adventure.text.Component message, org.bukkit.event.player.PlayerKickEvent.Cause cause) {
          org.spigotmc.AsyncCatcher.catchOp("player kick");
          final ServerGamePacketListenerImpl connection = this.getHandle().connection;
          if (connection != null) {
--            connection.disconnect(message == null ? net.kyori.adventure.text.Component.empty() : message);
-+            connection.disconnect(message == null ? net.kyori.adventure.text.Component.empty() : message, cause);
+-            connection.disconnect(message == null ? com.mohistmc.net.kyori.adventure.text.Component.empty() : message);
++            connection.disconnect(message == null ? com.mohistmc.net.kyori.adventure.text.Component.empty() : message, cause);
          }
      }
  

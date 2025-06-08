@@ -74,7 +74,7 @@
  import net.minecraft.world.level.entity.EntityTypeTest;
  import net.minecraft.world.level.entity.LevelEntityGetter;
  import net.minecraft.world.level.gameevent.GameEvent;
-@@ -71,12 +_,36 @@
+@@ -71,12 +_,33 @@
  import net.minecraft.world.level.saveddata.maps.MapId;
  import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
  import net.minecraft.world.level.storage.LevelData;
@@ -96,9 +96,6 @@
 +import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
 +import org.bukkit.craftbukkit.v1_21_R1.block.CapturedBlockState;
 +import org.bukkit.craftbukkit.v1_21_R1.block.data.CraftBlockData;
-+import org.bukkit.craftbukkit.v1_21_R1.generator.CraftWorldInfo;
-+import org.bukkit.craftbukkit.v1_21_R1.generator.CustomChunkGenerator;
-+import org.bukkit.craftbukkit.v1_21_R1.generator.CustomWorldChunkManager;
 +import org.bukkit.craftbukkit.v1_21_R1.util.CraftSpawnCategory;
 +import org.bukkit.entity.SpawnCategory;
 +import org.bukkit.event.block.BlockPhysicsEvent;
@@ -112,7 +109,7 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("the_nether"));
-@@ -114,6 +_,48 @@
+@@ -114,6 +_,54 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -140,7 +137,13 @@
 +    public SpigotWorldConfig spigotConfig; // Spigot
 +    public String name;
 +    public static BlockPos lastPhysicsProblem; // Spigot
-+
++    // Paper start - add paper world config
++    public io.papermc.paper.configuration.WorldConfiguration paperConfig;
++    public io.papermc.paper.configuration.WorldConfiguration paperConfig() {
++        return this.paperConfig;
++    }
++    public java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator;
++    // Paper end - add paper world config
 +    public CraftWorld getWorld() {
 +        return this.world;
 +    }
@@ -236,6 +239,20 @@
      }
  
      @Override
+@@ -167,6 +_,13 @@
+         return null;
+     }
+ 
++    // Paper start
++    public net.minecraft.world.phys.BlockHitResult.Type clipDirect(Vec3 start, Vec3 end, net.minecraft.world.phys.shapes.CollisionContext context) {
++        // To be patched over
++        return this.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, context)).getType();
++    }
++    // Paper end
++
+     public boolean isInWorldBounds(BlockPos p_46740_) {
+         return !this.isOutsideBuildHeight(p_46740_) && isInWorldBoundsHorizontal(p_46740_);
+     }
 @@ -202,13 +_,33 @@
          }
      }

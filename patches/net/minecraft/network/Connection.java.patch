@@ -1,6 +1,14 @@
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
-@@ -107,6 +_,15 @@
+@@ -63,6 +_,7 @@
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.debugchart.LocalSampleLogger;
+ import org.apache.commons.lang3.Validate;
++import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
+ import org.slf4j.Logger;
+ import org.slf4j.Marker;
+ import org.slf4j.MarkerFactory;
+@@ -107,6 +_,27 @@
      private volatile DisconnectionDetails delayedDisconnect;
      @Nullable
      BandwidthDebugMonitor bandwidthDebugMonitor;
@@ -13,6 +21,18 @@
 +    public boolean preparing = true;
 +    // Spigot End
 +    private volatile boolean mohist$isClosing; //mohist
++
++    // Paper start - add utility methods
++    public final net.minecraft.server.level.ServerPlayer getPlayer() {
++        if (this.packetListener instanceof net.minecraft.server.network.ServerGamePacketListenerImpl impl) {
++            return impl.player;
++        } else if (this.packetListener instanceof net.minecraft.server.network.ServerCommonPacketListenerImpl impl) {
++            CraftPlayer player = impl.getCraftPlayer();
++            return player == null ? null : player.getHandle();
++        }
++        return null;
++    }
++    // Paper end - add utility methods
  
      public Connection(PacketFlow p_129482_) {
          this.receiving = p_129482_;

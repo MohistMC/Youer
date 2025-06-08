@@ -27,11 +27,27 @@ public interface Plugin extends TabExecutor {
     @NotNull
     public File getDataFolder();
 
+    // Paper start - add getDataPath()
     /**
-     * Returns the plugin.yaml file containing the details for this plugin
+     * Returns the path that the plugin data files are located in.
+     * The folder may not yet exist.
      *
-     * @return Contents of the plugin.yaml file
+     * @see #getDataFolder()
+     * @return The folder
      */
+    default @NotNull java.nio.file.Path getDataPath() {
+        return getDataFolder().toPath();
+    }
+    // Paper end - add getDataPath()
+
+    /**
+     * Returns the plugin.yml file containing the details for this plugin
+     *
+     * @return Contents of the plugin.yml file
+     * @deprecated May be inaccurate due to different plugin implementations.
+     * @see Plugin#getPluginMeta()
+     */
+    @Deprecated // Paper
     @NotNull
     public PluginDescriptionFile getDescription();
 
@@ -95,6 +111,7 @@ public interface Plugin extends TabExecutor {
      *
      * @return PluginLoader that controls this plugin
      */
+    @Deprecated(forRemoval = true) // Paper - The PluginLoader system will not function in the near future
     @NotNull
     public PluginLoader getPluginLoader();
 
@@ -179,6 +196,29 @@ public interface Plugin extends TabExecutor {
      */
     @NotNull
     public Logger getLogger();
+
+    // Paper start - Adventure component logger
+    @NotNull
+    default com.mohistmc.net.kyori.adventure.text.logger.slf4j.ComponentLogger getComponentLogger() {
+        return com.mohistmc.net.kyori.adventure.text.logger.slf4j.ComponentLogger.logger(getLogger().getName());
+    }
+    // Paper end
+
+    // Paper start - Add SLF4J/Log4J loggers
+    @NotNull
+    default org.slf4j.Logger getSLF4JLogger() {
+        return org.slf4j.LoggerFactory.getLogger(getLogger().getName());
+    }
+
+    /**
+     * @deprecated use {@link #getSLF4JLogger()}
+     */
+    @Deprecated
+    @NotNull
+    default org.apache.logging.log4j.Logger getLog4JLogger() {
+        return org.apache.logging.log4j.LogManager.getLogger(getLogger().getName());
+    }
+    // Paper end
 
     /**
      * Returns the name of the plugin.

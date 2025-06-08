@@ -20,7 +20,7 @@
          SharedConstants.tryDetectVersion();
          OptionParser optionparser = new OptionParser();
          OptionSpec<Void> optionspec = optionparser.accepts("nogui");
-@@ -83,6 +_,48 @@
+@@ -83,6 +_,60 @@
          OptionSpec<Void> optionspec13 = optionparser.accepts("jfrProfile");
          OptionSpec<Path> optionspec14 = optionparser.accepts("pidFile").withRequiredArg().withValuesConvertedBy(new PathConverter());
          OptionSpec<String> optionspec15 = optionparser.nonOptions();
@@ -59,23 +59,38 @@
 +                .defaultsTo(new File("spigot.yml"))
 +                .describedAs("Yml file");
 +        // Spigot End
++        // Paper start
++        optionparser.acceptsAll(Arrays.asList("paper-dir", "paper-settings-directory"), "Directory for Paper settings")
++                .withRequiredArg()
++                .ofType(File.class)
++                .defaultsTo(new File(io.papermc.paper.configuration.PaperConfigurations.CONFIG_DIR))
++                .describedAs("Config directory");
++        optionparser.acceptsAll(Arrays.asList("paper", "paper-settings"), "File for Paper settings")
++                .withRequiredArg()
++                .ofType(File.class)
++                .defaultsTo(new File("paper.yml"))
++                .describedAs("Yml file");
++        // Paper end
 +        // Youer Start
 +        optionparser.acceptsAll(Arrays.asList("Y", "youer-settings"), "File for youer settings")
 +                .withRequiredArg()
 +                .ofType(File.class)
-+                .defaultsTo(new File("youer.yml"))
++                .defaultsTo(new File("youer-config","youer.yml"))
 +                .describedAs("Yml file");
 +        // Youer End
  
          try {
              OptionSet optionset = optionparser.parse(p_129699_);
-@@ -90,6 +_,13 @@
+@@ -90,6 +_,16 @@
                  optionparser.printHelpOn(System.err);
                  return;
              }
 +            Path path2 = Paths.get("eula.txt");
 +            Eula eula = new Eula(path2);
-+
++            // Paper start - load config files early for access below if needed
++            org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionset.valueOf("bukkit-settings"));
++            org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionset.valueOf("spigot-settings"));
++            // Paper end - load config files early for access below if needed
 +            if (!eula.hasAgreedToEULA()) {
 +                LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
 +                return;
@@ -117,7 +132,8 @@
 -            }
 -
              File file1 = new File(optionset.valueOf(optionspec9));
-             Services services = Services.create(new YggdrasilAuthenticationService(Proxy.NO_PROXY), file1);
+-            Services services = Services.create(new YggdrasilAuthenticationService(Proxy.NO_PROXY), file1);
++            Services services = Services.create(new YggdrasilAuthenticationService(Proxy.NO_PROXY), file1, optionset);
              String s = Optional.ofNullable(optionset.valueOf(optionspec10)).orElse(dedicatedserversettings.getProperties().levelName);
 +            if (s == null || s.isEmpty() || new File(file1, s).getAbsolutePath().equals(new File(s).getAbsolutePath())) {
 +                LOGGER.error("Invalid world directory specified, must not be null, empty or the same directory as your universe! " + s);

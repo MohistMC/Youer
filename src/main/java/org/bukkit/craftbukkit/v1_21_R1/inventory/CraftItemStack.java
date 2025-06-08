@@ -7,6 +7,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.bukkit.Material;
@@ -85,7 +86,7 @@ public final class CraftItemStack extends ItemStack {
         return new CraftItemStack(CraftItemType.minecraftToBukkit(item), amount, (short) 0, null);
     }
 
-    net.minecraft.world.item.ItemStack handle;
+    public net.minecraft.world.item.ItemStack handle;
     private boolean isForInventoryDrop;
 
     /**
@@ -148,6 +149,7 @@ public final class CraftItemStack extends ItemStack {
         } else if (this.handle == null) {
             this.handle = new net.minecraft.world.item.ItemStack(CraftItemType.bukkitToMinecraft(type), 1);
         } else {
+            final Material oldType = CraftMagicNumbers.getMaterial(this.handle.getItem()); // Paper
             this.handle.setItem(CraftItemType.bukkitToMinecraft(type));
             if (this.hasItemMeta()) {
                 // This will create the appropriate item meta, which will contain all the data we intend to keep
@@ -310,7 +312,17 @@ public final class CraftItemStack extends ItemStack {
         return CraftItemStack.getItemMeta(this.handle);
     }
 
+    // Paper start
     public static ItemMeta getItemMeta(net.minecraft.world.item.ItemStack item) {
+        return getItemMeta(item, null);
+    }
+    public static ItemMeta getItemMeta(net.minecraft.world.item.ItemStack item, org.bukkit.inventory.ItemType metaForType) {
+        // Paper end
+        // Paper start - handled tags on type change
+        return getItemMeta(item, metaForType, null);
+    }
+    public static ItemMeta getItemMeta(net.minecraft.world.item.ItemStack item, org.bukkit.inventory.ItemType metaForType, final java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) {
+        // Paper end - handled tags on type change
         if (!CraftItemStack.hasItemMeta(item)) {
             return CraftItemFactory.instance().getItemMeta(CraftItemStack.getType(item));
         }

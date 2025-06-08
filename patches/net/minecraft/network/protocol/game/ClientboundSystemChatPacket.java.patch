@@ -8,7 +8,7 @@
  
  public record ClientboundSystemChatPacket(Component content, boolean overlay) implements Packet<ClientGamePacketListener> {
      public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundSystemChatPacket> STREAM_CODEC = StreamCodec.composite(
-@@ -16,6 +_,12 @@
+@@ -16,6 +_,17 @@
          ClientboundSystemChatPacket::overlay,
          ClientboundSystemChatPacket::new
      );
@@ -18,6 +18,11 @@
 +        this(CraftChatMessage.fromJSON(net.md_5.bungee.chat.ComponentSerializer.toString(content)), overlay);
 +    }
 +    // Spigot end
++    // Paper start
++    public ClientboundSystemChatPacket(com.mohistmc.net.kyori.adventure.text.Component content, boolean overlay) {
++        this(io.papermc.paper.adventure.PaperAdventure.asVanilla(content), overlay);
++    }
++    // Paper end
  
      @Override
      public PacketType<ClientboundSystemChatPacket> type() {

@@ -51,4 +51,13 @@ public class CraftEnderChest extends CraftBlockEntityState<EnderChestBlockEntity
     public CraftEnderChest copy(Location location) {
         return new CraftEnderChest(this, location);
     }
+
+    // Paper start - More Chest Block API
+    @Override
+    public boolean isBlocked() {
+        // Uses the same logic as EnderChestBlock's check for opening container
+        final net.minecraft.core.BlockPos abovePos = this.getPosition().above();
+        return this.isPlaced() && this.getWorldHandle().getBlockState(abovePos).isRedstoneConductor(this.getWorldHandle(), abovePos);
+    }
+    // Paper end - More Chest Block API
 }

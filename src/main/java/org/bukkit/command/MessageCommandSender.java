@@ -42,6 +42,13 @@ public interface MessageCommandSender extends CommandSender {
         return Bukkit.getServer();
     }
 
+    // Paper start
+    @Override
+    default com.mohistmc.net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component name() {
+        throw new UnsupportedOperationException();
+    }
+    // Paper end
+
     @NotNull
     @Override
     default String getName() {

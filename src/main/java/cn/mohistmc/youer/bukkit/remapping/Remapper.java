@@ -46,6 +46,9 @@ public class Remapper {
         this.toNmsMapping = new JarMapping();
         this.toNmsMapping.packages.put("org/yaml/snakeyaml/", "com/mohistmc/org/yaml/snakeyaml/");
         this.toNmsMapping.packages.put("javax/inject/", "com/mohistmc/javax/inject/");
+        this.toNmsMapping.packages.put("org/spongepowered/configurate", "com/mohistmc/org.spongepowered/configurate");
+        this.toNmsMapping.packages.put("io/leangen/geantyref", "com/mohistmc/io/leangen/geantyref");
+        this.toNmsMapping.packages.put("net/kyori/", "com/mohistmc/net/kyori/");
         this.toBukkitMapping = new JarMapping();
         this.inheritanceMap = new InheritanceMap();
         this.toNmsMapping.loadMappings(

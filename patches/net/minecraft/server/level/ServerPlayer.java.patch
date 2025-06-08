@@ -135,6 +135,14 @@
  import org.slf4j.Logger;
  
  public class ServerPlayer extends Player {
+@@ -204,6 +_,7 @@
+     private boolean disconnected;
+     private int requestedViewDistance = 2;
+     public String language = "en_us";
++    public java.util.Locale adventure$locale = java.util.Locale.US; // Paper
+     @Nullable
+     private Vec3 startingToFallPosition;
+     @Nullable
 @@ -252,6 +_,10 @@
          }
  
@@ -146,13 +154,14 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(p_143455_.containerId, p_143456_, p_143457_));
          }
      };
-@@ -276,6 +_,23 @@
+@@ -276,6 +_,26 @@
      public final Object object;
      private int containerCounter;
      public boolean wonGame;
 +    // CraftBukkit start
 +    public CraftPlayer.TransferCookieConnection transferCookieConnection;
 +    public String displayName;
++    public com.mohistmc.net.kyori.adventure.text.Component adventure$displayName; // Paper
 +    public Location compassTarget;
 +    public int newExp = 0;
 +    public int newLevel = 0;
@@ -167,10 +176,12 @@
 +    // Mohist start
 +    public boolean initialized = false;
 +    // Mohist end
++    public boolean isRealPlayer; // Paper
++    public long loginTime; // Paper - Replace OfflinePlayer#getLastPlayed
  
      public ServerPlayer(MinecraftServer p_254143_, ServerLevel p_254435_, GameProfile p_253651_, ClientInformation p_301997_) {
          super(p_254435_, p_254435_.getSharedSpawnPos(), p_254435_.getSharedSpawnAngle(), p_253651_);
-@@ -287,7 +_,87 @@
+@@ -287,7 +_,88 @@
          this.moveTo(this.adjustSpawnLocation(p_254435_, p_254435_.getSharedSpawnPos()).getBottomCenter(), 0.0F, 0.0F);
          this.updateOptions(p_301997_);
          this.object = null;
@@ -178,6 +189,7 @@
 +
 +        // CraftBukkit start
 +        this.displayName = this.getScoreboardName();
++        this.adventure$displayName = com.mohistmc.net.kyori.adventure.text.Component.text(this.getScoreboardName()); // Paper
 +        this.bukkitPickUpLoot = true;
 +        this.maxHealthCache = this.getMaxHealth();
 +        this.initialized = true;
@@ -955,7 +967,24 @@
          if (!this.gameMode.changeGameModeForPlayer(p_143404_)) {
              return false;
          } else {
-@@ -1541,6 +_,16 @@
+@@ -1529,9 +_,15 @@
+     }
+ 
+     public void sendChatMessage(OutgoingChatMessage p_249852_, boolean p_250110_, ChatType.Bound p_252108_) {
++        // Paper start
++        this.sendChatMessage(p_249852_, p_250110_, p_252108_, null);
++    }
++    public void sendChatMessage(OutgoingChatMessage message, boolean filterMaskEnabled, ChatType.Bound params, @Nullable Component unsigned) {
++        // Paper end
+         if (this.acceptsChatMessages()) {
+-            p_249852_.sendToPlayer(this, p_250110_, p_252108_);
++            message.sendToPlayer(this, filterMaskEnabled, params, unsigned); // Paper
+         }
++
+     }
+ 
+     public String getIpAddress() {
+@@ -1541,7 +_,18 @@
      }
  
      public void updateOptions(ClientInformation p_301998_) {
@@ -970,8 +999,10 @@
 +        }
 +        // CraftBukkit end
          this.language = p_301998_.language();
++        this.adventure$locale = java.util.Objects.requireNonNullElse(com.mohistmc.net.kyori.adventure.translation.Translator.parseLocale(this.language), java.util.Locale.US); // Paper
          this.requestedViewDistance = p_301998_.viewDistance();
          this.chatVisibility = p_301998_.chatVisibility();
+         this.canChatColor = p_301998_.chatColors();
 @@ -1617,6 +_,7 @@
      public void setCamera(@Nullable Entity p_9214_) {
          Entity entity = this.getCamera();
