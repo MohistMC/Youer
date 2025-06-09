@@ -1,13 +1,28 @@
 --- a/net/minecraft/core/registries/BuiltInRegistries.java
 +++ b/net/minecraft/core/registries/BuiltInRegistries.java
-@@ -356,6 +_,10 @@
-         });
+@@ -322,7 +_,14 @@
      }
  
-+    public static java.util.Set<ResourceLocation> getVanillaRegistrationOrder() {
-+        return java.util.Collections.unmodifiableSet(LOADERS.keySet());
+     public static void bootStrap() {
++        // Paper start
++        bootStrap(() -> {});
 +    }
 +
++    public static void bootStrap(Runnable runnable) {
++        // Paper end
+         createContents();
++        runnable.run(); // Paper
+         freeze();
+         validate(REGISTRY);
+     }
+@@ -354,6 +_,10 @@
+                 Validate.notNull(p_339350_.get(resourcelocation), "Missing default of DefaultedMappedRegistry: " + resourcelocation);
+             }
+         });
++    }
++
++    public static java.util.Set<ResourceLocation> getVanillaRegistrationOrder() {
++        return java.util.Collections.unmodifiableSet(LOADERS.keySet());
+     }
+ 
      @FunctionalInterface
-     interface RegistryBootstrap<T> {
-         Object run(Registry<T> p_260128_);

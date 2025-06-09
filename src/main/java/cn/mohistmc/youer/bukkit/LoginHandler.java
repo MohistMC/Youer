@@ -1,13 +1,12 @@
 package cn.mohistmc.youer.bukkit;
 
-import cn.mohistmc.youer.YouerConfig;
 import com.mojang.authlib.GameProfile;
 import io.papermc.paper.configuration.GlobalConfiguration;
 import java.util.concurrent.ExecutionException;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
-import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_21_R1.util.Waitable;
+import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.util.Waitable;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerPreLoginEvent.Result;

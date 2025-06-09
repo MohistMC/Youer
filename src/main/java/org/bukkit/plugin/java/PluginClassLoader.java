@@ -1,13 +1,14 @@
 package org.bukkit.plugin.java;
 
-import com.google.common.base.Preconditions;
-import com.google.common.io.ByteStreams;
 import cn.mohistmc.youer.bukkit.pluginfix.PluginFixManager;
 import cn.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
 import cn.mohistmc.youer.bukkit.remapping.Remapper;
 import cn.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
-import cpw.mods.modlauncher.EnumerationHelper;
+import cn.mohistmc.youer.util.I18n;
+import com.google.common.base.Preconditions;
+import com.google.common.io.ByteStreams;
 import io.izzel.tools.product.Product2;
+import io.papermc.paper.utils.PaperPluginLogger;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,29 +18,29 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
+import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.PluginDescriptionFile;
-import org.bukkit.plugin.SimplePluginManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * A ClassLoader for plugins, to allow shared classes across multiple plugins
  */
-final class PluginClassLoader extends URLClassLoader implements RemappingClassLoader {
+@org.jetbrains.annotations.ApiStatus.Internal // Paper
+public final class PluginClassLoader extends URLClassLoader implements io.papermc.paper.plugin.provider.classloader.ConfiguredPluginClassLoader, RemappingClassLoader { // Paper
     private final JavaPluginLoader loader;
     private final Map<String, Class<?>> classes = new ConcurrentHashMap<String, Class<?>>();
     private final PluginDescriptionFile description;
@@ -53,6 +54,9 @@ final class PluginClassLoader extends URLClassLoader implements RemappingClassLo
     private JavaPlugin pluginInit;
     private IllegalStateException pluginState;
     private final Set<String> seenIllegalAccess = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private java.util.logging.Logger logger; // Paper - add field
+    private io.papermc.paper.plugin.provider.classloader.PluginClassLoaderGroup classLoaderGroup; // Paper
+    public io.papermc.paper.plugin.provider.entrypoint.DependencyContext dependencyContext; // Paper
 
     static {
         ClassLoader.registerAsParallelCapable();
@@ -68,18 +72,24 @@ final class PluginClassLoader extends URLClassLoader implements RemappingClassLo
         return remapper;
     }
 
-    PluginClassLoader(@NotNull final JavaPluginLoader loader, @Nullable final ClassLoader parent, @NotNull final PluginDescriptionFile description, @NotNull final File dataFolder, @NotNull final File file, @Nullable ClassLoader libraryLoader) throws IOException, InvalidPluginException, MalformedURLException {
-        super(new URL[] {file.toURI().toURL()}, parent);
-        Preconditions.checkArgument(loader != null, "Loader cannot be null");
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper
+    public PluginClassLoader(@Nullable final ClassLoader parent, @NotNull final PluginDescriptionFile description, @NotNull final File dataFolder, @NotNull final File file, @Nullable ClassLoader libraryLoader, JarFile jarFile, io.papermc.paper.plugin.provider.entrypoint.DependencyContext dependencyContext) throws IOException, InvalidPluginException, MalformedURLException { // Paper - use JarFile provided by SpigotPluginProvider
+        super(file.getName(), new URL[] {file.toURI().toURL()}, parent);
+        this.loader = null; // Paper - pass null into loader field
 
-        this.loader = loader;
         this.description = description;
         this.dataFolder = dataFolder;
         this.file = file;
-        this.jar = new JarFile(file);
+        this.jar = jarFile; // Paper - use JarFile provided by SpigotPluginProvider
         this.manifest = jar.getManifest();
         this.url = file.toURI().toURL();
         this.libraryLoader = libraryLoader;
+
+        this.logger = PaperPluginLogger.getLogger(description); // Paper - Register logger early
+        // Paper start
+        this.dependencyContext = dependencyContext;
+        this.classLoaderGroup = io.papermc.paper.plugin.provider.classloader.PaperClassLoaderStorage.instance().registerSpigotGroup(this);
+        // Paper end
 
         Class<?> jarClass;
         try {
@@ -117,27 +127,55 @@ final class PluginClassLoader extends URLClassLoader implements RemappingClassLo
 
     @Override
     public URL getResource(String name) {
-        Objects.requireNonNull(name);
-        URL url = findResource(name);
-        if (url == null) {
-            if (getParent() != null) {
-                url = getParent().getResource(name);
-            }
+        // Paper start
+        URL resource = findResource(name);
+        if (resource == null && libraryLoader != null) {
+            return libraryLoader.getResource(name);
         }
-        return url;
+        return resource;
+        // Paper end
     }
 
     @Override
     public Enumeration<URL> getResources(String name) throws IOException {
-        Objects.requireNonNull(name);
-        @SuppressWarnings("unchecked")
-        Enumeration<URL>[] tmp = (Enumeration<URL>[]) new Enumeration<?>[2];
-        if (getParent()!= null) {
-            tmp[1] = getParent().getResources(name);
+        // Paper start
+        java.util.ArrayList<URL> resources = new java.util.ArrayList<>();
+        addEnumeration(resources, findResources(name));
+        if (libraryLoader != null) {
+            addEnumeration(resources, libraryLoader.getResources(name));
         }
-        tmp[0] = findResources(name);
-        return EnumerationHelper.merge(tmp[0], tmp[1]);
+        return Collections.enumeration(resources);
+        // Paper end
     }
+
+    // Paper start
+    private <T> void addEnumeration(java.util.ArrayList<T> list, Enumeration<T> enumeration) {
+        while (enumeration.hasMoreElements()) {
+            list.add(enumeration.nextElement());
+        }
+    }
+    // Paper end
+
+    // Paper start
+    @Override
+    public Class<?> loadClass(@NotNull String name, boolean resolve, boolean checkGlobal, boolean checkLibraries) throws ClassNotFoundException {
+        return this.loadClass0(name, resolve, checkGlobal, checkLibraries);
+    }
+    @Override
+    public io.papermc.paper.plugin.configuration.PluginMeta getConfiguration() {
+        return this.description;
+    }
+
+    @Override
+    public void init(JavaPlugin plugin) {
+        this.initialize(plugin);
+    }
+
+    @Override
+    public JavaPlugin getPlugin() {
+        return this.plugin;
+    }
+    // Paper end
 
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
@@ -164,26 +202,11 @@ final class PluginClassLoader extends URLClassLoader implements RemappingClassLo
 
         if (checkGlobal) {
             // This ignores the libraries of other plugins, unless they are transitive dependencies.
-            Class<?> result = loader.getClassByName(name, resolve, description);
+            Class<?> result = this.classLoaderGroup.getClassByName(name, resolve, this); // Paper
 
             if (result != null) {
                 // If the class was loaded from a library instead of a PluginClassLoader, we can assume that its associated plugin is a transitive dependency and can therefore skip this check.
-                if (result.getClassLoader() instanceof PluginClassLoader) {
-                    PluginDescriptionFile provider = ((PluginClassLoader) result.getClassLoader()).description;
-
-                    if (provider != description
-                            && !seenIllegalAccess.contains(provider.getName())
-                            && !((SimplePluginManager) loader.server.getPluginManager()).isTransitiveDepend(description, provider)) {
-
-                        seenIllegalAccess.add(provider.getName());
-                        if (plugin != null) {
-                            plugin.getLogger().log(Level.WARNING, "Loaded class {0} from {1} which is not a depend or softdepend of this plugin.", new Object[]{name, provider.getFullName()});
-                        } else {
-                            // In case the bad access occurs on construction
-                            loader.server.getLogger().log(Level.WARNING, "[{0}] Loaded class {1} from {2} which is not a depend or softdepend of this plugin.", new Object[]{description.getName(), name, provider.getFullName()});
-                        }
-                    }
-                }
+                // Paper - Totally delete the illegal access logic, we are never going to enforce it anyways here.
 
                 return result;
             }
@@ -213,8 +236,8 @@ final class PluginClassLoader extends URLClassLoader implements RemappingClassLo
                     byteSource = () -> {
                         try (InputStream is = connection.getInputStream()) {
                             byte[] classBytes = ByteStreams.toByteArray(is);
-                            classBytes = Bukkit.getUnsafe().processClass(description, path, classBytes);
-                            classBytes = PluginFixManager.injectPluginFix(name, classBytes); // Youer - Inject plugin fix
+                            classBytes = Bukkit.getServer().getUnsafe().processClass(description, path, classBytes);
+                            classBytes = PluginFixManager.injectPluginFix(name, classBytes); // Mohist - Inject plugin fix
                             return classBytes;
                         }
                     };
@@ -236,7 +259,7 @@ final class PluginClassLoader extends URLClassLoader implements RemappingClassLo
                             }
                         } catch (IllegalArgumentException ex) {
                             if (getPackage(pkgName) == null) {
-                                throw new IllegalStateException("Cannot find package " + pkgName);
+                                throw new IllegalStateException(I18n.as("mohist.i18n.30", pkgName));
                             }
                         }
                     }
@@ -249,8 +272,8 @@ final class PluginClassLoader extends URLClassLoader implements RemappingClassLo
                 result = super.findClass(name);
             }
 
-            loader.setClass(name, result);
             classes.put(name, result);
+            this.setClass(name, result); // Paper
         }
 
         return result;
@@ -259,6 +282,12 @@ final class PluginClassLoader extends URLClassLoader implements RemappingClassLo
     @Override
     public void close() throws IOException {
         try {
+            // Paper start
+            Collection<Class<?>> classes = getClasses();
+            for (Class<?> clazz : classes) {
+                removeClass(clazz);
+            }
+            // Paper end
             super.close();
         } finally {
             jar.close();
@@ -270,7 +299,7 @@ final class PluginClassLoader extends URLClassLoader implements RemappingClassLo
         return classes.values();
     }
 
-    synchronized void initialize(@NotNull JavaPlugin javaPlugin) {
+    public synchronized void initialize(@NotNull JavaPlugin javaPlugin) { // Paper
         Preconditions.checkArgument(javaPlugin != null, "Initializing plugin cannot be null");
         Preconditions.checkArgument(javaPlugin.getClass().getClassLoader() == this, "Cannot initialize plugin outside of this class loader");
         if (this.plugin != null || this.pluginInit != null) {
@@ -280,6 +309,38 @@ final class PluginClassLoader extends URLClassLoader implements RemappingClassLo
         pluginState = new IllegalStateException("Initial initialization");
         this.pluginInit = javaPlugin;
 
-        javaPlugin.init(loader, loader.server, description, dataFolder, file, this);
+        javaPlugin.init(org.bukkit.Bukkit.getServer(), description, dataFolder, file, this, description, this.logger); // Paper
     }
+
+    // Paper start
+    @Override
+    public String toString() {
+        JavaPlugin currPlugin = plugin != null ? plugin : pluginInit;
+        return "PluginClassLoader{" +
+                   "plugin=" + currPlugin +
+                   ", pluginEnabled=" + (currPlugin == null ? "uninitialized" : currPlugin.isEnabled()) +
+                   ", url=" + file +
+                   '}';
+    }
+
+    void setClass(@NotNull final String name, @NotNull final Class<?> clazz) {
+        if (org.bukkit.configuration.serialization.ConfigurationSerializable.class.isAssignableFrom(clazz)) {
+            Class<? extends org.bukkit.configuration.serialization.ConfigurationSerializable> serializable = clazz.asSubclass(org.bukkit.configuration.serialization.ConfigurationSerializable.class);
+            org.bukkit.configuration.serialization.ConfigurationSerialization.registerClass(serializable);
+        }
+    }
+
+    private void removeClass(@NotNull Class<?> clazz) {
+        if (org.bukkit.configuration.serialization.ConfigurationSerializable.class.isAssignableFrom(clazz)) {
+            Class<? extends org.bukkit.configuration.serialization.ConfigurationSerializable> serializable = clazz.asSubclass(org.bukkit.configuration.serialization.ConfigurationSerializable.class);
+            org.bukkit.configuration.serialization.ConfigurationSerialization.unregisterClass(serializable);
+        }
+    }
+
+    @Override
+    public @Nullable io.papermc.paper.plugin.provider.classloader.PluginClassLoaderGroup getGroup() {
+        return this.classLoaderGroup;
+    }
+
+    // Paper end
 }

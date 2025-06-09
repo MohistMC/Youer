@@ -1,6 +1,6 @@
 package io.papermc.paper.configuration.serializer;
 
-import com.destroystokyo.paper.util.SneakyThrow;
+import io.papermc.paper.util.SneakyThrow;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.lang.reflect.Type;

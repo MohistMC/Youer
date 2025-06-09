@@ -6,7 +6,6 @@ import cn.mohistmc.youer.plugins.back.BackCommands;
 import cn.mohistmc.youer.plugins.back.BackConfig;
 import cn.mohistmc.youer.plugins.ban.BanListener;
 import cn.mohistmc.youer.plugins.item.ItemsConfig;
-import cn.mohistmc.youer.plugins.pluginmanager.Control;
 import cn.mohistmc.youer.plugins.tpa.TpaComamands;
 import cn.mohistmc.youer.plugins.tpa.TpacceptCommands;
 import cn.mohistmc.youer.plugins.tpa.TpadenyCommands;
@@ -15,9 +14,6 @@ import cn.mohistmc.youer.plugins.warps.WarpsConfig;
 import cn.mohistmc.youer.plugins.world.WorldManage;
 import cn.mohistmc.youer.plugins.world.commands.WorldsCommands;
 import cn.mohistmc.youer.plugins.world.listener.InventoryClickListener;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,8 +25,6 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.event.server.PluginEnableEvent;
-import org.bukkit.plugin.Plugin;
 
 /**
  * @author Mgazul by MohistMC

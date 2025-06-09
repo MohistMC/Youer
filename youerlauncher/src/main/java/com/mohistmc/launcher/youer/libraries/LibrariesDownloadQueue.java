@@ -76,7 +76,7 @@ public class LibrariesDownloadQueue {
             ProgressBarBuilder builder = new ProgressBarBuilder().setTaskName("")
                     .setStyle(ProgressBarStyle.ASCII)
                     .setUpdateIntervalMillis(100)
-                    .setInitialMax(20);
+                    .setInitialMax(10);
             try (ProgressBar pb = builder.build()) {
                 for (Libraries lib : need_download) {
                     File file = new File(parentDirectory, lib.path);

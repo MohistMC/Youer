@@ -1,7 +1,7 @@
 package cn.mohistmc.youer.bukkit.entity;
 
-import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_21_R1.entity.CraftAbstractSkeleton;
+import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.entity.CraftAbstractSkeleton;
 import org.bukkit.entity.Skeleton;
 import org.jetbrains.annotations.NotNull;
 

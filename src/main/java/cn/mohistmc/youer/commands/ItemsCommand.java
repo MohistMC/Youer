@@ -19,8 +19,8 @@
 package cn.mohistmc.youer.commands;
 
 import cn.mohistmc.youer.api.ItemAPI;
-import cn.mohistmc.youer.api.gui.GUIItem;
 import cn.mohistmc.youer.api.gui.DemoGUI;
+import cn.mohistmc.youer.api.gui.GUIItem;
 import cn.mohistmc.youer.plugins.item.ItemsConfig;
 import cn.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;

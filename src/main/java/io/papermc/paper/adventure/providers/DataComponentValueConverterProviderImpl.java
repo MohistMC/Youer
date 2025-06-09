@@ -16,7 +16,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.RegistryOps;
-import org.bukkit.craftbukkit.v1_21_R1.CraftRegistry;
+import org.bukkit.craftbukkit.CraftRegistry;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.qual.DefaultQualifier;

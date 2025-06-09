@@ -4,7 +4,7 @@ import cn.mohistmc.youer.YouerConfig;
 import cn.mohistmc.youer.api.ItemAPI;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
-import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 
 /**
  * @author Mgazul by MohistMC

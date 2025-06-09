@@ -199,7 +199,7 @@ import org.jetbrains.annotations.Nullable;
  *      inferno.burningdeaths: true
  *</pre></blockquote>
  */
-public final class PluginDescriptionFile {
+public final class PluginDescriptionFile implements io.papermc.paper.plugin.configuration.PluginMeta { // Paper
     private static final Pattern VALID_NAME = Pattern.compile("^[A-Za-z0-9 _.-]+$");
     private static final ThreadLocal<Yaml> YAML = new ThreadLocal<Yaml>() {
         @Override
@@ -260,6 +260,77 @@ public final class PluginDescriptionFile {
     private Set<PluginAwareness> awareness = ImmutableSet.of();
     private String apiVersion = null;
     private List<String> libraries = ImmutableList.of();
+    // Paper start - plugin loader api
+    private String paperPluginLoader;
+    @org.jetbrains.annotations.ApiStatus.Internal @org.jetbrains.annotations.Nullable
+    public String getPaperPluginLoader() {
+        return this.paperPluginLoader;
+    }
+    // Paper end - plugin loader api
+    // Paper start - oh my goddddd
+    /**
+     * Don't use this.
+     */
+    @org.jetbrains.annotations.ApiStatus.Internal
+    public PluginDescriptionFile(String rawName, String name, List<String> provides, String main, String classLoaderOf, List<String> depend, List<String> softDepend, List<String> loadBefore, String version, Map<String, Map<String, Object>> commands, String description, List<String> authors, List<String> contributors, String website, String prefix, PluginLoadOrder order, List<Permission> permissions, PermissionDefault defaultPerm, Set<PluginAwareness> awareness, String apiVersion, List<String> libraries) {
+        this.rawName = rawName;
+        this.name = name;
+        this.provides = provides;
+        this.main = main;
+        this.classLoaderOf = classLoaderOf;
+        this.depend = depend;
+        this.softDepend = softDepend;
+        this.loadBefore = loadBefore;
+        this.version = version;
+        this.commands = commands;
+        this.description = description;
+        this.authors = authors;
+        this.contributors = contributors;
+        this.website = website;
+        this.prefix = prefix;
+        this.order = order;
+        this.permissions = permissions;
+        this.defaultPerm = defaultPerm;
+        this.awareness = awareness;
+        this.apiVersion = apiVersion;
+        this.libraries = libraries;
+    }
+
+    @Override
+    public @NotNull String getMainClass() {
+        return this.main;
+    }
+
+    @Override
+    public @NotNull PluginLoadOrder getLoadOrder() {
+        return this.order;
+    }
+
+    @Override
+    public @Nullable String getLoggerPrefix() {
+        return this.prefix;
+    }
+
+    @Override
+    public @NotNull List<String> getPluginDependencies() {
+        return this.depend;
+    }
+
+    @Override
+    public @NotNull List<String> getPluginSoftDependencies() {
+        return this.softDepend;
+    }
+
+    @Override
+    public @NotNull List<String> getLoadBeforePlugins() {
+        return this.loadBefore;
+    }
+
+    @Override
+    public @NotNull List<String> getProvidedPlugins() {
+        return this.provides;
+    }
+    // Paper end
 
     public PluginDescriptionFile(@NotNull final InputStream stream) throws InvalidDescriptionException {
         loadMap(asMap(YAML.get().load(stream)));
@@ -1169,6 +1240,23 @@ public final class PluginDescriptionFile {
         } else {
             libraries = ImmutableList.<String>of();
         }
+        // Paper start - plugin loader api
+        if (map.containsKey("paper-plugin-loader")) {
+            this.paperPluginLoader = map.get("paper-plugin-loader").toString();
+        }
+
+        /*
+        Allow skipping the Bukkit/Spigot 'libraries' list. By default, both the 'libraries'
+        list and the 'paper-plugin-loader' will contribute libraries. It may be desired to only
+        use one or the other. (i.e. 'libraries' on Spigot and 'paper-plugin-loader' on Paper)
+        */
+        if (map.containsKey("paper-skip-libraries")) {
+            String skip = map.get("paper-skip-libraries").toString();
+            if (skip.equalsIgnoreCase("true")) {
+                this.libraries = ImmutableList.of();
+            }
+        }
+        // Paper end - plugin loader api
 
         try {
             lazyPermissions = (Map<?, ?>) map.get("permissions");

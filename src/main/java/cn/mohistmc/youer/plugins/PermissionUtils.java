@@ -1,13 +1,13 @@
 package cn.mohistmc.youer.plugins;
 
-import cn.mohistmc.youer.YouerConfig;
 import cn.mohistmc.youer.Youer;
+import cn.mohistmc.youer.YouerConfig;
 import cn.mohistmc.youer.util.I18n;
 import cn.mohistmc.youer.util.StackTraceUtil;
 import java.util.HashMap;
 import java.util.Map;
 import org.bukkit.ChatColor;
-import org.bukkit.craftbukkit.v1_21_R1.entity.CraftHumanEntity;
+import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 
 public class PermissionUtils {
 

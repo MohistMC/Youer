@@ -9,7 +9,7 @@ public enum Tools {
     // Fatjar because the contents are copy/pasted into the installer jar which must be standalone.
     LEGACYINSTALLER("net.neoforged:legacyinstaller:%s:shrunk", "legacyinstaller_version", "toolLegacyinstallerClasspath", true),
     // Fatjar because the slim jar currently does not have the main class set in its manifest.
-    AUTO_RENAMING_TOOL("net.neoforged:AutoRenamingTool:%s:all", "art_version", "toolAutoRenamingToolClasspath", true),
+    AUTO_RENAMING_TOOL("net.neoforged:AutoRenamingTool:%s", "art_version", "toolAutoRenamingToolClasspath", true),
     INSTALLERTOOLS("net.neoforged.installertools:installertools:%s", "installertools_version", "toolInstallertoolsClasspath", false),
     JARSPLITTER("net.neoforged.installertools:jarsplitter:%s", "installertools_version", "toolJarsplitterClasspath", false),
     // Fatjar because it was like that in the userdev json in the past.

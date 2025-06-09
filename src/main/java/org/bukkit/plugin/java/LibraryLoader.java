@@ -1,43 +1,66 @@
+// CHECKSTYLE:OFF
 package org.bukkit.plugin.java;
 
-import com.mohistmc.mjson.Json;
 import cn.mohistmc.youer.Youer;
 import cn.mohistmc.youer.bukkit.PluginsLibrarySource;
-import cn.mohistmc.youer.bukkit.remapping.RemappingURLClassLoader;
+import cn.mohistmc.youer.util.I18n;
+import com.mohistmc.mjson.Json;
 import com.mohistmc.tools.ConnectionUtil;
-import java.util.HashSet;
-import java.util.Set;
-import org.bukkit.plugin.PluginDescriptionFile;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.bukkit.plugin.PluginDescriptionFile;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-class LibraryLoader {
+// Paper start
+@org.jetbrains.annotations.ApiStatus.Internal
+public class LibraryLoader
+// Paper end
+{
 
+    private final Logger logger;
+    public static java.util.function.BiFunction<URL[], ClassLoader, URLClassLoader> LIBRARY_LOADER_FACTORY; // Paper - rewrite reflection in libraries
+    public static java.util.function.Function<List<java.nio.file.Path>, List<java.nio.file.Path>> REMAPPER; // Paper - remap libraries
     public static Set<File> libraries = new HashSet<>();
     public static Set<Dependency> newDependencies = new HashSet<>();
     public static Set<DependencyIgnoreVersion> dependencyIgnoreVersion = new HashSet<>();
 
-    public LibraryLoader() {
+    public LibraryLoader(@NotNull Logger logger)
+    {
+        this.logger = logger;
     }
 
     @Nullable
-    public ClassLoader createLoader(@NotNull PluginDescriptionFile desc) {
-        if (desc.getLibraries().isEmpty()) {
+    public ClassLoader createLoader(@NotNull PluginDescriptionFile desc)
+    {
+        // Paper start - plugin loader api
+        return this.createLoader(desc, null);
+    }
+    @Nullable
+    public ClassLoader createLoader(@NotNull PluginDescriptionFile desc, java.util.@Nullable List<java.nio.file.Path> paperLibraryPaths) {
+        if ( desc.getLibraries().isEmpty() && paperLibraryPaths == null )
+        // Paper end - plugin loader api
+        {
             return null;
         }
-        Youer.LOGGER.info("[{}] Loading {} libraries... please wait", desc.getName(), desc.getLibraries().size());
+        logger.log( Level.INFO, "[{0}] Loading {1} libraries... please wait", new Object[]
+                {
+                        java.util.Objects.requireNonNullElseGet(desc.getPrefix(), desc::getName), desc.getLibraries().size() // Paper - use configured log prefix
+                } );
 
         List<Dependency> dependencies = new ArrayList<>();
         for (String desc_libraries : desc.getLibraries()) {
@@ -69,7 +92,7 @@ class LibraryLoader {
 
         }
 
-        Youer.LOGGER.info(Youer.i18n.as("mohist.i18n.23", desc.getName(), newDependencies.size() - desc.getLibraries().size()));
+        Youer.LOGGER.info(I18n.as("mohist.i18n.23", desc.getName(), newDependencies.size() - desc.getLibraries().size()));
 
         for (Dependency dependency : newDependencies) {
             String group = dependency.group().replace(".", "/");
@@ -102,13 +125,22 @@ class LibraryLoader {
         for (File file : libraries) {
             try {
                 jarFiles.add(file.toURI().toURL());
-                Youer.LOGGER.info(Youer.i18n.as("mohist.i18n.24", desc.getName(), file));
+                Youer.LOGGER.info(I18n.as("mohist.i18n.24", desc.getName(), file));
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
         }
 
-        return new RemappingURLClassLoader(jarFiles.toArray(new URL[0]), getClass().getClassLoader());
+        // Paper start - rewrite reflection in libraries
+        URLClassLoader loader;
+        if (LIBRARY_LOADER_FACTORY == null) {
+            loader = new URLClassLoader( jarFiles.toArray( new URL[ jarFiles.size() ] ), getClass().getClassLoader() );
+        } else {
+            loader = LIBRARY_LOADER_FACTORY.apply(jarFiles.toArray( new URL[ jarFiles.size() ] ), getClass().getClassLoader());
+        }
+        // Paper end - rewrite reflection in libraries
+
+        return loader;
     }
 
     public Set<Dependency> initDependencies0(String url) {
@@ -231,7 +263,7 @@ class LibraryLoader {
             if (!dependencyIgnoreVersion.contains(dependency.toIgnoreVersion())) {
                 libraries.add(file);
                 dependencyIgnoreVersion.add(dependency.toIgnoreVersion());
-                Youer.LOGGER.info(Youer.i18n.as("mohist.i18n.25", dependency.name, file));
+                Youer.LOGGER.info(I18n.as("mohist.i18n.25", dependency.name, file));
                 return true;
             }
         }
@@ -248,4 +280,3 @@ class LibraryLoader {
     public record DependencyIgnoreVersion(String group, String name) {
     }
 }
-

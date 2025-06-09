@@ -1,8 +1,22 @@
 --- a/net/minecraft/server/Bootstrap.java
 +++ b/net/minecraft/server/Bootstrap.java
-@@ -52,6 +_,8 @@
+@@ -39,6 +_,7 @@
+         if (!isBootstrapped) {
+             isBootstrapped = true;
+             Instant instant = Instant.now();
++            io.papermc.paper.plugin.entrypoint.LaunchEntryPointHandler.enterBootstrappers(); // Paper - Entrypoint for bootstrapping
+             if (BuiltInRegistries.REGISTRY.keySet().isEmpty()) {
+                 throw new IllegalStateException("Unable to load registries");
+             } else {
+@@ -50,8 +_,13 @@
+                     EntitySelectorOptions.bootStrap();
+                     DispenseItemBehavior.bootStrap();
                      CauldronInteraction.bootStrap();
-                     BuiltInRegistries.bootStrap();
+-                    BuiltInRegistries.bootStrap();
++                    // Paper start
++                    BuiltInRegistries.bootStrap(() -> {
++                    });
++                    // Paper end
                      CreativeModeTabs.validate();
 +                    net.neoforged.neoforge.registries.GameData.vanillaSnapshot();
 +                    if (false) // skip redirectOutputToLog, Forge already redirects stdout and stderr output to log so that they print with more context

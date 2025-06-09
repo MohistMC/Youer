@@ -23,12 +23,14 @@ import com.mohistmc.launcher.youer.action.Action;
 import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.feature.AutoDeleteMods;
 import com.mohistmc.launcher.youer.feature.DefaultLibraries;
+import com.mohistmc.launcher.youer.feature.YouerProxySelector;
 import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.YouerModuleManager;
 import com.mohistmc.tools.JarTool;
 import com.mohistmc.tools.MojangEulaUtil;
 import cpw.mods.bootstraplauncher.BootstrapLauncher;
 import java.lang.management.ManagementFactory;
+import java.net.ProxySelector;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -63,11 +65,10 @@ public class Main {
                         ██║   ╚██████╔╝╚██████╔╝███████╗██║  ██║
                         ╚═╝    ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝
                     
-                    %s-%s-%s Java(%s) %s PID: %s
+                    %s-%s Java(%s) %s PID: %s
                     """;
             System.out.printf(test + "%n", i18n.as("youer.launch.welcomemessage"),
                     getVersion(),
-                    DataParser.versionMap.get("youer"),
                     System.getProperty("java.class.version"),
                     System.getProperty("java.version"),
                     ManagementFactory.getRuntimeMXBean().getName().split("@")[0]
@@ -116,5 +117,6 @@ public class Main {
             MojangEulaUtil.writeInfos(i18n.as("eula.text", "https://account.mojang.com/documents/minecraft_eula") + "\n" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\neula=true");
         }
         BootstrapLauncher.main(forgeArgs.toArray(String[]::new));
+        ProxySelector.setDefault(new YouerProxySelector(ProxySelector.getDefault()));
     }
 }

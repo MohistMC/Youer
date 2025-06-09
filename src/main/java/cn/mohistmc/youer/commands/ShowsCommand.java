@@ -1,9 +1,9 @@
 package cn.mohistmc.youer.commands;
 
 import cn.mohistmc.youer.api.ItemAPI;
+import cn.mohistmc.youer.api.gui.DemoGUI;
 import cn.mohistmc.youer.api.gui.GUIItem;
 import cn.mohistmc.youer.api.gui.ItemStackFactory;
-import cn.mohistmc.youer.api.gui.DemoGUI;
 import cn.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -1,7 +1,7 @@
 package cn.mohistmc.youer.plugins;
 
-import cn.mohistmc.youer.YouerConfig;
 import cn.mohistmc.youer.Youer;
+import cn.mohistmc.youer.YouerConfig;
 import cn.mohistmc.youer.api.event.MohistNetworkEvent;
 import com.mohistmc.tools.IOUtil;
 import java.io.IOException;

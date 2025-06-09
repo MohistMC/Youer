@@ -18,7 +18,7 @@
 +import org.apache.logging.log4j.LogManager;
 +import org.apache.logging.log4j.io.IoBuilder;
 +import org.bukkit.command.CommandSender;
-+import org.bukkit.craftbukkit.v1_21_R1.util.ForwardLogHandler;
++import org.bukkit.craftbukkit.util.ForwardLogHandler;
 +import org.bukkit.event.server.RemoteServerCommandEvent;
 +import org.bukkit.event.server.ServerCommandEvent;
  import org.slf4j.Logger;
@@ -221,7 +221,7 @@
                  Thread thread1 = new Thread(new ServerWatchdog(this));
                  thread1.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(LOGGER));
                  thread1.setName("Server Watchdog");
-@@ -217,6 +_,13 @@
+@@ -217,10 +_,23 @@
                  LOGGER.info("JMX monitoring enabled");
              }
  
@@ -235,6 +235,16 @@
              return true;
          }
      }
+ 
++    // Paper start
++    public java.io.File getPluginsFolder() {
++        return (java.io.File) this.options.valueOf("plugins");
++    }
++    // Paper end
++
+     @Override
+     public boolean isSpawningAnimals() {
+         return this.getProperties().spawnAnimals && super.isSpawningAnimals();
 @@ -295,6 +_,16 @@
          if (this.queryThreadGs4 != null) {
              this.queryThreadGs4.stop();

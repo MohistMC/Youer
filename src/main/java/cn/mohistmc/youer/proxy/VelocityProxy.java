@@ -1,10 +1,8 @@
 package cn.mohistmc.youer.proxy;
 
-import cn.mohistmc.youer.YouerConfig;
 import com.google.common.net.InetAddresses;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
-import io.netty.buffer.Unpooled;
 import io.papermc.paper.configuration.GlobalConfiguration;
 import java.net.InetAddress;
 import java.security.InvalidKeyException;
@@ -14,10 +12,8 @@ import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.protocol.login.custom.CustomQueryPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.ProfilePublicKey;
-import org.jetbrains.annotations.NotNull;
 
 public class VelocityProxy {
     private static final int SUPPORTED_FORWARDING_VERSION = 1;

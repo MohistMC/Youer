@@ -264,7 +264,7 @@ public class NeoDevPlugin implements Plugin<Project> {
                                 "Implementation-Title", "Spigot",
                                 "Implementation-Version", minecraftVersion,
                                 "Implementation-Vendor", "SpigotMC"),
-                        "org/bukkit/craftbukkit/v1_21_R1/");
+                        "org/bukkit/craftbukkit/");
                 manifest.attributes(
                         Map.of(
                                 "Specification-Title", "Mohist",

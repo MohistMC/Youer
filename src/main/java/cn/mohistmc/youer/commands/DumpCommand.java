@@ -23,7 +23,6 @@ import cn.mohistmc.youer.api.ChatComponentAPI;
 import cn.mohistmc.youer.api.ServerAPI;
 import cn.mohistmc.youer.util.I18n;
 import com.mohistmc.tools.HasteUtils;
-import com.mojang.realmsclient.util.LevelType;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

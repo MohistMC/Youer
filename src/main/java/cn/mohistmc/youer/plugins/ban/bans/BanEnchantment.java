@@ -2,8 +2,8 @@ package cn.mohistmc.youer.plugins.ban.bans;
 
 import cn.mohistmc.youer.YouerConfig;
 import cn.mohistmc.youer.api.EnchantmentAPI;
-import org.bukkit.craftbukkit.v1_21_R1.enchantments.CraftEnchantment;
-import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 

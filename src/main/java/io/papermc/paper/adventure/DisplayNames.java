@@ -3,7 +3,7 @@ package io.papermc.paper.adventure;
 import com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.ChatColor;
-import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 
 public final class DisplayNames {
     private DisplayNames() {

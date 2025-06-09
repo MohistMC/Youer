@@ -4,7 +4,6 @@ import cn.mohistmc.youer.bukkit.block.MohistBlockSnapshot;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -30,12 +29,11 @@ import net.neoforged.neoforge.event.level.BlockDropsEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.level.ExplosionEvent;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock;
-import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockState;
-import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockStates;
-import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+import org.bukkit.craftbukkit.block.CraftBlock;
+import org.bukkit.craftbukkit.block.CraftBlockState;
+import org.bukkit.craftbukkit.block.CraftBlockStates;
+import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.event.Cancellable;
-import org.bukkit.event.Event;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
@@ -83,7 +81,7 @@ public class BlockEventDispatcher {
 
     @SubscribeEvent(receiveCanceled = true)
     public void onBlockPlace(BlockDropsEvent event) {
-        org.bukkit.block.Block block = org.bukkit.craftbukkit.v1_21_R1.block.CraftBlock.at(event.getLevel(), event.getPos());
+        org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(event.getLevel(), event.getPos());
         org.bukkit.block.BlockState state = block.getState();
         Entity entity = event.getBreaker();
         if (entity != null) {

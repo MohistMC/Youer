@@ -1,8 +1,8 @@
 package cn.mohistmc.youer.bukkit.entity;
 
 import net.minecraft.world.entity.projectile.Projectile;
-import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_21_R1.entity.CraftProjectile;
+import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.entity.CraftProjectile;
 
 public class YouerModsProjectileEntity extends CraftProjectile {
 

@@ -1,7 +1,7 @@
 package cn.mohistmc.youer.api;
 
 import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
-import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventory;
+import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.inventory.Inventory;
 
 /**

@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import net.minecraft.world.item.enchantment.Enchantment;
-import org.bukkit.craftbukkit.v1_21_R1.enchantments.CraftEnchantment;
-import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 
 /**
  * @author Mgazul by MohistMC

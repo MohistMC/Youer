@@ -20,7 +20,7 @@ package cn.mohistmc.youer.eventhandler.dispatcher;
 
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.item.ItemExpireEvent;
-import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
+import org.bukkit.craftbukkit.event.CraftEventFactory;
 
 public class ItemEventDispatcher {
 

@@ -22,6 +22,8 @@ import com.mohistmc.i18n.i18n;
 import com.mohistmc.launcher.youer.Main;
 import com.mohistmc.yaml.file.YamlConfiguration;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public class YouerConfigUtil {
@@ -42,13 +44,22 @@ public class YouerConfigUtil {
         return !yml.getBoolean("youer.installation-finished", false);
     }
 
-    public static boolean CHECK_UPDATE_AUTO_DOWNLOAD() {
-        String key = "youer.check_update_auto_download";
+    public static boolean NETWORKMANAGER_DEBUG() {
+        String key = "networkmanager.debug";
         if (yml.get(key) == null) {
             yml.set(key, false);
             save();
         }
         return yml.getBoolean(key, false);
+    }
+
+    public static List<String> NETWORKMANAGER_INTERCEPT() {
+        String key = "networkmanager.intercept";
+        if (yml.get(key) == null) {
+            yml.set(key, List.of());
+            save();
+        }
+        return yml.getStringList(key);
     }
 
     public static boolean CHECK_LIBRARIES() {

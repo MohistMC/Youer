@@ -56,7 +56,6 @@ public final class JavaPluginLoader implements PluginLoader {
     private final Pattern[] fileFilters = new Pattern[]{Pattern.compile("\\.jar$")};
     private final List<PluginClassLoader> loaders = new CopyOnWriteArrayList<PluginClassLoader>();
     private final LibraryLoader libraryLoader;
-    public static final CustomTimingsHandler pluginParentTimer = new CustomTimingsHandler("** Plugins"); // Spigot
 
     /**
      * This class was not meant to be constructed explicitly
@@ -70,7 +69,7 @@ public final class JavaPluginLoader implements PluginLoader {
 
         LibraryLoader libraryLoader = null;
         try {
-            libraryLoader = new LibraryLoader();
+            libraryLoader = new LibraryLoader(server.getLogger());
         } catch (NoClassDefFoundError ex) {
             // Provided depends were not added back
             server.getLogger().warning("Could not initialize LibraryLoader (missing dependencies?)");
@@ -81,6 +80,7 @@ public final class JavaPluginLoader implements PluginLoader {
     @Override
     @NotNull
     public Plugin loadPlugin(@NotNull final File file) throws InvalidPluginException {
+        if (true) throw new UnsupportedOperationException(); // Paper
         Preconditions.checkArgument(file != null, "File cannot be null");
 
         if (!file.exists()) {
@@ -94,7 +94,7 @@ public final class JavaPluginLoader implements PluginLoader {
             throw new InvalidPluginException(ex);
         }
 
-        final File parentFile = file.getParentFile();
+        final File parentFile = this.server.getPluginsFolder(); // Paper
         final File dataFolder = new File(parentFile, description.getName());
         @SuppressWarnings("deprecation")
         final File oldDataFolder = new File(parentFile, description.getRawName());
@@ -144,7 +144,7 @@ public final class JavaPluginLoader implements PluginLoader {
 
         final PluginClassLoader loader;
         try {
-            loader = new PluginClassLoader(this, getClass().getClassLoader(), description, dataFolder, file, (libraryLoader != null) ? libraryLoader.createLoader(description) : null);
+            loader = new PluginClassLoader(getClass().getClassLoader(), description, dataFolder, file, (libraryLoader != null) ? libraryLoader.createLoader(description) : null, null, null); // Paper
         } catch (InvalidPluginException ex) {
             throw ex;
         } catch (Throwable ex) {

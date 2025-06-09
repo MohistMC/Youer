@@ -1,6 +1,7 @@
 package org.bukkit.command;
 
 import com.google.common.base.Preconditions;
+import io.papermc.paper.command.PaperPluginsCommand;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,7 +35,7 @@ public class SimpleCommandMap implements CommandMap {
     private void setDefaultCommands() {
         register("bukkit", new VersionCommand("version"));
         register("bukkit", new ReloadCommand("reload"));
-        register("bukkit", new PluginsCommand("plugins"));
+        register("bukkit", new PaperPluginsCommand());
     }
 
     public void setFallbackCommands() {

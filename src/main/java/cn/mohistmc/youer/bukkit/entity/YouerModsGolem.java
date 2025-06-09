@@ -1,8 +1,8 @@
 package cn.mohistmc.youer.bukkit.entity;
 
 import net.minecraft.world.entity.animal.AbstractGolem;
-import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_21_R1.entity.CraftGolem;
+import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.entity.CraftGolem;
 
 /**
  * @author Mgazul by MohistMC

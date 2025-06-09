@@ -1,6 +1,5 @@
 package cn.mohistmc.youer.proxy;
 
-import cn.mohistmc.youer.YouerConfig;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.papermc.paper.configuration.GlobalConfiguration;

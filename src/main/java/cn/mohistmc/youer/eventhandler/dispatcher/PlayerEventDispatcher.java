@@ -22,9 +22,9 @@ import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent;
-import org.bukkit.craftbukkit.v1_21_R1.event.CraftEventFactory;
-import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventory;
-import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventoryView;
+import org.bukkit.craftbukkit.event.CraftEventFactory;
+import org.bukkit.craftbukkit.inventory.CraftInventory;
+import org.bukkit.craftbukkit.inventory.CraftInventoryView;
 
 
 public class PlayerEventDispatcher {

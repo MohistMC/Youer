@@ -4,7 +4,6 @@ import cn.mohistmc.youer.eventhandler.EventDispatcherRegistry;
 import cn.mohistmc.youer.plugins.MohistProxySelector;
 import cn.mohistmc.youer.util.VersionInfo;
 import com.mohistmc.i18n.i18n;
-import java.io.File;
 import java.net.ProxySelector;
 import java.util.HashMap;
 import java.util.Locale;
