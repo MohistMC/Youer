@@ -19,6 +19,8 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.JsonOps;
+import java.util.Iterator;
+import java.util.function.Supplier;
 import net.minecraft.SharedConstants;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
@@ -26,8 +28,6 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.util.GsonHelper;
 import org.slf4j.Logger;
-import java.util.Iterator;
-import java.util.function.Supplier;
 
 public final class V3818_Commands {
 

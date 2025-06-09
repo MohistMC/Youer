@@ -13,10 +13,10 @@ public class DataParser {
     public static final List<String> launchArgs = new ArrayList<>();
 
     public static void parseVersions() {
-        versionMap.put("neoforge", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/neoforge.txt").get(0));
-        versionMap.put("minecraft", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/minecraft.txt").get(0));
-        versionMap.put("youer", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/youer.txt").get(0));
-        versionMap.put("mcp", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/mcp.txt").get(0));
+        versionMap.put("neoforge", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/neoforge.txt").getFirst());
+        versionMap.put("minecraft", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/minecraft.txt").getFirst());
+        versionMap.put("youer", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/youer.txt").getFirst());
+        versionMap.put("mcp", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/mcp.txt").getFirst());
 
         Main.MCVERSION = versionMap.get("minecraft");
     }

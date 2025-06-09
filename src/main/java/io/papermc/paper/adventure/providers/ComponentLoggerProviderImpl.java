@@ -1,11 +1,11 @@
 package io.papermc.paper.adventure.providers;
 
-import io.papermc.paper.adventure.PaperAdventure;
-import java.util.Locale;
 import com.mohistmc.net.kyori.adventure.text.Component;
 import com.mohistmc.net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import com.mohistmc.net.kyori.adventure.text.logger.slf4j.ComponentLoggerProvider;
 import com.mohistmc.net.kyori.adventure.translation.GlobalTranslator;
+import io.papermc.paper.adventure.PaperAdventure;
+import java.util.Locale;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 

@@ -1,12 +1,12 @@
 package io.papermc.paper.plugin.provider.configuration.serializer;
 
 import com.google.common.collect.ImmutableList;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
+import com.mohistmc.org.spongepowered.configurate.util.CheckedConsumer;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
-import com.mohistmc.org.spongepowered.configurate.util.CheckedConsumer;
 
 public class ImmutableListSerializer extends ImmutableCollectionSerializer<ImmutableList.Builder<?>, List<?>> {
 

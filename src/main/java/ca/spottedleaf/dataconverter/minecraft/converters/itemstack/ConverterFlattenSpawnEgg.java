@@ -1,7 +1,6 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.itemstack;
 
 import ca.spottedleaf.dataconverter.converters.DataConverter;
-import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.types.MapType;
 import java.util.HashMap;
 import java.util.Map;

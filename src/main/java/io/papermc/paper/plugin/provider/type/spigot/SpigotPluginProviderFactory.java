@@ -1,6 +1,5 @@
 package io.papermc.paper.plugin.provider.type.spigot;
 
-import io.papermc.paper.utils.PaperPluginLogger;
 import com.mohistmc.net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import com.mohistmc.org.yaml.snakeyaml.error.YAMLException;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContextImpl;
@@ -12,6 +11,7 @@ import io.papermc.paper.plugin.provider.configuration.serializer.constraints.Plu
 import io.papermc.paper.plugin.provider.type.PluginTypeFactory;
 import io.papermc.paper.plugin.provider.util.ProviderUtil;
 import io.papermc.paper.util.MappingEnvironment;
+import io.papermc.paper.utils.PaperPluginLogger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;

@@ -1,5 +1,6 @@
 package cn.mohistmc.youer.bukkit.remapping;
 
+import cn.mohistmc.youer.asm.SwitchTableFixer;
 import com.google.common.io.ByteStreams;
 import io.izzel.tools.product.Product2;
 import java.io.IOException;
@@ -64,7 +65,9 @@ public class RemappingURLClassLoader extends URLClassLoader implements Remapping
                 }
                 byteSource = () -> {
                     try (InputStream is = connection.getInputStream()) {
-                        return ByteStreams.toByteArray(is);
+                        byte[] classBytes = ByteStreams.toByteArray(is);
+                        classBytes = SwitchTableFixer.INSTANCE.apply(classBytes);
+                        return classBytes;
                     }
                 };
             } catch (IOException e) {

@@ -16,7 +16,6 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 
 import static java.util.Objects.requireNonNullElse;

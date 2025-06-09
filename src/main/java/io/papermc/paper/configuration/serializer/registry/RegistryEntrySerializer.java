@@ -1,6 +1,8 @@
 package io.papermc.paper.configuration.serializer.registry;
 
 import com.mohistmc.io.leangen.geantyref.TypeToken;
+import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import java.lang.reflect.Type;
 import java.util.function.Predicate;
 import net.minecraft.core.Registry;
@@ -8,8 +10,6 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 abstract class RegistryEntrySerializer<T, R> extends ScalarSerializer<T> {
 

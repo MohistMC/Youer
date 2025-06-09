@@ -1,11 +1,11 @@
 package io.papermc.paper.configuration.type;
 
-import io.papermc.paper.configuration.type.number.IntOr;
-import java.lang.reflect.Type;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
 import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import com.mohistmc.org.spongepowered.configurate.serialize.TypeSerializer;
+import io.papermc.paper.configuration.type.number.IntOr;
+import java.lang.reflect.Type;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /*
 (x/a)^2 + (y/b)^2 + (z/c)^2 < 1

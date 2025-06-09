@@ -1,5 +1,7 @@
 package io.papermc.paper.configuration.mapping;
 
+import com.mohistmc.org.spongepowered.configurate.objectmapping.FieldDiscoverer;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import io.papermc.paper.configuration.ConfigurationPart;
 import io.papermc.paper.configuration.WorldConfiguration;
 import java.lang.reflect.AnnotatedType;
@@ -7,8 +9,6 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.FieldDiscoverer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 import static com.mohistmc.io.leangen.geantyref.GenericTypeReflector.erase;
 

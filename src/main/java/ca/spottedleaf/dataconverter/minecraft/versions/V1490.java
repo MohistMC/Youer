@@ -4,7 +4,6 @@ import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.blockname.ConverterAbstractBlockRename;
 import ca.spottedleaf.dataconverter.minecraft.converters.itemname.ConverterAbstractItemRename;
 import com.google.common.collect.ImmutableMap;
-
 import java.util.HashMap;
 
 public final class V1490 {

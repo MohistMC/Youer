@@ -4,16 +4,16 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
 import com.mohistmc.io.leangen.geantyref.TypeFactory;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.Map;
-import java.util.Objects;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import com.mohistmc.org.spongepowered.configurate.BasicConfigurationNode;
 import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
 import com.mohistmc.org.spongepowered.configurate.ConfigurationOptions;
 import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import com.mohistmc.org.spongepowered.configurate.serialize.TypeSerializer;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.Map;
+import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class TableSerializer implements TypeSerializer<Table<?, ?, ?>> {
     private static final int ROW_TYPE_ARGUMENT_INDEX = 0;

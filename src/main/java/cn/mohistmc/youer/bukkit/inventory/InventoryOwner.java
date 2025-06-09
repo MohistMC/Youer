@@ -82,30 +82,34 @@ public class InventoryOwner {
 
     @Nullable
     public static InventoryHolder get(IItemHandler handler) {
-        if (handler == null) {
-            return null;
-        }
-        if (handler instanceof ItemStackHandler) {
-            return new CraftCustomInventory((ItemStackHandler) handler);
-        }
-        if (handler instanceof SlotItemHandler) {
-            return new CraftCustomInventory(((SlotItemHandler) handler).container);
-        }
-        if (handler instanceof InvWrapper) {
-            return new CraftCustomInventory(((InvWrapper) handler).getInv());
-        }
-        if (handler instanceof SidedInvWrapper) {
-            return new CraftCustomInventory(((SidedInvWrapper) handler).inv);
-        }
-        if (handler instanceof PlayerInvWrapper) {
-            IItemHandlerModifiable[] piw = ((PlayerInvWrapper) handler).itemHandler;
-            for (IItemHandlerModifiable itemHandler : piw) {
-                if (itemHandler instanceof PlayerMainInvWrapper) {
-                    return new CraftCustomInventory(((PlayerMainInvWrapper) itemHandler).getInventoryPlayer());
+        switch (handler) {
+            case null -> {
+                return null;
+            }
+            case ItemStackHandler itemStackHandler -> {
+                return new CraftCustomInventory(itemStackHandler);
+            }
+            case SlotItemHandler slotItemHandler -> {
+                return new CraftCustomInventory(slotItemHandler.container);
+            }
+            case InvWrapper invWrapper -> {
+                return new CraftCustomInventory(invWrapper.getInv());
+            }
+            case SidedInvWrapper sidedInvWrapper -> {
+                return new CraftCustomInventory(sidedInvWrapper.inv);
+            }
+            case PlayerInvWrapper playerInvWrapper -> {
+                IItemHandlerModifiable[] piw = playerInvWrapper.itemHandler;
+                for (IItemHandlerModifiable itemHandler : piw) {
+                    if (itemHandler instanceof PlayerMainInvWrapper) {
+                        return new CraftCustomInventory(((PlayerMainInvWrapper) itemHandler).getInventoryPlayer());
+                    }
+                    if (itemHandler instanceof PlayerArmorInvWrapper) {
+                        return new CraftCustomInventory(((PlayerArmorInvWrapper) itemHandler).getInventoryPlayer());
+                    }
                 }
-                if (itemHandler instanceof PlayerArmorInvWrapper) {
-                    return new CraftCustomInventory(((PlayerArmorInvWrapper) itemHandler).getInventoryPlayer());
-                }
+            }
+            default -> {
             }
         }
         return null;

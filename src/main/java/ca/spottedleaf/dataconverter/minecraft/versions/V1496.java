@@ -12,10 +12,10 @@ import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.util.datafix.PackedBitStorage;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import net.minecraft.util.datafix.PackedBitStorage;
 
 public final class V1496 {
 

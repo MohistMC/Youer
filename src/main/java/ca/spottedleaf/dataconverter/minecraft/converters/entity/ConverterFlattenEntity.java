@@ -6,7 +6,6 @@ import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperBlockFlat
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.ObjectType;
-
 import java.util.HashMap;
 import java.util.Map;
 

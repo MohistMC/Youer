@@ -1,20 +1,18 @@
 package io.papermc.paper.configuration.transformation.global;
 
-import com.mojang.logging.LogUtils;
-import io.papermc.paper.configuration.Configuration;
-import java.util.function.Predicate;
 import com.mohistmc.net.kyori.adventure.text.Component;
 import com.mohistmc.net.kyori.adventure.text.format.NamedTextColor;
 import com.mohistmc.net.kyori.adventure.text.minimessage.MiniMessage;
 import com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
+import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
+import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
+import io.papermc.paper.configuration.Configuration;
+import java.util.function.Predicate;
 import net.minecraft.network.protocol.game.ServerboundPlaceRecipePacket;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.slf4j.Logger;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
-import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
 
 import static com.mohistmc.org.spongepowered.configurate.NodePath.path;
 

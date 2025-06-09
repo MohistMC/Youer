@@ -1,7 +1,12 @@
 package io.papermc.paper.configuration.serializer.collections;
 
-import com.mojang.logging.LogUtils;
 import com.mohistmc.io.leangen.geantyref.TypeToken;
+import com.mohistmc.org.spongepowered.configurate.BasicConfigurationNode;
+import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
+import com.mohistmc.org.spongepowered.configurate.ConfigurationOptions;
+import com.mohistmc.org.spongepowered.configurate.NodePath;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
+import com.mohistmc.org.spongepowered.configurate.serialize.TypeSerializer;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collections;
@@ -13,12 +18,6 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.BasicConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationOptions;
-import com.mohistmc.org.spongepowered.configurate.NodePath;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
-import com.mohistmc.org.spongepowered.configurate.serialize.TypeSerializer;
 
 /**
  * Map serializer that does not throw errors on individual entry serialization failures.

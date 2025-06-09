@@ -2,15 +2,15 @@ package io.papermc.paper.configuration.serializer.collections;
 
 import com.mohistmc.io.leangen.geantyref.GenericTypeReflector;
 import com.mohistmc.io.leangen.geantyref.TypeFactory;
+import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
+import com.mohistmc.org.spongepowered.configurate.serialize.TypeSerializer;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
-import com.mohistmc.org.spongepowered.configurate.serialize.TypeSerializer;
 
 @SuppressWarnings("rawtypes")
 public abstract class FastutilMapSerializer<M extends Map<?, ?>> implements TypeSerializer<M> {

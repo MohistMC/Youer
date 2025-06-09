@@ -9,7 +9,6 @@ import ca.spottedleaf.dataconverter.types.ListType;
 import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.ObjectType;
 import com.google.common.collect.ImmutableMap;
-
 import java.util.HashMap;
 
 public final class V1488 {

@@ -1,14 +1,14 @@
 package io.papermc.paper.configuration.transformation.global.versioned;
 
-import java.util.Properties;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.dedicated.DedicatedServer;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import com.mohistmc.org.spongepowered.configurate.ConfigurateException;
 import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
 import com.mohistmc.org.spongepowered.configurate.NodePath;
 import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
 import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
+import java.util.Properties;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.dedicated.DedicatedServer;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import static com.mohistmc.org.spongepowered.configurate.NodePath.path;
 

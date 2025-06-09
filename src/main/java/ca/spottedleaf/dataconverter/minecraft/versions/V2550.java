@@ -8,10 +8,10 @@ import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.Types;
 import com.google.common.collect.ImmutableMap;
-import org.apache.commons.lang3.math.NumberUtils;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import org.apache.commons.lang3.math.NumberUtils;
 
 public final class V2550 {
 

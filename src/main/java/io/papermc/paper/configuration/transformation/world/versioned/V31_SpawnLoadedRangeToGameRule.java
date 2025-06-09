@@ -1,12 +1,12 @@
 package io.papermc.paper.configuration.transformation.world.versioned;
 
-import io.papermc.paper.configuration.Configurations;
-import net.minecraft.world.level.GameRules;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
 import com.mohistmc.org.spongepowered.configurate.NodePath;
 import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
 import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
+import io.papermc.paper.configuration.Configurations;
+import net.minecraft.world.level.GameRules;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import static com.mohistmc.org.spongepowered.configurate.NodePath.path;
 

@@ -4,16 +4,16 @@ import ca.spottedleaf.dataconverter.converters.DataConverter;
 import ca.spottedleaf.dataconverter.converters.datatypes.DataHook;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.chunk.ConverterFlattenChunk;
+import ca.spottedleaf.dataconverter.minecraft.converters.entity.ConverterFlattenEntity;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperBlockFlatteningV1450;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperItemNameV102;
 import ca.spottedleaf.dataconverter.minecraft.converters.itemstack.ConverterFlattenItemStack;
 import ca.spottedleaf.dataconverter.minecraft.converters.itemstack.ConverterFlattenSpawnEgg;
 import ca.spottedleaf.dataconverter.minecraft.converters.stats.ConverterFlattenStats;
-import ca.spottedleaf.dataconverter.minecraft.converters.entity.ConverterFlattenEntity;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.DataWalkerTypePaths;
-import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItemLists;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
+import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItemLists;
 import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItems;
 import ca.spottedleaf.dataconverter.minecraft.walkers.tile_entity.DataWalkerTileEntities;
 import ca.spottedleaf.dataconverter.types.ListType;
@@ -21,14 +21,14 @@ import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.Types;
 import com.google.common.base.Splitter;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.datafix.fixes.BlockStateData;
-import net.minecraft.util.datafix.fixes.EntityBlockStateFix;
-import org.apache.commons.lang3.math.NumberUtils;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.datafix.fixes.BlockStateData;
+import net.minecraft.util.datafix.fixes.EntityBlockStateFix;
+import org.apache.commons.lang3.math.NumberUtils;
 
 public final class V1451 {
 

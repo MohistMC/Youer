@@ -1,12 +1,12 @@
 package io.papermc.paper.configuration.type.number;
 
+import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import java.lang.reflect.AnnotatedType;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.math.NumberUtils;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 public abstract class OptionalNumSerializer<T, O> extends ScalarSerializer.Annotated<T> {
 

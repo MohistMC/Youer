@@ -22,7 +22,6 @@ import com.mohistmc.i18n.i18n;
 import com.mohistmc.launcher.youer.Main;
 import com.mohistmc.yaml.file.YamlConfiguration;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 

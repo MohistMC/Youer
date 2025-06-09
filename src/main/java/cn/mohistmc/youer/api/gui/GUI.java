@@ -24,8 +24,6 @@ public class GUI {
         this.type = type;
         this.tempName = name;
         switch (type) {
-            default:
-                this.items = new GUIItem[36];
             case ONEBYNINE:
                 this.items = new GUIItem[9];
                 break;
@@ -35,15 +33,15 @@ public class GUI {
             case THREEBYNINE:
                 this.items = new GUIItem[27];
                 break;
-            case FOURBYNINE:
-                this.items = new GUIItem[36];
-                break;
             case FIVEBYNINE:
                 this.items = new GUIItem[45];
                 break;
             case SIXBYNINE:
                 this.items = new GUIItem[54];
                 break;
+            case FOURBYNINE:
+            default:
+                this.items = new GUIItem[36];
         }
     }
 

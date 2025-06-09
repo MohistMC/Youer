@@ -1,10 +1,10 @@
 package io.papermc.paper.event.player;
 
-import io.papermc.paper.chat.ChatRenderer;
-import java.util.Set;
 import com.mohistmc.net.kyori.adventure.audience.Audience;
 import com.mohistmc.net.kyori.adventure.chat.SignedMessage;
 import com.mohistmc.net.kyori.adventure.text.Component;
+import io.papermc.paper.chat.ChatRenderer;
+import java.util.Set;
 import org.bukkit.Warning;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;

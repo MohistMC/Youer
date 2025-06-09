@@ -2,7 +2,12 @@ package io.papermc.paper.configuration;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import com.mojang.logging.LogUtils;
+import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
+import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Comment;
+import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.PostProcess;
+import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Required;
+import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Setting;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import io.papermc.paper.configuration.legacy.MaxEntityCollisionsInitializer;
 import io.papermc.paper.configuration.legacy.RequiresSpigotInitialization;
 import io.papermc.paper.configuration.mapping.MergeMap;
@@ -55,12 +60,6 @@ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.spigotmc.SpigotWorldConfig;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Comment;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.PostProcess;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Required;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Setting;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic"})
 public class WorldConfiguration extends ConfigurationPart {

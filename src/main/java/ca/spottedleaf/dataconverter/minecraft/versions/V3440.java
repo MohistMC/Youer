@@ -5,7 +5,6 @@ import ca.spottedleaf.dataconverter.minecraft.converters.helpers.ConverterAbstra
 import ca.spottedleaf.dataconverter.minecraft.converters.leveldat.ConverterRemoveFeatureFlag;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.util.NamespaceUtil;
-
 import java.util.Arrays;
 import java.util.HashSet;
 

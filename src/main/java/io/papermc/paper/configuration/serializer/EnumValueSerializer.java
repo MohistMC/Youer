@@ -1,7 +1,9 @@
 package io.papermc.paper.configuration.serializer;
 
-import com.mojang.logging.LogUtils;
 import com.mohistmc.io.leangen.geantyref.TypeToken;
+import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
+import com.mohistmc.org.spongepowered.configurate.util.EnumLookup;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
@@ -9,9 +11,6 @@ import java.util.function.Predicate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
-import com.mohistmc.org.spongepowered.configurate.util.EnumLookup;
 
 import static com.mohistmc.io.leangen.geantyref.GenericTypeReflector.erase;
 

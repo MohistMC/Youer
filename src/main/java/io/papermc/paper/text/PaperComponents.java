@@ -1,6 +1,5 @@
 package io.papermc.paper.text;
 
-import java.io.IOException;
 import com.mohistmc.net.kyori.adventure.text.Component;
 import com.mohistmc.net.kyori.adventure.text.flattener.ComponentFlattener;
 import com.mohistmc.net.kyori.adventure.text.format.NamedTextColor;
@@ -8,6 +7,7 @@ import com.mohistmc.net.kyori.adventure.text.serializer.gson.GsonComponentSerial
 import com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import com.mohistmc.net.kyori.adventure.text.serializer.plain.PlainComponentSerializer;
 import com.mohistmc.net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import java.io.IOException;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;

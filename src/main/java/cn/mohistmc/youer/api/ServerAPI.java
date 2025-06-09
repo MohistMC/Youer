@@ -30,7 +30,7 @@ public class ServerAPI {
 
     public static boolean yes_steve_model() {
         return modlists_All.contains("yes_steve_model");
-    };
+    }
 
     static {
         for (IModInfo modInfo : ModList.get().getMods()) {

@@ -1,14 +1,13 @@
 package io.papermc.paper.configuration.type.number;
 
 import com.google.common.base.Preconditions;
-import com.mojang.logging.LogUtils;
+import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
 import java.util.OptionalInt;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
 
 public interface IntOr {
 

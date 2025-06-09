@@ -5,6 +5,7 @@ import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.types.Types;
+import java.util.Set;
 import net.minecraft.nbt.ByteArrayTag;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntArrayTag;
@@ -13,8 +14,6 @@ import net.minecraft.nbt.LongArrayTag;
 import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
-
-import java.util.Set;
 
 public final class NBTMapType implements MapType<String> {
 

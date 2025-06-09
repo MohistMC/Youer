@@ -1,10 +1,10 @@
 package io.papermc.paper.configuration.serializer;
 
+import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import io.papermc.paper.configuration.type.EngineMode;
 import java.lang.reflect.Type;
 import java.util.function.Predicate;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 public final class EngineModeSerializer extends ScalarSerializer<EngineMode> {
 

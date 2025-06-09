@@ -1,10 +1,10 @@
 package io.papermc.paper.configuration.transformation;
 
-import io.papermc.paper.configuration.Configuration;
-import io.papermc.paper.configuration.Configurations;
 import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
 import com.mohistmc.org.spongepowered.configurate.NodePath;
 import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
+import io.papermc.paper.configuration.Configuration;
+import io.papermc.paper.configuration.Configurations;
 
 import static com.mohistmc.org.spongepowered.configurate.NodePath.path;
 

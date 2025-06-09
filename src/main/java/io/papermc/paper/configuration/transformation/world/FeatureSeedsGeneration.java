@@ -1,7 +1,11 @@
 package io.papermc.paper.configuration.transformation.world;
 
-import com.mojang.logging.LogUtils;
 import com.mohistmc.io.leangen.geantyref.TypeToken;
+import com.mohistmc.org.spongepowered.configurate.ConfigurateException;
+import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
+import com.mohistmc.org.spongepowered.configurate.NodePath;
+import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
+import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
 import io.papermc.paper.configuration.Configurations;
 import it.unimi.dsi.fastutil.objects.Reference2LongMap;
 import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
@@ -17,11 +21,6 @@ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.ConfigurateException;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.NodePath;
-import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
-import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
 
 import static com.mohistmc.org.spongepowered.configurate.NodePath.path;
 

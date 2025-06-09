@@ -3,12 +3,12 @@ package io.papermc.paper.configuration.serializer.registry;
 import com.google.common.base.Preconditions;
 import com.mohistmc.io.leangen.geantyref.TypeFactory;
 import com.mohistmc.io.leangen.geantyref.TypeToken;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import java.util.function.Function;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceKey;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 public final class RegistryHolderSerializer<T> extends RegistryEntrySerializer<Holder<T>, T> {
 

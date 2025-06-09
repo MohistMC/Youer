@@ -1,5 +1,7 @@
 package io.papermc.paper.configuration.type.fallback;
 
+import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,8 +10,6 @@ import java.util.function.Supplier;
 import net.minecraft.server.MinecraftServer;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.spigotmc.SpigotWorldConfig;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 import static com.mohistmc.io.leangen.geantyref.GenericTypeReflector.erase;
 

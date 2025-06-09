@@ -1,8 +1,15 @@
 package io.papermc.paper.configuration;
 
 import com.google.common.base.Preconditions;
-import com.mojang.logging.LogUtils;
 import com.mohistmc.io.leangen.geantyref.TypeToken;
+import com.mohistmc.org.spongepowered.configurate.CommentedConfigurationNode;
+import com.mohistmc.org.spongepowered.configurate.ConfigurateException;
+import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
+import com.mohistmc.org.spongepowered.configurate.ConfigurationOptions;
+import com.mohistmc.org.spongepowered.configurate.objectmapping.ObjectMapper;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
+import com.mohistmc.org.spongepowered.configurate.util.CheckedFunction;
+import com.mohistmc.org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 import io.papermc.paper.configuration.constraint.Constraint;
 import io.papermc.paper.configuration.constraint.Constraints;
 import java.io.IOException;
@@ -23,14 +30,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
-import com.mohistmc.org.spongepowered.configurate.CommentedConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.ConfigurateException;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.ConfigurationOptions;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.ObjectMapper;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
-import com.mohistmc.org.spongepowered.configurate.util.CheckedFunction;
-import com.mohistmc.org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
 public abstract class Configurations<G, W> {
 

@@ -1,11 +1,11 @@
 package io.papermc.paper.configuration.type.number;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
 import java.util.OptionalDouble;
 import java.util.function.DoublePredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
 
 public interface DoubleOr {
 

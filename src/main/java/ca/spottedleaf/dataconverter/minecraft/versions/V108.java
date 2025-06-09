@@ -5,8 +5,8 @@ import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.types.MapType;
 import com.mojang.logging.LogUtils;
-import org.slf4j.Logger;
 import java.util.UUID;
+import org.slf4j.Logger;
 
 public final class V108 {
 

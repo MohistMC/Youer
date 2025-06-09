@@ -1,6 +1,5 @@
 package io.papermc.paper.plugin.provider.type.paper;
 
-import io.papermc.paper.utils.PaperPluginLogger;
 import com.mohistmc.net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContext;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContextImpl;
@@ -11,6 +10,7 @@ import io.papermc.paper.plugin.loader.PluginLoader;
 import io.papermc.paper.plugin.provider.configuration.PaperPluginMeta;
 import io.papermc.paper.plugin.provider.type.PluginTypeFactory;
 import io.papermc.paper.plugin.provider.util.ProviderUtil;
+import io.papermc.paper.utils.PaperPluginLogger;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;

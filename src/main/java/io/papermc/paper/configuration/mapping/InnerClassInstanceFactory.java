@@ -1,13 +1,13 @@
 package io.papermc.paper.configuration.mapping;
 
+import com.mohistmc.org.spongepowered.configurate.objectmapping.FieldDiscoverer;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Field;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.FieldDiscoverer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 import static com.mohistmc.io.leangen.geantyref.GenericTypeReflector.erase;
 

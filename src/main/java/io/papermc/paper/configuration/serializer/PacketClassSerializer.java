@@ -2,8 +2,9 @@ package io.papermc.paper.configuration.serializer;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
-import com.mojang.logging.LogUtils;
 import com.mohistmc.io.leangen.geantyref.TypeToken;
+import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import io.papermc.paper.configuration.serializer.collections.MapSerializer;
 import io.papermc.paper.util.MappingEnvironment;
 import io.papermc.paper.util.ObfHelper;
@@ -15,8 +16,6 @@ import net.minecraft.network.protocol.Packet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 @SuppressWarnings("Convert2Diamond")
 public final class PacketClassSerializer extends ScalarSerializer<Class<? extends Packet<?>>> implements MapSerializer.WriteBack {

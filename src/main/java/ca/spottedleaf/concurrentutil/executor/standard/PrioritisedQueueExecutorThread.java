@@ -1,10 +1,10 @@
 package ca.spottedleaf.concurrentutil.executor.standard;
 
 import ca.spottedleaf.concurrentutil.util.ConcurrentUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.lang.invoke.VarHandle;
 import java.util.concurrent.locks.LockSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Thread which will continuously drain from a specified queue.

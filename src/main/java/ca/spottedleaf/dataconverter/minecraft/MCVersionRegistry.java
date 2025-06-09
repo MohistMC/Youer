@@ -9,10 +9,10 @@ import it.unimi.dsi.fastutil.ints.IntRBTreeSet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongComparator;
 import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
-import org.slf4j.Logger;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Locale;
+import org.slf4j.Logger;
 
 public final class MCVersionRegistry {
 

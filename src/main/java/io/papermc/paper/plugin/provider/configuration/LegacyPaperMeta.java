@@ -1,6 +1,13 @@
 package io.papermc.paper.plugin.provider.configuration;
 
 import com.google.gson.reflect.TypeToken;
+import com.mohistmc.org.spongepowered.configurate.CommentedConfigurationNode;
+import com.mohistmc.org.spongepowered.configurate.ConfigurateException;
+import com.mohistmc.org.spongepowered.configurate.NodePath;
+import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
+import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Required;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
+import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
 import io.papermc.paper.plugin.provider.configuration.type.DependencyConfiguration;
 import io.papermc.paper.plugin.provider.configuration.type.PluginDependencyLifeCycle;
 import java.util.EnumMap;
@@ -9,13 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import com.mohistmc.org.spongepowered.configurate.CommentedConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.ConfigurateException;
-import com.mohistmc.org.spongepowered.configurate.NodePath;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Required;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
-import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
 
 class LegacyPaperMeta {
 

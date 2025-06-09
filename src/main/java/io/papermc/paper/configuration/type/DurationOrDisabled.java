@@ -1,10 +1,10 @@
 package io.papermc.paper.configuration.type;
 
+import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import java.lang.reflect.Type;
 import java.util.Optional;
 import java.util.function.Predicate;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public final class DurationOrDisabled {

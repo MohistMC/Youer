@@ -1,20 +1,36 @@
 --- a/net/minecraft/core/registries/BuiltInRegistries.java
 +++ b/net/minecraft/core/registries/BuiltInRegistries.java
-@@ -322,7 +_,14 @@
+@@ -5,6 +_,7 @@
+ import com.mojang.serialization.Lifecycle;
+ import com.mojang.serialization.MapCodec;
+ import java.util.Map;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.Supplier;
+ import net.minecraft.Util;
+ import net.minecraft.advancements.CriteriaTriggers;
+@@ -321,12 +_,22 @@
+         return p_260327_;
      }
  
-     public static void bootStrap() {
-+        // Paper start
-+        bootStrap(() -> {});
-+    }
++    public static AtomicReference<Runnable> bootStrap$runnable = new AtomicReference<>();
 +
-+    public static void bootStrap(Runnable runnable) {
-+        // Paper end
+     public static void bootStrap() {
          createContents();
-+        runnable.run(); // Paper
++        if (bootStrap$runnable.get() != null) {
++            bootStrap$runnable.getAndSet(null).run();
++        }
          freeze();
          validate(REGISTRY);
      }
+ 
++    public static void bootStrap(Runnable runnable) {
++        bootStrap$runnable.set(runnable);
++        bootStrap();
++    }
++
+     private static void createContents() {
+         LOADERS.forEach((p_259863_, p_259387_) -> {
+             if (p_259387_.get() == null) {
 @@ -354,6 +_,10 @@
                  Validate.notNull(p_339350_.get(resourcelocation), "Missing default of DefaultedMappedRegistry: " + resourcelocation);
              }

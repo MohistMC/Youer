@@ -1,10 +1,10 @@
 package io.papermc.paper.configuration;
 
-import java.nio.file.Path;
 import com.mohistmc.org.spongepowered.configurate.loader.HeaderMode;
 import com.mohistmc.org.spongepowered.configurate.util.MapFactories;
 import com.mohistmc.org.spongepowered.configurate.yaml.NodeStyle;
 import com.mohistmc.org.spongepowered.configurate.yaml.YamlConfigurationLoader;
+import java.nio.file.Path;
 
 public final class ConfigurationLoaders {
     private ConfigurationLoaders() {

@@ -1,7 +1,5 @@
 package io.papermc.paper.plugin.provider.type.spigot;
 
-import io.papermc.paper.util.SneakyThrow;
-import io.papermc.paper.utils.PaperPluginLogger;
 import com.mohistmc.net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import io.papermc.paper.plugin.entrypoint.dependency.DependencyContextHolder;
 import io.papermc.paper.plugin.manager.PaperPluginManagerImpl;
@@ -11,6 +9,8 @@ import io.papermc.paper.plugin.provider.ProviderStatusHolder;
 import io.papermc.paper.plugin.provider.configuration.LoadOrderConfiguration;
 import io.papermc.paper.plugin.provider.entrypoint.DependencyContext;
 import io.papermc.paper.plugin.provider.type.PluginTypeFactory;
+import io.papermc.paper.util.SneakyThrow;
+import io.papermc.paper.utils.PaperPluginLogger;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;

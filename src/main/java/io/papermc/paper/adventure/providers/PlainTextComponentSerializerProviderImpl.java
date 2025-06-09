@@ -1,8 +1,8 @@
 package io.papermc.paper.adventure.providers;
 
+import com.mohistmc.net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import io.papermc.paper.adventure.PaperAdventure;
 import java.util.function.Consumer;
-import com.mohistmc.net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("UnstableApiUsage") // permitted provider

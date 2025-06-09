@@ -1,5 +1,6 @@
 package org.bukkit.plugin.java;
 
+import cn.mohistmc.youer.asm.SwitchTableFixer;
 import cn.mohistmc.youer.bukkit.pluginfix.PluginFixManager;
 import cn.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
 import cn.mohistmc.youer.bukkit.remapping.Remapper;
@@ -236,6 +237,7 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
                     byteSource = () -> {
                         try (InputStream is = connection.getInputStream()) {
                             byte[] classBytes = ByteStreams.toByteArray(is);
+                            classBytes = SwitchTableFixer.INSTANCE.apply(classBytes);
                             classBytes = Bukkit.getServer().getUnsafe().processClass(description, path, classBytes);
                             classBytes = PluginFixManager.injectPluginFix(name, classBytes); // Mohist - Inject plugin fix
                             return classBytes;

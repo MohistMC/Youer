@@ -1,12 +1,12 @@
 package io.papermc.paper.configuration.type;
 
+import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import java.lang.reflect.Type;
 import java.util.Locale;
 import java.util.function.Predicate;
 import org.apache.commons.lang3.BooleanUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 public record BooleanOrDefault(@Nullable Boolean value) {
     private static final String DEFAULT_VALUE = "default";

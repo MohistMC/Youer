@@ -1,8 +1,8 @@
 package ca.spottedleaf.dataconverter.types.nbt;
 
-import ca.spottedleaf.dataconverter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.ListType;
 import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.dataconverter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.types.Types;
 import net.minecraft.nbt.ByteArrayTag;

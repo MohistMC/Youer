@@ -1,5 +1,8 @@
 package io.papermc.paper.configuration.mapping;
 
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
+import com.mohistmc.org.spongepowered.configurate.util.CheckedFunction;
+import com.mohistmc.org.spongepowered.configurate.util.CheckedSupplier;
 import io.papermc.paper.configuration.ConfigurationPart;
 import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Constructor;
@@ -8,9 +11,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
-import com.mohistmc.org.spongepowered.configurate.util.CheckedFunction;
-import com.mohistmc.org.spongepowered.configurate.util.CheckedSupplier;
 
 import static com.mohistmc.io.leangen.geantyref.GenericTypeReflector.erase;
 

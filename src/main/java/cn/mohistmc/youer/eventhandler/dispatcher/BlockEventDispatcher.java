@@ -186,9 +186,4 @@ public class BlockEventDispatcher {
         org.bukkit.event.player.PlayerInteractEvent eventBukkit = CraftEventFactory.callPlayerInteractEvent(player, Action.RIGHT_CLICK_BLOCK, blockposition, hitResult.getDirection(), itemstack, event.getUseItem().isFalse(), interactionhand, hitResult.getLocation());
         event.setCanceled(eventBukkit.isCancelled());
     }
-
-    @SubscribeEvent
-    public void onProjectileHit(ExplosionEvent.Start event) {
-
-    }
 }

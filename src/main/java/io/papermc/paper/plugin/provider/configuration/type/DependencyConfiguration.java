@@ -1,8 +1,8 @@
 package io.papermc.paper.plugin.provider.configuration.type;
 
+import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.framework.qual.DefaultQualifier;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
 
 import static java.util.Objects.requireNonNullElse;
 

@@ -1,6 +1,5 @@
 package io.papermc.paper.plugin.provider.type.paper;
 
-import io.papermc.paper.util.SneakyThrow;
 import com.mohistmc.net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import io.papermc.paper.plugin.bootstrap.PluginBootstrap;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContext;
@@ -15,6 +14,7 @@ import io.papermc.paper.plugin.provider.configuration.type.DependencyConfigurati
 import io.papermc.paper.plugin.provider.entrypoint.DependencyContext;
 import io.papermc.paper.plugin.provider.type.PluginTypeFactory;
 import io.papermc.paper.plugin.provider.util.ProviderUtil;
+import io.papermc.paper.util.SneakyThrow;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;

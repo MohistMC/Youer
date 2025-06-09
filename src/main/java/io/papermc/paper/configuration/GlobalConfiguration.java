@@ -1,24 +1,23 @@
 package io.papermc.paper.configuration;
 
-import com.mojang.logging.LogUtils;
-import io.papermc.paper.configuration.constraint.Constraints;
-import io.papermc.paper.configuration.type.number.DoubleOr;
-import io.papermc.paper.configuration.type.number.IntOr;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.OptionalInt;
 import com.mohistmc.net.kyori.adventure.text.Component;
 import com.mohistmc.net.kyori.adventure.text.format.NamedTextColor;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ServerboundPlaceRecipePacket;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.slf4j.Logger;
 import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
 import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Comment;
 import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.PostProcess;
 import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Required;
 import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Setting;
+import com.mojang.logging.LogUtils;
+import io.papermc.paper.configuration.constraint.Constraints;
+import io.papermc.paper.configuration.type.number.DoubleOr;
+import io.papermc.paper.configuration.type.number.IntOr;
+import java.util.Map;
+import java.util.Objects;
+import java.util.OptionalInt;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ServerboundPlaceRecipePacket;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
 
 @SuppressWarnings({"CanBeFinal", "FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic"})
 public class GlobalConfiguration extends ConfigurationPart {

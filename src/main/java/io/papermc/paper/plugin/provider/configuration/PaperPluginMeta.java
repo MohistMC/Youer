@@ -2,6 +2,16 @@ package io.papermc.paper.plugin.provider.configuration;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.mohistmc.org.spongepowered.configurate.CommentedConfigurationNode;
+import com.mohistmc.org.spongepowered.configurate.ConfigurateException;
+import com.mohistmc.org.spongepowered.configurate.loader.HeaderMode;
+import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
+import com.mohistmc.org.spongepowered.configurate.objectmapping.ObjectMapper;
+import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Required;
+import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
+import com.mohistmc.org.spongepowered.configurate.yaml.NodeStyle;
+import com.mohistmc.org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 import io.papermc.paper.configuration.constraint.Constraint;
 import io.papermc.paper.configuration.serializer.ComponentSerializer;
 import io.papermc.paper.configuration.serializer.EnumValueSerializer;
@@ -24,16 +34,6 @@ import org.bukkit.plugin.PluginLoadOrder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
-import com.mohistmc.org.spongepowered.configurate.CommentedConfigurationNode;
-import com.mohistmc.org.spongepowered.configurate.ConfigurateException;
-import com.mohistmc.org.spongepowered.configurate.loader.HeaderMode;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.ObjectMapper;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Required;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
-import com.mohistmc.org.spongepowered.configurate.yaml.NodeStyle;
-import com.mohistmc.org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
 @SuppressWarnings({"CanBeFinal", "FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic"})
 @ConfigSerializable

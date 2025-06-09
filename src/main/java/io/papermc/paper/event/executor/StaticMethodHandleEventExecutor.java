@@ -1,7 +1,7 @@
 package io.papermc.paper.event.executor;
 
-import io.papermc.paper.util.SneakyThrow;
 import com.google.common.base.Preconditions;
+import io.papermc.paper.util.SneakyThrow;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;

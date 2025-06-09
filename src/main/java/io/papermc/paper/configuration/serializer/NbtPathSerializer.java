@@ -1,15 +1,15 @@
 package io.papermc.paper.configuration.serializer;
 
-import io.papermc.paper.util.SneakyThrow;
+import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import io.papermc.paper.util.SneakyThrow;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import net.minecraft.commands.arguments.NbtPathArgument;
-import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 public class NbtPathSerializer extends ScalarSerializer<NbtPathArgument.NbtPath> {
 

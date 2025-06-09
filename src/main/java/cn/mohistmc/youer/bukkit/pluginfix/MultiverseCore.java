@@ -29,7 +29,7 @@ public class MultiverseCore {
     }
 
     public static boolean isLoad(String name) {
-        return ((CraftServer) Bukkit.getServer()).getWorldsByName().contains(name);
+        return Bukkit.getServer().getWorldsByName().contains(name);
     }
 }
 

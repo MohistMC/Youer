@@ -2,7 +2,6 @@ package io.papermc.paper.plugin.provider.source;
 
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.plugin.PluginInitializerManager;
-import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.entrypoint.EntrypointHandler;
 import io.papermc.paper.plugin.provider.type.PluginFileType;
 import java.io.File;

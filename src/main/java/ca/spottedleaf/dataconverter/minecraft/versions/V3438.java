@@ -7,7 +7,6 @@ import ca.spottedleaf.dataconverter.minecraft.converters.itemname.ConverterAbstr
 import ca.spottedleaf.dataconverter.minecraft.converters.tileentity.ConverterAbstractTileEntityRename;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.types.MapType;
-
 import java.util.HashMap;
 import java.util.Map;
 

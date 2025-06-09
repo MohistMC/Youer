@@ -1,9 +1,9 @@
 package io.papermc.paper.inventory;
 
-import io.papermc.paper.adventure.PaperAdventure;
-import java.util.List;
 import com.mohistmc.net.kyori.adventure.text.Component;
 import com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import io.papermc.paper.adventure.PaperAdventure;
+import java.util.List;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;

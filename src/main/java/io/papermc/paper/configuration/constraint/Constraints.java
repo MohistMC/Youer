@@ -1,5 +1,7 @@
 package io.papermc.paper.configuration.constraint;
 
+import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Constraint;
+import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,8 +9,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Type;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Constraint;
-import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 
 public final class Constraints {
     private Constraints() {

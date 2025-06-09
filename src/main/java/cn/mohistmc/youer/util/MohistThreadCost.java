@@ -10,7 +10,7 @@ import java.util.List;
 public class MohistThreadCost {
     static ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
 
-    {
+    static {
         threadMXBean.setThreadCpuTimeEnabled(true);
     }
 
@@ -28,7 +28,7 @@ public class MohistThreadCost {
         list.sort(Comparator.comparingLong(i -> i.id));
         Youer.LOGGER.info(Youer.i18n.as("youer.dump.1"));
         for (ThreadCpuTime threadCpuTime : list) {
-            Youer.LOGGER.info(String.format("%s %s %s %s", threadCpuTime.id, threadCpuTime.name, threadCpuTime.cpuTime, threadCpuTime.userTime));
+            Youer.LOGGER.info("{} {} {} {}", threadCpuTime.id, threadCpuTime.name, threadCpuTime.cpuTime, threadCpuTime.userTime);
         }
     }
 

@@ -8,10 +8,10 @@ import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.util.NamespaceUtil;
-import net.minecraft.util.Mth;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import net.minecraft.util.Mth;
 
 public final class ConverterItemStackToDataComponents {
 

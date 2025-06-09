@@ -1,5 +1,7 @@
 package io.papermc.paper.configuration.transformation.world;
 
+import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
+import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
 import io.papermc.paper.configuration.Configuration;
 import io.papermc.paper.configuration.WorldConfiguration;
 import java.util.HashMap;
@@ -16,12 +18,10 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.Item;
 import org.bukkit.Material;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
-import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
 
+import static com.mohistmc.org.spongepowered.configurate.NodePath.path;
 import static io.papermc.paper.configuration.transformation.Transformations.moveFromRoot;
 import static io.papermc.paper.configuration.transformation.Transformations.moveFromRootAndRename;
-import static com.mohistmc.org.spongepowered.configurate.NodePath.path;
 
 public final class LegacyPaperWorldConfig {
 

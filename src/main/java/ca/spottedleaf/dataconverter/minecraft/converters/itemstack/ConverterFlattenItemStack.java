@@ -5,12 +5,12 @@ import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.Types;
 import com.mojang.logging.LogUtils;
-import org.slf4j.Logger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
 
 public final class ConverterFlattenItemStack extends DataConverter<MapType<String>, MapType<String>> {
 

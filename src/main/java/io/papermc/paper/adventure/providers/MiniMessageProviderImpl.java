@@ -1,7 +1,7 @@
 package io.papermc.paper.adventure.providers;
 
-import java.util.function.Consumer;
 import com.mohistmc.net.kyori.adventure.text.minimessage.MiniMessage;
+import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("UnstableApiUsage") // permitted provider

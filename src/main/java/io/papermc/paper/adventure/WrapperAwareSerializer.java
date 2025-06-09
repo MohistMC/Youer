@@ -1,10 +1,10 @@
 package io.papermc.paper.adventure;
 
 import com.google.common.base.Suppliers;
-import com.mojang.datafixers.util.Pair;
-import java.util.function.Supplier;
 import com.mohistmc.net.kyori.adventure.text.Component;
 import com.mohistmc.net.kyori.adventure.text.serializer.ComponentSerializer;
+import com.mojang.datafixers.util.Pair;
+import java.util.function.Supplier;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.RegistryOps;
 
