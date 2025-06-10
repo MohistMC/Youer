@@ -1,5 +1,11 @@
 package io.papermc.paper.plugin.entrypoint.classloader;
 
+import cn.mohistmc.youer.asm.SwitchTableFixer;
+import cn.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
+import cn.mohistmc.youer.bukkit.remapping.Remapper;
+import cn.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
+import com.google.common.io.ByteStreams;
+import io.izzel.tools.product.Product2;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -7,9 +13,11 @@ import java.net.JarURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.net.URLConnection;
 import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.jar.Attributes;
@@ -20,9 +28,19 @@ import org.objectweb.asm.ClassWriter;
 
 import static java.util.Objects.requireNonNullElse;
 
-public final class BytecodeModifyingURLClassLoader extends URLClassLoader {
+public final class BytecodeModifyingURLClassLoader extends URLClassLoader implements RemappingClassLoader {
     static {
         ClassLoader.registerAsParallelCapable();
+    }
+
+    private ClassLoaderRemapper remapper;
+
+    @Override
+    public ClassLoaderRemapper getRemapper() {
+        if (remapper == null) {
+            remapper = Remapper.createClassLoaderRemapper(this);
+        }
+        return remapper;
     }
 
     private static final Object MISSING_MANIFEST = new Object();
@@ -52,14 +70,31 @@ public final class BytecodeModifyingURLClassLoader extends URLClassLoader {
     }
 
     @Override
-    protected Class<?> findClass(final String name) throws ClassNotFoundException {
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
         final Class<?> result;
         final String path = name.replace('.', '/').concat(".class");
         final URL url = this.findResource(path);
         if (url != null) {
+            URLConnection connection;
+            Callable<byte[]> byteSource;
+            Manifest manifest;
             try {
-                result = this.defineClass(name, url);
-            } catch (final IOException e) {
+                connection = url.openConnection();
+                connection.connect();
+                if (connection instanceof JarURLConnection && ((JarURLConnection) connection).getManifest() != null) {
+                    manifest = ((JarURLConnection) connection).getManifest();
+                } else {
+                    manifest = null;
+                }
+                byteSource = () -> {
+                    try (InputStream is = connection.getInputStream()) {
+                        byte[] classBytes = ByteStreams.toByteArray(is);
+                        classBytes = SwitchTableFixer.INSTANCE.apply(classBytes);
+                        return classBytes;
+                    }
+                };
+                result = this.defineClass(name, byteSource, connection, manifest, url);
+            } catch (final Exception e) {
                 throw new ClassNotFoundException(name, e);
             }
         } else {
@@ -71,24 +106,23 @@ public final class BytecodeModifyingURLClassLoader extends URLClassLoader {
         return result;
     }
 
-    private Class<?> defineClass(String name, URL url) throws IOException {
+    private Class<?> defineClass(String name, Callable<byte[]> byteSource, URLConnection connection, Manifest manifest, URL url) throws Exception {
+        Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(name, byteSource, connection);
         int i = name.lastIndexOf('.');
         if (i != -1) {
             String pkgname = name.substring(0, i);
-            // Check if package already loaded.
-            final @Nullable Manifest man = this.manifestFor(url);
             final URL jarUrl = URI.create(jarName(url)).toURL();
-            if (this.getAndVerifyPackage(pkgname, man, jarUrl) == null) {
+            if (this.getAndVerifyPackage(pkgname, manifest, jarUrl) == null) {
                 try {
-                    if (man != null) {
-                        this.definePackage(pkgname, man, jarUrl);
+                    if (manifest != null) {
+                        this.definePackage(pkgname, manifest, jarUrl);
                     } else {
                         this.definePackage(pkgname, null, null, null, null, null, null, null);
                     }
                 } catch (IllegalArgumentException iae) {
                     // parallel-capable class loaders: re-verify in case of a
                     // race condition
-                    if (this.getAndVerifyPackage(pkgname, man, jarUrl) == null) {
+                    if (this.getAndVerifyPackage(pkgname, manifest, jarUrl) == null) {
                         // Should never happen
                         throw new AssertionError("Cannot find package " +
                             pkgname);
@@ -96,15 +130,7 @@ public final class BytecodeModifyingURLClassLoader extends URLClassLoader {
                 }
             }
         }
-        final byte[] bytes;
-        try (final InputStream is = url.openStream()) {
-            bytes = is.readAllBytes();
-        }
-
-        final byte[] modified = this.modifier.apply(bytes);
-
-        final CodeSource cs = new CodeSource(url, (CodeSigner[]) null);
-        return this.defineClass(name, modified, 0, modified.length, cs);
+        return this.defineClass(name, classBytes._1, 0, classBytes._1.length, classBytes._2);
     }
 
     private Package getAndVerifyPackage(

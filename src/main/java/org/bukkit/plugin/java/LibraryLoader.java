@@ -3,6 +3,7 @@ package org.bukkit.plugin.java;
 
 import cn.mohistmc.youer.Youer;
 import cn.mohistmc.youer.bukkit.PluginsLibrarySource;
+import cn.mohistmc.youer.bukkit.remapping.RemappingURLClassLoader;
 import cn.mohistmc.youer.util.I18n;
 import com.mohistmc.mjson.Json;
 import com.mohistmc.tools.ConnectionUtil;
@@ -134,7 +135,7 @@ public class LibraryLoader
         // Paper start - rewrite reflection in libraries
         URLClassLoader loader;
         if (LIBRARY_LOADER_FACTORY == null) {
-            loader = new URLClassLoader( jarFiles.toArray( new URL[ jarFiles.size() ] ), getClass().getClassLoader() );
+            loader = new RemappingURLClassLoader( jarFiles.toArray( new URL[ jarFiles.size() ] ), getClass().getClassLoader() );
         } else {
             loader = LIBRARY_LOADER_FACTORY.apply(jarFiles.toArray( new URL[ jarFiles.size() ] ), getClass().getClassLoader());
         }
