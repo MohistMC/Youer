@@ -50,6 +50,8 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -320,6 +322,7 @@ public final class CraftServer implements Server {
     static {
         ConfigurationSerialization.registerClass(CraftOfflinePlayer.class);
         ConfigurationSerialization.registerClass(CraftPlayerProfile.class);
+        ConfigurationSerialization.registerClass(io.papermc.paper.profile.CraftPlayerProfile.class); // Paper
         CraftItemFactory.instance();
         CraftEntityFactory.instance();
     }
@@ -504,11 +507,35 @@ public final class CraftServer implements Server {
     public void loadPlugins() {
         io.papermc.paper.plugin.entrypoint.LaunchEntryPointHandler.INSTANCE.enter(io.papermc.paper.plugin.entrypoint.Entrypoint.PLUGIN); // Paper - replace implementation
     }
-	
-	@Override
+
+    // Paper start
+    @Override
     public File getPluginsFolder() {
         return this.console.getPluginsFolder();
     }
+
+    private List<File> extraPluginJars() {
+        @SuppressWarnings("unchecked")
+        final List<File> jars = (List<File>) this.console.options.valuesOf("add-plugin");
+        final List<File> list = new ArrayList<>();
+        for (final File file : jars) {
+            if (!file.exists()) {
+                net.minecraft.server.MinecraftServer.LOGGER.warn("File '{}' specified through 'add-plugin' argument does not exist, cannot load a plugin from it!", file.getAbsolutePath());
+                continue;
+            }
+            if (!file.isFile()) {
+                net.minecraft.server.MinecraftServer.LOGGER.warn("File '{}' specified through 'add-plugin' argument is not a file, cannot load a plugin from it!", file.getAbsolutePath());
+                continue;
+            }
+            if (!file.getName().endsWith(".jar")) {
+                net.minecraft.server.MinecraftServer.LOGGER.warn("File '{}' specified through 'add-plugin' argument is not a jar file, cannot load a plugin from it!", file.getAbsolutePath());
+                continue;
+            }
+            list.add(file);
+        }
+        return list;
+    }
+    // Paper end
 
     public void enablePlugins(PluginLoadOrder type) {
         if (type == PluginLoadOrder.STARTUP) {
@@ -2168,6 +2195,40 @@ public final class CraftServer implements Server {
     @Override
     public net.kyori.adventure.text.Component permissionMessage() {
         return Component.text("I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error.", NamedTextColor.RED);
+    }
+
+    @Override
+    public io.papermc.paper.profile.PlayerProfile createProfile(@Nonnull UUID uuid) {
+        return createProfile(uuid, null);
+    }
+
+    @Override
+    public io.papermc.paper.profile.PlayerProfile createProfile(@Nonnull String name) {
+        return createProfile(null, name);
+    }
+
+    @Override
+    public io.papermc.paper.profile.PlayerProfile createProfile(@Nullable UUID uuid, @Nullable String name) {
+        Player player = uuid != null ? Bukkit.getPlayer(uuid) : (name != null ? Bukkit.getPlayerExact(name) : null);
+        if (player != null) return new io.papermc.paper.profile.CraftPlayerProfile((CraftPlayer) player);
+
+        return new io.papermc.paper.profile.CraftPlayerProfile(uuid, name);
+    }
+
+    @Override
+    public io.papermc.paper.profile.PlayerProfile createProfileExact(@Nullable UUID uuid, @Nullable String name) {
+        Player player = uuid != null ? Bukkit.getPlayer(uuid) : (name != null ? Bukkit.getPlayerExact(name) : null);
+        if (player == null) {
+            return new io.papermc.paper.profile.CraftPlayerProfile(uuid, name);
+        }
+
+        if (java.util.Objects.equals(uuid, player.getUniqueId()) && java.util.Objects.equals(name, player.getName())) {
+            return new io.papermc.paper.profile.CraftPlayerProfile((CraftPlayer) player);
+        }
+
+        final io.papermc.paper.profile.CraftPlayerProfile profile = new io.papermc.paper.profile.CraftPlayerProfile(uuid, name);
+        profile.getGameProfile().getProperties().putAll(((CraftPlayer) player).getHandle().getGameProfile().getProperties());
+        return profile;
     }
 
     @Override

@@ -1,8 +1,10 @@
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -7,6 +_,8 @@
+@@ -6,7 +_,10 @@
+ import com.mojang.authlib.GameProfile;
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Dynamic;
++import io.papermc.paper.console.TerminalConsoleCommandSender;
  import java.io.File;
 +import java.net.InetAddress;
 +import java.net.InetSocketAddress;
@@ -66,7 +68,7 @@
  
      public PlayerList(MinecraftServer p_203842_, LayeredRegistryAccess<RegistryLayer> p_251844_, PlayerDataStorage p_203844_, int p_203845_) {
 +        this.cserver = p_203842_.server = new CraftServer((DedicatedServer) p_203842_, this);
-+        p_203842_.console = ColouredConsoleSender.getInstance();
++        p_203842_.console = new TerminalConsoleCommandSender(); // Paper
 +        // CraftBukkit end
          this.server = p_203842_;
          this.registries = p_251844_;
@@ -630,8 +632,18 @@
      public void sendActivePlayerEffects(ServerPlayer p_348494_) {
          this.sendActiveEffects(p_348494_, p_348494_.connection);
      }
-@@ -518,7 +_,17 @@
+@@ -516,9 +_,27 @@
+         this.sendPlayerPermissionLevel(p_11290_, i);
+     }
  
++    public void sendPlayerPermissionLevel(ServerPlayer player, boolean recalculatePermissions) {
++        // Paper end - avoid recalculating permissions if possible
++        GameProfile gameprofile = player.getGameProfile();
++        int i = this.server.getProfilePermissions(gameprofile);
++
++        this.sendPlayerPermissionLevel(player, i, recalculatePermissions); // Paper - avoid recalculating permissions if possible
++    }
++
      public void tick() {
          if (++this.sendAllPlayerInfoIn > 600) {
 -            this.broadcastAll(new ClientboundPlayerInfoUpdatePacket(EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LATENCY), this.players));
@@ -690,14 +702,30 @@
          this.ops.remove(p_11281_);
          ServerPlayer serverplayer = this.getPlayer(p_11281_.getId());
          if (serverplayer != null) {
-@@ -611,6 +_,7 @@
+@@ -598,6 +_,11 @@
+     }
+ 
+     private void sendPlayerPermissionLevel(ServerPlayer p_11227_, int p_11228_) {
++        // Paper start - Add sendOpLevel API
++        this.sendPlayerPermissionLevel(p_11227_, p_11228_, true);
++    }
++    public void sendPlayerPermissionLevel(ServerPlayer p_11227_, int p_11228_, boolean recalculatePermissions) {
++        // Paper end - Add sendOpLevel API
+         if (p_11227_.connection != null) {
+             byte b0;
+             if (p_11228_ <= 0) {
+@@ -611,7 +_,10 @@
              p_11227_.connection.send(new ClientboundEntityEventPacket(p_11227_, b0));
          }
  
-+        p_11227_.getBukkitEntity().recalculatePermissions(); // CraftBukkit
-         this.server.getCommands().sendCommands(p_11227_);
+-        this.server.getCommands().sendCommands(p_11227_);
++        if (recalculatePermissions) { // Paper - Add sendOpLevel API
++            p_11227_.getBukkitEntity().recalculatePermissions(); // CraftBukkit
++            this.server.getCommands().sendCommands(p_11227_);
++        } // Paper - Add sendOpLevel API
      }
  
+     public boolean isWhiteListed(GameProfile p_11294_) {
 @@ -626,16 +_,7 @@
  
      @Nullable

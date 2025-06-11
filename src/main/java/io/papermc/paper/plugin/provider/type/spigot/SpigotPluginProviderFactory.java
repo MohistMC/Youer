@@ -3,8 +3,8 @@ package io.papermc.paper.plugin.provider.type.spigot;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import com.mohistmc.org.yaml.snakeyaml.error.YAMLException;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContextImpl;
-import io.papermc.paper.plugin.entrypoint.classloader.BytecodeModifyingURLClassLoader;
 import io.papermc.paper.plugin.entrypoint.classloader.PaperSimplePluginClassLoader;
+import io.papermc.paper.plugin.entrypoint.classloader.BytecodeModifyingURLClassLoader;
 import io.papermc.paper.plugin.loader.PaperClasspathBuilder;
 import io.papermc.paper.plugin.loader.PluginLoader;
 import io.papermc.paper.plugin.provider.configuration.serializer.constraints.PluginConfigConstraints;
@@ -28,8 +28,8 @@ class SpigotPluginProviderFactory implements PluginTypeFactory<SpigotPluginProvi
 
     static {
         if (!MappingEnvironment.DISABLE_PLUGIN_REMAPPING) {
-			LibraryLoader.LIBRARY_LOADER_FACTORY = BytecodeModifyingURLClassLoader::new;
-		}
+            LibraryLoader.LIBRARY_LOADER_FACTORY = BytecodeModifyingURLClassLoader::new;
+        }
     }
 
     @Override

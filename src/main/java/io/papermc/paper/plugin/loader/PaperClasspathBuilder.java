@@ -53,8 +53,8 @@ public class PaperClasspathBuilder implements PluginClasspathBuilder {
 
         try {
             final URLClassLoader libraryLoader = MappingEnvironment.DISABLE_PLUGIN_REMAPPING
-                ? new URLClassLoader(urls, this.getClass().getClassLoader())
-                : new BytecodeModifyingURLClassLoader(urls, this.getClass().getClassLoader());
+                    ? new URLClassLoader(urls, this.getClass().getClassLoader())
+                    : new BytecodeModifyingURLClassLoader(urls, this.getClass().getClassLoader());
             return new PaperPluginClassLoader(logger, source, jarFile, configuration, this.getClass().getClassLoader(), libraryLoader);
         } catch (IOException exception) {
             throw new RuntimeException(exception);

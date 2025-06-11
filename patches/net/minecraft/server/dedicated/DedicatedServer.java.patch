@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -1,5 +_,10 @@
+@@ -1,9 +_,15 @@
  package net.minecraft.server.dedicated;
  
 +import cn.mohistmc.youer.Metrics;
@@ -11,6 +11,11 @@
  import com.google.common.collect.Lists;
  import com.mojang.authlib.GameProfile;
  import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
++import io.papermc.paper.console.PaperConsole;
+ import java.io.BufferedReader;
+ import java.io.IOException;
+ import java.io.InputStreamReader;
 @@ -58,6 +_,12 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.entity.SkullBlockEntity;
@@ -51,48 +56,24 @@
          this.textFilterClient = TextFilterClient.createFromConfig(p_214793_.getProperties().textFilteringConfig);
          this.serverLinks = createServerLinks(p_214793_);
      }
-@@ -103,27 +_,68 @@
+@@ -103,27 +_,36 @@
          Thread thread = new Thread("Server console handler") {
              @Override
              public void run() {
-+                if (net.neoforged.neoforge.server.console.TerminalHandler.handleCommands(DedicatedServer.this)) return;
-+                // CraftBukkit start
-                 BufferedReader bufferedreader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
- 
+-                BufferedReader bufferedreader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+-
 -                String s1;
 -                try {
 -                    while (!DedicatedServer.this.isStopped() && DedicatedServer.this.isRunning() && (s1 = bufferedreader.readLine()) != null) {
 -                        DedicatedServer.this.handleConsoleInput(s1, DedicatedServer.this.createCommandSourceStack());
-+                // MC-33041, SPIGOT-5538: if System.in is not valid due to javaw, then return
-+                try {
-+                    System.in.available();
-+                } catch (IOException ex) {
+-                    }
+-                } catch (IOException ioexception1) {
+-                    DedicatedServer.LOGGER.error("Exception handling console input", (Throwable)ioexception1);
++                if (net.neoforged.neoforge.server.console.TerminalHandler.handleCommands(DedicatedServer.this)) return;
++                if (!org.bukkit.craftbukkit.Main.useConsole) {
 +                    return;
-+                }
-+                // CraftBukkit end
-+                String s;
-+                try {
-+                    // CraftBukkit start - JLine disabling compatibility
-+                    while (!DedicatedServer.this.isStopped() && DedicatedServer.this.isRunning()) {
-+                        s = bufferedreader.readLine();
-+
-+                        // SPIGOT-5220: Throttle if EOF (ctrl^d) or stdin is /dev/null
-+                        if (s == null) {
-+                            try {
-+                                Thread.sleep(50L);
-+                            } catch (InterruptedException ex) {
-+                                Thread.currentThread().interrupt();
-+                            }
-+                            continue;
-+                        }
-+                        if (s.trim().length() > 0) { // Trim to filter lines which are just spaces
-+                            DedicatedServer.this.handleConsoleInput(s, DedicatedServer.this.createCommandSourceStack());
-+                        }
-+                        // CraftBukkit end
-                     }
-                 } catch (IOException ioexception1) {
-                     DedicatedServer.LOGGER.error("Exception handling console input", (Throwable)ioexception1);
                  }
++                new PaperConsole(DedicatedServer.this).start();
              }
          };
 +        // CraftBukkit start - TODO: handle command-line logging arguments
@@ -102,16 +83,13 @@
 +            global.removeHandler(handler);
 +        }
 +        global.addHandler(new ForwardLogHandler());
-+        final org.apache.logging.log4j.core.Logger logger = ((org.apache.logging.log4j.core.Logger) LogManager.getRootLogger());
-+        for (org.apache.logging.log4j.core.Appender appender : logger.getAppenders().values()) {
-+            if (appender instanceof org.apache.logging.log4j.core.appender.ConsoleAppender) {
-+                logger.removeAppender(appender);
-+            }
-+        }
 +
++        // Paper start - Not needed with TerminalConsoleAppender
++        final org.apache.logging.log4j.Logger logger = LogManager.getRootLogger();
 +        System.setOut(IoBuilder.forLogger(logger).setLevel(org.apache.logging.log4j.Level.INFO).buildPrintStream());
 +        System.setErr(IoBuilder.forLogger(logger).setLevel(org.apache.logging.log4j.Level.WARN).buildPrintStream());
 +        // CraftBukkit end
++
          thread.setDaemon(true);
          thread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
          thread.start();

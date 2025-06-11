@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import com.mojang.authlib.properties.Property;
+import io.papermc.paper.profile.SharedPlayerProfile;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Locale;
@@ -14,7 +15,7 @@ import javax.annotation.Nullable;
 import org.bukkit.craftbukkit.util.JsonHelper;
 import org.bukkit.profile.PlayerTextures;
 
-final class CraftPlayerTextures implements PlayerTextures {
+public final class CraftPlayerTextures implements PlayerTextures {
 
     static final String PROPERTY_NAME = "textures";
     private static final String MINECRAFT_HOST = "textures.minecraft.net";
@@ -48,7 +49,7 @@ final class CraftPlayerTextures implements PlayerTextures {
         }
     }
 
-    private final CraftPlayerProfile profile;
+    private final io.papermc.paper.profile.SharedPlayerProfile profile;
 
     // The textures data is loaded lazily:
     private boolean loaded = false;
@@ -67,11 +68,11 @@ final class CraftPlayerTextures implements PlayerTextures {
     // GameProfiles (even if these modifications are later reverted).
     private boolean dirty = false;
 
-    CraftPlayerTextures(@Nonnull CraftPlayerProfile profile) {
+    public CraftPlayerTextures(@Nonnull SharedPlayerProfile profile) {
         this.profile = profile;
     }
 
-    void copyFrom(@Nonnull PlayerTextures other) {
+    public void copyFrom(@Nonnull PlayerTextures other) {
         if (other == this) return;
         Preconditions.checkArgument(other instanceof CraftPlayerTextures, "Expecting CraftPlayerTextures, got %s", other.getClass().getName());
         CraftPlayerTextures otherTextures = (CraftPlayerTextures) other;
@@ -238,7 +239,7 @@ final class CraftPlayerTextures implements PlayerTextures {
         return this.profile.getProperty(CraftPlayerTextures.PROPERTY_NAME);
     }
 
-    void rebuildPropertyIfDirty() {
+    public void rebuildPropertyIfDirty() {
         if (!this.dirty) return;
         // Assert: loaded
         this.dirty = false;

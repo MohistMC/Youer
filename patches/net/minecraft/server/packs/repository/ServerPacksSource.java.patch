@@ -9,7 +9,23 @@
              .applyDevelopmentConfig()
              .pushJarResources()
              .build(VANILLA_PACK_INFO);
-@@ -72,11 +_,15 @@
+@@ -68,15 +_,30 @@
+     @Nullable
+     @Override
+     protected Pack createBuiltinPack(String p_250596_, Pack.ResourcesSupplier p_249625_, Component p_249043_) {
+-        return Pack.readMetaAndCreate(createBuiltInPackLocation(p_250596_, p_249043_), p_249625_, PackType.SERVER_DATA, FEATURE_SELECTION_CONFIG);
++        // Paper start - custom built-in pack
++        final PackLocationInfo info;
++        final PackSelectionConfig packConfig;
++        if ("paper".equals(p_250596_)) {
++            info = new PackLocationInfo(p_250596_, p_249043_, PackSource.BUILT_IN, Optional.empty());
++            packConfig = new PackSelectionConfig(true, Pack.Position.TOP, true);
++        } else {
++            info = createBuiltInPackLocation(p_250596_, p_249043_);
++            packConfig = FEATURE_SELECTION_CONFIG;
++        }
++        return Pack.readMetaAndCreate(info, p_249625_, PackType.SERVER_DATA, packConfig);
++        // Paper end - custom built-in pack
      }
  
      public static PackRepository createPackRepository(Path p_251569_, DirectoryValidator p_295336_) {

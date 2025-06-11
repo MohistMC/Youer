@@ -57,7 +57,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a player, connected or not
  */
-public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginMessageRecipient, net.kyori.adventure.identity.Identified, net.kyori.adventure.bossbar.BossBarViewer { // Paper
+public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginMessageRecipient, net.kyori.adventure.identity.Identified, net.kyori.adventure.bossbar.BossBarViewer, io.papermc.paper.network.NetworkClient { // Paper
 
     // Paper start
     @Override
@@ -2907,4 +2907,37 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
     @Override
     Spigot spigot();
     // Spigot end
+
+    // Paper start - Player Profile API
+    /**
+     * Gets a copy of this players profile
+     *
+     * @return The players profile object
+     */
+    io.papermc.paper.profile.@NotNull PlayerProfile getPlayerProfile();
+
+    /**
+     * Changes the PlayerProfile for this player. This will cause this player
+     * to be re-registered to all clients that can currently see this player.
+     * <p>
+     * After executing this method, the player {@link java.util.UUID} won't
+     * be swapped, only their name and profile properties.
+     *
+     * @param profile The new profile to use
+     */
+    void setPlayerProfile(io.papermc.paper.profile.@NotNull PlayerProfile profile);
+    // Paper end - Player Profile API
+
+    // Paper start - sendOpLevel API
+    /**
+     * Send a packet to the player indicating its operator status level.
+     * <p>
+     * <b>Note:</b> This will not persist across more than the current connection, and setting the player's operator
+     * status as a later point <i>will</i> override the effects of this.
+     *
+     * @param level The level to send to the player. Must be in {@code [0, 4]}.
+     * @throws IllegalArgumentException If the level is negative or greater than {@code 4} (i.e. not within {@code [0, 4]}).
+     */
+    void sendOpLevel(byte level);
+    // Paper end - sendOpLevel API
 }

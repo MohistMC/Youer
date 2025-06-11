@@ -31,7 +31,7 @@ import org.bukkit.profile.PlayerTextures;
 import org.jetbrains.annotations.ApiStatus;
 
 @SerializableAs("PlayerProfile")
-public final class CraftPlayerProfile implements PlayerProfile {
+public final class CraftPlayerProfile implements PlayerProfile, io.papermc.paper.profile.SharedPlayerProfile { // Paper
 
     @Nonnull
     public static GameProfile validateSkullProfile(@Nonnull GameProfile gameProfile) {
@@ -105,11 +105,11 @@ public final class CraftPlayerProfile implements PlayerProfile {
     }
 
     @Nullable
-    Property getProperty(String propertyName) {
+    public Property getProperty(String propertyName) {
         return Iterables.getFirst(this.properties.get(propertyName), null);
     }
 
-    void setProperty(String propertyName, @Nullable Property property) {
+    public void setProperty(String propertyName, @Nullable Property property) {
         // Assert: (property == null) || property.getName().equals(propertyName)
         this.removeProperty(propertyName);
         if (property != null) {
@@ -117,8 +117,8 @@ public final class CraftPlayerProfile implements PlayerProfile {
         }
     }
 
-    void removeProperty(String propertyName) {
-        this.properties.removeAll(propertyName);
+    public boolean removeProperty(String propertyName) {
+        return !this.properties.removeAll(propertyName).isEmpty();
     }
 
     void rebuildDirtyProperties() {
@@ -201,7 +201,7 @@ public final class CraftPlayerProfile implements PlayerProfile {
         return builder.toString();
     }
 
-    private static String toString(@Nonnull PropertyMap propertyMap) {
+    public static String toString(@Nonnull PropertyMap propertyMap) {
         StringBuilder builder = new StringBuilder();
         builder.append("{");
         propertyMap.asMap().forEach((propertyName, properties) -> {
@@ -268,6 +268,7 @@ public final class CraftPlayerProfile implements PlayerProfile {
 
     @Override
     public Map<String, Object> serialize() {
+        // Paper - diff on change
         Map<String, Object> map = new LinkedHashMap<>();
         if (this.uniqueId != null) {
             map.put("uniqueId", this.uniqueId.toString());
@@ -281,10 +282,12 @@ public final class CraftPlayerProfile implements PlayerProfile {
             this.properties.forEach((propertyName, property) -> propertiesData.add(CraftProfileProperty.serialize(property)));
             map.put("properties", propertiesData);
         }
+        // Paper - diff on change
         return map;
     }
 
     public static CraftPlayerProfile deserialize(Map<String, Object> map) {
+        // Paper - diff on change
         UUID uniqueId = ConfigSerializationUtil.getUuid(map, "uniqueId", true);
         String name = ConfigSerializationUtil.getString(map, "name", true);
 
@@ -298,7 +301,7 @@ public final class CraftPlayerProfile implements PlayerProfile {
                 profile.properties.put(property.name(), property);
             }
         }
-
+        // Paper - diff on change
         return profile;
     }
 }

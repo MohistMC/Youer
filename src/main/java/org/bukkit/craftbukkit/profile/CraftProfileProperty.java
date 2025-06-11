@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.bukkit.craftbukkit.configuration.ConfigSerializationUtil;
 
-final class CraftProfileProperty {
+public final class CraftProfileProperty {
 
     /**
      * Different JSON formatting styles to use for encoded property values.

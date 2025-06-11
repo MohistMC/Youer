@@ -77,7 +77,6 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("deprecation")
 public final class CraftMagicNumbers implements UnsafeValues {
     public static final CraftMagicNumbers INSTANCE = new CraftMagicNumbers();
-    public static final boolean DISABLE_OLD_API_SUPPORT = Boolean.getBoolean("paper.disableOldApiSupport"); // Paper
 
     private final Commodore commodore = new Commodore();
 
@@ -287,7 +286,7 @@ public final class CraftMagicNumbers implements UnsafeValues {
         try {
             nmsStack.applyComponents(new ItemParser(Commands.createValidationContext(MinecraftServer.getDefaultRegistryAccess())).parse(new StringReader(arguments)).components());
         } catch (CommandSyntaxException ex) {
-            Logger.getLogger(CraftMagicNumbers.class.getName()).log(Level.SEVERE, null, ex);
+            com.mojang.logging.LogUtils.getLogger().error("Exception modifying ItemStack", new Throwable(ex)); // Paper - show stack trace
         }
 
         stack.setItemMeta(CraftItemStack.getItemMeta(nmsStack));
@@ -350,7 +349,7 @@ public final class CraftMagicNumbers implements UnsafeValues {
             throw new InvalidPluginException("Plugin API version " + pdf.getAPIVersion() + " is lower than the minimum allowed version. Please update or replace it.");
         }
 
-        if (!DISABLE_OLD_API_SUPPORT && toCheck.isOlderThan(ApiVersion.FLATTENING)) { // Paper
+        if (toCheck.isOlderThan(ApiVersion.FLATTENING)) { // Paper
             CraftLegacy.init();
         }
 

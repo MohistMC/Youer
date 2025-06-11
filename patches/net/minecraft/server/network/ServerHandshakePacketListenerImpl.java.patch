@@ -1,9 +1,10 @@
 --- a/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
-@@ -1,5 +_,6 @@
+@@ -1,5 +_,7 @@
  package net.minecraft.server.network;
  
 +import cn.mohistmc.youer.proxy.VelocityLoginPacketListenerImpl;
++import io.papermc.paper.network.PaperNetworkClient;
  import net.minecraft.SharedConstants;
  import net.minecraft.network.Connection;
  import net.minecraft.network.DisconnectionDetails;
@@ -38,7 +39,16 @@
          switch (p_9975_.intention()) {
              case LOGIN:
                  this.beginLogin(p_9975_, false);
-@@ -54,18 +_,77 @@
+@@ -50,22 +_,86 @@
+             default:
+                 throw new UnsupportedOperationException("Invalid intention " + p_9975_.intention());
+         }
++
++        // Paper start - NetworkClient implementation
++        this.connection.protocolVersion = p_9975_.protocolVersion();
++        this.connection.virtualHost = PaperNetworkClient.prepareVirtualHost(p_9975_.hostName(), p_9975_.port());
++        // Paper end
+     }
  
      private void beginLogin(ClientIntentionPacket p_320524_, boolean p_320853_) {
          this.connection.setupOutboundProtocol(LoginProtocols.CLIENTBOUND);

@@ -13,7 +13,6 @@ import java.util.logging.Logger;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.util.PathConverter;
-import org.bukkit.craftbukkit.CraftServer;
 import org.fusesource.jansi.AnsiConsole;
 
 public class Main {
@@ -201,9 +200,6 @@ public class Main {
 
                 if (Main.useJline) {
                     AnsiConsole.systemInstall();
-                } else {
-                    // This ensures the terminal literal will always match the jline implementation
-                    System.setProperty(jline.TerminalFactory.JLINE_TERMINAL, jline.UnsupportedTerminal.class.getName());
                 }
 
                 if (options.has("noconsole")) {

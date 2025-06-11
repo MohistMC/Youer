@@ -171,13 +171,15 @@
              this.services = p_236729_;
              if (p_236729_.profileCache() != null) {
                  p_236729_.profileCache().setExecutor(this);
-@@ -315,7 +_,9 @@
+@@ -315,7 +_,11 @@
              this.structureTemplateManager = new StructureTemplateManager(p_236726_.resourceManager(), p_236724_, p_236728_, holdergetter);
              this.serverThread = p_236723_;
              this.executor = Util.backgroundExecutor();
 -            this.potionBrewing = PotionBrewing.bootstrap(this.worldData.enabledFeatures());
 +            this.potionBrewing = PotionBrewing.bootstrap(this.worldData.enabledFeatures(), this.registryAccess());
 +            this.vanillaCommandDispatcher = p_236726_.dataPackResources().commands;
++
++            Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
 +            this.paperConfigurations = services.paperConfigurations(); // Paper - add paper configuration files
          }
      }
@@ -673,6 +675,15 @@
          );
      }
  
+@@ -976,7 +_,7 @@
+         if (this.hidesOnlinePlayers()) {
+             return new ServerStatus.Players(i, list.size(), List.of());
+         } else {
+-            int j = Math.min(list.size(), 12);
++            int j = Math.min(list.size(), org.spigotmc.SpigotConfig.playerSample); // Paper - PaperServerListPingEvent
+             ObjectArrayList<GameProfile> objectarraylist = new ObjectArrayList<>(j);
+             int k = Mth.nextInt(this.random, 0, list.size() - j);
+ 
 @@ -992,11 +_,17 @@
  
      public void tickChildren(BooleanSupplier p_129954_) {
@@ -753,6 +764,15 @@
      }
  
      public SystemReport fillSystemReport(SystemReport p_177936_) {
+@@ -1152,7 +_,7 @@
+ 
+     @Override
+     public void sendSystemMessage(Component p_236736_) {
+-        LOGGER.info(p_236736_.getString());
++        LOGGER.info(io.papermc.paper.adventure.PaperAdventure.ANSI_SERIALIZER.serialize(io.papermc.paper.adventure.PaperAdventure.asAdventure(p_236736_))); // Paper - Log message with colors
+     }
+ 
+     public KeyPair getKeyPair() {
 @@ -1230,12 +_,12 @@
          this.isDemo = p_129976_;
      }

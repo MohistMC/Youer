@@ -1,9 +1,17 @@
 --- a/net/minecraft/server/network/ServerStatusPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerStatusPacketListenerImpl.java
-@@ -9,16 +_,24 @@
+@@ -1,5 +_,6 @@
+ package net.minecraft.server.network;
+ 
++import io.papermc.paper.network.StandardPaperServerListPingEventImpl;
+ import net.minecraft.network.Connection;
+ import net.minecraft.network.DisconnectionDetails;
+ import net.minecraft.network.chat.Component;
+@@ -9,16 +_,25 @@
  import net.minecraft.network.protocol.status.ServerStatus;
  import net.minecraft.network.protocol.status.ServerStatusPacketListener;
  import net.minecraft.network.protocol.status.ServerboundStatusRequestPacket;
++import net.minecraft.server.MinecraftServer;
 +import org.bukkit.craftbukkit.CraftServer;
 +import org.bukkit.craftbukkit.util.CraftChatMessage;
 +import org.bukkit.craftbukkit.util.CraftIconCache;
@@ -25,109 +33,14 @@
      }
  
      @Override
-@@ -36,7 +_,104 @@
+@@ -36,7 +_,9 @@
              this.connection.disconnect(DISCONNECT_REASON);
          } else {
              this.hasRequestedStatus = true;
 -            this.connection.send(new ClientboundStatusResponsePacket(this.status));
-+            // CraftBukkit start
-+            net.minecraft.server.MinecraftServer server = net.minecraft.server.MinecraftServer.getServer();
-+            final Object[] players = server.getPlayerList().players.toArray();
-+            class ServerListPingEvent extends org.bukkit.event.server.ServerListPingEvent {
-+                CraftIconCache icon = server.server.getServerIcon();
-+
-+                ServerListPingEvent() {
-+                    super(connection.hostname, ((java.net.InetSocketAddress) connection.getRemoteAddress()).getAddress(), server.server.motd(), server.getPlayerList().getMaxPlayers()); // Paper - Adventure
-+                }
-+
-+                @Override
-+                public void setServerIcon(org.bukkit.util.CachedServerIcon icon) {
-+                    if (!(icon instanceof CraftIconCache)) {
-+                        throw new IllegalArgumentException(icon + " was not created by " + CraftServer.class);
-+                    }
-+                    this.icon = (CraftIconCache) icon;
-+                }
-+
-+                @Override
-+                public java.util.Iterator<org.bukkit.entity.Player> iterator() throws UnsupportedOperationException {
-+                    return new java.util.Iterator<org.bukkit.entity.Player>() {
-+                        int i;
-+                        int ret = Integer.MIN_VALUE;
-+                        net.minecraft.server.level.ServerPlayer player;
-+
-+                        @Override
-+                        public boolean hasNext() {
-+                            if (player != null) {
-+                                return true;
-+                            }
-+                            final Object[] currentPlayers = players;
-+                            for (int length = currentPlayers.length, i = this.i; i < length; i++) {
-+                                final net.minecraft.server.level.ServerPlayer player = (net.minecraft.server.level.ServerPlayer) currentPlayers[i];
-+                                if (player != null) {
-+                                    this.i = i + 1;
-+                                    this.player = player;
-+                                    return true;
-+                                }
-+                            }
-+                            return false;
-+                        }
-+                        @Override
-+                        public org.bukkit.entity.Player next() {
-+                            if (!hasNext()) {
-+                                throw new java.util.NoSuchElementException();
-+                            }
-+                            final net.minecraft.server.level.ServerPlayer player = this.player;
-+                            this.player = null;
-+                            this.ret = this.i - 1;
-+                            return player.getBukkitEntity();
-+                        }
-+                        @Override
-+                        public void remove() {
-+                            final Object[] currentPlayers = players;
-+                            final int i = this.ret;
-+                            if (i < 0 || currentPlayers[i] == null) {
-+                                throw new IllegalStateException();
-+                            }
-+                            currentPlayers[i] = null;
-+                        }
-+                    };
-+                }
-+            }
-+
-+            ServerListPingEvent event = new ServerListPingEvent();
-+            server.server.getPluginManager().callEvent(event);
-+
-+            java.util.List<com.mojang.authlib.GameProfile> profiles = new java.util.ArrayList<com.mojang.authlib.GameProfile>(players.length);
-+            for (Object player : players) {
-+                if (player != null) {
-+                    net.minecraft.server.level.ServerPlayer ServerPlayer = ((net.minecraft.server.level.ServerPlayer) player);
-+                    if (ServerPlayer.allowsListing()) {
-+                        profiles.add(ServerPlayer.getGameProfile());
-+                    } else {
-+                        profiles.add(net.minecraft.server.MinecraftServer.ANONYMOUS_PLAYER_PROFILE);
-+                    }
-+                }
-+            }
-+
-+            // Spigot Start
-+            if ( !server.hidesOnlinePlayers() && !profiles.isEmpty() )
-+            {
-+                java.util.Collections.shuffle( profiles ); // This sucks, its inefficient but we have no simple way of doing it differently
-+                profiles = profiles.subList( 0, Math.min( profiles.size(), org.spigotmc.SpigotConfig.playerSample ) ); // Cap the sample to n (or less) displayed players, ie: Vanilla behaviour
-+            }
-+            // Spigot End
-+            ServerStatus.Players playerSample = new ServerStatus.Players(event.getMaxPlayers(), event.getNumPlayers(), (server.hidesOnlinePlayers()) ? java.util.Collections.emptyList() : profiles);
-+
-+            ServerStatus ping = new ServerStatus(
-+                    CraftChatMessage.fromString(event.getMotd(), true)[0],
-+                    java.util.Optional.of(playerSample),
-+                    java.util.Optional.of(new ServerStatus.Version(server.getServerModName() + " " + server.getServerVersion(), net.minecraft.SharedConstants.getCurrentVersion().getProtocolVersion())),
-+                    (event.icon.value != null) ? java.util.Optional.of(new ServerStatus.Favicon(event.icon.value)) : java.util.Optional.empty(),
-+                    server.enforceSecureProfile()
-+            );
-+
-+            this.connection.send(new ClientboundStatusResponsePacket(ping));
-+            // CraftBukkit end
++            // Paper start - Replace everything
++            StandardPaperServerListPingEventImpl.processRequest(MinecraftServer.getServer(), this.connection);
++            // Paper end
          }
      }
  

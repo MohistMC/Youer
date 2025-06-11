@@ -1,6 +1,18 @@
 --- a/net/minecraft/server/players/GameProfileCache.java
 +++ b/net/minecraft/server/players/GameProfileCache.java
-@@ -111,7 +_,7 @@
+@@ -57,6 +_,11 @@
+     @Nullable
+     private Executor executor;
+ 
++    // Paper start - Fix GameProfileCache concurrency
++    protected final java.util.concurrent.locks.ReentrantLock stateLock = new java.util.concurrent.locks.ReentrantLock();
++    protected final java.util.concurrent.locks.ReentrantLock lookupLock = new java.util.concurrent.locks.ReentrantLock();
++    // Paper end - Fix GameProfileCache concurrency
++
+     public GameProfileCache(GameProfileRepository p_10974_, File p_10975_) {
+         this.profileRepository = p_10974_;
+         this.file = p_10975_;
+@@ -111,13 +_,26 @@
          Date date = calendar.getTime();
          GameProfileCache.GameProfileInfo gameprofilecache$gameprofileinfo = new GameProfileCache.GameProfileInfo(p_10992_, date);
          this.safeAdd(gameprofilecache$gameprofileinfo);
@@ -9,6 +21,25 @@
      }
  
      private long getNextOperation() {
+         return this.operationCount.incrementAndGet();
+     }
+ 
++    // Paper start
++    public @Nullable GameProfile getProfileIfCached(String name) {
++        try { this.stateLock.lock(); // Paper - Fix GameProfileCache concurrency
++            GameProfileCache.GameProfileInfo entry = this.profilesByName.get(name.toLowerCase(Locale.ROOT));
++            if (entry == null) {
++                return null;
++            }
++            entry.setLastAccess(this.getNextOperation());
++            return entry.getProfile();
++        } finally { this.stateLock.unlock(); } // Paper - Fix GameProfileCache concurrency
++    }
++    // Paper end
++
+     public Optional<GameProfile> get(String p_10997_) {
+         String s = p_10997_.toLowerCase(Locale.ROOT);
+         GameProfileCache.GameProfileInfo gameprofilecache$gameprofileinfo = this.profilesByName.get(s);
 @@ -141,7 +_,7 @@
              }
          }

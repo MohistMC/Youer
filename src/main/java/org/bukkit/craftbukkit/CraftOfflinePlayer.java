@@ -82,8 +82,8 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
     }
 
     @Override
-    public PlayerProfile getPlayerProfile() {
-        return new CraftPlayerProfile(this.profile);
+    public io.papermc.paper.profile.PlayerProfile getPlayerProfile() {
+        return io.papermc.paper.profile.CraftPlayerProfile.asBukkitCopy(this.profile); // Paper
     }
 
     public Server getServer() {
