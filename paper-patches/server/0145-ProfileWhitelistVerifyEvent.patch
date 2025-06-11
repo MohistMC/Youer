@@ -14,10 +14,10 @@ index d5f17d7e3b56ca87ec9070b69265ce098de61f69..c08ffdbc9afb2fe7abbf5567dc1fb1e2
              event.disallow(PlayerLoginEvent.Result.KICK_BANNED, io.papermc.paper.adventure.PaperAdventure.asAdventure(ichatmutablecomponent)); // Paper - Adventure
 -        } else if (!this.isWhiteListed(gameprofile)) {
 -            ichatmutablecomponent = Component.translatable("multiplayer.disconnect.not_whitelisted");
--            event.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.whitelistMessage)); // Spigot // Paper - Adventure
+-            event.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.whitelistMessage)); // Spigot // Paper - Adventure
 +        } else if (!this.isWhiteListed(gameprofile, event)) { // Paper - ProfileWhitelistVerifyEvent
 +            //ichatmutablecomponent = Component.translatable("multiplayer.disconnect.not_whitelisted"); // Paper
-+            //event.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.whitelistMessage)); // Spigot // Paper - Adventure - moved to isWhitelisted
++            //event.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.whitelistMessage)); // Spigot // Paper - Adventure - moved to isWhitelisted
          } else if (this.getIpBans().isBanned(socketaddress) && !this.getIpBans().get(socketaddress).hasExpired()) {
              IpBanListEntry ipbanentry = this.ipBans.get(socketaddress);
  
@@ -34,7 +34,7 @@ index d5f17d7e3b56ca87ec9070b69265ce098de61f69..c08ffdbc9afb2fe7abbf5567dc1fb1e2
 +        boolean isWhitelisted = !this.doWhiteList || isOp || this.whitelist.contains(gameprofile);
 +        final com.destroystokyo.paper.event.profile.ProfileWhitelistVerifyEvent event;
 +
-+        final com.mohistmc.net.kyori.adventure.text.Component configuredMessage = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.whitelistMessage);
++        final net.kyori.adventure.text.Component configuredMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.whitelistMessage);
 +        event = new com.destroystokyo.paper.event.profile.ProfileWhitelistVerifyEvent(com.destroystokyo.paper.profile.CraftPlayerProfile.asBukkitMirror(gameprofile), this.doWhiteList, isWhitelisted, isOp, configuredMessage);
 +        event.callEvent();
 +        if (!event.isWhitelisted()) {

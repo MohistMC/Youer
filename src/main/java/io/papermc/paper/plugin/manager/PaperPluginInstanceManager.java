@@ -30,6 +30,7 @@ import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginCommandYamlParser;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.InvalidPluginException;
@@ -200,6 +201,8 @@ class PaperPluginInstanceManager {
             try {
                 jPlugin.setEnabled(true);
             } catch (Throwable ex) {
+
+                this.server.getLogger().log(Level.SEVERE, "Debug classLoader " + Listener.class.getClassLoader());
                 this.server.getLogger().log(Level.SEVERE, "Error occurred while enabling " + plugin.getPluginMeta().getDisplayName() + " (Is it up to date?)", ex);
                 // Paper start - Disable plugins that fail to load
                 this.server.getPluginManager().disablePlugin(jPlugin);

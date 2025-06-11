@@ -4,6 +4,7 @@ import cn.mohistmc.youer.eventhandler.EventDispatcherRegistry;
 import cn.mohistmc.youer.plugins.MohistProxySelector;
 import cn.mohistmc.youer.util.VersionInfo;
 import com.mohistmc.i18n.i18n;
+import cpw.mods.modlauncher.TransformingClassLoader;
 import java.net.ProxySelector;
 import java.util.HashMap;
 import java.util.Locale;
@@ -45,5 +46,6 @@ public class Youer {
         arguments.put("neoforge", NeoForgeVersion.getVersion());
         versionInfo = new VersionInfo(arguments);
         EventDispatcherRegistry.init();
+        ((TransformingClassLoader) Youer.classLoader).addChild(classLoader);
     }
 }

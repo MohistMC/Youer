@@ -14,7 +14,7 @@ public interface SignSide extends Colorable {
      * @return List of components containing each line of text
      */
     @NotNull
-    public java.util.List<com.mohistmc.net.kyori.adventure.text.Component> lines();
+    public java.util.List<net.kyori.adventure.text.Component> lines();
 
     /**
      * Gets the line of text at the specified index.
@@ -26,7 +26,7 @@ public interface SignSide extends Colorable {
      * @return Text on the given line
      */
     @NotNull
-    public com.mohistmc.net.kyori.adventure.text.Component line(int index) throws IndexOutOfBoundsException;
+    public net.kyori.adventure.text.Component line(int index) throws IndexOutOfBoundsException;
 
     /**
      * Sets the line of text at the specified index.
@@ -38,7 +38,7 @@ public interface SignSide extends Colorable {
      * @param line New text to set at the specified index
      * @throws IndexOutOfBoundsException If the index is out of the range 0..3
      */
-    public void line(int index, com.mohistmc.net.kyori.adventure.text.@NotNull Component line) throws IndexOutOfBoundsException;
+    public void line(int index, net.kyori.adventure.text.@NotNull Component line) throws IndexOutOfBoundsException;
     // Paper end
 
     /**
@@ -74,7 +74,7 @@ public interface SignSide extends Colorable {
      * @param index Line number to set the text at, starting from 0
      * @param line New text to set at the specified index
      * @throws IndexOutOfBoundsException If the index is out of the range 0..3
-     * @deprecated in favour of {@link #line(int, com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #line(int, net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setLine(int index, @NotNull String line) throws IndexOutOfBoundsException;

@@ -47,30 +47,24 @@
              }
          }
  
-@@ -288,7 +_,7 @@
+@@ -288,6 +_,7 @@
              }
  
              if (entity instanceof LivingEntity livingentity1) {
--                livingentity1.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 200), MoreObjects.firstNonNull(entity1, this));
-+                livingentity1.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 200), MoreObjects.firstNonNull(entity1, this), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK); // CraftBukkit
++                livingentity1.addEffectCause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK);  // CraftBukkit
+                 livingentity1.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 200), MoreObjects.firstNonNull(entity1, this));
              }
          }
-     }
-@@ -301,14 +_,20 @@
-     }
- 
-     private void destroy() {
--        this.discard();
-+        // CraftBukkit start - add Bukkit remove cause
-+        this.destroy(null);
-+    }
-+
-+    private void destroy(org.bukkit.event.entity.EntityRemoveEvent.Cause cause) {
-+        this.discard(cause);
-+        // CraftBukkit end
+@@ -305,10 +_,16 @@
          this.level().gameEvent(GameEvent.ENTITY_DAMAGE, this.position(), GameEvent.Context.of(this));
      }
  
++    private void destroy(org.bukkit.event.entity.EntityRemoveEvent.Cause cause) {
++        this.discard(cause);
++        // CraftBukkit end
++        this.level().gameEvent(GameEvent.ENTITY_DAMAGE, this.position(), GameEvent.Context.of(this));
++    }
++
      @Override
      protected void onHit(HitResult p_37347_) {
          super.onHit(p_37347_);

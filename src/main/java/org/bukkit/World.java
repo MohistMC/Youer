@@ -47,7 +47,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a world, which may contain entities, chunks and blocks
  */
-public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient, Metadatable, PersistentDataHolder, Keyed, com.mohistmc.net.kyori.adventure.audience.ForwardingAudience { // Paper
+public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient, Metadatable, PersistentDataHolder, Keyed, net.kyori.adventure.audience.ForwardingAudience { // Paper
 
     /**
      * Gets the {@link Block} at the given coordinates
@@ -647,7 +647,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     // Paper start
     @NotNull
     @Override
-    default Iterable<? extends com.mohistmc.net.kyori.adventure.audience.Audience> audiences() {
+    default Iterable<? extends net.kyori.adventure.audience.Audience> audiences() {
         return this.getPlayers();
     }
     // Paper end

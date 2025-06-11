@@ -69,7 +69,7 @@ public class ProxiedNativeCommandSender implements ProxiedCommandSender {
 
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component name() {
+    public net.kyori.adventure.text.Component name() {
         return this.getCallee().name();
     }
     // Paper end

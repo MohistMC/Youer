@@ -67,7 +67,7 @@ public class PluginCommandYamlParser {
             }
 
             if (permissionMessage != null) {
-                newCmd.permissionMessage(com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(permissionMessage.toString())); // Paper
+                newCmd.permissionMessage(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(permissionMessage.toString())); // Paper
             }
 
             pluginCmds.add(newCmd);

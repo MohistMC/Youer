@@ -1,6 +1,6 @@
 package io.papermc.paper.event.player;
 
-import com.mohistmc.net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;

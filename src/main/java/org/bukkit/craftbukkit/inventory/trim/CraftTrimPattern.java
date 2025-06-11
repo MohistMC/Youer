@@ -66,7 +66,7 @@ public class CraftTrimPattern implements TrimPattern, Handleable<net.minecraft.w
 
     // Paper start - adventure
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component description() {
+    public net.kyori.adventure.text.Component description() {
         return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.handle.description());
     }
     // Paper end - adventure

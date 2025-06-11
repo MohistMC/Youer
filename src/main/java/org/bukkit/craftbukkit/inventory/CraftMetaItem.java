@@ -963,12 +963,12 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
 
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component displayName() {
+    public net.kyori.adventure.text.Component displayName() {
         return displayName == null ? null : io.papermc.paper.adventure.PaperAdventure.asAdventure(displayName);
     }
 
     @Override
-    public void displayName(final com.mohistmc.net.kyori.adventure.text.Component displayName) {
+    public void displayName(final net.kyori.adventure.text.Component displayName) {
         this.displayName = displayName == null ? null : io.papermc.paper.adventure.PaperAdventure.asVanilla(displayName);
     }
     // Paper end
@@ -1017,12 +1017,12 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
 
     // Paper start - Adventure
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component itemName() {
+    public net.kyori.adventure.text.Component itemName() {
         return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.itemName);
     }
 
     @Override
-    public void itemName(final com.mohistmc.net.kyori.adventure.text.Component name) {
+    public void itemName(final net.kyori.adventure.text.Component name) {
         this.itemName = io.papermc.paper.adventure.PaperAdventure.asVanilla(name);
     }
     // Paper end - Adventure
@@ -1048,12 +1048,12 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
 
     // Paper start
     @Override
-    public List<com.mohistmc.net.kyori.adventure.text.Component> lore() {
+    public List<net.kyori.adventure.text.Component> lore() {
         return this.lore != null ? io.papermc.paper.adventure.PaperAdventure.asAdventure(this.lore) : null;
     }
 
     @Override
-    public void lore(final List<? extends com.mohistmc.net.kyori.adventure.text.Component> lore) {
+    public void lore(final List<? extends net.kyori.adventure.text.Component> lore) {
         Preconditions.checkArgument(lore == null || lore.size() <= ItemLore.MAX_LINES, "lore cannot have more than %s lines", ItemLore.MAX_LINES); // Paper - limit lore lines
         this.lore = lore != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(lore) : null;
     }

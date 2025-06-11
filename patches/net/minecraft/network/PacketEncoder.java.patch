@@ -1,5 +1,18 @@
 --- a/net/minecraft/network/PacketEncoder.java
 +++ b/net/minecraft/network/PacketEncoder.java
+@@ -17,10 +_,12 @@
+         this.protocolInfo = p_320006_;
+     }
+ 
++    static final ThreadLocal<java.util.Locale> ADVENTURE_LOCALE = ThreadLocal.withInitial(() -> null); // Paper - adventure; set player's locale
+     protected void encode(ChannelHandlerContext p_130545_, Packet<T> p_130546_, ByteBuf p_130547_) throws Exception {
+         PacketType<? extends Packet<? super T>> packettype = p_130546_.type();
+ 
+         try {
++            ADVENTURE_LOCALE.set(p_130545_.channel().attr(io.papermc.paper.adventure.PaperAdventure.LOCALE_ATTRIBUTE).get()); // Paper - adventure; set player's locale
+             this.protocolInfo.codec().encode(p_130547_, p_130546_);
+             int i = p_130547_.readableBytes();
+             if (LOGGER.isDebugEnabled()) {
 @@ -31,7 +_,7 @@
  
              JvmProfiler.INSTANCE.onPacketSent(this.protocolInfo.id(), packettype, p_130545_.channel().remoteAddress(), i);

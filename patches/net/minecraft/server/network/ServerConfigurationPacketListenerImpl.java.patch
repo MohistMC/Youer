@@ -52,7 +52,7 @@
          this.synchronizeRegistriesTask = new SynchronizeRegistriesTask(list, layeredregistryaccess);
          this.configurationTasks.add(this.synchronizeRegistriesTask);
          this.addOptionalTasks();
-@@ -95,6 +_,32 @@
+@@ -95,11 +_,38 @@
  
      private void addOptionalTasks() {
          this.server.getServerResourcePack().ifPresent(p_296496_ -> this.configurationTasks.add(new ServerResourcePackConfigurationTask(p_296496_)));
@@ -82,6 +82,12 @@
 +            }
 +            ThreadUtils.executeOnMainThread(this::runConfiguration);
 +        }
+     }
+ 
+     @Override
+     public void handleClientInformation(ServerboundClientInformationPacket p_302032_) {
+         this.clientInformation = p_302032_.information();
++        this.connection.channel.attr(io.papermc.paper.adventure.PaperAdventure.LOCALE_ATTRIBUTE).set(net.kyori.adventure.translation.Translator.parseLocale(p_302032_.information().language())); // Paper
      }
  
      @Override

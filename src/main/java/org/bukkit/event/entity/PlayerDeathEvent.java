@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class PlayerDeathEvent extends EntityDeathEvent {
     private int newExp = 0;
-    private com.mohistmc.net.kyori.adventure.text.Component deathMessage; // Paper - adventure
+    private net.kyori.adventure.text.Component deathMessage; // Paper - adventure
     private int newLevel = 0;
     private int newTotalExp = 0;
     private boolean keepLevel = false;
@@ -20,22 +20,22 @@ public class PlayerDeathEvent extends EntityDeathEvent {
     private boolean doExpDrop; // Paper - shouldDropExperience API
     // Paper start - adventure
     @org.jetbrains.annotations.ApiStatus.Internal
-    public PlayerDeathEvent(final @NotNull Player player, final @NotNull DamageSource damageSource, final @NotNull List<ItemStack> drops, final int droppedExp, final @Nullable com.mohistmc.net.kyori.adventure.text.Component deathMessage) {
+    public PlayerDeathEvent(final @NotNull Player player, final @NotNull DamageSource damageSource, final @NotNull List<ItemStack> drops, final int droppedExp, final @Nullable net.kyori.adventure.text.Component deathMessage) {
         this(player, damageSource, drops, droppedExp, 0, deathMessage);
     }
 
     @org.jetbrains.annotations.ApiStatus.Internal
-    public PlayerDeathEvent(final @NotNull Player player, final @NotNull DamageSource damageSource, final @NotNull List<ItemStack> drops, final int droppedExp, final int newExp, final @Nullable com.mohistmc.net.kyori.adventure.text.Component deathMessage) {
+    public PlayerDeathEvent(final @NotNull Player player, final @NotNull DamageSource damageSource, final @NotNull List<ItemStack> drops, final int droppedExp, final int newExp, final @Nullable net.kyori.adventure.text.Component deathMessage) {
         this(player, damageSource, drops, droppedExp, newExp, 0, 0, deathMessage);
     }
 
     @org.jetbrains.annotations.ApiStatus.Internal
-    public PlayerDeathEvent(final @NotNull Player player, final @NotNull DamageSource damageSource, final @NotNull List<ItemStack> drops, final int droppedExp, final int newExp, final int newTotalExp, final int newLevel, final @Nullable com.mohistmc.net.kyori.adventure.text.Component deathMessage) {
+    public PlayerDeathEvent(final @NotNull Player player, final @NotNull DamageSource damageSource, final @NotNull List<ItemStack> drops, final int droppedExp, final int newExp, final int newTotalExp, final int newLevel, final @Nullable net.kyori.adventure.text.Component deathMessage) {
         // Paper start - shouldDropExperience API
         this(player, damageSource, drops, droppedExp, newExp, newTotalExp, newLevel, deathMessage, true);
     }
     @org.jetbrains.annotations.ApiStatus.Internal
-    public PlayerDeathEvent(final @NotNull Player player, final @NotNull DamageSource damageSource, final @NotNull List<ItemStack> drops, final int droppedExp, final int newExp, final int newTotalExp, final int newLevel, final @Nullable com.mohistmc.net.kyori.adventure.text.Component deathMessage, final boolean doExpDrop) {
+    public PlayerDeathEvent(final @NotNull Player player, final @NotNull DamageSource damageSource, final @NotNull List<ItemStack> drops, final int droppedExp, final int newExp, final int newTotalExp, final int newLevel, final @Nullable net.kyori.adventure.text.Component deathMessage, final boolean doExpDrop) {
         // Paper end - shouldDropExperience API
         super(player, damageSource, drops, droppedExp);
         this.newExp = newExp;
@@ -69,7 +69,7 @@ public class PlayerDeathEvent extends EntityDeathEvent {
         this.newExp = newExp;
         this.newTotalExp = newTotalExp;
         this.newLevel = newLevel;
-        this.deathMessage = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserializeOrNull(deathMessage); // Paper
+        this.deathMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserializeOrNull(deathMessage); // Paper
         this.doExpDrop = doExpDrop; // Paper - shouldDropExperience API
     }
 
@@ -149,7 +149,7 @@ public class PlayerDeathEvent extends EntityDeathEvent {
      *
      * @param deathMessage Component message to appear to other players on the server.
      */
-    public void deathMessage(final com.mohistmc.net.kyori.adventure.text.@Nullable Component deathMessage) {
+    public void deathMessage(final net.kyori.adventure.text.@Nullable Component deathMessage) {
         this.deathMessage = deathMessage;
     }
 
@@ -158,7 +158,7 @@ public class PlayerDeathEvent extends EntityDeathEvent {
      *
      * @return Component message to appear to other players on the server.
      */
-    public com.mohistmc.net.kyori.adventure.text.@Nullable Component deathMessage() {
+    public net.kyori.adventure.text.@Nullable Component deathMessage() {
         return this.deathMessage;
     }
     // Paper end - adventure
@@ -167,11 +167,11 @@ public class PlayerDeathEvent extends EntityDeathEvent {
      * Set the death message that will appear to everyone on the server.
      *
      * @param deathMessage Message to appear to other players on the server.
-     * @deprecated in favour of {@link #deathMessage(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #deathMessage(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setDeathMessage(@Nullable String deathMessage) {
-        this.deathMessage = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserializeOrNull(deathMessage); // Paper
+        this.deathMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserializeOrNull(deathMessage); // Paper
     }
 
     /**
@@ -183,7 +183,7 @@ public class PlayerDeathEvent extends EntityDeathEvent {
     @Nullable
     @Deprecated // Paper
     public String getDeathMessage() {
-        return com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serializeOrNull(this.deathMessage); // Paper
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serializeOrNull(this.deathMessage); // Paper
     }
     // Paper end
     /**

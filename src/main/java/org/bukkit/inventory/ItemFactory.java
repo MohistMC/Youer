@@ -212,6 +212,6 @@ public interface ItemFactory {
      * @return display name of the {@link ItemStack}
      */
     @NotNull
-    com.mohistmc.net.kyori.adventure.text.Component displayName(@NotNull ItemStack itemStack);
+    net.kyori.adventure.text.Component displayName(@NotNull ItemStack itemStack);
     // Paper end - Adventure
 }

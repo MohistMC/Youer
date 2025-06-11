@@ -25,7 +25,7 @@ public class CraftInventoryCustom extends CraftInventory {
     }
 
     // Paper start
-    public CraftInventoryCustom(InventoryHolder owner, InventoryType type, com.mohistmc.net.kyori.adventure.text.Component title) {
+    public CraftInventoryCustom(InventoryHolder owner, InventoryType type, net.kyori.adventure.text.Component title) {
         super(new MinecraftInventory(owner, type, title));
     }
     // Paper end
@@ -39,7 +39,7 @@ public class CraftInventoryCustom extends CraftInventory {
     }
 
     // Paper start
-    public CraftInventoryCustom(InventoryHolder owner, int size, com.mohistmc.net.kyori.adventure.text.Component title) {
+    public CraftInventoryCustom(InventoryHolder owner, int size, net.kyori.adventure.text.Component title) {
         super(new MinecraftInventory(owner, size, title));
     }
     // Paper end
@@ -63,7 +63,7 @@ public class CraftInventoryCustom extends CraftInventory {
         }
     }
 
-    public com.mohistmc.net.kyori.adventure.text.Component title() {
+    public net.kyori.adventure.text.Component title() {
         if (this.inventory instanceof MinecraftInventory minecraftInventory) {
             return minecraftInventory.title();
         } else if (this.inventory instanceof io.papermc.paper.inventory.PaperInventoryCustomHolderContainer customHolderContainer) {
@@ -79,12 +79,12 @@ public class CraftInventoryCustom extends CraftInventory {
         private int maxStack = MAX_STACK;
         private final List<HumanEntity> viewers;
         private final String title;
-        private final com.mohistmc.net.kyori.adventure.text.Component adventure$title; // Paper
+        private final net.kyori.adventure.text.Component adventure$title; // Paper
         private InventoryType type;
         private final InventoryHolder owner;
 
         // Paper start
-        public MinecraftInventory(InventoryHolder owner, InventoryType type, com.mohistmc.net.kyori.adventure.text.Component title) {
+        public MinecraftInventory(InventoryHolder owner, InventoryType type, net.kyori.adventure.text.Component title) {
             this(owner, type.getDefaultSize(), title);
             this.type = type;
         }
@@ -108,17 +108,17 @@ public class CraftInventoryCustom extends CraftInventory {
             Preconditions.checkArgument(title != null, "title cannot be null");
             this.items = NonNullList.withSize(size, ItemStack.EMPTY);
             this.title = title;
-            this.adventure$title = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(title);
+            this.adventure$title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(title);
             this.viewers = new ArrayList<HumanEntity>();
             this.owner = owner;
             this.type = InventoryType.CHEST;
         }
 
         // Paper start
-        public MinecraftInventory(final InventoryHolder owner, final int size, final com.mohistmc.net.kyori.adventure.text.Component title) {
+        public MinecraftInventory(final InventoryHolder owner, final int size, final net.kyori.adventure.text.Component title) {
             Preconditions.checkArgument(title != null, "Title cannot be null");
             this.items = NonNullList.withSize(size, ItemStack.EMPTY);
-            this.title = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(title);
+            this.title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(title);
             this.adventure$title = title;
             this.viewers = new ArrayList<HumanEntity>();
             this.owner = owner;
@@ -129,7 +129,7 @@ public class CraftInventoryCustom extends CraftInventory {
         public MinecraftInventory(InventoryHolder owner, NonNullList<ItemStack> items) {
             this.items = items;
             this.title = "Chest";
-            this.adventure$title = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(title);
+            this.adventure$title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(title);
             this.viewers = new ArrayList<>();
             this.owner = owner;
             this.type = InventoryType.CHEST;
@@ -257,7 +257,7 @@ public class CraftInventoryCustom extends CraftInventory {
         }
 
         // Paper start
-        public com.mohistmc.net.kyori.adventure.text.Component title() {
+        public net.kyori.adventure.text.Component title() {
             return this.adventure$title;
         }
         // Paper end

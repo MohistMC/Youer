@@ -61,7 +61,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final int LATENCY_CHECK_INTERVAL = 15000;
      private static final int CLOSED_LISTENER_TIMEOUT = 15000;
-@@ -42,6 +_,18 @@
+@@ -42,6 +_,19 @@
      private boolean closed = false;
      private int latency;
      private volatile boolean suspendFlushingOnServerThread = false;
@@ -72,6 +72,7 @@
 +    protected ServerPlayer player;
 +    protected CraftServer cserver;
 +    public boolean processedDisconnect;
++    public final java.util.Map<java.util.UUID, net.kyori.adventure.resource.ResourcePackCallback> packCallbacks = new java.util.concurrent.ConcurrentHashMap<>(); // Paper - adventure resource pack callbacks
 +
 +    public CraftPlayer getCraftPlayer() {
 +        return (this.player == null) ? null : (CraftPlayer) this.player.getBukkitEntity();
@@ -144,10 +145,22 @@
  
      @Override
      public void handleResourcePackResponse(ServerboundResourcePackPacket p_295695_) {
-@@ -92,17 +_,24 @@
+@@ -92,17 +_,36 @@
              LOGGER.info("Disconnecting {} due to resource pack {} rejection", this.playerProfile().getName(), p_295695_.id());
              this.disconnect(Component.translatable("multiplayer.requiredTexturePrompt.disconnect"));
          }
++        // Paper start - adventure pack callbacks
++        // call the callbacks before the previously-existing event so the event has final say
++        final net.kyori.adventure.resource.ResourcePackCallback callback;
++        if (p_295695_.action().isTerminal()) {
++            callback = this.packCallbacks.remove(p_295695_.id());
++        } else {
++            callback = this.packCallbacks.get(p_295695_.id());
++        }
++        if (callback != null) {
++            callback.packEventReceived(p_295695_.id(), net.kyori.adventure.resource.ResourcePackStatus.valueOf(p_295695_.action().name()), this.getCraftPlayer());
++        }
++        // Paper end
 +        this.cserver.getPluginManager().callEvent(new PlayerResourcePackStatusEvent(getCraftPlayer(), p_295695_.id(), PlayerResourcePackStatusEvent.Status.values()[p_295695_.action().ordinal()])); // CraftBukkit
      }
  
@@ -188,7 +201,7 @@
          if (p_295099_.isTerminal()) {
              this.close();
          }
-@@ -151,22 +_,83 @@
+@@ -151,22 +_,79 @@
          try {
              this.connection.send(p_295099_, p_296321_, flag);
          } catch (Throwable throwable) {
@@ -202,12 +215,8 @@
      }
 +
 +    // Paper start - adventure
-+    public void disconnect(final com.mohistmc.net.kyori.adventure.text.Component reason) {
-+        this.disconnect(reason, PlayerKickEvent.Cause.UNKNOWN);
-+    }
-+    public void disconnect(final com.mohistmc.net.kyori.adventure.text.Component reason, PlayerKickEvent.Cause cause) {
++    public void disconnect(final net.kyori.adventure.text.Component reason) {
 +        this.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(reason));
-+        // Paper end - kick event causes
 +    }
 +    // Paper end - adventure
  
@@ -242,9 +251,9 @@
 +            return;
 +        }
 +
-+        String leaveMessage = ChatFormatting.YELLOW + this.player.getScoreboardName() + " left the game.";
++        net.kyori.adventure.text.Component leaveMessage = net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? this.player.getBukkitEntity().displayName() : net.kyori.adventure.text.Component.text(this.player.getScoreboardName())); // Paper - Adventure
 +
-+        PlayerKickEvent event = new PlayerKickEvent(this.player.getBukkitEntity(), CraftChatMessage.fromComponent(p_350316_.reason()), leaveMessage);
++        PlayerKickEvent event = new PlayerKickEvent(this.player.getBukkitEntity(), io.papermc.paper.adventure.PaperAdventure.asAdventure(p_350316_.reason()), leaveMessage); // Paper - adventure
 +
 +        if (this.cserver.getServer().isRunning()) {
 +            this.cserver.getPluginManager().callEvent(event);
@@ -256,7 +265,7 @@
 +        }
 +        this.player.kickLeaveMessage = event.getLeaveMessage(); // CraftBukkit - SPIGOT-3034: Forward leave message to PlayerQuitEvent
 +        // Send the possibly modified leave message
-+        this.disconnect0(new DisconnectionDetails(CraftChatMessage.fromString(event.getReason(), true)[0], p_350316_.report(), p_350316_.bugReportLink()));
++        this.disconnect0(new DisconnectionDetails(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.reason()), p_350316_.report(), p_350316_.bugReportLink())); // Paper - Adventure
 +    }
 +    private void disconnect0(DisconnectionDetails disconnectiondetails) {
 +        // CraftBukkit end

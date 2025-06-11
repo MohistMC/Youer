@@ -11,7 +11,7 @@ index 466218a3b7f749b3de67e619285ceeb6d85cc28e..7f854d545a76a6e4dd2439f9a6e193fa
 @@ -319,6 +319,14 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
       * @param message kick message
       */
-     void kick(final com.mohistmc.net.kyori.adventure.text.@Nullable Component message);
+     void kick(final net.kyori.adventure.text.@Nullable Component message);
 +
 +    /**
 +     * Kicks player with custom kick message and cause.
@@ -19,7 +19,7 @@ index 466218a3b7f749b3de67e619285ceeb6d85cc28e..7f854d545a76a6e4dd2439f9a6e193fa
 +     * @param message kick message
 +     * @param cause kick cause
 +     */
-+    void kick(final com.mohistmc.net.kyori.adventure.text.@Nullable Component message, org.bukkit.event.player.PlayerKickEvent.@NotNull Cause cause);
++    void kick(final net.kyori.adventure.text.@Nullable Component message, org.bukkit.event.player.PlayerKickEvent.@NotNull Cause cause);
      // Paper end
  
      /**
@@ -29,22 +29,22 @@ index 997b06c19a5277656521e0e298f2958c209f1da1..b8bf61bea73086c61dce6230686e627d
 +++ b/src/main/java/org/bukkit/event/player/PlayerKickEvent.java
 @@ -12,6 +12,7 @@ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
      private static final HandlerList handlers = new HandlerList();
-     private com.mohistmc.net.kyori.adventure.text.Component leaveMessage; // Paper
-     private com.mohistmc.net.kyori.adventure.text.Component kickReason; // Paper
+     private net.kyori.adventure.text.Component leaveMessage; // Paper
+     private net.kyori.adventure.text.Component kickReason; // Paper
 +    private final Cause cause; // Paper
      private boolean cancel;
  
      @Deprecated // Paper
 @@ -19,14 +20,26 @@ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
          super(playerKicked);
-         this.kickReason = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(kickReason); // Paper
-         this.leaveMessage = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(leaveMessage); // Paper
+         this.kickReason = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(kickReason); // Paper
+         this.leaveMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(leaveMessage); // Paper
 +        this.cause  = Cause.UNKNOWN; // Paper
          this.cancel = false;
      }
      // Paper start
 +    @Deprecated
-     public PlayerKickEvent(@NotNull final Player playerKicked, @NotNull final com.mohistmc.net.kyori.adventure.text.Component kickReason, @NotNull final com.mohistmc.net.kyori.adventure.text.Component leaveMessage) {
+     public PlayerKickEvent(@NotNull final Player playerKicked, @NotNull final net.kyori.adventure.text.Component kickReason, @NotNull final net.kyori.adventure.text.Component leaveMessage) {
          super(playerKicked);
          this.kickReason = kickReason;
          this.leaveMessage = leaveMessage;
@@ -53,7 +53,7 @@ index 997b06c19a5277656521e0e298f2958c209f1da1..b8bf61bea73086c61dce6230686e627d
 +    }
 +
 +    @org.jetbrains.annotations.ApiStatus.Internal
-+    public PlayerKickEvent(@NotNull final Player playerKicked, @NotNull final com.mohistmc.net.kyori.adventure.text.Component kickReason, @NotNull final com.mohistmc.net.kyori.adventure.text.Component leaveMessage, @NotNull final Cause cause) {
++    public PlayerKickEvent(@NotNull final Player playerKicked, @NotNull final net.kyori.adventure.text.Component kickReason, @NotNull final net.kyori.adventure.text.Component leaveMessage, @NotNull final Cause cause) {
 +        super(playerKicked);
 +        this.kickReason = kickReason;
 +        this.leaveMessage = leaveMessage;

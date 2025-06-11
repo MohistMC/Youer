@@ -51,8 +51,8 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
 
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component name() {
-        return com.mohistmc.net.kyori.adventure.text.Component.text(this.getName());
+    public net.kyori.adventure.text.Component name() {
+        return net.kyori.adventure.text.Component.text(this.getName());
     }
     // Paper end
 

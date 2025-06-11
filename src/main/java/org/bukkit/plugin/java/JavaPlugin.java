@@ -295,7 +295,7 @@ public abstract class JavaPlugin extends PluginBase {
 
     // Paper start
     private static class DummyPluginLoaderImplHolder {
-        private static final PluginLoader INSTANCE =  com.mohistmc.net.kyori.adventure.util.Services.service(PluginLoader.class)
+        private static final PluginLoader INSTANCE =  net.kyori.adventure.util.Services.service(PluginLoader.class)
             .orElseThrow();
     }
     public final void init(@NotNull PluginLoader loader, @NotNull Server server, @NotNull PluginDescriptionFile description, @NotNull File dataFolder, @NotNull File file, @NotNull ClassLoader classLoader) {

@@ -131,7 +131,7 @@ public final class MapCursorCollection {
      * @deprecated Magic value
      */
     @Deprecated
-    public @NotNull MapCursor addCursor(int x, int y, byte direction, byte type, boolean visible, com.mohistmc.net.kyori.adventure.text.@Nullable Component caption) {
+    public @NotNull MapCursor addCursor(int x, int y, byte direction, byte type, boolean visible, net.kyori.adventure.text.@Nullable Component caption) {
         return addCursor(new MapCursor((byte) x, (byte) y, direction, type, visible, caption));
     }
     // Paper end

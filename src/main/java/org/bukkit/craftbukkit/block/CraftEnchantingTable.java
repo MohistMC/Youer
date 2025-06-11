@@ -18,13 +18,13 @@ public class CraftEnchantingTable extends CraftBlockEntityState<EnchantingTableB
 
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component customName() {
+    public net.kyori.adventure.text.Component customName() {
         final EnchantingTableBlockEntity be = this.getSnapshot();
         return be.hasCustomName() ? io.papermc.paper.adventure.PaperAdventure.asAdventure(be.getCustomName()) : null;
     }
 
     @Override
-    public void customName(final com.mohistmc.net.kyori.adventure.text.Component customName) {
+    public void customName(final net.kyori.adventure.text.Component customName) {
         this.getSnapshot().setCustomName(customName != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(customName) : null);
     }
     // Paper end

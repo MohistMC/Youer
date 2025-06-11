@@ -11,8 +11,8 @@ import org.jetbrains.annotations.Nullable;
 public class PlayerJoinEvent extends PlayerEvent {
     private static final HandlerList handlers = new HandlerList();
     // Paper start
-    private com.mohistmc.net.kyori.adventure.text.Component joinMessage;
-    public PlayerJoinEvent(@NotNull final Player playerJoined, @Nullable final com.mohistmc.net.kyori.adventure.text.Component joinMessage) {
+    private net.kyori.adventure.text.Component joinMessage;
+    public PlayerJoinEvent(@NotNull final Player playerJoined, @Nullable final net.kyori.adventure.text.Component joinMessage) {
         super(playerJoined);
         this.joinMessage = joinMessage;
     }
@@ -20,7 +20,7 @@ public class PlayerJoinEvent extends PlayerEvent {
     @Deprecated // Paper end
     public PlayerJoinEvent(@NotNull final Player playerJoined, @Nullable final String joinMessage) {
         super(playerJoined);
-        this.joinMessage = joinMessage != null ? com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(joinMessage) : null; // Paper end
+        this.joinMessage = joinMessage != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(joinMessage) : null; // Paper end
     }
 
     // Paper start
@@ -29,7 +29,7 @@ public class PlayerJoinEvent extends PlayerEvent {
      *
      * @return string join message. Can be null
      */
-    public com.mohistmc.net.kyori.adventure.text.@Nullable Component joinMessage() {
+    public net.kyori.adventure.text.@Nullable Component joinMessage() {
         return this.joinMessage;
     }
 
@@ -38,7 +38,7 @@ public class PlayerJoinEvent extends PlayerEvent {
      *
      * @param joinMessage join message. If null, no message will be sent
      */
-    public void joinMessage(com.mohistmc.net.kyori.adventure.text.@Nullable Component joinMessage) {
+    public void joinMessage(net.kyori.adventure.text.@Nullable Component joinMessage) {
         this.joinMessage = joinMessage;
     }
     // Paper end
@@ -52,18 +52,18 @@ public class PlayerJoinEvent extends PlayerEvent {
     @Nullable
     @Deprecated // Paper
     public String getJoinMessage() {
-        return this.joinMessage == null ? null : com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.joinMessage); // Paper
+        return this.joinMessage == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.joinMessage); // Paper
     }
 
     /**
      * Sets the join message to send to all online players
      *
      * @param joinMessage join message. If null, no message will be sent
-     * @deprecated in favour of {@link #joinMessage(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #joinMessage(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setJoinMessage(@Nullable String joinMessage) {
-        this.joinMessage = joinMessage != null ? com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(joinMessage) : null; // Paper
+        this.joinMessage = joinMessage != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(joinMessage) : null; // Paper
     }
 
     @NotNull

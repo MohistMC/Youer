@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Event triggered for server broadcast messages such as from
- * {@link org.bukkit.Server#broadcast(com.mohistmc.net.kyori.adventure.text.Component)} (String, String)}.
+ * {@link org.bukkit.Server#broadcast(net.kyori.adventure.text.Component)} (String, String)}.
  *
  * <b>This event behaves similarly to {@link io.papermc.paper.event.player.AsyncChatEvent} in that it
  * should be async if fired from an async thread. Please see that event for
@@ -18,7 +18,7 @@ import org.jetbrains.annotations.NotNull;
 public class BroadcastMessageEvent extends ServerEvent implements Cancellable {
 
     private static final HandlerList handlers = new HandlerList();
-    private com.mohistmc.net.kyori.adventure.text.Component message; // Paper
+    private net.kyori.adventure.text.Component message; // Paper
     private final Set<CommandSender> recipients;
     private boolean cancelled = false;
 
@@ -31,16 +31,16 @@ public class BroadcastMessageEvent extends ServerEvent implements Cancellable {
     public BroadcastMessageEvent(boolean isAsync, @NotNull String message, @NotNull Set<CommandSender> recipients) {
         // Paper start
         super(isAsync);
-        this.message = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message);
+        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message);
         this.recipients = recipients;
     }
 
     @Deprecated
-    public BroadcastMessageEvent(com.mohistmc.net.kyori.adventure.text.@NotNull Component message, @NotNull Set<CommandSender> recipients) {
+    public BroadcastMessageEvent(net.kyori.adventure.text.@NotNull Component message, @NotNull Set<CommandSender> recipients) {
         this(false, message, recipients);
     }
 
-    public BroadcastMessageEvent(boolean isAsync, com.mohistmc.net.kyori.adventure.text.@NotNull Component message, @NotNull Set<CommandSender> recipients) {
+    public BroadcastMessageEvent(boolean isAsync, net.kyori.adventure.text.@NotNull Component message, @NotNull Set<CommandSender> recipients) {
         // Paper end
         super(isAsync);
         this.message = message;
@@ -52,7 +52,7 @@ public class BroadcastMessageEvent extends ServerEvent implements Cancellable {
      *
      * @return Message to broadcast
      */
-    public com.mohistmc.net.kyori.adventure.text.@NotNull Component message() {
+    public net.kyori.adventure.text.@NotNull Component message() {
         return this.message;
     }
 
@@ -61,7 +61,7 @@ public class BroadcastMessageEvent extends ServerEvent implements Cancellable {
      *
      * @param message New message to broadcast
      */
-    public void message(com.mohistmc.net.kyori.adventure.text.@NotNull Component message) {
+    public void message(net.kyori.adventure.text.@NotNull Component message) {
         this.message = message;
     }
     // Paper end
@@ -75,18 +75,18 @@ public class BroadcastMessageEvent extends ServerEvent implements Cancellable {
     @NotNull
     @Deprecated // Paper
     public String getMessage() {
-        return com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.message); // Paper
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.message); // Paper
     }
 
     /**
      * Set the message to broadcast.
      *
      * @param message New message to broadcast
-     * @deprecated in favour of {@link #message(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #message(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setMessage(@NotNull String message) {
-        this.message = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // Paper
+        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // Paper
     }
 
     /**

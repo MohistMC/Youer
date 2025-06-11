@@ -154,7 +154,7 @@ public class YouerModuleManager {
 
     public static void loadModules(String modulePath) throws Throwable {
         // Find all extra modules
-        ModuleFinder finder = ModuleFinder.of(Arrays.stream(modulePath.split(File.pathSeparator)).map(Paths::get).peek(YouerModuleManager::addToPath).toArray(Path[]::new));
+        ModuleFinder finder = ModuleFinder.of(Arrays.stream(modulePath.split(File.pathSeparator)).map(Paths::get).peek(JarLoader::loadJar).toArray(Path[]::new));
         MethodHandle loadModuleMH = IMPL_LOOKUP.findVirtual(Class.forName("jdk.internal.loader.BuiltinClassLoader"), "loadModule", MethodType.methodType(void.class, ModuleReference.class));
 
         // Resolve modules to a new config
@@ -221,30 +221,6 @@ public class YouerModuleManager {
                 throw new RuntimeException(throwable);
             }
         }))));
-    }
-
-    public static void addToPath(Path path) {
-        try {
-            ClassLoader loader = ClassLoader.getPlatformClassLoader();
-            Field ucpField;
-            try {
-                ucpField = loader.getClass().getDeclaredField("ucp");
-            } catch (NoSuchFieldException e) {
-                ucpField = loader.getClass().getSuperclass().getDeclaredField("ucp");
-            }
-            long offset = unsafe.objectFieldOffset(ucpField);
-            Object ucp = unsafe.getObject(loader, offset);
-            if (ucp == null) {
-                var cl = Class.forName("jdk.internal.loader.URLClassPath");
-                var handle = IMPL_LOOKUP.findConstructor(cl, MethodType.methodType(void.class, URL[].class, AccessControlContext.class));
-                ucp = handle.invoke(new URL[]{}, (AccessControlContext) null);
-                unsafe.putObjectVolatile(loader, offset, ucp);
-            }
-            Method method = ucp.getClass().getDeclaredMethod("addURL", URL.class);
-            IMPL_LOOKUP.unreflect(method).invoke(ucp, path.toUri().toURL());
-        } catch (Throwable t) {
-            t.printStackTrace();
-        }
     }
 
     private record ParserData(String module, String packages, String target) {

@@ -38,17 +38,17 @@ public class CraftSign<T extends SignBlockEntity> extends CraftBlockEntityState<
 
     // Paper start
     @Override
-    public java.util.@NotNull List<com.mohistmc.net.kyori.adventure.text.Component> lines() {
+    public java.util.@NotNull List<net.kyori.adventure.text.Component> lines() {
         return this.front.lines();
     }
 
     @Override
-    public com.mohistmc.net.kyori.adventure.text.@NotNull Component line(int index) {
+    public net.kyori.adventure.text.@NotNull Component line(int index) {
         return this.front.line(index);
     }
 
     @Override
-    public void line(int index, com.mohistmc.net.kyori.adventure.text.@NotNull Component line) {
+    public void line(int index, net.kyori.adventure.text.@NotNull Component line) {
         this.front.line(index, line);
     }
     // Paper end
@@ -179,7 +179,7 @@ public class CraftSign<T extends SignBlockEntity> extends CraftBlockEntityState<
     }
 
     // Paper start
-    public static Component[] sanitizeLines(java.util.List<? extends com.mohistmc.net.kyori.adventure.text.Component> lines) {
+    public static Component[] sanitizeLines(java.util.List<? extends net.kyori.adventure.text.Component> lines) {
         Component[] components = new Component[4];
         for (int i = 0; i < 4; i++) {
             if (i < lines.size() && lines.get(i) != null) {

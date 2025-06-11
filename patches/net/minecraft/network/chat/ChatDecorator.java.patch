@@ -1,0 +1,25 @@
+--- a/net/minecraft/network/chat/ChatDecorator.java
++++ b/net/minecraft/network/chat/ChatDecorator.java
+@@ -1,11 +_,19 @@
+ package net.minecraft.network.chat;
+ 
++import java.util.concurrent.CompletableFuture;
+ import javax.annotation.Nullable;
+ import net.minecraft.server.level.ServerPlayer;
+ 
+ @FunctionalInterface
+ public interface ChatDecorator {
+-    ChatDecorator PLAIN = (p_300715_, p_300716_) -> p_300716_;
+-
+-    Component decorate(@Nullable ServerPlayer p_236962_, Component p_236963_);
++    ChatDecorator PLAIN = (p_300715_, p_300716_) -> CompletableFuture.completedFuture(p_300716_); // Paper - adventure; support async chat decoration events
++
++    // Paper - adventure; support chat decoration events (callers should use the overload with CommandSourceStack)
++    CompletableFuture<Component> decorate(@Nullable ServerPlayer p_236962_, Component p_236963_);
++
++    // Paper start - adventure; support async chat decoration events
++    default CompletableFuture<Component> decorate(@Nullable ServerPlayer sender, @Nullable net.minecraft.commands.CommandSourceStack commandSourceStack, Component message) {
++        throw new UnsupportedOperationException("Must override this implementation");
++    }
++    // Paper end - adventure; support async chat decoration events
+ }

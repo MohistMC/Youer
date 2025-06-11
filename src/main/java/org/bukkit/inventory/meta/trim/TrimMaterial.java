@@ -64,7 +64,7 @@ public interface TrimMaterial extends Keyed, Translatable {
      *
      * @return the description
      */
-    com.mohistmc.net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component description();
+    net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component description();
 
     /**
      * @deprecated this method assumes that {@link #description()} will

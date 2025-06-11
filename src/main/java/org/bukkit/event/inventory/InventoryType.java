@@ -165,14 +165,14 @@ public enum InventoryType {
     private final boolean isCreatable;
     private boolean isMods;
     // Paper start
-    private final com.mohistmc.net.kyori.adventure.text.Component defaultTitleComponent;
+    private final net.kyori.adventure.text.Component defaultTitleComponent;
 
     /**
      * Gets the inventory's default title.
      *
      * @return the inventory's default title
      */
-    public com.mohistmc.net.kyori.adventure.text.@NotNull Component defaultTitle() {
+    public net.kyori.adventure.text.@NotNull Component defaultTitle() {
         return defaultTitleComponent;
     }
     // Paper end
@@ -185,7 +185,7 @@ public enum InventoryType {
         title = defaultTitle;
         this.menuType = type;
         this.isCreatable = isCreatable;
-        this.defaultTitleComponent = com.mohistmc.net.kyori.adventure.text.Component.text(defaultTitle); // Paper - Adventure
+        this.defaultTitleComponent = net.kyori.adventure.text.Component.text(defaultTitle); // Paper - Adventure
     }
 
     public int getDefaultSize() {

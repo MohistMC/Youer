@@ -1,7 +1,7 @@
 package io.papermc.paper.configuration;
 
-import com.mohistmc.net.kyori.adventure.text.Component;
-import com.mohistmc.net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
 import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Comment;
 import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.PostProcess;

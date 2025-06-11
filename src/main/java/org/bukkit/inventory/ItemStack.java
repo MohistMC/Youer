@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.UnaryOperator;
-import com.mohistmc.net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -612,7 +612,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      *
      * @return display name of the {@link ItemStack}
      */
-    public com.mohistmc.net.kyori.adventure.text.@NotNull Component displayName() {
+    public net.kyori.adventure.text.@NotNull Component displayName() {
         return Bukkit.getServer().getItemFactory().displayName(this);
     }
     /*

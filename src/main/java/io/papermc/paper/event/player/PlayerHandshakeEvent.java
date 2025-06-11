@@ -1,9 +1,9 @@
 package io.papermc.paper.event.player;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.net.kyori.adventure.text.Component;
-import com.mohistmc.net.kyori.adventure.text.format.NamedTextColor;
-import com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import java.util.UUID;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;

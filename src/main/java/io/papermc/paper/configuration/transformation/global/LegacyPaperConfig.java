@@ -1,9 +1,9 @@
 package io.papermc.paper.configuration.transformation.global;
 
-import com.mohistmc.net.kyori.adventure.text.Component;
-import com.mohistmc.net.kyori.adventure.text.format.NamedTextColor;
-import com.mohistmc.net.kyori.adventure.text.minimessage.MiniMessage;
-import com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import com.mohistmc.org.spongepowered.configurate.ConfigurationNode;
 import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
 import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;

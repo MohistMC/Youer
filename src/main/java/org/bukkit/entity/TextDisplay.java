@@ -23,7 +23,7 @@ public interface TextDisplay extends Display {
      * Sets the displayed text.
      *
      * @param text the new text
-     * @deprecated in favour of {@link #text(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #text(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     void setText(@Nullable String text);
@@ -34,14 +34,14 @@ public interface TextDisplay extends Display {
      *
      * @return the displayed text
      */
-    com.mohistmc.net.kyori.adventure.text.@NotNull Component text();
+    net.kyori.adventure.text.@NotNull Component text();
 
     /**
      * Sets the displayed text.
      *
      * @param text the new text
      */
-    void text(com.mohistmc.net.kyori.adventure.text.@Nullable Component text);
+    void text(net.kyori.adventure.text.@Nullable Component text);
     // Paper end
 
     /**

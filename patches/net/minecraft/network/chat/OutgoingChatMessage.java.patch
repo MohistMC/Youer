@@ -13,18 +13,21 @@
      static OutgoingChatMessage create(PlayerChatMessage p_249173_) {
          return (OutgoingChatMessage)(p_249173_.isSystem()
              ? new OutgoingChatMessage.Disguised(p_249173_.decoratedContent())
-@@ -18,6 +_,11 @@
+@@ -16,7 +_,13 @@
+     public static record Disguised(Component content) implements OutgoingChatMessage {
+         @Override
          public void sendToPlayer(ServerPlayer p_249237_, boolean p_249574_, ChatType.Bound p_250880_) {
-             p_249237_.connection.sendDisguisedChatMessage(this.content, p_250880_);
-         }
+-            p_249237_.connection.sendDisguisedChatMessage(this.content, p_250880_);
++            // Paper start
++            this.sendToPlayer(p_249237_, p_249574_, p_250880_, null);
++        }
 +
 +        public void sendToPlayer(ServerPlayer sender, boolean filterMaskEnabled, ChatType.Bound params, @javax.annotation.Nullable Component unsigned) {
 +            sender.connection.sendDisguisedChatMessage(unsigned != null ? unsigned : this.content, params);
 +            // Paper end
-+        }
+         }
      }
  
-     public static record Player(PlayerChatMessage message) implements OutgoingChatMessage {
 @@ -28,9 +_,15 @@
  
          @Override

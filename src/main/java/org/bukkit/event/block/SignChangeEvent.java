@@ -17,11 +17,11 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
     private boolean cancel = false;
     private final Player player;
-    private final java.util.List<com.mohistmc.net.kyori.adventure.text.Component> adventure$lines; // Paper
+    private final java.util.List<net.kyori.adventure.text.Component> adventure$lines; // Paper
     private final Side side;
 
     // Paper start
-    public SignChangeEvent(@NotNull final Block theBlock, @NotNull final Player player, @NotNull final java.util.List<com.mohistmc.net.kyori.adventure.text.Component> adventure$lines, @NotNull Side side) {
+    public SignChangeEvent(@NotNull final Block theBlock, @NotNull final Player player, @NotNull final java.util.List<net.kyori.adventure.text.Component> adventure$lines, @NotNull Side side) {
         super(theBlock);
         this.player = player;
         this.adventure$lines = adventure$lines;
@@ -29,7 +29,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
     }
 
     @Deprecated
-    public SignChangeEvent(@NotNull final Block theBlock, @NotNull final Player player, @NotNull final java.util.List<com.mohistmc.net.kyori.adventure.text.Component> adventure$lines) {
+    public SignChangeEvent(@NotNull final Block theBlock, @NotNull final Player player, @NotNull final java.util.List<net.kyori.adventure.text.Component> adventure$lines) {
         this(theBlock, player, adventure$lines, Side.FRONT);
     }
     // Paper end
@@ -46,7 +46,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
         // Paper start
         this.adventure$lines = new java.util.ArrayList<>();
         for (String theLine : theLines) {
-            this.adventure$lines.add(com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(theLine));
+            this.adventure$lines.add(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(theLine));
         }
         // Paper end
         this.side = side;
@@ -68,7 +68,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
      *
      * @return the String array for the sign's lines new text
      */
-    public @NotNull java.util.List<com.mohistmc.net.kyori.adventure.text.Component> lines() {
+    public @NotNull java.util.List<net.kyori.adventure.text.Component> lines() {
         return this.adventure$lines;
     }
 
@@ -81,7 +81,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
      * @throws IndexOutOfBoundsException thrown when the provided index is {@literal > 3
      *     or < 0}
      */
-    public com.mohistmc.net.kyori.adventure.text.@Nullable Component line(int index) throws IndexOutOfBoundsException {
+    public net.kyori.adventure.text.@Nullable Component line(int index) throws IndexOutOfBoundsException {
         return this.adventure$lines.get(index);
     }
 
@@ -93,7 +93,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
      * @throws IndexOutOfBoundsException thrown when the provided index is {@literal > 3
      *     or < 0}
      */
-    public void line(int index, com.mohistmc.net.kyori.adventure.text.@Nullable Component line) throws IndexOutOfBoundsException {
+    public void line(int index, net.kyori.adventure.text.@Nullable Component line) throws IndexOutOfBoundsException {
         this.adventure$lines.set(index, line);
     }
     // Paper end
@@ -107,7 +107,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
     @NotNull
     @Deprecated // Paper
     public String[] getLines() {
-        return adventure$lines.stream().map(com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection()::serialize).toArray(String[]::new); // Paper
+        return adventure$lines.stream().map(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection()::serialize).toArray(String[]::new); // Paper
     }
 
     /**
@@ -123,7 +123,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
     @Nullable
     @Deprecated // Paper
     public String getLine(int index) throws IndexOutOfBoundsException {
-        return com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.adventure$lines.get(index)); // Paper
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.adventure$lines.get(index)); // Paper
     }
 
     /**
@@ -133,11 +133,11 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
      * @param line text to set
      * @throws IndexOutOfBoundsException thrown when the provided index is {@literal > 3
      *     or < 0}
-     * @deprecated in favour of {@link #line(int, com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #line(int, net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setLine(int index, @Nullable String line) throws IndexOutOfBoundsException {
-        adventure$lines.set(index, line != null ? com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line) : null); // Paper
+        adventure$lines.set(index, line != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line) : null); // Paper
     }
 
     /**

@@ -1,7 +1,7 @@
 package io.papermc.paper.inventory;
 
-import com.mohistmc.net.kyori.adventure.text.Component;
-import com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import io.papermc.paper.adventure.PaperAdventure;
 import java.util.List;
 import net.minecraft.world.Container;

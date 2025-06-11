@@ -1,6 +1,6 @@
 package io.papermc.paper.plugin.provider.type.spigot;
 
-import com.mohistmc.net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import io.papermc.paper.plugin.entrypoint.dependency.DependencyContextHolder;
 import io.papermc.paper.plugin.manager.PaperPluginManagerImpl;
 import io.papermc.paper.plugin.provider.PluginProvider;

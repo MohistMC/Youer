@@ -21,7 +21,7 @@ public interface Sign extends TileState, Colorable {
      */
     @NotNull
     @Deprecated
-    public java.util.List<com.mohistmc.net.kyori.adventure.text.Component> lines();
+    public java.util.List<net.kyori.adventure.text.Component> lines();
 
     /**
      * Gets the line of text at the specified index on the {@link Side#FRONT}.
@@ -35,7 +35,7 @@ public interface Sign extends TileState, Colorable {
      */
     @NotNull
     @Deprecated
-    public com.mohistmc.net.kyori.adventure.text.Component line(int index) throws IndexOutOfBoundsException;
+    public net.kyori.adventure.text.Component line(int index) throws IndexOutOfBoundsException;
 
     /**
      * Sets the line of text at the specified index on the {@link Side#FRONT}.
@@ -46,10 +46,10 @@ public interface Sign extends TileState, Colorable {
      * @param index Line number to set the text at, starting from 0
      * @param line New text to set at the specified index
      * @throws IndexOutOfBoundsException If the index is out of the range 0..3
-     * @deprecated A sign may have multiple writable sides now. Use {@link #getSide(Side)} and {@link SignSide#line(int, com.mohistmc.net.kyori.adventure.text.Component)}.
+     * @deprecated A sign may have multiple writable sides now. Use {@link #getSide(Side)} and {@link SignSide#line(int, net.kyori.adventure.text.Component)}.
      */
     @Deprecated
-    public void line(int index, com.mohistmc.net.kyori.adventure.text.@NotNull Component line) throws IndexOutOfBoundsException;
+    public void line(int index, net.kyori.adventure.text.@NotNull Component line) throws IndexOutOfBoundsException;
     // Paper end
 
     /**
@@ -85,7 +85,7 @@ public interface Sign extends TileState, Colorable {
      * @param index Line number to set the text at, starting from 0
      * @param line New text to set at the specified index
      * @throws IndexOutOfBoundsException If the index is out of the range 0..3
-     * @deprecated A sign may have multiple writable sides now. Use {@link #getSide(Side)} and {@link SignSide#line(int, com.mohistmc.net.kyori.adventure.text.Component)}.
+     * @deprecated A sign may have multiple writable sides now. Use {@link #getSide(Side)} and {@link SignSide#line(int, net.kyori.adventure.text.Component)}.
      */
     @Deprecated
     public void setLine(int index, @NotNull String line) throws IndexOutOfBoundsException;

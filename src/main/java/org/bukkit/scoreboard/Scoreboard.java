@@ -38,11 +38,11 @@ public interface Scoreboard {
      *     characters.
      * @throws IllegalArgumentException if an objective by that name already
      *     exists
-     * @deprecated use {@link #registerNewObjective(String, Criteria, com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated use {@link #registerNewObjective(String, Criteria, net.kyori.adventure.text.Component)}
      */
     @NotNull
     @Deprecated
-    Objective registerNewObjective(@NotNull String name, @NotNull String criteria, com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName);
+    Objective registerNewObjective(@NotNull String name, @NotNull String criteria, net.kyori.adventure.text.@Nullable Component displayName);
     /**
      * Registers an Objective on this Scoreboard
      *
@@ -55,11 +55,11 @@ public interface Scoreboard {
      *     characters.
      * @throws IllegalArgumentException if an objective by that name already
      *     exists
-     * @deprecated use {@link #registerNewObjective(String, Criteria, com.mohistmc.net.kyori.adventure.text.Component, RenderType)}
+     * @deprecated use {@link #registerNewObjective(String, Criteria, net.kyori.adventure.text.Component, RenderType)}
      */
     @NotNull
     @Deprecated
-    Objective registerNewObjective(@NotNull String name, @NotNull String criteria, com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName, @NotNull RenderType renderType) throws IllegalArgumentException;
+    Objective registerNewObjective(@NotNull String name, @NotNull String criteria, net.kyori.adventure.text.@Nullable Component displayName, @NotNull RenderType renderType) throws IllegalArgumentException;
     /**
      * Registers an Objective on this Scoreboard
      *
@@ -73,7 +73,7 @@ public interface Scoreboard {
      *     exists
      */
     @NotNull
-    Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName) throws IllegalArgumentException;
+    Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, net.kyori.adventure.text.@Nullable Component displayName) throws IllegalArgumentException;
     /**
      * Registers an Objective on this Scoreboard
      *
@@ -88,7 +88,7 @@ public interface Scoreboard {
      *     exists
      */
     @NotNull
-    Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName, @NotNull RenderType renderType) throws IllegalArgumentException;
+    Objective registerNewObjective(@NotNull String name, @NotNull Criteria criteria, net.kyori.adventure.text.@Nullable Component displayName, @NotNull RenderType renderType) throws IllegalArgumentException;
     // Paper end - Adventure
 
     /**
@@ -102,7 +102,7 @@ public interface Scoreboard {
      *     characters.
      * @throws IllegalArgumentException if an objective by that name already
      *     exists
-     * @deprecated use {@link #registerNewObjective(String, Criteria, com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated use {@link #registerNewObjective(String, Criteria, net.kyori.adventure.text.Component)}
      */
     @Deprecated
     @NotNull
@@ -120,7 +120,7 @@ public interface Scoreboard {
      *     characters.
      * @throws IllegalArgumentException if an objective by that name already
      *     exists
-     * @deprecated use {@link #registerNewObjective(String, Criteria, com.mohistmc.net.kyori.adventure.text.Component, RenderType)}
+     * @deprecated use {@link #registerNewObjective(String, Criteria, net.kyori.adventure.text.Component, RenderType)}
      */
     @Deprecated
     @NotNull
@@ -137,7 +137,7 @@ public interface Scoreboard {
      *     characters.
      * @throws IllegalArgumentException if an objective by that name already
      *     exists
-     * @deprecated in favour of {@link #registerNewObjective(String, Criteria, com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #registerNewObjective(String, Criteria, net.kyori.adventure.text.Component)}
      */
     @NotNull
     @Deprecated // Paper
@@ -155,7 +155,7 @@ public interface Scoreboard {
      *     characters.
      * @throws IllegalArgumentException if an objective by that name already
      *     exists
-     * @deprecated in favour of {@link #registerNewObjective(String, Criteria, com.mohistmc.net.kyori.adventure.text.Component, RenderType)}
+     * @deprecated in favour of {@link #registerNewObjective(String, Criteria, net.kyori.adventure.text.Component, RenderType)}
      */
     @NotNull
     @Deprecated // Paper

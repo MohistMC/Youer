@@ -1,6 +1,6 @@
 package io.papermc.paper.adventure.providers;
 
-import com.mohistmc.net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 

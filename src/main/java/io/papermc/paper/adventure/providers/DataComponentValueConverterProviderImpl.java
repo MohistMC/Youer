@@ -1,11 +1,11 @@
 package io.papermc.paper.adventure.providers;
 
 import com.google.gson.JsonElement;
-import com.mohistmc.net.kyori.adventure.key.Key;
-import com.mohistmc.net.kyori.adventure.nbt.api.BinaryTagHolder;
-import com.mohistmc.net.kyori.adventure.text.event.DataComponentValue;
-import com.mohistmc.net.kyori.adventure.text.event.DataComponentValueConverterRegistry;
-import com.mohistmc.net.kyori.adventure.text.serializer.gson.GsonDataComponentValue;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.nbt.api.BinaryTagHolder;
+import net.kyori.adventure.text.event.DataComponentValue;
+import net.kyori.adventure.text.event.DataComponentValueConverterRegistry;
+import net.kyori.adventure.text.serializer.gson.GsonDataComponentValue;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
@@ -21,7 +21,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.qual.DefaultQualifier;
 
-import static com.mohistmc.net.kyori.adventure.text.serializer.gson.GsonDataComponentValue.gsonDataComponentValue;
+import static net.kyori.adventure.text.serializer.gson.GsonDataComponentValue.gsonDataComponentValue;
 
 @DefaultQualifier(NonNull.class)
 public class DataComponentValueConverterProviderImpl implements DataComponentValueConverterRegistry.Provider {

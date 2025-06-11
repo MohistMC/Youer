@@ -1,8 +1,8 @@
 package io.papermc.paper.adventure.providers;
 
-import com.mohistmc.net.kyori.adventure.audience.Audience;
-import com.mohistmc.net.kyori.adventure.text.event.ClickCallback;
-import com.mohistmc.net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.event.ClickCallback;
+import net.kyori.adventure.text.event.ClickEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;

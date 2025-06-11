@@ -59,7 +59,7 @@ public interface ServerLinks {
      * @return the added link
      */
     @NotNull
-    ServerLink addLink(@NotNull com.mohistmc.net.kyori.adventure.text.Component displayName, @NotNull URI url);
+    ServerLink addLink(@NotNull net.kyori.adventure.text.Component displayName, @NotNull URI url);
     // Paper end - Adventure
 
     /**
@@ -68,7 +68,7 @@ public interface ServerLinks {
      * @param displayName link name / display text
      * @param url link url
      * @return the added link
-     * @deprecated in favour of {@link ServerLinks#addLink(com.mohistmc.net.kyori.adventure.text.Component, URI)}
+     * @deprecated in favour of {@link ServerLinks#addLink(net.kyori.adventure.text.Component, URI)}
      */
     @Deprecated // Paper - Adventure
     @NotNull
@@ -110,7 +110,7 @@ public interface ServerLinks {
          * @return display name Component
          */
         @NotNull
-        com.mohistmc.net.kyori.adventure.text.Component displayName();
+        net.kyori.adventure.text.Component displayName();
         // Paper end - Adventure
 
         /**

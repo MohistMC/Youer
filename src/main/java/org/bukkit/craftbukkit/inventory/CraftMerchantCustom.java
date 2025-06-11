@@ -21,7 +21,7 @@ public class CraftMerchantCustom implements CraftMerchant {
     }
 
     // Paper start
-    public CraftMerchantCustom(com.mohistmc.net.kyori.adventure.text.Component title) {
+    public CraftMerchantCustom(net.kyori.adventure.text.Component title) {
         this.merchant = new MinecraftMerchant(title);
         getMerchant().craftMerchant = this;
     }
@@ -51,7 +51,7 @@ public class CraftMerchantCustom implements CraftMerchant {
         }
 
         // Paper start
-        public MinecraftMerchant(com.mohistmc.net.kyori.adventure.text.Component title) {
+        public MinecraftMerchant(net.kyori.adventure.text.Component title) {
             Preconditions.checkArgument(title != null, "Title cannot be null");
             this.title = io.papermc.paper.adventure.PaperAdventure.asVanilla(title);
         }

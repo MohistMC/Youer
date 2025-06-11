@@ -66,7 +66,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a server implementation.
  */
-public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.adventure.audience.ForwardingAudience { // Paper
+public interface Server extends PluginMessageRecipient, net.kyori.adventure.audience.ForwardingAudience { // Paper
 
     /**
      * Returns the de facto plugins directory, generally used for storing plugin jars to be loaded,
@@ -84,7 +84,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      * Used for all administrative messages, such as an operator using a
      * command.
      * <p>
-     * For use in {@link #broadcast(com.mohistmc.net.kyori.adventure.text.Component, java.lang.String)}.
+     * For use in {@link #broadcast(net.kyori.adventure.text.Component, java.lang.String)}.
      */
     public static final String BROADCAST_CHANNEL_ADMINISTRATIVE = "bukkit.broadcast.admin";
 
@@ -92,7 +92,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      * Used for all announcement messages, such as informing users that a
      * player has joined.
      * <p>
-     * For use in {@link #broadcast(com.mohistmc.net.kyori.adventure.text.Component, java.lang.String)}.
+     * For use in {@link #broadcast(net.kyori.adventure.text.Component, java.lang.String)}.
      */
     public static final String BROADCAST_CHANNEL_USERS = "bukkit.broadcast.user";
 
@@ -380,7 +380,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      *
      * @param message the message
      * @return the number of players
-     * @deprecated use {@link #broadcast(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated use {@link #broadcast(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public int broadcastMessage(@NotNull String message);
@@ -390,7 +390,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      * Sends the component to all online players.
      *
      * @param component the component to send
-     * @deprecated use {@code sendMessage} methods that accept {@link com.mohistmc.net.kyori.adventure.text.Component}
+     * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
      */
     @Deprecated
     public default void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent component) {
@@ -401,7 +401,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      * Sends an array of components as a single message to all online players.
      *
      * @param components the components to send
-     * @deprecated use {@code sendMessage} methods that accept {@link com.mohistmc.net.kyori.adventure.text.Component}
+     * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
      */
     @Deprecated
     public default void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
@@ -1107,7 +1107,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      * @param permission the required permission {@link Permissible
      *     permissibles} must have to receive the broadcast
      * @return number of message recipients
-     * @deprecated in favour of {@link #broadcast(com.mohistmc.net.kyori.adventure.text.Component, String)}
+     * @deprecated in favour of {@link #broadcast(net.kyori.adventure.text.Component, String)}
      */
     @Deprecated // Paper
     public int broadcast(@NotNull String message, @NotNull String permission);
@@ -1115,13 +1115,13 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
     /**
      * Broadcast a message to all players.
      * <p>
-     * This is the same as calling {@link #broadcast(com.mohistmc.net.kyori.adventure.text.Component,
+     * This is the same as calling {@link #broadcast(net.kyori.adventure.text.Component,
      * java.lang.String)} with the {@link #BROADCAST_CHANNEL_USERS} permission.
      *
      * @param message the message
      * @return the number of players
      */
-    int broadcast(com.mohistmc.net.kyori.adventure.text.@NotNull Component message);
+    int broadcast(net.kyori.adventure.text.@NotNull Component message);
 
     /**
      * Broadcasts the specified message to every user with the given
@@ -1132,7 +1132,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      *     permissibles} must have to receive the broadcast
      * @return number of message recipients
      */
-    int broadcast(com.mohistmc.net.kyori.adventure.text.@NotNull Component message, @NotNull String permission);
+    int broadcast(net.kyori.adventure.text.@NotNull Component message, @NotNull String permission);
     // Paper end
 
     /**
@@ -1376,7 +1376,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      * @see InventoryType#isCreatable()
      */
     @NotNull
-    Inventory createInventory(@Nullable InventoryHolder owner, @NotNull InventoryType type, com.mohistmc.net.kyori.adventure.text.@NotNull Component title);
+    Inventory createInventory(@Nullable InventoryHolder owner, @NotNull InventoryType type, net.kyori.adventure.text.@NotNull Component title);
     // Paper end
 
     /**
@@ -1400,7 +1400,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      * @return The new inventory.
      * @throws IllegalArgumentException if the {@link InventoryType} cannot be
      * viewed.
-     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, net.kyori.adventure.text.Component)}
      *
      * @see InventoryType#isCreatable()
      */
@@ -1433,7 +1433,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      * @throws IllegalArgumentException if the size is not a multiple of 9
      */
     @NotNull
-    Inventory createInventory(@Nullable InventoryHolder owner, int size, com.mohistmc.net.kyori.adventure.text.@NotNull Component title) throws IllegalArgumentException;
+    Inventory createInventory(@Nullable InventoryHolder owner, int size, net.kyori.adventure.text.@NotNull Component title) throws IllegalArgumentException;
     // Paper end
 
     /**
@@ -1446,7 +1446,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      *     viewed
      * @return a new inventory
      * @throws IllegalArgumentException if the size is not a multiple of 9
-     * @deprecated in favour of {@link #createInventory(InventoryHolder, int, com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #createInventory(InventoryHolder, int, net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     @NotNull
@@ -1460,7 +1460,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      * when the merchant inventory is viewed
      * @return a new merchant
      */
-    @NotNull Merchant createMerchant(com.mohistmc.net.kyori.adventure.text.@Nullable Component title);
+    @NotNull Merchant createMerchant(net.kyori.adventure.text.@Nullable Component title);
     // Paper start
     /**
      * Creates an empty merchant.
@@ -1468,7 +1468,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      * @param title the title of the corresponding merchant inventory, displayed
      * when the merchant inventory is viewed
      * @return a new merchant
-     * @deprecated in favour of {@link #createMerchant(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #createMerchant(net.kyori.adventure.text.Component)}
      */
     @NotNull
     @Deprecated // Paper
@@ -1573,21 +1573,21 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      *
      * @return the server's MOTD
      */
-    com.mohistmc.net.kyori.adventure.text.@NotNull Component motd();
+    net.kyori.adventure.text.@NotNull Component motd();
 
     /**
      * Set the message that is displayed on the server list.
      *
      * @param motd The message to be displayed
      */
-    void motd(final com.mohistmc.net.kyori.adventure.text.@NotNull Component motd);
+    void motd(final net.kyori.adventure.text.@NotNull Component motd);
 
     /**
      * Gets the default message that is displayed when the server is stopped.
      *
      * @return the shutdown message
      */
-    com.mohistmc.net.kyori.adventure.text.@Nullable Component shutdownMessage();
+    net.kyori.adventure.text.@Nullable Component shutdownMessage();
     // Paper end
 
     /**
@@ -1604,7 +1604,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      * Set the message that is displayed on the server list.
      *
      * @param motd The message to be displayed
-     * @deprecated in favour of {@link #motd(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #motd(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     void setMotd(@NotNull String motd);
@@ -2074,7 +2074,7 @@ public interface Server extends PluginMessageRecipient, com.mohistmc.net.kyori.a
      *
      * @return the default message
      */
-    @NotNull com.mohistmc.net.kyori.adventure.text.Component permissionMessage();
+    @NotNull net.kyori.adventure.text.Component permissionMessage();
 
     /**
      * Get the current internal server tick

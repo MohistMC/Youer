@@ -17,7 +17,7 @@ public final class MapCursor {
     private byte x, y;
     private byte direction;
     private boolean visible;
-    private com.mohistmc.net.kyori.adventure.text.Component caption; // Paper
+    private net.kyori.adventure.text.Component caption; // Paper
     private Type type;
 
     /**
@@ -57,7 +57,7 @@ public final class MapCursor {
      * @param type The type (color/style) of the map cursor.
      * @param visible Whether the cursor is visible by default.
      * @param caption cursor caption
-     * @deprecated Magic value. Use {@link #MapCursor(byte, byte, byte, Type, boolean, com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated Magic value. Use {@link #MapCursor(byte, byte, byte, Type, boolean, net.kyori.adventure.text.Component)}
      */
     @Deprecated
     public MapCursor(byte x, byte y, byte direction, byte type, boolean visible, @Nullable String caption) {
@@ -66,7 +66,7 @@ public final class MapCursor {
         setDirection(direction);
         setRawType(type);
         this.visible = visible;
-        this.caption = caption == null ? null : com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(caption); // Paper
+        this.caption = caption == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(caption); // Paper
     }
     // Paper start
     /**
@@ -81,7 +81,7 @@ public final class MapCursor {
      * @deprecated Magic value
      */
     @Deprecated
-    public MapCursor(byte x, byte y, byte direction, byte type, boolean visible, com.mohistmc.net.kyori.adventure.text.@Nullable Component caption) {
+    public MapCursor(byte x, byte y, byte direction, byte type, boolean visible, net.kyori.adventure.text.@Nullable Component caption) {
         this.x = x; this.y = y; this.visible = visible; this.caption = caption;
         setDirection(direction);
         setRawType(type);
@@ -96,7 +96,7 @@ public final class MapCursor {
      * @param visible Whether the cursor is visible by default.
      * @param caption cursor caption
      */
-    public MapCursor(byte x, byte y, byte direction, @NotNull Type type, boolean visible, com.mohistmc.net.kyori.adventure.text.@Nullable Component caption) {
+    public MapCursor(byte x, byte y, byte direction, @NotNull Type type, boolean visible, net.kyori.adventure.text.@Nullable Component caption) {
         this.x = x; this.y = y; this.visible = visible; this.caption = caption;
         setDirection(direction);
         setType(type);
@@ -119,7 +119,7 @@ public final class MapCursor {
         setDirection(direction);
         this.type = type;
         this.visible = visible;
-        this.caption = caption == null ? null : com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(caption); // Paper
+        this.caption = caption == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(caption); // Paper
     }
 
     /**
@@ -244,7 +244,7 @@ public final class MapCursor {
      *
      * @return caption
      */
-    public com.mohistmc.net.kyori.adventure.text.@Nullable Component caption() {
+    public net.kyori.adventure.text.@Nullable Component caption() {
         return this.caption;
     }
     /**
@@ -252,7 +252,7 @@ public final class MapCursor {
      *
      * @param caption new caption
      */
-    public void caption(com.mohistmc.net.kyori.adventure.text.@Nullable Component caption) {
+    public void caption(net.kyori.adventure.text.@Nullable Component caption) {
         this.caption = caption;
     }
     // Paper end
@@ -265,18 +265,18 @@ public final class MapCursor {
     @Nullable
     @Deprecated // Paper
     public String getCaption() {
-        return this.caption == null ? null : com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.caption); // Paper
+        return this.caption == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.caption); // Paper
     }
 
     /**
      * Sets the caption on this cursor.
      *
      * @param caption new caption
-     * @deprecated in favour of {@link #caption(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #caption(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setCaption(@Nullable String caption) {
-        this.caption = caption == null ? null : com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(caption); // Paper
+        this.caption = caption == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(caption); // Paper
     }
 
     /**

@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
  * properties. This team is only relevant to the display of the associated
  * {@link #getScoreboard() scoreboard}.
  */
-public interface Team extends com.mohistmc.net.kyori.adventure.audience.ForwardingAudience { // Paper - Make Team extend ForwardingAudience
+public interface Team extends net.kyori.adventure.audience.ForwardingAudience { // Paper - Make Team extend ForwardingAudience
 
     /**
      * Gets the name of this Team
@@ -30,7 +30,7 @@ public interface Team extends com.mohistmc.net.kyori.adventure.audience.Forwardi
      * @return Team display name
      * @throws IllegalStateException if this team has been unregistered
      */
-    com.mohistmc.net.kyori.adventure.text.@NotNull Component displayName();
+    net.kyori.adventure.text.@NotNull Component displayName();
 
     /**
      * Sets the name displayed to entries for this team
@@ -38,7 +38,7 @@ public interface Team extends com.mohistmc.net.kyori.adventure.audience.Forwardi
      * @param displayName New display name
      * @throws IllegalStateException if this team has been unregistered
      */
-    void displayName(com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName);
+    void displayName(net.kyori.adventure.text.@Nullable Component displayName);
 
     /**
      * Gets the prefix prepended to the display of entries on this team.
@@ -46,7 +46,7 @@ public interface Team extends com.mohistmc.net.kyori.adventure.audience.Forwardi
      * @return Team prefix
      * @throws IllegalStateException if this team has been unregistered
      */
-    com.mohistmc.net.kyori.adventure.text.@NotNull Component prefix();
+    net.kyori.adventure.text.@NotNull Component prefix();
 
     /**
      * Sets the prefix prepended to the display of entries on this team.
@@ -54,7 +54,7 @@ public interface Team extends com.mohistmc.net.kyori.adventure.audience.Forwardi
      * @param prefix New prefix
      * @throws IllegalStateException if this team has been unregistered
      */
-    void prefix(com.mohistmc.net.kyori.adventure.text.@Nullable Component prefix);
+    void prefix(net.kyori.adventure.text.@Nullable Component prefix);
 
     /**
      * Gets the suffix appended to the display of entries on this team.
@@ -62,7 +62,7 @@ public interface Team extends com.mohistmc.net.kyori.adventure.audience.Forwardi
      * @return the team's current suffix
      * @throws IllegalStateException if this team has been unregistered
      */
-    com.mohistmc.net.kyori.adventure.text.@NotNull Component suffix();
+    net.kyori.adventure.text.@NotNull Component suffix();
 
     /**
      * Sets the suffix appended to the display of entries on this team.
@@ -70,7 +70,7 @@ public interface Team extends com.mohistmc.net.kyori.adventure.audience.Forwardi
      * @param suffix the new suffix for this team.
      * @throws IllegalStateException if this team has been unregistered
      */
-    void suffix(com.mohistmc.net.kyori.adventure.text.@Nullable Component suffix);
+    void suffix(net.kyori.adventure.text.@Nullable Component suffix);
 
     /**
      * Checks if the team has a color specified
@@ -91,7 +91,7 @@ public interface Team extends com.mohistmc.net.kyori.adventure.audience.Forwardi
      * @throws IllegalStateException if the team doesn't have a color
      * @see #hasColor()
      */
-    com.mohistmc.net.kyori.adventure.text.format.@NotNull TextColor color();
+    net.kyori.adventure.text.format.@NotNull TextColor color();
 
     /**
      * Sets the color of the team.
@@ -101,7 +101,7 @@ public interface Team extends com.mohistmc.net.kyori.adventure.audience.Forwardi
      *
      * @param color new color, null for no color
      */
-    void color(com.mohistmc.net.kyori.adventure.text.format.@Nullable NamedTextColor color);
+    void color(net.kyori.adventure.text.format.@Nullable NamedTextColor color);
     // Paper end - Adventure
 
     /**
@@ -120,7 +120,7 @@ public interface Team extends com.mohistmc.net.kyori.adventure.audience.Forwardi
      *
      * @param displayName New display name
      * @throws IllegalStateException if this team has been unregistered
-     * @deprecated in favour of {@link #displayName(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #displayName(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     void setDisplayName(@NotNull String displayName);
@@ -141,7 +141,7 @@ public interface Team extends com.mohistmc.net.kyori.adventure.audience.Forwardi
      *
      * @param prefix New prefix
      * @throws IllegalStateException if this team has been unregistered
-     * @deprecated in favour of {@link #prefix(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #prefix(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     void setPrefix(@NotNull String prefix);
@@ -162,7 +162,7 @@ public interface Team extends com.mohistmc.net.kyori.adventure.audience.Forwardi
      *
      * @param suffix the new suffix for this team.
      * @throws IllegalStateException if this team has been unregistered
-     * @deprecated in favour of {@link #suffix(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #suffix(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     void setSuffix(@NotNull String suffix);
@@ -189,7 +189,7 @@ public interface Team extends com.mohistmc.net.kyori.adventure.audience.Forwardi
      *
      * @param color new color, must be non-null. Use {@link ChatColor#RESET} for
      * no color
-     * @deprecated in favour of {@link #color(com.mohistmc.net.kyori.adventure.text.format.NamedTextColor)}
+     * @deprecated in favour of {@link #color(net.kyori.adventure.text.format.NamedTextColor)}
      */
     @Deprecated // Paper
     void setColor(@NotNull ChatColor color);

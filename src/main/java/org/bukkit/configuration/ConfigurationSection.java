@@ -1070,7 +1070,7 @@ public interface ConfigurationSection {
      * @param path Path of the Component to get.
      * @return Requested Component.
      */
-    default com.mohistmc.net.kyori.adventure.text.@Nullable Component getRichMessage(final @NotNull String path) {
+    default net.kyori.adventure.text.@Nullable Component getRichMessage(final @NotNull String path) {
         return this.getRichMessage(path, null);
     }
 
@@ -1086,8 +1086,8 @@ public interface ConfigurationSection {
      * @return Requested Component.
      */
     @Contract("_, !null -> !null")
-    default com.mohistmc.net.kyori.adventure.text.@Nullable Component getRichMessage(final @NotNull String path, final com.mohistmc.net.kyori.adventure.text.@Nullable Component fallback) {
-        return this.getComponent(path, com.mohistmc.net.kyori.adventure.text.minimessage.MiniMessage.miniMessage(), fallback);
+    default net.kyori.adventure.text.@Nullable Component getRichMessage(final @NotNull String path, final net.kyori.adventure.text.@Nullable Component fallback) {
+        return this.getComponent(path, net.kyori.adventure.text.minimessage.MiniMessage.miniMessage(), fallback);
     }
 
     /**
@@ -1099,8 +1099,8 @@ public interface ConfigurationSection {
      * @param path Path of the object to set.
      * @param value New value to set the path to.
      */
-    default void setRichMessage(final @NotNull String path, final com.mohistmc.net.kyori.adventure.text.@Nullable Component value) {
-        this.setComponent(path, com.mohistmc.net.kyori.adventure.text.minimessage.MiniMessage.miniMessage(), value);
+    default void setRichMessage(final @NotNull String path, final net.kyori.adventure.text.@Nullable Component value) {
+        this.setComponent(path, net.kyori.adventure.text.minimessage.MiniMessage.miniMessage(), value);
     }
 
     /**
@@ -1114,7 +1114,7 @@ public interface ConfigurationSection {
      * @param decoder ComponentDecoder instance used for deserialization
      * @return Requested Component.
      */
-    default <C extends com.mohistmc.net.kyori.adventure.text.Component> @Nullable C getComponent(final @NotNull String path, final com.mohistmc.net.kyori.adventure.text.serializer.@NotNull ComponentDecoder<? super String, C> decoder) {
+    default <C extends net.kyori.adventure.text.Component> @Nullable C getComponent(final @NotNull String path, final net.kyori.adventure.text.serializer.@NotNull ComponentDecoder<? super String, C> decoder) {
         return this.getComponent(path, decoder, null);
     }
 
@@ -1131,7 +1131,7 @@ public interface ConfigurationSection {
      * @return Requested Component.
      */
     @Contract("_, _, !null -> !null")
-    default <C extends com.mohistmc.net.kyori.adventure.text.Component> @Nullable C getComponent(final @NotNull String path, final com.mohistmc.net.kyori.adventure.text.serializer.@NotNull ComponentDecoder<? super String, C> decoder, final @Nullable C fallback) {
+    default <C extends net.kyori.adventure.text.Component> @Nullable C getComponent(final @NotNull String path, final net.kyori.adventure.text.serializer.@NotNull ComponentDecoder<? super String, C> decoder, final @Nullable C fallback) {
         java.util.Objects.requireNonNull(decoder, "decoder");
         final String value = this.getString(path);
         return decoder.deserializeOr(value, fallback);
@@ -1147,7 +1147,7 @@ public interface ConfigurationSection {
      * @param encoder the encoder used to transform the value
      * @param value New value to set the path to.
      */
-    default <C extends com.mohistmc.net.kyori.adventure.text.Component> void setComponent(final @NotNull String path, final com.mohistmc.net.kyori.adventure.text.serializer.@NotNull ComponentEncoder<C, String> encoder, final @Nullable C value) {
+    default <C extends net.kyori.adventure.text.Component> void setComponent(final @NotNull String path, final net.kyori.adventure.text.serializer.@NotNull ComponentEncoder<C, String> encoder, final @Nullable C value) {
         java.util.Objects.requireNonNull(encoder, "encoder");
         this.set(path, encoder.serializeOrNull(value));
     }

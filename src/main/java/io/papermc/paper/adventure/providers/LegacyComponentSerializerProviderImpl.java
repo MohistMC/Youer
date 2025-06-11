@@ -1,6 +1,6 @@
 package io.papermc.paper.adventure.providers;
 
-import com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import io.papermc.paper.adventure.PaperAdventure;
 import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;

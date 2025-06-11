@@ -1,6 +1,6 @@
 package io.papermc.paper.adventure;
 
-import com.mohistmc.net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.audience.Audience;
 import java.util.HashSet;
 import java.util.Set;
 import net.minecraft.server.MinecraftServer;

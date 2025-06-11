@@ -146,7 +146,7 @@ public interface MenuType extends Keyed {
          * @param player the player the view belongs to
          * @param title the title of the view
          * @return the created {@link InventoryView}
-         * @deprecated Use {@link #create(HumanEntity, com.mohistmc.net.kyori.adventure.text.Component)} instead.
+         * @deprecated Use {@link #create(HumanEntity, net.kyori.adventure.text.Component)} instead.
          */
         @NotNull
         @Deprecated(since = "1.21") // Paper - adventure
@@ -165,7 +165,7 @@ public interface MenuType extends Keyed {
          * @return the created {@link InventoryView}
          */
         @NotNull
-        V create(@NotNull HumanEntity player, @NotNull com.mohistmc.net.kyori.adventure.text.Component title);
+        V create(@NotNull HumanEntity player, @NotNull net.kyori.adventure.text.Component title);
         // Paper end - adventure
     }
 
@@ -182,7 +182,7 @@ public interface MenuType extends Keyed {
      * @return the created {@link InventoryView}
      */
     @NotNull
-    InventoryView create(@NotNull HumanEntity player, @NotNull com.mohistmc.net.kyori.adventure.text.Component title);
+    InventoryView create(@NotNull HumanEntity player, @NotNull net.kyori.adventure.text.Component title);
     // Paper end - adventure
 
     /**

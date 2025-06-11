@@ -41,6 +41,23 @@
      public static final Codec<Holder<Item>> ITEM_NON_AIR_CODEC = BuiltInRegistries.ITEM
          .holderByNameCodec()
          .validate(
+@@ -148,7 +_,15 @@
+             } else {
+                 p_320527_.writeVarInt(p_320873_.getCount());
+                 ITEM_STREAM_CODEC.encode(p_320527_, p_320873_.getItemHolder());
+-                DataComponentPatch.STREAM_CODEC.encode(p_320527_, p_320873_.components.asPatch());
++                // Paper start - adventure; conditionally render translatable components
++                boolean prev = net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.get();
++                try {
++                    net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.set(true);
++                    DataComponentPatch.STREAM_CODEC.encode(p_320527_, p_320873_.components.asPatch());
++                } finally {
++                    net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.set(prev);
++                }
++                // Paper end - adventure; conditionally render translatable components
+             }
+         }
+     };
 @@ -234,6 +_,10 @@
          return !this.isEmpty() ? this.components.asPatch() : DataComponentPatch.EMPTY;
      }
@@ -61,7 +78,7 @@
      }
  
      public boolean is(HolderSet<Item> p_298683_) {
-@@ -351,18 +_,178 @@
+@@ -351,18 +_,179 @@
      }
  
      public InteractionResult useOn(UseOnContext p_41662_) {
@@ -213,7 +230,8 @@
 +                        try {
 +                            if (world.getBlockEntity(SignItem.openSign) instanceof net.minecraft.world.level.block.entity.SignBlockEntity tileentitysign) {
 +                                if (world.getBlockState(SignItem.openSign).getBlock() instanceof net.minecraft.world.level.block.SignBlock blocksign) {
-+                                    blocksign.openTextEdit(player, tileentitysign, true, org.bukkit.event.player.PlayerSignOpenEvent.Cause.PLACE);
++                                    blocksign.openTextEdit$cause.set(org.bukkit.event.player.PlayerSignOpenEvent.Cause.PLACE);
++                                    blocksign.openTextEdit(player, tileentitysign, true);
 +                                }
 +                            }
 +                        } finally {

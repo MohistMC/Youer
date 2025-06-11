@@ -173,110 +173,110 @@ public class CraftMetaBook extends CraftMetaItem implements BookMeta, WritableBo
 
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component title() {
+    public net.kyori.adventure.text.Component title() {
         return null;
     }
 
     @Override
-    public org.bukkit.inventory.meta.BookMeta title(com.mohistmc.net.kyori.adventure.text.Component title) {
+    public org.bukkit.inventory.meta.BookMeta title(net.kyori.adventure.text.Component title) {
         return this;
     }
 
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component author() {
+    public net.kyori.adventure.text.Component author() {
         return null;
     }
 
     @Override
-    public org.bukkit.inventory.meta.BookMeta author(com.mohistmc.net.kyori.adventure.text.Component author) {
+    public org.bukkit.inventory.meta.BookMeta author(net.kyori.adventure.text.Component author) {
         return this;
     }
 
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component page(final int page) {
+    public net.kyori.adventure.text.Component page(final int page) {
         Preconditions.checkArgument(this.isValidPage(page), "Invalid page number (%s/%s)", page, this.getPageCount());
-        return com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(this.pages.get(page - 1));
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(this.pages.get(page - 1));
     }
 
     @Override
-    public void page(final int page, com.mohistmc.net.kyori.adventure.text.Component data) {
+    public void page(final int page, net.kyori.adventure.text.Component data) {
         Preconditions.checkArgument(this.isValidPage(page), "Invalid page number (%s/%s)", page, this.getPageCount());
         if (data == null) {
-            data = com.mohistmc.net.kyori.adventure.text.Component.empty();
+            data = net.kyori.adventure.text.Component.empty();
         }
-        this.pages.set(page - 1, com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(data));
+        this.pages.set(page - 1, net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(data));
     }
 
     @Override
-    public List<com.mohistmc.net.kyori.adventure.text.Component> pages() {
+    public List<net.kyori.adventure.text.Component> pages() {
         if (this.pages == null) return ImmutableList.of();
-        return this.pages.stream().map(com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection()::deserialize).collect(ImmutableList.toImmutableList());
+        return this.pages.stream().map(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection()::deserialize).collect(ImmutableList.toImmutableList());
     }
 
     @Override
-    public BookMeta pages(List<com.mohistmc.net.kyori.adventure.text.Component> pages) {
+    public BookMeta pages(List<net.kyori.adventure.text.Component> pages) {
         if (this.pages != null) this.pages.clear();
-        for (com.mohistmc.net.kyori.adventure.text.Component page : pages) {
+        for (net.kyori.adventure.text.Component page : pages) {
             this.addPages(page);
         }
         return this;
     }
 
     @Override
-    public BookMeta pages(com.mohistmc.net.kyori.adventure.text.Component... pages) {
+    public BookMeta pages(net.kyori.adventure.text.Component... pages) {
         if (this.pages != null) this.pages.clear();
         this.addPages(pages);
         return this;
     }
 
     @Override
-    public void addPages(com.mohistmc.net.kyori.adventure.text.Component... pages) {
+    public void addPages(net.kyori.adventure.text.Component... pages) {
         if (this.pages == null) this.pages = new ArrayList<>();
-        for (com.mohistmc.net.kyori.adventure.text.Component page : pages) {
+        for (net.kyori.adventure.text.Component page : pages) {
             if (this.pages.size() >= MAX_PAGES) {
                 return;
             }
 
             if (page == null) {
-                page = com.mohistmc.net.kyori.adventure.text.Component.empty();
+                page = net.kyori.adventure.text.Component.empty();
             }
 
-            this.pages.add(com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(page));
+            this.pages.add(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(page));
         }
     }
 
-    private CraftMetaBook(List<com.mohistmc.net.kyori.adventure.text.Component> pages) {
+    private CraftMetaBook(List<net.kyori.adventure.text.Component> pages) {
         super((org.bukkit.craftbukkit.inventory.CraftMetaItem) org.bukkit.Bukkit.getItemFactory().getItemMeta(org.bukkit.Material.WRITABLE_BOOK));
-        this.pages = pages.subList(0, Math.min(MAX_PAGES, pages.size())).stream().map(com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection()::serialize).collect(java.util.stream.Collectors.toList());
+        this.pages = pages.subList(0, Math.min(MAX_PAGES, pages.size())).stream().map(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection()::serialize).collect(java.util.stream.Collectors.toList());
     }
 
     static class CraftMetaBookBuilder implements BookMetaBuilder {
-        protected final List<com.mohistmc.net.kyori.adventure.text.Component> pages = new java.util.ArrayList<>();
+        protected final List<net.kyori.adventure.text.Component> pages = new java.util.ArrayList<>();
 
         @Override
-        public BookMetaBuilder title(com.mohistmc.net.kyori.adventure.text.Component title) {
+        public BookMetaBuilder title(net.kyori.adventure.text.Component title) {
             return this;
         }
 
         @Override
-        public BookMetaBuilder author(com.mohistmc.net.kyori.adventure.text.Component author) {
+        public BookMetaBuilder author(net.kyori.adventure.text.Component author) {
             return this;
         }
 
         @Override
-        public BookMetaBuilder addPage(com.mohistmc.net.kyori.adventure.text.Component page) {
+        public BookMetaBuilder addPage(net.kyori.adventure.text.Component page) {
             this.pages.add(page);
             return this;
         }
 
         @Override
-        public BookMetaBuilder pages(com.mohistmc.net.kyori.adventure.text.Component... pages) {
+        public BookMetaBuilder pages(net.kyori.adventure.text.Component... pages) {
             java.util.Collections.addAll(this.pages, pages);
             return this;
         }
 
         @Override
-        public BookMetaBuilder pages(java.util.Collection<com.mohistmc.net.kyori.adventure.text.Component> pages) {
+        public BookMetaBuilder pages(java.util.Collection<net.kyori.adventure.text.Component> pages) {
             this.pages.addAll(pages);
             return this;
         }

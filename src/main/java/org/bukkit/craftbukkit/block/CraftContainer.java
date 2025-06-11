@@ -34,13 +34,13 @@ public abstract class CraftContainer<T extends BaseContainerBlockEntity> extends
 
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component customName() {
+    public net.kyori.adventure.text.Component customName() {
         final T be = this.getSnapshot();
         return be.hasCustomName() ? io.papermc.paper.adventure.PaperAdventure.asAdventure(be.getCustomName()) : null;
     }
 
     @Override
-    public void customName(final com.mohistmc.net.kyori.adventure.text.Component customName) {
+    public void customName(final net.kyori.adventure.text.Component customName) {
         this.getSnapshot().name = (customName != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(customName) : null);
     }
     // Paper end

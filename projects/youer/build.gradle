@@ -123,10 +123,6 @@ dependencies {
 
     userdevCompileOnly jarJar("io.github.llamalad7:mixinextras-neoforge:${project.mixin_extras_version}")
 
-    userdevTestFixtures("net.neoforged.fancymodloader:junit-fml:${project.fancy_mod_loader_version}") {
-        endorseStrictVersions()
-    }
-
     // Must be implementation instead of compileOnly so that running dependent projects such as tests will trigger (re)compilation of coremods.
     // (Only needed when compiling through IntelliJ non-delegated builds - otherwise `compileOnly` would work).
     implementation(jarJar(project(":neoforge-coremods")))
@@ -150,12 +146,10 @@ dependencies {
     libraries 'com.mohistmc:i18n:0.6'
     libraries 'com.mohistmc:json:0.5'
     libraries 'com.mohistmc:tools:0.6'
-    libraries ('com.mohistmc:librariesvault:1.21.1') {
+    libraries ('com.mohistmc:librariesvault:1.21.1-1') {
         exclude group: 'org.yaml'
         exclude group: 'io.leangen.geantyref'
         exclude group: 'org.spongepowered'
-        exclude group: 'net.kyori'
-        exclude group: 'net.sf.jopt-simple'
     }
     implementation(jarJar('commons-lang:commons-lang:2.6-mohist'))
     libraries "net.minecrell:terminalconsoleappender:1.4.0"
@@ -167,6 +161,28 @@ dependencies {
     libraries "org.jspecify:jspecify:1.0.0"
     libraries 'net.md-5:bungeecord-chat:1.20-R0.2-deprecated+build.18'
     libraries "net.neoforged:srgutils:1.0.0"
+
+    libraries("net.kyori:adventure-api:4.17.0")
+    libraries("net.kyori:adventure-key:4.17.0")
+    libraries("net.kyori:adventure-nbt:4.17.0")
+    libraries("net.kyori:adventure-platform-api:4.3.4")
+    //libraries("net.kyori:adventure-platform-bukkit:4.3.4")
+    libraries("net.kyori:adventure-platform-facet:4.3.4")
+    libraries("net.kyori:adventure-text-logger-slf4j:4.17.0")
+    libraries("net.kyori:adventure-text-serializer-ansi:4.17.0")
+    libraries("net.kyori:adventure-text-serializer-commons:4.20.0")
+    libraries("net.kyori:adventure-text-serializer-bungeecord:4.3.4")
+    libraries("net.kyori:adventure-text-minimessage:4.17.0")
+    libraries("net.kyori:adventure-text-serializer-gson:4.17.0")
+    libraries("net.kyori:adventure-text-serializer-gson-legacy-impl:4.17.0")
+    libraries("net.kyori:adventure-text-serializer-json:4.17.0")
+    libraries("net.kyori:adventure-text-serializer-json-legacy-impl:4.17.0")
+    libraries("net.kyori:adventure-text-serializer-legacy:4.17.0")
+    libraries("net.kyori:adventure-text-serializer-plain:4.17.0")
+    libraries("net.kyori:ansi:1.0.3")
+    libraries("net.kyori:examination-api:1.3.0")
+    libraries("net.kyori:examination-string:1.3.0")
+    libraries("net.kyori:option:1.0.0")
     // Paper end
 
     // LibraryLoader start
@@ -178,10 +194,12 @@ dependencies {
     libraries 'org.apache.maven:maven-resolver-provider:3.9.6'
 
     libraries 'org.apache.maven.resolver:maven-resolver-api:1.9.18'
-    libraries 'org.apache.maven.resolver:maven-resolver-connector-basic:1.7.3'
+    libraries 'org.apache.maven.resolver:maven-resolver-connector-basic:1.9.18'
     libraries 'org.apache.maven.resolver:maven-resolver-impl:1.9.18'
     libraries 'org.apache.maven.resolver:maven-resolver-spi:1.9.18'
-    libraries 'org.apache.maven.resolver:maven-resolver-transport-http:1.7.3'
+    libraries('org.apache.maven.resolver:maven-resolver-transport-http:1.9.18') {
+        exclude group: 'org.apache.httpcomponents'
+    }
     libraries 'org.apache.maven.resolver:maven-resolver-util:1.9.18'
     libraries 'org.eclipse.sisu:org.eclipse.sisu.inject:0.3.5'
     libraries 'org.codehaus.plexus:plexus-interpolation:1.26'
@@ -425,6 +443,8 @@ task youerJar(type: Jar, dependsOn: [youerJar0, downloadMultipleFiles, project('
             "libraries/${moduleVersion.id.group.replace('.', '/')}/${moduleVersion.id.name}/${moduleVersion.id.version}"
         }.join(' ') + " libraries/net/minecraft/server/${minecraft_version}-${neoform_version}/server-${minecraft_version}-${neoform_version}-extra.jar")
         attributes([
+                'Premain-Class'       : 'com.mohistmc.launcher.youer.util.JarLoader',
+                'Launcher-Agent-Class': 'com.mohistmc.launcher.youer.util.JarLoader',
                 'Main-Class': 'com.mohistmc.launcher.youer.Main'
         ])
         attributes([

@@ -23,7 +23,7 @@ public abstract class EnchantmentWrapper extends Enchantment {
     // Paper start
     @NotNull
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component displayName(int level) {
+    public net.kyori.adventure.text.Component displayName(int level) {
         return getEnchantment().displayName(level);
     }
 }

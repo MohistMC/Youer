@@ -10,8 +10,8 @@ public class CraftSignSide implements SignSide {
 
     // Lazily initialized only if requested:
     // Paper start
-    private java.util.ArrayList<com.mohistmc.net.kyori.adventure.text.Component> originalLines = null; // ArrayList for RandomAccess
-    private java.util.ArrayList<com.mohistmc.net.kyori.adventure.text.Component> lines = null; // ArrayList for RandomAccess
+    private java.util.ArrayList<net.kyori.adventure.text.Component> originalLines = null; // ArrayList for RandomAccess
+    private java.util.ArrayList<net.kyori.adventure.text.Component> lines = null; // ArrayList for RandomAccess
     // Paper end
     private SignText signText;
 
@@ -21,19 +21,19 @@ public class CraftSignSide implements SignSide {
 
     // Paper start
     @Override
-    public java.util.@NotNull List<com.mohistmc.net.kyori.adventure.text.Component> lines() {
+    public java.util.@NotNull List<net.kyori.adventure.text.Component> lines() {
         this.loadLines();
         return this.lines;
     }
 
     @Override
-    public com.mohistmc.net.kyori.adventure.text.@NotNull Component line(final int index) throws IndexOutOfBoundsException {
+    public net.kyori.adventure.text.@NotNull Component line(final int index) throws IndexOutOfBoundsException {
         this.loadLines();
         return this.lines.get(index);
     }
 
     @Override
-    public void line(final int index, final com.mohistmc.net.kyori.adventure.text.@NotNull Component line) throws IndexOutOfBoundsException {
+    public void line(final int index, final net.kyori.adventure.text.@NotNull Component line) throws IndexOutOfBoundsException {
         com.google.common.base.Preconditions.checkArgument(line != null, "Line cannot be null");
         this.loadLines();
         this.lines.set(index, line);
@@ -54,7 +54,7 @@ public class CraftSignSide implements SignSide {
     public String[] getLines() {
         // Paper start
         this.loadLines();
-        return this.lines.stream().map(com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection()::serialize).toArray(String[]::new); // Paper
+        return this.lines.stream().map(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection()::serialize).toArray(String[]::new); // Paper
         // Paper end
     }
 
@@ -63,7 +63,7 @@ public class CraftSignSide implements SignSide {
     public String getLine(int index) throws IndexOutOfBoundsException {
         // Paper start
         this.loadLines();
-        return com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.lines.get(index));
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.lines.get(index));
         // Paper end
     }
 
@@ -71,7 +71,7 @@ public class CraftSignSide implements SignSide {
     public void setLine(int index, @NotNull String line) throws IndexOutOfBoundsException {
         // Paper start
         this.loadLines();
-        this.lines.set(index, line != null ? com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line) : com.mohistmc.net.kyori.adventure.text.Component.empty());
+        this.lines.set(index, line != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line) : net.kyori.adventure.text.Component.empty());
         // Paper end
     }
 
@@ -100,8 +100,8 @@ public class CraftSignSide implements SignSide {
         if (this.lines != null) {
             // Paper start
             for (int i = 0; i < this.lines.size(); ++i) {
-                com.mohistmc.net.kyori.adventure.text.Component component = this.lines.get(i);
-                com.mohistmc.net.kyori.adventure.text.Component origComp = this.originalLines.get(i);
+                net.kyori.adventure.text.Component component = this.lines.get(i);
+                net.kyori.adventure.text.Component origComp = this.originalLines.get(i);
                 if (component.equals(origComp)) {
                     continue; // The line contents are still the same, skip.
                 }

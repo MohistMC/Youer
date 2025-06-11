@@ -14,7 +14,7 @@ public class CraftCustomInventoryConverter implements CraftInventoryCreator.Inve
 
     // Paper start
     @Override
-    public Inventory createInventory(InventoryHolder owner, InventoryType type, com.mohistmc.net.kyori.adventure.text.Component title) {
+    public Inventory createInventory(InventoryHolder owner, InventoryType type, net.kyori.adventure.text.Component title) {
         return new CraftInventoryCustom(owner, type, title);
     }
     // Paper end
@@ -29,7 +29,7 @@ public class CraftCustomInventoryConverter implements CraftInventoryCreator.Inve
     }
 
     // Paper start
-    public Inventory createInventory(InventoryHolder owner, int size, com.mohistmc.net.kyori.adventure.text.Component title) {
+    public Inventory createInventory(InventoryHolder owner, int size, net.kyori.adventure.text.Component title) {
         return new CraftInventoryCustom(owner, size, title);
     }
     // Paper end

@@ -48,12 +48,12 @@ public class CraftCommandBlock extends CraftBlockEntityState<CommandBlockEntity>
 
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component name() {
+    public net.kyori.adventure.text.Component name() {
         return io.papermc.paper.adventure.PaperAdventure.asAdventure(getSnapshot().getCommandBlock().getName());
     }
 
     @Override
-    public void name(com.mohistmc.net.kyori.adventure.text.Component name) {
+    public void name(net.kyori.adventure.text.Component name) {
         getSnapshot().getCommandBlock().setCustomName(name == null ? net.minecraft.network.chat.Component.literal("@") : io.papermc.paper.adventure.PaperAdventure.asVanilla(name));
     }
     // Paper end

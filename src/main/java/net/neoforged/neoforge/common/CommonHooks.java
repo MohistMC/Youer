@@ -13,6 +13,9 @@ import com.google.common.collect.Sets;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.Lifecycle;
+import io.papermc.paper.adventure.PaperAdventure;
+import io.papermc.paper.event.player.AsyncChatCommandDecorateEvent;
+import io.papermc.paper.event.player.AsyncChatDecorateEvent;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -28,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -221,6 +225,7 @@ import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
@@ -441,12 +446,12 @@ public class CommonHooks {
     }
 
     public static ChatDecorator getServerChatSubmittedDecorator() {
-        return (sender, message) -> {
+        return (sender, message) -> CompletableFuture.supplyAsync(() -> {
             if (sender == null)
                 return message; // Vanilla should never get here with the patches we use, but let's be safe with dumb mods
 
             return onServerChatSubmittedEvent(sender, getRawText(message), message);
-        };
+        });
     }
 
     static final Pattern URL_PATTERN = Pattern.compile(

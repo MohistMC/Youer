@@ -1,6 +1,6 @@
 package io.papermc.paper.plugin.provider.type.paper;
 
-import com.mohistmc.net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import io.papermc.paper.plugin.bootstrap.PluginBootstrap;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContext;
 import io.papermc.paper.plugin.entrypoint.classloader.PaperPluginClassLoader;

@@ -7,6 +7,15 @@
  import com.google.common.collect.Lists;
  import com.google.common.primitives.Floats;
  import com.mojang.authlib.GameProfile;
+@@ -8,6 +_,8 @@
+ import com.mojang.brigadier.StringReader;
+ import com.mojang.brigadier.suggestion.Suggestions;
+ import com.mojang.logging.LogUtils;
++import io.papermc.paper.adventure.ChatProcessor;
++import io.papermc.paper.adventure.PaperAdventure;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
+ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 @@ -22,8 +_,12 @@
  import java.util.Set;
  import java.util.concurrent.CancellationException;
@@ -36,17 +45,14 @@
  import net.minecraft.world.level.BaseCommandBlock;
  import net.minecraft.world.level.GameRules;
  import net.minecraft.world.level.GameType;
-@@ -184,7 +_,28 @@
+@@ -184,7 +_,25 @@
  import net.minecraft.world.phys.shapes.BooleanOp;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
 +import org.bukkit.craftbukkit.entity.CraftEntity;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.craftbukkit.inventory.CraftInventory;
-+import org.bukkit.craftbukkit.inventory.CraftInventoryView;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
-+import org.bukkit.craftbukkit.util.CraftChatMessage;
 +import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 +import org.bukkit.craftbukkit.util.LazyPlayerSet;
 +import org.bukkit.craftbukkit.inventory.CraftItemType;
@@ -826,9 +832,9 @@
 +        */
          this.player.disconnect();
          this.server.getPlayerList().remove(this.player);
-+        String quitMessage = this.server.getPlayerList().quitMessage;
-+        if ((quitMessage != null) && (quitMessage.length() > 0)) {
-+            this.server.getPlayerList().broadcastMessage(CraftChatMessage.fromString(quitMessage));
++        net.kyori.adventure.text.Component quitMessage = this.server.getPlayerList().quitMessage;
++        if ((quitMessage != null) && !quitMessage.equals(net.kyori.adventure.text.Component.empty())) {
++            this.server.getPlayerList().broadcastSystemMessage(PaperAdventure.asVanilla(quitMessage), false);
 +        }
 +        // CraftBukkit end
          this.player.getTextFilter().leave();
@@ -876,11 +882,13 @@
  
 -                CompletableFuture<FilteredText> completablefuture = this.filterTextPacket(playerchatmessage.signedContent());
 -                Component component = this.server.getChatDecorator().decorate(this.player, playerchatmessage.decoratedContent());
+-                this.chatMessageChain.append(completablefuture, p_300785_ -> {
+-                    PlayerChatMessage playerchatmessage1 = playerchatmessage.withUnsignedContent(component).filter(p_300785_.mask());
 +                CompletableFuture<FilteredText> completablefuture = this.filterTextPacket(playerchatmessage.signedContent()).thenApplyAsync(Function.identity(), this.server.chatExecutor); // CraftBukkit - async chat
-+                Component component = net.neoforged.neoforge.common.CommonHooks.getServerChatSubmittedDecorator().decorate(this.player, playerchatmessage.decoratedContent());
-                 this.chatMessageChain.append(completablefuture, p_300785_ -> {
-+                    if (component == null) return; // Forge: ServerChatEvent was canceled if this is null.
-                     PlayerChatMessage playerchatmessage1 = playerchatmessage.withUnsignedContent(component).filter(p_300785_.mask());
++                CompletableFuture<Component> componentFuture = net.neoforged.neoforge.common.CommonHooks.getServerChatSubmittedDecorator().decorate(this.player, playerchatmessage.decoratedContent()); // Paper - Adventure
++                this.chatMessageChain.append(CompletableFuture.allOf(completablefuture, componentFuture), p_300785_ -> {
++                    if (componentFuture.join() == null) return; // Forge: ServerChatEvent was canceled if this is null.
++                    PlayerChatMessage playerchatmessage1 = playerchatmessage.withUnsignedContent(componentFuture.join()).filter(completablefuture.join().mask());
                      this.broadcastChatMessage(playerchatmessage1);
                  });
 -            });
@@ -990,7 +998,7 @@
          }
      }
  
-@@ -1381,23 +_,162 @@
+@@ -1381,23 +_,169 @@
          return false;
      }
  
@@ -1005,7 +1013,14 @@
 +            this.handleCommand(s);
 +        } else if (this.player.getChatVisibility() == ChatVisiblity.SYSTEM) {
 +            // Do nothing, this is coming from a plugin
-+        } else {
++        } else if (true) {
++            if (!async && !org.bukkit.Bukkit.isPrimaryThread()) {
++                org.spigotmc.AsyncCatcher.catchOp("Asynchronous player chat is not allowed here");
++            }
++            final ChatProcessor cp = new ChatProcessor(this.server, this.player, original, async);
++            cp.process();
++            // Paper end
++        } else if (false) { // Paper
 +            org.bukkit.entity.Player player = this.getCraftPlayer();
 +            org.bukkit.event.player.AsyncPlayerChatEvent event = new org.bukkit.event.player.AsyncPlayerChatEvent(async, player, s, new LazyPlayerSet(server));
 +            String originalFormat = event.getFormat(), originalMessage = event.getMessage();
@@ -1760,7 +1775,7 @@
          this.player.resetLastActionTime();
          ServerLevel serverlevel = this.player.serverLevel();
          BlockPos blockpos = p_9923_.getPos();
-@@ -1753,13 +_,25 @@
+@@ -1753,13 +_,26 @@
      @Override
      public void handlePlayerAbilities(ServerboundPlayerAbilitiesPacket p_9887_) {
          PacketUtils.ensureRunningOnSameThread(p_9887_, this, this.player.serverLevel());
@@ -1784,6 +1799,7 @@
 +        net.minecraft.server.level.ClientInformation oldInfo = this.player.clientInformation();
          this.player.updateOptions(p_301979_.information());
 +        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.ClientInformationUpdatedEvent(this.player, oldInfo, p_301979_.information()));
++        this.connection.channel.attr(io.papermc.paper.adventure.PaperAdventure.LOCALE_ATTRIBUTE).set(net.kyori.adventure.translation.Translator.parseLocale(p_301979_.information().language())); // Paper
      }
  
      @Override

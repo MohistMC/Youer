@@ -1,11 +1,100 @@
 --- a/net/minecraft/network/chat/ComponentSerialization.java
 +++ b/net/minecraft/network/chat/ComponentSerialization.java
-@@ -104,7 +_,7 @@
+@@ -38,9 +_,31 @@
  
+ public class ComponentSerialization {
+     public static final Codec<Component> CODEC = Codec.recursive("Component", ComponentSerialization::createCodec);
+-    public static final StreamCodec<RegistryFriendlyByteBuf, Component> STREAM_CODEC = ByteBufCodecs.fromCodecWithRegistries(CODEC);
++    public static final StreamCodec<RegistryFriendlyByteBuf, Component> STREAM_CODEC = createTranslationAware(() -> net.minecraft.nbt.NbtAccounter.create(net.minecraft.network.FriendlyByteBuf.DEFAULT_NBT_QUOTA)); // Paper - adventure
+     public static final StreamCodec<RegistryFriendlyByteBuf, Optional<Component>> OPTIONAL_STREAM_CODEC = STREAM_CODEC.apply(ByteBufCodecs::optional);
+-    public static final StreamCodec<RegistryFriendlyByteBuf, Component> TRUSTED_STREAM_CODEC = ByteBufCodecs.fromCodecWithRegistriesTrusted(CODEC);
++    // Paper start - adventure; use locale from bytebuf for translation
++    public static final ThreadLocal<Boolean> DONT_RENDER_TRANSLATABLES = ThreadLocal.withInitial(() -> false);
++    public static final StreamCodec<RegistryFriendlyByteBuf, Component> TRUSTED_STREAM_CODEC = createTranslationAware(net.minecraft.nbt.NbtAccounter::unlimitedHeap);
++    private static StreamCodec<RegistryFriendlyByteBuf, Component> createTranslationAware(final Supplier<net.minecraft.nbt.NbtAccounter> sizeTracker) {
++        return new StreamCodec<>() {
++            final StreamCodec<ByteBuf, net.minecraft.nbt.Tag> streamCodec = ByteBufCodecs.tagCodec(sizeTracker);
++            @Override
++            public Component decode(RegistryFriendlyByteBuf registryFriendlyByteBuf) {
++                net.minecraft.nbt.Tag tag = this.streamCodec.decode(registryFriendlyByteBuf);
++                RegistryOps<net.minecraft.nbt.Tag> registryOps = registryFriendlyByteBuf.registryAccess().createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE);
++                return CODEC.parse(registryOps, tag).getOrThrow(error -> new io.netty.handler.codec.DecoderException("Failed to decode: " + error + " " + tag));
++            }
++
++            @Override
++            public void encode(RegistryFriendlyByteBuf registryFriendlyByteBuf, Component object) {
++                RegistryOps<net.minecraft.nbt.Tag> registryOps = registryFriendlyByteBuf.registryAccess().createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE);
++                net.minecraft.nbt.Tag tag = (DONT_RENDER_TRANSLATABLES.get() ? CODEC : ComponentSerialization.localizedCodec(registryFriendlyByteBuf.adventure$locale))
++                        .encodeStart(registryOps, object).getOrThrow(error -> new io.netty.handler.codec.EncoderException("Failed to encode: " + error + " " + object));
++                this.streamCodec.encode(registryFriendlyByteBuf, tag);
++            }
++        };
++    }
++    // Paper end - adventure; use locale from bytebuf for translation
+     public static final StreamCodec<RegistryFriendlyByteBuf, Optional<Component>> TRUSTED_OPTIONAL_STREAM_CODEC = TRUSTED_STREAM_CODEC.apply(
+         ByteBufCodecs::optional
+     );
+@@ -102,9 +_,27 @@
+         return ExtraCodecs.orCompressed(mapcodec2, mapcodec1);
+     }
+ 
++    // Paper start - adventure; create separate codec for each locale
++    private static final java.util.Map<java.util.Locale, Codec<Component>> LOCALIZED_CODECS = new java.util.concurrent.ConcurrentHashMap<>();
++
++    public static Codec<Component> localizedCodec(final java.util.@org.checkerframework.checker.nullness.qual.Nullable Locale locale) {
++        if (locale == null) {
++            return CODEC;
++        }
++        return LOCALIZED_CODECS.computeIfAbsent(locale,
++                loc -> Codec.recursive("Component", selfCodec -> createCodec(selfCodec, loc)));
++    }
++    // Paper end - adventure; create separate codec for each locale
++
      private static Codec<Component> createCodec(Codec<Component> p_304554_) {
++        // Paper start - adventure; create separate codec for each locale
++        return createCodec(p_304554_, null);
++    }
++
++    private static Codec<Component> createCodec(Codec<Component> p_304554_, @javax.annotation.Nullable java.util.Locale locale) {
++        // Paper end - adventure; create separate codec for each locale
          ComponentContents.Type<?>[] type = new ComponentContents.Type[]{
 -            PlainTextContents.TYPE, TranslatableContents.TYPE, KeybindContents.TYPE, ScoreContents.TYPE, SelectorContents.TYPE, NbtContents.TYPE
 +            PlainTextContents.TYPE, TranslatableContents.TYPE, KeybindContents.TYPE, ScoreContents.TYPE, SelectorContents.TYPE, NbtContents.TYPE, net.neoforged.neoforge.common.util.InsertingContents.TYPE
          };
          MapCodec<ComponentContents> mapcodec = createLegacyComponentMatcher(type, ComponentContents.Type::codec, ComponentContents::type, "type");
          Codec<Component> codec = RecordCodecBuilder.create(
+@@ -115,6 +_,34 @@
+                     )
+                     .apply(p_337494_, MutableComponent::new)
+         );
++        // Paper start - adventure; create separate codec for each locale
++        final Codec<Component> origCodec = codec;
++        codec = new Codec<>() {
++            @Override
++            public <T> DataResult<com.mojang.datafixers.util.Pair<Component, T>> decode(final DynamicOps<T> ops, final T input) {
++                return origCodec.decode(ops, input);
++            }
++
++            @Override
++            public <T> DataResult<T> encode(final Component input, final DynamicOps<T> ops, final T prefix) {
++                final net.kyori.adventure.text.Component adventureComponent;
++                if (input instanceof io.papermc.paper.adventure.AdventureComponent adv) {
++                    adventureComponent = adv.adventure$component();
++                } else if (locale != null && input.getContents() instanceof TranslatableContents && io.papermc.paper.adventure.PaperAdventure.hasAnyTranslations()) {
++                    adventureComponent = io.papermc.paper.adventure.PaperAdventure.asAdventure(input);
++                } else {
++                    return origCodec.encode(input, ops, prefix);
++                }
++                return io.papermc.paper.adventure.PaperAdventure.localizedCodec(locale)
++                        .encode(adventureComponent, ops, prefix);
++            }
++
++            @Override
++            public String toString() {
++                return origCodec.toString() + "[AdventureComponentAware]";
++            }
++        };
++        // Paper end - adventure; create separate codec for each locale
+         return Codec.either(Codec.either(Codec.STRING, ExtraCodecs.nonEmptyList(p_304554_.listOf())), codec)
+             .xmap(
+                 p_304547_ -> p_304547_.map(

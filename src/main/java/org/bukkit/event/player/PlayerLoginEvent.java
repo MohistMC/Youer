@@ -18,7 +18,7 @@ public class PlayerLoginEvent extends PlayerEvent {
     private final InetAddress realAddress;
     private final String hostname;
     private Result result = Result.ALLOWED;
-    private com.mohistmc.net.kyori.adventure.text.Component message = com.mohistmc.net.kyori.adventure.text.Component.empty();
+    private net.kyori.adventure.text.Component message = net.kyori.adventure.text.Component.empty();
 
     /**
      * This constructor defaults message to an empty string, and result to
@@ -60,13 +60,13 @@ public class PlayerLoginEvent extends PlayerEvent {
      * @param result The result status for this event
      * @param message The message to be displayed if result denies login
      * @param realAddress the actual, unspoofed connecting address
-     * @deprecated in favour of {@link #PlayerLoginEvent(Player, String, InetAddress, Result, com.mohistmc.net.kyori.adventure.text.Component, InetAddress)}
+     * @deprecated in favour of {@link #PlayerLoginEvent(Player, String, InetAddress, Result, net.kyori.adventure.text.Component, InetAddress)}
      */
     @Deprecated // Paper
     public PlayerLoginEvent(@NotNull final Player player, @NotNull String hostname, @NotNull final InetAddress address, @NotNull final Result result, @NotNull final String message, @NotNull final InetAddress realAddress) {
         this(player, hostname, address, realAddress);
         this.result = result;
-        this.message = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // Paper
+        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // Paper
     }
 
     // Paper start
@@ -81,7 +81,7 @@ public class PlayerLoginEvent extends PlayerEvent {
      * @param message The message to be displayed if result denies login
      * @param realAddress the actual, unspoofed connecting address
      */
-    public PlayerLoginEvent(@NotNull final Player player, @NotNull String hostname, @NotNull final InetAddress address, @NotNull final Result result, @NotNull final com.mohistmc.net.kyori.adventure.text.Component message, @NotNull final InetAddress realAddress) {
+    public PlayerLoginEvent(@NotNull final Player player, @NotNull String hostname, @NotNull final InetAddress address, @NotNull final Result result, @NotNull final net.kyori.adventure.text.Component message, @NotNull final InetAddress realAddress) {
         this(player, hostname, address, realAddress); // Spigot
         this.result = result;
         this.message = message;
@@ -93,7 +93,7 @@ public class PlayerLoginEvent extends PlayerEvent {
      *
      * @return Current kick message
      */
-    public com.mohistmc.net.kyori.adventure.text.@NotNull Component kickMessage() {
+    public net.kyori.adventure.text.@NotNull Component kickMessage() {
         return this.message;
     }
 
@@ -102,7 +102,7 @@ public class PlayerLoginEvent extends PlayerEvent {
      *
      * @param message New kick message
      */
-    public void kickMessage(com.mohistmc.net.kyori.adventure.text.@NotNull Component message) {
+    public void kickMessage(net.kyori.adventure.text.@NotNull Component message) {
         this.message = message;
     }
     // Paper end
@@ -136,18 +136,18 @@ public class PlayerLoginEvent extends PlayerEvent {
     @NotNull
     @Deprecated // Paper
     public String getKickMessage() {
-        return com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.message); // Paper
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.message); // Paper
     }
 
     /**
      * Sets the kick message to display if getResult() != Result.ALLOWED
      *
      * @param message New kick message
-     * @deprecated in favour of {@link #kickMessage(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #kickMessage(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setKickMessage(@NotNull final String message) {
-        this.message = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // Paper
+        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // Paper
     }
 
     /**
@@ -166,7 +166,7 @@ public class PlayerLoginEvent extends PlayerEvent {
      */
     public void allow() {
         result = Result.ALLOWED;
-        message = com.mohistmc.net.kyori.adventure.text.Component.empty(); // Paper
+        message = net.kyori.adventure.text.Component.empty(); // Paper
     }
 
     /**
@@ -174,12 +174,12 @@ public class PlayerLoginEvent extends PlayerEvent {
      *
      * @param result New result for disallowing the player
      * @param message Kick message to display to the user
-     * @deprecated in favour of {@link #disallow(Result, com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #disallow(Result, net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper start
     public void disallow(@NotNull final Result result, @NotNull final String message) {
         this.result = result;
-        this.message = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message);
+        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message);
     }
     /**
      * Disallows the player from logging in, with the given reason
@@ -187,7 +187,7 @@ public class PlayerLoginEvent extends PlayerEvent {
      * @param result New result for disallowing the player
      * @param message Kick message to display to the user
      */
-    public void disallow(@NotNull final Result result, @NotNull final com.mohistmc.net.kyori.adventure.text.Component message) {
+    public void disallow(@NotNull final Result result, @NotNull final net.kyori.adventure.text.Component message) {
         // Paper end
         this.result = result;
         this.message = message;

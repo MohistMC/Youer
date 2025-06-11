@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class PlayerQuitEvent extends PlayerEvent {
     private static final HandlerList handlers = new HandlerList();
-    private com.mohistmc.net.kyori.adventure.text.Component quitMessage; // Paper
+    private net.kyori.adventure.text.Component quitMessage; // Paper
     private final QuitReason reason; // Paper
 
     @Deprecated // Paper
@@ -21,15 +21,15 @@ public class PlayerQuitEvent extends PlayerEvent {
     @Deprecated // Paper
     public PlayerQuitEvent(@NotNull final Player who, @Nullable final String quitMessage, @Nullable QuitReason quitReason) {
         super(who);
-        this.quitMessage = quitMessage != null ? com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(quitMessage) : null; // Paper
+        this.quitMessage = quitMessage != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(quitMessage) : null; // Paper
         this.reason = quitReason == null ? QuitReason.DISCONNECTED : quitReason;
     }
     // Paper start
     @Deprecated
-    public PlayerQuitEvent(@NotNull final Player who, @Nullable final com.mohistmc.net.kyori.adventure.text.Component quitMessage) {
+    public PlayerQuitEvent(@NotNull final Player who, @Nullable final net.kyori.adventure.text.Component quitMessage) {
         this(who, quitMessage, null);
     }
-    public PlayerQuitEvent(@NotNull final Player who, @Nullable final com.mohistmc.net.kyori.adventure.text.Component quitMessage, @Nullable QuitReason quitReason) {
+    public PlayerQuitEvent(@NotNull final Player who, @Nullable final net.kyori.adventure.text.Component quitMessage, @Nullable QuitReason quitReason) {
         super(who);
         this.quitMessage = quitMessage;
         this.reason = quitReason == null ? QuitReason.DISCONNECTED : quitReason;
@@ -40,7 +40,7 @@ public class PlayerQuitEvent extends PlayerEvent {
      *
      * @return string quit message
      */
-    public com.mohistmc.net.kyori.adventure.text.@Nullable Component quitMessage() {
+    public net.kyori.adventure.text.@Nullable Component quitMessage() {
         return quitMessage;
     }
 
@@ -49,7 +49,7 @@ public class PlayerQuitEvent extends PlayerEvent {
      *
      * @param quitMessage quit message
      */
-    public void quitMessage(com.mohistmc.net.kyori.adventure.text.@Nullable Component quitMessage) {
+    public void quitMessage(net.kyori.adventure.text.@Nullable Component quitMessage) {
         this.quitMessage = quitMessage;
     }
     // Paper end
@@ -63,18 +63,18 @@ public class PlayerQuitEvent extends PlayerEvent {
     @Nullable
     @Deprecated // Paper
     public String getQuitMessage() {
-        return this.quitMessage == null ? null : com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.quitMessage); // Paper
+        return this.quitMessage == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.quitMessage); // Paper
     }
 
     /**
      * Sets the quit message to send to all online players
      *
      * @param quitMessage quit message
-     * @deprecated in favour of {@link #quitMessage(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #quitMessage(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setQuitMessage(@Nullable String quitMessage) {
-        this.quitMessage = quitMessage != null ? com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(quitMessage) : null; // Paper
+        this.quitMessage = quitMessage != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(quitMessage) : null; // Paper
     }
 
     @NotNull

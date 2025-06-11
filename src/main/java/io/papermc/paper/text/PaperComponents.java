@@ -1,12 +1,12 @@
 package io.papermc.paper.text;
 
-import com.mohistmc.net.kyori.adventure.text.Component;
-import com.mohistmc.net.kyori.adventure.text.flattener.ComponentFlattener;
-import com.mohistmc.net.kyori.adventure.text.format.NamedTextColor;
-import com.mohistmc.net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
-import com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import com.mohistmc.net.kyori.adventure.text.serializer.plain.PlainComponentSerializer;
-import com.mohistmc.net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.flattener.ComponentFlattener;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import java.io.IOException;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -33,19 +33,19 @@ public final class PaperComponents {
      * <p>
      * A {@link CommandSender} argument is required to resolve:
      * <ul>
-     *     <li>{@link com.mohistmc.net.kyori.adventure.text.NBTComponent}</li>
-     *     <li>{@link com.mohistmc.net.kyori.adventure.text.ScoreComponent}</li>
-     *     <li>{@link com.mohistmc.net.kyori.adventure.text.SelectorComponent}</li>
+     *     <li>{@link net.kyori.adventure.text.NBTComponent}</li>
+     *     <li>{@link net.kyori.adventure.text.ScoreComponent}</li>
+     *     <li>{@link net.kyori.adventure.text.SelectorComponent}</li>
      * </ul>
      * A {@link Entity} argument is optional to help resolve:
      * <ul>
-     *     <li>{@link com.mohistmc.net.kyori.adventure.text.ScoreComponent}</li>
+     *     <li>{@link net.kyori.adventure.text.ScoreComponent}</li>
      * </ul>
-     * {@link com.mohistmc.net.kyori.adventure.text.TranslatableComponent}s don't require any extra arguments.
+     * {@link net.kyori.adventure.text.TranslatableComponent}s don't require any extra arguments.
      *
      * @param input the component to resolve
      * @param context the command sender to resolve with
-     * @param scoreboardSubject the scoreboard subject to use (for use with {@link com.mohistmc.net.kyori.adventure.text.ScoreComponent}s)
+     * @param scoreboardSubject the scoreboard subject to use (for use with {@link net.kyori.adventure.text.ScoreComponent}s)
      * @return the resolved component
      * @throws IOException if a syntax error tripped during resolving
      */
@@ -63,19 +63,19 @@ public final class PaperComponents {
      * <p>
      * A {@link CommandSender} argument is required to resolve:
      * <ul>
-     *     <li>{@link com.mohistmc.net.kyori.adventure.text.NBTComponent}</li>
-     *     <li>{@link com.mohistmc.net.kyori.adventure.text.ScoreComponent}</li>
-     *     <li>{@link com.mohistmc.net.kyori.adventure.text.SelectorComponent}</li>
+     *     <li>{@link net.kyori.adventure.text.NBTComponent}</li>
+     *     <li>{@link net.kyori.adventure.text.ScoreComponent}</li>
+     *     <li>{@link net.kyori.adventure.text.SelectorComponent}</li>
      * </ul>
      * A {@link Entity} argument is optional to help resolve:
      * <ul>
-     *     <li>{@link com.mohistmc.net.kyori.adventure.text.ScoreComponent}</li>
+     *     <li>{@link net.kyori.adventure.text.ScoreComponent}</li>
      * </ul>
-     * {@link com.mohistmc.net.kyori.adventure.text.TranslatableComponent}s don't require any extra arguments.
+     * {@link net.kyori.adventure.text.TranslatableComponent}s don't require any extra arguments.
      *
      * @param input the component to resolve
      * @param context the command sender to resolve with
-     * @param scoreboardSubject the scoreboard subject to use (for use with {@link com.mohistmc.net.kyori.adventure.text.ScoreComponent}s)
+     * @param scoreboardSubject the scoreboard subject to use (for use with {@link net.kyori.adventure.text.ScoreComponent}s)
      * @param bypassPermissions true to bypass permissions checks for resolving components
      * @return the resolved component
      * @throws IOException if a syntax error tripped during resolving

@@ -3,12 +3,12 @@ package io.papermc.paper.command;
 import com.google.common.collect.Lists;
 import com.mohistmc.io.leangen.geantyref.GenericTypeReflector;
 import com.mohistmc.io.leangen.geantyref.TypeToken;
-import com.mohistmc.net.kyori.adventure.text.Component;
-import com.mohistmc.net.kyori.adventure.text.JoinConfiguration;
-import com.mohistmc.net.kyori.adventure.text.TextComponent;
-import com.mohistmc.net.kyori.adventure.text.event.ClickEvent;
-import com.mohistmc.net.kyori.adventure.text.format.NamedTextColor;
-import com.mohistmc.net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.entrypoint.Entrypoint;
 import io.papermc.paper.plugin.entrypoint.LaunchEntryPointHandler;
@@ -124,7 +124,7 @@ public class PaperPluginsCommand extends BukkitCommand {
     }
 
     private static Component asPlainComponents(String strings) {
-        com.mohistmc.net.kyori.adventure.text.TextComponent.Builder builder = Component.text();
+        net.kyori.adventure.text.TextComponent.Builder builder = Component.text();
         for (String string : strings.split("\n")) {
             builder.append(Component.newline());
             builder.append(Component.text(string, NamedTextColor.WHITE));

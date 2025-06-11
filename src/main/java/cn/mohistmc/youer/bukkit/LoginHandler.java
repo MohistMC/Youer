@@ -31,7 +31,7 @@ public class LoginHandler {
         if (PlayerPreLoginEvent.getHandlerList().getRegisteredListeners().length != 0) {
             final PlayerPreLoginEvent event = new PlayerPreLoginEvent(playerName, address, uniqueId);
             if (asyncEvent.getResult() != PlayerPreLoginEvent.Result.ALLOWED) {
-                event.disallow(asyncEvent.getResult(), asyncEvent.getKickMessage());
+                event.disallow(asyncEvent.getResult(), asyncEvent.kickMessage()); // Paper - Adventure
             }
             Waitable<Result> waitable = new Waitable<>() {
                 @Override
@@ -43,12 +43,12 @@ public class LoginHandler {
 
             serverLoginPacketListener.server.processQueue.add(waitable);
             if (waitable.get() != PlayerPreLoginEvent.Result.ALLOWED) {
-                serverLoginPacketListener.disconnect(Component.nullToEmpty(event.getKickMessage()));
+                serverLoginPacketListener.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.kickMessage())); // Paper - Adventure
                 return;
             }
         } else {
             if (asyncEvent.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED) {
-                serverLoginPacketListener.disconnect(Component.nullToEmpty(asyncEvent.getKickMessage()));
+                serverLoginPacketListener.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(asyncEvent.kickMessage())); // Paper - Adventure
                 return;
             }
         }

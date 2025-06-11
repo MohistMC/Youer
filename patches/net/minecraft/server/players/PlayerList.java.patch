@@ -9,10 +9,11 @@
  import java.net.SocketAddress;
  import java.nio.file.Path;
  import java.text.SimpleDateFormat;
-@@ -17,11 +_,11 @@
+@@ -17,11 +_,12 @@
  import java.util.Optional;
  import java.util.Set;
  import java.util.UUID;
++import java.util.concurrent.atomic.AtomicBoolean;
 +import java.util.concurrent.atomic.AtomicReference;
  import java.util.function.Function;
  import java.util.function.Predicate;
@@ -36,7 +37,7 @@
  import net.minecraft.sounds.SoundEvents;
  import net.minecraft.sounds.SoundSource;
  import net.minecraft.stats.ServerStatsCounter;
-@@ -98,6 +_,15 @@
+@@ -98,6 +_,16 @@
  import net.minecraft.world.scores.Objective;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Team;
@@ -48,6 +49,7 @@
 +import org.bukkit.craftbukkit.util.CraftLocation;
 +import org.bukkit.event.player.PlayerChangedWorldEvent;
 +import org.bukkit.event.player.PlayerJoinEvent;
++import org.bukkit.event.player.PlayerLoginEvent;
 +import org.bukkit.event.player.PlayerQuitEvent;
  import org.slf4j.Logger;
  
@@ -161,14 +163,14 @@
          servergamepacketlistenerimpl.send(new ClientboundUpdateRecipesPacket(this.server.getRecipeManager().getOrderedRecipes()));
          this.sendPlayerPermissionLevel(p_11263_);
          p_11263_.getStats().markAllDirty();
-@@ -214,25 +_,70 @@
+@@ -214,25 +_,69 @@
              mutablecomponent = Component.translatable("multiplayer.player.joined.renamed", p_11263_.getDisplayName(), s);
          }
  
 -        this.broadcastSystemMessage(mutablecomponent.withStyle(ChatFormatting.YELLOW), false);
 +        // CraftBukkit start
 +        mutablecomponent.withStyle(ChatFormatting.YELLOW);
-+        String joinMessage = CraftChatMessage.fromComponent(mutablecomponent);
++        Component joinMessage = mutablecomponent; // Paper - Adventure
 +
          servergamepacketlistenerimpl.teleport(p_11263_.getX(), p_11263_.getY(), p_11263_.getZ(), p_11263_.getYRot(), p_11263_.getXRot());
          ServerStatus serverstatus = this.server.getStatus();
@@ -188,16 +190,15 @@
 +        CraftPlayer bukkitPlayer = p_11263_.getBukkitEntity();
 +        // Ensure that player inventory is populated with its viewer
 +        p_11263_.containerMenu.transferTo(p_11263_.containerMenu, bukkitPlayer);
-+        PlayerJoinEvent playerJoinEvent = new PlayerJoinEvent(bukkitPlayer, joinMessage);
++        PlayerJoinEvent playerJoinEvent = new PlayerJoinEvent(bukkitPlayer, io.papermc.paper.adventure.PaperAdventure.asAdventure(joinMessage)); // Paper - Adventure
 +        cserver.getPluginManager().callEvent(playerJoinEvent);
 +        if (!p_11263_.connection.isAcceptingMessages()) {
 +            return;
 +        }
-+        joinMessage = playerJoinEvent.getJoinMessage();
-+        if (joinMessage != null && joinMessage.length() > 0) {
-+            for (Component line : CraftChatMessage.fromString(joinMessage)) {
-+                server.getPlayerList().broadcastSystemMessage(line, false);
-+            }
++        final net.kyori.adventure.text.Component jm = playerJoinEvent.joinMessage();
++        if (jm != null && !jm.equals(net.kyori.adventure.text.Component.empty())) { // Paper - Adventure
++            joinMessage = io.papermc.paper.adventure.PaperAdventure.asVanilla(jm); // Paper - Adventure
++            this.server.getPlayerList().broadcastSystemMessage(joinMessage, false); // Paper - Adventure
 +        }
 +        // CraftBukkit end
 +        // CraftBukkit start - sendAll above replaced with this loop
@@ -324,7 +325,7 @@
          }
      }
  
-+    public String quitMessage;
++    public net.kyori.adventure.text.Component quitMessage;
      public void remove(ServerPlayer p_11287_) {
 +        net.neoforged.neoforge.event.EventHooks.firePlayerLoggedOut(p_11287_);
          ServerLevel serverlevel = p_11287_.serverLevel();
@@ -335,7 +336,7 @@
 +        if (p_11287_.containerMenu != p_11287_.inventoryMenu) {
 +            p_11287_.closeContainer();
 +        }
-+        PlayerQuitEvent playerQuitEvent = new PlayerQuitEvent(p_11287_.getBukkitEntity(), p_11287_.kickLeaveMessage != null ? p_11287_.kickLeaveMessage : "\u00A7e" + p_11287_.getScoreboardName() + " left the game");
++        PlayerQuitEvent playerQuitEvent = new PlayerQuitEvent(p_11287_.getBukkitEntity(), net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? p_11287_.getBukkitEntity().displayName() : io.papermc.paper.adventure.PaperAdventure.asAdventure(p_11287_.getDisplayName()))); // Paper - Adventure
 +        cserver.getPluginManager().callEvent(playerQuitEvent);
 +        p_11287_.getBukkitEntity().disconnect(playerQuitEvent.getQuitMessage());
 +        p_11287_.doTick(); // SPIGOT-924
@@ -383,7 +384,7 @@
 +        cserver.getScoreboardManager().removePlayer(p_11287_.getBukkitEntity());
 +        // CraftBukkit end
 +
-+        quitMessage = playerQuitEvent.getQuitMessage();
++        quitMessage = playerQuitEvent.quitMessage();
 +    }
 +
 +    // Mohist start
@@ -432,25 +433,27 @@
          if (this.bans.isBanned(p_11258_)) {
              UserBanListEntry userbanlistentry = this.bans.get(p_11258_);
              MutableComponent mutablecomponent1 = Component.translatable("multiplayer.disconnect.banned.reason", userbanlistentry.getReason());
-@@ -390,9 +_,10 @@
+@@ -390,10 +_,11 @@
                  );
              }
  
 -            return mutablecomponent1;
-+            event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_BANNED, CraftChatMessage.fromComponent(mutablecomponent1));
++            event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_BANNED, io.papermc.paper.adventure.PaperAdventure.asAdventure(mutablecomponent1)); // Paper - Adventure
          } else if (!this.isWhiteListed(p_11258_)) {
 -            return Component.translatable("multiplayer.disconnect.not_whitelisted");
+-        } else if (this.ipBans.isBanned(p_11257_)) {
 +            MutableComponent ichatmutablecomponent = Component.translatable("multiplayer.disconnect.not_whitelisted");
-+            event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_WHITELIST, org.spigotmc.SpigotConfig.whitelistMessage); // Spigot
-         } else if (this.ipBans.isBanned(p_11257_)) {
++            event.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.whitelistMessage)); // Spigot // Paper - Adventure
++        } else if (this.getIpBans().isBanned(p_11257_) && !this.getIpBans().get(p_11257_).hasExpired()) {
              IpBanListEntry ipbanlistentry = this.ipBans.get(p_11257_);
              MutableComponent mutablecomponent = Component.translatable("multiplayer.disconnect.banned_ip.reason", ipbanlistentry.getReason());
+             if (ipbanlistentry.getExpires() != null) {
 @@ -402,19 +_,30 @@
                  );
              }
  
 -            return mutablecomponent;
-+            event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_BANNED, CraftChatMessage.fromComponent(mutablecomponent));
++            event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_BANNED, io.papermc.paper.adventure.PaperAdventure.asAdventure(mutablecomponent)); // Paper - Adventure
          } else {
 -            return this.players.size() >= this.maxPlayers && !this.canBypassPlayerLimit(p_11258_)
 -                ? Component.translatable("multiplayer.disconnect.server_full")
@@ -464,14 +467,14 @@
 -
 -    public boolean disconnectAllPlayersWithProfile(GameProfile p_295670_) {
 +            if (this.players.size() >= this.maxPlayers && !this.canBypassPlayerLimit(p_11258_)) {
-+                event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_FULL, org.spigotmc.SpigotConfig.serverFullMessage); // Spigot
++                event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_FULL, net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.serverFullMessage)); // Spigot // Paper - Adventure
 +            }
 +        }
 +
 +        cserver.getPluginManager().callEvent(event);
 +        if (event.getResult() != org.bukkit.event.player.PlayerLoginEvent.Result.ALLOWED) {
-+            handleR.disconnect(event.getKickMessage());
-+            return Component.literal(event.getKickMessage());
++            youer$canPlayerLogin$entity.set(null);
++            return io.papermc.paper.adventure.PaperAdventure.asVanilla(event.kickMessage());
 +        }
 +        return null;
 +    }
@@ -773,7 +776,7 @@
 -            this.players.get(i).connection.disconnect(Component.translatable("multiplayer.disconnect.server_shutdown"));
 -        }
 -    }
-+            this.players.get(i).connection.disconnect(CraftChatMessage.fromStringOrEmpty(this.server.server.getShutdownMessage())); // CraftBukkit - add custom shutdown message
++            this.players.get(i).connection.disconnect(java.util.Objects.requireNonNullElseGet(this.server.server.shutdownMessage(), net.kyori.adventure.text.Component::empty)); // CraftBukkit - add custom shutdown message // Paper - Adventure
 +        }
 +    }
 +
@@ -787,23 +790,65 @@
  
      public void broadcastSystemMessage(Component p_240618_, boolean p_240644_) {
          this.broadcastSystemMessage(p_240618_, p_215639_ -> p_240618_, p_240644_);
-@@ -779,8 +_,8 @@
-         this.broadcastChatMessage(p_243264_, p_243234_::shouldFilterMessageTo, p_243234_, p_243204_);
+@@ -776,20 +_,39 @@
      }
  
+     public void broadcastChatMessage(PlayerChatMessage p_243264_, ServerPlayer p_243234_, ChatType.Bound p_243204_) {
+-        this.broadcastChatMessage(p_243264_, p_243234_::shouldFilterMessageTo, p_243234_, p_243204_);
+-    }
+-
 -    private void broadcastChatMessage(
 -        PlayerChatMessage p_249952_, Predicate<ServerPlayer> p_250784_, @Nullable ServerPlayer p_249623_, ChatType.Bound p_250276_
++        // Paper start
++        this.broadcastChatMessage(p_243264_, p_243234_, p_243204_, null);
++    }
++
++    public void broadcastChatMessage(PlayerChatMessage p_243264_, ServerPlayer p_243234_, ChatType.Bound p_243204_, @Nullable Function<net.kyori.adventure.audience.Audience, Component> unsignedFunction) {
++        // Paper end
++        this.broadcastChatMessage(p_243264_, p_243234_::shouldFilterMessageTo, p_243234_, p_243204_, unsignedFunction);
++    }
++
++    // Youer start
++    AtomicReference<Function<net.kyori.adventure.audience.Audience, Component>> broadcastChatMessage$unsignedFunction = new AtomicReference<>(null);
 +    public void broadcastChatMessage(
 +            PlayerChatMessage p_249952_, Predicate<ServerPlayer> p_250784_, @Nullable ServerPlayer p_249623_, ChatType.Bound p_250276_
      ) {
++        // Paper end
          boolean flag = this.verifyChatTrusted(p_249952_);
-         this.server.logChatMessage(p_249952_.decoratedContent(), p_250276_, flag ? null : "Not Secure");
-@@ -798,26 +_,26 @@
+-        this.server.logChatMessage(p_249952_.decoratedContent(), p_250276_, flag ? null : "Not Secure");
++        Function<net.kyori.adventure.audience.Audience, Component> unsignedFunction = broadcastChatMessage$unsignedFunction.getAndSet(null);
++        this.server.logChatMessage((unsignedFunction == null ? p_249952_.decoratedContent() : unsignedFunction.apply(this.server.console)), p_250276_, flag ? null : "Not Secure"); // Paper
+         OutgoingChatMessage outgoingchatmessage = OutgoingChatMessage.create(p_249952_);
+         boolean flag1 = false;
++        Packet<?> disguised = p_249623_ != null && unsignedFunction == null ? new net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket(outgoingchatmessage.content(), p_250276_) : null; // Paper - don't send player chat packets from vanished players
+ 
+         for (ServerPlayer serverplayer : this.players) {
+             boolean flag2 = p_250784_.test(serverplayer);
+-            serverplayer.sendChatMessage(outgoingchatmessage, flag2, p_250276_);
++            // Paper start - don't send player chat packets from vanished players
++            if (p_249623_ != null && !serverplayer.getBukkitEntity().canSee(p_249623_.getBukkitEntity())) {
++                serverplayer.connection.send(unsignedFunction != null
++                        ? new net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket(unsignedFunction.apply(serverplayer.getBukkitEntity()), p_250276_)
++                        : disguised);
++                continue;
++            }
++            // Paper end
++            serverplayer.sendChatMessage(outgoingchatmessage, flag2, p_250276_, unsignedFunction == null ? null : unsignedFunction.apply(serverplayer.getBukkitEntity())); // Paper
+             flag1 |= flag2 && p_249952_.isFullyFiltered();
+         }
+ 
+@@ -797,27 +_,32 @@
+             p_249623_.sendSystemMessage(CHAT_FILTERED_FULL);
          }
      }
++    public void broadcastChatMessage(PlayerChatMessage p_249952_, Predicate<ServerPlayer> p_250784_, @Nullable ServerPlayer p_249623_, ChatType.Bound p_250276_, @Nullable Function<net.kyori.adventure.audience.Audience, Component> unsignedFunction) {
++        broadcastChatMessage$unsignedFunction.set(unsignedFunction);
++        broadcastChatMessage(p_249952_, p_250784_, p_249623_, p_250276_);
++    }
++    // Youer end
  
 -    private boolean verifyChatTrusted(PlayerChatMessage p_251384_) {
-+    public boolean verifyChatTrusted(PlayerChatMessage p_251384_) {
++    public boolean verifyChatTrusted(PlayerChatMessage p_251384_) {  // Paper - private -> public
          return p_251384_.hasSignature() && !p_251384_.hasExpiredServer(Instant.now());
      }
  

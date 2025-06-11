@@ -74,13 +74,13 @@ public class CraftBeacon extends CraftBlockEntityState<BeaconBlockEntity> implem
 
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component customName() {
+    public net.kyori.adventure.text.Component customName() {
         final BeaconBlockEntity be = this.getSnapshot();
         return be.name != null ? io.papermc.paper.adventure.PaperAdventure.asAdventure(be.name) : null;
     }
 
     @Override
-    public void customName(final com.mohistmc.net.kyori.adventure.text.Component customName) {
+    public void customName(final net.kyori.adventure.text.Component customName) {
         this.getSnapshot().setCustomName(customName != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(customName) : null);
     }
     // Paper end

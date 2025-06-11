@@ -20,7 +20,7 @@ index 530728cd4b258444f6efe064903b521f4b23cd04..b65d816bb9feb18ecf74e10e9728c302
                  boolean cancelled = false;
 -                container = CraftEventFactory.callInventoryOpenEvent(this, container, cancelled);
 +                // Paper start - Add titleOverride to InventoryOpenEvent
-+                final com.mojang.datafixers.util.Pair<com.mohistmc.net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(this, container, cancelled);
++                final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(this, container, cancelled);
 +                container = result.getSecond();
 +                title = PaperAdventure.asVanilla(result.getFirst());
 +                // Paper end - Add titleOverride to InventoryOpenEvent
@@ -46,14 +46,14 @@ index b782cc64426a058881947ed62316c1cb8d332037..7dcfb45c24d7743956be514c7d554e06
  
 -        container = CraftEventFactory.callInventoryOpenEvent(player, container);
 +        // Paper start - Add titleOverride to InventoryOpenEvent
-+        final com.mojang.datafixers.util.Pair<com.mohistmc.net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(player, container);
++        final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(player, container);
 +        container = result.getSecond();
 +        // Paper end - Add titleOverride to InventoryOpenEvent
          if (container == null) return;
  
          //String title = container.getBukkitView().getTitle(); // Paper - comment
-         com.mohistmc.net.kyori.adventure.text.Component adventure$title = container.getBukkitView().title(); // Paper
-         if (adventure$title == null) adventure$title = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(container.getBukkitView().getTitle()); // Paper
+         net.kyori.adventure.text.Component adventure$title = container.getBukkitView().title(); // Paper
+         if (adventure$title == null) adventure$title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(container.getBukkitView().getTitle()); // Paper
 +        if (result.getFirst() != null) adventure$title = result.getFirst(); // Paper - Add titleOverride to InventoryOpenEvent
  
          //player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, CraftChatMessage.fromString(title)[0])); // Paper - comment
@@ -64,7 +64,7 @@ index b782cc64426a058881947ed62316c1cb8d332037..7dcfb45c24d7743956be514c7d554e06
          // Trigger an INVENTORY_OPEN event
 -        container = CraftEventFactory.callInventoryOpenEvent(player, container);
 +        // Paper start - Add titleOverride to InventoryOpenEvent
-+        final com.mojang.datafixers.util.Pair<com.mohistmc.net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(player, container);
++        final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(player, container);
 +        container = result.getSecond();
 +        // Paper end - Add titleOverride to InventoryOpenEvent
          if (container == null) {
@@ -72,8 +72,8 @@ index b782cc64426a058881947ed62316c1cb8d332037..7dcfb45c24d7743956be514c7d554e06
          }
 @@ -459,6 +466,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
          //String title = inventory.getTitle(); // Paper - comment
-         com.mohistmc.net.kyori.adventure.text.Component adventure$title = inventory.title(); // Paper
-         if (adventure$title == null) adventure$title = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(inventory.getTitle()); // Paper
+         net.kyori.adventure.text.Component adventure$title = inventory.title(); // Paper
+         if (adventure$title == null) adventure$title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(inventory.getTitle()); // Paper
 +        if (result.getFirst() != null) adventure$title = result.getFirst(); // Paper - Add titleOverride to InventoryOpenEvent
          //player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, CraftChatMessage.fromString(title)[0])); // Paper - comment
          if (!player.isImmobile()) player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, io.papermc.paper.adventure.PaperAdventure.asVanilla(adventure$title))); // Paper - Prevent opening inventories when frozen
@@ -90,7 +90,7 @@ index 6b241ec85f360ec79f18b911175d7092861024a4..2690c471b819f8308f6db44150025dfa
 +        // Paper start - Add titleOverride to InventoryOpenEvent
 +        return callInventoryOpenEventWithTitle(player, container).getSecond();
 +    }
-+    public static com.mojang.datafixers.util.Pair<com.mohistmc.net.kyori.adventure.text.@org.jetbrains.annotations.Nullable Component, @org.jetbrains.annotations.Nullable AbstractContainerMenu> callInventoryOpenEventWithTitle(ServerPlayer player, AbstractContainerMenu container) {
++    public static com.mojang.datafixers.util.Pair<net.kyori.adventure.text.@org.jetbrains.annotations.Nullable Component, @org.jetbrains.annotations.Nullable AbstractContainerMenu> callInventoryOpenEventWithTitle(ServerPlayer player, AbstractContainerMenu container) {
 +        return CraftEventFactory.callInventoryOpenEventWithTitle(player, container, false);
 +        // Paper end - Add titleOverride to InventoryOpenEvent
      }
@@ -100,7 +100,7 @@ index 6b241ec85f360ec79f18b911175d7092861024a4..2690c471b819f8308f6db44150025dfa
 +        // Paper start - Add titleOverride to InventoryOpenEvent
 +        return callInventoryOpenEventWithTitle(player, container, cancelled).getSecond();
 +    }
-+    public static com.mojang.datafixers.util.Pair<com.mohistmc.net.kyori.adventure.text.@org.jetbrains.annotations.Nullable Component, @org.jetbrains.annotations.Nullable AbstractContainerMenu> callInventoryOpenEventWithTitle(ServerPlayer player, AbstractContainerMenu container, boolean cancelled) {
++    public static com.mojang.datafixers.util.Pair<net.kyori.adventure.text.@org.jetbrains.annotations.Nullable Component, @org.jetbrains.annotations.Nullable AbstractContainerMenu> callInventoryOpenEventWithTitle(ServerPlayer player, AbstractContainerMenu container, boolean cancelled) {
 +        // Paper end - Add titleOverride to InventoryOpenEvent
          if (player.containerMenu != player.inventoryMenu) { // fire INVENTORY_CLOSE if one already open
              player.connection.handleContainerClose(new ServerboundContainerClosePacket(player.containerMenu.containerId), InventoryCloseEvent.Reason.OPEN_NEW); // Paper - Inventory close reason

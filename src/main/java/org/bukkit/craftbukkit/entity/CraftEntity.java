@@ -534,13 +534,13 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component customName() {
+    public net.kyori.adventure.text.Component customName() {
         final Component name = this.getHandle().getCustomName();
         return name != null ? io.papermc.paper.adventure.PaperAdventure.asAdventure(name) : null;
     }
 
     @Override
-    public void customName(final com.mohistmc.net.kyori.adventure.text.Component customName) {
+    public void customName(final net.kyori.adventure.text.Component customName) {
         this.getHandle().setCustomName(customName != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(customName) : null);
     }
 
@@ -642,12 +642,12 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
     }
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component name() {
+    public net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component name() {
         return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.getHandle().getName());
     }
 
     @Override
-    public com.mohistmc.net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component teamDisplayName() {
+    public net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component teamDisplayName() {
         return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.getHandle().getDisplayName());
     }
     // Paper end

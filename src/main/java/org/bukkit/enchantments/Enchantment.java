@@ -322,7 +322,7 @@ public abstract class Enchantment implements Keyed, Translatable {
      * @param level the level of the enchantment to show
      * @return the name of the enchantment with {@code level} applied
      */
-    public abstract com.mohistmc.net.kyori.adventure.text.@NotNull Component displayName(int level);
+    public abstract net.kyori.adventure.text.@NotNull Component displayName(int level);
     // Paper end
 
     /**

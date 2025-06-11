@@ -63,7 +63,7 @@ public class CraftServerLinks implements ServerLinks {
 
     // Paper start - Adventure
     @Override
-    public ServerLink addLink(com.mohistmc.net.kyori.adventure.text.Component displayName, URI url) {
+    public ServerLink addLink(net.kyori.adventure.text.Component displayName, URI url) {
         Preconditions.checkArgument(displayName != null, "displayName cannot be null");
         Preconditions.checkArgument(url != null, "url cannot be null");
 
@@ -149,7 +149,7 @@ public class CraftServerLinks implements ServerLinks {
 
         // Paper start - Adventure
         @Override
-        public com.mohistmc.net.kyori.adventure.text.Component displayName() {
+        public net.kyori.adventure.text.Component displayName() {
             return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.handle.displayName());
         }
         // Paper end - Adventure

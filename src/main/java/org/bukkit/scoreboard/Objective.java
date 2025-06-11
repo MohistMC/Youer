@@ -27,7 +27,7 @@ public interface Objective {
      * @return this objective's display name
      * @throws IllegalStateException if this objective has been unregistered
      */
-    com.mohistmc.net.kyori.adventure.text.@NotNull Component displayName();
+    net.kyori.adventure.text.@NotNull Component displayName();
     /**
      * Sets the name displayed to players for this objective.
      *
@@ -37,7 +37,7 @@ public interface Objective {
      * @throws IllegalArgumentException if displayName is longer than 128
      *     characters.
      */
-    void displayName(com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName);
+    void displayName(net.kyori.adventure.text.@Nullable Component displayName);
     // Paper end - Adventure
 
     /**
@@ -56,7 +56,7 @@ public interface Objective {
      *
      * @param displayName Display name to set
      * @throws IllegalStateException if this objective has been unregistered
-     * @deprecated in favour of {@link #displayName(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #displayName(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     void setDisplayName(@NotNull String displayName);

@@ -452,7 +452,7 @@ public final class Bukkit {
      *
      * @param message the message
      * @return the number of players
-     * @deprecated in favour of {@link Server#broadcast(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link Server#broadcast(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public static int broadcastMessage(@NotNull String message) {
@@ -464,7 +464,7 @@ public final class Bukkit {
      * Sends the component to all online players.
      *
      * @param component the component to send
-     * @deprecated use {@code sendMessage} methods on {@link #getServer()} that accept {@link com.mohistmc.net.kyori.adventure.text.Component}
+     * @deprecated use {@code sendMessage} methods on {@link #getServer()} that accept {@link net.kyori.adventure.text.Component}
      */
     @Deprecated
     public static void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent component) {
@@ -475,7 +475,7 @@ public final class Bukkit {
      * Sends an array of components as a single message to all online players.
      *
      * @param components the components to send
-     * @deprecated use {@code sendMessage} methods on {@link #getServer()} that accept {@link com.mohistmc.net.kyori.adventure.text.Component}
+     * @deprecated use {@code sendMessage} methods on {@link #getServer()} that accept {@link net.kyori.adventure.text.Component}
      */
     @Deprecated
     public static void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
@@ -1295,13 +1295,13 @@ public final class Bukkit {
     /**
      * Broadcast a message to all players.
      * <p>
-     * This is the same as calling {@link #broadcast(com.mohistmc.net.kyori.adventure.text.Component,
+     * This is the same as calling {@link #broadcast(net.kyori.adventure.text.Component,
      * java.lang.String)} with the {@link Server#BROADCAST_CHANNEL_USERS} permission.
      *
      * @param message the message
      * @return the number of players
      */
-    public static int broadcast(com.mohistmc.net.kyori.adventure.text.@NotNull Component message) {
+    public static int broadcast(net.kyori.adventure.text.@NotNull Component message) {
         return server.broadcast(message);
     }
     /**
@@ -1313,7 +1313,7 @@ public final class Bukkit {
      *     permissibles} must have to receive the broadcast
      * @return number of message recipients
      */
-    public static int broadcast(com.mohistmc.net.kyori.adventure.text.@NotNull Component message, @NotNull String permission) {
+    public static int broadcast(net.kyori.adventure.text.@NotNull Component message, @NotNull String permission) {
         return server.broadcast(message, permission);
     }
     // Paper end
@@ -1325,7 +1325,7 @@ public final class Bukkit {
      * @param permission the required permission {@link Permissible
      *     permissibles} must have to receive the broadcast
      * @return number of message recipients
-     * @deprecated in favour of {@link #broadcast(com.mohistmc.net.kyori.adventure.text.Component, String)}
+     * @deprecated in favour of {@link #broadcast(net.kyori.adventure.text.Component, String)}
      */
     @Deprecated // Paper
     public static int broadcast(@NotNull String message, @NotNull String permission) {
@@ -1615,7 +1615,7 @@ public final class Bukkit {
      * @see InventoryType#isCreatable()
      */
     @NotNull
-    public static Inventory createInventory(@Nullable InventoryHolder owner, @NotNull InventoryType type, com.mohistmc.net.kyori.adventure.text.@NotNull Component title) {
+    public static Inventory createInventory(@Nullable InventoryHolder owner, @NotNull InventoryType type, net.kyori.adventure.text.@NotNull Component title) {
         return server.createInventory(owner, type, title);
     }
     // Paper end
@@ -1641,7 +1641,7 @@ public final class Bukkit {
      * @return The new inventory.
      * @throws IllegalArgumentException if the {@link InventoryType} cannot be
      * viewed.
-     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, net.kyori.adventure.text.Component)}
      *
      * @see InventoryType#isCreatable()
      */
@@ -1678,7 +1678,7 @@ public final class Bukkit {
      * @throws IllegalArgumentException if the size is not a multiple of 9
      */
     @NotNull
-    public static Inventory createInventory(@Nullable InventoryHolder owner, int size, com.mohistmc.net.kyori.adventure.text.@NotNull Component title) throws IllegalArgumentException {
+    public static Inventory createInventory(@Nullable InventoryHolder owner, int size, net.kyori.adventure.text.@NotNull Component title) throws IllegalArgumentException {
         return server.createInventory(owner, size, title);
     }
     // Paper end
@@ -1693,7 +1693,7 @@ public final class Bukkit {
      *     viewed
      * @return a new inventory
      * @throws IllegalArgumentException if the size is not a multiple of 9
-     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     @NotNull
@@ -1709,7 +1709,7 @@ public final class Bukkit {
      * when the merchant inventory is viewed
      * @return a new merchant
      */
-    public static @NotNull Merchant createMerchant(com.mohistmc.net.kyori.adventure.text.@Nullable Component title) {
+    public static @NotNull Merchant createMerchant(net.kyori.adventure.text.@Nullable Component title) {
         return server.createMerchant(title);
     }
     // Paper start
@@ -1719,7 +1719,7 @@ public final class Bukkit {
      * @param title the title of the corresponding merchant inventory, displayed
      * when the merchant inventory is viewed
      * @return a new merchant
-     * @deprecated in favour of {@link #createMerchant(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #createMerchant(net.kyori.adventure.text.Component)}
      */
     @NotNull
     @Deprecated // Paper
@@ -1845,7 +1845,7 @@ public final class Bukkit {
      *
      * @return the server's MOTD
      */
-    @NotNull public static com.mohistmc.net.kyori.adventure.text.Component motd() {
+    @NotNull public static net.kyori.adventure.text.Component motd() {
         return server.motd();
     }
 
@@ -1854,7 +1854,7 @@ public final class Bukkit {
      *
      * @param motd The message to be displayed
      */
-    public static void motd(final com.mohistmc.net.kyori.adventure.text.@NotNull Component motd) {
+    public static void motd(final net.kyori.adventure.text.@NotNull Component motd) {
         server.motd(motd);
     }
 
@@ -1863,7 +1863,7 @@ public final class Bukkit {
      *
      * @return the shutdown message
      */
-    public static com.mohistmc.net.kyori.adventure.text.@Nullable Component shutdownMessage() {
+    public static net.kyori.adventure.text.@Nullable Component shutdownMessage() {
         return server.shutdownMessage();
     }
     // Paper end
@@ -1884,7 +1884,7 @@ public final class Bukkit {
      * Set the message that is displayed on the server list.
      *
      * @param motd The message to be displayed
-     * @deprecated in favour of {@link #motd(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #motd(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public static void setMotd(@NotNull String motd) {
@@ -2386,7 +2386,7 @@ public final class Bukkit {
      * @return the default message
      */
     @NotNull
-    public static com.mohistmc.net.kyori.adventure.text.Component permissionMessage() {
+    public static net.kyori.adventure.text.Component permissionMessage() {
         return server.permissionMessage();
     }
     // Paper end

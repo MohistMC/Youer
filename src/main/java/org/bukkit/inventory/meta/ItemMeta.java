@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import com.mohistmc.net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.Component;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
@@ -46,14 +46,14 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      *
      * @return the display name
      */
-    com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName();
+    net.kyori.adventure.text.@Nullable Component displayName();
 
     /**
      * Sets the display name.
      *
      * @param displayName the display name to set
      */
-    void displayName(final com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName);
+    void displayName(final net.kyori.adventure.text.@Nullable Component displayName);
     // Paper end
 
     /**
@@ -87,7 +87,7 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * Sets the display name.
      *
      * @param name the name to set
-     * @deprecated in favour of {@link #displayName(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #displayName(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     void setDisplayName(@Nullable String name);
@@ -169,7 +169,7 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
     /**
      * Checks for existence of a localized name.
      *
-     * @deprecated Use {@link ItemMeta#displayName()} and check if it is instanceof a {@link com.mohistmc.net.kyori.adventure.text.TranslatableComponent}.
+     * @deprecated Use {@link ItemMeta#displayName()} and check if it is instanceof a {@link net.kyori.adventure.text.TranslatableComponent}.
      * @return true if this has a localized name
      * @deprecated meta no longer exists
      */
@@ -182,7 +182,7 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * Plugins should check that hasLocalizedName() returns <code>true</code>
      * before calling this method.
      *
-     * @deprecated Use {@link ItemMeta#displayName()} and cast it to a {@link com.mohistmc.net.kyori.adventure.text.TranslatableComponent}. No longer used by the client.
+     * @deprecated Use {@link ItemMeta#displayName()} and cast it to a {@link net.kyori.adventure.text.TranslatableComponent}. No longer used by the client.
      * @return the localized name that is set
      * @deprecated meta no longer exists
      */
@@ -193,7 +193,7 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
     /**
      * Sets the localized name.
      *
-     * @deprecated Use {@link ItemMeta#displayName(Component)} with a {@link com.mohistmc.net.kyori.adventure.text.TranslatableComponent}. No longer used by the client.
+     * @deprecated Use {@link ItemMeta#displayName(Component)} with a {@link net.kyori.adventure.text.TranslatableComponent}. No longer used by the client.
      * @param name the name to set
      * @deprecated meta no longer exists
      */
@@ -215,14 +215,14 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      *
      * @return the lore
      */
-    @Nullable List<com.mohistmc.net.kyori.adventure.text.Component> lore();
+    @Nullable List<net.kyori.adventure.text.Component> lore();
 
     /**
      * Sets the lore.
      *
      * @param lore the lore to set
      */
-    void lore(final @Nullable List<? extends com.mohistmc.net.kyori.adventure.text.Component> lore);
+    void lore(final @Nullable List<? extends net.kyori.adventure.text.Component> lore);
     // Paper end
 
     /**

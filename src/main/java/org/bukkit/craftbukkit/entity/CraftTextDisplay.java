@@ -34,12 +34,12 @@ public class CraftTextDisplay extends CraftDisplay implements TextDisplay {
     }
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component text() {
+    public net.kyori.adventure.text.Component text() {
         return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.getHandle().getText());
     }
 
     @Override
-    public void text(com.mohistmc.net.kyori.adventure.text.Component text) {
+    public void text(net.kyori.adventure.text.Component text) {
         this.getHandle().setText(text == null ? net.minecraft.network.chat.Component.empty() : io.papermc.paper.adventure.PaperAdventure.asVanilla(text));
     }
     // Paper end

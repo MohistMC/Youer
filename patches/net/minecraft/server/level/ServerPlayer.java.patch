@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -1,16 +_,24 @@
+@@ -1,16 +_,25 @@
  package net.minecraft.server.level;
  
 +import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
@@ -10,6 +10,7 @@
  import com.mojang.datafixers.util.Either;
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Dynamic;
++import io.papermc.paper.adventure.PaperAdventure;
  import java.net.InetSocketAddress;
 +import java.util.ArrayList;
  import java.util.Collection;
@@ -161,7 +162,7 @@
 +    // CraftBukkit start
 +    public CraftPlayer.TransferCookieConnection transferCookieConnection;
 +    public String displayName;
-+    public com.mohistmc.net.kyori.adventure.text.Component adventure$displayName; // Paper
++    public net.kyori.adventure.text.Component adventure$displayName; // Paper
 +    public Location compassTarget;
 +    public int newExp = 0;
 +    public int newLevel = 0;
@@ -189,7 +190,7 @@
 +
 +        // CraftBukkit start
 +        this.displayName = this.getScoreboardName();
-+        this.adventure$displayName = com.mohistmc.net.kyori.adventure.text.Component.text(this.getScoreboardName()); // Paper
++        this.adventure$displayName = net.kyori.adventure.text.Component.text(this.getScoreboardName()); // Paper
 +        this.bukkitPickUpLoot = true;
 +        this.maxHealthCache = this.getMaxHealth();
 +        this.initialized = true;
@@ -387,7 +388,7 @@
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Ticking player");
              CrashReportCategory crashreportcategory = crashreport.addCategory("Player being ticked");
-@@ -657,9 +_,45 @@
+@@ -657,9 +_,39 @@
      @Override
      public void die(DamageSource p_9035_) {
          this.gameEvent(GameEvent.ENTITY_DIE);
@@ -418,20 +419,14 @@
 +        Component defaultMessage = this.getCombatTracker().getDeathMessage();
 +        String deathmessage = defaultMessage.getString();
 +        keepLevel = keepInventory; // SPIGOT-2222: pre-set keepLevel
-+        PlayerDeathEvent event = CraftEventFactory.callPlayerDeathEvent(this, p_9035_, loot, deathmessage, keepInventory);
++        PlayerDeathEvent event = CraftEventFactory.callPlayerDeathEvent(this, p_9035_, loot, PaperAdventure.asAdventure(defaultMessage), keepInventory); // Paper - Adventure
 +        // SPIGOT-943 - only call if they have an inventory open
 +        if (this.containerMenu != this.inventoryMenu) {
 +            this.closeContainer();
 +        }
-+        String deathMessage = event.getDeathMessage();
-+        if (deathMessage != null && deathMessage.length() > 0 && flag) { // TODO: allow plugins to override?
-+            Component component;
-+            if (deathMessage.equals(deathmessage)) {
-+                component = this.getCombatTracker().getDeathMessage();
-+            } else {
-+                component = CraftChatMessage.fromStringOrNull(deathMessage);
-+            }
-+
++        net.kyori.adventure.text.Component deathMessage = event.deathMessage() != null ? event.deathMessage() : net.kyori.adventure.text.Component.empty(); // Paper - Adventure
++        if (deathMessage != null && deathMessage != net.kyori.adventure.text.Component.empty() && flag) { // Paper - Adventure // TODO: allow plugins to override?
++            Component component = PaperAdventure.asVanilla(deathMessage); // Paper - Adventure
              this.connection
                  .send(
                      new ClientboundPlayerCombatKillPacket(this.getId(), component),
@@ -999,7 +994,7 @@
 +        }
 +        // CraftBukkit end
          this.language = p_301998_.language();
-+        this.adventure$locale = java.util.Objects.requireNonNullElse(com.mohistmc.net.kyori.adventure.translation.Translator.parseLocale(this.language), java.util.Locale.US); // Paper
++        this.adventure$locale = java.util.Objects.requireNonNullElse(net.kyori.adventure.translation.Translator.parseLocale(this.language), java.util.Locale.US); // Paper
          this.requestedViewDistance = p_301998_.viewDistance();
          this.chatVisibility = p_301998_.chatVisibility();
          this.canChatColor = p_301998_.chatColors();

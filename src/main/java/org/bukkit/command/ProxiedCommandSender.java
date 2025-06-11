@@ -3,7 +3,7 @@ package org.bukkit.command;
 
 import org.jetbrains.annotations.NotNull;
 
-public interface ProxiedCommandSender extends CommandSender, com.mohistmc.net.kyori.adventure.audience.ForwardingAudience.Single { // Paper
+public interface ProxiedCommandSender extends CommandSender, net.kyori.adventure.audience.ForwardingAudience.Single { // Paper
 
     /**
      * Returns the CommandSender which triggered this proxied command
@@ -23,13 +23,13 @@ public interface ProxiedCommandSender extends CommandSender, com.mohistmc.net.ky
 
     // Paper start
     @Override
-    default void sendMessage(final com.mohistmc.net.kyori.adventure.identity.@NotNull Identity source, final com.mohistmc.net.kyori.adventure.text.@NotNull Component message, final com.mohistmc.net.kyori.adventure.audience.@NotNull MessageType type) {
-        com.mohistmc.net.kyori.adventure.audience.ForwardingAudience.Single.super.sendMessage(source, message, type);
+    default void sendMessage(final net.kyori.adventure.identity.@NotNull Identity source, final net.kyori.adventure.text.@NotNull Component message, final net.kyori.adventure.audience.@NotNull MessageType type) {
+        net.kyori.adventure.audience.ForwardingAudience.Single.super.sendMessage(source, message, type);
     }
 
     @NotNull
     @Override
-    default com.mohistmc.net.kyori.adventure.audience.Audience audience() {
+    default net.kyori.adventure.audience.Audience audience() {
         return this.getCaller();
     }
     // Paper end

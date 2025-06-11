@@ -1,6 +1,12 @@
 --- a/net/minecraft/world/level/block/SignBlock.java
 +++ b/net/minecraft/world/level/block/SignBlock.java
-@@ -8,7 +_,6 @@
+@@ -3,12 +_,12 @@
+ import com.mojang.serialization.MapCodec;
+ import java.util.Arrays;
+ import java.util.UUID;
++import java.util.concurrent.atomic.AtomicReference;
+ import javax.annotation.Nullable;
+ import net.minecraft.Util;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.network.chat.CommonComponents;
@@ -16,31 +22,36 @@
  
  public abstract class SignBlock extends BaseEntityBlock implements SimpleWaterloggedBlock {
      public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
-@@ -127,7 +_,7 @@
+@@ -127,6 +_,7 @@
              } else if (!this.otherPlayerIsEditingSign(p_316173_, signblockentity)
                  && p_316173_.mayBuild()
                  && this.hasEditableText(p_316173_, signblockentity, flag1)) {
--                this.openTextEdit(p_316173_, signblockentity, flag1);
-+                this.openTextEdit(p_316173_, signblockentity, flag1, org.bukkit.event.player.PlayerSignOpenEvent.Cause.INTERACT); // CraftBukkit
++                openTextEdit$cause.set(org.bukkit.event.player.PlayerSignOpenEvent.Cause.INTERACT);  // CraftBukkit // Youer
+                 this.openTextEdit(p_316173_, signblockentity, flag1);
                  return InteractionResult.SUCCESS;
              } else {
-                 return InteractionResult.PASS;
-@@ -170,6 +_,15 @@
+@@ -169,11 +_,21 @@
+         return woodtype;
      }
  
++    public AtomicReference<org.bukkit.event.player.PlayerSignOpenEvent.Cause> openTextEdit$cause = new AtomicReference<>(org.bukkit.event.player.PlayerSignOpenEvent.Cause.UNKNOWN);
      public void openTextEdit(Player p_277738_, SignBlockEntity p_277467_, boolean p_277771_) {
-+        // CraftBukkit start
-+        openTextEdit(p_277738_, p_277467_, p_277771_, org.bukkit.event.player.PlayerSignOpenEvent.Cause.UNKNOWN);
-+    }
-+
-+    public void openTextEdit(Player p_277738_, SignBlockEntity p_277467_, boolean p_277771_, org.bukkit.event.player.PlayerSignOpenEvent.Cause cause) {
-+        if (!CraftEventFactory.callPlayerSignOpenEvent(p_277738_, p_277467_, p_277771_, cause)) {
++        if (!CraftEventFactory.callPlayerSignOpenEvent(p_277738_, p_277467_, p_277771_, openTextEdit$cause.getAndSet(org.bukkit.event.player.PlayerSignOpenEvent.Cause.UNKNOWN))) {
 +            return;
 +        }
 +        // CraftBukkit end
          p_277467_.setAllowedPlayerEditor(p_277738_.getUUID());
          p_277738_.openTextEdit(p_277467_, p_277771_);
      }
+ 
++    public void openTextEdit(Player p_277738_, SignBlockEntity p_277467_, boolean p_277771_, org.bukkit.event.player.PlayerSignOpenEvent.Cause cause) {
++        openTextEdit$cause.set(cause);
++        openTextEdit(p_277738_, p_277467_, p_277771_);
++    }
++
+     private boolean otherPlayerIsEditingSign(Player p_277952_, SignBlockEntity p_277599_) {
+         UUID uuid = p_277599_.getPlayerWhoMayEdit();
+         return uuid != null && !uuid.equals(p_277952_.getUUID());
 @@ -182,6 +_,6 @@
      @Nullable
      @Override

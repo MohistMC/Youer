@@ -57,40 +57,40 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a player, connected or not
  */
-public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginMessageRecipient, com.mohistmc.net.kyori.adventure.identity.Identified, com.mohistmc.net.kyori.adventure.bossbar.BossBarViewer { // Paper
+public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginMessageRecipient, net.kyori.adventure.identity.Identified, net.kyori.adventure.bossbar.BossBarViewer { // Paper
 
     // Paper start
     @Override
-    default com.mohistmc.net.kyori.adventure.identity.@NotNull Identity identity() {
-        return com.mohistmc.net.kyori.adventure.identity.Identity.identity(this.getUniqueId());
+    default net.kyori.adventure.identity.@NotNull Identity identity() {
+        return net.kyori.adventure.identity.Identity.identity(this.getUniqueId());
     }
 
     /**
      * Gets an unmodifiable view of all known currently active bossbars.
      * <p>
      * <b>This currently only returns bossbars shown to the player via
-     * {@link #showBossBar(com.mohistmc.net.kyori.adventure.bossbar.BossBar)} and does not contain bukkit
+     * {@link #showBossBar(net.kyori.adventure.bossbar.BossBar)} and does not contain bukkit
      * {@link org.bukkit.boss.BossBar} instances shown to the player.</b>
      *
      * @return an unmodifiable view of all known currently active bossbars
      * @since 4.14.0
      */
     @Override
-    @org.jetbrains.annotations.UnmodifiableView @NotNull Iterable<? extends com.mohistmc.net.kyori.adventure.bossbar.BossBar> activeBossBars();
+    @org.jetbrains.annotations.UnmodifiableView @NotNull Iterable<? extends net.kyori.adventure.bossbar.BossBar> activeBossBars();
 
     /**
      * Gets the "friendly" name to display of this player.
      *
      * @return the display name
      */
-    com.mohistmc.net.kyori.adventure.text.@NotNull Component displayName();
+    net.kyori.adventure.text.@NotNull Component displayName();
 
     /**
      * Sets the "friendly" name to display of this player.
      *
      * @param displayName the display name to set
      */
-    void displayName(final com.mohistmc.net.kyori.adventure.text.@Nullable Component displayName);
+    void displayName(final net.kyori.adventure.text.@Nullable Component displayName);
     // Paper end
 
     /**
@@ -122,7 +122,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * places defined by plugins.
      *
      * @param name The new display name.
-     * @deprecated in favour of {@link #displayName(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #displayName(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setDisplayName(@Nullable String name);
@@ -135,28 +135,28 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *
      * @param name new player list name
      */
-    void playerListName(com.mohistmc.net.kyori.adventure.text.@Nullable Component name);
+    void playerListName(net.kyori.adventure.text.@Nullable Component name);
 
     /**
      * Gets the name that is shown on the in-game player list.
      *
      * @return the player list name
      */
-    com.mohistmc.net.kyori.adventure.text.@NotNull Component playerListName();
+    net.kyori.adventure.text.@NotNull Component playerListName();
 
     /**
      * Gets the currently displayed player list header for this player.
      *
      * @return player list header or null
      */
-    com.mohistmc.net.kyori.adventure.text.@Nullable Component playerListHeader();
+    net.kyori.adventure.text.@Nullable Component playerListHeader();
 
     /**
      * Gets the currently displayed player list footer for this player.
      *
      * @return player list footer or null
      */
-    com.mohistmc.net.kyori.adventure.text.@Nullable Component playerListFooter();
+    net.kyori.adventure.text.@Nullable Component playerListFooter();
     // Paper end
     /**
      * Gets the name that is shown on the player list.
@@ -174,7 +174,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * If the value is null, the name will be identical to {@link #getName()}.
      *
      * @param name new player list name
-     * @deprecated in favour of {@link #playerListName(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #playerListName(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setPlayerListName(@Nullable String name);
@@ -203,7 +203,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * Sets the currently displayed player list header for this player.
      *
      * @param header player list header, null for empty
-     * @deprecated in favour of {@link #sendPlayerListHeader(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #sendPlayerListHeader(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setPlayerListHeader(@Nullable String header);
@@ -212,7 +212,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * Sets the currently displayed player list footer for this player.
      *
      * @param footer player list footer, null for empty
-     * @deprecated in favour of {@link #sendPlayerListFooter(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #sendPlayerListFooter(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setPlayerListFooter(@Nullable String footer);
@@ -223,7 +223,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *
      * @param header player list header, null for empty
      * @param footer player list footer, null for empty
-     * @deprecated in favour of {@link #sendPlayerListHeaderAndFooter(com.mohistmc.net.kyori.adventure.text.Component, com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #sendPlayerListHeaderAndFooter(net.kyori.adventure.text.Component, net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setPlayerListHeaderFooter(@Nullable String header, @Nullable String footer);
@@ -302,7 +302,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * Kicks player with custom kick message.
      *
      * @param message kick message
-     * @deprecated in favour of {@link #kick(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #kick(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void kickPlayer(@Nullable String message);
@@ -310,7 +310,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
     // Paper start
     /**
      * Kicks the player with the default kick message.
-     * @see #kick(com.mohistmc.net.kyori.adventure.text.Component)
+     * @see #kick(net.kyori.adventure.text.Component)
      */
     void kick();
     /**
@@ -318,15 +318,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *
      * @param message kick message
      */
-    void kick(final com.mohistmc.net.kyori.adventure.text.@Nullable Component message);
-
-    /**
-     * Kicks player with custom kick message and cause.
-     *
-     * @param message kick message
-     * @param cause kick cause
-     */
-    void kick(final com.mohistmc.net.kyori.adventure.text.@Nullable Component message, org.bukkit.event.player.PlayerKickEvent.@NotNull Cause cause);
+    void kick(final net.kyori.adventure.text.@Nullable Component message);
     // Paper end
 
     /**
@@ -1011,7 +1003,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * (constructed e.g. via {@link Material#createBlockData()})
      */
     @Deprecated
-    default void sendSignChange(@NotNull Location loc, @Nullable java.util.List<? extends com.mohistmc.net.kyori.adventure.text.Component> lines) throws IllegalArgumentException {
+    default void sendSignChange(@NotNull Location loc, @Nullable java.util.List<? extends net.kyori.adventure.text.Component> lines) throws IllegalArgumentException {
         this.sendSignChange(loc, lines, DyeColor.BLACK);
     }
 
@@ -1036,7 +1028,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * (constructed e.g. via {@link Material#createBlockData()})
      */
     @Deprecated
-    default void sendSignChange(@NotNull Location loc, @Nullable java.util.List<? extends com.mohistmc.net.kyori.adventure.text.Component> lines, @NotNull DyeColor dyeColor) throws IllegalArgumentException {
+    default void sendSignChange(@NotNull Location loc, @Nullable java.util.List<? extends net.kyori.adventure.text.Component> lines, @NotNull DyeColor dyeColor) throws IllegalArgumentException {
         this.sendSignChange(loc, lines, dyeColor, false);
     }
 
@@ -1061,7 +1053,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * (constructed e.g. via {@link Material#createBlockData()})
      */
     @Deprecated
-    default void sendSignChange(@NotNull Location loc, @Nullable java.util.List<? extends com.mohistmc.net.kyori.adventure.text.Component> lines, boolean hasGlowingText) throws IllegalArgumentException {
+    default void sendSignChange(@NotNull Location loc, @Nullable java.util.List<? extends net.kyori.adventure.text.Component> lines, boolean hasGlowingText) throws IllegalArgumentException {
         this.sendSignChange(loc, lines, DyeColor.BLACK, hasGlowingText);
     }
 
@@ -1087,7 +1079,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * (constructed e.g. via {@link Material#createBlockData()})
      */
     @Deprecated
-    void sendSignChange(@NotNull Location loc, @Nullable java.util.List<? extends com.mohistmc.net.kyori.adventure.text.Component> lines, @NotNull DyeColor dyeColor, boolean hasGlowingText)
+    void sendSignChange(@NotNull Location loc, @Nullable java.util.List<? extends net.kyori.adventure.text.Component> lines, @NotNull DyeColor dyeColor, boolean hasGlowingText)
         throws IllegalArgumentException;
     // Paper end
 
@@ -1637,7 +1629,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * @throws IllegalArgumentException Thrown if the URL is null.
      * @throws IllegalArgumentException Thrown if the URL is too long.
      * @deprecated Minecraft no longer uses textures packs. Instead you
-     *     should use {@link #setResourcePack(UUID, String, byte[], com.mohistmc.net.kyori.adventure.text.Component, boolean)}.
+     *     should use {@link #setResourcePack(UUID, String, byte[], net.kyori.adventure.text.Component, boolean)}.
      */
     @Deprecated
     public void setTexturePack(@NotNull String url);
@@ -1670,7 +1662,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * @throws IllegalArgumentException Thrown if the URL is null.
      * @throws IllegalArgumentException Thrown if the URL is too long. The
      *     length restriction is an implementation specific arbitrary value.
-     * @deprecated in favour of {@link #sendResourcePacks(com.mohistmc.net.kyori.adventure.resource.ResourcePackRequest)}
+     * @deprecated in favour of {@link #sendResourcePacks(net.kyori.adventure.resource.ResourcePackRequest)}
      */
     @Deprecated // Paper - adventure
     public void setResourcePack(@NotNull String url);
@@ -1701,7 +1693,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *     pack correctly.
      * </ul>
      *
-     * @deprecated in favour of {@link #sendResourcePacks(com.mohistmc.net.kyori.adventure.resource.ResourcePackRequest)}
+     * @deprecated in favour of {@link #sendResourcePacks(net.kyori.adventure.resource.ResourcePackRequest)}
      * @param url The URL from which the client will download the resource
      *     pack. The string must contain only US-ASCII characters and should
      *     be encoded as per RFC 1738.
@@ -1745,7 +1737,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *     pack correctly.
      * </ul>
      *
-     * @deprecated in favour of {@link #sendResourcePacks(com.mohistmc.net.kyori.adventure.resource.ResourcePackRequest)}
+     * @deprecated in favour of {@link #sendResourcePacks(net.kyori.adventure.resource.ResourcePackRequest)}
      * @param url The URL from which the client will download the resource
      *     pack. The string must contain only US-ASCII characters and should
      *     be encoded as per RFC 1738.
@@ -1803,9 +1795,9 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *     length restriction is an implementation specific arbitrary value.
      * @throws IllegalArgumentException Thrown if the hash is not 20 bytes
      *     long.
-     * @see #sendResourcePacks(com.mohistmc.net.kyori.adventure.resource.ResourcePackRequest)
+     * @see #sendResourcePacks(net.kyori.adventure.resource.ResourcePackRequest)
      */
-    default void setResourcePack(final @NotNull String url, final byte @Nullable [] hash, final com.mohistmc.net.kyori.adventure.text.@Nullable Component prompt) {
+    default void setResourcePack(final @NotNull String url, final byte @Nullable [] hash, final net.kyori.adventure.text.@Nullable Component prompt) {
         this.setResourcePack(url, hash, prompt, false);
     }
     // Paper end
@@ -1851,7 +1843,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *     length restriction is an implementation specific arbitrary value.
      * @throws IllegalArgumentException Thrown if the hash is not 20 bytes
      *     long.
-     * @deprecated in favour of {@link #sendResourcePacks(com.mohistmc.net.kyori.adventure.resource.ResourcePackRequest)}
+     * @deprecated in favour of {@link #sendResourcePacks(net.kyori.adventure.resource.ResourcePackRequest)}
      */
     @Deprecated // Paper - adventure
     public void setResourcePack(@NotNull String url, @Nullable byte[] hash, boolean force);
@@ -1898,7 +1890,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *     length restriction is an implementation specific arbitrary value.
      * @throws IllegalArgumentException Thrown if the hash is not 20 bytes
      *     long.
-     * @deprecated in favour of {@link #sendResourcePacks(com.mohistmc.net.kyori.adventure.resource.ResourcePackRequest)}
+     * @deprecated in favour of {@link #sendResourcePacks(net.kyori.adventure.resource.ResourcePackRequest)}
      */
     @Deprecated // Paper
     public void setResourcePack(@NotNull String url, @Nullable byte[] hash, @Nullable String prompt, boolean force);
@@ -1946,9 +1938,9 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *     length restriction is an implementation specific arbitrary value.
      * @throws IllegalArgumentException Thrown if the hash is not 20 bytes
      *     long.
-     * @see #sendResourcePacks(com.mohistmc.net.kyori.adventure.resource.ResourcePackRequest)
+     * @see #sendResourcePacks(net.kyori.adventure.resource.ResourcePackRequest)
      */
-    default void setResourcePack(final @NotNull String url, final byte @Nullable [] hash, final com.mohistmc.net.kyori.adventure.text.@Nullable Component prompt, final boolean force) {
+    default void setResourcePack(final @NotNull String url, final byte @Nullable [] hash, final net.kyori.adventure.text.@Nullable Component prompt, final boolean force) {
         this.setResourcePack(UUID.nameUUIDFromBytes(url.getBytes(java.nio.charset.StandardCharsets.UTF_8)), url, hash, prompt, force);
     }
     // Paper end
@@ -1996,7 +1988,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *     length restriction is an implementation specific arbitrary value.
      * @throws IllegalArgumentException Thrown if the hash is not 20 bytes
      *     long.
-     * @deprecated in favour of {@link #sendResourcePacks(com.mohistmc.net.kyori.adventure.resource.ResourcePackRequest)}
+     * @deprecated in favour of {@link #sendResourcePacks(net.kyori.adventure.resource.ResourcePackRequest)}
      */
     @Deprecated // Paper - adventure
     public void setResourcePack(@NotNull UUID id, @NotNull String url, @Nullable byte[] hash, @Nullable String prompt, boolean force);
@@ -2045,9 +2037,9 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *     length restriction is an implementation specific arbitrary value.
      * @throws IllegalArgumentException Thrown if the hash is not 20 bytes
      *     long.
-     * @see #sendResourcePacks(com.mohistmc.net.kyori.adventure.resource.ResourcePackRequest)
+     * @see #sendResourcePacks(net.kyori.adventure.resource.ResourcePackRequest)
      */
-    void setResourcePack(@NotNull UUID uuid, @NotNull String url, byte @Nullable [] hash, com.mohistmc.net.kyori.adventure.text.@Nullable Component prompt, boolean force);
+    void setResourcePack(@NotNull UUID uuid, @NotNull String url, byte @Nullable [] hash, net.kyori.adventure.text.@Nullable Component prompt, boolean force);
     // Paper end
 
     // Paper start - more resource pack API
@@ -2149,7 +2141,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * @throws IllegalArgumentException Thrown if the URL is too long. The
      *     length restriction is an implementation specific arbitrary value.
      */
-    default void setResourcePack(final @NotNull String url, final @NotNull String hash, final boolean required, final com.mohistmc.net.kyori.adventure.text.@Nullable Component resourcePackPrompt) {
+    default void setResourcePack(final @NotNull String url, final @NotNull String hash, final boolean required, final net.kyori.adventure.text.@Nullable Component resourcePackPrompt) {
         this.setResourcePack(UUID.nameUUIDFromBytes(url.getBytes(java.nio.charset.StandardCharsets.UTF_8)), url, hash, resourcePackPrompt, required);
     }
 
@@ -2185,12 +2177,12 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * @throws IllegalArgumentException Thrown if the URL is too long. The
      *     length restriction is an implementation specific arbitrary value.
      */
-    default void setResourcePack(final @NotNull UUID uuid, final @NotNull String url, final @NotNull String hash, final com.mohistmc.net.kyori.adventure.text.@Nullable Component resourcePackPrompt, final boolean required) {
-        this.sendResourcePacks(com.mohistmc.net.kyori.adventure.resource.ResourcePackRequest.resourcePackRequest()
+    default void setResourcePack(final @NotNull UUID uuid, final @NotNull String url, final @NotNull String hash, final net.kyori.adventure.text.@Nullable Component resourcePackPrompt, final boolean required) {
+        this.sendResourcePacks(net.kyori.adventure.resource.ResourcePackRequest.resourcePackRequest()
             .required(required)
             .replace(true)
             .prompt(resourcePackPrompt)
-            .packs(com.mohistmc.net.kyori.adventure.resource.ResourcePackInfo.resourcePackInfo(uuid, java.net.URI.create(url), hash))
+            .packs(net.kyori.adventure.resource.ResourcePackInfo.resourcePackInfo(uuid, java.net.URI.create(url), hash))
         );
     }
 
@@ -2421,7 +2413,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *
      * @param title Title text
      * @param subtitle Subtitle text
-     * @deprecated Use {@link #showTitle(com.mohistmc.net.kyori.adventure.title.Title)} or {@link #sendTitlePart(com.mohistmc.net.kyori.adventure.title.TitlePart, Object)}
+     * @deprecated Use {@link #showTitle(net.kyori.adventure.title.Title)} or {@link #sendTitlePart(net.kyori.adventure.title.TitlePart, Object)}
      */
     @Deprecated
     public void sendTitle(@Nullable String title, @Nullable String subtitle);
@@ -2440,7 +2432,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * @param fadeIn time in ticks for titles to fade in. Defaults to 10.
      * @param stay time in ticks for titles to stay. Defaults to 70.
      * @param fadeOut time in ticks for titles to fade out. Defaults to 20.
-     * @deprecated Use {@link #showTitle(com.mohistmc.net.kyori.adventure.title.Title)} or {@link #sendTitlePart(com.mohistmc.net.kyori.adventure.title.TitlePart, Object)}
+     * @deprecated Use {@link #showTitle(net.kyori.adventure.title.Title)} or {@link #sendTitlePart(net.kyori.adventure.title.TitlePart, Object)}
      */
     @Deprecated // Paper - Adventure
     public void sendTitle(@Nullable String title, @Nullable String subtitle, int fadeIn, int stay, int fadeOut);
@@ -2853,7 +2845,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
          *
          * @param position the screen position
          * @param component the components to send
-         * @deprecated use {@code sendMessage} methods that accept {@link com.mohistmc.net.kyori.adventure.text.Component}
+         * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
          */
         @Deprecated // Paper
         public void sendMessage(@NotNull net.md_5.bungee.api.ChatMessageType position, @NotNull net.md_5.bungee.api.chat.BaseComponent component) {
@@ -2865,7 +2857,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
          *
          * @param position the screen position
          * @param components the components to send
-         * @deprecated use {@code sendMessage} methods that accept {@link com.mohistmc.net.kyori.adventure.text.Component}
+         * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
          */
         @Deprecated // Paper
         public void sendMessage(@NotNull net.md_5.bungee.api.ChatMessageType position, @NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
@@ -2878,7 +2870,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
          * @param position the screen position
          * @param sender the sender of the message
          * @param component the components to send
-         * @deprecated use {@code sendMessage} methods that accept {@link com.mohistmc.net.kyori.adventure.text.Component}
+         * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
          */
         @Deprecated // Paper
         public void sendMessage(@NotNull net.md_5.bungee.api.ChatMessageType position, @Nullable java.util.UUID sender, @NotNull net.md_5.bungee.api.chat.BaseComponent component) {
@@ -2891,7 +2883,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
          * @param position the screen position
          * @param sender the sender of the message
          * @param components the components to send
-         * @deprecated use {@code sendMessage} methods that accept {@link com.mohistmc.net.kyori.adventure.text.Component}
+         * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
          */
         @Deprecated // Paper
         public void sendMessage(@NotNull net.md_5.bungee.api.ChatMessageType position, @Nullable java.util.UUID sender, @NotNull net.md_5.bungee.api.chat.BaseComponent... components) {

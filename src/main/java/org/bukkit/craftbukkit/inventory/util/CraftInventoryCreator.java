@@ -46,7 +46,7 @@ public final class CraftInventoryCreator {
     }
 
     // Paper start
-    public Inventory createInventory(InventoryHolder holder, InventoryType type, com.mohistmc.net.kyori.adventure.text.Component title) {
+    public Inventory createInventory(InventoryHolder holder, InventoryType type, net.kyori.adventure.text.Component title) {
         return converterMap.get(type).createInventory(holder, type, title);
     }
     // Paper end
@@ -60,7 +60,7 @@ public final class CraftInventoryCreator {
     }
 
     // Paper start
-    public Inventory createInventory(InventoryHolder holder, int size, com.mohistmc.net.kyori.adventure.text.Component title) {
+    public Inventory createInventory(InventoryHolder holder, int size, net.kyori.adventure.text.Component title) {
         return DEFAULT_CONVERTER.createInventory(holder, size, title);
     }
     // Paper end
@@ -74,7 +74,7 @@ public final class CraftInventoryCreator {
         Inventory createInventory(InventoryHolder holder, InventoryType type);
 
         // Paper start
-        Inventory createInventory(InventoryHolder holder, InventoryType type, com.mohistmc.net.kyori.adventure.text.Component title);
+        Inventory createInventory(InventoryHolder holder, InventoryType type, net.kyori.adventure.text.Component title);
         // Paper end
 
         Inventory createInventory(InventoryHolder holder, InventoryType type, String title);

@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1,16 +_,22 @@
+@@ -1,16 +_,23 @@
  package net.minecraft.server;
  
 +import cn.mohistmc.youer.Youer;
@@ -14,6 +14,7 @@
  import com.google.common.collect.Sets;
 +import com.google.common.util.concurrent.ThreadFactoryBuilder;
 +import com.google.gson.Gson;
++import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  import com.mojang.authlib.GameProfile;
  import com.mojang.authlib.GameProfileRepository;
  import com.mojang.authlib.minecraft.MinecraftSessionService;
@@ -61,7 +62,7 @@
  import net.minecraft.core.HolderGetter;
  import net.minecraft.core.LayeredRegistryAccess;
  import net.minecraft.core.Registry;
-@@ -165,7 +_,26 @@
+@@ -165,10 +_,30 @@
  import net.minecraft.world.level.storage.WorldData;
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
@@ -88,6 +89,10 @@
  
  public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements ServerInfo, ChunkIOErrorReporter, CommandSource, AutoCloseable {
      public static final Logger LOGGER = LogUtils.getLogger();
++    public static final net.kyori.adventure.text.logger.slf4j.ComponentLogger COMPONENT_LOGGER = net.kyori.adventure.text.logger.slf4j.ComponentLogger.logger(LOGGER.getName()); // Paper
+     public static final String VANILLA_BRAND = "vanilla";
+     private static final float AVERAGE_TICK_TIME_SMOOTHING = 0.8F;
+     private static final int TICK_STATS_SPAN = 100;
 @@ -198,7 +_,7 @@
      };
      private boolean willStartRecordingMetrics;
@@ -102,7 +107,7 @@
      private boolean allowFlight;
      @Nullable
 -    private String motd;
-+    private com.mohistmc.net.kyori.adventure.text.Component motd; // Paper - Adventure
++    private net.kyori.adventure.text.Component motd; // Paper - Adventure
      private int playerIdleTimeout;
      private final long[] tickTimesNanos = new long[100];
      private long aggregatedTickTimesNanos = 0L;
@@ -177,7 +182,7 @@
          }
      }
  
-@@ -325,6 +_,80 @@
+@@ -325,6 +_,75 @@
  
      protected abstract boolean initServer() throws IOException;
  
@@ -249,11 +254,6 @@
 +    public static RegistryAccess getDefaultRegistryAccess() {
 +        return CraftRegistry.getMinecraftRegistry();
 +    }
-+
-+    // CraftBukkit start
-+    public final ExecutorService chatExecutor = Executors.newCachedThreadPool(
-+            new ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Chat Thread - #%d").build());
-+    // CraftBukkit end
 +
      protected void loadLevel() {
          if (!JvmProfiler.INSTANCE.isRunning()) {
@@ -673,11 +673,12 @@
          );
      }
  
-@@ -992,11 +_,16 @@
+@@ -992,11 +_,17 @@
  
      public void tickChildren(BooleanSupplier p_129954_) {
          this.getPlayerList().getPlayers().forEach(p_341570_ -> p_341570_.connection.suspendFlushing());
 +        this.server.getScheduler().mainThreadHeartbeat(this.tickCount); // CraftBukkit
++        io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
          this.profiler.push("commandFunctions");
          this.getFunctions().tick();
          this.profiler.popPush("levels");
@@ -784,21 +785,21 @@
  
      @Override
      public String getMotd() {
-+        return com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.motd); // Paper - Adventure
++        return LegacyComponentSerializer.legacySection().serialize(this.motd); // Paper - Adventure
 +    }
 +
 +    public void setMotd(String motd) {
 +        // Paper start - Adventure
-+        this.motd = com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserializeOr(motd, com.mohistmc.net.kyori.adventure.text.Component.empty());
++        this.motd = LegacyComponentSerializer.legacySection().deserializeOr(motd, net.kyori.adventure.text.Component.empty());
 +    }
 +
-+    public com.mohistmc.net.kyori.adventure.text.Component motd() {
++    public net.kyori.adventure.text.Component motd() {
          return this.motd;
      }
  
 -    public void setMotd(String p_129990_) {
 -        this.motd = p_129990_;
-+    public void motd(com.mohistmc.net.kyori.adventure.text.Component motd) {
++    public void motd(net.kyori.adventure.text.Component motd) {
 +        // Paper end - Adventure
 +        this.motd = motd;
      }
@@ -892,14 +893,40 @@
      public void dumpServerProperties(Path p_177911_) throws IOException {
      }
  
-@@ -1873,6 +_,10 @@
- 
-     public WorldData getWorldData() {
+@@ -1875,6 +_,10 @@
          return this.worldData;
-+    }
-+
-+    public ReloadableResources getServerResources() {
-+         return resources;
      }
  
++    public ReloadableResources getServerResources() {
++         return resources;
++    }
++
      public RegistryAccess.Frozen registryAccess() {
+         return this.registries.compositeAccess();
+     }
+@@ -1931,16 +_,21 @@
+     }
+ 
+     public void logChatMessage(Component p_241503_, ChatType.Bound p_241402_, @Nullable String p_241481_) {
+-        String s = p_241402_.decorate(p_241503_).getString();
++        // Paper start
++        net.kyori.adventure.text.Component s1 = io.papermc.paper.adventure.PaperAdventure.asAdventure(p_241402_.decorate(p_241503_));
+         if (p_241481_ != null) {
+-            LOGGER.info("[{}] {}", p_241481_, s);
++            MinecraftServer.COMPONENT_LOGGER.info("[{}] {}", p_241481_, s1);
+         } else {
+-            LOGGER.info("{}", s);
++            MinecraftServer.COMPONENT_LOGGER.info("{}", s1);
+         }
+     }
+ 
++    public final ExecutorService chatExecutor = Executors.newCachedThreadPool(
++            new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Chat Thread - #%d").setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER)).build()); // Paper
++
++    public final ChatDecorator improvedChatDecorator = new io.papermc.paper.adventure.ImprovedChatDecorator(this); // Paper - adventure
+     public ChatDecorator getChatDecorator() {
+-        return ChatDecorator.PLAIN;
++        return this.improvedChatDecorator; // Paper - support async chat decoration events
+     }
+ 
+     public boolean logIPs() {

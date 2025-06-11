@@ -207,8 +207,8 @@ public interface Plugin extends TabExecutor, io.papermc.paper.plugin.lifecycle.e
 
     // Paper start - Adventure component logger
     @NotNull
-    default com.mohistmc.net.kyori.adventure.text.logger.slf4j.ComponentLogger getComponentLogger() {
-        return com.mohistmc.net.kyori.adventure.text.logger.slf4j.ComponentLogger.logger(getLogger().getName());
+    default net.kyori.adventure.text.logger.slf4j.ComponentLogger getComponentLogger() {
+        return net.kyori.adventure.text.logger.slf4j.ComponentLogger.logger(getLogger().getName());
     }
     // Paper end
 

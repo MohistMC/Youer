@@ -4,12 +4,15 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.IntInsnNode;
 import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import static org.objectweb.asm.Opcodes.ARETURN;
@@ -19,6 +22,9 @@ public class PluginFixManager {
     public static Set<String> pluginFixClasses = Set.of("ModelEngine");
 
     public static byte[] injectPluginFix(String className, byte[] clazz) {
+        if (className.endsWith("PaperLib")) {
+            return patch(clazz, PluginFixManager::removePaper);
+        }
         if (className.equals("com.onarandombox.MultiverseCore.utils.WorldManager")) {
             return patch(clazz, MultiverseCore::fix);
         }
@@ -44,6 +50,17 @@ public class PluginFixManager {
         ClassWriter writer = new ClassWriter(0);
         node.accept(writer);
         return writer.toByteArray();
+    }
+
+    private static void removePaper(ClassNode node) {
+        for (MethodNode methodNode : node.methods) {
+            if (methodNode.name.equals("isPaper") && methodNode.desc.equals("()Z")) {
+                InsnList toInject = new InsnList();
+                toInject.add(new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(PluginFixManager.class), "isPaper", "()Z"));
+                toInject.add(new InsnNode(Opcodes.IRETURN));
+                methodNode.instructions = toInject;
+            }
+        }
     }
 
     private static void replaceReturn(ClassNode node, String methodName, Object idc) {

@@ -1,7 +1,7 @@
 package io.papermc.paper.configuration.serializer;
 
-import com.mohistmc.net.kyori.adventure.text.Component;
-import com.mohistmc.net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
 import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import java.lang.reflect.Type;

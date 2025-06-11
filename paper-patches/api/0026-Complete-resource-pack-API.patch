@@ -9,7 +9,7 @@ index a0317801b5a41d523324c1482356f26935f6a330..47c792202e8cc6d97fcb5e9bed98d327
 --- a/src/main/java/org/bukkit/entity/Player.java
 +++ b/src/main/java/org/bukkit/entity/Player.java
 @@ -2212,6 +2212,180 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
-     void setResourcePack(@NotNull UUID uuid, @NotNull String url, byte @Nullable [] hash, com.mohistmc.net.kyori.adventure.text.@Nullable Component prompt, boolean force);
+     void setResourcePack(@NotNull UUID uuid, @NotNull String url, byte @Nullable [] hash, net.kyori.adventure.text.@Nullable Component prompt, boolean force);
      // Paper end
  
 +    // Paper start - more resource pack API
@@ -111,7 +111,7 @@ index a0317801b5a41d523324c1482356f26935f6a330..47c792202e8cc6d97fcb5e9bed98d327
 +     * @throws IllegalArgumentException Thrown if the URL is too long. The
 +     *     length restriction is an implementation specific arbitrary value.
 +     */
-+    default void setResourcePack(final @NotNull String url, final @NotNull String hash, final boolean required, final com.mohistmc.net.kyori.adventure.text.@Nullable Component resourcePackPrompt) {
++    default void setResourcePack(final @NotNull String url, final @NotNull String hash, final boolean required, final net.kyori.adventure.text.@Nullable Component resourcePackPrompt) {
 +        this.setResourcePack(UUID.nameUUIDFromBytes(url.getBytes(java.nio.charset.StandardCharsets.UTF_8)), url, hash, resourcePackPrompt, required);
 +    }
 +
@@ -147,12 +147,12 @@ index a0317801b5a41d523324c1482356f26935f6a330..47c792202e8cc6d97fcb5e9bed98d327
 +     * @throws IllegalArgumentException Thrown if the URL is too long. The
 +     *     length restriction is an implementation specific arbitrary value.
 +     */
-+    default void setResourcePack(final @NotNull UUID uuid, final @NotNull String url, final @NotNull String hash, final com.mohistmc.net.kyori.adventure.text.@Nullable Component resourcePackPrompt, final boolean required) {
-+        this.sendResourcePacks(com.mohistmc.net.kyori.adventure.resource.ResourcePackRequest.resourcePackRequest()
++    default void setResourcePack(final @NotNull UUID uuid, final @NotNull String url, final @NotNull String hash, final net.kyori.adventure.text.@Nullable Component resourcePackPrompt, final boolean required) {
++        this.sendResourcePacks(net.kyori.adventure.resource.ResourcePackRequest.resourcePackRequest()
 +            .required(required)
 +            .replace(true)
 +            .prompt(resourcePackPrompt)
-+            .packs(com.mohistmc.net.kyori.adventure.resource.ResourcePackInfo.resourcePackInfo(uuid, java.net.URI.create(url), hash))
++            .packs(net.kyori.adventure.resource.ResourcePackInfo.resourcePackInfo(uuid, java.net.URI.create(url), hash))
 +        );
 +    }
 +

@@ -1,6 +1,6 @@
 package io.papermc.paper.plugin.provider.classloader;
 
-import com.mohistmc.net.kyori.adventure.util.Services;
+import net.kyori.adventure.util.Services;
 
 /**
  * The paper classloader storage access acts as the holder for the server provided implementation of the

@@ -276,8 +276,8 @@ public interface InventoryView {
      * @return The title.
      */
     @NotNull
-    default com.mohistmc.net.kyori.adventure.text.Component title() {
-        return com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(this.getTitle());
+    default net.kyori.adventure.text.Component title() {
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(this.getTitle());
     }
     // Paper end
 

@@ -45,7 +45,7 @@ public interface CommandBlock extends TileState {
      * same as setting it to "@".
      *
      * @param name New name for this CommandBlock.
-     * @deprecated in favour of {@link #name(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #name(net.kyori.adventure.text.Component)}
      */
     @Deprecated // Paper
     public void setName(@Nullable String name);
@@ -54,19 +54,19 @@ public interface CommandBlock extends TileState {
     /**
      * Gets the name of this CommandBlock.  The name is used with commands
      * that this CommandBlock executes.  This name will never be null, and
-     * by default is a {@link com.mohistmc.net.kyori.adventure.text.TextComponent} containing {@code @}.
+     * by default is a {@link net.kyori.adventure.text.TextComponent} containing {@code @}.
      *
      * @return Name of this CommandBlock.
      */
-    public com.mohistmc.net.kyori.adventure.text.@NotNull Component name();
+    public net.kyori.adventure.text.@NotNull Component name();
 
     /**
      * Sets the name of this CommandBlock.  The name is used with commands
      * that this CommandBlock executes.  Setting the name to null is the
-     * same as setting it to a {@link com.mohistmc.net.kyori.adventure.text.TextComponent} containing {@code @}.
+     * same as setting it to a {@link net.kyori.adventure.text.TextComponent} containing {@code @}.
      *
      * @param name New name for this CommandBlock.
      */
-    public void name(com.mohistmc.net.kyori.adventure.text.@Nullable Component name);
+    public void name(net.kyori.adventure.text.@Nullable Component name);
     // Paper end
 }

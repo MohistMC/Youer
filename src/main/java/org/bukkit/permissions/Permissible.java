@@ -134,11 +134,11 @@ public interface Permissible extends ServerOperator {
      * @param permission the permission to check
      * @return a tri-state of if the permission is set and, if it is set, it's value
      */
-    default com.mohistmc.net.kyori.adventure.util.@NotNull TriState permissionValue(final @NotNull Permission permission) {
+    default net.kyori.adventure.util.@NotNull TriState permissionValue(final @NotNull Permission permission) {
         if (this.isPermissionSet(permission)) {
-            return com.mohistmc.net.kyori.adventure.util.TriState.byBoolean(this.hasPermission(permission));
+            return net.kyori.adventure.util.TriState.byBoolean(this.hasPermission(permission));
         } else {
-            return com.mohistmc.net.kyori.adventure.util.TriState.NOT_SET;
+            return net.kyori.adventure.util.TriState.NOT_SET;
         }
     }
 
@@ -148,11 +148,11 @@ public interface Permissible extends ServerOperator {
      * @param permission the permission to check
      * @return a tri-state of if the permission is set and, if it is set, it's value
      */
-    default com.mohistmc.net.kyori.adventure.util.@NotNull TriState permissionValue(final @NotNull String permission) {
+    default net.kyori.adventure.util.@NotNull TriState permissionValue(final @NotNull String permission) {
         if (this.isPermissionSet(permission)) {
-            return com.mohistmc.net.kyori.adventure.util.TriState.byBoolean(this.hasPermission(permission));
+            return net.kyori.adventure.util.TriState.byBoolean(this.hasPermission(permission));
         } else {
-            return com.mohistmc.net.kyori.adventure.util.TriState.NOT_SET;
+            return net.kyori.adventure.util.TriState.NOT_SET;
         }
     }
     // Paper end

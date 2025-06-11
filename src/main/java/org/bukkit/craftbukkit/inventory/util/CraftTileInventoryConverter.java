@@ -32,7 +32,7 @@ public abstract class CraftTileInventoryConverter implements CraftInventoryCreat
     }
 
     @Override
-    public Inventory createInventory(InventoryHolder owner, InventoryType type, com.mohistmc.net.kyori.adventure.text.Component title) {
+    public Inventory createInventory(InventoryHolder owner, InventoryType type, net.kyori.adventure.text.Component title) {
         Container te = getTileEntity();
         if (te instanceof RandomizableContainerBlockEntity) {
             ((RandomizableContainerBlockEntity) te).name = io.papermc.paper.adventure.PaperAdventure.asVanilla(title);
@@ -79,7 +79,7 @@ public abstract class CraftTileInventoryConverter implements CraftInventoryCreat
     // Paper end - abstract furnace converter to apply to all 3 furnaces
         // Paper start
         @Override
-        public Inventory createInventory(InventoryHolder owner, InventoryType type, com.mohistmc.net.kyori.adventure.text.Component title) {
+        public Inventory createInventory(InventoryHolder owner, InventoryType type, net.kyori.adventure.text.Component title) {
             Container tileEntity = getTileEntity();
             ((AbstractFurnaceBlockEntity) tileEntity).name = io.papermc.paper.adventure.PaperAdventure.asVanilla(title);
             return this.getInventory(owner, type, tileEntity); // Paper
@@ -116,7 +116,7 @@ public abstract class CraftTileInventoryConverter implements CraftInventoryCreat
 
         // Paper start
         @Override
-        public Inventory createInventory(InventoryHolder owner, InventoryType type, com.mohistmc.net.kyori.adventure.text.Component title) {
+        public Inventory createInventory(InventoryHolder owner, InventoryType type, net.kyori.adventure.text.Component title) {
             // BrewingStand does not extend TileEntityLootable
             Container tileEntity = getTileEntity();
             if (tileEntity instanceof BrewingStandBlockEntity) {

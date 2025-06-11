@@ -27,7 +27,7 @@ public class PlayerLocaleChangeEvent extends PlayerEvent {
     public PlayerLocaleChangeEvent(@NotNull Player who, @NotNull String locale) {
         super(who);
         this.locale = locale;
-        this.adventure$locale = java.util.Objects.requireNonNullElse(com.mohistmc.net.kyori.adventure.translation.Translator.parseLocale(locale), java.util.Locale.US); // Paper start
+        this.adventure$locale = java.util.Objects.requireNonNullElse(net.kyori.adventure.translation.Translator.parseLocale(locale), java.util.Locale.US); // Paper start
     }
 
     /**

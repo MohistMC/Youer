@@ -51,8 +51,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
-import com.mohistmc.net.kyori.adventure.text.Component;
-import com.mohistmc.net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -1628,9 +1628,9 @@ public final class CraftServer implements Server {
 
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component shutdownMessage() {
+    public net.kyori.adventure.text.Component shutdownMessage() {
         String msg = getShutdownMessage();
-        return msg != null ? com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(msg) : null;
+        return msg != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(msg) : null;
     }
     // Paper end
     @Override
@@ -1810,16 +1810,16 @@ public final class CraftServer implements Server {
     @Deprecated // Paper
     public int broadcast(String message, String permission) {
         // Paper start - Adventure
-        return this.broadcast(com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message), permission);
+        return this.broadcast(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message), permission);
     }
 
     @Override
-    public int broadcast(com.mohistmc.net.kyori.adventure.text.Component message) {
+    public int broadcast(net.kyori.adventure.text.Component message) {
         return this.broadcast(message, BROADCAST_CHANNEL_USERS);
     }
 
     @Override
-    public int broadcast(com.mohistmc.net.kyori.adventure.text.Component message, String permission) {
+    public int broadcast(net.kyori.adventure.text.Component message, String permission) {
         // Paper end
         Set<CommandSender> recipients = new HashSet<>();
         for (Permissible permissible : this.getPluginManager().getPermissionSubscriptions(permission)) {
@@ -2099,7 +2099,7 @@ public final class CraftServer implements Server {
 
     // Paper start
     @Override
-    public Inventory createInventory(InventoryHolder owner, InventoryType type, com.mohistmc.net.kyori.adventure.text.Component title) {
+    public Inventory createInventory(InventoryHolder owner, InventoryType type, net.kyori.adventure.text.Component title) {
         Preconditions.checkArgument(type.isCreatable(), "Cannot open an inventory of type ", type);
         return CraftInventoryCreator.INSTANCE.createInventory(owner, type, title);
     }
@@ -2121,7 +2121,7 @@ public final class CraftServer implements Server {
 
     // Paper start
     @Override
-    public Inventory createInventory(InventoryHolder owner, int size, com.mohistmc.net.kyori.adventure.text.Component title) throws IllegalArgumentException {
+    public Inventory createInventory(InventoryHolder owner, int size, net.kyori.adventure.text.Component title) throws IllegalArgumentException {
         Preconditions.checkArgument(9 <= size && size <= 54 && size % 9 == 0, "Size for custom inventory must be a multiple of 9 between 9 and 54 slots (got " + size + ")");
         return CraftInventoryCreator.INSTANCE.createInventory(owner, size, title);
     }
@@ -2135,7 +2135,7 @@ public final class CraftServer implements Server {
 
     // Paper start
     @Override
-    public Merchant createMerchant(com.mohistmc.net.kyori.adventure.text.Component title) {
+    public Merchant createMerchant(net.kyori.adventure.text.Component title) {
         return new org.bukkit.craftbukkit.inventory.CraftMerchantCustom(title == null ? InventoryType.MERCHANT.defaultTitle() : title);
     }
     // Paper end
@@ -2162,11 +2162,11 @@ public final class CraftServer implements Server {
 
     @Override
     public String getPermissionMessage() {
-        return com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacyAmpersand().serialize(Component.text("I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error.", NamedTextColor.RED));
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacyAmpersand().serialize(Component.text("I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error.", NamedTextColor.RED));
     }
 
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component permissionMessage() {
+    public net.kyori.adventure.text.Component permissionMessage() {
         return Component.text("I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error.", NamedTextColor.RED);
     }
 
@@ -2217,11 +2217,11 @@ public final class CraftServer implements Server {
     }
     // Paper start - Adventure
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component motd() {
+    public net.kyori.adventure.text.Component motd() {
         return this.console.motd();
     }
     @Override
-    public void motd(final com.mohistmc.net.kyori.adventure.text.Component motd) {
+    public void motd(final net.kyori.adventure.text.Component motd) {
         this.console.motd(motd);
     }
     // Paper end
@@ -2673,9 +2673,9 @@ public final class CraftServer implements Server {
     }
     // Spigot end
 
-    private Iterable<? extends com.mohistmc.net.kyori.adventure.audience.Audience> adventure$audiences;
+    private Iterable<? extends net.kyori.adventure.audience.Audience> adventure$audiences;
     @Override
-    public Iterable<? extends com.mohistmc.net.kyori.adventure.audience.Audience> audiences() {
+    public Iterable<? extends net.kyori.adventure.audience.Audience> audiences() {
         if (this.adventure$audiences == null) {
             this.adventure$audiences = com.google.common.collect.Iterables.concat(java.util.Collections.singleton(this.getConsoleSender()), this.getOnlinePlayers());
         }

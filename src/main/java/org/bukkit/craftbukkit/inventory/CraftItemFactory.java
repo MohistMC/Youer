@@ -209,7 +209,7 @@ public final class CraftItemFactory implements ItemFactory {
 
     // Paper start - Adventure
     @Override
-    public com.mohistmc.net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component displayName(@org.jetbrains.annotations.NotNull ItemStack itemStack) {
+    public net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component displayName(@org.jetbrains.annotations.NotNull ItemStack itemStack) {
         return io.papermc.paper.adventure.PaperAdventure.asAdventure(CraftItemStack.asNMSCopy(itemStack).getDisplayName());
     }
     // Paper end - Adventure

@@ -15,7 +15,7 @@ public interface Nameable {
      *
      * @return the custom name
      */
-    com.mohistmc.net.kyori.adventure.text.@Nullable Component customName();
+    net.kyori.adventure.text.@Nullable Component customName();
 
     /**
      * Sets the custom name.
@@ -28,7 +28,7 @@ public interface Nameable {
      *
      * @param customName the custom name to set
      */
-    void customName(final com.mohistmc.net.kyori.adventure.text.@Nullable Component customName);
+    void customName(final net.kyori.adventure.text.@Nullable Component customName);
     // Paper end
 
     /**
@@ -54,7 +54,7 @@ public interface Nameable {
      * This value has no effect on players, they will always use their real
      * name.
      *
-     * @deprecated in favour of {@link #customName(com.mohistmc.net.kyori.adventure.text.Component)}
+     * @deprecated in favour of {@link #customName(net.kyori.adventure.text.Component)}
      * @param name the name to set
      */
     @Deprecated // Paper

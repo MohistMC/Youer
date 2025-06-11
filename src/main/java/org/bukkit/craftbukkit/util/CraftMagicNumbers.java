@@ -85,37 +85,37 @@ public final class CraftMagicNumbers implements UnsafeValues {
 
     // Paper start
     @Override
-    public com.mohistmc.net.kyori.adventure.text.flattener.ComponentFlattener componentFlattener() {
+    public net.kyori.adventure.text.flattener.ComponentFlattener componentFlattener() {
         return io.papermc.paper.adventure.PaperAdventure.FLATTENER;
     }
 
     @Override
-    public com.mohistmc.net.kyori.adventure.text.serializer.gson.GsonComponentSerializer colorDownsamplingGsonComponentSerializer() {
-        return com.mohistmc.net.kyori.adventure.text.serializer.gson.GsonComponentSerializer.colorDownsamplingGson();
+    public net.kyori.adventure.text.serializer.gson.GsonComponentSerializer colorDownsamplingGsonComponentSerializer() {
+        return net.kyori.adventure.text.serializer.gson.GsonComponentSerializer.colorDownsamplingGson();
     }
 
     @Override
-    public com.mohistmc.net.kyori.adventure.text.serializer.gson.GsonComponentSerializer gsonComponentSerializer() {
-        return com.mohistmc.net.kyori.adventure.text.serializer.gson.GsonComponentSerializer.gson();
+    public net.kyori.adventure.text.serializer.gson.GsonComponentSerializer gsonComponentSerializer() {
+        return net.kyori.adventure.text.serializer.gson.GsonComponentSerializer.gson();
     }
 
     @Override
-    public com.mohistmc.net.kyori.adventure.text.serializer.plain.PlainComponentSerializer plainComponentSerializer() {
+    public net.kyori.adventure.text.serializer.plain.PlainComponentSerializer plainComponentSerializer() {
         return io.papermc.paper.adventure.PaperAdventure.PLAIN;
     }
 
     @Override
-    public com.mohistmc.net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer plainTextSerializer() {
-        return com.mohistmc.net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText();
+    public net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer plainTextSerializer() {
+        return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText();
     }
 
     @Override
-    public com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer legacyComponentSerializer() {
-        return com.mohistmc.net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection();
+    public net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer legacyComponentSerializer() {
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection();
     }
 
     @Override
-    public com.mohistmc.net.kyori.adventure.text.Component resolveWithContext(final com.mohistmc.net.kyori.adventure.text.Component component, final org.bukkit.command.CommandSender context, final org.bukkit.entity.Entity scoreboardSubject, final boolean bypassPermissions) throws IOException {
+    public net.kyori.adventure.text.Component resolveWithContext(final net.kyori.adventure.text.Component component, final org.bukkit.command.CommandSender context, final org.bukkit.entity.Entity scoreboardSubject, final boolean bypassPermissions) throws IOException {
         return io.papermc.paper.adventure.PaperAdventure.resolveWithContext(component, context, scoreboardSubject, bypassPermissions);
     }
     // Paper end

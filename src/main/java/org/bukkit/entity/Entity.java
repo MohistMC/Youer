@@ -31,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
  * Not all methods are guaranteed to work/may have side effects when
  * {@link #isInWorld()} is false.
  */
-public interface Entity extends Metadatable, CommandSender, Nameable, PersistentDataHolder, com.mohistmc.net.kyori.adventure.sound.Sound.Emitter { // Paper
+public interface Entity extends Metadatable, CommandSender, Nameable, PersistentDataHolder, net.kyori.adventure.sound.Sound.Emitter { // Paper
 
     /**
      * Gets the entity's current position
@@ -785,5 +785,5 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      *
      * @return the team display name
      */
-    com.mohistmc.net.kyori.adventure.text.@NotNull Component teamDisplayName();
+    net.kyori.adventure.text.@NotNull Component teamDisplayName();
 }

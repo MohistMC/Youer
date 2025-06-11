@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
-import com.mohistmc.net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.minecraft.network.protocol.game.ClientboundHurtAnimationPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
