@@ -29,11 +29,46 @@ import org.jetbrains.annotations.Nullable;
  * use this class to encapsulate Materials for which {@link Material#isItem()}
  * returns false.</b>
  */
-public class ItemStack implements Cloneable, ConfigurationSerializable, Translatable { // Paper
-    private Material type = Material.AIR;
-    private int amount = 0;
+public class ItemStack implements Cloneable, ConfigurationSerializable, Translatable, io.papermc.paper.persistence.PersistentDataViewHolder { // Paper
+    private ItemStack craftDelegate; // Paper - always delegate to server-backed stack
     private MaterialData data = null;
-    private ItemMeta meta;
+
+    // Paper start - add static factory methods
+    /**
+     * Creates an itemstack with the specified item type and a count of 1.
+     *
+     * @param type the item type to use
+     * @return a new itemstack
+     * @throws IllegalArgumentException if the Material provided is not an item ({@link Material#isItem()})
+     */
+    @org.jetbrains.annotations.Contract(value = "_ -> new", pure = true)
+    public static @NotNull ItemStack of(final @NotNull Material type) {
+        return of(type, 1);
+    }
+
+    /**
+     * Creates an itemstack with the specified item type and count.
+     *
+     * @param type the item type to use
+     * @param amount the count of items in the stack
+     * @return a new itemstack
+     * @throws IllegalArgumentException if the Material provided is not an item ({@link Material#isItem()})
+     * @throws IllegalArgumentException if the amount is less than 1
+     */
+    @org.jetbrains.annotations.Contract(value = "_, _ -> new", pure = true)
+    public static @NotNull ItemStack of(final @NotNull Material type, final int amount) {
+        Preconditions.checkArgument(type.asItemType() != null, type + " isn't an item");
+        Preconditions.checkArgument(amount > 0, "amount must be greater than 0");
+        return java.util.Objects.requireNonNull(type.asItemType(), type + " is not an item").createItemStack(amount); // Paper - delegate
+    }
+    // Paper end
+
+    // Paper start - pdc
+    @Override
+    public io.papermc.paper.persistence.@NotNull PersistentDataContainerView getPersistentDataContainer() {
+        return this.craftDelegate.getPersistentDataContainer();
+    }
+    // Paper end - pdc
 
     @Utility
     protected ItemStack() {}
@@ -95,8 +130,9 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
                 type = Bukkit.getUnsafe().fromLegacy(new MaterialData(type, data == null ? (byte) damage : data), true);
             }
         }
-        this.type = type;
-        this.amount = amount;
+        // Paper start - create delegate
+        this.craftDelegate = type == Material.AIR ? ItemStack.empty() : ItemStack.of(type, amount);
+        // Paper end - create delegate
         if (damage != 0) {
             setDurability(damage);
         }
@@ -114,13 +150,9 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     public ItemStack(@NotNull final ItemStack stack) throws IllegalArgumentException {
         Preconditions.checkArgument(stack != null, "Cannot copy null stack");
-        this.type = stack.getType();
-        this.amount = stack.getAmount();
-        if (this.type.isLegacy()) {
+        this.craftDelegate = stack.clone(); // Paper - delegate
+        if (stack.getType().isLegacy()) {
             this.data = stack.getData();
-        }
-        if (stack.hasItemMeta()) {
-            setItemMeta0(stack.getItemMeta(), type);
         }
     }
 
@@ -132,7 +164,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     @Utility
     @NotNull
     public Material getType() {
-        return type;
+        return this.craftDelegate.getType(); // Paper - delegate
     }
 
     /**
@@ -149,16 +181,22 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     @Utility
     public void setType(@NotNull Material type) {
         Preconditions.checkArgument(type != null, "Material cannot be null");
-        this.type = type;
-        if (this.meta != null) {
-            this.meta = Bukkit.getItemFactory().asMetaFor(meta, type);
-        }
-        if (type.isLegacy()) {
-            createData((byte) 0);
-        } else {
-            this.data = null;
-        }
+        this.craftDelegate.setType(type); // Paper - delegate
     }
+    // Paper start
+    /**
+     * Creates a new ItemStack with the specified Material type, where the item count and item meta is preserved.
+     *
+     * @param type The Material type of the new ItemStack.
+     * @return A new ItemStack instance with the specified Material type.
+     */
+    @NotNull
+    @org.jetbrains.annotations.Contract(value = "_ -> new", pure = true)
+    public ItemStack withType(@NotNull Material type) {
+        return this.craftDelegate.withType(type); // Paper - delegate
+    }
+    // Paper end
+
 
     /**
      * Gets the amount of items in this stack
@@ -166,7 +204,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @return Amount of items in this stack
      */
     public int getAmount() {
-        return amount;
+        return this.craftDelegate.getAmount(); // Paper - delegate
     }
 
     /**
@@ -175,7 +213,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @param amount New amount of items in this stack
      */
     public void setAmount(int amount) {
-        this.amount = amount;
+        this.craftDelegate.setAmount(amount); // Paper - delegate
     }
 
     /**
@@ -224,11 +262,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     @Deprecated
     public void setDurability(final short durability) {
-        ItemMeta meta = getItemMeta();
-        if (meta != null) {
-            ((Damageable) meta).setDamage(durability);
-            setItemMeta(meta);
-        }
+        this.craftDelegate.setDurability(durability); // Paper - delegate
     }
 
     /**
@@ -239,8 +273,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     @Deprecated
     public short getDurability() {
-        ItemMeta meta = getItemMeta();
-        return (meta == null) ? 0 : (short) ((Damageable) meta).getDamage();
+        return this.craftDelegate.getDurability(); // Paper - delegate
     }
 
     /**
@@ -254,15 +287,11 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     @Utility
     public int getMaxStackSize() {
-        if (meta != null && meta.hasMaxStackSize()) {
-            return meta.getMaxStackSize();
-        }
-
-        return getType().getMaxStackSize();
+        return this.craftDelegate.getMaxStackSize(); // Paper - delegate
     }
 
     private void createData(final byte data) {
-        this.data = type.getNewData(data);
+        this.data = this.craftDelegate.getType().getNewData(data); // Paper
     }
 
     @Override
@@ -278,15 +307,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     @Override
     @Utility
     public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (!(obj instanceof ItemStack)) {
-            return false;
-        }
-
-        ItemStack stack = (ItemStack) obj;
-        return getAmount() == stack.getAmount() && isSimilar(stack);
+        return this.craftDelegate.equals(obj); // Paper - delegate
     }
 
     /**
@@ -298,47 +319,18 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     @Utility
     public boolean isSimilar(@Nullable ItemStack stack) {
-        if (stack == null) {
-            return false;
-        }
-        if (stack == this) {
-            return true;
-        }
-        Material comparisonType = (this.type.isLegacy()) ? Bukkit.getUnsafe().fromLegacy(this.getData(), true) : this.type; // This may be called from legacy item stacks, try to get the right material
-        return comparisonType == stack.getType() && getDurability() == stack.getDurability() && hasItemMeta() == stack.hasItemMeta() && (hasItemMeta() ? Bukkit.getItemFactory().equals(getItemMeta(), stack.getItemMeta()) : true);
+        return this.craftDelegate.isSimilar(stack); // Paper - delegate
     }
 
     @NotNull
     @Override
     public ItemStack clone() {
-        try {
-            ItemStack itemStack = (ItemStack) super.clone();
-
-            if (this.meta != null) {
-                itemStack.meta = this.meta.clone();
-            }
-
-            if (this.data != null) {
-                itemStack.data = this.data.clone();
-            }
-
-            return itemStack;
-        } catch (CloneNotSupportedException e) {
-            throw new Error(e);
-        }
+        return this.craftDelegate.clone(); // Paper - delegate
     }
 
     @Override
-    @Utility
     public int hashCode() {
-        int hash = 1;
-
-        hash = hash * 31 + getType().hashCode();
-        hash = hash * 31 + getAmount();
-        hash = hash * 31 + (getDurability() & 0xffff);
-        hash = hash * 31 + (hasItemMeta() ? (meta == null ? getItemMeta().hashCode() : meta.hashCode()) : 0);
-
-        return hash;
+        return this.craftDelegate.hashCode(); // Paper - delegate
     }
 
     /**
@@ -348,7 +340,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @return True if this has the given enchantment
      */
     public boolean containsEnchantment(@NotNull Enchantment ench) {
-        return meta == null ? false : meta.hasEnchant(ench);
+        return this.craftDelegate.containsEnchantment(ench); // Paper - delegate
     }
 
     /**
@@ -358,7 +350,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @return Level of the enchantment, or 0
      */
     public int getEnchantmentLevel(@NotNull Enchantment ench) {
-        return meta == null ? 0 : meta.getEnchantLevel(ench);
+        return this.craftDelegate.getEnchantmentLevel(ench); // Paper - delegate
     }
 
     /**
@@ -368,7 +360,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     @NotNull
     public Map<Enchantment, Integer> getEnchantments() {
-        return meta == null ? ImmutableMap.<Enchantment, Integer>of() : meta.getEnchants();
+        return this.craftDelegate.getEnchantments(); // Paper - delegate
     }
 
     /**
@@ -444,10 +436,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @param level Level of the enchantment
      */
     public void addUnsafeEnchantment(@NotNull Enchantment ench, int level) {
-        ItemMeta itemMeta = (meta == null ? meta = Bukkit.getItemFactory().getItemMeta(type) : meta);
-        if (itemMeta != null) {
-            itemMeta.addEnchant(ench, level, true);
-        }
+        this.craftDelegate.addUnsafeEnchantment(ench, level); // Paper - delegate
     }
 
     /**
@@ -458,23 +447,14 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @return Previous level, or 0
      */
     public int removeEnchantment(@NotNull Enchantment ench) {
-        int level = getEnchantmentLevel(ench);
-        if (level == 0 || meta == null) {
-            return level;
-        }
-        meta.removeEnchant(ench);
-        return level;
+        return this.craftDelegate.removeEnchantment(ench); // Paper - delegate
     }
 
     /**
      * Removes all enchantments on this ItemStack.
      */
     public void removeEnchantments() {
-        if (meta == null) {
-            return;
-        }
-
-        meta.removeEnchantments();
+        this.craftDelegate.removeEnchantments(); // Paper - delegate
     }
 
     @Override
@@ -575,6 +555,50 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
         return result;
     }
 
+    // Paper start
+    /**
+     * Edits the {@link ItemMeta} of this stack.
+     * <p>
+     * The {@link java.util.function.Consumer} must only interact
+     * with this stack's {@link ItemMeta} through the provided {@link ItemMeta} instance.
+     * Calling this method or any other meta-related method of the {@link ItemStack} class
+     * (such as {@link #getItemMeta()}, {@link #addItemFlags(ItemFlag...)}, {@link #lore()}, etc.)
+     * from inside the consumer is disallowed and will produce undefined results or exceptions.
+     * </p>
+     *
+     * @param consumer the meta consumer
+     * @return {@code true} if the edit was successful, {@code false} otherwise
+     */
+    public boolean editMeta(final @NotNull java.util.function.Consumer<? super ItemMeta> consumer) {
+        return editMeta(ItemMeta.class, consumer);
+    }
+
+    /**
+     * Edits the {@link ItemMeta} of this stack if the meta is of the specified type.
+     * <p>
+     * The {@link java.util.function.Consumer} must only interact
+     * with this stack's {@link ItemMeta} through the provided {@link ItemMeta} instance.
+     * Calling this method or any other meta-related method of the {@link ItemStack} class
+     * (such as {@link #getItemMeta()}, {@link #addItemFlags(ItemFlag...)}, {@link #lore()}, etc.)
+     * from inside the consumer is disallowed and will produce undefined results or exceptions.
+     * </p>
+     *
+     * @param metaClass the type of meta to edit
+     * @param consumer the meta consumer
+     * @param <M> the meta type
+     * @return {@code true} if the edit was successful, {@code false} otherwise
+     */
+    public <M extends ItemMeta> boolean editMeta(final @NotNull Class<M> metaClass, final @NotNull java.util.function.Consumer<@NotNull ? super M> consumer) {
+        final @Nullable ItemMeta meta = this.getItemMeta();
+        if (metaClass.isInstance(meta)) {
+            consumer.accept((M) meta);
+            this.setItemMeta(meta);
+            return true;
+        }
+        return false;
+    }
+    // Paper end
+
     /**
      * Get a copy of this ItemStack's {@link ItemMeta}.
      *
@@ -582,7 +606,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     @Nullable
     public ItemMeta getItemMeta() {
-        return this.meta == null ? Bukkit.getItemFactory().getItemMeta(this.type) : this.meta.clone();
+        return this.craftDelegate.getItemMeta(); // Paper - delegate
     }
 
     /**
@@ -591,7 +615,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @return Returns true if some meta data has been set for this item
      */
     public boolean hasItemMeta() {
-        return !Bukkit.getItemFactory().equals(meta, null);
+        return this.craftDelegate.hasItemMeta(); // Paper - delegate
     }
 
     /**
@@ -604,7 +628,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      *     the {@link ItemFactory}
      */
     public boolean setItemMeta(@Nullable ItemMeta itemMeta) {
-        return setItemMeta0(itemMeta, type);
+        return this.craftDelegate.setItemMeta(itemMeta); // Paper - delegate
     }
 
     /**
@@ -614,25 +638,6 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     public net.kyori.adventure.text.@NotNull Component displayName() {
         return Bukkit.getServer().getItemFactory().displayName(this);
-    }
-    /*
-     * Cannot be overridden, so it's safe for constructor call
-     */
-    private boolean setItemMeta0(@Nullable ItemMeta itemMeta, @NotNull Material material) {
-        if (itemMeta == null) {
-            this.meta = null;
-            return true;
-        }
-        if (!Bukkit.getItemFactory().isApplicable(itemMeta, material)) {
-            return false;
-        }
-        this.meta = Bukkit.getItemFactory().asMetaFor(itemMeta, material);
-
-        if (this.meta == itemMeta) {
-            this.meta = itemMeta.clone();
-        }
-
-        return true;
     }
 
     @Override
@@ -651,6 +656,26 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     public static ItemStack empty() {
         //noinspection deprecation
         return Bukkit.getUnsafe().createEmptyStack(); // Paper - proxy ItemStack
+    }
+
+    /**
+     * Returns whether this item stack is empty and contains no item. This means
+     * it is either air or the stack has a size of 0.
+     */
+    public boolean isEmpty() {
+        return this.craftDelegate.isEmpty(); // Paper - delegate
+    }
+
+    /**
+     * @deprecated use {@link #getMaxItemUseDuration(org.bukkit.entity.LivingEntity)}; crossbows, later possibly more items require an entity parameter
+     */
+    @Deprecated(forRemoval = true)
+    public int getMaxItemUseDuration() {
+        return getMaxItemUseDuration(null);
+    }
+
+    public int getMaxItemUseDuration(@NotNull final org.bukkit.entity.LivingEntity entity) {
+        return this.craftDelegate.getMaxItemUseDuration(entity); // Paper - delegate
     }
     // Paper end
 }

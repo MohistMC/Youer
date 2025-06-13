@@ -24,27 +24,83 @@ import org.jetbrains.annotations.ApiStatus;
 @DelegateDeserialization(ItemStack.class)
 public final class CraftItemStack extends ItemStack {
 
-    public static net.minecraft.world.item.ItemStack asNMSCopy(ItemStack original) {
-        if (original instanceof CraftItemStack) {
-            CraftItemStack stack = (CraftItemStack) original;
-            return stack.handle == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.handle.copy();
+    // Paper start - delegate api-ItemStack to CraftItemStack
+    private static final java.lang.invoke.VarHandle API_ITEM_STACK_CRAFT_DELEGATE_FIELD;
+    static {
+        try {
+            API_ITEM_STACK_CRAFT_DELEGATE_FIELD = java.lang.invoke.MethodHandles.privateLookupIn(
+                    ItemStack.class,
+                    java.lang.invoke.MethodHandles.lookup()
+            ).findVarHandle(ItemStack.class, "craftDelegate", ItemStack.class);
+        } catch (final IllegalAccessException | NoSuchFieldException exception) {
+            throw new RuntimeException(exception);
         }
-        if (original == null || original.getType() == Material.AIR) {
-            return net.minecraft.world.item.ItemStack.EMPTY;
-        }
-
-        Item item = CraftItemType.bukkitToMinecraft(original.getType());
-
-        if (item == null) {
-            return net.minecraft.world.item.ItemStack.EMPTY;
-        }
-
-        net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(item, original.getAmount());
-        if (original.hasItemMeta()) {
-            CraftItemStack.setItemMeta(stack, original.getItemMeta());
-        }
-        return stack;
     }
+
+    private static CraftItemStack getCraftStack(final ItemStack bukkit) {
+        if (bukkit instanceof final CraftItemStack craftItemStack) {
+            return craftItemStack;
+        } else {
+            return  (CraftItemStack) API_ITEM_STACK_CRAFT_DELEGATE_FIELD.get(bukkit);
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        if (this.handle == null || this.handle.isEmpty()) {
+            return net.minecraft.world.item.ItemStack.EMPTY.hashCode();
+        } else {
+            int hash = net.minecraft.world.item.ItemStack.hashItemAndComponents(this.handle);
+            hash = hash * 31 + this.handle.getCount();
+            return hash;
+        }
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (!(obj instanceof final org.bukkit.inventory.ItemStack bukkit)) return false;
+        final CraftItemStack craftStack = getCraftStack(bukkit);
+        if (this.handle == craftStack.handle) return true;
+        else if (this.handle == null || craftStack.handle == null) return false;
+        else if (this.handle.isEmpty() && craftStack.handle.isEmpty()) return true;
+        else return net.minecraft.world.item.ItemStack.matches(this.handle, craftStack.handle);
+    }
+    // Paper end
+
+    // Paper start - MC Utils
+    public static net.minecraft.world.item.ItemStack unwrap(ItemStack bukkit) {
+        // Paper start - re-implement after delegating all api ItemStack calls to CraftItemStack
+        final CraftItemStack craftItemStack = getCraftStack(bukkit);
+        return craftItemStack.handle == null ? net.minecraft.world.item.ItemStack.EMPTY : craftItemStack.handle;
+        // Paper end - re-implement after delegating all api ItemStack calls to CraftItemStack
+    }
+
+    // Paper start - override isEmpty to use vanilla's impl
+    @Override
+    public boolean isEmpty() {
+        return handle == null || handle.isEmpty();
+    }
+    // Paper end - override isEmpty to use vanilla's impl
+
+    public static net.minecraft.world.item.ItemStack asNMSCopy(ItemStack original) {
+        // Paper start - re-implement after delegating all api ItemStack calls to CraftItemStack
+        if (original == null || original.isEmpty()) {
+            return net.minecraft.world.item.ItemStack.EMPTY;
+        }
+        final CraftItemStack stack = getCraftStack(original);
+        return stack.handle == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.handle.copy();
+        // Paper end - re-implement after delegating all api ItemStack calls to CraftItemStack
+    }
+
+    // Paper start
+    public static java.util.List<net.minecraft.world.item.ItemStack> asNMSCopy(java.util.List<? extends ItemStack> originals) {
+        final java.util.List<net.minecraft.world.item.ItemStack> items = new java.util.ArrayList<>(originals.size());
+        for (final ItemStack original : originals) {
+            items.add(asNMSCopy(original));
+        }
+        return items;
+    }
+    // Paper end
 
     public static net.minecraft.world.item.ItemStack copyNMSStack(net.minecraft.world.item.ItemStack original, int amount) {
         net.minecraft.world.item.ItemStack stack = original.copy();
@@ -56,14 +112,10 @@ public final class CraftItemStack extends ItemStack {
      * Copies the NMS stack to return as a strictly-Bukkit stack
      */
     public static ItemStack asBukkitCopy(net.minecraft.world.item.ItemStack original) {
-        if (original.isEmpty()) {
-            return new ItemStack(Material.AIR);
-        }
-        ItemStack stack = new ItemStack(CraftItemType.minecraftToBukkit(original.getItem()), original.getCount());
-        if (CraftItemStack.hasItemMeta(original)) {
-            stack.setItemMeta(CraftItemStack.getItemMeta(original));
-        }
-        return stack;
+        // Paper start - no such thing as a "strictly-Bukkit stack" anymore
+        // we copy the stack since it should be a complete copy not a mirror
+        return asCraftMirror(original.copy());
+        // Paper end
     }
 
     public static CraftItemStack asCraftMirror(net.minecraft.world.item.ItemStack original) {
@@ -300,11 +352,7 @@ public final class CraftItemStack extends ItemStack {
 
     @Override
     public CraftItemStack clone() {
-        CraftItemStack itemStack = (CraftItemStack) super.clone();
-        if (this.handle != null) {
-            itemStack.handle = this.handle.copy();
-        }
-        return itemStack;
+        return new org.bukkit.craftbukkit.inventory.CraftItemStack(this.handle != null ? this.handle.copy() : null); // Paper
     }
 
     @Override
@@ -376,22 +424,14 @@ public final class CraftItemStack extends ItemStack {
         if (stack == this) {
             return true;
         }
-        if (!(stack instanceof CraftItemStack)) {
-            return stack.getClass() == ItemStack.class && stack.isSimilar(this);
-        }
-
-        CraftItemStack that = (CraftItemStack) stack;
+        final CraftItemStack that = getCraftStack(stack); // Paper - re-implement after delegating all api ItemStack calls to CraftItemStack
         if (this.handle == that.handle) {
             return true;
         }
         if (this.handle == null || that.handle == null) {
             return false;
         }
-        Material comparisonType = CraftLegacy.fromLegacy(that.getType()); // This may be called from legacy item stacks, try to get the right material
-        if (!(comparisonType == this.getType() && this.getDurability() == that.getDurability())) {
-            return false;
-        }
-        return this.hasItemMeta() ? that.hasItemMeta() && this.handle.getComponents().equals(that.handle.getComponents()) : !that.hasItemMeta();
+        return net.minecraft.world.item.ItemStack.isSameItemSameComponents(this.handle, that.handle); // Paper - re-implement after delegating all api ItemStack calls to CraftItemStack
     }
 
     @Override
@@ -402,4 +442,55 @@ public final class CraftItemStack extends ItemStack {
     static boolean hasItemMeta(net.minecraft.world.item.ItemStack item) {
         return !(item == null || item.getComponentsPatch().isEmpty());
     }
+
+    // Paper start - with type
+    @Override
+    public ItemStack withType(final Material type) {
+        if (type == Material.AIR) {
+            return CraftItemStack.asCraftMirror(null);
+        }
+
+        final net.minecraft.world.item.ItemStack copy = new net.minecraft.world.item.ItemStack(
+                CraftItemType.bukkitToMinecraft(type), this.getAmount()
+        );
+
+        if (this.handle != null) {
+            copy.applyComponents(this.handle.getComponentsPatch());
+        }
+
+        final CraftItemStack mirrored = CraftItemStack.asCraftMirror(copy);
+        mirrored.setItemMeta(mirrored.getItemMeta());
+        return mirrored;
+    }
+    // Paper end
+
+    // Paper start - pdc
+    private net.minecraft.nbt.CompoundTag getPdcTag() {
+        if (this.handle == null) {
+            return new net.minecraft.nbt.CompoundTag();
+        }
+        final net.minecraft.world.item.component.CustomData customData = this.handle.getOrDefault(DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.EMPTY);
+        // getUnsafe is OK here because we are only ever *reading* the data so immutability is preserved
+        //noinspection deprecation
+        return customData.getUnsafe().getCompound("PublicBukkitValues");
+    }
+
+    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
+    private final io.papermc.paper.persistence.PaperPersistentDataContainerView pdcView = new io.papermc.paper.persistence.PaperPersistentDataContainerView(REGISTRY) {
+
+        @Override
+        public net.minecraft.nbt.CompoundTag toTagCompound() {
+            return CraftItemStack.this.getPdcTag();
+        }
+
+        @Override
+        public net.minecraft.nbt.Tag getTag(final String key) {
+            return CraftItemStack.this.getPdcTag().get(key);
+        }
+    };
+    @Override
+    public io.papermc.paper.persistence.PersistentDataContainerView getPersistentDataContainer() {
+        return this.pdcView;
+    }
+    // Paper end - pdc
 }

@@ -235,6 +235,8 @@ public interface UnsafeValues {
      */
     @org.jetbrains.annotations.ApiStatus.Internal
     io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager<org.bukkit.plugin.Plugin> createPluginLifecycleEventManager(final org.bukkit.plugin.java.JavaPlugin plugin, final java.util.function.BooleanSupplier registrationCheck);
+
     // Paper end - lifecycle event API
+    <A extends Keyed, M> io.papermc.paper.registry.tag.@Nullable Tag<A> getTag(io.papermc.paper.registry.tag.@NotNull TagKey<A> tagKey); // Paper - hack to get tags for non-server backed registries
     ItemStack createEmptyStack(); // Paper - proxy ItemStack
 }

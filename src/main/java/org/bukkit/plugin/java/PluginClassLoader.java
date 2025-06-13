@@ -251,7 +251,7 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
                     throw new ClassNotFoundException(name, e);
                 }
 
-                Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(name, byteSource, connection);
+                Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(description.getName(), name, byteSource, connection);
 
                 int dot = name.lastIndexOf('.');
                 if (dot != -1) {

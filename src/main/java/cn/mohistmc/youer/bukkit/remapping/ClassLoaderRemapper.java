@@ -298,9 +298,9 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
                 }));
     }
 
-    public Product2<byte[], CodeSource> remapClass(String className, Callable<byte[]> byteSource, URLConnection connection) throws ClassNotFoundException {
+    public Product2<byte[], CodeSource> remapClass(String pluginName, String className, Callable<byte[]> byteSource, URLConnection connection) throws ClassNotFoundException {
         try {
-            byte[] bytes = remapClassFile(byteSource.call(), GlobalClassRepo.INSTANCE);
+            byte[] bytes = (pluginName != null && Remapper.isNeedRemap(pluginName)) ? byteSource.call() : remapClassFile(byteSource.call(), GlobalClassRepo.INSTANCE);
             URL url;
             CodeSigner[] signers;
             if (connection instanceof JarURLConnection) {

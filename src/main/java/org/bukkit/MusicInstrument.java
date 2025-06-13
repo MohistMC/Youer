@@ -47,4 +47,14 @@ public abstract class MusicInstrument implements Keyed {
     private static MusicInstrument getInstrument(@NotNull String key) {
         return Registry.INSTRUMENT.getOrThrow(NamespacedKey.minecraft(key));
     }
+
+    // Paper start - deprecate getKey
+    /**
+     * @deprecated use {@link Registry#getKey(Keyed)} and {@link Registry#INSTRUMENT}. MusicInstruments
+     * can exist without a key.
+     */
+    @Deprecated(forRemoval = true, since = "1.20.5")
+    @Override
+    public abstract @NotNull NamespacedKey getKey();
+    // Paper end - deprecate getKey
 }

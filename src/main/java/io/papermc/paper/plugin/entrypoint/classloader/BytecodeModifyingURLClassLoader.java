@@ -107,7 +107,7 @@ public final class BytecodeModifyingURLClassLoader extends URLClassLoader implem
     }
 
     private Class<?> defineClass(String name, Callable<byte[]> byteSource, URLConnection connection, Manifest manifest, URL url) throws Exception {
-        Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(name, byteSource, connection);
+        Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(null, name, byteSource, connection);
         int i = name.lastIndexOf('.');
         if (i != -1) {
             String pkgname = name.substring(0, i);

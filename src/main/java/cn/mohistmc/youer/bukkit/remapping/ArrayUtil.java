@@ -1,8 +1,13 @@
 package cn.mohistmc.youer.bukkit.remapping;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.IntFunction;
 
 public class ArrayUtil {
+
+
+    public static Set<String> stringSet = new HashSet<>();
 
     public static Object[] append(Object[] array, Object obj) {
         Object[] newArray = new Object[array.length + 1];

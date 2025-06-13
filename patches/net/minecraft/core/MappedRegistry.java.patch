@@ -22,6 +22,15 @@
      };
      private final Object tagAdditionLock = new Object();
  
+@@ -106,7 +_,7 @@
+         }
+     }
+ 
+-    private void validateWrite(ResourceKey<T> p_205922_) {
++    public void validateWrite(ResourceKey<T> p_205922_) {
+         if (this.frozen) {
+             throw new IllegalStateException("Registry is already frozen (trying to add key " + p_205922_ + ")");
+         }
 @@ -114,9 +_,17 @@
  
      @Override
@@ -134,11 +143,20 @@
  
                  return this;
              }
-@@ -440,5 +_,53 @@
+@@ -440,5 +_,62 @@
      @Override
      public HolderLookup.RegistryLookup<T> asLookup() {
          return this.lookup;
 +    }
++
++    // Paper start
++    // used to clear intrusive holders from GameEvent, Item, Block, EntityType, and Fluid from unused instances of those types
++    public void clearIntrusiveHolder(final T instance) {
++        if (this.unregisteredIntrusiveHolders != null) {
++            this.unregisteredIntrusiveHolders.remove(instance);
++        }
++    }
++    // Paper end
 +
 +    @Override
 +    protected void clear(boolean full) {

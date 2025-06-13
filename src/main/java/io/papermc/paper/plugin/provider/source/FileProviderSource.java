@@ -26,15 +26,9 @@ public class FileProviderSource implements ProviderSource<Path, Path> {
 
     private static final Logger LOGGER = LogUtils.getLogger();
     private final Function<Path, String> contextChecker;
-    private final boolean applyRemap;
-
-    public FileProviderSource(Function<Path, String> contextChecker, boolean applyRemap) {
-        this.contextChecker = contextChecker;
-        this.applyRemap = applyRemap;
-    }
 
     public FileProviderSource(Function<Path, String> contextChecker) {
-        this(contextChecker, true);
+        this.contextChecker = contextChecker;
     }
 
     @Override

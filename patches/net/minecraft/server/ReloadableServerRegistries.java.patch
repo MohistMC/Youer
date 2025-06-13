@@ -1,0 +1,36 @@
+--- a/net/minecraft/server/ReloadableServerRegistries.java
++++ b/net/minecraft/server/ReloadableServerRegistries.java
+@@ -48,27 +_,29 @@
+         RegistryAccess.Frozen registryaccess$frozen = p_335950_.getAccessForLoading(RegistryLayer.RELOADABLE);
+         RegistryOps<JsonElement> registryops = new ReloadableServerRegistries.EmptyTagLookupWrapper(registryaccess$frozen)
+             .createSerializationContext(JsonOps.INSTANCE);
++        final io.papermc.paper.registry.data.util.Conversions conversions = new io.papermc.paper.registry.data.util.Conversions(registryops.lookupProvider); // Paper
+         List<CompletableFuture<WritableRegistry<?>>> list = LootDataType.values()
+-            .map(p_335899_ -> scheduleElementParse((LootDataType<?>)p_335899_, registryops, p_335786_, p_335516_))
++            .map(p_335899_ -> scheduleElementParse((LootDataType<?>)p_335899_, registryops, p_335786_, p_335516_, conversions)) // Paper
+             .toList();
+         CompletableFuture<List<WritableRegistry<?>>> completablefuture = Util.sequence(list);
+         return completablefuture.thenApplyAsync(p_335383_ -> apply(p_335950_, (List<WritableRegistry<?>>)p_335383_), p_335516_);
+     }
+ 
+     private static <T> CompletableFuture<WritableRegistry<?>> scheduleElementParse(
+-        LootDataType<T> p_335741_, RegistryOps<JsonElement> p_336173_, ResourceManager p_335893_, Executor p_336104_
++        LootDataType<T> p_335741_, RegistryOps<JsonElement> p_336173_, ResourceManager p_335893_, Executor p_336104_, io.papermc.paper.registry.data.util.Conversions conversions // Paper
+     ) {
+         return CompletableFuture.supplyAsync(
+             () -> {
+                 WritableRegistry<T> writableregistry = new MappedRegistry<>(p_335741_.registryKey(), Lifecycle.experimental());
++                io.papermc.paper.registry.PaperRegistryAccess.instance().registerReloadableRegistry(p_335741_.registryKey(), writableregistry); // Paper - register reloadable registry
+                 Map<ResourceLocation, JsonElement> map = new HashMap<>();
+                 String s = Registries.elementsDirPath(p_335741_.registryKey());
+                 SimpleJsonResourceReloadListener.scanDirectory(p_335893_, s, GSON, map);
+                 map.forEach(
+                     (p_335614_, p_335474_) -> p_335741_.deserialize(p_335614_, p_336173_, p_335474_)
+                             .ifPresent(
+-                                p_335683_ -> writableregistry.register(
+-                                        ResourceKey.create(p_335741_.registryKey(), p_335614_), (T)p_335683_, DEFAULT_REGISTRATION_INFO
++                                p_335683_ ->io.papermc.paper.registry.PaperRegistryListenerManager.INSTANCE.registerWithListeners(writableregistry,
++                                        ResourceKey.create(p_335741_.registryKey(), p_335614_), (T)p_335683_, DEFAULT_REGISTRATION_INFO, conversions
+                                     )
+                             )
+                 );

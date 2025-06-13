@@ -8,13 +8,40 @@
  import java.util.function.Supplier;
  import net.minecraft.Util;
  import net.minecraft.advancements.CriteriaTriggers;
-@@ -321,12 +_,22 @@
+@@ -289,6 +_,18 @@
+     );
+     public static final Registry<? extends Registry<?>> REGISTRY = WRITABLE_REGISTRY;
+ 
++    // Paper start - add built-in registry conversions
++    public static final io.papermc.paper.registry.data.util.Conversions BUILT_IN_CONVERSIONS = new io.papermc.paper.registry.data.util.Conversions(new net.minecraft.resources.RegistryOps.RegistryInfoLookup() {
++        @Override
++        public <T> java.util.Optional<net.minecraft.resources.RegistryOps.RegistryInfo<T>> lookup(final ResourceKey<? extends Registry<? extends T>> registryRef) {
++            final Registry<T> registry = net.minecraft.server.RegistryLayer.STATIC_ACCESS.registryOrThrow(registryRef);
++            return java.util.Optional.of(
++                    new net.minecraft.resources.RegistryOps.RegistryInfo<>(registry.asLookup(), registry.asTagAddingLookup(), Lifecycle.experimental())
++            );
++        }
++    });
++    // Paper end - add built-in registry conversions
++
+     private static <T> Registry<T> registerSimple(ResourceKey<? extends Registry<T>> p_260095_, BuiltInRegistries.RegistryBootstrap<T> p_259057_) {
+         return internalRegister(p_260095_, new MappedRegistry<>(p_260095_, Lifecycle.stable(), false), p_259057_);
+     }
+@@ -315,18 +_,30 @@
+         ResourceKey<? extends Registry<T>> p_259230_, R p_260327_, BuiltInRegistries.RegistryBootstrap<T> p_259210_
+     ) {
+         Bootstrap.checkBootstrapCalled(() -> "registry " + p_259230_);
++        io.papermc.paper.registry.PaperRegistryAccess.instance().registerRegistry(p_260327_.key(), p_260327_); // Paper - initialize API registry
+         ResourceLocation resourcelocation = p_259230_.location();
+         LOADERS.put(resourcelocation, () -> p_259210_.run(p_260327_));
+         WRITABLE_REGISTRY.register((ResourceKey)p_259230_, p_260327_, RegistrationInfo.BUILT_IN);
          return p_260327_;
      }
  
 +    public static AtomicReference<Runnable> bootStrap$runnable = new AtomicReference<>();
 +
      public static void bootStrap() {
++        REGISTRY.freeze(); // Paper - freeze main registry early
          createContents();
 +        if (bootStrap$runnable.get() != null) {
 +            bootStrap$runnable.getAndSet(null).run();
@@ -31,6 +58,14 @@
      private static void createContents() {
          LOADERS.forEach((p_259863_, p_259387_) -> {
              if (p_259387_.get() == null) {
+@@ -339,6 +_,7 @@
+         REGISTRY.freeze();
+ 
+         for (Registry<?> registry : REGISTRY) {
++            io.papermc.paper.registry.PaperRegistryListenerManager.INSTANCE.runFreezeListeners(registry.key(), BUILT_IN_CONVERSIONS); // Paper
+             registry.freeze();
+         }
+     }
 @@ -354,6 +_,10 @@
                  Validate.notNull(p_339350_.get(resourcelocation), "Missing default of DefaultedMappedRegistry: " + resourcelocation);
              }

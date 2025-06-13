@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 public class PluginFlagProviderSource implements ProviderSource<List<Path>, List<Path>> {
 
     public static final PluginFlagProviderSource INSTANCE = new PluginFlagProviderSource();
-    private static final FileProviderSource FILE_PROVIDER_SOURCE = new FileProviderSource("File '%s' specified through 'add-plugin' argument"::formatted, false);
+    private static final FileProviderSource FILE_PROVIDER_SOURCE = new FileProviderSource("File '%s' specified through 'add-plugin' argument"::formatted);
     private static final Logger LOGGER = LogUtils.getLogger();
 
     @Override

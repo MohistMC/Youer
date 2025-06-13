@@ -600,4 +600,16 @@ public class MaterialRerouting {
     public static void setBlocks(ToolComponent.ToolRule toolRule, Collection<Material> blocks) {
         toolRule.setBlocks(blocks.stream().map(MaterialRerouting::transformToBlockType).toList());
     }
+
+    // Paper start - methods added post 1.13, no-op
+    @RerouteStatic("org/bukkit/inventory/ItemStack")
+    public static ItemStack of(final Material material) {
+        return ItemStack.of(material);
+    }
+
+    @RerouteStatic("org/bukkit/inventory/ItemStack")
+    public static ItemStack of(final Material material, final int amount) {
+        return ItemStack.of(material, amount);
+    }
+    // Paper end
 }

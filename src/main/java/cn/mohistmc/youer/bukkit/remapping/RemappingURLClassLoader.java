@@ -74,7 +74,7 @@ public class RemappingURLClassLoader extends URLClassLoader implements Remapping
                 throw new ClassNotFoundException(name, e);
             }
 
-            Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(name, byteSource, connection);
+            Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(null, name, byteSource, connection);
 
             int i = name.lastIndexOf('.');
             if (i != -1) {

@@ -16,11 +16,10 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
-public class CraftPersistentDataContainer implements PersistentDataContainer {
+public class CraftPersistentDataContainer extends io.papermc.paper.persistence.PaperPersistentDataContainerView implements PersistentDataContainer { // Paper - split up view and mutable
 
     private final Map<String, Tag> customDataTags = new HashMap<>();
-    private final CraftPersistentDataTypeRegistry registry;
-    private final CraftPersistentDataAdapterContext adapterContext;
+    // Paper - move to PersistentDataContainerView
 
     public CraftPersistentDataContainer(Map<String, Tag> customTags, CraftPersistentDataTypeRegistry registry) {
         this(registry);
@@ -28,10 +27,15 @@ public class CraftPersistentDataContainer implements PersistentDataContainer {
     }
 
     public CraftPersistentDataContainer(CraftPersistentDataTypeRegistry registry) {
-        this.registry = registry;
-        this.adapterContext = new CraftPersistentDataAdapterContext(this.registry);
+        super(registry); // Paper - move to PersistentDataContainerView
     }
 
+    // Paper start
+    @Override
+    public Tag getTag(final String key) {
+        return this.customDataTags.get(key);
+    }
+    // Paper end
 
     @Override
     public <T, Z> void set(@NotNull NamespacedKey key, @NotNull PersistentDataType<T, Z> type, @NotNull Z value) {
@@ -42,43 +46,7 @@ public class CraftPersistentDataContainer implements PersistentDataContainer {
         this.customDataTags.put(key.toString(), this.registry.wrap(type, type.toPrimitive(value, this.adapterContext)));
     }
 
-    @Override
-    public <T, Z> boolean has(@NotNull NamespacedKey key, @NotNull PersistentDataType<T, Z> type) {
-        Preconditions.checkArgument(key != null, "The NamespacedKey key cannot be null");
-        Preconditions.checkArgument(type != null, "The provided type cannot be null");
-
-        Tag value = this.customDataTags.get(key.toString());
-        if (value == null) {
-            return false;
-        }
-
-        return this.registry.isInstanceOf(type, value);
-    }
-
-    @Override
-    public boolean has(NamespacedKey key) {
-        return this.customDataTags.get(key.toString()) != null;
-    }
-
-    @Override
-    public <T, Z> Z get(@NotNull NamespacedKey key, @NotNull PersistentDataType<T, Z> type) {
-        Preconditions.checkArgument(key != null, "The NamespacedKey key cannot be null");
-        Preconditions.checkArgument(type != null, "The provided type cannot be null");
-
-        Tag value = this.customDataTags.get(key.toString());
-        if (value == null) {
-            return null;
-        }
-
-        return type.fromPrimitive(this.registry.extract(type, value), this.adapterContext);
-    }
-
-    @NotNull
-    @Override
-    public <T, Z> Z getOrDefault(@NotNull NamespacedKey key, @NotNull PersistentDataType<T, Z> type, @NotNull Z defaultValue) {
-        Z z = this.get(key, type);
-        return z != null ? z : defaultValue;
-    }
+    // Paper - move to PersistentDataContainerView
 
     @NotNull
     @Override
@@ -183,4 +151,26 @@ public class CraftPersistentDataContainer implements PersistentDataContainer {
         this.customDataTags.clear();
     }
     // Paper end
+
+    // Paper start - byte array serialization
+    // Paper - move to PersistentDataContainerView
+    @Override
+    public void readFromBytes(final byte[] bytes, final boolean clear) throws java.io.IOException {
+        if (clear) {
+            this.clear();
+        }
+        try (final java.io.DataInputStream dataInput = new java.io.DataInputStream(new java.io.ByteArrayInputStream(bytes))) {
+            final net.minecraft.nbt.CompoundTag compound = net.minecraft.nbt.NbtIo.read(dataInput);
+            this.putAll(compound);
+        }
+    }
+    // Paper end - byte array serialization
+
+    // Paper start - deep clone tags
+    public Map<String, Tag> getTagsCloned() {
+        final Map<String, Tag> tags = new HashMap<>();
+        this.customDataTags.forEach((key, tag) -> tags.put(key, tag.copy()));
+        return tags;
+    }
+    // Paper end - deep clone tags
 }

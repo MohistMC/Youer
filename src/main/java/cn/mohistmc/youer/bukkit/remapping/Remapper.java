@@ -5,7 +5,9 @@ import com.google.common.collect.HashBiMap;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import net.md_5.specialsource.InheritanceMap;
 import net.md_5.specialsource.JarMapping;
 import net.md_5.specialsource.JarRemapper;
@@ -31,7 +33,7 @@ public class Remapper {
         }
     }
 
-    private final JarMapping toNmsMapping;
+    public final JarMapping toNmsMapping;
     private final JarMapping toBukkitMapping;
     public final InheritanceMap inheritanceMap;
     private final List<PluginTransformer> transformerList = new ArrayList<>();
@@ -44,13 +46,13 @@ public class Remapper {
 
     public Remapper() throws Exception {
         this.toNmsMapping = new JarMapping();
-        this.toNmsMapping.packages.put("org/bukkit/craftbukkit/v1_21_R1/", "org/bukkit/craftbukkit/");
-        this.toNmsMapping.packages.put("org/yaml/snakeyaml/", "com/mohistmc/org/yaml/snakeyaml/");
-        this.toNmsMapping.packages.put("javax/inject/", "com/mohistmc/javax/inject/");
-        this.toNmsMapping.packages.put("org/spongepowered/configurate/", "com/mohistmc/org.spongepowered/configurate/");
-        this.toNmsMapping.packages.put("io/leangen/geantyref/", "com/mohistmc/io/leangen/geantyref/");
-        this.toNmsMapping.packages.put("com/mohistmc/net/kyori/option/", "net/kyori/option/");
-        this.toNmsMapping.packages.put("com/destroystokyo/paper/", "io/papermc/paper/");
+        put("org/bukkit/craftbukkit/v1_21_R1/", "org/bukkit/craftbukkit/");
+        put("org/yaml/snakeyaml/", "com/mohistmc/org/yaml/snakeyaml/");
+        put("javax/inject/", "com/mohistmc/javax/inject/");
+        put("org/spongepowered/configurate/", "com/mohistmc/org.spongepowered/configurate/");
+        put("io/leangen/geantyref/", "com/mohistmc/io/leangen/geantyref/");
+        put("com/mohistmc/net/kyori/option/", "net/kyori/option/");
+        put("com/destroystokyo/paper/", "io/papermc/paper/");
         this.toBukkitMapping = new JarMapping();
         this.inheritanceMap = new InheritanceMap();
         this.toNmsMapping.loadMappings(
@@ -65,6 +67,7 @@ public class Remapper {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(Remapper.class.getClassLoader().getResourceAsStream("mappings/inheritanceMap.txt")))) {
             inheritanceMap.load(reader, inverseClassMap);
         }
+
         JointProvider inheritanceProvider = new JointProvider();
         inheritanceProvider.add(inheritanceMap);
         inheritanceProvider.add(new ClassLoaderProvider(ClassLoader.getSystemClassLoader()));
@@ -113,5 +116,23 @@ public class Remapper {
         Unsafe.putObject(jarMapping, fdOffset, Unsafe.getObject(mapping, fdOffset));
         Unsafe.putObject(jarMapping, mapOffset, Unsafe.getObject(mapping, mapOffset));
         return jarMapping;
+    }
+
+    public static boolean isExcludedPackage(String packageName) {
+        for (String s : ArrayUtil.stringSet) {
+            if (packageName.startsWith(s.replace('/', '.'))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void put(String key, String value) {
+        toNmsMapping.packages.put(key, value);
+        ArrayUtil.stringSet.add(key);
+    }
+
+    public static boolean isNeedRemap(String pluginName) {
+        return Set.of("FancyNpcs", "ModelEngine").contains(pluginName);
     }
 }

@@ -51,11 +51,7 @@ public class FieldRename {
         };
     }
 
-    @RequireCompatibility("allow-old-keys-in-registry")
-    public static <T extends Keyed> T get(Registry<T> registry, NamespacedKey namespacedKey) {
-        // We don't have version-specific changes, so just use current, and don't inject a version
-        return CraftRegistry.get(registry, namespacedKey, ApiVersion.CURRENT);
-    }
+
 
     // PatternType
     private static final FieldRenameData PATTERN_TYPE_DATA = FieldRenameData.Builder.newBuilder()
