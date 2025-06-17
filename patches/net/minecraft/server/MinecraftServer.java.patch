@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1,16 +_,21 @@
+@@ -1,16 +_,24 @@
  package net.minecraft.server;
  
 +import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
@@ -12,6 +12,9 @@
  import com.google.common.collect.Maps;
  import com.google.common.collect.Sets;
 +import com.google.gson.Gson;
++import io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner;
++import io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent;
++import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 +import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  import com.mojang.authlib.GameProfile;
  import com.mojang.authlib.GameProfileRepository;
@@ -776,14 +779,17 @@
      }
  
      @Override
-@@ -900,12 +_,23 @@
+@@ -900,12 +_,26 @@
  
      public void tickServer(BooleanSupplier p_129871_) {
          long i = Util.getNanos();
 +        // Paper start - move oversleep into full server tick
 +        isOversleep = true;
-+        this.managedBlock(() -> {
-+            return !this.canOversleep();
++        this.managedBlock(new BooleanSupplier() {
++            @Override
++            public boolean getAsBoolean() {
++                return !MinecraftServer.this.canOversleep();
++            }
 +        });
 +        isOversleep = false;
 +        // Paper end
@@ -1055,13 +1061,7 @@
                  this
              )
              .thenCompose(
-@@ -1461,11 +_,12 @@
-                                 closeableresourcemanager.close();
-                             }
-                         })
--                        .thenApply(p_212904_ -> new MinecraftServer.ReloadableResources(closeableresourcemanager, p_212904_));
-+                        .thenApply(p_212904_ -> new ReloadableResources(closeableresourcemanager, p_212904_));
-                 }
+@@ -1466,6 +_,7 @@
              )
              .thenAcceptAsync(
                  p_335203_ -> {
@@ -1077,7 +1077,7 @@
 +                    org.bukkit.craftbukkit.block.data.CraftBlockData.reloadCache(); // Paper - cache block data strings, they can be defined by datapacks so refresh it here
 +                    // Paper start - brigadier command API
 +                    io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // reset invalid state for event fire below
-+                    io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD); // call commands event for regular plugins
++                    LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, ReloadableRegistrarEvent.Cause.RELOAD); // call commands event for regular plugins
 +                    final org.bukkit.craftbukkit.help.SimpleHelpMap helpMap = (org.bukkit.craftbukkit.help.SimpleHelpMap) this.server.getHelpMap();
 +                    helpMap.clear();
 +                    helpMap.initializeGeneralTopics();

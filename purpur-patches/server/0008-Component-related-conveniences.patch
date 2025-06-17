@@ -1,0 +1,107 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: William Blake Galbreath <blake.galbreath@gmail.com>
+Date: Tue, 29 Jun 2021 21:37:40 -0500
+Subject: [PATCH] Component related conveniences
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index 2e45bc48c8a86d9522e4574bf3037611cfda63a3..98fd4d8aab273ab86bcb9b95a331cd8bbcb61373 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -2008,6 +2008,26 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
+         this.lastSentExp = -1; // CraftBukkit - Added to reset
+     }
+ 
++    // Purpur start
++    public void sendActionBarMessage(@Nullable String message) {
++        if (message != null && !message.isEmpty()) {
++            sendActionBarMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(message));
++        }
++    }
++
++    public void sendActionBarMessage(@Nullable net.kyori.adventure.text.Component message) {
++        if (message != null) {
++            sendActionBarMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(message));
++        }
++    }
++
++    public void sendActionBarMessage(@Nullable Component message) {
++        if (message != null) {
++            displayClientMessage(message, true);
++        }
++    }
++    // Purpur end
++
+     @Override
+     public void displayClientMessage(Component message, boolean overlay) {
+         this.sendSystemMessage(message, overlay);
+diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
+index 5e2c4969e77c669acbb4a13c07033cb267c3d586..0a7f30f86adfbcbfc4d65f6194d26c51dba8bff1 100644
+--- a/src/main/java/net/minecraft/server/players/PlayerList.java
++++ b/src/main/java/net/minecraft/server/players/PlayerList.java
+@@ -1026,6 +1026,20 @@ public abstract class PlayerList {
+     }
+     // CraftBukkit end
+ 
++    // Purpur Start
++    public void broadcastMiniMessage(@Nullable String message, boolean overlay) {
++        if (message != null && !message.isEmpty()) {
++            this.broadcastMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(message), overlay);
++        }
++    }
++
++    public void broadcastMessage(@Nullable net.kyori.adventure.text.Component message, boolean overlay) {
++        if (message != null) {
++            this.broadcastSystemMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(message), overlay);
++        }
++    }
++    // Purpur end
++
+     public void broadcastAll(Packet<?> packet, ResourceKey<Level> dimension) {
+         Iterator iterator = this.players.iterator();
+ 
+diff --git a/src/main/java/net/minecraft/world/damagesource/DamageSource.java b/src/main/java/net/minecraft/world/damagesource/DamageSource.java
+index bb1a60180e58c1333e7bb33e8acf1b0225eda8a8..c83e80ebdbbfb2d0e08561a44486a308d16f50af 100644
+--- a/src/main/java/net/minecraft/world/damagesource/DamageSource.java
++++ b/src/main/java/net/minecraft/world/damagesource/DamageSource.java
+@@ -198,6 +198,15 @@ public class DamageSource {
+         }
+     }
+ 
++    // Purpur start
++    public Component getLocalizedDeathMessage(String str, LivingEntity entity) {
++        net.kyori.adventure.text.Component name = io.papermc.paper.adventure.PaperAdventure.asAdventure(entity.getDisplayName());
++        net.kyori.adventure.text.minimessage.tag.resolver.TagResolver template = net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.component("player", name);
++        net.kyori.adventure.text.Component component = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(str, template);
++        return io.papermc.paper.adventure.PaperAdventure.asVanilla(component);
++    }
++    // Purpur end
++
+     public String getMsgId() {
+         return this.type().msgId();
+     }
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index b0db87fc0e1a05a6268b3f93403ec4209f10f685..bc484b2ad1fbbece041adb3282d80fac2dc826bd 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -4189,6 +4189,20 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         return SlotAccess.NULL;
+     }
+ 
++    // Purpur Start
++    public void sendMiniMessage(@Nullable String message) {
++        if (message != null && !message.isEmpty()) {
++            this.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(message));
++        }
++    }
++
++    public void sendMessage(@Nullable net.kyori.adventure.text.Component message) {
++        if (message != null) {
++            this.sendSystemMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(message));
++        }
++    }
++    // Purpur end
++
+     @Override
+     public void sendSystemMessage(Component message) {}
+ 
