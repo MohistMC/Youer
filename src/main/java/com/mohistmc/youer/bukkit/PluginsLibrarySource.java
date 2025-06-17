@@ -8,8 +8,8 @@ import com.mohistmc.youer.Youer;
  */
 public enum PluginsLibrarySource {
 
-    ALIBABA("https://maven.aliyun.com/repository/public/"),
-    MAVEN2("https://repo.maven.apache.org/maven2/");
+    ALIBABA("https://maven.aliyun.com/repository/public"),
+    MAVEN2("https://repo.maven.apache.org/maven2");
 
     public final String url;
 
