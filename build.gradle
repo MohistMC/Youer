@@ -4,9 +4,20 @@ plugins {
 }
 
 project.version = project.neoforge_version
-
 // Print version, generally useful to know - also appears on CI
 System.out.println("NeoForge version ${project.version}")
+
+// Youer start
+def gitInfo = gradleutils.gitInfo
+def originalProps = new Properties()
+file("gradle.properties").withInputStream { originalProps.load(it) }
+originalProps.setProperty("git.abbreviatedId",  gitInfo.abbreviatedId)
+file("gradle.properties").withWriter { writer ->
+    originalProps.store(writer, "Preserved original properties with Git info")
+    writer.write("\n")
+}
+System.out.println("Git Commit " + originalProps.getProperty("git.abbreviatedId"))
+//Youer end
 
 allprojects {
     version = rootProject.version
@@ -19,6 +30,9 @@ allprojects {
     tasks.withType(JavaCompile).configureEach {
         options.encoding = 'UTF-8'
         options.warnings = false
+    }
+    configurations.configureEach {
+        exclude group: 'com.mojang', module: 'brigadier'
     }
 }
 

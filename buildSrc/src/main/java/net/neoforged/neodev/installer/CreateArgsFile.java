@@ -110,7 +110,7 @@ public abstract class CreateArgsFile extends DefaultTask {
         replacements.put("@IGNORE_LIST@", String.join(",", getIgnoreList().get()));
         replacements.put("@PLUGIN_LAYER_LIBRARIES@", "");
         replacements.put("@GAME_LAYER_LIBRARIES@", "");
-        replacements.put("@CLASS_PATH@", resolveClasspath());
+        replacements.put("@CLASS_PATH@", resolveClasspath().replace("libraries/com/mojang/brigadier/1.3.10/brigadier-1.3.10.jar;", ""));
         replacements.put("@TASK@", "forgeserver");
         replacements.put("@FORGE_VERSION@", getNeoForgeVersion().get());
         replacements.put("@FML_VERSION@", getFmlVersion().get());

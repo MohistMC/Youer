@@ -16,11 +16,12 @@
  import net.minecraft.network.DisconnectionDetails;
  import net.minecraft.network.PacketSendListener;
  import net.minecraft.network.chat.Component;
-@@ -21,12 +_,43 @@
+@@ -21,12 +_,44 @@
  import net.minecraft.network.protocol.common.ServerboundPongPacket;
  import net.minecraft.network.protocol.common.ServerboundResourcePackPacket;
  import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
 +import net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket;
++import net.minecraft.resources.ResourceLocation;
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ClientInformation;
 +import net.minecraft.server.level.ServerPlayer;
@@ -61,7 +62,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final int LATENCY_CHECK_INTERVAL = 15000;
      private static final int CLOSED_LISTENER_TIMEOUT = 15000;
-@@ -42,6 +_,19 @@
+@@ -42,6 +_,24 @@
      private boolean closed = false;
      private int latency;
      private volatile boolean suspendFlushingOnServerThread = false;
@@ -73,10 +74,15 @@
 +    protected CraftServer cserver;
 +    public boolean processedDisconnect;
 +    public final java.util.Map<java.util.UUID, net.kyori.adventure.resource.ResourcePackCallback> packCallbacks = new java.util.concurrent.ConcurrentHashMap<>(); // Paper - adventure resource pack callbacks
++    protected static final ResourceLocation MINECRAFT_BRAND = ResourceLocation.withDefaultNamespace("brand"); // Paper - Brand support
 +
 +    public CraftPlayer getCraftPlayer() {
 +        return (this.player == null) ? null : (CraftPlayer) this.player.getBukkitEntity();
 +        // CraftBukkit end
++    }
++
++    public CraftServer getCraftServer() {
++        return cserver;
 +    }
  
      public ServerCommonPacketListenerImpl(MinecraftServer p_295057_, Connection p_294822_, CommonListenerCookie p_301980_) {
@@ -105,11 +111,16 @@
          if (this.keepAlivePending && p_294627_.getId() == this.keepAliveChallenge) {
              int i = (int)(Util.getMillis() - this.keepAliveTime);
              this.latency = (this.latency * 3 + i) / 4;
-@@ -83,7 +_,38 @@
+@@ -83,7 +_,43 @@
  
      @Override
      public void handleCustomPayload(ServerboundCustomPayloadPacket p_294276_) {
 -    }
++        // Paper start - Brand support
++        if (p_294276_.payload() instanceof net.minecraft.network.protocol.common.custom.BrandPayload brandPayload) {
++            this.player.clientBrandName = brandPayload.brand();
++        }
++        // Paper end - Brand support
 +        // Neo: Unconditionally handle register/unregister payloads.
 +        if (p_294276_.payload() instanceof net.neoforged.neoforge.network.payload.MinecraftRegisterPayload minecraftRegisterPayload) {
 +            net.neoforged.neoforge.network.registration.NetworkRegistry.onMinecraftRegister(this.getConnection(), minecraftRegisterPayload.newChannels());
@@ -201,7 +212,7 @@
          if (p_295099_.isTerminal()) {
              this.close();
          }
-@@ -151,22 +_,79 @@
+@@ -151,22 +_,84 @@
          try {
              this.connection.send(p_295099_, p_296321_, flag);
          } catch (Throwable throwable) {
@@ -226,6 +237,11 @@
  
      public void disconnect(DisconnectionDetails p_350316_) {
 -        this.connection.send(new ClientboundDisconnectPacket(p_350316_.reason()), PacketSendListener.thenRun(() -> this.connection.disconnect(p_350316_)));
++        // Paper start - Fix kick event leave message not being sent
++        this.onDisconnect(p_350316_, null);
++    }
++
++    public void onDisconnect(DisconnectionDetails p_350316_, @Nullable net.kyori.adventure.text.Component quitMessage) {
 +        // CraftBukkit start - fire PlayerKickEvent
 +        if (this.processedDisconnect) {
 +            return;
@@ -263,16 +279,16 @@
 +            // Do not kick the player
 +            return;
 +        }
-+        this.player.kickLeaveMessage = event.getLeaveMessage(); // CraftBukkit - SPIGOT-3034: Forward leave message to PlayerQuitEvent
 +        // Send the possibly modified leave message
-+        this.disconnect0(new DisconnectionDetails(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.reason()), p_350316_.report(), p_350316_.bugReportLink())); // Paper - Adventure
++        this.disconnect0(new DisconnectionDetails(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.reason()), p_350316_.report(), p_350316_.bugReportLink()), event.leaveMessage()); // Paper - Adventure
 +    }
-+    private void disconnect0(DisconnectionDetails disconnectiondetails) {
++    private void disconnect0(DisconnectionDetails disconnectiondetails, @Nullable net.kyori.adventure.text.Component leaveMessage) { // Paper - use kick event leave message
 +        // CraftBukkit end
++        this.player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.KICKED; // Paper - Add API for quit reason
 +        this.connection.send(new ClientboundDisconnectPacket(disconnectiondetails.reason()), PacketSendListener.thenRun(() -> {
 +            this.connection.disconnect(disconnectiondetails);
 +        }));
-+        this.onDisconnect(disconnectiondetails); // CraftBukkit - fire quit instantly
++        this.onDisconnect(disconnectiondetails, leaveMessage); // CraftBukkit - fire quit instantly
          this.connection.setReadOnly();
 -        this.server.executeBlocking(this.connection::handleDisconnection);
 +        MinecraftServer minecraftserver = this.server;

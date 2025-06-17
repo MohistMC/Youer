@@ -1,12 +1,20 @@
 --- a/net/minecraft/network/chat/SignableCommand.java
 +++ b/net/minecraft/network/chat/SignableCommand.java
+@@ -6,6 +_,7 @@
+ import com.mojang.brigadier.context.ParsedCommandNode;
+ import com.mojang.brigadier.tree.ArgumentCommandNode;
+ import com.mojang.brigadier.tree.CommandNode;
++import com.mojang.brigadier.tree.RootCommandNode;
+ import java.util.ArrayList;
+ import java.util.List;
+ import javax.annotation.Nullable;
 @@ -24,7 +_,8 @@
  
          CommandContextBuilder<S> commandcontextbuilder2;
          while (
 -            (commandcontextbuilder2 = commandcontextbuilder1.getChild()) != null && commandcontextbuilder2.getRootNode() != commandcontextbuilder.getRootNode()
 +            // Neo: Check if the command node is a RootCommandNode, instead of simply being the original root node; fixes #186
-+            (commandcontextbuilder2 = commandcontextbuilder1.getChild()) != null && !(commandcontextbuilder2.getRootNode() instanceof com.mojang.brigadier.tree.RootCommandNode)
++            (commandcontextbuilder2 = commandcontextbuilder1.getChild()) != null && !(commandcontextbuilder2.getRootNode() instanceof RootCommandNode)
          ) {
              list.addAll(collectArguments(s, commandcontextbuilder2));
              commandcontextbuilder1 = commandcontextbuilder2;

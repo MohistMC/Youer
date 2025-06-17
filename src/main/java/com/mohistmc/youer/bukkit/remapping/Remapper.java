@@ -1,0 +1,121 @@
+package com.mohistmc.youer.bukkit.remapping;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+import net.md_5.specialsource.JarMapping;
+import net.md_5.specialsource.JarRemapper;
+import net.md_5.specialsource.provider.ClassLoaderProvider;
+import net.md_5.specialsource.provider.JointProvider;
+
+/**
+ * ArclightRemapper
+ *
+ * @author Mainly by IzzelAliz
+ * @originalClassName ArclightRemapper
+ */
+@SuppressWarnings("unchecked")
+public class Remapper {
+
+    public static final Remapper INSTANCE;
+
+    static {
+        try {
+            INSTANCE = new Remapper();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public final JarMapping toNmsMapping;
+    private final JarMapping toBukkitMapping;
+    private final List<PluginTransformer> transformerList = new ArrayList<>();
+    private final JarRemapper toBukkitRemapper;
+    private final JarRemapper toNmsRemapper;
+
+    public List<PluginTransformer> getTransformerList() {
+        return transformerList;
+    }
+
+    public Remapper() throws Exception {
+        this.toNmsMapping = new JarMapping();
+        put("org/bukkit/craftbukkit/v1_21_R1/", "org/bukkit/craftbukkit/");
+        put("org/yaml/snakeyaml/", "com/mohistmc/org/yaml/snakeyaml/");
+        put("javax/inject/", "com/mohistmc/javax/inject/");
+        put("org/spongepowered/configurate/", "com/mohistmc/org.spongepowered/configurate/");
+        put("io/leangen/geantyref/", "com/mohistmc/io/leangen/geantyref/");
+        put("com/mohistmc/net/kyori/option/", "net/kyori/option/");
+        put("com/destroystokyo/paper/", "io/papermc/paper/");
+        this.toBukkitMapping = new JarMapping();
+        this.toNmsMapping.loadMappings(
+                new BufferedReader(new InputStreamReader(Remapper.class.getClassLoader().getResourceAsStream("mappings/spigot2srg.srg"))),
+                null, null, false
+        );
+        this.toBukkitMapping.loadMappings(
+                new BufferedReader(new InputStreamReader(Remapper.class.getClassLoader().getResourceAsStream("mappings/spigot2srg.srg"))),
+                null, null, true
+        );
+        JointProvider inheritanceProvider = new JointProvider();
+        inheritanceProvider.add(new ClassLoaderProvider(ClassLoader.getSystemClassLoader()));
+        this.toNmsMapping.setFallbackInheritanceProvider(inheritanceProvider);
+        this.toBukkitMapping.setFallbackInheritanceProvider(inheritanceProvider);
+        this.transformerList.add(InterfaceInvokerGen.INSTANCE);
+        this.transformerList.add(RedirectAdapter.INSTANCE);
+        this.transformerList.add(ClassLoaderAdapter.INSTANCE);
+        toBukkitMapping.setFallbackInheritanceProvider(GlobalClassRepo.inheritanceProvider());
+        this.toBukkitRemapper = new LenientJarRemapper(toBukkitMapping);
+        this.toNmsRemapper = new LenientJarRemapper(toNmsMapping);
+        RemapSourceHandler.register();
+    }
+
+    public static ClassLoaderRemapper createClassLoaderRemapper(ClassLoader classLoader) {
+        return new ClassLoaderRemapper(INSTANCE.copyOf(INSTANCE.toNmsMapping), INSTANCE.copyOf(INSTANCE.toBukkitMapping), classLoader);
+    }
+
+    public static JarRemapper getResourceMapper() {
+        return INSTANCE.toBukkitRemapper;
+    }
+
+    public static JarRemapper getNmsMapper() {
+        return INSTANCE.toNmsRemapper;
+    }
+
+    private static long pkgOffset, clOffset, mdOffset, fdOffset, mapOffset;
+
+    static {
+        try {
+            pkgOffset = Unsafe.objectFieldOffset(JarMapping.class.getField("packages"));
+            clOffset = Unsafe.objectFieldOffset(JarMapping.class.getField("classes"));
+            mdOffset = Unsafe.objectFieldOffset(JarMapping.class.getField("methods"));
+            fdOffset = Unsafe.objectFieldOffset(JarMapping.class.getField("fields"));
+            mapOffset = Unsafe.objectFieldOffset(JarMapping.class.getDeclaredField("inheritanceMap"));
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private JarMapping copyOf(JarMapping mapping) {
+        JarMapping jarMapping = new JarMapping();
+        Unsafe.putObject(jarMapping, pkgOffset, Unsafe.getObject(mapping, pkgOffset));
+        Unsafe.putObject(jarMapping, clOffset, Unsafe.getObject(mapping, clOffset));
+        Unsafe.putObject(jarMapping, mdOffset, Unsafe.getObject(mapping, mdOffset));
+        Unsafe.putObject(jarMapping, fdOffset, Unsafe.getObject(mapping, fdOffset));
+        Unsafe.putObject(jarMapping, mapOffset, Unsafe.getObject(mapping, mapOffset));
+        return jarMapping;
+    }
+
+    public static boolean isExcludedPackage(String packageName) {
+        for (String s : ArrayUtil.stringSet) {
+            if (packageName.startsWith(s.replace('/', '.'))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void put(String key, String value) {
+        toNmsMapping.packages.put(key, value);
+        ArrayUtil.stringSet.add(key);
+    }
+}

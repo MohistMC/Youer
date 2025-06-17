@@ -6,7 +6,6 @@ import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.suggestion.Suggestion;
 import io.papermc.paper.adventure.PaperAdventure;
-import io.papermc.paper.event.server.AsyncTabCompleteEvent;
 import io.papermc.paper.event.server.AsyncTabCompleteEvent.Completion;
 import java.util.Collections;
 import java.util.List;

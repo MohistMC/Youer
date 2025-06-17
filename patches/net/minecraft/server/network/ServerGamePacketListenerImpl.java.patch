@@ -1,13 +1,13 @@
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -1,5 +_,6 @@
- package net.minecraft.server.network;
+@@ -2,12 +_,15 @@
  
-+import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
  import com.google.common.collect.Lists;
  import com.google.common.primitives.Floats;
++import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
  import com.mojang.authlib.GameProfile;
-@@ -8,6 +_,8 @@
+ import com.mojang.brigadier.CommandDispatcher;
+ import com.mojang.brigadier.ParseResults;
  import com.mojang.brigadier.StringReader;
  import com.mojang.brigadier.suggestion.Suggestions;
  import com.mojang.logging.LogUtils;
@@ -45,12 +45,11 @@
  import net.minecraft.world.level.BaseCommandBlock;
  import net.minecraft.world.level.GameRules;
  import net.minecraft.world.level.GameType;
-@@ -184,7 +_,25 @@
+@@ -184,7 +_,24 @@
  import net.minecraft.world.phys.shapes.BooleanOp;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
 +import org.bukkit.craftbukkit.entity.CraftEntity;
-+import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
 +import org.bukkit.craftbukkit.util.CraftNamespacedKey;
@@ -759,7 +758,7 @@
          this.ackBlockChangesUpTo(p_9932_.getSequence());
          ServerLevel serverlevel = this.player.serverLevel();
          InteractionHand interactionhand = p_9932_.getHand();
-@@ -1147,6 +_,45 @@
+@@ -1147,6 +_,46 @@
                  this.player.absRotateTo(f, f1);
              }
  
@@ -793,6 +792,7 @@
 +                player.gameMode.firedInteract = false;
 +            }
 +            if (cancelled) {
++                this.player.resyncUsingItem(this.player); // Paper - Properly cancel usable items
 +                this.player.getBukkitEntity().updateInventory(); // SPIGOT-2524
 +                return;
 +            }
@@ -805,10 +805,17 @@
              InteractionResult interactionresult = this.player.gameMode.useItem(this.player, serverlevel, itemstack, interactionhand);
              if (interactionresult.shouldSwing()) {
                  this.player.swing(interactionhand, true);
-@@ -1178,6 +_,13 @@
+@@ -1178,22 +_,55 @@
  
      @Override
      public void onDisconnect(DisconnectionDetails p_350554_) {
++        // Paper start - Fix kick event leave message not being sent
++        this.onDisconnect(p_350554_, null);
++    }
++
++    @Override
++    public void onDisconnect(DisconnectionDetails p_350554_, @Nullable net.kyori.adventure.text.Component quitMessage) {
++        // Paper end - Fix kick event leave message not being sent
 +        // CraftBukkit start - Rarely it would send a disconnect line twice
 +        if (this.processedDisconnect) {
 +            return;
@@ -817,9 +824,13 @@
 +        }
 +        // CraftBukkit end
          LOGGER.info("{} lost connection: {}", this.player.getName().getString(), p_350554_.reason().getString());
++        removePlayerFromWorld$quitMessage = quitMessage;
          this.removePlayerFromWorld();
-         super.onDisconnect(p_350554_);
-@@ -1185,12 +_,20 @@
+-        super.onDisconnect(p_350554_);
++        super.onDisconnect(p_350554_, quitMessage);
+     }
++
++    private net.kyori.adventure.text.Component removePlayerFromWorld$quitMessage = null;
  
      private void removePlayerFromWorld() {
          this.chatMessageChain.close();
@@ -831,15 +842,26 @@
              .broadcastSystemMessage(Component.translatable("multiplayer.player.left", this.player.getDisplayName()).withStyle(ChatFormatting.YELLOW), false);
 +        */
          this.player.disconnect();
++        if  (removePlayerFromWorld$quitMessage != null) {
++            this.server.getPlayerList().remove$leaveMessage = removePlayerFromWorld$quitMessage;
++        }
          this.server.getPlayerList().remove(this.player);
-+        net.kyori.adventure.text.Component quitMessage = this.server.getPlayerList().quitMessage;
-+        if ((quitMessage != null) && !quitMessage.equals(net.kyori.adventure.text.Component.empty())) {
-+            this.server.getPlayerList().broadcastSystemMessage(PaperAdventure.asVanilla(quitMessage), false);
++        removePlayerFromWorld$quitMessage = this.server.getPlayerList().quitMessage; // Paper - pass in quitMessage to fix kick message not being used
++        if ((removePlayerFromWorld$quitMessage != null) && !removePlayerFromWorld$quitMessage.equals(net.kyori.adventure.text.Component.empty())) {
++            this.server.getPlayerList().broadcastSystemMessage(PaperAdventure.asVanilla(removePlayerFromWorld$quitMessage), false);
 +        }
 +        // CraftBukkit end
          this.player.getTextFilter().leave();
      }
  
++    private void removePlayerFromWorld(@Nullable net.kyori.adventure.text.Component quitMessage) {
++        removePlayerFromWorld$quitMessage = quitMessage;
++        removePlayerFromWorld();
++    }
++
+     public void ackBlockChangesUpTo(int p_215202_) {
+         if (p_215202_ < 0) {
+             throw new IllegalArgumentException("Expected packet sequence nr >= 0");
 @@ -1205,7 +_,16 @@
      @Override
      public void handleSetCarriedItem(ServerboundSetCarriedItemPacket p_9909_) {
@@ -998,7 +1020,7 @@
          }
      }
  
-@@ -1381,23 +_,169 @@
+@@ -1381,23 +_,161 @@
          return false;
      }
  
@@ -1095,28 +1117,20 @@
 +        }
 +    }
 +
-+    private void handleCommand(String s) {
-+        if ( org.spigotmc.SpigotConfig.logCommands ) // Spigot
-+        this.LOGGER.info(this.player.getScoreboardName() + " issued server command: " + s);
-+
-+        CraftPlayer player = this.getCraftPlayer();
-+
-+        org.bukkit.event.player.PlayerCommandPreprocessEvent event = new org.bukkit.event.player.PlayerCommandPreprocessEvent(player, s, new LazyPlayerSet(server));
-+        this.cserver.getPluginManager().callEvent(event);
-+
-+        if (event.isCancelled()) {
-+            return;
++    @Deprecated // Paper
++    public void handleCommand(String s) { // Paper - private -> public
++        // Paper start - Remove all this old duplicated logic
++        if (s.startsWith("/")) {
++            s = s.substring(1);
 +        }
-+
-+        try {
-+            if (this.cserver.dispatchCommand(event.getPlayer(), event.getMessage().substring(1))) {
-+                return;
-+            }
-+        } catch (org.bukkit.command.CommandException ex) {
-+            player.sendMessage(org.bukkit.ChatColor.RED + "An internal error occurred while attempting to perform this command");
-+            java.util.logging.Logger.getLogger(ServerGamePacketListenerImpl.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-+            return;
-+        }
++        /*
++        It should be noted that this represents the "legacy" command execution path.
++        Api can call commands even if there is no additional context provided.
++        This method should ONLY be used if you need to execute a command WITHOUT
++        an actual player's input.
++        */
++        this.performUnsignedChatCommand(s);
++        // Paper end
 +    }
 +    // CraftBukkit end
 +
@@ -1293,7 +1307,7 @@
 +                                cserver.getPluginManager().callEvent(event);
 +                                // Entity in bucket - SPIGOT-4048 and SPIGOT-6859a
 +                                if ((entity instanceof net.minecraft.world.entity.animal.Bucketable && entity instanceof LivingEntity && origItem != null && origItem.asItem() == Items.WATER_BUCKET) && (event.isCancelled() || player.getInventory().getSelected() == null || player.getInventory().getSelected().getItem() != origItem)) {
-+                                    entity.getBukkitEntity().update(player);
++                                    entity.resendPossiblyDesyncedEntityData(ServerGamePacketListenerImpl.this.player); // Paper - The entire mob gets deleted, so resend it
 +                                    player.containerMenu.sendAllDataToRemote();
 +                                }
 +                                if (triggerLeashUpdate && (event.isCancelled() || player.getInventory().getSelected() == null || player.getInventory().getSelected().getItem() != origItem)) {
@@ -1379,15 +1393,20 @@
                      if (this.server.isHardcore()) {
                          this.player.setGameMode(GameType.SPECTATOR);
                          this.player.level().getGameRules().getRule(GameRules.RULE_SPECTATORSGENERATECHUNKS).set(false, this.server);
-@@ -1622,15 +_,19 @@
+@@ -1622,15 +_,24 @@
      @Override
      public void handleContainerClose(ServerboundContainerClosePacket p_9858_) {
          PacketUtils.ensureRunningOnSameThread(p_9858_, this, this.player.serverLevel());
 +        if (this.player.isImmobile()) return; // CraftBukkit
-+        CraftEventFactory.handleInventoryCloseEvent(this.player); // CraftBukkit
++        CraftEventFactory.handleInventoryCloseEvent(this.player, InventoryOwner.getClose$Reason()); // CraftBukkit
          this.player.doCloseContainer();
      }
  
++    public void handleContainerClose(ServerboundContainerClosePacket packet, org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
++        InventoryOwner.setClose$Reason(reason);
++        handleContainerClose(packet);
++    }
++
      @Override
      public void handleContainerClick(ServerboundContainerClickPacket p_9856_) {
          PacketUtils.ensureRunningOnSameThread(p_9856_, this, this.player.serverLevel());

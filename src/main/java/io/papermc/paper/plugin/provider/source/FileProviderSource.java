@@ -26,9 +26,15 @@ public class FileProviderSource implements ProviderSource<Path, Path> {
 
     private static final Logger LOGGER = LogUtils.getLogger();
     private final Function<Path, String> contextChecker;
+    private final boolean applyRemap;
+
+    public FileProviderSource(Function<Path, String> contextChecker, boolean applyRemap) {
+        this.contextChecker = contextChecker;
+        this.applyRemap = applyRemap;
+    }
 
     public FileProviderSource(Function<Path, String> contextChecker) {
-        this.contextChecker = contextChecker;
+        this(contextChecker, true);
     }
 
     @Override
@@ -52,6 +58,11 @@ public class FileProviderSource implements ProviderSource<Path, Path> {
         } catch (Exception exception) {
             throw new RuntimeException(source + " failed to update!", exception);
         }
+        // Paper start - Remap plugins
+        if (this.applyRemap && io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) {
+            context = io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.rewritePlugin(context);
+        }
+        // Paper end - Remap plugins
         return context;
     }
 

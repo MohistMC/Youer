@@ -1,7 +1,7 @@
 package org.bukkit.craftbukkit;
 
-import cn.mohistmc.youer.api.ServerAPI;
-import cn.mohistmc.youer.util.ProxyUtils;
+import com.mohistmc.youer.api.ServerAPI;
+import com.mohistmc.youer.util.ProxyUtils;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -10,16 +10,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
-import cn.mohistmc.youer.Youer;
-import cn.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
-import cn.mohistmc.youer.plugins.MohistPlugin;
-import cn.mohistmc.youer.util.Level2LevelStem;
+import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
+import com.mohistmc.youer.plugins.MohistPlugin;
+import com.mohistmc.youer.util.Level2LevelStem;
 import com.mojang.authlib.GameProfile;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.tree.CommandNode;
-import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -35,7 +34,6 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -165,7 +163,6 @@ import org.bukkit.craftbukkit.ban.CraftProfileBanList;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.boss.CraftBossBar;
 import org.bukkit.craftbukkit.boss.CraftKeyedBossbar;
-import org.bukkit.craftbukkit.command.BukkitCommandWrapper;
 import org.bukkit.craftbukkit.command.CraftBlockCommandSender;
 import org.bukkit.craftbukkit.command.CraftCommandMap;
 import org.bukkit.craftbukkit.command.VanillaCommandWrapper;
@@ -262,7 +259,6 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.ServicesManager;
 import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.SimpleServicesManager;
-import org.bukkit.plugin.java.JavaPluginLoader;
 import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.plugin.messaging.StandardMessenger;
 import org.bukkit.profile.PlayerProfile;
@@ -278,17 +274,17 @@ import com.mohistmc.org.yaml.snakeyaml .error.MarkedYAMLException;
 import net.md_5.bungee.api.chat.BaseComponent; // Spigot
 
 public final class CraftServer implements Server {
-    private final String serverName = "Youer";
+    private final String serverName = io.papermc.paper.ServerBuildInfo.buildInfo().brandName(); // Paper
     private final String serverVersion;
     private final String bukkitVersion = Versioning.getBukkitVersion();
     private final Logger logger = Logger.getLogger("Minecraft");
     private final ServicesManager servicesManager = new SimpleServicesManager();
     private final CraftScheduler scheduler = new CraftScheduler();
-    private final CraftCommandMap commandMap = new CraftCommandMap(this);
+    private final CraftCommandMap commandMap; // Paper - Move down
     private final SimpleHelpMap helpMap = new SimpleHelpMap(this);
     private final StandardMessenger messenger = new StandardMessenger();
-    private final SimplePluginManager pluginManager = new SimplePluginManager(this, commandMap);
-    public final io.papermc.paper.plugin.manager.PaperPluginManagerImpl paperPluginManager = new io.papermc.paper.plugin.manager.PaperPluginManagerImpl(this, this.commandMap, pluginManager);{this.pluginManager.paperPluginManager = this.paperPluginManager;} // Paper
+    private final SimplePluginManager pluginManager; // Paper - Move down
+    public final io.papermc.paper.plugin.manager.PaperPluginManagerImpl paperPluginManager; // Paper
     private final StructureManager structureManager;
     protected final DedicatedServer console;
     protected final DedicatedPlayerList playerList;
@@ -318,6 +314,7 @@ public final class CraftServer implements Server {
     private final List<CraftPlayer> playerView;
     public int reloadCount;
     public Set<String> activeCompatibilities = Collections.emptySet();
+    private final io.papermc.paper.datapack.PaperDatapackManager datapackManager; // Paper
 
     static {
         ConfigurationSerialization.registerClass(CraftOfflinePlayer.class);
@@ -336,12 +333,18 @@ public final class CraftServer implements Server {
                 return player.getBukkitEntity();
             }
         }));
-        this.serverVersion = "1.21.1";
+        this.serverVersion = io.papermc.paper.ServerBuildInfo.buildInfo().asString(io.papermc.paper.ServerBuildInfo.StringRepresentation.VERSION_SIMPLE); // Paper - improve version
         this.structureManager = new CraftStructureManager(console.getStructureManager(), console.registryAccess());
         this.dataPackManager = new CraftDataPackManager(this.getServer().getPackRepository());
         this.serverTickManager = new CraftServerTickManager(console.tickRateManager());
         this.serverLinks = new CraftServerLinks(console);
         Bukkit.setServer(this);
+        // Paper start
+        this.commandMap = new CraftCommandMap(this);
+        this.pluginManager = new SimplePluginManager(this, commandMap);
+        this.paperPluginManager = new io.papermc.paper.plugin.manager.PaperPluginManagerImpl(this, this.commandMap, pluginManager);
+        this.pluginManager.paperPluginManager = this.paperPluginManager;
+        // Paper end
         CraftRegistry.setMinecraftRegistry(console.registryAccess());
 
         NeoForgeInjectBukkit.init();
@@ -398,6 +401,7 @@ public final class CraftServer implements Server {
         if (this.configuration.getBoolean("settings.use-map-color-cache")) {
             MapPalette.setMapColorCache(new CraftMapColorCache(this.logger));
         }
+        datapackManager = new io.papermc.paper.datapack.PaperDatapackManager(console.getPackRepository()); // Paper
     }
 
     // Youer start
@@ -573,48 +577,11 @@ public final class CraftServer implements Server {
     }
 
     private void setVanillaCommands(boolean first) { // Spigot
-        Commands dispatcher = this.console.vanillaCommandDispatcher;
-
-        // Build a list of all Vanilla commands and create wrappers
-        for (CommandNode<CommandSourceStack> cmd : dispatcher.getDispatcher().getRoot().getChildren()) {
-            // Spigot start
-            VanillaCommandWrapper wrapper = new VanillaCommandWrapper(dispatcher, cmd);
-            if (org.spigotmc.SpigotConfig.replaceCommands.contains( wrapper.getName() ) ) {
-                if (first) {
-                    this.commandMap.register("minecraft", wrapper);
-                }
-            } else if (!first) {
-                this.commandMap.register("minecraft", wrapper);
-            }
-            // Spigot end
-        }
+        // Paper - Replace implementation
     }
 
     public void syncCommands() {
-        // Clear existing commands
-        Commands dispatcher = this.console.resources.managers().commands = new Commands();
-
-        // Register all commands, vanilla ones will be using the old dispatcher references
-        for (Map.Entry<String, Command> entry : this.commandMap.getKnownCommands().entrySet()) {
-            String label = entry.getKey();
-            Command command = entry.getValue();
-
-            if (command instanceof VanillaCommandWrapper) {
-                LiteralCommandNode<CommandSourceStack> node = (LiteralCommandNode<CommandSourceStack>) ((VanillaCommandWrapper) command).vanillaCommand;
-                if (!node.getLiteral().equals(label)) {
-                    LiteralCommandNode<CommandSourceStack> clone = new LiteralCommandNode(label, node.getCommand(), node.getRequirement(), node.getRedirect(), node.getRedirectModifier(), node.isFork());
-
-                    for (CommandNode<CommandSourceStack> child : node.getChildren()) {
-                        clone.addChild(child);
-                    }
-                    node = clone;
-                }
-
-                dispatcher.getDispatcher().getRoot().addChild(node);
-            } else {
-                new BukkitCommandWrapper(this, entry.getValue()).register(dispatcher.getDispatcher(), label);
-            }
-        }
+        Commands dispatcher = this.getHandle().getServer().getCommands(); // Paper - We now register directly to the dispatcher.
 
         // Refresh commands
         for (ServerPlayer player : this.getHandle().players) {
@@ -1001,11 +968,31 @@ public final class CraftServer implements Server {
             return true;
         }
 
-        // Spigot start
-        if (!org.spigotmc.SpigotConfig.unknownCommandMessage.isEmpty()) {
-            sender.sendMessage(org.spigotmc.SpigotConfig.unknownCommandMessage);
+        return this.dispatchCommand(VanillaCommandWrapper.getListener(sender), commandLine);
+    }
+
+    public boolean dispatchCommand(CommandSourceStack sourceStack, String commandLine) {
+        net.minecraft.commands.Commands commands = this.getHandle().getServer().getCommands();
+        CommandDispatcher<CommandSourceStack> dispatcher = commands.getDispatcher();
+        ParseResults<CommandSourceStack> results = dispatcher.parse(commandLine, sourceStack);
+
+        CommandSender sender = sourceStack.getBukkitSender();
+        String[] args = org.apache.commons.lang3.StringUtils.split(commandLine, ' '); // Paper - fix adjacent spaces (from console/plugins) causing empty array elements
+        Command target = this.commandMap.getCommand(args[0].toLowerCase(java.util.Locale.ENGLISH));
+
+        try {
+            commands.performCommand(results, commandLine, commandLine, true);
+        } catch (CommandException ex) {
+            this.pluginManager.callEvent(new io.papermc.paper.event.server.ServerExceptionEvent(new io.papermc.paper.exception.ServerCommandException(ex, target, sender, args))); // Paper
+            //target.timings.stopTiming(); // Spigot // Paper
+            throw ex;
+        } catch (Throwable ex) {
+            //target.timings.stopTiming(); // Spigot // Paper
+            String msg = "Unhandled exception executing '" + commandLine + "' in " + target;
+            this.pluginManager.callEvent(new io.papermc.paper.event.server.ServerExceptionEvent(new io.papermc.paper.exception.ServerCommandException(ex, target, sender, args))); // Paper
+            throw new CommandException(msg, ex);
         }
-        // Spigot end
+        // Paper end
 
         return false;
     }
@@ -1092,7 +1079,6 @@ public final class CraftServer implements Server {
         }
 
         if (perms == null) {
-            this.getLogger().log(Level.INFO, "Server permissions file " + file + " is empty, ignoring it");
             return;
         }
 
@@ -1242,7 +1228,7 @@ public final class CraftServer implements Server {
         List<CustomSpawner> list = ImmutableList.of(new PhantomSpawner(), new PatrolSpawner(), new CatSpawner(), new VillageSiege(), new WanderingTraderSpawner(worlddata));
         LevelStem worlddimension = iregistry.get(actualDimension);
 
-        WorldInfo worldInfo = new CraftWorldInfo(worlddata, worldSession, creator.environment(), worlddimension.type().value());
+        WorldInfo worldInfo = new CraftWorldInfo(worlddata, worldSession, creator.environment(), worlddimension.type().value(), worlddimension.generator(), this.getHandle().getServer().registryAccess()); // Paper - Expose vanilla BiomeProvider from WorldInfo
         if (biomeProvider == null && generator != null) {
             biomeProvider = generator.getDefaultBiomeProvider(worldInfo);
         }
@@ -2696,7 +2682,11 @@ public final class CraftServer implements Server {
 
     @Override
     public double[] getTPS() {
-        return net.minecraft.server.MinecraftServer.getServer().recentTps;
+        return new double[] {
+                net.minecraft.server.MinecraftServer.getServer().tps1.getAverage(),
+                net.minecraft.server.MinecraftServer.getServer().tps5.getAverage(),
+                net.minecraft.server.MinecraftServer.getServer().tps15.getAverage()
+        };
     }
 
     // Spigot start
@@ -2752,5 +2742,10 @@ public final class CraftServer implements Server {
     @Override
     public boolean isStopping() {
         return net.minecraft.server.MinecraftServer.getServer().hasStopped();
+    }
+
+    @Override
+    public io.papermc.paper.datapack.PaperDatapackManager getDatapackManager() {
+        return datapackManager;
     }
 }

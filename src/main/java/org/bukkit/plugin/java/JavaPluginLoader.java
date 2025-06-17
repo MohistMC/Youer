@@ -1,7 +1,7 @@
 package org.bukkit.plugin.java;
 
-import cn.mohistmc.youer.Youer;
-import cn.mohistmc.youer.util.I18n;
+import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.util.I18n;
 import com.google.common.base.Preconditions;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -45,7 +45,6 @@ import org.bukkit.plugin.TimedRegisteredListener;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.spigotmc.CustomTimingsHandler; // Spigot
 import com.mohistmc.org.yaml.snakeyaml .error.YAMLException;
 
 /**

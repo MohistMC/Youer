@@ -1,9 +1,9 @@
 package io.papermc.paper.plugin.entrypoint.classloader;
 
-import cn.mohistmc.youer.asm.SwitchTableFixer;
-import cn.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
-import cn.mohistmc.youer.bukkit.remapping.Remapper;
-import cn.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
+import com.mohistmc.youer.asm.SwitchTableFixer;
+import com.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
+import com.mohistmc.youer.bukkit.remapping.Remapper;
+import com.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
 import com.google.common.io.ByteStreams;
 import io.izzel.tools.product.Product2;
 import java.io.IOException;
@@ -14,7 +14,6 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
-import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -107,7 +106,7 @@ public final class BytecodeModifyingURLClassLoader extends URLClassLoader implem
     }
 
     private Class<?> defineClass(String name, Callable<byte[]> byteSource, URLConnection connection, Manifest manifest, URL url) throws Exception {
-        Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(null, name, byteSource, connection);
+        Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(name, byteSource, connection);
         int i = name.lastIndexOf('.');
         if (i != -1) {
             String pkgname = name.substring(0, i);

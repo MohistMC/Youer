@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit;
 
+import io.papermc.paper.profile.CraftPlayerProfile;
 import com.mojang.authlib.GameProfile;
 import java.io.File;
 import java.time.Duration;
@@ -28,7 +29,6 @@ import org.bukkit.ban.ProfileBanList;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.SerializableAs;
 import org.bukkit.craftbukkit.entity.memory.CraftMemoryMapper;
-import org.bukkit.craftbukkit.profile.CraftPlayerProfile;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.MetadataValue;
@@ -83,7 +83,7 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public io.papermc.paper.profile.PlayerProfile getPlayerProfile() {
-        return io.papermc.paper.profile.CraftPlayerProfile.asBukkitCopy(this.profile); // Paper
+        return CraftPlayerProfile.asBukkitCopy(this.profile); // Paper
     }
 
     public Server getServer() {

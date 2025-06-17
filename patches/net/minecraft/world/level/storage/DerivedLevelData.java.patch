@@ -1,14 +1,54 @@
 --- a/net/minecraft/world/level/storage/DerivedLevelData.java
 +++ b/net/minecraft/world/level/storage/DerivedLevelData.java
-@@ -13,7 +_,7 @@
+@@ -3,17 +_,25 @@
+ import java.util.UUID;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.core.BlockPos;
++import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.world.Difficulty;
+ import net.minecraft.world.level.GameRules;
+ import net.minecraft.world.level.GameType;
+ import net.minecraft.world.level.LevelHeightAccessor;
+ import net.minecraft.world.level.border.WorldBorder;
++import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.timers.TimerQueue;
++import org.spongepowered.asm.mixin.Overwrite;
  
  public class DerivedLevelData implements ServerLevelData {
      private final WorldData worldData;
 -    private final ServerLevelData wrapped;
 +    public final ServerLevelData wrapped;
++    private ResourceKey<LevelStem> typeKey;
++
++    public void setTypeKey(ResourceKey<LevelStem> typeKey) {
++        this.typeKey = typeKey;
++    }
  
      public DerivedLevelData(WorldData p_78079_, ServerLevelData p_78080_) {
          this.worldData = p_78079_;
+@@ -42,7 +_,20 @@
+ 
+     @Override
+     public String getLevelName() {
+-        return this.worldData.getLevelName();
++        if (typeKey == null || typeKey == LevelStem.OVERWORLD) {
++            return this.wrapped.getLevelName();
++        } else {
++            String worldName = this.wrapped.getLevelName() + "/";
++            String suffix;
++            if (typeKey == LevelStem.END) {
++                suffix = "DIM1";
++            } else if (typeKey == LevelStem.NETHER) {
++                suffix = "DIM-1";
++            } else {
++                suffix = typeKey.location().getNamespace() + "/" + typeKey.location().getPath();
++            }
++            return worldName + suffix;
++        }
+     }
+ 
+     @Override
 @@ -190,5 +_,27 @@
      public void fillCrashReportCategory(CrashReportCategory p_164852_, LevelHeightAccessor p_164853_) {
          p_164852_.setDetail("Derived", true);

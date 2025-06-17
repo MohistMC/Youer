@@ -1,7 +1,7 @@
 package org.bukkit.entity;
 
 import com.google.common.base.Preconditions;
-import cn.mohistmc.youer.api.ServerAPI;
+import com.mohistmc.youer.api.ServerAPI;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -30,7 +30,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public enum EntityType implements Keyed, Translatable {
+public enum EntityType implements Keyed, Translatable, io.papermc.paper.world.flag.FeatureDependant { // Paper - translatable
 
     // These strings MUST match the strings in nms.EntityTypes and are case sensitive.
     /**

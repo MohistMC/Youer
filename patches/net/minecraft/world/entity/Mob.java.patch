@@ -207,7 +207,7 @@
          return itemattributemodifiers.compute(this.getAttributeBaseValue(Attributes.ATTACK_DAMAGE), EquipmentSlot.MAINHAND);
      }
  
-@@ -701,8 +_,9 @@
+@@ -701,21 +_,23 @@
  
      @Override
      public void checkDespawn() {
@@ -216,9 +216,10 @@
 -            this.discard();
 +            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {
-             Entity entity = this.level().getNearestPlayer(this, -1.0);
+-            Entity entity = this.level().getNearestPlayer(this, -1.0);
++            Entity entity = this.level().findNearbyPlayer(this, -1.0D, EntitySelector.PLAYER_AFFECTS_SPAWNING); // Paper - Affects Spawning API
              if (entity != null) {
-@@ -710,12 +_,13 @@
+                 double d0 = entity.distanceToSqr(this);
                  int i = this.getType().getCategory().getDespawnDistance();
                  int j = i * i;
                  if (d0 > (double)j && this.removeWhenFarAway(d0)) {

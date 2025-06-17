@@ -126,7 +126,7 @@ import org.jetbrains.annotations.Nullable;
  * changes may occur. Do not use this API in plugins.
  */
 @ApiStatus.Internal
-public interface BlockType extends Keyed, Translatable {
+public interface BlockType extends Keyed, Translatable, io.papermc.paper.world.flag.FeatureDependant { // Paper - add translatable & feature flag API
 
     /**
      * Typed represents a subtype of {@link BlockType}s that have a known block

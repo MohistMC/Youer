@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.scheduler;
 
+import com.mohistmc.youer.util.I18n;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
@@ -55,12 +56,8 @@ class CraftAsyncTask extends CraftTask {
         } catch (final Throwable t) {
             thrown = t;
             this.getOwner().getLogger().log(
-                    Level.WARNING,
-                    String.format(
-                        "Plugin %s generated an exception while executing task %s",
-                        this.getOwner().getDescription().getFullName(),
-                        this.getTaskId()),
-                    thrown);
+                    Level.WARNING, I18n.as("craftasynctask.1", this.getOwner().getDescription().getFullName(),
+                            this.getTaskId()), thrown);
         } finally {
             // Cleanup is important for any async task, otherwise ghost tasks are everywhere
             synchronized (this.workers) {
@@ -77,11 +74,11 @@ class CraftAsyncTask extends CraftTask {
                     if (!removed) {
                         throw new IllegalStateException(
                                 String.format(
-                                    "Unable to remove worker %s on task %s for %s",
-                                    thread.getName(),
-                                    this.getTaskId(),
-                                    this.getOwner().getDescription().getFullName()),
-                                thrown); // We don't want to lose the original exception, if any
+                                        I18n.as("craftasynctask.2",
+                                                thread.getName(),
+                                                this.getTaskId(),
+                                                this.getOwner().getDescription().getFullName()),
+                                        thrown)); // We don't want to lose the original exception, if any
                     }
                 } finally {
                     if (this.getPeriod() < 0 && this.workers.isEmpty()) {

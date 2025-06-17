@@ -61,6 +61,7 @@ public final class CommandHelper {
             Function<SuggestionProvider<S>, SuggestionProvider<T>> sourceToResultSuggestion) {
         if (sourceToResult.containsKey(sourceNode))
             return sourceToResult.get(sourceNode);
+        sourceToResult.keySet().removeIf((node) -> !org.spigotmc.SpigotConfig.sendNamespaced && node.getName().contains( ":" )); // Paper - Remove namedspaced from result nodes to prevent redirect trimming ~ see comment below
 
         ArgumentBuilder<T, ?> resultBuilder;
         if (sourceNode instanceof ArgumentCommandNode<?, ?>) {

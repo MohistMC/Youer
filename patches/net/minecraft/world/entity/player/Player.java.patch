@@ -1,9 +1,10 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -1,5 +_,6 @@
+@@ -1,5 +_,7 @@
  package net.minecraft.world.entity.player;
  
-+import cn.mohistmc.youer.plugins.KeepInventory;
++import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
++import com.mohistmc.youer.plugins.KeepInventory;
  import com.google.common.collect.ImmutableList;
  import com.google.common.collect.ImmutableMap;
  import com.google.common.collect.Lists;
@@ -91,7 +92,7 @@
 +    private final java.util.Collection<MutableComponent> suffixes = new java.util.LinkedList<>();
 +    @Nullable private Pose forcedPose;
 +    private long lastDayTimeTick = -1L; // Neo: Used to limit TIME_SINCE_REST increases when day length is non-standard. No need to persist, at most Phantoms will spawn one tick too early for each save/load cycle.
-+
++    public boolean affectsSpawning = true; // Paper - Affects Spawning API
 +
 +    // CraftBukkit start
 +    public boolean fauxSleeping;
@@ -140,6 +141,14 @@
                  this.stopSleepInBed(false, true);
              }
          } else if (this.sleepCounter > 0) {
+@@ -273,6 +_,7 @@
+         this.updateIsUnderwater();
+         super.tick();
+         if (!this.level().isClientSide && this.containerMenu != null && !this.containerMenu.stillValid(this)) {
++            InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.CANT_USE); // Paper - Inventory close reason
+             this.closeContainer();
+             this.containerMenu = this.inventoryMenu;
+         }
 @@ -291,7 +_,11 @@
              }
  
@@ -181,6 +190,20 @@
          if (this.canPlayerFitWithinBlocksAndEntitiesWhen(Pose.SWIMMING)) {
              Pose pose;
              if (this.isFallFlying()) {
+@@ -481,6 +_,13 @@
+         }
+     }
+ 
++    // Paper start - Inventory close reason; unused code, but to keep signatures aligned
++    public void closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
++        closeContainer();
++        this.containerMenu = this.inventoryMenu;
++    }
++    // Paper end - Inventory close reason
++
+     public void closeContainer() {
+         this.containerMenu = this.inventoryMenu;
+     }
 @@ -492,8 +_,14 @@
      public void rideTick() {
          if (!this.level().isClientSide && this.wantsToStopRiding() && this.isPassenger()) {

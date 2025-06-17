@@ -9,7 +9,7 @@
  
  public interface Bucketable {
      boolean fromBucket();
-@@ -88,9 +_,21 @@
+@@ -88,9 +_,20 @@
      static <T extends LivingEntity & Bucketable> Optional<InteractionResult> bucketMobPickup(Player p_148829_, InteractionHand p_148830_, T p_148831_) {
          ItemStack itemstack = p_148829_.getItemInHand(p_148830_);
          if (itemstack.getItem() == Items.WATER_BUCKET && p_148831_.isAlive()) {
@@ -22,8 +22,7 @@
 +            itemstack1 = CraftItemStack.asNMSCopy(playerBucketFishEvent.getEntityBucket());
 +            if (playerBucketFishEvent.isCancelled()) {
 +                ((ServerPlayer) p_148829_).containerMenu.sendAllDataToRemote(); // We need to update inventory to resync client's bucket
-+                p_148831_.getBukkitEntity().update((ServerPlayer) p_148829_); // We need to play out these packets as the client assumes the fish is gone
-+                p_148831_.refreshEntityData((ServerPlayer) p_148829_); // Need to send data such as the display name to client
++                p_148831_.resendPossiblyDesyncedEntityData((ServerPlayer) p_148829_); // Paper
 +                return Optional.of(InteractionResult.FAIL);
 +            }
 +            p_148831_.playSound(((Bucketable) p_148831_).getPickupSound(), 1.0F, 1.0F);

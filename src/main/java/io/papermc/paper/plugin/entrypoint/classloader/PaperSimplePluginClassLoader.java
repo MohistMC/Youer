@@ -1,9 +1,9 @@
 package io.papermc.paper.plugin.entrypoint.classloader;
 
-import cn.mohistmc.youer.asm.SwitchTableFixer;
-import cn.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
-import cn.mohistmc.youer.bukkit.remapping.Remapper;
-import cn.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
+import com.mohistmc.youer.asm.SwitchTableFixer;
+import com.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
+import com.mohistmc.youer.bukkit.remapping.Remapper;
+import com.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
 import com.google.common.io.ByteStreams;
 import io.izzel.tools.product.Product2;
 import io.papermc.paper.plugin.configuration.PluginMeta;
@@ -16,12 +16,9 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.nio.file.Path;
-import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.util.Enumeration;
-import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import org.jetbrains.annotations.ApiStatus;
@@ -95,7 +92,7 @@ public class PaperSimplePluginClassLoader extends URLClassLoader implements Rema
                 byteSource = () -> {
                     try (InputStream is = connection.getInputStream()) {
                         byte[] classBytes = ByteStreams.toByteArray(is);
-                        classBytes = ClassloaderBytecodeModifier.bytecodeModifier().modify(this.configuration, classBytes);
+                        classBytes = ClassloaderBytecodeModifier.bytecodeModifier().modify(classBytes);
                         classBytes = SwitchTableFixer.INSTANCE.apply(classBytes);
                         return classBytes;
                     }
@@ -114,7 +111,7 @@ public class PaperSimplePluginClassLoader extends URLClassLoader implements Rema
     }
 
     private Class<?> defineClass(String name, Callable<byte[]> byteSource, URLConnection connection, Manifest manifest, URL url) throws Exception {
-        Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(configuration.getName(), name, byteSource, connection);
+        Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(name, byteSource, connection);
         int i = name.lastIndexOf('.');
         if (i != -1) {
             String pkgname = name.substring(0, i);

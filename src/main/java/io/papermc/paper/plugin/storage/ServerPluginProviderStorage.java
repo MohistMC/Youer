@@ -1,5 +1,6 @@
 package io.papermc.paper.plugin.storage;
 
+import com.mohistmc.youer.util.I18n;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.plugin.entrypoint.dependency.DependencyContextHolder;
 import io.papermc.paper.plugin.entrypoint.strategy.ProviderConfiguration;
@@ -22,7 +23,7 @@ public class ServerPluginProviderStorage extends ConfiguredProviderStorage<JavaP
             public void applyContext(PluginProvider<JavaPlugin> provider, DependencyContext dependencyContext) {
                 Plugin alreadyLoadedPlugin = PaperPluginManagerImpl.getInstance().getPlugin(provider.getMeta().getName());
                 if (alreadyLoadedPlugin != null) {
-                    throw new IllegalStateException("Provider " + provider + " attempted to add duplicate plugin identifier " + alreadyLoadedPlugin + " THIS WILL CREATE BUGS!!!");
+                    throw new IllegalStateException(I18n.as("serverpluginproviderstorage.1", provider, alreadyLoadedPlugin));
                 }
 
                 if (provider instanceof DependencyContextHolder contextHolder) {
@@ -52,11 +53,11 @@ public class ServerPluginProviderStorage extends ConfiguredProviderStorage<JavaP
     @Override
     public void processProvided(PluginProvider<JavaPlugin> provider, JavaPlugin provided) {
         try {
-            provided.getLogger().info(String.format("Loading server plugin %s", provided.getPluginMeta().getDisplayName()));
+            provided.getLogger().info(String.format(I18n.as("serverpluginproviderstorage.2", provided.getPluginMeta().getDisplayName())));
             provided.onLoad();
         } catch (Throwable ex) {
             // Don't mark that provider as ERRORED, as this apparently still needs to run the onEnable logic.
-            provided.getSLF4JLogger().error("Error initializing plugin '%s' in folder '%s' (Is it up to date?)".formatted(provider.getFileName(), provider.getParentSource()), ex);
+            provided.getSLF4JLogger().error(I18n.as("serverpluginproviderstorage.3", provider.getFileName(), provider.getParentSource()), ex);
         }
     }
 

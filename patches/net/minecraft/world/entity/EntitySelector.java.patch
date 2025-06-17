@@ -1,5 +1,18 @@
 --- a/net/minecraft/world/entity/EntitySelector.java
 +++ b/net/minecraft/world/entity/EntitySelector.java
+@@ -21,6 +_,12 @@
+     private EntitySelector() {
+     }
+ 
++    // Paper start - Affects Spawning API
++    public static final Predicate<Entity> PLAYER_AFFECTS_SPAWNING = (entity) -> {
++        return !entity.isSpectator() && entity.isAlive() && entity instanceof Player player && player.affectsSpawning;
++    };
++    // Paper end - Affects Spawning API
++
+     public static Predicate<Entity> withinDistance(double p_20411_, double p_20412_, double p_20413_, double p_20414_) {
+         double d0 = p_20414_ * p_20414_;
+         return p_20420_ -> p_20420_ != null && p_20420_.distanceToSqr(p_20411_, p_20412_, p_20413_) <= d0;
 @@ -33,7 +_,7 @@
              ? Predicates.alwaysFalse()
              : NO_SPECTATORS.and(

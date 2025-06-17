@@ -5,8 +5,8 @@
 
 package net.neoforged.neoforge.server.permission;
 
-import cn.mohistmc.youer.YouerConfig;
-import cn.mohistmc.youer.neoforge.BukkitPermissionsHandler;
+import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.neoforge.BukkitPermissionsHandler;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;

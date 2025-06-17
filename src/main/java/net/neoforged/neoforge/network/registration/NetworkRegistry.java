@@ -42,6 +42,7 @@ import net.minecraft.network.protocol.common.custom.DiscardedPayload;
 import net.minecraft.network.protocol.configuration.ClientConfigurationPacketListener;
 import net.minecraft.network.protocol.configuration.ServerConfigurationPacketListener;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 import net.neoforged.fml.ModLoader;
 import net.neoforged.fml.config.ConfigTracker;
@@ -687,6 +688,18 @@ public class NetworkRegistry {
      */
     public static void onMinecraftRegister(Connection connection, Set<ResourceLocation> resourceLocations) {
         ChannelAttributes.getOrCreateAdHocChannels(connection).addAll(resourceLocations);
+        if (connection.getPacketListener() instanceof ServerCommonPacketListener listener) {
+            ServerCommonPacketListenerImpl listener0 = (ServerCommonPacketListenerImpl) listener;
+            var mcserver = listener0.getCraftServer().getServer();
+            listener.getMainThreadEventLoop().executeIfPossible(() -> {
+                if (mcserver.hasStopped() || listener0.processedDisconnect) {
+                    return;
+                }
+                for (var channel : resourceLocations) {
+                    listener0.getCraftPlayer().addChannel(channel.toString());
+                }
+            });
+        }
     }
 
     /**
@@ -699,6 +712,18 @@ public class NetworkRegistry {
      */
     public static void onMinecraftUnregister(Connection connection, Set<ResourceLocation> resourceLocations) {
         ChannelAttributes.getOrCreateAdHocChannels(connection).removeAll(resourceLocations);
+        if (connection.getPacketListener() instanceof ServerCommonPacketListener listener) {
+            ServerCommonPacketListenerImpl listener0 = (ServerCommonPacketListenerImpl) listener;
+            var mcserver = listener0.getCraftServer().getServer();
+            listener.getMainThreadEventLoop().executeIfPossible(() -> {
+                if (mcserver.hasStopped() || listener0.processedDisconnect) {
+                    return;
+                }
+                for (var channel : resourceLocations) {
+                    listener0.getCraftPlayer().removeChannel(channel.toString());
+                }
+            });
+        }
     }
 
     /**
@@ -795,7 +820,18 @@ public class NetworkRegistry {
         notListeningAnymoreOn.addAll(getInitialListeningChannels(listener.flow()));
         notListeningAnymoreOn.addAll(setup.getChannels(ConnectionProtocol.CONFIGURATION).keySet());
         listener.send(new MinecraftUnregisterPayload(notListeningAnymoreOn.build()));
-
+        if (listener instanceof ServerCommonPacketListener listener1) {
+            ServerCommonPacketListenerImpl listener0 = (ServerCommonPacketListenerImpl) listener1;
+            var mcserver = listener0.getCraftServer().getServer();
+            listener.getMainThreadEventLoop().executeIfPossible(() -> {
+                if (mcserver.hasStopped() || listener0.processedDisconnect) {
+                    return;
+                }
+                for (var channel : setup.getChannels(ConnectionProtocol.PLAY).keySet()) {
+                    listener0.getCraftPlayer().addChannel(channel.toString());
+                }
+            });
+        }
         final ImmutableSet.Builder<ResourceLocation> nowListeningOn = ImmutableSet.builder();
         nowListeningOn.add(MinecraftRegisterPayload.ID);
         nowListeningOn.add(MinecraftUnregisterPayload.ID);

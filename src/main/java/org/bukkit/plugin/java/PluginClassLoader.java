@@ -1,12 +1,12 @@
 package org.bukkit.plugin.java;
 
-import cn.mohistmc.youer.Youer;
-import cn.mohistmc.youer.asm.SwitchTableFixer;
-import cn.mohistmc.youer.bukkit.pluginfix.PluginFixManager;
-import cn.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
-import cn.mohistmc.youer.bukkit.remapping.Remapper;
-import cn.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
-import cn.mohistmc.youer.util.I18n;
+import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.asm.SwitchTableFixer;
+import com.mohistmc.youer.bukkit.pluginfix.PluginFixManager;
+import com.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
+import com.mohistmc.youer.bukkit.remapping.Remapper;
+import com.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
+import com.mohistmc.youer.util.I18n;
 import com.google.common.base.Preconditions;
 import com.google.common.io.ByteStreams;
 import cpw.mods.modlauncher.TransformingClassLoader;
@@ -21,7 +21,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
-import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import org.bukkit.Bukkit;
@@ -251,7 +249,7 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
                     throw new ClassNotFoundException(name, e);
                 }
 
-                Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(description.getName(), name, byteSource, connection);
+                Product2<byte[], CodeSource> classBytes = this.getRemapper().remapClass(name, byteSource, connection);
 
                 int dot = name.lastIndexOf('.');
                 if (dot != -1) {

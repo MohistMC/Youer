@@ -6,6 +6,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
+import com.mohistmc.youer.util.I18n;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Dynamic;
@@ -16,7 +17,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import net.minecraft.SharedConstants;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.commands.Commands;
@@ -37,7 +37,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.LevelResource;
 import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.FeatureFlag;
 import org.bukkit.Keyed;
 import org.bukkit.Material;
@@ -48,7 +47,6 @@ import org.bukkit.advancement.Advancement;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.CraftFeatureFlag;
 import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.attribute.CraftAttribute;
@@ -71,12 +69,11 @@ import org.bukkit.material.MaterialData;
 import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.potion.PotionType;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("deprecation")
 public final class CraftMagicNumbers implements UnsafeValues {
     public static final CraftMagicNumbers INSTANCE = new CraftMagicNumbers();
+    public static final boolean DISABLE_OLD_API_SUPPORT = Boolean.getBoolean("paper.disableOldApiSupport"); // Paper
 
     private final Commodore commodore = new Commodore();
 
@@ -349,12 +346,12 @@ public final class CraftMagicNumbers implements UnsafeValues {
             throw new InvalidPluginException("Plugin API version " + pdf.getAPIVersion() + " is lower than the minimum allowed version. Please update or replace it.");
         }
 
-        if (toCheck.isOlderThan(ApiVersion.FLATTENING)) { // Paper
+        if (!DISABLE_OLD_API_SUPPORT && toCheck.isOlderThan(ApiVersion.FLATTENING)) { // Paper
             CraftLegacy.init();
         }
 
         if (toCheck == ApiVersion.NONE) {
-            Bukkit.getLogger().log(Level.WARNING, "Legacy plugin " + pdf.getFullName() + " does not specify an api-version.");
+            Bukkit.getLogger().log(Level.WARNING, I18n.as("craftmagicnumbers.1", pdf.getFullName()));
         }
     }
 
@@ -364,6 +361,12 @@ public final class CraftMagicNumbers implements UnsafeValues {
 
     @Override
     public byte[] processClass(PluginDescriptionFile pdf, String path, byte[] clazz) {
+        // Paper start
+        if (DISABLE_OLD_API_SUPPORT) {
+            // Make sure we still go through our reflection rewriting if needed
+            return io.papermc.paper.pluginremap.reflect.ReflectionRemapper.processClass(clazz);
+        }
+        // Paper end
         try {
             clazz = commodore.convert(clazz, pdf.getName(), ApiVersion.getOrCreateVersion(pdf.getAPIVersion()), ((CraftServer) Bukkit.getServer()).activeCompatibilities);
         } catch (Exception ex) {
@@ -422,12 +425,6 @@ public final class CraftMagicNumbers implements UnsafeValues {
     @Override
     public String getTranslationKey(final Attribute attribute) {
         return CraftAttribute.bukkitToMinecraft(attribute).getDescriptionId();
-    }
-
-    @Override
-    public FeatureFlag getFeatureFlag(NamespacedKey namespacedKey) {
-        Preconditions.checkArgument(namespacedKey != null, "NamespaceKey cannot be null");
-        return CraftFeatureFlag.getFromNMS(namespacedKey);
     }
 
     @Override
@@ -579,6 +576,12 @@ public final class CraftMagicNumbers implements UnsafeValues {
         return CraftItemStack.asCraftMirror(null);
     }
     // Paper end - proxy ItemStack
+
+    @Override
+    public io.papermc.paper.util.VersionFetcher getVersionFetcher() {
+        return new io.papermc.paper.PaperVersionFetcher();
+    }
+    // Paper end
 
     /**
      * This helper class represents the different NBT Tags.

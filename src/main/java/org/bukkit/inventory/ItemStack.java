@@ -1,13 +1,10 @@
 package org.bukkit.inventory;
 
-import cn.mohistmc.youer.Youer;
+import com.mohistmc.youer.Youer;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.UnaryOperator;
-import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;

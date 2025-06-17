@@ -1,6 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
-import cn.mohistmc.youer.api.ServerAPI;
+import com.mohistmc.youer.api.ServerAPI;
 import com.google.common.base.Preconditions;
 import java.util.Locale;
 import net.minecraft.core.registries.Registries;

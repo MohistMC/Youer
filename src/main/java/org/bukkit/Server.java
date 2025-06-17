@@ -2165,4 +2165,11 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
      * @return true if server is in the process of being shutdown
      */
     boolean isStopping();
+
+    /**
+     * @return the datapack manager
+     */
+    @NotNull
+    io.papermc.paper.datapack.DatapackManager getDatapackManager();
+
 }

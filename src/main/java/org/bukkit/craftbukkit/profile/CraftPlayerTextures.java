@@ -49,7 +49,7 @@ public final class CraftPlayerTextures implements PlayerTextures {
         }
     }
 
-    private final io.papermc.paper.profile.SharedPlayerProfile profile;
+    private final SharedPlayerProfile profile;
 
     // The textures data is loaded lazily:
     private boolean loaded = false;

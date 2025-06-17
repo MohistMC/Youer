@@ -1,7 +1,8 @@
 package org.bukkit.craftbukkit.legacy;
 
-import cn.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
+import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.util.I18n;
 import com.mojang.serialization.Dynamic;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -309,7 +310,7 @@ public final class CraftLegacy {
     }
 
     static {
-        System.err.println("Initializing Legacy Material Support. Unless you have legacy plugins and/or data this is a bug!");
+        System.err.println(I18n.as("craftlegacy.1"));
         if (MinecraftServer.getServer() != null && MinecraftServer.getServer().isDebugging()) {
             new Exception().printStackTrace();
         }

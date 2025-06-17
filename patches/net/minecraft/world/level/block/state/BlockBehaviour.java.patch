@@ -91,6 +91,23 @@
      public abstract static class BlockStateBase extends StateHolder<Block, BlockState> {
          private final int lightEmission;
          private final boolean useShapeForLightOcclusion;
+@@ -446,6 +_,16 @@
+             this.replaceable = blockbehaviour$properties.replaceable;
+         }
+ 
++        // Paper start - Perf: impl cached craft block data, lazy load to fix issue with loading at the wrong time
++        private org.bukkit.craftbukkit.block.data.CraftBlockData cachedCraftBlockData;
++
++        public org.bukkit.craftbukkit.block.data.CraftBlockData createCraftBlockData() {
++            if (cachedCraftBlockData == null) cachedCraftBlockData = org.bukkit.craftbukkit.block.data.CraftBlockData.createData(asState());
++            return (org.bukkit.craftbukkit.block.data.CraftBlockData) cachedCraftBlockData.clone();
++        }
++        // Paper end - Perf: impl cached craft block data, lazy load to fix issue with loading at the wrong time
++
++
+         private boolean calculateSolid() {
+             if (this.owner.properties.forceSolidOn) {
+                 return true;
 @@ -523,12 +_,14 @@
              return this.useShapeForLightOcclusion;
          }

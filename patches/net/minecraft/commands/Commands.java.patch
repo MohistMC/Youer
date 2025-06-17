@@ -7,18 +7,36 @@
  import com.google.common.collect.Maps;
  import com.mojang.brigadier.CommandDispatcher;
  import com.mojang.brigadier.ParseResults;
-@@ -16,9 +_,11 @@
+@@ -8,17 +_,20 @@
+ import com.mojang.brigadier.builder.ArgumentBuilder;
+ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+-import com.mojang.brigadier.context.CommandContext;
+ import com.mojang.brigadier.context.CommandContextBuilder;
+ import com.mojang.brigadier.context.ContextChain;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import com.mojang.brigadier.tree.CommandNode;
  import com.mojang.brigadier.tree.RootCommandNode;
++import com.mojang.brigadier.suggestion.SuggestionProvider;
  import com.mojang.logging.LogUtils;
  import java.util.Collection;
 +import java.util.LinkedHashSet;
  import java.util.Map;
  import java.util.Optional;
  import java.util.Set;
++import java.util.concurrent.atomic.AtomicBoolean;
 +import java.util.concurrent.atomic.AtomicReference;
  import java.util.function.Consumer;
  import java.util.function.Predicate;
  import java.util.function.UnaryOperator;
+@@ -43,7 +_,6 @@
+ import net.minecraft.network.chat.ComponentUtils;
+ import net.minecraft.network.chat.HoverEvent;
+ import net.minecraft.network.chat.MutableComponent;
+-import net.minecraft.network.chat.Style;
+ import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.MinecraftServer;
 @@ -136,6 +_,8 @@
  import net.minecraft.tags.TagKey;
  import net.minecraft.util.profiling.jfr.JvmProfiler;
@@ -37,22 +55,35 @@
              TestCommand.register(this.dispatcher);
              RaidCommand.register(this.dispatcher, p_230944_);
              DebugPathCommand.register(this.dispatcher);
-@@ -248,7 +_,13 @@
+@@ -248,7 +_,26 @@
          if (p_230943_.includeIntegrated) {
              PublishCommand.register(this.dispatcher);
          }
 -
 +        net.neoforged.neoforge.event.EventHooks.onCommandRegister(this.dispatcher, p_230943_, p_230944_);
 +
-+        this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
-+    }
++        // Paper start - Brigadier Command API
++        // Create legacy minecraft namespace commands
++        for (final CommandNode<CommandSourceStack> node : new java.util.ArrayList<>(this.dispatcher.getRoot().getChildren())) {
++            // The brigadier dispatcher is not able to resolve nested redirects.
++            // E.g. registering the alias minecraft:tp cannot redirect to tp, as tp itself redirects to teleport.
++            // Instead, target the first none redirecting node.
++            CommandNode<CommandSourceStack> flattenedAliasTarget = node;
++            while (flattenedAliasTarget.getRedirect() != null) flattenedAliasTarget = flattenedAliasTarget.getRedirect();
 +
-+    public Commands() {
-+        // CraftBukkkit end
++            this.dispatcher.register(
++                    LiteralArgumentBuilder.<CommandSourceStack>literal("minecraft:" + node.getName())
++                            .executes(flattenedAliasTarget.getCommand())
++                            .requires(flattenedAliasTarget.getRequirement())
++                            .redirect(flattenedAliasTarget)
++            );
++        }
++        // Paper end - Brigadier Command API
++        // Paper - remove public constructor, no longer needed
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
      }
  
-@@ -258,14 +_,75 @@
+@@ -258,14 +_,76 @@
          return new ParseResults<>(commandcontextbuilder1, p_242928_.getReader(), p_242928_.getExceptions());
      }
  
@@ -111,6 +142,7 @@
 +    // Mohist start - add field to compat with mods
 +    private final AtomicReference<String> mohist$label = new AtomicReference<>();
 +    private static final AtomicReference<String> finishParsing$label = new AtomicReference<>();
++    private AtomicBoolean performCommand$throwCommandError = new AtomicBoolean(false);
  
      public void performCommand(ParseResults<CommandSourceStack> p_242844_, String p_242841_) {
 +        var label = mohist$label.get();
@@ -132,13 +164,31 @@
          ContextChain<CommandSourceStack> contextchain = finishParsing(p_242844_, p_242841_, commandsourcestack);
  
          try {
-@@ -306,6 +_,11 @@
+@@ -278,9 +_,10 @@
+                 );
+             }
+         } catch (Exception exception) {
++            if (performCommand$throwCommandError.getAndSet(false)) throw exception;
+             MutableComponent mutablecomponent = Component.literal(exception.getMessage() == null ? exception.getClass().getName() : exception.getMessage());
++            Commands.LOGGER.error("Command exception: /{}", p_242841_, exception); // Paper - always show execution exception in console log
+             if (LOGGER.isDebugEnabled()) {
+-                LOGGER.error("Command exception: /{}", p_242841_, exception);
+                 StackTraceElement[] astacktraceelement = exception.getStackTrace();
+ 
+                 for (int i = 0; i < Math.min(astacktraceelement.length, 3); i++) {
+@@ -306,6 +_,17 @@
          }
      }
  
 +    public void performCommand(ParseResults<CommandSourceStack> pParseResults, String pCommand, String label) { // CraftBukkit
 +        mohist$label.set(label);
 +        this.performCommand(pParseResults, pCommand);
++    }
++
++    public void performCommand(ParseResults<CommandSourceStack> parseresults, String s, String label, boolean throwCommandError) {
++        mohist$label.set(label);
++        performCommand$throwCommandError.set(throwCommandError);
++        this.performCommand(parseresults, s);
 +    }
 +
      @Nullable
@@ -153,40 +203,73 @@
                  if (i > 10) {
                      mutablecomponent.append(CommonComponents.ELLIPSIS);
                  }
-@@ -359,10 +_,34 @@
+@@ -359,11 +_,65 @@
      }
  
      public void sendCommands(ServerPlayer p_82096_) {
 -        Map<CommandNode<CommandSourceStack>, CommandNode<SharedSuggestionProvider>> map = Maps.newHashMap();
-+        if ( org.spigotmc.SpigotConfig.tabComplete < 0 ) return; // Spigot
+-        RootCommandNode<SharedSuggestionProvider> rootcommandnode = new RootCommandNode<>();
++        // Paper start - Send empty commands if tab completion is disabled
++        if (org.spigotmc.SpigotConfig.tabComplete < 0) {
++            p_82096_.connection.send(new ClientboundCommandsPacket(new RootCommandNode<>()));
++            return;
++        }
++        // Paper end - Send empty commands if tab completion is disabled
 +        // CraftBukkit start
 +        // Register Vanilla commands into builtRoot as before
++        // Paper start - Perf: Async command map building
++        COMMAND_SENDING_POOL.execute(() -> {
++            this.sendAsync(p_82096_);
++        });
++    }
++
++    public static final java.util.concurrent.ThreadPoolExecutor COMMAND_SENDING_POOL = new java.util.concurrent.ThreadPoolExecutor(
++            0, 2, 60L, java.util.concurrent.TimeUnit.SECONDS,
++            new java.util.concurrent.LinkedBlockingQueue<>(),
++            new com.google.common.util.concurrent.ThreadFactoryBuilder()
++                    .setNameFormat("Paper Async Command Builder Thread Pool - %1$d")
++                    .setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER))
++                    .build(),
++            new java.util.concurrent.ThreadPoolExecutor.DiscardPolicy()
++    );
++
++    private void sendAsync(ServerPlayer player) {
++        // Paper end - Perf: Async command map building
 +        Map<CommandNode<CommandSourceStack>, CommandNode<SharedSuggestionProvider>> map = Maps.newIdentityHashMap(); // Use identity to prevent aliasing issues
-+        RootCommandNode vanillaRoot = new RootCommandNode();
++        // Paper - brigadier API removes the need to fill the map twice
++        RootCommandNode<SharedSuggestionProvider> rootcommandnode = new RootCommandNode();
 +
-+        RootCommandNode<CommandSourceStack> vanilla = p_82096_.server.vanillaCommandDispatcher.getDispatcher().getRoot();
-+        map.put(vanilla, vanillaRoot);
-+        this.fillUsableCommands(vanilla, vanillaRoot, p_82096_.createCommandSourceStack(), (Map) map);
-+
-         RootCommandNode<SharedSuggestionProvider> rootcommandnode = new RootCommandNode<>();
          map.put(this.dispatcher.getRoot(), rootcommandnode);
 -        this.fillUsableCommands(this.dispatcher.getRoot(), rootcommandnode, p_82096_.createCommandSourceStack(), map);
+-        p_82096_.connection.send(new ClientboundCommandsPacket(rootcommandnode));
++        // this.fillUsableCommands(this.dispatcher.getRoot(), rootcommandnode, player.createCommandSourceStack(), map);
 +        // FORGE: Use our own command node merging method to handle redirect nodes properly, see issue #7551
-+        net.neoforged.neoforge.server.command.CommandHelper.mergeCommandNode(this.dispatcher.getRoot(), rootcommandnode, map, p_82096_.createCommandSourceStack(), ctx -> 0, suggest -> SuggestionProviders.safelySwap((com.mojang.brigadier.suggestion.SuggestionProvider<SharedSuggestionProvider>) (com.mojang.brigadier.suggestion.SuggestionProvider<?>) suggest));
++        net.neoforged.neoforge.server.command.CommandHelper.mergeCommandNode(this.dispatcher.getRoot(), rootcommandnode, map, player.createCommandSourceStack(), ctx -> 0, suggest -> SuggestionProviders.safelySwap((SuggestionProvider<SharedSuggestionProvider>) (SuggestionProvider<?>) suggest));
 +        Collection<String> bukkit = new LinkedHashSet<>();
 +        for (CommandNode node : rootcommandnode.getChildren()) {
 +            bukkit.add(node.getName());
 +        }
-+        PlayerCommandSendEvent event = new PlayerCommandSendEvent(p_82096_.getBukkitEntity(), new LinkedHashSet<>(bukkit));
++        // Paper start - Perf: Async command map building
++        new io.papermc.paper.event.brigadier.AsyncPlayerSendCommandsEvent<CommandSourceStack>(player.getBukkitEntity(), (RootCommandNode) rootcommandnode, false).callEvent(); // Paper - Brigadier API
++        net.minecraft.server.MinecraftServer.getServer().execute(() -> {
++            runSync(player, bukkit, rootcommandnode);
++        });
++    }
++
++    private void runSync(ServerPlayer player, Collection<String> bukkit, RootCommandNode<SharedSuggestionProvider> rootcommandnode) {
++        // Paper end - Perf: Async command map building
++        new io.papermc.paper.event.brigadier.AsyncPlayerSendCommandsEvent<CommandSourceStack>(player.getBukkitEntity(), (RootCommandNode) rootcommandnode, true).callEvent(); // Paper - Brigadier API
++        PlayerCommandSendEvent event = new PlayerCommandSendEvent(player.getBukkitEntity(), new LinkedHashSet<>(bukkit));
 +        event.getPlayer().getServer().getPluginManager().callEvent(event);
 +
 +        // Remove labels that were removed during the event
 +        for (String orig : bukkit) {
 +            if (!event.getCommands().contains(orig)) {
-+                //rootcommandnode.removeCommand(orig);
++                rootcommandnode.removeCommand(orig); // TODO Youer
 +            }
 +        }
 +        // CraftBukkit end
-         p_82096_.connection.send(new ClientboundCommandsPacket(rootcommandnode));
++        player.connection.send(new ClientboundCommandsPacket(rootcommandnode));
      }
  
+     private void fillUsableCommands(

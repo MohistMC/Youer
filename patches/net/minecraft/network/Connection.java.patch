@@ -59,14 +59,16 @@
      }
  
      @Override
-@@ -134,13 +_,20 @@
+@@ -134,13 +_,22 @@
          } else {
              boolean flag = !this.handlingFault;
              this.handlingFault = true;
 -            if (this.channel.isOpen()) {
 +            if (this.channel.isOpen() && !this.mohist$isClosing) {
++                net.minecraft.server.level.ServerPlayer player = this.getPlayer(); // Paper - Add API for quit reason
                  if (p_129534_ instanceof TimeoutException) {
                      LOGGER.debug("Timeout", p_129534_);
++                    if (player != null) player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.TIMED_OUT; // Paper - Add API for quit reason
                      this.disconnect(Component.translatable("disconnect.timeout"));
                  } else {
                      Component component = Component.translatable("disconnect.genericReason", "Internal Exception: " + p_129534_);
@@ -81,6 +83,14 @@
                      DisconnectionDetails disconnectiondetails;
                      if (packetlistener != null) {
                          disconnectiondetails = packetlistener.createDisconnectionInfo(component, p_129534_);
+@@ -148,6 +_,7 @@
+                         disconnectiondetails = new DisconnectionDetails(component);
+                     }
+ 
++                    if (player != null) player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.ERRONEOUS_STATE; // Paper - Add API for quit reason
+                     if (flag) {
+                         LOGGER.debug("Failed to sent packet", p_129534_);
+                         if (this.getSending() == PacketFlow.CLIENTBOUND) {
 @@ -170,7 +_,7 @@
      }
  

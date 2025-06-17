@@ -48,7 +48,7 @@ import org.jetbrains.annotations.Nullable;
  * changes may occur. Do not use this API in plugins.
  */
 @ApiStatus.Internal
-public interface ItemType extends Keyed, Translatable {
+public interface ItemType extends Keyed, Translatable, io.papermc.paper.world.flag.FeatureDependant { // Paper - add Translatable & feature flag API
 
     /**
      * Typed represents a subtype of {@link ItemType}s that have a known item meta type

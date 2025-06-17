@@ -187,7 +187,7 @@
      }
  
      public boolean isColliding(BlockPos p_20040_, BlockState p_20041_) {
-@@ -333,6 +_,63 @@
+@@ -333,6 +_,96 @@
          this.remove(Entity.RemovalReason.DISCARDED);
      }
  
@@ -197,13 +197,46 @@
 +
 +    // CraftBukkit start
 +    public void refreshEntityData(ServerPlayer to) {
-+        List<SynchedEntityData.DataValue<?>> list = this.getEntityData().getNonDefaultValues();
++        List<SynchedEntityData.DataValue<?>> list = this.entityData.packAll(); // Paper - Update EVERYTHING not just not default
 +
-+        if (list != null) {
++        if (list != null && to.getBukkitEntity().canSee(this.getBukkitEntity())) { // Paper
 +            to.connection.send(new ClientboundSetEntityDataPacket(this.getId(), list));
 +        }
 +    }
 +    // CraftBukkit end
++
++    // Paper start
++    // This method should only be used if the data of an entity could have become desynced
++    // due to interactions on the client.
++    public void resendPossiblyDesyncedEntityData(net.minecraft.server.level.ServerPlayer player) {
++        if (player.getBukkitEntity().canSee(this.getBukkitEntity())) {
++            ServerLevel world = (net.minecraft.server.level.ServerLevel)this.level();
++            net.minecraft.server.level.ChunkMap.TrackedEntity tracker = world == null ? null : world.getChunkSource().chunkMap.entityMap.get(this.getId());
++            if (tracker == null) {
++                return;
++            }
++            final net.minecraft.server.level.ServerEntity serverEntity = tracker.serverEntity;
++            final List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> list = new java.util.ArrayList<>();
++            serverEntity.sendPairingData(player, new net.neoforged.neoforge.network.bundle.PacketAndPayloadAcceptor<>(list::add));
++            player.connection.send(new net.minecraft.network.protocol.game.ClientboundBundlePacket(list));
++        }
++    }
++
++    // This method allows you to specifically resend certain data accessor keys to the client
++    public void resendPossiblyDesyncedDataValues(List<EntityDataAccessor<?>> keys, ServerPlayer to) {
++        if (!to.getBukkitEntity().canSee(this.getBukkitEntity())) {
++            return;
++        }
++
++        final List<SynchedEntityData.DataValue<?>> values = new java.util.ArrayList<>(keys.size());
++        for (final EntityDataAccessor<?> key : keys) {
++            final SynchedEntityData.DataItem<?> synchedValue = this.entityData.getItem(key);
++            values.add(synchedValue.value());
++        }
++
++        to.connection.send(new ClientboundSetEntityDataPacket(this.id, values));
++    }
++    // Paper end
 +
 +    public void remove(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
 +        this.setRemovedCB(entity_removalreason, cause);

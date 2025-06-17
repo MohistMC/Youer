@@ -3,8 +3,8 @@
 @@ -1,16 +_,25 @@
  package net.minecraft.server.level;
  
-+import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
-+import cn.mohistmc.youer.plugins.KeepInventory;
++import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
++import com.mohistmc.youer.plugins.KeepInventory;
  import com.google.common.net.InetAddresses;
  import com.mojang.authlib.GameProfile;
  import com.mojang.datafixers.util.Either;
@@ -94,7 +94,7 @@
  import net.minecraft.world.level.block.HorizontalDirectionalBlock;
  import net.minecraft.world.level.block.RespawnAnchorBlock;
  import net.minecraft.world.level.block.entity.BlockEntity;
-@@ -158,8 +_,41 @@
+@@ -158,8 +_,38 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreAccess;
  import net.minecraft.world.scores.ScoreHolder;
@@ -117,11 +117,8 @@
 +import org.bukkit.craftbukkit.CraftWorldBorder;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.craftbukkit.inventory.CraftInventory;
-+import org.bukkit.craftbukkit.inventory.CraftInventoryView;
 +import org.bukkit.craftbukkit.util.CraftLocation;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
-+import org.bukkit.craftbukkit.util.CraftChatMessage;
 +import org.bukkit.event.entity.EntityExhaustionEvent;
 +import org.bukkit.event.entity.EntityPotionEffectEvent;
 +import org.bukkit.event.entity.PlayerDeathEvent;
@@ -155,7 +152,7 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(p_143455_.containerId, p_143456_, p_143457_));
          }
      };
-@@ -276,6 +_,26 @@
+@@ -276,6 +_,27 @@
      public final Object object;
      private int containerCounter;
      public boolean wonGame;
@@ -171,7 +168,6 @@
 +    public double maxHealthCache;
 +    public boolean joining = true;
 +    public boolean sentListPacket = false;
-+    public String kickLeaveMessage = null; // SPIGOT-3034: Forward leave message to PlayerQuitEvent
 +    // CraftBukkit end
 +
 +    // Mohist start
@@ -179,6 +175,8 @@
 +    // Mohist end
 +    public boolean isRealPlayer; // Paper
 +    public long loginTime; // Paper - Replace OfflinePlayer#getLastPlayed
++    public @Nullable String clientBrandName = null; // Paper - Brand support
++    public org.bukkit.event.player.PlayerQuitEvent.QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
  
      public ServerPlayer(MinecraftServer p_254143_, ServerLevel p_254435_, GameProfile p_253651_, ClientInformation p_301997_) {
          super(p_254435_, p_254435_.getSharedSpawnPos(), p_254435_.getSharedSpawnAngle(), p_253651_);
@@ -335,6 +333,14 @@
          this.gameMode.tick();
          this.wardenSpawnTracker.tick();
          this.spawnInvulnerableTime--;
+@@ -498,6 +_,7 @@
+ 
+         this.containerMenu.broadcastChanges();
+         if (!this.level().isClientSide && !this.containerMenu.stillValid(this)) {
++            InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.CANT_USE); // Paper - Inventory close reason
+             this.closeContainer();
+             this.containerMenu = this.inventoryMenu;
+         }
 @@ -565,7 +_,7 @@
              if (this.getHealth() != this.lastSentHealth
                  || this.lastSentFood != this.foodData.getFoodLevel()
@@ -388,7 +394,7 @@
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Ticking player");
              CrashReportCategory crashreportcategory = crashreport.addCategory("Player being ticked");
-@@ -657,9 +_,39 @@
+@@ -657,9 +_,40 @@
      @Override
      public void die(DamageSource p_9035_) {
          this.gameEvent(GameEvent.ENTITY_DIE);
@@ -422,6 +428,7 @@
 +        PlayerDeathEvent event = CraftEventFactory.callPlayerDeathEvent(this, p_9035_, loot, PaperAdventure.asAdventure(defaultMessage), keepInventory); // Paper - Adventure
 +        // SPIGOT-943 - only call if they have an inventory open
 +        if (this.containerMenu != this.inventoryMenu) {
++            InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.DEATH); // Paper - Inventory close reason
 +            this.closeContainer();
 +        }
 +        net.kyori.adventure.text.Component deathMessage = event.deathMessage() != null ? event.deathMessage() : net.kyori.adventure.text.Component.empty(); // Paper - Adventure
@@ -672,7 +679,7 @@
          if (this.isSleeping()) {
              this.serverLevel().getChunkSource().broadcastAndSend(this, new ClientboundAnimatePacket(this, 2));
          }
-@@ -1072,17 +_,63 @@
+@@ -1072,17 +_,64 @@
          this.containerCounter = this.containerCounter % 100 + 1;
      }
  
@@ -711,6 +718,7 @@
 +                boolean cancelled = false;
 +                // Mohist start - Moved from CraftEventFactory#callInventoryOpenEvent(...) to fix mixin issues
 +                if (this.containerMenu != this.inventoryMenu) {
++                    InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.OPEN_NEW); // Paper - Inventory close reason
 +                    if (p_9033_.shouldTriggerClientSideContainerClosingOnOpen())
 +                        this.closeContainer();
 +                    else
@@ -802,7 +810,16 @@
      }
  
      @Override
-@@ -1143,6 +_,7 @@
+@@ -1140,9 +_,16 @@
+     }
+ 
+     @Override
++    public void closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
++        InventoryOwner.setClose$Reason(reason);
++        closeContainer();
++    }
++
++    @Override
      public void doCloseContainer() {
          this.containerMenu.removed(this);
          this.inventoryMenu.transferState(this.containerMenu);

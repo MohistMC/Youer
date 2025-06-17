@@ -18,6 +18,8 @@ import org.jetbrains.annotations.NotNull;
  * themselves. Plugins wishing to remove commands from tab completion are
  * advised to ensure the client does not have permission for the relevant
  * commands, or use {@link PlayerCommandSendEvent}.
+ * @apiNote Only called for bukkit API commands {@link org.bukkit.command.Command} and
+ * {@link org.bukkit.command.CommandExecutor} and not for brigadier commands ({@link io.papermc.paper.command.brigadier.Commands}).
  */
 public class TabCompleteEvent extends Event implements Cancellable {
 
@@ -29,13 +31,20 @@ public class TabCompleteEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public TabCompleteEvent(@NotNull CommandSender sender, @NotNull String buffer, @NotNull List<String> completions) {
+        // Paper start
+        this(sender, buffer, completions, sender instanceof org.bukkit.command.ConsoleCommandSender || buffer.startsWith("/"), null);
+    }
+    public TabCompleteEvent(@NotNull CommandSender sender, @NotNull String buffer, @NotNull List<String> completions, boolean isCommand, @org.jetbrains.annotations.Nullable org.bukkit.Location location) {
+        this.isCommand = isCommand;
+        this.loc = location;
+        // Paper end
         Preconditions.checkArgument(sender != null, "sender");
         Preconditions.checkArgument(buffer != null, "buffer");
         Preconditions.checkArgument(completions != null, "completions");
 
         this.sender = sender;
         this.buffer = buffer;
-        this.completions = completions;
+        this.completions = new java.util.ArrayList<>(completions); // Paper - Completions must be mutable
     }
 
     /**
@@ -69,14 +78,35 @@ public class TabCompleteEvent extends Event implements Cancellable {
         return completions;
     }
 
+    // Paper start
+    private final boolean isCommand;
+    private final org.bukkit.Location loc;
+    /**
+     * @return True if it is a command being tab completed, false if it is a chat message.
+     */
+    public boolean isCommand() {
+        return isCommand;
+    }
+
+    /**
+     * @return The position looked at by the sender, or null if none
+     */
+    @org.jetbrains.annotations.Nullable
+    public org.bukkit.Location getLocation() {
+        return this.loc != null ? this.loc.clone() : null;
+    }
+    // Paper end
+
     /**
      * Set the completions offered, overriding any already set.
+     *
+     * The passed collection will be cloned to a new List. You must call {{@link #getCompletions()}} to mutate from here
      *
      * @param completions the new completions
      */
     public void setCompletions(@NotNull List<String> completions) {
         Preconditions.checkArgument(completions != null);
-        this.completions = completions;
+        this.completions = new java.util.ArrayList<>(completions); // Paper - completions must be mutable
     }
 
     @Override

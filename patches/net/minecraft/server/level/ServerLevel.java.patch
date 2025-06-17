@@ -1,13 +1,14 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,7 +_,10 @@
+@@ -1,7 +_,11 @@
  package net.minecraft.server.level;
  
-+import cn.mohistmc.youer.plugins.world.utils.ConfigByWorlds;
-+import cn.mohistmc.youer.util.Level2LevelStem;
++import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
++import com.mohistmc.youer.plugins.world.utils.ConfigByWorlds;
++import com.mohistmc.youer.util.Level2LevelStem;
  import com.google.common.annotations.VisibleForTesting;
  import com.google.common.collect.Lists;
-+import cn.mohistmc.youer.neoforge.MohistDerivedWorldInfo;
++import com.mohistmc.youer.neoforge.MohistDerivedWorldInfo;
  import com.mojang.datafixers.DataFixer;
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
@@ -136,7 +137,7 @@
      public ServerLevel(
          MinecraftServer p_214999_,
          Executor p_215000_,
-@@ -230,11 +_,61 @@
+@@ -230,11 +_,67 @@
              p_215007_,
              p_214999_.getMaxChainedNeighborUpdates()
          );
@@ -158,6 +159,9 @@
 +            } else {
 +                this.typeKey = ResourceKey.create(Registries.LEVEL_STEM, dimension.location());
 +            }
++            if (p_215002_ instanceof DerivedLevelData data) {
++                data.setTypeKey(this.getTypeKey());
++            }
 +        }
          this.tickTime = p_215009_;
          this.server = p_214999_;
@@ -165,13 +169,16 @@
          this.serverLevelData = p_215002_;
 +        if (p_215002_ instanceof PrimaryLevelData) {
 +            this.K = (PrimaryLevelData) p_215002_;
-+        } else if (p_215002_ instanceof DerivedLevelData) {
-+            this.K = MohistDerivedWorldInfo.create((DerivedLevelData)p_215002_);
++        } else {
++            this.K = MohistDerivedWorldInfo.create(p_215002_);
 +        }
          ChunkGenerator chunkgenerator = p_215004_.generator();
++        if (environment == null) {
++            environment = NeoForgeInjectBukkit.environment.get(getTypeKey());
++        }
 +        if (biomeProvider != null) {
-+            WorldInfo worldInfo = new CraftWorldInfo(K, p_215001_, environment, p_215004_.type().value());
-+            BiomeSource worldChunkManager = new CustomWorldChunkManager(worldInfo, biomeProvider, server.registryAccess().registryOrThrow(Registries.BIOME));
++            WorldInfo worldInfo = new CraftWorldInfo(K, p_215001_, environment, p_215004_.type().value(), chunkgenerator, p_214999_.registryAccess());
++            BiomeSource worldChunkManager = new CustomWorldChunkManager(worldInfo, biomeProvider, server.registryAccess().registryOrThrow(Registries.BIOME), chunkgenerator.getBiomeSource()); // Paper - add vanillaBiomeProvider
 +            if (chunkgenerator instanceof NoiseBasedChunkGenerator cga) {
 +                chunkgenerator = new NoiseBasedChunkGenerator(worldChunkManager, cga.settings);
 +            } else if (chunkgenerator instanceof FlatLevelSource cpf) {
@@ -570,7 +577,7 @@
 +        for (BlockEntity tileentity : p_8713_.getBlockEntities().values()) {
 +            if (tileentity instanceof Container container) {
 +                for (HumanEntity h : Lists.newArrayList(container.getViewers())) {
-+                    h.closeInventory();
++                    h.closeInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNLOADED); // Paper - Inventory close reason
 +                }
 +            }
 +        }
@@ -813,7 +820,7 @@
 +            // Spigot Start
 +            if (p_143375_.getBukkitEntity() instanceof org.bukkit.inventory.InventoryHolder && (!(p_143375_ instanceof ServerPlayer) || p_143375_.getRemovalReason() != Entity.RemovalReason.KILLED)) { // SPIGOT-6876: closeInventory clears death message
 +                for (org.bukkit.entity.HumanEntity h : Lists.newArrayList(((org.bukkit.inventory.InventoryHolder) p_143375_.getBukkitEntity()).getInventory().getViewers())) {
-+                    h.closeInventory();
++                    h.closeInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNLOADED); // Paper - Inventory close reason
 +                }
 +            }
 +            // Spigot End

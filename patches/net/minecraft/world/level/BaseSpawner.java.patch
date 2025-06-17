@@ -9,7 +9,7 @@
  import org.slf4j.Logger;
  
  public abstract class BaseSpawner implements net.neoforged.neoforge.common.extensions.IOwnedSpawner {
-@@ -49,6 +_,7 @@
+@@ -49,12 +_,13 @@
          this.getOrCreateNextSpawnData(p_254041_, p_254221_, p_254050_)
              .getEntityToSpawn()
              .putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(p_253682_).toString());
@@ -17,6 +17,14 @@
      }
  
      private boolean isNearPlayer(Level p_151344_, BlockPos p_151345_) {
+-        return p_151344_.hasNearbyAlivePlayer(
++        return p_151344_.hasNearbyAlivePlayerThatAffectsSpawning(
+             (double)p_151345_.getX() + 0.5, (double)p_151345_.getY() + 0.5, (double)p_151345_.getZ() + 0.5, (double)this.requiredPlayerRange
+-        );
++        );  // Paper - Affects Spawning API
+     }
+ 
+     public void clientTick(Level p_151320_, BlockPos p_151321_) {
 @@ -151,19 +_,22 @@
  
                          entity.moveTo(entity.getX(), entity.getY(), entity.getZ(), randomsource.nextFloat() * 360.0F, 0.0F);

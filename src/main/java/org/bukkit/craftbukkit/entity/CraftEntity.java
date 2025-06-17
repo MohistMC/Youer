@@ -1,6 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
-import cn.mohistmc.youer.neoforge.EntityClassLookup;
+import com.mohistmc.youer.neoforge.EntityClassLookup;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
@@ -889,7 +889,11 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
             return;
         }
 
-        entityTracker.broadcast(getHandle().getAddEntityPacket(entityTracker.serverEntity));
+        // Paper start - resend possibly desynced entity instead of add entity packet
+        for (final ServerPlayerConnection connection : entityTracker.seenBy) {
+            this.getHandle().resendPossiblyDesyncedEntityData(connection.getPlayer());
+        }
+        // Paper end - resend possibly desynced entity instead of add entity packet
     }
 
     public void update(ServerPlayer player) {

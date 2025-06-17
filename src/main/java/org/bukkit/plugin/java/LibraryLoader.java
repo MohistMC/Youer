@@ -1,10 +1,10 @@
 // CHECKSTYLE:OFF
 package org.bukkit.plugin.java;
 
-import cn.mohistmc.youer.Youer;
-import cn.mohistmc.youer.bukkit.PluginsLibrarySource;
-import cn.mohistmc.youer.bukkit.remapping.RemappingURLClassLoader;
-import cn.mohistmc.youer.util.I18n;
+import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.bukkit.PluginsLibrarySource;
+import com.mohistmc.youer.bukkit.remapping.RemappingURLClassLoader;
+import com.mohistmc.youer.util.I18n;
 import com.mohistmc.mjson.Json;
 import com.mohistmc.tools.ConnectionUtil;
 import java.io.File;
@@ -58,10 +58,7 @@ public class LibraryLoader
         {
             return null;
         }
-        logger.log( Level.INFO, "[{0}] Loading {1} libraries... please wait", new Object[]
-                {
-                        java.util.Objects.requireNonNullElseGet(desc.getPrefix(), desc::getName), desc.getLibraries().size() // Paper - use configured log prefix
-                } );
+        logger.log( Level.INFO, I18n.as("libraryloader.1", java.util.Objects.requireNonNullElseGet(desc.getPrefix(), desc::getName), desc.getLibraries().size()));
 
         List<Dependency> dependencies = new ArrayList<>();
         for (String desc_libraries : desc.getLibraries()) {
@@ -93,7 +90,7 @@ public class LibraryLoader
 
         }
 
-        Youer.LOGGER.info(I18n.as("mohist.i18n.23", desc.getName(), newDependencies.size() - desc.getLibraries().size()));
+        Youer.LOGGER.info(I18n.as("libraryloader.2", desc.getName(), newDependencies.size() - desc.getLibraries().size()));
 
         for (Dependency dependency : newDependencies) {
             String group = dependency.group().replace(".", "/");
@@ -126,7 +123,7 @@ public class LibraryLoader
         for (File file : libraries) {
             try {
                 jarFiles.add(file.toURI().toURL());
-                Youer.LOGGER.info(I18n.as("mohist.i18n.24", desc.getName(), file));
+                Youer.LOGGER.info(I18n.as("libraryloader.3", desc.getName(), file));
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
@@ -264,7 +261,7 @@ public class LibraryLoader
             if (!dependencyIgnoreVersion.contains(dependency.toIgnoreVersion())) {
                 libraries.add(file);
                 dependencyIgnoreVersion.add(dependency.toIgnoreVersion());
-                Youer.LOGGER.info(I18n.as("mohist.i18n.25", dependency.name, file));
+                Youer.LOGGER.info(I18n.as("libraryloader.4", dependency.name, file));
                 return true;
             }
         }

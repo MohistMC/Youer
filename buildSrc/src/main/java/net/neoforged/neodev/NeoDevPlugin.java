@@ -1,7 +1,6 @@
 package net.neoforged.neodev;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.Instant;
 import net.neoforged.minecraftdependencies.MinecraftDependenciesPlugin;
 import net.neoforged.moddevgradle.internal.NeoDevFacade;
 import net.neoforged.moddevgradle.tasks.JarJar;
@@ -49,6 +48,8 @@ public class NeoDevPlugin implements Plugin<Project> {
     static final String GROUP = "neoforge development";
     static final String INTERNAL_GROUP = "neoforge development/internal";
 
+    static String timestamp = Instant.now().toString();
+
     @Override
     public void apply(Project project) {
         project.getPlugins().apply(MinecraftDependenciesPlugin.class);
@@ -65,6 +66,8 @@ public class NeoDevPlugin implements Plugin<Project> {
 
         var extension = project.getExtensions().create(NeoDevExtension.NAME, NeoDevExtension.class);
         var configurations = NeoDevConfigurations.createAndSetup(project);
+
+        var abbreviatedId = project.getProviders().gradleProperty("git.abbreviatedId");
 
         /*
          * MINECRAFT SOURCES SETUP
@@ -232,11 +235,22 @@ public class NeoDevPlugin implements Plugin<Project> {
             task.from(project.zipTree(
                     tasks.named("jar", Jar.class).flatMap(AbstractArchiveTask::getArchiveFile)));
             task.exclude("net/minecraft/**");
-            task.exclude("com/**");
+            task.exclude("com/mojang/blaze3d/**"); // Youer
+            task.exclude("com/mojang/realmsclient/**"); // Youer
+            task.exclude("com/mojang/math/**"); // Youer
             task.exclude("mcp/**");
 
             task.manifest(manifest -> {
                 manifest.attributes(Map.of("FML-System-Mods", "neoforge"));
+                manifest.attributes(Map.of("Build-Time", timestamp));
+                manifest.attributes(Map.of("Git-Commit", abbreviatedId));
+                manifest.attributes(Map.of("Brand-Id", "mohistmc:youer"));
+                manifest.attributes(Map.of("Specification-Title", "Youer"));
+                manifest.attributes(Map.of("Specification-Vendor", "MohistMC"));
+                manifest.attributes(Map.of("Specification-Version", minecraftVersion));
+                manifest.attributes(Map.of("Implementation-Title", "Youer"));
+                manifest.attributes(Map.of("Implementation-Version", minecraftVersion));
+                manifest.attributes(Map.of("Implementation-Vendor", "MohistMC"));
                 // These attributes are used from NeoForgeVersion.java to find the NF version without command line arguments.
                 manifest.attributes(
                         Map.of(
@@ -256,24 +270,6 @@ public class NeoDevPlugin implements Plugin<Project> {
                                 "Implementation-Version", mcAndNeoFormVersion,
                                 "Implementation-Vendor", "NeoForged"),
                         "net/neoforged/neoforge/versions/neoform/");
-                manifest.attributes(
-                        Map.of(
-                                "Specification-Title", "Spigot",
-                                "Specification-Vendor", "SpigotMC",
-                                "Specification-Version", minecraftVersion,
-                                "Implementation-Title", "Spigot",
-                                "Implementation-Version", minecraftVersion,
-                                "Implementation-Vendor", "SpigotMC"),
-                        "org/bukkit/craftbukkit/");
-                manifest.attributes(
-                        Map.of(
-                                "Specification-Title", "Mohist",
-                                "Specification-Vendor", "MohistMC",
-                                "Specification-Version", minecraftVersion,
-                                "Implementation-Title", "Mohist",
-                                "Implementation-Version", minecraftVersion,
-                                "Implementation-Vendor", "MohistMC"),
-                        "com/mohistmc/");
             });
         });
 

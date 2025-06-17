@@ -1,6 +1,6 @@
 package org.bukkit.craftbukkit.event;
 
-import cn.mohistmc.youer.bukkit.inventory.YouerModsInventory;
+import com.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -1266,7 +1266,7 @@ public class CraftEventFactory {
     public static boolean alreadyProcessed;
     public static AbstractContainerMenu callInventoryOpenEvent(ServerPlayer player, AbstractContainerMenu container, boolean cancelled) {
         if (player.containerMenu != player.inventoryMenu && !alreadyProcessed) { // fire INVENTORY_CLOSE if one already open
-            player.connection.handleContainerClose(new ServerboundContainerClosePacket(player.containerMenu.containerId));
+            player.connection.handleContainerClose(new ServerboundContainerClosePacket(player.containerMenu.containerId), InventoryCloseEvent.Reason.OPEN_NEW); // Paper - Inventory close reason
             alreadyProcessed = false;
         }
 
@@ -1447,6 +1447,11 @@ public class CraftEventFactory {
     }
 
     public static void handleInventoryCloseEvent(net.minecraft.world.entity.player.Player human) {
+        handleInventoryCloseEvent(human, org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNKNOWN);
+    }
+
+    public static void handleInventoryCloseEvent(net.minecraft.world.entity.player.Player human, org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
+        // Paper end
         human.inventoryMenu.containerOwner = human;
         human.containerMenu.containerOwner = human;
         InventoryView view = human.containerMenu.getBukkitView();
@@ -1455,7 +1460,7 @@ public class CraftEventFactory {
             inventory.getType().setMods(true);
             view = new CraftInventoryView(human.getBukkitEntity(), inventory, human.containerMenu);
         }
-        InventoryCloseEvent event = new InventoryCloseEvent(view);
+        InventoryCloseEvent event = new InventoryCloseEvent(view, reason); // Paper
         human.level().getCraftServer().getPluginManager().callEvent(event);
         human.containerMenu.transferTo(human.inventoryMenu, human.getBukkitEntity());
     }

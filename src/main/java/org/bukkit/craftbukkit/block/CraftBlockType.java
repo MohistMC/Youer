@@ -1,13 +1,10 @@
 package org.bukkit.craftbukkit.block;
 
-import cn.mohistmc.youer.Youer;
-import cn.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.google.common.base.Preconditions;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
@@ -36,7 +33,7 @@ import org.bukkit.craftbukkit.util.Handleable;
 import org.bukkit.inventory.ItemType;
 import org.jetbrains.annotations.NotNull;
 
-public class CraftBlockType<B extends BlockData> implements BlockType.Typed<B>, Handleable<Block> {
+public class CraftBlockType<B extends BlockData> implements BlockType.Typed<B>, Handleable<Block>, io.papermc.paper.world.flag.PaperFeatureDependent { // Paper - feature flag API
 
     private final NamespacedKey key;
     private final Block block;

@@ -1,7 +1,10 @@
 --- a/net/minecraft/server/ReloadableServerResources.java
 +++ b/net/minecraft/server/ReloadableServerResources.java
-@@ -49,6 +_,8 @@
+@@ -47,8 +_,11 @@
+         this.recipes = new RecipeManager(this.registryLookup);
+         this.tagManager = new TagManager(p_206857_);
          this.commands = new Commands(p_206858_, CommandBuildContext.simple(this.registryLookup, p_250695_));
++        io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setDispatcher(this.commands, CommandBuildContext.simple(this.registryLookup, p_250695_)); // Paper - Brigadier Command API
          this.advancements = new ServerAdvancementManager(this.registryLookup);
          this.functionLibrary = new ServerFunctionLibrary(p_206859_, this.commands.getDispatcher());
 +        // Neo: Create context object
@@ -34,7 +37,7 @@
      public static CompletableFuture<ReloadableServerResources> loadResources(
          ResourceManager p_248588_,
          LayeredRegistryAccess<RegistryLayer> p_335667_,
-@@ -90,14 +_,27 @@
+@@ -90,14 +_,35 @@
                      ReloadableServerResources reloadableserverresources = new ReloadableServerResources(
                          p_335211_.compositeAccess(), p_250212_, p_249301_, p_251126_
                      );
@@ -43,6 +46,14 @@
 +                    listeners.forEach(rl -> {
 +                        if (rl instanceof net.neoforged.neoforge.resource.ContextAwareReloadListener srl) srl.injectContext(reloadableserverresources.context, reloadableserverresources.registryLookup);
 +                    });
++                    // Paper start - call commands event for bootstraps
++                    //noinspection ConstantValue
++                    io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(
++                            io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS,
++                            io.papermc.paper.command.brigadier.PaperCommands.INSTANCE,
++                            io.papermc.paper.plugin.bootstrap.BootstrapContext.class,
++                            MinecraftServer.getServer() == null ? io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL : io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD);
++                    // Paper end - call commands event
                      return SimpleReloadInstance.create(
 -                            p_248588_, reloadableserverresources.listeners(), p_249136_, p_249601_, DATA_RELOAD_INITIAL_TASK, LOGGER.isDebugEnabled()
 +                            p_248588_, listeners, p_249136_, p_249601_, DATA_RELOAD_INITIAL_TASK, LOGGER.isDebugEnabled()

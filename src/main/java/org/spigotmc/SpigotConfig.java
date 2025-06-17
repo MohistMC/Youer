@@ -1,6 +1,7 @@
 package org.spigotmc;
 
 import com.google.common.base.Throwables;
+import com.mohistmc.youer.util.I18n;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -60,7 +61,7 @@ public class SpigotConfig
         {
         } catch ( InvalidConfigurationException ex )
         {
-            Bukkit.getLogger().log( Level.SEVERE, "Could not load spigot.yml, please correct your syntax errors", ex );
+            Bukkit.getLogger().log( Level.SEVERE, I18n.as("spigotconfig.1"), ex );
             throw Throwables.propagate( ex );
         }
 
@@ -111,7 +112,7 @@ public class SpigotConfig
             SpigotConfig.config.save( SpigotConfig.CONFIG_FILE );
         } catch ( IOException ex )
         {
-            Bukkit.getLogger().log( Level.SEVERE, "Could not save " + SpigotConfig.CONFIG_FILE, ex );
+            Bukkit.getLogger().log( Level.SEVERE, I18n.as("spigotconfig.2", SpigotConfig.CONFIG_FILE), ex );
         }
     }
 
@@ -210,7 +211,7 @@ public class SpigotConfig
         SpigotConfig.restartScript = SpigotConfig.getString( "settings.restart-script", SpigotConfig.restartScript );
         SpigotConfig.restartMessage = SpigotConfig.transform( SpigotConfig.getString( "messages.restart", "Server is restarting" ) );
         SpigotConfig.commands.put( "restart", new RestartCommand( "restart" ) );
-        WatchdogThread.doStart( SpigotConfig.timeoutTime, SpigotConfig.restartOnCrash );
+        // WatchdogThread.doStart( SpigotConfig.timeoutTime, SpigotConfig.restartOnCrash ); // Paper - moved to after paper config initialization
     }
 
     public static boolean bungee;
@@ -227,7 +228,7 @@ public class SpigotConfig
     {
         int count = SpigotConfig.getInt( "settings.netty-threads", 4 );
         System.setProperty( "io.netty.eventLoopThreads", Integer.toString( count ) );
-        Bukkit.getLogger().log( Level.INFO, "Using {0} threads for Netty based IO", count );
+        Bukkit.getLogger().log( Level.INFO, I18n.as("spigotconfig.3", count));
     }
 
     public static boolean disableStatSaving;
@@ -271,7 +272,7 @@ public class SpigotConfig
     private static void playerSample()
     {
         SpigotConfig.playerSample = Math.max( SpigotConfig.getInt( "settings.sample-count", 12 ), 0 ); // Paper - Avoid negative counts
-        Bukkit.getLogger().log( Level.INFO, "Server Ping Player Sample Count: {0}", playerSample ); // Paper - Use logger
+        Bukkit.getLogger().log( Level.INFO, I18n.as("spigotconfig.4", playerSample)); // Paper - Use logger
     }
 
     public static int playerShuffle;

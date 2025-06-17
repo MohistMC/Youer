@@ -14,7 +14,7 @@
 +import org.bukkit.craftbukkit.generator.CraftLimitedRegion;
 +import org.bukkit.craftbukkit.util.RandomSourceWrapper;
 +import org.bukkit.craftbukkit.generator.structure.CraftStructure;
-+import org.bukkit.generator.BlockPopulator;
++import org.bukkit.generator.BlockPopulator;import org.spigotmc.AsyncCatcher;
  
  public abstract class ChunkGenerator {
      public static final Codec<ChunkGenerator> CODEC = BuiltInRegistries.CHUNK_GENERATOR
@@ -96,24 +96,26 @@
      public abstract int getGenDepth();
  
      public WeightedRandomList<MobSpawnSettings.SpawnerData> getMobsAt(
-@@ -551,6 +_,20 @@
+@@ -551,6 +_,22 @@
              p_223107_, this, this.biomeSource, p_223108_, p_223109_, p_223110_, p_223112_, i, p_223111_, predicate
          );
          if (structurestart.isValid()) {
-+            // CraftBukkit start
-+            BoundingBox box = structurestart.getBoundingBox();
-+            org.bukkit.event.world.AsyncStructureSpawnEvent event = new org.bukkit.event.world.AsyncStructureSpawnEvent(
-+                p_223106_.level.getMinecraftWorld().getWorld(),
-+                CraftStructure.minecraftToBukkit(structure),
-+                new org.bukkit.util.BoundingBox(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()),
-+                p_223112_.x,
-+                p_223112_.z
-+            );
-+            org.bukkit.Bukkit.getPluginManager().callEvent(event);
-+            if (event.isCancelled()) {
-+                return true;
++            if (AsyncCatcher.catchAsync()) {
++                // CraftBukkit start
++                BoundingBox box = structurestart.getBoundingBox();
++                org.bukkit.event.world.AsyncStructureSpawnEvent event = new org.bukkit.event.world.AsyncStructureSpawnEvent(
++                        p_223106_.level.getMinecraftWorld().getWorld(),
++                        CraftStructure.minecraftToBukkit(structure),
++                        new org.bukkit.util.BoundingBox(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()),
++                        p_223112_.x,
++                        p_223112_.z
++                );
++                org.bukkit.Bukkit.getPluginManager().callEvent(event);
++                if (event.isCancelled()) {
++                    return true;
++                }
++                // CraftBukkit end
 +            }
-+            // CraftBukkit end
              p_223106_.setStartForStructure(p_223113_, structure, structurestart, p_223111_);
              return true;
          } else {

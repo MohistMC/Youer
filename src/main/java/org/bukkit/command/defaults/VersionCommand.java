@@ -1,13 +1,23 @@
 package org.bukkit.command.defaults;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import cn.mohistmc.youer.Youer;
+import com.google.common.io.Resources;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import net.neoforged.neoforge.internal.versions.neoforge.NeoForgeVersion;
+import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -15,8 +25,24 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+// Paper start - version command 2.0
+import io.papermc.paper.util.VersionFetcher;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+// Paper end - version command 2.0
 
 public class VersionCommand extends BukkitCommand {
+    private VersionFetcher versionFetcher; // Paper - version command 2.0
+    private VersionFetcher getVersionFetcher() { // lazy load because unsafe isn't available at command registration
+        if (versionFetcher == null) {
+            versionFetcher = Bukkit.getUnsafe().getVersionFetcher();
+        }
+
+        return versionFetcher;
+    }
+
     public VersionCommand(@NotNull String name) {
         super(name);
 
@@ -31,7 +57,8 @@ public class VersionCommand extends BukkitCommand {
         if (!testPermission(sender)) return true;
 
         if (args.length == 0) {
-            sender.sendMessage("This server is running " + Bukkit.getName() + " version " + Bukkit.getVersion() + " (Implementing API version " + Bukkit.getBukkitVersion()  + ", NeoForge version " + NeoForgeVersion.getVersion() + ")");
+            //sender.sendMessage("This server is running " + Bukkit.getName() + " version " + Bukkit.getVersion() + " (Implementing API version " + Bukkit.getBukkitVersion() + ")"); // Paper - moved to setVersionMessage
+            sendVersion(sender);
         } else {
             StringBuilder name = new StringBuilder();
 
@@ -69,8 +96,17 @@ public class VersionCommand extends BukkitCommand {
 
     private void describeToSender(@NotNull Plugin plugin, @NotNull CommandSender sender) {
         PluginDescriptionFile desc = plugin.getDescription();
-        sender.sendMessage(ChatColor.GREEN + desc.getName() + ChatColor.WHITE + " version " + ChatColor.GREEN + desc.getVersion());
-
+        // Paper start - version command 2.0
+        sender.sendMessage(
+                Component.text()
+                        .append(Component.text(desc.getName(), NamedTextColor.GREEN))
+                        .append(Component.text(" version "))
+                        .append(Component.text(desc.getVersion(), NamedTextColor.GREEN)
+                                .hoverEvent(Component.text("Click to copy to clipboard", NamedTextColor.WHITE))
+                                .clickEvent(ClickEvent.copyToClipboard(desc.getVersion()))
+                        )
+        );
+        // Paper end - version command 2.0
         if (desc.getDescription() != null) {
             sender.sendMessage(desc.getDescription());
         }
@@ -132,5 +168,75 @@ public class VersionCommand extends BukkitCommand {
             return completions;
         }
         return ImmutableList.of();
+    }
+
+    private final ReentrantLock versionLock = new ReentrantLock();
+    private boolean hasVersion = false;
+    private Component versionMessage = null; // Paper
+    private final Set<CommandSender> versionWaiters = new HashSet<CommandSender>();
+    private boolean versionTaskStarted = false;
+    private long lastCheck = 0;
+
+    private void sendVersion(@NotNull CommandSender sender) {
+        if (hasVersion) {
+            if (System.currentTimeMillis() - lastCheck > getVersionFetcher().getCacheTime()) { // Paper - use version supplier
+                lastCheck = System.currentTimeMillis();
+                hasVersion = false;
+            } else {
+                sender.sendMessage(versionMessage);
+                return;
+            }
+        }
+        versionLock.lock();
+        try {
+            if (hasVersion) {
+                sender.sendMessage(versionMessage);
+                return;
+            }
+            versionWaiters.add(sender);
+            if (!versionTaskStarted) {
+                versionTaskStarted = true;
+                new Thread(this::obtainVersion).start();
+            }
+        } finally {
+            versionLock.unlock();
+        }
+    }
+
+    private void obtainVersion() {
+        String version = Bukkit.getVersion();
+        // Paper start
+        if (version.startsWith("null")) { // running from ide?
+            setVersionMessage(Component.text("Unknown version, custom build?", NamedTextColor.YELLOW));
+            return;
+        }
+        setVersionMessage(getVersionFetcher().getVersionMessage(version));
+    }
+
+    // Paper start
+    private void setVersionMessage(final @NotNull Component msg) {
+        lastCheck = System.currentTimeMillis();
+        final Component message = Component.textOfChildren(
+                Component.text(Bukkit.getVersionMessage(), NamedTextColor.WHITE),
+                Component.newline(),
+                msg
+        );
+        this.versionMessage = Component.text()
+                .append(message)
+                .hoverEvent(Component.text("Click to copy to clipboard", NamedTextColor.WHITE))
+                .clickEvent(ClickEvent.copyToClipboard(PlainTextComponentSerializer.plainText().serialize(message)))
+                .build();
+        // Paper end
+        versionLock.lock();
+        try {
+            hasVersion = true;
+            versionTaskStarted = false;
+            for (CommandSender sender : versionWaiters) {
+                sender.sendMessage(versionMessage);
+            }
+            versionWaiters.clear();
+        } finally {
+            versionLock.unlock();
+        }
     }
 }

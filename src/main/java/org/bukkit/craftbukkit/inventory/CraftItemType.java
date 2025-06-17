@@ -1,15 +1,12 @@
 package org.bukkit.craftbukkit.inventory;
 
-import cn.mohistmc.youer.Youer;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-import com.mohistmc.dynamicenum.MohistDynamEnum;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -39,7 +36,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class CraftItemType<M extends ItemMeta> implements ItemType.Typed<M>, Handleable<Item> {
+public class CraftItemType<M extends ItemMeta> implements ItemType.Typed<M>, Handleable<Item>, io.papermc.paper.world.flag.PaperFeatureDependent { // Paper - feature flag API
 
     private final NamespacedKey key;
     private final Item item;

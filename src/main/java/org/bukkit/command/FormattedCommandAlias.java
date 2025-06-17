@@ -110,7 +110,7 @@ public class FormattedCommandAlias extends Command {
             index = formatString.indexOf('$', index);
         }
 
-        return formatString;
+        return formatString.trim(); // Paper - Causes an extra space at the end, breaks with brig commands
     }
 
     private static boolean inRange(int i, int j, int k) {

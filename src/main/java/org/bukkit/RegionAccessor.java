@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
  * A RegionAccessor gives access to getting, modifying and spawning {@link Biome}, {@link BlockState} and {@link Entity},
  * as well as generating some basic structures.
  */
-public interface RegionAccessor {
+public interface RegionAccessor extends Keyed, io.papermc.paper.world.flag.FeatureFlagSetHolder { // Paper - feature flag API
 
     /**
      * Gets the {@link Biome} at the given {@link Location}.
@@ -158,7 +158,7 @@ public interface RegionAccessor {
      * Creates a tree at the given {@link Location}
      *
      * @param location Location to spawn the tree
-     * @param random Random to use to generated the tree
+     * @param random Random to use to generate the tree
      * @param type Type of the tree to create
      * @return true if the tree was created successfully, otherwise false
      */
@@ -170,14 +170,14 @@ public interface RegionAccessor {
      * The provided consumer gets called for every block which gets changed
      * as a result of the tree generation. When the consumer gets called no
      * modifications to the world are done yet. Which means, that calling
-     * {@link #getBlockState(Location)} in the consumer while return the state
+     * {@link #getBlockState(Location)} in the consumer will return the state
      * of the block before the generation.
      * <p>
      * Modifications done to the {@link BlockState} in the consumer are respected,
      * which means that it is not necessary to call {@link BlockState#update()}
      *
      * @param location Location to spawn the tree
-     * @param random Random to use to generated the tree
+     * @param random Random to use to generate the tree
      * @param type Type of the tree to create
      * @param stateConsumer The consumer which should get called for every block which gets changed
      * @return true if the tree was created successfully, otherwise false
@@ -197,7 +197,7 @@ public interface RegionAccessor {
      * If it returns {@code false} the block won't get set in the world.
      *
      * @param location Location to spawn the tree
-     * @param random Random to use to generated the tree
+     * @param random Random to use to generate the tree
      * @param type Type of the tree to create
      * @param statePredicate The predicate which should get used to test if a block should be set or not.
      * @return true if the tree was created successfully, otherwise false
@@ -422,4 +422,12 @@ public interface RegionAccessor {
      */
     @NotNull
     public <T extends Entity> T addEntity(@NotNull T entity);
+    /**
+     * Get the world's key
+     *
+     * @return the world's key
+     */
+    @NotNull
+    @Override
+    NamespacedKey getKey();
 }

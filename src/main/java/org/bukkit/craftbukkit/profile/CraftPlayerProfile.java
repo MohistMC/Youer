@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.profile;
 
+import io.papermc.paper.profile.SharedPlayerProfile;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.mojang.authlib.GameProfile;
@@ -31,7 +32,7 @@ import org.bukkit.profile.PlayerTextures;
 import org.jetbrains.annotations.ApiStatus;
 
 @SerializableAs("PlayerProfile")
-public final class CraftPlayerProfile implements PlayerProfile, io.papermc.paper.profile.SharedPlayerProfile { // Paper
+public final class CraftPlayerProfile implements PlayerProfile, SharedPlayerProfile { // Paper
 
     @Nonnull
     public static GameProfile validateSkullProfile(@Nonnull GameProfile gameProfile) {

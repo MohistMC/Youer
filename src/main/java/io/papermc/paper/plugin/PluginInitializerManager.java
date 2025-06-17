@@ -1,5 +1,6 @@
 package io.papermc.paper.plugin;
 
+import com.mohistmc.youer.util.I18n;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.configuration.PaperConfigurations;
 import io.papermc.paper.plugin.entrypoint.Entrypoint;
@@ -7,15 +8,18 @@ import io.papermc.paper.plugin.entrypoint.LaunchEntryPointHandler;
 import io.papermc.paper.plugin.provider.PluginProvider;
 import io.papermc.paper.plugin.provider.type.paper.PaperPluginParent;
 import io.papermc.paper.plugin.provider.type.spigot.SpigotPluginProvider;
+import io.papermc.paper.pluginremap.PluginRemapper;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 import joptsimple.OptionSet;
 import net.minecraft.server.dedicated.DedicatedServer;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.java.LibraryLoader;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -26,10 +30,16 @@ public class PluginInitializerManager {
     private static PluginInitializerManager impl;
     private final Path pluginDirectory;
     private final Path updateDirectory;
+    public final io.papermc.paper.pluginremap.@org.checkerframework.checker.nullness.qual.MonotonicNonNull PluginRemapper pluginRemapper; // Paper
+
 
     PluginInitializerManager(final Path pluginDirectory, final Path updateDirectory) {
         this.pluginDirectory = pluginDirectory;
         this.updateDirectory = updateDirectory;
+        this.pluginRemapper = Boolean.getBoolean("paper.disablePluginRemapping")
+                ? null
+                : PluginRemapper.create(pluginDirectory);
+        LibraryLoader.REMAPPER = this.pluginRemapper == null ? Function.identity() : this.pluginRemapper::remapLibraries;
     }
 
     private static PluginInitializerManager parse(@NotNull final OptionSet minecraftOptionSet) throws Exception {
@@ -48,9 +58,8 @@ public class PluginInitializerManager {
         final Path resolvedUpdateDirectory = pluginDirectory.resolve(updateDirectoryName);
         if (!Files.isDirectory(resolvedUpdateDirectory)) {
             if (Files.exists(resolvedUpdateDirectory)) {
-                LOGGER.error("Misconfigured update directory!");
-                LOGGER.error("Your configured update directory ({}) in bukkit.yml is pointing to a non-directory path. " +
-                    "Auto updating functionality will not work.", resolvedUpdateDirectory);
+                LOGGER.error(I18n.as("plugininitializermanager.1"));
+                LOGGER.error(I18n.as("plugininitializermanager.2", resolvedUpdateDirectory));
             }
             return new PluginInitializerManager(pluginDirectory, null);
         }
@@ -59,15 +68,14 @@ public class PluginInitializerManager {
         try {
             isSameFile = Files.isSameFile(resolvedUpdateDirectory, pluginDirectory);
         } catch (final IOException e) {
-            LOGGER.error("Misconfigured update directory!");
-            LOGGER.error("Failed to compare update/plugin directory", e);
+            LOGGER.error(I18n.as("plugininitializermanager.1"));
+            LOGGER.error(I18n.as("plugininitializermanager.3"), e);
             return new PluginInitializerManager(pluginDirectory, null);
         }
 
         if (isSameFile) {
-            LOGGER.error("Misconfigured update directory!");
-            LOGGER.error(("Your configured update directory (%s) in bukkit.yml is pointing to the same location as the plugin directory (%s). " +
-                "Disabling auto updating functionality.").formatted(resolvedUpdateDirectory, pluginDirectory));
+            LOGGER.error(I18n.as("plugininitializermanager.1"));
+            LOGGER.error(I18n.as("plugininitializermanager.4", resolvedUpdateDirectory, pluginDirectory));
 
             return new PluginInitializerManager(pluginDirectory, null);
         }
@@ -95,10 +103,11 @@ public class PluginInitializerManager {
     }
 
     public static void load(OptionSet optionSet) throws Exception {
-        LOGGER.info("Initializing plugins...");
+        LOGGER.info(I18n.as("plugininitializermanager.5"));
 
         // We have to load the bukkit configuration inorder to get the update folder location.
         PluginInitializerManager pluginSystem = PluginInitializerManager.init(optionSet);
+        if (pluginSystem.pluginRemapper != null) pluginSystem.pluginRemapper.loadingPlugins();
 
         // Register the default plugin directory
         io.papermc.paper.plugin.util.EntrypointUtil.registerProvidersFromSource(io.papermc.paper.plugin.provider.source.DirectoryProviderSource.INSTANCE, pluginSystem.pluginDirectoryPath());
@@ -120,7 +129,7 @@ public class PluginInitializerManager {
             });
         });
         final int total = paperPluginNames.size() + legacyPluginNames.size();
-        LOGGER.info("Initialized {} plugin{}", total, total == 1 ? "" : "s");
+        LOGGER.info(I18n.as("plugininitializermanager.6", total, total == 1 ? "" : "s"));
         if (!paperPluginNames.isEmpty()) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.info("Paper plugins ({}):\n - {}", paperPluginNames.size(), String.join("\n - ", paperPluginNames));
@@ -144,7 +153,7 @@ public class PluginInitializerManager {
         try {
             load(dedicatedServer.options);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to reload!", e);
+            throw new RuntimeException(I18n.as("plugininitializermanager.7"), e);
         }
 
         boolean hasPaperPlugin = false;
@@ -156,9 +165,9 @@ public class PluginInitializerManager {
         }
 
         if (hasPaperPlugin) {
-            LOGGER.warn("======== WARNING ========");
-            LOGGER.warn("You are reloading while having Paper plugins installed on your server.");
-            LOGGER.warn("Paper plugins do NOT support being reloaded. This will cause some unexpected issues.");
+            LOGGER.warn(I18n.as("plugininitializermanager.8"));
+            LOGGER.warn(I18n.as("plugininitializermanager.9"));
+            LOGGER.warn(I18n.as("plugininitializermanager.10"));
             LOGGER.warn("=========================");
         }
     }

@@ -16,6 +16,7 @@ import joptsimple.util.PathConverter;
 import org.fusesource.jansi.AnsiConsole;
 
 public class Main {
+    public static final java.time.Instant BOOT_TIME = java.time.Instant.now(); // Paper - track initial start time
     public static boolean useJline = true;
     public static boolean useConsole = true;
 

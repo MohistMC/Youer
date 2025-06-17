@@ -9,31 +9,34 @@
  import net.minecraft.ChatFormatting;
  import net.minecraft.commands.arguments.EntityAnchorArgument;
  import net.minecraft.commands.execution.TraceCallbacks;
-@@ -42,6 +_,7 @@
- import net.minecraft.world.level.dimension.DimensionType;
+@@ -43,7 +_,7 @@
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
-+import org.bukkit.craftbukkit.command.VanillaCommandWrapper;
  
- public class CommandSourceStack implements ExecutionCommandSource<CommandSourceStack>, SharedSuggestionProvider, net.neoforged.neoforge.common.extensions.ICommandSourceStackExtension {
+-public class CommandSourceStack implements ExecutionCommandSource<CommandSourceStack>, SharedSuggestionProvider, net.neoforged.neoforge.common.extensions.ICommandSourceStackExtension {
++public class CommandSourceStack implements ExecutionCommandSource<CommandSourceStack>, SharedSuggestionProvider, net.neoforged.neoforge.common.extensions.ICommandSourceStackExtension, io.papermc.paper.command.brigadier.PaperCommandSourceStack { // Paper - Brigadier API
      public static final SimpleCommandExceptionType ERROR_NOT_PLAYER = new SimpleCommandExceptionType(Component.translatable("permissions.requires.player"));
+     public static final SimpleCommandExceptionType ERROR_NOT_ENTITY = new SimpleCommandExceptionType(Component.translatable("permissions.requires.entity"));
+     public final CommandSource source;
 @@ -61,6 +_,8 @@
      private final Vec2 rotation;
      private final CommandSigningContext signingContext;
      private final TaskChainer chatMessageChainer;
-+    public volatile CommandNode currentCommand; // CraftBukkit
++    public java.util.Map<Thread, CommandNode> currentCommand = new java.util.concurrent.ConcurrentHashMap<>(); // CraftBukkit // Paper - Thread Safe Vanilla Command permission checking
 +    public boolean bypassSelectorPermissions = false; // Paper - add bypass for selector permissions
  
      public CommandSourceStack(
          CommandSource p_81302_,
-@@ -388,9 +_,26 @@
+@@ -388,9 +_,28 @@
  
      @Override
      public boolean hasPermission(int p_81370_) {
 +        // CraftBukkit start
-+        CommandNode currentCommand = this.currentCommand;
++        // Paper start - Thread Safe Vanilla Command permission checking
++        CommandNode currentCommand = this.currentCommand.get(Thread.currentThread());
 +        if (currentCommand != null) {
-+            return hasPermission(p_81370_, VanillaCommandWrapper.getPermission(currentCommand));
++            return this.hasPermission(p_81370_, org.bukkit.craftbukkit.command.VanillaCommandWrapper.getPermission(currentCommand));
++            // Paper end - Thread Safe Vanilla Command permission checking
 +        }
 +        // CraftBukkit end
          return this.permissionLevel >= p_81370_;
@@ -62,3 +65,15 @@
                      serverplayer.sendSystemMessage(component);
                  }
              }
+@@ -591,4 +_,11 @@
+     public boolean isSilent() {
+         return this.silent;
+     }
++
++    // Paper start
++    @Override
++    public CommandSourceStack getHandle() {
++        return this;
++    }
++    // Paper end
+ }

@@ -78,7 +78,7 @@ public enum Biome implements Keyed {
      */
     CUSTOM;
 
-    private final NamespacedKey key;
+    public NamespacedKey key;
 
     private Biome() {
         this.key = NamespacedKey.minecraft(name().toLowerCase(Locale.ROOT));

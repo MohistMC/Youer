@@ -6,7 +6,7 @@ import io.papermc.paper.plugin.configuration.PluginMeta;
 public class PaperClassloaderBytecodeModifier implements ClassloaderBytecodeModifier {
 
     @Override
-    public byte[] modify(PluginMeta configuration, byte[] bytecode) {
-        return bytecode;
+    public byte[] modify(byte[] bytecode) {
+        return io.papermc.paper.pluginremap.reflect.ReflectionRemapper.processClass(bytecode);
     }
 }

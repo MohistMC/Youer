@@ -1,17 +1,16 @@
 package org.bukkit.craftbukkit.entity;
 
-import cn.mohistmc.youer.util.PluginsDiscardedPayload;
+import com.mohistmc.youer.util.PluginsDiscardedPayload;
+import io.papermc.paper.profile.CraftPlayerProfile;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
-import cn.mohistmc.youer.api.color.ColorsAPI;
+import com.mohistmc.youer.api.color.ColorsAPI;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.shorts.ShortArraySet;
 import it.unimi.dsi.fastutil.shorts.ShortSet;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -34,8 +33,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.core.BlockPos;
@@ -46,13 +43,11 @@ import net.minecraft.network.ConnectionProtocol;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.PlayerChatMessage;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.network.protocol.common.ClientboundServerLinksPacket;
 import net.minecraft.network.protocol.common.ClientboundStoreCookiePacket;
 import net.minecraft.network.protocol.common.ClientboundTransferPacket;
-import net.minecraft.network.protocol.common.custom.DiscardedPayload;
 import net.minecraft.network.protocol.cookie.ClientboundCookieRequestPacket;
 import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
 import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
@@ -165,7 +160,6 @@ import org.bukkit.craftbukkit.map.CraftMapView;
 import org.bukkit.craftbukkit.map.RenderData;
 import org.bukkit.craftbukkit.potion.CraftPotionEffectType;
 import org.bukkit.craftbukkit.potion.CraftPotionUtil;
-import org.bukkit.craftbukkit.profile.CraftPlayerProfile;
 import org.bukkit.craftbukkit.scoreboard.CraftScoreboard;
 import org.bukkit.craftbukkit.util.CraftChatMessage;
 import org.bukkit.craftbukkit.util.CraftLocation;
@@ -177,7 +171,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerExpCooldownChangeEvent;
 import org.bukkit.event.player.PlayerHideEntityEvent;
 import org.bukkit.event.player.PlayerRegisterChannelEvent;
-import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 import org.bukkit.event.player.PlayerShowEntityEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerUnregisterChannelEvent;
@@ -1160,7 +1153,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
         // Close any foreign inventory
         if (this.getHandle().containerMenu != this.getHandle().inventoryMenu) {
-            this.getHandle().closeContainer();
+            this.getHandle().closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason.TELEPORT); // Paper - Inventory close reason
         }
 
         // Check if the fromWorld and toWorld are the same.
@@ -1679,7 +1672,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     // Paper start
     public io.papermc.paper.profile.PlayerProfile getPlayerProfile() {
-        return new io.papermc.paper.profile.CraftPlayerProfile(this).clone();
+        return new CraftPlayerProfile(this).clone();
     }
 
     private void refreshPlayer() {
@@ -1790,7 +1783,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     @Override
     public void setPlayerProfile(io.papermc.paper.profile.PlayerProfile profile) {
         ServerPlayer self = this.getHandle();
-        GameProfile gameProfile = io.papermc.paper.profile.CraftPlayerProfile.asAuthlibCopy(profile);
+        GameProfile gameProfile = CraftPlayerProfile.asAuthlibCopy(profile);
         if (!self.sentListPacket) {
             self.gameProfile = gameProfile;
             return;
@@ -2545,6 +2538,17 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         // Paper end
     }
 
+    // Paper start
+    public void setAffectsSpawning(boolean affects) {
+        this.getHandle().affectsSpawning = affects;
+    }
+
+    @Override
+    public boolean getAffectsSpawning() {
+        return this.getHandle().affectsSpawning;
+    }
+    // Paper end
+
     @Override
     public void updateCommands() {
         if (this.getHandle().connection == null) return;
@@ -2909,4 +2913,11 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         return this.spigot;
     }
     // Spigot end
+
+    // Paper start - brand support
+    @Override
+    public String getClientBrandName() {
+        return getHandle().clientBrandName;
+    }
+    // Paper end
 }

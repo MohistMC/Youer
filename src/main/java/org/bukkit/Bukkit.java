@@ -111,7 +111,19 @@ public final class Bukkit {
         }
 
         Bukkit.server = server;
-        server.getLogger().info("This server is running " + getName() + " version " + getVersion() + " (Implementing API version " + getBukkitVersion() + ", NeoForge version " + NeoForgeVersion.getVersion() + ")");
+        // Paper start - add git information
+        server.getLogger().info(getVersionMessage());
+    }
+    /**
+     * Gets message describing the version server is running.
+     *
+     * @return message describing the version server is running
+     */
+    @NotNull
+    public static String getVersionMessage() {
+        final io.papermc.paper.ServerBuildInfo version = io.papermc.paper.ServerBuildInfo.buildInfo();
+        return "This server is running " + getName() + " version " + version.asString(io.papermc.paper.ServerBuildInfo.StringRepresentation.VERSION_FULL) + " (Implementing API version " + getBukkitVersion() + ", NeoForge version " + NeoForgeVersion.getVersion() + ")";
+        // Paper end
     }
 
     /**
@@ -2491,4 +2503,13 @@ public final class Bukkit {
     public static boolean isStopping() {
         return server.isStopping();
     }
+
+    /**
+     * @return the datapack manager
+     */
+    @NotNull
+    public static io.papermc.paper.datapack.DatapackManager getDatapackManager() {
+        return server.getDatapackManager();
+    }
+
 }

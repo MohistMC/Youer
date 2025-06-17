@@ -6,8 +6,8 @@
 package net.neoforged.neoforge.server.console;
 
 import com.google.common.base.Preconditions;
-import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
 import java.util.List;

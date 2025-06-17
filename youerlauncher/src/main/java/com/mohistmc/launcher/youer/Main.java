@@ -96,7 +96,6 @@ public class Main {
         }
         AutoDeleteMods.jar();
 
-        // [--launchTarget, forgeserver, --fml.neoForgeVersion, 21.1.172, --fml.fmlVersion, 4.0.39, --fml.mcVersion, 1.21.1, --fml.neoFormVersion, 20240808.144430]
         List<String> forgeArgs = new ArrayList<>();
         for (String arg : DataParser.launchArgs.stream().filter(s ->
                         s.startsWith("--launchTarget")

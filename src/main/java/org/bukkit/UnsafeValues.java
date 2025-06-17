@@ -105,8 +105,7 @@ public interface UnsafeValues {
 
     String getTranslationKey(Attribute attribute);
 
-    @Nullable
-    FeatureFlag getFeatureFlag(@NotNull NamespacedKey key);
+    // Paper - replace with better system
 
     /**
      * Do not use, method will get removed, and the plugin won't run
@@ -239,4 +238,11 @@ public interface UnsafeValues {
     // Paper end - lifecycle event API
     <A extends Keyed, M> io.papermc.paper.registry.tag.@Nullable Tag<A> getTag(io.papermc.paper.registry.tag.@NotNull TagKey<A> tagKey); // Paper - hack to get tags for non-server backed registries
     ItemStack createEmptyStack(); // Paper - proxy ItemStack
+
+    /**
+     * Called once by the version command on first use, then cached.
+     */
+    default io.papermc.paper.util.VersionFetcher getVersionFetcher() {
+        return new io.papermc.paper.util.VersionFetcher.DummyVersionFetcher();
+    }
 }
