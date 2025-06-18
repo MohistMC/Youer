@@ -1,14 +1,16 @@
 --- a/net/minecraft/commands/CommandSource.java
 +++ b/net/minecraft/commands/CommandSource.java
-@@ -22,6 +_,11 @@
+@@ -22,6 +_,13 @@
          public boolean shouldInformAdmins() {
              return false;
          }
 +
++        // CraftBukkit start
 +        @Override
 +        public org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper) {
-+            return wrapper.getServer().console;
++            return io.papermc.paper.brigadier.NullCommandSender.INSTANCE; // Paper - expose a no-op CommandSender
 +        }
++        // CraftBukkit end
      };
  
      void sendSystemMessage(Component p_230797_);
@@ -19,6 +21,6 @@
 +    }
 +
 +    default org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper) {
-+        return io.papermc.paper.brigadier.NullCommandSender.INSTANCE; // Paper - expose a no-op CommandSender
++        return NULL.getBukkitSender( wrapper); // Paper - expose a no-op CommandSender
      }
  }

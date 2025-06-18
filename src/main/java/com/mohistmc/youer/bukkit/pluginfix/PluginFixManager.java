@@ -22,9 +22,6 @@ public class PluginFixManager {
     public static Set<String> pluginFixClasses = Set.of("ModelEngine");
 
     public static byte[] injectPluginFix(String className, byte[] clazz) {
-        if (className.endsWith("PaperLib")) {
-            return patch(clazz, PluginFixManager::removePaper);
-        }
         if (className.equals("com.ghostchu.quickshop.platform.spigot.AbstractSpigotPlatform")) {
             return patch(clazz, PluginFixManager::qs);
         }
@@ -53,17 +50,6 @@ public class PluginFixManager {
         ClassWriter writer = new ClassWriter(0);
         node.accept(writer);
         return writer.toByteArray();
-    }
-
-    private static void removePaper(ClassNode node) {
-        for (MethodNode methodNode : node.methods) {
-            if (methodNode.name.equals("isPaper") && methodNode.desc.equals("()Z")) {
-                InsnList toInject = new InsnList();
-                toInject.add(new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(PluginFixManager.class), "isPaper", "()Z"));
-                toInject.add(new InsnNode(Opcodes.IRETURN));
-                methodNode.instructions = toInject;
-            }
-        }
     }
 
     private static void qs(ClassNode node) {
@@ -95,10 +81,6 @@ public class PluginFixManager {
                 methodNode.tryCatchBlocks.clear();
             }
         }
-    }
-
-    public static boolean isPaper() {
-        return false;
     }
 
     public static String getNMSVersion() {

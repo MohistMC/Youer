@@ -1,9 +1,10 @@
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -2,12 +_,15 @@
+@@ -2,12 +_,16 @@
  
  import com.mojang.authlib.GameProfile;
  import com.mojang.logging.LogUtils;
++import io.papermc.paper.adventure.PaperAdventure;
 +import java.util.concurrent.ExecutionException;
  import javax.annotation.Nullable;
 +import net.minecraft.ChatFormatting;
@@ -212,7 +213,7 @@
          if (p_295099_.isTerminal()) {
              this.close();
          }
-@@ -151,22 +_,84 @@
+@@ -151,22 +_,86 @@
          try {
              this.connection.send(p_295099_, p_296321_, flag);
          } catch (Throwable throwable) {
@@ -262,7 +263,8 @@
 +            } catch (InterruptedException e) {
 +                Thread.currentThread().interrupt();
 +            } catch (ExecutionException e) {
-+                throw new RuntimeException(e);
++                LOGGER.error("Failed to disconnect player", e);
++                this.connection.disconnect(PaperAdventure.asVanilla(quitMessage));
 +            }
 +            return;
 +        }
@@ -282,6 +284,7 @@
 +        // Send the possibly modified leave message
 +        this.disconnect0(new DisconnectionDetails(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.reason()), p_350316_.report(), p_350316_.bugReportLink()), event.leaveMessage()); // Paper - Adventure
 +    }
++
 +    private void disconnect0(DisconnectionDetails disconnectiondetails, @Nullable net.kyori.adventure.text.Component leaveMessage) { // Paper - use kick event leave message
 +        // CraftBukkit end
 +        this.player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.KICKED; // Paper - Add API for quit reason

@@ -316,6 +316,76 @@ public final class CraftServer implements Server {
     public Set<String> activeCompatibilities = Collections.emptySet();
     private final io.papermc.paper.datapack.PaperDatapackManager datapackManager; // Paper
 
+    // Paper start - Folia region threading API
+    private final io.papermc.paper.threadedregions.scheduler.FallbackRegionScheduler regionizedScheduler = new io.papermc.paper.threadedregions.scheduler.FallbackRegionScheduler();
+    private final io.papermc.paper.threadedregions.scheduler.FoliaAsyncScheduler asyncScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaAsyncScheduler();
+    private final io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler globalRegionScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler();
+
+    @Override
+    public final io.papermc.paper.threadedregions.scheduler.RegionScheduler getRegionScheduler() {
+        return this.regionizedScheduler;
+    }
+
+    @Override
+    public final io.papermc.paper.threadedregions.scheduler.AsyncScheduler getAsyncScheduler() {
+        return this.asyncScheduler;
+    }
+
+    @Override
+    public final io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler getGlobalRegionScheduler() {
+        return this.globalRegionScheduler;
+    }
+
+    @Override
+    public final boolean isOwnedByCurrentRegion(World world, io.papermc.paper.math.Position position) {
+        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+                ((CraftWorld) world).getHandle(), position.blockX() >> 4, position.blockZ() >> 4
+        );
+    }
+
+    @Override
+    public final boolean isOwnedByCurrentRegion(World world, io.papermc.paper.math.Position position, int squareRadiusChunks) {
+        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+                ((CraftWorld) world).getHandle(), position.blockX() >> 4, position.blockZ() >> 4, squareRadiusChunks
+        );
+    }
+
+    @Override
+    public final boolean isOwnedByCurrentRegion(Location location) {
+        World world = location.getWorld();
+        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+                ((CraftWorld) world).getHandle(), location.getBlockX() >> 4, location.getBlockZ() >> 4
+        );
+    }
+
+    @Override
+    public final boolean isOwnedByCurrentRegion(Location location, int squareRadiusChunks) {
+        World world = location.getWorld();
+        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+                ((CraftWorld) world).getHandle(), location.getBlockX() >> 4, location.getBlockZ() >> 4, squareRadiusChunks
+        );
+    }
+
+    @Override
+    public final boolean isOwnedByCurrentRegion(World world, int chunkX, int chunkZ) {
+        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+                ((CraftWorld) world).getHandle(), chunkX, chunkZ
+        );
+    }
+
+    @Override
+    public final boolean isOwnedByCurrentRegion(World world, int chunkX, int chunkZ, int squareRadiusChunks) {
+        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
+                ((CraftWorld) world).getHandle(), chunkX, chunkZ, squareRadiusChunks
+        );
+    }
+
+    @Override
+    public final boolean isOwnedByCurrentRegion(Entity entity) {
+        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandleRaw());
+    }
+    // Paper end - Folia reagion threading API
+
     static {
         ConfigurationSerialization.registerClass(CraftOfflinePlayer.class);
         ConfigurationSerialization.registerClass(CraftPlayerProfile.class);

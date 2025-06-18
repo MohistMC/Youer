@@ -679,7 +679,7 @@
          if (this.isSleeping()) {
              this.serverLevel().getChunkSource().broadcastAndSend(this, new ClientboundAnimatePacket(this, 2));
          }
-@@ -1072,17 +_,64 @@
+@@ -1072,17 +_,68 @@
          this.containerCounter = this.containerCounter % 100 + 1;
      }
  
@@ -711,7 +711,7 @@
  
              this.nextContainerCounter();
              AbstractContainerMenu abstractcontainermenu = p_9033_.createMenu(this.containerCounter, this.getInventory(), this);
-+
++            Component title = null; // Paper - Add titleOverride to InventoryOpenEvent
 +            // CraftBukkit start - Inventory open hook
 +            if (abstractcontainermenu != null) {
 +                abstractcontainermenu.setTitle(p_9033_.getDisplayName());
@@ -727,7 +727,11 @@
 +                }
 +                // Mohist end
 +                abstractcontainermenu.containerOwner = this;
-+                abstractcontainermenu = CraftEventFactory.callInventoryOpenEvent(this, abstractcontainermenu, cancelled);
++                // Paper start - Add titleOverride to InventoryOpenEvent
++                final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(this, abstractcontainermenu, cancelled);
++                abstractcontainermenu = result.getSecond();
++                title = PaperAdventure.asVanilla(result.getFirst());
++                // Paper end - Add titleOverride to InventoryOpenEvent
 +                if (abstractcontainermenu == null && !cancelled) { // Let pre-cancelled events fall through
 +                    // SPIGOT-5263 - close chest if cancelled
 +                    if (p_9033_ instanceof Container) {
@@ -769,11 +773,13 @@
 +                        )
 +                    );
 +                } else {
++                this.containerMenu = abstractcontainermenu;
                  this.connection
-                     .send(new ClientboundOpenScreenPacket(abstractcontainermenu.containerId, abstractcontainermenu.getType(), p_9033_.getDisplayName()));
+-                    .send(new ClientboundOpenScreenPacket(abstractcontainermenu.containerId, abstractcontainermenu.getType(), p_9033_.getDisplayName()));
++                    .send(new ClientboundOpenScreenPacket(abstractcontainermenu.containerId, abstractcontainermenu.getType(), Objects.requireNonNullElseGet(title, abstractcontainermenu::getTitle))); // Paper - Add titleOverride to InventoryOpenEvent
 +                }
                  this.initMenu(abstractcontainermenu);
-                 this.containerMenu = abstractcontainermenu;
+-                this.containerMenu = abstractcontainermenu;
 +                NeoForge.EVENT_BUS.post(new PlayerContainerEvent.Open(this, this.containerMenu));
                  return OptionalInt.of(this.containerCounter);
              }

@@ -63,6 +63,14 @@
  import net.minecraft.core.HolderGetter;
  import net.minecraft.core.LayeredRegistryAccess;
  import net.minecraft.core.Registry;
+@@ -125,6 +_,7 @@
+ import net.minecraft.util.thread.ReentrantBlockableEventLoop;
+ import net.minecraft.world.Difficulty;
+ import net.minecraft.world.RandomSequences;
++import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.ai.village.VillageSiege;
+ import net.minecraft.world.entity.npc.CatSpawner;
+ import net.minecraft.world.entity.npc.WanderingTraderSpawner;
 @@ -165,10 +_,30 @@
  import net.minecraft.world.level.storage.WorldData;
  import net.minecraft.world.phys.Vec2;
@@ -148,7 +156,7 @@
          AtomicReference<S> atomicreference = new AtomicReference<>();
 -        Thread thread = new Thread(() -> atomicreference.get().runServer(), "Server thread");
 -        thread.setUncaughtExceptionHandler((p_177909_, p_177910_) -> LOGGER.error("Uncaught exception in server thread", p_177910_));
-+        Thread thread = new Thread(SidedThreadGroups.SERVER, () -> atomicreference.get().runServer(), "Server thread");
++        Thread thread = new ca.spottedleaf.moonrise.common.util.TickThread(() -> atomicreference.get().runServer(), "Server thread");
 +        thread.setUncaughtExceptionHandler((p_177909_, p_177910_) -> LOGGER.error(I18n.as("minecraftserver.1"), p_177910_));
          if (Runtime.getRuntime().availableProcessors() > 4) {
              thread.setPriority(8);
@@ -870,11 +878,25 @@
              ObjectArrayList<GameProfile> objectarraylist = new ObjectArrayList<>(j);
              int k = Mth.nextInt(this.random, 0, list.size() - j);
  
-@@ -992,11 +_,17 @@
+@@ -992,11 +_,31 @@
  
      public void tickChildren(BooleanSupplier p_129954_) {
          this.getPlayerList().getPlayers().forEach(p_341570_ -> p_341570_.connection.suspendFlushing());
 +        this.server.getScheduler().mainThreadHeartbeat(this.tickCount); // CraftBukkit
++        // Paper start - Folia scheduler API
++        ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) Bukkit.getGlobalRegionScheduler()).tick();
++        getAllLevels().forEach(level -> {
++            for (final Entity entity : level.getEntities().getAll()) {
++                if (entity.isRemoved()) {
++                    continue;
++                }
++                final org.bukkit.craftbukkit.entity.CraftEntity bukkit = entity.getBukkitEntityRaw();
++                if (bukkit != null) {
++                    bukkit.taskScheduler.executeTick();
++                }
++            }
++        });
++        // Paper end - Folia scheduler API
 +        io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
          this.profiler.push("commandFunctions");
          this.getFunctions().tick();

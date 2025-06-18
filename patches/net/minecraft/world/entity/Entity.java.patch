@@ -79,7 +79,7 @@
      private final Set<TagKey<Fluid>> fluidOnEyes = new HashSet<>();
      public int invulnerableTime;
      protected boolean firstTick = true;
-@@ -243,6 +_,77 @@
+@@ -243,6 +_,89 @@
      public boolean hasVisualFire;
      @Nullable
      private BlockState inBlockState = null;
@@ -92,11 +92,23 @@
 +    private CraftEntity bukkitEntity;
 +
 +    public CraftEntity getBukkitEntity() {
-+        if (bukkitEntity == null) {
-+            bukkitEntity = CraftEntity.getEntity(level.getCraftServer(), this);
++        if (this.bukkitEntity == null) {
++            // Paper start - Folia schedulers
++            synchronized (this) {
++                if (this.bukkitEntity == null) {
++                    return this.bukkitEntity = CraftEntity.getEntity(this.level.getCraftServer(), this);
++                }
++            }
++            // Paper end - Folia schedulers
 +        }
-+        return bukkitEntity;
++        return this.bukkitEntity;
 +    }
++
++    // Paper start
++    public CraftEntity getBukkitEntityRaw() {
++        return this.bukkitEntity;
++    }
++    // Paper end
 +
 +    public void setBukkitEntity(CraftEntity bukkitEntity) {
 +        this.bukkitEntity = bukkitEntity;
@@ -1250,7 +1262,7 @@
      }
  
      public void checkDespawn() {
-@@ -3410,8 +_,16 @@
+@@ -3410,8 +_,17 @@
          return this.removalReason;
      }
  
@@ -1264,23 +1276,47 @@
      @Override
      public final void setRemoved(Entity.RemovalReason p_146876_) {
 +        CraftEventFactory.callEntityRemoveEvent(this, setRemoved$cause.getAndSet(null));
++        final boolean alreadyRemoved = this.removalReason != null; // Paper - Folia schedulers
          if (this.removalReason == null) {
              this.removalReason = p_146876_;
          }
-@@ -3424,6 +_,13 @@
-         this.levelCallback.onRemove(p_146876_);
-     }
+@@ -3422,12 +_,35 @@
  
+         this.getPassengers().forEach(Entity::stopRiding);
+         this.levelCallback.onRemove(p_146876_);
+-    }
++        // Paper start - Folia schedulers
++        if (!(this instanceof ServerPlayer) && p_146876_ != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
++            // Players need to be special cased, because they are regularly removed from the world
++            this.retireScheduler();
++        }
++        // Paper end - Folia schedulers
++    }
++
 +    @Override
 +    public final void setRemovedCB(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
 +        this.setRemoved$cause.set(cause);
 +        this.setRemoved(entity_removalreason);
 +    }
 +    // Youer end
-+
+ 
      public void unsetRemoved() {
          this.removalReason = null;
      }
+ 
++    // Paper start - Folia schedulers
++    /**
++     * Invoked only when the entity is truly removed from the server, never to be added to any world.
++     */
++    public final void retireScheduler() {
++        // we need to force create the bukkit entity so that the scheduler can be retired...
++        this.getBukkitEntity().taskScheduler.retire();
++    }
++    // Paper end - Folia schedulers
++
+     @Override
+     public void setLevelCallback(EntityInLevelCallback p_146849_) {
+         this.levelCallback = p_146849_;
 @@ -3451,6 +_,128 @@
          return true;
      }

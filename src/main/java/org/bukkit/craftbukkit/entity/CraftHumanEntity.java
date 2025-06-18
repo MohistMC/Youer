@@ -328,12 +328,18 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
         Preconditions.checkArgument(windowType != null, "Unknown windowType");
         AbstractContainerMenu container = new CraftContainer(inventory, player, player.nextContainerCounterInt());
 
-        container = CraftEventFactory.callInventoryOpenEvent(player, container);
+        // Paper start - Add titleOverride to InventoryOpenEvent
+        final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(player, container);
+        container = result.getSecond();
+        // Paper end - Add titleOverride to InventoryOpenEvent
         if (container == null) return;
 
-        String title = container.getBukkitView().getTitle();
+        //String title = container.getBukkitView().getTitle(); // Paper - comment
+        net.kyori.adventure.text.Component adventure$title = container.getBukkitView().title(); // Paper
+        if (adventure$title == null) adventure$title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(container.getBukkitView().getTitle()); // Paper
+        if (result.getFirst() != null) adventure$title = result.getFirst(); // Paper - Add titleOverride to InventoryOpenEvent
 
-        player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, CraftChatMessage.fromString(title)[0]));
+        player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, io.papermc.paper.adventure.PaperAdventure.asVanilla(adventure$title))); // Paper
         player.containerMenu = container;
         player.initMenu(container);
     }
@@ -396,15 +402,22 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
         }
 
         // Trigger an INVENTORY_OPEN event
-        container = CraftEventFactory.callInventoryOpenEvent(player, container);
+        // Paper start - Add titleOverride to InventoryOpenEvent
+        final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(player, container);
+        container = result.getSecond();
+        // Paper end - Add titleOverride to InventoryOpenEvent
         if (container == null) {
             return;
         }
 
         // Now open the window
         MenuType<?> windowType = CraftContainer.getNotchInventoryType(inventory.getTopInventory());
-        String title = inventory.getTitle();
-        player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, CraftChatMessage.fromString(title)[0]));
+        //String title = inventory.getTitle(); // Paper - comment
+        net.kyori.adventure.text.Component adventure$title = inventory.title(); // Paper
+        if (adventure$title == null) adventure$title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(inventory.getTitle()); // Paper
+        if (result.getFirst() != null) adventure$title = result.getFirst(); // Paper - Add titleOverride to InventoryOpenEvent
+        //player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, CraftChatMessage.fromString(title)[0])); // Paper - comment
+        player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, io.papermc.paper.adventure.PaperAdventure.asVanilla(adventure$title))); // Paper
         player.containerMenu = container;
         player.initMenu(container);
     }
