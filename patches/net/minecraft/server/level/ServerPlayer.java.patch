@@ -773,13 +773,12 @@
 +                        )
 +                    );
 +                } else {
-+                this.containerMenu = abstractcontainermenu;
                  this.connection
 -                    .send(new ClientboundOpenScreenPacket(abstractcontainermenu.containerId, abstractcontainermenu.getType(), p_9033_.getDisplayName()));
 +                    .send(new ClientboundOpenScreenPacket(abstractcontainermenu.containerId, abstractcontainermenu.getType(), Objects.requireNonNullElseGet(title, abstractcontainermenu::getTitle))); // Paper - Add titleOverride to InventoryOpenEvent
 +                }
                  this.initMenu(abstractcontainermenu);
--                this.containerMenu = abstractcontainermenu;
+                 this.containerMenu = abstractcontainermenu;
 +                NeoForge.EVENT_BUS.post(new PlayerContainerEvent.Open(this, this.containerMenu));
                  return OptionalInt.of(this.containerCounter);
              }

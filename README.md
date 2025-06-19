@@ -1,55 +1,76 @@
 <div align="center">
-  <h1>Youer 1.21.1</h1>
+  <h1 align="center">Youer 1.21.1</h1>
+  <h3 align="center">Minecraft NeoForge Hybrid server implementing the Bukkit/Spigot/Paper API</h3>
 
-### Minecraft NeoForge Hybrid server implementing the Bukkit/Spigot/Paper API
-
-[![](https://img.shields.io/github/stars/MohistMC/Youer.svg?label=Stars&logo=github)](https://github.com/MohistMC/Youer/stargazers)
-[![](https://img.shields.io/badge/NeoForge-21.1.180-brightgreen.svg?colorB=26303d)](https://neoforged.net/)
-[![](https://img.shields.io/badge/JDK-21.0.3-brightgreen.svg?colorB=469C00&logo=java)](https://www.azul.com/downloads/?version=java-21-lts#zulu)
-[![](https://img.shields.io/badge/Gradle-8.13-brightgreen.svg?colorB=469C00&logo=gradle)](https://docs.gradle.org/8.13/release-notes.html)
-[![](https://img.shields.io/bstats/servers/6762?label=bStats)](https://bstats.org/plugin/server-implementation/Mohist/6762)
-[![](https://img.shields.io/discord/311256119005937665.svg?color=%237289da&label=Discord&logo=discord&logoColor=%237289da)](https://discord.gg/mohistmc)
-
+  <p align="center">
+    <a href="https://github.com/MohistMC/Youer/stargazers">
+      <img alt="GitHub Stars" src="https://img.shields.io/github/stars/MohistMC/Youer?logo=github&color=181717&style=flat-square">
+    </a>
+    <a href="https://neoforged.net/">
+      <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-21.1.180-FF8B00?style=flat-square">
+    </a>
+    <a href="https://www.azul.com/downloads/?version=java-21-lts#zulu">
+      <img alt="JDK" src="https://img.shields.io/badge/JDK-21.0.7-007396?logo=java&logoColor=white&style=flat-square">
+    </a>
+    <a href="https://docs.gradle.org/8.13/release-notes.html">
+      <img alt="Gradle" src="https://img.shields.io/badge/Gradle-8.13-02303A?logo=gradle&logoColor=white&style=flat-square">
+    </a>
+    <a href="https://discord.gg/mohistmc">
+      <img alt="Discord" src="https://img.shields.io/discord/311256119005937665?color=5865F2&logo=discord&logoColor=white&style=flat-square">
+    </a>
+  </p>
 </div>
 
-Progress
-------
+## 🚀 Features
 
-- [x] Rectify NeoForge([**27702c194**](https://github.com/neoforged/NeoForge/commit/27702c194))
-- [x] Start patch
-  * [x] Bukkit([**69fa4695**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/bukkit/commits/69fa4695))
-  * [x] CraftBukkit([**661afb43c**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/661afb43c))
-  * [x] Spigot ([**d2eba2c8**](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/spigot/commits/d2eba2c8))
-    * [x] Bukkit-Patches
-    * [x] CraftBukkit-Patches
-  * [ ] Paper ([**3cb8529bd**](https://github.com/PaperMC/Paper-archive/commit/3cb8529bd))
-  * [ ] PurPur ([**803bf624**](https://github.com/PurpurMC/Purpur/commit/803bf624))
+- Hybrid server combining NeoForge mod support with Paper API compatibility
+- Seamless plugin support from Bukkit/Spigot/Paper ecosystem
+- Optimized performance and stability for modded environments
 
-Getting Help
-------
+## 📊 Progress Status
 
-[MohistWiki](https://mohistmc.com/youer/docs) (Here is everything you need related to Youer)  
-[MohistWiki CN](https://www.mohistmc.cn/docs/youer) (Here is everything you need related to Youer)
+✅ **Core Integration**
+- [x] NeoForge ([27702c194](https://github.com/neoforged/NeoForge/commit/27702c194))
+- [x] Bukkit API ([69fa4695](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/bukkit/commits/69fa4695))
+- [x] CraftBukkit ([661afb43c](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/661afb43c))
+- [x] Spigot ([d2eba2c8](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/spigot/commits/d2eba2c8))
 
-Upstream Projects
-------
-* [**NeoForge**](https://github.com/neoforged/NeoForge.git) - mod support.
-* [**Bukkit**](https://hub.spigotmc.org/stash/scm/spigot/bukkit.git) - plugin support.
-* [**CraftBukkit**](https://hub.spigotmc.org/stash/scm/spigot/craftbukkit.git) - plugin support.
-* [**Spigot**](https://hub.spigotmc.org/stash/scm/spigot/spigot.git) - plugin support.
-* [**Arclight**](https://github.com/IzzelAliz/Arclight.git) - Remapper support.
-* [**Paper**](https://github.com/PaperMC/Paper.git) - plugin support.
-* [**PurPur**](https://github.com/PurpurMC/Purpur.git) - plugin support.
+🔄 **In Progress**
+- [ ] Paper API ([3cb8529bd](https://github.com/PaperMC/Paper-archive/commit/3cb8529bd))
+- [ ] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))
 
-Special Thanks To:
--------------
+## 📚 Documentation
 
-<a href="https://www.bisecthosting.com/mohistmc"><img src="https://www.bisecthosting.com/partners/custom-banners/118608b8-6e45-4301-b244-41934cdac6d1.png"></a>
+- [English Documentation](https://mohistmc.com/youer/docs)
+- [中文文档](https://www.mohistmc.cn/docs/youer)
 
-![YourKit-Logo](https://www.yourkit.com/images/yklogo.png)
+## ⚙️ Technical Stack
 
-[YourKit](http://www.yourkit.com/), makers of the outstanding java profiler, support open source projects of all kinds with their full featured [Java](https://www.yourkit.com/java/profiler/index.jsp) and [.NET](https://www.yourkit.com/.net/profiler/index.jsp) application profilers. We thank them for granting Mohist an OSS license so that we can make our software the best it can be.
+| Component   | Source                                                              | Purpose        | Status |
+|-------------|---------------------------------------------------------------------|----------------|--------|
+| NeoForge    | [GitHub](https://github.com/neoforged/NeoForge.git)                 | Mod support    | ✅      |
+| Bukkit      | [Spigot](https://hub.spigotmc.org/stash/scm/spigot/bukkit.git)      | Plugin support | ✅      |
+| CraftBukkit | [Spigot](https://hub.spigotmc.org/stash/scm/spigot/craftbukkit.git) | Plugin support | ✅      |
+| Spigot      | [Spigot](https://hub.spigotmc.org/stash/scm/spigot/spigot.git)      | Plugin support | ✅      |
+| Paper       | [GitHub](https://github.com/PaperMC/Paper.git)                      | Plugin support | 🔄     |
+| PurPur      | [GitHub](https://github.com/PurpurMC/Purpur.git)                    | Plugin support | 🔄     |
+| Arclight    | [GitHub](https://github.com/IzzelAliz/Arclight.git)                 | Remapping      | ✅      |
 
-[<img src="https://user-images.githubusercontent.com/21148213/121807008-8ffc6700-cc52-11eb-96a7-2f6f260f8fda.png" alt="" width="100">](https://www.jetbrains.com)
+## 💖 Sponsors & Supporters
 
-[JetBrains](https://www.jetbrains.com/), creators of the IntelliJ IDEA, supports Paper with one of their [Open Source Licenses](https://www.jetbrains.com/opensource/). IntelliJ IDEA is the recommended IDE for working with Paper, and most of the Paper team uses it.
+<div align="center">
+  <a href="https://www.bisecthosting.com/mohistmc">
+    <img src="https://www.bisecthosting.com/partners/custom-banners/118608b8-6e45-4301-b244-41934cdac6d1.png" alt="BisectHosting" width="500">
+  </a>
+
+<br/><br/>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+    <a href="https://www.yourkit.com/">
+      <img src="https://www.yourkit.com/images/yklogo.png" alt="YourKit" width="100">
+    </a>
+    <a href="https://www.jetbrains.com/">
+      <img src="https://user-images.githubusercontent.com/21148213/121807008-8ffc6700-cc52-11eb-96a7-2f6f260f8fda.png" alt="JetBrains" width="100">
+    </a>
+  </div>
+</div>
