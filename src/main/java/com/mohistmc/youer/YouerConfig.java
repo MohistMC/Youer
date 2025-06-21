@@ -1,7 +1,7 @@
 package com.mohistmc.youer;
 
+import com.google.common.base.Throwables;
 import com.mohistmc.youer.api.ServerAPI;
-import com.mohistmc.youer.api.color.ColorsAPI;
 import com.mohistmc.youer.commands.BackupWorldCommand;
 import com.mohistmc.youer.commands.BansCommand;
 import com.mohistmc.youer.commands.DumpCommand;
@@ -13,7 +13,6 @@ import com.mohistmc.youer.commands.ShowsCommand;
 import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.plugins.MohistPlugin;
 import com.mohistmc.youer.util.YamlUtils;
-import com.google.common.base.Throwables;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -159,11 +158,8 @@ public class YouerConfig {
         return config.getDouble(path, config.getDouble(path));
     }
 
-    public static String mohist_lang() {
-        return config.getString("youer.lang", Locale.getDefault().toString());
-    }
-    public static String motd() {
-        return ColorsAPI.of(YouerConfig.motdFirstLine) + "\n" + ColorsAPI.of(YouerConfig.motdSecondLine);
+    public static String youer_lang() {
+        return yml.getString("youer.lang", Locale.getDefault().toString());
     }
 
     public static boolean show_logo;

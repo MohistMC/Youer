@@ -33,12 +33,13 @@ public class BackConfig extends MohistPluginConfig {
     }
 
     public Location getLocation(Player player) {
-        final World world = Bukkit.getWorld(yaml.getString(player.getUniqueId() + ".location.world"));
-        final double x = yaml.getInt(player.getUniqueId() + ".location.x");
-        final double y = yaml.getInt(player.getUniqueId() + ".location.y");
-        final double z = yaml.getInt(player.getUniqueId() + ".location.z");
-        final float pitch = (float) yaml.getInt(player.getUniqueId() + ".location.pitch");
-        final float yaw = (float) yaml.getInt(player.getUniqueId() + ".location.yaw");
+        World world = Bukkit.getWorld(yaml.getString(player.getUniqueId() + ".location.world"));
+        if (world == null) return null;
+        double x = yaml.getInt(player.getUniqueId() + ".location.x");
+        double y = yaml.getInt(player.getUniqueId() + ".location.y");
+        double z = yaml.getInt(player.getUniqueId() + ".location.z");
+        float pitch = (float) yaml.getInt(player.getUniqueId() + ".location.pitch");
+        float yaw = (float) yaml.getInt(player.getUniqueId() + ".location.yaw");
         return new Location(world, x, y, z, yaw, pitch);
     }
 

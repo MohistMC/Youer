@@ -71,11 +71,10 @@
  import net.minecraft.world.entity.ai.village.VillageSiege;
  import net.minecraft.world.entity.npc.CatSpawner;
  import net.minecraft.world.entity.npc.WanderingTraderSpawner;
-@@ -165,10 +_,30 @@
+@@ -165,10 +_,33 @@
  import net.minecraft.world.level.storage.WorldData;
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
-+import net.neoforged.fml.util.thread.SidedThreadGroups;
 +import net.neoforged.neoforge.common.CommonHooks;
 +import net.neoforged.neoforge.common.NeoForge;
 +import net.neoforged.neoforge.common.world.chunk.ForcedChunkManager;
@@ -89,7 +88,11 @@
 +import org.bukkit.command.ConsoleCommandSender;
 +import org.bukkit.craftbukkit.CraftRegistry;
 +import org.bukkit.craftbukkit.CraftServer;
++import org.bukkit.craftbukkit.entity.CraftEntity;
++import org.bukkit.craftbukkit.help.SimpleHelpMap;
 +import org.bukkit.craftbukkit.scoreboard.CraftScoreboardManager;
++import org.bukkit.craftbukkit.block.data.CraftBlockData;
++import org.bukkit.craftbukkit.util.ServerShutdownThread;
 +import org.bukkit.event.server.ServerLoadEvent;
 +import org.bukkit.event.world.WorldLoadEvent;
 +import org.bukkit.plugin.PluginLoadOrder;
@@ -111,7 +114,7 @@
      private boolean debugCommandProfilerDelayStart;
      public ServerConnectionListener connection;
      public final ChunkProgressListenerFactory progressListenerFactory;
-@@ -223,7 +_,7 @@
+@@ -223,10 +_,15 @@
      private boolean pvp;
      private boolean allowFlight;
      @Nullable
@@ -120,7 +123,15 @@
      private int playerIdleTimeout;
      private final long[] tickTimesNanos = new long[100];
      private long aggregatedTickTimesNanos = 0L;
-@@ -254,18 +_,37 @@
++    // Paper start - Add tick times API and /mspt command
++    public final TickTimes tickTimes5s = new TickTimes(100);
++    public final TickTimes tickTimes10s = new TickTimes(200);
++    public final TickTimes tickTimes60s = new TickTimes(1200);
++    // Paper end - Add tick times API and /mspt command
+     @Nullable
+     private KeyPair keyPair;
+     @Nullable
+@@ -254,18 +_,38 @@
      public final Executor executor;
      @Nullable
      private String serverId;
@@ -142,6 +153,7 @@
 +    public int autosavePeriod;
 +    private boolean forceTicks;
 +    // CraftBukkit end
++    private long nextTickTime = 0; // Youer Add fake tickField worldedit need this
 +
 +    // Spigot start
 +    public static final int TPS = 20;
@@ -194,7 +206,7 @@
 -            this.potionBrewing = PotionBrewing.bootstrap(this.worldData.enabledFeatures());
 +            this.potionBrewing = PotionBrewing.bootstrap(this.worldData.enabledFeatures(), this.registryAccess());
 +
-+            Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
++            Runtime.getRuntime().addShutdownHook(new ServerShutdownThread(this));
 +            this.paperConfigurations = services.paperConfigurations(); // Paper - add paper configuration files
          }
      }
@@ -328,7 +340,7 @@
 +        if (io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.pluginsEnabled(); // Paper - Remap plugins
 +        io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // Paper - reset invalid state for event fire below
 +        io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL); // Paper - call commands event for regular plugins
-+        ((org.bukkit.craftbukkit.help.SimpleHelpMap) this.server.getHelpMap()).initializeCommands();
++        ((SimpleHelpMap) this.server.getHelpMap()).initializeCommands();
 +        this.server.getPluginManager().callEvent(new ServerLoadEvent(ServerLoadEvent.LoadType.STARTUP));
 +        this.connection.acceptConnections();
      }
@@ -828,8 +840,15 @@
          this.profiler.push("tallying");
          long j = Util.getNanos() - i;
          int k = this.tickCount % 100;
-@@ -927,6 +_,7 @@
+@@ -925,8 +_,14 @@
+         this.aggregatedTickTimesNanos += j;
+         this.tickTimesNanos[k] = j;
          this.smoothedTickTimeMillis = this.smoothedTickTimeMillis * 0.8F + (float)j / (float)TimeUtil.NANOSECONDS_PER_MILLISECOND * 0.19999999F;
++        // Paper start - Add tick times API and /mspt command
++        this.tickTimes5s.add(this.tickCount, j);
++        this.tickTimes10s.add(this.tickCount, j);
++        this.tickTimes60s.add(this.tickCount, j);
++        // Paper end - Add tick times API and /mspt command
          this.logTickMethodTime(i);
          this.profiler.pop();
 +        EventHooks.fireServerTickPost(p_129871_, this);
@@ -878,24 +897,24 @@
              ObjectArrayList<GameProfile> objectarraylist = new ObjectArrayList<>(j);
              int k = Mth.nextInt(this.random, 0, list.size() - j);
  
-@@ -992,11 +_,31 @@
+@@ -992,19 +_,61 @@
  
      public void tickChildren(BooleanSupplier p_129954_) {
          this.getPlayerList().getPlayers().forEach(p_341570_ -> p_341570_.connection.suspendFlushing());
 +        this.server.getScheduler().mainThreadHeartbeat(this.tickCount); // CraftBukkit
 +        // Paper start - Folia scheduler API
 +        ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) Bukkit.getGlobalRegionScheduler()).tick();
-+        getAllLevels().forEach(level -> {
++        for (ServerLevel level : getAllLevels()) {
 +            for (final Entity entity : level.getEntities().getAll()) {
 +                if (entity.isRemoved()) {
 +                    continue;
 +                }
-+                final org.bukkit.craftbukkit.entity.CraftEntity bukkit = entity.getBukkitEntityRaw();
++                final CraftEntity bukkit = entity.getBukkitEntityRaw();
 +                if (bukkit != null) {
 +                    bukkit.taskScheduler.executeTick();
 +                }
 +            }
-+        });
++        }
 +        // Paper end - Folia scheduler API
 +        io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
          this.profiler.push("commandFunctions");
@@ -907,13 +926,36 @@
 +        while (!processQueue.isEmpty()) {
 +            processQueue.remove().run();
 +        }
++        // Send time updates to everyone, it will get the right time from the world the player is in.
++        // Paper start - Perf: Optimize time updates
++        for (final ServerLevel level : this.getWorldArray()) {
++            final boolean doDaylight = level.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT);
++            final long dayTime = level.getDayTime();
++            long worldTime = level.getGameTime();
++            final ClientboundSetTimePacket worldPacket = new ClientboundSetTimePacket(worldTime, dayTime, doDaylight);
++            for (Player entityhuman : level.players()) {
++                if (!(entityhuman instanceof ServerPlayer) || (tickCount + entityhuman.getId()) % 20 != 0) {
++                    continue;
++                }
++                ServerPlayer entityplayer = (ServerPlayer) entityhuman;
++                long playerTime = entityplayer.getPlayerTime();
++                ClientboundSetTimePacket packet = (playerTime == dayTime) ? worldPacket :
++                        new ClientboundSetTimePacket(worldTime, playerTime, doDaylight);
++                entityplayer.connection.send(packet); // Add support for per player time
++            }
++        }
++        // Paper end - Perf: Optimize time updates
 +        for(ServerLevel serverlevel : this.getWorldArray()) {
 +            long tickStart = Util.getNanos();
              this.profiler.push(() -> serverlevel + " " + serverlevel.dimension().location());
++            /* Drop global time updates
              if (this.tickCount % 20 == 0) {
                  this.profiler.push("timeSync");
-@@ -1005,6 +_,7 @@
+-                this.synchronizeTime(serverlevel);
++                this.synchronizeTime(worldserver);
+                 this.profiler.pop();
              }
++            // CraftBukkit end */
  
              this.profiler.push("tick");
 +            EventHooks.fireLevelTickPre(serverlevel, p_129954_);
@@ -1096,11 +1138,11 @@
                      this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
                      this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);
 +                    this.getPlayerList().getPlayers().forEach(this.getPlayerList()::sendPlayerPermissionLevel); //Forge: Fix newly added/modified commands not being sent to the client when commands reload.
-+                    org.bukkit.craftbukkit.block.data.CraftBlockData.reloadCache(); // Paper - cache block data strings, they can be defined by datapacks so refresh it here
++                    CraftBlockData.reloadCache(); // Paper - cache block data strings, they can be defined by datapacks so refresh it here
 +                    // Paper start - brigadier command API
 +                    io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // reset invalid state for event fire below
 +                    LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, ReloadableRegistrarEvent.Cause.RELOAD); // call commands event for regular plugins
-+                    final org.bukkit.craftbukkit.help.SimpleHelpMap helpMap = (org.bukkit.craftbukkit.help.SimpleHelpMap) this.server.getHelpMap();
++                    final SimpleHelpMap helpMap = (SimpleHelpMap) this.server.getHelpMap();
 +                    helpMap.clear();
 +                    helpMap.initializeGeneralTopics();
 +                    helpMap.initializeCommands();
@@ -1188,3 +1230,34 @@
      }
  
      public boolean logIPs() {
+@@ -2059,4 +_,30 @@
+             };
+         }
+     }
++
++    // Paper start - Add tick times API and /mspt command
++    public static class TickTimes {
++        private final long[] times;
++
++        public TickTimes(int length) {
++            times = new long[length];
++        }
++
++        void add(int index, long time) {
++            times[index % times.length] = time;
++        }
++
++        public long[] getTimes() {
++            return times.clone();
++        }
++
++        public double getAverage() {
++            long total = 0L;
++            for (long value : times) {
++                total += value;
++            }
++            return ((double) total / (double) times.length) * 1.0E-6D;
++        }
++    }
++    // Paper end - Add tick times API and /mspt command
+ }

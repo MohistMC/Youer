@@ -8,7 +8,7 @@
 +import com.mohistmc.youer.util.Level2LevelStem;
  import com.google.common.annotations.VisibleForTesting;
  import com.google.common.collect.Lists;
-+import com.mohistmc.youer.neoforge.MohistDerivedWorldInfo;
++import com.mohistmc.youer.neoforge.YouerDerivedWorldInfo;
  import com.mojang.datafixers.DataFixer;
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
@@ -109,7 +109,16 @@
  
  public class ServerLevel extends Level implements WorldGenLevel {
      public static final BlockPos END_SPAWN_POINT = new BlockPos(100, 50, 0);
-@@ -199,12 +_,26 @@
+@@ -176,7 +_,7 @@
+     private static final int EMPTY_TIME_NO_TICK = 300;
+     private static final int MAX_SCHEDULED_TICKS_PER_TICK = 65536;
+     final List<ServerPlayer> players = Lists.newArrayList();
+-    private final ServerChunkCache chunkSource;
++    public final ServerChunkCache chunkSource;
+     private final MinecraftServer server;
+     public final ServerLevelData serverLevelData;
+     private int lastSpawnChunkRadius;
+@@ -199,12 +_,27 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -124,6 +133,7 @@
 +    public final LevelStorageSource.LevelStorageAccess convertable;
 +    public final UUID uuid;
 +    public ResourceKey<LevelStem> typeKey;
++    public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
 +
 +    @Override
 +    public ResourceKey<LevelStem> getTypeKey() {
@@ -170,7 +180,7 @@
 +        if (p_215002_ instanceof PrimaryLevelData) {
 +            this.K = (PrimaryLevelData) p_215002_;
 +        } else {
-+            this.K = MohistDerivedWorldInfo.create(p_215002_);
++            this.K = YouerDerivedWorldInfo.create(p_215002_);
 +        }
          ChunkGenerator chunkgenerator = p_215004_.generator();
 +        if (environment == null) {
@@ -267,7 +277,7 @@
          this.handlingTick = false;
          profilerfiller.pop();
 -        boolean flag1 = !this.players.isEmpty() || !this.getForcedChunks().isEmpty();
-+        boolean flag1 = !this.players.isEmpty() || net.neoforged.neoforge.common.world.chunk.ForcedChunkManager.hasForcedChunks(this); // Neo: Replace vanilla's has forced chunk check with neo's that checks both the vanilla and neo added ones
++        boolean flag1 = !paperConfig().unsupportedSettings.disableWorldTickingWhenEmpty || !this.players.isEmpty() || net.neoforged.neoforge.common.world.chunk.ForcedChunkManager.hasForcedChunks(this); // Neo: Replace vanilla's has forced chunk check with neo's that checks both the vanilla and neo added ones
          if (flag1) {
              this.resetEmptyTime();
          }
@@ -313,7 +323,7 @@
          ProfilerFiller profilerfiller = this.getProfiler();
          profilerfiller.push("thunder");
 -        if (flag && this.isThundering() && this.random.nextInt(100000) == 0) {
-+        if (flag && this.isThundering() && this.spigotConfig.thunderChance > 0 && this.random.nextInt(this.spigotConfig.thunderChance) == 0) { // Spigot
++        if (!this.paperConfig().environment.disableThunder && flag && this.isThundering() && this.spigotConfig.thunderChance > 0 && this.random.nextInt(this.spigotConfig.thunderChance) == 0) { // Spigot // Paper - Option to disable thunder
              BlockPos blockpos = this.findLightningTargetAround(this.getBlockRandomPos(i, 0, j, 15));
              if (this.isRainingAt(blockpos)) {
                  DifficultyInstance difficultyinstance = this.getCurrentDifficultyAt(blockpos);
@@ -325,7 +335,7 @@
                          this.addFreshEntity(skeletonhorse);
                      }
                  }
-@@ -492,7 +_,14 @@
+@@ -492,18 +_,27 @@
                  if (lightningbolt != null) {
                      lightningbolt.moveTo(Vec3.atBottomCenterOf(blockpos));
                      lightningbolt.setVisualOnly(flag1);
@@ -340,6 +350,20 @@
                  }
              }
          }
+ 
+         profilerfiller.popPush("iceandsnow");
+ 
+-        for (int i1 = 0; i1 < p_8716_; i1++) {
++        if (!this.paperConfig().environment.disableIceAndSnow) { // Paper - Option to disable ice and snow
++            for (int i1 = 0; i1 < p_8716_; i1++) {
+             if (this.random.nextInt(48) == 0) {
+                 this.tickPrecipitation(this.getBlockRandomPos(i, 0, j, 15));
+             }
+         }
++        } // Paper - Option to disable ice and snow
+ 
+         profilerfiller.popPush("tickBlocks");
+         if (p_8716_ > 0) {
 @@ -542,8 +_,11 @@
          BlockPos blockpos = this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, p_295060_);
          BlockPos blockpos1 = blockpos.below();
@@ -662,10 +686,11 @@
          this.gameEventDispatcher.post(p_316597_, p_215042_, p_215043_);
      }
  
-@@ -1057,11 +_,16 @@
+@@ -1057,11 +_,17 @@
  
      @Override
      public void updateNeighborsAt(BlockPos p_215045_, Block p_215046_) {
++        if (captureBlockStates) { return; } // Paper - Cancel all physics during placement
 +        net.neoforged.neoforge.event.EventHooks.onNeighborNotify(this, p_215045_, this.getBlockState(p_215045_), java.util.EnumSet.allOf(Direction.class), false).isCanceled();
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(p_215045_, p_215046_, null);
      }

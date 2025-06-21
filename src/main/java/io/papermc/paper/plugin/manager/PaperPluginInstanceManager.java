@@ -31,7 +31,6 @@ import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginCommandYamlParser;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.Listener;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.InvalidPluginException;

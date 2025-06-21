@@ -4,7 +4,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
 import io.izzel.tools.product.Product;
 import io.izzel.tools.product.Product2;
 import java.lang.invoke.MethodHandles;
@@ -18,13 +17,11 @@ import java.security.CodeSource;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.jar.JarFile;
 import net.md_5.specialsource.JarMapping;
 import net.md_5.specialsource.JarRemapper;
 import net.md_5.specialsource.RemappingClassAdapter;
@@ -264,18 +261,6 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
         return Maps.immutableEntry(owner, mapped);
     }
 
-    private boolean isSecureJar(JarFile jarFile) {
-        return this.secureJarInfo.computeIfAbsent(jarFile.getName(), key ->
-                jarFile.stream().anyMatch(it -> {
-                    if (it.isDirectory()) return false;
-                    String name = it.getName().toUpperCase(Locale.ROOT);
-                    return name.startsWith("META-INF") && (name.endsWith(".DSA") ||
-                            name.endsWith(".RSA") ||
-                            name.endsWith(".EC") ||
-                            name.endsWith(".SF"));
-                }));
-    }
-
     public Product2<byte[], CodeSource> remapClass(String className, Callable<byte[]> byteSource, URLConnection connection) throws ClassNotFoundException {
         try {
             byte[] bytes = remapClassFile(byteSource.call(), GlobalClassRepo.INSTANCE);
@@ -283,12 +268,7 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
             CodeSigner[] signers;
             if (connection instanceof JarURLConnection) {
                 url = ((JarURLConnection) connection).getJarFileURL();
-                if (isSecureJar(((JarURLConnection) connection).getJarFile())) {
-                    ByteStreams.exhaust(connection.getInputStream()); // must read before asking signers
-                    signers = ((JarURLConnection) connection).getJarEntry().getCodeSigners();
-                } else {
-                    signers = null;
-                }
+                signers = ((JarURLConnection) connection).getJarEntry().getCodeSigners();
             } else {
                 url = connection.getURL();
                 signers = null;

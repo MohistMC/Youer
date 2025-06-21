@@ -40,10 +40,10 @@ public class TpaComamands extends Command {
                 player.sendMessage(I18n.as("tpacommands.yourself"));
                 return false;
             }
-            TextComponent accept = new TextComponent("§f/tpaccept");
+            TextComponent accept = new TextComponent(I18n.as("tpacommands.click.accept"));
             accept.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(I18n.as("tpacommands.hover.accept"))));
             accept.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tpaccept"));
-            TextComponent deny = new TextComponent("§f/tpadeny");
+            TextComponent deny = new TextComponent(I18n.as("tpacommands.click.deny"));
             deny.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(I18n.as("tpacommands.hover.reject"))));
             deny.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tpadeny"));
             a.sendMessage(I18n.as("tpacommands.sent", player.getName()));

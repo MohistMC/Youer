@@ -11,7 +11,6 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
@@ -49,16 +48,6 @@ public class WorldEdit {
         }
     }
 
-    public static void handlePickName(ClassNode node) {
-        for (MethodNode method : node.methods) {
-            if (method.name.equals("pickName")) {
-                method.instructions.clear();
-                method.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1));
-                method.instructions.add(new InsnNode(Opcodes.ARETURN));
-            }
-        }
-    }
-
     private static void handleAdapt(ClassNode node, MethodNode standardize, MethodNode method) {
         switch (method.desc) {
             case "(Lcom/sk89q/worldedit/world/item/ItemType;)Lorg/bukkit/Material;", "(Lcom/sk89q/worldedit/world/block/BlockType;)Lorg/bukkit/Material;", "(Lcom/sk89q/worldedit/world/biome/BiomeType;)Lorg/bukkit/block/Biome;", "(Lcom/sk89q/worldedit/world/entity/EntityType;)Lorg/bukkit/entity/EntityType;" -> {
@@ -77,22 +66,6 @@ public class WorldEdit {
                         method.instructions.insert(instruction, list);
                         method.instructions.set(instruction, new InsnNode(Opcodes.POP));
                     }
-                }
-            }
-        }
-    }
-
-    public static void handleWatchdog(ClassNode node) {
-        if (node.interfaces.size() == 1 && node.interfaces.getFirst().equals("com/sk89q/worldedit/extension/platform/Watchdog") && node.name.contains("SpigotWatchdog")) {
-            for (MethodNode method : node.methods) {
-                if (method.name.equals("<init>")) {
-                    method.instructions.clear();
-                    method.instructions.add(new TypeInsnNode(Opcodes.NEW, "java/lang/ClassNotFoundException"));
-                    method.instructions.add(new InsnNode(Opcodes.DUP));
-                    method.instructions.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, "java/lang/ClassNotFoundException", "<init>", "()V", false));
-                    method.instructions.add(new InsnNode(Opcodes.ATHROW));
-                    method.tryCatchBlocks.clear();
-                    method.localVariables.clear();
                 }
             }
         }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/network/LegacyQueryHandler.java
 +++ b/net/minecraft/server/network/LegacyQueryHandler.java
-@@ -6,9 +_,12 @@
+@@ -6,6 +_,8 @@
  import io.netty.channel.ChannelFutureListener;
  import io.netty.channel.ChannelHandlerContext;
  import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -9,10 +9,6 @@
  import java.net.SocketAddress;
  import java.util.Locale;
  import net.minecraft.server.ServerInfo;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
- import org.slf4j.Logger;
- 
- public class LegacyQueryHandler extends ChannelInboundHandlerAdapter {
 @@ -33,9 +_,21 @@
  
                  SocketAddress socketaddress = p_9686_.channel().remoteAddress();
@@ -21,8 +17,9 @@
 +                PaperServerListPingEvent event; // Paper
 +
                  if (i == 0) {
-                     LOGGER.debug("Ping: (<1.3.x) from {}", socketaddress);
+-                    LOGGER.debug("Ping: (<1.3.x) from {}", socketaddress);
 -                    String s = createVersion0Response(this.server);
++                    LOGGER.debug("Ping: (<1.3.x) from {}", net.minecraft.server.MinecraftServer.getServer().logIPs() ? socketaddress: "<ip address withheld>"); // Paper - Respect logIPs option
 +                    // Paper start - Call PaperServerListPingEvent and use results
 +                    event = PaperLegacyStatusClient.processRequest(net.minecraft.server.MinecraftServer.getServer(), (java.net.InetSocketAddress) socketaddress, 39, null);
 +                    if (event == null) {
@@ -36,8 +33,12 @@
                      sendFlushAndClose(p_9686_, createLegacyDisconnectPacket(p_9686_.alloc(), s));
                  } else {
                      if (bytebuf.readUnsignedByte() != 1) {
-@@ -52,8 +_,19 @@
-                         LOGGER.debug("Ping: (1.4-1.5.x) from {}", socketaddress);
+@@ -49,11 +_,22 @@
+ 
+                         LOGGER.debug("Ping: (1.6) from {}", socketaddress);
+                     } else {
+-                        LOGGER.debug("Ping: (1.4-1.5.x) from {}", socketaddress);
++                        LOGGER.debug("Ping: (1.4-1.5.x) from {}", net.minecraft.server.MinecraftServer.getServer().logIPs() ? socketaddress: "<ip address withheld>"); // Paper - Respect logIPs option
                      }
  
 -                    String s1 = createVersion1Response(this.server);

@@ -83,14 +83,13 @@
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
      }
  
-@@ -258,14 +_,76 @@
+@@ -258,14 +_,88 @@
          return new ParseResults<>(commandcontextbuilder1, p_242928_.getReader(), p_242928_.getExceptions());
      }
  
 -    public void performPrefixedCommand(CommandSourceStack p_230958_, String p_230959_) {
 -        p_230959_ = p_230959_.startsWith("/") ? p_230959_.substring(1) : p_230959_;
 -        this.performCommand(this.dispatcher.parse(p_230959_, p_230958_), p_230959_);
--    }
 +    // CraftBukkit start
 +    public void dispatchServerCommand(CommandSourceStack sender, String command) {
 +        Joiner joiner = Joiner.on(" ");
@@ -142,11 +141,23 @@
 +    // Mohist start - add field to compat with mods
 +    private final AtomicReference<String> mohist$label = new AtomicReference<>();
 +    private static final AtomicReference<String> finishParsing$label = new AtomicReference<>();
-+    private AtomicBoolean performCommand$throwCommandError = new AtomicBoolean(false);
++    private final AtomicBoolean performCommand$throwCommandError = new AtomicBoolean(false);
++
++    public void performCommand(ParseResults<CommandSourceStack> pParseResults, String pCommand, String label) { // CraftBukkit
++        mohist$label.set(label);
++        performCommand$throwCommandError.set(false);
++        this.performCommand(pParseResults, pCommand);
++    }
++
++    public void performCommand(ParseResults<CommandSourceStack> parseresults, String s, String label, boolean throwCommandError) {
++        mohist$label.set(label);
++        performCommand$throwCommandError.set(throwCommandError);
++        this.performCommand(parseresults, s);
+     }
  
      public void performCommand(ParseResults<CommandSourceStack> p_242844_, String p_242841_) {
 +        var label = mohist$label.get();
-+        label = label == null ? "/" + p_242841_ : label;
++        label = label == null ? p_242841_ : label;
 +        // Mohist end
          CommandSourceStack commandsourcestack = p_242844_.getContext().getSource();
 +        net.neoforged.neoforge.event.CommandEvent event = new net.neoforged.neoforge.event.CommandEvent(p_242844_);
@@ -176,24 +187,6 @@
                  StackTraceElement[] astacktraceelement = exception.getStackTrace();
  
                  for (int i = 0; i < Math.min(astacktraceelement.length, 3); i++) {
-@@ -306,6 +_,17 @@
-         }
-     }
- 
-+    public void performCommand(ParseResults<CommandSourceStack> pParseResults, String pCommand, String label) { // CraftBukkit
-+        mohist$label.set(label);
-+        this.performCommand(pParseResults, pCommand);
-+    }
-+
-+    public void performCommand(ParseResults<CommandSourceStack> parseresults, String s, String label, boolean throwCommandError) {
-+        mohist$label.set(label);
-+        performCommand$throwCommandError.set(throwCommandError);
-+        this.performCommand(parseresults, s);
-+    }
-+
-     @Nullable
-     private static ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> p_307220_, String p_307311_, CommandSourceStack p_307676_) {
-         try {
 @@ -318,7 +_,7 @@
                  int i = Math.min(commandsyntaxexception.getInput().length(), commandsyntaxexception.getCursor());
                  MutableComponent mutablecomponent = Component.empty()
@@ -273,3 +266,16 @@
      }
  
      private void fillUsableCommands(
+@@ -373,6 +_,12 @@
+         Map<CommandNode<CommandSourceStack>, CommandNode<SharedSuggestionProvider>> p_82116_
+     ) {
+         for (CommandNode<CommandSourceStack> commandnode : p_82113_.getChildren()) {
++            // Paper start - Brigadier API
++            if (commandnode.clientNode != null) {
++                commandnode = commandnode.clientNode;
++            }
++            // Paper end - Brigadier API
++            if ( !org.spigotmc.SpigotConfig.sendNamespaced && commandnode.getName().contains( ":" ) ) continue; // Spigot
+             if (commandnode.canUse(p_82115_)) {
+                 ArgumentBuilder<SharedSuggestionProvider, ?> argumentbuilder = (ArgumentBuilder<SharedSuggestionProvider, ?>)(ArgumentBuilder<?, ?>)commandnode.createBuilder();
+                 argumentbuilder.requires(p_82126_ -> true);

@@ -1,7 +1,7 @@
 package com.mohistmc.youer.bukkit.remapping;
 
-import com.mohistmc.youer.asm.SwitchTableFixer;
 import com.google.common.io.ByteStreams;
+import com.mohistmc.youer.asm.SwitchTableFixer;
 import io.izzel.tools.product.Product2;
 import java.io.IOException;
 import java.io.InputStream;

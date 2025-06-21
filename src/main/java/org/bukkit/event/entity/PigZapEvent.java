@@ -1,25 +1,22 @@
 package org.bukkit.event.entity;
 
-import java.util.Collections;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.LightningStrike;
 import org.bukkit.entity.Pig;
 import org.bukkit.entity.PigZombie;
 import org.bukkit.event.Cancellable;
-import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Stores data for pigs being zapped
  */
-public class PigZapEvent extends EntityTransformEvent implements Cancellable {
-    private static final HandlerList handlers = new HandlerList();
+public class PigZapEvent extends io.papermc.paper.event.entity.EntityZapEvent implements Cancellable { // Paper
+    // private static final HandlerList handlers = new HandlerList(); // Paper - moved in the super class
     private boolean canceled;
     private final PigZombie pigzombie;
     private final LightningStrike bolt;
 
     public PigZapEvent(@NotNull final Pig pig, @NotNull final LightningStrike bolt, @NotNull final PigZombie pigzombie) {
-        super(pig, Collections.singletonList((Entity) pigzombie), TransformReason.LIGHTNING);
+        super(pig, bolt, pigzombie); // Paper
         this.bolt = bolt;
         this.pigzombie = pigzombie;
     }
@@ -63,6 +60,8 @@ public class PigZapEvent extends EntityTransformEvent implements Cancellable {
         return pigzombie;
     }
 
+    // Paper start
+    /*
     @NotNull
     @Override
     public HandlerList getHandlers() {
@@ -73,4 +72,6 @@ public class PigZapEvent extends EntityTransformEvent implements Cancellable {
     public static HandlerList getHandlerList() {
         return handlers;
     }
+    */
+    // Paper end
 }

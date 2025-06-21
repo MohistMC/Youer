@@ -610,6 +610,44 @@
      }
  
      public void moveTo(Vec3 p_20220_) {
+@@ -1421,7 +_,9 @@
+         this.moveTo(p_20036_.getBottomCenter(), p_20037_, p_20038_);
+     }
+ 
++    public AtomicBoolean disable$moveTo = new AtomicBoolean(false);
+     public void moveTo(Vec3 p_352318_, float p_352438_, float p_352125_) {
++        if (disable$moveTo.getAndSet(false)) return;
+         this.moveTo(p_352318_.x, p_352318_.y, p_352318_.z, p_352438_, p_352125_);
+     }
+ 
+@@ -1510,11 +_,26 @@
+         this.push(p_347665_.x, p_347665_.y, p_347665_.z);
+     }
+ 
++    public @org.jetbrains.annotations.Nullable Entity pushingEntity;
+     public void push(double p_20286_, double p_20287_, double p_20288_) {
+-        this.setDeltaMovement(this.getDeltaMovement().add(p_20286_, p_20287_, p_20288_));
++        org.bukkit.util.Vector delta = new org.bukkit.util.Vector(p_20286_, p_20287_, p_20288_);
++        if (pushingEntity != null) {
++            io.papermc.paper.event.entity.EntityPushedByEntityAttackEvent event = new io.papermc.paper.event.entity.EntityPushedByEntityAttackEvent(this.getBukkitEntity(), io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.PUSH, pushingEntity.getBukkitEntity(), delta);
++            if (!event.callEvent()) {
++                return;
++            }
++            delta = event.getKnockback();
++        }
++        this.setDeltaMovement(this.getDeltaMovement().add(delta.getX(), delta.getY(), delta.getZ()));
++        // Paper end - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+         this.hasImpulse = true;
+     }
+ 
++    public void push(double deltaX, double deltaY, double deltaZ, @org.jetbrains.annotations.Nullable Entity pushingEntity) {
++        this.pushingEntity = pushingEntity;
++        push(deltaX, deltaY, deltaZ);
++    }
++
+     protected void markHurt() {
+         this.hurtMarked = true;
+     }
 @@ -1627,6 +_,13 @@
          return p_19883_ < d0 * d0;
      }
@@ -932,6 +970,14 @@
 +        }
 +        // CraftBukkit end
          this.setSharedFlag(4, p_20283_);
+     }
+ 
+@@ -2299,6 +_,7 @@
+ 
+     @Nullable
+     public PlayerTeam getTeam() {
++        if (!this.level().paperConfig().scoreboards.allowNonPlayerEntitiesOnScoreboards && !(this instanceof Player)) { return null; } // Paper - Perf: Disable Scoreboards for non players by default
+         return this.level().getScoreboard().getPlayersTeam(this.getScoreboardName());
      }
  
 @@ -2310,8 +_,12 @@

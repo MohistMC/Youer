@@ -5,8 +5,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
-import org.spigotmc.CustomTimingsHandler; // Spigot
-
 public class CraftTask implements BukkitTask, Runnable { // Spigot
 
     private volatile CraftTask next = null;

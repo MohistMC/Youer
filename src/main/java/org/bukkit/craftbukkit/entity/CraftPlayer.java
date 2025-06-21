@@ -5,7 +5,6 @@ import io.papermc.paper.profile.CraftPlayerProfile;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
-import com.mohistmc.youer.api.color.ColorsAPI;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import io.netty.buffer.Unpooled;
@@ -198,6 +197,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     private final ConversationTracker conversationTracker = new ConversationTracker();
     private final Set<String> channels = new HashSet<String>();
     private final Map<UUID, Set<WeakReference<Plugin>>> invertedVisibilityEntities = new HashMap<>();
+    private final Set<UUID> unlistedEntities = new HashSet<>(); // Paper - Add Listing API for Player
     private static final WeakHashMap<Plugin, WeakReference<Plugin>> pluginWeakReferences = new WeakHashMap<>();
     private int hash = 0;
     private double health = 20;
@@ -251,7 +251,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public InetSocketAddress getAddress() {
-        if (this.getHandle().connection.protocol() == null) return null;
+        if (this.getHandle().connection == null) return null;
 
         SocketAddress addr = this.getHandle().connection.getRemoteAddress();
         if (addr instanceof InetSocketAddress) {
@@ -260,6 +260,15 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
             return null;
         }
     }
+
+    // Paper start - Add API to get player's proxy address
+    @Override
+    public @Nullable InetSocketAddress getHAProxyAddress() {
+        if (this.getHandle().connection == null) return null;
+
+        return this.getHandle().connection.connection.haProxyAddress instanceof final InetSocketAddress inetSocketAddress ? inetSocketAddress : null;
+    }
+    // Paper end - Add API to get player's proxy address
 
     public interface TransferCookieConnection {
 
@@ -365,7 +374,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
         if (this.getHandle().connection == null) return;
 
-        for (Component component : CraftChatMessage.fromString(ColorsAPI.of(message))) {
+        for (Component component : CraftChatMessage.fromString(message)) {
             this.getHandle().sendSystemMessage(component);
         }
     }
@@ -1099,13 +1108,101 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void setRotation(float yaw, float pitch) {
-        throw new UnsupportedOperationException("Cannot set rotation of players. Consider teleporting instead.");
+        // Paper start - Teleport API
+        Location targetLocation = this.getEyeLocation();
+        targetLocation.setYaw(yaw);
+        targetLocation.setPitch(pitch);
+
+        org.bukkit.util.Vector direction = targetLocation.getDirection();
+        direction.multiply(9999999); // We need to move the target block.. FAR out
+        targetLocation.add(direction);
+        this.lookAt(targetLocation, io.papermc.paper.entity.LookAnchor.EYES);
+        // Paper end
     }
 
     @Override
     public boolean teleport(Location location, PlayerTeleportEvent.TeleportCause cause) {
+        // Paper start - Teleport API
+        return this.teleport(location, cause, new io.papermc.paper.entity.TeleportFlag[0]);
+    }
+
+    @Override
+    public void lookAt(@NotNull org.bukkit.entity.Entity entity, @NotNull io.papermc.paper.entity.LookAnchor playerAnchor, @NotNull io.papermc.paper.entity.LookAnchor entityAnchor) {
+        this.getHandle().lookAt(toNmsAnchor(playerAnchor), ((CraftEntity) entity).getHandle(), toNmsAnchor(entityAnchor));
+    }
+
+    @Override
+    public void lookAt(double x, double y, double z, @NotNull io.papermc.paper.entity.LookAnchor playerAnchor) {
+        this.getHandle().lookAt(toNmsAnchor(playerAnchor), new net.minecraft.world.phys.Vec3(x, y, z));
+    }
+
+    public static net.minecraft.commands.arguments.EntityAnchorArgument.Anchor toNmsAnchor(io.papermc.paper.entity.LookAnchor nmsAnchor) {
+        return switch (nmsAnchor) {
+            case EYES -> net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES;
+            case FEET -> net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.FEET;
+        };
+    }
+
+    public static io.papermc.paper.entity.LookAnchor toApiAnchor(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor playerAnchor) {
+        return switch (playerAnchor) {
+            case EYES -> io.papermc.paper.entity.LookAnchor.EYES;
+            case FEET -> io.papermc.paper.entity.LookAnchor.FEET;
+        };
+    }
+
+    public static net.minecraft.world.entity.RelativeMovement toNmsRelativeFlag(io.papermc.paper.entity.TeleportFlag.Relative apiFlag) {
+        return switch (apiFlag) {
+            case X -> net.minecraft.world.entity.RelativeMovement.X;
+            case Y -> net.minecraft.world.entity.RelativeMovement.Y;
+            case Z -> net.minecraft.world.entity.RelativeMovement.Z;
+            case PITCH -> net.minecraft.world.entity.RelativeMovement.X_ROT;
+            case YAW -> net.minecraft.world.entity.RelativeMovement.Y_ROT;
+        };
+    }
+
+    public static io.papermc.paper.entity.TeleportFlag.Relative toApiRelativeFlag(net.minecraft.world.entity.RelativeMovement nmsFlag) {
+        return switch (nmsFlag) {
+            case X -> io.papermc.paper.entity.TeleportFlag.Relative.X;
+            case Y -> io.papermc.paper.entity.TeleportFlag.Relative.Y;
+            case Z -> io.papermc.paper.entity.TeleportFlag.Relative.Z;
+            case X_ROT -> io.papermc.paper.entity.TeleportFlag.Relative.PITCH;
+            case Y_ROT -> io.papermc.paper.entity.TeleportFlag.Relative.YAW;
+        };
+    }
+
+    @Override
+    public boolean teleport(Location location, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause, io.papermc.paper.entity.TeleportFlag... flags) {
+        Set<io.papermc.paper.entity.TeleportFlag.Relative> relativeArguments;
+        Set<io.papermc.paper.entity.TeleportFlag> allFlags;
+        if (flags.length == 0) {
+            relativeArguments = Set.of();
+            allFlags = Set.of();
+        } else {
+            relativeArguments = java.util.EnumSet.noneOf(io.papermc.paper.entity.TeleportFlag.Relative.class);
+            allFlags = new HashSet<>();
+            for (io.papermc.paper.entity.TeleportFlag flag : flags) {
+                if (flag instanceof final io.papermc.paper.entity.TeleportFlag.Relative relativeTeleportFlag) {
+                    relativeArguments.add(relativeTeleportFlag);
+                }
+                allFlags.add(flag);
+            }
+        }
+        boolean dismount = !allFlags.contains(io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_VEHICLE);
+        boolean ignorePassengers = allFlags.contains(io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_PASSENGERS);
+        // Paper end - Teleport API
         Preconditions.checkArgument(location != null, "location");
         Preconditions.checkArgument(location.getWorld() != null, "location.world");
+        // Paper start - Teleport passenger API
+        // Don't allow teleporting between worlds while keeping passengers
+        if (ignorePassengers && entity.isVehicle() && location.getWorld() != this.getWorld()) {
+            return false;
+        }
+
+        // Don't allow to teleport between worlds if remaining on vehicle
+        if (!dismount && entity.isPassenger() && location.getWorld() != this.getWorld()) {
+            return false;
+        }
+        // Paper end
         location.checkFinite();
 
         ServerPlayer entity = this.getHandle();
@@ -1118,7 +1215,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
             return false;
         }
 
-        if (entity.isVehicle()) {
+        if (entity.isVehicle() && !ignorePassengers) { // Paper - Teleport API
             return false;
         }
 
@@ -1127,7 +1224,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         // To = Players new Location if Teleport is Successful
         Location to = location;
         // Create & Call the Teleport Event.
-        PlayerTeleportEvent event = new PlayerTeleportEvent(this, from, to, cause);
+        PlayerTeleportEvent event = new PlayerTeleportEvent(this, from, to, cause, Set.copyOf(relativeArguments)); // Paper - Teleport API
         this.server.getPluginManager().callEvent(event);
 
         // Return False to inform the Plugin that the Teleport was unsuccessful/cancelled.
@@ -1136,7 +1233,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         }
 
         // If this player is riding another entity, we must dismount before teleporting.
-        entity.stopRiding();
+        if (dismount) entity.stopRiding(); // Paper - Teleport API
 
         // SPIGOT-5509: Wakeup, similar to riding
         if (this.isSleeping()) {
@@ -1152,13 +1249,19 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         ServerLevel toWorld = ((CraftWorld) to.getWorld()).getHandle();
 
         // Close any foreign inventory
-        if (this.getHandle().containerMenu != this.getHandle().inventoryMenu) {
+        if (this.getHandle().containerMenu != this.getHandle().inventoryMenu && !allFlags.contains(io.papermc.paper.entity.TeleportFlag.EntityState.RETAIN_OPEN_INVENTORY)) { // Paper
             this.getHandle().closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason.TELEPORT); // Paper - Inventory close reason
         }
 
         // Check if the fromWorld and toWorld are the same.
         if (fromWorld == toWorld) {
-            entity.connection.teleport(to);
+            // Paper start - Teleport API
+            final Set<net.minecraft.world.entity.RelativeMovement> nms = java.util.EnumSet.noneOf(net.minecraft.world.entity.RelativeMovement.class);
+            for (final io.papermc.paper.entity.TeleportFlag.Relative bukkit : relativeArguments) {
+                nms.add(toNmsRelativeFlag(bukkit));
+            }
+            entity.connection.internalTeleport(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch(), nms);
+            // Paper end - Teleport API
         } else {
             entity.portalProcess = null; // SPIGOT-7785: there is no need to carry this over as it contains the old world/location and we might run into trouble if there is a portal in the same spot in both worlds
             // The respawn reason should never be used if the passed location is non null.
@@ -1767,7 +1870,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
                 otherPlayer.setUUID(uuidOverride);
             }
             // Paper end
-            this.getHandle().connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(otherPlayer)));
+            this.getHandle().connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(otherPlayer), this.getHandle())); // Paper - Add Listing API for Player
             if (original != null) otherPlayer.setUUID(original); // Paper - uuid override
         }
 
@@ -1843,6 +1946,41 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
         return (entity != null) ? this.canSee(entity) : false; // If we can't find it, we can't see it
     }
+
+    // Paper start - Add Listing API for Player
+    @Override
+    public boolean isListed(Player other) {
+        return !this.unlistedEntities.contains(other.getUniqueId());
+    }
+
+    @Override
+    public boolean unlistPlayer(@NotNull Player other) {
+        Preconditions.checkNotNull(other, "hidden entity cannot be null");
+        if (this.getHandle().connection == null) return false;
+        if (!this.canSee(other)) return false;
+
+        if (unlistedEntities.add(other.getUniqueId())) {
+            this.getHandle().connection.send(ClientboundPlayerInfoUpdatePacket.updateListed(other.getUniqueId(), false));
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean listPlayer(@NotNull Player other) {
+        Preconditions.checkNotNull(other, "hidden entity cannot be null");
+        if (this.getHandle().connection == null) return false;
+        if (!this.canSee(other)) throw new IllegalStateException("Player cannot see other player");
+
+        if (this.unlistedEntities.remove(other.getUniqueId())) {
+            this.getHandle().connection.send(ClientboundPlayerInfoUpdatePacket.updateListed(other.getUniqueId(), true));
+            return true;
+        } else {
+            return false;
+        }
+    }
+    // Paper end - Add Listing API for Player
 
     @Override
     public Map<String, Object> serialize() {
@@ -2124,7 +2262,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     public void addChannel(String channel) {
-        Preconditions.checkState(this.channels.size() < 1024, "Cannot register channel '%s'. Too many channels registered!", channel);
+        Preconditions.checkState(DISABLE_CHANNEL_LIMIT || this.channels.size() < 1024, "Cannot register channel. Too many channels registered!"); // Paper - flag to disable channel limit
         channel = StandardMessenger.validateAndCorrectChannel(channel);
         if (this.channels.add(channel)) {
             this.server.getPluginManager().callEvent(new PlayerRegisterChannelEvent(this, channel));

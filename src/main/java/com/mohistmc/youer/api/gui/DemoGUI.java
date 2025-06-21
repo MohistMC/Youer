@@ -1,5 +1,6 @@
 package com.mohistmc.youer.api.gui;
 
+import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.List;
 import org.bukkit.Material;
@@ -34,7 +35,7 @@ public class DemoGUI {
                 .toItemStack()), 47, 48, 49, 50);
 
         this.gui.setItem(46, new GUIItem(new ItemStackFactory(Material.REDSTONE)
-                .setDisplayName("§cClose")
+                .setDisplayName(I18n.as("demogui.close"))
                 .toItemStack()) {
             @Override
             public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
@@ -113,11 +114,11 @@ public class DemoGUI {
 
         if (this.pageChoose == 0) {
             gui.setItem(51, new GUIItem(new ItemStackFactory(Material.ACACIA_FENCE)
-                    .setDisplayName("&cThis is already the home page")
+                    .setDisplayName(I18n.as("demogui.homepage"))
                     .toItemStack()));
         } else {
             gui.setItem(51, new GUIItem(new ItemStackFactory(Material.ACACIA_FENCE)
-                    .setDisplayName("&eprevious page")
+                    .setDisplayName(I18n.as("demogui.ppage"))
                     .toItemStack()) {
                 @Override
                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
@@ -128,12 +129,12 @@ public class DemoGUI {
         }
 
         gui.setItem(52, new GUIItem(new ItemStackFactory(Material.PAPER, pageChoose + 1)
-                .setDisplayName("&7No. &f&l" + (pageChoose + 1) + " &7page")
+                .setDisplayName(I18n.as("demogui.nowpage",  (pageChoose + 1)))
                 .toItemStack()));
 
         if (this.pageChoose < page - 1) {
             gui.setItem(53, new GUIItem(new ItemStackFactory(Material.ACACIA_FENCE)
-                    .setDisplayName("&enext page")
+                    .setDisplayName(I18n.as("demogui.npage"))
                     .toItemStack()) {
                 @Override
                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
@@ -143,7 +144,7 @@ public class DemoGUI {
             });
         } else {
             gui.setItem(53, new GUIItem(new ItemStackFactory(Material.ACACIA_FENCE)
-                    .setDisplayName("&cThis is already the last page")
+                    .setDisplayName(I18n.as("demogui.lastpage"))
                     .toItemStack()));
         }
 

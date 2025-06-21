@@ -1,9 +1,8 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1,16 +_,27 @@
+@@ -1,16 +_,26 @@
  package net.minecraft.world.level;
  
-+import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
  import com.google.common.collect.Lists;
 +import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Codec;
@@ -567,7 +566,7 @@
          explosion.explode();
          explosion.finalizeExplosion(p_312145_);
          return explosion;
-@@ -705,6 +_,16 @@
+@@ -705,6 +_,19 @@
      @Nullable
      @Override
      public BlockEntity getBlockEntity(BlockPos p_46716_) {
@@ -577,9 +576,12 @@
 +
 +    @Nullable
 +    public BlockEntity getBlockEntity(BlockPos p_46716_, boolean validate) {
-+        if (capturedTileEntities.containsKey(p_46716_)) {
-+            return capturedTileEntities.get(p_46716_);
++        // Paper start - Perf: Optimize capturedTileEntities lookup
++        net.minecraft.world.level.block.entity.BlockEntity blockEntity;
++        if (!this.capturedTileEntities.isEmpty() && (blockEntity = this.capturedTileEntities.get(p_46716_)) != null) {
++            return blockEntity;
 +        }
++        // Paper end - Perf: Optimize capturedTileEntities lookup
 +        // CraftBukkit end
          if (this.isOutsideBuildHeight(p_46716_)) {
              return null;

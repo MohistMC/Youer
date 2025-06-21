@@ -5,49 +5,132 @@ import com.mohistmc.tools.FileUtils;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Why is there such a class?
- * Because we have included some MOD optimizations and modifications,
- * as well as some mods that are only used on the client, these cannot be loaded in Mohist
+ * Automatically remove mods that are not compatible with Mohist servers
  */
 public class AutoDeleteMods {
-    public static final List<String> classlist = new ArrayList<>(Arrays.asList(
-            "org.spongepowered.mod.SpongeMod" /*SpongeForge*/,
-            "i18nupdatemod.I18nUpdateMod" /*I18nUpdateMod*/,
-            "dev.tr7zw.skinlayers.SkinLayersMod" /*skinlayers3d*/,
-            "com.biel.mod.mixin.VelocityMixin" /*imfast*/,
-            "optifine.Differ" /*OptiFine*/));
 
-    public static void jar() throws Exception {
-        System.out.println(I18n.as("update.mods"));
-        for (String t : classlist) {
-            check(t);
+    public enum DeletionReason {
+        CORE_CONFLICT("core_conflict"),
+        DUPLICATE_FEATURE("duplicate_feature"),
+        CLIENT_ONLY("client_only"),
+        UNKNOWN("unknown");
+
+        private final String i18nKey;
+
+        DeletionReason(String i18nKey) {
+            this.i18nKey = i18nKey;
+        }
+
+        public String getDisplayText() {
+            return I18n.as("update.deleting.reason." + i18nKey);
         }
     }
 
-    public static void check(String content) throws Exception {
-        String cl = content.split("\\|")[0].replaceAll("\\.", "/") + ".class";
-        File mods = new File("mods");
-        if (!mods.exists()) mods.mkdir();
-        for (File f : mods.listFiles((dir, name) -> name.endsWith(".jar"))) {
-            if (FileUtils.fileExists(f, cl)) {
-                System.out.println(I18n.as("update.deleting", f.getName()));
-                System.gc();
-                Thread.sleep(100);
-                File newf = new File("delete/mods");
-                File qnewf = new File("delete", f.getPath());
-                if (!newf.exists()) {
-                    newf.mkdirs();
-                } else {
-                    if (qnewf.exists()) qnewf.delete();
-                }
-                Files.copy(f.toPath(), qnewf.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                f.delete();
+    /**
+     * MOD blacklist mapping table
+     * Key: Full class name (e.g. "org.example.ModClass")
+     * Value: Reason for deletion
+     */
+    private static final Map<String, DeletionReason> MOD_BLACKLIST = new HashMap<>() {{
+        put("org.spongepowered.common.applaunch.AppLaunch", DeletionReason.CORE_CONFLICT);
+        put("me.wesley1808.servercore.common.ServerCore", DeletionReason.DUPLICATE_FEATURE);
+        put("i18nupdatemod.I18nUpdateMod", DeletionReason.CLIENT_ONLY);
+        put("dev.tr7zw.skinlayers.SkinLayersMod", DeletionReason.CLIENT_ONLY);
+        put("com.biel.mod.mixin.VelocityMixin", DeletionReason.DUPLICATE_FEATURE);
+        put("optifine.Differ", DeletionReason.CLIENT_ONLY);
+    }};
+
+    /**
+     * Scan and remove incompatible mods
+     */
+    public static void deleteIncompatibleMods() {
+        System.out.println(I18n.as("update.mods"));
+        MOD_BLACKLIST.forEach((className, reason) -> {
+            try {
+                checkModFile(className);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+        });
+    }
+
+    /**
+     * Check and process individual mod files
+     *
+     * @param className of the class to be checked
+     */
+    private static void checkModFile(String className) throws Exception {
+        String classPath = className.replaceAll("\\.", "/") + ".class";
+        File modsDir = new File("mods");
+
+        if (!modsDir.exists()) {
+            modsDir.mkdir();
+            return;
+        }
+
+        File[] jarFiles = modsDir.listFiles((dir, name) -> name.endsWith(".jar"));
+        if (jarFiles == null || jarFiles.length == 0) return;
+
+        int threadCount = Math.min(jarFiles.length, Runtime.getRuntime().availableProcessors() * 2);
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+        try {
+            CountDownLatch latch = new CountDownLatch(jarFiles.length);
+
+            for (File jarFile : jarFiles) {
+                executor.submit(() -> {
+                    try {
+                        if (FileUtils.fileExists(jarFile, classPath)) {
+                            backupAndDelete(jarFile, className);
+                        }
+                    } catch (Exception ignored) {
+                    } finally {
+                        latch.countDown();
+                    }
+                });
+            }
+
+            latch.await(30, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdown();
+        }
+    }
+
+    /**
+     * Backup and delete MOD files
+     *
+     * @param modFile to process MOD files
+     */
+    private static void backupAndDelete(File modFile, String className) throws Exception {
+        DeletionReason reason = MOD_BLACKLIST.getOrDefault(className, DeletionReason.UNKNOWN);
+        System.out.println(I18n.as("update.deleting",
+                modFile.getName(),
+                reason.getDisplayText()
+        ));
+
+        System.gc();
+        Thread.sleep(100);
+
+        File backupDir = new File("delete/mods");
+        File backupFile = new File("delete", modFile.getPath());
+
+        synchronized (AutoDeleteMods.class) {
+            if (!backupDir.exists()) {
+                backupDir.mkdirs();
+            } else if (backupFile.exists()) {
+                backupFile.delete();
+            }
+
+            Files.copy(modFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            modFile.delete();
         }
     }
 }

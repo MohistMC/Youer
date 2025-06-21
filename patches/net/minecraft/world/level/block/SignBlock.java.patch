@@ -26,25 +26,43 @@
              } else if (!this.otherPlayerIsEditingSign(p_316173_, signblockentity)
                  && p_316173_.mayBuild()
                  && this.hasEditableText(p_316173_, signblockentity, flag1)) {
-+                openTextEdit$cause.set(org.bukkit.event.player.PlayerSignOpenEvent.Cause.INTERACT);  // CraftBukkit // Youer
++                openTextEdit$cause.set(io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.INTERACT);  // CraftBukkit // Youer
                  this.openTextEdit(p_316173_, signblockentity, flag1);
                  return InteractionResult.SUCCESS;
              } else {
-@@ -169,11 +_,21 @@
+@@ -169,11 +_,39 @@
          return woodtype;
      }
  
-+    public AtomicReference<org.bukkit.event.player.PlayerSignOpenEvent.Cause> openTextEdit$cause = new AtomicReference<>(org.bukkit.event.player.PlayerSignOpenEvent.Cause.UNKNOWN);
++    public AtomicReference<io.papermc.paper.event.player.PlayerOpenSignEvent.Cause> openTextEdit$cause = new AtomicReference<>(io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.UNKNOWN);
      public void openTextEdit(Player p_277738_, SignBlockEntity p_277467_, boolean p_277771_) {
-+        if (!CraftEventFactory.callPlayerSignOpenEvent(p_277738_, p_277467_, p_277771_, openTextEdit$cause.getAndSet(org.bukkit.event.player.PlayerSignOpenEvent.Cause.UNKNOWN))) {
-+            return;
-+        }
-+        // CraftBukkit end
++        org.bukkit.entity.Player bukkitPlayer = (org.bukkit.entity.Player) p_277738_.getBukkitEntity();
++        org.bukkit.block.Block bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_277467_.getLevel(), p_277467_.getBlockPos());
++        org.bukkit.craftbukkit.block.CraftSign<?> bukkitSign = (org.bukkit.craftbukkit.block.CraftSign<?>) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(bukkitBlock);
++        io.papermc.paper.event.player.PlayerOpenSignEvent.Cause cause = openTextEdit$cause.getAndSet(io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.UNKNOWN);
++        io.papermc.paper.event.player.PlayerOpenSignEvent event = new io.papermc.paper.event.player.PlayerOpenSignEvent(
++                bukkitPlayer,
++                bukkitSign,
++                p_277771_ ? org.bukkit.block.sign.Side.FRONT : org.bukkit.block.sign.Side.BACK,
++                cause);
++        if (!event.callEvent()) return;
++        if (org.bukkit.event.player.PlayerSignOpenEvent.getHandlerList().getRegisteredListeners().length > 0) {
++            final org.bukkit.event.player.PlayerSignOpenEvent.Cause legacyCause = switch (cause) {
++                case PLACE -> org.bukkit.event.player.PlayerSignOpenEvent.Cause.PLACE;
++                case PLUGIN -> org.bukkit.event.player.PlayerSignOpenEvent.Cause.PLUGIN;
++                case INTERACT -> org.bukkit.event.player.PlayerSignOpenEvent.Cause.INTERACT;
++                case UNKNOWN -> org.bukkit.event.player.PlayerSignOpenEvent.Cause.UNKNOWN;
++            };
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerSignOpenEvent(p_277738_, p_277467_, p_277771_, legacyCause)) {
++                // Paper end - Add PlayerOpenSignEvent
++                return;
++            }
++        } // Paper - Add PlayerOpenSignEvent
          p_277467_.setAllowedPlayerEditor(p_277738_.getUUID());
          p_277738_.openTextEdit(p_277467_, p_277771_);
      }
  
-+    public void openTextEdit(Player p_277738_, SignBlockEntity p_277467_, boolean p_277771_, org.bukkit.event.player.PlayerSignOpenEvent.Cause cause) {
++    public void openTextEdit(Player p_277738_, SignBlockEntity p_277467_, boolean p_277771_, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause cause) {
 +        openTextEdit$cause.set(cause);
 +        openTextEdit(p_277738_, p_277467_, p_277771_);
 +    }

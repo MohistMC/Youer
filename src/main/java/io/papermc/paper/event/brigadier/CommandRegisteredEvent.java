@@ -1,11 +1,11 @@
 package io.papermc.paper.event.brigadier;
 
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import com.mojang.brigadier.tree.CommandNode;
-import io.papermc.paper.brigadier.BukkitBrigadierCommand;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
+import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
+import io.papermc.paper.brigadier.BukkitBrigadierCommand;
 import org.bukkit.Warning;
 import org.bukkit.command.Command;
 import org.bukkit.event.Cancellable;

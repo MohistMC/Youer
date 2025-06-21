@@ -1,5 +1,13 @@
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
+@@ -32,7 +_,6 @@
+ import io.netty.handler.flow.FlowControlHandler;
+ import io.netty.handler.timeout.ReadTimeoutHandler;
+ import io.netty.handler.timeout.TimeoutException;
+-import io.netty.util.concurrent.Future;
+ import java.net.InetSocketAddress;
+ import java.net.SocketAddress;
+ import java.nio.channels.ClosedChannelException;
 @@ -63,6 +_,7 @@
  import net.minecraft.util.Mth;
  import net.minecraft.util.debugchart.LocalSampleLogger;
@@ -8,7 +16,7 @@
  import org.slf4j.Logger;
  import org.slf4j.Marker;
  import org.slf4j.MarkerFactory;
-@@ -107,6 +_,30 @@
+@@ -107,6 +_,32 @@
      private volatile DisconnectionDetails delayedDisconnect;
      @Nullable
      BandwidthDebugMonitor bandwidthDebugMonitor;
@@ -24,6 +32,7 @@
 +    // Paper start - NetworkClient implementation
 +    public int protocolVersion;
 +    public java.net.InetSocketAddress virtualHost;
++    private static boolean enableExplicitFlush = Boolean.getBoolean("paper.explicit-flush"); // Paper - Disable explicit network manager flushing
 +    // Paper end
 +    // Paper start - add utility methods
 +    public final net.minecraft.server.level.ServerPlayer getPlayer() {
@@ -36,6 +45,7 @@
 +        return null;
 +    }
 +    // Paper end - add utility methods
++    @Nullable public SocketAddress haProxyAddress; // Paper - Add API to get player's proxy address
  
      public Connection(PacketFlow p_129482_) {
          this.receiving = p_129482_;
@@ -131,6 +141,15 @@
              synchronized (this.pendingActions) {
                  Consumer<Connection> consumer;
                  while ((consumer = this.pendingActions.poll()) != null) {
+@@ -400,7 +_,7 @@
+         }
+ 
+         if (this.channel != null) {
+-            this.channel.flush();
++            if (enableExplicitFlush) this.channel.eventLoop().execute(() -> this.channel.flush()); // Paper - Disable explicit network manager flushing; we don't need to explicit flush here, but allow opt in incase issues are found to a better version
+         }
+ 
+         if (this.tickCount++ % 20 == 0) {
 @@ -427,7 +_,7 @@
          if (this.address == null) {
              return "local";

@@ -8,7 +8,7 @@
  import com.mojang.logging.LogUtils;
  import io.netty.bootstrap.ServerBootstrap;
  import io.netty.channel.Channel;
-@@ -48,11 +_,12 @@
+@@ -48,16 +_,26 @@
  
  public class ServerConnectionListener {
      private static final Logger LOGGER = LogUtils.getLogger();
@@ -23,7 +23,21 @@
      );
      final MinecraftServer server;
      public volatile boolean running;
-@@ -65,17 +_,19 @@
+     private final List<ChannelFuture> channels = Collections.synchronizedList(Lists.newArrayList());
+     final List<Connection> connections = Collections.synchronizedList(Lists.newArrayList());
++    // Paper start - prevent blocking on adding a new connection while the server is ticking
++    private final java.util.Queue<Connection> pending = new java.util.concurrent.ConcurrentLinkedQueue<>();
++    private final void addPending() {
++        Connection connection;
++        while ((connection = pending.poll()) != null) {
++            connections.add(connection);
++        }
++    }
++    // Paper end - prevent blocking on adding a new connection while the server is ticking
+ 
+     public ServerConnectionListener(MinecraftServer p_9707_) {
+         this.server = p_9707_;
+@@ -65,18 +_,26 @@
      }
  
      public void startTcpServerListener(@Nullable InetAddress p_9712_, int p_9713_) throws IOException {
@@ -41,10 +55,18 @@
                  oclass = NioServerSocketChannel.class;
                  eventloopgroup = SERVER_EVENT_GROUP.get();
 -                LOGGER.info("Using default channel type");
+-            }
 +                LOGGER.info(I18n.as("serverconnectionlistener.2"));
-             }
++            }
++
++            // Paper start - Warn people with console access that HAProxy is in use.
++            if (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.proxyProtocol) {
++                ServerConnectionListener.LOGGER.warn("Using HAProxy, please ensure the server port is adequately firewalled.");
++            }
++            // Paper end - Warn people with console access that HAProxy is in use.
  
              this.channels.add(new ServerBootstrap().channel(oclass).childHandler(new ChannelInitializer<Channel>() {
+                 @Override
 @@ -86,7 +_,7 @@
                      } catch (ChannelException channelexception) {
                      }
@@ -54,7 +76,43 @@
                      if (ServerConnectionListener.this.server.repliesToStatus()) {
                          channelpipeline.addLast("legacy_query", new LegacyQueryHandler(ServerConnectionListener.this.getServer()));
                      }
-@@ -98,7 +_,7 @@
+@@ -94,11 +_,42 @@
+                     Connection.configureSerialization(channelpipeline, PacketFlow.SERVERBOUND, false, null);
+                     int i = ServerConnectionListener.this.server.getRateLimitPacketsPerSecond();
+                     Connection connection = (Connection)(i > 0 ? new RateKickingConnection(i) : new Connection(PacketFlow.SERVERBOUND));
+-                    ServerConnectionListener.this.connections.add(connection);
++                    // Paper start - Add support for Proxy Protocol
++                    if (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.proxyProtocol) {
++                        p_9729_.pipeline().addAfter("timeout", "haproxy-decoder", new io.netty.handler.codec.haproxy.HAProxyMessageDecoder());
++                        p_9729_.pipeline().addAfter("haproxy-decoder", "haproxy-handler", new ChannelInboundHandlerAdapter() {
++                            @Override
++                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
++                                if (msg instanceof io.netty.handler.codec.haproxy.HAProxyMessage message) {
++                                    if (message.command() == io.netty.handler.codec.haproxy.HAProxyCommand.PROXY) {
++                                        String realaddress = message.sourceAddress();
++                                        int realport = message.sourcePort();
++
++                                        SocketAddress socketaddr = new java.net.InetSocketAddress(realaddress, realport);
++
++                                        Connection connection = (Connection) p_9729_.pipeline().get("packet_handler");
++                                        connection.address = socketaddr;
++
++                                        // Paper start - Add API to get player's proxy address
++                                        final String proxyAddress = message.destinationAddress();
++                                        final int proxyPort = message.destinationPort();
++
++                                        connection.haProxyAddress = new java.net.InetSocketAddress(proxyAddress, proxyPort);
++                                        // Paper end - Add API to get player's proxy address
++                                    }
++                                } else {
++                                    super.channelRead(ctx, msg);
++                                }
++                            }
++                        });
++                    }
++                    // Paper end - Add support for proxy protocol
++                    pending.add(connection); // Paper - prevent blocking on adding a new connection while the server is ticking
++                    // ServerConnectionListener.this.connections.add(connection); // Paper
                      connection.configurePacketHandler(channelpipeline);
                      connection.setListenerForServerboundHandshake(new ServerHandshakePacketListenerImpl(ServerConnectionListener.this.server, connection));
                  }
@@ -63,11 +121,12 @@
          }
      }
  
-@@ -146,6 +_,13 @@
+@@ -146,6 +_,14 @@
  
      public void tick() {
          synchronized (this.connections) {
 +            // Spigot Start
++            this.addPending(); // Paper - prevent blocking on adding a new connection while the server is ticking
 +            // This prevents players from 'gaming' the server, and strategically relogging to increase their position in the tick order
 +            if ( org.spigotmc.SpigotConfig.playerShuffle > 0 && MinecraftServer.currentTick % org.spigotmc.SpigotConfig.playerShuffle == 0 )
 +            {

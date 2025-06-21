@@ -31,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
  * Not all methods are guaranteed to work/may have side effects when
  * {@link #isInWorld()} is false.
  */
-public interface Entity extends Metadatable, CommandSender, Nameable, PersistentDataHolder, net.kyori.adventure.sound.Sound.Emitter { // Paper
+public interface Entity extends Metadatable, CommandSender, Nameable, PersistentDataHolder, net.kyori.adventure.text.event.HoverEventSource<net.kyori.adventure.text.event.HoverEvent.ShowEntity>, net.kyori.adventure.sound.Sound.Emitter { // Paper
 
     /**
      * Gets the entity's current position
@@ -130,6 +130,29 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      */
     public void setRotation(float yaw, float pitch);
 
+    // Paper start - Teleport API
+    /**
+     * Teleports this entity to the given location.
+     *
+     * @param location New location to teleport this entity to
+     * @param teleportFlags Flags to be used in this teleportation
+     * @return <code>true</code> if the teleport was successful
+     */
+    default boolean teleport(@NotNull Location location, @NotNull io.papermc.paper.entity.TeleportFlag @NotNull... teleportFlags) {
+        return this.teleport(location, TeleportCause.PLUGIN, teleportFlags);
+    }
+
+    /**
+     * Teleports this entity to the given location.
+     *
+     * @param location New location to teleport this entity to
+     * @param cause The cause of this teleportation
+     * @param teleportFlags Flags to be used in this teleportation
+     * @return <code>true</code> if the teleport was successful
+     */
+    boolean teleport(@NotNull Location location, @NotNull TeleportCause cause, @NotNull io.papermc.paper.entity.TeleportFlag @NotNull... teleportFlags);
+    // Paper end - Teleport API
+
     /**
      * Teleports this entity to the given location. If this entity is riding a
      * vehicle, it will be dismounted prior to teleportation.
@@ -167,6 +190,39 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * @return <code>true</code> if the teleport was successful
      */
     public boolean teleport(@NotNull Entity destination, @NotNull TeleportCause cause);
+
+    // Paper start
+    /**
+     * Loads/Generates(in 1.13+) the Chunk asynchronously, and then teleports the entity when the chunk is ready.
+     * @param loc Location to teleport to
+     * @return A future that will be completed with the result of the teleport
+     */
+    default java.util.concurrent.@NotNull CompletableFuture<Boolean> teleportAsync(final @NotNull Location loc) {
+        return this.teleportAsync(loc, TeleportCause.PLUGIN);
+    }
+
+    /**
+     * Loads/Generates(in 1.13+) the Chunk asynchronously, and then teleports the entity when the chunk is ready.
+     * @param loc Location to teleport to
+     * @param cause Reason for teleport
+     * @return A future that will be completed with the result of the teleport
+     */
+    default java.util.concurrent.@NotNull CompletableFuture<Boolean> teleportAsync(final @NotNull Location loc, final @NotNull TeleportCause cause) {
+        final class Holder {
+            static final io.papermc.paper.entity.TeleportFlag[] EMPTY_FLAGS = new io.papermc.paper.entity.TeleportFlag[0];
+        }
+        return this.teleportAsync(loc, cause, Holder.EMPTY_FLAGS);
+    }
+
+    /**
+     * Loads/Generates(in 1.13+) the Chunk asynchronously, and then teleports the entity when the chunk is ready.
+     * @param loc Location to teleport to
+     * @param cause Reason for teleport
+     * @param teleportFlags Flags to be used in this teleportation
+     * @return A future that will be completed with the result of the teleport
+     */
+    java.util.concurrent.@NotNull CompletableFuture<Boolean> teleportAsync(@NotNull Location loc, @NotNull TeleportCause cause, @NotNull io.papermc.paper.entity.TeleportFlag @NotNull... teleportFlags);
+    // Paper end
 
     /**
      * Returns a list of entities within a bounding box centered around this
@@ -786,6 +842,12 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * @return the team display name
      */
     net.kyori.adventure.text.@NotNull Component teamDisplayName();
+
+    @NotNull
+    @Override
+    default net.kyori.adventure.text.event.HoverEvent<net.kyori.adventure.text.event.HoverEvent.ShowEntity> asHoverEvent(final @NotNull java.util.function.UnaryOperator<net.kyori.adventure.text.event.HoverEvent.ShowEntity> op) {
+        return net.kyori.adventure.text.event.HoverEvent.showEntity(op.apply(net.kyori.adventure.text.event.HoverEvent.ShowEntity.of(this.getType().getKey(), this.getUniqueId(), this.customName())));
+    }
 
     // Paper start - Folia schedulers
     /**

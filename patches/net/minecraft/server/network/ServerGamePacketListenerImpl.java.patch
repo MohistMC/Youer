@@ -327,6 +327,30 @@
                      Suggestions suggestions = p_333513_.getList().size() <= 1000
                          ? p_333513_
                          : new Suggestions(p_333513_.getRange(), p_333513_.getList().subList(0, 1000));
+@@ -625,6 +_,23 @@
+     public void handlePickItem(ServerboundPickItemPacket p_9880_) {
+         PacketUtils.ensureRunningOnSameThread(p_9880_, this, this.player.serverLevel());
+         this.player.getInventory().pickSlot(p_9880_.getSlot());
++        // Paper start - validate pick item position
++        if (!(p_9880_.getSlot() >= 0 && p_9880_.getSlot() < this.player.getInventory().items.size())) {
++            ServerGamePacketListenerImpl.LOGGER.warn("{} tried to set an invalid carried item", this.player.getName().getString());
++            this.disconnect(Component.literal("Invalid hotbar selection (Hacking?)")); // Paper - kick event cause
++            return;
++        }
++        // Paper end - validate pick item position
++        // Paper start - Add PlayerPickItemEvent
++        org.bukkit.entity.Player bukkitPlayer = this.player.getBukkitEntity();
++        int targetSlot = this.player.getInventory().getSuitableHotbarSlot();
++        int sourceSlot = p_9880_.getSlot();
++
++        io.papermc.paper.event.player.PlayerPickItemEvent event = new io.papermc.paper.event.player.PlayerPickItemEvent(bukkitPlayer, targetSlot, sourceSlot);
++        if (!event.callEvent()) return;
++
++        this.player.getInventory().pickSlot(event.getSourceSlot(), event.getTargetSlot());
++        // Paper end - Add PlayerPickItemEvent
+         this.player
+             .connection
+             .send(
 @@ -750,6 +_,13 @@
          PacketUtils.ensureRunningOnSameThread(p_9905_, this, this.player.serverLevel());
          int i = p_9905_.getItem();
@@ -551,7 +575,7 @@
  
              return true;
          } else {
-@@ -999,11 +_,75 @@
+@@ -999,11 +_,81 @@
          return false;
      }
  
@@ -586,10 +610,16 @@
 +            return; // CraftBukkit - Return event status
 +        }
 +        if (!AsyncCatcher.catchAsync()) {
-+            org.bukkit.event.player.PlayerTeleportEvent event = new org.bukkit.event.player.PlayerTeleportEvent(player, from.clone(), to.clone(), teleport$cause.getAndSet(PlayerTeleportEvent.TeleportCause.UNKNOWN));
++            // Paper start - Teleport API
++            Set<io.papermc.paper.entity.TeleportFlag.Relative> relativeFlags = java.util.EnumSet.noneOf(io.papermc.paper.entity.TeleportFlag.Relative.class);
++            for (RelativeMovement relativeArgument : p_9786_) {
++                relativeFlags.add(org.bukkit.craftbukkit.entity.CraftPlayer.toApiRelativeFlag(relativeArgument));
++            }
++            PlayerTeleportEvent event = new PlayerTeleportEvent(player, from.clone(), to.clone(), teleport$cause.getAndSet(PlayerTeleportEvent.TeleportCause.UNKNOWN), java.util.Set.copyOf(relativeFlags));
++            // Paper end - Teleport API
 +            this.cserver.getPluginManager().callEvent(event);
 +            if (event.isCancelled() || !to.equals(event.getTo())) {
-+                p_9786_ = Collections.emptySet(); // Can't relative teleport
++                // p_9786_ = Collections.emptySet(); // Can't relative teleport // Paper - Teleport API; Now you can!
 +                to = event.isCancelled() ? event.getFrom() : event.getTo();
 +                p_9781_ = to.getX();
 +                p_9782_ = to.getY();
@@ -1031,7 +1061,7 @@
 +        }
 +        net.minecraft.network.chat.OutgoingChatMessage outgoing = net.minecraft.network.chat.OutgoingChatMessage.create(original);
 +
-+        if (!async && s.startsWith("/")) {
++        if (false && !async && s.startsWith("/")) { // Paper - Don't handle commands in chat logic
 +            this.handleCommand(s);
 +        } else if (this.player.getChatVisibility() == ChatVisiblity.SYSTEM) {
 +            // Do nothing, this is coming from a plugin
@@ -1831,7 +1861,15 @@
                  );
          }
      }
-@@ -1847,6 +_,7 @@
+@@ -1840,13 +_,14 @@
+                         .getPlayerList()
+                         .broadcastAll(
+                             new ClientboundPlayerInfoUpdatePacket(EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.INITIALIZE_CHAT), List.of(this.player))
+-                        );
++                                , this.player); // Paper - Use single player info update packet on join
+                 }
+             );
+     }
  
      @Override
      public void handleCustomPayload(ServerboundCustomPayloadPacket p_333887_) {

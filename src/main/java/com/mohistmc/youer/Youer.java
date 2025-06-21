@@ -1,11 +1,9 @@
 package com.mohistmc.youer;
 
-import com.mohistmc.youer.eventhandler.EventDispatcherRegistry;
-import com.mohistmc.youer.plugins.MohistProxySelector;
-import com.mohistmc.youer.util.VersionInfo;
 import com.mohistmc.i18n.i18n;
+import com.mohistmc.youer.eventhandler.EventDispatcherRegistry;
+import com.mohistmc.youer.util.VersionInfo;
 import cpw.mods.modlauncher.TransformingClassLoader;
-import java.net.ProxySelector;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -34,7 +32,6 @@ public class Youer {
 
         //TODO: do something when mod loading
         LOGGER.info(i18n.as("youer.1"));
-        ProxySelector.setDefault(new MohistProxySelector(ProxySelector.getDefault()));
 
         Map<String, String> arguments = new HashMap<>();
         arguments.put("youer", version);
@@ -45,6 +42,7 @@ public class Youer {
         versionInfo = new VersionInfo(arguments);
         EventDispatcherRegistry.init();
         ((TransformingClassLoader) Youer.classLoader).addChild(classLoader);
+        System.setProperty("worldedit.bukkit.adapter", "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter");
     }
 
     public static void initI18n() {

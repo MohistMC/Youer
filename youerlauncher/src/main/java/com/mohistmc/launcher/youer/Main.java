@@ -89,12 +89,12 @@ public class Main {
             System.setProperty("log4j.configurationFile", "log4j2_youer.xml");
         }
         if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_LIBRARIES()) {
-           DefaultLibraries.run();
+            DefaultLibraries.run();
         }
         if (YouerConfigUtil.INSTALLATIONFINISHED()) {
             new Action();
         }
-        AutoDeleteMods.jar();
+        AutoDeleteMods.deleteIncompatibleMods();
 
         List<String> forgeArgs = new ArrayList<>();
         for (String arg : DataParser.launchArgs.stream().filter(s ->

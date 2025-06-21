@@ -22,6 +22,7 @@ import com.mohistmc.launcher.youer.Main;
 import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.feature.DefaultLibraries;
 import com.mohistmc.launcher.youer.libraries.Libraries;
+import com.mohistmc.launcher.youer.util.JarMerger;
 import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.I18n;
 import com.mohistmc.launcher.youer.util.YouerModuleManager;
@@ -47,6 +48,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import lombok.SneakyThrows;
+import me.tongfei.progressbar.ProgressBar;
+import me.tongfei.progressbar.ProgressBarBuilder;
+import me.tongfei.progressbar.ProgressBarStyle;
 
 public class Action {
 
@@ -73,6 +77,8 @@ public class Action {
     public final File mojmap;
     public final File MERGED_MAPPINGS;
     public final File PATCHED;
+    public final File PAPER_REMAP_0;
+    public final File PAPER_REMAP;
     public List<URL> installerTourls = new ArrayList<>();
 
     @SneakyThrows
@@ -104,7 +110,8 @@ public class Action {
         this.MERGED_MAPPINGS = new File(mcpStart + "-mappings-merged.txt");
         this.MINECRAFT_JAR = new File(libPath + "net/minecraft/server/" + mcVer + "/server-" + mcVer + ".jar");
         this.PATCHED = new File(forgeStart + "-server.jar");
-
+        this.PAPER_REMAP_0 = new File(libPath + "com/mohistmc/installation/data/paper-remap-0.jar");
+        this.PAPER_REMAP = new File(libPath + "com/mohistmc/installation/data/paper-remap.jar");
         install();
     }
 
@@ -112,34 +119,36 @@ public class Action {
 
         launchArgs.add(new File(URLDecoder.decode(YouerModuleManager.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath(), StandardCharsets.UTF_8)).getAbsolutePath());
         launchArgs.addAll(Main.mainArgs);
-
+        List<InstallationTask> tasks = new ArrayList<>();
         copyFileFromJar(BINPATCH, "data/server.lzma", true);
         copyFileFromJar(universalJar, "data/neoforge-" + neoforgeVer + "-universal.jar", false);
 
         if (!needsInstall()) return;
         System.out.println(I18n.as("installation.start"));
-        copyFileFromJar(universalJar, "data/neoforge-" + neoforgeVer + "-universal.jar", true);
+        System.out.println(I18n.as("libraries.global.percentage"));
+        tasks.add(new FileCopyTask(universalJar, "data/neoforge-" + neoforgeVer + "-universal.jar", true));
 
         if (mohistVer == null || mcpVer == null) {
             System.out.println("[Youer] There is an error with the installation, the forge / mcp version is not set.");
             System.exit(0);
         }
 
-        mute();
         if (MINECRAFT_JAR.exists()) {
-            run("net.neoforged.installertools.ConsoleTool",
-                    "--task",
-                    "BUNDLER_EXTRACT",
+            tasks.add(new ConsoleToolTask(
+                    "net.neoforged.installertools.ConsoleTool",
+                    "--task", "BUNDLER_EXTRACT",
                     "--input", MINECRAFT_JAR.getAbsolutePath(),
                     "--output", libPath,
-                    "--libraries");
+                    "--libraries"
+            ));
             if (!MC_UNPACKED.exists()) {
-                run("net.neoforged.installertools.ConsoleTool",
-                        "--task",
-                        "BUNDLER_EXTRACT",
+                tasks.add(new ConsoleToolTask(
+                        "net.neoforged.installertools.ConsoleTool",
+                        "--task", "BUNDLER_EXTRACT",
                         "--input", MINECRAFT_JAR.getAbsolutePath(),
                         "--output", MC_UNPACKED.getAbsolutePath(),
-                        "--jar-only");
+                        "--jar-only"
+                ));
             }
         } else {
             System.out.println(I18n.as("installation.minecraftserver") + MINECRAFT_JAR.getAbsolutePath());
@@ -148,29 +157,24 @@ public class Action {
 
         if (mcpZip.exists()) {
             if (!MAPPINGS.exists()) {
-                run("net.neoforged.installertools.ConsoleTool",
-                        "--task",
-                        "MCP_DATA",
+                tasks.add(new ConsoleToolTask(
+                        "net.neoforged.installertools.ConsoleTool",
+                        "--task", "MCP_DATA",
                         "--input", mcpZip.getAbsolutePath(),
                         "--output", MAPPINGS.getAbsolutePath(),
-                        "--key",
-                        "mappings");
+                        "--key", "mappings"
+                ));
             }
         } else {
             System.out.println(I18n.as("installation.mcpfilemissing"));
             System.exit(0);
         }
 
-        if (JarTool.isCorrupted(MC_UNPACKED)) {
-            MC_UNPACKED.delete();
-        }
-
-        if (JarTool.isCorrupted(MC_SRG)) {
-            MC_SRG.delete();
-        }
+        tasks.add(new FileCheckTask(MC_UNPACKED));
+        tasks.add(new FileCheckTask(MC_SRG));
 
         if (!MC_SLIM.exists()) {
-            run("net.neoforged.jarsplitter.ConsoleTool",
+            tasks.add(new ConsoleToolTask("net.neoforged.jarsplitter.ConsoleTool",
                     "--input",
                     MC_UNPACKED.getAbsolutePath(),
                     "--slim",
@@ -178,51 +182,44 @@ public class Action {
                     "--extra",
                     MC_EXTRA.getAbsolutePath(),
                     "--srg",
-                    MERGED_MAPPINGS.getAbsolutePath());
+                    MERGED_MAPPINGS.getAbsolutePath()));
         }
 
         if (!MC_SRG.exists()) {
-            run("net.neoforged.art.Main",
+            tasks.add(new ConsoleToolTask("net.neoforged.art.Main",
                     "--input", MC_SLIM.getAbsolutePath(),
                     "--output", MC_SRG.getAbsolutePath(),
                     "--names", MERGED_MAPPINGS.getAbsolutePath(),
                     "--ann-fix",
                     "--ids-fix",
                     "--src-fix",
-                    "--record-fix");
+                    "--record-fix"));
         }
 
-        String storedServerMD5 = null;
-        String storedLzmaMD5 = null;
-        String storeduniversalJarMD5 = SHA256.as(universalJar);
-        String serverMD5 = SHA256.as(PATCHED);
-        String lzmaMD5 = SHA256.as(BINPATCH);
+        tasks.add(new PatchValidationTask(
+                installInfo,
+                PATCHED,
+                BINPATCH,
+                universalJar,
+                MC_SRG
+        ));
 
-        if (installInfo.exists()) {
-            List<String> infoLines = Files.readAllLines(installInfo.toPath());
-            if (!infoLines.isEmpty()) {
-                storedServerMD5 = infoLines.getFirst();
+        tasks.add(new JarMergeTask(PATCHED, universalJar, PAPER_REMAP_0));
+        tasks.add(new JarMergeTask(PAPER_REMAP_0, MC_SRG, PAPER_REMAP));
+        tasks.add(new FileCheckTask(PAPER_REMAP_0));
+        try (ProgressBar pb = new ProgressBarBuilder()
+                .setTaskName("")
+                .setInitialMax(tasks.size())
+                .setStyle(ProgressBarStyle.ASCII)
+                .setUpdateIntervalMillis(100)
+                .build()) {
+
+            mute();
+            for (InstallationTask task : tasks) {
+                task.execute(pb);
             }
-            if (infoLines.size() > 1) {
-                storedLzmaMD5 = infoLines.get(1);
-            }
+            unmute();
         }
-
-        if (!PATCHED.exists() || storedServerMD5 == null || storedLzmaMD5 == null || !storedServerMD5.equals(serverMD5) || !storedLzmaMD5.equals(lzmaMD5)) {
-            run("net.neoforged.binarypatcher.ConsoleTool",
-                    "--clean", MC_SRG.getAbsolutePath(),
-                    "--output", PATCHED.getAbsolutePath(),
-                    "--apply", BINPATCH.getAbsolutePath());
-            serverMD5 = SHA256.as(PATCHED);
-        }
-
-        FileWriter fw = new FileWriter(installInfo);
-        fw.write(serverMD5 + "\n");
-        fw.write(lzmaMD5 + "\n");
-        fw.write(storeduniversalJarMD5);
-        fw.close();
-        unmute();
-
         System.out.println(I18n.as("installation.finished"));
         YouerConfigUtil.yml.set("youer.installation-finished", true);
         YouerConfigUtil.save();
@@ -310,5 +307,120 @@ public class Action {
         }
         return true;
     }
+
+    private interface InstallationTask {
+        void execute(ProgressBar pb) throws Exception;
+    }
+
+    private record JarMergeTask(File input1, File input2, File output) implements InstallationTask {
+
+        @Override
+        public void execute(ProgressBar pb) throws Exception {
+            JarMerger.mergeJars(input1, input2, output);
+            pb.step();
+        }
+    }
+
+    private record FileCheckTask(File file) implements InstallationTask {
+
+        @Override
+        public void execute(ProgressBar pb) {
+            if (JarTool.isCorrupted(file)) {
+                file.delete();
+            }
+            pb.step();
+        }
+    }
+
+    private class FileCopyTask implements InstallationTask {
+        private final File file;
+        private final String pathInJar;
+        private final boolean clearOld;
+
+        public FileCopyTask(File file, String pathInJar, boolean clearOld) {
+            this.file = file;
+            this.pathInJar = pathInJar;
+            this.clearOld = clearOld;
+        }
+
+        @Override
+        public void execute(ProgressBar pb) throws Exception {
+            copyFileFromJar(file, pathInJar, clearOld);
+            pb.step();
+        }
+    }
+
+    private class ConsoleToolTask implements InstallationTask {
+        private final String mainClass;
+        private final String[] args;
+
+        public ConsoleToolTask(String mainClass, String... args) {
+            this.mainClass = mainClass;
+            this.args = args;
+        }
+
+        @Override
+        public void execute(ProgressBar pb) throws Exception {
+            run(mainClass, args);
+            pb.step();
+        }
+    }
+
+    private class PatchValidationTask implements InstallationTask {
+        private final File installInfo;
+        private final File patchedFile;
+        private final File binPatch;
+        private final File universalJar;
+        private final File mcSrg;
+
+        public PatchValidationTask(File installInfo, File patchedFile, File binPatch,
+                                   File universalJar, File mcSrg) {
+            this.installInfo = installInfo;
+            this.patchedFile = patchedFile;
+            this.binPatch = binPatch;
+            this.universalJar = universalJar;
+            this.mcSrg = mcSrg;
+        }
+
+        @Override
+        public void execute(ProgressBar pb) throws Exception {
+            String storedServerMD5 = null;
+            String storedLzmaMD5 = null;
+            String storedUniversalJarMD5 = SHA256.as(universalJar);
+            String serverMD5 = SHA256.as(patchedFile);
+            String lzmaMD5 = SHA256.as(binPatch);
+
+            if (installInfo.exists()) {
+                List<String> infoLines = Files.readAllLines(installInfo.toPath());
+                if (!infoLines.isEmpty()) {
+                    storedServerMD5 = infoLines.getFirst();
+                }
+                if (infoLines.size() > 1) {
+                    storedLzmaMD5 = infoLines.get(1);
+                }
+            }
+
+            if (!patchedFile.exists() || storedServerMD5 == null ||
+                    storedLzmaMD5 == null || !storedServerMD5.equals(serverMD5) ||
+                    !storedLzmaMD5.equals(lzmaMD5)) {
+
+                run("net.neoforged.binarypatcher.ConsoleTool",
+                        "--clean", mcSrg.getAbsolutePath(),
+                        "--output", patchedFile.getAbsolutePath(),
+                        "--apply", binPatch.getAbsolutePath());
+
+                serverMD5 = SHA256.as(patchedFile);
+            }
+
+            try (FileWriter fw = new FileWriter(installInfo)) {
+                fw.write(serverMD5 + "\n");
+                fw.write(lzmaMD5 + "\n");
+                fw.write(storedUniversalJarMD5);
+            }
+
+            pb.step();
+        }
+    }
+
 
 }

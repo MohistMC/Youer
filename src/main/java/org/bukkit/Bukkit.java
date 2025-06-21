@@ -2180,6 +2180,26 @@ public final class Bukkit {
     }
 
     /**
+     * Get a sample of the servers last tick times (in nanos)
+     *
+     * @return A sample of the servers last tick times (in nanos)
+     */
+    @NotNull
+    public static long[] getTickTimes() {
+        return server.getTickTimes();
+    }
+
+    /**
+     * Get the average tick time (in millis)
+     *
+     * @return Average tick time (in millis)
+     */
+    public static double getAverageTickTime() {
+        return server == null ? 0D : server.getAverageTickTime();
+    }
+    // Paper end
+
+    /**
      * Get the advancement specified by this key.
      *
      * @param key unique advancement key
@@ -2369,7 +2389,7 @@ public final class Bukkit {
         return server.getUnsafe();
     }
 
-// Paper start
+    // Paper start
     /**
      * Gets the active {@link org.bukkit.command.CommandMap}
      *
@@ -2378,6 +2398,13 @@ public final class Bukkit {
     @NotNull
     public static org.bukkit.command.CommandMap getCommandMap() {
         return server.getCommandMap();
+    }
+
+    /**
+     * Reload the Permissions in permissions.yml
+     */
+    public static void reloadPermissions() {
+        server.reloadPermissions();
     }
 
     /**
@@ -2646,4 +2673,13 @@ public final class Bukkit {
         return server.isOwnedByCurrentRegion(entity);
     }
     // Paper end - Folia region threading API
+
+    /**
+     * Reload the Command Aliases in commands.yml
+     *
+     * @return Whether the reload was successful
+     */
+    public static boolean reloadCommandAliases() {
+        return server.reloadCommandAliases();
+    }
 }

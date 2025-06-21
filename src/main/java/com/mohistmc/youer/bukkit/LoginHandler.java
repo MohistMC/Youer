@@ -3,7 +3,6 @@ package com.mohistmc.youer.bukkit;
 import com.mojang.authlib.GameProfile;
 import io.papermc.paper.configuration.GlobalConfiguration;
 import java.util.concurrent.ExecutionException;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.util.Waitable;

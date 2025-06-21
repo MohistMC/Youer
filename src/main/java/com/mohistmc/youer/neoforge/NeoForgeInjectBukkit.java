@@ -1,11 +1,11 @@
 package com.mohistmc.youer.neoforge;
 
-import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.api.ServerAPI;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.mohistmc.dynamicenum.MohistDynamEnum;
+import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.api.ServerAPI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

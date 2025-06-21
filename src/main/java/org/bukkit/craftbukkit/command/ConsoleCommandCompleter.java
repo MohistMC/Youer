@@ -18,7 +18,6 @@ public class ConsoleCommandCompleter implements Completer {
     private final DedicatedServer server;
     private final io.papermc.paper.console.BrigadierCommandCompleter brigadierCompleter; // Paper - Enhance console tab completions for brigadier commands
 
-
     public ConsoleCommandCompleter(DedicatedServer server) {
         this.server = server;
         this.brigadierCompleter = new io.papermc.paper.console.BrigadierCommandCompleter(this.server); // Paper - Enhance console tab completions for brigadier commands

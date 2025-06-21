@@ -1,6 +1,5 @@
 package com.mohistmc.youer.bukkit.pluginfix;
 
-import java.util.Set;
 import java.util.function.Consumer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -19,8 +18,6 @@ import static org.objectweb.asm.Opcodes.ARETURN;
 
 public class PluginFixManager {
 
-    public static Set<String> pluginFixClasses = Set.of("ModelEngine");
-
     public static byte[] injectPluginFix(String className, byte[] clazz) {
         if (className.equals("com.ghostchu.quickshop.platform.spigot.AbstractSpigotPlatform")) {
             return patch(clazz, PluginFixManager::qs);
@@ -30,13 +27,19 @@ public class PluginFixManager {
         }
         Consumer<ClassNode> patcher = switch (className) {
             case "com.sk89q.worldedit.bukkit.BukkitAdapter" -> WorldEdit::handleBukkitAdapter;
-            case "com.sk89q.worldedit.bukkit.adapter.Refraction" -> WorldEdit::handlePickName;
-            case "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter$SpigotWatchdog" -> WorldEdit::handleWatchdog;
             case "com.earth2me.essentials.utils.VersionUtil" -> node -> {
                 helloWorld(node, 110, 109);
                 helloWorld(node, "brand:", "peace");
             };
             case "net.Zrips.CMILib.Reflections" -> node -> helloWorld(node, "bR", "f_36096_");
+            case "com.sk89q.worldedit.bukkit.BukkitConfiguration" -> node -> {
+                helloWorld(node, "I accept that I will receive no support with this flag enabled.", "youer");
+                helloWorld(node, "allow-editing-on-unsupported-versions", "youer");
+                helloWorld(node, "false", "youer");
+            };
+            case "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter" -> node -> {
+                helloWorld(node, "org.spigotmc.WatchdogThread", "youer");
+            };
             default -> null;
         };
 
@@ -62,9 +65,9 @@ public class PluginFixManager {
                         "getNMSVersion",
                         "()Ljava/lang/String;"
                 ));
-                toInject.add(new InsnNode(Opcodes.ARETURN)); // 改为 ARETURN 用于返回引用类型
+                toInject.add(new InsnNode(Opcodes.ARETURN));
                 methodNode.instructions = toInject;
-                methodNode.tryCatchBlocks.clear(); // 清除原有异常处理
+                methodNode.tryCatchBlocks.clear();
             }
         }
     }

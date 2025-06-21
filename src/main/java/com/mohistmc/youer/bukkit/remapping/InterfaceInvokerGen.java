@@ -1,7 +1,7 @@
 package com.mohistmc.youer.bukkit.remapping;
 
-import com.mohistmc.youer.Youer;
 import com.google.common.collect.Maps;
+import com.mohistmc.youer.Youer;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;

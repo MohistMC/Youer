@@ -8,6 +8,26 @@
  
  public class Slime extends Mob implements Enemy {
      private static final EntityDataAccessor<Integer> ID_SIZE = SynchedEntityData.defineId(Slime.class, EntityDataSerializers.INT);
+@@ -106,6 +_,7 @@
+     @Override
+     public void addAdditionalSaveData(CompoundTag p_33619_) {
+         super.addAdditionalSaveData(p_33619_);
++        p_33619_.putBoolean("Paper.canWander", this.canWander); // Paper
+         p_33619_.putInt("Size", this.getSize() - 1);
+         p_33619_.putBoolean("wasOnGround", this.wasOnGround);
+     }
+@@ -114,6 +_,11 @@
+     public void readAdditionalSaveData(CompoundTag p_33607_) {
+         this.setSize(p_33607_.getInt("Size") + 1, false);
+         super.readAdditionalSaveData(p_33607_);
++        // Paper start
++        if (p_33607_.contains("Paper.canWander")) {
++            this.canWander = p_33607_.getBoolean("Paper.canWander");
++        }
++        // Paper end
+         this.wasOnGround = p_33607_.getBoolean("wasOnGround");
+     }
+ 
 @@ -139,6 +_,8 @@
              float f = this.getDimensions(this.getPose()).width() * 2.0F;
              float f1 = f / 2.0F;
@@ -99,16 +119,128 @@
      }
  
      @Nullable
-@@ -363,6 +_,12 @@
-     public EntityDimensions getDefaultDimensions(Pose p_316359_) {
+@@ -364,6 +_,12 @@
          return super.getDefaultDimensions(p_316359_).scale((float)this.getSize());
      }
-+
+ 
 +    /**
 +     * Called when the slime spawns particles on landing, see onUpdate.
 +     * Return true to prevent the spawning of the default particles.
 +     */
 +    protected boolean spawnCustomParticles() { return false; }
- 
++
      static class SlimeAttackGoal extends Goal {
          private final Slime slime;
+         private int growTiredTimer;
+@@ -376,11 +_,15 @@
+         @Override
+         public boolean canUse() {
+             LivingEntity livingentity = this.slime.getTarget();
+-            if (livingentity == null) {
+-                return false;
+-            } else {
+-                return !this.slime.canAttack(livingentity) ? false : this.slime.getMoveControl() instanceof Slime.SlimeMoveControl;
+-            }
++            // Paper start - Slime pathfinder events
++            if (livingentity == null || !livingentity.isAlive()) {
++                return false;
++            }
++            if (!this.slime.canAttack(livingentity)) {
++                return false;
++            }
++            return this.slime.getMoveControl() instanceof Slime.SlimeMoveControl && this.slime.canWander && new io.papermc.paper.event.entity.SlimeTargetLivingEntityEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity(), (org.bukkit.entity.LivingEntity) livingentity.getBukkitEntity()).callEvent();
++            // Paper end - Slime pathfinder events
+         }
+ 
+         @Override
+@@ -392,11 +_,15 @@
+         @Override
+         public boolean canContinueToUse() {
+             LivingEntity livingentity = this.slime.getTarget();
+-            if (livingentity == null) {
+-                return false;
+-            } else {
+-                return !this.slime.canAttack(livingentity) ? false : --this.growTiredTimer > 0;
+-            }
++            // Paper start - Slime pathfinder events
++            if (livingentity == null || !livingentity.isAlive()) {
++                return false;
++            }
++            if (!this.slime.canAttack(livingentity)) {
++                return false;
++            }
++            return --this.growTiredTimer > 0 && this.slime.canWander && new io.papermc.paper.event.entity.SlimeTargetLivingEntityEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity(), (org.bukkit.entity.LivingEntity) livingentity.getBukkitEntity()).callEvent();
++            // Paper end - Slime pathfinder events
+         }
+ 
+         @Override
+@@ -415,6 +_,13 @@
+                 slime$slimemovecontrol.setDirection(this.slime.getYRot(), this.slime.isDealsDamage());
+             }
+         }
++
++        // Paper start - Slime pathfinder events; clear timer and target when goal resets
++        public void stop() {
++            this.growTiredTimer = 0;
++            this.slime.setTarget(null);
++        }
++        // Paper end - Slime pathfinder events
+     }
+ 
+     static class SlimeFloatGoal extends Goal {
+@@ -428,7 +_,7 @@
+ 
+         @Override
+         public boolean canUse() {
+-            return (this.slime.isInWater() || this.slime.isInLava()) && this.slime.getMoveControl() instanceof Slime.SlimeMoveControl;
++            return (this.slime.isInWater() || this.slime.isInLava()) && this.slime.getMoveControl() instanceof Slime.SlimeMoveControl && this.slime.canWander && new io.papermc.paper.event.entity.SlimeSwimEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity()).callEvent(); // Paper - Slime pathfinder events
+         }
+ 
+         @Override
+@@ -458,7 +_,7 @@
+ 
+         @Override
+         public boolean canUse() {
+-            return !this.slime.isPassenger();
++            return !this.slime.isPassenger() && this.slime.canWander && new io.papermc.paper.event.entity.SlimeWanderEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity()).callEvent(); // Paper - Slime pathfinder events
+         }
+ 
+         @Override
+@@ -538,7 +_,7 @@
+         public boolean canUse() {
+             return this.slime.getTarget() == null
+                 && (this.slime.onGround() || this.slime.isInWater() || this.slime.isInLava() || this.slime.hasEffect(MobEffects.LEVITATION))
+-                && this.slime.getMoveControl() instanceof Slime.SlimeMoveControl;
++                && this.slime.getMoveControl() instanceof Slime.SlimeMoveControl && this.slime.canWander; // Paper - Slime pathfinder events
+         }
+ 
+         @Override
+@@ -546,6 +_,11 @@
+             if (--this.nextRandomizeTime <= 0) {
+                 this.nextRandomizeTime = this.adjustedTickDelay(40 + this.slime.getRandom().nextInt(60));
+                 this.chosenDegrees = (float)this.slime.getRandom().nextInt(360);
++                // Paper start - Slime pathfinder events
++                io.papermc.paper.event.entity.SlimeChangeDirectionEvent event = new io.papermc.paper.event.entity.SlimeChangeDirectionEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity(), this.chosenDegrees);
++                if (!this.slime.canWander || !event.callEvent()) return;
++                this.chosenDegrees = event.getNewYaw();
++                // Paper end - Slime pathfinder events
+             }
+ 
+             if (this.slime.getMoveControl() instanceof Slime.SlimeMoveControl slime$slimemovecontrol) {
+@@ -553,4 +_,16 @@
+             }
+         }
+     }
++
++
++    // Paper start - Slime pathfinder events
++    private boolean canWander = true;
++    public boolean canWander() {
++        return canWander;
++    }
++
++    public void setWander(boolean canWander) {
++        this.canWander = canWander;
++    }
++    // Paper end - Slime pathfinder events
+ }

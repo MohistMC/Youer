@@ -65,7 +65,7 @@
          Vec3 vec3 = new Vec3(this.x, this.y, this.z);
  
          for (Entity entity : list) {
-@@ -284,7 +_,34 @@
+@@ -284,13 +_,40 @@
                          d7 /= d12;
                          d9 /= d12;
                          if (this.damageCalculator.shouldDamageEntity(this, entity)) {
@@ -101,20 +101,24 @@
                          }
  
                          double d13 = (1.0 - d11) * (double)getSeenPercent(vec3, entity) * (double)this.damageCalculator.getKnockbackMultiplier(entity);
-@@ -299,6 +_,20 @@
+                         double d10;
+                         if (entity instanceof LivingEntity livingentity) {
+-                            d10 = d13 * (1.0 - livingentity.getAttributeValue(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE));
++                            d10 = entity instanceof Player && this.level.paperConfig().environment.disableExplosionKnockback ? 0 : d13 * (1.0 - livingentity.getAttributeValue(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE));
+                         } else {
+                             d10 = d13;
+                         }
+@@ -299,10 +_,21 @@
                          d7 *= d10;
                          d9 *= d10;
                          Vec3 vec31 = new Vec3(d5, d7, d9);
 +
 +                        // CraftBukkit start - Call EntityKnockbackEvent
 +                        if (entity instanceof LivingEntity) {
-+                            Vec3 result = entity.getDeltaMovement().add(vec31);
-+                            org.bukkit.event.entity.EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((CraftLivingEntity) entity.getBukkitEntity(), source, org.bukkit.event.entity.EntityKnockbackEvent.KnockbackCause.EXPLOSION, d10, vec31, result.x, result.y, result.z);
-+
-+                            // SPIGOT-7640: Need to subtract entity movement from the event result,
-+                            // since the code below (the setDeltaMovement call as well as the hitPlayers map)
-+                            // want the vector to be the relative velocity will the event provides the absolute velocity
-+                            vec31 = (event.isCancelled()) ? Vec3.ZERO : new Vec3(event.getFinalKnockback().getX(), event.getFinalKnockback().getY(), event.getFinalKnockback().getZ()).subtract(entity.getDeltaMovement());
++                            // Paper start - knockback events
++                            io.papermc.paper.event.entity.EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) entity.getBukkitEntity(), this.source, this.damageSource.getEntity() != null ? this.damageSource.getEntity() : this.source, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.EXPLOSION, d13, vec31);
++                            vec31 = event.isCancelled() ? Vec3.ZERO : org.bukkit.craftbukkit.util.CraftVector.toNMS(event.getKnockback());
++                            // Paper end - knockback events
 +                        }
 +                        // CraftBukkit end
 +
@@ -122,6 +126,11 @@
                          entity.setDeltaMovement(entity.getDeltaMovement().add(vec31));
                          if (entity instanceof Player) {
                              Player player = (Player)entity;
+-                            if (!player.isSpectator() && (!player.isCreative() || !player.getAbilities().flying)) {
++                            if (!player.isSpectator() && (!player.isCreative() || !player.getAbilities().flying) && !level.paperConfig().environment.disableExplosionKnockback) { // Paper - Option to disable explosion knockback
+                                 this.hitPlayers.put(player, vec31);
+                             }
+                         }
 @@ -314,6 +_,12 @@
          }
      }

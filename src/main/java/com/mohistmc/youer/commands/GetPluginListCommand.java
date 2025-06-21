@@ -18,8 +18,8 @@
 
 package com.mohistmc.youer.commands;
 
-import com.mohistmc.youer.util.I18n;
 import com.mohistmc.tools.HasteUtils;
+import com.mohistmc.youer.util.I18n;
 import java.io.IOException;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;

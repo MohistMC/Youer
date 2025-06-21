@@ -1,0 +1,77 @@
+--- a/net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket.java
+@@ -38,6 +_,18 @@
+         this.entries = List.of(new ClientboundPlayerInfoUpdatePacket.Entry(p_252273_));
+     }
+ 
++    // Paper start - Add Listing API for Player
++    public ClientboundPlayerInfoUpdatePacket(EnumSet<ClientboundPlayerInfoUpdatePacket.Action> actions, List<ClientboundPlayerInfoUpdatePacket.Entry> entries) {
++        this.actions = actions;
++        this.entries = entries;
++    }
++
++    public ClientboundPlayerInfoUpdatePacket(EnumSet<ClientboundPlayerInfoUpdatePacket.Action> actions, ClientboundPlayerInfoUpdatePacket.Entry entry) {
++        this.actions = actions;
++        this.entries = List.of(entry);
++    }
++    // Paper end - Add Listing API for Player
++
+     public static ClientboundPlayerInfoUpdatePacket createPlayerInitializing(Collection<ServerPlayer> p_252314_) {
+         EnumSet<ClientboundPlayerInfoUpdatePacket.Action> enumset = EnumSet.of(
+             ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER,
+@@ -50,6 +_,29 @@
+         return new ClientboundPlayerInfoUpdatePacket(enumset, p_252314_);
+     }
+ 
++    // Paper start - Add Listing API for Player
++    public static ClientboundPlayerInfoUpdatePacket createPlayerInitializing(Collection<ServerPlayer> players, ServerPlayer forPlayer) {
++        final EnumSet<ClientboundPlayerInfoUpdatePacket.Action> enumSet = EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, ClientboundPlayerInfoUpdatePacket.Action.INITIALIZE_CHAT, ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE, ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LISTED, ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LATENCY, ClientboundPlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME);
++        final List<ClientboundPlayerInfoUpdatePacket.Entry> entries = new java.util.ArrayList<>(players.size());
++        final org.bukkit.craftbukkit.entity.CraftPlayer bukkitEntity = forPlayer.getBukkitEntity();
++        for (final ServerPlayer player : players) {
++            entries.add(new ClientboundPlayerInfoUpdatePacket.Entry(player, bukkitEntity.isListed(player.getBukkitEntity())));
++        }
++        return new ClientboundPlayerInfoUpdatePacket(enumSet, entries);
++    }
++
++    public static ClientboundPlayerInfoUpdatePacket createSinglePlayerInitializing(ServerPlayer player, boolean listed) {
++        final EnumSet<ClientboundPlayerInfoUpdatePacket.Action> enumSet = EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, ClientboundPlayerInfoUpdatePacket.Action.INITIALIZE_CHAT, ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE, ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LISTED, ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LATENCY, ClientboundPlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME);
++        final List<ClientboundPlayerInfoUpdatePacket.Entry> entries = List.of(new Entry(player, listed));
++        return new ClientboundPlayerInfoUpdatePacket(enumSet, entries);
++    }
++
++    public static ClientboundPlayerInfoUpdatePacket updateListed(UUID playerInfoId, boolean listed) {
++        EnumSet<ClientboundPlayerInfoUpdatePacket.Action> enumSet = EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LISTED);
++        return new ClientboundPlayerInfoUpdatePacket(enumSet, new ClientboundPlayerInfoUpdatePacket.Entry(playerInfoId, listed));
++    }
++    // Paper end - Add Listing API for Player
++
+     private ClientboundPlayerInfoUpdatePacket(RegistryFriendlyByteBuf p_323822_) {
+         this.actions = p_323822_.readEnumSet(ClientboundPlayerInfoUpdatePacket.Action.class);
+         this.entries = p_323822_.readList(
+@@ -160,16 +_,24 @@
+         @Nullable RemoteChatSession.Data chatSession
+     ) {
+         Entry(ServerPlayer p_252094_) {
++            // Paper start - Add Listing API for Player
++            this(p_252094_, true);
++        }
++        Entry(ServerPlayer p_252094_, boolean listed) {
+             this(
+                 p_252094_.getUUID(),
+                 p_252094_.getGameProfile(),
+-                true,
++                listed,
+                 p_252094_.connection.latency(),
+                 p_252094_.gameMode.getGameModeForPlayer(),
+                 p_252094_.getTabListDisplayName(),
+                 Optionull.map(p_252094_.getChatSession(), RemoteChatSession::asData)
+             );
+         }
++        Entry(UUID profileId, boolean listed) {
++            this(profileId, null, listed, 0, GameType.DEFAULT_MODE, null, null);
++        }
++        // Paper end - Add Listing API for Player
+     }
+ 
+     static class EntryBuilder {

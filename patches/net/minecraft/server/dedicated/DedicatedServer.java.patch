@@ -24,21 +24,25 @@
  import java.nio.file.Files;
  import java.nio.file.Path;
  import java.util.Collections;
-@@ -58,6 +_,12 @@
+@@ -58,16 +_,23 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.entity.SkullBlockEntity;
  import net.minecraft.world.level.storage.LevelStorageSource;
 +import org.apache.logging.log4j.LogManager;
 +import org.apache.logging.log4j.io.IoBuilder;
 +import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.Main;
 +import org.bukkit.craftbukkit.util.ForwardLogHandler;
 +import org.bukkit.event.server.RemoteServerCommandEvent;
 +import org.bukkit.event.server.ServerCommandEvent;
  import org.slf4j.Logger;
  
  public class DedicatedServer extends MinecraftServer implements ServerInterface {
-@@ -67,7 +_,7 @@
-     private final List<ConsoleInput> consoleInput = Collections.synchronizedList(Lists.newArrayList());
+     static final Logger LOGGER = LogUtils.getLogger();
+     private static final int CONVERSION_RETRY_DELAY_MS = 5000;
+     private static final int CONVERSION_RETRIES = 2;
+-    private final List<ConsoleInput> consoleInput = Collections.synchronizedList(Lists.newArrayList());
++    private final java.util.Queue<ConsoleInput> serverCommandQueue = new java.util.concurrent.ConcurrentLinkedQueue<>(); // Paper - Perf: use a proper queue
      @Nullable
      private QueryThreadGs4 queryThreadGs4;
 -    public final RconConsoleSource rconConsoleSource;
@@ -78,7 +82,7 @@
 -                } catch (IOException ioexception1) {
 -                    DedicatedServer.LOGGER.error("Exception handling console input", (Throwable)ioexception1);
 +                if (net.neoforged.neoforge.server.console.TerminalHandler.handleCommands(DedicatedServer.this)) return;
-+                if (!org.bukkit.craftbukkit.Main.useConsole) {
++                if (!Main.useConsole) {
 +                    return;
                  }
 +                new PaperConsole(DedicatedServer.this).start();
@@ -100,8 +104,9 @@
 +
          thread.setDaemon(true);
          thread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
-         thread.start();
+-        thread.start();
 -        LOGGER.info("Starting minecraft server version {}", SharedConstants.getCurrentVersion().getName());
++        // thread.start(); // Paper - Enhance console tab completions for brigadier commands; moved down
 +        LOGGER.info(I18n.as("minecraftserver.minecraftversion",(Object)SharedConstants.getCurrentVersion().getName()));
          if (Runtime.getRuntime().maxMemory() / 1024L / 1024L < 512L) {
 -            LOGGER.warn("To start the server with more ram, launch it as \"java -Xmx1024M -Xms1024M -jar minecraft_server.jar\"");
@@ -113,7 +118,35 @@
          DedicatedServerProperties dedicatedserverproperties = this.settings.getProperties();
          if (this.isSingleplayer()) {
              this.setLocalIp("127.0.0.1");
-@@ -138,8 +_,8 @@
+@@ -133,13 +_,36 @@
+             this.setLocalIp(dedicatedserverproperties.serverIp);
+         }
+ 
++        this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
++        // Spigot start
++        org.spigotmc.SpigotConfig.init((java.io.File) options.valueOf("spigot-settings"));
++        org.spigotmc.SpigotConfig.registerCommands();
++        // Spigot end
++        io.papermc.paper.util.ObfHelper.INSTANCE.getClass(); // Paper - load mappings for stacktrace deobf and etc.
++        // Paper start - initialize global and world-defaults configuration
++        this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
++        this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
++        // Paper end - initialize global and world-defaults configuration
++        // Mohsit start
++        YouerConfig.init((java.io.File) options.valueOf("youer-settings"));
++        YouerConfig.registerCommands();
++        // Youer end
++        // Paper start - fix converting txt to json file; convert old users earlier after PlayerList creation but before file load/save
++        if (this.convertOldUsers()) {
++            this.getProfileCache().save(); // Paper
++        }
++        this.getPlayerList().loadAndSaveFiles(); // Must be after convertNames
++        // Paper end - fix converting txt to json file
++        thread.start(); // Paper - Enhance console tab completions for brigadier commands; start console thread after MinecraftServer.console & PaperConfig are initialized
++        io.papermc.paper.command.PaperCommands.registerCommands(this); // Paper - setup /paper command
++
+         this.setPvpAllowed(dedicatedserverproperties.pvp);
+         this.setFlightAllowed(dedicatedserverproperties.allowFlight);
          this.setMotd(dedicatedserverproperties.motd);
          super.setPlayerIdleTimeout(dedicatedserverproperties.playerIdleTimeout.get());
          this.setEnforceWhitelist(dedicatedserverproperties.enforceWhitelist);
@@ -124,7 +157,7 @@
          InetAddress inetaddress = null;
          if (!this.getLocalIp().isEmpty()) {
              inetaddress = InetAddress.getByName(this.getLocalIp());
-@@ -150,24 +_,22 @@
+@@ -150,34 +_,32 @@
          }
  
          this.initializeKeyPair();
@@ -156,30 +189,18 @@
 +            LOGGER.warn(I18n.as("minecraftserver.playerauth4"));
          }
  
-         if (this.convertOldUsers()) {
-@@ -178,6 +_,25 @@
+-        if (this.convertOldUsers()) {
+-            this.getProfileCache().save();
+-        }
++        // CraftBukkit start
++        server.loadPlugins();
++        server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
++        // CraftBukkit end
+ 
+         if (!OldUsersConverter.serverReadyAfterUserconversion(this)) {
              return false;
          } else {
-             this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
-+            // Spigot start
-+            org.spigotmc.SpigotConfig.init((java.io.File) options.valueOf("spigot-settings"));
-+            org.spigotmc.SpigotConfig.registerCommands();
-+            // Spigot end
-+            // Paper start - initialize global and world-defaults configuration
-+            this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
-+            this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
-+            // Paper end - initialize global and world-defaults configuration
-+            // Mohsit start
-+            YouerConfig.init((java.io.File) options.valueOf("youer-settings"));
-+            YouerConfig.registerCommands();
-+            if (YouerConfig.motdEnable) {
-+                this.setMotd(YouerConfig.motd());
-+            }
-+            // Youer end
-+            // CraftBukkit start
-+            server.loadPlugins();
-+            server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
-+            // CraftBukkit end
+-            this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
              this.debugSampleSubscriptionTracker = new DebugSampleSubscriptionTracker(this.getPlayerList());
              this.tickTimeLogger = new RemoteSampleLogger(
                  TpsDebugDimensions.values().length, this.debugSampleSubscriptionTracker, RemoteDebugSampleType.TICK_TIME
@@ -249,19 +270,31 @@
      }
  
      @Override
-@@ -315,7 +_,15 @@
+@@ -309,13 +_,24 @@
+     }
+ 
+     public void handleConsoleInput(String p_139646_, CommandSourceStack p_139647_) {
+-        this.consoleInput.add(new ConsoleInput(p_139646_, p_139647_));
++        this.serverCommandQueue.add(new ConsoleInput(p_139646_, p_139647_)); // Paper - Perf: use proper queue
+     }
+ 
      public void handleConsoleInputs() {
-         while (!this.consoleInput.isEmpty()) {
-             ConsoleInput consoleinput = this.consoleInput.remove(0);
+-        while (!this.consoleInput.isEmpty()) {
+-            ConsoleInput consoleinput = this.consoleInput.remove(0);
 -            this.getCommands().performPrefixedCommand(consoleinput.source, consoleinput.msg);
-+            // CraftBukkit start - ServerCommand for preprocessing
-+            ServerCommandEvent event = new ServerCommandEvent(console, consoleinput.msg);
-+            server.getPluginManager().callEvent(event);
-+            if (event.isCancelled()) continue;
-+            consoleinput = new ConsoleInput(event.getCommand(), consoleinput.source);
++        // Paper start - Perf: use proper queue
++        ConsoleInput servercommand;
++        while ((servercommand = this.serverCommandQueue.poll()) != null) {
++            // Paper end - Perf: use proper queue
 +
-+            // this.getCommands().performCommand(servercommand.source, servercommand.msg); // Called in dispatchServerCommand
-+            server.dispatchServerCommand(console, consoleinput);
++            // CraftBukkit start - ServerCommand for preprocessing
++            ServerCommandEvent event = new ServerCommandEvent(this.console, servercommand.msg);
++            this.server.getPluginManager().callEvent(event);
++            if (event.isCancelled()) continue;
++            servercommand = new ConsoleInput(event.getCommand(), servercommand.source);
++
++            // this.getCommands().performPrefixedCommand(servercommand.source, servercommand.msg); // Called in dispatchServerCommand
++            this.server.dispatchServerCommand(this.console, servercommand);
 +            // CraftBukkit end
          }
      }

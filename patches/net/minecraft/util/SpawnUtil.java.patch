@@ -8,7 +8,7 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.server.level.ServerLevel;
-@@ -13,8 +_,23 @@
+@@ -13,8 +_,29 @@
  import net.minecraft.world.level.block.StainedGlassBlock;
  import net.minecraft.world.level.block.StainedGlassPaneBlock;
  import net.minecraft.world.level.block.state.BlockState;
@@ -18,13 +18,19 @@
 +
 +    // Youer start
 +    private static final AtomicReference<SpawnReason> trySpawnMob$reason = new AtomicReference<>(SpawnReason.DEFAULT);
++    private static final AtomicReference<Runnable> trySpawnMob$onAbort = new AtomicReference<>(null);
 +
 +    public static void trySpawnMob$reason(SpawnReason reason) {
 +        trySpawnMob$reason.set(reason);
 +    }
 +
-+    public static <T extends Mob> Optional<T> trySpawnMob(EntityType<T> pEntityType, MobSpawnType pSpawnType, ServerLevel pLevel, BlockPos pPos, int pAttempts, int p_216409_, int pYOffset, SpawnUtil.Strategy pStrategy, SpawnReason reason) {
++    public static void setTrySpawnMob$onAbort(Runnable onAbort) {
++        trySpawnMob$onAbort.set(onAbort);
++    }
++
++    public static <T extends Mob> Optional<T> trySpawnMob(EntityType<T> pEntityType, MobSpawnType pSpawnType, ServerLevel pLevel, BlockPos pPos, int pAttempts, int p_216409_, int pYOffset, SpawnUtil.Strategy pStrategy, SpawnReason reason, @javax.annotation.Nullable Runnable onAbort) { // Paper
 +        trySpawnMob$reason(reason);
++        trySpawnMob$onAbort.set(onAbort);
 +        return trySpawnMob(pEntityType, pSpawnType, pLevel, pPos, pAttempts, p_216409_, pYOffset, pStrategy);
 +    }
 +    // Youer end
@@ -32,14 +38,41 @@
      public static <T extends Mob> Optional<T> trySpawnMob(
          EntityType<T> p_216404_,
          MobSpawnType p_216405_,
-@@ -35,8 +_,8 @@
+@@ -26,17 +_,34 @@
+         SpawnUtil.Strategy p_216411_
+     ) {
+         BlockPos.MutableBlockPos blockpos$mutableblockpos = p_216407_.mutable();
+-
++        org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason reason = trySpawnMob$reason.getAndSet(SpawnReason.DEFAULT);
+         for (int i = 0; i < p_216408_; i++) {
+             int j = Mth.randomBetweenInclusive(p_216406_.random, -p_216409_, p_216409_);
+             int k = Mth.randomBetweenInclusive(p_216406_.random, -p_216409_, p_216409_);
+             blockpos$mutableblockpos.setWithOffset(p_216407_, j, p_216410_, k);
+             if (p_216406_.getWorldBorder().isWithinBounds(blockpos$mutableblockpos)
                  && moveToPossibleSpawnPosition(p_216406_, p_216410_, blockpos$mutableblockpos, p_216411_)) {
++                // Paper start - PreCreatureSpawnEvent
++                io.papermc.paper.event.entity.PreCreatureSpawnEvent event = new io.papermc.paper.event.entity.PreCreatureSpawnEvent(
++                        io.papermc.paper.util.MCUtil.toLocation(p_216406_, p_216407_),
++                        org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(p_216404_),
++                        reason
++                );
++                if (!event.callEvent()) {
++                    Runnable onAbort = trySpawnMob$onAbort.getAndSet(null);
++                    if (event.shouldAbortSpawn()) {
++                        if (onAbort != null) {
++                            onAbort.run();
++                        }
++                        return Optional.empty();
++                    }
++                    break;
++                }
++                // Paper end - PreCreatureSpawnEvent
                  T t = (T)p_216404_.create(p_216406_, null, blockpos$mutableblockpos, p_216405_, false, false);
                  if (t != null) {
 -                    if (t.checkSpawnRules(p_216406_, p_216405_) && t.checkSpawnObstruction(p_216406_)) {
 -                        p_216406_.addFreshEntityWithPassengers(t);
 +                    if (net.neoforged.neoforge.event.EventHooks.checkSpawnPosition(t, p_216406_, p_216405_)) {
-+                        p_216406_.addFreshEntityWithPassengers(t, trySpawnMob$reason.getAndSet(SpawnReason.DEFAULT));
++                        p_216406_.addFreshEntityWithPassengers(t, reason);
                          return Optional.of(t);
                      }
  

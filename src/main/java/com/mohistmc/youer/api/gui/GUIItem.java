@@ -18,6 +18,4 @@ public class GUIItem {
     public void ClickAction(ClickType type, Player p, ItemStack itemStack) {
 
     }
-
-
 }

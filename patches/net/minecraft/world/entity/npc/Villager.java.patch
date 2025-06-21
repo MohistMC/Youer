@@ -101,15 +101,24 @@
          );
      }
  
-@@ -799,7 +_,7 @@
+@@ -799,10 +_,15 @@
  
      @Override
      public void thunderHit(ServerLevel p_35409_, LightningBolt p_35410_) {
 -        if (p_35409_.getDifficulty() != Difficulty.PEACEFUL) {
+-            LOGGER.info("Villager {} was struck by lightning {}.", this, p_35410_);
 +        if (p_35409_.getDifficulty() != Difficulty.PEACEFUL && net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityType.WITCH, (timer) -> {})) {
-             LOGGER.info("Villager {} was struck by lightning {}.", this, p_35410_);
              Witch witch = EntityType.WITCH.create(p_35409_);
              if (witch != null) {
++                // Paper start - Add EntityZapEvent
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityZapEvent(this, p_35410_, witch).isCancelled()) {
++                    return;
++                }
++                if (org.spigotmc.SpigotConfig.logVillagerDeaths) Villager.LOGGER.info("Villager {} was struck by lightning {}.", this, p_35410_); // Move down
++                // Paper end - Add EntityZapEvent
+                 witch.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
+                 witch.finalizeSpawn(p_35409_, p_35409_.getCurrentDifficultyAt(witch.blockPosition()), MobSpawnType.CONVERSION, null);
+                 witch.setNoAi(this.isNoAi());
 @@ -812,7 +_,13 @@
                  }
  
@@ -137,12 +146,14 @@
              && this.getInventory().canAddItem(p_35543_);
      }
  
-@@ -899,7 +_,7 @@
+@@ -898,7 +_,9 @@
+             List<Villager> list = p_35398_.getEntitiesOfClass(Villager.class, aabb);
              List<Villager> list1 = list.stream().filter(p_186293_ -> p_186293_.wantsToSpawnGolem(p_35399_)).limit(5L).collect(Collectors.toList());
              if (list1.size() >= p_35400_) {
-                 if (!SpawnUtil.trySpawnMob(
--                        EntityType.IRON_GOLEM, MobSpawnType.MOB_SUMMONED, p_35398_, this.blockPosition(), 10, 8, 6, SpawnUtil.Strategy.LEGACY_IRON_GOLEM
-+                        EntityType.IRON_GOLEM, MobSpawnType.MOB_SUMMONED, p_35398_, this.blockPosition(), 10, 8, 6, SpawnUtil.Strategy.LEGACY_IRON_GOLEM, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.VILLAGE_DEFENSE
+-                if (!SpawnUtil.trySpawnMob(
++                SpawnUtil.trySpawnMob$reason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.VILLAGE_DEFENSE);
++                SpawnUtil.setTrySpawnMob$onAbort(() -> {GolemSensor.golemDetected(this);});
++                if (SpawnUtil.trySpawnMob(
+                         EntityType.IRON_GOLEM, MobSpawnType.MOB_SUMMONED, p_35398_, this.blockPosition(), 10, 8, 6, SpawnUtil.Strategy.LEGACY_IRON_GOLEM
                      )
                      .isEmpty()) {
-                     list.forEach(GolemSensor::golemDetected);

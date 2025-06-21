@@ -2,7 +2,6 @@ package io.papermc.paper;
 
 import com.google.common.base.Strings;
 import com.mohistmc.youer.YouerConfig;
-import com.mohistmc.youer.util.I18n;
 import io.papermc.paper.util.JarManifests;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -23,7 +22,7 @@ public record ServerBuildInfoImpl(
     String brandName,
     String minecraftVersionId,
     String minecraftVersionName,
-    String buildNumber,
+    OptionalInt buildNumber,
     Instant buildTime,
     Optional<String> gitBranch,
     Optional<String> gitCommit
@@ -31,6 +30,7 @@ public record ServerBuildInfoImpl(
     private static final String ATTRIBUTE_BRAND_ID = "Brand-Id";
     private static final String ATTRIBUTE_BRAND_NAME = "Brand-Name";
     private static final String ATTRIBUTE_BUILD_TIME = "Build-Time";
+    private static final String ATTRIBUTE_BUILD_NUMBER = "Build-Number";
     private static final String ATTRIBUTE_GIT_BRANCH = "Git-Branch";
     private static final String ATTRIBUTE_GIT_COMMIT = "Git-Commit";
 
@@ -51,8 +51,10 @@ public record ServerBuildInfoImpl(
                 .orElse(BRAND_PAPER_NAME),
             SharedConstants.getCurrentVersion().getId(),
             SharedConstants.getCurrentVersion().getName(),
-            getManifestAttribute(manifest, ATTRIBUTE_GIT_COMMIT)
-                .orElse(BUILD_DEV),
+                getManifestAttribute(manifest, ATTRIBUTE_BUILD_NUMBER)
+                        .map(Integer::parseInt)
+                        .map(OptionalInt::of)
+                        .orElse(OptionalInt.empty()),
             getManifestAttribute(manifest, ATTRIBUTE_BUILD_TIME)
                 .map(Instant::parse)
                 .orElse(Main.BOOT_TIME),

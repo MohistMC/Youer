@@ -60,7 +60,6 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ImposterProtoChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
-import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -71,7 +70,6 @@ import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Difficulty;
 import org.bukkit.Effect;
-import org.bukkit.FeatureFlag;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameRule;
 import org.bukkit.Instrument;
@@ -98,6 +96,8 @@ import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.boss.CraftDragonBattle;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.craftbukkit.generator.CustomChunkGenerator;
+import org.bukkit.craftbukkit.generator.CustomWorldChunkManager;
 import org.bukkit.craftbukkit.generator.structure.CraftGeneratedStructure;
 import org.bukkit.craftbukkit.generator.structure.CraftStructure;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -1608,9 +1608,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         Preconditions.checkArgument(spawnCategory != null, "SpawnCategory cannot be null");
         Preconditions.checkArgument(CraftSpawnCategory.isValidForLimits(spawnCategory), "SpawnCategory.%s are not supported", spawnCategory);
 
+        // Paper start - Add mobcaps commands
+        return this.getSpawnLimitUnsafe(spawnCategory);
+    }
+
+    public final int getSpawnLimitUnsafe(final SpawnCategory spawnCategory) {
         int limit = this.spawnCategoryLimit.getOrDefault(spawnCategory, -1);
         if (limit < 0) {
-            limit = this.server.getSpawnLimit(spawnCategory);
+            limit = this.server.getSpawnLimitUnsafe(spawnCategory);
+            // Paper end - Add mobcaps commands
         }
         return limit;
     }
@@ -2153,12 +2159,12 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
         final net.minecraft.world.level.chunk.ChunkGenerator gen = serverCache.getGenerator();
         net.minecraft.world.level.biome.BiomeSource biomeSource;
-        if (gen instanceof org.bukkit.craftbukkit.generator.CustomChunkGenerator custom) {
+        if (gen instanceof CustomChunkGenerator custom) {
             biomeSource = custom.getDelegate().getBiomeSource();
         } else {
             biomeSource = gen.getBiomeSource();
         }
-        if (biomeSource instanceof org.bukkit.craftbukkit.generator.CustomWorldChunkManager customBiomeSource) {
+        if (biomeSource instanceof CustomWorldChunkManager customBiomeSource) {
             biomeSource = customBiomeSource.vanillaBiomeSource;
         }
         final net.minecraft.world.level.biome.BiomeSource finalBiomeSource = biomeSource;
@@ -2178,6 +2184,51 @@ public class CraftWorld extends CraftRegionAccessor implements World {
                 return possibleBiomes;
             }
         };
+    }
+
+    private static void warnUnsafeChunk(String reason, int x, int z) {
+        // if any chunk coord is outside of 30 million blocks
+        if (x > 1875000 || z > 1875000 || x < -1875000 || z < -1875000) {
+            Plugin plugin = io.papermc.paper.util.StackWalkerUtil.getFirstPluginCaller();
+            if (plugin != null) {
+                plugin.getLogger().warning("Plugin is %s at (%s, %s), this might cause issues.".formatted(reason, x, z));
+            }
+            if (net.minecraft.server.MinecraftServer.getServer().isDebugging()) {
+                io.papermc.paper.util.TraceUtil.dumpTraceForThread("Dangerous chunk retrieval");
+            }
+        }
+    }
+    // Paper end
+
+    public java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(int x, int z, boolean gen, boolean urgent) {
+        warnUnsafeChunk("getting a faraway chunk async", x, z); // Paper
+        if (Bukkit.isPrimaryThread()) {
+            net.minecraft.world.level.chunk.LevelChunk immediate = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
+            if (immediate != null) {
+                return java.util.concurrent.CompletableFuture.completedFuture(new CraftChunk(immediate));
+            }
+        }
+
+        ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority priority;
+        if (urgent) {
+            priority = ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.HIGHER;
+        } else {
+            priority = ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.NORMAL;
+        }
+
+        java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
+
+        /*
+        ca.spottedleaf.moonrise.common.util.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {
+            net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
+                net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk)c;
+                if (chunk != null) this.addTicket(x, z); // Paper
+                ret.complete(chunk == null ? null : new CraftChunk(chunk));
+            });
+        });
+         */
+
+        return ret;
     }
     // Paper end
 }

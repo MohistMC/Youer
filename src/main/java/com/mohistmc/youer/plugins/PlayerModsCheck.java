@@ -1,7 +1,7 @@
 package com.mohistmc.youer.plugins;
 
-import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.tools.ListUtils;
+import com.mohistmc.youer.YouerConfig;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;

@@ -147,7 +147,7 @@
          p_294215_.connection.chunkSender.dropChunk(p_294215_, p_294758_);
      }
  
-@@ -910,16 +_,25 @@
+@@ -910,16 +_,36 @@
          return this.read(p_214964_).thenApplyAsync(p_214907_ -> p_214907_.map(this::upgradeChunkTag), Util.backgroundExecutor());
      }
  
@@ -163,13 +163,24 @@
 +        int chunkRange = level.spigotConfig.mobSpawnRange;
 +        chunkRange = (chunkRange > level.spigotConfig.viewDistance) ? (byte) level.spigotConfig.viewDistance : chunkRange;
 +        chunkRange = (chunkRange > 8) ? 8 : chunkRange;
-+        double blockRange = (reducedRange.getAndSet(false)) ? Math.pow(chunkRange << 4, 2) : 16384.0D;
++        final int finalChunkRange = chunkRange; // Paper for lambda below
++        //double blockRange = (reducedRange) ? Math.pow(chunkRange << 4, 2) : 16384.0D; // Paper - use from event
++        double blockRange = 16384.0D; // Paper
 +        // Spigot end
          if (!this.distanceManager.hasPlayersNearby(p_183880_.toLong())) {
              return false;
          } else {
              for (ServerPlayer serverplayer : this.playerMap.getAllPlayers()) {
 -                if (this.playerIsCloseEnoughForSpawning(serverplayer, p_183880_)) {
++                // Paper start - PlayerNaturallySpawnCreaturesEvent
++                io.papermc.paper.event.entity.PlayerNaturallySpawnCreaturesEvent event;
++                blockRange = 16384.0D;
++                if (reducedRange.getAndSet(false)) {
++                    event = serverplayer.playerNaturallySpawnedEvent;
++                    if (event == null || event.isCancelled()) return false;
++                    blockRange = (double) ((event.getSpawnRadius() << 4) * (event.getSpawnRadius() << 4));
++                }
++                // Paper end - PlayerNaturallySpawnCreaturesEvent
 +                if (this.playerIsCloseEnoughForSpawning(serverplayer, p_183880_, blockRange)) {
                      return true;
                  }

@@ -47,6 +47,7 @@ public final class PluginRemapper {
     private static final String UNKNOWN_ORIGIN = "unknown-origin";
     private static final String LIBRARIES = "libraries";
     private static final String EXTRA_PLUGINS = "extra-plugins";
+    private static final String REMAP_CLASSPATH = "remap-classpath";
     private static final String REVERSED_MAPPINGS = "mappings/reversed";
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -63,7 +64,7 @@ public final class PluginRemapper {
         final CompletableFuture<IMappingFile> mappings = CompletableFuture.supplyAsync(PluginRemapper::loadReobfMappings, this.threadPool);
         final Path remappedPlugins = pluginsDir.resolve(PAPER_REMAPPED);
         this.reversedMappings = this.reversedMappingsFuture(() -> mappings, remappedPlugins, this.threadPool);
-        this.reobf = new ReobfServer(mappings, this.threadPool);
+        this.reobf = new ReobfServer(remappedPlugins.resolve(REMAP_CLASSPATH), mappings, this.threadPool);
         this.remappedPlugins = new RemappedPluginIndex(remappedPlugins, false);
         this.extraPlugins = new RemappedPluginIndex(this.remappedPlugins.dir().resolve(EXTRA_PLUGINS), true);
         this.unknownOrigin = new UnknownOriginRemappedPluginIndex(this.remappedPlugins.dir().resolve(UNKNOWN_ORIGIN));

@@ -1847,6 +1847,22 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
     public double[] getTPS();
 
     /**
+     * Get a sample of the servers last tick times (in nanos)
+     *
+     * @return A sample of the servers last tick times (in nanos)
+     */
+    @NotNull
+    long[] getTickTimes();
+
+    /**
+     * Get the average tick time (in millis)
+     *
+     * @return Average tick time (in millis)
+     */
+    double getAverageTickTime();
+    // Paper end
+
+    /**
      * Gets the active {@link org.bukkit.command.CommandMap}
      *
      * @return the active command map
@@ -2286,4 +2302,8 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
      */
     boolean isOwnedByCurrentRegion(@NotNull Entity entity);
     // Paper end - Folia region threading API
+
+    boolean reloadCommandAliases(); // Paper
+
+    void reloadPermissions(); // Paper
 }

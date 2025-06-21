@@ -444,7 +444,7 @@ public class NetworkRegistry {
                 return;
             }
 
-            throw new UnsupportedOperationException("Payload %s may not be sent to the client!".formatted(customPayloadPacket.payload().type().id()));
+            listener.getConnection().disconnect(Component.literal("Payload %s may not be sent to the client!".formatted(customPayloadPacket.payload().type().id())));
         }
     }
 
@@ -696,7 +696,7 @@ public class NetworkRegistry {
                     return;
                 }
                 for (var channel : resourceLocations) {
-                    listener0.getCraftPlayer().addChannel(channel.toString());
+                    //listener0.getCraftPlayer().addChannel(channel.toString());
                 }
             });
         }
@@ -828,7 +828,7 @@ public class NetworkRegistry {
                     return;
                 }
                 for (var channel : setup.getChannels(ConnectionProtocol.PLAY).keySet()) {
-                    listener0.getCraftPlayer().addChannel(channel.toString());
+                    //listener0.getCraftPlayer().addChannel(channel.toString());
                 }
             });
         }

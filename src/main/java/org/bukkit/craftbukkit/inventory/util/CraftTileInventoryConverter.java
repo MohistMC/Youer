@@ -18,6 +18,7 @@ import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.craftbukkit.inventory.CraftInventoryBrewer;
 import org.bukkit.craftbukkit.inventory.CraftInventoryFurnace;
 import org.bukkit.craftbukkit.util.CraftChatMessage;
+import org.bukkit.craftbukkit.inventory.CraftInventoryCustom;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -59,7 +60,7 @@ public abstract class CraftTileInventoryConverter implements CraftInventoryCreat
     }
 
     public Inventory getInventory(InventoryHolder owner, InventoryType type, Container tileEntity) { // Paper
-        if (owner != null) return new org.bukkit.craftbukkit.inventory.CraftInventoryCustom(owner, type, tileEntity); // Paper
+        if (owner != null) return new CraftInventoryCustom(owner, type, tileEntity); // Paper
         // Paper end
         return new CraftInventory(tileEntity);
     }
@@ -101,7 +102,7 @@ public abstract class CraftTileInventoryConverter implements CraftInventoryCreat
 
         @Override
         public Inventory getInventory(InventoryHolder owner, InventoryType type, net.minecraft.world.Container tileEntity) { // Paper
-            if (owner != null) return new org.bukkit.craftbukkit.inventory.CraftInventoryCustom(owner, type, tileEntity); // Paper
+            if (owner != null) return new CraftInventoryCustom(owner, type, tileEntity); // Paper
             // Paper end
             return new CraftInventoryFurnace((AbstractFurnaceBlockEntity) tileEntity);
         }
@@ -144,7 +145,7 @@ public abstract class CraftTileInventoryConverter implements CraftInventoryCreat
 
         @Override
         public Inventory getInventory(InventoryHolder owner, InventoryType type, net.minecraft.world.Container tileEntity) { // Paper
-            if (owner != null) return new org.bukkit.craftbukkit.inventory.CraftInventoryCustom(owner, type, tileEntity); // Paper
+            if (owner != null) return new CraftInventoryCustom(owner, type, tileEntity); // Paper
             // Paper end
             return new CraftInventoryBrewer(tileEntity);
         }

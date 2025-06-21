@@ -73,20 +73,21 @@ public class LibrariesDownloadQueue {
      */
     public void progressBar() {
         if (needDownload()) {
-            ProgressBarBuilder builder = new ProgressBarBuilder().setTaskName("")
+            ProgressBarBuilder builder = new ProgressBarBuilder()
+                    .setTaskName("")
                     .setStyle(ProgressBarStyle.ASCII)
                     .setUpdateIntervalMillis(100)
-                    .setInitialMax(10);
+                    .setInitialMax(need_download.size());
             try (ProgressBar pb = builder.build()) {
                 for (Libraries lib : need_download) {
                     File file = new File(parentDirectory, lib.path);
                     file.getParentFile().mkdirs();
                     String url = "META-INF/" + file.getPath();
                     if (copyFileFromJar(file, url.replaceAll("\\\\", "/"), lib)) {
-                        debug("downloadFile: OK");
+                        debug("copyFileFromJar: OK");
                         fail.remove(lib);
                     } else {
-                        debug("downloadFile: No " + url);
+                        debug("copyFileFromJar: No " + url);
                         fail.add(lib);
                     }
                     pb.step();
@@ -111,7 +112,7 @@ public class LibrariesDownloadQueue {
                 } catch (IOException ignored) {
                 }
             } else {
-                System.out.println("[Mohist] The file " + file.getPath() + " doesn't exists in the Mohist jar !");
+                System.out.println("[Youer] The file " + file.getPath() + " doesn't exists in the Youer jar !");
                 return false;
             }
         }
@@ -147,7 +148,7 @@ public class LibrariesDownloadQueue {
                             InputStream is = Main.class.getClassLoader().getResourceAsStream(entry.getName());
                             Libraries libraries = new Libraries(line, SHA256.as(is), entry.getSize());
                             allLibraries.add(libraries);
-                            debug("找到资源: " + libraries);
+                            debug("Find the resource: " + libraries);
                         });
             }
         }

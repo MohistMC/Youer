@@ -251,6 +251,16 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
     @Nullable
     public InetSocketAddress getAddress();
 
+    // Paper start - Add API to get player's proxy address
+    /**
+     * Gets the socket address of this player's proxy
+     *
+     * @return the player's proxy address, null if the server doesn't have Proxy Protocol enabled, or the player didn't connect to an HAProxy instance
+     */
+    @Nullable
+    public InetSocketAddress getHAProxyAddress();
+    // Paper end - Add API to get player's proxy address
+
     /**
      * Gets if this connection has been transferred from another server.
      *
@@ -1552,6 +1562,32 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *     player
      */
     public boolean canSee(@NotNull Entity entity);
+
+    // Paper start
+    /**
+     * Returns whether the {@code other} player is listed for {@code this}.
+     *
+     * @param other The other {@link Player} to check for listing.
+     * @return True if the {@code other} player is listed for {@code this}.
+     */
+    boolean isListed(@NotNull Player other);
+
+    /**
+     * Unlists the {@code other} player from the tablist.
+     *
+     * @param other The other {@link Player} to de-list.
+     * @return True if the {@code other} player was listed.
+     */
+    boolean unlistPlayer(@NotNull Player other);
+
+    /**
+     * Lists the {@code other} player.
+     *
+     * @param other The other {@link Player} to list.
+     * @return True if the {@code other} player was not listed.
+     */
+    boolean listPlayer(@NotNull Player other);
+    // Paper end
 
     /**
      * Checks to see if this player is currently flying or not.
@@ -2932,6 +2968,45 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
     @Nullable
     String getClientBrandName();
     // Paper end
+
+    // Paper start - Teleport API
+    /**
+     * Sets the player's rotation.
+     *
+     * @param yaw the yaw
+     * @param pitch the pitch
+     */
+    void setRotation(float yaw, float pitch);
+
+    /**
+     * Causes the player to look towards the given position.
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param z z coordinate
+     * @param playerAnchor What part of the player should face the given position
+     */
+    void lookAt(double x, double y, double z, @NotNull io.papermc.paper.entity.LookAnchor playerAnchor);
+
+    /**
+     * Causes the player to look towards the given position.
+     *
+     * @param position Position to look at in the player's current world
+     * @param playerAnchor What part of the player should face the given position
+     */
+    default void lookAt(@NotNull io.papermc.paper.math.Position position, @NotNull io.papermc.paper.entity.LookAnchor playerAnchor) {
+        this.lookAt(position.x(), position.y(), position.z(), playerAnchor);
+    }
+
+    /**
+     * Causes the player to look towards the given entity.
+     *
+     * @param entity Entity to look at
+     * @param playerAnchor What part of the player should face the entity
+     * @param entityAnchor What part of the entity the player should face
+     */
+    void lookAt(@NotNull org.bukkit.entity.Entity entity, @NotNull io.papermc.paper.entity.LookAnchor playerAnchor, @NotNull io.papermc.paper.entity.LookAnchor entityAnchor);
+    // Paper end - Teleport API
 
     // Paper start - Player Profile API
     /**

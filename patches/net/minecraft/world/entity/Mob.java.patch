@@ -16,11 +16,10 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.LevelAccessor;
  import net.minecraft.world.level.LevelReader;
-@@ -85,6 +_,11 @@
+@@ -85,6 +_,10 @@
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
  import net.minecraft.world.phys.AABB;
-+import org.bukkit.craftbukkit.entity.CraftLivingEntity;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.entity.EntityTargetEvent;
@@ -309,6 +308,15 @@
              this.dropLeash(true, true);
          }
  
+@@ -1434,6 +_,8 @@
+         if (flag) {
+             float f1 = this.getKnockback(p_21372_, damagesource);
+             if (f1 > 0.0F && p_21372_ instanceof LivingEntity livingentity) {
++                livingentity.knockback$attacker = this;
++                livingentity.knockback$cause = io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK; // CraftBukkit // Paper - knockback events
+                 livingentity.knockback(
+                     (double)(f1 * 0.5F),
+                     (double)Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)),
 @@ -1470,14 +_,24 @@
      }
  

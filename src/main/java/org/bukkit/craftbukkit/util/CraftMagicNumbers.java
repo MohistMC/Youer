@@ -37,7 +37,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.LevelResource;
 import org.bukkit.Bukkit;
-import org.bukkit.FeatureFlag;
 import org.bukkit.Keyed;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -47,12 +46,15 @@ import org.bukkit.advancement.Advancement;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.craftbukkit.CraftRegionAccessor;
 import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.CraftStatistic;
 import org.bukkit.craftbukkit.attribute.CraftAttribute;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.damage.CraftDamageEffect;
 import org.bukkit.craftbukkit.damage.CraftDamageSourceBuilder;
+import org.bukkit.craftbukkit.entity.CraftEntityType;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.legacy.CraftLegacy;
 import org.bukkit.craftbukkit.legacy.FieldRename;
@@ -506,14 +508,14 @@ public final class CraftMagicNumbers implements UnsafeValues {
     // Paper start - namespaced key biome methods
     @Override
     public org.bukkit.NamespacedKey getBiomeKey(org.bukkit.RegionAccessor accessor, int x, int y, int z) {
-        org.bukkit.craftbukkit.CraftRegionAccessor cra = (org.bukkit.craftbukkit.CraftRegionAccessor) accessor;
-        return org.bukkit.craftbukkit.util.CraftNamespacedKey.fromMinecraft(cra.getHandle().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME).getKey(cra.getHandle().getBiome(new net.minecraft.core.BlockPos(x, y, z)).value()));
+        CraftRegionAccessor cra = (CraftRegionAccessor) accessor;
+        return CraftNamespacedKey.fromMinecraft(cra.getHandle().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME).getKey(cra.getHandle().getBiome(new net.minecraft.core.BlockPos(x, y, z)).value()));
     }
 
     @Override
     public void setBiomeKey(org.bukkit.RegionAccessor accessor, int x, int y, int z, org.bukkit.NamespacedKey biomeKey) {
-        org.bukkit.craftbukkit.CraftRegionAccessor cra = (org.bukkit.craftbukkit.CraftRegionAccessor) accessor;
-        net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> biomeBase = cra.getHandle().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME).getHolderOrThrow(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.BIOME, org.bukkit.craftbukkit.util.CraftNamespacedKey.toMinecraft(biomeKey)));
+        CraftRegionAccessor cra = (CraftRegionAccessor) accessor;
+        net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> biomeBase = cra.getHandle().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME).getHolderOrThrow(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.BIOME, CraftNamespacedKey.toMinecraft(biomeKey)));
         cra.setBiome(x, y, z, biomeBase);
     }
     // Paper end - namespaced key biome methods
@@ -522,13 +524,13 @@ public final class CraftMagicNumbers implements UnsafeValues {
     @Override
     public String getStatisticCriteriaKey(org.bukkit.Statistic statistic) {
         if (statistic.getType() != org.bukkit.Statistic.Type.UNTYPED) return "minecraft.custom:minecraft." + statistic.getKey().getKey();
-        return org.bukkit.craftbukkit.CraftStatistic.getNMSStatistic(statistic).getName();
+        return CraftStatistic.getNMSStatistic(statistic).getName();
     }
 
     // Paper start - spawn egg color visibility
     @Override
     public org.bukkit.Color getSpawnEggLayerColor(final EntityType entityType, final int layer) {
-        final net.minecraft.world.entity.EntityType<?> nmsType = org.bukkit.craftbukkit.entity.CraftEntityType.bukkitToMinecraft(entityType);
+        final net.minecraft.world.entity.EntityType<?> nmsType = CraftEntityType.bukkitToMinecraft(entityType);
         final net.minecraft.world.item.SpawnEggItem eggItem = net.minecraft.world.item.SpawnEggItem.byId(nmsType);
         return eggItem == null ? null : org.bukkit.Color.fromRGB(eggItem.getColor(layer));
     }
@@ -562,7 +564,7 @@ public final class CraftMagicNumbers implements UnsafeValues {
             throw new UnsupportedOperationException(tagKey.registryKey() + " doesn't have tags");
         }
         final net.minecraft.resources.ResourceKey<? extends net.minecraft.core.Registry<M>> nmsKey = io.papermc.paper.registry.PaperRegistries.registryToNms(tagKey.registryKey());
-        final net.minecraft.core.Registry<M> nmsRegistry = org.bukkit.craftbukkit.CraftRegistry.getMinecraftRegistry().registryOrThrow(nmsKey);
+        final net.minecraft.core.Registry<M> nmsRegistry = CraftRegistry.getMinecraftRegistry().registryOrThrow(nmsKey);
         return nmsRegistry
             .getTag(io.papermc.paper.registry.PaperRegistries.toNms(tagKey))
             .map(named -> new io.papermc.paper.registry.set.NamedRegistryKeySetImpl<>(tagKey, named))

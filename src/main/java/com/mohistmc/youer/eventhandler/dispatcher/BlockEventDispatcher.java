@@ -1,7 +1,7 @@
 package com.mohistmc.youer.eventhandler.dispatcher;
 
-import com.mohistmc.youer.bukkit.block.MohistBlockSnapshot;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.bukkit.block.MohistBlockSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
@@ -80,7 +80,7 @@ public class BlockEventDispatcher {
 
     @SubscribeEvent(receiveCanceled = true)
     public void onBlockPlace(BlockDropsEvent event) {
-        org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(event.getLevel(), event.getPos());
+        org.bukkit.block.Block block = CraftBlock.at(event.getLevel(), event.getPos());
         org.bukkit.block.BlockState state = block.getState();
         Entity entity = event.getBreaker();
         if (entity != null) {

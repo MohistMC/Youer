@@ -1,18 +1,28 @@
 --- a/net/minecraft/commands/arguments/MessageArgument.java
 +++ b/net/minecraft/commands/arguments/MessageArgument.java
-@@ -40,6 +_,11 @@
+@@ -40,31 +_,40 @@
  
      public static void resolveChatMessage(CommandContext<CommandSourceStack> p_249433_, String p_248718_, Consumer<PlayerChatMessage> p_249460_) throws CommandSyntaxException {
          MessageArgument.Message messageargument$message = p_249433_.getArgument(p_248718_, MessageArgument.Message.class);
+-        CommandSourceStack commandsourcestack = p_249433_.getSource();
+-        Component component = messageargument$message.resolveComponent(commandsourcestack);
 +        // Paper start
 +        resolveChatMessage(messageargument$message, p_249433_, p_248718_, p_249460_);
 +    }
-+    public static void resolveChatMessage(MessageArgument.Message messageargument$message, CommandContext<CommandSourceStack> p_249433_, String p_248718_, Consumer<PlayerChatMessage> p_249460_) throws CommandSyntaxException {
++    public static void resolveChatMessage(MessageArgument.Message p_249433_, CommandContext<CommandSourceStack> context, String p_248718_, Consumer<PlayerChatMessage> p_249460_) throws CommandSyntaxException {
 +        // Paper end
-         CommandSourceStack commandsourcestack = p_249433_.getSource();
-         Component component = messageargument$message.resolveComponent(commandsourcestack);
++        CommandSourceStack commandsourcestack = context.getSource();
++        Component component = p_249433_.resolveComponent(commandsourcestack);
          CommandSigningContext commandsigningcontext = commandsourcestack.getSigningContext();
-@@ -54,17 +_,21 @@
+         PlayerChatMessage playerchatmessage = commandsigningcontext.getArgument(p_248718_);
+         if (playerchatmessage != null) {
+             resolveSignedMessage(p_249460_, commandsourcestack, playerchatmessage.withUnsignedContent(component));
+         } else {
+-            resolveDisguisedMessage(p_249460_, commandsourcestack, PlayerChatMessage.system(messageargument$message.text).withUnsignedContent(component));
++            resolveDisguisedMessage(p_249460_, commandsourcestack, PlayerChatMessage.system(p_249433_.text).withUnsignedContent(component));
+         }
+     }
+ 
      private static void resolveSignedMessage(Consumer<PlayerChatMessage> p_250000_, CommandSourceStack p_252335_, PlayerChatMessage p_249420_) {
          MinecraftServer minecraftserver = p_252335_.getServer();
          CompletableFuture<FilteredText> completablefuture = filterPlainText(p_252335_, p_249420_);

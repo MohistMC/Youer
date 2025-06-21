@@ -17,7 +17,7 @@ public interface ServerBuildInfo {
     /**
      * The brand id for Paper.
      */
-    Key BRAND_PAPER_ID = Key.key("mohistmc", "youer");
+    Key BRAND_PAPER_ID = Key.key("papermc", "paper");
 
     /**
      * Gets the {@code ServerBuildInfo}.
@@ -75,7 +75,7 @@ public interface ServerBuildInfo {
      *
      * @return the build number
      */
-    String buildNumber();
+    OptionalInt buildNumber();
 
     /**
      * Gets the build time.

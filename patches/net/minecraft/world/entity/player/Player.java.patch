@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -1,5 +_,7 @@
+@@ -1,16 +_,20 @@
  package net.minecraft.world.entity.player;
  
 +import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
@@ -8,7 +8,12 @@
  import com.google.common.collect.ImmutableList;
  import com.google.common.collect.ImmutableMap;
  import com.google.common.collect.Lists;
-@@ -11,6 +_,7 @@
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.datafixers.util.Either;
+ import com.mojang.logging.LogUtils;
++import io.papermc.paper.event.entity.EntityKnockbackEvent;
+ import java.util.Collection;
+ import java.util.List;
  import java.util.Map;
  import java.util.Optional;
  import java.util.OptionalInt;
@@ -465,6 +470,15 @@
                              this.setItemInHand(p_36159_, ItemStack.EMPTY);
                          }
  
+@@ -1053,7 +_,7 @@
+ 
+     @Override
+     protected boolean isImmobile() {
+-        return super.isImmobile() || this.isSleeping();
++        return super.isImmobile() || this.isSleeping()  || this.isRemoved() || !valid; // Paper - player's who are dead or not in a world shouldn't move...
+     }
+ 
+     @Override
 @@ -1062,6 +_,7 @@
      }
  
@@ -531,7 +545,23 @@
  
                      float f6 = 0.0F;
                      if (p_36347_ instanceof LivingEntity livingentity) {
-@@ -1216,12 +_,13 @@
+@@ -1195,12 +_,15 @@
+                         float f4 = this.getKnockback(p_36347_, damagesource) + (flag ? 1.0F : 0.0F);
+                         if (f4 > 0.0F) {
+                             if (p_36347_ instanceof LivingEntity livingentity1) {
++                                livingentity1.knockback$attacker = this;
++                                livingentity1.knockback$cause = io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK; // Paper - knockback events
+                                 livingentity1.knockback(
+                                     (double)(f4 * 0.5F),
+                                     (double)Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)),
+                                     (double)(-Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)))
+                                 );
+                             } else {
++                                p_36347_.pushingEntity = this; // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+                                 p_36347_.push(
+                                     (double)(-Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)) * f4 * 0.5F),
+                                     0.1,
+@@ -1216,13 +_,16 @@
                              float f7 = 1.0F + (float)this.getAttributeValue(Attributes.SWEEPING_DAMAGE_RATIO) * f;
  
                              for (LivingEntity livingentity2 : this.level()
@@ -545,8 +575,11 @@
 -                                    && this.distanceToSqr(livingentity2) < 9.0) {
 +                                    && this.distanceToSqr(livingentity2) < entityReachSq) {
                                      float f5 = this.getEnchantedDamage(livingentity2, f7, damagesource) * f2;
++                                    livingentity2.knockback$attacker = this;
++                                    livingentity2.knockback$cause = io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.SWEEP_ATTACK; // CraftBukkit // Paper - knockback events
                                      livingentity2.knockback(
                                          0.4F,
+                                         (double)Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)),
 @@ -1241,9 +_,26 @@
                          }
  

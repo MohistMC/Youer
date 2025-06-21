@@ -9,7 +9,6 @@ import org.bukkit.block.banner.PatternType;
 import org.bukkit.craftbukkit.block.banner.CraftPatternType;
 import org.bukkit.craftbukkit.inventory.CraftInventoryView;
 import org.bukkit.entity.HumanEntity;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.LoomInventory;
 import org.bukkit.inventory.view.LoomView;
 

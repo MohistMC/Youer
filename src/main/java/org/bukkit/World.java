@@ -3083,4 +3083,470 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      */
     String getModid();
     // Youer end
+
+    // Paper start - async chunks API
+    /**
+     * This is the Legacy API before Java 8 was supported. Java 8 Consumer is provided,
+     * as well as future support
+     *
+     * Used by {@link World#getChunkAtAsync(Location,ChunkLoadCallback)} methods
+     * to request a {@link Chunk} to be loaded, with this callback receiving
+     * the chunk when it is finished.
+     *
+     * This callback will be executed on synchronously on the main thread.
+     *
+     * Timing and order this callback is fired is intentionally not defined and
+     * and subject to change.
+     *
+     * @deprecated Use either the Future or the Consumer based methods
+     */
+    @Deprecated(since = "1.13.1")
+    public static interface ChunkLoadCallback extends java.util.function.Consumer<Chunk> {
+        public void onLoad(@NotNull Chunk chunk);
+
+        // backwards compat to old api
+        @Override
+        default void accept(@NotNull Chunk chunk) {
+            onLoad(chunk);
+        }
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link ChunkLoadCallback} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @deprecated Use either the Future or the Consumer based methods
+     * @param x Chunk X-coordinate of the chunk - floor(world coordinate / 16)
+     * @param z Chunk Z-coordinate of the chunk - floor(world coordinate / 16)
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    @Deprecated(since = "1.13.1")
+    public default void getChunkAtAsync(int x, int z, @NotNull ChunkLoadCallback cb) {
+        getChunkAtAsync(x, z, true).thenAccept(cb::onLoad).exceptionally((ex) -> {
+            Bukkit.getLogger().log(java.util.logging.Level.WARNING, "Exception in chunk load callback", ex);
+            return null;
+        });
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given {@link Location}
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link ChunkLoadCallback} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @deprecated Use either the Future or the Consumer based methods
+     * @param loc Location of the chunk
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    @Deprecated(since = "1.13.1")
+    public default void getChunkAtAsync(@NotNull Location loc, @NotNull ChunkLoadCallback cb) {
+        getChunkAtAsync(loc, true).thenAccept(cb::onLoad).exceptionally((ex) -> {
+            Bukkit.getLogger().log(java.util.logging.Level.WARNING, "Exception in chunk load callback", ex);
+            return null;
+        });
+    }
+
+    /**
+     * Requests {@link Chunk} to be loaded that contains the given {@link Block}
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link ChunkLoadCallback} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @deprecated Use either the Future or the Consumer based methods
+     * @param block Block to get the containing chunk from
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    @Deprecated(since = "1.13.1")
+    public default void getChunkAtAsync(@NotNull Block block, @NotNull ChunkLoadCallback cb) {
+        getChunkAtAsync(block, true).thenAccept(cb::onLoad).exceptionally((ex) -> {
+            Bukkit.getLogger().log(java.util.logging.Level.WARNING, "Exception in chunk load callback", ex);
+            return null;
+        });
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param x Chunk X-coordinate of the chunk - floor(world coordinate / 16)
+     * @param z Chunk Z-coordinate of the chunk - floor(world coordinate / 16)
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    default void getChunkAtAsync(final int x, final int z, final @NotNull Consumer<? super Chunk> cb) {
+        this.getChunkAtAsync(x, z, true).thenAccept(cb).exceptionally((ex) -> {
+            Bukkit.getLogger().log(java.util.logging.Level.WARNING, "Exception in chunk load callback", ex);
+            return null;
+        });
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param x Chunk X-coordinate of the chunk - floor(world coordinate / 16)
+     * @param z Chunk Z-coordinate of the chunk - floor(world coordinate / 16)
+     * @param gen Should we generate a chunk if it doesn't exist or not
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    default void getChunkAtAsync(final int x, final int z, final boolean gen, final @NotNull Consumer<? super Chunk> cb) {
+        this.getChunkAtAsync(x, z, gen).thenAccept(cb).exceptionally((ex) -> {
+            Bukkit.getLogger().log(java.util.logging.Level.WARNING, "Exception in chunk load callback", ex);
+            return null;
+        });
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given {@link Location}
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param loc Location of the chunk
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    default void getChunkAtAsync(final @NotNull Location loc, final @NotNull Consumer<? super Chunk> cb) {
+        this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, true, cb);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given {@link Location}
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param loc Location of the chunk
+     * @param gen Should the chunk generate if it doesn't exist
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    default void getChunkAtAsync(final @NotNull Location loc, final boolean gen, final @NotNull Consumer<? super Chunk> cb) {
+        this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, gen, cb);
+    }
+
+    /**
+     * Requests {@link Chunk} to be loaded that contains the given {@link Block}
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param block Block to get the containing chunk from
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    default void getChunkAtAsync(final @NotNull Block block, final @NotNull Consumer<? super Chunk> cb) {
+        this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, true, cb);
+    }
+
+    /**
+     * Requests {@link Chunk} to be loaded that contains the given {@link Block}
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The {@link java.util.function.Consumer} will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param block Block to get the containing chunk from
+     * @param gen Should the chunk generate if it doesn't exist
+     * @param cb Callback to receive the chunk when it is loaded.
+     *           will be executed synchronously
+     */
+    default void getChunkAtAsync(final @NotNull Block block, final boolean gen, final @NotNull Consumer<? super Chunk> cb) {
+        this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, gen, cb);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param loc Location to load the corresponding chunk from
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final @NotNull Location loc) {
+        return this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param loc Location to load the corresponding chunk from
+     * @param gen Should the chunk generate if it doesn't exist
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final @NotNull Location loc, final boolean gen) {
+        return this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, gen);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param block Block to load the corresponding chunk from
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final @NotNull Block block) {
+        return this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param block Block to load the corresponding chunk from
+     * @param gen Should the chunk generate if it doesn't exist
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final @NotNull Block block, final boolean gen) {
+        return this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, gen);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param x Chunk X-coordinate of the chunk - floor(world coordinate / 16)
+     * @param z Chunk Z-coordinate of the chunk - floor(world coordinate / 16)
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final int x, final int z) {
+        return this.getChunkAtAsync(x, z, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param x Chunk X-coordinate of the chunk - floor(world coordinate / 16)
+     * @param z Chunk Z-coordinate of the chunk - floor(world coordinate / 16)
+     * @param gen Should we generate a chunk if it doesn't exist or not
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(final int x, final int z, final boolean gen) {
+        return this.getChunkAtAsync(x, z, gen, false);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param loc Location to load the corresponding chunk from
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final @NotNull Location loc) {
+        return this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, true, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param loc Location to load the corresponding chunk from
+     * @param gen Should the chunk generate if it doesn't exist
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final @NotNull Location loc, final boolean gen) {
+        return this.getChunkAtAsync((int) Math.floor(loc.getX()) >> 4, (int) Math.floor(loc.getZ()) >> 4, gen, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param block Block to load the corresponding chunk from
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final @NotNull Block block) {
+        return this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, true, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     * @param block Block to load the corresponding chunk from
+     * @param gen Should the chunk generate if it doesn't exist
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final @NotNull Block block, final boolean gen) {
+        return this.getChunkAtAsync(block.getX() >> 4, block.getZ() >> 4, gen, true);
+    }
+
+    /**
+     * Requests a {@link Chunk} to be loaded at the given coordinates
+     *
+     * This method makes no guarantee on how fast the chunk will load,
+     * and will return the chunk to the callback at a later time.
+     *
+     * You should use this method if you need a chunk but do not need it
+     * immediately, and you wish to let the server control the speed
+     * of chunk loads, keeping performance in mind.
+     *
+     * The future will always be executed synchronously
+     * on the main Server Thread.
+     *
+     * @param x X Coord
+     * @param z Z Coord
+     * @return Future that will resolve when the chunk is loaded
+     */
+    default @NotNull java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsyncUrgently(final int x, final int z) {
+        return this.getChunkAtAsync(x, z, true, true);
+    }
+
+    java.util.concurrent.@NotNull CompletableFuture<Chunk> getChunkAtAsync(int x, int z, boolean gen, boolean urgent);
+    // Paper end - async chunks API
 }

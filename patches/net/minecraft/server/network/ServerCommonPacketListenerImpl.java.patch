@@ -1,23 +1,21 @@
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -2,12 +_,16 @@
+@@ -2,12 +_,11 @@
  
  import com.mojang.authlib.GameProfile;
  import com.mojang.logging.LogUtils;
-+import io.papermc.paper.adventure.PaperAdventure;
 +import java.util.concurrent.ExecutionException;
  import javax.annotation.Nullable;
-+import net.minecraft.ChatFormatting;
- import net.minecraft.CrashReport;
- import net.minecraft.CrashReportCategory;
- import net.minecraft.ReportedException;
+-import net.minecraft.CrashReport;
+-import net.minecraft.CrashReportCategory;
+-import net.minecraft.ReportedException;
  import net.minecraft.Util;
  import net.minecraft.network.Connection;
 +import net.minecraft.network.ConnectionProtocol;
  import net.minecraft.network.DisconnectionDetails;
  import net.minecraft.network.PacketSendListener;
  import net.minecraft.network.chat.Component;
-@@ -21,12 +_,44 @@
+@@ -21,12 +_,43 @@
  import net.minecraft.network.protocol.common.ServerboundPongPacket;
  import net.minecraft.network.protocol.common.ServerboundResourcePackPacket;
  import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
@@ -30,7 +28,6 @@
 +import net.minecraft.util.thread.BlockableEventLoop;
 +import org.bukkit.craftbukkit.CraftServer;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
-+import org.bukkit.craftbukkit.util.CraftChatMessage;
 +import org.bukkit.craftbukkit.util.CraftLocation;
 +import org.bukkit.craftbukkit.util.Waitable;
 +import org.bukkit.event.player.PlayerKickEvent;
@@ -104,6 +101,18 @@
      }
  
      private void close() {
+@@ -60,6 +_,11 @@
+ 
+     @Override
+     public void onDisconnect(DisconnectionDetails p_350605_) {
++        // Paper start - Fix kick event leave message not being sent
++        this.onDisconnect(p_350605_, null);
++    }
++    public void onDisconnect(DisconnectionDetails info, @Nullable net.kyori.adventure.text.Component quitMessage) {
++        // Paper end - Fix kick event leave message not being sent
+         if (this.isSingleplayerOwner()) {
+             LOGGER.info("Stopping singleplayer server as player logged out");
+             this.server.halt(false);
 @@ -68,6 +_,7 @@
  
      @Override
@@ -213,7 +222,7 @@
          if (p_295099_.isTerminal()) {
              this.close();
          }
-@@ -151,22 +_,86 @@
+@@ -151,22 +_,81 @@
          try {
              this.connection.send(p_295099_, p_296321_, flag);
          } catch (Throwable throwable) {
@@ -238,11 +247,6 @@
  
      public void disconnect(DisconnectionDetails p_350316_) {
 -        this.connection.send(new ClientboundDisconnectPacket(p_350316_.reason()), PacketSendListener.thenRun(() -> this.connection.disconnect(p_350316_)));
-+        // Paper start - Fix kick event leave message not being sent
-+        this.onDisconnect(p_350316_, null);
-+    }
-+
-+    public void onDisconnect(DisconnectionDetails p_350316_, @Nullable net.kyori.adventure.text.Component quitMessage) {
 +        // CraftBukkit start - fire PlayerKickEvent
 +        if (this.processedDisconnect) {
 +            return;
@@ -263,8 +267,7 @@
 +            } catch (InterruptedException e) {
 +                Thread.currentThread().interrupt();
 +            } catch (ExecutionException e) {
-+                LOGGER.error("Failed to disconnect player", e);
-+                this.connection.disconnect(PaperAdventure.asVanilla(quitMessage));
++                throw new RuntimeException(e);
 +            }
 +            return;
 +        }
@@ -296,7 +299,8 @@
 -        this.server.executeBlocking(this.connection::handleDisconnection);
 +        MinecraftServer minecraftserver = this.server;
 +        Connection networkmanager = this.connection;
-+        minecraftserver.wrapRunnable(networkmanager::handleDisconnection);
++        // CraftBukkit - Don't wait
++        minecraftserver.scheduleOnMain(networkmanager::handleDisconnection); // Paper
      }
 +
  

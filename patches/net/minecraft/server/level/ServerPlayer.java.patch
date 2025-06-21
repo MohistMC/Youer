@@ -152,7 +152,7 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(p_143455_.containerId, p_143456_, p_143457_));
          }
      };
-@@ -276,6 +_,27 @@
+@@ -276,6 +_,28 @@
      public final Object object;
      private int containerCounter;
      public boolean wonGame;
@@ -177,11 +177,17 @@
 +    public long loginTime; // Paper - Replace OfflinePlayer#getLastPlayed
 +    public @Nullable String clientBrandName = null; // Paper - Brand support
 +    public org.bukkit.event.player.PlayerQuitEvent.QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
++    public io.papermc.paper.event.entity.PlayerNaturallySpawnCreaturesEvent playerNaturallySpawnedEvent; // Paper - PlayerNaturallySpawnCreaturesEvent
  
      public ServerPlayer(MinecraftServer p_254143_, ServerLevel p_254435_, GameProfile p_253651_, ClientInformation p_301997_) {
          super(p_254435_, p_254435_.getSharedSpawnPos(), p_254435_.getSharedSpawnAngle(), p_253651_);
-@@ -287,7 +_,88 @@
-         this.moveTo(this.adjustSpawnLocation(p_254435_, p_254435_.getSharedSpawnPos()).getBottomCenter(), 0.0F, 0.0F);
+@@ -284,10 +_,92 @@
+         this.server = p_254143_;
+         this.stats = p_254143_.getPlayerList().getPlayerStats(this);
+         this.advancements = p_254143_.getPlayerList().getPlayerAdvancements(this);
+-        this.moveTo(this.adjustSpawnLocation(p_254435_, p_254435_.getSharedSpawnPos()).getBottomCenter(), 0.0F, 0.0F);
++        this.disable$moveTo.set(true);
++        this.moveTo(this.adjustSpawnLocation(p_254435_, p_254435_.getSharedSpawnPos()).getBottomCenter(), 0.0F, 0.0F); // Paper - Don't move existing players to world spawn
          this.updateOptions(p_301997_);
          this.object = null;
 -    }
@@ -262,7 +268,7 @@
 +                position = Vec3.atCenterOf(world.getSharedSpawnPos());
 +            }
 +            this.setLevel(world);
-+            this.setPos(position);
++            this.setPosRaw(position.x(), position.y(), position.z()); // Paper - don't register to chunks yet
 +        }
 +        this.gameMode.setLevel((ServerLevel) world);
 +    }
@@ -341,6 +347,15 @@
              this.closeContainer();
              this.containerMenu = this.inventoryMenu;
          }
+@@ -548,7 +_,7 @@
+ 
+     public void doTick() {
+         try {
+-            if (!this.isSpectator() || !this.touchingUnloadedChunk()) {
++            if (valid && !this.isSpectator() || !this.touchingUnloadedChunk()) { // Paper - don't tick dead players that are not in the world currently (pending respawn)
+                 super.tick();
+             }
+ 
 @@ -565,7 +_,7 @@
              if (this.getHealth() != this.lastSentHealth
                  || this.lastSentFood != this.foodData.getFoodLevel()

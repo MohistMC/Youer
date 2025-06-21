@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/NaturalSpawner.java
 +++ b/net/minecraft/world/level/NaturalSpawner.java
+@@ -6,6 +_,7 @@
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+ import java.util.Objects;
+ import java.util.Optional;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.Consumer;
+ import java.util.stream.Stream;
+ import javax.annotation.Nullable;
 @@ -40,18 +_,22 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.level.levelgen.structure.BuiltinStructures;
@@ -60,6 +68,42 @@
                  spawnCategoryForChunk(mobcategory, p_47030_, p_47031_, p_47032_::canSpawn, p_47032_::afterSpawn);
              }
          }
+@@ -116,6 +_,17 @@
+         p_47030_.getProfiler().pop();
+     }
+ 
++    // Paper start - Add mobcaps commands
++    public static int globalLimitForCategory(final ServerLevel level, final MobCategory category, final int spawnableChunkCount) {
++        final int categoryLimit = level.getWorld().getSpawnLimitUnsafe(CraftSpawnCategory.toBukkit(category));
++        if (categoryLimit < 1) {
++            return categoryLimit;
++        }
++        return categoryLimit * spawnableChunkCount / NaturalSpawner.MAGIC_NUMBER;
++    }
++    // Paper end - Add mobcaps commands
++
++
+     public static void spawnCategoryForChunk(
+         MobCategory p_47046_, ServerLevel p_47047_, LevelChunk p_47048_, NaturalSpawner.SpawnPredicate p_47049_, NaturalSpawner.AfterSpawnCallback p_47050_
+     ) {
+@@ -181,10 +_,13 @@
+                                     + p_47040_.random.nextInt(1 + mobspawnsettings$spawnerdata.maxCount - mobspawnsettings$spawnerdata.minCount);
+                             }
+ 
+-                            if (isValidSpawnPostitionForType(
+-                                    p_47040_, p_47039_, structuremanager, chunkgenerator, mobspawnsettings$spawnerdata, blockpos$mutableblockpos, d2
+-                                )
+-                                && p_47043_.test(mobspawnsettings$spawnerdata.type, blockpos$mutableblockpos, p_47041_)) {
++                            // Paper start - PreCreatureSpawnEvent
++                            isValidSpawnPostitionForType(p_47040_, p_47039_, structuremanager, chunkgenerator, mobspawnsettings$spawnerdata, blockpos$mutableblockpos, d2);
++                            PreSpawnStatus doSpawning = isValidSpawnPostitionForType$PreSpawnStatus.getAndSet(PreSpawnStatus.FAIL);
++                            if (doSpawning == PreSpawnStatus.ABORT) {
++                                return;
++                            }
++                            if (doSpawning == PreSpawnStatus.SUCCESS && p_47043_.test(mobspawnsettings$spawnerdata.type, blockpos$mutableblockpos, p_47041_)) {
+                                 Mob mob = getMobForSpawn(p_47040_, mobspawnsettings$spawnerdata.type);
+                                 if (mob == null) {
+                                     return;
 @@ -197,9 +_,10 @@
                                      );
                                      j++;
@@ -71,6 +115,75 @@
 +                                    if (j >= net.neoforged.neoforge.event.EventHooks.getMaxSpawnClusterSize(mob)) {
                                          return;
                                      }
+ 
+@@ -226,6 +_,13 @@
+         }
+     }
+ 
++    private enum PreSpawnStatus {
++        FAIL,
++        SUCCESS,
++        CANCELLED,
++        ABORT
++    }
++    private static final AtomicReference<PreSpawnStatus> isValidSpawnPostitionForType$PreSpawnStatus = new AtomicReference<>(PreSpawnStatus.FAIL);
+     private static boolean isValidSpawnPostitionForType(
+         ServerLevel p_220422_,
+         MobCategory p_220423_,
+@@ -235,20 +_,50 @@
+         BlockPos.MutableBlockPos p_220427_,
+         double p_220428_
+     ) {
++        // Paper end - PreCreatureSpawnEvent
+         EntityType<?> entitytype = p_220426_.type;
++
++        // Paper start - PreCreatureSpawnEvent
++        io.papermc.paper.event.entity.PreCreatureSpawnEvent event = new io.papermc.paper.event.entity.PreCreatureSpawnEvent(
++                io.papermc.paper.util.MCUtil.toLocation(p_220422_, p_220427_),
++                org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(entitytype), CreatureSpawnEvent.SpawnReason.NATURAL
++        );
++        if (!event.callEvent()) {
++            if (event.shouldAbortSpawn()) {
++                isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.ABORT);
++                return false;
++            }
++            isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.CANCELLED);
++            return false;
++        }
++        // Paper end - PreCreatureSpawnEvent
+         if (entitytype.getCategory() == MobCategory.MISC) {
++            isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.FAIL);
+             return false;
+         } else if (!entitytype.canSpawnFarFromPlayer()
+-            && p_220428_ > (double)(entitytype.getCategory().getDespawnDistance() * entitytype.getCategory().getDespawnDistance())) {
++                && p_220428_ > (double) (entitytype.getCategory().getDespawnDistance() * entitytype.getCategory().getDespawnDistance())) {
++            isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.FAIL);
+             return false;
+         } else if (!entitytype.canSummon() || !canSpawnMobAt(p_220422_, p_220424_, p_220425_, p_220423_, p_220426_, p_220427_)) {
++            isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.FAIL);
+             return false;
+         } else if (!SpawnPlacements.isSpawnPositionOk(entitytype, p_220422_, p_220427_)) {
++            isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.FAIL);
+             return false;
+         } else {
+-            return !SpawnPlacements.checkSpawnRules(entitytype, p_220422_, MobSpawnType.NATURAL, p_220427_, p_220422_.random)
+-                ? false
+-                : p_220422_.noCollision(entitytype.getSpawnAABB((double)p_220427_.getX() + 0.5, (double)p_220427_.getY(), (double)p_220427_.getZ() + 0.5));
++            if (!SpawnPlacements.checkSpawnRules(entitytype, p_220422_, MobSpawnType.NATURAL, p_220427_, p_220422_.random)) {
++                isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.FAIL);
++                return false;
++            } else {
++                if (p_220422_.noCollision(entitytype.getSpawnAABB((double) p_220427_.getX() + 0.5, (double) p_220427_.getY(), (double) p_220427_.getZ() + 0.5))) {
++                    isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.SUCCESS);
++                    return true;
++                } else {
++                    isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.FAIL);
++                    return false;
++                }
++            }
++
+         }
+     }
  
 @@ -272,7 +_,7 @@
          return p_46994_ > (double)(p_46993_.getType().getCategory().getDespawnDistance() * p_46993_.getType().getCategory().getDespawnDistance())

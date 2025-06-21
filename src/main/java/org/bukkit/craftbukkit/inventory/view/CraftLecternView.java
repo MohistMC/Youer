@@ -5,7 +5,6 @@ import net.minecraft.world.inventory.LecternMenu;
 import net.minecraft.world.level.block.entity.LecternBlockEntity;
 import org.bukkit.craftbukkit.inventory.CraftInventoryView;
 import org.bukkit.entity.HumanEntity;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.LecternInventory;
 import org.bukkit.inventory.view.LecternView;
 

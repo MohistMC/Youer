@@ -7,6 +7,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.fml.util.thread.SidedThreadGroups;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,7 +81,7 @@ public class TickThread extends Thread {
     }
 
     private TickThread(final Runnable run, final String name, final int id) {
-        super(run, name);
+        super(SidedThreadGroups.SERVER, run, name);
         this.id = id;
     }
 

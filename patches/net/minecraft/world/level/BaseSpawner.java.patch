@@ -25,6 +25,28 @@
      }
  
      public void clientTick(Level p_151320_, BlockPos p_151321_) {
+@@ -121,6 +_,21 @@
+                             continue;
+                         }
+ 
++                        // Paper start - PreCreatureSpawnEvent
++                        io.papermc.paper.event.entity.PreCreatureSpawnEvent event = new io.papermc.paper.event.entity.PreCreatureSpawnEvent(
++                                io.papermc.paper.util.MCUtil.toLocation(p_151312_, d0, d1, d2),
++                                org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(optional.get()),
++                                org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER
++                        );
++                        if (!event.callEvent()) {
++                            flag = true;
++                            if (event.shouldAbortSpawn()) {
++                                break;
++                            }
++                            continue;
++                        }
++                        // Paper end - PreCreatureSpawnEvent
++
+                         Entity entity = EntityType.loadEntityRecursive(compoundtag, p_151312_, p_151310_ -> {
+                             p_151310_.moveTo(d0, d1, d2, p_151310_.getYRot(), p_151310_.getXRot());
+                             return p_151310_;
 @@ -151,19 +_,22 @@
  
                          entity.moveTo(entity.getX(), entity.getY(), entity.getZ(), randomsource.nextFloat() * 360.0F, 0.0F);

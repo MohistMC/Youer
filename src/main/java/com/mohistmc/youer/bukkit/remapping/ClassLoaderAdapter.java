@@ -1,7 +1,7 @@
 package com.mohistmc.youer.bukkit.remapping;
 
-import com.mohistmc.youer.Youer;
 import com.google.common.collect.ImmutableMap;
+import com.mohistmc.youer.Youer;
 import java.net.URLClassLoader;
 import java.util.Collection;
 import java.util.Map;

@@ -6,7 +6,6 @@ import org.bukkit.craftbukkit.inventory.CraftInventoryView;
 import org.bukkit.craftbukkit.potion.CraftPotionEffectType;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.BeaconInventory;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.view.BeaconView;
 import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.Nullable;

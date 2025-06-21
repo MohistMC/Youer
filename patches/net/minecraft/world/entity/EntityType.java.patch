@@ -104,7 +104,7 @@
      }
  
      public static <T extends Entity> Consumer<T> createDefaultStackConfig(ServerLevel p_263583_, ItemStack p_263568_, @Nullable Player p_263575_) {
-@@ -915,25 +_,46 @@
+@@ -915,25 +_,57 @@
          Consumer<T> p_263579_, ServerLevel p_263571_, ItemStack p_263582_, @Nullable Player p_263574_
      ) {
          CustomData customdata = p_263582_.getOrDefault(DataComponents.ENTITY_DATA, CustomData.EMPTY);
@@ -131,10 +131,21 @@
 +    @Nullable
      public T spawn(ServerLevel p_262704_, @Nullable Consumer<T> p_262621_, BlockPos p_262672_, MobSpawnType p_262644_, boolean p_262690_, boolean p_262590_) {
 +        // CraftBukkit start
++        // Paper start - PreCreatureSpawnEvent
++        org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason = spawnReasonAtomicReference.getAndSet(CreatureSpawnEvent.SpawnReason.DEFAULT);
++        io.papermc.paper.event.entity.PreCreatureSpawnEvent event = new io.papermc.paper.event.entity.PreCreatureSpawnEvent(
++                io.papermc.paper.util.MCUtil.toLocation(p_262704_, p_262672_),
++                org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(this),
++                spawnReason
++        );
++        if (!event.callEvent()) {
++            return null;
++        }
++        // Paper end - PreCreatureSpawnEvent
          T t = this.create(p_262704_, p_262621_, p_262672_, p_262644_, p_262690_, p_262590_);
          if (t != null) {
 -            p_262704_.addFreshEntityWithPassengers(t);
-+            p_262704_.addFreshEntityWithPassengers(t, spawnReasonAtomicReference.getAndSet(CreatureSpawnEvent.SpawnReason.DEFAULT));
++            p_262704_.addFreshEntityWithPassengers(t, spawnReason);
 +            return !t.isRemoved() ? t : null; // Don't return an entity when CreatureSpawnEvent is canceled
 +            // CraftBukkit end
          }
