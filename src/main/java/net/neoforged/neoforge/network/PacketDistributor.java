@@ -48,6 +48,7 @@ public final class PacketDistributor {
      * Send the given payload(s) to the given player
      */
     public static void sendToPlayer(ServerPlayer player, CustomPacketPayload payload, CustomPacketPayload... payloads) {
+        if (player.connection == null) return;
         player.connection.send(makeClientboundPacket(payload, payloads));
     }
 
