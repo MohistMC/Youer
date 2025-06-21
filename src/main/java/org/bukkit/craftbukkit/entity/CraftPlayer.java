@@ -1,13 +1,11 @@
 package org.bukkit.craftbukkit.entity;
 
-import com.mohistmc.youer.util.PluginsDiscardedPayload;
 import io.papermc.paper.profile.CraftPlayerProfile;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
-import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.shorts.ShortArraySet;
 import it.unimi.dsi.fastutil.shorts.ShortSet;
 import java.lang.ref.WeakReference;
@@ -2130,13 +2128,13 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         if (this.getHandle().connection == null) return;
 
         if (this.channels.contains(channel)) {
-            ResourceLocation id = ResourceLocation.parse(StandardMessenger.validateAndCorrectChannel(channel));
-            this.sendCustomPayload(id, message);
+            ResourceLocation location = ResourceLocation.tryParse(StandardMessenger.validateAndCorrectChannel(channel));
+            this.server.getMessenger().sendCustomPayload(source, this, location, message);
         }
     }
 
     private void sendCustomPayload(ResourceLocation id, byte[] message) {
-        PacketDistributor.sendToPlayer(this.getHandle(), new PluginsDiscardedPayload(id, Unpooled.wrappedBuffer(message)));
+        server.getMessenger().sendCustomPayload(null, this, id, message);
     }
 
     @Override

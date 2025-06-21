@@ -1,7 +1,11 @@
 package org.bukkit.plugin.messaging;
 
+import com.mohistmc.youer.bukkit.messaging.PluginChannel;
+import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
 import java.util.Set;
+import net.minecraft.resources.ResourceLocation;
 import org.bukkit.NamespacedKey;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -24,7 +28,7 @@ public interface Messenger {
     /**
      * Represents the largest size that a Plugin Channel may be.
      */
-    public static final int MAX_CHANNEL_SIZE = Integer.getInteger("paper.maxCustomChannelName", java.lang.Short.MAX_VALUE); // Paper - set true max channel size
+    public static final int MAX_CHANNEL_SIZE = Integer.getInteger("paper.maxCustomChannelName", Short.MAX_VALUE); // Paper - set true max channel size
 
     /**
      * Checks if the specified channel is a reserved name.
@@ -230,4 +234,8 @@ public interface Messenger {
      * @param message Raw payload of the message.
      */
     public void dispatchIncomingMessage(@NotNull Player source, @NotNull String channel, @NotNull byte[] message);
+
+    Object2BooleanOpenHashMap<String> valid = new Object2BooleanOpenHashMap<>();
+    void sendCustomPayload(Plugin src, CraftPlayer dst, ResourceLocation location, byte[] data);
+    void registerAnonymousOutgoing(ResourceLocation location);
 }

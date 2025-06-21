@@ -20,9 +20,7 @@ public class VelocityLoginPacketListenerImpl extends ServerLoginPacketListenerIm
     public void handleCustomQueryPacket(ServerboundCustomQueryAnswerPacket p_295398_) {
         // Paper start - Velocity support
         if (GlobalConfiguration.get().proxies.velocity.enabled && p_295398_.transactionId() == this.velocityLoginMessageId) {
-            if (p_295398_.payload() instanceof ServerboundCustomQueryAnswerPacket.QueryAnswerPayload(
-                    ByteBuf buffer
-            )) {
+            if (p_295398_.payload() instanceof ServerboundCustomQueryAnswerPacket.QueryAnswerPayload(ByteBuf buffer)) {
                 youer$handleCustomQueryPacket(new FriendlyByteBuf(buffer), "Youer");
             } else {
                 try {
@@ -38,8 +36,7 @@ public class VelocityLoginPacketListenerImpl extends ServerLoginPacketListenerIm
                         youer$handleCustomQueryPacket(new FriendlyByteBuf(Unpooled.wrappedBuffer(Unpooled.copyBoolean(true), buffer.slice())), "Fabric api");
                     }
                 } catch (Exception e) {
-                    LOGGER.error("Reflection error handling custom query packet", e);
-                    this.disconnect("Internal server error");
+                    this.disconnect("This server requires you to connect with Velocity.");
                 }
             }
         } else {

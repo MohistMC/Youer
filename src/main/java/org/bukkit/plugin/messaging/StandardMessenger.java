@@ -2,12 +2,20 @@ package org.bukkit.plugin.messaging;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.SetMultimap;
+import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.bukkit.messaging.NeoMessaging;
+import com.mohistmc.youer.bukkit.messaging.PluginChannel;
+import com.mohistmc.youer.util.I18n;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import net.minecraft.resources.ResourceLocation;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -23,23 +31,26 @@ public class StandardMessenger implements Messenger {
     private final Object incomingLock = new Object();
     private final Object outgoingLock = new Object();
 
+    private final Map<ResourceLocation, PluginChannel> registry = new HashMap<>();
+    private final SetMultimap<Plugin, ResourceLocation> crossSend = MultimapBuilder.hashKeys().hashSetValues().build();
     private void addToOutgoing(@NotNull Plugin plugin, @NotNull String channel) {
         synchronized (outgoingLock) {
             Set<Plugin> plugins = outgoingByChannel.get(channel);
             Set<String> channels = outgoingByPlugin.get(plugin);
 
             if (plugins == null) {
-                plugins = new HashSet<Plugin>();
+                plugins = new HashSet<>();
                 outgoingByChannel.put(channel, plugins);
             }
 
             if (channels == null) {
-                channels = new HashSet<String>();
+                channels = new HashSet<>();
                 outgoingByPlugin.put(plugin, channels);
             }
 
             plugins.add(plugin);
             channels.add(channel);
+            updateChannel(channel, true);
         }
     }
 
@@ -52,7 +63,7 @@ public class StandardMessenger implements Messenger {
                 plugins.remove(plugin);
 
                 if (plugins.isEmpty()) {
-                    outgoingByChannel.remove(channel);
+                    //outgoingByChannel.remove(channel);
                 }
             }
 
@@ -60,9 +71,10 @@ public class StandardMessenger implements Messenger {
                 channels.remove(channel);
 
                 if (channels.isEmpty()) {
-                    outgoingByChannel.remove(channel);
+                   // outgoingByChannel.remove(channel);
                 }
             }
+            updateChannel(channel, false);
         }
     }
 
@@ -73,7 +85,7 @@ public class StandardMessenger implements Messenger {
             if (channels != null) {
                 String[] toRemove = channels.toArray(new String[channels.size()]);
 
-                outgoingByPlugin.remove(plugin);
+                //outgoingByPlugin.remove(plugin);
 
                 for (String channel : toRemove) {
                     removeFromOutgoing(plugin, channel);
@@ -109,6 +121,7 @@ public class StandardMessenger implements Messenger {
             }
 
             registrations.add(registration);
+            updateChannel(registration.getChannel(), true);
         }
     }
 
@@ -120,7 +133,7 @@ public class StandardMessenger implements Messenger {
                 registrations.remove(registration);
 
                 if (registrations.isEmpty()) {
-                    incomingByChannel.remove(registration.getChannel());
+                    //incomingByChannel.remove(registration.getChannel());
                 }
             }
 
@@ -130,9 +143,11 @@ public class StandardMessenger implements Messenger {
                 registrations.remove(registration);
 
                 if (registrations.isEmpty()) {
-                    incomingByPlugin.remove(registration.getPlugin());
+                    //incomingByPlugin.remove(registration.getPlugin());
                 }
             }
+
+            updateChannel(registration.getChannel(), false);
         }
     }
 
@@ -159,7 +174,7 @@ public class StandardMessenger implements Messenger {
             if (registrations != null) {
                 PluginMessageListenerRegistration[] toRemove = registrations.toArray(new PluginMessageListenerRegistration[registrations.size()]);
 
-                incomingByPlugin.remove(plugin);
+                //incomingByPlugin.remove(plugin);
 
                 for (PluginMessageListenerRegistration registration : toRemove) {
                     removeFromIncoming(registration);
@@ -506,6 +521,18 @@ public class StandardMessenger implements Messenger {
             // TODO: use NamespacedKey validation here
             throw new IllegalArgumentException("Channel must be entirely lowercase (attempted to use " + shortened(channel) + ")");
         }
+        if (!valid.containsKey(channel)) {
+            var namespace = channel.substring(0, channel.indexOf(':'));
+            var path = channel.substring(channel.indexOf(':') + 1);
+            if (!ResourceLocation.isValidNamespace(namespace) || !ResourceLocation.isValidPath(path)) {
+                Youer.LOGGER.warn("Channel name is malformed and impossible to use: {}", channel);
+                Youer.LOGGER.warn("Related functionality cannot be guaranteed!");
+                Youer.LOGGER.warn("This message will only be displayed once for this channel!");
+                valid.put(channel, false);
+            } else {
+                valid.put(channel, true);
+            }
+        }
         return channel;
     }
 
@@ -553,5 +580,58 @@ public class StandardMessenger implements Messenger {
             throw new MessageTooLargeException(message);
         }
         validateChannel(channel);
+    }
+
+    public void sendCustomPayload(Plugin src, CraftPlayer dst, ResourceLocation location, byte[] data) {
+        PluginChannel channel = registry.get(location);
+
+        if (channel == null || channel.getOutgoing().isEmpty()) {
+            String name = src != null ? src.getDescription().getFullName() : "Unknown";
+            if (src == null) {
+                registerAnonymousOutgoing(location);
+            } else {
+                registerOutgoingPluginChannel(src, location.toString());
+            }
+            Youer.LOGGER.warn(I18n.as("plugin.unregistered_channel_warning"),
+                    name, location);
+            channel = registry.get(location);
+        }
+
+        if (src == null) {
+            Youer.LOGGER.warn(I18n.as("plugin.anonymous_packet_warning"), location);
+        } else if (!channel.getOutgoing().contains(src)) {
+            synchronized (crossSend) {
+                if (crossSend.put(src, location)) {
+                    Youer.LOGGER.warn(I18n.as("plugin.cross_plugin_channel_warning"),
+                            src.getDescription().getFullName());
+                }
+            }
+        }
+
+        channel.sendCustomPayload(dst, data);
+    }
+
+    public void registerAnonymousOutgoing(ResourceLocation location) {
+        updateChannel(location, true);
+    }
+
+    private void updateChannel(ResourceLocation location, boolean create) {
+        if (location != null) {
+            var id = location.toString();
+            var channel = registry.computeIfAbsent(location, it -> {
+                if (!create) {
+                    return null;
+                }
+                var inByChannel = incomingByChannel.computeIfAbsent(id, k -> new HashSet<>());
+                var outByChannel = outgoingByChannel.computeIfAbsent(id, k -> new HashSet<>());
+                return NeoMessaging.setupChannel(this, location, inByChannel, outByChannel);
+            });
+            if (channel != null && channel.getChannelHandler() != null) {
+                channel.getChannelHandler().updateChannel();
+            }
+        }
+    }
+    private void updateChannel(String location, boolean create) {
+        updateChannel(ResourceLocation.tryParse(location), create);
     }
 }

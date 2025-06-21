@@ -8,11 +8,11 @@ package net.neoforged.neoforge.network.registration;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.bukkit.messaging.PluginsDiscardedPayload;
 import com.mojang.logging.LogUtils;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.minecraft.network.Connection;
@@ -112,9 +113,9 @@ public class NetworkRegistry {
      * Registry of all custom payload handlers. The initial state of this map should reflect the protocols which support custom payloads.
      * TODO: Change key type to a combination of protocol + flow.
      */
-    private static final Map<ConnectionProtocol, Map<ResourceLocation, PayloadRegistration<?>>> PAYLOAD_REGISTRATIONS = ImmutableMap.of(
-            ConnectionProtocol.CONFIGURATION, new HashMap<>(),
-            ConnectionProtocol.PLAY, new HashMap<>());
+    public static final Map<ConnectionProtocol, Map<ResourceLocation, PayloadRegistration<?>>> PAYLOAD_REGISTRATIONS = ImmutableMap.of(
+            ConnectionProtocol.CONFIGURATION, new ConcurrentHashMap<>(),
+            ConnectionProtocol.PLAY, new ConcurrentHashMap<>());
 
     private static boolean setup = false;
 
@@ -213,6 +214,9 @@ public class NetworkRegistry {
 
             // These two checks can only be hit on receipt of a payload, as senders will be checked before reaching this method.
             if (registration == null) {
+                if (flow == PacketFlow.CLIENTBOUND) {
+                    return PluginsDiscardedPayload.codec(id, 32767);
+                }
                 LOGGER.warn("No registration for payload {}; refusing to decode.", id);
                 return null;
             }
@@ -696,7 +700,7 @@ public class NetworkRegistry {
                     return;
                 }
                 for (var channel : resourceLocations) {
-                    //listener0.getCraftPlayer().addChannel(channel.toString());
+                    listener0.getCraftPlayer().addChannel(channel.toString());
                 }
             });
         }
@@ -828,7 +832,7 @@ public class NetworkRegistry {
                     return;
                 }
                 for (var channel : setup.getChannels(ConnectionProtocol.PLAY).keySet()) {
-                    //listener0.getCraftPlayer().addChannel(channel.toString());
+                    listener0.getCraftPlayer().addChannel(channel.toString());
                 }
             });
         }
