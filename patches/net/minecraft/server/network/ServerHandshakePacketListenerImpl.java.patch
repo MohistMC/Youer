@@ -39,7 +39,7 @@
          switch (p_9975_.intention()) {
              case LOGIN:
                  this.beginLogin(p_9975_, false);
-@@ -50,22 +_,86 @@
+@@ -50,22 +_,119 @@
              default:
                  throw new UnsupportedOperationException("Invalid intention " + p_9975_.intention());
          }
@@ -102,9 +102,42 @@
          } else {
 -            this.connection.setupInboundProtocol(LoginProtocols.SERVERBOUND, new ServerLoginPacketListenerImpl(this.server, this.connection, p_320853_));
 +            this.connection.setupInboundProtocol(LoginProtocols.SERVERBOUND, new VelocityLoginPacketListenerImpl(this.server, this.connection, p_320853_));
++            // Paper start - PlayerHandshakeEvent
++            boolean proxyLogicEnabled = org.spigotmc.SpigotConfig.bungee;
++            boolean handledByEvent = false;
++            // Try and handle the handshake through the event
++            if (io.papermc.paper.event.player.PlayerHandshakeEvent.getHandlerList().getRegisteredListeners().length != 0) { // Hello? Can you hear me?
++                java.net.SocketAddress socketAddress = this.connection.address;
++                String hostnameOfRemote = socketAddress instanceof java.net.InetSocketAddress ? ((java.net.InetSocketAddress) socketAddress).getHostString() : InetAddress.getLoopbackAddress().getHostAddress();
++                io.papermc.paper.event.player.PlayerHandshakeEvent event = new io.papermc.paper.event.player.PlayerHandshakeEvent(p_320524_.hostName(), hostnameOfRemote, !proxyLogicEnabled);
++                if (event.callEvent()) {
++                    // If we've failed somehow, let the client know so and go no further.
++                    if (event.isFailed()) {
++                        Component component = io.papermc.paper.adventure.PaperAdventure.asVanilla(event.failMessage());
++                        this.connection.send(new ClientboundLoginDisconnectPacket(component));
++                        this.connection.disconnect(component);
++                        return;
++                    }
++
++                    if (event.getServerHostname() != null) {
++                        // change hostname
++                        p_320524_ = new ClientIntentionPacket(
++                                p_320524_.protocolVersion(),
++                                event.getServerHostname(),
++                                p_320524_.port(),
++                                p_320524_.intention()
++                        );
++                    }
++                    if (event.getSocketAddressHostname() != null) this.connection.address = new java.net.InetSocketAddress(event.getSocketAddressHostname(), socketAddress instanceof java.net.InetSocketAddress ? ((java.net.InetSocketAddress) socketAddress).getPort() : 0);
++                    this.connection.spoofedUUID = event.getUniqueId();
++                    this.connection.spoofedProfile = gson.fromJson(event.getPropertiesJson(), com.mojang.authlib.properties.Property[].class);
++                    handledByEvent = true; // Hooray, we did it!
++                }
++            }
++            // Paper end
 +            // Spigot Start
 +            String[] split = p_320524_.hostName().split("\00");
-+            if (org.spigotmc.SpigotConfig.bungee) {
++            if (!handledByEvent && proxyLogicEnabled) { // Paper
 +                if ( ( split.length == 3 || split.length == 4 ) && ( HOST_PATTERN.matcher( split[1] ).matches() ) ) {
 +                    connection.hostname = split[0];
 +                    connection.address = new java.net.InetSocketAddress(split[1], ((java.net.InetSocketAddress) connection.getRemoteAddress()).getPort());

@@ -44,7 +44,7 @@
  import net.minecraft.world.item.ElytraItem;
  import net.minecraft.world.item.Equipable;
  import net.minecraft.world.item.Item;
-@@ -126,11 +_,25 @@
+@@ -126,11 +_,26 @@
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
  import net.minecraft.world.phys.AABB;
@@ -65,6 +65,7 @@
 +import org.bukkit.event.entity.EntityPotionEffectEvent;
 +import org.bukkit.event.entity.EntityRegainHealthEvent;
 +import org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason;
++import org.bukkit.event.player.PlayerItemConsumeEvent;
  import org.slf4j.Logger;
 +import org.spigotmc.AsyncCatcher;
  
@@ -1321,7 +1322,7 @@
              if (!this.level().isClientSide) {
                  this.setLivingEntityFlag(1, true);
                  this.setLivingEntityFlag(2, p_21159_ == InteractionHand.OFF_HAND);
-@@ -3111,9 +_,30 @@
+@@ -3111,12 +_,44 @@
              } else {
                  if (!this.useItem.isEmpty() && this.isUsingItem()) {
                      this.triggerItemUseEffects(this.useItem, 16);
@@ -1330,12 +1331,12 @@
 -                        this.setItemInHand(interactionhand, itemstack);
 +                    ItemStack copy = this.useItem.copy();
 +                    ItemStack itemstack;
-+
++                    PlayerItemConsumeEvent event = null; // Paper
 +                    // CraftBukkit start - fire PlayerItemConsumeEvent
 +                    if (this instanceof ServerPlayer) {
 +                        org.bukkit.inventory.ItemStack craftItem = CraftItemStack.asBukkitCopy(copy);
 +                        org.bukkit.inventory.EquipmentSlot hand = CraftEquipmentSlot.getHand(interactionhand);
-+                        org.bukkit.event.player.PlayerItemConsumeEvent event = new org.bukkit.event.player.PlayerItemConsumeEvent((org.bukkit.entity.Player) this.getBukkitEntity(), craftItem, hand);
++                        event = new org.bukkit.event.player.PlayerItemConsumeEvent((org.bukkit.entity.Player) this.getBukkitEntity(), craftItem, hand);
 +                        this.level().getCraftServer().getPluginManager().callEvent(event);
 +                        if (event.isCancelled()) {
 +                            // Update client
@@ -1347,6 +1348,12 @@
 +                    } else {
 +                        itemstack = this.useItem.finishUsingItem(this.level(), this);
 +                    }
++                    // Paper start - save the default replacement item and change it if necessary
++                    final ItemStack defaultReplacement = itemstack;
++                    if (event != null && event.getReplacement() != null) {
++                        itemstack = CraftItemStack.asNMSCopy(event.getReplacement());
++                    }
++                    // Paper end
 +                    // CraftBukkit end
 +                    ItemStack itemstackForge = EventHooks.onItemUseFinish(this, copy, getUseItemRemainingTicks(), itemstack);
 +
@@ -1355,6 +1362,14 @@
                      }
  
                      this.stopUsingItem();
++                    // Paper start - if the replacement is anything but the default, update the client inventory
++                    if (this instanceof ServerPlayer && !com.google.common.base.Objects.equal(defaultReplacement, itemstack)) {
++                        ((ServerPlayer) this).getBukkitEntity().updateInventory();
++                    }
++                    // Paper end
+                 }
+             }
+         }
 @@ -3136,7 +_,11 @@
  
      public void releaseUsingItem() {

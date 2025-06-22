@@ -1,6 +1,5 @@
 package org.bukkit.plugin.messaging;
 
-import com.mohistmc.youer.bukkit.messaging.PluginChannel;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
 import java.util.Set;
 import net.minecraft.resources.ResourceLocation;
@@ -234,8 +233,4 @@ public interface Messenger {
      * @param message Raw payload of the message.
      */
     public void dispatchIncomingMessage(@NotNull Player source, @NotNull String channel, @NotNull byte[] message);
-
-    Object2BooleanOpenHashMap<String> valid = new Object2BooleanOpenHashMap<>();
-    void sendCustomPayload(Plugin src, CraftPlayer dst, ResourceLocation location, byte[] data);
-    void registerAnonymousOutgoing(ResourceLocation location);
 }

@@ -8,11 +8,11 @@ package net.neoforged.neoforge.network.registration;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.mohistmc.youer.bukkit.messaging.PluginsDiscardedPayload;
 import com.mojang.logging.LogUtils;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +21,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.minecraft.network.Connection;
@@ -43,7 +42,6 @@ import net.minecraft.network.protocol.common.custom.DiscardedPayload;
 import net.minecraft.network.protocol.configuration.ClientConfigurationPacketListener;
 import net.minecraft.network.protocol.configuration.ServerConfigurationPacketListener;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 import net.neoforged.fml.ModLoader;
 import net.neoforged.fml.config.ConfigTracker;
@@ -113,9 +111,9 @@ public class NetworkRegistry {
      * Registry of all custom payload handlers. The initial state of this map should reflect the protocols which support custom payloads.
      * TODO: Change key type to a combination of protocol + flow.
      */
-    public static final Map<ConnectionProtocol, Map<ResourceLocation, PayloadRegistration<?>>> PAYLOAD_REGISTRATIONS = ImmutableMap.of(
-            ConnectionProtocol.CONFIGURATION, new ConcurrentHashMap<>(),
-            ConnectionProtocol.PLAY, new ConcurrentHashMap<>());
+    private static final Map<ConnectionProtocol, Map<ResourceLocation, PayloadRegistration<?>>> PAYLOAD_REGISTRATIONS = ImmutableMap.of(
+            ConnectionProtocol.CONFIGURATION, new HashMap<>(),
+            ConnectionProtocol.PLAY, new HashMap<>());
 
     private static boolean setup = false;
 
@@ -136,7 +134,7 @@ public class NetworkRegistry {
 
     /**
      * Registers a new payload.
-     * 
+     *
      * @param <T>       The class of the payload.
      * @param <B>       The class of the ByteBuf. Only {@link ConnectionProtocol#PLAY play} payloads may use {@link RegistryFriendlyByteBuf}.
      * @param type      The type of the payload.
@@ -149,7 +147,7 @@ public class NetworkRegistry {
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public static <T extends CustomPacketPayload, B extends FriendlyByteBuf> void register(CustomPacketPayload.Type<T> type, StreamCodec<? super B, T> codec, IPayloadHandler<T> handler,
-            List<ConnectionProtocol> protocols, Optional<PacketFlow> flow, String version, boolean optional) {
+                                                                                           List<ConnectionProtocol> protocols, Optional<PacketFlow> flow, String version, boolean optional) {
         if (setup) {
             throw new UnsupportedOperationException("Cannot register payload " + type.id() + " after registration phase.");
         }
@@ -196,7 +194,7 @@ public class NetworkRegistry {
      * @param protocol The protocol of the connection.
      * @param flow     The flow of the connection.
      * @return A codec for the payload, or null if the payload should be discarded on receipt.
-     * 
+     *
      * @see {@link #hasChannel(Connection, ConnectionProtocol, ResourceLocation)} to check if a packet can be sent/received.
      * @apiNote This method must not throw exceptions, as it is called within another codec on the network thread.
      */
@@ -214,9 +212,6 @@ public class NetworkRegistry {
 
             // These two checks can only be hit on receipt of a payload, as senders will be checked before reaching this method.
             if (registration == null) {
-                if (flow == PacketFlow.CLIENTBOUND) {
-                    return PluginsDiscardedPayload.codec(id, 32767);
-                }
                 LOGGER.warn("No registration for payload {}; refusing to decode.", id);
                 return null;
             }
@@ -239,7 +234,7 @@ public class NetworkRegistry {
      * Checks if a payload is a modded payload. A modded payload is any payload that does not have `minecraft` as the domain, and is not a discarded payload.
      * <p>
      * The special handling for {@link DiscardedPayload} is because it falsely reports its type as the type that failed to decode.
-     * 
+     *
      * @return True if the payload is modded, and modded payload handling should be invoked for it.
      */
     public static boolean isModdedPayload(CustomPacketPayload payload) {
@@ -296,7 +291,7 @@ public class NetworkRegistry {
      * Handles modded payloads on the client. Invoked after built-in handling.
      * <p>
      * Called on the network thread.
-     * 
+     *
      * @param listener The listener which received the packet.
      * @param packet   The packet that was received.
      */
@@ -448,7 +443,7 @@ public class NetworkRegistry {
                 return;
             }
 
-            listener.getConnection().disconnect(Component.literal("Payload %s may not be sent to the client!".formatted(customPayloadPacket.payload().type().id())));
+            throw new UnsupportedOperationException("Payload %s may not be sent to the client!".formatted(customPayloadPacket.payload().type().id()));
         }
     }
 
@@ -692,18 +687,6 @@ public class NetworkRegistry {
      */
     public static void onMinecraftRegister(Connection connection, Set<ResourceLocation> resourceLocations) {
         ChannelAttributes.getOrCreateAdHocChannels(connection).addAll(resourceLocations);
-        if (connection.getPacketListener() instanceof ServerCommonPacketListener listener) {
-            ServerCommonPacketListenerImpl listener0 = (ServerCommonPacketListenerImpl) listener;
-            var mcserver = listener0.getCraftServer().getServer();
-            listener.getMainThreadEventLoop().executeIfPossible(() -> {
-                if (mcserver.hasStopped() || listener0.processedDisconnect) {
-                    return;
-                }
-                for (var channel : resourceLocations) {
-                    listener0.getCraftPlayer().addChannel(channel.toString());
-                }
-            });
-        }
     }
 
     /**
@@ -716,18 +699,6 @@ public class NetworkRegistry {
      */
     public static void onMinecraftUnregister(Connection connection, Set<ResourceLocation> resourceLocations) {
         ChannelAttributes.getOrCreateAdHocChannels(connection).removeAll(resourceLocations);
-        if (connection.getPacketListener() instanceof ServerCommonPacketListener listener) {
-            ServerCommonPacketListenerImpl listener0 = (ServerCommonPacketListenerImpl) listener;
-            var mcserver = listener0.getCraftServer().getServer();
-            listener.getMainThreadEventLoop().executeIfPossible(() -> {
-                if (mcserver.hasStopped() || listener0.processedDisconnect) {
-                    return;
-                }
-                for (var channel : resourceLocations) {
-                    listener0.getCraftPlayer().removeChannel(channel.toString());
-                }
-            });
-        }
     }
 
     /**
@@ -755,7 +726,7 @@ public class NetworkRegistry {
      * Since we only support one version, we don't need to do further handling or record the "active" version just yet.
      * <p>
      * Invoked on the network thread.
-     * 
+     *
      * @param listener The receiving listener.
      * @param payload  The incoming version payload.
      */
@@ -810,7 +781,7 @@ public class NetworkRegistry {
      * Invoked when the configuration phase of a connection is completed.
      * <p>
      * Updates the ad-hoc channels to prepare for the game phase by removing the initial channels and building a new list based on the connection type.
-     * 
+     *
      * @param listener
      */
     public static void onConfigurationFinished(ICommonPacketListener listener) {
@@ -824,18 +795,7 @@ public class NetworkRegistry {
         notListeningAnymoreOn.addAll(getInitialListeningChannels(listener.flow()));
         notListeningAnymoreOn.addAll(setup.getChannels(ConnectionProtocol.CONFIGURATION).keySet());
         listener.send(new MinecraftUnregisterPayload(notListeningAnymoreOn.build()));
-        if (listener instanceof ServerCommonPacketListener listener1) {
-            ServerCommonPacketListenerImpl listener0 = (ServerCommonPacketListenerImpl) listener1;
-            var mcserver = listener0.getCraftServer().getServer();
-            listener.getMainThreadEventLoop().executeIfPossible(() -> {
-                if (mcserver.hasStopped() || listener0.processedDisconnect) {
-                    return;
-                }
-                for (var channel : setup.getChannels(ConnectionProtocol.PLAY).keySet()) {
-                    listener0.getCraftPlayer().addChannel(channel.toString());
-                }
-            });
-        }
+
         final ImmutableSet.Builder<ResourceLocation> nowListeningOn = ImmutableSet.builder();
         nowListeningOn.add(MinecraftRegisterPayload.ID);
         nowListeningOn.add(MinecraftUnregisterPayload.ID);

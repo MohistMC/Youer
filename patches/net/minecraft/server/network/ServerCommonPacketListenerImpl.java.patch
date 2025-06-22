@@ -1,9 +1,10 @@
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -2,12 +_,11 @@
+@@ -2,12 +_,12 @@
  
  import com.mojang.authlib.GameProfile;
  import com.mojang.logging.LogUtils;
++import java.nio.charset.StandardCharsets;
 +import java.util.concurrent.ExecutionException;
  import javax.annotation.Nullable;
 -import net.minecraft.CrashReport;
@@ -15,9 +16,11 @@
  import net.minecraft.network.DisconnectionDetails;
  import net.minecraft.network.PacketSendListener;
  import net.minecraft.network.chat.Component;
-@@ -21,12 +_,43 @@
+@@ -20,13 +_,45 @@
+ import net.minecraft.network.protocol.common.ServerboundKeepAlivePacket;
  import net.minecraft.network.protocol.common.ServerboundPongPacket;
  import net.minecraft.network.protocol.common.ServerboundResourcePackPacket;
++import net.minecraft.network.protocol.common.custom.DiscardedPayload;
  import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
 +import net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket;
 +import net.minecraft.resources.ResourceLocation;
@@ -121,7 +124,7 @@
          if (this.keepAlivePending && p_294627_.getId() == this.keepAliveChallenge) {
              int i = (int)(Util.getMillis() - this.keepAliveTime);
              this.latency = (this.latency * 3 + i) / 4;
-@@ -83,7 +_,43 @@
+@@ -83,7 +_,51 @@
  
      @Override
      public void handleCustomPayload(ServerboundCustomPayloadPacket p_294276_) {
@@ -131,6 +134,14 @@
 +            this.player.clientBrandName = brandPayload.brand();
 +        }
 +        // Paper end - Brand support
++
++        if (p_294276_.payload() instanceof DiscardedPayload discardedPayload) {
++            System.out.println("Received plugins discarded payload");
++            ResourceLocation identifier = discardedPayload.type().id();
++            System.out.println("Identifier: " + identifier);
++            System.out.println("Identifier data: " + discardedPayload.data().toString(StandardCharsets.UTF_8));
++        }
++
 +        // Neo: Unconditionally handle register/unregister payloads.
 +        if (p_294276_.payload() instanceof net.neoforged.neoforge.network.payload.MinecraftRegisterPayload minecraftRegisterPayload) {
 +            net.neoforged.neoforge.network.registration.NetworkRegistry.onMinecraftRegister(this.getConnection(), minecraftRegisterPayload.newChannels());

@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import io.netty.buffer.Unpooled;
 import io.papermc.paper.profile.CraftPlayerProfile;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -40,11 +41,13 @@ import net.minecraft.network.ConnectionProtocol;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.PlayerChatMessage;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.network.protocol.common.ClientboundServerLinksPacket;
 import net.minecraft.network.protocol.common.ClientboundStoreCookiePacket;
 import net.minecraft.network.protocol.common.ClientboundTransferPacket;
+import net.minecraft.network.protocol.common.custom.DiscardedPayload;
 import net.minecraft.network.protocol.cookie.ClientboundCookieRequestPacket;
 import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
 import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
@@ -2128,13 +2131,14 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         if (this.getHandle().connection == null) return;
 
         if (this.channels.contains(channel)) {
-            ResourceLocation location = ResourceLocation.tryParse(StandardMessenger.validateAndCorrectChannel(channel));
-            this.server.getMessenger().sendCustomPayload(source, this, location, message);
+            ResourceLocation id = ResourceLocation.parse(StandardMessenger.validateAndCorrectChannel(channel));
+            this.sendCustomPayload(id, message);
         }
     }
 
     private void sendCustomPayload(ResourceLocation id, byte[] message) {
-        server.getMessenger().sendCustomPayload(null, this, id, message);
+        ClientboundCustomPayloadPacket packet = new ClientboundCustomPayloadPacket(new DiscardedPayload(id, Unpooled.wrappedBuffer(message)));
+        this.getHandle().connection.send(packet);
     }
 
     @Override
