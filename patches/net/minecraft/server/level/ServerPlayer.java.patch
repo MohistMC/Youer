@@ -94,7 +94,7 @@
  import net.minecraft.world.level.block.HorizontalDirectionalBlock;
  import net.minecraft.world.level.block.RespawnAnchorBlock;
  import net.minecraft.world.level.block.entity.BlockEntity;
-@@ -158,8 +_,38 @@
+@@ -158,11 +_,41 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreAccess;
  import net.minecraft.world.scores.ScoreHolder;
@@ -132,7 +132,11 @@
 +import org.bukkit.inventory.MainHand;
  import org.slf4j.Logger;
  
- public class ServerPlayer extends Player {
+-public class ServerPlayer extends Player {
++public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer { // Paper - rewrite chunk system
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final int NEUTRAL_MOB_DEATH_NOTIFICATION_RADII_XZ = 32;
+     private static final int NEUTRAL_MOB_DEATH_NOTIFICATION_RADII_Y = 10;
 @@ -204,6 +_,7 @@
      private boolean disconnected;
      private int requestedViewDistance = 2;
@@ -152,7 +156,7 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(p_143455_.containerId, p_143456_, p_143457_));
          }
      };
-@@ -276,6 +_,28 @@
+@@ -276,6 +_,58 @@
      public final Object object;
      private int containerCounter;
      public boolean wonGame;
@@ -178,6 +182,36 @@
 +    public @Nullable String clientBrandName = null; // Paper - Brand support
 +    public org.bukkit.event.player.PlayerQuitEvent.QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
 +    public io.papermc.paper.event.entity.PlayerNaturallySpawnCreaturesEvent playerNaturallySpawnedEvent; // Paper - PlayerNaturallySpawnCreaturesEvent
++
++    // Paper start - rewrite chunk system
++    private ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData chunkLoader;
++    private final ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.ViewDistanceHolder viewDistanceHolder = new ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.ViewDistanceHolder();
++
++    @Override
++    public final boolean moonrise$isRealPlayer() {
++        return this.isRealPlayer;
++    }
++
++    @Override
++    public final void moonrise$setRealPlayer(final boolean real) {
++        this.isRealPlayer = real;
++    }
++
++    @Override
++    public final ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData moonrise$getChunkLoader() {
++        return this.chunkLoader;
++    }
++
++    @Override
++    public final void moonrise$setChunkLoader(final ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData loader) {
++        this.chunkLoader = loader;
++    }
++
++    @Override
++    public final ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.ViewDistanceHolder moonrise$getViewDistanceHolder() {
++        return this.viewDistanceHolder;
++    }
++    // Paper end - rewrite chunk system
  
      public ServerPlayer(MinecraftServer p_254143_, ServerLevel p_254435_, GameProfile p_253651_, ClientInformation p_301997_) {
          super(p_254435_, p_254435_.getSharedSpawnPos(), p_254435_.getSharedSpawnAngle(), p_253651_);
@@ -911,15 +945,23 @@
      }
  
      @Override
-@@ -1334,6 +_,8 @@
-     }
- 
-     public void restoreFrom(ServerPlayer p_9016_, boolean p_9017_) {
-+        p_9016_.getBukkitEntity().setHandle(this);
-+        this.setBukkitEntity(p_9016_.getBukkitEntity());
-         this.wardenSpawnTracker = p_9016_.wardenSpawnTracker;
-         this.chatSession = p_9016_.chatSession;
+@@ -1339,14 +_,14 @@
          this.gameMode.setGameModeForPlayer(p_9016_.gameMode.getGameModeForPlayer(), p_9016_.gameMode.getPreviousGameModeForPlayer());
+         this.onUpdateAbilities();
+         this.getAttributes().assignBaseValues(p_9016_.getAttributes());
+-        this.setHealth(this.getMaxHealth());
++        // this.setHealth(this.getMaxHealth()); // CraftBukkit
+         if (p_9017_) {
+             this.getInventory().replaceWith(p_9016_.getInventory());
+             this.setHealth(p_9016_.getHealth());
+             this.foodData = p_9016_.foodData;
+ 
+             for (MobEffectInstance mobeffectinstance : p_9016_.getActiveEffects()) {
+-                this.addEffect(new MobEffectInstance(mobeffectinstance));
++               // this.addEffect(new MobEffectInstance(mobeffectinstance)); // CraftBukkit
+             }
+ 
+             this.experienceLevel = p_9016_.experienceLevel;
 @@ -1354,11 +_,13 @@
              this.experienceProgress = p_9016_.experienceProgress;
              this.setScore(p_9016_.getScore());
@@ -938,7 +980,15 @@
              this.setScore(p_9016_.getScore());
          }
  
-@@ -1375,6 +_,15 @@
+@@ -1368,13 +_,22 @@
+         this.lastSentExp = -1;
+         this.lastSentHealth = -1.0F;
+         this.lastSentFood = -1;
+-        this.recipeBook.copyOverData(p_9016_.recipeBook);
++        // this.recipeBook.copyOverData(p_9016_.recipeBook); // CraftBukkit
+         this.seenCredits = p_9016_.seenCredits;
+         this.enteredNetherPosition = p_9016_.enteredNetherPosition;
+         this.chunkTrackingView = p_9016_.chunkTrackingView;
          this.setShoulderEntityLeft(p_9016_.getShoulderEntityLeft());
          this.setShoulderEntityRight(p_9016_.getShoulderEntityRight());
          this.setLastDeathLocation(p_9016_.getLastDeathLocation());

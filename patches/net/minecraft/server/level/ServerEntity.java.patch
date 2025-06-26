@@ -16,7 +16,13 @@
  import net.minecraft.util.Mth;
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.EquipmentSlot;
-@@ -67,8 +_,16 @@
+@@ -62,13 +_,21 @@
+     private Vec3 lastSentMovement;
+     private int tickCount;
+     private int teleportDelay;
+-    private List<Entity> lastPassengers = Collections.emptyList();
++    private List<Entity> lastPassengers = com.google.common.collect.ImmutableList.of(); // Paper - optimize passenger checks
+     private boolean wasRiding;
      private boolean wasOnGround;
      @Nullable
      private List<SynchedEntityData.DataValue<?>> trackedDataValues;
@@ -33,8 +39,15 @@
          this.level = p_8528_;
          this.broadcast = p_8532_;
          this.entity = p_8529_;
-@@ -86,7 +_,7 @@
+@@ -84,9 +_,14 @@
+     }
+ 
      public void sendChanges() {
++        // Paper start - optimise collisions
++        if (this.entity.moonrise$isHardColliding()) {
++            this.teleportDelay = 9999;
++        }
++        // Paper end - optimise collisions
          List<Entity> list = this.entity.getPassengers();
          if (!list.equals(this.lastPassengers)) {
 -            this.broadcast.accept(new ClientboundSetPassengersPacket(this.entity));

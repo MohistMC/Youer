@@ -241,7 +241,7 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
                             byte[] classBytes = ByteStreams.toByteArray(is);
                             classBytes = SwitchTableFixer.INSTANCE.apply(classBytes);
                             classBytes = Bukkit.getServer().getUnsafe().processClass(description, path, classBytes);
-                            classBytes = PluginFixManager.injectPluginFix(name, classBytes); // Mohist - Inject plugin fix
+                            classBytes = PluginFixManager.injectPluginFix(description.getName(), name, classBytes); // Mohist - Inject plugin fix
                             return classBytes;
                         }
                     };

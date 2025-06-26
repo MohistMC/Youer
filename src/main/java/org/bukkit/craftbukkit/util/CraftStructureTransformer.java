@@ -123,8 +123,10 @@ public class CraftStructureTransformer {
     }
 
     public void discard() {
-        this.limitedRegion.saveEntities();
-        this.limitedRegion.breakLink();
+        if (limitedRegion != null) {
+            this.limitedRegion.saveEntities();
+            this.limitedRegion.breakLink();
+        }
         this.limitedRegion = null;
         this.blockTransformers = null;
         this.entityTransformers = null;

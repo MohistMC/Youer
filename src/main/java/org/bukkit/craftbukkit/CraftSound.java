@@ -40,4 +40,10 @@ public class CraftSound {
         throw new IllegalArgumentException("No Reference holder found for " + bukkit
                 + ", this can happen if a plugin creates its own sound effect with out properly registering it.");
     }
+
+    // Paper start
+    public static String getSound(Sound sound) {
+        return sound.getKey().getKey();
+    }
+    // Paper end
 }

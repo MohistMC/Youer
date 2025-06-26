@@ -208,6 +208,22 @@ public class GlobalConfiguration extends ConfigurationPart {
         public boolean saveEmptyScoreboardTeams = true;
     }
 
+
+    @SuppressWarnings("unused") // used in postProcess
+    public ChunkSystem chunkSystem;
+
+    public class ChunkSystem extends ConfigurationPart {
+
+        public int ioThreads = -1;
+        public int workerThreads = -1;
+        public String genParallelism = "default";
+
+        @PostProcess
+        private void postProcess() {
+            ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.init(this);
+        }
+    }
+
     public ItemValidation itemValidation;
 
     public class ItemValidation extends ConfigurationPart {

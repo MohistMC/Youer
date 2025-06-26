@@ -162,7 +162,41 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     private final BlockMetadataStore blockMetadata = new BlockMetadataStore(this);
     private final Object2IntOpenHashMap<SpawnCategory> spawnCategoryLimit = new Object2IntOpenHashMap<>();
     private final CraftPersistentDataContainer persistentDataContainer = new CraftPersistentDataContainer(CraftWorld.DATA_TYPE_REGISTRY);
+    // Paper start - void damage configuration
+    private boolean voidDamageEnabled;
+    private float voidDamageAmount;
+    private double voidDamageMinBuildHeightOffset;
 
+    @Override
+    public boolean isVoidDamageEnabled() {
+        return this.voidDamageEnabled;
+    }
+
+    @Override
+    public void setVoidDamageEnabled(final boolean enabled) {
+        this.voidDamageEnabled = enabled;
+    }
+
+    @Override
+    public float getVoidDamageAmount() {
+        return this.voidDamageAmount;
+    }
+
+    @Override
+    public void setVoidDamageAmount(float voidDamageAmount) {
+        this.voidDamageAmount = voidDamageAmount;
+    }
+
+    @Override
+    public double getVoidDamageMinBuildHeightOffset() {
+        return this.voidDamageMinBuildHeightOffset;
+    }
+
+    @Override
+    public void setVoidDamageMinBuildHeightOffset(double minBuildHeightOffset) {
+        this.voidDamageMinBuildHeightOffset = minBuildHeightOffset;
+    }
+    // Paper end - void damage configuration
     private static final Random rand = new Random();
 
     public CraftWorld(ServerLevel world, ChunkGenerator gen, BiomeProvider biomeProvider, Environment env) {
@@ -171,6 +205,19 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         this.biomeProvider = biomeProvider;
 
         this.environment = env;
+        // Paper start - per world spawn limits
+        for (SpawnCategory spawnCategory : SpawnCategory.values()) {
+            if (CraftSpawnCategory.isValidForLimits(spawnCategory)) {
+                setSpawnLimit(spawnCategory, this.world.paperConfig().entities.spawning.spawnLimits.getInt(CraftSpawnCategory.toNMS(spawnCategory)));
+            }
+        }
+        // Paper end - per world spawn limits
+
+        // Paper start - per world void damage height
+        this.voidDamageEnabled = this.world.paperConfig().environment.voidDamageAmount.enabled();
+        this.voidDamageMinBuildHeightOffset = this.world.paperConfig().environment.voidDamageMinBuildHeightOffset;
+        this.voidDamageAmount = (float) this.world.paperConfig().environment.voidDamageAmount.or(0);
+        // Paper end - per world void damage height
     }
 
     @Override
@@ -215,7 +262,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public Chunk getChunkAt(int x, int z) {
-        net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk) this.world.getChunk(x, z, ChunkStatus.FULL, true);
+        // Paper start - add ticket to hold chunk for a little while longer if plugin accesses it
+        net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
+        if (chunk == null) {
+            this.addTicket(x, z);
+            chunk = this.world.getChunkSource().getChunk(x, z, true);
+        }
+        // Paper end
         return new CraftChunk(chunk);
     }
 
@@ -228,6 +281,12 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
         return new CraftChunk(this.getHandle(), x, z);
     }
+
+    // Paper start
+    private void addTicket(int x, int z) {
+        io.papermc.paper.util.MCUtil.MAIN_EXECUTOR.execute(() -> this.world.getChunkSource().addRegionTicket(TicketType.PLUGIN, new ChunkPos(x, z), 0, Unit.INSTANCE)); // Paper
+    }
+    // Paper end
 
     @Override
     public Chunk getChunkAt(Block block) {
@@ -243,17 +302,34 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public boolean isChunkGenerated(int x, int z) {
-        try {
-            return this.isChunkLoaded(x, z) || this.world.getChunkSource().chunkMap.read(new ChunkPos(x, z)).get().isPresent();
-        } catch (InterruptedException | ExecutionException ex) {
-            throw new RuntimeException(ex);
+        // Paper start - Fix this method
+        if (!Bukkit.isPrimaryThread()) {
+            return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                return CraftWorld.this.isChunkGenerated(x, z);
+            }, world.getChunkSource().mainThreadProcessor).join();
         }
+        ChunkAccess chunk = world.getChunkSource().getChunkAtImmediately(x, z);
+        if (chunk != null) {
+            return chunk instanceof ImposterProtoChunk || chunk instanceof net.minecraft.world.level.chunk.LevelChunk;
+        }
+        final java.util.concurrent.CompletableFuture<ChunkAccess> future = new java.util.concurrent.CompletableFuture<>();
+        ca.spottedleaf.moonrise.common.util.ChunkSystem.scheduleChunkLoad(
+                this.world, x, z, false, ChunkStatus.EMPTY, true, ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.NORMAL, future::complete
+        );
+        world.getChunkSource().mainThreadProcessor.managedBlock(future::isDone);
+        return future.thenApply(c -> {
+            if (c != null) {
+                return c.getPersistedStatus() == ChunkStatus.FULL;
+            }
+            return false;
+        }).join();
+        // Paper end - Fix this method
     }
 
     @Override
     public Chunk[] getLoadedChunks() {
-        Long2ObjectLinkedOpenHashMap<ChunkHolder> chunks = this.world.getChunkSource().chunkMap.visibleChunkMap;
-        return chunks.values().stream().map(ChunkHolder::getFullChunkNow).filter(Objects::nonNull).map(CraftChunk::new).toArray(Chunk[]::new);
+        List<ChunkHolder> chunks = ca.spottedleaf.moonrise.common.util.ChunkSystem.getVisibleChunkHolders(this.world); // Paper
+        return chunks.stream().map(ChunkHolder::getFullChunkNow).filter(Objects::nonNull).map(CraftChunk::new).toArray(Chunk[]::new);
     }
 
     @Override
@@ -280,7 +356,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     public boolean unloadChunkRequest(int x, int z) {
         org.spigotmc.AsyncCatcher.catchOp("chunk unload"); // Spigot
         if (this.isChunkLoaded(x, z)) {
-            this.world.getChunkSource().removeRegionTicket(TicketType.PLUGIN, new ChunkPos(x, z), 1, Unit.INSTANCE);
+            this.world.getChunkSource().removeRegionTicket(TicketType.PLUGIN, new ChunkPos(x, z), 0, Unit.INSTANCE); // Paper
         }
 
         return true;
@@ -328,22 +404,24 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public boolean refreshChunk(int x, int z) {
-        ChunkHolder playerChunk = this.world.getChunkSource().chunkMap.visibleChunkMap.get(ChunkPos.asLong(x, z));
+        ChunkHolder playerChunk = this.world.getChunkSource().chunkMap.getVisibleChunkIfPresent(ChunkPos.asLong(x, z));
         if (playerChunk == null) return false;
+        // Paper start - chunk system
+        net.minecraft.world.level.chunk.LevelChunk chunk = playerChunk.getChunkToSend();
+        if (chunk == null) {
+            return false;
+        }
+        // Paper end - chunk system
 
-        playerChunk.getTickingChunkFuture().thenAccept(either -> {
-            either.ifSuccess(chunk -> {
-                List<ServerPlayer> playersInRange = playerChunk.playerProvider.getPlayers(playerChunk.getPos(), false);
-                if (playersInRange.isEmpty()) return;
+        List<ServerPlayer> playersInRange = playerChunk.playerProvider.getPlayers(playerChunk.getPos(), false);
+        if (playersInRange.isEmpty()) return true; // Paper - chunk system
 
-                ClientboundLevelChunkWithLightPacket refreshPacket = new ClientboundLevelChunkWithLightPacket(chunk, this.world.getLightEngine(), null, null);
-                for (ServerPlayer player : playersInRange) {
-                    if (player.connection == null) continue;
+        ClientboundLevelChunkWithLightPacket refreshPacket = new ClientboundLevelChunkWithLightPacket(chunk, this.world.getLightEngine(), null, null);
+        for (ServerPlayer player : playersInRange) {
+            if (player.connection == null) continue;
 
-                    player.connection.send(refreshPacket);
-                }
-            });
-        });
+            player.connection.send(refreshPacket);
+        }
 
         return true;
     }
@@ -390,7 +468,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         }
 
         if (chunk instanceof net.minecraft.world.level.chunk.LevelChunk) {
-            this.world.getChunkSource().addRegionTicket(TicketType.PLUGIN, new ChunkPos(x, z), 1, Unit.INSTANCE);
+            this.world.getChunkSource().addRegionTicket(TicketType.PLUGIN, new ChunkPos(x, z), 0, Unit.INSTANCE); // Paper
             return true;
         }
 
@@ -445,20 +523,8 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     @Override
     public Collection<Plugin> getPluginChunkTickets(int x, int z) {
         DistanceManager chunkDistanceManager = this.world.getChunkSource().chunkMap.distanceManager;
-        SortedArraySet<Ticket<?>> tickets = chunkDistanceManager.tickets.get(ChunkPos.asLong(x, z));
 
-        if (tickets == null) {
-            return Collections.emptyList();
-        }
-
-        ImmutableList.Builder<Plugin> ret = ImmutableList.builder();
-        for (Ticket<?> ticket : tickets) {
-            if (ticket.getType() == TicketType.PLUGIN_TICKET) {
-                ret.add((Plugin) ticket.key);
-            }
-        }
-
-        return ret.build();
+        return chunkDistanceManager.getChunkHolderManager().getPluginChunkTickets(x, z); // Paper - rewrite chunk system
     }
 
     @Override
@@ -466,7 +532,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         Map<Plugin, ImmutableList.Builder<Chunk>> ret = new HashMap<>();
         DistanceManager chunkDistanceManager = this.world.getChunkSource().chunkMap.distanceManager;
 
-        for (Long2ObjectMap.Entry<SortedArraySet<Ticket<?>>> chunkTickets : chunkDistanceManager.tickets.long2ObjectEntrySet()) {
+        for (Long2ObjectMap.Entry<SortedArraySet<Ticket<?>>> chunkTickets : chunkDistanceManager.getChunkHolderManager().getTicketsCopy().long2ObjectEntrySet()) {  // Paper - rewrite chunk system
             long chunkKey = chunkTickets.getLongKey();
             SortedArraySet<Ticket<?>> tickets = chunkTickets.getValue();
 
@@ -1095,7 +1161,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public void setDifficulty(Difficulty difficulty) {
-        this.getHandle().K.setDifficulty(net.minecraft.world.Difficulty.byId(difficulty.getValue()));
+        this.getHandle().getServer().setDifficulty(this.getHandle(), net.minecraft.world.Difficulty.byId(difficulty.getValue()), true); // Paper - per level difficulty; don't skip other difficulty-changing logic
     }
 
     @Override
@@ -1105,12 +1171,12 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public int getViewDistance() {
-        return this.world.getChunkSource().chunkMap.serverViewDistance;
+        return this.getHandle().moonrise$getPlayerChunkLoader().getAPIViewDistance(); // Paper - rewrite chunk system
     }
 
     @Override
     public int getSimulationDistance() {
-        return this.world.getChunkSource().chunkMap.getDistanceManager().simulationDistance;
+        return this.getHandle().moonrise$getPlayerChunkLoader().getAPITickDistance(); // Paper - rewrite chunk system
     }
 
     public BlockMetadataStore getBlockMetadata() {
@@ -2218,7 +2284,6 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
         java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
 
-        /*
         ca.spottedleaf.moonrise.common.util.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {
             net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
                 net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk)c;
@@ -2226,9 +2291,34 @@ public class CraftWorld extends CraftRegionAccessor implements World {
                 ret.complete(chunk == null ? null : new CraftChunk(chunk));
             });
         });
-         */
 
         return ret;
+    }
+
+    @Override
+    public void setViewDistance(final int viewDistance) {
+        if (viewDistance < 2 || viewDistance > 32) {
+            throw new IllegalArgumentException("View distance " + viewDistance + " is out of range of [2, 32]");
+        }
+        this.getHandle().chunkSource.chunkMap.setServerViewDistance(viewDistance);
+    }
+
+    @Override
+    public void setSimulationDistance(final int simulationDistance) {
+        if (simulationDistance < 2 || simulationDistance > 32) {
+            throw new IllegalArgumentException("Simulation distance " + simulationDistance + " is out of range of [2, 32]");
+        }
+        this.getHandle().chunkSource.setSimulationDistance(simulationDistance); // Paper - rewrite chunk system
+    }
+
+    @Override
+    public int getSendViewDistance() {
+        return this.getHandle().moonrise$getPlayerChunkLoader().getAPISendViewDistance(); // Paper - rewrite chunk system
+    }
+
+    @Override
+    public void setSendViewDistance(final int viewDistance) {
+        this.getHandle().chunkSource.setSendViewDistance(viewDistance); // Paper - rewrite chunk system
     }
     // Paper end
 }

@@ -71,6 +71,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ReloadableServerRegistries;
 import net.minecraft.server.WorldLoader;
 import net.minecraft.server.bossevents.CustomBossEvent;
+import net.minecraft.server.commands.ReloadCommand;
 import net.minecraft.server.dedicated.DedicatedPlayerList;
 import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.dedicated.DedicatedServerProperties;
@@ -262,6 +263,7 @@ import org.bukkit.plugin.SimpleServicesManager;
 import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.plugin.messaging.StandardMessenger;
 import org.bukkit.profile.PlayerProfile;
+import org.bukkit.scheduler.BukkitWorker;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.structure.StructureManager;
 import org.bukkit.util.StringUtil;
@@ -461,7 +463,7 @@ public final class CraftServer implements Server {
         this.overrideSpawnLimits();
         console.autosavePeriod = this.configuration.getInt("ticks-per.autosave");
         this.warningState = WarningState.value(this.configuration.getString("settings.deprecated-verbose"));
-        TicketType.PLUGIN.timeout = this.configuration.getInt("chunk-gc.period-in-ticks");
+        TicketType.PLUGIN.timeout = Math.min(20, this.configuration.getInt("chunk-gc.period-in-ticks")); // Paper - cap plugin loads to 1 second
         this.minimumAPI = ApiVersion.getOrCreateVersion(this.configuration.getString("settings.minimum-api"));
         this.loadIcon();
         loadCompatibilities();
@@ -1100,9 +1102,35 @@ public final class CraftServer implements Server {
         Youer.LOGGER.warn("For your server security, Bukkit reloading is not supported by Mohist.");
     }
 
+    // Paper start - Wait for Async Tasks during shutdown
+    public void waitForAsyncTasksShutdown() {
+        int pollCount = 0;
+
+        // Wait for at most 5 seconds for plugins to close their threads
+        while (pollCount < 10*5 && getScheduler().getActiveWorkers().size() > 0) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {}
+            pollCount++;
+        }
+
+        List<BukkitWorker> overdueWorkers = getScheduler().getActiveWorkers();
+        for (BukkitWorker worker : overdueWorkers) {
+            Plugin plugin = worker.getOwner();
+            getLogger().log(Level.SEVERE, String.format(
+                    "Nag author(s): '%s' of '%s' about the following: %s",
+                    plugin.getPluginMeta().getAuthors(),
+                    plugin.getPluginMeta().getDisplayName(),
+                    "This plugin is not properly shutting down its async tasks when it is being shut down. This task may throw errors during the final shutdown logs and might not complete before process dies."
+            ));
+            if (console.isDebugging()) io.papermc.paper.util.TraceUtil.dumpTraceForThread(worker.getThread(), "still running"); // Paper - Debugging
+        }
+    }
+    // Paper end - Wait for Async Tasks during shutdown
+
     @Override
     public void reloadData() {
-        //ReloadCommand.reload(this.console);
+        ReloadCommand.reload(this.console);
     }
 
     private void loadIcon() {
@@ -1333,7 +1361,7 @@ public final class CraftServer implements Server {
         this.console.addLevel(internal);
         ChunkProgressListener mohist$progressListener = this.console.progressListenerFactory.create(11);
         this.getServer().prepareLevels(mohist$progressListener, internal);
-        internal.entityManager.tick(); // SPIGOT-6526: Load pending entities so they are available to the API
+        // Paper - rewrite chunk system
 
         this.pluginManager.callEvent(new WorldLoadEvent(internal.getWorld()));
         World world1 = internal.getWorld();
@@ -1380,7 +1408,7 @@ public final class CraftServer implements Server {
             }
 
             handle.getChunkSource().close(save);
-            handle.entityManager.close(save); // SPIGOT-6722: close entityManager
+            // Paper - rewrite chunk system
             handle.convertable.close();
         } catch (Exception ex) {
             this.getLogger().log(Level.SEVERE, null, ex);
@@ -1874,6 +1902,11 @@ public final class CraftServer implements Server {
 
         ServerLevel worldServer = ((CraftWorld) world).getHandle();
         Location structureLocation = world.locateNearestStructure(location, structureType, radius, findUnexplored);
+        // Paper start - don't throw NPE
+        if (structureLocation == null) {
+            throw new IllegalStateException("Could not find a structure for " + structureType);
+        }
+        // Paper end
         BlockPos structurePosition = CraftLocation.toBlockPosition(structureLocation);
 
         // Create map with trackPlayer = true, unlimitedTracking = true
@@ -1884,6 +1917,32 @@ public final class CraftServer implements Server {
 
         return CraftItemStack.asBukkitCopy(stack);
     }
+
+    // Paper start - copied from above (uses un-deprecated StructureType type)
+    @Override
+    public ItemStack createExplorerMap(World world, Location location, org.bukkit.generator.structure.StructureType structureType, org.bukkit.map.MapCursor.Type mapIcon, int radius, boolean findUnexplored) {
+        Preconditions.checkArgument(world != null, "World cannot be null");
+        Preconditions.checkArgument(location != null, "Location cannot be null");
+        Preconditions.checkArgument(structureType != null, "StructureType cannot be null");
+        Preconditions.checkArgument(mapIcon != null, "mapIcon cannot be null");
+
+        ServerLevel worldServer = ((CraftWorld) world).getHandle();
+        final org.bukkit.util.StructureSearchResult structureSearchResult = world.locateNearestStructure(location, structureType, radius, findUnexplored);
+        if (structureSearchResult == null) {
+            return null;
+        }
+        Location structureLocation = structureSearchResult.getLocation();
+        BlockPos structurePosition = new BlockPos(structureLocation.getBlockX(), structureLocation.getBlockY(), structureLocation.getBlockZ());
+
+        // Create map with showIcons = true, unlimitedTracking = true
+        net.minecraft.world.item.ItemStack stack = MapItem.create(worldServer, structurePosition.getX(), structurePosition.getZ(), MapView.Scale.NORMAL.getValue(), true, true);
+        MapItem.renderBiomePreviewMap(worldServer, stack);
+        // "+" map ID taken from VillagerTrades$TreasureMapForEmeralds
+        MapItem.getSavedData(stack, worldServer).addTargetDecoration(stack, structurePosition, "+", CraftMapCursor.CraftType.bukkitToMinecraftHolder(mapIcon));
+
+        return CraftItemStack.asBukkitCopy(stack);
+    }
+    // Paper end
 
     @Override
     public void shutdown() {

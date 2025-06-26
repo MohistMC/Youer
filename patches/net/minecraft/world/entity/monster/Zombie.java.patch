@@ -17,7 +17,7 @@
  
  public class Zombie extends Monster {
      private static final ResourceLocation SPEED_MODIFIER_BABY_ID = ResourceLocation.withDefaultNamespace("baby");
-@@ -84,11 +_,12 @@
+@@ -84,7 +_,7 @@
      public static final int REINFORCEMENT_RANGE_MIN = 7;
      private static final EntityDimensions BABY_DIMENSIONS = EntityType.ZOMBIE.getDimensions().scale(0.5F).withEyeHeight(0.93F);
      private static final float BREAK_DOOR_CHANCE = 0.1F;
@@ -26,11 +26,6 @@
      private final BreakDoorGoal breakDoorGoal = new BreakDoorGoal(this, DOOR_BREAKING_PREDICATE);
      private boolean canBreakDoors;
      private int inWaterTime;
-     public int conversionTime;
-+    private int lastTick = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit - add field
- 
-     public Zombie(EntityType<? extends Zombie> p_34271_, Level p_34272_) {
-         super(p_34271_, p_34272_);
 @@ -112,7 +_,7 @@
          this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0));
          this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(ZombifiedPiglin.class));
@@ -40,33 +35,16 @@
          this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
          this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Turtle.class, 10, true, false, Turtle.BABY_ON_LAND_SELECTOR));
      }
-@@ -206,7 +_,10 @@
+@@ -206,7 +_,7 @@
      public void tick() {
          if (!this.level().isClientSide && this.isAlive() && !this.isNoAi()) {
              if (this.isUnderWaterConverting()) {
 -                this.conversionTime--;
-+                // CraftBukkit start - Use wall time instead of ticks for conversion
-+                int elapsedTicks = net.minecraft.server.MinecraftServer.currentTick - this.lastTick;
-+                this.conversionTime -= elapsedTicks;
-+                // CraftBukkit end
++                --this.conversionTime; // Paper - remove anti tick skipping measures / wall time
                  if (this.conversionTime < 0) {
                      this.doUnderWaterConversion();
                  }
-@@ -223,6 +_,7 @@
-         }
- 
-         super.tick();
-+        this.lastTick = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit
-     }
- 
-     @Override
-@@ -254,11 +_,13 @@
-     }
- 
-     public void startUnderWaterConversion(int p_34279_) {
-+        this.lastTick = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit
-         this.conversionTime = p_34279_;
-         this.getEntityData().set(DATA_DROWNED_CONVERSION_ID, true);
+@@ -259,6 +_,7 @@
      }
  
      protected void doUnderWaterConversion() {

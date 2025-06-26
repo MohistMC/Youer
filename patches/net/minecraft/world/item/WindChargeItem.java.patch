@@ -1,0 +1,55 @@
+--- a/net/minecraft/world/item/WindChargeItem.java
++++ b/net/minecraft/world/item/WindChargeItem.java
+@@ -25,26 +_,41 @@
+ 
+     @Override
+     public InteractionResultHolder<ItemStack> use(Level p_326306_, Player p_326042_, InteractionHand p_326470_) {
++        ItemStack itemstack = p_326042_.getItemInHand(p_326470_); // Paper - PlayerLaunchProjectileEvent; moved from below
++        boolean shouldConsume = true; // Paper - PlayerLaunchProjectileEvent
+         if (!p_326306_.isClientSide()) {
+             WindCharge windcharge = new WindCharge(p_326042_, p_326306_, p_326042_.position().x(), p_326042_.getEyePosition().y(), p_326042_.position().z());
+             windcharge.shootFromRotation(p_326042_, p_326042_.getXRot(), p_326042_.getYRot(), 0.0F, 1.5F, 1.0F);
+-            p_326306_.addFreshEntity(windcharge);
++            // Paper start - PlayerLaunchProjectileEvent
++            io.papermc.paper.event.player.PlayerLaunchProjectileEvent event = new io.papermc.paper.event.player.PlayerLaunchProjectileEvent((org.bukkit.entity.Player) p_326042_.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack), (org.bukkit.entity.Projectile) windcharge.getBukkitEntity());
++            if (!event.callEvent() || !p_326306_.addFreshEntity(windcharge)) {
++                p_326042_.containerMenu.sendAllDataToRemote();
++                if (p_326042_ instanceof net.minecraft.server.level.ServerPlayer player) {
++                    player.connection.send(new net.minecraft.network.protocol.game.ClientboundCooldownPacket(this, 0)); // prevent visual desync of cooldown on the slot
++                }
++                return InteractionResultHolder.fail(itemstack);
++            }
++
++            shouldConsume = event.shouldConsume();
++            if (!shouldConsume && !p_326042_.hasInfiniteMaterials()) {
++                p_326042_.containerMenu.sendAllDataToRemote();
++            }
++            // Paper end - PlayerLaunchProjectileEvent
+         }
+ 
+         p_326306_.playSound(
+-            null,
+-            p_326042_.getX(),
+-            p_326042_.getY(),
+-            p_326042_.getZ(),
+-            SoundEvents.WIND_CHARGE_THROW,
+-            SoundSource.NEUTRAL,
+-            0.5F,
+-            0.4F / (p_326306_.getRandom().nextFloat() * 0.4F + 0.8F)
++                null,
++                p_326042_.getX(),
++                p_326042_.getY(),
++                p_326042_.getZ(),
++                SoundEvents.WIND_CHARGE_THROW,
++                SoundSource.NEUTRAL,
++                0.5F,
++                0.4F / (p_326306_.getRandom().nextFloat() * 0.4F + 0.8F)
+         );
+-        ItemStack itemstack = p_326042_.getItemInHand(p_326470_);
+         p_326042_.getCooldowns().addCooldown(this, 10);
+         p_326042_.awardStat(Stats.ITEM_USED.get(this));
+-        itemstack.consume(1, p_326042_);
++        if (shouldConsume) itemstack.consume(1, p_326042_); // Paper - PlayerLaunchProjectileEvent
+         return InteractionResultHolder.sidedSuccess(itemstack, p_326306_.isClientSide());
+     }
+ 

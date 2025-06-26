@@ -87,18 +87,22 @@
 +        }
 +        // CraftBukkit end
          if (p_320524_.protocolVersion() != SharedConstants.getCurrentVersion().getProtocolVersion()) {
-             Component component;
+-            Component component;
 -            if (p_320524_.protocolVersion() < 754) {
 -                component = Component.translatable("multiplayer.disconnect.outdated_client", SharedConstants.getCurrentVersion().getName());
++            net.kyori.adventure.text.Component adventureComponent; // Paper - Fix hex colors not working in some kick messages
 +            if (p_320524_.protocolVersion() < SharedConstants.getCurrentVersion().getProtocolVersion()) { // Spigot - SPIGOT-7546: Handle version check correctly for outdated client message
-+                component = Component.literal( java.text.MessageFormat.format( org.spigotmc.SpigotConfig.outdatedClientMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().getName() ) ); // Spigot
++                adventureComponent = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(java.text.MessageFormat.format(org.spigotmc.SpigotConfig.outdatedClientMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().getName())); // Spigot // Paper - Fix hex colors not working in some kick messages
              } else {
 -                component = Component.translatable("multiplayer.disconnect.incompatible", SharedConstants.getCurrentVersion().getName());
-+                component = Component.literal( java.text.MessageFormat.format( org.spigotmc.SpigotConfig.outdatedServerMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().getName() ) ); // Spigot
++                adventureComponent = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(java.text.MessageFormat.format(org.spigotmc.SpigotConfig.outdatedServerMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().getName())); // Spigot // Paper - Fix hex colors not working in some kick messages
              }
- 
-             this.connection.send(new ClientboundLoginDisconnectPacket(component));
-             this.connection.disconnect(component);
+-
+-            this.connection.send(new ClientboundLoginDisconnectPacket(component));
+-            this.connection.disconnect(component);
++            Component ichatmutablecomponent = io.papermc.paper.adventure.PaperAdventure.asVanilla(adventureComponent); // Paper - Fix hex colors not working in some kick messages
++            this.connection.send(new ClientboundLoginDisconnectPacket(ichatmutablecomponent));
++            this.connection.disconnect(ichatmutablecomponent);
          } else {
 -            this.connection.setupInboundProtocol(LoginProtocols.SERVERBOUND, new ServerLoginPacketListenerImpl(this.server, this.connection, p_320853_));
 +            this.connection.setupInboundProtocol(LoginProtocols.SERVERBOUND, new VelocityLoginPacketListenerImpl(this.server, this.connection, p_320853_));

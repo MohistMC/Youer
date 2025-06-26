@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.util;
 
+import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import net.minecraft.world.entity.MobCategory;
 import org.bukkit.entity.SpawnCategory;
 
@@ -60,6 +61,9 @@ public class CraftSpawnCategory {
     }
 
     public static MobCategory toNMS(SpawnCategory spawnCategory) {
+        if (spawnCategory.isMods) {
+            return NeoForgeInjectBukkit.CategoryspawnMap.get(spawnCategory);
+        }
         return switch (spawnCategory) {
             case MONSTER -> MobCategory.MONSTER;
             case ANIMAL -> MobCategory.CREATURE;

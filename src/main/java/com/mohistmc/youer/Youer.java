@@ -42,7 +42,6 @@ public class Youer {
         versionInfo = new VersionInfo(arguments);
         EventDispatcherRegistry.init();
         ((TransformingClassLoader) Youer.classLoader).addChild(classLoader);
-        System.setProperty("worldedit.bukkit.adapter", "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter");
     }
 
     public static void initI18n() {

@@ -1,0 +1,27 @@
+--- a/net/minecraft/world/entity/player/ProfilePublicKey.java
++++ b/net/minecraft/world/entity/player/ProfilePublicKey.java
+@@ -25,7 +_,7 @@
+ 
+     public static ProfilePublicKey createValidated(SignatureValidator p_243373_, UUID p_243390_, ProfilePublicKey.Data p_243374_) throws ProfilePublicKey.ValidationException {
+         if (!p_243374_.validateSignature(p_243373_, p_243390_)) {
+-            throw new ProfilePublicKey.ValidationException(INVALID_SIGNATURE);
++            throw new ProfilePublicKey.ValidationException(INVALID_SIGNATURE, org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_PUBLIC_KEY_SIGNATURE); // Paper - kick event causes
+         } else {
+             return new ProfilePublicKey(p_243374_);
+         }
+@@ -90,8 +_,15 @@
+     }
+ 
+     public static class ValidationException extends ThrowingComponent {
++        public final org.bukkit.event.player.PlayerKickEvent.Cause kickCause; // Paper
+         public ValidationException(Component p_243378_) {
++            // Paper start
++            this(p_243378_, org.bukkit.event.player.PlayerKickEvent.Cause.UNKNOWN);
++        }
++        public ValidationException(Component p_243378_, org.bukkit.event.player.PlayerKickEvent.Cause kickCause) {
++            // Paper end
+             super(p_243378_);
++            this.kickCause = kickCause; // Paper
+         }
+     }
+ }

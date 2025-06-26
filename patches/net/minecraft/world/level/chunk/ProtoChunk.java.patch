@@ -1,0 +1,45 @@
+--- a/net/minecraft/world/level/chunk/ProtoChunk.java
++++ b/net/minecraft/world/level/chunk/ProtoChunk.java
+@@ -83,18 +_,27 @@
+         return new ChunkAccess.TicksToSave(this.blockTicks, this.fluidTicks);
+     }
+ 
++    // Paper start - If loaded util
++    @Override
++    public final BlockState getBlockStateIfLoaded(BlockPos blockposition) {
++        return this.getBlockState(blockposition);
++    }
++    // Paper end
++
+     @Override
+     public BlockState getBlockState(BlockPos p_63264_) {
+-        int i = p_63264_.getY();
+-        if (this.isOutsideBuildHeight(i)) {
++        // Paper start
++        return getBlockState(p_63264_.getX(), p_63264_.getY(), p_63264_.getZ());
++    }
++    public BlockState getBlockState(final int x, final int y, final int z) {
++        if (this.isOutsideBuildHeight(y)) {
+             return Blocks.VOID_AIR.defaultBlockState();
+         } else {
+-            LevelChunkSection levelchunksection = this.getSection(this.getSectionIndex(i));
+-            return levelchunksection.hasOnlyAir()
+-                ? Blocks.AIR.defaultBlockState()
+-                : levelchunksection.getBlockState(p_63264_.getX() & 15, i & 15, p_63264_.getZ() & 15);
++            LevelChunkSection levelChunkSection = this.getSections()[this.getSectionIndex(y)];
++            return levelChunkSection.hasOnlyAir() ? Blocks.AIR.defaultBlockState() : levelChunkSection.getBlockState(x & 15, y & 15, z & 15);
+         }
+     }
++    // Paper end
+ 
+     @Override
+     public FluidState getFluidState(BlockPos p_63239_) {
+@@ -133,7 +_,7 @@
+                     }
+ 
+                     if (LightEngine.hasDifferentLightProperties(this, p_63217_, blockstate, p_63218_)) {
+-                        this.skyLightSources.update(this, i1, j, k1);
++                        // Paper - rewrite chunk system
+                         this.lightEngine.checkBlock(p_63217_);
+                     }
+                 }

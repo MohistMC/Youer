@@ -8,6 +8,15 @@
  import javax.annotation.Nullable;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.HolderLookup;
+@@ -56,7 +_,7 @@
+     @Override
+     protected void saveAdditional(CompoundTag p_187456_, HolderLookup.Provider p_324143_) {
+         super.saveAdditional(p_187456_, p_324143_);
+-        if (!this.patterns.equals(BannerPatternLayers.EMPTY)) {
++        if (!this.patterns.equals(BannerPatternLayers.EMPTY) || serialisingForNetwork.get()) { // Paper - always send patterns to client
+             p_187456_.put("patterns", BannerPatternLayers.CODEC.encodeStart(p_324143_.createSerializationContext(NbtOps.INSTANCE), this.patterns).getOrThrow());
+         }
+ 
 @@ -76,7 +_,7 @@
              BannerPatternLayers.CODEC
                  .parse(p_338247_.createSerializationContext(NbtOps.INSTANCE), p_338645_.get("patterns"))
@@ -17,6 +26,26 @@
          }
      }
  
+@@ -84,9 +_,18 @@
+         return ClientboundBlockEntityDataPacket.create(this);
+     }
+ 
++    // Paper start - always send patterns to client
++    ThreadLocal<Boolean> serialisingForNetwork = ThreadLocal.withInitial(() -> Boolean.FALSE);
+     @Override
+     public CompoundTag getUpdateTag(HolderLookup.Provider p_324478_) {
+-        return this.saveWithoutMetadata(p_324478_);
++        final Boolean wasSerialisingForNetwork = serialisingForNetwork.get();
++        try {
++            serialisingForNetwork.set(Boolean.TRUE);
++            return this.saveWithoutMetadata(p_324478_);
++        } finally {
++            serialisingForNetwork.set(wasSerialisingForNetwork);
++        }
++        // Paper end - always send patterns to client
+     }
+ 
+     public BannerPatternLayers getPatterns() {
 @@ -106,7 +_,7 @@
      @Override
      protected void applyImplicitComponents(BlockEntity.DataComponentInput p_338244_) {

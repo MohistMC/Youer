@@ -1,0 +1,70 @@
+--- a/net/minecraft/world/level/entity/EntityTickList.java
++++ b/net/minecraft/world/level/entity/EntityTickList.java
+@@ -9,52 +_,38 @@
+ import net.minecraft.world.entity.Entity;
+ 
+ public class EntityTickList {
+-    private Int2ObjectMap<Entity> active = new Int2ObjectLinkedOpenHashMap<>();
+-    private Int2ObjectMap<Entity> passive = new Int2ObjectLinkedOpenHashMap<>();
+-    @Nullable
+-    private Int2ObjectMap<Entity> iterated;
++    private final ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet<net.minecraft.world.entity.Entity> entities = new ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet<>(); // Paper - rewrite chunk system
+ 
+     private void ensureActiveIsNotIterated() {
+-        if (this.iterated == this.active) {
+-            this.passive.clear();
+-
+-            for (Entry<Entity> entry : Int2ObjectMaps.fastIterable(this.active)) {
+-                this.passive.put(entry.getIntKey(), entry.getValue());
+-            }
+-
+-            Int2ObjectMap<Entity> int2objectmap = this.active;
+-            this.active = this.passive;
+-            this.passive = int2objectmap;
+-        }
++        // Paper - rewrite chunk system
+     }
+ 
+     public void add(Entity p_156909_) {
+         this.ensureActiveIsNotIterated();
+-        this.active.put(p_156909_.getId(), p_156909_);
++        this.entities.add(p_156909_); // Paper - rewrite chunk system
+     }
+ 
+     public void remove(Entity p_156913_) {
+         this.ensureActiveIsNotIterated();
+-        this.active.remove(p_156913_.getId());
++        this.entities.remove(p_156913_); // Paper - rewrite chunk system
+     }
+ 
+     public boolean contains(Entity p_156915_) {
+-        return this.active.containsKey(p_156915_.getId());
++        return this.entities.contains(p_156915_); // Paper - rewrite chunk system
+     }
+ 
+     public void forEach(Consumer<Entity> p_156911_) {
+-        if (this.iterated != null) {
+-            throw new UnsupportedOperationException("Only one concurrent iteration supported");
+-        } else {
+-            this.iterated = this.active;
+-
+-            try {
+-                for (Entity entity : this.active.values()) {
+-                    p_156911_.accept(entity);
+-                }
+-            } finally {
+-                this.iterated = null;
++        // Paper start - rewrite chunk system
++        // To ensure nothing weird happens with dimension travelling, do not iterate over new entries...
++        // (by dfl iterator() is configured to not iterate over new entries)
++        final ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet.Iterator<Entity> iterator = this.entities.iterator();
++        try {
++            while (iterator.hasNext()) {
++                p_156911_.accept(iterator.next());
+             }
++        } finally {
++            iterator.finishedIterating();
+         }
++        // Paper end - rewrite chunk system
+     }
+ }

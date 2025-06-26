@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/entity/ai/targeting/TargetingConditions.java
++++ b/net/minecraft/world/entity/ai/targeting/TargetingConditions.java
+@@ -76,7 +_,7 @@
+ 
+                 if (this.range > 0.0) {
+                     double d0 = this.testInvisible ? p_26887_.getVisibilityPercent(p_26886_) : 1.0;
+-                    double d1 = Math.max(this.range * d0, 2.0);
++                    double d1 = Math.max((this.useFollowRange ? this.getFollowRange(p_26886_) : this.range) * d0, 2.0); // Paper - Fix MC-145656
+                     double d2 = p_26886_.distanceToSqr(p_26887_.getX(), p_26887_.getY(), p_26887_.getZ());
+                     if (d2 > d1 * d1) {
+                         return false;
+@@ -91,4 +_,18 @@
+             return true;
+         }
+     }
++
++    // Paper start - Fix MC-145656
++    private boolean useFollowRange = false;
++
++    public TargetingConditions useFollowRange() {
++        this.useFollowRange = true;
++        return this;
++    }
++
++    private double getFollowRange(LivingEntity entityliving) {
++        net.minecraft.world.entity.ai.attributes.AttributeInstance attributeinstance = entityliving.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.FOLLOW_RANGE);
++        return attributeinstance == null ? 16.0D : attributeinstance.getValue();
++    }
++    // Paper end - Fix MC-145656
+ }

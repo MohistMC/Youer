@@ -55,13 +55,18 @@
              TestCommand.register(this.dispatcher);
              RaidCommand.register(this.dispatcher, p_230944_);
              DebugPathCommand.register(this.dispatcher);
-@@ -248,7 +_,26 @@
+@@ -248,7 +_,32 @@
          if (p_230943_.includeIntegrated) {
              PublishCommand.register(this.dispatcher);
          }
--
 +        net.neoforged.neoforge.event.EventHooks.onCommandRegister(this.dispatcher, p_230943_, p_230944_);
-+
++        // Paper start - Vanilla command permission fixes
++        for (final CommandNode<CommandSourceStack> node : this.dispatcher.getRoot().getChildren()) {
++            if (node.getRequirement() == com.mojang.brigadier.builder.ArgumentBuilder.<CommandSourceStack>defaultRequirement()) {
++                node.requirement = stack -> stack.source == CommandSource.NULL || stack.getBukkitSender().hasPermission(org.bukkit.craftbukkit.command.VanillaCommandWrapper.getPermission(node));
++            }
++        }
++        // Paper end - Vanilla command permission fixes
 +        // Paper start - Brigadier Command API
 +        // Create legacy minecraft namespace commands
 +        for (final CommandNode<CommandSourceStack> node : new java.util.ArrayList<>(this.dispatcher.getRoot().getChildren())) {
@@ -70,7 +75,7 @@
 +            // Instead, target the first none redirecting node.
 +            CommandNode<CommandSourceStack> flattenedAliasTarget = node;
 +            while (flattenedAliasTarget.getRedirect() != null) flattenedAliasTarget = flattenedAliasTarget.getRedirect();
-+
+ 
 +            this.dispatcher.register(
 +                    LiteralArgumentBuilder.<CommandSourceStack>literal("minecraft:" + node.getName())
 +                            .executes(flattenedAliasTarget.getCommand())
@@ -83,7 +88,7 @@
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
      }
  
-@@ -258,14 +_,88 @@
+@@ -258,14 +_,89 @@
          return new ParseResults<>(commandcontextbuilder1, p_242928_.getReader(), p_242928_.getExceptions());
      }
  
@@ -105,6 +110,7 @@
 +        command = event.getCommand();
 +
 +        String[] args = command.split(" ");
++        if (args.length == 0) return; // Paper - empty commands shall not be dispatched
 +
 +        String cmd = args[0];
 +        if (cmd.startsWith("minecraft:")) cmd = cmd.substring("minecraft:".length());

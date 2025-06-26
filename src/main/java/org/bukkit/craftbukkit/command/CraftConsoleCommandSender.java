@@ -31,7 +31,7 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
 
     @Override
     public void sendRawMessage(UUID sender, String message) {
-      this.sendRawMessage(message); // Console doesn't know of senders
+        this.sendRawMessage(message); // Console doesn't know of senders
     }
 
     @Override
@@ -87,4 +87,21 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
     public boolean isConversing() {
         return this.conversationTracker.isConversing();
     }
+
+    // Paper start
+    @Override
+    public void sendMessage(final net.kyori.adventure.identity.Identity identity, final net.kyori.adventure.text.Component message, final net.kyori.adventure.audience.MessageType type) {
+        this.sendRawMessage(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(message));
+    }
+
+    @Override
+    public boolean hasPermission(String name) {
+        return io.papermc.paper.configuration.GlobalConfiguration.get().console.hasAllPermissions || super.hasPermission(name);
+    }
+
+    @Override
+    public boolean hasPermission(org.bukkit.permissions.Permission perm) {
+        return io.papermc.paper.configuration.GlobalConfiguration.get().console.hasAllPermissions || super.hasPermission(perm);
+    }
+    // Paper end
 }

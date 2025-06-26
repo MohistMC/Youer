@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/entity/SignBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/SignBlockEntity.java
+@@ -20,6 +_,7 @@
+ import net.minecraft.network.chat.Style;
+ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+ import net.minecraft.server.level.ServerLevel;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.server.network.FilteredText;
+ import net.minecraft.sounds.SoundEvent;
+ import net.minecraft.sounds.SoundEvents;
 @@ -30,9 +_,12 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.phys.Vec2;
@@ -14,7 +22,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final int MAX_TEXT_LINE_WIDTH = 90;
      private static final int TEXT_LINE_HEIGHT = 10;
-@@ -146,7 +_,7 @@
+@@ -146,11 +_,13 @@
  
      public void updateSignText(Player p_278048_, boolean p_278103_, List<FilteredText> p_277990_) {
          if (!this.isWaxed() && p_278048_.getUUID().equals(this.getPlayerWhoMayEdit()) && this.level != null) {
@@ -23,6 +31,12 @@
              this.setAllowedPlayerEditor(null);
              this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 3);
          } else {
+             LOGGER.warn("Player {} just tried to change non-editable sign", p_278048_.getName().getString());
++            if (p_278048_.distanceToSqr(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ()) < 32 * 32) // Paper - Dont send far away sign update
++            ((ServerPlayer) p_278048_).connection.send(this.getUpdatePacket()); // CraftBukkit
+         }
+     }
+ 
 @@ -159,7 +_,8 @@
          return this.setText(p_277877_.apply(signtext), p_277426_);
      }
@@ -67,7 +81,6 @@
          return flag;
      }
  
--    private static CommandSourceStack createCommandSourceStack(@Nullable Player p_279428_, Level p_279359_, BlockPos p_279430_) {
 +    // CraftBukkit start
 +    @Override
 +    public void sendSystemMessage(Component ichatbasecomponent) {}
@@ -92,12 +105,12 @@
 +        return false;
 +    }
 +
-+    private CommandSourceStack createCommandSourceStack(@Nullable Player p_279428_, Level p_279359_, BlockPos p_279430_) {
+     private static CommandSourceStack createCommandSourceStack(@Nullable Player p_279428_, Level p_279359_, BlockPos p_279430_) {
          String s = p_279428_ == null ? "Sign" : p_279428_.getName().getString();
          Component component = (Component)(p_279428_ == null ? Component.literal("Sign") : p_279428_.getDisplayName());
          return new CommandSourceStack(
 -            CommandSource.NULL, Vec3.atCenterOf(p_279430_), Vec2.ZERO, (ServerLevel)p_279359_, 2, s, component, p_279359_.getServer(), p_279428_
-+                this, Vec3.atCenterOf(p_279430_), Vec2.ZERO, (ServerLevel)p_279359_, 2, s, component, p_279359_.getServer(), p_279428_
++                CommandSource.NULL, Vec3.atCenterOf(p_279430_), Vec2.ZERO, (ServerLevel)p_279359_, 2, s, component, p_279359_.getServer(), p_279428_
          );
      }
  

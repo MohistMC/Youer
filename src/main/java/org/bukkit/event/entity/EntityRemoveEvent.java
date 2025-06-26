@@ -112,5 +112,6 @@ public class EntityRemoveEvent extends EntityEvent {
          * When the chunk an entity is in gets unloaded.
          */
         UNLOAD,
+        DISCARD
     }
 }

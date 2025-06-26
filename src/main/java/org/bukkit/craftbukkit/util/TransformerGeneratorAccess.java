@@ -39,22 +39,6 @@ public class TransformerGeneratorAccess extends DelegatedGeneratorAccess {
         return super.addFreshEntity(arg0, arg1);
     }
 
-    @Override
-    public void addFreshEntityWithPassengers(Entity entity) {
-        if (this.structureTransformer != null && !this.structureTransformer.transformEntity(entity)) {
-            return;
-        }
-        super.addFreshEntityWithPassengers(entity);
-    }
-
-    @Override
-    public void addFreshEntityWithPassengers(Entity arg0, SpawnReason arg1) {
-        if (this.structureTransformer != null && !this.structureTransformer.transformEntity(arg0)) {
-            return;
-        }
-        super.addFreshEntityWithPassengers(arg0, arg1);
-    }
-
     public boolean setCraftBlock(BlockPos position, CraftBlockState craftBlockState, int i, int j) {
         if (this.structureTransformer != null) {
             craftBlockState = this.structureTransformer.transformCraftState(craftBlockState);

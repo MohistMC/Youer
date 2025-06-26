@@ -1,0 +1,64 @@
+--- a/net/minecraft/world/level/chunk/EmptyLevelChunk.java
++++ b/net/minecraft/world/level/chunk/EmptyLevelChunk.java
+@@ -13,7 +_,7 @@
+ import net.minecraft.world.level.material.FluidState;
+ import net.minecraft.world.level.material.Fluids;
+ 
+-public class EmptyLevelChunk extends LevelChunk {
++public class EmptyLevelChunk extends LevelChunk implements ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk { // Paper - rewrite chunk system
+     private final Holder<Biome> biome;
+ 
+     public EmptyLevelChunk(Level p_204422_, ChunkPos p_204423_, Holder<Biome> p_204424_) {
+@@ -21,10 +_,52 @@
+         this.biome = p_204424_;
+     }
+ 
++    // Paper start - rewrite chunk system
++    @Override
++    public ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] starlight$getBlockNibbles() {
++        return ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine.getFilledEmptyLight(this.getLevel());
++    }
++
++    @Override
++    public void starlight$setBlockNibbles(final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] nibbles) {}
++
++    @Override
++    public ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] starlight$getSkyNibbles() {
++        return ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine.getFilledEmptyLight(this.getLevel());
++    }
++
++    @Override
++    public void starlight$setSkyNibbles(final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] nibbles) {}
++
++    @Override
++    public boolean[] starlight$getSkyEmptinessMap() {
++        return null;
++    }
++
++    @Override
++    public void starlight$setSkyEmptinessMap(final boolean[] emptinessMap) {}
++
++    @Override
++    public boolean[] starlight$getBlockEmptinessMap() {
++        return null;
++    }
++
++    @Override
++    public void starlight$setBlockEmptinessMap(final boolean[] emptinessMap) {}
++    // Paper end - rewrite chunk system
++
+     @Override
+     public BlockState getBlockState(BlockPos p_62625_) {
+         return Blocks.VOID_AIR.defaultBlockState();
+     }
++
++    // Paper start
++    @Override
++    public BlockState getBlockState(final int x, final int y, final int z) {
++        return Blocks.VOID_AIR.defaultBlockState();
++    }
++    // Paper end
++
+ 
+     @Nullable
+     @Override

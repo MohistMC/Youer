@@ -111,12 +111,13 @@
          ServerLevel serverlevel = this.server.getLevel(resourcekey);
          ServerLevel serverlevel1;
          if (serverlevel == null) {
-@@ -161,36 +_,43 @@
+@@ -161,36 +_,44 @@
          } else {
              serverlevel1 = serverlevel;
          }
 -
 +        if (optional1.isEmpty() ) {
++            p_11263_.spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT; // set Player SpawnReason to DEFAULT on first login
 +            // Paper end - reset to main world spawn if first spawn or invalid world
 +            p_11263_.moveTo(p_11263_.adjustSpawnLocation(serverlevel1, serverlevel1.getSharedSpawnPos()).getBottomCenter(), serverlevel1.getSharedSpawnAngle(), 0.0F); // Paper - MC-200092 - fix first spawn pos yaw being ignored
 +        }
@@ -180,7 +181,7 @@
          servergamepacketlistenerimpl.send(new ClientboundUpdateRecipesPacket(this.server.getRecipeManager().getOrderedRecipes()));
          this.sendPlayerPermissionLevel(p_11263_);
          p_11263_.getStats().markAllDirty();
-@@ -214,25 +_,84 @@
+@@ -214,25 +_,87 @@
              mutablecomponent = Component.translatable("multiplayer.player.joined.renamed", p_11263_.getDisplayName(), s);
          }
  
@@ -267,7 +268,10 @@
 +            net.minecraft.server.level.ServerLevel finalServerlevel = serverlevel1;
              Entity entity = EntityType.loadEntityRecursive(
 -                compoundtag.getCompound("Entity"), serverlevel1, p_215603_ -> !serverlevel1.addWithUUID(p_215603_) ? null : p_215603_
-+                compoundtag.getCompound("Entity"), serverlevel1, p_215603_ -> !finalServerlevel.addWithUUID(p_215603_) ? null : p_215603_
++                compoundtag.getCompound("Entity"), serverlevel1, p_215603_ -> {
++                        p_215603_.spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.MOUNT; // Paper - Entity#getEntitySpawnReason
++                        return !finalServerlevel.addWithUUID(p_215603_) ? null : p_215603_;
++                    }
              );
              if (entity != null) {
                  UUID uuid;
@@ -353,7 +357,7 @@
          this.playerIo.save(p_11277_);
          ServerStatsCounter serverstatscounter = this.stats.get(p_11277_.getUUID());
          if (serverstatscounter != null) {
-@@ -350,23 +_,45 @@
+@@ -350,23 +_,55 @@
          }
      }
  
@@ -387,7 +391,17 @@
                  LOGGER.debug("Removing player mount");
                  p_11287_.stopRiding();
 -                entity.getPassengersAndSelf().forEach(p_215620_ -> p_215620_.setRemoved(Entity.RemovalReason.UNLOADED_WITH_PLAYER));
-+                entity.getPassengersAndSelf().forEach(p_215620_ -> p_215620_.setRemovedCB(Entity.RemovalReason.UNLOADED_WITH_PLAYER, org.bukkit.event.entity.EntityRemoveEvent.Cause.PLAYER_QUIT)); // CraftBukkit - add Bukkit remove cause
++                entity.getPassengersAndSelf().forEach(p_215620_ -> {
++                    // Paper start - Fix villager boat exploit
++                    if (p_215620_ instanceof net.minecraft.world.entity.npc.AbstractVillager villager) {
++                        final net.minecraft.world.entity.player.Player human = villager.getTradingPlayer();
++                        if (human != null) {
++                            villager.setTradingPlayer(null);
++                        }
++                    }
++                    // Paper end - Fix villager boat exploit
++                    p_215620_.setRemovedCB(Entity.RemovalReason.UNLOADED_WITH_PLAYER, org.bukkit.event.entity.EntityRemoveEvent.Cause.PLAYER_QUIT);
++                }); // CraftBukkit - add Bukkit remove cause
              }
          }
  
@@ -453,7 +467,7 @@
 +        while (iterator.hasNext()) {
 +            entityplayer = (ServerPlayer) iterator.next();
 +            save(entityplayer); // CraftBukkit - Force the player's inventory to be saved
-+            entityplayer.connection.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
++            entityplayer.connection.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"), org.bukkit.event.player.PlayerKickEvent.Cause.DUPLICATE_LOGIN); // Paper - kick event cause
 +        }
 +        // Instead of kicking then returning, we need to store the kick reason
 +        // in the event, check with plugins to see if it's ok, and THEN kick
@@ -530,7 +544,7 @@
          UUID uuid = p_295670_.getId();
          Set<ServerPlayer> set = Sets.newIdentityHashSet();
  
-@@ -434,19 +_,43 @@
+@@ -434,72 +_,138 @@
          }
  
          return !set.isEmpty();
@@ -564,7 +578,8 @@
 +        dimensiontransition = event.getDimensionTransition();
 +
          ServerLevel serverlevel = dimensiontransition.newLevel();
-         ServerPlayer serverplayer = new ServerPlayer(this.server, serverlevel, p_11237_.getGameProfile(), p_11237_.clientInformation());
+-        ServerPlayer serverplayer = new ServerPlayer(this.server, serverlevel, p_11237_.getGameProfile(), p_11237_.clientInformation());
++        ServerPlayer serverplayer = p_11237_;
          serverplayer.connection = p_11237_.connection;
          serverplayer.restoreFrom(p_11237_, p_11238_);
          serverplayer.setId(p_11237_.getId());
@@ -576,7 +591,23 @@
              serverplayer.copyRespawnPosition(p_11237_);
          }
  
-@@ -464,42 +_,78 @@
+         for (String s : p_11237_.getTags()) {
+             serverplayer.addTag(s);
+         }
++        serverplayer.spawnIn(serverlevel);
++        serverplayer.unsetRemoved();
++        serverplayer.setShiftKeyDown(false);
+ 
+         Vec3 vec3 = dimensiontransition.pos();
+-        serverplayer.moveTo(vec3.x, vec3.y, vec3.z, dimensiontransition.yRot(), dimensiontransition.xRot());
++        serverplayer.forceSetPositionRotation(vec3.x, vec3.y, vec3.z, dimensiontransition.yRot(), dimensiontransition.xRot());
++        serverlevel.getChunkSource().addRegionTicket(net.minecraft.server.level.TicketType.POST_TELEPORT, new net.minecraft.world.level.ChunkPos(net.minecraft.util.Mth.floor(vec3.x()) >> 4, net.minecraft.util.Mth.floor(vec3.z()) >> 4), 1, p_11237_.getId()); // Paper
+         if (dimensiontransition.missingRespawnBlock()) {
+             serverplayer.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.NO_RESPAWN_BLOCK_AVAILABLE, 0.0F));
++            serverplayer.setRespawnPosition(null, null, 0f, false, false); // CraftBukkit - SPIGOT-5988: Clear respawn location when obstructed // Paper - PlayerSetSpawnEvent
+         }
+ 
+         byte b0 = (byte)(p_11238_ ? 1 : 0);
          ServerLevel serverlevel1 = serverplayer.serverLevel();
          LevelData leveldata = serverlevel1.getLevelData();
          serverplayer.connection.send(new ClientboundRespawnPacket(serverplayer.createCommonSpawnInfo(serverlevel1), b0));
@@ -592,10 +623,15 @@
          this.sendActivePlayerEffects(serverplayer);
          this.sendLevelInfo(serverplayer, serverlevel);
          this.sendPlayerPermissionLevel(serverplayer);
-         serverlevel.addRespawnedPlayer(serverplayer);
-         this.players.add(serverplayer);
-+        this.playersByName.put(serverplayer.getScoreboardName().toLowerCase(java.util.Locale.ROOT), serverplayer); // Spigot
-         this.playersByUUID.put(serverplayer.getUUID(), serverplayer);
+-        serverlevel.addRespawnedPlayer(serverplayer);
+-        this.players.add(serverplayer);
+-        this.playersByUUID.put(serverplayer.getUUID(), serverplayer);
++        if (!p_11237_.connection.isDisconnected()) {
++            serverlevel.addRespawnedPlayer(serverplayer);
++            this.players.add(serverplayer);
++            this.playersByName.put(serverplayer.getScoreboardName().toLowerCase(java.util.Locale.ROOT), serverplayer); // Spigot
++            this.playersByUUID.put(serverplayer.getUUID(), serverplayer);
++        }
          serverplayer.initInventoryMenu();
          serverplayer.setHealth(serverplayer.getHealth());
 +        net.neoforged.neoforge.event.EventHooks.firePlayerRespawnEvent(serverplayer, p_11238_);
@@ -645,7 +681,6 @@
 +            PlayerChangedWorldEvent eventCWE = new PlayerChangedWorldEvent(p_11237_.getBukkitEntity(), fromWorld.getWorld());
 +            this.server.server.getPluginManager().callEvent(eventCWE);
 +        }
-+
 +
 +        // Save player file again if they were disconnected
 +        if (serverplayer.connection.isDisconnected()) {

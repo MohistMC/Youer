@@ -1,0 +1,112 @@
+--- a/net/minecraft/world/level/chunk/status/ChunkStep.java
++++ b/net/minecraft/world/level/chunk/status/ChunkStep.java
+@@ -11,9 +_,50 @@
+ import net.minecraft.world.level.chunk.ChunkAccess;
+ import net.minecraft.world.level.chunk.ProtoChunk;
+ 
+-public record ChunkStep(
+-    ChunkStatus targetStatus, ChunkDependencies directDependencies, ChunkDependencies accumulatedDependencies, int blockStateWriteRadius, ChunkStatusTask task
+-) {
++public final class ChunkStep implements ca.spottedleaf.moonrise.patches.chunk_system.status.ChunkSystemChunkStep { // Paper - rewrite chunk system
++
++    private final ChunkStatus targetStatus;
++    private final ChunkDependencies directDependencies;
++    private final ChunkDependencies accumulatedDependencies;
++    private final int blockStateWriteRadius;
++    private final ChunkStatusTask task;
++
++    private final ChunkStatus[] byRadius; // Paper - rewrite chunk system
++
++    public ChunkStep(
++            ChunkStatus targetStatus, ChunkDependencies directDependencies, ChunkDependencies accumulatedDependencies, int blockStateWriteRadius, ChunkStatusTask task
++    ) {
++        this.targetStatus = targetStatus;
++        this.directDependencies = directDependencies;
++        this.accumulatedDependencies = accumulatedDependencies;
++        this.blockStateWriteRadius = blockStateWriteRadius;
++        this.task = task;
++
++        // Paper start - rewrite chunk system
++        this.byRadius = new ChunkStatus[this.getAccumulatedRadiusOf(ChunkStatus.EMPTY) + 1];
++        this.byRadius[0] = targetStatus.getParent();
++
++        for (ChunkStatus status = targetStatus.getParent(); status != ChunkStatus.EMPTY; status = status.getParent()) {
++            final int radius = this.getAccumulatedRadiusOf(status);
++
++            for (int j = 0; j <= radius; ++j) {
++                if (this.byRadius[j] == null) {
++                    this.byRadius[j] = status;
++                }
++            }
++        }
++        // Paper end - rewrite chunk system
++    }
++
++    // Paper start - rewrite chunk system
++    @Override
++    public final ChunkStatus moonrise$getRequiredStatusAtRadius(final int radius) {
++        return this.byRadius[radius];
++    }
++    // Paper end - rewrite chunk system
++
++    // Paper start - rewerite chunk system - convert record to class
++
+     public int getAccumulatedRadiusOf(ChunkStatus p_347454_) {
+         return p_347454_ == this.targetStatus ? 0 : this.accumulatedDependencies.getRadiusOf(p_347454_);
+     }
+@@ -39,6 +_,55 @@
+ 
+         return p_347705_;
+     }
++
++    // Paper start - rewerite chunk system - convert record to class
++    public ChunkStatus targetStatus() {
++        return targetStatus;
++    }
++
++    public ChunkDependencies directDependencies() {
++        return directDependencies;
++    }
++
++    public ChunkDependencies accumulatedDependencies() {
++        return accumulatedDependencies;
++    }
++
++    public int blockStateWriteRadius() {
++        return blockStateWriteRadius;
++    }
++
++    public ChunkStatusTask task() {
++        return task;
++    }
++
++    @Override
++    public boolean equals(Object obj) {
++        if (obj == this) return true;
++        if (obj == null || obj.getClass() != this.getClass()) return false;
++        var that = (net.minecraft.world.level.chunk.status.ChunkStep) obj;
++        return java.util.Objects.equals(this.targetStatus, that.targetStatus) &&
++                java.util.Objects.equals(this.directDependencies, that.directDependencies) &&
++                java.util.Objects.equals(this.accumulatedDependencies, that.accumulatedDependencies) &&
++                this.blockStateWriteRadius == that.blockStateWriteRadius &&
++                java.util.Objects.equals(this.task, that.task);
++    }
++
++    @Override
++    public int hashCode() {
++        return java.util.Objects.hash(targetStatus, directDependencies, accumulatedDependencies, blockStateWriteRadius, task);
++    }
++
++    @Override
++    public String toString() {
++        return "ChunkStep[" +
++                "targetStatus=" + targetStatus + ", " +
++                "directDependencies=" + directDependencies + ", " +
++                "accumulatedDependencies=" + accumulatedDependencies + ", " +
++                "blockStateWriteRadius=" + blockStateWriteRadius + ", " +
++                "task=" + task + ']';
++    }
++    // Paper end - rewerite chunk system - convert record to class
+ 
+     public static class Builder {
+         private final ChunkStatus status;

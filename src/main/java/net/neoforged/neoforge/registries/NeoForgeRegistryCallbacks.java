@@ -52,7 +52,9 @@ class NeoForgeRegistryCallbacks {
             // State cache init cannot be done in onAdd because some of it might depend on other registries being populated in mod code.
             // Loot table init cannot be done in onAdd because the loot table supplier might depend on blocks registered later.
             for (Block block : addedBlocks) {
-                block.getStateDefinition().getPossibleStates().forEach(BlockBehaviour.BlockStateBase::initCache);
+                for (BlockState blockState : block.getStateDefinition().getPossibleStates()) {
+                    blockState.initCache();
+                }
                 block.getLootTable();
             }
             addedBlocks.clear();

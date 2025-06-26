@@ -859,4 +859,19 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      */
     @NotNull io.papermc.paper.threadedregions.scheduler.EntityScheduler getScheduler();
     // Paper end - Folia schedulers
+
+    /**
+     * Returns whether this entity was spawned from a mob spawner.
+     *
+     * @return True if entity spawned from a mob spawner
+     */
+    boolean fromMobSpawner();
+    // Paper end
+
+    /**
+     * @return The {@link org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason} that initially spawned this entity. <!-- Paper - added "initially" to clarify that the SpawnReason doesn't change after the Entity was initially spawned" -->
+     */
+    @NotNull
+    org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason getEntitySpawnReason();
+    // Paper end
 }

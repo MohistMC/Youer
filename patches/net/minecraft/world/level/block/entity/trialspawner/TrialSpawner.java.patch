@@ -8,15 +8,16 @@
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import java.util.Optional;
  import java.util.UUID;
-@@ -42,6 +_,7 @@
+@@ -42,6 +_,8 @@
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.CollisionContext;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.CreatureSpawnEvent;
  
  public final class TrialSpawner implements net.neoforged.neoforge.common.extensions.IOwnedSpawner {
      public static final String NORMAL_CONFIG_TAG_NAME = "normal_config";
-@@ -229,15 +_,20 @@
+@@ -229,15 +_,22 @@
                                  }
  
                                  boolean flag = spawndata.getEntityToSpawn().size() == 1 && spawndata.getEntityToSpawn().contains("id", 8);
@@ -32,11 +33,13 @@
                              }
  
 -                            if (!p_312582_.tryAddFreshEntityWithPassengers(entity)) {
++                            entity.spawnedViaMobSpawner = true; // Paper
 +                            // CraftBukkit start
++                            entity.spawnReason(CreatureSpawnEvent.SpawnReason.TRIAL_SPAWNER);  // Paper - Entity#getEntitySpawnReason
 +                            if (CraftEventFactory.callTrialSpawnerSpawnEvent(entity, p_312518_).isCancelled()) {
 +                                return Optional.empty();
 +                            }
-+                            if (!p_312582_.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.TRIAL_SPAWNER)) {
++                            if (!p_312582_.tryAddFreshEntityWithPassengers(entity, CreatureSpawnEvent.SpawnReason.TRIAL_SPAWNER)) {
 +                                // CraftBukkit end
                                  return Optional.empty();
                              } else {

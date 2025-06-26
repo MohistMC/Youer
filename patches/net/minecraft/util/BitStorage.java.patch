@@ -1,0 +1,34 @@
+--- a/net/minecraft/util/BitStorage.java
++++ b/net/minecraft/util/BitStorage.java
+@@ -2,7 +_,7 @@
+ 
+ import java.util.function.IntConsumer;
+ 
+-public interface BitStorage {
++public interface BitStorage extends ca.spottedleaf.moonrise.patches.block_counting.BlockCountingBitStorage { // Paper - block counting
+     int getAndSet(int p_13517_, int p_13518_);
+ 
+     void set(int p_13525_, int p_13526_);
+@@ -20,4 +_,22 @@
+     void unpack(int[] p_198162_);
+ 
+     BitStorage copy();
++
++    // Paper start - block counting
++    // provide default impl in case mods implement this...
++    @Override
++    public default it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<it.unimi.dsi.fastutil.ints.IntArrayList> moonrise$countEntries() {
++        final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<it.unimi.dsi.fastutil.ints.IntArrayList> ret = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>();
++
++        final int size = this.getSize();
++        for (int index = 0; index < size; ++index) {
++            final int paletteIdx = this.get(index);
++            ret.computeIfAbsent(paletteIdx, (final int key) -> {
++                return new it.unimi.dsi.fastutil.ints.IntArrayList();
++            }).add(index);
++        }
++
++        return ret;
++    }
++    // Paper end - block counting
+ }

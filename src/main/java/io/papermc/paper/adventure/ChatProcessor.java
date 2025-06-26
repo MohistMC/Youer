@@ -50,7 +50,6 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
 
 @DefaultQualifier(NonNull.class)
 public final class ChatProcessor {
-    static final ResourceKey<ChatType> PAPER_RAW = ResourceKey.create(Registries.CHAT_TYPE, ResourceLocation.fromNamespaceAndPath(ResourceLocation.PAPER_NAMESPACE, "raw"));
     static final String DEFAULT_LEGACY_FORMAT = "<%1$s> %2$s"; // copied from PlayerChatEvent/AsyncPlayerChatEvent
     final MinecraftServer server;
     final ServerPlayer player;
@@ -186,7 +185,7 @@ public final class ChatProcessor {
         final ChatRenderer renderer = event.renderer();
 
         final Set<Audience> viewers = event.viewers();
-        final ResourceKey<ChatType> chatTypeKey = renderer instanceof ChatRenderer.Default ? ChatType.CHAT : PAPER_RAW;
+        final ResourceKey<ChatType> chatTypeKey = ChatType.CHAT;
         final ChatType.Bound chatType = ChatType.bind(chatTypeKey, this.player.level().registryAccess(), PaperAdventure.asVanilla(displayName(player)));
 
         OutgoingChat outgoingChat = viewers instanceof LazyChatAudienceSet lazyAudienceSet && lazyAudienceSet.isLazy() ? new ServerOutgoingChat() : new ViewersOutgoingChat();

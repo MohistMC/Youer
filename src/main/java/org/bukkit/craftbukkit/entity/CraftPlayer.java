@@ -279,7 +279,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
         void sendPacket(Packet<?> packet);
 
-        void kickPlayer(Component reason);
+        void kickPlayer(Component reason, org.bukkit.event.player.PlayerKickEvent.Cause cause); // Paper - kick event causes
     }
 
     public record CookieFuture(ResourceLocation key, CompletableFuture<byte[]> future) {
@@ -524,7 +524,8 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void kickPlayer(String message) {
-        getHandle().transferCookieConnection.kickPlayer(CraftChatMessage.fromStringOrEmpty(message, true));
+        org.spigotmc.AsyncCatcher.catchOp("player kick"); // Spigot
+        this.getHandle().transferCookieConnection.kickPlayer(CraftChatMessage.fromStringOrEmpty(message, true), org.bukkit.event.player.PlayerKickEvent.Cause.PLUGIN); // Paper - kick event cause
     }
 
     // Paper start
@@ -536,10 +537,15 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void kick(final net.kyori.adventure.text.Component message) {
+        kick(message, org.bukkit.event.player.PlayerKickEvent.Cause.PLUGIN);
+    }
+
+    @Override
+    public void kick(net.kyori.adventure.text.Component message, org.bukkit.event.player.PlayerKickEvent.Cause cause) {
         org.spigotmc.AsyncCatcher.catchOp("player kick");
         final ServerGamePacketListenerImpl connection = this.getHandle().connection;
         if (connection != null) {
-            connection.disconnect(message == null ? net.kyori.adventure.text.Component.empty() : message);
+            connection.disconnect(message == null ? net.kyori.adventure.text.Component.empty() : message, cause);
         }
     }
 
@@ -3060,4 +3066,57 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         return getHandle().clientBrandName;
     }
     // Paper end
+
+    private boolean simplifyContainerDesyncCheck = io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.simplifyRemoteItemMatching;
+    /**
+     * Returns whether container desync checks should skip the full item comparison of remote carried and changed slots
+     * and should instead only check their type and amount.
+     * <p>
+     * This is useful if the client is not able to produce the same item stack (or as of 1.21.5, its data hashes) as the server.
+     *
+     * @return whether to simplify container desync checks
+     */
+    public boolean simplifyContainerDesyncCheck() {
+        return simplifyContainerDesyncCheck;
+    }
+
+    public void setSimplifyContainerDesyncCheck(final boolean simplifyContainerDesyncCheck) {
+        this.simplifyContainerDesyncCheck = simplifyContainerDesyncCheck;
+    }
+
+    @Override
+    public int getViewDistance() {
+        return ca.spottedleaf.moonrise.common.util.ChunkSystem.getLoadViewDistance(this.getHandle()) - 1;
+    }
+
+    @Override
+    public void setViewDistance(final int viewDistance) {
+        // Paper - rewrite chunk system - TODO do this better
+        ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer)this.getHandle())
+                .moonrise$getViewDistanceHolder().setLoadViewDistance(viewDistance + 1);
+    }
+
+    @Override
+    public int getSimulationDistance() {
+        return ca.spottedleaf.moonrise.common.util.ChunkSystem.getTickViewDistance(this.getHandle());
+    }
+
+    @Override
+    public void setSimulationDistance(final int simulationDistance) {
+        // Paper - rewrite chunk system - TODO do this better
+        ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer)this.getHandle())
+                .moonrise$getViewDistanceHolder().setTickViewDistance(simulationDistance);
+    }
+
+    @Override
+    public int getSendViewDistance() {
+        return ca.spottedleaf.moonrise.common.util.ChunkSystem.getSendViewDistance(this.getHandle());
+    }
+
+    @Override
+    public void setSendViewDistance(final int viewDistance) {
+        // Paper - rewrite chunk system - TODO do this better
+        ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer)this.getHandle())
+                .moonrise$getViewDistanceHolder().setSendViewDistance(viewDistance);
+    }
 }

@@ -1,17 +1,135 @@
 --- a/net/minecraft/world/level/EntityGetter.java
 +++ b/net/minecraft/world/level/EntityGetter.java
-@@ -97,11 +_,31 @@
-         return this.getNearestPlayer(p_45931_.getX(), p_45931_.getY(), p_45931_.getZ(), p_45932_, false);
+@@ -18,7 +_,7 @@
+ import net.minecraft.world.phys.shapes.Shapes;
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ 
+-public interface EntityGetter {
++public interface EntityGetter extends ca.spottedleaf.moonrise.patches.chunk_system.world.ChunkSystemEntityGetter { // Paper - rewrite chunk system
+     List<Entity> getEntities(@Nullable Entity p_45936_, AABB p_45937_, Predicate<? super Entity> p_45938_);
+ 
+     <T extends Entity> List<T> getEntities(EntityTypeTest<Entity, T> p_151464_, AABB p_151465_, Predicate<? super T> p_151466_);
+@@ -33,21 +_,44 @@
+         return this.getEntities(p_45934_, p_45935_, EntitySelector.NO_SPECTATORS);
      }
  
++    // Paper start - rewrite chunk system
++    @Override
++    default List<Entity> moonrise$getHardCollidingEntities(final Entity entity, final AABB box, final Predicate<? super Entity> predicate) {
++        return this.getEntities(entity, box, predicate);
++    }
++    // Paper end - rewrite chunk system
++
++    // Paper start - optimise collisions
+     default boolean isUnobstructed(@Nullable Entity p_45939_, VoxelShape p_45940_) {
+         if (p_45940_.isEmpty()) {
+-            return true;
+-        } else {
+-            for (Entity entity : this.getEntities(p_45939_, p_45940_.bounds())) {
+-                if (!entity.isRemoved()
+-                    && entity.blocksBuilding
+-                    && (p_45939_ == null || !entity.isPassengerOfSameVehicle(p_45939_))
+-                    && Shapes.joinIsNotEmpty(p_45940_, Shapes.create(entity.getBoundingBox()), BooleanOp.AND)) {
+-                    return false;
++            return false;
++        }
++
++        final AABB singleAABB = ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)p_45940_).moonrise$getSingleAABBRepresentation();
++        final List<Entity> entities = this.getEntities(
++                p_45939_,
++                singleAABB == null ? p_45940_.bounds() : singleAABB.inflate(-ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON, -ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON, -ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON)
++        );
++
++        for (int i = 0, len = entities.size(); i < len; ++i) {
++            final Entity otherEntity = entities.get(i);
++
++            if (otherEntity.isRemoved() || !otherEntity.blocksBuilding || (p_45939_ != null && otherEntity.isPassengerOfSameVehicle(p_45939_))) {
++                continue;
++            }
++
++            if (singleAABB == null) {
++                final AABB entityBB = otherEntity.getBoundingBox();
++                if (ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isEmpty(entityBB) || !ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.voxelShapeIntersectNoEmpty(p_45940_, entityBB)) {
++                    continue;
+                 }
+             }
+ 
+-            return true;
++            return false;
+         }
++
++        return true;
++        // Paper end - optimise collisions
+     }
+ 
+     default <T extends Entity> List<T> getEntitiesOfClass(Class<T> p_45977_, AABB p_45978_) {
+@@ -55,24 +_,48 @@
+     }
+ 
+     default List<VoxelShape> getEntityCollisions(@Nullable Entity p_186451_, AABB p_186452_) {
+-        if (p_186452_.getSize() < 1.0E-7) {
+-            return List.of();
++        // Paper start - optimise collisions
++        // first behavior change is to correctly check for empty AABB
++        if (ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isEmpty(p_186452_)) {
++            // reduce indirection by always returning type with same class
++            return new java.util.ArrayList<>();
++        }
++
++        // to comply with vanilla intersection rules, expand by -epsilon so that we only get stuff we definitely collide with.
++        // Vanilla for hard collisions has this backwards, and they expand by +epsilon but this causes terrible problems
++        // specifically with boat collisions.
++        p_186452_ = p_186452_.inflate(-ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON, -ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON, -ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON);
++
++        final List<Entity> entities;
++        if (p_186451_ != null && ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)p_186451_).moonrise$isHardColliding()) {
++            entities = this.getEntities(p_186451_, p_186452_, null);
+         } else {
+-            Predicate<Entity> predicate = p_186451_ == null ? EntitySelector.CAN_BE_COLLIDED_WITH : EntitySelector.NO_SPECTATORS.and(p_186451_::canCollideWith);
+-            List<Entity> list = this.getEntities(p_186451_, p_186452_.inflate(1.0E-7), predicate);
+-            if (list.isEmpty()) {
+-                return List.of();
+-            } else {
+-                Builder<VoxelShape> builder = ImmutableList.builderWithExpectedSize(list.size());
+-
+-                for (Entity entity : list) {
+-                    builder.add(Shapes.create(entity.getBoundingBox()));
+-                }
+-
+-                return builder.build();
+-            }
+-        }
+-    }
++            entities = ((ca.spottedleaf.moonrise.patches.chunk_system.world.ChunkSystemEntityGetter)this).moonrise$getHardCollidingEntities(p_186451_, p_186452_, null);
++        }
++
++        final List<VoxelShape> ret = new java.util.ArrayList<>(Math.min(25, entities.size()));
++
++        for (int i = 0, len = entities.size(); i < len; ++i) {
++            final Entity otherEntity = entities.get(i);
++
++            if (otherEntity.isSpectator()) {
++                continue;
++            }
++
++            if ((p_186451_ == null && otherEntity.canBeCollidedWith()) || (p_186451_ != null && p_186451_.canCollideWith(otherEntity))) {
++                ret.add(Shapes.create(otherEntity.getBoundingBox()));
++            }
++        }
++
++        return ret;
++        // Paper end - optimise collisions
++    }
++
 +    // Paper start - Affects Spawning API
 +    default @Nullable Player findNearbyPlayer(Entity entity, double maxDistance, @Nullable Predicate<Entity> predicate) {
 +        return this.getNearestPlayer(entity.getX(), entity.getY(), entity.getZ(), maxDistance, predicate);
 +    }
 +    // Paper end - Affects Spawning API
-+
+ 
      @Nullable
-     default Player getNearestPlayer(double p_45925_, double p_45926_, double p_45927_, double p_45928_, boolean p_45929_) {
+     default Player getNearestPlayer(double p_45919_, double p_45920_, double p_45921_, double p_45922_, @Nullable Predicate<Entity> p_45923_) {
+@@ -102,6 +_,20 @@
          Predicate<Entity> predicate = p_45929_ ? EntitySelector.NO_CREATIVE_OR_SPECTATOR : EntitySelector.NO_SPECTATORS;
          return this.getNearestPlayer(p_45925_, p_45926_, p_45927_, p_45928_, predicate);
      }

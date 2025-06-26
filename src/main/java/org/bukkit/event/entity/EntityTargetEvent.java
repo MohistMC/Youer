@@ -156,9 +156,17 @@ public class EntityTargetEvent extends EntityEvent implements Cancellable {
         FOLLOW_LEADER,
         /**
          * When another entity tempts this entity by having a desired item such
-         * as wheat in it's hand.
+         * as wheat in its hand.
          */
         TEMPT,
+        /**
+         * When the target is in a different dimension
+         */
+        TARGET_OTHER_LEVEL, // Paper
+        /**
+         * When the target is in creative or spectator gamemode, or the difficulty is peaceful, or other reasons
+         */
+        TARGET_INVALID, // Paper
         /**
          * A currently unknown reason for the entity changing target.
          */

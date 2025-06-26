@@ -1,9 +1,136 @@
 --- a/net/minecraft/world/level/chunk/storage/SectionStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/SectionStorage.java
-@@ -238,4 +_,12 @@
-     public void close() throws IOException {
-         this.simpleRegionStorage.close();
+@@ -31,10 +_,10 @@
+ import net.minecraft.world.level.LevelHeightAccessor;
+ import org.slf4j.Logger;
+ 
+-public class SectionStorage<R> implements AutoCloseable {
++public abstract class SectionStorage<R> implements AutoCloseable, ca.spottedleaf.moonrise.patches.chunk_system.level.storage.ChunkSystemSectionStorage { // Paper - rewrite chunk system
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final String SECTIONS_TAG = "Sections";
+-    private final SimpleRegionStorage simpleRegionStorage;
++    // Paper - rewrite chunk system
+     private final Long2ObjectMap<Optional<R>> storage = new Long2ObjectOpenHashMap<>();
+     private final LongLinkedOpenHashSet dirty = new LongLinkedOpenHashSet();
+     private final Function<Runnable, Codec<R>> codec;
+@@ -43,6 +_,15 @@
+     private final ChunkIOErrorReporter errorReporter;
+     protected final LevelHeightAccessor levelHeightAccessor;
+ 
++    // Paper start - rewrite chunk system
++    private final RegionFileStorage regionStorage;
++
++    @Override
++    public final RegionFileStorage moonrise$getRegionStorage() {
++        return this.regionStorage;
++    }
++    // Paper end - rewrite chunk system
++
+     public SectionStorage(
+         SimpleRegionStorage p_321814_,
+         Function<Runnable, Codec<R>> p_223510_,
+@@ -51,12 +_,13 @@
+         ChunkIOErrorReporter p_352357_,
+         LevelHeightAccessor p_223516_
+     ) {
+-        this.simpleRegionStorage = p_321814_;
++        // Paper - rewrite chunk system
+         this.codec = p_223510_;
+         this.factory = p_223511_;
+         this.registryAccess = p_223515_;
+         this.errorReporter = p_352357_;
+         this.levelHeightAccessor = p_223516_;
++        this.regionStorage = p_321814_.worker.storage; // Paper - rewrite chunk system
      }
+ 
+     protected void tick(BooleanSupplier p_63812_) {
+@@ -121,44 +_,17 @@
+     }
+ 
+     private CompletableFuture<Optional<CompoundTag>> tryRead(ChunkPos p_223533_) {
+-        return this.simpleRegionStorage.read(p_223533_).exceptionally(p_351994_ -> {
+-            if (p_351994_ instanceof IOException ioexception) {
+-                LOGGER.error("Error reading chunk {} data from disk", p_223533_, ioexception);
+-                this.errorReporter.reportChunkLoadFailure(ioexception, this.simpleRegionStorage.storageInfo(), p_223533_);
+-                return Optional.empty();
+-            } else {
+-                throw new CompletionException(p_351994_);
+-            }
+-        });
++        // Paper start - rewrite chunk system
++        try {
++            return CompletableFuture.completedFuture(Optional.ofNullable(this.moonrise$read(p_223533_.x, p_223533_.z)));
++        } catch (final Throwable thr) {
++            return CompletableFuture.failedFuture(thr);
++        }
++        // Paper end - rewrite chunk system
+     }
+ 
+     private void readColumn(ChunkPos p_63802_, RegistryOps<Tag> p_321830_, @Nullable CompoundTag p_321530_) {
+-        if (p_321530_ == null) {
+-            for (int i = this.levelHeightAccessor.getMinSection(); i < this.levelHeightAccessor.getMaxSection(); i++) {
+-                this.storage.put(getKey(p_63802_, i), Optional.empty());
+-            }
+-        } else {
+-            Dynamic<Tag> dynamic1 = new Dynamic<>(p_321830_, p_321530_);
+-            int j = getVersion(dynamic1);
+-            int k = SharedConstants.getCurrentVersion().getDataVersion().getVersion();
+-            boolean flag = j != k;
+-            Dynamic<Tag> dynamic = this.simpleRegionStorage.upgradeChunkTag(dynamic1, j);
+-            OptionalDynamic<Tag> optionaldynamic = dynamic.get("Sections");
+-
+-            for (int l = this.levelHeightAccessor.getMinSection(); l < this.levelHeightAccessor.getMaxSection(); l++) {
+-                long i1 = getKey(p_63802_, l);
+-                Optional<R> optional = optionaldynamic.get(Integer.toString(l))
+-                    .result()
+-                    .flatMap(p_338087_ -> this.codec.apply(() -> this.setDirty(i1)).parse((Dynamic<Tag>)p_338087_).resultOrPartial(LOGGER::error));
+-                this.storage.put(i1, optional);
+-                optional.ifPresent(p_223523_ -> {
+-                    this.onSectionLoad(i1);
+-                    if (flag) {
+-                        this.setDirty(i1);
+-                    }
+-                });
+-            }
+-        }
++        throw new IllegalStateException("Only chunk system can load in state, offending class:" + this.getClass().getName()); // Paper - rewrite chunk system
+     }
+ 
+     private void writeColumn(ChunkPos p_63826_) {
+@@ -166,10 +_,13 @@
+         Dynamic<Tag> dynamic = this.writeColumn(p_63826_, registryops);
+         Tag tag = dynamic.getValue();
+         if (tag instanceof CompoundTag) {
+-            this.simpleRegionStorage.write(p_63826_, (CompoundTag)tag).exceptionally(p_351992_ -> {
+-                this.errorReporter.reportChunkSaveFailure(p_351992_, this.simpleRegionStorage.storageInfo(), p_63826_);
+-                return null;
+-            });
++            // Paper start - rewrite chunk system
++            try {
++                this.moonrise$write(p_63826_.x, p_63826_.z, (net.minecraft.nbt.CompoundTag)tag);
++            } catch (final IOException ex) {
++                LOGGER.error("Error writing poi chunk data to disk for chunk " + p_63826_, ex);
++            }
++            // Paper end - rewrite chunk system
+         } else {
+             LOGGER.error("Expected compound tag, got {}", tag);
+         }
+@@ -209,7 +_,7 @@
+     protected void onSectionLoad(long p_63813_) {
+     }
+ 
+-    protected void setDirty(long p_63788_) {
++    public void setDirty(long p_63788_) {
+         Optional<R> optional = this.storage.get(p_63788_);
+         if (optional != null && !optional.isEmpty()) {
+             this.dirty.add(p_63788_);
+@@ -236,6 +_,14 @@
+ 
+     @Override
+     public void close() throws IOException {
+-        this.simpleRegionStorage.close();
++        this.moonrise$close(); // Paper - rewrite chunk system
++    }
 +
 +    /**
 +     * Neo: Removes the data for the given chunk position.
@@ -11,5 +138,5 @@
 +     */
 +    public void remove(long sectionPosAsLong) {
 +        this.storage.remove(sectionPosAsLong);
-+    }
+     }
  }

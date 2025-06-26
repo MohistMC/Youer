@@ -113,6 +113,24 @@
      }
  
      @Override
+@@ -264,7 +_,7 @@
+         if (this.clientIsFloating && !this.player.isSleeping() && !this.player.isPassenger() && !this.player.isDeadOrDying()) {
+             if (++this.aboveGroundTickCount > this.getMaximumFlyingTicks(this.player)) {
+                 LOGGER.warn("{} was kicked for floating too long!", this.player.getName().getString());
+-                this.disconnect(Component.translatable("multiplayer.disconnect.flying"));
++                this.disconnect(io.papermc.paper.configuration.GlobalConfiguration.get().messages.kick.flyingPlayer, org.bukkit.event.player.PlayerKickEvent.Cause.FLYING_PLAYER); // Paper - use configurable kick message & kick event cause
+                 return;
+             }
+         } else {
+@@ -283,7 +_,7 @@
+             if (this.clientVehicleIsFloating && this.lastVehicle.getControllingPassenger() == this.player) {
+                 if (++this.aboveGroundVehicleTickCount > this.getMaximumFlyingTicks(this.lastVehicle)) {
+                     LOGGER.warn("{} was kicked for floating a vehicle too long!", this.player.getName().getString());
+-                    this.disconnect(Component.translatable("multiplayer.disconnect.flying"));
++                    this.disconnect(io.papermc.paper.configuration.GlobalConfiguration.get().messages.kick.flyingVehicle, org.bukkit.event.player.PlayerKickEvent.Cause.FLYING_VEHICLE); // Paper - use configurable kick message & kick event cause
+                     return;
+                 }
+             } else {
 @@ -297,9 +_,14 @@
          }
  
@@ -129,15 +147,23 @@
  
          if (this.dropSpamTickCount > 0) {
              this.dropSpamTickCount--;
-@@ -308,6 +_,7 @@
+@@ -308,7 +_,8 @@
          if (this.player.getLastActionTime() > 0L
              && this.server.getPlayerIdleTimeout() > 0
              && Util.getMillis() - this.player.getLastActionTime() > (long)this.server.getPlayerIdleTimeout() * 1000L * 60L) {
+-            this.disconnect(Component.translatable("multiplayer.disconnect.idling"));
 +            this.player.resetLastActionTime(); // CraftBukkit - SPIGOT-854
-             this.disconnect(Component.translatable("multiplayer.disconnect.idling"));
++            this.disconnect(Component.translatable("multiplayer.disconnect.idling"), org.bukkit.event.player.PlayerKickEvent.Cause.IDLING); // Paper - kick event cause
          }
      }
-@@ -394,6 +_,13 @@
+ 
+@@ -389,11 +_,18 @@
+     public void handleMoveVehicle(ServerboundMoveVehiclePacket p_9876_) {
+         PacketUtils.ensureRunningOnSameThread(p_9876_, this, this.player.serverLevel());
+         if (containsInvalidValues(p_9876_.getX(), p_9876_.getY(), p_9876_.getZ(), p_9876_.getYRot(), p_9876_.getXRot())) {
+-            this.disconnect(Component.translatable("multiplayer.disconnect.invalid_vehicle_movement"));
++            this.disconnect(Component.translatable("multiplayer.disconnect.invalid_vehicle_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_VEHICLE_MOVEMENT); // Paper - kick event cause
+         } else if (!this.updateAwaitingTeleport()) {
              Entity entity = this.player.getRootVehicle();
              if (entity != this.player && entity.getControllingPassenger() == this.player && entity == this.lastVehicle) {
                  ServerLevel serverlevel = this.player.serverLevel();
@@ -290,6 +316,15 @@
      private boolean noBlocksAround(Entity p_9794_) {
          return p_9794_.level()
              .getBlockStates(p_9794_.getBoundingBox().inflate(0.0625).expandTowards(0.0, -0.55, 0.0))
+@@ -473,7 +_,7 @@
+         PacketUtils.ensureRunningOnSameThread(p_9835_, this, this.player.serverLevel());
+         if (p_9835_.getId() == this.awaitingTeleport) {
+             if (this.awaitingPositionFromClient == null) {
+-                this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"));
++                this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_PLAYER_MOVEMENT); // Paper - kick event cause
+                 return;
+             }
+ 
 @@ -493,6 +_,7 @@
              }
  
@@ -311,8 +346,8 @@
      public void handleCustomCommandSuggestions(ServerboundCommandSuggestionPacket p_9847_) {
          PacketUtils.ensureRunningOnSameThread(p_9847_, this, this.player.serverLevel());
 +        // CraftBukkit start
-+        if (chatSpamTickCount.addAndGet(1) > 500 && !this.server.getPlayerList().isOp(this.player.getGameProfile())) {
-+            this.disconnect(Component.translatable("disconnect.spam"));
++        if (this.chatSpamTickCount.addAndGet(io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.tabSpamIncrement) > io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.tabSpamLimit && !this.server.getPlayerList().isOp(this.player.getGameProfile())) { // Paper - configurable tab spam limits
++            this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - Kick event cause // Paper - add proper async disconnect
 +            return;
 +        }
 +        // CraftBukkit end
@@ -334,7 +369,7 @@
 +        // Paper start - validate pick item position
 +        if (!(p_9880_.getSlot() >= 0 && p_9880_.getSlot() < this.player.getInventory().items.size())) {
 +            ServerGamePacketListenerImpl.LOGGER.warn("{} tried to set an invalid carried item", this.player.getName().getString());
-+            this.disconnect(Component.literal("Invalid hotbar selection (Hacking?)")); // Paper - kick event cause
++            this.disconnect(Component.literal("Invalid hotbar selection (Hacking?)"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION); // Paper - kick event cause
 +            return;
 +        }
 +        // Paper end - validate pick item position
@@ -371,7 +406,7 @@
      public void handleEditBook(ServerboundEditBookPacket p_9862_) {
 +        // CraftBukkit start
 +        if (this.lastBookTick + 20 > MinecraftServer.currentTick) {
-+            this.disconnect(Component.literal("Book edited too quickly!"));
++            this.disconnectAsync(Component.literal("Book edited too quickly!"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION); // Paper - kick event cause
 +            return;
 +        }
 +        this.lastBookTick = MinecraftServer.currentTick;
@@ -379,7 +414,7 @@
          int i = p_9862_.slot();
          if (Inventory.isHotbarSlot(i) || i == 40) {
              List<String> list = Lists.newArrayList();
-@@ -776,10 +_,14 @@
+@@ -776,10 +_,15 @@
      }
  
      private void updateBookContents(List<FilteredText> p_9813_, int p_9814_) {
@@ -392,6 +427,7 @@
              List<Filterable<String>> list = p_9813_.stream().map(this::filterableFromOutgoing).toList();
              itemstack.set(DataComponents.WRITABLE_BOOK_CONTENT, new WritableBookContent(list));
 +            CraftEventFactory.handleEditBookEvent(player, p_9814_, handItem, itemstack); // CraftBukkit
++            this.player.getInventory().setItem(p_9814_, CraftEventFactory.handleEditBookEvent(this.player, p_9814_, handItem, itemstack)); // CraftBukkit // Paper - Don't ignore result (see other callsite for handleEditBookEvent)
          }
      }
  
@@ -405,7 +441,7 @@
          }
      }
  
-@@ -833,6 +_,12 @@
+@@ -833,14 +_,20 @@
          }
      }
  
@@ -418,8 +454,9 @@
      @Override
      public void handleMovePlayer(ServerboundMovePlayerPacket p_9874_) {
          PacketUtils.ensureRunningOnSameThread(p_9874_, this, this.player.serverLevel());
-@@ -840,7 +_,7 @@
-             this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"));
+         if (containsInvalidValues(p_9874_.getX(0.0), p_9874_.getY(0.0), p_9874_.getZ(0.0), p_9874_.getYRot(0.0F), p_9874_.getXRot(0.0F))) {
+-            this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"));
++            this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_PLAYER_MOVEMENT); // Paper - kick event cause
          } else {
              ServerLevel serverlevel = this.player.serverLevel();
 -            if (!this.player.wonGame) {
@@ -724,7 +761,7 @@
 +                        this.dropCount++;
 +                        if (this.dropCount >= 20) {
 +                            LOGGER.warn(this.player.getScoreboardName() + " dropped their items too quickly!");
-+                            this.disconnect(Component.literal("You dropped your items too quickly (Hacking?)"));
++                            this.disconnect(Component.literal("You dropped your items too quickly (Hacking?)"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION); // Paper - kick event cause
 +                            return;
 +                        }
 +                    }
@@ -779,6 +816,15 @@
                              InteractionResult interactionresult = this.player
                                  .gameMode
                                  .useItemOn(this.player, serverlevel, itemstack, interactionhand, blockhitresult);
+@@ -1109,7 +_,7 @@
+                                 && wasBlockPlacementAttempt(this.player, itemstack)) {
+                                 Component component = Component.translatable("build.tooHigh", i - 1).withStyle(ChatFormatting.RED);
+                                 this.player.sendSystemMessage(component, true);
+-                            } else if (interactionresult.shouldSwing()) {
++                            } else if (interactionresult.shouldSwing() && !this.player.gameMode.interactResult) { // Paper - Call interact event
+                                 this.player.swing(interactionhand, true);
+                             }
+                         }
 @@ -1135,6 +_,8 @@
      @Override
      public void handleUseItem(ServerboundUseItemPacket p_9932_) {
@@ -892,12 +938,13 @@
      public void ackBlockChangesUpTo(int p_215202_) {
          if (p_215202_ < 0) {
              throw new IllegalArgumentException("Expected packet sequence nr >= 0");
-@@ -1205,7 +_,16 @@
+@@ -1205,7 +_,17 @@
      @Override
      public void handleSetCarriedItem(ServerboundSetCarriedItemPacket p_9909_) {
          PacketUtils.ensureRunningOnSameThread(p_9909_, this, this.player.serverLevel());
 +        if (this.player.isImmobile()) return; // CraftBukkit
          if (p_9909_.getSlot() >= 0 && p_9909_.getSlot() < Inventory.getSelectionSize()) {
++            if (p_9909_.getSlot() == this.player.getInventory().selected) { return; } // Paper - don't fire itemheldevent when there wasn't a slot change
 +            org.bukkit.event.player.PlayerItemHeldEvent event = new org.bukkit.event.player.PlayerItemHeldEvent(this.getCraftPlayer(), this.player.getInventory().selected, p_9909_.getSlot());
 +            this.cserver.getPluginManager().callEvent(event);
 +            if (event.isCancelled()) {
@@ -913,7 +960,7 @@
              this.player.resetLastActionTime();
          } else {
              LOGGER.warn("{} tried to set an invalid carried item", this.player.getName().getString());
-+            this.disconnect(Component.literal("Invalid hotbar selection (Hacking?)")); // CraftBukkit
++            this.disconnect(Component.literal("Invalid hotbar selection (Hacking?)"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION); // CraftBukkit // Paper - kick event cause
          }
      }
  
@@ -928,7 +975,7 @@
          Optional<LastSeenMessages> optional = this.unpackAndApplyLastSeen(p_9841_.lastSeenMessages());
          if (!optional.isEmpty()) {
              this.tryHandleChat(p_9841_.message(), () -> {
-@@ -1230,25 +_,43 @@
+@@ -1230,25 +_,44 @@
                      return;
                  }
  
@@ -966,8 +1013,9 @@
      private void performUnsignedChatCommand(String p_338482_) {
 +        // CraftBukkit start
 +        String command1 = "/" + p_338482_;
-+        ServerGamePacketListenerImpl.LOGGER.info(this.player.getScoreboardName() + " issued server command: " + command1);
-+
++        if (org.spigotmc.SpigotConfig.logCommands) { // Paper - Add missing SpigotConfig logCommands check
++            ServerGamePacketListenerImpl.LOGGER.info(this.player.getScoreboardName() + " issued server command: " + command1);
++        }
 +        PlayerCommandPreprocessEvent event = new PlayerCommandPreprocessEvent(this.getCraftPlayer(), command1, new LazyPlayerSet(this.server));
 +        this.cserver.getPluginManager().callEvent(event);
 +
@@ -979,7 +1027,7 @@
          ParseResults<CommandSourceStack> parseresults = this.parseCommand(p_338482_);
          if (this.server.enforceSecureProfile() && SignableCommand.hasSignableArguments(parseresults)) {
              LOGGER.error(
-@@ -1265,18 +_,33 @@
+@@ -1265,26 +_,53 @@
          Optional<LastSeenMessages> optional = this.unpackAndApplyLastSeen(p_338604_.lastSeenMessages());
          if (!optional.isEmpty()) {
              this.tryHandleChat(p_338604_.command(), () -> {
@@ -997,28 +1045,38 @@
      }
  
      private void performSignedChatCommand(ServerboundChatCommandSignedPacket p_338593_, LastSeenMessages p_250484_) {
--        ParseResults<CommandSourceStack> parseresults = this.parseCommand(p_338593_.command());
 +        // CraftBukkit start
 +        String command = "/" + p_338593_.command();
-+        LOGGER.info(this.player.getScoreboardName() + " issued server command: " + command);
++        if (org.spigotmc.SpigotConfig.logCommands) { // Paper - Add missing SpigotConfig logCommands check
++            ServerGamePacketListenerImpl.LOGGER.info(this.player.getScoreboardName() + " issued server command: " + command);
++        } // Paper - Add missing SpigotConfig logCommands check
 +        org.bukkit.event.player.PlayerCommandPreprocessEvent event = new org.bukkit.event.player.PlayerCommandPreprocessEvent(getCraftPlayer(), command, new LazyPlayerSet(server));
-+        this.cserver.getPluginManager().callEvent(event);
-+        if (event.isCancelled()) {
-+            return;
-+        }
 +        command = event.getMessage().substring(1);
-+        ParseResults<CommandSourceStack> parseresults = this.parseCommand(command);
-+        // CraftBukkit end
++
++        // Paper start - Fix cancellation and message changing
+         ParseResults<CommandSourceStack> parseresults = this.parseCommand(p_338593_.command());
  
          Map<String, PlayerChatMessage> map;
          try {
--            map = this.collectSignedArguments(p_338593_, SignableCommand.of(parseresults), p_250484_);
-+            map = (p_338593_.command().equals(command)) ? this.collectSignedArguments(p_338593_, SignableCommand.of(parseresults), p_250484_) : Collections.emptyMap(); // CraftBukkit
++            // Always parse the original command to add to the chat chain
+             map = this.collectSignedArguments(p_338593_, SignableCommand.of(parseresults), p_250484_);
          } catch (SignedMessageChain.DecodeException signedmessagechain$decodeexception) {
              this.handleMessageDecodeFailure(signedmessagechain$decodeexception);
              return;
-@@ -1284,7 +_,7 @@
+         }
  
++        if (event.isCancelled()) {
++            // Only now are we actually good to return
++            return;
++        }
++
++        // Remove signed parts if the command was changed
++        if (!command.equals(p_338593_.command())) {
++            parseresults = this.parseCommand(command);
++            map = Collections.emptyMap();
++        }
++        // Paper end - Fix cancellation and message changing
++
          CommandSigningContext commandsigningcontext = new CommandSigningContext.SignedArguments(map);
          parseresults = Commands.mapSource(parseresults, p_301740_ -> p_301740_.withSigningContext(commandsigningcontext, this.chatMessageChain));
 -        this.server.getCommands().performCommand(parseresults, p_338593_.command());
@@ -1033,8 +1091,9 @@
 -    private void tryHandleChat(String p_338775_, Runnable p_338235_) {
 +    private void tryHandleChat(String p_338775_, Runnable p_338235_, boolean sync) { // CraftBukkit
          if (isChatMessageIllegal(p_338775_)) {
-             this.disconnect(Component.translatable("multiplayer.disconnect.illegal_characters"));
+-            this.disconnect(Component.translatable("multiplayer.disconnect.illegal_characters"));
 -        } else if (this.player.getChatVisibility() == ChatVisiblity.HIDDEN) {
++            this.disconnectAsync(Component.translatable("multiplayer.disconnect.illegal_characters"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_CHARACTERS); // Paper
 +        } else if (this.player.isRemoved() || this.player.getChatVisibility() == ChatVisiblity.HIDDEN) { // CraftBukkit - dead men tell no tales
              this.send(new ClientboundSystemChatPacket(Component.translatable("chat.disabled.options").withStyle(ChatFormatting.RED), false));
          } else {
@@ -1050,6 +1109,15 @@
          }
      }
  
+@@ -1364,7 +_,7 @@
+             Optional<LastSeenMessages> optional = this.lastSeenMessages.applyUpdate(p_249673_);
+             if (optional.isEmpty()) {
+                 LOGGER.warn("Failed to validate message acknowledgements from {}", this.player.getName().getString());
+-                this.disconnect(CHAT_VALIDATION_FAILED);
++                this.disconnectAsync(CHAT_VALIDATION_FAILED, org.bukkit.event.player.PlayerKickEvent.Cause.CHAT_VALIDATION_FAILED); // Paper - kick event causes
+             }
+ 
+             return optional;
 @@ -1381,23 +_,161 @@
          return false;
      }
@@ -1198,6 +1266,8 @@
 -        if (this.chatSpamTickCount > 200
 -            && !this.server.getPlayerList().isOp(this.player.getGameProfile())
 -            && !this.server.isSingleplayerOwner(this.player.getGameProfile())) {
+-            this.disconnect(Component.translatable("disconnect.spam"));
+-        }
 +    // Spigot start - spam exclusions
 +    private void detectRateSpam(String s) {
 +        // CraftBukkit start - replaced with thread safe throttle
@@ -1213,13 +1283,22 @@
 +        // Spigot end
 +        if (this.chatSpamTickCount.addAndGet(20) > 200 && !this.server.getPlayerList().isOp(this.player.getGameProfile()) && !this.server.isSingleplayerOwner(this.player.getGameProfile())) {
 +            // CraftBukkit end
-             this.disconnect(Component.translatable("disconnect.spam"));
-         }
++            this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - kick event cause
++        }
 +
      }
  
      @Override
-@@ -1413,13 +_,57 @@
+@@ -1405,7 +_,7 @@
+         synchronized (this.lastSeenMessages) {
+             if (!this.lastSeenMessages.applyOffset(p_242387_.offset())) {
+                 LOGGER.warn("Failed to validate message acknowledgements from {}", this.player.getName().getString());
+-                this.disconnect(CHAT_VALIDATION_FAILED);
++                this.disconnectAsync(CHAT_VALIDATION_FAILED, org.bukkit.event.player.PlayerKickEvent.Cause.CHAT_VALIDATION_FAILED); // Paper - kick event causes
+             }
+         }
+     }
+@@ -1413,13 +_,64 @@
      @Override
      public void handleAnimate(ServerboundSwingPacket p_9926_) {
          PacketUtils.ensureRunningOnSameThread(p_9926_, this, this.player.serverLevel());
@@ -1235,13 +1314,20 @@
 +        double d3 = Math.max(player.blockInteractionRange(), player.entityInteractionRange());
 +        // SPIGOT-5607: Only call interact event if no block or entity is being clicked. Use bukkit ray trace method, because it handles blocks and entities at the same time
 +        // SPIGOT-7429: Make sure to call PlayerInteractEvent for spectators and non-pickable entities
-+        org.bukkit.util.RayTraceResult result = this.player.level().getWorld().rayTrace(origin, origin.getDirection(), d3, org.bukkit.FluidCollisionMode.NEVER, false, 0.1, entity -> {
++        org.bukkit.util.RayTraceResult result = this.player.level().getWorld().rayTrace(origin, origin.getDirection(), d3, org.bukkit.FluidCollisionMode.NEVER, false, 0.0, entity -> { // Paper - Call interact event; change raySize from 0.1 to 0.0
 +            Entity handle = ((CraftEntity) entity).getHandle();
 +            return entity != this.player.getBukkitEntity() && this.player.getBukkitEntity().canSee(entity) && !handle.isSpectator() && handle.isPickable() && !handle.isPassengerOfSameVehicle(player);
 +        });
 +        if (result == null) {
 +            CraftEventFactory.callPlayerInteractEvent(this.player, org.bukkit.event.block.Action.LEFT_CLICK_AIR, this.player.getInventory().getSelected(), InteractionHand.MAIN_HAND);
-+        }
++        } else { // Paper start - Call interact event
++            GameType gameType = this.player.gameMode.getGameModeForPlayer();
++            if (gameType == GameType.ADVENTURE && result.getHitBlock() != null) {
++                CraftEventFactory.callPlayerInteractEvent(this.player, org.bukkit.event.block.Action.LEFT_CLICK_BLOCK, ((org.bukkit.craftbukkit.block.CraftBlock) result.getHitBlock()).getPosition(), org.bukkit.craftbukkit.block.CraftBlock.blockFaceToNotch(result.getHitBlockFace()), this.player.getInventory().getSelected(), InteractionHand.MAIN_HAND);
++            } else if (gameType != GameType.CREATIVE && result.getHitEntity() != null && origin.toVector().distanceSquared(result.getHitPosition()) > this.player.entityInteractionRange() * this.player.entityInteractionRange()) {
++                CraftEventFactory.callPlayerInteractEvent(this.player, org.bukkit.event.block.Action.LEFT_CLICK_AIR, this.player.getInventory().getSelected(), InteractionHand.MAIN_HAND);
++            }
++        } // Paper end - Call interact event
 +        // Arm swing animation
 +        org.bukkit.event.player.PlayerAnimationEvent event = new org.bukkit.event.player.PlayerAnimationEvent(this.getCraftPlayer(), (p_9926_.getHand() == InteractionHand.MAIN_HAND) ? org.bukkit.event.player.PlayerAnimationType.ARM_SWING : org.bukkit.event.player.PlayerAnimationType.OFF_ARM_SWING);
 +        this.cserver.getPluginManager().callEvent(event);
@@ -1277,7 +1363,14 @@
          this.player.resetLastActionTime();
          switch (p_9891_.getAction()) {
              case PRESS_SHIFT_KEY:
-@@ -1485,6 +_,12 @@
+@@ -1479,12 +_,20 @@
+             }
+ 
+             if (i > 4096) {
+-                this.disconnect(Component.translatable("multiplayer.disconnect.too_many_pending_chats"));
++                this.disconnectAsync(Component.translatable("multiplayer.disconnect.too_many_pending_chats"), org.bukkit.event.player.PlayerKickEvent.Cause.TOO_MANY_PENDING_CHATS); // Paper - kick event cause
+             }
+         }
      }
  
      public void sendPlayerChatMessage(PlayerChatMessage p_250321_, ChatType.Bound p_250910_) {
@@ -1287,9 +1380,20 @@
 +            return;
 +        }
 +        // CraftBukkit end
++        // Paper start - Ensure that client receives chat packets in the same order that we add into the message signature cache
++        synchronized (this.messageSignatureCache) {
          this.send(
              new ClientboundPlayerChatPacket(
                  p_250321_.link().sender(),
+@@ -1497,6 +_,8 @@
+             )
+         );
+         this.addPendingMessage(p_250321_);
++        }
++        // Paper end - Ensure that client receives chat packets in the same order that we add into the message signature cache
+     }
+ 
+     public void sendDisguisedChatMessage(Component p_251804_, ChatType.Bound p_250040_) {
 @@ -1507,6 +_,13 @@
          return this.connection.getRemoteAddress();
      }
@@ -1314,7 +1418,7 @@
 +        // Spigot Start
 +        if ( entity == player && !player.isSpectator() )
 +        {
-+            disconnect( Component.literal( "Cannot interact with self!" ) );
++            disconnect( Component.literal( "Cannot interact with self!" ), org.bukkit.event.player.PlayerKickEvent.Cause.SELF_INTERACTION ); // Paper - kick event cause
 +            return;
 +        }
 +        // Spigot End
@@ -1394,7 +1498,7 @@
                                  if (entity instanceof AbstractArrow abstractarrow && !abstractarrow.isAttackable()) {
                                      break label23;
                                  }
-@@ -1578,6 +_,11 @@
+@@ -1578,10 +_,15 @@
                                  }
  
                                  ServerGamePacketListenerImpl.this.player.attack(entity);
@@ -1406,6 +1510,11 @@
                                  return;
                              }
  
+-                            ServerGamePacketListenerImpl.this.disconnect(Component.translatable("multiplayer.disconnect.invalid_entity_attacked"));
++                            ServerGamePacketListenerImpl.this.disconnect(Component.translatable("multiplayer.disconnect.invalid_entity_attacked"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_ENTITY_ATTACKED); // Paper - add cause
+                             ServerGamePacketListenerImpl.LOGGER
+                                 .warn("Player {} tried to attack an invalid entity", ServerGamePacketListenerImpl.this.player.getName().getString());
+                         }
 @@ -1600,14 +_,14 @@
              case PERFORM_RESPAWN:
                  if (this.player.wonGame) {
@@ -1450,7 +1559,7 @@
                  this.player.containerMenu.sendAllDataToRemote();
              } else if (!this.player.containerMenu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, this.player.containerMenu);
-@@ -1643,7 +_,278 @@
+@@ -1643,7 +_,271 @@
                  } else {
                      boolean flag = p_9856_.getStateId() != this.player.containerMenu.getStateId();
                      this.player.containerMenu.suppressRemoteUpdates();
@@ -1553,14 +1662,7 @@
 +                                net.minecraft.world.inventory.Slot clickedSlot = this.player.containerMenu.getSlot(p_9856_.getSlotNum());
 +                                if (clickedSlot.mayPickup(player)) {
 +                                    ItemStack hotbar = this.player.getInventory().getItem(p_9856_.getButtonNum());
-+                                    boolean canCleanSwap = hotbar.isEmpty() || (clickedSlot.container == player.getInventory() && clickedSlot.mayPlace(hotbar)); // the slot will accept the hotbar item
-+                                    if (clickedSlot.hasItem()) {
-+                                        if (canCleanSwap) {
-+                                            action = org.bukkit.event.inventory.InventoryAction.HOTBAR_SWAP;
-+                                        } else {
-+                                            action = org.bukkit.event.inventory.InventoryAction.HOTBAR_MOVE_AND_READD;
-+                                        }
-+                                    } else if (!clickedSlot.hasItem() && !hotbar.isEmpty() && clickedSlot.mayPlace(hotbar)) {
++                                    if ((!hotbar.isEmpty() && clickedSlot.mayPlace(hotbar)) || (hotbar.isEmpty() && clickedSlot.hasItem())) { // Paper - modernify this logic (no such thing as a "hotbar move and readd"
 +                                        action = org.bukkit.event.inventory.InventoryAction.HOTBAR_SWAP;
 +                                    } else {
 +                                        action = org.bukkit.event.inventory.InventoryAction.NOTHING;
@@ -1824,7 +1926,7 @@
          this.player.resetLastActionTime();
          ServerLevel serverlevel = this.player.serverLevel();
          BlockPos blockpos = p_9923_.getPos();
-@@ -1753,13 +_,26 @@
+@@ -1753,20 +_,33 @@
      @Override
      public void handlePlayerAbilities(ServerboundPlayerAbilitiesPacket p_9887_) {
          PacketUtils.ensureRunningOnSameThread(p_9887_, this, this.player.serverLevel());
@@ -1852,6 +1954,32 @@
      }
  
      @Override
+     public void handleChangeDifficulty(ServerboundChangeDifficultyPacket p_9839_) {
+         PacketUtils.ensureRunningOnSameThread(p_9839_, this, this.player.serverLevel());
+         if (this.player.hasPermissions(2) || this.isSingleplayerOwner()) {
+-            this.server.setDifficulty(p_9839_.getDifficulty(), false);
++            // this.server.setDifficulty(p_9839_.getDifficulty(), false); // Paper - per level difficulty; don't allow clients to change this
+         }
+     }
+ 
+@@ -1786,7 +_,7 @@
+         ProfilePublicKey.Data profilepublickey$data1 = remotechatsession$data.profilePublicKey();
+         if (!Objects.equals(profilepublickey$data, profilepublickey$data1)) {
+             if (profilepublickey$data != null && profilepublickey$data1.expiresAt().isBefore(profilepublickey$data.expiresAt())) {
+-                this.disconnect(ProfilePublicKey.EXPIRED_PROFILE_PUBLIC_KEY);
++                this.disconnect(ProfilePublicKey.EXPIRED_PROFILE_PUBLIC_KEY, org.bukkit.event.player.PlayerKickEvent.Cause.EXPIRED_PROFILE_PUBLIC_KEY); // Paper - kick event causes
+             } else {
+                 try {
+                     SignatureValidator signaturevalidator = this.server.getProfileKeySignatureValidator();
+@@ -1798,7 +_,7 @@
+                     this.resetPlayerChatState(remotechatsession$data.validate(this.player.getGameProfile(), signaturevalidator));
+                 } catch (ProfilePublicKey.ValidationException profilepublickey$validationexception) {
+                     LOGGER.error("Failed to validate profile key: {}", profilepublickey$validationexception.getMessage());
+-                    this.disconnect(profilepublickey$validationexception.getComponent());
++                    this.disconnect(profilepublickey$validationexception.getComponent(), profilepublickey$validationexception.kickCause); // Paper - kick event causes
+                 }
+             }
+         }
 @@ -1812,7 +_,7 @@
              this.connection
                  .setupInboundProtocol(

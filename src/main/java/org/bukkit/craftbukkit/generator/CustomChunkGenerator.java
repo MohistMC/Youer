@@ -263,7 +263,7 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
             return ichunkaccess1;
         };
 
-        return future == null ? CompletableFuture.supplyAsync(() -> function.apply(chunk), net.minecraft.Util.backgroundExecutor()) : future.thenApply(function);
+        return future == null ? CompletableFuture.supplyAsync(() -> function.apply(chunk), Runnable::run) : future.thenApply(function); // Paper - rewrite chunk system
     }
 
     @Override

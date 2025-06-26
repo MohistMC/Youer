@@ -49,6 +49,53 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient, Metadatable, PersistentDataHolder, Keyed, net.kyori.adventure.audience.ForwardingAudience { // Paper
 
+    // Paper start - void damage configuration
+    /**
+     * Checks if void damage is enabled on this world.
+     *
+     * @return true if enabled
+     */
+    boolean isVoidDamageEnabled();
+
+    /**
+     * Sets whether void damage is enabled on this world.
+     *
+     * @param enabled true to enable void damage
+     */
+    void setVoidDamageEnabled(boolean enabled);
+
+    /**
+     * Gets the damage applied to the player when they are in the void in this world.
+     * Check {@link #isVoidDamageEnabled()} to see if void damage is enabled.
+     *
+     * @return amount of damage to apply
+     * @see #isVoidDamageEnabled()
+     */
+    float getVoidDamageAmount();
+
+    /**
+     * Sets the damage applied to the player when they are in the void in this world.
+     * Check {@link #isVoidDamageEnabled()} to see if void damage is enabled.
+     *
+     * @param voidDamageAmount amount of damage to apply
+     */
+    void setVoidDamageAmount(float voidDamageAmount);
+
+    /**
+     * Gets the offset applied to {@link #getMinHeight()} to determine the height at which void damage starts to apply.
+     *
+     * @return offset from min build height
+     * @see #isVoidDamageEnabled()
+     */
+    double getVoidDamageMinBuildHeightOffset();
+
+    /**
+     * Sets the offset applied to {@link #getMinHeight()} to determine the height at which void damage starts to apply.
+     *
+     * @param minBuildHeightOffset offset from min build height
+     */
+    void setVoidDamageMinBuildHeightOffset(double minBuildHeightOffset);
+    // Paper end - void damage configuration
     /**
      * Gets the {@link Block} at the given coordinates
      *
@@ -2967,6 +3014,66 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      */
     @NotNull
     public Set<FeatureFlag> getFeatureFlags();
+
+    // Paper start - view distance api
+    /**
+     * Sets the view distance for this world.
+     * @param viewDistance view distance in [2, 32]
+     */
+    void setViewDistance(int viewDistance);
+
+    /**
+     * Sets the simulation distance for this world.
+     * @param simulationDistance simulation distance in [2, 32]
+     */
+    void setSimulationDistance(int simulationDistance);
+
+    /**
+     * Returns the no-tick view distance for this world.
+     * <p>
+     * No-tick view distance is the view distance where chunks will load, however the chunks and their entities will not
+     * be set to tick.
+     * </p>
+     * @return The no-tick view distance for this world.
+     * @deprecated Use {@link #getViewDistance()}
+     */
+    @Deprecated
+    default int getNoTickViewDistance() {
+        return this.getViewDistance();
+    }
+
+    /**
+     * Sets the no-tick view distance for this world.
+     * <p>
+     * No-tick view distance is the view distance where chunks will load, however the chunks and their entities will not
+     * be set to tick.
+     * </p>
+     * @param viewDistance view distance in [2, 32]
+     * @deprecated Use {@link #setViewDistance(int)}
+     */
+    @Deprecated
+    default void setNoTickViewDistance(int viewDistance) {
+        this.setViewDistance(viewDistance);
+    }
+
+    /**
+     * Gets the sending view distance for this world.
+     * <p>
+     * Sending view distance is the view distance where chunks will load in for players in this world.
+     * </p>
+     * @return The sending view distance for this world.
+     */
+    int getSendViewDistance();
+
+    /**
+     * Sets the sending view distance for this world.
+     * <p>
+     * Sending view distance is the view distance where chunks will load in for players in this world.
+     * </p>
+     * @param viewDistance view distance in [2, 32] or -1
+     */
+    void setSendViewDistance(int viewDistance);
+    // Paper end - view distance api
 
     /**
      * Gets all generated structures that intersect the chunk at the given

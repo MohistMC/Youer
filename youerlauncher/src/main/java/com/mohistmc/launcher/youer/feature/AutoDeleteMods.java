@@ -47,6 +47,7 @@ public class AutoDeleteMods {
         put("com.biel.mod.mixin.VelocityMixin", DeletionReason.DUPLICATE_FEATURE);
         put("optifine.Differ", DeletionReason.CLIENT_ONLY);
         put("org.embeddedt.modernfix.ModernFix", DeletionReason.DUPLICATE_FEATURE);
+        put("ca.spottedleaf.moonrise.neoforge.MoonriseNeoForge", DeletionReason.DUPLICATE_FEATURE);
     }};
 
     /**

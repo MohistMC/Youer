@@ -18,7 +18,13 @@ import static org.objectweb.asm.Opcodes.ARETURN;
 
 public class PluginFixManager {
 
-    public static byte[] injectPluginFix(String className, byte[] clazz) {
+    public static byte[] injectPluginFix(String plugin, String className, byte[] clazz) {
+        if (plugin.equals("WorldEdit")) {
+            String adapter = System.getProperty("worldedit.bukkit.adapter");
+            if (adapter == null) {
+                System.setProperty("worldedit.bukkit.adapter", "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter");
+            }
+        }
         if (className.equals("com.ghostchu.quickshop.platform.spigot.AbstractSpigotPlatform")) {
             return patch(clazz, PluginFixManager::qs);
         }
@@ -37,7 +43,8 @@ public class PluginFixManager {
                 helloWorld(node, "allow-editing-on-unsupported-versions", "youer");
                 helloWorld(node, "false", "youer");
             };
-            case "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter" -> node -> {
+            case "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter",
+                 "com.sk89q.worldedit.bukkit.adapter.ext.fawe.v1_21_R1.PaperweightAdapter" -> node -> {
                 helloWorld(node, "org.spigotmc.WatchdogThread", "youer");
             };
             default -> null;

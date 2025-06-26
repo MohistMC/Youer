@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
-@@ -55,6 +_,8 @@
+@@ -55,16 +_,18 @@
  import net.minecraft.world.level.material.Fluid;
  import net.minecraft.world.ticks.SerializableTickContainer;
  import net.minecraft.world.ticks.TickContainerAccess;
@@ -8,8 +8,28 @@
 +import org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer;
  import org.slf4j.Logger;
  
- public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiomeSource, LightChunk, StructureAccess, net.neoforged.neoforge.attachment.IAttachmentHolder {
-@@ -82,6 +_,10 @@
+-public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiomeSource, LightChunk, StructureAccess, net.neoforged.neoforge.attachment.IAttachmentHolder {
++public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiomeSource, LightChunk, StructureAccess, net.neoforged.neoforge.attachment.IAttachmentHolder, ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk { // Paper - rewrite chunk system
+     public static final int NO_FILLED_SECTION = -1;
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final LongSet EMPTY_REFERENCE_SET = new LongOpenHashSet();
+     protected final ShortList[] postProcessing;
+     protected volatile boolean unsaved;
+     private volatile boolean isLightCorrect;
+-    protected final ChunkPos chunkPos;
++    protected final ChunkPos chunkPos; public final long coordinateKey; public final int locX; public final int locZ; // Paper - cache coordinate key
+     private long inhabitedTime;
+     @Nullable
+     @Deprecated
+@@ -75,13 +_,68 @@
+     @Nullable
+     protected BlendingData blendingData;
+     public final Map<Heightmap.Types, Heightmap> heightmaps = Maps.newEnumMap(Heightmap.Types.class);
+-    protected ChunkSkyLightSources skyLightSources;
++    // Paper - rewrite chunk system
+     private final Map<Structure, StructureStart> structureStarts = Maps.newHashMap();
+     private final Map<Structure, LongSet> structuresRefences = Maps.newHashMap();
+     protected final Map<BlockPos, CompoundTag> pendingBlockEntities = Maps.newHashMap();
      public final Map<BlockPos, BlockEntity> blockEntities = new Object2ObjectOpenHashMap<>();
      protected final LevelHeightAccessor levelHeightAccessor;
      protected final LevelChunkSection[] sections;
@@ -17,21 +37,109 @@
 +    private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
 +    public DirtyCraftPersistentDataContainer persistentDataContainer = new DirtyCraftPersistentDataContainer(DATA_TYPE_REGISTRY);
 +    // CraftBukkit end
++
++    // Paper start - rewrite chunk system
++    private volatile ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] blockNibbles;
++    private volatile ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] skyNibbles;
++    private volatile boolean[] skyEmptinessMap;
++    private volatile boolean[] blockEmptinessMap;
++
++    @Override
++    public ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] starlight$getBlockNibbles() {
++        return this.blockNibbles;
++    }
++
++    @Override
++    public void starlight$setBlockNibbles(final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] nibbles) {
++        this.blockNibbles = nibbles;
++    }
++
++    @Override
++    public ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] starlight$getSkyNibbles() {
++        return this.skyNibbles;
++    }
++
++    @Override
++    public void starlight$setSkyNibbles(final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] nibbles) {
++        this.skyNibbles = nibbles;
++    }
++
++    @Override
++    public boolean[] starlight$getSkyEmptinessMap() {
++        return this.skyEmptinessMap;
++    }
++
++    @Override
++    public void starlight$setSkyEmptinessMap(final boolean[] emptinessMap) {
++        this.skyEmptinessMap = emptinessMap;
++    }
++
++    @Override
++    public boolean[] starlight$getBlockEmptinessMap() {
++        return this.blockEmptinessMap;
++    }
++
++    @Override
++    public void starlight$setBlockEmptinessMap(final boolean[] emptinessMap) {
++        this.blockEmptinessMap = emptinessMap;
++    }
++    // Paper end - rewrite chunk system
++    // Paper start - get block chunk optimisation
++    private final int minSection;
++    private final int maxSection;
++    // Paper end - get block chunk optimisation
  
      public ChunkAccess(
          ChunkPos p_187621_,
-@@ -109,7 +_,11 @@
+@@ -92,14 +_,15 @@
+         @Nullable LevelChunkSection[] p_187626_,
+         @Nullable BlendingData p_187627_
+     ) {
+-        this.chunkPos = p_187621_;
++        this.locX = p_187621_.x; this.locZ = p_187621_.z; // Paper - reduce need for field lookups
++        this.chunkPos = p_187621_; this.coordinateKey = ChunkPos.asLong(locX, locZ); // Paper - cache long key
+         this.upgradeData = p_187622_;
+         this.levelHeightAccessor = p_187623_;
+         this.sections = new LevelChunkSection[p_187623_.getSectionsCount()];
+         this.inhabitedTime = p_187625_;
+         this.postProcessing = new ShortList[p_187623_.getSectionsCount()];
+         this.blendingData = p_187627_;
+-        this.skyLightSources = new ChunkSkyLightSources(p_187623_);
++        // Paper - rewrite chunk system
+         if (p_187626_ != null) {
+             if (this.sections.length == p_187626_.length) {
+                 System.arraycopy(p_187626_, 0, this.sections, 0, this.sections.length);
+@@ -109,7 +_,21 @@
          }
  
          replaceMissingSections(p_187624_, this.sections);
 +        // CraftBukkit start
 +        this.biomeRegistry = p_187624_;
++        // Paper start - rewrite chunk system
++        if (!((Object)this instanceof ImposterProtoChunk)) {
++            this.starlight$setBlockNibbles(ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine.getFilledEmptyLight(p_187623_));
++            this.starlight$setSkyNibbles(ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine.getFilledEmptyLight(p_187623_));
++        }
++        // Paper end - rewrite chunk system
++        // Paper start - get block chunk optimisation
++        this.minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(levelHeightAccessor);
++        this.maxSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMaxSection(levelHeightAccessor);
++        // Paper end - get block chunk optimisation
      }
 +    public final Registry<Biome> biomeRegistry;
 +    // CraftBukkit end
  
      private static void replaceMissingSections(Registry<Biome> p_281389_, LevelChunkSection[] p_282796_) {
          for (int i = 0; i < p_282796_.length; i++) {
+@@ -123,6 +_,8 @@
+         return GameEventListenerRegistry.NOOP;
+     }
+ 
++    public abstract BlockState getBlockState(final int x, final int y, final int z); // Paper
++
+     @Nullable
+     public abstract BlockState setBlockState(BlockPos p_62087_, BlockState p_62088_, boolean p_62089_);
+ 
 @@ -268,10 +_,11 @@
  
      public void setUnsaved(boolean p_62094_) {
@@ -78,36 +186,73 @@
                              }
                          }
                      }
-@@ -435,6 +_,28 @@
-         }
-     }
+@@ -421,19 +_,45 @@
  
+     @Override
+     public Holder<Biome> getNoiseBiome(int p_204347_, int p_204348_, int p_204349_) {
++        // Paper start - get block chunk optimisation
++        int sectionY = (p_204348_ >> 2) - this.minSection;
++        int rel = p_204348_ & 3;
++
++        final LevelChunkSection[] sections = this.sections;
++
++        if (sectionY < 0) {
++            sectionY = 0;
++            rel = 0;
++        } else if (sectionY >= sections.length) {
++            sectionY = sections.length - 1;
++            rel = 3;
++        }
++
++        return sections[sectionY].getNoiseBiome(p_204347_ & 3, rel, p_204349_ & 3);
++        // Paper end - get block chunk optimisation
++    }
++
 +    // CraftBukkit start
 +    public void setBiome(int i, int j, int k, Holder<Biome> biome) {
-+        try {
+         try {
+-            int i = QuartPos.fromBlock(this.getMinBuildHeight());
+-            int k = i + QuartPos.fromBlock(this.getHeight()) - 1;
+-            int l = Mth.clamp(p_204348_, i, k);
+-            int j = this.getSectionIndex(QuartPos.toBlock(l));
+-            return this.sections[j].getNoiseBiome(p_204347_ & 3, l & 3, p_204349_ & 3);
 +            int l = QuartPos.fromBlock(this.getMinBuildHeight());
 +            int i1 = l + QuartPos.fromBlock(this.getHeight()) - 1;
 +            int j1 = Mth.clamp(j, l, i1);
 +            int k1 = this.getSectionIndex(QuartPos.toBlock(j1));
 +
 +            this.sections[k1].setBiome(i & 3, j1 & 3, k & 3, biome);
-+        } catch (Throwable throwable) {
+         } catch (Throwable throwable) {
+-            CrashReport crashreport = CrashReport.forThrowable(throwable, "Getting biome");
+-            CrashReportCategory crashreportcategory = crashreport.addCategory("Biome being got");
+-            crashreportcategory.setDetail("Location", () -> CrashReportCategory.formatLocation(this, p_204347_, p_204348_, p_204349_));
 +            CrashReport crashreport = CrashReport.forThrowable(throwable, "Setting biome");
 +            CrashReportCategory crashreportsystemdetails = crashreport.addCategory("Biome being set");
 +
 +            crashreportsystemdetails.setDetail("Location", () -> {
 +                return CrashReportCategory.formatLocation(this, i, j, k);
 +            });
-+            throw new ReportedException(crashreport);
-+        }
-+    }
+             throw new ReportedException(crashreport);
+         }
+     }
 +    // CraftBukkit end
 +
-+
+ 
      public void fillBiomesFromNoise(BiomeResolver p_187638_, Climate.Sampler p_187639_) {
          ChunkPos chunkpos = this.getPos();
-         int i = QuartPos.fromBlock(chunkpos.getMinBlockX());
-@@ -476,4 +_,73 @@
+@@ -466,14 +_,83 @@
+     }
+ 
+     public void initializeLightSources() {
+-        this.skyLightSources.fillFrom(this);
++        // Paper - rewrite chunk system
+     }
+ 
+     @Override
+     public ChunkSkyLightSources getSkyLightSources() {
+-        return this.skyLightSources;
++        return null; // Paper - rewrite chunk system
+     }
  
      public static record TicksToSave(SerializableTickContainer<Block> blocks, SerializableTickContainer<Fluid> fluids) {
      }

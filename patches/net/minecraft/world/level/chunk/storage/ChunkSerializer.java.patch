@@ -1,5 +1,73 @@
 --- a/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
 +++ b/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.chunk.storage;
+ 
++import ca.spottedleaf.moonrise.patches.chunk_system.async_save.AsyncChunkSaveData;
+ import com.google.common.collect.Maps;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.Codec;
+@@ -9,9 +_,12 @@
+ import it.unimi.dsi.fastutil.shorts.ShortList;
+ import java.util.Arrays;
+ import java.util.EnumSet;
++import java.util.Iterator;
+ import java.util.Map;
+ import java.util.Objects;
+ import java.util.Map.Entry;
++import java.util.Set;
++import java.util.concurrent.atomic.AtomicReference;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+@@ -67,6 +_,18 @@
+ import org.slf4j.Logger;
+ 
+ public class ChunkSerializer {
++    // Paper start - Attempt to recalculate regionfile header if it is corrupt
++    // TODO: Check on update
++    public static long getLastWorldSaveTime(CompoundTag chunkData) {
++        final int dataVersion = ChunkStorage.getVersion(chunkData);
++        if (dataVersion < 2842) { // Level tag is removed after this version
++            final CompoundTag levelData = chunkData.getCompound("Level");
++            return levelData.getLong("LastUpdate");
++        } else {
++            return chunkData.getLong("LastUpdate");
++        }
++    }
++    // Paper end - Attempt to recalculate regionfile header if it is corrupt
+     public static final Codec<PalettedContainer<BlockState>> BLOCK_STATE_CODEC = PalettedContainer.codecRW(
+         Block.BLOCK_STATE_REGISTRY, BlockState.CODEC, PalettedContainer.Strategy.SECTION_STATES, Blocks.AIR.defaultBlockState()
+     );
+@@ -82,6 +_,19 @@
+     public static final String BLOCK_LIGHT_TAG = "BlockLight";
+     public static final String SKY_LIGHT_TAG = "SkyLight";
+ 
++    // Paper start - guard against serializing mismatching coordinates
++    // TODO Note: This needs to be re-checked each update
++    public static ChunkPos getChunkCoordinate(final CompoundTag chunkData) {
++        final int dataVersion = ChunkStorage.getVersion(chunkData);
++        if (dataVersion < 2842) { // Level tag is removed after this version
++            final CompoundTag levelData = chunkData.getCompound("Level");
++            return new ChunkPos(levelData.getInt("xPos"), levelData.getInt("zPos"));
++        } else {
++            return new ChunkPos(chunkData.getInt("xPos"), chunkData.getInt("zPos"));
++        }
++    }
++    // Paper end - guard against serializing mismatching coordinates
++
+     public static ProtoChunk read(ServerLevel p_188231_, PoiManager p_188232_, RegionStorageInfo p_352213_, ChunkPos p_188233_, CompoundTag p_188234_) {
+         ChunkPos chunkpos = new ChunkPos(p_188234_.getInt("xPos"), p_188234_.getInt("zPos"));
+         if (!Objects.equals(p_188233_, chunkpos)) {
+@@ -131,7 +_,7 @@
+                 LevelChunkSection levelchunksection = new LevelChunkSection(palettedcontainer, palettedcontainerro);
+                 alevelchunksection[l] = levelchunksection;
+                 SectionPos sectionpos = SectionPos.of(p_188233_, k);
+-                p_188232_.checkConsistencyWithBlocks(sectionpos, levelchunksection);
++                // Paper - rewrite chunk system - moved to final load stage
+             }
+ 
+             boolean flag3 = compoundtag.contains("BlockLight", 7);
 @@ -183,6 +_,8 @@
                  postLoadChunk(p_188231_, p_188234_),
                  blendingdata
@@ -25,9 +93,12 @@
          chunkaccess.setLightCorrect(flag);
          CompoundTag compoundtag2 = p_188234_.getCompound("Heightmaps");
          EnumSet<Heightmap.Types> enumset = EnumSet.noneOf(Heightmap.Types.class);
-@@ -241,6 +_,7 @@
+@@ -239,8 +_,9 @@
+                 chunkaccess.addPackedPostProcess(listtag1.getShort(i1), l1);
+             }
          }
- 
+-
++        ca.spottedleaf.moonrise.patches.starlight.util.SaveUtil.loadLightHook(p_188231_, p_188233_, p_188234_, chunkaccess); // Paper - rewrite chunk system - note: it's ok to pass the raw value instead of wrapped
          if (chunktype == ChunkType.LEVELCHUNK) {
 +            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkDataEvent.Load(chunkaccess, p_188234_, chunktype));
              return new ImposterProtoChunk((LevelChunk)chunkaccess, false);
@@ -62,7 +133,7 @@
              return protochunk1;
          }
      }
-@@ -278,6 +_,14 @@
+@@ -278,16 +_,58 @@
          );
      }
  
@@ -74,21 +145,100 @@
 +    }
 +    // CraftBukkit end
 +
++    // Paper start - async chunk saving
++    // must be called sync
++    public static ca.spottedleaf.moonrise.patches.chunk_system.async_save.AsyncChunkSaveData getAsyncSaveData(ServerLevel world, ChunkAccess chunk) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(world, chunk.locX, chunk.locZ, "Preparing async chunk save data");
++
++        final CompoundTag tickLists = new CompoundTag();
++        ChunkSerializer.saveTicks(world, tickLists, chunk.getTicksForSerialization());
++
++        ListTag blockEntitiesSerialized = new ListTag();
++        for (final BlockPos blockPos : chunk.getBlockEntitiesPos()) {
++            final CompoundTag blockEntityNbt = chunk.getBlockEntityNbtForSaving(blockPos, world.registryAccess());
++            if (blockEntityNbt != null) {
++                blockEntitiesSerialized.add(blockEntityNbt);
++            }
++        }
++
++        return new ca.spottedleaf.moonrise.patches.chunk_system.async_save.AsyncChunkSaveData(
++                tickLists.get(BLOCK_TICKS_TAG),
++                tickLists.get(FLUID_TICKS_TAG),
++                blockEntitiesSerialized,
++                world.getGameTime()
++        );
++    }
++    // Paper end - async chunk saving
++
++    public static AtomicReference<AsyncChunkSaveData> saveChunk$asyncsavedata = new AtomicReference<>();
++    public static CompoundTag saveChunk(ServerLevel p_63455_, ChunkAccess p_63456_, ca.spottedleaf.moonrise.patches.chunk_system.async_save.AsyncChunkSaveData asyncsavedata) {
++        saveChunk$asyncsavedata.set(asyncsavedata);
++        return write(p_63455_, p_63456_);
++    }
++    // Paper end - async chunk saving
++
      public static CompoundTag write(ServerLevel p_63455_, ChunkAccess p_63456_) {
++
          ChunkPos chunkpos = p_63456_.getPos();
          CompoundTag compoundtag = NbtUtils.addCurrentDataVersion(new CompoundTag());
-@@ -374,6 +_,11 @@
+         compoundtag.putInt("xPos", chunkpos.x);
+         compoundtag.putInt("yPos", p_63456_.getMinSection());
+         compoundtag.putInt("zPos", chunkpos.z);
+-        compoundtag.putLong("LastUpdate", p_63455_.getGameTime());
+         compoundtag.putLong("InhabitedTime", p_63456_.getInhabitedTime());
+         compoundtag.putString("Status", BuiltInRegistries.CHUNK_STATUS.getKey(p_63456_.getPersistedStatus()).toString());
+         BlendingData blendingdata = p_63456_.getBlendingData();
++        AsyncChunkSaveData asyncsavedata = saveChunk$asyncsavedata.getAndSet(null);
++        compoundtag.putLong("LastUpdate", asyncsavedata != null ? asyncsavedata.worldTime() : p_63455_.getGameTime()); // Paper - async chunk saving // Paper - diff on change
+         if (blendingdata != null) {
+             BlendingData.CODEC
+                 .encodeStart(NbtOps.INSTANCE, blendingdata)
+@@ -348,9 +_,19 @@
+             compoundtag.putBoolean("isLightOn", true);
+         }
+ 
+-        ListTag listtag1 = new ListTag();
++        // Paper start - async chunk saving
++        ListTag listtag1;
++        Set<BlockPos> iterator;
++        if (asyncsavedata != null) {
++            listtag1 = asyncsavedata.blockEntities();
++            iterator = Set.of();
++        } else {
++            listtag1 = new ListTag();
++            iterator = p_63456_.getBlockEntitiesPos();
++        }
++        // Paper end - async chunk saving
+ 
+-        for (BlockPos blockpos : p_63456_.getBlockEntitiesPos()) {
++        for (BlockPos blockpos : iterator) {
+             CompoundTag compoundtag3 = p_63456_.getBlockEntityNbtForSaving(blockpos, p_63455_.registryAccess());
+             if (compoundtag3 != null) {
+                 listtag1.add(compoundtag3);
+@@ -374,8 +_,21 @@
  
              compoundtag.put("CarvingMasks", compoundtag4);
          }
+-
+-        saveTicks(p_63455_, compoundtag, p_63456_.getTicksForSerialization());
 +        else if (p_63456_ instanceof LevelChunk levelChunk){
 +
 +             Tag lightTag = levelChunk.getAuxLightManager(chunkpos).serializeNBT(p_63455_.registryAccess());
 +             if (lightTag != null) compoundtag.put(net.neoforged.neoforge.common.world.LevelChunkAuxiliaryLightManager.LIGHT_NBT_KEY, lightTag);
 +        }
- 
-         saveTicks(p_63455_, compoundtag, p_63456_.getTicksForSerialization());
++
++
++        // Paper start
++        if (asyncsavedata != null) {
++            compoundtag.put(BLOCK_TICKS_TAG, asyncsavedata.blockTickList());
++            compoundtag.put(FLUID_TICKS_TAG, asyncsavedata.fluidTickList());
++        } else {
++            saveTicks(p_63455_, compoundtag, p_63456_.getTicksForSerialization());
++        }
++        // Paper end
          compoundtag.put("PostProcessing", packOffsets(p_63456_.getPostProcessing()));
+         CompoundTag compoundtag2 = new CompoundTag();
+ 
 @@ -385,11 +_,24 @@
              }
          }
@@ -110,10 +260,19 @@
 +            compoundtag.put("ChunkBukkitValues", p_63456_.persistentDataContainer.toTagCompound());
 +        }
 +        // CraftBukkit end
-+
++        ca.spottedleaf.moonrise.patches.starlight.util.SaveUtil.saveLightHook(p_63455_, p_63456_, compoundtag); // Paper - rewrite chunk system
          return compoundtag;
      }
  
+@@ -409,7 +_,7 @@
+         ListTag listtag1 = getListOfCompoundsOrNull(p_196892_, "block_entities");
+         return listtag == null && listtag1 == null ? null : p_196904_ -> {
+             if (listtag != null) {
+-                p_196891_.addLegacyChunkEntities(EntityType.loadEntitiesRecursive(listtag, p_196891_));
++                p_196891_.addLegacyChunkEntities(EntityType.loadEntitiesRecursive(listtag, p_196891_), p_196904_.getPos());
+             }
+ 
+             if (listtag1 != null) {
 @@ -473,8 +_,15 @@
              if (structure == null) {
                  LOGGER.error("Unknown structure start: {}", resourcelocation);

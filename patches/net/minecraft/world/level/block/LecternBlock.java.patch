@@ -1,5 +1,31 @@
 --- a/net/minecraft/world/level/block/LecternBlock.java
 +++ b/net/minecraft/world/level/block/LecternBlock.java
+@@ -173,7 +_,24 @@
+ 
+     private static void placeBook(@Nullable LivingEntity p_347484_, Level p_270065_, BlockPos p_270155_, BlockState p_270753_, ItemStack p_270173_) {
+         if (p_270065_.getBlockEntity(p_270155_) instanceof LecternBlockEntity lecternblockentity) {
+-            lecternblockentity.setBook(p_270173_.consumeAndReturn(1, p_347484_));
++            // Paper start - Add PlayerInsertLecternBookEvent
++            ItemStack eventSourcedBookStack = null;
++            if (p_347484_ instanceof final net.minecraft.server.level.ServerPlayer serverPlayer) {
++                final io.papermc.paper.event.player.PlayerInsertLecternBookEvent event = new io.papermc.paper.event.player.PlayerInsertLecternBookEvent(
++                        serverPlayer.getBukkitEntity(),
++                        org.bukkit.craftbukkit.block.CraftBlock.at(p_270065_, p_270155_),
++                        org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(p_270173_.copyWithCount(1))
++                );
++                if (!event.callEvent()) return;
++                eventSourcedBookStack = org.bukkit.craftbukkit.inventory.CraftItemStack.unwrap(event.getBook());
++            }
++            if (eventSourcedBookStack == null) {
++                eventSourcedBookStack = p_270173_.consumeAndReturn(1, p_347484_);
++            } else {
++                p_270173_.consume(1, p_347484_);
++            }
++            lecternblockentity.setBook(eventSourcedBookStack);
++            // Paper end - Add PlayerInsertLecternBookEvent
+             resetBookState(p_347484_, p_270065_, p_270155_, p_270753_, true);
+             p_270065_.playSound(null, p_270155_, SoundEvents.BOOK_PUT, SoundSource.BLOCKS, 1.0F, 1.0F);
+         }
 @@ -221,9 +_,12 @@
      }
  

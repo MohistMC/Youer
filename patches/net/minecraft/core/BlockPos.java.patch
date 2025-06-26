@@ -1,0 +1,88 @@
+--- a/net/minecraft/core/BlockPos.java
++++ b/net/minecraft/core/BlockPos.java
+@@ -156,55 +_,72 @@
+     }
+ 
+     public BlockPos above() {
+-        return this.relative(Direction.UP);
++        return new BlockPos(this.getX(), this.getY() + 1, this.getZ()); // Paper - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos above(int p_121972_) {
+-        return this.relative(Direction.UP, p_121972_);
++        return p_121972_ == 0 ? this : new BlockPos(this.getX(), this.getY() + p_121972_, this.getZ()); // Paper - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos below() {
+-        return this.relative(Direction.DOWN);
++        return new BlockPos(this.getX(), this.getY() - 1, this.getZ()); // Paper - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos below(int p_122000_) {
+-        return this.relative(Direction.DOWN, p_122000_);
++        return p_122000_ == 0 ? this : new BlockPos(this.getX(), this.getY() - p_122000_, this.getZ()); // Paper - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos north() {
+-        return this.relative(Direction.NORTH);
++        return new BlockPos(this.getX(), this.getY(), this.getZ() - 1); // Paper - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos north(int p_122014_) {
+-        return this.relative(Direction.NORTH, p_122014_);
++        return p_122014_ == 0 ? this : new BlockPos(this.getX(), this.getY(), this.getZ() - p_122014_); // Paper - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos south() {
+-        return this.relative(Direction.SOUTH);
++        return new BlockPos(this.getX(), this.getY(), this.getZ() + 1); // Paper - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos south(int p_122021_) {
+-        return this.relative(Direction.SOUTH, p_122021_);
++        return p_122021_ == 0 ? this : new BlockPos(this.getX(), this.getY(), this.getZ() + p_122021_); // Paper - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos west() {
+-        return this.relative(Direction.WEST);
++        return new BlockPos(this.getX() - 1, this.getY(), this.getZ()); // Paper - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos west(int p_122026_) {
+-        return this.relative(Direction.WEST, p_122026_);
++        return p_122026_ == 0 ? this : new BlockPos(this.getX() - p_122026_, this.getY(), this.getZ()); // Paper - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos east() {
+-        return this.relative(Direction.EAST);
++        return new BlockPos(this.getX() + 1, this.getY(), this.getZ()); // Paper - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos east(int p_122031_) {
+-        return this.relative(Direction.EAST, p_122031_);
++        return p_122031_ == 0 ? this : new BlockPos(this.getX() + p_122031_, this.getY(), this.getZ()); // Paper - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos relative(Direction p_121946_) {
+-        return new BlockPos(this.getX() + p_121946_.getStepX(), this.getY() + p_121946_.getStepY(), this.getZ() + p_121946_.getStepZ());
++        // Paper start - Perf: Optimize BlockPosition
++        switch (p_121946_) {
++            case UP:
++                return new BlockPos(this.getX(), this.getY() + 1, this.getZ());
++            case DOWN:
++                return new BlockPos(this.getX(), this.getY() - 1, this.getZ());
++            case NORTH:
++                return new BlockPos(this.getX(), this.getY(), this.getZ() - 1);
++            case SOUTH:
++                return new BlockPos(this.getX(), this.getY(), this.getZ() + 1);
++            case WEST:
++                return new BlockPos(this.getX() - 1, this.getY(), this.getZ());
++            case EAST:
++                return new BlockPos(this.getX() + 1, this.getY(), this.getZ());
++            default:
++                return new BlockPos(this.getX() + p_121946_.getStepX(), this.getY() + p_121946_.getStepY(), this.getZ() + p_121946_.getStepZ());
++        }
++        // Paper end - Perf: Optimize BlockPosition
+     }
+ 
+     public BlockPos relative(Direction p_121948_, int p_121949_) {

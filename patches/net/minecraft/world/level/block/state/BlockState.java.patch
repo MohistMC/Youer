@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/level/block/state/BlockState.java
++++ b/net/minecraft/world/level/block/state/BlockState.java
+@@ -10,6 +_,16 @@
+ public class BlockState extends BlockBehaviour.BlockStateBase implements net.neoforged.neoforge.common.extensions.IBlockStateExtension {
+     public static final Codec<BlockState> CODEC = codec(BuiltInRegistries.BLOCK.byNameCodec(), Block::defaultBlockState).stable();
+ 
++    // Paper start - optimise getType calls
++    org.bukkit.Material cachedMaterial;
++
++    public final org.bukkit.Material getBukkitMaterial() {
++        if (this.cachedMaterial == null) {
++            this.cachedMaterial = org.bukkit.craftbukkit.block.CraftBlockType.minecraftToBukkit(this.getBlock());
++        }
++        return this.cachedMaterial;
++    }
++    // Paper end - optimise getType calls
+     public BlockState(Block p_61042_, Reference2ObjectArrayMap<Property<?>, Comparable<?>> p_326238_, MapCodec<BlockState> p_61044_) {
+         super(p_61042_, p_326238_, p_61044_);
+     }

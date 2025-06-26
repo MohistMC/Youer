@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/EggItem.java
 +++ b/net/minecraft/world/item/EggItem.java
-@@ -20,23 +_,30 @@
+@@ -20,25 +_,43 @@
      @Override
      public InteractionResultHolder<ItemStack> use(Level p_41128_, Player p_41129_, InteractionHand p_41130_) {
          ItemStack itemstack = p_41129_.getItemInHand(p_41130_);
@@ -18,17 +18,27 @@
              ThrownEgg thrownegg = new ThrownEgg(p_41128_, p_41129_);
              thrownegg.setItem(itemstack);
              thrownegg.shootFromRotation(p_41129_, p_41129_.getXRot(), p_41129_.getYRot(), 0.0F, 1.5F, 1.0F);
-             p_41128_.addFreshEntity(thrownegg);
-+            // CraftBukkit start
-+            if (!p_41128_.canAddFreshEntity()) {
+-            p_41128_.addFreshEntity(thrownegg);
+-        }
++            // Paper start - PlayerLaunchProjectileEvent
++            io.papermc.paper.event.player.PlayerLaunchProjectileEvent event = new io.papermc.paper.event.player.PlayerLaunchProjectileEvent((org.bukkit.entity.Player) p_41129_.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack), (org.bukkit.entity.Projectile) thrownegg.getBukkitEntity());
++            if (event.callEvent() && p_41128_.addFreshEntity(thrownegg)) {
++                if (event.shouldConsume()) {
++                    itemstack.consume(1, p_41129_);
++                } else if (p_41129_ instanceof net.minecraft.server.level.ServerPlayer) {
++                    ((net.minecraft.server.level.ServerPlayer) p_41129_).getBukkitEntity().updateInventory();
++                }
+ 
++                p_41128_.playSound((Player) null, p_41129_.getX(), p_41129_.getY(), p_41129_.getZ(), net.minecraft.sounds.SoundEvents.EGG_THROW, net.minecraft.sounds.SoundSource.PLAYERS, 0.5F, 0.4F / (net.minecraft.world.entity.Entity.SHARED_RANDOM.nextFloat() * 0.4F + 0.8F));
++                p_41129_.awardStat(Stats.ITEM_USED.get(this));
++            } else {
 +                if (p_41129_ instanceof net.minecraft.server.level.ServerPlayer) {
 +                    ((net.minecraft.server.level.ServerPlayer) p_41129_).getBukkitEntity().updateInventory();
 +                }
 +                return InteractionResultHolder.fail(itemstack);
 +            }
-+            // CraftBukkit end
-         }
--
++            // Paper end - PlayerLaunchProjectileEvent
++        }
 +        p_41128_.playSound(
 +                null,
 +                p_41129_.getX(),
@@ -39,6 +49,10 @@
 +                0.5F,
 +                0.4F / (p_41128_.getRandom().nextFloat() * 0.4F + 0.8F)
 +        );
++        /* // Paper start - PlayerLaunchProjectileEvent; moved up
          p_41129_.awardStat(Stats.ITEM_USED.get(this));
          itemstack.consume(1, p_41129_);
++        */ // Paper end - PlayerLaunchProjectileEvent
          return InteractionResultHolder.sidedSuccess(itemstack, p_41128_.isClientSide());
+     }
+ 

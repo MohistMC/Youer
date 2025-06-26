@@ -1032,4 +1032,18 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         return this.spigot;
     }
     // Spigot end
+
+    // Paper start - Entity#fromMobSpawner
+    @Override
+    public boolean fromMobSpawner() {
+        return this.getHandle().spawnedViaMobSpawner;
+    }
+    // Paper end - Entity#fromMobSpawner
+
+    // Paper start - entity spawn reason API
+    @Override
+    public org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason getEntitySpawnReason() {
+        return getHandle().spawnReason;
+    }
+    // Paper end - entity spawn reason API
 }

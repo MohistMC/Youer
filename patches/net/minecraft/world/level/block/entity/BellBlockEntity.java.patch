@@ -8,6 +8,34 @@
  
  public class BellBlockEntity extends BlockEntity {
      private static final int DURATION = 50;
+@@ -62,6 +_,11 @@
+ 
+         if (p_155184_.ticks >= 50) {
+             p_155184_.shaking = false;
++            // Paper start - Fix bell block entity memory leak
++            if (!p_155184_.resonating) {
++                p_155184_.nearbyEntities.clear();
++            }
++            // Paper end - Fix bell block entity memory leak
+             p_155184_.ticks = 0;
+         }
+ 
+@@ -75,6 +_,7 @@
+                 p_155184_.resonationTicks++;
+             } else {
+                 p_155185_.run(p_155181_, p_155182_, p_155184_.nearbyEntities);
++                p_155184_.nearbyEntities.clear(); // Paper - Fix bell block entity memory leak
+                 p_155184_.resonating = false;
+             }
+         }
+@@ -115,6 +_,7 @@
+                 }
+             }
+         }
++        this.nearbyEntities.removeIf(e -> !e.isAlive()); // Paper - Fix bell block entity memory leak
+     }
+ 
+     private static boolean areRaidersNearby(BlockPos p_155200_, List<LivingEntity> p_155201_) {
 @@ -131,7 +_,10 @@
      }
  

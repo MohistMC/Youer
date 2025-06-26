@@ -1,5 +1,26 @@
 --- a/net/minecraft/world/level/storage/DimensionDataStorage.java
 +++ b/net/minecraft/world/level/storage/DimensionDataStorage.java
+@@ -23,17 +_,19 @@
+ import net.minecraft.world.level.saveddata.SavedData;
+ import org.slf4j.Logger;
+ 
+-public class DimensionDataStorage {
++public class DimensionDataStorage implements java.io.Closeable { // Paper - Write SavedData IO async
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public final Map<String, SavedData> cache = Maps.newHashMap();
+     private final DataFixer fixerUpper;
+     private final HolderLookup.Provider registries;
+     private final File dataFolder;
++    protected final java.util.concurrent.ExecutorService ioExecutor; // Paper - Write SavedData IO async
+ 
+     public DimensionDataStorage(File p_78149_, DataFixer p_78150_, HolderLookup.Provider p_324180_) {
+         this.fixerUpper = p_78150_;
+         this.dataFolder = p_78149_;
+         this.registries = p_324180_;
++        this.ioExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(new com.google.common.util.concurrent.ThreadFactoryBuilder().setNameFormat("DimensionDataIO - " + dataFolder.getParent() + " - %d").setDaemon(true).build()); // Paper - Write SavedData IO async
+     }
+ 
+     private File getDataFile(String p_78157_) {
 @@ -63,7 +_,7 @@
      }
  
@@ -38,4 +59,30 @@
 +        });
  
          return compoundtag1;
+     }
+@@ -123,10 +_,23 @@
+         return flag;
+     }
+ 
+-    public void save() {
++    // Paper start - Write SavedData IO async
++    @Override
++    public void close() throws IOException {
++        save(false);
++        this.ioExecutor.shutdown();
++    }
++    // Paper end - Write SavedData IO async
++
++    public void save(boolean async) { // Paper - Write SavedData IO async
+         this.cache.forEach((p_323449_, p_323450_) -> {
+             if (p_323450_ != null) {
+-                p_323450_.save(this.getDataFile(p_323449_), this.registries);
++                // Paper start - Write SavedData IO async
++                final java.util.concurrent.CompletableFuture<Void> save = p_323450_.save(this.getDataFile(p_323449_), this.registries, this.ioExecutor);
++                if (!async) {
++                    save.join();
++                }
++                // Paper end - Write SavedData IO async
+             }
+         });
      }

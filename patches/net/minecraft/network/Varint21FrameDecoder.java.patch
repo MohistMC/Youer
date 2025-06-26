@@ -1,0 +1,15 @@
+--- a/net/minecraft/network/Varint21FrameDecoder.java
++++ b/net/minecraft/network/Varint21FrameDecoder.java
+@@ -41,6 +_,12 @@
+ 
+     @Override
+     protected void decode(ChannelHandlerContext p_130566_, ByteBuf p_130567_, List<Object> p_130568_) {
++        // Paper start - Perf: Optimize exception handling; if channel is not active just discard the packet // Youer TODO NeoForge
++        if (!p_130566_.channel().isActive()) {
++            p_130567_.skipBytes(p_130567_.readableBytes());
++            return;
++        }
++        // Paper end - Perf: Optimize exception handling
+         p_130567_.markReaderIndex();
+         this.helperBuf.clear();
+         if (!copyVarint(p_130567_, this.helperBuf)) {

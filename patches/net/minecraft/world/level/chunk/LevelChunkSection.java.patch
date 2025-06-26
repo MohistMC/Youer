@@ -1,15 +1,47 @@
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
-@@ -21,20 +_,35 @@
-     private short nonEmptyBlockCount;
+@@ -13,28 +_,65 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.material.FluidState;
+ 
+-public class LevelChunkSection {
++public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_counting.BlockCountingChunkSection { // Paper - block counting
+     public static final int SECTION_WIDTH = 16;
+     public static final int SECTION_HEIGHT = 16;
+     public static final int SECTION_SIZE = 4096;
+     public static final int BIOME_CONTAINER_BITS = 2;
+-    private short nonEmptyBlockCount;
++    public short nonEmptyBlockCount;
      private short tickingBlockCount;
      private short tickingFluidCount;
 -    private final PalettedContainer<BlockState> states;
-+    private PalettedContainer<BlockState> states;
++    public PalettedContainer<BlockState> states;
      private PalettedContainerRO<Holder<Biome>> biomes;
  
 +    public LevelChunkSection(){
 +    }
++
++    // Paper start - block counting
++    private static final it.unimi.dsi.fastutil.ints.IntArrayList FULL_LIST = new it.unimi.dsi.fastutil.ints.IntArrayList(16*16*16);
++    static {
++        for (int i = 0; i < (16*16*16); ++i) {
++            FULL_LIST.add(i);
++        }
++    }
++
++    private int specialCollidingBlocks;
++    private final ca.spottedleaf.moonrise.common.list.IBlockDataList tickingBlocks = new ca.spottedleaf.moonrise.common.list.IBlockDataList();
++
++    @Override
++    public final int moonrise$getSpecialCollidingBlocks() {
++        return this.specialCollidingBlocks;
++    }
++
++    @Override
++    public final ca.spottedleaf.moonrise.common.list.IBlockDataList moonrise$getTickingBlockList() {
++        return this.tickingBlocks;
++    }
++    // Paper end - block counting
 +
      public LevelChunkSection(PalettedContainer<BlockState> p_282846_, PalettedContainerRO<Holder<Biome>> p_281695_) {
          this.states = p_282846_;
@@ -55,15 +87,124 @@
              this.nonEmptyBlockCount++;
              if (p_62995_.isRandomlyTicking()) {
                  this.tickingBlockCount++;
-@@ -114,7 +_,7 @@
+@@ -87,6 +_,22 @@
+             this.tickingFluidCount++;
+         }
  
-             public void accept(BlockState p_204444_, int p_204445_) {
-                 FluidState fluidstate = p_204444_.getFluidState();
++        // Paper start - block counting
++        if (ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isSpecialCollidingBlock(blockstate)) {
++            --this.specialCollidingBlocks;
++        }
++        if (ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isSpecialCollidingBlock(p_62995_)) {
++            ++this.specialCollidingBlocks;
++        }
++
++        if (blockstate.isRandomlyTicking()) {
++            this.tickingBlocks.remove(p_62992_, p_62993_, p_62994_);
++        }
++        if (p_62995_.isRandomlyTicking()) {
++            this.tickingBlocks.add(p_62992_, p_62993_, p_62994_, p_62995_);
++        }
++        // Paper end - block counting
++
+         return blockstate;
+     }
+ 
+@@ -107,34 +_,65 @@
+     }
+ 
+     public void recalcBlockCounts() {
+-        class BlockCounter implements PalettedContainer.CountConsumer<BlockState> {
+-            public int nonEmptyBlockCount;
+-            public int tickingBlockCount;
+-            public int tickingFluidCount;
+-
+-            public void accept(BlockState p_204444_, int p_204445_) {
+-                FluidState fluidstate = p_204444_.getFluidState();
 -                if (!p_204444_.isAir()) {
-+                if (!p_204444_.isEmpty()) { // Neo: Fix MC-232360 for modded blocks (Makes modded isAir blocks not be replaced with Blocks.AIR in all-air chunk sections)
-                     this.nonEmptyBlockCount += p_204445_;
-                     if (p_204444_.isRandomlyTicking()) {
-                         this.tickingBlockCount += p_204445_;
+-                    this.nonEmptyBlockCount += p_204445_;
+-                    if (p_204444_.isRandomlyTicking()) {
+-                        this.tickingBlockCount += p_204445_;
++// Paper start - block counting
++        // reset, then recalculate
++        this.nonEmptyBlockCount = (short)0;
++        this.tickingBlockCount = (short)0;
++        this.tickingFluidCount = (short)0;
++        this.specialCollidingBlocks = (short)0;
++        this.tickingBlocks.clear();
++
++        if (this.maybeHas((final BlockState state) -> !state.isAir())) {
++            final PalettedContainer.Data<BlockState> data = this.states.data;
++            final Palette<BlockState> palette = data.palette();
++            final int paletteSize = palette.getSize();
++            final net.minecraft.util.BitStorage storage = data.storage();
++
++            final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<it.unimi.dsi.fastutil.ints.IntArrayList> counts;
++            if (paletteSize == 1) {
++                counts = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>(1);
++                counts.put(0, FULL_LIST);
++            } else {
++                counts = ((ca.spottedleaf.moonrise.patches.block_counting.BlockCountingBitStorage)storage).moonrise$countEntries();
++            }
++
++            for (final java.util.Iterator<it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<it.unimi.dsi.fastutil.ints.IntArrayList>> iterator = counts.int2ObjectEntrySet().fastIterator(); iterator.hasNext();) {
++                final it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<it.unimi.dsi.fastutil.ints.IntArrayList> entry = iterator.next();
++                final int paletteIdx = entry.getIntKey();
++                final it.unimi.dsi.fastutil.ints.IntArrayList coordinates = entry.getValue();
++                final int paletteCount = coordinates.size();
++
++                final BlockState state = palette.valueFor(paletteIdx);
++
++                if (state.isAir()) {
++                    continue;
++                }
++
++                if (ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isSpecialCollidingBlock(state)) {
++                    this.specialCollidingBlocks += paletteCount;
++                }
++                this.nonEmptyBlockCount += paletteCount;
++                if (state.isRandomlyTicking()) {
++                    this.tickingBlockCount += paletteCount;
++                    final int[] raw = coordinates.elements();
++
++                    java.util.Objects.checkFromToIndex(0, paletteCount, raw.length);
++                    for (int i = 0; i < paletteCount; ++i) {
++                        this.tickingBlocks.add(raw[i], state);
+                     }
+                 }
+ 
+-                if (!fluidstate.isEmpty()) {
+-                    this.nonEmptyBlockCount += p_204445_;
+-                    if (fluidstate.isRandomlyTicking()) {
+-                        this.tickingFluidCount += p_204445_;
++                final FluidState fluid = state.getFluidState();
++
++                if (!fluid.isEmpty()) {
++                    //this.nonEmptyBlockCount += count; // fix vanilla bug: make non empty block count correct
++                    if (fluid.isRandomlyTicking()) {
++                        this.tickingFluidCount += paletteCount;
+                     }
+                 }
+             }
+         }
+-
+-        BlockCounter levelchunksection$1blockcounter = new BlockCounter();
+-        this.states.count(levelchunksection$1blockcounter);
+-        this.nonEmptyBlockCount = (short)levelchunksection$1blockcounter.nonEmptyBlockCount;
+-        this.tickingBlockCount = (short)levelchunksection$1blockcounter.tickingBlockCount;
+-        this.tickingFluidCount = (short)levelchunksection$1blockcounter.tickingFluidCount;
++        // Paper end - block counting
+     }
+ 
+     public PalettedContainer<BlockState> getStates() {
+@@ -151,6 +_,7 @@
+         PalettedContainer<Holder<Biome>> palettedcontainer = this.biomes.recreate();
+         palettedcontainer.read(p_63005_);
+         this.biomes = palettedcontainer;
++        this.recalcBlockCounts(); // Paper - block counting
+     }
+ 
+     public void readBiomes(FriendlyByteBuf p_275669_) {
 @@ -176,6 +_,12 @@
      public Holder<Biome> getNoiseBiome(int p_204434_, int p_204435_, int p_204436_) {
          return this.biomes.get(p_204434_, p_204435_, p_204436_);

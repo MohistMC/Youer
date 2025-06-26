@@ -1,5 +1,22 @@
 --- a/net/minecraft/world/entity/monster/ZombifiedPiglin.java
 +++ b/net/minecraft/world/entity/monster/ZombifiedPiglin.java
+@@ -56,6 +_,7 @@
+     private static final int ALERT_RANGE_Y = 10;
+     private static final UniformInt ALERT_INTERVAL = TimeUtil.rangeOfSeconds(4, 6);
+     private int ticksUntilNextAlert;
++    private HurtByTargetGoal pathfinderGoalHurtByTarget; // Paper - fix PigZombieAngerEvent cancellation
+ 
+     public ZombifiedPiglin(EntityType<? extends ZombifiedPiglin> p_34427_, Level p_34428_) {
+         super(p_34427_, p_34428_);
+@@ -71,7 +_,7 @@
+     protected void addBehaviourGoals() {
+         this.goalSelector.addGoal(2, new ZombieAttackGoal(this, 1.0, false));
+         this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0));
+-        this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers());
++        this.targetSelector.addGoal(1, pathfinderGoalHurtByTarget = (new HurtByTargetGoal(this)).setAlertOthers()); // Paper - fix PigZombieAngerEvent cancellation
+         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, this::isAngryAt));
+         this.targetSelector.addGoal(3, new ResetUniversalAngerTargetGoal<>(this, true));
+     }
 @@ -148,7 +_,10 @@
              .filter(p_34463_ -> p_34463_ != this)
              .filter(p_325818_ -> p_325818_.getTarget() == null)
@@ -12,7 +29,7 @@
      }
  
      private void playAngerSound() {
-@@ -171,7 +_,16 @@
+@@ -171,7 +_,17 @@
  
      @Override
      public void startPersistentAngerTimer() {
@@ -23,6 +40,7 @@
 +        this.level().getCraftServer().getPluginManager().callEvent(event);
 +        if (event.isCancelled()) {
 +            this.setPersistentAngerTarget(null);
++            pathfinderGoalHurtByTarget.stop(); // Paper - fix PigZombieAngerEvent cancellation
 +            return;
 +        }
 +        this.setRemainingPersistentAngerTime(event.getNewAnger());

@@ -116,9 +116,9 @@ public class ForcedChunkManager {
     private static <T extends Comparable<? super T>> void forceChunk(ServerLevel level, ChunkPos pos, TicketType<TicketOwner<T>> type, TicketOwner<T> owner, boolean add,
             boolean ticking) {
         if (add)
-            level.getChunkSource().addRegionTicket(type, pos, 2, owner, ticking);
+            level.getChunkSource().addRegionTicket(type, pos, 2, owner);
         else
-            level.getChunkSource().removeRegionTicket(type, pos, 2, owner, ticking);
+            level.getChunkSource().removeRegionTicket(type, pos, 2, owner);
     }
 
     /**

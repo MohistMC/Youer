@@ -74,6 +74,11 @@ public final class CraftItemStack extends ItemStack {
         // Paper end - re-implement after delegating all api ItemStack calls to CraftItemStack
     }
 
+    public static net.minecraft.world.item.ItemStack getOrCloneOnMutation(ItemStack old, ItemStack newInstance) {
+        return old == newInstance ? unwrap(old) : asNMSCopy(newInstance);
+    }
+    // Paper end - MC Utils
+
     // Paper start - override isEmpty to use vanilla's impl
     @Override
     public boolean isEmpty() {

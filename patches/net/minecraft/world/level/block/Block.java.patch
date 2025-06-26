@@ -9,6 +9,27 @@
      private static final LoadingCache<VoxelShape, Boolean> SHAPE_FULL_BLOCK_CACHE = CacheBuilder.newBuilder()
          .maximumSize(512L)
          .weakKeys()
+@@ -89,6 +_,20 @@
+     public static final int UPDATE_LIMIT = 512;
+     protected final StateDefinition<Block, BlockState> stateDefinition;
+     private BlockState defaultBlockState;
++    // Paper start
++    public final boolean isDestroyable() {
++        return io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPermanentBlockBreakExploits ||
++                this != Blocks.BARRIER &&
++                        this != Blocks.BEDROCK &&
++                        this != Blocks.END_PORTAL_FRAME &&
++                        this != Blocks.END_PORTAL &&
++                        this != Blocks.END_GATEWAY &&
++                        this != Blocks.COMMAND_BLOCK &&
++                        this != Blocks.REPEATING_COMMAND_BLOCK &&
++                        this != Blocks.CHAIN_COMMAND_BLOCK &&
++                        this != Blocks.STRUCTURE_BLOCK &&
++                        this != Blocks.JIGSAW;
++    }
+     @Nullable
+     private String descriptionId;
+     @Nullable
 @@ -186,7 +_,7 @@
          this.createBlockStateDefinition(builder);
          this.stateDefinition = builder.create(Block::defaultBlockState, BlockState::new);
@@ -27,6 +48,15 @@
          } else if (blockstate.canOcclude()) {
              Block.BlockStatePairKey block$blockstatepairkey = new Block.BlockStatePairKey(p_152445_, blockstate, p_152448_);
              Object2ByteLinkedOpenHashMap<Block.BlockStatePairKey> object2bytelinkedopenhashmap = OCCLUSION_CACHE.get();
+@@ -251,7 +_,7 @@
+     }
+ 
+     public static boolean isShapeFullBlock(VoxelShape p_49917_) {
+-        return SHAPE_FULL_BLOCK_CACHE.getUnchecked(p_49917_);
++        return p_49917_.moonrise$isFullBlock(); // Paper - optimise collisions
+     }
+ 
+     public void animateTick(BlockState p_220827_, Level p_220828_, BlockPos p_220829_, RandomSource p_220830_) {
 @@ -281,24 +_,30 @@
  
      public static void dropResources(BlockState p_49951_, Level p_49952_, BlockPos p_49953_) {

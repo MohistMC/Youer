@@ -1,0 +1,92 @@
+--- a/net/minecraft/util/SortedArraySet.java
++++ b/net/minecraft/util/SortedArraySet.java
+@@ -8,11 +_,88 @@
+ import java.util.NoSuchElementException;
+ import javax.annotation.Nullable;
+ 
+-public class SortedArraySet<T> extends AbstractSet<T> {
++public class SortedArraySet<T> extends AbstractSet<T> implements ca.spottedleaf.moonrise.patches.chunk_system.util.ChunkSystemSortedArraySet<T> { // Paper - rewrite chunk system
+     private static final int DEFAULT_INITIAL_CAPACITY = 10;
+     private final Comparator<T> comparator;
+     T[] contents;
+     int size;
++
++    // Paper start - rewrite chunk system
++    @Override
++    public final boolean removeIf(final java.util.function.Predicate<? super T> filter) {
++        // prev. impl used an iterator, which could be n^2 and creates garbage
++        int i = 0;
++        final int len = this.size;
++        final T[] backingArray = this.contents;
++
++        for (;;) {
++            if (i >= len) {
++                return false;
++            }
++            if (!filter.test(backingArray[i])) {
++                ++i;
++                continue;
++            }
++            break;
++        }
++
++        // we only want to write back to backingArray if we really need to
++
++        int lastIndex = i; // this is where new elements are shifted to
++
++        for (; i < len; ++i) {
++            final T curr = backingArray[i];
++            if (!filter.test(curr)) { // if test throws we're screwed
++                backingArray[lastIndex++] = curr;
++            }
++        }
++
++        // cleanup end
++        Arrays.fill(backingArray, lastIndex, len, null);
++        this.size = lastIndex;
++        return true;
++    }
++
++    @Override
++    public final T moonrise$replace(final T object) {
++        final int index = this.findIndex(object);
++        if (index >= 0) {
++            final T old = this.contents[index];
++            this.contents[index] = object;
++            return old;
++        } else {
++            this.addInternal(object, getInsertionPosition(index));
++            return object;
++        }
++    }
++
++    @Override
++    public final T moonrise$removeAndGet(final T object) {
++        int i = this.findIndex(object);
++        if (i >= 0) {
++            final T ret = this.contents[i];
++            this.removeInternal(i);
++            return ret;
++        } else {
++            return null;
++        }
++    }
++
++    @Override
++    public final SortedArraySet<T> moonrise$copy() {
++        final SortedArraySet<T> ret = SortedArraySet.create(this.comparator, 0);
++
++        ret.size = this.size;
++        ret.contents = Arrays.copyOf(this.contents, this.size);
++
++        return ret;
++    }
++
++    @Override
++    public Object[] moonrise$copyBackingArray() {
++        return this.contents.clone();
++    }
++    // Paper end - rewrite chunk system
+ 
+     private SortedArraySet(int p_14244_, Comparator<T> p_14245_) {
+         this.comparator = p_14245_;

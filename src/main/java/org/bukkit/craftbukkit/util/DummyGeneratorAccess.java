@@ -242,4 +242,15 @@ public class DummyGeneratorAccess implements WorldGenLevel {
     public boolean destroyBlock(BlockPos pos, boolean drop, Entity breakingEntity, int maxUpdateDepth) {
         return false; // SPIGOT-6515
     }
+
+    @javax.annotation.Nullable
+    @Override
+    public ChunkAccess getChunkIfLoadedImmediately(int x, int z) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public BlockState getBlockStateIfLoaded(BlockPos blockposition) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 }
