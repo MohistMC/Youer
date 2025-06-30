@@ -231,6 +231,7 @@ public class YouerConfig {
 
     public static boolean watchdog_spigot;
     public static boolean watchdog_mohist;
+    public static boolean pluginchannel_debug;
 
     private static void mohist() {
         show_logo = getBoolean("youer.show_logo", true);
@@ -292,6 +293,9 @@ public class YouerConfig {
 
         permissions_debug_console = getBoolean("permissions.debug.console", false);
         permissions_send_player = getBoolean("permissions.debug.player", false);
+        pluginchannel_debug = getBoolean("pluginchannel.debug", false);
+
+
     }
     public static boolean isCN() {
         return yml.getString("youer.lang", Locale.getDefault().toString()).contains("CN");

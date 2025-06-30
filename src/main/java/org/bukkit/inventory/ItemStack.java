@@ -53,6 +53,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @throws IllegalArgumentException if the amount is less than 1
      */
     @org.jetbrains.annotations.Contract(value = "_, _ -> new", pure = true)
+
     public static @NotNull ItemStack of(final @NotNull Material type, final int amount) {
         Preconditions.checkArgument(type.asItemType() != null, type + " isn't an item");
         Preconditions.checkArgument(amount > 0, "amount must be greater than 0");
@@ -689,19 +690,6 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     }
 
     /**
-     * @deprecated use {@link #getMaxItemUseDuration(org.bukkit.entity.LivingEntity)}; crossbows, later possibly more items require an entity parameter
-     */
-    @Deprecated(forRemoval = true)
-    public int getMaxItemUseDuration() {
-        return getMaxItemUseDuration(null);
-    }
-
-    public int getMaxItemUseDuration(@NotNull final org.bukkit.entity.LivingEntity entity) {
-        return this.craftDelegate.getMaxItemUseDuration(entity); // Paper - delegate
-    }
-    // Paper end
-
-    /**
      * Gets the Display name as seen in the Client.
      * Currently the server only supports the English language. To override this,
      * You must replace the language file embedded in the server jar.
@@ -714,6 +702,18 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     @Deprecated
     public String getI18NDisplayName() {
         return Bukkit.getServer().getItemFactory().getI18NDisplayName(this);
+    }
+
+    /**
+     * @deprecated use {@link #getMaxItemUseDuration(org.bukkit.entity.LivingEntity)}; crossbows, later possibly more items require an entity parameter
+     */
+    @Deprecated(forRemoval = true)
+    public int getMaxItemUseDuration() {
+        return getMaxItemUseDuration(null);
+    }
+
+    public int getMaxItemUseDuration(@NotNull final org.bukkit.entity.LivingEntity entity) {
+        return this.craftDelegate.getMaxItemUseDuration(entity); // Paper - delegate
     }
 
     /**

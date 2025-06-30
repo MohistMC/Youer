@@ -1,5 +1,6 @@
 package com.mohistmc.youer.bukkit;
 
+import com.mohistmc.youer.util.I18n;
 import com.mojang.authlib.GameProfile;
 import io.papermc.paper.configuration.GlobalConfiguration;
 import java.util.concurrent.ExecutionException;
@@ -15,7 +16,7 @@ public class LoginHandler {
     public void fireEvents(ServerLoginPacketListenerImpl serverLoginPacketListener, GameProfile gameprofile) throws Exception {
         // Paper start - Velocity support
         if (serverLoginPacketListener.velocityLoginMessageId == -1 && GlobalConfiguration.get().proxies.velocity.enabled) {
-            serverLoginPacketListener.disconnect("This server requires you to connect with Velocity.");
+            serverLoginPacketListener.disconnect(I18n.as("velocity.requires"));
             return;
         }
         // Paper end

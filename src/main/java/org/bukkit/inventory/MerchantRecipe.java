@@ -71,6 +71,7 @@ public class MerchantRecipe implements Recipe {
     }
 
     public MerchantRecipe(@NotNull ItemStack result, int uses, int maxUses, boolean experienceReward, int villagerExperience, float priceMultiplier, int demand, int specialPrice) {
+        Preconditions.checkArgument(!result.isEmpty(), "Recipe cannot have an empty result."); // Paper
         this.result = result;
         this.uses = uses;
         this.maxUses = maxUses;
@@ -84,11 +85,11 @@ public class MerchantRecipe implements Recipe {
     @NotNull
     @Override
     public ItemStack getResult() {
-        return result;
+        return result.clone(); // Paper
     }
 
     public void addIngredient(@NotNull ItemStack item) {
-        Preconditions.checkState(ingredients.size() < 2, "MerchantRecipe can only have maximum 2 ingredients");
+        Preconditions.checkArgument(!item.isEmpty(), "Recipe cannot have an empty itemstack ingredient."); // Paper
         ingredients.add(item.clone());
     }
 
@@ -100,6 +101,7 @@ public class MerchantRecipe implements Recipe {
         Preconditions.checkState(ingredients.size() <= 2, "MerchantRecipe can only have maximum 2 ingredients");
         this.ingredients = new ArrayList<ItemStack>();
         for (ItemStack item : ingredients) {
+            Preconditions.checkArgument(!item.isEmpty(), "Recipe cannot have an empty itemstack ingredient."); // Paper
             this.ingredients.add(item.clone());
         }
     }

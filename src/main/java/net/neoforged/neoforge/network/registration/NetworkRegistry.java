@@ -8,6 +8,8 @@ package net.neoforged.neoforge.network.registration;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.bukkit.messaging.PluginsDiscardedPayload;
+import com.mohistmc.youer.util.I18n;
 import com.mojang.logging.LogUtils;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.ArrayList;
@@ -21,6 +23,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.minecraft.network.Connection;
@@ -42,6 +45,7 @@ import net.minecraft.network.protocol.common.custom.DiscardedPayload;
 import net.minecraft.network.protocol.configuration.ClientConfigurationPacketListener;
 import net.minecraft.network.protocol.configuration.ServerConfigurationPacketListener;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 import net.neoforged.fml.ModLoader;
 import net.neoforged.fml.config.ConfigTracker;
@@ -69,6 +73,8 @@ import net.neoforged.neoforge.network.payload.ModdedNetworkPayload;
 import net.neoforged.neoforge.network.payload.ModdedNetworkQueryComponent;
 import net.neoforged.neoforge.network.payload.ModdedNetworkQueryPayload;
 import net.neoforged.neoforge.network.payload.ModdedNetworkSetupFailedPayload;
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.messaging.StandardMessenger;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -111,9 +117,9 @@ public class NetworkRegistry {
      * Registry of all custom payload handlers. The initial state of this map should reflect the protocols which support custom payloads.
      * TODO: Change key type to a combination of protocol + flow.
      */
-    private static final Map<ConnectionProtocol, Map<ResourceLocation, PayloadRegistration<?>>> PAYLOAD_REGISTRATIONS = ImmutableMap.of(
-            ConnectionProtocol.CONFIGURATION, new HashMap<>(),
-            ConnectionProtocol.PLAY, new HashMap<>());
+    public static final Map<ConnectionProtocol, Map<ResourceLocation, PayloadRegistration<?>>> PAYLOAD_REGISTRATIONS = ImmutableMap.of(
+            ConnectionProtocol.CONFIGURATION, new ConcurrentHashMap<>(),
+            ConnectionProtocol.PLAY, new ConcurrentHashMap<>());
 
     private static boolean setup = false;
 
@@ -212,6 +218,9 @@ public class NetworkRegistry {
 
             // These two checks can only be hit on receipt of a payload, as senders will be checked before reaching this method.
             if (registration == null) {
+                if (flow == PacketFlow.CLIENTBOUND && ((StandardMessenger)Bukkit.getServer().getMessenger()).registry.containsKey(id)) {
+                 // return PluginsDiscardedPayload.codec(id, 32767);
+                }
                 LOGGER.warn("No registration for payload {}; refusing to decode.", id);
                 return null;
             }
@@ -406,8 +415,7 @@ public class NetworkRegistry {
 
             //Negotiation failed. Disconnect the client.
             if (!negotiationResult.success()) {
-                listener.disconnect(Component.translatableWithFallback("neoforge.network.negotiation.failure.vanilla.client.not_supported",
-                        "You are trying to connect to a server that is running NeoForge, but you are not. Please install NeoForge Version: %s to connect to this server.", NeoForgeVersion.getVersion()));
+                listener.disconnect(Component.literal(I18n.as("neoforge.network.negotiation.failure.vanilla.client.not_supported", NeoForgeVersion.getVersion())));
                 return false;
             }
         }
@@ -546,8 +554,7 @@ public class NetworkRegistry {
 
             // Negotiation failed. Disconnect the client.
             if (!negotiationResult.success()) {
-                listener.getConnection().disconnect(Component.translatableWithFallback("neoforge.network.negotiation.failure.vanilla.server.not_supported",
-                        "You are trying to connect to a server that is not running NeoForge, but you have mods that require it. A connection could not be established.", NeoForgeVersion.getVersion()));
+                listener.getConnection().disconnect(Component.literal(I18n.as("neoforge.network.negotiation.failure.vanilla.server.not_supported", NeoForgeVersion.getVersion())));
                 return;
             }
         }
@@ -687,6 +694,18 @@ public class NetworkRegistry {
      */
     public static void onMinecraftRegister(Connection connection, Set<ResourceLocation> resourceLocations) {
         ChannelAttributes.getOrCreateAdHocChannels(connection).addAll(resourceLocations);
+        if (connection.getPacketListener() instanceof ServerCommonPacketListener listener) {
+            ServerCommonPacketListenerImpl listener0 = (ServerCommonPacketListenerImpl) listener;
+            var mcserver = listener0.getCraftServer().getServer();
+            listener.getMainThreadEventLoop().executeIfPossible(() -> {
+                if (mcserver.hasStopped() || listener0.processedDisconnect) {
+                    return;
+                }
+                for (var channel : resourceLocations) {
+                    listener0.getCraftPlayer().addChannel(channel.toString());
+                }
+            });
+        }
     }
 
     /**
@@ -699,6 +718,18 @@ public class NetworkRegistry {
      */
     public static void onMinecraftUnregister(Connection connection, Set<ResourceLocation> resourceLocations) {
         ChannelAttributes.getOrCreateAdHocChannels(connection).removeAll(resourceLocations);
+        if (connection.getPacketListener() instanceof ServerCommonPacketListener listener) {
+            ServerCommonPacketListenerImpl listener0 = (ServerCommonPacketListenerImpl) listener;
+            var mcserver = listener0.getCraftServer().getServer();
+            listener.getMainThreadEventLoop().executeIfPossible(() -> {
+                if (mcserver.hasStopped() || listener0.processedDisconnect) {
+                    return;
+                }
+                for (var channel : resourceLocations) {
+                    listener0.getCraftPlayer().removeChannel(channel.toString());
+                }
+            });
+        }
     }
 
     /**
@@ -795,7 +826,18 @@ public class NetworkRegistry {
         notListeningAnymoreOn.addAll(getInitialListeningChannels(listener.flow()));
         notListeningAnymoreOn.addAll(setup.getChannels(ConnectionProtocol.CONFIGURATION).keySet());
         listener.send(new MinecraftUnregisterPayload(notListeningAnymoreOn.build()));
-
+        if (listener instanceof ServerCommonPacketListener listener1) {
+            ServerCommonPacketListenerImpl listener0 = (ServerCommonPacketListenerImpl) listener1;
+            var mcserver = listener0.getCraftServer().getServer();
+            listener.getMainThreadEventLoop().executeIfPossible(() -> {
+                if (mcserver.hasStopped() || listener0.processedDisconnect) {
+                    return;
+                }
+                for (var channel : setup.getChannels(ConnectionProtocol.PLAY).keySet()) {
+                    listener0.getCraftPlayer().addChannel(channel.toString());
+                }
+            });
+        }
         final ImmutableSet.Builder<ResourceLocation> nowListeningOn = ImmutableSet.builder();
         nowListeningOn.add(MinecraftRegisterPayload.ID);
         nowListeningOn.add(MinecraftUnregisterPayload.ID);

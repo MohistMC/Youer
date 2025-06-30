@@ -98,6 +98,20 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
         }
     }
 
+    // Paper start
+    @Override
+    public void setPlayerProfile(io.papermc.paper.profile.PlayerProfile profile) {
+        Preconditions.checkNotNull(profile, "profile");
+        this.profile = io.papermc.paper.profile.CraftPlayerProfile.asResolvableProfileCopy(profile);
+    }
+
+    @javax.annotation.Nullable
+    @Override
+    public io.papermc.paper.profile.PlayerProfile getPlayerProfile() {
+        return profile != null ? new io.papermc.paper.profile.CraftPlayerProfile(profile) : null;
+    }
+    // Paper end
+
     @Override
     public PlayerProfile getOwnerProfile() {
         if (!this.hasOwner()) {
@@ -112,7 +126,7 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
         if (profile == null) {
             this.profile = null;
         } else {
-            this.profile = new ResolvableProfile(CraftPlayerProfile.validateSkullProfile(((CraftPlayerProfile) profile).buildGameProfile()));
+            this.profile = CraftPlayerProfile.validateSkullProfile(((io.papermc.paper.profile.SharedPlayerProfile) profile).buildResolvableProfile()); // Paper
         }
     }
 

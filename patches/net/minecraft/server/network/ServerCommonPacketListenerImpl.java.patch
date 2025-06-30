@@ -1,15 +1,18 @@
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -2,12 +_,12 @@
+@@ -1,13 +_,18 @@
+ package net.minecraft.server.network;
  
++import com.mohistmc.youer.YouerConfig;
++import com.mohistmc.youer.bukkit.messaging.PluginChannel;
  import com.mojang.authlib.GameProfile;
  import com.mojang.logging.LogUtils;
 +import java.nio.charset.StandardCharsets;
 +import java.util.concurrent.ExecutionException;
  import javax.annotation.Nullable;
--import net.minecraft.CrashReport;
--import net.minecraft.CrashReportCategory;
--import net.minecraft.ReportedException;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
  import net.minecraft.Util;
  import net.minecraft.network.Connection;
 +import net.minecraft.network.ConnectionProtocol;
@@ -142,7 +145,7 @@
 +        }
 +        // Paper end - Brand support
 +
-+        if (p_294276_.payload() instanceof DiscardedPayload discardedPayload) {
++        if (p_294276_.payload() instanceof DiscardedPayload discardedPayload && YouerConfig.pluginchannel_debug) {
 +            System.out.println("Received plugins discarded payload");
 +            ResourceLocation identifier = discardedPayload.type().id();
 +            System.out.println("Identifier: " + identifier);
@@ -238,13 +241,15 @@
              }
  
              return false;
-@@ -141,7 +_,17 @@
+@@ -141,7 +_,19 @@
          this.send(p_294278_, null);
      }
  
 +    @Override
      public void send(Packet<?> p_295099_, @Nullable PacketSendListener p_296321_) {
-+        net.neoforged.neoforge.network.registration.NetworkRegistry.checkPacket(p_295099_, this);
++        if (!PluginChannel.pliuginChannel.getAndSet(false)) {
++            net.neoforged.neoforge.network.registration.NetworkRegistry.checkPacket(p_295099_, this);
++        }
 +        // CraftBukkit start
 +        if (p_295099_ == null || this.processedDisconnect) { // Spigot
 +            return;
@@ -256,19 +261,10 @@
          if (p_295099_.isTerminal()) {
              this.close();
          }
-@@ -151,22 +_,114 @@
-         try {
-             this.connection.send(p_295099_, p_296321_, flag);
-         } catch (Throwable throwable) {
-+            /* Youer remove this
-             CrashReport crashreport = CrashReport.forThrowable(throwable, "Sending packet");
-             CrashReportCategory crashreportcategory = crashreport.addCategory("Packet being sent");
-             crashreportcategory.setDetail("Packet class", () -> p_295099_.getClass().getCanonicalName());
-             throw new ReportedException(crashreport);
-+            */
+@@ -158,15 +_,105 @@
          }
      }
-+
+ 
 +    // Paper start - adventure
 +    public void disconnect(final net.kyori.adventure.text.Component reason) {
 +        this.disconnect(reason, PlayerKickEvent.Cause.UNKNOWN);
@@ -278,7 +274,7 @@
 +        // Paper end - kick event causes
 +    }
 +    // Paper end - adventure
- 
++
      public void disconnect(Component p_294116_) {
 -        this.disconnect(new DisconnectionDetails(p_294116_));
 -    }

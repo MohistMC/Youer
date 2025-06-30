@@ -84,7 +84,7 @@
      private final Set<TagKey<Fluid>> fluidOnEyes = new HashSet<>();
      public int invulnerableTime;
      protected boolean firstTick = true;
-@@ -243,6 +_,249 @@
+@@ -243,6 +_,273 @@
      public boolean hasVisualFire;
      @Nullable
      private BlockState inBlockState = null;
@@ -240,6 +240,30 @@
 +    public long activatedTick = Integer.MIN_VALUE;
 +    public void inactiveTick() { }
 +    // Spigot end
++
++    // Paper start - Entity origin API
++    @javax.annotation.Nullable
++    private org.bukkit.util.Vector origin;
++    @javax.annotation.Nullable
++    private UUID originWorld;
++    public boolean freezeLocked = false; // Paper - Freeze Tick Lock API
++    public boolean fixedPose = false; // Paper - Expand Pose API
++
++    public void setOrigin(@javax.annotation.Nonnull Location location) {
++        this.origin = location.toVector();
++        this.originWorld = location.getWorld().getUID();
++    }
++
++    @javax.annotation.Nullable
++    public org.bukkit.util.Vector getOriginVector() {
++        return this.origin != null ? this.origin.clone() : null;
++    }
++
++    @javax.annotation.Nullable
++    public UUID getOriginWorld() {
++        return this.originWorld;
++    }
++    // Paper end - Entity origin API
 +
 +    // Paper start
 +    public boolean spawnedViaMobSpawner; // Paper - Yes this name is similar to above, upstream took the better one
@@ -1069,7 +1093,7 @@
              this.addAdditionalSaveData(p_20241_);
              if (this.isVehicle()) {
                  ListTag listtag1 = new ListTag();
-@@ -1720,6 +_,16 @@
+@@ -1720,6 +_,24 @@
                  }
              }
  
@@ -1078,6 +1102,14 @@
 +                p_20241_.putBoolean("Paper.FromMobSpawner", true);
 +            }
 +            // Paper end
++            // Paper start
++            if (this.origin != null) {
++                UUID originWorld = this.originWorld != null ? this.originWorld : this.level != null ? this.level.getWorld().getUID() : null;
++                if (originWorld != null) {
++                    p_20241_.putUUID("Paper.OriginWorld", originWorld);
++                }
++                p_20241_.put("Paper.Origin", this.newDoubleList(origin.getX(), origin.getY(), origin.getZ()));
++            }
 +
 +            if (spawnReason != null) {
 +                p_20241_.putString("Paper.SpawnReason", spawnReason.name());
@@ -1095,7 +1127,7 @@
                  if (p_20259_.contains("Tags", 9)) {
                      this.tags.clear();
                      ListTag listtag3 = p_20259_.getList("Tags", 8);
-@@ -1801,6 +_,66 @@
+@@ -1801,6 +_,80 @@
              } else {
                  throw new IllegalStateException("Entity has invalid rotation");
              }
@@ -1137,6 +1169,20 @@
 +                this.persistentInvisibility = bukkitInvisible;
 +            }
 +            // CraftBukkit end
++
++            // Paper start
++            ListTag originTag = p_20259_.getList("Paper.Origin", net.minecraft.nbt.Tag.TAG_DOUBLE);
++            if (!originTag.isEmpty()) {
++                UUID originWorld = null;
++                if (p_20259_.contains("Paper.OriginWorld")) {
++                    originWorld = p_20259_.getUUID("Paper.OriginWorld");
++                } else if (this.level != null) {
++                    originWorld = this.level.getWorld().getUID();
++                }
++                this.originWorld = originWorld;
++                origin = new org.bukkit.util.Vector(originTag.getDouble(0), originTag.getDouble(1), originTag.getDouble(2));
++            }
++
 +            spawnedViaMobSpawner = p_20259_.getBoolean("Paper.FromMobSpawner"); // Restore entity's from mob spawner status
 +            if (p_20259_.contains("Paper.SpawnReason")) {
 +                String spawnReasonName = p_20259_.getString("Paper.SpawnReason");

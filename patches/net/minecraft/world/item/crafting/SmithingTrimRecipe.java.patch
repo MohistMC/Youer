@@ -8,7 +8,7 @@
  import java.util.Optional;
  import java.util.stream.Stream;
  import net.minecraft.core.Holder;
-@@ -19,6 +_,9 @@
+@@ -19,13 +_,24 @@
  import net.minecraft.world.item.armortrim.TrimPattern;
  import net.minecraft.world.item.armortrim.TrimPatterns;
  import net.minecraft.world.level.Level;
@@ -18,6 +18,30 @@
  
  public class SmithingTrimRecipe implements SmithingRecipe {
      final Ingredient template;
+     final Ingredient base;
+     final Ingredient addition;
++    final boolean copyDataComponents; // Paper - Option to prevent data components copy
+ 
+     public SmithingTrimRecipe(Ingredient p_267298_, Ingredient p_266862_, Ingredient p_267050_) {
++        // Paper start - Option to prevent data components copy
++        this(p_267298_, p_266862_, p_267050_, true);
++    }
++
++    public SmithingTrimRecipe(Ingredient p_267298_, Ingredient p_266862_, Ingredient p_267050_, boolean copyDataComponents) {
++        this.copyDataComponents = copyDataComponents;
++        // Paper end - Option to prevent data components copy
+         this.template = p_267298_;
+         this.base = p_266862_;
+         this.addition = p_267050_;
+@@ -46,7 +_,7 @@
+                     return ItemStack.EMPTY;
+                 }
+ 
+-                ItemStack itemstack1 = itemstack.copyWithCount(1);
++                ItemStack itemstack1 = this.copyDataComponents ? itemstack.copyWithCount(1) : new ItemStack(itemstack.getItem(), 1); // Paper - Option to prevent data components copy
+                 itemstack1.set(DataComponents.TRIM, new ArmorTrim(optional.get(), optional1.get()));
+                 return itemstack1;
+             }
 @@ -89,8 +_,15 @@
  
      @Override
@@ -30,7 +54,7 @@
 +    // CraftBukkit start
 +    @Override
 +    public org.bukkit.inventory.Recipe toBukkitRecipe(NamespacedKey id) {
-+        return new CraftSmithingTrimRecipe(id, CraftRecipe.toBukkit(this.template), CraftRecipe.toBukkit(this.base), CraftRecipe.toBukkit(this.addition));
++        return new CraftSmithingTrimRecipe(id, CraftRecipe.toBukkit(this.template), CraftRecipe.toBukkit(this.base), CraftRecipe.toBukkit(this.addition), this.copyDataComponents); // Paper - Option to prevent data components copy
 +    }
 +    // CraftBukkit end
  

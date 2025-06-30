@@ -1233,6 +1233,38 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
     public void sendMap(@NotNull MapView map);
 
     /**
+     * Sends an Action Bar message to the client.
+     *
+     * Use Section symbols for legacy color codes to send formatting.
+     *
+     * @param message The message to send
+     * @deprecated use {@link #sendActionBar(net.kyori.adventure.text.Component)}
+     */
+    @Deprecated
+    public void sendActionBar(@NotNull String message);
+
+    /**
+     * Sends an Action Bar message to the client.
+     *
+     * Use supplied alternative character to the section symbol to represent legacy color codes.
+     *
+     * @param alternateChar Alternate symbol such as '&amp;'
+     * @param message The message to send
+     * @deprecated use {@link #sendActionBar(net.kyori.adventure.text.Component)}
+     */
+    @Deprecated
+    public void sendActionBar(char alternateChar, @NotNull String message);
+
+    /**
+     * Sends an Action Bar message to the client.
+     *
+     * @param message The components to send
+     * @deprecated use {@link #sendActionBar(net.kyori.adventure.text.Component)}
+     */
+    @Deprecated
+    public void sendActionBar(@NotNull net.md_5.bungee.api.chat.BaseComponent... message);
+
+    /**
      * Send a hurt animation. This fakes incoming damage towards the player from
      * the given yaw relative to the player's direction.
      *

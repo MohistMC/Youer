@@ -12,17 +12,22 @@ public class CraftSmithingTrimRecipe extends SmithingTrimRecipe implements Craft
     public CraftSmithingTrimRecipe(NamespacedKey key, RecipeChoice template, RecipeChoice base, RecipeChoice addition) {
         super(key, template, base, addition);
     }
+    // Paper start - Option to prevent data components copy
+    public CraftSmithingTrimRecipe(NamespacedKey key, RecipeChoice template, RecipeChoice base, RecipeChoice addition, boolean copyDataComponents) {
+        super(key, template, base, addition, copyDataComponents);
+    }
+    // Paper end - Option to prevent data components copy
 
     public static CraftSmithingTrimRecipe fromBukkitRecipe(SmithingTrimRecipe recipe) {
         if (recipe instanceof CraftSmithingTrimRecipe) {
             return (CraftSmithingTrimRecipe) recipe;
         }
-        CraftSmithingTrimRecipe ret = new CraftSmithingTrimRecipe(recipe.getKey(), recipe.getTemplate(), recipe.getBase(), recipe.getAddition());
+        CraftSmithingTrimRecipe ret = new CraftSmithingTrimRecipe(recipe.getKey(), recipe.getTemplate(), recipe.getBase(), recipe.getAddition(), recipe.willCopyDataComponents()); // Paper - Option to prevent data components copy
         return ret;
     }
 
     @Override
     public void addToCraftingManager() {
-        MinecraftServer.getServer().getRecipeManager().addRecipe(new RecipeHolder<>(CraftNamespacedKey.toMinecraft(this.getKey()), new net.minecraft.world.item.crafting.SmithingTrimRecipe(this.toNMS(this.getTemplate(), false), this.toNMS(this.getBase(), false), this.toNMS(this.getAddition(), false))));
+        MinecraftServer.getServer().getRecipeManager().addRecipe(new RecipeHolder<>(CraftNamespacedKey.toMinecraft(this.getKey()), new net.minecraft.world.item.crafting.SmithingTrimRecipe(this.toNMS(this.getTemplate(), false), this.toNMS(this.getBase(), false), this.toNMS(this.getAddition(), false), this.willCopyDataComponents()))); // Paper - Option to prevent data components copy & support empty RecipeChoice
     }
 }

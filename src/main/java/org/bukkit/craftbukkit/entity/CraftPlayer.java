@@ -1,5 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.bukkit.messaging.PluginChannel;
 import io.netty.buffer.Unpooled;
 import io.papermc.paper.profile.CraftPlayerProfile;
 import com.google.common.base.Preconditions;
@@ -17,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -24,6 +27,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
@@ -408,6 +412,29 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         }
     }
 
+    // Paper start
+    @Override
+    @Deprecated
+    public void sendActionBar(BaseComponent[] message) {
+        if (getHandle().connection == null) return;
+        net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket packet = new net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket(org.bukkit.craftbukkit.util.CraftChatMessage.fromJSON(net.md_5.bungee.chat.ComponentSerializer.toString(message)));
+        getHandle().connection.send(packet);
+    }
+
+    @Override
+    @Deprecated
+    public void sendActionBar(String message) {
+        if (getHandle().connection == null || message == null || message.isEmpty()) return;
+        getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket(CraftChatMessage.fromStringOrNull(message)));
+    }
+
+    @Override
+    @Deprecated
+    public void sendActionBar(char alternateChar, String message) {
+        if (message == null || message.isEmpty()) return;
+        sendActionBar(org.bukkit.ChatColor.translateAlternateColorCodes(alternateChar, message));
+    }
+
     @Override
     public String getDisplayName() {
         if(true) return io.papermc.paper.adventure.DisplayNames.getLegacy(this); // Paper
@@ -579,7 +606,20 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
         if (this.getHandle().connection == null) return;
 
-        this.getHandle().connection.chat(msg, PlayerChatMessage.system(msg), false);
+        // Paper start - Improve chat handling
+        if (ServerGamePacketListenerImpl.isChatMessageIllegal(msg)) {
+            this.getHandle().connection.disconnect(Component.translatable("multiplayer.disconnect.illegal_characters"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_CHARACTERS); // Paper - kick event causes
+        } else {
+            if (msg.startsWith("/")) {
+                this.getHandle().connection.handleCommand(msg);
+            } else {
+                final PlayerChatMessage playerChatMessage = PlayerChatMessage.system(msg).withUnsignedContent(Component.literal(msg));
+                // TODO chat decorating
+                // TODO text filtering
+                this.getHandle().connection.chat(msg, playerChatMessage, false);
+            }
+        }
+        // Paper end - Improve chat handling
     }
 
     @Override
@@ -604,7 +644,10 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         Sound instrumentSound = instrument.getSound();
         if (instrumentSound == null) return;
 
-        float pitch = note.getPitch();
+        // Paper start - use correct pitch (modeled off of NoteBlock)
+        final net.minecraft.world.level.block.state.properties.NoteBlockInstrument noteBlockInstrument = CraftBlockData.toNMS(instrument, net.minecraft.world.level.block.state.properties.NoteBlockInstrument.class);
+        final float pitch = noteBlockInstrument.isTunable() ? note.getPitch() : 1.0f;
+        // Paper end
         this.getHandle().connection.send(new ClientboundSoundPacket(CraftSound.bukkitToMinecraftHolder(instrumentSound), net.minecraft.sounds.SoundSource.RECORDS, loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), 3.0f, pitch, this.getHandle().getRandom().nextLong()));
     }
 
@@ -2133,18 +2176,19 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void sendPluginMessage(Plugin source, String channel, byte[] message) {
+        if (channel.toLowerCase(Locale.ROOT).contains("bungeecord")) return;
+        if (YouerConfig.pluginchannel_debug) System.out.println("Plugin message from " + channel + ": " + Arrays.toString(message));
         StandardMessenger.validatePluginMessage(this.server.getMessenger(), source, channel, message);
         if (this.getHandle().connection == null) return;
 
         if (this.channels.contains(channel)) {
             ResourceLocation id = ResourceLocation.parse(StandardMessenger.validateAndCorrectChannel(channel));
-            this.sendCustomPayload(id, message);
+            this.server.getMessenger().sendCustomPayload(source, this, id, message);
         }
     }
 
     private void sendCustomPayload(ResourceLocation id, byte[] message) {
-        ClientboundCustomPayloadPacket packet = new ClientboundCustomPayloadPacket(new DiscardedPayload(id, Unpooled.wrappedBuffer(message)));
-        this.getHandle().connection.send(packet);
+        server.getMessenger().sendCustomPayload(null, this, id, message);
     }
 
     @Override
@@ -2270,6 +2314,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     public void addChannel(String channel) {
+        if (channel.contains("fabric")) return;
         Preconditions.checkState(DISABLE_CHANNEL_LIMIT || this.channels.size() < 1024, "Cannot register channel. Too many channels registered!"); // Paper - flag to disable channel limit
         channel = StandardMessenger.validateAndCorrectChannel(channel);
         if (this.channels.add(channel)) {
@@ -2344,12 +2389,13 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void setFlying(boolean value) {
+        boolean needsUpdate = getHandle().getAbilities().flying != value; // Paper - Only refresh abilities if needed
         if (!this.getAllowFlight()) {
             Preconditions.checkArgument(!value, "Player is not allowed to fly (check #getAllowFlight())");
         }
 
         this.getHandle().getAbilities().flying = value;
-        this.getHandle().onUpdateAbilities();
+        if (needsUpdate) this.getHandle().onUpdateAbilities(); // Paper - Only refresh abilities if needed
     }
 
     @Override

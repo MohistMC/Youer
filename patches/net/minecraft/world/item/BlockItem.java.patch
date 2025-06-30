@@ -1,16 +1,13 @@
 --- a/net/minecraft/world/item/BlockItem.java
 +++ b/net/minecraft/world/item/BlockItem.java
-@@ -9,9 +_,9 @@
+@@ -9,6 +_,7 @@
  import net.minecraft.nbt.CompoundTag;
  import net.minecraft.network.chat.Component;
  import net.minecraft.server.MinecraftServer;
 +import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.sounds.SoundEvent;
--import net.minecraft.sounds.SoundSource;
- import net.minecraft.world.InteractionResult;
- import net.minecraft.world.entity.item.ItemEntity;
- import net.minecraft.world.entity.player.Player;
+ import net.minecraft.sounds.SoundSource;
 @@ -30,6 +_,11 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.gameevent.GameEvent;
@@ -36,7 +33,7 @@
                  if (blockstate == null) {
                      return InteractionResult.FAIL;
                  } else if (!this.placeBlock(blockplacecontext, blockstate)) {
-@@ -77,20 +_,25 @@
+@@ -77,19 +_,32 @@
                          this.updateCustomBlockEntityTag(blockpos, level, player, itemstack, blockstate1);
                          updateBlockEntityComponents(level, blockpos, itemstack);
                          blockstate1.getBlock().setPlacedBy(level, blockpos, blockstate1, player, itemstack);
@@ -59,18 +56,23 @@
                      }
  
 -                    SoundType soundtype = blockstate1.getSoundType();
--                    level.playSound(
++                    SoundType soundtype = blockstate1.getSoundType(level, blockpos, p_40577_.getPlayer());
+                     level.playSound(
 -                        player,
 -                        blockpos,
 -                        this.getPlaceSound(blockstate1),
 -                        SoundSource.BLOCKS,
 -                        (soundtype.getVolume() + 1.0F) / 2.0F,
 -                        soundtype.getPitch() * 0.8F
--                    );
-+                    SoundType soundtype = blockstate1.getSoundType(level, blockpos, p_40577_.getPlayer());
++                            player,
++                            blockpos,
++                            this.getPlaceSound(blockstate1, level, blockpos, p_40577_.getPlayer()),
++                            SoundSource.BLOCKS,
++                            (soundtype.getVolume() + 1.0F) / 2.0F,
++                            soundtype.getPitch() * 0.8F
+                     );
                      level.gameEvent(GameEvent.BLOCK_PLACE, blockpos, GameEvent.Context.of(player, blockstate1));
                      itemstack.consume(1, player);
-                     return InteractionResult.sidedSuccess(level.isClientSide);
 @@ -99,10 +_,16 @@
          }
      }

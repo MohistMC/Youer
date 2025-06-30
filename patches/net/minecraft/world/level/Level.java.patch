@@ -100,7 +100,7 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("the_nether"));
-@@ -114,6 +_,534 @@
+@@ -114,6 +_,524 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -283,7 +283,7 @@
 +
 +    private static final FluidState AIR_FLUIDSTATE = Fluids.EMPTY.defaultFluidState();
 +
-+    private static net.minecraft.world.phys.BlockHitResult fastClip(final Vec3 from, final Vec3 to, final Level level,
++    public static net.minecraft.world.phys.BlockHitResult fastClip(final Vec3 from, final Vec3 to, final Level level,
 +                                                                    final ClipContext clipContext) {
 +        final double adjX = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON * (from.x - to.x);
 +        final double adjY = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON * (from.y - to.y);
@@ -408,16 +408,6 @@
 +                normalizedCurrZ += normalizedDiffZ;
 +            }
 +        }
-+    }
-+
-+    /**
-+     * @reason Route to optimized call
-+     * @author Spottedleaf
-+     */
-+    @Override
-+    public final net.minecraft.world.phys.BlockHitResult clip(final ClipContext clipContext) {
-+        // can only do this in this class, as not everything that implements BlockGetter can retrieve chunks
-+        return fastClip(clipContext.getFrom(), clipContext.getTo(), (Level)(Object)this, clipContext);
 +    }
 +
 +    /**
@@ -1076,7 +1066,7 @@
 +            final String msg = String.format("Entity threw exception at %s:%s,%s,%s", p_46655_.level().getWorld().getName(), p_46655_.getX(), p_46655_.getY(), p_46655_.getZ());
 +            MinecraftServer.LOGGER.error(msg, throwable);
 +            getCraftServer().getPluginManager().callEvent(new io.papermc.paper.event.server.ServerExceptionEvent(new io.papermc.paper.exception.ServerInternalException(msg, throwable))); // Paper - ServerExceptionEvent
-+            p_46655_.discard();
++            p_46655_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
 +        }
 +        this.moonrise$midTickTasks(); // Paper - rewrite chunk system
 +    }

@@ -130,7 +130,7 @@ public class ShapelessRecipe extends CraftingRecipe {
     public ShapelessRecipe addIngredient(@NotNull RecipeChoice ingredient) {
         Preconditions.checkArgument(ingredients.size() + 1 <= 9, "Shapeless recipes cannot have more than 9 ingredients");
 
-        ingredients.add(ingredient);
+        ingredients.add(ingredient.validate(false).clone()); // Paper
         return this;
     }
 

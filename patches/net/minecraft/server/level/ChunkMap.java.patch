@@ -34,7 +34,7 @@
  import org.slf4j.Logger;
  
  public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider, GeneratingChunkMap {
-@@ -113,34 +_,56 @@
+@@ -113,34 +_,58 @@
      public static final int MIN_VIEW_DISTANCE = 2;
      public static final int MAX_VIEW_DISTANCE = 32;
      public static final int FORCED_TICKET_LEVEL = ChunkLevel.byStatus(FullChunkStatus.ENTITY_TICKING);
@@ -42,6 +42,8 @@
 -    public volatile Long2ObjectLinkedOpenHashMap<ChunkHolder> visibleChunkMap = this.updatingChunkMap.clone();
 -    private final Long2ObjectLinkedOpenHashMap<ChunkHolder> pendingUnloads = new Long2ObjectLinkedOpenHashMap<>();
 -    private final List<ChunkGenerationTask> pendingGenerationTasks = new ArrayList<>();
++    private final Long2ObjectLinkedOpenHashMap<ChunkHolder> updatingChunkMap = new Long2ObjectLinkedOpenHashMap<>();
++    private volatile Long2ObjectLinkedOpenHashMap<ChunkHolder> visibleChunkMap = this.updatingChunkMap.clone();
 +    // Paper - rewrite chunk system
      public final ServerLevel level;
      private final ThreadedLevelLightEngine lightEngine;
@@ -954,7 +956,7 @@
              if (!flag) {
                  this.distanceManager.removePlayer(sectionpos, p_140185_);
              }
-@@ -1018,58 +_,33 @@
+@@ -1018,58 +_,40 @@
                  this.playerMap.unIgnorePlayer(p_140185_);
              }
  
@@ -1021,6 +1023,13 @@
  
      protected void addEntity(Entity p_140200_) {
 -        if (!(p_140200_ instanceof EnderDragonPart)) {
++        // Paper start - ignore and warn about illegal addEntity calls instead of crashing server
++        if (!p_140200_.valid || p_140200_.level() != this.level || this.entityMap.containsKey(p_140200_.getId())) {
++            LOGGER.error("Illegal ChunkMap::addEntity for world " + this.level.getWorld().getName()
++                    + ": " + p_140200_  + (this.entityMap.containsKey(p_140200_.getId()) ? " ALREADY CONTAINED (This would have crashed your server)" : ""), new Throwable());
++            return;
++        }
++        // Paper end - ignore and warn about illegal addEntity calls instead of crashing server
 +        if (!(p_140200_ instanceof net.neoforged.neoforge.entity.PartEntity)) {
              EntityType<?> entitytype = p_140200_.getType();
              int i = entitytype.clientTrackingRange() * 16;

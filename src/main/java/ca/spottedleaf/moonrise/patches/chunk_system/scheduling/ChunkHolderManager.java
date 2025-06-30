@@ -215,7 +215,7 @@ public final class ChunkHolderManager {
             try {
                 RegionFileIOThread.getControllerFor(this.world, type).getCache().close();
             } catch (final IOException ex) {
-                LOGGER.error("Failed to close '" + type.name() + "' regionfile cache for world '" + WorldUtil.getWorldName(this.world) + "'", ex);
+                //LOGGER.error("Failed to close '" + type.name() + "' regionfile cache for world '" + WorldUtil.getWorldName(this.world) + "'", ex);
             }
         }
     }

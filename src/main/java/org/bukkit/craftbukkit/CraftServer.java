@@ -291,7 +291,6 @@ public final class CraftServer implements Server {
     protected final DedicatedServer console;
     protected final DedicatedPlayerList playerList;
     private final Map<String, World> worlds = new LinkedHashMap<String, World>();
-    private final Map<UUID, World> worldsByUUID = new Object2ObjectLinkedOpenHashMap<>(); // MultiPaper - optimize getWorld(UUID)
     // private final Map<Class<?>, Registry<?>> registries = new HashMap<>(); // Paper - replace with RegistryAccess
     private YamlConfiguration configuration;
     private YamlConfiguration commandsConfiguration;
@@ -1355,10 +1354,10 @@ public final class CraftServer implements Server {
             return null;
         }
 
+        this.console.addLevel(internal);
         this.console.initWorld(internal, worlddata, worlddata, worlddata.worldGenOptions());
 
         internal.setSpawnSettings(true, true);
-        this.console.addLevel(internal);
         ChunkProgressListener mohist$progressListener = this.console.progressListenerFactory.create(11);
         this.getServer().prepareLevels(mohist$progressListener, internal);
         // Paper - rewrite chunk system
@@ -1415,7 +1414,6 @@ public final class CraftServer implements Server {
         }
 
         String worldname = world.getName().startsWith("DIM") ? world.getName() : world.getName().toLowerCase(java.util.Locale.ENGLISH);
-        this.worldsByUUID.remove(world.getUID()); // MultiPaper - optimize getWorld(UUID)
         this.worlds.remove(worldname);
         Level2LevelStem.plugin_worlds.remove(worldname);
         this.console.removeLevel(handle);
@@ -1444,7 +1442,6 @@ public final class CraftServer implements Server {
 
     @Override
     public World getWorld(UUID uid) {
-        if (true) return this.worldsByUUID.get(uid);
         for (World world : this.worlds.values()) {
             if (world.getUID().equals(uid)) {
                 return world;
@@ -1458,7 +1455,6 @@ public final class CraftServer implements Server {
         if (this.getWorld(world.getUID()) != null) {
             return;
         }
-        this.worldsByUUID.put(world.getUID(), world); // MultiPaper - optimize getWorld(UUID)
         String worldname = world.getName().startsWith("DIM") ? world.getName() : world.getName().toLowerCase(java.util.Locale.ENGLISH);
         worlds.put(worldname, world);
     }

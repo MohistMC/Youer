@@ -1309,12 +1309,11 @@
              this.blockEntityTickers.size(),
              getTypeCount(this.blockEntityTickers, TickingBlockEntity::getType),
              this.getBlockTicks().count(),
-@@ -1600,15 +_,26 @@
+@@ -1600,15 +_,25 @@
  
      @Override
      public LevelEntityGetter<Entity> getEntities() {
 -        return this.entityManager.getEntityGetter();
-+        org.spigotmc.AsyncCatcher.catchOp("Chunk getEntities call"); // Spigot
 +        return this.moonrise$getEntityLookup(); // Paper - rewrite chunk system
      }
  
@@ -1401,7 +1400,16 @@
          return crashreportcategory;
      }
  
-@@ -1713,16 +_,48 @@
+@@ -1696,7 +_,7 @@
+         }
+ 
+         public void onTrackingStart(Entity p_143371_) {
+-            ServerLevel.this.getChunkSource().addEntity(p_143371_);
++            // ServerLevel.this.getChunkSource().addEntity(p_143371_); // Paper - ignore and warn about illegal addEntity calls instead of crashing server; moved down below valid=true
+             if (p_143371_ instanceof ServerPlayer serverplayer) {
+                 ServerLevel.this.players.add(serverplayer);
+                 ServerLevel.this.updateSleepingPlayerList();
+@@ -1713,16 +_,58 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -1416,6 +1424,16 @@
              p_143371_.updateDynamicGameEventListener(DynamicGameEventListener::add);
 +            p_143371_.inWorld = true; // CraftBukkit - Mark entity as in world
 +            p_143371_.valid = true; // CraftBukkit
++            ServerLevel.this.getChunkSource().addEntity(p_143371_); // Paper - ignore and warn about illegal addEntity calls instead of crashing server
++            // Paper start - Entity origin API
++            if (p_143371_.getOriginVector() == null) {
++                p_143371_.setOrigin(p_143371_.getBukkitEntity().getLocation());
++            }
++            // Default to current world if unknown, gross assumption but entities rarely change world
++            if (p_143371_.getOriginWorld() == null) {
++                p_143371_.setOrigin(p_143371_.getOriginVector().toLocation(getWorld()));
++            }
++            // Paper end - Entity origin API
          }
  
          public void onTrackingEnd(Entity p_143375_) {

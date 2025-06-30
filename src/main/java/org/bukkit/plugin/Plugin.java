@@ -247,14 +247,4 @@ public interface Plugin extends TabExecutor, io.papermc.paper.plugin.lifecycle.e
      * @return the lifecycle event manager
      */
     io.papermc.paper.plugin.lifecycle.event.@NotNull LifecycleEventManager<Plugin> getLifecycleManager();
-    // Paper end - lifecycle events
-    // Youer start
-    public boolean callForge();
-    public void initCallForge();
-    public void registerForgeEvent(IEventBus bus, Object target);
-    public void registerForgeEvent(Object target);
-    public void unregisterForgeEvents(IEventBus bus, Object target);
-    public void unregisterForgeEvents(IEventBus bus);
-    public void unregisterAllForgeEvents();
-    // Youer end
 }

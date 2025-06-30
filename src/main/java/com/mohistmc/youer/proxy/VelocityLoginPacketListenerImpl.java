@@ -1,5 +1,6 @@
 package com.mohistmc.youer.proxy;
 
+import com.mohistmc.youer.util.I18n;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.papermc.paper.configuration.GlobalConfiguration;
@@ -36,7 +37,7 @@ public class VelocityLoginPacketListenerImpl extends ServerLoginPacketListenerIm
                         youer$handleCustomQueryPacket(new FriendlyByteBuf(Unpooled.wrappedBuffer(Unpooled.copyBoolean(true), buffer.slice())), "Fabric api");
                     }
                 } catch (Exception e) {
-                    this.disconnect("This server requires you to connect with Velocity.");
+                    this.disconnect(I18n.as("velocity.requires"));
                 }
             }
         } else {

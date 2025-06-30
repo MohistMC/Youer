@@ -7,14 +7,17 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.bukkit.Material;
 import org.bukkit.configuration.serialization.DelegateDeserialization;
 import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
+import org.bukkit.craftbukkit.entity.CraftLivingEntity;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.material.MaterialData;
@@ -253,6 +256,21 @@ public final class CraftItemStack extends ItemStack {
     public int getMaxStackSize() {
         return (this.handle == null) ? Material.AIR.getMaxStackSize() : this.handle.getMaxStackSize();
     }
+
+    // Paper start
+    @Override
+    public int getMaxItemUseDuration(final LivingEntity entity) {
+        if (handle == null) {
+            return 0;
+        }
+
+        // Make sure plugins calling the old method don't blow up
+        if (entity == null && handle.is(Items.CROSSBOW)) {
+            throw new UnsupportedOperationException("This item requires an entity to determine the max use duration");
+        }
+        return handle.getUseDuration(entity != null ? ((CraftLivingEntity) entity).getHandle() : null);
+    }
+    // Paper end
 
     @Override
     public void addUnsafeEnchantment(Enchantment ench, int level) {

@@ -233,4 +233,8 @@ public interface Messenger {
      * @param message Raw payload of the message.
      */
     public void dispatchIncomingMessage(@NotNull Player source, @NotNull String channel, @NotNull byte[] message);
+
+    Object2BooleanOpenHashMap<String> valid = new Object2BooleanOpenHashMap<>();
+    void sendCustomPayload(Plugin src, CraftPlayer dst, ResourceLocation location, byte[] data);
+    void registerAnonymousOutgoing(ResourceLocation location);
 }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/inventory/ContainerLevelAccess.java
 +++ b/net/minecraft/world/inventory/ContainerLevelAccess.java
-@@ -5,8 +_,31 @@
+@@ -5,17 +_,58 @@
  import java.util.function.BiFunction;
  import net.minecraft.core.BlockPos;
  import net.minecraft.world.level.Level;
@@ -32,7 +32,16 @@
      ContainerLevelAccess NULL = new ContainerLevelAccess() {
          @Override
          public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, T> p_39304_) {
-@@ -16,6 +_,17 @@
+             return Optional.empty();
+         }
++
++        // Paper start - fix menus with empty level accesses
++        @Override
++        public org.bukkit.Location getLocation() {
++            return null;
++        }
++        // Paper end - fix menus with empty level accesses
+     };
  
      static ContainerLevelAccess create(final Level p_39290_, final BlockPos p_39291_) {
          return new ContainerLevelAccess() {

@@ -148,6 +148,19 @@ class CraftMetaSkull extends CraftMetaItem implements SkullMeta {
         return hasOwner() ? profile.name().orElse(null) : null;
     }
 
+    // Paper start
+    @Override
+    public void setPlayerProfile(@org.jetbrains.annotations.Nullable io.papermc.paper.profile.PlayerProfile profile) {
+        setProfile((profile == null) ? null : io.papermc.paper.profile.CraftPlayerProfile.asResolvableProfileCopy(profile));
+    }
+
+    @org.jetbrains.annotations.Nullable
+    @Override
+    public io.papermc.paper.profile.PlayerProfile getPlayerProfile() {
+        return profile != null ? new io.papermc.paper.profile.CraftPlayerProfile(profile) : null;
+    }
+    // Paper end
+
     @Override
     public OfflinePlayer getOwningPlayer() {
         if (this.hasOwner()) {
@@ -202,10 +215,10 @@ class CraftMetaSkull extends CraftMetaItem implements SkullMeta {
 
     @Override
     public void setOwnerProfile(PlayerProfile profile) {
-        if (profile instanceof CraftPlayerProfile craftPlayerProfile) {
-            setProfile(CraftPlayerProfile.validateSkullProfile(craftPlayerProfile.buildResolvableProfile()));
+        if (profile instanceof final io.papermc.paper.profile.SharedPlayerProfile sharedProfile) {
+            this.setProfile(CraftPlayerProfile.validateSkullProfile(sharedProfile.buildResolvableProfile())); // Paper
         } else {
-            setProfile(null);
+            this.setProfile(null);
         }
     }
 
@@ -256,8 +269,9 @@ class CraftMetaSkull extends CraftMetaItem implements SkullMeta {
     Builder<String, Object> serialize(Builder<String, Object> builder) {
         super.serialize(builder);
         if (this.hasOwner()) {
-            return builder.put(CraftMetaSkull.SKULL_OWNER.BUKKIT, new CraftPlayerProfile(this.profile));
+            builder.put(CraftMetaSkull.SKULL_OWNER.BUKKIT, new io.papermc.paper.profile.CraftPlayerProfile(this.profile)); // Paper
         }
+
         NamespacedKey namespacedKeyNB = this.getNoteBlockSound();
         if (namespacedKeyNB != null) {
             return builder.put(CraftMetaSkull.NOTE_BLOCK_SOUND.BUKKIT, namespacedKeyNB.toString());

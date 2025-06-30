@@ -124,7 +124,7 @@
      }
  
      public static VoxelShape create(AABB p_83065_) {
-@@ -119,90 +_,55 @@
+@@ -119,51 +_,67 @@
          return join(p_83111_, p_83112_, BooleanOp.OR);
      }
  
@@ -172,7 +172,6 @@
 -        return joinUnoptimized(p_83114_, p_83115_, p_83116_).optimize();
 +        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.joinOptimized(p_83114_, p_83115_, p_83116_); // Paper - optimise collisions
      }
-+
  
      public static VoxelShape joinUnoptimized(VoxelShape p_83149_, VoxelShape p_83150_, BooleanOp p_83151_) {
 -        if (p_83151_.apply(false, false)) {
@@ -208,53 +207,48 @@
 -                    : new ArrayVoxelShape(bitsetdiscretevoxelshape, indexmerger.getList(), indexmerger1.getList(), indexmerger2.getList()));
 -            }
 -        }
++        boolean flag = p_83151_.apply(true, false);
++        boolean flag1 = p_83151_.apply(false, true);
++        IndexMerger indexmerger = createIndexMerger(1, p_83149_.getCoords(Direction.Axis.X), p_83150_.getCoords(Direction.Axis.X), flag, flag1);
++        IndexMerger indexmerger1 = createIndexMerger(
++                indexmerger.size() - 1, p_83149_.getCoords(Direction.Axis.Y), p_83150_.getCoords(Direction.Axis.Y), flag, flag1
++        );
++        IndexMerger indexmerger2 = createIndexMerger(
++                (indexmerger.size() - 1) * (indexmerger1.size() - 1),
++                p_83149_.getCoords(Direction.Axis.Z),
++                p_83150_.getCoords(Direction.Axis.Z),
++                flag,
++                flag1
++        );
 +        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.joinUnoptimized(p_83149_, p_83150_, p_83151_); // Paper - optimise collisions
      }
  
      public static boolean joinIsNotEmpty(VoxelShape p_83158_, VoxelShape p_83159_, BooleanOp p_83160_) {
--        if (p_83160_.apply(false, false)) {
--            throw (IllegalArgumentException)Util.pauseInIde(new IllegalArgumentException());
--        } else {
--            boolean flag = p_83158_.isEmpty();
--            boolean flag1 = p_83159_.isEmpty();
--            if (!flag && !flag1) {
--                if (p_83158_ == p_83159_) {
--                    return p_83160_.apply(true, true);
--                } else {
--                    boolean flag2 = p_83160_.apply(true, false);
--                    boolean flag3 = p_83160_.apply(false, true);
--
--                    for (Direction.Axis direction$axis : AxisCycle.AXIS_VALUES) {
--                        if (p_83158_.max(direction$axis) < p_83159_.min(direction$axis) - 1.0E-7) {
--                            return flag2 || flag3;
--                        }
--
--                        if (p_83159_.max(direction$axis) < p_83158_.min(direction$axis) - 1.0E-7) {
--                            return flag2 || flag3;
--                        }
--                    }
--
--                    IndexMerger indexmerger = createIndexMerger(1, p_83158_.getCoords(Direction.Axis.X), p_83159_.getCoords(Direction.Axis.X), flag2, flag3);
--                    IndexMerger indexmerger1 = createIndexMerger(
++        if (Boolean.parseBoolean("true")) return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isJoinNonEmpty(p_83158_, p_83159_, p_83160_); // Paper - optimise collisions
+         if (p_83160_.apply(false, false)) {
+             throw (IllegalArgumentException)Util.pauseInIde(new IllegalArgumentException());
+         } else {
+@@ -188,14 +_,14 @@
+ 
+                     IndexMerger indexmerger = createIndexMerger(1, p_83158_.getCoords(Direction.Axis.X), p_83159_.getCoords(Direction.Axis.X), flag2, flag3);
+                     IndexMerger indexmerger1 = createIndexMerger(
 -                        indexmerger.size() - 1, p_83158_.getCoords(Direction.Axis.Y), p_83159_.getCoords(Direction.Axis.Y), flag2, flag3
--                    );
--                    IndexMerger indexmerger2 = createIndexMerger(
++                            indexmerger.size() - 1, p_83158_.getCoords(Direction.Axis.Y), p_83159_.getCoords(Direction.Axis.Y), flag2, flag3
+                     );
+                     IndexMerger indexmerger2 = createIndexMerger(
 -                        (indexmerger.size() - 1) * (indexmerger1.size() - 1),
 -                        p_83158_.getCoords(Direction.Axis.Z),
 -                        p_83159_.getCoords(Direction.Axis.Z),
 -                        flag2,
 -                        flag3
--                    );
--                    return joinIsNotEmpty(indexmerger, indexmerger1, indexmerger2, p_83158_.shape, p_83159_.shape, p_83160_);
--                }
--            } else {
--                return p_83160_.apply(!flag, !flag1);
--            }
--        }
-+        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isJoinNonEmpty(p_83158_, p_83159_, p_83160_); // Paper - optimise collisions
-     }
- 
-     private static boolean joinIsNotEmpty(
++                            (indexmerger.size() - 1) * (indexmerger1.size() - 1),
++                            p_83158_.getCoords(Direction.Axis.Z),
++                            p_83159_.getCoords(Direction.Axis.Z),
++                            flag2,
++                            flag3
+                     );
+                     return joinIsNotEmpty(indexmerger, indexmerger1, indexmerger2, p_83158_.shape, p_83159_.shape, p_83160_);
+                 }
 @@ -231,105 +_,162 @@
          return p_193139_;
      }
