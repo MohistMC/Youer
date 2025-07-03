@@ -24,7 +24,30 @@
      public AbstractVillager(EntityType<? extends AbstractVillager> p_35267_, Level p_35268_) {
          super(p_35267_, p_35268_);
          this.setPathfindingMalus(PathType.DANGER_FIRE, 16.0F);
-@@ -127,6 +_,7 @@
+@@ -119,14 +_,28 @@
+     public void overrideXp(int p_35322_) {
+     }
+ 
++    // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
++    @Override
++    public void processTrade(MerchantOffer recipe, @Nullable io.papermc.paper.event.player.PlayerPurchaseEvent event) { // The MerchantRecipe passed in here is the one set by the PlayerPurchaseEvent
++        if (event == null || event.willIncreaseTradeUses()) {
++            recipe.increaseUses();
++        }
++        if (event == null || event.isRewardingExp()) {
++            this.rewardTradeXp(recipe);
++        }
++        this.notifyTrade(recipe);
++    }
++    // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
++
+     @Override
+     public void notifyTrade(MerchantOffer p_35274_) {
+-        p_35274_.increaseUses();
++        // offer.increaseUses(); // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
+         this.ambientSoundTime = -this.getAmbientSoundInterval();
+-        this.rewardTradeXp(p_35274_);
++        // this.rewardTradeXp(offer); // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
          if (this.tradingPlayer instanceof ServerPlayer) {
              CriteriaTriggers.TRADE.trigger((ServerPlayer)this.tradingPlayer, this, p_35274_.getResult());
          }

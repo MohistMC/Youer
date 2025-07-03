@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/saveddata/SavedData.java
 +++ b/net/minecraft/world/level/saveddata/SavedData.java
-@@ -30,24 +_,42 @@
+@@ -30,24 +_,48 @@
          return this.dirty;
      }
  
@@ -34,7 +34,13 @@
 +            if (ioExecutor == null) {
 +                return java.util.concurrent.CompletableFuture.runAsync(writeRunnable); // No executor, just use common pool
 +            }
-+            return java.util.concurrent.CompletableFuture.runAsync(writeRunnable, ioExecutor);
++            // Check if the actuator has been terminated
++            if (ioExecutor.isShutdown() || ioExecutor.isTerminated()) {
++                // Writes are performed synchronously when the executor is unavailable
++                writeRunnable.run();
++            } else {
++                return java.util.concurrent.CompletableFuture.runAsync(writeRunnable, ioExecutor);
++            }
          }
 +        return java.util.concurrent.CompletableFuture.completedFuture(null);
 +        // Paper end - Write SavedData IO async

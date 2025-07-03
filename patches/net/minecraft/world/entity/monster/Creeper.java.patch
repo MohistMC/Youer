@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/entity/monster/Creeper.java
 +++ b/net/minecraft/world/entity/monster/Creeper.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.entity.monster;
+ 
++import io.papermc.paper.event.entity.CreeperIgniteEvent;
+ import java.util.Collection;
+ import javax.annotation.Nullable;
+ import net.minecraft.nbt.CompoundTag;
 @@ -40,6 +_,7 @@
  import net.minecraft.world.item.Items;
  import net.minecraft.world.level.Level;
@@ -16,6 +23,15 @@
  
      public Creeper(EntityType<? extends Creeper> p_32278_, Level p_32279_) {
          super(p_32278_, p_32279_);
+@@ -122,7 +_,7 @@
+         }
+ 
+         if (p_32296_.getBoolean("ignited")) {
+-            this.ignite();
++            this.entityData.set(Creeper.DATA_IS_IGNITED, true); // Paper - set directly to avoid firing event
+         }
+     }
+ 
 @@ -206,9 +_,20 @@
      @Override
      public void thunderHit(ServerLevel p_32286_, LightningBolt p_32287_) {
@@ -91,3 +107,23 @@
          }
      }
  
+@@ -265,7 +_,18 @@
+     }
+ 
+     public void ignite() {
+-        this.entityData.set(DATA_IS_IGNITED, true);
++        // Paper start - CreeperIgniteEvent
++        setIgnited(true);
++    }
++
++    public void setIgnited(boolean ignited) {
++        if (isIgnited() != ignited) {
++            CreeperIgniteEvent event = new CreeperIgniteEvent((org.bukkit.entity.Creeper) getBukkitEntity(), ignited);
++            if (event.callEvent()) {
++                this.entityData.set(Creeper.DATA_IS_IGNITED, event.isIgnited());
++            }
++        }
++        // Paper end - CreeperIgniteEvent
+     }
+ 
+     public boolean canDropMobsSkull() {

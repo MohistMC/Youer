@@ -42,7 +42,7 @@
  import net.minecraft.network.protocol.login.ClientboundGameProfilePacket;
  import net.minecraft.network.protocol.login.ClientboundHelloPacket;
  import net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket;
-@@ -35,30 +_,56 @@
+@@ -35,30 +_,57 @@
  import net.minecraft.network.protocol.login.ServerboundHelloPacket;
  import net.minecraft.network.protocol.login.ServerboundKeyPacket;
  import net.minecraft.network.protocol.login.ServerboundLoginAcknowledgedPacket;
@@ -85,6 +85,7 @@
      private static final AtomicInteger UNIQUE_THREAD_ID = new AtomicInteger(0);
 -    static final Logger LOGGER = LogUtils.getLogger();
 +    public static final Logger LOGGER = LogUtils.getLogger();
++    private static final java.util.concurrent.ExecutorService authenticatorPool = java.util.concurrent.Executors.newCachedThreadPool(new com.google.common.util.concurrent.ThreadFactoryBuilder().setNameFormat("User Authenticator #%d").setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER)).build()); // Paper - Cache authenticator threads
      private static final int MAX_TICKS_BEFORE_LOGIN = 600;
      private final byte[] challenge;
 -    final MinecraftServer server;
@@ -105,19 +106,32 @@
  
      public ServerLoginPacketListenerImpl(MinecraftServer p_10027_, Connection p_10028_, boolean p_320815_) {
          this.server = p_10027_;
-@@ -73,6 +_,12 @@
-             this.verifyLoginAndFinishConnectionSetup(Objects.requireNonNull(this.authenticatedProfile));
-         }
+@@ -69,9 +_,23 @@
  
+     @Override
+     public void tick() {
++        // Paper start - Do not allow logins while the server is shutting down
++        if (!MinecraftServer.getServer().isRunning()) {
++            this.disconnect(org.bukkit.craftbukkit.util.CraftChatMessage.fromString(org.spigotmc.SpigotConfig.restartMessage)[0]);
++            return;
++        }
++        // Paper end - Do not allow logins while the server is shutting down
+         if (this.state == ServerLoginPacketListenerImpl.State.VERIFYING) {
+-            this.verifyLoginAndFinishConnectionSetup(Objects.requireNonNull(this.authenticatedProfile));
+-        }
++            if (this.connection.isConnected()) { // Paper - prevent logins to be processed even though disconnect was called
++                this.verifyLoginAndFinishConnectionSetup(Objects.requireNonNull(this.authenticatedProfile));
++            } // Paper - prevent logins to be processed even though disconnect was called
++        }
++
 +        // CraftBukkit start
 +        if (this.state == ServerLoginPacketListenerImpl.State.WAITING_FOR_COOKIES && !this.player.getBukkitEntity().isAwaitingCookies()) {
 +            this.postCookies(this.authenticatedProfile);
 +        }
 +        // CraftBukkit end
-+
+ 
          if (this.state == ServerLoginPacketListenerImpl.State.WAITING_FOR_DUPE_DISCONNECT
              && !this.isPlayerAlreadyInWorld(Objects.requireNonNull(this.authenticatedProfile))) {
-             this.finishLoginAndWaitForClient(this.authenticatedProfile);
 @@ -88,6 +_,12 @@
          return this.connection.isConnected();
      }
@@ -140,12 +154,12 @@
          this.requestedUsername = p_10047_.name();
          GameProfile gameprofile = this.server.getSingleplayerProfile();
          if (gameprofile != null && this.requestedUsername.equalsIgnoreCase(gameprofile.getName())) {
-@@ -125,7 +_,35 @@
+@@ -125,7 +_,34 @@
                  this.state = ServerLoginPacketListenerImpl.State.KEY;
                  this.connection.send(new ClientboundHelloPacket("", this.server.getKeyPair().getPublic().getEncoded(), this.challenge, true));
              } else {
 -                this.startClientVerification(UUIDUtil.createOfflineProfile(this.requestedUsername));
-+                // Paper start - Velocity support
++                // Paper start - Add Velocity IP Forwarding Support
 +                if (GlobalConfiguration.get().proxies.velocity.enabled) {
 +                    this.velocityLoginMessageId = java.util.concurrent.ThreadLocalRandom.current().nextInt();
 +                    net.minecraft.network.FriendlyByteBuf buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
@@ -154,9 +168,10 @@
 +                    this.connection.send(packet1);
 +                    return;
 +                }
-+                // Paper end
++                // Paper end - Add Velocity IP Forwarding Support
 +                // CraftBukkit start
-+                Thread thread = new Thread("User Authenticator #" + ServerLoginPacketListenerImpl.UNIQUE_THREAD_ID.incrementAndGet()) {
++                // Paper start - Cache authenticator threads
++                authenticatorPool.execute(new Runnable() {
 +
 +                    @Override
 +                    public void run() {
@@ -169,10 +184,8 @@
 +                            ServerLoginPacketListenerImpl.this.server.server.getLogger().log(java.util.logging.Level.WARNING, "Exception verifying " + ServerLoginPacketListenerImpl.this.requestedUsername, ex);
 +                        }
 +                    }
-+                };
-+
-+                thread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(ServerLoginPacketListenerImpl.LOGGER));
-+                thread.start();
++                });
++                // Paper end - Cache authenticator threads
 +                // CraftBukkit end
              }
          }
@@ -228,26 +241,17 @@
              if (flag) {
                  this.state = ServerLoginPacketListenerImpl.State.WAITING_FOR_DUPE_DISCONNECT;
              } else {
-@@ -163,6 +_,19 @@
-         this.connection.send(new ClientboundGameProfilePacket(p_295520_, true));
-     }
+@@ -184,8 +_,8 @@
+             throw new IllegalStateException("Protocol error", cryptexception);
+         }
  
-+    // Paper start - Cache authenticator threads
-+    private static final AtomicInteger threadId = new AtomicInteger(0);
-+    private static final java.util.concurrent.ExecutorService authenticatorPool = java.util.concurrent.Executors.newCachedThreadPool(
-+            r -> {
-+                Thread ret = new Thread(r, "User Authenticator #" + threadId.incrementAndGet());
-+
-+                ret.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
-+
-+                return ret;
-+            }
-+    );
-+    // Paper end
-+
-     @Override
-     public void handleKey(ServerboundKeyPacket p_10049_) {
-         Validate.validState(this.state == ServerLoginPacketListenerImpl.State.KEY, "Unexpected key packet");
+-        Thread thread = new Thread("User Authenticator #" + UNIQUE_THREAD_ID.incrementAndGet()) {
+-            @Override
++        // Paper start - Cache authenticator threads
++        authenticatorPool.execute(new Runnable() {
+             public void run() {
+                 String s1 = Objects.requireNonNull(ServerLoginPacketListenerImpl.this.requestedUsername, "Player name not initialized");
+ 
 @@ -193,11 +_,16 @@
                      ProfileResult profileresult = ServerLoginPacketListenerImpl.this.server.getSessionService().hasJoinedServer(s1, s, this.getAddress());
                      if (profileresult != null) {
@@ -285,6 +289,18 @@
                  }
              }
  
+@@ -220,9 +_,8 @@
+                     ? ((InetSocketAddress)socketaddress).getAddress()
+                     : null;
+             }
+-        };
+-        thread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
+-        thread.start();
++        });
++        // Paper end - Cache authenticator threads
+     }
+ 
+     @Override
 @@ -230,14 +_,83 @@
          this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
      }

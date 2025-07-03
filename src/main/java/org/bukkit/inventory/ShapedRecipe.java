@@ -24,8 +24,6 @@ public class ShapedRecipe extends CraftingRecipe {
      * @param result The item you want the recipe to create.
      * @see ShapedRecipe#shape(String...)
      * @see ShapedRecipe#setIngredient(char, Material)
-     * @see ShapedRecipe#setIngredient(char, Material, int)
-     * @see ShapedRecipe#setIngredient(char, MaterialData)
      * @see ShapedRecipe#setIngredient(char, RecipeChoice)
      * @deprecated Recipes must have keys. Use {@link #ShapedRecipe(NamespacedKey, ItemStack)}
      * instead.
@@ -33,6 +31,7 @@ public class ShapedRecipe extends CraftingRecipe {
     @Deprecated
     public ShapedRecipe(@NotNull ItemStack result) {
         this(NamespacedKey.randomKey(), result);
+        new Throwable("Warning: A plugin is creating a recipe using a Deprecated method. This will cause you to receive warnings stating 'Tried to load unrecognized recipe: bukkit:<ID>'. Please ask the author to give their recipe a static key using NamespacedKey.").printStackTrace(); // Paper
     }
 
     /**
@@ -45,8 +44,6 @@ public class ShapedRecipe extends CraftingRecipe {
      * @exception IllegalArgumentException if the {@code result} is an empty item (AIR)
      * @see ShapedRecipe#shape(String...)
      * @see ShapedRecipe#setIngredient(char, Material)
-     * @see ShapedRecipe#setIngredient(char, Material, int)
-     * @see ShapedRecipe#setIngredient(char, MaterialData)
      * @see ShapedRecipe#setIngredient(char, RecipeChoice)
      */
     public ShapedRecipe(@NotNull NamespacedKey key, @NotNull ItemStack result) {
@@ -55,11 +52,11 @@ public class ShapedRecipe extends CraftingRecipe {
 
     /**
      * Set the shape of this recipe to the specified rows. Each character
-     * represents a different ingredient; exactly what each character
-     * represents is set separately. The first row supplied corresponds with
-     * the upper most part of the recipe on the workbench e.g. if all three
-     * rows are supplies the first string represents the top row on the
-     * workbench.
+     * represents a different ingredient; excluding space characters, which
+     * must be empty, exactly what each character represents is set separately.
+     * The first row supplied corresponds with the upper most part of the recipe
+     * on the workbench e.g. if all three rows are supplies the first string
+     * represents the top row on the workbench.
      *
      * @param shape The rows of the recipe (up to 3 rows).
      * @return The changed recipe, so you can chain calls.
@@ -90,6 +87,7 @@ public class ShapedRecipe extends CraftingRecipe {
                 if (c == ' ') {
                     continue;
                 }
+
                 newIngredients.put(c, ingredients.get(c));
             }
         }
@@ -107,9 +105,12 @@ public class ShapedRecipe extends CraftingRecipe {
      * @param key The character that represents the ingredient in the shape.
      * @param ingredient The ingredient.
      * @return The changed recipe, so you can chain calls.
+     * @throws IllegalArgumentException if the {@code key} is a space character
      * @throws IllegalArgumentException if the {@code key} does not appear in the shape.
+     * @deprecated use {@link #setIngredient(char, RecipeChoice)}
      */
     @NotNull
+    @Deprecated // Paper
     public ShapedRecipe setIngredient(char key, @NotNull MaterialData ingredient) {
         return setIngredient(key, ingredient.getItemType(), ingredient.getData());
     }
@@ -123,6 +124,7 @@ public class ShapedRecipe extends CraftingRecipe {
      * @param key The character that represents the ingredient in the shape.
      * @param ingredient The ingredient.
      * @return The changed recipe, so you can chain calls.
+     * @throws IllegalArgumentException if the {@code key} is a space character
      * @throws IllegalArgumentException if the {@code key} does not appear in the shape.
      */
     @NotNull
@@ -140,6 +142,7 @@ public class ShapedRecipe extends CraftingRecipe {
      * @param ingredient The ingredient.
      * @param raw The raw material data as an integer.
      * @return The changed recipe, so you can chain calls.
+     * @throws IllegalArgumentException if the {@code key} is a space character
      * @throws IllegalArgumentException if the {@code key} does not appear in the shape.
      * @deprecated Magic value
      */
@@ -167,6 +170,7 @@ public class ShapedRecipe extends CraftingRecipe {
      * @param key The character that represents the ingredient in the shape.
      * @param ingredient The ingredient.
      * @return The changed recipe, so you can chain calls.
+     * @throws IllegalArgumentException if the {@code key} is a space character
      * @throws IllegalArgumentException if the {@code key} does not appear in the shape.
      */
     @NotNull
@@ -177,7 +181,6 @@ public class ShapedRecipe extends CraftingRecipe {
         ingredients.put(key, ingredient.validate(false).clone()); // Paper
         return this;
     }
-
 
     // Paper start
     @NotNull
@@ -191,7 +194,9 @@ public class ShapedRecipe extends CraftingRecipe {
      * Get a copy of the ingredients map.
      *
      * @return The mapping of character to ingredients.
+     * @deprecated Use {@link #getChoiceMap()} instead for more complete data.
      */
+    @Deprecated // Paper
     @NotNull
     public Map<Character, ItemStack> getIngredientMap() {
         HashMap<Character, ItemStack> result = new HashMap<Character, ItemStack>();

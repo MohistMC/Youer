@@ -1,9 +1,10 @@
 --- a/net/minecraft/world/level/levelgen/feature/EndPlatformFeature.java
 +++ b/net/minecraft/world/level/levelgen/feature/EndPlatformFeature.java
-@@ -1,11 +_,14 @@
+@@ -1,11 +_,17 @@
  package net.minecraft.world.level.levelgen.feature;
  
  import com.mojang.serialization.Codec;
++import java.util.List;
 +import java.util.concurrent.atomic.AtomicReference;
  import net.minecraft.core.BlockPos;
 +import net.minecraft.world.entity.Entity;
@@ -11,11 +12,13 @@
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
++import org.bukkit.block.BlockState;
 +import org.bukkit.craftbukkit.util.BlockStateListPopulator;
++import org.bukkit.event.world.PortalCreateEvent;
  
  public class EndPlatformFeature extends Feature<NoneFeatureConfiguration> {
      public EndPlatformFeature(Codec<NoneFeatureConfiguration> p_352966_) {
-@@ -18,7 +_,12 @@
+@@ -18,7 +_,11 @@
          return true;
      }
  
@@ -24,11 +27,10 @@
      public static void createEndPlatform(ServerLevelAccessor p_352905_, BlockPos p_352961_, boolean p_352931_) {
 +        BlockStateListPopulator blockList = new BlockStateListPopulator(p_352905_);
 +        // CraftBukkit end
-+
          BlockPos.MutableBlockPos blockpos$mutableblockpos = p_352961_.mutable();
  
          for (int i = -2; i <= 2; i++) {
-@@ -26,15 +_,38 @@
+@@ -26,15 +_,40 @@
                  for (int k = -1; k < 3; k++) {
                      BlockPos blockpos = blockpos$mutableblockpos.set(p_352961_).move(j, k, i);
                      Block block = k == -1 ? Blocks.OBSIDIAN : Blocks.AIR;
@@ -37,7 +39,7 @@
 +                    if (!blockList.getBlockState(blockpos).is(block)) {
                          if (p_352931_) {
 -                            p_352905_.destroyBlock(blockpos, true, null);
-+                            blockList.destroyBlock(blockpos, true, null);
++                            // blockList.destroyBlock(blockposition_mutableblockposition1, true, (Entity) null); // Paper - moved down - cb implementation of LevelAccessor does not support destroyBlock
                          }
  
 -                        p_352905_.setBlock(blockpos, block.defaultBlockState(), 3);
@@ -49,19 +51,21 @@
          }
 +
 +        // CraftBukkit start
-+        if (createEndPlatform$entity.get() == null) {
-+            // SPIGOT-7746: Entity will only be null during world generation, which is async, so just generate without event
-+            blockList.updateList();
-+            return;
++        if (createEndPlatform$entity.get() != null) {
++            org.bukkit.World bworld = p_352905_.getLevel().getWorld();
++            PortalCreateEvent portalEvent = new PortalCreateEvent((List<BlockState>) (List) blockList.getList(), bworld, createEndPlatform$entity.getAndSet(null).getBukkitEntity(), org.bukkit.event.world.PortalCreateEvent.CreateReason.END_PLATFORM);
++
++            p_352905_.getLevel().getCraftServer().getPluginManager().callEvent(portalEvent);
++            if (portalEvent.isCancelled()) {
++                return;
++            }
 +        }
 +
-+        org.bukkit.World bworld = p_352905_.getLevel().getWorld();
-+        org.bukkit.event.world.PortalCreateEvent portalEvent = new org.bukkit.event.world.PortalCreateEvent((java.util.List<org.bukkit.block.BlockState>) (java.util.List) blockList.getList(), bworld, createEndPlatform$entity.getAndSet(null).getBukkitEntity(), org.bukkit.event.world.PortalCreateEvent.CreateReason.END_PLATFORM);
-+
-+        p_352905_.getLevel().getCraftServer().getPluginManager().callEvent(portalEvent);
-+        if (!portalEvent.isCancelled()) {
-+            blockList.updateList();
++        // SPIGOT-7856: End platform not dropping items after replacing blocks
++        if (p_352931_) {
++            blockList.getList().forEach((state) -> p_352905_.destroyBlock(state.getPosition(), true, null));
 +        }
++        blockList.updateList();
 +        // CraftBukkit end
 +    }
 +

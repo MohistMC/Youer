@@ -344,12 +344,13 @@
          } else {
              optional = this.playerIo.load(p_11225_);
          }
-@@ -338,6 +_,8 @@
+@@ -338,6 +_,9 @@
      }
  
      protected void save(ServerPlayer p_11277_) {
 +        if (!p_11277_.getBukkitEntity().isPersistent()) return; // CraftBukkit
 +        if (p_11277_.connection == null) return;
++        p_11277_.lastSave = MinecraftServer.currentTick; // Paper - Incremental chunk and player saving
          this.playerIo.save(p_11277_);
          ServerStatsCounter serverstatscounter = this.stats.get(p_11277_.getUUID());
          if (serverstatscounter != null) {
@@ -844,6 +845,34 @@
              if (serverplayer != p_11242_ && serverplayer.level().dimension() == p_11247_) {
                  double d0 = p_11243_ - serverplayer.getX();
                  double d1 = p_11244_ - serverplayer.getY();
+@@ -655,11 +_,24 @@
+     }
+ 
+     public void saveAll() {
+-        for (int i = 0; i < this.players.size(); i++) {
+-            this.save(this.players.get(i));
+-        }
++        // Paper start - Incremental chunk and player saving
++        this.saveAll(-1);
+     }
+ 
++    public void saveAll(int interval) {
++        io.papermc.paper.util.MCUtil.ensureMain("Save Players" , () -> { // Paper - Ensure main
++            int numSaved = 0;
++            long now = MinecraftServer.currentTick;
++            for (int i = 0; i < this.players.size(); ++i) {
++                ServerPlayer entityplayer = this.players.get(i);
++                if (interval == -1 || now - entityplayer.lastSave >= interval) {
++                    this.save(entityplayer);
++                    if (interval != -1 && ++numSaved >= io.papermc.paper.configuration.GlobalConfiguration.get().playerAutoSave.maxPerTick()) { break; }
++                }
++                // Paper end - Incremental chunk and player saving
++            }
++            return null; }); // Paper - ensure main
++    }
+     public UserWhiteList getWhiteList() {
+         return this.whitelist;
+     }
 @@ -682,13 +_,18 @@
      public void sendLevelInfo(ServerPlayer p_11230_, ServerLevel p_11231_) {
          WorldBorder worldborder = this.server.overworld().getWorldBorder();

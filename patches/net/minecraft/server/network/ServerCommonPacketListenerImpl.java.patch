@@ -66,7 +66,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final int LATENCY_CHECK_INTERVAL = 15000;
      private static final int CLOSED_LISTENER_TIMEOUT = 15000;
-@@ -42,6 +_,24 @@
+@@ -42,6 +_,25 @@
      private boolean closed = false;
      private int latency;
      private volatile boolean suspendFlushingOnServerThread = false;
@@ -79,6 +79,7 @@
 +    public boolean processedDisconnect;
 +    public final java.util.Map<java.util.UUID, net.kyori.adventure.resource.ResourcePackCallback> packCallbacks = new java.util.concurrent.ConcurrentHashMap<>(); // Paper - adventure resource pack callbacks
 +    protected static final ResourceLocation MINECRAFT_BRAND = ResourceLocation.withDefaultNamespace("brand"); // Paper - Brand support
++    private static final long KEEPALIVE_LIMIT = Long.getLong("paper.playerconnection.keepalive", 30) * 1000; // Paper - provide property to set keepalive limit
 +
 +    public CraftPlayer getCraftPlayer() {
 +        return (this.player == null) ? null : (CraftPlayer) this.player.getBukkitEntity();
@@ -123,7 +124,7 @@
  
      @Override
      public void handleKeepAlive(ServerboundKeepAlivePacket p_294627_) {
-+        PacketUtils.ensureRunningOnSameThread(p_294627_, this, this.player.serverLevel()); // CraftBukkit
++        // PacketUtils.ensureRunningOnSameThread(p_294627_, this, this.player.serverLevel()); // CraftBukkit
          if (this.keepAlivePending && p_294627_.getId() == this.keepAliveChallenge) {
              int i = (int)(Util.getMillis() - this.keepAliveTime);
              this.latency = (this.latency * 3 + i) / 4;
@@ -134,7 +135,7 @@
          }
      }
  
-@@ -83,28 +_,91 @@
+@@ -83,35 +_,103 @@
  
      @Override
      public void handleCustomPayload(ServerboundCustomPayloadPacket p_294276_) {
@@ -181,7 +182,7 @@
 +    }
 +
 +    public final boolean isDisconnected() {
-+        return !this.player.joining && !this.connection.isConnected();
++        return (!this.player.joining && !this.connection.isConnected()) || this.processedDisconnect; // Paper - Fix duplication bugs
 +    }
 +    // CraftBukkit end
  
@@ -223,15 +224,32 @@
  
      protected void keepConnectionAlive() {
          this.server.getProfiler().push("keepAlive");
-         long i = Util.getMillis();
+-        long i = Util.getMillis();
 -        if (!this.isSingleplayerOwner() && i - this.keepAliveTime >= 15000L) {
-+        if (!this.isSingleplayerOwner() && i - this.keepAliveTime >= 25000L) { // CraftBukkit
-             if (this.keepAlivePending) {
+-            if (this.keepAlivePending) {
 -                this.disconnect(TIMEOUT_DISCONNECTION_MESSAGE);
-+                this.disconnect(TIMEOUT_DISCONNECTION_MESSAGE, PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
-             } else if (this.checkIfClosed(i)) {
+-            } else if (this.checkIfClosed(i)) {
++        // Paper start - give clients a longer time to respond to pings as per pre 1.12.2 timings
++        // This should effectively place the keepalive handling back to "as it was" before 1.12.2
++        long currentTime = Util.getMillis();
++        long elapsedTime = currentTime - this.keepAliveTime;
++
++        if (!this.isSingleplayerOwner() && elapsedTime >= 15000L) { // Paper - use vanilla's 15000L between keep alive packets
++            if (this.keepAlivePending && !this.processedDisconnect && elapsedTime >= KEEPALIVE_LIMIT) { // Paper - check keepalive limit, don't fire if already disconnected
++                this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
++            } else if (this.checkIfClosed(currentTime)) { // Paper
                  this.keepAlivePending = true;
-                 this.keepAliveTime = i;
+-                this.keepAliveTime = i;
+-                this.keepAliveChallenge = i;
++                this.keepAliveTime = currentTime;
++                this.keepAliveChallenge = currentTime;
+                 this.send(new ClientboundKeepAlivePacket(this.keepAliveChallenge));
+             }
+         }
++        // Paper end - give clients a longer time to respond to pings as per pre 1.12.2 timings
+ 
+         this.server.getProfiler().pop();
+     }
 @@ -119,7 +_,7 @@
      private boolean checkIfClosed(long p_339648_) {
          if (this.closed) {

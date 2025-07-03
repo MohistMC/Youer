@@ -628,7 +628,6 @@ public final class CraftServer implements Server {
         }
 
         if (type == PluginLoadOrder.POSTWORLD) {
-            MohistPlugin.init(this); // Youer init mohist plugins
             // Spigot start - Allow vanilla commands to be forced to be the main command
             this.setVanillaCommands(true);
             this.commandMap.setFallbackCommands();
@@ -1213,7 +1212,7 @@ public final class CraftServer implements Server {
 
     @Override
     public World createWorld(WorldCreator creator) {
-        Preconditions.checkState(this.console.getAllLevels().iterator().hasNext(), "Cannot create additional worlds on STARTUP");
+        //Preconditions.checkState(this.console.getAllLevels().iterator().hasNext(), "Cannot create additional worlds on STARTUP");
         Preconditions.checkArgument(creator != null, "WorldCreator cannot be null");
         Level2LevelStem.initPluginWorld.set(true); // Youer
         String name = creator.name();

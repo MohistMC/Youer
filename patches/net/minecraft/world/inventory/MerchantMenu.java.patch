@@ -37,7 +37,53 @@
  
          for (int i = 0; i < 3; i++) {
              for (int j = 0; j < 9; j++) {
-@@ -149,7 +_,7 @@
+@@ -114,12 +_,12 @@
+             ItemStack itemstack1 = slot.getItem();
+             itemstack = itemstack1.copy();
+             if (p_40054_ == 2) {
+-                if (!this.moveItemStackTo(itemstack1, 3, 39, true)) {
++                if (!this.moveItemStackTo(itemstack1, 3, 39, true, true)) { // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
+                     return ItemStack.EMPTY;
+                 }
+ 
+-                slot.onQuickCraft(itemstack1, itemstack);
+-                this.playTradeSound();
++                //  slot.onQuickCraft(itemstack1, itemstack); // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent; moved to after the non-check moveItemStackTo call
++                //  this.playTradeSound();
+             } else if (p_40054_ != 0 && p_40054_ != 1) {
+                 if (p_40054_ >= 3 && p_40054_ < 30) {
+                     if (!this.moveItemStackTo(itemstack1, 30, 39, false)) {
+@@ -131,7 +_,7 @@
+             } else if (!this.moveItemStackTo(itemstack1, 3, 39, false)) {
+                 return ItemStack.EMPTY;
+             }
+-
++            if (p_40054_ != 2) { // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent; moved down for slot 2
+             if (itemstack1.isEmpty()) {
+                 slot.setByPlayer(ItemStack.EMPTY);
+             } else {
+@@ -143,13 +_,28 @@
+             }
+ 
+             slot.onTake(p_40053_, itemstack1);
++            } // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent; handle slot 2
++            if (p_40054_ == 2) { // is merchant result slot
++                slot.onTake(p_40053_, itemstack1);
++                if (itemstack1.isEmpty()) {
++                    slot.set(ItemStack.EMPTY);
++                    return ItemStack.EMPTY;
++                }
++
++                this.moveItemStackTo(itemstack1, 3, 39, true, false); // This should always succeed because it's checked above
++
++                slot.onQuickCraft(itemstack1, itemstack);
++                this.playTradeSound();
++                slot.set(ItemStack.EMPTY); // itemstack1 should ALWAYS be empty
++            }
++            // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
+         }
+ 
+         return itemstack;
      }
  
      private void playTradeSound() {

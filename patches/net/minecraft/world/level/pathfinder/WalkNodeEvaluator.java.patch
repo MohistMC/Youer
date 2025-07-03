@@ -13,10 +13,17 @@
                          if (pathtype == PathType.DAMAGE_OTHER) {
                              return PathType.DANGER_OTHER;
                          }
-@@ -496,6 +_,8 @@
+@@ -495,7 +_,14 @@
+     }
  
      protected static PathType getPathTypeFromState(BlockGetter p_77644_, BlockPos p_77645_) {
-         BlockState blockstate = p_77644_.getBlockState(p_77645_);
+-        BlockState blockstate = p_77644_.getBlockState(p_77645_);
++        // Paper start - Do not load chunks during pathfinding
++        BlockState blockstate = p_77644_.getBlockStateIfLoaded(p_77645_);
++        if (blockstate == null) {
++            return PathType.BLOCKED;
++        }
++        // Paper end
 +        PathType type = blockstate.getBlockPathType(p_77644_, p_77645_, null);
 +        if (type != null) return type;
          Block block = blockstate.getBlock();

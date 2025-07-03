@@ -104,7 +104,7 @@ public class NetworkRegistry {
      * Map of NeoForge payloads that may be sent before channel negotiation.
      * TODO: Separate by protocol + flow.
      */
-    private static final Map<ResourceLocation, StreamCodec<FriendlyByteBuf, ? extends CustomPacketPayload>> BUILTIN_PAYLOADS = ImmutableMap.of(
+    public static final Map<ResourceLocation, StreamCodec<FriendlyByteBuf, ? extends CustomPacketPayload>> BUILTIN_PAYLOADS = ImmutableMap.of(
             MinecraftRegisterPayload.ID, MinecraftRegisterPayload.STREAM_CODEC,
             MinecraftUnregisterPayload.ID, MinecraftUnregisterPayload.STREAM_CODEC,
             ModdedNetworkQueryPayload.ID, ModdedNetworkQueryPayload.STREAM_CODEC,

@@ -230,7 +230,7 @@ public final class CraftItemStack extends ItemStack {
         }
 
         this.handle.setCount(amount);
-        if (amount == 0) {
+        if (false && amount == 0) { // Paper - remove CraftItemStack#setAmount null assignment
             this.handle = null;
         }
     }

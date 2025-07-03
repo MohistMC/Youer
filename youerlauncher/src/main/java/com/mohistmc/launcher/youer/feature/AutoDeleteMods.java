@@ -53,6 +53,7 @@ public class AutoDeleteMods {
         put("com.bawnorton.neruina.Neruina", DeletionReason.DUPLICATE_FEATURE);
         put("ca.spottedleaf.starlight.common.ScalableLuxEntrypoint", DeletionReason.DUPLICATE_FEATURE);
         put("me.drex.antixray.neoforge.AntiXrayMod", DeletionReason.DUPLICATE_FEATURE);
+        put("dev.uncandango.alltheleaks.AllTheLeaks", DeletionReason.DUPLICATE_FEATURE);
     }};
 
     /**

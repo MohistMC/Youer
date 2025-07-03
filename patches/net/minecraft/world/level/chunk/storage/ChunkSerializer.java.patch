@@ -7,11 +7,7 @@
  import com.google.common.collect.Maps;
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Codec;
-@@ -9,9 +_,12 @@
- import it.unimi.dsi.fastutil.shorts.ShortList;
- import java.util.Arrays;
- import java.util.EnumSet;
-+import java.util.Iterator;
+@@ -12,6 +_,8 @@
  import java.util.Map;
  import java.util.Objects;
  import java.util.Map.Entry;
@@ -104,23 +100,17 @@
              return new ImposterProtoChunk((LevelChunk)chunkaccess, false);
          } else {
              ProtoChunk protochunk1 = (ProtoChunk)chunkaccess;
-@@ -254,6 +_,20 @@
+@@ -254,6 +_,14 @@
  
              for (int j1 = 0; j1 < listtag4.size(); j1++) {
                  CompoundTag compoundtag1 = listtag4.getCompound(j1);
 +
-+                // CraftBukkit start - load persistent data for block entities
-+                CompoundTag persistentDataTag = compoundtag1.getCompound("BlockEntityBukkitValues");
-+                if (persistentDataTag != null && !persistentDataTag.isEmpty()) {
-+                    BlockPos pos = BlockEntity.getPosFromTag(compoundtag1);
-+                    if (pos != null) {
-+                        BlockEntity blockEntity = chunkaccess.getBlockEntity(pos);
-+                        if (blockEntity != null) {
-+                            blockEntity.persistentDataContainer.putAll(persistentDataTag);
-+                        }
-+                    }
++                // Paper start - do not read tile entities positioned outside the chunk
++                BlockPos blockposition = BlockEntity.getPosFromTag(compoundtag1);
++                if ((blockposition.getX() >> 4) != p_188233_.x || (blockposition.getZ() >> 4) != p_188233_.z) {
++                    continue;
 +                }
-+                // CraftBukkit end
++                // Paper end - do not read tile entities positioned outside the chunk
 +
                  chunkaccess.setBlockEntityNbt(compoundtag1);
              }
@@ -264,7 +254,7 @@
          return compoundtag;
      }
  
-@@ -409,7 +_,7 @@
+@@ -409,17 +_,25 @@
          ListTag listtag1 = getListOfCompoundsOrNull(p_196892_, "block_entities");
          return listtag == null && listtag1 == null ? null : p_196904_ -> {
              if (listtag != null) {
@@ -273,18 +263,33 @@
              }
  
              if (listtag1 != null) {
-@@ -473,8 +_,15 @@
-             if (structure == null) {
-                 LOGGER.error("Unknown structure start: {}", resourcelocation);
+                 for (int i = 0; i < listtag1.size(); i++) {
+                     CompoundTag compoundtag = listtag1.getCompound(i);
+                     boolean flag = compoundtag.getBoolean("keepPacked");
++
++                    // Paper start - do not read tile entities positioned outside the chunk
++                    BlockPos blockpos = BlockEntity.getPosFromTag(compoundtag); // moved up
++                    ChunkPos chunkPos = p_196904_.getPos();
++                    if ((blockpos.getX() >> 4) != chunkPos.x || (blockpos.getZ() >> 4) != chunkPos.z) {
++                        continue;
++                    }
++                    // Paper end - do not read tile entities positioned outside the chunk
+                     if (flag) {
+                         p_196904_.setBlockEntityNbt(compoundtag);
+                     } else {
+-                        BlockPos blockpos = BlockEntity.getPosFromTag(compoundtag);
++                        // Paper - do not read tile entities positioned outside the chunk; move up
+                         BlockEntity blockentity = BlockEntity.loadStatic(blockpos, p_196904_.getBlockState(blockpos), compoundtag, p_196891_.registryAccess());
+                         if (blockentity != null) {
+                             p_196904_.setBlockEntity(blockentity);
+@@ -475,6 +_,12 @@
              } else {
--                StructureStart structurestart = StructureStart.loadStaticStart(p_188255_, compoundtag.getCompound(s), p_188257_);
-+                CompoundTag startTag = compoundtag.getCompound(s);
-+                StructureStart structurestart = StructureStart.loadStaticStart(p_188255_, startTag, p_188257_);
+                 StructureStart structurestart = StructureStart.loadStaticStart(p_188255_, compoundtag.getCompound(s), p_188257_);
                  if (structurestart != null) {
-+                    // CraftBukkit start - load persistent data for structure starts
-+                    CompoundTag persistentBase = startTag.getCompound("StructureBukkitValues");
-+                    if (persistentBase != null && !persistentBase.isEmpty()) {
-+                        structurestart.persistentDataContainer.putAll(persistentBase);
++                    // CraftBukkit start - load persistent data for structure start
++                    net.minecraft.nbt.Tag persistentBase = compoundtag.getCompound(s).get("StructureBukkitValues");
++                    if (persistentBase instanceof CompoundTag) {
++                        structurestart.persistentDataContainer.putAll((CompoundTag) persistentBase);
 +                    }
 +                    // CraftBukkit end
                      map.put(structure, structurestart);

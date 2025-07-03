@@ -25,6 +25,14 @@
      }
  
      public void clientTick(Level p_151320_, BlockPos p_151321_) {
+@@ -77,6 +_,7 @@
+     }
+ 
+     public void serverTick(ServerLevel p_151312_, BlockPos p_151313_) {
++        if (spawnCount <= 0 || maxNearbyEntities <= 0) return; // Paper - Ignore impossible spawn tick
+         if (this.isNearPlayer(p_151312_, p_151313_)) {
+             if (this.spawnDelay == -1) {
+                 this.delay(p_151312_, p_151313_);
 @@ -121,6 +_,21 @@
                              continue;
                          }
@@ -47,7 +55,7 @@
                          Entity entity = EntityType.loadEntityRecursive(compoundtag, p_151312_, p_151310_ -> {
                              p_151310_.moveTo(d0, d1, d2, p_151310_.getYRot(), p_151310_.getXRot());
                              return p_151310_;
-@@ -151,19 +_,23 @@
+@@ -151,19 +_,24 @@
  
                          entity.moveTo(entity.getX(), entity.getY(), entity.getZ(), randomsource.nextFloat() * 360.0F, 0.0F);
                          if (entity instanceof Mob mob) {
@@ -70,6 +78,7 @@
 -
 +                        // CraftBukkit start
 +                        entity.spawnedViaMobSpawner = true; // Paper
++                        flag = true; // Paper
 +                        entity.spawnReason(CreatureSpawnEvent.SpawnReason.SPAWNER); // Mohist  // Paper - Entity#getEntitySpawnReason
 +                        if (CraftEventFactory.callSpawnerSpawnEvent(entity, p_151313_).isCancelled()) {
 +                            continue;
@@ -77,6 +86,15 @@
                          if (!p_151312_.tryAddFreshEntityWithPassengers(entity)) {
                              this.delay(p_151312_, p_151313_);
                              return;
+@@ -174,8 +_,6 @@
+                         if (entity instanceof Mob) {
+                             ((Mob)entity).spawnAnim();
+                         }
+-
+-                        flag = true;
+                     }
+                 }
+ 
 @@ -308,5 +_,12 @@
  
      public double getoSpin() {

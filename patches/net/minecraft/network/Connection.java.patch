@@ -106,14 +106,19 @@
                      DisconnectionDetails disconnectiondetails;
                      if (packetlistener != null) {
                          disconnectiondetails = packetlistener.createDisconnectionInfo(component, p_129534_);
-@@ -148,6 +_,7 @@
+@@ -148,9 +_,11 @@
                          disconnectiondetails = new DisconnectionDetails(component);
                      }
  
 +                    if (player != null) player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.ERRONEOUS_STATE; // Paper - Add API for quit reason
                      if (flag) {
                          LOGGER.debug("Failed to sent packet", p_129534_);
-                         if (this.getSending() == PacketFlow.CLIENTBOUND) {
+-                        if (this.getSending() == PacketFlow.CLIENTBOUND) {
++                        boolean doesDisconnectExist = this.packetListener.protocol() != ConnectionProtocol.STATUS && this.packetListener.protocol() != ConnectionProtocol.HANDSHAKING; // Paper
++                        if (this.getSending() == PacketFlow.CLIENTBOUND && doesDisconnectExist) { // Paper
+                             Packet<?> packet = (Packet<?>)(this.sendLoginDisconnect
+                                 ? new ClientboundLoginDisconnectPacket(component)
+                                 : new ClientboundDisconnectPacket(component));
 @@ -170,7 +_,7 @@
      }
  

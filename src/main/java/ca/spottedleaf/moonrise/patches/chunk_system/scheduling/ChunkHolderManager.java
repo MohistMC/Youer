@@ -20,6 +20,7 @@ import ca.spottedleaf.moonrise.patches.chunk_system.ticket.ChunkSystemTicket;
 import ca.spottedleaf.moonrise.patches.chunk_system.util.ChunkSystemSortedArraySet;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.mohistmc.youer.util.I18n;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.longs.Long2ByteLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ByteMap;
@@ -187,11 +188,11 @@ public final class ChunkHolderManager {
     public void close(final boolean save, final boolean halt) {
         TickThread.ensureTickThread("Closing world off-main");
         if (halt) {
-            LOGGER.info("Waiting 60s for chunk system to halt for world '" + WorldUtil.getWorldName(this.world) + "'");
+            LOGGER.info(I18n.as("chunkholdermanager.1"), WorldUtil.getWorldName(this.world));
             if (!this.taskScheduler.halt(true, TimeUnit.SECONDS.toNanos(60L))) {
-                LOGGER.warn("Failed to halt world generation/loading tasks for world '" + WorldUtil.getWorldName(this.world) + "'");
+                LOGGER.warn(I18n.as("chunkholdermanager.2"), WorldUtil.getWorldName(this.world));
             } else {
-                LOGGER.info("Halted chunk system for world '" + WorldUtil.getWorldName(this.world) + "'");
+                LOGGER.info(I18n.as("chunkholdermanager.3"), WorldUtil.getWorldName(this.world));
             }
         }
 
@@ -262,7 +263,7 @@ public final class ChunkHolderManager {
         final List<NewChunkHolder> holders = this.getChunkHolders();
 
         if (logProgress) {
-            LOGGER.info("Saving all chunkholders for world '" + WorldUtil.getWorldName(this.world) + "'");
+            LOGGER.info(I18n.as("chunkholdermanager.4"), WorldUtil.getWorldName(this.world));
         }
 
         final DecimalFormat format = new DecimalFormat("#0.00");
@@ -296,7 +297,7 @@ public final class ChunkHolderManager {
                     }
                 }
             } catch (final Throwable thr) {
-                LOGGER.error("Failed to save chunk (" + holder.chunkX + "," + holder.chunkZ + ") in world '" + WorldUtil.getWorldName(this.world) + "'", thr);
+                LOGGER.error(I18n.as("chunkholdermanager.5"), holder.chunkX, holder.chunkZ, WorldUtil.getWorldName(this.world), thr);
             }
             if (needsFlush && (saved % flushInterval) == 0) {
                 needsFlush = false;
@@ -306,7 +307,7 @@ public final class ChunkHolderManager {
                 final long currTime = System.nanoTime();
                 if ((currTime - lastLog) > TimeUnit.SECONDS.toNanos(10L)) {
                     lastLog = currTime;
-                    LOGGER.info("Saved " + saved + " chunks (" + format.format((double)(i+1)/(double)len * 100.0) + "%) in world '" + WorldUtil.getWorldName(this.world) + "'");
+                    LOGGER.info(I18n.as("chunkholdermanager.6"), saved, format.format((double) (i + 1) / (double) len * 100.0), WorldUtil.getWorldName(this.world));
                 }
             }
         }
@@ -315,11 +316,11 @@ public final class ChunkHolderManager {
             try {
                 RegionFileIOThread.flushRegionStorages(this.world);
             } catch (final IOException ex) {
-                LOGGER.error("Exception when flushing regions in world '" + WorldUtil.getWorldName(this.world) + "'", ex);
+                LOGGER.error(I18n.as("chunkholdermanager.7"), WorldUtil.getWorldName(this.world), ex);
             }
         }
         if (logProgress) {
-            LOGGER.info("Saved " + savedChunk + " block chunks, " + savedEntity + " entity chunks, " + savedPoi + " poi chunks in world '" + WorldUtil.getWorldName(this.world) + "' in " + format.format(1.0E-9 * (System.nanoTime() - start)) + "s");
+            LOGGER.info(I18n.as("chunkholdermanager.8"), savedChunk, savedEntity, savedPoi, WorldUtil.getWorldName(this.world), format.format(1.0E-9 * (System.nanoTime() - start)));
         }
     }
 

@@ -24,6 +24,10 @@ public interface CraftRecipe extends Recipe {
         } else if (bukkit instanceof RecipeChoice.ExactChoice) {
             stack = new Ingredient(((RecipeChoice.ExactChoice) bukkit).getChoices().stream().map((mat) -> new net.minecraft.world.item.crafting.Ingredient.ItemValue(CraftItemStack.asNMSCopy(mat))));
             stack.exact = true;
+            // Paper start - support "empty" choices
+        } else if (bukkit == RecipeChoice.empty()) {
+            stack = Ingredient.EMPTY;
+            // Paper end
         } else {
             throw new IllegalArgumentException("Unknown recipe stack instance " + bukkit);
         }
@@ -38,6 +42,11 @@ public interface CraftRecipe extends Recipe {
 
     public static RecipeChoice toBukkit(Ingredient list) {
         list.getItems();
+
+        if (list.itemStacks.length == 0) {
+            return RecipeChoice.empty(); // Paper - null breaks API contracts
+        }
+
         if (!list.isVanilla()) {
             return new MohistSpecialIngredient(list);
         }

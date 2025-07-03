@@ -276,7 +276,7 @@
          try (DataInputStream datainputstream = regionfile.getChunkDataInputStream(p_196957_)) {
              if (datainputstream != null) {
                  NbtIo.parse(datainputstream, p_196958_, NbtAccounter.unlimitedHeap());
-@@ -72,39 +_,101 @@
+@@ -72,39 +_,94 @@
          }
      }
  
@@ -375,16 +375,9 @@
 -            regionfile.flush();
 +        // Paper start - rewrite chunk system
 +        synchronized (this) {
-+            final ExceptionCollector<IOException> exceptionCollector = new ExceptionCollector<>();
 +            for (final RegionFile regionFile : this.regionCache.values()) {
-+                try {
-+                    regionFile.flush();
-+                } catch (final IOException ex) {
-+                    exceptionCollector.add(ex);
-+                }
++                regionFile.flush();
 +            }
-+
-+            exceptionCollector.throwIfPresent();
          }
 +        // Paper end - rewrite chunk system
      }

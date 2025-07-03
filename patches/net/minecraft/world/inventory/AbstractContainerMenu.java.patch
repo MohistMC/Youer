@@ -48,7 +48,7 @@
  import org.slf4j.Logger;
  
  public abstract class AbstractContainerMenu {
-@@ -45,10 +_,10 @@
+@@ -45,23 +_,74 @@
      public static final int CARRIED_SLOT_SIZE = Integer.MAX_VALUE;
      public NonNullList<ItemStack> lastSlots = NonNullList.create();
      public NonNullList<Slot> slots = NonNullList.create();
@@ -61,7 +61,16 @@
      private ItemStack remoteCarried = ItemStack.EMPTY;
      private int stateId;
      @Nullable
-@@ -62,6 +_,57 @@
+     private final MenuType<?> menuType;
+     public final int containerId;
+-    private int quickcraftType = -1;
+-    private int quickcraftStatus;
+-    private final Set<Slot> quickcraftSlots = Sets.newHashSet();
++    public int quickcraftType = -1;
++    public int quickcraftStatus;
++    public final Set<Slot> quickcraftSlots = Sets.newHashSet();
+     private final List<ContainerListener> containerListeners = Lists.newArrayList();
+     @Nullable
      private ContainerSynchronizer synchronizer;
      private boolean suppressRemoteUpdates;
  
@@ -184,7 +193,7 @@
              } else if (this.quickcraftStatus == 2) {
                  if (!this.quickcraftSlots.isEmpty()) {
 -                    if (this.quickcraftSlots.size() == 1) {
-+                    if (false && this.quickcraftSlots.size() == 1) { // CraftBukkit - treat everything as a drag since we are unable to easily call InventoryClickEvent instead
++                    if (this.quickcraftSlots.size() == 1) { // Paper - Fix CraftBukkit drag system
                          int i1 = this.quickcraftSlots.iterator().next().index;
                          this.resetQuickCraft();
                          this.doClick(i1, this.quickcraftType, ClickType.PICKUP, p_150434_);
@@ -305,6 +314,84 @@
 +                // this.setCarried(ItemStack.EMPTY); // CraftBukkit - moved up
              }
          }
+     }
+@@ -592,6 +_,14 @@
+     public abstract boolean stillValid(Player p_38874_);
+ 
+     protected boolean moveItemStackTo(ItemStack p_38904_, int p_38905_, int p_38906_, boolean p_38907_) {
++        // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
++        return this.moveItemStackTo(p_38904_, p_38905_, p_38906_, p_38907_, false);
++    }
++    protected boolean moveItemStackTo(ItemStack p_38904_, int p_38905_, int p_38906_, boolean p_38907_, boolean isCheck) {
++        if (isCheck) {
++            p_38904_ = p_38904_.copy();
++        }
++        // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
+         boolean flag = false;
+         int i = p_38905_;
+         if (p_38907_) {
+@@ -602,18 +_,27 @@
+             while (!p_38904_.isEmpty() && (p_38907_ ? i >= p_38905_ : i < p_38906_)) {
+                 Slot slot = this.slots.get(i);
+                 ItemStack itemstack = slot.getItem();
++                // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent; clone if only a check
++                if (isCheck) {
++                    itemstack = itemstack.copy();
++                }
++                // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
+                 if (!itemstack.isEmpty() && ItemStack.isSameItemSameComponents(p_38904_, itemstack)) {
+                     int j = itemstack.getCount() + p_38904_.getCount();
+                     int k = slot.getMaxStackSize(itemstack);
+                     if (j <= k) {
+                         p_38904_.setCount(0);
+                         itemstack.setCount(j);
+-                        slot.setChanged();
++                        if (!isCheck) { // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
++                            slot.setChanged();
++                        } // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
+                         flag = true;
+                     } else if (itemstack.getCount() < k) {
+                         p_38904_.shrink(k - itemstack.getCount());
+                         itemstack.setCount(k);
+-                        slot.setChanged();
++                        if (!isCheck) { // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
++                            slot.setChanged();
++                        } // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
+                         flag = true;
+                     }
+                 }
+@@ -636,10 +_,21 @@
+             while (p_38907_ ? i >= p_38905_ : i < p_38906_) {
+                 Slot slot1 = this.slots.get(i);
+                 ItemStack itemstack1 = slot1.getItem();
++                // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
++                if (isCheck) {
++                    itemstack1 = itemstack1.copy();
++                }
++                // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
+                 if (itemstack1.isEmpty() && slot1.mayPlace(p_38904_)) {
+                     int l = slot1.getMaxStackSize(p_38904_);
+-                    slot1.setByPlayer(p_38904_.split(Math.min(p_38904_.getCount(), l)));
+-                    slot1.setChanged();
++                    // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
++                    if (isCheck) {
++                        p_38904_.shrink(Math.min(p_38904_.getCount(), l));
++                    } else {
++                        // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
++                        slot1.setByPlayer(p_38904_.split(Math.min(p_38904_.getCount(), l)));
++                        slot1.setChanged();
++                    }// Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
+                     flag = true;
+                     break;
+                 }
+@@ -675,7 +_,7 @@
+         }
+     }
+ 
+-    protected void resetQuickCraft() {
++    public void resetQuickCraft() {
+         this.quickcraftStatus = 0;
+         this.quickcraftSlots.clear();
      }
 @@ -727,6 +_,11 @@
      }

@@ -429,7 +429,6 @@ public class WorldCreator {
     public World createWorld() {
         return Bukkit.createWorld(this);
     }
-
     /**
      * Creates a new {@link WorldCreator} for the given world name
      *

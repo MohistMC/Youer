@@ -88,7 +88,7 @@
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
      }
  
-@@ -258,14 +_,89 @@
+@@ -258,14 +_,77 @@
          return new ParseResults<>(commandcontextbuilder1, p_242928_.getReader(), p_242928_.getExceptions());
      }
  
@@ -112,21 +112,9 @@
 +        String[] args = command.split(" ");
 +        if (args.length == 0) return; // Paper - empty commands shall not be dispatched
 +
-+        String cmd = args[0];
-+        if (cmd.startsWith("minecraft:")) cmd = cmd.substring("minecraft:".length());
-+        if (cmd.startsWith("bukkit:")) cmd = cmd.substring("bukkit:".length());
++        // Paper - Fix permission levels for command blocks
 +
-+        // Block disallowed commands
-+        if (cmd.equalsIgnoreCase("stop") || cmd.equalsIgnoreCase("kick") || cmd.equalsIgnoreCase("op")
-+                || cmd.equalsIgnoreCase("deop") || cmd.equalsIgnoreCase("ban") || cmd.equalsIgnoreCase("ban-ip")
-+                || cmd.equalsIgnoreCase("pardon") || cmd.equalsIgnoreCase("pardon-ip") || cmd.equalsIgnoreCase("reload")) {
-+            return;
-+        }
-+
-+        // Handle vanilla commands;
-+        if (sender.getLevel().getCraftServer().getCommandBlockOverride(args[0])) {
-+            args[0] = "minecraft:" + args[0];
-+        }
++        // Handle vanilla commands; // Paper - handled in CommandNode/CommandDispatcher
 +
 +        String newCommand = joiner.join(args);
 +        this.performPrefixedCommand(sender, newCommand, newCommand);
@@ -198,7 +186,7 @@
                  MutableComponent mutablecomponent = Component.empty()
                      .withStyle(ChatFormatting.GRAY)
 -                    .withStyle(p_82134_ -> p_82134_.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + p_307311_)));
-+                    .withStyle(p_82134_ -> p_82134_.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, finishParsing$label.get()))); // CraftBukkit
++                    .withStyle(p_82134_ -> p_82134_.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + finishParsing$label.get()))); // CraftBukkit
                  if (i > 10) {
                      mutablecomponent.append(CommonComponents.ELLIPSIS);
                  }

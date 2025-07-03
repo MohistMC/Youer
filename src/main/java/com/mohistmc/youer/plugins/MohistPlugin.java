@@ -34,7 +34,7 @@ public class MohistPlugin {
 
     public static Logger LOGGER = LogManager.getLogger("MohistPlugin");
 
-    public static void init(Server server) {
+    public static void init() {
         if (YouerConfig.config.getBoolean("worldmanage", true)) WorldManage.onEnable();
         ItemsConfig.init();
         BackConfig.init();

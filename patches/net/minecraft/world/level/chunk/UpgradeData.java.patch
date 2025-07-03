@@ -1,0 +1,48 @@
+--- a/net/minecraft/world/level/chunk/UpgradeData.java
++++ b/net/minecraft/world/level/chunk/UpgradeData.java
+@@ -100,6 +_,25 @@
+         }
+     }
+ 
++    // Paper start - filter out relocated neighbour ticks
++    // The lists are only supposed to contain ticks for the 1 radius neighbours of the chunk
++    private static <T> void filterTickList(int chunkX, int chunkZ, List<SavedTick<T>> ticks) {
++        for (java.util.Iterator<SavedTick<T>> iterator = ticks.iterator(); iterator.hasNext();) {
++            SavedTick<T> tick = iterator.next();
++            BlockPos tickPos = tick.pos();
++            int tickCX = tickPos.getX() >> 4;
++            int tickCZ = tickPos.getZ() >> 4;
++
++            int dist = Math.max(Math.abs(chunkX - tickCX), Math.abs(chunkZ - tickCZ));
++
++            if (dist != 1) {
++                LOGGER.warn("Neighbour tick '" + tick + "' serialized in chunk (" + chunkX + "," + chunkZ + ") is too far (" + tickCX + "," + tickCZ + ")");
++                iterator.remove();
++            }
++        }
++    }
++    // Paper end - filter out relocated neighbour ticks
++
+     public void upgrade(LevelChunk p_63342_) {
+         this.upgradeInside(p_63342_);
+ 
+@@ -107,6 +_,11 @@
+             upgradeSides(p_63342_, direction8);
+         }
+ 
++        // Paper start - filter out relocated neighbour ticks
++        filterTickList(p_63342_.locX, p_63342_.locZ, this.neighborBlockTicks);
++        filterTickList(p_63342_.locX, p_63342_.locZ, this.neighborFluidTicks);
++        // Paper end - filter out relocated neighbour ticks
++
+         Level level = p_63342_.getLevel();
+         this.neighborBlockTicks.forEach(p_208142_ -> {
+             Block block = p_208142_.type() == Blocks.AIR ? level.getBlockState(p_208142_.pos()).getBlock() : p_208142_.type();
+@@ -116,6 +_,7 @@
+             Fluid fluid = p_208125_.type() == Fluids.EMPTY ? level.getFluidState(p_208125_.pos()).getType() : p_208125_.type();
+             level.scheduleTick(p_208125_.pos(), fluid, p_208125_.delay(), p_208125_.priority());
+         });
++        UpgradeData.BlockFixers.values(); // Paper - force the class init so that we don't access CHUNKY_FIXERS before all BlockFixers are initialised
+         CHUNKY_FIXERS.forEach(p_208122_ -> p_208122_.processChunk(level));
+     }
+ 

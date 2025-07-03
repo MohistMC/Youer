@@ -1766,7 +1766,7 @@ public final class CollisionUtil {
         // specifically with boat collisions.
         aabb = aabb.inflate(-COLLISION_EPSILON, -COLLISION_EPSILON, -COLLISION_EPSILON);
         final java.util.List<net.minecraft.world.entity.Entity> entities;
-        if (entity != null && ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$isHardColliding()) {
+        if (entity != null && entity.moonrise$isHardColliding()) {
             entities = world.getEntities(entity, aabb, predicate);
         } else {
             entities = ((ca.spottedleaf.moonrise.patches.chunk_system.world.ChunkSystemEntityGetter)world).moonrise$getHardCollidingEntities(entity, aabb, predicate);

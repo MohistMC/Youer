@@ -867,9 +867,38 @@
          this.getProfiler().pop();
  
          for (Entity entity : p_8648_.getPassengers()) {
-@@ -790,32 +_,56 @@
+@@ -789,33 +_,85 @@
+         return !this.server.isUnderSpawnProtection(this, p_8697_, p_8696_) && this.getWorldBorder().isWithinBounds(p_8697_);
      }
  
++    // Paper start - Incremental chunk and player saving
++    public void saveIncrementally(boolean doFull) {
++        ServerChunkCache chunkproviderserver = this.getChunkSource();
++
++        if (doFull) {
++            org.bukkit.Bukkit.getPluginManager().callEvent(new org.bukkit.event.world.WorldSaveEvent(getWorld()));
++        }
++
++        if (doFull) {
++            this.saveLevelData(true);
++        }
++
++        // chunk autosave is already called by the ChunkSystem during unload processing (ChunkMap#processUnloads)
++
++        // Copied from save()
++        // CraftBukkit start - moved from MinecraftServer.saveChunks
++        if (doFull) { // Paper
++            ServerLevel worldserver1 = this;
++
++            this.K.setWorldBorder(worldserver1.getWorldBorder().createSettings());
++            this.K.setCustomBossEvents(this.server.getCustomBossEvents().save(this.registryAccess()));
++            this.convertable.saveDataTag(this.server.registryAccess(), this.K, this.server.getPlayerList().getSingleplayerData());
++        }
++        // CraftBukkit end
++
++    }
++    // Paper end - Incremental chunk and player saving
++
      public void save(@Nullable ProgressListener p_8644_, boolean p_8645_, boolean p_8646_) {
 +        // Paper start - add close param
 +        this.save(p_8644_, p_8645_, p_8646_, false);

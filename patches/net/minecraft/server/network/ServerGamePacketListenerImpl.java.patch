@@ -1289,7 +1289,7 @@
 +            }
 +        }
 +        // Spigot end
-+        if (this.chatSpamTickCount.addAndGet(20) > 200 && !this.server.getPlayerList().isOp(this.player.getGameProfile()) && !this.server.isSingleplayerOwner(this.player.getGameProfile())) {
++        if (counted && this.chatSpamTickCount.addAndGet(20) > 200 && !this.server.getPlayerList().isOp(this.player.getGameProfile()) && !this.server.isSingleplayerOwner(this.player.getGameProfile())) { // Paper - exclude from SpigotConfig.spamExclusions
 +            // CraftBukkit end
 +            this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - kick event cause
 +        }
@@ -1567,7 +1567,7 @@
                  this.player.containerMenu.sendAllDataToRemote();
              } else if (!this.player.containerMenu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, this.player.containerMenu);
-@@ -1643,7 +_,271 @@
+@@ -1643,7 +_,290 @@
                  } else {
                      boolean flag = p_9856_.getStateId() != this.player.containerMenu.getStateId();
                      this.player.containerMenu.suppressRemoteUpdates();
@@ -1727,6 +1727,25 @@
 +                            }
 +                            break;
 +                        case QUICK_CRAFT:
++                            // Paper start - Fix CraftBukkit drag system
++                            AbstractContainerMenu containerMenu = this.player.containerMenu;
++                            int currentStatus = this.player.containerMenu.quickcraftStatus;
++                            int newStatus = AbstractContainerMenu.getQuickcraftHeader(p_9856_.getButtonNum());
++                            if ((currentStatus != 1 || newStatus != 2 && currentStatus != newStatus)) {
++                            } else if (containerMenu.getCarried().isEmpty()) {
++                            } else if (newStatus == 0) {
++                            } else if (newStatus == 1) {
++                            } else if (newStatus == 2) {
++                                if (!this.player.containerMenu.quickcraftSlots.isEmpty()) {
++                                    if (this.player.containerMenu.quickcraftSlots.size() == 1) {
++                                        int index = containerMenu.quickcraftSlots.iterator().next().index;
++                                        containerMenu.resetQuickCraft();
++                                        this.handleContainerClick(new ServerboundContainerClickPacket(p_9856_.getContainerId(), p_9856_.getStateId(), index, containerMenu.quickcraftType, net.minecraft.world.inventory.ClickType.PICKUP, p_9856_.getCarriedItem(), p_9856_.getChangedSlots()));
++                                        return;
++                                    }
++                                }
++                            }
++                            // Paper end - Fix CraftBukkit drag system
 +                            this.player.containerMenu.clicked(p_9856_.getSlotNum(), p_9856_.getButtonNum(), p_9856_.getClickType(), this.player);
 +                            break;
 +                        case PICKUP_ALL:

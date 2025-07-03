@@ -120,7 +120,7 @@
 +    public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
 +    public boolean captureBlockStates = false;
 +    public boolean captureTreeGeneration = false;
-+    public Map<BlockPos, CapturedBlockState> capturedBlockStates = new LinkedHashMap<>();
++    public Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = new java.util.LinkedHashMap<>(); // Paper
 +    public Map<BlockPos, BlockEntity> capturedTileEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
 +    public List<ItemEntity> captureDrops;
 +    public final Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new Object2LongOpenHashMap<>();
@@ -801,7 +801,7 @@
      public boolean setBlock(BlockPos p_46605_, BlockState p_46606_, int p_46607_, int p_46608_) {
 +        // CraftBukkit start - tree generation
 +        if (this.captureTreeGeneration) {
-+            CapturedBlockState blockstate = capturedBlockStates.get(p_46605_);
++            CraftBlockState blockstate = capturedBlockStates.get(p_46605_);
 +            if (blockstate == null) {
 +                blockstate = CapturedBlockState.getTreeBlockState(this, p_46605_, p_46607_);
 +                this.capturedBlockStates.put(p_46605_.immutable(), blockstate);
@@ -815,7 +815,7 @@
          if (this.isOutsideBuildHeight(p_46605_)) {
              return false;
          } else if (!this.isClientSide && this.isDebug()) {
-@@ -216,11 +_,60 @@
+@@ -216,11 +_,61 @@
          } else {
              LevelChunk levelchunk = this.getChunkAt(p_46605_);
              Block block = p_46606_.getBlock();
@@ -830,7 +830,8 @@
 +            // CraftBukkit start - capture blockstates
 +            boolean captured = false;
 +            if (this.captureBlockStates && !this.capturedBlockStates.containsKey(p_46605_)) {
-+                CapturedBlockState blockstate = CapturedBlockState.getBlockState(this, p_46605_, p_46607_);
++                CraftBlockState blockstate = (CraftBlockState) world.getBlockAt(p_46605_.getX(), p_46605_.getY(), p_46605_.getZ()).getState(); // Paper - use CB getState to get a suitable snapshot
++                blockstate.setFlag(p_46607_); // Paper - set flag
 +                this.capturedBlockStates.put(p_46605_.immutable(), blockstate);
 +                captured = true;
 +            }
@@ -987,7 +988,7 @@
      public BlockState getBlockState(BlockPos p_46732_) {
 +        // CraftBukkit start - tree generation
 +        if (captureTreeGeneration) {
-+            CapturedBlockState previous = capturedBlockStates.get(p_46732_);
++            CraftBlockState previous = capturedBlockStates.get(p_46732_);
 +            if (previous != null) {
 +                return previous.getHandle();
 +            }

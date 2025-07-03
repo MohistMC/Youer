@@ -1,9 +1,10 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1,16 +_,24 @@
+@@ -1,16 +_,25 @@
  package net.minecraft.server;
  
 +import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
++import com.mohistmc.youer.plugins.MohistPlugin;
 +import com.mohistmc.youer.util.I18n;
  import com.google.common.base.Preconditions;
  import com.google.common.base.Splitter;
@@ -432,7 +433,7 @@
          }
  
          worldborder.applySettings(serverleveldata.getWorldBorder());
-+
++        MohistPlugin.init(); // Youer init mohist plugins
 +        this.server.enablePlugins(PluginLoadOrder.POSTWORLD);
 +        if (io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.pluginsEnabled(); // Paper - Remap plugins
 +        io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // Paper - reset invalid state for event fire below
@@ -943,7 +944,7 @@
              return true;
          } else {
              if (this.tickRateManager.isSprinting() || this.haveTime()) {
-@@ -900,12 +_,26 @@
+@@ -900,24 +_,57 @@
  
      public void tickServer(BooleanSupplier p_129871_) {
          long i = Util.getNanos();
@@ -970,11 +971,37 @@
          }
  
          this.ticksUntilAutosave--;
-@@ -917,7 +_,12 @@
-             this.profiler.pop();
-             LOGGER.debug("Autosave finished");
-         }
+-        if (this.ticksUntilAutosave <= 0) {
+-            this.ticksUntilAutosave = this.computeNextAutosaveInterval();
+-            LOGGER.debug("Autosave started");
+-            this.profiler.push("save");
+-            this.saveEverything(true, false, false);
+-            this.profiler.pop();
+-            LOGGER.debug("Autosave finished");
+-        }
 -
++        // Paper start - Incremental chunk and player saving
++        int playerSaveInterval = io.papermc.paper.configuration.GlobalConfiguration.get().playerAutoSave.rate;
++        if (playerSaveInterval < 0) {
++            playerSaveInterval = autosavePeriod;
++        }
++        this.profiler.push("save");
++        final boolean fullSave = autosavePeriod > 0 && this.tickCount % autosavePeriod == 0;
++        try {
++            this.isSaving = true;
++            if (playerSaveInterval > 0) {
++                this.playerList.saveAll(playerSaveInterval);
++            }
++            for (ServerLevel level : this.getAllLevels()) {
++                if (level.paperConfig().chunks.autoSaveInterval.value() > 0) {
++                    level.saveIncrementally(fullSave);
++                }
++            }
++        } finally {
++            this.isSaving = false;
++        }
++        this.profiler.pop();
++        // Paper end - Incremental chunk and player saving
 +        this.runAllTasks();
 +        // Paper start - Server Tick Events
 +        long endTime = System.nanoTime();

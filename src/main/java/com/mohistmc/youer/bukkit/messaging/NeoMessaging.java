@@ -22,7 +22,8 @@ public class NeoMessaging {
     public static boolean verifyChannel(ResourceLocation location, Set<PluginMessageListenerRegistration> incoming, Set<Plugin> outgoing) {
         for (var protocol : PluginChannel.PROTOCOLS) {
             var known = NetworkRegistry.PAYLOAD_REGISTRATIONS.get(protocol).get(location);
-            if (known != null) {
+            var builtin = NetworkRegistry.BUILTIN_PAYLOADS.get(location);
+            if (known != null || builtin != null) {
                 var pluginList = Stream.concat(outgoing.stream(), incoming.stream().map(PluginMessageListenerRegistration::getPlugin))
                         .distinct()
                         .map(Plugin::getName)
@@ -30,7 +31,9 @@ public class NeoMessaging {
                 Youer.LOGGER.error(I18n.as("neoforge.channel_conflict"));
                 Youer.LOGGER.error(I18n.as("neoforge.channel_details"), location, protocol);
                 Youer.LOGGER.error(I18n.as("neoforge.plugin_registration"), pluginList);
-                Youer.LOGGER.error(I18n.as("neoforge.mod_version"), known.version());
+                if (known != null) {
+                    Youer.LOGGER.error(I18n.as("neoforge.mod_version"), known.version());
+                }
                 Youer.LOGGER.error(I18n.as("neoforge.channel_ignored"));
                 return false;
             }
@@ -70,6 +73,6 @@ public class NeoMessaging {
         var codec = channel.getStreamCodec();
         var flow = channel.getDirection().flow;
 
-        return new PayloadRegistration<>(type, codec, handler, PluginChannel.PROTOCOLS, Optional.ofNullable(flow), "youer:neo", true);
+        return new PayloadRegistration<>(type, codec, handler, PluginChannel.PROTOCOLS, Optional.ofNullable(flow), "1.0", true);
     }
 }
