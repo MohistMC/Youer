@@ -17,10 +17,15 @@ public enum EquipmentSlot {
      */
     BODY(() -> EquipmentSlotGroup.ARMOR);
 
-    private final Supplier<EquipmentSlotGroup> group; // Supplier because of class loading order, since EquipmentSlot and EquipmentSlotGroup reference each other on class init
+    private Supplier<EquipmentSlotGroup> group; // Supplier because of class loading order, since EquipmentSlot and EquipmentSlotGroup reference each other on class init
+
+    public EquipmentSlotGroup group1;
 
     private EquipmentSlot(/*@NotNull*/ Supplier<EquipmentSlotGroup> group) {
         this.group = group;
+    }
+
+    private EquipmentSlot() {
     }
 
     /**
@@ -31,6 +36,9 @@ public enum EquipmentSlot {
     @NotNull
     @ApiStatus.Internal
     public EquipmentSlotGroup getGroup() {
+        if (group1 != null) {
+            return group1;
+        }
         return group.get();
     }
 }

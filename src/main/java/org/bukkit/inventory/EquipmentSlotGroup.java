@@ -77,7 +77,7 @@ public final class EquipmentSlotGroup implements Predicate<EquipmentSlot> {
         return BY_NAME.get(name.toLowerCase(Locale.ROOT));
     }
 
-    private static EquipmentSlotGroup get(@NotNull String key, @NotNull EquipmentSlot slot) {
+    public static EquipmentSlotGroup get(@NotNull String key, @NotNull EquipmentSlot slot) {
         return get(key, (test) -> test == slot, slot);
     }
 
