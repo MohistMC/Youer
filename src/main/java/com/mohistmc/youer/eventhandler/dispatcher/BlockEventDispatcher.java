@@ -39,6 +39,7 @@ import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 
 public class BlockEventDispatcher {
 
@@ -140,13 +141,18 @@ public class BlockEventDispatcher {
                 }
                 CraftBlock againstBlock = CraftBlock.at(event.getLevel(), event.getPos().relative(direction.getOpposite()));
                 org.bukkit.inventory.ItemStack bukkitStack;
+                // Paper start - add hand to BlockMultiPlaceEvent
+                EquipmentSlot equipmentSlot;
                 if (hand == InteractionHand.MAIN_HAND) {
                     bukkitStack = player.getInventory().getItemInMainHand();
+                    equipmentSlot = EquipmentSlot.HAND;
                 } else {
                     bukkitStack = player.getInventory().getItemInOffHand();
+                    equipmentSlot = EquipmentSlot.OFF_HAND;
                 }
-                BlockPlaceEvent placeEvent = new BlockMultiPlaceEvent(placedBlocks, againstBlock, bukkitStack, player, !event.isCanceled()
+                BlockPlaceEvent placeEvent = new BlockMultiPlaceEvent(placedBlocks, againstBlock, bukkitStack, player, !event.isCanceled(), equipmentSlot
                 );
+                // Paper end
                 placeEvent.setCancelled(event.isCanceled());
                 Bukkit.getPluginManager().callEvent(placeEvent);
                 event.setCanceled(placeEvent.isCancelled() || !placeEvent.canBuild());

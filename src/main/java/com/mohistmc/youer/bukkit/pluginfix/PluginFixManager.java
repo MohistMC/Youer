@@ -32,7 +32,6 @@ public class PluginFixManager {
             return patch(clazz, MultiverseCore::fix);
         }
         Consumer<ClassNode> patcher = switch (className) {
-            case "com.sk89q.worldedit.bukkit.BukkitAdapter" -> WorldEdit::handleBukkitAdapter;
             case "com.earth2me.essentials.utils.VersionUtil" -> node -> {
                 helloWorld(node, 110, 109);
                 helloWorld(node, "brand:", "peace");

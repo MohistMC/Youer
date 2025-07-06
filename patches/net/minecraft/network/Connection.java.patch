@@ -418,7 +418,22 @@
      public void setupCompression(int p_129485_, boolean p_182682_) {
          if (p_129485_ >= 0) {
              if (this.channel.pipeline().get("decompress") instanceof CompressionDecoder compressiondecoder) {
-@@ -613,7 +_,7 @@
+@@ -599,6 +_,7 @@
+             } else {
+                 this.channel.pipeline().addAfter("prepender", "compress", new CompressionEncoder(p_129485_));
+             }
++            this.channel.pipeline().fireUserEventTriggered(io.papermc.paper.network.ConnectionEvent.COMPRESSION_THRESHOLD_SET); // Paper - Add Channel initialization listeners
+         } else {
+             if (this.channel.pipeline().get("decompress") instanceof CompressionDecoder) {
+                 this.channel.pipeline().remove("decompress");
+@@ -607,13 +_,14 @@
+             if (this.channel.pipeline().get("compress") instanceof CompressionEncoder) {
+                 this.channel.pipeline().remove("compress");
+             }
++            this.channel.pipeline().fireUserEventTriggered(io.papermc.paper.network.ConnectionEvent.COMPRESSION_DISABLED); // Paper - Add Channel initialization listeners
+         }
+     }
+ 
      public void handleDisconnection() {
          if (this.channel != null && !this.channel.isOpen()) {
              if (this.disconnectionHandled) {

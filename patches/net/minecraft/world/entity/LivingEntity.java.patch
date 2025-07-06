@@ -1466,6 +1466,53 @@
              this.setSharedFlag(7, flag);
          }
      }
+@@ -2748,28 +_,25 @@
+ 
+     protected void pushEntities() {
+         if (this.level().isClientSide()) {
+-            this.level().getEntities(EntityTypeTest.forClass(Player.class), this.getBoundingBox(), EntitySelector.pushableBy(this)).forEach(this::doPush);
++            final List<Player> players = this.level().getEntitiesOfClass(Player.class, this.getBoundingBox(), EntitySelector.pushableBy(this));
++            for (int i = 0, len = players.size(); i < len; ++i) {
++                this.doPush(players.get(i));
++            }
+         } else {
+-            List<Entity> list = this.level().getEntities(this, this.getBoundingBox(), EntitySelector.pushableBy(this));
+-            if (!list.isEmpty()) {
+-                int i = this.level().getGameRules().getInt(GameRules.RULE_MAX_ENTITY_CRAMMING);
+-                if (i > 0 && list.size() > i - 1 && this.random.nextInt(4) == 0) {
+-                    int j = 0;
+-
+-                    for (Entity entity : list) {
+-                        if (!entity.isPassenger()) {
+-                            j++;
+-                        }
+-                    }
+-
+-                    if (j > i - 1) {
+-                        this.hurt(this.damageSources().cramming(), 6.0F);
+-                    }
+-                }
+-
+-                for (Entity entity1 : list) {
+-                    this.doPush(entity1);
+-                }
++            final List<Entity> nearby = this.level().getEntities(this, this.getBoundingBox(), EntitySelector.pushableBy(this));
++
++            // only iterate ONCE
++            int nonPassengers = 0;
++            for (int i = 0, len = nearby.size(); i < len; ++i) {
++                final Entity entity = nearby.get(i);
++                nonPassengers += (entity.isPassenger() ? 0 : 1);
++                this.doPush(entity);
++            }
++
++            int maxCramming;
++            if (nonPassengers != 0 && (maxCramming = this.level().getGameRules().getInt(GameRules.RULE_MAX_ENTITY_CRAMMING)) > 0
++                    && nonPassengers > (maxCramming - 1) && this.random.nextInt(4) == 0) {
++                this.hurt(this.damageSources().cramming(), 6.0F);
+             }
+         }
+     }
 @@ -2812,7 +_,7 @@
      public void stopRiding() {
          Entity entity = this.getVehicle();

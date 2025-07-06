@@ -79,7 +79,7 @@
                      if (ServerConnectionListener.this.server.repliesToStatus()) {
                          channelpipeline.addLast("legacy_query", new LegacyQueryHandler(ServerConnectionListener.this.getServer()));
                      }
-@@ -94,11 +_,42 @@
+@@ -94,11 +_,43 @@
                      Connection.configureSerialization(channelpipeline, PacketFlow.SERVERBOUND, false, null);
                      int i = ServerConnectionListener.this.server.getRateLimitPacketsPerSecond();
                      Connection connection = (Connection)(i > 0 ? new RateKickingConnection(i) : new Connection(PacketFlow.SERVERBOUND));
@@ -118,6 +118,7 @@
 +                    // ServerConnectionListener.this.connections.add(connection); // Paper
                      connection.configurePacketHandler(channelpipeline);
                      connection.setListenerForServerboundHandshake(new ServerHandshakePacketListenerImpl(ServerConnectionListener.this.server, connection));
++                    io.papermc.paper.network.ChannelInitializeListenerHolder.callListeners(p_9729_); // Paper - Add Channel initialization listeners
                  }
 -            }).group(eventloopgroup).localAddress(p_9712_, p_9713_).bind().syncUninterruptibly());
 +            }).group(eventloopgroup).localAddress(p_9712_, p_9713_).option(ChannelOption.AUTO_READ, false).bind().syncUninterruptibly()); // CraftBukkit

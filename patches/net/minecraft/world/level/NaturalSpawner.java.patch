@@ -33,15 +33,23 @@
          .filter(p_47037_ -> p_47037_ != MobCategory.MISC)
          .toArray(MobCategory[]::new);
  
-@@ -69,7 +_,7 @@
+@@ -69,8 +_,15 @@
                  continue;
              }
  
 -            MobCategory mobcategory = entity.getType().getCategory();
 +            MobCategory mobcategory = entity.getClassification(true);
              if (mobcategory != MobCategory.MISC) {
++                // Paper start - Only count natural spawns
++                if (!entity.level().paperConfig().entities.spawning.countAllMobsForSpawning &&
++                        !(entity.spawnReason == org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL ||
++                                entity.spawnReason == org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CHUNK_GEN)) {
++                    continue;
++                }
++                // Paper end - Only count natural spawns
                  BlockPos blockpos = entity.blockPosition();
                  p_186527_.query(
+                     ChunkPos.asLong(blockpos),
 @@ -103,12 +_,24 @@
          ServerLevel p_47030_, LevelChunk p_47031_, NaturalSpawner.SpawnState p_47032_, boolean p_47033_, boolean p_47034_, boolean p_47035_
      ) {

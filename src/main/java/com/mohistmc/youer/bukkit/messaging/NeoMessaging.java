@@ -15,6 +15,8 @@ import org.bukkit.plugin.messaging.PluginMessageListenerRegistration;
 
 public class NeoMessaging {
 
+    public static String CHANNEL_VERSION = "youer:neomessaging";
+
     public static PluginChannel setupChannel(ResourceLocation location, Set<PluginMessageListenerRegistration> incoming, Set<Plugin> outgoing) {
         return new PluginChannel(verifyChannel(location, incoming, outgoing), location, incoming, outgoing);
     }
@@ -73,6 +75,6 @@ public class NeoMessaging {
         var codec = channel.getStreamCodec();
         var flow = channel.getDirection().flow;
 
-        return new PayloadRegistration<>(type, codec, handler, PluginChannel.PROTOCOLS, Optional.ofNullable(flow), "1.0", true);
+        return new PayloadRegistration<>(type, codec, handler, PluginChannel.PROTOCOLS, Optional.ofNullable(flow), CHANNEL_VERSION, true);
     }
 }

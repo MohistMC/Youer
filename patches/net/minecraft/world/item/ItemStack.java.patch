@@ -24,16 +24,12 @@
  import net.minecraft.util.NullOps;
  import net.minecraft.util.Unit;
  import net.minecraft.world.InteractionHand;
-@@ -90,9 +_,15 @@
+@@ -90,9 +_,11 @@
  import net.minecraft.world.level.block.state.pattern.BlockInWorld;
  import net.minecraft.world.level.saveddata.maps.MapId;
  import org.apache.commons.lang3.mutable.MutableBoolean;
-+import org.bukkit.craftbukkit.block.CapturedBlockState;
-+import org.bukkit.craftbukkit.block.CraftBlock;
-+import org.bukkit.craftbukkit.block.CraftBlockState;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
-+import org.bukkit.craftbukkit.util.CraftLocation;
  import org.slf4j.Logger;
  
 -public final class ItemStack implements DataComponentHolder, net.neoforged.neoforge.common.MutableDataComponentHolder, net.neoforged.neoforge.common.extensions.IItemStackExtension {
@@ -78,7 +74,7 @@
      }
  
      public boolean is(HolderSet<Item> p_298683_) {
-@@ -351,18 +_,179 @@
+@@ -351,13 +_,26 @@
      }
  
      public InteractionResult useOn(UseOnContext p_41662_) {
@@ -102,168 +98,10 @@
          } else {
              Item item = this.getItem();
 -            InteractionResult interactionresult = item.useOn(p_41662_);
--            if (player != null && interactionresult.indicateItemUse()) {
--                player.awardStat(Stats.ITEM_USED.get(item));
--            }
--
--            return interactionresult;
-+            DataComponentPatch oldData = this.components.asPatch();
-+            int oldCount = this.getCount();
-+            ServerLevel world = (ServerLevel) p_41662_.getLevel();
-+
-+            if (!(item instanceof BucketItem || item instanceof SolidBucketItem)) {
-+                world.captureBlockStates = true;
-+                if (item == Items.BONE_MEAL) {
-+                    world.captureTreeGeneration = true;
-+                }
-+            }
-+            InteractionResult enuminteractionresult;
-+            try {
-+                enuminteractionresult = callback.apply(p_41662_);
-+            } finally {
-+                world.captureBlockStates = false;
-+            }
-+            DataComponentPatch newData = this.components.asPatch();
-+            int newCount = this.getCount();
-+            this.setCount(oldCount);
-+            this.restorePatch(oldData);
-+            if (enuminteractionresult.consumesAction() && world.captureTreeGeneration && world.capturedBlockStates.size() > 0) {
-+                world.captureTreeGeneration = false;
-+                org.bukkit.Location location = CraftLocation.toBukkit(blockpos, world.getWorld());
-+                org.bukkit.TreeType treeType = net.minecraft.world.level.block.SaplingBlock.treeType;
-+                net.minecraft.world.level.block.SaplingBlock.treeType = null;
-+                List<CraftBlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
-+                world.capturedBlockStates.clear();
-+                org.bukkit.event.world.StructureGrowEvent structureEvent = null;
-+                if (treeType != null) {
-+                    boolean isBonemeal = getItem() == Items.BONE_MEAL;
-+                    structureEvent = new org.bukkit.event.world.StructureGrowEvent(location, treeType, isBonemeal, (org.bukkit.entity.Player) player.getBukkitEntity(), (List<org.bukkit.block.BlockState>) (List<? extends org.bukkit.block.BlockState>) blocks);
-+                    org.bukkit.Bukkit.getPluginManager().callEvent(structureEvent);
-+                }
-+
-+                org.bukkit.event.block.BlockFertilizeEvent fertilizeEvent = new org.bukkit.event.block.BlockFertilizeEvent(CraftBlock.at(world, blockpos), (org.bukkit.entity.Player) player.getBukkitEntity(), (List<org.bukkit.block.BlockState>) (List<? extends org.bukkit.block.BlockState>) blocks);
-+                fertilizeEvent.setCancelled(structureEvent != null && structureEvent.isCancelled());
-+                org.bukkit.Bukkit.getPluginManager().callEvent(fertilizeEvent);
-+
-+                if (!fertilizeEvent.isCancelled()) {
-+                    if (this.getCount() == oldCount && Objects.equals(this.components.asPatch(), oldData)) {
-+                        this.restorePatch(newData);
-+                        this.setCount(newCount);
-+                    }
-+                    for (CraftBlockState blockstate : blocks) {
-+                        CapturedBlockState.setBlockState(blockstate);
-+                    }
-+                    player.awardStat(Stats.ITEM_USED.get(item));
-+                }
-+
-+                SignItem.openSign = null;
-+                return enuminteractionresult;
-+            }
-+            world.captureTreeGeneration = false;
-+
-+            if (player != null && enuminteractionresult.indicateItemUse()) {
-+                InteractionHand enumhand = p_41662_.getHand();
-+                org.bukkit.event.block.BlockPlaceEvent placeEvent = null;
-+                List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
-+                world.capturedBlockStates.clear();
-+                if (blocks.size() > 1) {
-+                    placeEvent = CraftEventFactory.callBlockMultiPlaceEvent(world, player, enumhand, blocks, blockpos.getX(), blockpos.getY(), blockpos.getZ());
-+                } else if (blocks.size() == 1) {
-+                    placeEvent = CraftEventFactory.callBlockPlaceEvent(world, player, enumhand, blocks.get(0), blockpos.getX(), blockpos.getY(), blockpos.getZ());
-+                }
-+
-+                if (placeEvent != null && (placeEvent.isCancelled() || !placeEvent.canBuild())) {
-+                    enuminteractionresult = InteractionResult.FAIL;
-+                    placeEvent.getPlayer().updateInventory();
-+                    world.preventPoiUpdated = true;
-+                    for (org.bukkit.block.BlockState blockstate : blocks) {
-+                        blockstate.update(true, false);
-+                    }
-+                    world.preventPoiUpdated = false;
-+
-+                    BlockPos placedPos = ((CraftBlock) placeEvent.getBlock()).getPosition();
-+                    for (net.minecraft.core.Direction dir : net.minecraft.core.Direction.values()) {
-+                        ((net.minecraft.server.level.ServerPlayer) player).connection.send(new net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket(world, placedPos.relative(dir)));
-+                    }
-+                    SignItem.openSign = null;
-+                } else {
-+                    if (this.getCount() == oldCount && Objects.equals(this.components.asPatch(), oldData)) {
-+                        this.restorePatch(newData);
-+                        this.setCount(newCount);
-+                    }
-+
-+                    for (java.util.Map.Entry<BlockPos, net.minecraft.world.level.block.entity.BlockEntity> e : world.capturedTileEntities.entrySet()) {
-+                        world.setBlockEntity(e.getValue());
-+                    }
-+
-+                    for (org.bukkit.block.BlockState blockstate : blocks) {
-+                        int updateFlag = ((CraftBlockState) blockstate).getFlag();
-+                        BlockState oldBlock = ((CraftBlockState) blockstate).getHandle();
-+                        BlockPos newblockposition = ((CraftBlockState) blockstate).getPosition();
-+                        BlockState block = world.getBlockState(newblockposition);
-+
-+                        if (!(block.getBlock() instanceof net.minecraft.world.level.block.BaseEntityBlock)) {
-+                            block.onPlace(world, newblockposition, oldBlock, true);
-+                        }
-+
-+                        world.notifyAndUpdatePhysics(newblockposition, null, oldBlock, block, world.getBlockState(newblockposition), updateFlag, 512);
-+                    }
-+
-+                    if (this.item == Items.WITHER_SKELETON_SKULL) {
-+                        BlockPos bp = blockpos;
-+                        if (!world.getBlockState(blockpos).canBeReplaced()) {
-+                            if (!world.getBlockState(blockpos).isSolid()) {
-+                                bp = null;
-+                            } else {
-+                                bp = bp.relative(p_41662_.getClickedFace());
-+                            }
-+                        }
-+                        if (bp != null) {
-+                            net.minecraft.world.level.block.entity.BlockEntity te = world.getBlockEntity(bp);
-+                            if (te instanceof net.minecraft.world.level.block.entity.SkullBlockEntity) {
-+                                net.minecraft.world.level.block.WitherSkullBlock.checkSpawn(world, bp, (net.minecraft.world.level.block.entity.SkullBlockEntity) te);
-+                            }
-+                        }
-+                    }
-+
-+                    if (this.item instanceof SignItem && SignItem.openSign != null) {
-+                        try {
-+                            if (world.getBlockEntity(SignItem.openSign) instanceof net.minecraft.world.level.block.entity.SignBlockEntity tileentitysign) {
-+                                if (world.getBlockState(SignItem.openSign).getBlock() instanceof net.minecraft.world.level.block.SignBlock blocksign) {
-+                                    blocksign.openTextEdit$cause.set(io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.PLACE); // Paper - Add PlayerOpenSignEvent
-+                                    blocksign.openTextEdit(player, tileentitysign, true);
-+                                }
-+                            }
-+                        } finally {
-+                            SignItem.openSign = null;
-+                        }
-+                    }
-+
-+                    if (placeEvent != null && this.item instanceof BedItem) {
-+                        BlockPos position = ((CraftBlock) placeEvent.getBlock()).getPosition();
-+                        BlockState blockData = world.getBlockState(position);
-+
-+                        if (blockData.getBlock() instanceof net.minecraft.world.level.block.BedBlock) {
-+                            world.blockUpdated(position, net.minecraft.world.level.block.Blocks.AIR);
-+                            blockData.updateNeighbourShapes(world, position, 3);
-+                        }
-+                    }
-+
-+                    if (this.item instanceof BlockItem) {
-+                        net.minecraft.world.level.block.SoundType soundeffecttype = ((BlockItem) this.item).getBlock().defaultBlockState().getSoundType();
-+                        world.playSound(player, blockpos, soundeffecttype.getPlaceSound(), net.minecraft.sounds.SoundSource.BLOCKS, (soundeffecttype.getVolume() + 1.0F) / 2.0F, soundeffecttype.getPitch() * 0.8F);
-+                    }
-+
-+                    player.awardStat(Stats.ITEM_USED.get(item));
-+                }
-+            }
-+            world.capturedTileEntities.clear();
-+            world.capturedBlockStates.clear();
-+
-+            return enuminteractionresult;
-         }
-     }
- 
++            InteractionResult interactionresult = callback.apply(p_41662_);
+             if (player != null && interactionresult.indicateItemUse()) {
+                 player.awardStat(Stats.ITEM_USED.get(item));
+             }
 @@ -382,7 +_,8 @@
          if (this.isEmpty()) {
              throw new IllegalStateException("Cannot encode empty ItemStack");

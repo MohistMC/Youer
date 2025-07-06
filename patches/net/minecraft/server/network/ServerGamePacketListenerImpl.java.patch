@@ -778,7 +778,7 @@
                  return;
              default:
                  throw new IllegalArgumentException("Invalid player action");
-@@ -1076,10 +_,28 @@
+@@ -1076,16 +_,39 @@
          }
      }
  
@@ -808,11 +808,23 @@
          ServerLevel serverlevel = this.player.serverLevel();
          InteractionHand interactionhand = p_9930_.getHand();
          ItemStack itemstack = this.player.getItemInHand(interactionhand);
-@@ -1096,6 +_,7 @@
+         if (itemstack.isItemEnabled(serverlevel.enabledFeatures())) {
+             BlockHitResult blockhitresult = p_9930_.getHitResult();
+             Vec3 vec3 = blockhitresult.getLocation();
++            // Paper start - improve distance check
++            if (!Double.isFinite(vec3.x) || !Double.isFinite(vec3.y) || !Double.isFinite(vec3.z)) {
++                return;
++            }
++            // Paper end - improve distance check
+             BlockPos blockpos = blockhitresult.getBlockPos();
+             if (this.player.canInteractWithBlock(blockpos, 1.0)) {
+                 Vec3 vec31 = vec3.subtract(Vec3.atCenterOf(blockpos));
+@@ -1095,7 +_,7 @@
+                     this.player.resetLastActionTime();
                      int i = this.player.level().getMaxBuildHeight();
                      if (blockpos.getY() < i) {
-                         if (this.awaitingPositionFromClient == null && serverlevel.mayInteract(this.player, blockpos)) {
-+                            this.player.stopUsingItem(); // CraftBukkit - SPIGOT-4706
+-                        if (this.awaitingPositionFromClient == null && serverlevel.mayInteract(this.player, blockpos)) {
++                        if (this.awaitingPositionFromClient == null && (serverlevel.mayInteract(this.player, blockpos) || (serverlevel.paperConfig().spawn.allowUsingSignsInsideSpawnProtection && serverlevel.getBlockState(blockpos).getBlock() instanceof net.minecraft.world.level.block.SignBlock))) { // Paper - Allow using signs inside spawn protection
                              InteractionResult interactionresult = this.player
                                  .gameMode
                                  .useItemOn(this.player, serverlevel, itemstack, interactionhand, blockhitresult);

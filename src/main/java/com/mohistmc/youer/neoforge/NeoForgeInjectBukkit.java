@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -19,6 +20,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.stats.StatType;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -26,6 +28,15 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.DecoratedPotBlock;
+import net.minecraft.world.level.block.SignBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.entity.DecoratedPotBlockEntity;
+import net.minecraft.world.level.block.entity.HangingSignBlockEntity;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.level.block.entity.TrappedChestBlockEntity;
 import net.minecraft.world.level.dimension.LevelStem;
 import org.bukkit.Art;
 import org.bukkit.Fluid;
@@ -35,6 +46,11 @@ import org.bukkit.Particle;
 import org.bukkit.Statistic;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.craftbukkit.block.CraftBlockStates;
+import org.bukkit.craftbukkit.block.CraftChest;
+import org.bukkit.craftbukkit.block.CraftDecoratedPot;
+import org.bukkit.craftbukkit.block.CraftHangingSign;
+import org.bukkit.craftbukkit.block.CraftSign;
 import org.bukkit.craftbukkit.potion.CraftPotionUtil;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
@@ -115,6 +131,27 @@ public class NeoForgeInjectBukkit {
                 if (material != null) {
                     CraftMagicNumbers.BLOCK_MATERIAL.put(block, material);
                     CraftMagicNumbers.MATERIAL_BLOCK.put(material, block);
+                    if (block.defaultBlockState().is(BlockTags.SIGNS)) {
+                        CraftBlockStates.register(material, CraftSign.class, CraftSign::new, SignBlockEntity::new);
+                    } else if (block.defaultBlockState().is(BlockTags.ALL_HANGING_SIGNS)) {
+                        CraftBlockStates.register(material, CraftHangingSign.class, CraftHangingSign::new, HangingSignBlockEntity::new);
+                    } else if (block instanceof SignBlock signBlock) {
+                        BlockEntity blockEntity = signBlock.newBlockEntity(BlockPos.ZERO, block.defaultBlockState());
+                        if (blockEntity instanceof HangingSignBlockEntity) {
+                            CraftBlockStates.register(material, CraftHangingSign.class, CraftHangingSign::new, HangingSignBlockEntity::new);
+                        } else if (blockEntity instanceof SignBlockEntity) {
+                            CraftBlockStates.register(material, CraftSign.class, CraftSign::new, SignBlockEntity::new);
+                        }
+                    } else if (block instanceof ChestBlock chestBlock) {
+                        BlockEntity blockEntity = chestBlock.newBlockEntity(BlockPos.ZERO, block.defaultBlockState());
+                        if (blockEntity instanceof TrappedChestBlockEntity) {
+                            CraftBlockStates.register(material, CraftChest.class, CraftChest::new, TrappedChestBlockEntity::new);
+                        } else if (blockEntity instanceof ChestBlockEntity) {
+                            CraftBlockStates.register(material, CraftChest.class, CraftChest::new, ChestBlockEntity::new);
+                        }
+                    } else if (block instanceof DecoratedPotBlock) {
+                        CraftBlockStates.register(material, CraftDecoratedPot.class, CraftDecoratedPot::new, DecoratedPotBlockEntity::new);
+                    }
                     Youer.LOGGER.debug("Save-BLOCK:{} - {}", material.name(), material.key);
                 }
             }

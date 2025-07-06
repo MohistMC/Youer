@@ -109,7 +109,7 @@
          private final int lightEmission;
          private final boolean useShapeForLightOcclusion;
          private final boolean isAir;
-@@ -422,6 +_,77 @@
+@@ -422,6 +_,82 @@
          private FluidState fluidState = Fluids.EMPTY.defaultFluidState();
          private boolean isRandomlyTicking;
  
@@ -135,15 +135,21 @@
 +        private final int id2 = it.unimi.dsi.fastutil.HashCommon.murmurHash3(it.unimi.dsi.fastutil.HashCommon.murmurHash3(ID_GENERATOR.getAndIncrement() + RANDOM_OFFSET) + RANDOM_OFFSET);
 +        private boolean occludesFullBlock;
 +        private boolean emptyCollisionShape;
++        private boolean emptyConstantCollisionShape;
 +        private VoxelShape constantCollisionShape;
-+        private AABB constantAABBCollision;
 +
-+        private static void initCaches(final VoxelShape shape) {
++        private static void initCaches(final VoxelShape shape, final boolean neighbours) {
 +            shape.moonrise$isFullBlock();
 +            shape.moonrise$occludesFullBlock();
 +            shape.toAabbs();
 +            if (!shape.isEmpty()) {
 +                shape.bounds();
++            }
++            if (neighbours) {
++                for (final Direction direction : DIRECTIONS_CACHED) {
++                    initCaches(Shapes.getFaceShape(shape, direction), false);
++                    initCaches(shape.getFaceShape(direction), false);
++                }
 +            }
 +        }
 +
@@ -163,6 +169,11 @@
 +        }
 +
 +        @Override
++        public final boolean moonrise$emptyContextCollisionShape() {
++            return this.emptyConstantCollisionShape;
++        }
++
++        @Override
 +        public final int moonrise$uniqueId1() {
 +            return this.id1;
 +        }
@@ -173,16 +184,10 @@
 +        }
 +
 +        @Override
-+        public final VoxelShape moonrise$getConstantCollisionShape() {
++        public final VoxelShape moonrise$getConstantContextCollisionShape() {
 +            return this.constantCollisionShape;
 +        }
-+
-+        @Override
-+        public final AABB moonrise$getConstantCollisionAABB() {
-+            return this.constantAABBCollision;
-+        }
 +        // Paper end - optimise collisions
-+
 +
          protected BlockStateBase(Block p_60608_, Reference2ObjectArrayMap<Property<?>, Comparable<?>> p_326208_, MapCodec<BlockState> p_60610_) {
              super(p_60608_, p_326208_, p_60610_);
@@ -212,7 +217,7 @@
          public void initCache() {
              this.fluidState = this.owner.getFluidState(this.asState());
              this.isRandomlyTicking = this.owner.isRandomlyTicking(this.asState());
-@@ -471,7 +_,46 @@
+@@ -471,7 +_,41 @@
                  this.cache = new BlockBehaviour.BlockStateBase.Cache(this.asState());
              }
  
@@ -226,34 +231,29 @@
 +            // Paper start - optimise collisions
 +            if (this.cache != null) {
 +                final VoxelShape collisionShape = this.cache.collisionShape;
-+                try {
-+                    this.constantCollisionShape = this.getCollisionShape(null, null, null);
-+                    this.constantAABBCollision = this.constantCollisionShape == null ? null : ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)this.constantCollisionShape).moonrise$getSingleAABBRepresentation();
-+                } catch (final Throwable throwable) {
++                if (this.isAir()) {
++                    this.constantCollisionShape = Shapes.empty();
++                } else {
 +                    this.constantCollisionShape = null;
-+                    this.constantAABBCollision = null;
 +                }
 +                this.occludesFullBlock = collisionShape.moonrise$occludesFullBlock();
 +                this.emptyCollisionShape = collisionShape.isEmpty();
++                this.emptyConstantCollisionShape = this.constantCollisionShape != null && this.constantCollisionShape.isEmpty();
 +                // init caches
-+                initCaches(collisionShape);
-+                if (collisionShape != Shapes.empty() && collisionShape != Shapes.block()) {
-+                    for (final Direction direction : DIRECTIONS_CACHED) {
-+                        // initialise the directional face shape cache as well
-+                        final VoxelShape shape = Shapes.getFaceShape(collisionShape, direction);
-+                        initCaches(shape);
-+                    }
++                initCaches(collisionShape, true);
++                if (this.constantCollisionShape != null) {
++                    initCaches(this.constantCollisionShape, true);
 +                }
 +                if (this.cache.occlusionShapes != null) {
 +                    for (final VoxelShape shape : this.cache.occlusionShapes) {
-+                        initCaches(shape);
++                        initCaches(shape, false);
 +                    }
 +                }
 +            } else {
 +                this.occludesFullBlock = false;
 +                this.emptyCollisionShape = false;
++                this.emptyConstantCollisionShape = false;
 +                this.constantCollisionShape = null;
-+                this.constantAABBCollision = null;
 +            }
 +            // Paper end - optimise collisions
          }
@@ -272,21 +272,25 @@
          public boolean isValidSpawn(BlockGetter p_60644_, BlockPos p_60645_, EntityType<?> p_60646_) {
              return this.getBlock().properties.isValidSpawn.test(this.asState(), p_60644_, p_60645_, p_60646_);
          }
-@@ -516,19 +_,21 @@
+@@ -515,20 +_,22 @@
+             return this.getBlock().getOcclusionShape(this.asState(), p_60769_, p_60770_);
          }
  
-         public boolean hasLargeCollisionShape() {
+-        public boolean hasLargeCollisionShape() {
 -            return this.cache == null || this.cache.largeCollisionShape;
++        public final boolean hasLargeCollisionShape() {
 +            return this.shapeExceedsCube; // Paper - moved into shape cache init
          }
  
-         public boolean useShapeForLightOcclusion() {
+-        public boolean useShapeForLightOcclusion() {
++        public final boolean useShapeForLightOcclusion() {  // Paper - Perf: Final for inlining
              return this.useShapeForLightOcclusion;
          }
  
+-        public int getLightEmission() {
 +        /** @deprecated Forge: Use {@link BlockState#getLightEmission(BlockGetter, BlockPos)} instead */
 +        @Deprecated
-         public int getLightEmission() {
++        public final int getLightEmission() {
              return this.lightEmission;
          }
  
@@ -336,6 +340,18 @@
          public SoundType getSoundType() {
              return this.getBlock().getSoundType(this.asState());
          }
+@@ -838,7 +_,10 @@
+         }
+ 
+         public boolean isFaceSturdy(BlockGetter p_60660_, BlockPos p_60661_, Direction p_60662_, SupportType p_60663_) {
+-            return this.cache != null ? this.cache.isFaceSturdy(p_60662_, p_60663_) : p_60663_.isSupporting(this.asState(), p_60660_, p_60661_, p_60662_);
++            if (this.cache != null) {
++                return this.cache.isFaceSturdy(p_60662_, p_60663_);
++            }
++            return p_60663_.isSupporting(this.asState(), p_60660_, p_60661_, p_60662_);
+         }
+ 
+         public boolean isCollisionShapeFullBlock(BlockGetter p_60839_, BlockPos p_60840_) {
 @@ -959,11 +_,12 @@
          PushReaction pushReaction = PushReaction.NORMAL;
          boolean spawnTerrainParticles = true;

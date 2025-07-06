@@ -178,7 +178,7 @@
 +        final List<T> ret = new java.util.ArrayList<>();
 +
 +        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(entityClass, null, boundingBox, ret, predicate);
-+
++        addToGetEntities(this, EntityTypeTest.forClass(entityClass), boundingBox, predicate, ret, Integer.MAX_VALUE);
 +        return ret;
 +    }
 +
@@ -558,11 +558,11 @@
 +                    }
 +
 +                    final BlockState state = ((ca.spottedleaf.moonrise.patches.chunk_getblock.GetBlockChunk)lastChunk).moonrise$getBlock(currX, currY, currZ);
-+                    if (((ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState)state).moonrise$emptyCollisionShape()) {
++                    if (state.moonrise$emptyCollisionShape()) {
 +                        continue;
 +                    }
 +
-+                    VoxelShape blockCollision = ((ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState)state).moonrise$getConstantCollisionShape();
++                    VoxelShape blockCollision = ((ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState)state).moonrise$getConstantContextCollisionShape();
 +
 +                    if ((edgeCount != 1 || state.hasLargeCollisionShape()) && (edgeCount != 2 || state.getBlock() == Blocks.MOVING_PISTON)) {
 +                        if (collisionContext == null) {
@@ -1165,7 +1165,7 @@
          explosion.explode();
          explosion.finalizeExplosion(p_312145_);
          return explosion;
-@@ -705,10 +_,23 @@
+@@ -705,10 +_,20 @@
      @Nullable
      @Override
      public BlockEntity getBlockEntity(BlockPos p_46716_) {
@@ -1175,12 +1175,9 @@
 +
 +    @Nullable
 +    public BlockEntity getBlockEntity(BlockPos p_46716_, boolean validate) {
-+        // Paper start - Perf: Optimize capturedTileEntities lookup
-+        net.minecraft.world.level.block.entity.BlockEntity blockEntity;
-+        if (!this.capturedTileEntities.isEmpty() && (blockEntity = this.capturedTileEntities.get(p_46716_)) != null) {
-+            return blockEntity;
++        if (this.capturedTileEntities.containsKey(p_46716_)) {
++            return this.capturedTileEntities.get(p_46716_);
 +        }
-+        // Paper end - Perf: Optimize capturedTileEntities lookup
 +        // CraftBukkit end
          if (this.isOutsideBuildHeight(p_46716_)) {
              return null;
@@ -1213,7 +1210,7 @@
      }
  
      public boolean isLoaded(BlockPos p_46750_) {
-@@ -797,21 +_,13 @@
+@@ -797,21 +_,17 @@
      @Override
      public List<Entity> getEntities(@Nullable Entity p_46536_, AABB p_46537_, Predicate<? super Entity> p_46538_) {
          this.getProfiler().incrementCounter("getEntities");
@@ -1222,27 +1219,29 @@
 -            if (p_151522_ != p_46536_ && p_46538_.test(p_151522_)) {
 -                list.add(p_151522_);
 -            }
--
++        // Paper start - rewrite chunk system
++        final List<Entity> ret = new java.util.ArrayList<>();
+ 
 -            if (p_151522_ instanceof EnderDragon) {
 -                for (EnderDragonPart enderdragonpart : ((EnderDragon)p_151522_).getSubEntities()) {
 -                    if (p_151522_ != p_46536_ && p_46538_.test(enderdragonpart)) {
 -                        list.add(enderdragonpart);
 -                    }
 -                }
--            }
++        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(p_46536_, p_46537_, ret, p_46538_);
++        for (final PartEntity<?> part : this.getPartEntities()) {
++            if (part != p_46536_ && part.getBoundingBox().intersects(p_46537_) && (p_46538_ == null || p_46538_.test(part))) {
++                ret.add(part);
+             }
 -        });
 -        return list;
-+        // Paper start - rewrite chunk system
-+        final List<Entity> ret = new java.util.ArrayList<>();
-+
-+        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(p_46536_, p_46537_, ret, p_46538_);
-+
++        }
 +        return ret;
 +        // Paper end - rewrite chunk system
      }
  
      @Override
-@@ -829,29 +_,71 @@
+@@ -829,29 +_,96 @@
          EntityTypeTest<Entity, T> p_261885_, AABB p_262086_, Predicate<? super T> p_261688_, List<? super T> p_262071_, int p_261858_
      ) {
          this.getProfiler().incrementCounter("getEntities");
@@ -1271,10 +1270,11 @@
 -    }
 +        if (p_261885_ instanceof net.minecraft.world.entity.EntityType<T> byType) {
 +            if (p_261858_ != Integer.MAX_VALUE) {
-+                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(byType, p_262086_, p_262071_, p_261688_, p_261858_);
++                addToGetEntities((Level)(Object)this, p_261885_, p_262086_, p_261688_, p_262071_, p_261858_);
 +                return;
 +            } else {
 +                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(byType, p_262086_, p_262071_, p_261688_);
++                addToGetEntities((Level)(Object)this, p_261885_, p_262086_, p_261688_, p_262071_, p_261858_);
 +                return;
 +            }
 +        }
@@ -1282,9 +1282,11 @@
 +        if (p_261885_ == null) {
 +            if (p_261858_ != Integer.MAX_VALUE) {
 +                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities((Entity)null, p_262086_, (List)p_262071_, (Predicate)p_261688_, p_261858_);
++                addToGetEntities((Level)(Object)this, p_261885_, p_262086_, p_261688_, p_262071_, p_261858_);
 +                return;
 +            } else {
 +                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities((Entity)null, p_262086_, (List)p_262071_, (Predicate)p_261688_);
++                addToGetEntities((Level)(Object)this, p_261885_, p_262086_, p_261688_, p_262071_, p_261858_);
 +                return;
 +            }
 +        }
@@ -1310,18 +1312,40 @@
 +        if (base == null || base == Entity.class) {
 +            if (p_261858_ != Integer.MAX_VALUE) {
 +                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities((Entity)null, p_262086_, (List)p_262071_, (Predicate)modifiedPredicate, p_261858_);
++                addToGetEntities((Level)(Object)this, p_261885_, p_262086_, p_261688_, p_262071_, p_261858_);
 +                return;
 +            } else {
 +                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities((Entity)null, p_262086_, (List)p_262071_, (Predicate)modifiedPredicate);
++                addToGetEntities((Level)(Object)this, p_261885_, p_262086_, p_261688_, p_262071_, p_261858_);
 +                return;
 +            }
 +        } else {
 +            if (p_261858_ != Integer.MAX_VALUE) {
 +                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(base, null, p_262086_, (List)p_262071_, (Predicate)modifiedPredicate, p_261858_);
++                addToGetEntities((Level)(Object)this, p_261885_, p_262086_, p_261688_, p_262071_, p_261858_);
 +                return;
 +            } else {
 +                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(base, null, p_262086_, (List)p_262071_, (Predicate)modifiedPredicate);
++                addToGetEntities((Level)(Object)this, p_261885_, p_262086_, p_261688_, p_262071_, p_261858_);
 +                return;
++            }
++        }
++    }
++
++    public <T extends Entity> void addToGetEntities(final Level world, final EntityTypeTest<Entity, T> entityTypeTest, final AABB boundingBox,
++                                                    final Predicate<? super T> predicate, final List<? super T> into, final int maxCount) {
++        if (into.size() >= maxCount) {
++            // fix neoforge issue: do not add if list is already full
++            return;
++        }
++
++        for (final PartEntity<?> part : world.getPartEntities()) {
++            final T casted = (T)entityTypeTest.tryCast(part);
++            if (casted != null && casted.getBoundingBox().intersects(boundingBox) && (predicate == null || predicate.test(casted))) {
++                into.add(casted);
++                if (into.size() >= maxCount) {
++                    break;
++                }
 +            }
 +        }
 +    }

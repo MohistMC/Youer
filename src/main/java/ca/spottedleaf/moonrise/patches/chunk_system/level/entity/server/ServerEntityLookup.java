@@ -1,6 +1,7 @@
 package ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server;
 
 import ca.spottedleaf.moonrise.common.list.ReferenceList;
+import ca.spottedleaf.moonrise.common.util.CoordinateUtils;
 import ca.spottedleaf.moonrise.common.util.TickThread;
 import ca.spottedleaf.moonrise.common.util.ChunkSystem;
 import ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel;
@@ -10,6 +11,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.entity.LevelCallback;
+import net.neoforged.neoforge.common.CommonHooks;
 
 public final class ServerEntityLookup extends EntityLookup {
 
@@ -63,6 +65,8 @@ public final class ServerEntityLookup extends EntityLookup {
         if (entity instanceof ServerPlayer player) {
             ((ChunkSystemServerLevel)this.serverWorld).moonrise$getNearbyPlayers().tickPlayer(player);
         }
+        CommonHooks.onEntityEnterSection(entity, CoordinateUtils.getChunkSectionKey(oldSectionX, oldSectionY, oldSectionZ),
+                CoordinateUtils.getChunkSectionKey(newSectionX, newSectionY, newSectionZ));
     }
 
     @Override

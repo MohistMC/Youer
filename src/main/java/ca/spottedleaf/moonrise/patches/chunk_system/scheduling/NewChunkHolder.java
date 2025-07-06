@@ -43,6 +43,10 @@ import net.minecraft.world.level.chunk.ImposterProtoChunk;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.storage.ChunkSerializer;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.EventHooks;
+import net.neoforged.neoforge.event.level.ChunkDataEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.VarHandle;
@@ -892,6 +896,7 @@ public final class NewChunkHolder {
         if (chunk != null) {
             if (chunk instanceof LevelChunk levelChunk) {
                 levelChunk.setLoaded(false);
+                NeoForge.EVENT_BUS.post(new ChunkEvent.Unload(levelChunk));
             }
 
             if (!shouldLevelChunkNotSave) {
@@ -1066,6 +1071,11 @@ public final class NewChunkHolder {
         if (oldUnloaded != newUnloaded) {
             this.checkUnload();
         }
+
+        EventHooks.fireChunkTicketLevelUpdated(
+                world, CoordinateUtils.getChunkKey(this.chunkX, this.chunkZ),
+                oldLevel, newLevel, this.vanillaChunkHolder
+        );
     }
 
     static final int NEIGHBOUR_RADIUS = 2;
@@ -1801,6 +1811,7 @@ public final class NewChunkHolder {
             }
 
             final CompoundTag save = ChunkSerializer.write(this.world, chunk);
+            NeoForge.EVENT_BUS.post(new ChunkDataEvent.Save(chunk, world, save));
 
             if (unloading) {
                 completing = true;

@@ -16,6 +16,8 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.status.ChunkStatusTasks;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.level.ChunkEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.VarHandle;
@@ -81,6 +83,7 @@ public final class ChunkFullTask extends ChunkProgressionTask implements Runnabl
             chunk.setLoaded(true);
             chunk.registerAllBlockEntitiesAfterLevelLoad();
             chunk.registerTickContainerInLevel(this.world);
+            NeoForge.EVENT_BUS.post(new ChunkEvent.Load(chunk, !(this.fromChunk instanceof ImposterProtoChunk)));
         } catch (final Throwable throwable) {
             this.complete(null, throwable);
             return;

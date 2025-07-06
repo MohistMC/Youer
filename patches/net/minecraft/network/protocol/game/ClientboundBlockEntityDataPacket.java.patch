@@ -1,0 +1,21 @@
+--- a/net/minecraft/network/protocol/game/ClientboundBlockEntityDataPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundBlockEntityDataPacket.java
+@@ -10,6 +_,7 @@
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.PacketType;
++import net.minecraft.server.MinecraftServer;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.entity.BlockEntityType;
+ 
+@@ -28,8 +_,8 @@
+     private final CompoundTag tag;
+ 
+     public static ClientboundBlockEntityDataPacket create(BlockEntity p_195643_, BiFunction<BlockEntity, RegistryAccess, CompoundTag> p_324611_) {
+-        RegistryAccess registryaccess = p_195643_.getLevel().registryAccess();
+-        return new ClientboundBlockEntityDataPacket(p_195643_.getBlockPos(), p_195643_.getType(), p_324611_.apply(p_195643_, registryaccess));
++        RegistryAccess registryaccess = (p_195643_.getLevel() == null) ? MinecraftServer.getDefaultRegistryAccess() : p_195643_.getLevel().registryAccess(); // TODO Youer should use the level's registry access
++        return new ClientboundBlockEntityDataPacket(p_195643_.getBlockPos(), p_195643_.getType(), p_195643_.sanitizeSentNbt(p_324611_.apply(p_195643_, registryaccess)));
+     }
+ 
+     public static ClientboundBlockEntityDataPacket create(BlockEntity p_195641_) {

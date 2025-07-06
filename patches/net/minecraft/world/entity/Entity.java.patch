@@ -1,6 +1,29 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -19,7 +_,9 @@
+@@ -1,25 +_,32 @@
+ package net.minecraft.world.entity;
+ 
++import ca.spottedleaf.moonrise.common.util.WorldUtil;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.Lists;
+ import com.google.common.collect.Sets;
+ import com.google.common.collect.ImmutableList.Builder;
++import com.mohistmc.youer.neoforge.collisions.FluidPushCalculation;
+ import com.mojang.logging.LogUtils;
+ import it.unimi.dsi.fastutil.floats.FloatArraySet;
+ import it.unimi.dsi.fastutil.floats.FloatArrays;
+ import it.unimi.dsi.fastutil.floats.FloatSet;
+ import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap;
+ import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
++import it.unimi.dsi.fastutil.objects.Reference2ReferenceArrayMap;
++import it.unimi.dsi.fastutil.objects.Reference2ReferenceMap;
+ import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.HashSet;
++import java.util.Iterator;
+ import java.util.List;
+ import java.util.Locale;
+ import java.util.Objects;
  import java.util.Optional;
  import java.util.Set;
  import java.util.UUID;
@@ -30,10 +53,22 @@
  import net.minecraft.world.level.block.HoneyBlock;
  import net.minecraft.world.level.block.Mirror;
  import net.minecraft.world.level.block.Portal;
-@@ -126,9 +_,28 @@
+@@ -104,6 +_,10 @@
+ import net.minecraft.world.level.block.SoundType;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.border.WorldBorder;
++import net.minecraft.world.level.chunk.ChunkSource;
++import net.minecraft.world.level.chunk.LevelChunkSection;
++import net.minecraft.world.level.chunk.PalettedContainer;
++import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.entity.EntityAccess;
+ import net.minecraft.world.level.entity.EntityInLevelCallback;
+ import net.minecraft.world.level.gameevent.DynamicGameEventListener;
+@@ -126,9 +_,29 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreHolder;
  import net.minecraft.world.scores.Team;
++import net.neoforged.neoforge.fluids.FluidType;
 +import org.bukkit.Bukkit;
 +import org.bukkit.Location;
 +import org.bukkit.command.CommandSender;
@@ -1685,7 +1720,7 @@
      }
  
      public int countPlayerPassengers() {
-@@ -3110,9 +_,17 @@
+@@ -3110,70 +_,158 @@
          return Mth.lerp(p_352259_, this.yRotO, this.yRot);
      }
  
@@ -1700,92 +1735,202 @@
 +    public void updateFluidHeightAndDoFluidPushing() {
          if (this.touchingUnloadedChunk()) {
 -            return false;
-+            return;
-         } else {
-             AABB aabb = this.getBoundingBox().deflate(0.001);
-             int i = Mth.floor(aabb.minX);
-@@ -3127,25 +_,36 @@
-             Vec3 vec3 = Vec3.ZERO;
-             int k1 = 0;
-             BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
-+            class InterimCalculation {
-+                double fluidHeight = 0.0D;
-+                Vec3 flowVector = Vec3.ZERO;
-+                int blockCount = 0;
-+            }
-+            it.unimi.dsi.fastutil.objects.Object2ObjectMap<net.neoforged.neoforge.fluids.FluidType, InterimCalculation> interimCalcs = null;
- 
-             for (int l1 = i; l1 < j; l1++) {
-                 for (int i2 = k; i2 < l; i2++) {
-                     for (int j2 = i1; j2 < j1; j2++) {
-                         blockpos$mutableblockpos.set(l1, i2, j2);
-                         FluidState fluidstate = this.level().getFluidState(blockpos$mutableblockpos);
+-        } else {
+-            AABB aabb = this.getBoundingBox().deflate(0.001);
+-            int i = Mth.floor(aabb.minX);
+-            int j = Mth.ceil(aabb.maxX);
+-            int k = Mth.floor(aabb.minY);
+-            int l = Mth.ceil(aabb.maxY);
+-            int i1 = Mth.floor(aabb.minZ);
+-            int j1 = Mth.ceil(aabb.maxZ);
+-            double d0 = 0.0;
+-            boolean flag = this.isPushedByFluid();
+-            boolean flag1 = false;
+-            Vec3 vec3 = Vec3.ZERO;
+-            int k1 = 0;
+-            BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
+-
+-            for (int l1 = i; l1 < j; l1++) {
+-                for (int i2 = k; i2 < l; i2++) {
+-                    for (int j2 = i1; j2 < j1; j2++) {
+-                        blockpos$mutableblockpos.set(l1, i2, j2);
+-                        FluidState fluidstate = this.level().getFluidState(blockpos$mutableblockpos);
 -                        if (fluidstate.is(p_204032_)) {
-+                        net.neoforged.neoforge.fluids.FluidType fluidType = fluidstate.getFluidType();
-+                        if (!fluidType.isAir()) {
-                             double d1 = (double)((float)i2 + fluidstate.getHeight(this.level(), blockpos$mutableblockpos));
-                             if (d1 >= aabb.minY) {
-                                 flag1 = true;
+-                            double d1 = (double)((float)i2 + fluidstate.getHeight(this.level(), blockpos$mutableblockpos));
+-                            if (d1 >= aabb.minY) {
+-                                flag1 = true;
 -                                d0 = Math.max(d1 - aabb.minY, d0);
 -                                if (flag) {
-+                                if (interimCalcs == null) {
-+                                    interimCalcs = new it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap<>();
-+                                }
-+                                InterimCalculation interim = interimCalcs.computeIfAbsent(fluidType, t -> new InterimCalculation());
-+                                interim.fluidHeight = Math.max(d1 - aabb.minY, interim.fluidHeight);
-+                                if (this.isPushedByFluid(fluidType)) {
-                                     Vec3 vec31 = fluidstate.getFlow(this.level(), blockpos$mutableblockpos);
+-                                    Vec3 vec31 = fluidstate.getFlow(this.level(), blockpos$mutableblockpos);
 -                                    if (d0 < 0.4) {
 -                                        vec31 = vec31.scale(d0);
-+                                    if (interim.fluidHeight < 0.4D) {
-+                                        vec31 = vec31.scale(interim.fluidHeight);
++            return;
++        }
++
++        final AABB boundingBox = this.getBoundingBox().deflate(1.0E-3);
++
++        final Level world = this.level;
++        final int minSection = WorldUtil.getMinSection(world);
++
++        final int minBlockX = Mth.floor(boundingBox.minX);
++        final int minBlockY = Math.max((minSection << 4), Mth.floor(boundingBox.minY));
++        final int minBlockZ = Mth.floor(boundingBox.minZ);
++
++        // note: bounds are exclusive in Vanilla, so we subtract 1
++        final int maxBlockX = Mth.ceil(boundingBox.maxX) - 1;
++        final int maxBlockY = Math.min((WorldUtil.getMaxSection(world) << 4) | 15, Mth.ceil(boundingBox.maxY) - 1);
++        final int maxBlockZ = Mth.ceil(boundingBox.maxZ) - 1;
++
++        final BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
++
++        final int minChunkX = minBlockX >> 4;
++        final int maxChunkX = maxBlockX >> 4;
++
++        final int minChunkY = minBlockY >> 4;
++        final int maxChunkY = maxBlockY >> 4;
++
++        final int minChunkZ = minBlockZ >> 4;
++        final int maxChunkZ = maxBlockZ >> 4;
++
++        final ChunkSource chunkSource = world.getChunkSource();
++
++        final Reference2ReferenceArrayMap<FluidType, FluidPushCalculation> calculations = new Reference2ReferenceArrayMap<>();
++
++        for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
++            for (int currChunkX = minChunkX; currChunkX <= maxChunkX; ++currChunkX) {
++                final LevelChunkSection[] sections = chunkSource.getChunk(currChunkX, currChunkZ, ChunkStatus.FULL, false).getSections();
++
++                // bound y
++                for (int currChunkY = minChunkY; currChunkY <= maxChunkY; ++currChunkY) {
++                    final int sectionIdx = currChunkY - minSection;
++                    if (sectionIdx < 0 || sectionIdx >= sections.length) {
++                        continue;
++                    }
++                    final LevelChunkSection section = sections[sectionIdx];
++                    if (section.hasOnlyAir()) {
++                        // empty
++                        continue;
++                    }
++
++                    final PalettedContainer<BlockState> blocks = section.states;
++
++                    final int minXIterate = currChunkX == minChunkX ? (minBlockX & 15) : 0;
++                    final int maxXIterate = currChunkX == maxChunkX ? (maxBlockX & 15) : 15;
++                    final int minZIterate = currChunkZ == minChunkZ ? (minBlockZ & 15) : 0;
++                    final int maxZIterate = currChunkZ == maxChunkZ ? (maxBlockZ & 15) : 15;
++                    final int minYIterate = currChunkY == minChunkY ? (minBlockY & 15) : 0;
++                    final int maxYIterate = currChunkY == maxChunkY ? (maxBlockY & 15) : 15;
++
++                    for (int currY = minYIterate; currY <= maxYIterate; ++currY) {
++                        for (int currZ = minZIterate; currZ <= maxZIterate; ++currZ) {
++                            for (int currX = minXIterate; currX <= maxXIterate; ++currX) {
++                                final FluidState fluidState = blocks.get((currX) | (currZ << 4) | ((currY) << 8)).getFluidState();
++
++                                if (fluidState.isEmpty()) {
++                                    continue;
++                                }
++
++                                mutablePos.set(currX | (currChunkX << 4), currY | (currChunkY << 4), currZ | (currChunkZ << 4));
++
++                                final FluidType type = fluidState.getFluidType();
++
++                                // note: assume fluidState.isEmpty() == type.isAir()
++
++                                final FluidPushCalculation calculation = calculations.computeIfAbsent(type, (final FluidType key) -> {
++                                    return new FluidPushCalculation();
++                                });
++
++                                final double height = (double)((float)mutablePos.getY() + fluidState.getHeight(world, mutablePos));
++                                final double diff = height - boundingBox.minY;
++
++                                if (diff < 0.0) {
++                                    continue;
++                                }
++
++                                calculation.maxHeightDiff = Math.max(calculation.maxHeightDiff, diff);
++
++                                if (calculation.isPushed == Boolean.FALSE) {
++                                    continue;
++                                } else if (calculation.isPushed == null) {
++                                    final boolean isPushed = this.isPushedByFluid(type);
++                                    calculation.isPushed = Boolean.valueOf(isPushed);
++                                    if (!isPushed) {
++                                        continue;
                                      }
- 
+-
 -                                    vec3 = vec3.add(vec31);
 -                                    k1++;
-+                                    interim.flowVector = interim.flowVector.add(vec31);
-+                                    interim.blockCount++;
++                                }
++
++                                ++calculation.totalPushes;
++
++                                final Vec3 flow = fluidState.getFlow(world, mutablePos);
++
++                                if (diff < 0.4) {
++                                    calculation.pushVector = calculation.pushVector.add(flow.scale(diff));
++                                } else {
++                                    calculation.pushVector = calculation.pushVector.add(flow);
                                  }
                              }
                          }
-@@ -3153,27 +_,30 @@
+                     }
                  }
              }
- 
+-
 -            if (vec3.length() > 0.0) {
 -                if (k1 > 0) {
 -                    vec3 = vec3.scale(1.0 / (double)k1);
-+            if(interimCalcs != null) {
-+            interimCalcs.forEach((fluidType, interim) -> {
-+            if (interim.flowVector.length() > 0.0D) {
-+                if (interim.blockCount > 0) {
-+                    interim.flowVector = interim.flowVector.scale(1.0D / (double)interim.blockCount);
-                 }
- 
-                 if (!(this instanceof Player)) {
+-                }
+-
+-                if (!(this instanceof Player)) {
 -                    vec3 = vec3.normalize();
-+                    interim.flowVector = interim.flowVector.normalize();
-                 }
- 
-                 Vec3 vec32 = this.getDeltaMovement();
+-                }
+-
+-                Vec3 vec32 = this.getDeltaMovement();
 -                vec3 = vec3.scale(p_204033_);
-+                interim.flowVector = interim.flowVector.scale(this.getFluidMotionScale(fluidType));
-                 double d2 = 0.003;
+-                double d2 = 0.003;
 -                if (Math.abs(vec32.x) < 0.003 && Math.abs(vec32.z) < 0.003 && vec3.length() < 0.0045000000000000005) {
 -                    vec3 = vec3.normalize().scale(0.0045000000000000005);
-+                if (Math.abs(vec32.x) < 0.003D && Math.abs(vec32.z) < 0.003D && interim.flowVector.length() < 0.0045000000000000005D) {
-+                    interim.flowVector = interim.flowVector.normalize().scale(0.0045000000000000005D);
-                 }
- 
+-                }
+-
 -                this.setDeltaMovement(this.getDeltaMovement().add(vec3));
-+                this.setDeltaMovement(this.getDeltaMovement().add(interim.flowVector));
-             }
- 
+-            }
+-
 -            this.fluidHeight.put(p_204032_, d0);
 -            return flag1;
-+            this.setFluidTypeHeight(fluidType, interim.fluidHeight);
-+            });
++        }
++
++        if (calculations.isEmpty()) {
++            return;
++        }
++
++        for (final Iterator<Reference2ReferenceMap.Entry<FluidType, FluidPushCalculation>> iterator = calculations.reference2ReferenceEntrySet().fastIterator(); iterator.hasNext();) {
++            final Reference2ReferenceMap.Entry<FluidType, FluidPushCalculation> entry = iterator.next();
++            final FluidType type = entry.getKey();
++            final FluidPushCalculation calculation = entry.getValue();
++
++            this.setFluidTypeHeight(type, calculation.maxHeightDiff);
++
++            Vec3 pushVector = calculation.pushVector;
++
++            if (pushVector.lengthSqr() == 0.0) {
++                continue;
 +            }
++
++            // note: totalPushes != 0 as pushVector != 0
++            pushVector = pushVector.scale(1.0 / calculation.totalPushes);
++            final Vec3 currMovement = this.getDeltaMovement();
++
++            if (!((Entity)(Object)this instanceof Player)) {
++                pushVector = pushVector.normalize();
++            }
++
++            pushVector = pushVector.scale(this.getFluidMotionScale(type));
++            if (Math.abs(currMovement.x) < 0.003 && Math.abs(currMovement.z) < 0.003 && pushVector.length() < 0.0045000000000000005) {
++                pushVector = pushVector.normalize().scale(0.0045000000000000005);
++            }
++
++            this.setDeltaMovement(currMovement.add(pushVector));
          }
      }
  

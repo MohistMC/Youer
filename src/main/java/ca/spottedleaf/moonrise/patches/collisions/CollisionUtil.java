@@ -1685,11 +1685,11 @@ public final class CollisionUtil {
 
                                 final net.minecraft.world.level.block.state.BlockState blockData = blocks.get(localBlockIndex);
 
-                                if (((ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState)blockData).moonrise$emptyCollisionShape()) {
+                                if (blockData.moonrise$emptyCollisionShape()) {
                                     continue;
                                 }
 
-                                net.minecraft.world.phys.shapes.VoxelShape blockCollision = ((ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState)blockData).moonrise$getConstantCollisionShape();
+                                net.minecraft.world.phys.shapes.VoxelShape blockCollision = ((ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState)blockData).moonrise$getConstantContextCollisionShape();
 
                                 if (edgeCount == 0 || ((edgeCount != 1 || blockData.hasLargeCollisionShape()) && (edgeCount != 2 || blockData.getBlock() == net.minecraft.world.level.block.Blocks.MOVING_PISTON))) {
                                     if (blockCollision == null) {

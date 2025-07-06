@@ -7,6 +7,7 @@ package net.neoforged.neoforge.network.negotiation;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import com.mohistmc.youer.bukkit.messaging.NeoMessaging;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -171,13 +172,20 @@ public class NetworkComponentNegotiator {
         }
 
         //Check if both sides have the same version.
-        if (!left.version().equals(right.version())) {
+        if (!fix(left.version(), right.version())) {
             return Optional.of(new ComponentNegotiationResult(false, Component.translatable("neoforge.network.negotiation.failure.version.mismatch", left.version(), right.version())));
         }
 
         //This happens when both the ranges are empty.
         //In other words, no channel has a range, and no channel has a preferred version.
         return Optional.empty();
+    }
+
+    public static boolean fix(String left, String right) {
+        if (left.equals(NeoMessaging.CHANNEL_VERSION) || right.equals(NeoMessaging.CHANNEL_VERSION)) {
+            return true;
+        }
+        return left.equals(right);
     }
 
     /**
