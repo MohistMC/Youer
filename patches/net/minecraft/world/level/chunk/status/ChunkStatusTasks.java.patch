@@ -17,33 +17,36 @@
          Blender.generateBorderTicks(worldgenregion, p_332040_);
          return CompletableFuture.completedFuture(p_332040_);
      }
-@@ -196,7 +_,7 @@
-                 if (protochunk instanceof ImposterProtoChunk) {
-                     levelchunk = ((ImposterProtoChunk)protochunk).getWrapped();
-                 } else {
--                    levelchunk = new LevelChunk(serverlevel, protochunk, p_347400_ -> postLoadProtoChunk(serverlevel, protochunk.getEntities()));
-+                    levelchunk = new LevelChunk(serverlevel, protochunk, p_347400_ -> postLoadProtoChunk(serverlevel, protochunk.getEntities(), protochunk.getPos()));  // Paper - rewrite chunk system
-                     generationchunkholder.replaceProtoChunk(new ImposterProtoChunk(levelchunk, false));
+@@ -201,10 +_,21 @@
                  }
  
-@@ -205,6 +_,7 @@
+                 levelchunk.setFullStatus(generationchunkholder::getFullStatus);
++                try {
++                generationchunkholder.currentlyLoading = levelchunk; // Neo: bypass the future chain when getChunk is called, this prevents deadlocks.
+                 levelchunk.runPostLoad();
++                } finally {
++                    generationchunkholder.currentlyLoading = null; // Neo: Stop bypassing the future chain.
++                }
                  levelchunk.setLoaded(true);
++                try {
++                generationchunkholder.currentlyLoading = levelchunk; // Neo: bypass the future chain when getChunk is called, this prevents deadlocks.
                  levelchunk.registerAllBlockEntitiesAfterLevelLoad();
                  levelchunk.registerTickContainerInLevel(serverlevel);
 +                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkEvent.Load(levelchunk, !(protochunk instanceof ImposterProtoChunk)));
++                } finally {
++                    generationchunkholder.currentlyLoading = null; // Neo: Stop bypassing the future chain.
++                }
                  return levelchunk;
              },
              p_347404_ -> p_347565_.mainThreadMailBox()
-@@ -212,9 +_,64 @@
+@@ -212,9 +_,23 @@
          );
      }
  
 -    private static void postLoadProtoChunk(ServerLevel p_347492_, List<CompoundTag> p_347609_) {
-+    public static void postLoadProtoChunk(ServerLevel p_347492_, List<CompoundTag> p_347609_, ChunkPos pos) { // Paper - public, add ChunkPos param
++    public static void postLoadProtoChunk(ServerLevel p_347492_, List<CompoundTag> p_347609_) {
          if (!p_347609_.isEmpty()) {
 -            p_347492_.addWorldGenChunkEntities(EntityType.loadEntitiesRecursive(p_347609_, p_347492_));
--        }
--    }
 +            // CraftBukkit start - these are spawned serialized (DefinedStructure) and we don't call an add event below at the moment due to ordering complexities
 +            p_347492_.addWorldGenChunkEntities(EntityType.loadEntitiesRecursive(p_347609_, p_347492_).filter((entity) -> {
 +                boolean needsRemoval = false;
@@ -56,50 +59,9 @@
 +                    entity.discard(null); // CraftBukkit - add Bukkit remove cause
 +                    needsRemoval = true;
 +                }
-+                checkDupeUUID(p_347492_, entity); // Paper - duplicate uuid resolving
 +                return !needsRemoval;
-+            }), pos); // Paper - rewrite chunk system
++            }));
 +            // CraftBukkit end
-+        }
-+    }
-+
-+    // Paper start - duplicate uuid resolving
-+    // rets true if to prevent the entity from being added
-+    public static boolean checkDupeUUID(ServerLevel level, net.minecraft.world.entity.Entity entity) {
-+        io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode mode = level.paperConfig().entities.spawning.duplicateUuid.mode;
-+        if (mode != io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode.WARN
-+                && mode != io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode.DELETE
-+                && mode != io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode.SAFE_REGEN) {
-+            return false;
-+        }
-+        net.minecraft.world.entity.Entity other = level.getEntity(entity.getUUID());
-+
-+        if (other == null || other == entity) {
-+            return false;
-+        }
-+
-+        if (mode == io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode.SAFE_REGEN && other != null && !other.isRemoved()
-+                && Objects.equals(other.getEncodeId(), entity.getEncodeId())
-+                && entity.getBukkitEntity().getLocation().distance(other.getBukkitEntity().getLocation()) < level.paperConfig().entities.spawning.duplicateUuid.safeRegenDeleteRange
-+        ) {
-+            entity.discard(null);
-+            return true;
-+        }
-+        if (!other.isRemoved()) {
-+            switch (mode) {
-+                case SAFE_REGEN: {
-+                    entity.setUUID(java.util.UUID.randomUUID());
-+                    break;
-+                }
-+                case DELETE: {
-+                    entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
-+                    return true;
-+                }
-+                default:
-+                    break;
-+            }
-+        }
-+        return false;
-+    }
-+    // Paper end - duplicate uuid resolving
+         }
+     }
  }

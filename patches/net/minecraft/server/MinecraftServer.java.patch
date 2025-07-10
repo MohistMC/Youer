@@ -113,8 +113,7 @@
  import org.slf4j.Logger;
 +import org.spigotmc.SpigotConfig;
  
--public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements ServerInfo, ChunkIOErrorReporter, CommandSource, AutoCloseable {
-+public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements ServerInfo, ChunkIOErrorReporter, CommandSource, AutoCloseable, ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer { // Paper - rewrite chunk system
+ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements ServerInfo, ChunkIOErrorReporter, CommandSource, AutoCloseable {
 +    private static MinecraftServer SERVER; // Paper
      public static final Logger LOGGER = LogUtils.getLogger();
 +    public static final net.kyori.adventure.text.logger.slf4j.ComponentLogger COMPONENT_LOGGER = net.kyori.adventure.text.logger.slf4j.ComponentLogger.logger(LOGGER.getName()); // Paper
@@ -189,81 +188,10 @@
          if (Runtime.getRuntime().availableProcessors() > 4) {
              thread.setPriority(8);
          }
-@@ -276,6 +_,82 @@
+@@ -276,6 +_,11 @@
          return s;
      }
  
-+    // Paper start - rewrite chunk system
-+    private volatile Throwable chunkSystemCrash;
-+
-+    @Override
-+    public final void moonrise$setChunkSystemCrash(final Throwable throwable) {
-+        this.chunkSystemCrash = throwable;
-+    }
-+
-+    private static final long CHUNK_TASK_QUEUE_BACKOFF_MIN_TIME = 25L * 1000L; // 25us
-+    private static final long MAX_CHUNK_EXEC_TIME = 1000L; // 1us
-+    private static final long TASK_EXECUTION_FAILURE_BACKOFF = 5L * 1000L; // 5us
-+
-+    private long lastMidTickExecute;
-+    private long lastMidTickExecuteFailure;
-+
-+    private boolean tickMidTickTasks() {
-+        // give all worlds a fair chance at by targeting them all.
-+        // if we execute too many tasks, that's fine - we have logic to correctly handle overuse of allocated time.
-+        boolean executed = false;
-+        for (final ServerLevel world : this.getAllLevels()) {
-+            long currTime = System.nanoTime();
-+            if (currTime - ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)world).moonrise$getLastMidTickFailure() <= TASK_EXECUTION_FAILURE_BACKOFF) {
-+                continue;
-+            }
-+            if (!world.getChunkSource().pollTask()) {
-+                // we need to back off if this fails
-+                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)world).moonrise$setLastMidTickFailure(currTime);
-+            } else {
-+                executed = true;
-+            }
-+        }
-+
-+        return executed;
-+    }
-+
-+    @Override
-+    public final void moonrise$executeMidTickTasks() {
-+        final long startTime = System.nanoTime();
-+        if ((startTime - this.lastMidTickExecute) <= CHUNK_TASK_QUEUE_BACKOFF_MIN_TIME || (startTime - this.lastMidTickExecuteFailure) <= TASK_EXECUTION_FAILURE_BACKOFF) {
-+            // it's shown to be bad to constantly hit the queue (chunk loads slow to a crawl), even if no tasks are executed.
-+            // so, backoff to prevent this
-+            return;
-+        }
-+
-+        for (;;) {
-+            final boolean moreTasks = this.tickMidTickTasks();
-+            final long currTime = System.nanoTime();
-+            final long diff = currTime - startTime;
-+
-+            if (!moreTasks || diff >= MAX_CHUNK_EXEC_TIME) {
-+                if (!moreTasks) {
-+                    this.lastMidTickExecuteFailure = currTime;
-+                }
-+
-+                // note: negative values reduce the time
-+                long overuse = diff - MAX_CHUNK_EXEC_TIME;
-+                if (overuse >= (10L * 1000L * 1000L)) { // 10ms
-+                    // make sure something like a GC or dumb plugin doesn't screw us over...
-+                    overuse = 10L * 1000L * 1000L; // 10ms
-+                }
-+
-+                final double overuseCount = (double)overuse/(double)MAX_CHUNK_EXEC_TIME;
-+                final long extraSleep = (long)Math.round(overuseCount*CHUNK_TASK_QUEUE_BACKOFF_MIN_TIME);
-+
-+                this.lastMidTickExecute = currTime + extraSleep;
-+                return;
-+            }
-+        }
-+    }
-+    // Paper end - rewrite chunk system
-+
 +    public void worldLoader(WorldLoader.DataLoadContext worldLoader, OptionSet options) {
 +        this.worldLoader = worldLoader;
 +        this.options = options;
@@ -659,22 +587,7 @@
  
          for (ServerLevel serverlevel : this.getAllLevels()) {
              if (serverlevel != null) {
-@@ -604,7 +_,7 @@
-             }
-         }
- 
--        while (this.levels.values().stream().anyMatch(p_202480_ -> p_202480_.getChunkSource().chunkMap.hasWork())) {
-+        while (false && this.levels.values().stream().anyMatch(p_202480_ -> p_202480_.getChunkSource().chunkMap.hasWork())) { // Paper - rewrite chunk system
-             this.nextTickTimeNanos = Util.getNanos() + TimeUtil.NANOSECONDS_PER_MILLISECOND;
- 
-             for (ServerLevel serverlevel1 : this.getAllLevels()) {
-@@ -615,14 +_,15 @@
-             this.waitUntilNextTick();
-         }
- 
--        this.saveAllChunks(false, true, false);
-+        this.saveAllChunks(false, true, true, true); // Paper - rewrite chunk system
- 
+@@ -620,9 +_,10 @@
          for (ServerLevel serverlevel2 : this.getAllLevels()) {
              if (serverlevel2 != null) {
                  try {
@@ -686,7 +599,7 @@
                  }
              }
          }
-@@ -633,8 +_,19 @@
+@@ -633,8 +_,18 @@
          try {
              this.storageSource.close();
          } catch (IOException ioexception) {
@@ -704,7 +617,6 @@
 +            this.getProfileCache().save();
 +        }
 +        // Spigot end
-+        ca.spottedleaf.moonrise.patches.chunk_system.io.RegionFileIOThread.deinit(); // Paper - rewrite chunk system
      }
  
      public String getLocalIp() {
@@ -803,7 +715,7 @@
              while (this.running) {
                  long i;
                  if (!this.isPaused() && this.tickRateManager.isSprinting() && this.tickRateManager.checkShouldSprintThisTick()) {
-@@ -682,22 +_,50 @@
+@@ -682,18 +_,39 @@
                      if (k > OVERLOADED_THRESHOLD_NANOS + 20L * i
                          && this.nextTickTimeNanos - this.lastOverloadWarningNanos >= OVERLOADED_WARNING_INTERVAL_NANOS + 100L * i) {
                          long j = k / i;
@@ -845,17 +757,6 @@
                  this.nextTickTimeNanos += i;
                  this.startMetricsRecordingTick();
                  this.profiler.push("tick");
-                 this.tickServer(flag ? () -> false : this::haveTime);
-+                // Paper start - rewrite chunk system
-+                final Throwable crash = this.chunkSystemCrash;
-+                if (crash != null) {
-+                    this.chunkSystemCrash = null;
-+                    throw new RuntimeException("Chunk system crash propagated to tick()", crash);
-+                }
-+                // Paper end - rewrite chunk system
-                 this.profiler.popPush("nextTickWait");
-                 this.mayHaveDelayedTasks = true;
-                 this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + i, this.nextTickTimeNanos);
 @@ -714,29 +_,33 @@
                  this.isReady = true;
                  JvmProfiler.INSTANCE.onServerTick(this.smoothedTickTimeMillis);
@@ -936,14 +837,6 @@
      }
  
      @Override
-@@ -842,6 +_,7 @@
- 
-     private boolean pollTaskInternal() {
-         if (super.pollTask()) {
-+            this.moonrise$executeMidTickTasks(); // Paper - rewrite chunk system
-             return true;
-         } else {
-             if (this.tickRateManager.isSprinting() || this.haveTime()) {
 @@ -900,24 +_,57 @@
  
      public void tickServer(BooleanSupplier p_129871_) {
@@ -1076,7 +969,7 @@
 +        // Paper start - Folia scheduler API
 +        ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) Bukkit.getGlobalRegionScheduler()).tick();
 +        for (ServerLevel level : getAllLevels()) {
-+            for (final Entity entity : level.moonrise$getEntityLookup().getAll()) {
++            for (final Entity entity : level.getEntities().getAll()) {
 +                if (entity.isRemoved()) {
 +                    continue;
 +                }

@@ -30,9 +30,6 @@ public class Youer {
     public Youer(IEventBus modEventBus, Dist dist, ModContainer container) {
         classLoader = Youer.class.getClassLoader();
 
-        //TODO: do something when mod loading
-        LOGGER.info(i18n.as("youer.1"));
-
         Map<String, String> arguments = new HashMap<>();
         arguments.put("youer", version);
         arguments.put("bukkit", version);

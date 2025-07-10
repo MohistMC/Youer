@@ -23,13 +23,13 @@ import java.util.function.Predicate;
  * Concurrent hashtable implementation supporting mapping arbitrary {@code long} values onto non-null {@code Object}
  * values with support for multiple writer and multiple reader threads.
  *
- * <p><h3>Happens-before relationship</h3></p>
+ * <h2>Happens-before relationship</h2>
  * <p>
  * As with {@link java.util.concurrent.ConcurrentMap}, there is a happens-before relationship between actions in one thread
  * prior to writing to the map and access to the results of those actions in another thread.
  * </p>
  *
- * <p><h3>Atomicity of functional methods</h3></p>
+ * <h2>Atomicity of functional methods</h2>
  * <p>
  * Functional methods are functions declared in this class which possibly perform a write (remove, replace, or modify)
  * to an entry in this map as a result of invoking a function on an input parameter. For example, {@link #compute(long, BiLong1Function)},
@@ -43,7 +43,7 @@ import java.util.function.Predicate;
  * @param <V>
  * @see java.util.concurrent.ConcurrentMap
  */
-public class ConcurrentLong2ReferenceChainedHashTable<V> {
+public class ConcurrentLong2ReferenceChainedHashTable<V> implements Iterable<ConcurrentLong2ReferenceChainedHashTable.TableEntry<V>> {
 
     protected static final int DEFAULT_CAPACITY = 16;
     protected static final float DEFAULT_LOAD_FACTOR = 0.75f;
@@ -192,6 +192,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
             }
 
             if (node.resize) {
+                // noinspection unchecked
                 table = (TableEntry<V>[])node.getValuePlain();
                 continue;
             }
@@ -274,10 +275,10 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
     public int size() {
         final long ret = this.size.sum();
 
-        if (ret <= 0L) {
+        if (ret < 0L) {
             return 0;
         }
-        if (ret >= (long)Integer.MAX_VALUE) {
+        if (ret > (long)Integer.MAX_VALUE) {
             return Integer.MAX_VALUE;
         }
 
@@ -341,6 +342,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
 
         // create new table data
 
+        // noinspection unchecked
         final TableEntry<V>[] newTable = new TableEntry[capacity];
         // noinspection unchecked
         final TableEntry<V> resizeNode = new TableEntry<>(0L, (V)newTable, true);
@@ -365,6 +367,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
             throw new IllegalStateException("Resizing to same size");
         }
 
+        // noinspection unchecked
         final TableEntry<V>[] work = new TableEntry[1 << capDiffShift]; // typically, capDiffShift = 1
 
         for (int i = 0, len = oldTable.length; i < len; ++i) {
@@ -538,6 +541,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
                 }
 
                 if (node.resize) {
+                    // noinspection unchecked
                     table = (TableEntry<V>[])node.getValuePlain();
                     continue table_loop;
                 }
@@ -599,6 +603,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
                 }
 
                 if (node.resize) {
+                    // noinspection unchecked
                     table = (TableEntry<V>[])node.getValuePlain();
                     continue table_loop;
                 }
@@ -653,6 +658,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
                 }
 
                 if (node.resize) {
+                    // noinspection unchecked
                     table = (TableEntry<V>[])node.getValuePlain();
                     continue table_loop;
                 }
@@ -704,6 +710,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
                 }
 
                 if (node.resize) {
+                    // noinspection unchecked
                     table = (TableEntry<V>[])node.getValuePlain();
                     continue table_loop;
                 }
@@ -772,6 +779,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
                 }
 
                 if (node.resize) {
+                    // noinspection unchecked
                     table = (TableEntry<V>[])node.getValuePlain();
                     continue table_loop;
                 }
@@ -848,6 +856,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
                 }
 
                 if (node.resize) {
+                    // noinspection unchecked
                     table = (TableEntry<V>[])node.getValuePlain();
                     continue table_loop;
                 }
@@ -944,6 +953,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
                 }
 
                 if (node.resize) {
+                    // noinspection unchecked
                     table = (TableEntry<V>[])node.getValuePlain();
                     continue table_loop;
                 }
@@ -1058,6 +1068,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
                 }
 
                 if (node.resize) {
+                    // noinspection unchecked
                     table = (TableEntry<V>[])node.getValuePlain();
                     continue table_loop;
                 }
@@ -1126,6 +1137,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
                 }
 
                 if (node.resize) {
+                    // noinspection unchecked
                     table = (TableEntry<V>[])node.getValuePlain();
                     continue table_loop;
                 }
@@ -1200,6 +1212,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
                 }
 
                 if (node.resize) {
+                    // noinspection unchecked
                     table = (TableEntry<V>[])node.getValuePlain();
                     continue table_loop;
                 }
@@ -1288,6 +1301,11 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
         return new EntryIterator<>(this);
     }
 
+    @Override
+    public final Iterator<TableEntry<V>> iterator() {
+        return this.entryIterator();
+    }
+
     /**
      * Returns an iterator over the keys in this map. The iterator is only guaranteed to see keys that were
      * added before the beginning of this call, but it may see keys added during.
@@ -1306,7 +1324,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
 
     protected static final class EntryIterator<V> extends BaseIteratorImpl<V, TableEntry<V>> {
 
-        protected EntryIterator(final ConcurrentLong2ReferenceChainedHashTable<V> map) {
+        public EntryIterator(final ConcurrentLong2ReferenceChainedHashTable<V> map) {
             super(map);
         }
 
@@ -1326,7 +1344,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
 
     protected static final class KeyIterator<V> extends BaseIteratorImpl<V, Long> implements PrimitiveIterator.OfLong {
 
-        protected KeyIterator(final ConcurrentLong2ReferenceChainedHashTable<V> map) {
+        public KeyIterator(final ConcurrentLong2ReferenceChainedHashTable<V> map) {
             super(map);
         }
 
@@ -1365,7 +1383,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
 
     protected static final class ValueIterator<V> extends BaseIteratorImpl<V, V> {
 
-        protected ValueIterator(final ConcurrentLong2ReferenceChainedHashTable<V> map) {
+        public ValueIterator(final ConcurrentLong2ReferenceChainedHashTable<V> map) {
             super(map);
         }
 
@@ -1420,7 +1438,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
 
         @Override
         public final void remove() {
-            final TableEntry<V> lastReturned = this.nextToReturn;
+            final TableEntry<V> lastReturned = this.lastReturned;
             if (lastReturned == null) {
                 throw new NoSuchElementException();
             }
@@ -1492,6 +1510,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
             final ResizeChain<V> chain = this.resizeChain;
 
             if (chain == null) {
+                // noinspection unchecked
                 final TableEntry<V>[] nextTable = (TableEntry<V>[])entry.getValuePlain();
 
                 final ResizeChain<V> oldChain = new ResizeChain<>(table, null, null);
@@ -1506,6 +1525,7 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
             } else {
                 ResizeChain<V> currChain = chain.next;
                 if (currChain == null) {
+                    // noinspection unchecked
                     final TableEntry<V>[] ret = (TableEntry<V>[])entry.getValuePlain();
                     currChain = new ResizeChain<>(ret, chain, null);
                     chain.next = currChain;
@@ -1586,11 +1606,11 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
 
         protected static final class ResizeChain<V> {
 
-            protected final TableEntry<V>[] table;
-            protected final ResizeChain<V> prev;
-            protected ResizeChain<V> next;
+            public final TableEntry<V>[] table;
+            public final ResizeChain<V> prev;
+            public ResizeChain<V> next;
 
-            protected ResizeChain(final TableEntry<V>[] table, final ResizeChain<V> prev, final ResizeChain<V> next) {
+            public ResizeChain(final TableEntry<V>[] table, final ResizeChain<V> prev, final ResizeChain<V> next) {
                 this.table = table;
                 this.prev = prev;
                 this.next = next;
@@ -1600,64 +1620,64 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> {
 
     public static final class TableEntry<V> {
 
-        protected static final VarHandle TABLE_ENTRY_ARRAY_HANDLE = ConcurrentUtil.getArrayHandle(TableEntry[].class);
+        private static final VarHandle TABLE_ENTRY_ARRAY_HANDLE = ConcurrentUtil.getArrayHandle(TableEntry[].class);
 
-        protected final boolean resize;
+        private final boolean resize;
 
-        protected final long key;
+        private final long key;
 
-        protected volatile V value;
-        protected static final VarHandle VALUE_HANDLE = ConcurrentUtil.getVarHandle(TableEntry.class, "value", Object.class);
+        private volatile V value;
+        private static final VarHandle VALUE_HANDLE = ConcurrentUtil.getVarHandle(TableEntry.class, "value", Object.class);
 
-        protected final V getValuePlain() {
+        private V getValuePlain() {
             //noinspection unchecked
             return (V)VALUE_HANDLE.get(this);
         }
 
-        protected final V getValueAcquire() {
+        private V getValueAcquire() {
             //noinspection unchecked
             return (V)VALUE_HANDLE.getAcquire(this);
         }
 
-        protected final V getValueVolatile() {
+        private V getValueVolatile() {
             //noinspection unchecked
             return (V)VALUE_HANDLE.getVolatile(this);
         }
 
-        protected final void setValuePlain(final V value) {
+        private void setValuePlain(final V value) {
             VALUE_HANDLE.set(this, (Object)value);
         }
 
-        protected final void setValueRelease(final V value) {
+        private void setValueRelease(final V value) {
             VALUE_HANDLE.setRelease(this, (Object)value);
         }
 
-        protected final void setValueVolatile(final V value) {
+        private void setValueVolatile(final V value) {
             VALUE_HANDLE.setVolatile(this, (Object)value);
         }
 
-        protected volatile TableEntry<V> next;
-        protected static final VarHandle NEXT_HANDLE = ConcurrentUtil.getVarHandle(TableEntry.class, "next", TableEntry.class);
+        private volatile TableEntry<V> next;
+        private static final VarHandle NEXT_HANDLE = ConcurrentUtil.getVarHandle(TableEntry.class, "next", TableEntry.class);
 
-        protected final TableEntry<V> getNextPlain() {
+        private TableEntry<V> getNextPlain() {
             //noinspection unchecked
             return (TableEntry<V>)NEXT_HANDLE.get(this);
         }
 
-        protected final TableEntry<V> getNextVolatile() {
+        private TableEntry<V> getNextVolatile() {
             //noinspection unchecked
             return (TableEntry<V>)NEXT_HANDLE.getVolatile(this);
         }
 
-        protected final void setNextPlain(final TableEntry<V> next) {
+        private void setNextPlain(final TableEntry<V> next) {
             NEXT_HANDLE.set(this, next);
         }
 
-        protected final void setNextRelease(final TableEntry<V> next) {
+        private void setNextRelease(final TableEntry<V> next) {
             NEXT_HANDLE.setRelease(this, next);
         }
 
-        protected final void setNextVolatile(final TableEntry<V> next) {
+        private void setNextVolatile(final TableEntry<V> next) {
             NEXT_HANDLE.setVolatile(this, next);
         }
 

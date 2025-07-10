@@ -132,8 +132,7 @@
 +import org.bukkit.inventory.MainHand;
  import org.slf4j.Logger;
  
--public class ServerPlayer extends Player {
-+public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer { // Paper - rewrite chunk system
+ public class ServerPlayer extends Player {
      private static final Logger LOGGER = LogUtils.getLogger();
 +    public long lastSave = MinecraftServer.currentTick; // Paper - Incremental chunk and player saving
      private static final int NEUTRAL_MOB_DEATH_NOTIFICATION_RADII_XZ = 32;
@@ -158,7 +157,7 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(p_143455_.containerId, p_143456_, p_143457_));
          }
      };
-@@ -276,6 +_,58 @@
+@@ -276,6 +_,28 @@
      public final Object object;
      private int containerCounter;
      public boolean wonGame;
@@ -184,36 +183,6 @@
 +    public @Nullable String clientBrandName = null; // Paper - Brand support
 +    public org.bukkit.event.player.PlayerQuitEvent.QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
 +    public io.papermc.paper.event.entity.PlayerNaturallySpawnCreaturesEvent playerNaturallySpawnedEvent; // Paper - PlayerNaturallySpawnCreaturesEvent
-+
-+    // Paper start - rewrite chunk system
-+    private ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData chunkLoader;
-+    private final ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.ViewDistanceHolder viewDistanceHolder = new ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.ViewDistanceHolder();
-+
-+    @Override
-+    public final boolean moonrise$isRealPlayer() {
-+        return this.isRealPlayer;
-+    }
-+
-+    @Override
-+    public final void moonrise$setRealPlayer(final boolean real) {
-+        this.isRealPlayer = real;
-+    }
-+
-+    @Override
-+    public final ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData moonrise$getChunkLoader() {
-+        return this.chunkLoader;
-+    }
-+
-+    @Override
-+    public final void moonrise$setChunkLoader(final ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData loader) {
-+        this.chunkLoader = loader;
-+    }
-+
-+    @Override
-+    public final ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.ViewDistanceHolder moonrise$getViewDistanceHolder() {
-+        return this.viewDistanceHolder;
-+    }
-+    // Paper end - rewrite chunk system
  
      public ServerPlayer(MinecraftServer p_254143_, ServerLevel p_254435_, GameProfile p_253651_, ClientInformation p_301997_) {
          super(p_254435_, p_254435_.getSharedSpawnPos(), p_254435_.getSharedSpawnAngle(), p_253651_);
@@ -947,7 +916,13 @@
      }
  
      @Override
-@@ -1339,14 +_,14 @@
+@@ -1334,19 +_,20 @@
+     }
+ 
+     public void restoreFrom(ServerPlayer p_9016_, boolean p_9017_) {
++        this.isRealPlayer = p_9016_.isRealPlayer;
+         this.wardenSpawnTracker = p_9016_.wardenSpawnTracker;
+         this.chatSession = p_9016_.chatSession;
          this.gameMode.setGameModeForPlayer(p_9016_.gameMode.getGameModeForPlayer(), p_9016_.gameMode.getPreviousGameModeForPlayer());
          this.onUpdateAbilities();
          this.getAttributes().assignBaseValues(p_9016_.getAttributes());

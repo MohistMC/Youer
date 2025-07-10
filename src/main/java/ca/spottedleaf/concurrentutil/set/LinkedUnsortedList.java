@@ -1,23 +1,15 @@
 package ca.spottedleaf.concurrentutil.set;
 
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
-public final class LinkedSortedSet<E> implements Iterable<E> {
-
-    public final Comparator<? super E> comparator;
+public final class LinkedUnsortedList<E> implements Iterable<E> {
 
     private Link<E> head;
     private Link<E> tail;
 
-    public LinkedSortedSet() {
-        this((Comparator)Comparator.naturalOrder());
-    }
-
-    public LinkedSortedSet(final Comparator<? super E> comparator) {
-        this.comparator = comparator;
-    }
+    public LinkedUnsortedList() {}
 
     public void clear() {
         this.head = this.tail = null;
@@ -38,9 +30,8 @@ public final class LinkedSortedSet<E> implements Iterable<E> {
     }
 
     public boolean containsFirst(final E element) {
-        final Comparator<? super E> comparator = this.comparator;
         for (Link<E> curr = this.head; curr != null; curr = curr.next) {
-            if (comparator.compare(element, curr.element) == 0) {
+            if (Objects.equals(element, curr.element)) {
                 return true;
             }
         }
@@ -48,9 +39,8 @@ public final class LinkedSortedSet<E> implements Iterable<E> {
     }
 
     public boolean containsLast(final E element) {
-        final Comparator<? super E> comparator = this.comparator;
         for (Link<E> curr = this.tail; curr != null; curr = curr.prev) {
-            if (comparator.compare(element, curr.element) == 0) {
+            if (Objects.equals(element, curr.element)) {
                 return true;
             }
         }
@@ -89,9 +79,8 @@ public final class LinkedSortedSet<E> implements Iterable<E> {
     }
 
     public boolean removeFirst(final E element) {
-        final Comparator<? super E> comparator = this.comparator;
         for (Link<E> curr = this.head; curr != null; curr = curr.next) {
-            if (comparator.compare(element, curr.element) == 0) {
+            if (Objects.equals(element, curr.element)) {
                 this.removeNode(curr);
                 return true;
             }
@@ -100,9 +89,8 @@ public final class LinkedSortedSet<E> implements Iterable<E> {
     }
 
     public boolean removeLast(final E element) {
-        final Comparator<? super E> comparator = this.comparator;
         for (Link<E> curr = this.tail; curr != null; curr = curr.prev) {
-            if (comparator.compare(element, curr.element) == 0) {
+            if (Objects.equals(element, curr.element)) {
                 this.removeNode(curr);
                 return true;
             }
@@ -113,7 +101,7 @@ public final class LinkedSortedSet<E> implements Iterable<E> {
     @Override
     public Iterator<E> iterator() {
         return new Iterator<>() {
-            private Link<E> next = LinkedSortedSet.this.head;
+            private Link<E> next = LinkedUnsortedList.this.head;
 
             @Override
             public boolean hasNext() {
@@ -181,72 +169,18 @@ public final class LinkedSortedSet<E> implements Iterable<E> {
     }
 
     public Link<E> addLast(final E element) {
-        final Comparator<? super E> comparator = this.comparator;
-
-        Link<E> curr = this.tail;
+        final Link<E> curr = this.tail;
         if (curr != null) {
-            int compare;
-
-            while ((compare = comparator.compare(element, curr.element)) < 0) {
-                Link<E> prev = curr;
-                curr = curr.prev;
-                if (curr != null) {
-                    continue;
-                }
-                return this.head = prev.prev = new Link<>(element, null, prev);
-            }
-
-            if (compare != 0) {
-                // insert after curr
-                final Link<E> next = curr.next;
-                final Link<E> insert = new Link<>(element, curr, next);
-                curr.next = insert;
-
-                if (next == null) {
-                    this.tail = insert;
-                } else {
-                    next.prev = insert;
-                }
-                return insert;
-            }
-
-            return null;
+            return this.tail = new Link<>(element, curr, null);
         } else {
             return this.head = this.tail = new Link<>(element);
         }
     }
 
     public Link<E> addFirst(final E element) {
-        final Comparator<? super E> comparator = this.comparator;
-
-        Link<E> curr = this.head;
+        final Link<E> curr = this.head;
         if (curr != null) {
-            int compare;
-
-            while ((compare = comparator.compare(element, curr.element)) > 0) {
-                Link<E> prev = curr;
-                curr = curr.next;
-                if (curr != null) {
-                    continue;
-                }
-                return this.tail = prev.next = new Link<>(element, prev, null);
-            }
-
-            if (compare != 0) {
-                // insert before curr
-                final Link<E> prev = curr.prev;
-                final Link<E> insert = new Link<>(element, prev, curr);
-                curr.prev = insert;
-
-                if (prev == null) {
-                    this.head = insert;
-                } else {
-                    prev.next = insert;
-                }
-                return insert;
-            }
-
-            return null;
+            return this.head = new Link<>(element, null, curr);
         } else {
             return this.head = this.tail = new Link<>(element);
         }

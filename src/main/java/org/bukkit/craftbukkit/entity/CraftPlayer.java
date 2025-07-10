@@ -2315,7 +2315,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     public void addChannel(String channel) {
         if (channel.contains("fabric")) return;
-        Preconditions.checkState(DISABLE_CHANNEL_LIMIT || this.channels.size() < 1024, "Cannot register channel. Too many channels registered!"); // Paper - flag to disable channel limit
+        Preconditions.checkState(DISABLE_CHANNEL_LIMIT || this.channels.size() < Integer.MAX_VALUE, "Cannot register channel. Too many channels registered!"); // Paper - flag to disable channel limit
         channel = StandardMessenger.validateAndCorrectChannel(channel);
         if (this.channels.add(channel)) {
             this.server.getPluginManager().callEvent(new PlayerRegisterChannelEvent(this, channel));
@@ -3132,37 +3132,28 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public int getViewDistance() {
-        return ca.spottedleaf.moonrise.common.util.ChunkSystem.getLoadViewDistance(this.getHandle()) - 1;
+        return Bukkit.getViewDistance();
     }
 
     @Override
     public void setViewDistance(final int viewDistance) {
-        // Paper - rewrite chunk system - TODO do this better
-        ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer)this.getHandle())
-                .moonrise$getViewDistanceHolder().setLoadViewDistance(viewDistance + 1);
     }
 
     @Override
     public int getSimulationDistance() {
-        return ca.spottedleaf.moonrise.common.util.ChunkSystem.getTickViewDistance(this.getHandle());
+        return Bukkit.getSimulationDistance();
     }
 
     @Override
     public void setSimulationDistance(final int simulationDistance) {
-        // Paper - rewrite chunk system - TODO do this better
-        ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer)this.getHandle())
-                .moonrise$getViewDistanceHolder().setTickViewDistance(simulationDistance);
     }
 
     @Override
     public int getSendViewDistance() {
-        return ca.spottedleaf.moonrise.common.util.ChunkSystem.getSendViewDistance(this.getHandle());
+        return Bukkit.getViewDistance();
     }
 
     @Override
     public void setSendViewDistance(final int viewDistance) {
-        // Paper - rewrite chunk system - TODO do this better
-        ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer)this.getHandle())
-                .moonrise$getViewDistanceHolder().setSendViewDistance(viewDistance);
     }
 }

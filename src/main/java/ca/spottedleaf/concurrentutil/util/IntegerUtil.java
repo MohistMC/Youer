@@ -170,6 +170,26 @@ public final class IntegerUtil {
         return (mask ^ val) - mask; // if val < 0, then (0 ^ val) - 0 else (-1 ^ val) + 1
     }
 
+    // https://lemire.me/blog/2019/02/08/faster-remainders-when-the-divisor-is-a-constant-beating-compilers-and-libdivide
+    /**
+     *
+     * Usage:
+     * <pre>
+     * {@code
+     *     static final long mult = getSimpleMultiplier(divisor, bits);
+     *     long x = ...;
+     *     long magic = x * mult;
+     *     long divQ = magic >>> bits;
+     *     long divR = ((magic & ((1 << bits) - 1)) * divisor) >>> bits;
+     * }
+     * </pre>
+     *
+     * @param bits The number of bits of precision for the returned result
+     */
+    public static long getUnsignedDivisorMagic(final long divisor, final int bits) {
+        return (((1L << bits) - 1L) / divisor) + 1;
+    }
+
     private IntegerUtil() {
         throw new RuntimeException();
     }

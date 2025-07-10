@@ -2,6 +2,7 @@ package ca.spottedleaf.concurrentutil.collection;
 
 import ca.spottedleaf.concurrentutil.util.ConcurrentUtil;
 import ca.spottedleaf.concurrentutil.util.Validate;
+
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.Collection;

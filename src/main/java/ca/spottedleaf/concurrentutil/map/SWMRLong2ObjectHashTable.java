@@ -90,7 +90,7 @@ public class SWMRLong2ObjectHashTable<V> {
     /**
      * Constructs this map with the specified capacity and load factor.
      * @param capacity specified capacity, > 0
-     * @param loadFactor specified load factor, > 0 && finite
+     * @param loadFactor specified load factor, {@code > 0 && finite}
      */
     public SWMRLong2ObjectHashTable(final int capacity, final float loadFactor) {
         final int tableSize = getCapacityFor(capacity);
@@ -138,7 +138,7 @@ public class SWMRLong2ObjectHashTable<V> {
      * with the specified load factor.
      * All of the specified map's entries are copied into this map.
      * @param capacity specified capacity, > 0
-     * @param loadFactor specified load factor, > 0 && finite
+     * @param loadFactor specified load factor, {@code > 0 && finite}
      * @param other The specified map.
      */
     public SWMRLong2ObjectHashTable(final int capacity, final float loadFactor, final SWMRLong2ObjectHashTable<V> other) {

@@ -820,12 +820,5 @@ public abstract class DelegatedGeneratorAccess implements WorldGenLevel {
     public ChunkAccess getChunkIfLoadedImmediately(final int x, final int z) {
         return this.handle.getChunkIfLoadedImmediately(x, z);
     }
-
-    // Paper start - rewrite chunk system
-    @Override
-    public java.util.List<net.minecraft.world.entity.Entity> moonrise$getHardCollidingEntities(final net.minecraft.world.entity.Entity entity, final net.minecraft.world.phys.AABB box, final java.util.function.Predicate<? super net.minecraft.world.entity.Entity> predicate) {
-        return this.handle.moonrise$getHardCollidingEntities(entity, box, predicate);
-    }
-    // Paper end - rewrite chunk system
     // Paper end
 }

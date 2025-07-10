@@ -13,6 +13,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.BooleanSupplier;
 
+/**
+ * @deprecated To be replaced
+ */
+@Deprecated
 public class SchedulerThreadPool {
 
     public static final long DEADLINE_NOT_SET = Long.MIN_VALUE;
@@ -297,7 +301,9 @@ public class SchedulerThreadPool {
      * is invoked for any scheduled task - otherwise, {@link #runTasks(BooleanSupplier)} may not be invoked to
      * parse intermediate tasks.
      * </p>
+     * @deprecated To be replaced
      */
+    @Deprecated
     public static abstract class SchedulableTick {
         private static final AtomicLong ID_GENERATOR = new AtomicLong();
         public final long id = ID_GENERATOR.getAndIncrement();

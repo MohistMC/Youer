@@ -1,0 +1,15 @@
+--- a/net/minecraft/world/level/gameevent/DynamicGameEventListener.java
++++ b/net/minecraft/world/level/gameevent/DynamicGameEventListener.java
+@@ -27,6 +_,12 @@
+ 
+     public void remove(ServerLevel p_223635_) {
+         ifChunkExists(p_223635_, this.lastSection, p_248453_ -> p_248453_.unregister(this.listener));
++        // We need to unset the last section when removed, otherwise if the same instance is re-added at the same position it
++        // will assume there was no change and fail to re-register.
++        // In vanilla, chunks rarely unload and re-load quickly enough to trigger this issue. However, our chunk system has a
++        // quirk where fast chunk reload cycles will often occur on player login (see PR #22).
++        // So we fix this vanilla oversight as our changes cause it to manifest in bugs much more often (see issue #87).
++        this.lastSection = null;
+     }
+ 
+     public void move(ServerLevel p_223642_) {

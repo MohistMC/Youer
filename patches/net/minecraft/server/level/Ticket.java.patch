@@ -1,31 +1,10 @@
 --- a/net/minecraft/server/level/Ticket.java
 +++ b/net/minecraft/server/level/Ticket.java
-@@ -2,16 +_,33 @@
- 
- import java.util.Objects;
- 
--public final class Ticket<T> implements Comparable<Ticket<?>> {
-+public final class Ticket<T> implements Comparable<Ticket<?>>, ca.spottedleaf.moonrise.patches.chunk_system.ticket.ChunkSystemTicket<T> { // Paper - rewrite chunk system
-     private final TicketType<T> type;
-     private final int ticketLevel;
+@@ -8,10 +_,15 @@
      public final T key;
--    private long createdTick;
--
+     private long createdTick;
+ 
 -    public Ticket(TicketType<T> p_9425_, int p_9426_, T p_9427_) {
-+    // Paper start - rewrite chunk system
-+    private long removeDelay;
-+
-+    @Override
-+    public final long moonrise$getRemoveDelay() {
-+        return this.removeDelay;
-+    }
-+
-+    @Override
-+    public final void moonrise$setRemoveDelay(final long removeDelay) {
-+        this.removeDelay = removeDelay;
-+    }
-+    // Paper end - rewerite chunk system
-+
 +    public Ticket(TicketType<T> p_9425_, int p_9426_, T p_9427_) { // Paper - public
 +        this(p_9425_, p_9426_, p_9427_, false);
 +    }
@@ -56,22 +35,14 @@
      @Override
      public String toString() {
 -        return "Ticket[" + this.type + " " + this.ticketLevel + " (" + this.key + ")] at " + this.createdTick;
-+        return "Ticket[" + this.type + " " + this.ticketLevel + " (" + this.key + ")] to die in " + this.removeDelay; // Paper - rewrite chunk system
++        return "Ticket[" + this.type + " " + this.ticketLevel + " (" + this.key + ")] at " + this.createdTick + " force ticks " + this.forceTicks;
      }
  
      public TicketType<T> getType() {
-@@ -54,11 +_,17 @@
-     }
- 
-     public void setCreatedTick(long p_9430_) {
--        this.createdTick = p_9430_;
-+        throw new UnsupportedOperationException(); // Paper - rewrite chunk system
-     }
- 
+@@ -60,5 +_,12 @@
      protected boolean timedOut(long p_9435_) {
--        long i = this.type.timeout();
--        return i != 0L && p_9435_ - this.createdTick > i;
-+        throw new UnsupportedOperationException(); // Paper - rewrite chunk system
+         long i = this.type.timeout();
+         return i != 0L && p_9435_ - this.createdTick > i;
 +    }
 +
 +    // Neo: Injected ability to force chunks to tick
