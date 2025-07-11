@@ -107,6 +107,14 @@
      public abstract static class BlockStateBase extends StateHolder<Block, BlockState> {
          private final int lightEmission;
          private final boolean useShapeForLightOcclusion;
+@@ -421,6 +_,7 @@
+         protected BlockBehaviour.BlockStateBase.Cache cache;
+         private FluidState fluidState = Fluids.EMPTY.defaultFluidState();
+         private boolean isRandomlyTicking;
++        private boolean isConditionallyFullOpaque;
+ 
+         protected BlockStateBase(Block p_60608_, Reference2ObjectArrayMap<Property<?>, Comparable<?>> p_326208_, MapCodec<BlockState> p_60610_) {
+             super(p_60608_, p_326208_, p_60610_);
 @@ -446,6 +_,16 @@
              this.replaceable = blockbehaviour$properties.replaceable;
          }
@@ -124,6 +132,14 @@
          private boolean calculateSolid() {
              if (this.owner.properties.forceSolidOn) {
                  return true;
+@@ -472,6 +_,7 @@
+             }
+ 
+             this.legacySolid = this.calculateSolid();
++            this.isConditionallyFullOpaque = this.canOcclude & this.useShapeForLightOcclusion;
+         }
+ 
+         public Block getBlock() {
 @@ -523,12 +_,14 @@
              return this.useShapeForLightOcclusion;
          }

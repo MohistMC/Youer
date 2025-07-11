@@ -30,6 +30,7 @@ public final class CraftScoreboardManager implements ScoreboardManager {
 
     public CraftScoreboardManager(MinecraftServer minecraftserver, net.minecraft.world.scores.Scoreboard scoreboardServer) {
         this.mainScoreboard = new CraftScoreboard(scoreboardServer);
+        mainScoreboard.registeredGlobally = true; // Paper
         this.server = minecraftserver;
         this.scoreboards.add(this.mainScoreboard);
     }
@@ -43,7 +44,12 @@ public final class CraftScoreboardManager implements ScoreboardManager {
     public CraftScoreboard getNewScoreboard() {
         org.spigotmc.AsyncCatcher.catchOp("scoreboard creation"); // Spigot
         CraftScoreboard scoreboard = new CraftScoreboard(new ServerScoreboard(this.server));
-        this.scoreboards.add(scoreboard);
+        // Paper start
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().scoreboards.trackPluginScoreboards) {
+            scoreboard.registeredGlobally = true;
+            scoreboards.add(scoreboard);
+        }
+        // Paper end
         return scoreboard;
     }
 
@@ -81,8 +87,8 @@ public final class CraftScoreboardManager implements ScoreboardManager {
 
         // Old objective tracking
         HashSet<Objective> removed = new HashSet<>();
-        for (int i = 0; i < 3; ++i) {
-            Objective scoreboardobjective = oldboard.getDisplayObjective(net.minecraft.world.scores.DisplaySlot.BY_ID.apply(i));
+        for (net.minecraft.world.scores.DisplaySlot slot : net.minecraft.world.scores.DisplaySlot.values()) { // Paper - clear all display slots
+            Objective scoreboardobjective = oldboard.getDisplayObjective(slot); // Paper - clear all display slots
             if (scoreboardobjective != null && !removed.contains(scoreboardobjective)) {
                 entityplayer.connection.send(new ClientboundSetObjectivePacket(scoreboardobjective, 1));
                 removed.add(scoreboardobjective);

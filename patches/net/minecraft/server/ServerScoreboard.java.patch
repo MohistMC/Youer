@@ -47,6 +47,28 @@
              } else {
                  this.startTrackingObjective(p_136200_);
              }
+@@ -104,9 +_,7 @@
+     @Override
+     public boolean addPlayerToTeam(String p_136215_, PlayerTeam p_136216_) {
+         if (super.addPlayerToTeam(p_136215_, p_136216_)) {
+-            this.server
+-                .getPlayerList()
+-                .broadcastAll(ClientboundSetPlayerTeamPacket.createPlayerPacket(p_136216_, p_136215_, ClientboundSetPlayerTeamPacket.Action.ADD));
++            this.broadcastAll(ClientboundSetPlayerTeamPacket.createPlayerPacket(p_136216_, p_136215_, ClientboundSetPlayerTeamPacket.Action.ADD));
+             this.setDirty();
+             return true;
+         } else {
+@@ -117,9 +_,7 @@
+     @Override
+     public void removePlayerFromTeam(String p_136223_, PlayerTeam p_136224_) {
+         super.removePlayerFromTeam(p_136223_, p_136224_);
+-        this.server
+-            .getPlayerList()
+-            .broadcastAll(ClientboundSetPlayerTeamPacket.createPlayerPacket(p_136224_, p_136223_, ClientboundSetPlayerTeamPacket.Action.REMOVE));
++        this.broadcastAll(ClientboundSetPlayerTeamPacket.createPlayerPacket(p_136224_, p_136223_, ClientboundSetPlayerTeamPacket.Action.REMOVE));
+         this.setDirty();
+     }
+ 
 @@ -133,7 +_,7 @@
      public void onObjectiveChanged(Objective p_136219_) {
          super.onObjectiveChanged(p_136219_);
@@ -81,6 +103,22 @@
          this.setDirty();
      }
  
+@@ -209,6 +_,7 @@
+         List<Packet<?>> list = this.getStartTrackingPackets(p_136232_);
+ 
+         for (ServerPlayer serverplayer : this.server.getPlayerList().getPlayers()) {
++            if (serverplayer.getBukkitEntity().getScoreboard().getHandle() != this) continue; // CraftBukkit - Only players on this board
+             for (Packet<?> packet : list) {
+                 serverplayer.connection.send(packet);
+             }
+@@ -234,6 +_,7 @@
+         List<Packet<?>> list = this.getStopTrackingPackets(p_136236_);
+ 
+         for (ServerPlayer serverplayer : this.server.getPlayerList().getPlayers()) {
++            if (serverplayer.getBukkitEntity().getScoreboard().getHandle() != this) continue; // CraftBukkit - Only players on this board
+             for (Packet<?> packet : list) {
+                 serverplayer.connection.send(packet);
+             }
 @@ -267,6 +_,16 @@
      private ScoreboardSaveData createData(CompoundTag p_180014_, HolderLookup.Provider p_324580_) {
          return this.createData().load(p_180014_, p_324580_);
@@ -88,7 +126,7 @@
 +
 +    // CraftBukkit start - Send to players
 +    private void broadcastAll(Packet packet) {
-+        for (ServerPlayer entityplayer : (List<ServerPlayer>) this.server.getPlayerList().players) {
++        for (ServerPlayer entityplayer : this.server.getPlayerList().players) {
 +            if (entityplayer.getBukkitEntity().getScoreboard().getHandle() == this) {
 +                entityplayer.connection.send(packet);
 +            }

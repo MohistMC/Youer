@@ -207,9 +207,6 @@ public class YouerConfig {
     public static boolean ban_enchantment_enable;
     public static List<String> ban_enchantment_list;
 
-    public static boolean motdEnable;
-    public static String motdFirstLine;
-    public static String motdSecondLine;
     public static String pingCommandOutput;
 
     // Ban events
@@ -281,9 +278,6 @@ public class YouerConfig {
         ban_entity_types = getStringList("ban.entity.list", new ArrayList<>());
         ban_enchantment_enable = getBoolean("ban.enchantment.enable", false);
         ban_enchantment_list = getStringList("ban.enchantment.list", new ArrayList<>());
-        motdEnable = getBoolean("motd.enable", false);
-        motdFirstLine = getString("motd.firstline", "<RAINBOW1>A Minecraft Server</RAINBOW>");
-        motdSecondLine = getString("motd.secondline", "");
 
         pingCommandOutput = getString("settings.messages.ping-command-output", "§2%s's ping is %sms");
 
