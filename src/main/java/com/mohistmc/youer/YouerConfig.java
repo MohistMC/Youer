@@ -233,6 +233,13 @@ public class YouerConfig {
     public static boolean watchdog_mohist;
     public static boolean pluginchannel_debug;
 
+    public static boolean deepseek_enable;
+    public static String deepseek_apikey;
+    public static String deepseek_model;
+    public static String deepseek_system;
+    public static String deepseek_command;
+    public static String deepseek_chatfromat;
+
     private static void mohist() {
         show_logo = getBoolean("youer.show_logo", true);
         youer_lang = getString("youer.lang", Locale.getDefault().toString());
@@ -295,7 +302,12 @@ public class YouerConfig {
         permissions_send_player = getBoolean("permissions.debug.player", false);
         pluginchannel_debug = getBoolean("pluginchannel.debug", false);
 
-
+        deepseek_enable = getBoolean("deepseek.enable", false);
+        deepseek_apikey = getString("deepseek.apikey", "youer");
+        deepseek_model = getString("deepseek.model", "deepseek-chat");
+        deepseek_system = getString("deepseek.system", "你的名字叫小小墨，年龄18岁，是个可爱的女孩子!");
+        deepseek_command = getString("deepseek.command", "ai");
+        deepseek_chatfromat = getString("deepseek.chatfromat", "<小小墨> %s");
     }
     public static boolean isCN() {
         return yml.getString("youer.lang", Locale.getDefault().toString()).contains("CN");

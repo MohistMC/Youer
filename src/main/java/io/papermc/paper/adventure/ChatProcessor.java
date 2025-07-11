@@ -1,5 +1,6 @@
 package io.papermc.paper.adventure;
 
+import com.mohistmc.youer.ai.deepseek.DeepSeek;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AbstractChatEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;
@@ -178,6 +179,7 @@ public final class ChatProcessor {
         }
 
         final CraftPlayer player = ((CraftPlayer) event.getPlayer());
+        DeepSeek.init(player, craftbukkit$originalMessage);
         final Component displayName = displayName(player);
         final Component message = event.message();
         final ChatRenderer renderer = event.renderer();
