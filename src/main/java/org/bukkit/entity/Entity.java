@@ -3,7 +3,6 @@ package org.bukkit.entity;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.bukkit.Chunk; // Paper
 import org.bukkit.EntityEffect;
 import org.bukkit.Location;
 import org.bukkit.Nameable;

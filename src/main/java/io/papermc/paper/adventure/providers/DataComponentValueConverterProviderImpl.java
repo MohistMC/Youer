@@ -1,16 +1,16 @@
 package io.papermc.paper.adventure.providers;
 
 import com.google.gson.JsonElement;
-import net.kyori.adventure.key.Key;
-import net.kyori.adventure.nbt.api.BinaryTagHolder;
-import net.kyori.adventure.text.event.DataComponentValue;
-import net.kyori.adventure.text.event.DataComponentValueConverterRegistry;
-import net.kyori.adventure.text.serializer.gson.GsonDataComponentValue;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import io.papermc.paper.adventure.PaperAdventure;
 import java.util.List;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.nbt.api.BinaryTagHolder;
+import net.kyori.adventure.text.event.DataComponentValue;
+import net.kyori.adventure.text.event.DataComponentValueConverterRegistry;
+import net.kyori.adventure.text.serializer.gson.GsonDataComponentValue;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.NbtOps;

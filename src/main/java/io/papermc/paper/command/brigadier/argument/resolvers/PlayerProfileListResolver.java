@@ -1,7 +1,7 @@
 package io.papermc.paper.command.brigadier.argument.resolvers;
 
-import io.papermc.paper.profile.PlayerProfile;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.profile.PlayerProfile;
 import java.util.Collection;
 import org.jetbrains.annotations.ApiStatus;
 

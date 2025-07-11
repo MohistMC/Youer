@@ -1,12 +1,12 @@
 package io.papermc.paper.profile;
 
-import io.papermc.paper.event.profile.LookupProfileEvent;
-import io.papermc.paper.event.profile.PreLookupProfileEvent;
 import com.google.common.collect.Sets;
 import com.mojang.authlib.Environment;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.ProfileLookupCallback;
 import com.mojang.authlib.yggdrasil.YggdrasilGameProfileRepository;
+import io.papermc.paper.event.profile.LookupProfileEvent;
+import io.papermc.paper.event.profile.PreLookupProfileEvent;
 import java.net.Proxy;
 import java.util.Set;
 

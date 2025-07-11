@@ -1,7 +1,6 @@
 package io.papermc.asm.rules.builder;
 
 import io.papermc.asm.rules.RewriteRule;
-import io.papermc.asm.rules.builder.RuleFactory;
 import io.papermc.asm.rules.builder.matcher.field.FieldMatcher;
 import io.papermc.asm.rules.builder.matcher.field.FieldMatcherBuilder;
 import io.papermc.asm.rules.builder.matcher.method.MethodMatcher;

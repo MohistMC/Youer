@@ -5,8 +5,8 @@ import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.util.WorldUUID;
 import org.bukkit.craftbukkit.block.CraftBiome;
+import org.bukkit.craftbukkit.util.WorldUUID;
 import org.bukkit.generator.WorldInfo;
 
 public class CraftWorldInfo implements WorldInfo {

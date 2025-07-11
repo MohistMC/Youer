@@ -1,6 +1,5 @@
 package io.papermc.reflectionrewriter.runtime;
 
-import io.papermc.reflectionrewriter.runtime.DefineClassReflectionProxy;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;

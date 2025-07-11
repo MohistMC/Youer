@@ -1,8 +1,8 @@
 package io.papermc.paper.plugin.bootstrap;
 
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import io.papermc.paper.plugin.configuration.PluginMeta;
 import java.nio.file.Path;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NullMarked;
 

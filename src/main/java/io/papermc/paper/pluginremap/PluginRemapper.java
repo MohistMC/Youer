@@ -1,6 +1,9 @@
 package io.papermc.paper.pluginremap;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.mohistmc.art.api.Renamer;
+import com.mohistmc.art.api.SignatureStripperConfig;
+import com.mohistmc.art.api.Transformer;
 import com.mohistmc.youer.util.I18n;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.plugin.provider.type.PluginFileType;
@@ -29,9 +32,6 @@ import java.util.jar.Manifest;
 import java.util.stream.Stream;
 import net.minecraft.DefaultUncaughtExceptionHandlerWithName;
 import net.minecraft.util.ExceptionCollector;
-import com.mohistmc.art.api.Renamer;
-import com.mohistmc.art.api.SignatureStripperConfig;
-import com.mohistmc.art.api.Transformer;
 import net.neoforged.srgutils.IMappingFile;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;

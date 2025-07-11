@@ -1,7 +1,5 @@
 package io.papermc.paper.configuration;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import com.mohistmc.org.spongepowered.configurate.objectmapping.ConfigSerializable;
 import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.Comment;
 import com.mohistmc.org.spongepowered.configurate.objectmapping.meta.PostProcess;
@@ -14,6 +12,8 @@ import io.papermc.paper.configuration.type.number.IntOr;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ServerboundPlaceRecipePacket;
 import org.checkerframework.checker.nullness.qual.Nullable;

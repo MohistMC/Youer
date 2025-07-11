@@ -3,9 +3,9 @@ package ca.spottedleaf.concurrentutil.completable;
 import ca.spottedleaf.concurrentutil.collection.MultiThreadedQueue;
 import ca.spottedleaf.concurrentutil.executor.Cancellable;
 import ca.spottedleaf.concurrentutil.util.ConcurrentUtil;
+import java.util.function.BiConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.function.BiConsumer;
 
 public final class CallbackCompletable<T> {
 

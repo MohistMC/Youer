@@ -1,6 +1,5 @@
 package io.papermc.reflectionrewriter.runtime;
 
-import io.papermc.reflectionrewriter.runtime.DefaultRulesReflectionProxy;
 import java.lang.invoke.MethodHandles;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.framework.qual.DefaultQualifier;

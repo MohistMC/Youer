@@ -1,7 +1,5 @@
 package io.papermc.asm.rules.builder.matcher.field;
 
-import io.papermc.asm.rules.builder.matcher.field.FieldMatcher;
-import io.papermc.asm.rules.builder.matcher.field.FieldMatcherBuilder;
 import java.lang.constant.ClassDesc;
 import java.util.function.Predicate;
 

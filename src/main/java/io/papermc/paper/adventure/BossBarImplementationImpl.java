@@ -1,12 +1,12 @@
 package io.papermc.paper.adventure;
 
 import com.google.common.collect.Collections2;
+import java.util.Set;
+import java.util.function.Function;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.bossbar.BossBarImplementation;
 import net.kyori.adventure.bossbar.BossBarViewer;
 import net.kyori.adventure.text.Component;
-import java.util.Set;
-import java.util.function.Function;
 import net.minecraft.network.protocol.game.ClientboundBossEventPacket;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerPlayer;

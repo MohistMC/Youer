@@ -1,5 +1,7 @@
 package org.bukkit.plugin.java;
 
+import com.google.common.base.Preconditions;
+import com.google.common.io.ByteStreams;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.asm.SwitchTableFixer;
 import com.mohistmc.youer.bukkit.pluginfix.PluginFixManager;
@@ -7,8 +9,6 @@ import com.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
 import com.mohistmc.youer.bukkit.remapping.Remapper;
 import com.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
 import com.mohistmc.youer.util.I18n;
-import com.google.common.base.Preconditions;
-import com.google.common.io.ByteStreams;
 import cpw.mods.modlauncher.TransformingClassLoader;
 import io.izzel.tools.product.Product2;
 import io.papermc.paper.utils.PaperPluginLogger;

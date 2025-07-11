@@ -1,6 +1,5 @@
 package io.papermc.reflectionrewriter.runtime;
 
-import io.papermc.reflectionrewriter.runtime.DefaultRulesReflectionProxy;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.LambdaConversionException;

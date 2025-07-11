@@ -1,13 +1,13 @@
 package io.papermc.paper.adventure.providers;
 
-import net.kyori.adventure.audience.Audience;
-import net.kyori.adventure.text.event.ClickCallback;
-import net.kyori.adventure.text.event.ClickEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.event.ClickCallback;
+import net.kyori.adventure.text.event.ClickEvent;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("UnstableApiUsage") // permitted provider

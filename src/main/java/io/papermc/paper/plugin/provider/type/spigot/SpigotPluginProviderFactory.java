@@ -1,10 +1,9 @@
 package io.papermc.paper.plugin.provider.type.spigot;
 
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import com.mohistmc.org.yaml.snakeyaml.error.YAMLException;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContextImpl;
-import io.papermc.paper.plugin.entrypoint.classloader.PaperSimplePluginClassLoader;
 import io.papermc.paper.plugin.entrypoint.classloader.BytecodeModifyingURLClassLoader;
+import io.papermc.paper.plugin.entrypoint.classloader.PaperSimplePluginClassLoader;
 import io.papermc.paper.plugin.loader.PaperClasspathBuilder;
 import io.papermc.paper.plugin.loader.PluginLoader;
 import io.papermc.paper.plugin.provider.configuration.serializer.constraints.PluginConfigConstraints;
@@ -20,6 +19,7 @@ import java.util.Locale;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Logger;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.bukkit.plugin.InvalidDescriptionException;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.LibraryLoader;

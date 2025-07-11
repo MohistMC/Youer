@@ -1,5 +1,6 @@
 package io.papermc.paper.pluginremap;
 
+import com.mohistmc.art.api.Transformer;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -8,7 +9,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
-import com.mohistmc.art.api.Transformer;
 
 final class InsertManifestAttribute implements Transformer {
     static final String PAPERWEIGHT_NAMESPACE_MANIFEST_KEY = "paperweight-mappings-namespace";

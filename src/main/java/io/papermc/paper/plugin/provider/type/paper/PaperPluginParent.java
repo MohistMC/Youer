@@ -1,6 +1,5 @@
 package io.papermc.paper.plugin.provider.type.paper;
 
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import io.papermc.paper.plugin.bootstrap.PluginBootstrap;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContext;
 import io.papermc.paper.plugin.entrypoint.classloader.PaperPluginClassLoader;
@@ -20,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.jar.JarFile;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 

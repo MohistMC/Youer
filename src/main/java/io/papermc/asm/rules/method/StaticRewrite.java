@@ -2,7 +2,6 @@ package io.papermc.asm.rules.method;
 
 import io.papermc.asm.ClassProcessingContext;
 import io.papermc.asm.rules.generate.GeneratedMethodHolder;
-import io.papermc.asm.rules.method.MethodRewriteRule;
 import io.papermc.asm.rules.method.rewrite.ConstructorRewrite;
 import io.papermc.asm.rules.method.rewrite.MethodRewrite;
 import io.papermc.asm.rules.method.rewrite.SimpleRewrite;

@@ -2,7 +2,6 @@ package org.bukkit.inventory;
 
 import com.google.common.base.Preconditions;
 import org.bukkit.Keyed;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.recipe.CraftingBookCategory;
 import org.jetbrains.annotations.ApiStatus;

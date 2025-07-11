@@ -1,7 +1,5 @@
 package io.papermc.paper.registry.legacy;
 
-import io.papermc.paper.registry.tag.Tag;
-import io.papermc.paper.registry.tag.TagKey;
 import java.util.Iterator;
 import java.util.function.Supplier;
 import java.util.stream.Stream;

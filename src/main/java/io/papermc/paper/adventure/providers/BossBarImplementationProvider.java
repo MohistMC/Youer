@@ -1,8 +1,8 @@
 package io.papermc.paper.adventure.providers;
 
+import io.papermc.paper.adventure.BossBarImplementationImpl;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.bossbar.BossBarImplementation;
-import io.papermc.paper.adventure.BossBarImplementationImpl;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("UnstableApiUsage") // permitted provider

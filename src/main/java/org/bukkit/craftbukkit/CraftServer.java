@@ -1,7 +1,5 @@
 package org.bukkit.craftbukkit;
 
-import com.mohistmc.youer.api.ServerAPI;
-import com.mohistmc.youer.util.ProxyUtils;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -10,10 +8,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
+import com.mohistmc.org.yaml.snakeyaml.LoaderOptions;
+import com.mohistmc.org.yaml.snakeyaml.Yaml;
+import com.mohistmc.org.yaml.snakeyaml.constructor.SafeConstructor;
+import com.mohistmc.org.yaml.snakeyaml.error.MarkedYAMLException;
 import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
-import com.mohistmc.youer.plugins.MohistPlugin;
 import com.mohistmc.youer.util.Level2LevelStem;
+import com.mohistmc.youer.util.ProxyUtils;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.ParseResults;
@@ -22,7 +25,6 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -53,6 +55,7 @@ import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.md_5.bungee.api.chat.BaseComponent;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -178,6 +181,7 @@ import org.bukkit.craftbukkit.inventory.CraftBlastingRecipe;
 import org.bukkit.craftbukkit.inventory.CraftCampfireRecipe;
 import org.bukkit.craftbukkit.inventory.CraftFurnaceRecipe;
 import org.bukkit.craftbukkit.inventory.CraftItemCraftResult;
+import org.bukkit.craftbukkit.inventory.CraftItemFactory;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.inventory.CraftMerchantCustom;
 import org.bukkit.craftbukkit.inventory.CraftRecipe;
@@ -188,7 +192,6 @@ import org.bukkit.craftbukkit.inventory.CraftSmithingTrimRecipe;
 import org.bukkit.craftbukkit.inventory.CraftSmokingRecipe;
 import org.bukkit.craftbukkit.inventory.CraftStonecuttingRecipe;
 import org.bukkit.craftbukkit.inventory.RecipeIterator;
-import org.bukkit.craftbukkit.inventory.CraftItemFactory;
 import org.bukkit.craftbukkit.inventory.util.CraftInventoryCreator;
 import org.bukkit.craftbukkit.map.CraftMapColorCache;
 import org.bukkit.craftbukkit.map.CraftMapCursor;
@@ -268,12 +271,6 @@ import org.bukkit.scoreboard.Criteria;
 import org.bukkit.structure.StructureManager;
 import org.bukkit.util.StringUtil;
 import org.bukkit.util.permissions.DefaultPermissions;
-import com.mohistmc.org.yaml.snakeyaml .LoaderOptions;
-import com.mohistmc.org.yaml.snakeyaml .Yaml;
-import com.mohistmc.org.yaml.snakeyaml .constructor.SafeConstructor;
-import com.mohistmc.org.yaml.snakeyaml .error.MarkedYAMLException;
-
-import net.md_5.bungee.api.chat.BaseComponent; // Spigot
 
 public final class CraftServer implements Server {
     private final String serverName = io.papermc.paper.ServerBuildInfo.buildInfo().brandName(); // Paper

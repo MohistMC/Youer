@@ -1,12 +1,12 @@
 package org.bukkit.craftbukkit.profile;
 
-import io.papermc.paper.profile.SharedPlayerProfile;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.authlib.yggdrasil.ProfileResult;
+import io.papermc.paper.profile.SharedPlayerProfile;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;

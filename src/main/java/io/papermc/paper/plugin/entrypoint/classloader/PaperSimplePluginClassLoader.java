@@ -1,10 +1,10 @@
 package io.papermc.paper.plugin.entrypoint.classloader;
 
+import com.google.common.io.ByteStreams;
 import com.mohistmc.youer.asm.SwitchTableFixer;
 import com.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
 import com.mohistmc.youer.bukkit.remapping.Remapper;
 import com.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
-import com.google.common.io.ByteStreams;
 import io.izzel.tools.product.Product2;
 import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.util.NamespaceChecker;

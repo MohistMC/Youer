@@ -1,9 +1,9 @@
 package com.mohistmc.youer.bukkit.messaging;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.network.ConnectionProtocol;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;

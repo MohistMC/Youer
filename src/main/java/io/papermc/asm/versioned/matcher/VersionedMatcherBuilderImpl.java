@@ -1,8 +1,6 @@
 package io.papermc.asm.versioned.matcher;
 
 import io.papermc.asm.versioned.ApiVersion;
-import io.papermc.asm.versioned.matcher.VersionedMatcher;
-import io.papermc.asm.versioned.matcher.VersionedMatcherBuilder;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 

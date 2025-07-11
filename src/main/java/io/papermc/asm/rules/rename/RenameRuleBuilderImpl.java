@@ -1,9 +1,5 @@
 package io.papermc.asm.rules.rename;
 
-import io.papermc.asm.rules.rename.EnumRenameBuilder;
-import io.papermc.asm.rules.rename.EnumRenamer;
-import io.papermc.asm.rules.rename.RenameRule;
-import io.papermc.asm.rules.rename.RenameRuleBuilder;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.HashMap;

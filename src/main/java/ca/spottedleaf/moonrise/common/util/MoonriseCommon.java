@@ -1,11 +1,11 @@
 package ca.spottedleaf.moonrise.common.util;
 
 import ca.spottedleaf.concurrentutil.executor.thread.PrioritisedThreadPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class MoonriseCommon {
 

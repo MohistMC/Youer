@@ -1,7 +1,7 @@
 package io.papermc.paper.plugin.manager;
 
-import com.mohistmc.youer.plugins.MohistPlugin;
 import com.google.common.collect.Sets;
+import com.mohistmc.youer.plugins.MohistPlugin;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;

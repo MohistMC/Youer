@@ -1,10 +1,10 @@
 package org.bukkit.craftbukkit.event;
 
-import com.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import com.mojang.datafixers.util.Either;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;

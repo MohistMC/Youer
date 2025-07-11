@@ -8,7 +8,6 @@ import io.papermc.paper.util.AtomicFiles;
 import io.papermc.paper.util.MappingEnvironment;
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;

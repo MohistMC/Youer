@@ -9,7 +9,6 @@ import java.lang.invoke.MethodHandles;
 import java.nio.ByteBuffer;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;

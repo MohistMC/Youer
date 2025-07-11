@@ -1,7 +1,5 @@
 package io.papermc.asm.rules.builder.matcher.method;
 
-import io.papermc.asm.rules.builder.matcher.method.MethodType;
-
 public interface MethodTypeMatcherBuilder<B> {
 
     default B virtual() {

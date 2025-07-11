@@ -3,7 +3,6 @@ package org.bukkit.inventory;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a smithing trim recipe.

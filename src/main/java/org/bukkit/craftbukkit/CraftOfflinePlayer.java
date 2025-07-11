@@ -1,7 +1,7 @@
 package org.bukkit.craftbukkit;
 
-import io.papermc.paper.profile.CraftPlayerProfile;
 import com.mojang.authlib.GameProfile;
+import io.papermc.paper.profile.CraftPlayerProfile;
 import java.io.File;
 import java.time.Duration;
 import java.time.Instant;

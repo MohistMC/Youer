@@ -1,6 +1,5 @@
 package io.papermc.paper.plugin.provider;
 
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.provider.configuration.LoadOrderConfiguration;
 import io.papermc.paper.plugin.provider.entrypoint.DependencyContext;
@@ -8,6 +7,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.jar.JarFile;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 

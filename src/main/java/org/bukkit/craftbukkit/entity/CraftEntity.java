@@ -1,16 +1,17 @@
 package org.bukkit.craftbukkit.entity;
 
-import com.mohistmc.youer.neoforge.EntityClassLookup;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.neoforge.EntityClassLookup;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import net.md_5.bungee.api.chat.BaseComponent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
@@ -63,8 +64,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.NumberConversions;
 import org.bukkit.util.Vector;
-
-import net.md_5.bungee.api.chat.BaseComponent; // Spigot
 import org.spigotmc.AsyncCatcher;
 
 public abstract class CraftEntity implements org.bukkit.entity.Entity {

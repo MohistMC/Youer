@@ -1,12 +1,24 @@
 package org.bukkit.craftbukkit.inventory.util;
 
-import static org.bukkit.craftbukkit.inventory.util.CraftMenuBuilder.*;
-
-
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.inventory.AnvilMenu;
+import net.minecraft.world.inventory.CartographyTableMenu;
+import net.minecraft.world.inventory.CraftingMenu;
+import net.minecraft.world.inventory.EnchantmentMenu;
+import net.minecraft.world.inventory.GrindstoneMenu;
+import net.minecraft.world.inventory.SmithingMenu;
+import net.minecraft.world.inventory.StonecutterMenu;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BeaconBlockEntity;
+import net.minecraft.world.level.block.entity.BlastFurnaceBlockEntity;
+import net.minecraft.world.level.block.entity.BrewingStandBlockEntity;
 import net.minecraft.world.level.block.entity.CrafterBlockEntity;
+import net.minecraft.world.level.block.entity.DispenserBlockEntity;
+import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
+import net.minecraft.world.level.block.entity.HopperBlockEntity;
+import net.minecraft.world.level.block.entity.LecternBlockEntity;
+import net.minecraft.world.level.block.entity.SmokerBlockEntity;
 import org.bukkit.craftbukkit.inventory.CraftMenuType;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.MenuType;
@@ -20,8 +32,9 @@ import org.bukkit.inventory.view.LecternView;
 import org.bukkit.inventory.view.LoomView;
 import org.bukkit.inventory.view.MerchantView;
 import org.bukkit.inventory.view.StonecutterView;
-import net.minecraft.world.level.block.entity.*;
-import net.minecraft.world.inventory.*;
+
+import static org.bukkit.craftbukkit.inventory.util.CraftMenuBuilder.tileEntity;
+import static org.bukkit.craftbukkit.inventory.util.CraftMenuBuilder.worldAccess;
 
 public final class CraftMenus {
 

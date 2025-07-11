@@ -4,7 +4,6 @@ import io.papermc.asm.rules.builder.matcher.method.MethodMatcher;
 import io.papermc.asm.rules.generate.GeneratedMethodHolder;
 import io.papermc.asm.rules.method.OwnableMethodRewriteRule;
 import io.papermc.asm.rules.method.generated.GeneratedStaticRewrite;
-import io.papermc.asm.rules.rename.EnumRenamer;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.MethodTypeDesc;

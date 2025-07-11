@@ -1,6 +1,5 @@
 package org.bukkit.damage;
 
-import com.google.common.base.Preconditions;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;

@@ -1,6 +1,5 @@
 package io.papermc.paper.plugin.entrypoint.classloader;
 
-import io.papermc.paper.plugin.configuration.PluginMeta;
 import net.kyori.adventure.util.Services;
 import org.jetbrains.annotations.ApiStatus;
 

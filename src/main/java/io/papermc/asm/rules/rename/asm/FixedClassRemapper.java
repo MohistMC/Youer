@@ -1,9 +1,5 @@
 package io.papermc.asm.rules.rename.asm;
 
-import io.papermc.asm.rules.rename.asm.FixedAnnotationRemapper;
-import io.papermc.asm.rules.rename.asm.FixedFieldRemapper;
-import io.papermc.asm.rules.rename.asm.FixedMethodRemapper;
-import io.papermc.asm.rules.rename.asm.FixedRecordComponentRemapper;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;

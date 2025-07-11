@@ -1,8 +1,8 @@
 package org.bukkit.craftbukkit.entity;
 
-import com.mohistmc.youer.Youer;
 import com.google.common.base.Preconditions;
 import com.mohistmc.dynamicenum.MohistDynamEnum;
+import com.mohistmc.youer.Youer;
 import net.minecraft.world.entity.monster.SpellcasterIllager;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Spellcaster;

@@ -1,6 +1,5 @@
 package io.papermc.paper.plugin.provider.type.spigot;
 
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import io.papermc.paper.plugin.entrypoint.dependency.DependencyContextHolder;
 import io.papermc.paper.plugin.manager.PaperPluginManagerImpl;
 import io.papermc.paper.plugin.provider.PluginProvider;
@@ -21,6 +20,7 @@ import java.util.Set;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.plugin.InvalidPluginException;

@@ -2,6 +2,7 @@ package io.papermc.paper.pluginremap;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.mohistmc.org.spongepowered.configurate.loader.AtomicFiles;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.util.Hashing;
 import io.papermc.paper.util.MappingEnvironment;
@@ -23,7 +24,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.qual.DefaultQualifier;
 import org.slf4j.Logger;
-import com.mohistmc.org.spongepowered.configurate.loader.AtomicFiles;
 
 @DefaultQualifier(NonNull.class)
 class RemappedPluginIndex {

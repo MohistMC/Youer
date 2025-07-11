@@ -2,9 +2,6 @@ package io.papermc.asm.versioned.matcher;
 
 import io.papermc.asm.rules.builder.matcher.method.targeted.TargetedMethodMatcher;
 import io.papermc.asm.versioned.ApiVersion;
-import io.papermc.asm.versioned.matcher.TargetedMethodMatcherWithHandler;
-import io.papermc.asm.versioned.matcher.VersionedMatcherBuilderImpl;
-import io.papermc.asm.versioned.matcher.VersionedTargetedMethodMatcherWithHandlerBuilder;
 import java.lang.reflect.Method;
 
 public final class VersionedTargetedMethodMatcherWithHandlerBuilderImpl

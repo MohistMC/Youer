@@ -3,7 +3,6 @@ package io.papermc.asm.rules.field;
 import io.papermc.asm.ClassProcessingContext;
 import io.papermc.asm.rules.OwnableRewriteRule;
 import io.papermc.asm.rules.builder.matcher.field.FieldMatcher;
-import io.papermc.asm.rules.field.FieldRewriteRule;
 
 /**
  * A rule that targets specific fields and owners.

@@ -1,11 +1,11 @@
 package io.papermc.paper.configuration.serializer;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
 import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import java.lang.reflect.Type;
 import java.util.function.Predicate;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 
 public class ComponentSerializer extends ScalarSerializer<Component> {
 

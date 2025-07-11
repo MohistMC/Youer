@@ -1,7 +1,6 @@
 package io.papermc.asm.rules;
 
 import io.papermc.asm.ClassProcessingContext;
-import io.papermc.asm.rules.RewriteRule;
 import io.papermc.asm.util.DescriptorUtils;
 import java.lang.constant.ClassDesc;
 import java.util.Set;

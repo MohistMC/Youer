@@ -1,6 +1,5 @@
 package io.papermc.paper.command.brigadier.argument;
 
-import io.papermc.paper.profile.CraftPlayerProfile;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
@@ -22,6 +21,7 @@ import io.papermc.paper.command.brigadier.argument.resolvers.PlayerProfileListRe
 import io.papermc.paper.command.brigadier.argument.resolvers.selector.EntitySelectorArgumentResolver;
 import io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSelectorArgumentResolver;
 import io.papermc.paper.entity.LookAnchor;
+import io.papermc.paper.profile.CraftPlayerProfile;
 import io.papermc.paper.registry.PaperRegistries;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;

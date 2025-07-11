@@ -17,7 +17,6 @@ import com.mohistmc.youer.plugins.world.listener.InventoryClickListener;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.PlayerDeathEvent;

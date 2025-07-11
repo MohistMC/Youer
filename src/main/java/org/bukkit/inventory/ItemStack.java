@@ -1,7 +1,7 @@
 package org.bukkit.inventory;
 
-import com.mohistmc.youer.Youer;
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.Youer;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;

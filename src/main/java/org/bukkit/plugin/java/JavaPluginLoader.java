@@ -1,8 +1,9 @@
 package org.bukkit.plugin.java;
 
+import com.google.common.base.Preconditions;
+import com.mohistmc.org.yaml.snakeyaml.error.YAMLException;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.util.I18n;
-import com.google.common.base.Preconditions;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -45,7 +46,6 @@ import org.bukkit.plugin.TimedRegisteredListener;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import com.mohistmc.org.yaml.snakeyaml .error.YAMLException;
 
 /**
  * Represents a Java plugin loader, allowing plugins in the form of .jar

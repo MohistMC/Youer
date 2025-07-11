@@ -1,6 +1,5 @@
 package io.papermc.paper.plugin.provider.type.paper;
 
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContext;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContextImpl;
 import io.papermc.paper.plugin.entrypoint.classloader.PaperPluginClassLoader;
@@ -18,6 +17,7 @@ import java.nio.file.Path;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Logger;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 
 class PaperPluginProviderFactory implements PluginTypeFactory<PaperPluginParent, PaperPluginMeta> {
 

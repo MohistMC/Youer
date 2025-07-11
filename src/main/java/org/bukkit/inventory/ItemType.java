@@ -1,6 +1,5 @@
 package org.bukkit.inventory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Multimap;
 import java.util.function.Consumer;
 import org.bukkit.Keyed;

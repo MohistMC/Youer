@@ -1,6 +1,6 @@
 package org.bukkit.scoreboard;
 
-import net.kyori.adventure.text.format.NamedTextColor; // Paper
+import net.kyori.adventure.text.format.NamedTextColor;
 /**
  * Locations for displaying objectives to the player
  */

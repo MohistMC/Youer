@@ -1,11 +1,11 @@
 package io.papermc.paper.plugin.bootstrap;
 
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.PaperLifecycleEventManager;
 import io.papermc.paper.plugin.provider.PluginProvider;
 import java.nio.file.Path;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.jetbrains.annotations.NotNull;
 
 public final class PluginBootstrapContextImpl implements BootstrapContext {
