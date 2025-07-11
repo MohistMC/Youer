@@ -58,7 +58,7 @@ public class PingCommand extends Command {
                 sender.sendMessage(output);
                 return true;
             } else {
-                sender.sendMessage(ChatColor.RED + I18n.as("mohistcmd.playermods.playernotOnline", args[0]));
+                sender.sendMessage(ChatColor.RED + I18n.as("youercmd.playermods.playernotOnline", args[0]));
                 return false;
             }
         }

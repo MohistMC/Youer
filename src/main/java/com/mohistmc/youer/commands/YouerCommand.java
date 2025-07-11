@@ -85,10 +85,10 @@ public class YouerCommand extends Command {
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
             case "mods" -> {
                 // Not recommended for use in games, only test output
-                sender.sendMessage(ChatColor.GREEN + I18n.as("mohistcmd.insidemods") + ServerAPI.modlists_Inside.size() + ") -> " + ServerAPI.modlists_Inside);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("mohistcmd.clientOnlymods")+ ServerAPI.modlists_Client.size() + ") -> " + ServerAPI.modlists_Client);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("mohistcmd.serverOnlymods") + ServerAPI.modlists_Server.size() + ") -> " + ServerAPI.modlists_Server);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("mohistcmd.allMods") + ServerAPI.modlists_All.size() + ") -> " + ServerAPI.modlists_All);
+                sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.insidemods") + ServerAPI.modlists_Inside.size() + ") -> " + ServerAPI.modlists_Inside);
+                sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.clientOnlymods")+ ServerAPI.modlists_Client.size() + ") -> " + ServerAPI.modlists_Client);
+                sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.serverOnlymods") + ServerAPI.modlists_Server.size() + ") -> " + ServerAPI.modlists_Server);
+                sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.allMods") + ServerAPI.modlists_All.size() + ") -> " + ServerAPI.modlists_All);
             }
             case "playermods" -> {
                 // Not recommended for use in games, only test output
@@ -100,12 +100,12 @@ public class YouerCommand extends Command {
                 if (player != null) {
                     sender.sendMessage(ChatColor.GREEN + String.valueOf(PlayerAPI.getModSize(player)) + " " + PlayerAPI.getModlist(player).toString());
                 } else {
-                    sender.sendMessage(ChatColor.RED + I18n.as("mohistcmd.playermods.playernotOnline", args[1]));
+                    sender.sendMessage(ChatColor.RED + I18n.as("youercmd.playermods.playernotOnline", args[1]));
                 }
             }
             case "reload" -> {
                 MinecraftServer console = MinecraftServer.getServer();
-                YouerConfig.init((File) console.options.valueOf("mohist-settings"));
+                YouerConfig.init((File) console.options.valueOf("youer-settings"));
                 ((CraftServer)Bukkit.getServer()).initConfig();
                 ((CraftServer)Bukkit.getServer()).loadCustomPermissions();
                 SpigotConfig.init((File) console.options.valueOf("spigot-settings"));
@@ -114,7 +114,7 @@ public class YouerCommand extends Command {
                 }
 
                 console.server.reloadCount++;
-                sender.sendMessage(ChatColor.GREEN + I18n.as("mohistcmd.reload.complete"));
+                sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.reload.complete"));
                 return true;
             }
             case "version" -> {
@@ -141,20 +141,20 @@ public class YouerCommand extends Command {
                                 float speed = Float.parseFloat(args[1]);
                                 if (speed >= 0.0f && speed < 11.0f) {
                                     p.setFlySpeed(speed / 10.0f);
-                                    p.sendMessage(I18n.as("mohistcmd.playerflightspeedSet") + speed);
+                                    p.sendMessage(I18n.as("youercmd.playerflightspeedSet") + speed);
                                 }
                             } else {
                                 float speed = Float.parseFloat(args[1]);
                                 if (speed >= 0.0f && speed < 11.0f) {
                                     p.setWalkSpeed(speed / 10.0f);
-                                    p.sendMessage(I18n.as("mohistcmd.playerwalkspeedset") + speed);
+                                    p.sendMessage(I18n.as("youercmd.playerwalkspeedset") + speed);
                                 }
                             }
                         }
                         if (args[0].equalsIgnoreCase("reset")) {
                             p.setFlySpeed(0.1f);
                             p.setWalkSpeed(0.2f);
-                            p.sendMessage(I18n.as("mohistcmd.flightAndWalkspeedRestore"));
+                            p.sendMessage(I18n.as("youercmd.flightAndWalkspeedRestore"));
                         }
                     }
                 } else {
