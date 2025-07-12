@@ -1,49 +1,23 @@
 --- a/net/minecraft/world/level/saveddata/SavedData.java
 +++ b/net/minecraft/world/level/saveddata/SavedData.java
-@@ -30,24 +_,48 @@
-         return this.dirty;
-     }
- 
-+    // Paper start - Write SavedData IO async - joining is evil, but we assume the old blocking behavior here just for safety
-     public void save(File p_77758_, HolderLookup.Provider p_324088_) {
-+        save(p_77758_, p_324088_, null).join();
-+    }
-+
-+    public java.util.concurrent.CompletableFuture<Void> save(File p_77758_, HolderLookup.Provider p_324088_, @org.jetbrains.annotations.Nullable java.util.concurrent.ExecutorService ioExecutor) {
-+        // Paper end - Write SavedData IO async
-         if (this.isDirty()) {
-             CompoundTag compoundtag = new CompoundTag();
+@@ -36,18 +_,26 @@
              compoundtag.put("data", this.save(new CompoundTag(), p_324088_));
              NbtUtils.addCurrentDataVersion(compoundtag);
  
--            try {
++            //copy the contents to handle mods that just append an existing Tag to the Compound
++            CompoundTag copied = compoundtag.copy();
++
++            net.neoforged.neoforge.common.IOUtilities.withIOWorker(()->{
+             try {
 -                NbtIo.writeCompressed(compoundtag, p_77758_.toPath());
--            } catch (IOException ioexception) {
--                LOGGER.error("Could not save data {}", this, ioexception);
--            }
-+            Runnable writeRunnable = () -> { // Paper - Write SavedData IO async
-+                try {
-+                    NbtIo.writeCompressed(compoundtag, p_77758_.toPath());
-+                } catch (IOException var5) {
-+                    LOGGER.error("Could not save data {}", this, var5);
-+                }
-+            }; // Paper - Write SavedData IO async
++                net.neoforged.neoforge.common.IOUtilities.writeNbtCompressed(copied, p_77758_.toPath());
+             } catch (IOException ioexception) {
+                 LOGGER.error("Could not save data {}", this, ioexception);
+             }
++            });
  
              this.setDirty(false);
-+            // Paper start - Write SavedData IO async
-+            if (ioExecutor == null) {
-+                return java.util.concurrent.CompletableFuture.runAsync(writeRunnable); // No executor, just use common pool
-+            }
-+            // Check if the actuator has been terminated
-+            if (ioExecutor.isShutdown() || ioExecutor.isTerminated()) {
-+                // Writes are performed synchronously when the executor is unavailable
-+                writeRunnable.run();
-+            } else {
-+                return java.util.concurrent.CompletableFuture.runAsync(writeRunnable, ioExecutor);
-+            }
          }
-+        return java.util.concurrent.CompletableFuture.completedFuture(null);
-+        // Paper end - Write SavedData IO async
      }
  
      public static record Factory<T extends SavedData>(

@@ -675,7 +675,8 @@
 +            this.damageContainers.peek().setNewDamage(p_21017_); //update container with vanilla changes
              this.walkAnimation.setSpeed(1.5F);
              boolean flag1 = true;
-             if ((float)this.invulnerableTime > 10.0F && !p_21016_.is(DamageTypeTags.BYPASSES_COOLDOWN)) {
+-            if ((float)this.invulnerableTime > 10.0F && !p_21016_.is(DamageTypeTags.BYPASSES_COOLDOWN)) {
++            if ((float) this.invulnerableTime > (float) this.invulnerableDuration / 2.0F && !p_21016_.is(DamageTypeTags.BYPASSES_COOLDOWN)) { // CraftBukkit - restore use of maxNoDamageTicks
                  if (p_21017_ <= this.lastHurt) {
 +                    this.damageContainers.pop();
                      return false;
@@ -1002,7 +1003,7 @@
      }
  
      @Override
-@@ -1558,6 +_,11 @@
+@@ -1558,12 +_,22 @@
  
      @Override
      public boolean causeFallDamage(float p_147187_, float p_147188_, DamageSource p_147189_) {
@@ -1014,6 +1015,18 @@
          boolean flag = super.causeFallDamage(p_147187_, p_147188_, p_147189_);
          int i = this.calculateFallDamage(p_147187_, p_147188_);
          if (i > 0) {
++            // CraftBukkit start
++            if (!this.hurt(p_147189_, (float) i)) {
++                return true;
++            }
++            // CraftBukkit end
+             this.playSound(this.getFallDamageSound(i), 1.0F, 1.0F);
+             this.playBlockFallSound();
+-            this.hurt(p_147189_, (float)i);
++            // this.hurt(p_147189_, (float)i); // CraftBukkit - moved up
+             return true;
+         } else {
+             return flag;
 @@ -1585,9 +_,10 @@
              int i = Mth.floor(this.getX());
              int j = Mth.floor(this.getY() - 0.2F);
@@ -1036,16 +1049,19 @@
              for (EquipmentSlot equipmentslot : p_331314_) {
                  ItemStack itemstack = this.getItemBySlot(equipmentslot);
                  if (itemstack.getItem() instanceof ArmorItem && itemstack.canBeHurtBy(p_330843_)) {
-@@ -1625,7 +_,7 @@
+@@ -1625,9 +_,9 @@
          }
      }
  
 -    protected float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) {
 +    public float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) {
          if (!p_21162_.is(DamageTypeTags.BYPASSES_ARMOR)) {
-             this.hurtArmor(p_21162_, p_21163_);
+-            this.hurtArmor(p_21162_, p_21163_);
++            // this.hurtArmor(p_21162_, p_21163_); // CraftBukkit - actuallyHurt(DamageSource, float, EntityDamageEvent) for handle damage
              p_21163_ = CombatRules.getDamageAfterAbsorb(
-@@ -1636,7 +_,7 @@
+                 this, p_21163_, p_21162_, (float)this.getArmorValue(), (float)this.getAttributeValue(Attributes.ARMOR_TOUGHNESS)
+             );
+@@ -1636,11 +_,12 @@
          return p_21163_;
      }
  
@@ -1054,6 +1070,12 @@
          if (p_21193_.is(DamageTypeTags.BYPASSES_EFFECTS)) {
              return p_21194_;
          } else {
+-            if (this.hasEffect(MobEffects.DAMAGE_RESISTANCE) && !p_21193_.is(DamageTypeTags.BYPASSES_RESISTANCE)) {
++            // CraftBukkit - Moved to handleEntityDamage(DamageSource, float)
++            if (false && this.hasEffect(MobEffects.DAMAGE_RESISTANCE) && !p_21193_.is(DamageTypeTags.BYPASSES_RESISTANCE)) {
+                 int i = (this.getEffect(MobEffects.DAMAGE_RESISTANCE).getAmplifier() + 1) * 5;
+                 int j = 25 - i;
+                 float f = p_21194_ * (float)j;
 @@ -1648,6 +_,7 @@
                  p_21194_ = Math.max(f / 25.0F, 0.0F);
                  float f2 = f1 - p_21194_;
@@ -1464,53 +1486,6 @@
          if (!this.level().isClientSide) {
 +            if (flag != this.getSharedFlag(7) && !CraftEventFactory.callToggleGlideEvent(this, flag).isCancelled()) // CraftBukkit
              this.setSharedFlag(7, flag);
-         }
-     }
-@@ -2748,28 +_,25 @@
- 
-     protected void pushEntities() {
-         if (this.level().isClientSide()) {
--            this.level().getEntities(EntityTypeTest.forClass(Player.class), this.getBoundingBox(), EntitySelector.pushableBy(this)).forEach(this::doPush);
-+            final List<Player> players = this.level().getEntitiesOfClass(Player.class, this.getBoundingBox(), EntitySelector.pushableBy(this));
-+            for (int i = 0, len = players.size(); i < len; ++i) {
-+                this.doPush(players.get(i));
-+            }
-         } else {
--            List<Entity> list = this.level().getEntities(this, this.getBoundingBox(), EntitySelector.pushableBy(this));
--            if (!list.isEmpty()) {
--                int i = this.level().getGameRules().getInt(GameRules.RULE_MAX_ENTITY_CRAMMING);
--                if (i > 0 && list.size() > i - 1 && this.random.nextInt(4) == 0) {
--                    int j = 0;
--
--                    for (Entity entity : list) {
--                        if (!entity.isPassenger()) {
--                            j++;
--                        }
--                    }
--
--                    if (j > i - 1) {
--                        this.hurt(this.damageSources().cramming(), 6.0F);
--                    }
--                }
--
--                for (Entity entity1 : list) {
--                    this.doPush(entity1);
--                }
-+            final List<Entity> nearby = this.level().getEntities(this, this.getBoundingBox(), EntitySelector.pushableBy(this));
-+
-+            // only iterate ONCE
-+            int nonPassengers = 0;
-+            for (int i = 0, len = nearby.size(); i < len; ++i) {
-+                final Entity entity = nearby.get(i);
-+                nonPassengers += (entity.isPassenger() ? 0 : 1);
-+                this.doPush(entity);
-+            }
-+
-+            int maxCramming;
-+            if (nonPassengers != 0 && (maxCramming = this.level().getGameRules().getInt(GameRules.RULE_MAX_ENTITY_CRAMMING)) > 0
-+                    && nonPassengers > (maxCramming - 1) && this.random.nextInt(4) == 0) {
-+                this.hurt(this.damageSources().cramming(), 6.0F);
-             }
          }
      }
 @@ -2812,7 +_,7 @@

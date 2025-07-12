@@ -1356,7 +1356,7 @@ public final class CraftServer implements Server {
         internal.setSpawnSettings(true, true);
         ChunkProgressListener mohist$progressListener = this.console.progressListenerFactory.create(11);
         this.getServer().prepareLevels(mohist$progressListener, internal);
-        // Paper - rewrite chunk system
+        internal.entityManager.tick(); // SPIGOT-6526: Load pending entities so they are available to the API
 
         this.pluginManager.callEvent(new WorldLoadEvent(internal.getWorld()));
         World world1 = internal.getWorld();
@@ -1403,7 +1403,7 @@ public final class CraftServer implements Server {
             }
 
             handle.getChunkSource().close(save);
-            // Paper - rewrite chunk system
+            handle.entityManager.close(save); // SPIGOT-6722: close entityManager
             handle.convertable.close();
         } catch (Exception ex) {
             this.getLogger().log(Level.SEVERE, null, ex);

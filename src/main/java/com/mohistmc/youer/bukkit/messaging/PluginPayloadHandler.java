@@ -7,6 +7,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.handling.IPayloadHandler;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+
 public record PluginPayloadHandler(PluginChannel channel,
                                    boolean verifyChannel) implements IPayloadHandler<PluginsDiscardedPayload> {
 

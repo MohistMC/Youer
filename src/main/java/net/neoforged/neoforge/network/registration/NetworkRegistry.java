@@ -9,12 +9,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.mohistmc.youer.bukkit.messaging.PluginsDiscardedPayload;
+import com.mohistmc.youer.bukkit.messaging.PluginsPayload;
 import com.mohistmc.youer.util.I18n;
 import com.mojang.logging.LogUtils;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -218,11 +218,8 @@ public class NetworkRegistry {
 
             // These two checks can only be hit on receipt of a payload, as senders will be checked before reaching this method.
             if (registration == null) {
-                if (flow == PacketFlow.CLIENTBOUND && ((StandardMessenger)Bukkit.getServer().getMessenger()).registry.containsKey(id)) {
-                 // return PluginsDiscardedPayload.codec(id, 32767);
-                }
                 LOGGER.warn("No registration for payload {}; refusing to decode.", id);
-                return null;
+                return (flow == PacketFlow.CLIENTBOUND && ((StandardMessenger)Bukkit.getServer().getMessenger()).registry.containsKey(id)) ? PluginsPayload.dcodec(id, 32767) : null;
             }
 
             if (registration.flow().isPresent() && registration.flow().get() != flow) {
@@ -441,17 +438,20 @@ public class NetworkRegistry {
      * @throws UnsupportedOperationException if the packet may not be sent.
      */
     public static void checkPacket(Packet<?> packet, ServerCommonPacketListener listener) {
-        if (packet instanceof ClientboundCustomPayloadPacket customPayloadPacket) {
-            ResourceLocation id = customPayloadPacket.payload().type().id();
+        if (packet instanceof ClientboundCustomPayloadPacket(CustomPacketPayload payload)) {
+            if (payload instanceof PluginsPayload) {
+               return;
+            }
+            ResourceLocation id = payload.type().id();
             if (BUILTIN_PAYLOADS.containsKey(id) || "minecraft".equals(id.getNamespace())) {
                 return;
             }
 
-            if (hasChannel(listener, customPayloadPacket.payload().type().id())) {
+            if (hasChannel(listener, payload.type().id())) {
                 return;
             }
 
-            throw new UnsupportedOperationException("Payload %s may not be sent to the client!".formatted(customPayloadPacket.payload().type().id()));
+            throw new UnsupportedOperationException("Payload %s may not be sent to the client!".formatted(payload.type().id()));
         }
     }
 

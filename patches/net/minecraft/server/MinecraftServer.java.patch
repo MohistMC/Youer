@@ -488,27 +488,16 @@
      }
  
      public GameType getDefaultGameType() {
-@@ -537,28 +_,41 @@
-     public abstract boolean shouldRconBroadcast();
+@@ -541,7 +_,7 @@
  
-     public boolean saveAllChunks(boolean p_129886_, boolean p_129887_, boolean p_129888_) {
-+        // Paper start - add close param
-+        return this.saveAllChunks(p_129886_, p_129887_, p_129888_, false);
-+    }
-+    public boolean saveAllChunks(boolean p_129886_, boolean p_129887_, boolean p_129888_, boolean close) {
-+        // Paper end - add close param boolean flag = false;
-         boolean flag = false;
--
          for (ServerLevel serverlevel : this.getAllLevels()) {
              if (!p_129886_) {
 -                LOGGER.info("Saving chunks for level '{}'/{}", serverlevel, serverlevel.dimension().location());
 +                LOGGER.info(I18n.as("minecraftserver.5", serverlevel, serverlevel.dimension().location()));
              }
  
--            serverlevel.save(null, p_129887_, serverlevel.noSave && !p_129888_);
-+            serverlevel.save(null, p_129887_, serverlevel.noSave && !p_129888_, close);
-             flag = true;
-         }
+             serverlevel.save(null, p_129887_, serverlevel.noSave && !p_129888_);
+@@ -550,15 +_,24 @@
  
          ServerLevel serverlevel2 = this.overworld();
          ServerLevelData serverleveldata = this.worldData.overworldData();
@@ -837,7 +826,7 @@
      }
  
      @Override
-@@ -900,24 +_,57 @@
+@@ -900,12 +_,26 @@
  
      public void tickServer(BooleanSupplier p_129871_) {
          long i = Util.getNanos();
@@ -864,37 +853,11 @@
          }
  
          this.ticksUntilAutosave--;
--        if (this.ticksUntilAutosave <= 0) {
--            this.ticksUntilAutosave = this.computeNextAutosaveInterval();
--            LOGGER.debug("Autosave started");
--            this.profiler.push("save");
--            this.saveEverything(true, false, false);
--            this.profiler.pop();
--            LOGGER.debug("Autosave finished");
--        }
+@@ -917,7 +_,12 @@
+             this.profiler.pop();
+             LOGGER.debug("Autosave finished");
+         }
 -
-+        // Paper start - Incremental chunk and player saving
-+        int playerSaveInterval = io.papermc.paper.configuration.GlobalConfiguration.get().playerAutoSave.rate;
-+        if (playerSaveInterval < 0) {
-+            playerSaveInterval = autosavePeriod;
-+        }
-+        this.profiler.push("save");
-+        final boolean fullSave = autosavePeriod > 0 && this.tickCount % autosavePeriod == 0;
-+        try {
-+            this.isSaving = true;
-+            if (playerSaveInterval > 0) {
-+                this.playerList.saveAll(playerSaveInterval);
-+            }
-+            for (ServerLevel level : this.getAllLevels()) {
-+                if (level.paperConfig().chunks.autoSaveInterval.value() > 0) {
-+                    level.saveIncrementally(fullSave);
-+                }
-+            }
-+        } finally {
-+            this.isSaving = false;
-+        }
-+        this.profiler.pop();
-+        // Paper end - Incremental chunk and player saving
 +        this.runAllTasks();
 +        // Paper start - Server Tick Events
 +        long endTime = System.nanoTime();
@@ -961,7 +924,7 @@
              ObjectArrayList<GameProfile> objectarraylist = new ObjectArrayList<>(j);
              int k = Mth.nextInt(this.random, 0, list.size() - j);
  
-@@ -992,19 +_,61 @@
+@@ -992,19 +_,62 @@
  
      public void tickChildren(BooleanSupplier p_129954_) {
          this.getPlayerList().getPlayers().forEach(p_341570_ -> p_341570_.connection.suspendFlushing());
@@ -1011,6 +974,7 @@
 +        // Paper end - Perf: Optimize time updates
 +        for(ServerLevel serverlevel : this.getWorldArray()) {
 +            long tickStart = Util.getNanos();
++            serverlevel.hasEntityMoveEvent = io.papermc.paper.event.entity.EntityMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - Add EntityMoveEvent
              this.profiler.push(() -> serverlevel + " " + serverlevel.dimension().location());
 +            /* Drop global time updates
              if (this.tickCount % 20 == 0) {

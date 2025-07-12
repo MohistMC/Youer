@@ -27,14 +27,6 @@
  
  public abstract class Mob extends LivingEntity implements EquipmentUser, Leashable, Targeting {
      private static final EntityDataAccessor<Byte> DATA_MOB_FLAGS_ID = SynchedEntityData.defineId(Mob.class, EntityDataSerializers.BYTE);
-@@ -111,6 +_,7 @@
-     private final BodyRotationControl bodyRotationControl;
-     protected PathNavigation navigation;
-     public GoalSelector goalSelector;
-+    @Nullable public net.minecraft.world.entity.ai.goal.FloatGoal goalFloat; // Paper - Allow nerfed mobs to jump and float
-     public GoalSelector targetSelector;
-     @Nullable
-     private LivingEntity target;
 @@ -131,6 +_,10 @@
      private Leashable.LeashData leashData;
      private BlockPos restrictCenter = BlockPos.ZERO;
@@ -241,19 +233,11 @@
                      this.discard();
                  } else if (d0 < (double)l) {
                      this.noActionTime = 0;
-@@ -729,6 +_,15 @@
+@@ -729,6 +_,7 @@
      @Override
      protected final void serverAiStep() {
          this.noActionTime++;
-+        // Paper start - Allow nerfed mobs to jump and float
-+        if (!this.aware) {
-+            if (goalFloat != null) {
-+                if (goalFloat.canUse()) goalFloat.tick();
-+                this.getJumpControl().tick();
-+            }
-+            return;
-+        }
-+               // Paper end - Allow nerfed mobs to jump and float
++        if (!this.aware) return; // CraftBukkit
          ProfilerFiller profilerfiller = this.level().getProfiler();
          profilerfiller.push("sensing");
          this.sensing.tick();

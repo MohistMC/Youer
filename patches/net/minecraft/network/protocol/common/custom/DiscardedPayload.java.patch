@@ -1,8 +1,9 @@
 --- a/net/minecraft/network/protocol/common/custom/DiscardedPayload.java
 +++ b/net/minecraft/network/protocol/common/custom/DiscardedPayload.java
-@@ -1,25 +_,66 @@
+@@ -1,25 +_,54 @@
  package net.minecraft.network.protocol.common.custom;
  
++import com.mohistmc.youer.bukkit.messaging.PluginsPayload;
 +import io.netty.buffer.ByteBuf;
 +import java.util.Objects;
  import net.minecraft.network.FriendlyByteBuf;
@@ -12,9 +13,25 @@
  import net.minecraft.resources.ResourceLocation;
 -
 -public record DiscardedPayload(ResourceLocation id) implements CustomPacketPayload {
+-    public static <T extends FriendlyByteBuf> StreamCodec<T, DiscardedPayload> codec(ResourceLocation p_320106_, int p_319929_) {
+-        return CustomPacketPayload.codec((p_320462_, p_319882_) -> {
+-        }, p_319935_ -> {
+-            int i = p_319935_.readableBytes();
+-            if (i >= 0 && i <= p_319929_) {
+-                p_319935_.skipBytes(i);
+-                return new DiscardedPayload(p_320106_);
+-            } else {
+-                throw new IllegalArgumentException("Payload may not be larger than " + p_319929_ + " bytes");
+-            }
+-        });
+-    }
+-
+-    @Override
+-    public CustomPacketPayload.Type<DiscardedPayload> type() {
+-        return new CustomPacketPayload.Type<>(this.id);
 +import org.spongepowered.asm.mixin.Unique;
 +
-+public final class DiscardedPayload implements CustomPacketPayload {
++public final class DiscardedPayload implements CustomPacketPayload, PluginsPayload {
 +    private final ResourceLocation id;
 +
 +    public DiscardedPayload(ResourceLocation id) {
@@ -29,36 +46,11 @@
 +    }
 +    // CraftBukkit - store data
 +
-     public static <T extends FriendlyByteBuf> StreamCodec<T, DiscardedPayload> codec(ResourceLocation p_320106_, int p_319929_) {
--        return CustomPacketPayload.codec((p_320462_, p_319882_) -> {
--        }, p_319935_ -> {
--            int i = p_319935_.readableBytes();
--            if (i >= 0 && i <= p_319929_) {
--                p_319935_.skipBytes(i);
--                return new DiscardedPayload(p_320106_);
--            } else {
--                throw new IllegalArgumentException("Payload may not be larger than " + p_319929_ + " bytes");
-+        return CustomPacketPayload.codec(new StreamMemberEncoder<T, DiscardedPayload>() {
-+            @Override
-+            public void encode(DiscardedPayload p_320462_, T p_319882_) {
-+                p_319882_.writeBytes(p_320462_.data);
-+            }
-+        }, new StreamDecoder<T, DiscardedPayload>() {
-+            @Override
-+            public DiscardedPayload decode(T p_319935_) {
-+                int i = p_319935_.readableBytes();
-+                if (i >= 0 && i <= p_319929_) {
-+                    return new DiscardedPayload(p_320106_, p_319935_.readBytes(i));
-+                } else {
-+                    throw new IllegalArgumentException("Payload may not be larger than " + p_319929_ + " bytes");
-+                }
-             }
-         });
-     }
- 
-     @Override
--    public CustomPacketPayload.Type<DiscardedPayload> type() {
--        return new CustomPacketPayload.Type<>(this.id);
++    public static <T extends FriendlyByteBuf> StreamCodec<T, CustomPacketPayload> codec(ResourceLocation p_320106_, int p_319929_) {
++        return PluginsPayload.dcodec(p_320106_, p_319929_);
++    }
++
++    @Override
 +    public Type<DiscardedPayload> type() {
 +        return new Type<>(this.id);
 +    }
@@ -71,10 +63,12 @@
 +        return data;
 +    }
 +
++    @Override
 +    public ByteBuf getData() {
 +        return data();
 +    }
 +
++    @Override
 +    public void setData(ByteBuf data) {
 +        this.data = data;
      }

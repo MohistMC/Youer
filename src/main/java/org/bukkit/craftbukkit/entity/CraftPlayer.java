@@ -2171,8 +2171,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void sendPluginMessage(Plugin source, String channel, byte[] message) {
-        if (channel.toLowerCase(Locale.ROOT).contains("bungeecord")) return;
-        if (YouerConfig.pluginchannel_debug) System.out.println("Plugin message from " + channel + ": " + Arrays.toString(message));
+        if (YouerConfig.pluginchannel_debug) System.out.println("Plugin message from " + channel + ": " + new String( message, StandardCharsets.UTF_8));
         StandardMessenger.validatePluginMessage(this.server.getMessenger(), source, channel, message);
         if (this.getHandle().connection == null) return;
 

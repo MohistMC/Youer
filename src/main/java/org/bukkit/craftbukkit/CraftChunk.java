@@ -82,12 +82,6 @@ public class CraftChunk implements Chunk {
     }
 
     public ChunkAccess getHandle(ChunkStatus chunkStatus) {
-        // Paper start - rewrite chunk system
-        net.minecraft.world.level.chunk.LevelChunk full = this.worldServer.getChunkIfLoaded(this.x, this.z);
-        if (full != null) {
-            return full;
-        }
-        // Paper end - rewrite chunk system
         ChunkAccess chunkAccess = this.worldServer.getChunk(this.x, this.z, chunkStatus);
 
         // SPIGOT-7332: Get unwrapped extension
@@ -122,7 +116,7 @@ public class CraftChunk implements Chunk {
 
     @Override
     public boolean isEntitiesLoaded() {
-        return this.getCraftWorld().getHandle().areEntitiesLoaded(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(this.x, this.z)); // Paper - rewrite chunk system
+        return this.getCraftWorld().getHandle().entityManager.areEntitiesLoaded(ChunkPos.asLong(this.x, this.z));
     }
 
     @Override

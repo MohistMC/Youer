@@ -1,17 +1,9 @@
 --- a/net/minecraft/util/worldupdate/WorldUpgrader.java
 +++ b/net/minecraft/util/worldupdate/WorldUpgrader.java
-@@ -110,7 +_,14 @@
-         new WorldUpgrader.PoiUpgrader().upgrade();
+@@ -111,6 +_,7 @@
          LOGGER.info("Upgrading blocks");
          new WorldUpgrader.ChunkUpgrader().upgrade();
--        this.overworldDataStorage.save();
-+        // Paper start - Write SavedData IO async
-+        try {
-+            this.overworldDataStorage.close();
-+        } catch (final IOException e) {
-+            LOGGER.error("Failed to close persistent world data", e);
-+        }
-+        // Paper end - Write SavedData IO async
+         this.overworldDataStorage.save();
 +        net.neoforged.neoforge.common.IOUtilities.waitUntilIOWorkerComplete();
          i = Util.getMillis() - i;
          LOGGER.info("World optimizaton finished after {} seconds", i / 1000L);

@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.Getter;
 import net.minecraft.network.ConnectionProtocol;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -18,15 +19,18 @@ public class PluginChannel {
 
     public static AtomicBoolean pliuginChannel = new AtomicBoolean(false);
     public static final List<ConnectionProtocol> PROTOCOLS = List.of(ConnectionProtocol.CONFIGURATION, ConnectionProtocol.PLAY);
+    @Getter
     private final CustomPacketPayload.Type<PluginsDiscardedPayload> type;
+    @Getter
     private final StreamCodec<? super FriendlyByteBuf, PluginsDiscardedPayload> streamCodec;
     private final PluginPayloadHandler handler;
     private final Set<PluginMessageListenerRegistration> incoming;
+    @Getter
     private final Set<Plugin> outgoing;
 
     public PluginChannel(boolean verifyChannel, ResourceLocation channel, Set<PluginMessageListenerRegistration> incoming, Set<Plugin> outgoing) {
         this.type = PluginsDiscardedPayload.getType(channel);
-        this.streamCodec = PluginsDiscardedPayload.codec(this.type, 32767);
+        this.streamCodec = PluginsPayload.codec(this.type, 32767);
         this.handler = new PluginPayloadHandler(this, verifyChannel);
         this.incoming = Collections.unmodifiableSet(incoming);
         this.outgoing = Collections.unmodifiableSet(outgoing);
@@ -45,20 +49,8 @@ public class PluginChannel {
         return handler;
     }
 
-    public Set<Plugin> getOutgoing() {
-        return outgoing;
-    }
-
     public ResourceLocation getChannel() {
         return type.id();
-    }
-
-    public CustomPacketPayload.Type<PluginsDiscardedPayload> getType() {
-        return type;
-    }
-
-    public StreamCodec<? super FriendlyByteBuf, PluginsDiscardedPayload> getStreamCodec() {
-        return streamCodec;
     }
 
     public void dispatchMessage(Player src, byte[] message) {

@@ -1,10 +1,8 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,7 +_,13 @@
+@@ -1,7 +_,11 @@
  package net.minecraft.server.level;
  
-+import ca.spottedleaf.concurrentutil.util.Priority;
-+import ca.spottedleaf.moonrise.common.list.ReferenceList;
 +import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 +import com.mohistmc.youer.plugins.world.utils.ConfigByWorlds;
 +import com.mohistmc.youer.util.Level2LevelStem;
@@ -46,7 +44,7 @@
  import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
  import net.minecraft.world.entity.npc.Npc;
  import net.minecraft.world.entity.player.Player;
-@@ -119,19 +_,23 @@
+@@ -119,9 +_,11 @@
  import net.minecraft.world.level.StructureManager;
  import net.minecraft.world.level.WorldGenLevel;
  import net.minecraft.world.level.biome.Biome;
@@ -58,11 +56,7 @@
  import net.minecraft.world.level.block.entity.TickingBlockEntity;
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.chunk.ChunkAccess;
- import net.minecraft.world.level.chunk.ChunkGenerator;
- import net.minecraft.world.level.chunk.LevelChunk;
- import net.minecraft.world.level.chunk.LevelChunkSection;
-+import net.minecraft.world.level.chunk.PalettedContainer;
- import net.minecraft.world.level.chunk.storage.EntityStorage;
+@@ -132,6 +_,7 @@
  import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
  import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
  import net.minecraft.world.level.dimension.BuiltinDimensionTypes;
@@ -461,101 +455,46 @@
          this.getProfiler().pop();
  
          for (Entity entity : p_8648_.getPassengers()) {
-@@ -789,33 +_,85 @@
-         return !this.server.isUnderSpawnProtection(this, p_8697_, p_8696_) && this.getWorldBorder().isWithinBounds(p_8697_);
-     }
- 
-+    // Paper start - Incremental chunk and player saving
-+    public void saveIncrementally(boolean doFull) {
-+        ServerChunkCache chunkproviderserver = this.getChunkSource();
-+
-+        if (doFull) {
-+            org.bukkit.Bukkit.getPluginManager().callEvent(new org.bukkit.event.world.WorldSaveEvent(getWorld()));
-+        }
-+
-+        if (doFull) {
-+            this.saveLevelData(true);
-+        }
-+
-+        // chunk autosave is already called by the ChunkSystem during unload processing (ChunkMap#processUnloads)
-+
-+        // Copied from save()
-+        // CraftBukkit start - moved from MinecraftServer.saveChunks
-+        if (doFull) { // Paper
-+            ServerLevel worldserver1 = this;
-+
-+            this.K.setWorldBorder(worldserver1.getWorldBorder().createSettings());
-+            this.K.setCustomBossEvents(this.server.getCustomBossEvents().save(this.registryAccess()));
-+            this.convertable.saveDataTag(this.server.registryAccess(), this.K, this.server.getPlayerList().getSingleplayerData());
-+        }
-+        // CraftBukkit end
-+
-+    }
-+    // Paper end - Incremental chunk and player saving
-+
+@@ -792,6 +_,7 @@
      public void save(@Nullable ProgressListener p_8644_, boolean p_8645_, boolean p_8646_) {
-+        // Paper start - add close param
-+        this.save(p_8644_, p_8645_, p_8646_, false);
-+    }
-+    public void save(@Nullable ProgressListener p_8644_, boolean p_8645_, boolean p_8646_, boolean close) {
-+        // Paper end - add close param
          ServerChunkCache serverchunkcache = this.getChunkSource();
          if (!p_8646_) {
 +            Bukkit.getPluginManager().callEvent(new WorldSaveEvent(getWorld())); // CraftBukkit
              if (p_8644_ != null) {
                  p_8644_.progressStartNoAbort(Component.translatable("menu.savingLevel"));
              }
- 
--            this.saveLevelData();
-+            this.saveLevelData(!close); // Paper - Write SavedData IO async
-             if (p_8644_ != null) {
-                 p_8644_.progressStage(Component.translatable("menu.savingChunks"));
+@@ -807,12 +_,30 @@
+             } else {
+                 this.entityManager.autoSave();
              }
- 
--            serverchunkcache.save(p_8645_);
--            if (p_8645_) {
--                this.entityManager.saveAll();
--            } else {
--                this.entityManager.autoSave();
-+            if (!close) {
-+                serverchunkcache.save(p_8645_);
-+            } // Paper - add close param
-+        }
-+        if (close) {
-+            try {
-+                serverchunkcache.close(!p_8646_);
-+            } catch (IOException never) {
-+                throw new RuntimeException(never);
-             }
++
++            // CraftBukkit start
++            ServerLevel worldserver1 = this;
++            if (worldserver1.getWorld().isBukkit() && worldserver1 != this.server.overworld()) {
++                this.K.setWorldBorder(worldserver1.getWorldBorder().createSettings());
++                this.K.setCustomBossEvents(this.server.getCustomBossEvents().save(this.registryAccess()));
++                this.convertable.saveDataTag(this.server.registryAccess(), this.K, this.server.getPlayerList().getSingleplayerData());
++            }
++            // CraftBukkit end
++
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.LevelEvent.Save(this));
++            if (p_8645_) {
++                net.neoforged.neoforge.common.IOUtilities.waitUntilIOWorkerComplete();
++            }
          }
-+
-+        // CraftBukkit start
-+        ServerLevel worldserver1 = this;
-+        if (worldserver1.getWorld().isBukkit() && worldserver1 != this.server.overworld()) {
-+            this.K.setWorldBorder(worldserver1.getWorldBorder().createSettings());
-+            this.K.setCustomBossEvents(this.server.getCustomBossEvents().save(this.registryAccess()));
-+            this.convertable.saveDataTag(this.server.registryAccess(), this.K, this.server.getPlayerList().getSingleplayerData());
-+        }
-+        // CraftBukkit end
-+
-+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.LevelEvent.Save(this));
-+        if (p_8645_) {
-+            net.neoforged.neoforge.common.IOUtilities.waitUntilIOWorkerComplete();
-+        }
      }
  
--    private void saveLevelData() {
-+    private void saveLevelData(boolean async) { // Paper - Write SavedData IO async
+     private void saveLevelData() {
          if (this.dragonFight != null) {
 -            this.server.getWorldData().setEndDragonFightData(this.dragonFight.saveData());
-+            this.K.setEndDragonFightData(this.dragonFight.saveData()); // CraftBukkit
++            if (K != null) {
++                this.K.setEndDragonFightData(this.dragonFight.saveData()); // CraftBukkit
++            } else {
++                this.server.getWorldData().setEndDragonFightData(this.dragonFight.saveData());
++            }
          }
  
--        this.getChunkSource().getDataStorage().save();
-+        this.getChunkSource().getDataStorage().save(async); // Paper - Write SavedData IO async
-     }
- 
-     public <T extends Entity> List<? extends T> getEntities(EntityTypeTest<Entity, T> p_143281_, Predicate<? super T> p_143282_) {
+         this.getChunkSource().getDataStorage().save();
 @@ -870,22 +_,45 @@
          return list.isEmpty() ? null : list.get(this.random.nextInt(list.size()));
      }
@@ -851,18 +790,6 @@
          this.getServer().overworld().getDataStorage().set(p_323697_.key(), p_143306_);
      }
  
-@@ -1385,6 +_,11 @@
-                     DebugPackets.sendPoiRemovedPacket(this, blockpos);
-                 }));
-             optional1.ifPresent(p_215057_ -> this.getServer().execute(() -> {
-+                    // Paper start - Remove stale POIs
-+                    if (optional.isEmpty() && this.getPoiManager().exists(blockpos, poiType -> true)) {
-+                        this.getPoiManager().remove(blockpos);
-+                    }
-+                    // Paper end - Remove stale POIs
-                     this.getPoiManager().add(blockpos, (Holder<PoiType>)p_215057_);
-                     DebugPackets.sendPoiAddedPacket(this, blockpos);
-                 }));
 @@ -1525,6 +_,11 @@
      @Override
      public void blockUpdated(BlockPos p_8743_, Block p_8744_) {
@@ -890,16 +817,7 @@
      }
  
      @Nullable
-@@ -1696,7 +_,7 @@
-         }
- 
-         public void onTrackingStart(Entity p_143371_) {
--            ServerLevel.this.getChunkSource().addEntity(p_143371_);
-+            // ServerLevel.this.getChunkSource().addEntity(p_143371_); // Paper - ignore and warn about illegal addEntity calls instead of crashing server; moved down below valid=true
-             if (p_143371_ instanceof ServerPlayer serverplayer) {
-                 ServerLevel.this.players.add(serverplayer);
-                 ServerLevel.this.updateSleepingPlayerList();
-@@ -1713,16 +_,58 @@
+@@ -1713,16 +_,57 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -914,7 +832,6 @@
              p_143371_.updateDynamicGameEventListener(DynamicGameEventListener::add);
 +            p_143371_.inWorld = true; // CraftBukkit - Mark entity as in world
 +            p_143371_.valid = true; // CraftBukkit
-+            ServerLevel.this.getChunkSource().addEntity(p_143371_); // Paper - ignore and warn about illegal addEntity calls instead of crashing server
 +            // Paper start - Entity origin API
 +            if (p_143371_.getOriginVector() == null) {
 +                p_143371_.setOrigin(p_143371_.getBukkitEntity().getLocation());
