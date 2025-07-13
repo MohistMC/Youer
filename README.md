@@ -56,21 +56,13 @@
 | PurPur      | [GitHub](https://github.com/PurpurMC/Purpur.git)                    | Plugin support | 🔄     |
 | Arclight    | [GitHub](https://github.com/IzzelAliz/Arclight.git)                 | Remapping      | ✅      |
 
-## 💖 Sponsors & Supporters
+## 💖 Special Thanks To:
+-------------
 
-<div align="center">
-  <a href="https://www.bisecthosting.com/mohistmc">
-    <img src="https://www.bisecthosting.com/partners/custom-banners/118608b8-6e45-4301-b244-41934cdac6d1.png" alt="BisectHosting" width="500">
-  </a>
+[![YourKit-Logo](https://www.yourkit.com/images/yklogo.png)](https://www.yourkit.com/)
 
-<br/><br/>
+[YourKit](https://www.yourkit.com/), makers of the outstanding java profiler, support open source projects of all kinds with their full featured [Java](https://www.yourkit.com/java/profiler) and [.NET](https://www.yourkit.com/.net/profiler) application profilers. We thank them for granting MohistMC an OSS license so that we can make our software the best it can be.
 
-  <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
-    <a href="https://www.yourkit.com/">
-      <img src="https://www.yourkit.com/images/yklogo.png" alt="YourKit" width="100">
-    </a>
-    <a href="https://www.jetbrains.com/">
-      <img src="https://user-images.githubusercontent.com/21148213/121807008-8ffc6700-cc52-11eb-96a7-2f6f260f8fda.png" alt="JetBrains" width="100">
-    </a>
-  </div>
-</div>
+[<img src="https://user-images.githubusercontent.com/21148213/121807008-8ffc6700-cc52-11eb-96a7-2f6f260f8fda.png" alt="" width="150">](https://www.jetbrains.com)
+
+[JetBrains](https://www.jetbrains.com/), creators of the IntelliJ IDEA, supports MohistMC with one of their [Open Source Licenses](https://www.jetbrains.com/opensource/). IntelliJ IDEA is the recommended IDE for working with MohistMC, and most of the MohistMC team uses it.
