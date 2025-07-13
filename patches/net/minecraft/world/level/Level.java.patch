@@ -233,23 +233,10 @@
      public boolean isInWorldBounds(BlockPos p_46740_) {
          return !this.isOutsideBuildHeight(p_46740_) && isInWorldBoundsHorizontal(p_46740_);
      }
-@@ -188,7 +_,61 @@
-     }
+@@ -193,6 +_,53 @@
  
-     public LevelChunk getChunk(int p_46727_, int p_46728_) {
--        return (LevelChunk)this.getChunk(p_46727_, p_46728_, ChunkStatus.FULL);
-+        // Paper start - Perf: make sure loaded chunks get the inlined variant of this function
-+        net.minecraft.server.level.ServerChunkCache cps = ((ServerLevel)this).getChunkSource();
-+        LevelChunk ifLoaded = cps.getChunkAtIfLoadedImmediately(p_46727_, p_46728_);
-+        if (ifLoaded != null) {
-+            return ifLoaded;
-+        }
-+        return (LevelChunk) cps.getChunk(p_46727_, p_46728_, ChunkStatus.FULL, true); // Paper - avoid a method jump
-+        // Paper end - Perf: make sure loaded chunks get the inlined variant of this function
-+    }
-+
-+    @Nullable
-+    @Override
+     @Nullable
+     @Override
 +    public final ChunkAccess getChunkIfLoadedImmediately(int x, int z) {
 +        return ((ServerLevel)this).chunkSource.getChunkAtIfLoadedImmediately(x, z);
 +    }
@@ -293,9 +280,13 @@
 +    //  reduces need to do isLoaded before getType
 +    public final @Nullable BlockState getBlockStateIfLoadedAndInBounds(BlockPos blockposition) {
 +        return getWorldBorder().isWithinBounds(blockposition) ? getBlockStateIfLoaded(blockposition) : null;
-     }
- 
-     @Nullable
++    }
++
++    @Nullable
++    @Override
+     public ChunkAccess getChunk(int p_46502_, int p_46503_, ChunkStatus p_331611_, boolean p_46505_) {
+         ChunkAccess chunkaccess = this.getChunkSource().getChunk(p_46502_, p_46503_, p_331611_, p_46505_);
+         if (chunkaccess == null && p_46505_) {
 @@ -202,13 +_,33 @@
          }
      }

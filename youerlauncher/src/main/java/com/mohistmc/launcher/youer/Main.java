@@ -107,7 +107,7 @@ public class Main {
             forgeArgs.add(arg.split(" ")[0]);
             forgeArgs.add(arg.split(" ")[1]);
         }
-        new YouerModuleManager(DataParser.launchArgs);
+        YouerModuleManager.INSTANCE.init(DataParser.launchArgs);
 
         if (!MojangEulaUtil.hasAcceptedEULA()) {
             System.out.println(i18n.as("eula"));

@@ -201,61 +201,7 @@
          }
      }
  
-@@ -344,29 +_,47 @@
-     }
- 
-     private void doSendPacket(Packet<?> p_243260_, @Nullable PacketSendListener p_243290_, boolean p_294125_) {
--        ChannelFuture channelfuture = p_294125_ ? this.channel.writeAndFlush(p_243260_) : this.channel.write(p_243260_);
--        if (p_243290_ != null) {
--            channelfuture.addListener(p_243167_ -> {
--                if (p_243167_.isSuccess()) {
--                    p_243290_.onSuccess();
--                } else {
--                    Packet<?> packet = p_243290_.onFailure();
--                    if (packet != null) {
--                        ChannelFuture channelfuture1 = this.channel.writeAndFlush(packet);
--                        channelfuture1.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
-+        // Paper start - Optimize network
-+        final net.minecraft.server.level.ServerPlayer player = this.getPlayer();
-+        if (!this.isConnected()) {
-+            p_243260_.onPacketDispatchFinish(player, null);
-+            return;
-+        }
-+        try {
-+            // Paper end - Optimize network
-+            ChannelFuture channelfuture = p_294125_ ? this.channel.writeAndFlush(p_243260_) : this.channel.write(p_243260_);
-+            if (p_243290_ != null) {
-+                channelfuture.addListener(p_243167_ -> {
-+                    if (p_243167_.isSuccess()) {
-+                        p_243290_.onSuccess();
-+                    } else {
-+                        Packet<?> packet = p_243290_.onFailure();
-+                        if (packet != null) {
-+                            ChannelFuture channelfuture1 = this.channel.writeAndFlush(packet);
-+                            channelfuture1.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
-+                        }
-                     }
--                }
--            });
--        }
-+                });
-+            }
- 
--        channelfuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
-+            // Paper start - Optimize network
-+            if (p_243260_.hasFinishListener()) {
-+                channelfuture.addListener((ChannelFutureListener) channelFuture -> p_243260_.onPacketDispatchFinish(player, channelFuture));
-+            }
-+            channelfuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
-+        } catch (final Exception e) {
-+            LOGGER.error("NetworkException: {}", player, e);
-+            this.disconnect(Component.translatable("disconnect.genericReason", "Internal Exception: " + e.getMessage()));
-+            p_243260_.onPacketDispatchFinish(player, null);
-+        }
-+        // Paper end - Optimize network
-     }
- 
-     public void flushChannel() {
+@@ -366,7 +_,7 @@
          if (this.isConnected()) {
              this.flush();
          } else {
