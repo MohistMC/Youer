@@ -727,7 +727,7 @@
          if (!explosion.interactsWithBlocks()) {
              explosion.clearToBlow();
          }
-@@ -1196,14 +_,19 @@
+@@ -1196,14 +_,24 @@
      public <T extends ParticleOptions> int sendParticles(
          T p_8768_, double p_8769_, double p_8770_, double p_8771_, int p_8772_, double p_8773_, double p_8774_, double p_8775_, double p_8776_
      ) {
@@ -739,13 +739,20 @@
 +    }
 +
 +    public <T extends ParticleOptions> int sendParticles(ServerPlayer sender, T p_8768_, double p_8769_, double p_8770_, double p_8771_, int p_8772_, double p_8773_, double p_8774_, double p_8775_, double p_8776_, boolean force) {
++        // Paper start - Particle API
++        return sendParticles(players, sender, p_8768_, p_8769_, p_8770_, p_8771_, p_8772_, p_8773_, p_8774_, p_8775_, p_8776_, force);
++    }
++    public <T extends ParticleOptions> int sendParticles(List<ServerPlayer> receivers, @Nullable ServerPlayer sender, T p_8768_, double p_8769_, double p_8770_, double p_8771_, int p_8772_, double p_8773_, double p_8774_, double p_8775_, double p_8776_, boolean force) {
++        // Paper end - Particle API
 +        ClientboundLevelParticlesPacket clientboundlevelparticlespacket = new ClientboundLevelParticlesPacket( p_8768_, force, p_8769_, p_8770_, p_8771_, (float)p_8773_, (float)p_8774_, (float)p_8775_, (float)p_8776_, p_8772_);
 +        // CraftBukkit end
          int i = 0;
  
-         for (int j = 0; j < this.players.size(); j++) {
-             ServerPlayer serverplayer = this.players.get(j);
+-        for (int j = 0; j < this.players.size(); j++) {
+-            ServerPlayer serverplayer = this.players.get(j);
 -            if (this.sendParticles(serverplayer, false, p_8769_, p_8770_, p_8771_, clientboundlevelparticlespacket)) {
++        for (Player entityhuman : receivers) { // Paper - Particle API
++            ServerPlayer serverplayer = (ServerPlayer) entityhuman; // Paper - Particle API
 +            if (sender != null && !serverplayer.getBukkitEntity().canSee(sender.getBukkitEntity())) continue; // CraftBukkit
 +            if (this.sendParticles(serverplayer, force, p_8769_, p_8770_, p_8771_, clientboundlevelparticlespacket)) { // CraftBukkit
                  i++;

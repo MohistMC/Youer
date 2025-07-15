@@ -263,13 +263,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public Chunk getChunkAt(int x, int z) {
-        // Paper start - add ticket to hold chunk for a little while longer if plugin accesses it
-        net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
-        if (chunk == null) {
-            this.addTicket(x, z);
-            chunk = this.world.getChunkSource().getChunk(x, z, true);
-        }
-        // Paper end
+        net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk) this.world.getChunk(x, z, ChunkStatus.FULL, true);
         return new CraftChunk(chunk);
     }
 
@@ -388,24 +382,22 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public boolean refreshChunk(int x, int z) {
-        ChunkHolder playerChunk = this.world.getChunkSource().chunkMap.getVisibleChunkIfPresent(ChunkPos.asLong(x, z));
+        ChunkHolder playerChunk = this.world.getChunkSource().chunkMap.visibleChunkMap.get(ChunkPos.asLong(x, z));
         if (playerChunk == null) return false;
-        // Paper start - chunk system
-        net.minecraft.world.level.chunk.LevelChunk chunk = playerChunk.getChunkToSend();
-        if (chunk == null) {
-            return false;
-        }
-        // Paper end - chunk system
 
-        List<ServerPlayer> playersInRange = playerChunk.playerProvider.getPlayers(playerChunk.getPos(), false);
-        if (playersInRange.isEmpty()) return true; // Paper - chunk system
+        playerChunk.getTickingChunkFuture().thenAccept(either -> {
+            either.ifSuccess(chunk -> {
+                List<ServerPlayer> playersInRange = playerChunk.playerProvider.getPlayers(playerChunk.getPos(), false);
+                if (playersInRange.isEmpty()) return;
 
-        ClientboundLevelChunkWithLightPacket refreshPacket = new ClientboundLevelChunkWithLightPacket(chunk, this.world.getLightEngine(), null, null);
-        for (ServerPlayer player : playersInRange) {
-            if (player.connection == null) continue;
+                ClientboundLevelChunkWithLightPacket refreshPacket = new ClientboundLevelChunkWithLightPacket(chunk, this.world.getLightEngine(), null, null);
+                for (ServerPlayer player : playersInRange) {
+                    if (player.connection == null) continue;
 
-            player.connection.send(refreshPacket);
-        }
+                    player.connection.send(refreshPacket);
+                }
+            });
+        });
 
         return true;
     }
@@ -1966,13 +1958,27 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data, boolean force) {
+        // Paper start - Particle API
+        this.spawnParticle(particle, null, null, x, y, z, count, offsetX, offsetY, offsetZ, extra, data, force);
+    }
+    @Override
+    public <T> void spawnParticle(Particle particle, List<Player> receivers, Player sender, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data, boolean force) {
+        // Paper end - Particle API
+        data = CraftParticle.convertLegacy(data);
+        if (data != null) {
+            Preconditions.checkArgument(particle.getDataType().isInstance(data), "data (%s) should be %s", data.getClass(), particle.getDataType());
+        }
         this.getHandle().sendParticles(
+                receivers == null ? this.getHandle().players() : receivers.stream().map(player -> ((CraftPlayer) player).getHandle()).collect(java.util.stream.Collectors.toList()), // Paper -  Particle API
+                sender != null ? ((CraftPlayer) sender).getHandle() : null, // Sender // Paper - Particle API
                 CraftParticle.createParticleParam(particle, data), // Particle
                 x, y, z, // Position
                 count,  // Count
                 offsetX, offsetY, offsetZ, // Random offset
-                extra // Speed?
+                extra, // Speed?
+                force
         );
+
     }
 
     @Deprecated
@@ -2271,24 +2277,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
             }
         }
 
-        Priority priority;
-        if (urgent) {
-            priority = Priority.HIGHER;
-        } else {
-            priority = Priority.NORMAL;
-        }
-
         java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
 
-        /*
-        ca.spottedleaf.moonrise.common.util.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {
             net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
-                net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk)c;
+                net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
                 if (chunk != null) this.addTicket(x, z); // Paper
                 ret.complete(chunk == null ? null : new CraftChunk(chunk));
             });
-        });
-         */
 
         return ret;
     }

@@ -383,15 +383,6 @@
                  if (blockstate1 == p_46606_) {
                      if (blockstate != blockstate1) {
                          this.setBlocksDirty(p_46605_, blockstate, blockstate1);
-@@ -228,7 +_,7 @@
- 
-                     if ((p_46607_ & 2) != 0
-                         && (!this.isClientSide || (p_46607_ & 4) == 0)
--                        && (this.isClientSide || levelchunk.getFullStatus() != null && levelchunk.getFullStatus().isOrAfter(FullChunkStatus.BLOCK_TICKING))) {
-+                        && (this.isClientSide || levelchunk.getFullStatus() != null && levelchunk.getFullStatus().isOrAfter(FullChunkStatus.FULL))) {
-                         this.sendBlockUpdated(p_46605_, blockstate, p_46606_, p_46607_);
-                     }
- 
 @@ -247,12 +_,60 @@
                      }
  
@@ -488,7 +479,7 @@
      }
  
      public void updateNeighborsAtExceptFromFacing(BlockPos p_46591_, Block p_46592_, Direction p_46593_) {
-@@ -342,11 +_,20 @@
+@@ -342,6 +_,14 @@
  
      @Override
      public BlockState getBlockState(BlockPos p_46732_) {
@@ -503,14 +494,6 @@
          if (this.isOutsideBuildHeight(p_46732_)) {
              return Blocks.VOID_AIR.defaultBlockState();
          } else {
--            LevelChunk levelchunk = this.getChunk(SectionPos.blockToSectionCoord(p_46732_.getX()), SectionPos.blockToSectionCoord(p_46732_.getZ()));
--            return levelchunk.getBlockState(p_46732_);
-+            ChunkAccess chunk = this.getChunk(p_46732_.getX() >> 4, p_46732_.getZ() >> 4, ChunkStatus.FULL, true); // Paper - manually inline to reduce hops and avoid unnecessary null check to reduce total byte code size, this should never return null and if it does we will see it the next line but the real stack trace will matter in the chunk engine
-+
-+            return chunk.getBlockState(p_46732_);
-         }
-     }
- 
 @@ -489,10 +_,26 @@
          (this.tickingBlockEntities ? this.pendingBlockEntityTickers : this.blockEntityTickers).add(p_151526_);
      }
@@ -634,7 +617,7 @@
          explosion.explode();
          explosion.finalizeExplosion(p_312145_);
          return explosion;
-@@ -705,10 +_,20 @@
+@@ -705,10 +_,23 @@
      @Nullable
      @Override
      public BlockEntity getBlockEntity(BlockPos p_46716_) {
@@ -644,9 +627,12 @@
 +
 +    @Nullable
 +    public BlockEntity getBlockEntity(BlockPos p_46716_, boolean validate) {
-+        if (this.capturedTileEntities.containsKey(p_46716_)) {
-+            return this.capturedTileEntities.get(p_46716_);
++        // Paper start - Perf: Optimize capturedTileEntities lookup
++        net.minecraft.world.level.block.entity.BlockEntity blockEntity;
++        if (!this.capturedTileEntities.isEmpty() && (blockEntity = this.capturedTileEntities.get(p_46716_)) != null) {
++            return blockEntity;
 +        }
++        // Paper end - Perf: Optimize capturedTileEntities lookup
 +        // CraftBukkit end
          if (this.isOutsideBuildHeight(p_46716_)) {
              return null;

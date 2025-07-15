@@ -3131,6 +3131,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void setViewDistance(final int viewDistance) {
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
@@ -3149,5 +3150,6 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void setSendViewDistance(final int viewDistance) {
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }

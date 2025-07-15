@@ -1,15 +1,6 @@
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
-@@ -64,6 +_,8 @@
-     @Nullable
-     @VisibleForDebug
-     private NaturalSpawner.SpawnState lastSpawnState;
-+    // Paper start
-+    private final ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<net.minecraft.world.level.chunk.LevelChunk> fullChunks = new ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<>();
- 
-     public ServerChunkCache(
-         ServerLevel p_214982_,
-@@ -106,6 +_,25 @@
+@@ -106,6 +_,29 @@
          this.clearCache();
      }
  
@@ -29,7 +20,11 @@
 +
 +    @Nullable
 +    public LevelChunk getChunkAtIfLoadedImmediately(int x, int z) {
-+        return this.fullChunks.get(ChunkPos.asLong(x, z));
++        ChunkHolder chunk = this.chunkMap.getUpdatingChunkIfPresent(ChunkPos.asLong(x, z));
++        if (chunk == null) {
++            return null;
++        }
++        return chunk.getFullChunkNow() != null ? chunk.getFullChunkNow() : null;
 +    }
 +
      public ThreadedLevelLightEngine getLightEngine() {
@@ -51,6 +46,15 @@
              ChunkResult<ChunkAccess> chunkresult = completablefuture.join();
              ChunkAccess chunkaccess1 = chunkresult.orElse(null);
              if (chunkaccess1 == null && p_8363_) {
+@@ -167,7 +_,7 @@
+     @Nullable
+     @Override
+     public LevelChunk getChunkNow(int p_8357_, int p_8358_) {
+-        if (Thread.currentThread() != this.mainThread) {
++        if (!ca.spottedleaf.moonrise.common.util.TickThread.isTickThread()) {
+             return null;
+         } else {
+             this.level.getProfiler().incrementCounter("getChunkNow");
 @@ -184,6 +_,7 @@
              if (chunkholder == null) {
                  return null;

@@ -81,21 +81,6 @@
              return new ImposterProtoChunk((LevelChunk)chunkaccess, false);
          } else {
              ProtoChunk protochunk1 = (ProtoChunk)chunkaccess;
-@@ -254,6 +_,14 @@
- 
-             for (int j1 = 0; j1 < listtag4.size(); j1++) {
-                 CompoundTag compoundtag1 = listtag4.getCompound(j1);
-+
-+                // Paper start - do not read tile entities positioned outside the chunk
-+                BlockPos blockposition = BlockEntity.getPosFromTag(compoundtag1);
-+                if ((blockposition.getX() >> 4) != p_188233_.x || (blockposition.getZ() >> 4) != p_188233_.z) {
-+                    continue;
-+                }
-+                // Paper end - do not read tile entities positioned outside the chunk
-+
-                 chunkaccess.setBlockEntityNbt(compoundtag1);
-             }
- 
 @@ -264,11 +_,13 @@
                  protochunk1.setCarvingMask(generationstep$carving, new CarvingMask(compoundtag4.getLongArray(s1), chunkaccess.getMinBuildHeight()));
              }
@@ -110,7 +95,7 @@
          LOGGER.error("Recoverable errors when loading section [{}, {}, {}]: {}", p_188240_.x, p_188241_, p_188240_.z, p_188242_);
      }
  
-@@ -278,7 +_,16 @@
+@@ -278,6 +_,14 @@
          );
      }
  
@@ -123,10 +108,8 @@
 +    // CraftBukkit end
 +
      public static CompoundTag write(ServerLevel p_63455_, ChunkAccess p_63456_) {
-+
          ChunkPos chunkpos = p_63456_.getPos();
          CompoundTag compoundtag = NbtUtils.addCurrentDataVersion(new CompoundTag());
-         compoundtag.putInt("xPos", chunkpos.x);
 @@ -374,6 +_,11 @@
  
              compoundtag.put("CarvingMasks", compoundtag4);
