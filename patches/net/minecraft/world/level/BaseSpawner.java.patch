@@ -33,24 +33,26 @@
          if (this.isNearPlayer(p_151312_, p_151313_)) {
              if (this.spawnDelay == -1) {
                  this.delay(p_151312_, p_151313_);
-@@ -121,6 +_,21 @@
+@@ -121,6 +_,23 @@
                              continue;
                          }
  
-+                        // Paper start - PreCreatureSpawnEvent
-+                        io.papermc.paper.event.entity.PreCreatureSpawnEvent event = new io.papermc.paper.event.entity.PreCreatureSpawnEvent(
-+                                io.papermc.paper.util.MCUtil.toLocation(p_151312_, d0, d1, d2),
-+                                org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(optional.get()),
-+                                org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER
-+                        );
-+                        if (!event.callEvent()) {
-+                            flag = true;
-+                            if (event.shouldAbortSpawn()) {
-+                                break;
++                        {
++                            // Paper start - PreCreatureSpawnEvent
++                            io.papermc.paper.event.entity.PreCreatureSpawnEvent event = new io.papermc.paper.event.entity.PreCreatureSpawnEvent(
++                                    io.papermc.paper.util.MCUtil.toLocation(p_151312_, d0, d1, d2),
++                                    org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(optional.get()),
++                                    org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER
++                            );
++                            if (!event.callEvent()) {
++                                flag = true;
++                                if (event.shouldAbortSpawn()) {
++                                    break;
++                                }
++                                continue;
 +                            }
-+                            continue;
++                            // Paper end - PreCreatureSpawnEvent\
 +                        }
-+                        // Paper end - PreCreatureSpawnEvent
 +
                          Entity entity = EntityType.loadEntityRecursive(compoundtag, p_151312_, p_151310_ -> {
                              p_151310_.moveTo(d0, d1, d2, p_151310_.getYRot(), p_151310_.getXRot());
