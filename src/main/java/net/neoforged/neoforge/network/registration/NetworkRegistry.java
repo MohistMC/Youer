@@ -8,7 +8,6 @@ package net.neoforged.neoforge.network.registration;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.mohistmc.youer.bukkit.messaging.PluginsDiscardedPayload;
 import com.mohistmc.youer.bukkit.messaging.PluginsPayload;
 import com.mohistmc.youer.util.I18n;
 import com.mojang.logging.LogUtils;

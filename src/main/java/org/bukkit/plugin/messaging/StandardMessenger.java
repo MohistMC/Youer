@@ -591,9 +591,7 @@ public class StandardMessenger implements Messenger {
             } else {
                 registerOutgoingPluginChannel(src, location.toString());
             }
-            Youer.LOGGER.warn(I18n.as("plugin.unregistered_channel_warning"),
-                    name, location);
-            channel = registry.get(location);
+            Youer.LOGGER.warn(I18n.as("plugin.unregistered_channel_warning"), name, location);
         }
 
         if (src == null) {
