@@ -70,7 +70,7 @@ public class LanguageHook {
                 loaded++;
             } catch (Exception exception) {
                 try {
-                    modTable.putAll(I18nManager.loadTranslations(langName));
+                    modTable.putAll(I18nManager.loadTranslations("en_us"));
                     ResourceLocation langResource = ResourceLocation.fromNamespaceAndPath(namespace, langFile);
                     for (Resource resource : clientResources.getResourceStack(langResource)) {
                         try (InputStream stream = resource.open()) {
