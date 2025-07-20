@@ -62,7 +62,7 @@ public final class EntityScheduler {
     public void retire() {
         synchronized (this.stateLock) {
             if (this.tickCount == RETIRED_TICK_COUNT) {
-                throw new IllegalStateException("Already retired");
+                return;
             }
             this.tickCount = RETIRED_TICK_COUNT;
         }
@@ -143,7 +143,7 @@ public final class EntityScheduler {
         final List<ScheduledTask> toRun;
         synchronized (this.stateLock) {
             if (this.tickCount == RETIRED_TICK_COUNT) {
-                throw new IllegalStateException("Ticking retired scheduler");
+                return;
             }
             ++this.tickCount;
             if (this.oneTimeDelayed.isEmpty()) {
