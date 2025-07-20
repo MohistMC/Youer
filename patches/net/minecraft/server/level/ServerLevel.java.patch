@@ -156,7 +156,7 @@
      public ServerLevel(
          MinecraftServer p_214999_,
          Executor p_215000_,
-@@ -230,11 +_,67 @@
+@@ -230,11 +_,68 @@
              p_215007_,
              p_214999_.getMaxChainedNeighborUpdates()
          );
@@ -204,14 +204,15 @@
 +                chunkgenerator = new FlatLevelSource(cpf.settings(), worldChunkManager);
 +            }
 +        } else {
-+            biomeProvider = getCraftServer().getBiomeProvider(p_215002_.getLevelName());
++            biomeProvider = getCraftServer().getBiomeProvider(name);
 +        }
 +
 +        if (generator != null) {
 +            chunkgenerator = new CustomChunkGenerator(this, chunkgenerator, generator);
 +        } else {
-+            generator = getCraftServer().getGenerator(p_215002_.getLevelName());
++            generator = getCraftServer().getGenerator(name);
 +        }
++        this.world = new CraftWorld(this, generator, biomeProvider, environment);
 +        this.spigotConfig = new SpigotWorldConfig(name); // Spigot
 +        paperWorldConfigCreator = spigotConfig -> p_214999_.paperConfigurations.createWorldConfig(
 +                io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(
@@ -236,6 +237,17 @@
              flag,
              p_215005_,
              this.entityManager::updateChunkStatus,
+@@ -286,8 +_,8 @@
+             i,
+             datafixer
+         );
+-        this.structureManager = new StructureManager(this, p_214999_.getWorldData().worldGenOptions(), this.structureCheck);
+-        if (this.dimension() == Level.END && this.dimensionTypeRegistration().is(BuiltinDimensionTypes.END)) {
++        this.structureManager = new StructureManager(this, this.K.worldGenOptions(), this.structureCheck); // CraftBukkit
++        if (this.dimension() == Level.END && this.dimensionTypeRegistration().is(BuiltinDimensionTypes.END) || environment == org.bukkit.World.Environment.THE_END) { // CraftBukkit - Allow to create EnderDragonBattle in default and custom END
+             this.dragonFight = new EndDragonFight(this, i, p_214999_.getWorldData().endDragonFightData());
+         } else {
+             this.dragonFight = null;
 @@ -298,6 +_,17 @@
          this.randomSequences = Objects.requireNonNullElseGet(
              p_288977_, () -> this.getDataStorage().computeIfAbsent(RandomSequences.factory(i), "random_sequences")
@@ -245,12 +257,12 @@
 +        // Neo: Move the initialization of customSpawners to the end of costructor
 +        // Providing a fully initialized ServerLevel instance for the ServerLevelEvent.CustomSpawners
 +        this.customSpawners = net.neoforged.neoforge.event.EventHooks.getCustomSpawners(this, p_215008_);
-+        this.world = new CraftWorld(this, generator, biomeProvider, environment);
 +        this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
 +        if (K != null) {
 +            K.setWorld(this);
 +        }
 +        ConfigByWorlds.initMods(this);
++        Level.initCraftWorldData();
      }
  
      @Deprecated

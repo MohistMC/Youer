@@ -132,6 +132,7 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeGenerationSettings;
 import net.minecraft.world.level.biome.BiomeSpecialEffects;
 import net.minecraft.world.level.biome.MobSpawnSettings;
+import net.minecraft.world.level.block.BaseFireBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DispenserBlock;
@@ -658,6 +659,11 @@ public class CommonHooks {
                     int updateFlag = snap.getFlags();
                     BlockState oldBlock = snap.getState();
                     BlockState newBlock = level.getBlockState(snap.getPos());
+                    // Youer start
+                    if (newBlock.getBlock() instanceof BaseFireBlock ff ) {
+                        ff.onPlace$context = context;
+                    }
+                    // Youer end
                     newBlock.onPlace(level, snap.getPos(), oldBlock, false);
 
                     level.markAndNotifyBlock(snap.getPos(), level.getChunkAt(snap.getPos()), oldBlock, newBlock, updateFlag, 512);

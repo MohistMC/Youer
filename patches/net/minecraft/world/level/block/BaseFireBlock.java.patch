@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/BaseFireBlock.java
 +++ b/net/minecraft/world/level/block/BaseFireBlock.java
+@@ -11,6 +_,7 @@
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.context.BlockPlaceContext;
++import net.minecraft.world.item.context.UseOnContext;
+ import net.minecraft.world.level.BlockGetter;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.state.BlockBehaviour;
 @@ -18,6 +_,8 @@
  import net.minecraft.world.level.portal.PortalShape;
  import net.minecraft.world.phys.shapes.CollisionContext;
@@ -25,15 +33,25 @@
              }
          }
  
-@@ -143,6 +_,7 @@
+@@ -138,24 +_,32 @@
+         super.entityInside(p_49260_, p_49261_, p_49262_, p_49263_);
+     }
+ 
++
++    public UseOnContext onPlace$context;
+     @Override
+     protected void onPlace(BlockState p_49279_, Level p_49280_, BlockPos p_49281_, BlockState p_49282_, boolean p_49283_) {
          if (!p_49282_.is(p_49279_.getBlock())) {
              if (inPortalDimension(p_49280_)) {
                  Optional<PortalShape> optional = PortalShape.findEmptyPortalShape(p_49280_, p_49281_, Direction.Axis.X);
 +                optional = net.neoforged.neoforge.event.EventHooks.onTrySpawnPortal(p_49280_, p_49281_, optional);
                  if (optional.isPresent()) {
-                     optional.get().createPortalBlocks();
+-                    optional.get().createPortalBlocks();
++                    PortalShape portalShape = optional.get();
++                    portalShape.createPortalBlocks$Entity = (onPlace$context == null) ? null : onPlace$context.getPlayer();
++                    portalShape.createPortalBlocks();
                      return;
-@@ -150,7 +_,7 @@
+                 }
              }
  
              if (!p_49279_.canSurvive(p_49280_, p_49281_)) {
@@ -42,6 +60,14 @@
              }
          }
      }
+ 
+     private static boolean inPortalDimension(Level p_49249_) {
++        if (Boolean.parseBoolean("true")) {
++            return p_49249_.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.OVERWORLD || p_49249_.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER; // CraftBukkit - getTypeKey()
++        }
+         return p_49249_.dimension() == Level.OVERWORLD || p_49249_.dimension() == Level.NETHER;
+     }
+ 
 @@ -185,7 +_,7 @@
              boolean flag = false;
  
