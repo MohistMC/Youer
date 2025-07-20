@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -3,6 +_,8 @@
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.Maps;
+ import com.mojang.logging.LogUtils;
++import io.papermc.paper.event.server.ServerExceptionEvent;
++import io.papermc.paper.exception.ServerInternalException;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+ import java.util.Map;
 @@ -48,6 +_,7 @@
  import net.minecraft.world.level.material.Fluids;
  import net.minecraft.world.ticks.LevelChunkTicks;
@@ -283,7 +292,7 @@
      class BoundTickingBlockEntity<T extends BlockEntity> implements TickingBlockEntity {
          private final T blockEntity;
          private final BlockEntityTicker<T> ticker;
-@@ -679,6 +_,7 @@
+@@ -679,20 +_,24 @@
                  if (LevelChunk.this.isTicking(blockpos)) {
                      try {
                          ProfilerFiller profilerfiller = LevelChunk.this.level.getProfiler();
@@ -291,17 +300,42 @@
                          profilerfiller.push(this::getType);
                          BlockState blockstate = LevelChunk.this.getBlockState(blockpos);
                          if (this.blockEntity.getType().isValid(blockstate)) {
-@@ -700,7 +_,15 @@
+                             this.ticker.tick(LevelChunk.this.level, this.blockEntity.getBlockPos(), blockstate, this.blockEntity);
+                             this.loggedInvalidBlockState = false;
+-                        } else if (!this.loggedInvalidBlockState) {
+-                            this.loggedInvalidBlockState = true;
+-                            LevelChunk.LOGGER
+-                                .warn(
+-                                    "Block entity {} @ {} state {} invalid for ticking:",
+-                                    LogUtils.defer(this::getType),
+-                                    LogUtils.defer(this::getPos),
+-                                    blockstate
+-                                );
++                        } else {
++                            LevelChunk.this.removeBlockEntity(this.getPos());
++                            if (!this.loggedInvalidBlockState) {
++                                this.loggedInvalidBlockState = true;
++                                LevelChunk.LOGGER
++                                        .warn(
++                                                "Block entity {} @ {} state {} invalid for ticking:",
++                                                LogUtils.defer(this::getType),
++                                                LogUtils.defer(this::getPos),
++                                                blockstate
++                                        );
++                            }
+                         }
+ 
+                         profilerfiller.pop();
+@@ -700,7 +_,13 @@
                          CrashReport crashreport = CrashReport.forThrowable(throwable, "Ticking block entity");
                          CrashReportCategory crashreportcategory = crashreport.addCategory("Block entity being ticked");
                          this.blockEntity.fillCrashReportCategory(crashreportcategory);
-+
-+                        if (net.neoforged.neoforge.common.NeoForgeConfig.SERVER.removeErroringBlockEntities.get()) {
-+                            LOGGER.error("{}", crashreport.getFriendlyReport(net.minecraft.ReportType.CRASH));
-+                            blockEntity.setRemoved();
-+                            LevelChunk.this.removeBlockEntity(blockEntity.getBlockPos());
-+                        } else
-                         throw new ReportedException(crashreport);
+-                        throw new ReportedException(crashreport);
++                        final String msg = String.format("BlockEntity threw exception at %s:%s,%s,%s", LevelChunk.this.getLevel().getWorld().getName(), this.getPos().getX(), this.getPos().getY(), this.getPos().getZ());
++                        LOGGER.error(msg, throwable);
++                        blockEntity.setRemoved();
++                        net.minecraft.world.level.chunk.LevelChunk.this.level.getCraftServer().getPluginManager().callEvent(new ServerExceptionEvent(new ServerInternalException(msg, throwable))); // Paper - ServerExceptionEvent
++                        LevelChunk.this.removeBlockEntity(blockEntity.getBlockPos());
 +                    } finally {
 +                        net.neoforged.neoforge.server.timings.TimeTracker.BLOCK_ENTITY_UPDATE.trackEnd(blockEntity);
                      }
