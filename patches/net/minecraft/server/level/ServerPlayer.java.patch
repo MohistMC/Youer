@@ -773,7 +773,7 @@
                  return OptionalInt.empty();
              } else {
 +                // Neo: Support sending additional arbitrary data to menu factories on the client-side
-+                AbstractContainerMenu finalAbstractcontainermenu = abstractcontainermenu;
++                AbstractContainerMenu finalAbstractcontainermenu = abstractcontainermenu; // Youer
 +                var extraData = FriendlyByteBufUtil.writeCustomData(
 +                        buffer -> {
 +                            p_9033_.writeClientSideData(finalAbstractcontainermenu, buffer);
@@ -786,8 +786,8 @@
 +                if (extraData.length != 0) {
 +                    this.connection.send(
 +                        new AdvancedOpenScreenPayload(
-+                            abstractcontainermenu.containerId,
-+                            abstractcontainermenu.getType(),
++                                finalAbstractcontainermenu.containerId,
++                                finalAbstractcontainermenu.getType(),
 +                            p_9033_.getDisplayName(),
 +                            extraData
 +                        )
@@ -795,10 +795,12 @@
 +                } else {
                  this.connection
 -                    .send(new ClientboundOpenScreenPacket(abstractcontainermenu.containerId, abstractcontainermenu.getType(), p_9033_.getDisplayName()));
-+                    .send(new ClientboundOpenScreenPacket(abstractcontainermenu.containerId, abstractcontainermenu.getType(), Objects.requireNonNullElseGet(title, abstractcontainermenu::getTitle))); // Paper - Add titleOverride to InventoryOpenEvent
+-                this.initMenu(abstractcontainermenu);
+-                this.containerMenu = abstractcontainermenu;
++                    .send(new ClientboundOpenScreenPacket(finalAbstractcontainermenu.containerId, finalAbstractcontainermenu.getType(), Objects.requireNonNullElseGet(title, finalAbstractcontainermenu::getTitle))); // Paper - Add titleOverride to InventoryOpenEvent
 +                }
-                 this.initMenu(abstractcontainermenu);
-                 this.containerMenu = abstractcontainermenu;
++                this.initMenu(finalAbstractcontainermenu);
++                this.containerMenu = finalAbstractcontainermenu;
 +                NeoForge.EVENT_BUS.post(new PlayerContainerEvent.Open(this, this.containerMenu));
                  return OptionalInt.of(this.containerCounter);
              }

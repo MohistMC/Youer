@@ -2,6 +2,7 @@ package com.mohistmc.youer.plugins;
 
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.gui.GuiListener;
+import com.mohistmc.youer.feature.GlobalVariableSystem;
 import com.mohistmc.youer.plugins.back.BackCommands;
 import com.mohistmc.youer.plugins.back.BackConfig;
 import com.mohistmc.youer.plugins.ban.BanListener;
@@ -39,6 +40,7 @@ public class MohistPlugin {
         BackConfig.init();
         WarpsConfig.init();
         EntityClear.start();
+        GlobalVariableSystem.getInstance().registerDefaultPlayerVariables();
     }
 
     public static void registerCommands(Map<String, Command> map) {
