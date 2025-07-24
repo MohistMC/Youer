@@ -105,7 +105,7 @@
      private final Set<TagKey<Fluid>> fluidOnEyes = new HashSet<>();
      public int invulnerableTime;
      protected boolean firstTick = true;
-@@ -243,6 +_,115 @@
+@@ -243,6 +_,135 @@
      public boolean hasVisualFire;
      @Nullable
      private BlockState inBlockState = null;
@@ -159,6 +159,7 @@
 +    public boolean inWorld = false;
 +    public boolean generation;
 +    public int maxAirTicks = getDefaultMaxAirSupply(); // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
++    @Nullable // Paper - Refresh ProjectileSource for projectiles
 +    public org.bukkit.projectiles.ProjectileSource projectileSource; // For projectiles only
 +    public boolean lastDamageCancelled; // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Keep track if the event was canceled
 +    public boolean persistentInvisibility = false;
@@ -218,6 +219,25 @@
 +        return this.dimensions.makeBoundingBox(x, y, z);
 +    }
 +    // Paper end
++
++    // Paper start - optimise entity tracker
++    private net.minecraft.server.level.ChunkMap.TrackedEntity trackedEntity;
++
++    public final net.minecraft.server.level.ChunkMap.TrackedEntity moonrise$getTrackedEntity() {
++        return this.trackedEntity;
++    }
++
++    public final void moonrise$setTrackedEntity(final net.minecraft.server.level.ChunkMap.TrackedEntity trackedEntity) {
++        this.trackedEntity = trackedEntity;
++    }
++
++    private static void collectIndirectPassengers(final List<Entity> into, final List<Entity> from) {
++        for (final Entity passenger : from) {
++            into.add(passenger);
++            collectIndirectPassengers(into, passenger.passengers);
++        }
++    }
++    // Paper end - optimise entity tracker
  
      public Entity(EntityType<?> p_19870_, Level p_19871_) {
          this.type = p_19870_;

@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/projectile/FishingHook.java
 +++ b/net/minecraft/world/entity/projectile/FishingHook.java
+@@ -58,7 +_,7 @@
+     private int nibble;
+     public int timeUntilLured;
+     public int timeUntilHooked;
+-    private float fishAngle;
++    public float fishAngle;
+     private boolean openWater = true;
+     @Nullable
+     public Entity hookedIn;
 @@ -66,6 +_,18 @@
      private final int luck;
      private final int lureSpeed;
@@ -34,7 +43,7 @@
                      return;
                  }
              } else {
-@@ -240,19 +_,19 @@
+@@ -240,23 +_,23 @@
      private boolean shouldStopFishing(Player p_37137_) {
          ItemStack itemstack = p_37137_.getMainHandItem();
          ItemStack itemstack1 = p_37137_.getOffhandItem();
@@ -58,6 +67,11 @@
      }
  
      @Override
+-    protected boolean canHitEntity(Entity p_37135_) {
++    public boolean canHitEntity(Entity p_37135_) {
+         return super.canHitEntity(p_37135_) || p_37135_.isAlive() && p_37135_ instanceof ItemEntity;
+     }
+ 
 @@ -283,11 +_,11 @@
          ServerLevel serverlevel = (ServerLevel)this.level();
          int i = 1;
@@ -97,7 +111,7 @@
                  this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
                  double d3 = this.getY() + 0.5;
                  serverlevel.sendParticles(
-@@ -371,12 +_,16 @@
+@@ -371,14 +_,24 @@
              }
  
              if (this.timeUntilLured <= 0) {
@@ -112,12 +126,20 @@
 -            this.timeUntilLured = Mth.nextInt(this.random, 100, 600);
 -            this.timeUntilLured = this.timeUntilLured - this.lureSpeed;
 +            // CraftBukkit start - logic to modify fishing wait time
-+            this.timeUntilLured = Mth.nextInt(this.random, this.minWaitTime, this.maxWaitTime);
-+            this.timeUntilLured -= (this.applyLure) ? this.lureSpeed : 0;
++            this.resetTimeUntilLured(); // Paper - more projectile api - extract time until lured reset logic
 +            // CraftBukkit end
          }
      }
++
++    // Paper start - more projectile api - extract time until lured reset logic
++    public void resetTimeUntilLured() {
++        this.timeUntilLured = Mth.nextInt(this.random, this.minWaitTime, this.maxWaitTime);
++        this.timeUntilLured -= (this.applyLure) ? (this.lureSpeed >= this.maxWaitTime ? this.timeUntilLured - 1 : this.lureSpeed ) : 0; // Paper - Fix Lure infinite loop
++    }
++    // Paper end - more projectile api - extract time until lured reset logic
  
+     private boolean calculateOpenWater(BlockPos p_37159_) {
+         FishingHook.OpenWaterType fishinghook$openwatertype = FishingHook.OpenWaterType.INVALID;
 @@ -441,7 +_,16 @@
          Player player = this.getPlayerOwner();
          if (!this.level().isClientSide && player != null && !this.shouldStopFishing(player)) {

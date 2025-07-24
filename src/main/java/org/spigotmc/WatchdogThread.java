@@ -37,26 +37,28 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
 
     public static void doStart(int timeoutTime, boolean restart)
     {
-        /*
-        if ( instance == null )
+        if (true) return;
+        if ( WatchdogThread.instance == null )
         {
-            instance = new WatchdogThread( timeoutTime * 1000L, restart );
-            instance.start();
+            if (timeoutTime <= 0) timeoutTime = 300; // Paper
+            WatchdogThread.instance = new WatchdogThread( timeoutTime * 1000L, restart );
+            WatchdogThread.instance.start();
         } else
         {
-            instance.timeoutTime = timeoutTime * 1000L;
-            instance.restart = restart;
+            WatchdogThread.instance.timeoutTime = timeoutTime * 1000L;
+            WatchdogThread.instance.restart = restart;
         }
-        */
     }
 
     public static void tick()
     {
-        // WatchdogThread.instance.lastTick = WatchdogThread.monotonicMillis();
+        if (true) return;
+        WatchdogThread.instance.lastTick = WatchdogThread.monotonicMillis();
     }
 
     public static void doStop()
     {
+        if (true) return;
         if ( WatchdogThread.instance != null )
         {
             WatchdogThread.instance.stopping = true;
@@ -122,8 +124,21 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
                 }
                 log.log(Level.SEVERE, "------------------------------");
                 if (isLongTimeout) {
-                    if (this.restart && !MinecraftServer.getServer().hasStopped()) {
-                        RestartCommand.restart();
+                    if ( !server.hasStopped() )
+                    {
+                        AsyncCatcher.enabled = false; // Disable async catcher incase it interferes with us
+                        server.forceTicks = true;
+                        if (restart) {
+                            RestartCommand.addShutdownHook( SpigotConfig.restartScript );
+                        }
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        if (!server.hasStopped()) {
+                            server.close();
+                        }
                     }
                     break;
                 } // Paper end

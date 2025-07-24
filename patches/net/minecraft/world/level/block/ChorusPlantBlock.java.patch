@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/ChorusPlantBlock.java
 +++ b/net/minecraft/world/level/block/ChorusPlantBlock.java
+@@ -38,6 +_,7 @@
+ 
+     @Override
+     public BlockState getStateForPlacement(BlockPlaceContext p_51709_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableChorusPlantUpdates) return this.defaultBlockState(); // Paper - add option to disable block updates
+         return getStateWithConnections(p_51709_.getLevel(), p_51709_.getClickedPos(), this.defaultBlockState());
+     }
+ 
 @@ -49,7 +_,8 @@
          BlockState blockstate4 = p_51711_.getBlockState(p_51712_.south());
          BlockState blockstate5 = p_51711_.getBlockState(p_51712_.west());
@@ -10,7 +18,13 @@
              .trySetValue(UP, Boolean.valueOf(blockstate1.is(block) || blockstate1.is(Blocks.CHORUS_FLOWER)))
              .trySetValue(NORTH, Boolean.valueOf(blockstate2.is(block) || blockstate2.is(Blocks.CHORUS_FLOWER)))
              .trySetValue(EAST, Boolean.valueOf(blockstate3.is(block) || blockstate3.is(Blocks.CHORUS_FLOWER)))
-@@ -64,6 +_,12 @@
+@@ -59,17 +_,25 @@
+ 
+     @Override
+     protected BlockState updateShape(BlockState p_51728_, Direction p_51729_, BlockState p_51730_, LevelAccessor p_51731_, BlockPos p_51732_, BlockPos p_51733_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableChorusPlantUpdates) return p_51728_; // Paper - add option to disable block updates
+         if (!p_51728_.canSurvive(p_51731_, p_51732_)) {
+             p_51731_.scheduleTick(p_51732_, this, 1);
              return super.updateShape(p_51728_, p_51729_, p_51730_, p_51731_, p_51732_, p_51733_);
          } else {
              boolean flag = p_51730_.is(this) || p_51730_.is(Blocks.CHORUS_FLOWER) || p_51729_ == Direction.DOWN && p_51730_.is(Blocks.END_STONE);
@@ -23,6 +37,21 @@
              return p_51728_.setValue(PROPERTY_BY_DIRECTION.get(p_51729_), Boolean.valueOf(flag));
          }
      }
+ 
+     @Override
+     protected void tick(BlockState p_220985_, ServerLevel p_220986_, BlockPos p_220987_, RandomSource p_220988_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableChorusPlantUpdates) return; // Paper - add option to disable block updates
+         if (!p_220985_.canSurvive(p_220986_, p_220987_)) {
+             p_220986_.destroyBlock(p_220987_, true);
+         }
+@@ -77,6 +_,7 @@
+ 
+     @Override
+     protected boolean canSurvive(BlockState p_51724_, LevelReader p_51725_, BlockPos p_51726_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableChorusPlantUpdates) return true; // Paper - add option to disable block updates
+         BlockState blockstate = p_51725_.getBlockState(p_51726_.below());
+         boolean flag = !p_51725_.getBlockState(p_51726_.above()).isAir() && !blockstate.isAir();
+ 
 @@ -95,6 +_,8 @@
              }
          }

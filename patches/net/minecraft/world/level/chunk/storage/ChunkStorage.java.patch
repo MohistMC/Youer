@@ -1,6 +1,23 @@
 --- a/net/minecraft/world/level/chunk/storage/ChunkStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/ChunkStorage.java
-@@ -38,6 +_,38 @@
+@@ -12,12 +_,16 @@
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+ import net.minecraft.SharedConstants;
++import net.minecraft.core.BlockPos;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.NbtUtils;
+ import net.minecraft.resources.ResourceKey;
++import net.minecraft.server.level.ServerChunkCache;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.datafix.DataFixTypes;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
++import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+ import net.minecraft.world.level.levelgen.structure.LegacyStructureDataHandler;
+ import net.minecraft.world.level.storage.DimensionDataStorage;
+@@ -38,6 +_,49 @@
          return this.worker.isOldChunkAround(p_223452_, p_223453_);
      }
  
@@ -35,17 +52,48 @@
 +        return false;
 +    }
 +    // CraftBukkit end
-+    public @Nullable net.minecraft.server.level.ServerLevel generatoraccess; // CraftBukkit
++    public ChunkPos pos; // CraftBukkit
++    public @Nullable LevelAccessor generatoraccess; // CraftBukkit
++
++    public CompoundTag upgradeChunkTag(ResourceKey<Level> p_188289_,
++                                       Supplier<DimensionDataStorage> p_188290_,
++                                       CompoundTag p_188291_,
++                                       Optional<ResourceKey<MapCodec<? extends ChunkGenerator>>> p_188292_, ChunkPos pos, @Nullable LevelAccessor generatoraccess) {
++        this.pos = pos;
++        this.generatoraccess = generatoraccess;
++        return this.upgradeChunkTag(p_188289_, p_188290_, p_188291_, p_188292_);
++    }
++
      public CompoundTag upgradeChunkTag(
          ResourceKey<Level> p_188289_,
          Supplier<DimensionDataStorage> p_188290_,
+@@ -49,6 +_,19 @@
+             return p_188291_;
+         } else {
+             try {
++                // CraftBukkit start
++                if (i < 1466 && pos != null) { // Paper - no longer needed, data converter system / DFU handles it now
++                    CompoundTag level = p_188291_.getCompound("Level");
++                    if (level.getBoolean("TerrainPopulated") && !level.getBoolean("LightPopulated")) {
++                        ServerChunkCache cps = (generatoraccess == null) ? null : ((ServerLevel) generatoraccess).getChunkSource();
++                        if (this.check(cps, pos.x - 1, pos.z) && this.check(cps, pos.x - 1, pos.z - 1) && this.check(cps, pos.x, pos.z - 1)) {
++                            level.putBoolean("LightPopulated", true);
++                        }
++                    }
++                }
++                // CraftBukkit end
++
++
+                 if (i < 1493) {
+                     p_188291_ = DataFixTypes.CHUNK.update(this.fixerUpper, p_188291_, i, 1493);
+                     if (p_188291_.getCompound("Level").getBoolean("hasLegacyStructureData")) {
 @@ -57,8 +_,22 @@
                      }
                  }
  
 +                // Spigot start - SPIGOT-6806: Quick and dirty way to prevent below zero generation in old chunks, by setting the status to heightmap instead of empty
 +                boolean stopBelowZero = false;
-+                boolean belowZeroGenerationInExistingChunks = (generatoraccess != null) ? generatoraccess.spigotConfig.belowZeroGenerationInExistingChunks : org.spigotmc.SpigotConfig.belowZeroGenerationInExistingChunks;
++                boolean belowZeroGenerationInExistingChunks = (generatoraccess != null) ? ((ServerLevel)generatoraccess).spigotConfig.belowZeroGenerationInExistingChunks : org.spigotmc.SpigotConfig.belowZeroGenerationInExistingChunks;
 +                generatoraccess = null;
 +                if (i <= 2730 && !belowZeroGenerationInExistingChunks) {
 +                    stopBelowZero = "full".equals(p_188291_.getCompound("Level").getString("Status"));

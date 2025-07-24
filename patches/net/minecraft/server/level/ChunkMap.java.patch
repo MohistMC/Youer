@@ -156,10 +156,20 @@
          p_294215_.connection.chunkSender.dropChunk(p_294215_, p_294758_);
      }
  
-@@ -910,16 +_,36 @@
+@@ -907,19 +_,46 @@
+     }
+ 
+     private CompletableFuture<Optional<CompoundTag>> readChunk(ChunkPos p_214964_) {
++        this.pos = p_214964_;
          return this.read(p_214964_).thenApplyAsync(p_214907_ -> p_214907_.map(this::upgradeChunkTag), Util.backgroundExecutor());
      }
  
++    // CraftBukkit start
++    public CompoundTag upgradeChunkTag(CompoundTag nbttagcompound, ChunkPos chunkcoordintpair) { // Paper - public
++        return this.upgradeChunkTag(this.level.dimension(), this.overworldDataStorage, nbttagcompound, this.generator().getTypeNameForDataFixer(), chunkcoordintpair, this.level);
++        // CraftBukkit end
++    }
++
 +    // CraftBukkit start
      private CompoundTag upgradeChunkTag(CompoundTag p_214948_) {
 +        this.generatoraccess = level;
@@ -254,6 +264,22 @@
              EntityType<?> entitytype = p_140200_.getType();
              int i = entitytype.clientTrackingRange() * 16;
              if (i != 0) {
+@@ -1079,6 +_,7 @@
+                 } else {
+                     ChunkMap.TrackedEntity chunkmap$trackedentity = new ChunkMap.TrackedEntity(p_140200_, i, j, entitytype.trackDeltas());
+                     this.entityMap.put(p_140200_.getId(), chunkmap$trackedentity);
++                    p_140200_.moonrise$setTrackedEntity(chunkmap$trackedentity);
+                     chunkmap$trackedentity.updatePlayers(this.level.players());
+                     if (p_140200_ instanceof ServerPlayer serverplayer) {
+                         this.updatePlayerStatus(serverplayer, true);
+@@ -1107,6 +_,7 @@
+         if (chunkmap$trackedentity1 != null) {
+             chunkmap$trackedentity1.broadcastRemoved();
+         }
++        p_140332_.moonrise$setTrackedEntity(null); // Paper - optimise entity tracker
+     }
+ 
+     protected void tick() {
 @@ -1199,7 +_,7 @@
          });
      }

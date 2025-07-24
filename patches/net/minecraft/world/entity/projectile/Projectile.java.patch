@@ -1,14 +1,22 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
-@@ -27,6 +_,7 @@
+@@ -27,17 +_,23 @@
  import net.minecraft.world.phys.EntityHitResult;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.projectiles.ProjectileSource;
  
  public abstract class Projectile extends Entity implements TraceableEntity {
      @Nullable
-@@ -38,6 +_,10 @@
+-    private UUID ownerUUID;
++    public UUID ownerUUID;
+     @Nullable
+     private Entity cachedOwner;
+-    private boolean leftOwner;
+-    private boolean hasBeenShot;
++    public boolean leftOwner;
++    public boolean hasBeenShot;
      @Nullable
      private Entity lastDeflectedBy;
  
@@ -19,14 +27,44 @@
      protected Projectile(EntityType<? extends Projectile> p_37248_, Level p_37249_) {
          super(p_37248_, p_37249_);
      }
-@@ -47,6 +_,7 @@
+@@ -47,15 +_,36 @@
              this.ownerUUID = p_37263_.getUUID();
              this.cachedOwner = p_37263_;
          }
-+        this.projectileSource = (p_37263_ != null && p_37263_.getBukkitEntity() instanceof org.bukkit.projectiles.ProjectileSource) ? (org.bukkit.projectiles.ProjectileSource) p_37263_.getBukkitEntity() : null; // CraftBukkit
-     }
+-    }
++        // Paper start - Refresh ProjectileSource for projectiles
++        else {
++            this.ownerUUID = null;
++            this.cachedOwner = null;
++            this.projectileSource = null;
++        }
++        // Paper end - Refresh ProjectileSource for projectiles
++        this.refreshProjectileSource(false); // Paper
++    }
++
++    // Paper start - Refresh ProjectileSource for projectiles
++    public void refreshProjectileSource(boolean fillCache) {
++        if (fillCache) {
++            this.getOwner();
++        }
++        if (this.cachedOwner != null && !this.cachedOwner.isRemoved() && this.projectileSource == null && this.cachedOwner.getBukkitEntity() instanceof ProjectileSource projSource) {
++            this.projectileSource = projSource;
++        }
++    }
++    // Paper end - Refresh ProjectileSource for projectiles
  
      @Nullable
+     @Override
+     public Entity getOwner() {
+         if (this.cachedOwner != null && !this.cachedOwner.isRemoved()) {
++            this.refreshProjectileSource(false); // Paper - Refresh ProjectileSource for projectiles
+             return this.cachedOwner;
+         } else if (this.ownerUUID != null && this.level() instanceof ServerLevel serverlevel) {
+             this.cachedOwner = serverlevel.getEntity(this.ownerUUID);
++            this.refreshProjectileSource(false); // Paper - Refresh ProjectileSource for projectiles
+             return this.cachedOwner;
+         } else {
+             return null;
 @@ -162,8 +_,23 @@
          float f2 = Mth.cos(p_37254_ * (float) (Math.PI / 180.0)) * Mth.cos(p_37253_ * (float) (Math.PI / 180.0));
          this.shoot((double)f, (double)f1, (double)f2, p_37256_, p_37257_);
@@ -40,7 +78,7 @@
 +    }
 +
 +    // CraftBukkit start - call projectile hit event
-+    protected ProjectileDeflection preHitTargetOrDeflectSelf(HitResult movingobjectposition) {
++    public ProjectileDeflection preHitTargetOrDeflectSelf(HitResult movingobjectposition) {
 +        org.bukkit.event.entity.ProjectileHitEvent event = CraftEventFactory.callProjectileHitEvent(this, movingobjectposition);
 +        this.hitCancelled = event != null && event.isCancelled();
 +        if (movingobjectposition.getType() == HitResult.Type.BLOCK || !this.hitCancelled) {
@@ -64,6 +102,15 @@
          BlockState blockstate = this.level().getBlockState(p_37258_.getBlockPos());
          blockstate.onProjectileHit(this.level(), blockstate, p_37258_, this);
      }
+@@ -236,7 +_,7 @@
+         }
+     }
+ 
+-    protected boolean canHitEntity(Entity p_37250_) {
++    public boolean canHitEntity(Entity p_37250_) {
+         if (!p_37250_.canBeHitByProjectile()) {
+             return false;
+         } else {
 @@ -284,7 +_,7 @@
          Entity entity = this.getOwner();
          return entity instanceof Player

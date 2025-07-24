@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/ShulkerBullet.java
 +++ b/net/minecraft/world/entity/projectile/ShulkerBullet.java
-@@ -30,6 +_,7 @@
+@@ -30,17 +_,18 @@
  import net.minecraft.world.phys.EntityHitResult;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
@@ -8,6 +8,22 @@
  
  public class ShulkerBullet extends Projectile {
      private static final double SPEED = 0.15;
+     @Nullable
+     private Entity finalTarget;
+     @Nullable
+-    private Direction currentMoveDirection;
+-    private int flightSteps;
+-    private double targetDeltaX;
+-    private double targetDeltaY;
+-    private double targetDeltaZ;
++    public Direction currentMoveDirection;
++    public int flightSteps;
++    public double targetDeltaX;
++    public double targetDeltaY;
++    public double targetDeltaZ;
+     @Nullable
+     private UUID targetId;
+ 
 @@ -59,6 +_,18 @@
          this.selectNextMoveDirection(p_37333_);
      }
@@ -46,6 +62,15 @@
 +                this.preHitTargetOrDeflectSelf(hitresult); // CraftBukkit - projectile hit event
              }
          }
+ 
+@@ -255,7 +_,7 @@
+     }
+ 
+     @Override
+-    protected boolean canHitEntity(Entity p_37341_) {
++    public boolean canHitEntity(Entity p_37341_) {
+         return super.canHitEntity(p_37341_) && !p_37341_.noPhysics;
+     }
  
 @@ -288,6 +_,7 @@
              }

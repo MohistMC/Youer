@@ -364,19 +364,21 @@
      }
  
      public void storeUsingWhiteList(boolean p_139689_) {
-@@ -548,7 +_,12 @@
+@@ -548,8 +_,13 @@
  
      @Override
      public void stopServer() {
 +        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.GameShuttingDownEvent());
          super.stopServer();
+-        Util.shutdownExecutors();
 +        if (this.dediLanPinger != null) {
 +            this.dediLanPinger.interrupt();
 +            this.dediLanPinger = null;
 +        }
-         Util.shutdownExecutors();
++        //Util.shutdownExecutors(); // Paper - moved into super
          SkullBlockEntity.clear();
      }
+ 
 @@ -638,5 +_,15 @@
                  return Optional.empty();
              }

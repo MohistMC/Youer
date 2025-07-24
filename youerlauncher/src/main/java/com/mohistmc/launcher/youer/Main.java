@@ -77,6 +77,7 @@ public class Main {
                 System.out.println("+------------------------------------------------------+");
                 System.out.println("|                                                      |");
                 System.out.println("| 官方交流QQ群: 570870451                              |");
+                System.out.println("| 官网推出一键开服功能　　　　　　　　　　　　　　　　 |");
                 System.out.println("| 官网(中国): https://www.mohistmc.cn/                 |");
                 System.out.println("| 爱发电: https://afdian.net/a/MohistMC                |");
                 System.out.println("|                                                      |");

@@ -8,7 +8,25 @@
  
  public class NoteBlock extends Block {
      public static final MapCodec<NoteBlock> CODEC = simpleCodec(NoteBlock::new);
-@@ -83,6 +_,7 @@
+@@ -68,21 +_,25 @@
+ 
+     @Override
+     public BlockState getStateForPlacement(BlockPlaceContext p_55018_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) return this.defaultBlockState(); // Paper - place without considering instrument
+         return this.setInstrument(p_55018_.getLevel(), p_55018_.getClickedPos(), this.defaultBlockState());
+     }
+ 
+     @Override
+     protected BlockState updateShape(BlockState p_55048_, Direction p_55049_, BlockState p_55050_, LevelAccessor p_55051_, BlockPos p_55052_, BlockPos p_55053_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) return p_55048_; // Paper - prevent noteblock instrument from updating
+         boolean flag = p_55049_.getAxis() == Direction.Axis.Y;
+         return flag ? this.setInstrument(p_55051_, p_55052_, p_55048_) : super.updateShape(p_55048_, p_55049_, p_55050_, p_55051_, p_55052_, p_55053_);
+     }
+ 
+     @Override
+     protected void neighborChanged(BlockState p_55041_, Level p_55042_, BlockPos p_55043_, Block p_55044_, BlockPos p_55045_, boolean p_55046_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) return; // Paper - prevent noteblock powered-state from updating
+         boolean flag = p_55042_.hasNeighborSignal(p_55043_);
          if (flag != p_55041_.getValue(POWERED)) {
              if (flag) {
                  this.playNote(null, p_55041_, p_55042_, p_55043_);
@@ -36,7 +54,7 @@
 -            p_316441_ = p_316441_.cycle(NOTE);
 +            int _new = net.neoforged.neoforge.common.CommonHooks.onNoteChange(p_316774_, p_316344_, p_316441_, p_316441_.getValue(NOTE), p_316441_.cycle(NOTE).getValue(NOTE));
 +            if (_new == -1) return InteractionResult.FAIL;
-+            p_316441_ = p_316441_.setValue(NOTE, _new);
++            if (!io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) p_316441_ = p_316441_.setValue(NOTE, _new);
              p_316774_.setBlock(p_316344_, p_316441_, 3);
              this.playNote(p_316884_, p_316441_, p_316774_, p_316344_);
              p_316884_.awardStat(Stats.TUNE_NOTEBLOCK);

@@ -111,4 +111,52 @@ public interface Firework extends Projectile {
      * @param shotAtAngle the new shotAtAngle
      */
     void setShotAtAngle(boolean shotAtAngle);
+
+    // Paper start - Firework API
+    /**
+     * Gets the item used in the firework.
+     *
+     * @return firework item
+     */
+    @NotNull
+    public org.bukkit.inventory.ItemStack getItem();
+
+    /**
+     * Sets the item used in the firework.
+     * <p>
+     * Firework explosion effects are used from this item.
+     *
+     * @param itemStack item to set
+     */
+    void setItem(@org.jetbrains.annotations.Nullable org.bukkit.inventory.ItemStack itemStack);
+
+    /**
+     * Gets the number of ticks the firework has flown.
+     *
+     * @return ticks flown
+     */
+    int getTicksFlown();
+
+    /**
+     * Sets the number of ticks the firework has flown.
+     * Setting this greater than detonation ticks will cause the firework to explode.
+     *
+     * @param ticks ticks flown
+     */
+    void setTicksFlown(int ticks);
+
+    /**
+     * Gets the number of ticks the firework will detonate on.
+     *
+     * @return the tick to detonate on
+     */
+    int getTicksToDetonate();
+
+    /**
+     * Set the amount of ticks the firework will detonate on.
+     *
+     * @param ticks ticks to detonate on
+     */
+    void setTicksToDetonate(int ticks);
+    // Paper end
 }

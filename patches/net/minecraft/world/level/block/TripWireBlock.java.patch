@@ -24,14 +24,71 @@
  
  public class TripWireBlock extends Block {
      public static final MapCodec<TripWireBlock> CODEC = RecordCodecBuilder.mapCodec(
-@@ -104,7 +_,7 @@
+@@ -72,6 +_,7 @@
+ 
+     @Override
+     public BlockState getStateForPlacement(BlockPlaceContext p_57606_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return this.defaultBlockState(); // Paper - place tripwire without updating
+         BlockGetter blockgetter = p_57606_.getLevel();
+         BlockPos blockpos = p_57606_.getClickedPos();
+         return this.defaultBlockState()
+@@ -83,6 +_,7 @@
+ 
+     @Override
+     protected BlockState updateShape(BlockState p_57645_, Direction p_57646_, BlockState p_57647_, LevelAccessor p_57648_, BlockPos p_57649_, BlockPos p_57650_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return p_57645_; // Paper - prevent tripwire from updating
+         return p_57646_.getAxis().isHorizontal()
+             ? p_57645_.setValue(PROPERTY_BY_DIRECTION.get(p_57646_), Boolean.valueOf(this.shouldConnectTo(p_57647_, p_57646_)))
+             : super.updateShape(p_57645_, p_57646_, p_57647_, p_57648_, p_57649_, p_57650_);
+@@ -90,6 +_,7 @@
+ 
+     @Override
+     protected void onPlace(BlockState p_57659_, Level p_57660_, BlockPos p_57661_, BlockState p_57662_, boolean p_57663_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent adjacent tripwires from updating
+         if (!p_57662_.is(p_57659_.getBlock())) {
+             this.updateSource(p_57660_, p_57661_, p_57659_);
+         }
+@@ -97,6 +_,7 @@
+ 
+     @Override
+     protected void onRemove(BlockState p_57630_, Level p_57631_, BlockPos p_57632_, BlockState p_57633_, boolean p_57634_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent adjacent tripwires from updating
+         if (!p_57634_ && !p_57630_.is(p_57633_.getBlock())) {
+             this.updateSource(p_57631_, p_57632_, p_57630_.setValue(POWERED, Boolean.valueOf(true)));
+         }
+@@ -104,7 +_,8 @@
  
      @Override
      public BlockState playerWillDestroy(Level p_57615_, BlockPos p_57616_, BlockState p_57617_, Player p_57618_) {
 -        if (!p_57615_.isClientSide && !p_57618_.getMainHandItem().isEmpty() && p_57618_.getMainHandItem().is(Items.SHEARS)) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return p_57617_; // Paper - prevent disarming tripwires
 +        if (!p_57615_.isClientSide && !p_57618_.getMainHandItem().isEmpty() && p_57618_.getMainHandItem().canPerformAction(net.neoforged.neoforge.common.ItemAbilities.SHEARS_DISARM)) {
              p_57615_.setBlock(p_57616_, p_57617_.setValue(DISARMED, Boolean.valueOf(true)), 4);
              p_57615_.gameEvent(p_57618_, GameEvent.SHEAR, p_57616_);
+         }
+@@ -113,6 +_,7 @@
+     }
+ 
+     private void updateSource(Level p_57611_, BlockPos p_57612_, BlockState p_57613_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent adjacent tripwires from updating
+         for (Direction direction : new Direction[]{Direction.SOUTH, Direction.WEST}) {
+             for (int i = 1; i < 42; i++) {
+                 BlockPos blockpos = p_57612_.relative(direction, i);
+@@ -133,6 +_,7 @@
+ 
+     @Override
+     protected void entityInside(BlockState p_57625_, Level p_57626_, BlockPos p_57627_, Entity p_57628_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent tripwires from detecting collision
+         if (!p_57626_.isClientSide) {
+             if (!p_57625_.getValue(POWERED)) {
+                 this.checkPressed(p_57626_, p_57627_);
+@@ -142,6 +_,7 @@
+ 
+     @Override
+     protected void tick(BlockState p_222598_, ServerLevel p_222599_, BlockPos p_222600_, RandomSource p_222601_) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent tripwire pressed check
+         if (p_222599_.getBlockState(p_222600_).getValue(POWERED)) {
+             this.checkPressed(p_222599_, p_222600_);
          }
 @@ -160,6 +_,40 @@
                  }

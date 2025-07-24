@@ -28,6 +28,9 @@ public class PluginFixManager {
         if (className.equals("com.ghostchu.quickshop.platform.spigot.AbstractSpigotPlatform")) {
             return patch(clazz, PluginFixManager::qs);
         }
+        if (className.equals("com.bgsoftware.superiorskyblock.external.ProvidersManagerImpl")) {
+            return patch(clazz, PluginFixManager::removePaper);
+        }
         if (className.equals("com.onarandombox.MultiverseCore.utils.WorldManager")) {
             return patch(clazz, MultiverseCore::fix);
         }
@@ -50,6 +53,21 @@ public class PluginFixManager {
         };
 
         return patcher == null ? clazz : patch(clazz, patcher);
+    }
+
+    private static void removePaper(ClassNode node) {
+        for (MethodNode methodNode : node.methods) {
+            if (methodNode.name.equals("hasPaperAsyncSupport") && methodNode.desc.equals("()Z")) {
+                InsnList toInject = new InsnList();
+                toInject.add(new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(PluginFixManager.class), "hasPaperAsyncSupport", "()Z"));
+                toInject.add(new InsnNode(Opcodes.IRETURN));
+                methodNode.instructions = toInject;
+            }
+        }
+    }
+
+    public static boolean hasPaperAsyncSupport() {
+        return false;
     }
 
     private static byte[] patch(byte[] basicClass, Consumer<ClassNode> handler) {

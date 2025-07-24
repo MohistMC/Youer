@@ -129,6 +129,14 @@
      private boolean debugCommandProfilerDelayStart;
      public ServerConnectionListener connection;
      public final ChunkProgressListenerFactory progressListenerFactory;
+@@ -214,6 +_,7 @@
+     public Map<ResourceKey<Level>, ServerLevel> levels = Maps.newLinkedHashMap();
+     private PlayerList playerList;
+     private volatile boolean running = true;
++    private volatile boolean isRestarting = false; // Paper - flag to signify we're attempting to restart
+     private boolean stopped;
+     private int tickCount;
+     private int ticksUntilAutosave = 6000;
 @@ -223,10 +_,15 @@
      private boolean pvp;
      private boolean allowFlight;
@@ -146,7 +154,7 @@
      @Nullable
      private KeyPair keyPair;
      @Nullable
-@@ -254,18 +_,38 @@
+@@ -254,18 +_,40 @@
      public final Executor executor;
      @Nullable
      private String serverId;
@@ -166,7 +174,7 @@
 +    public static int currentTick; // Paper - improve tick loop
 +    public Queue<Runnable> processQueue = new ConcurrentLinkedQueue<Runnable>();
 +    public int autosavePeriod;
-+    private boolean forceTicks;
++    public boolean forceTicks;
 +    // CraftBukkit end
 +    private long nextTickTime = 0; // Youer Add fake tickField worldedit need this
 +
@@ -178,6 +186,8 @@
 +    public final double[] recentTps = new double[ 3 ];
 +    // Spigot end
 +    public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
++    public volatile Thread shutdownThread; // Paper
++    public volatile boolean abnormalExit = false; // Paper
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> p_129873_) {
          AtomicReference<S> atomicreference = new AtomicReference<>();
@@ -525,12 +535,14 @@
          }
  
          return flag;
-@@ -582,21 +_,47 @@
+@@ -582,21 +_,52 @@
          this.stopServer();
      }
  
 +    // CraftBukkit start
 +    private boolean hasStopped = false;
++    private boolean hasLoggedStop = false; // Paper - Debugging
++    public volatile boolean hasFullyShutdown = false; // Paper
 +    private final Object stopLock = new Object();
 +    public final boolean hasStopped() {
 +        synchronized (stopLock) {
@@ -546,7 +558,10 @@
 +            hasStopped = true;
 +        }
 +        // CraftBukkit end
++        // Paper start - kill main thread, and kill it hard
++        shutdownThread = Thread.currentThread();
 +        org.spigotmc.WatchdogThread.doStop(); // Paper
++        // Paper end
          if (this.metricsRecorder.isRecording()) {
              this.cancelRecordingMetrics();
          }
@@ -580,7 +595,7 @@
          for (ServerLevel serverlevel2 : this.getAllLevels()) {
              if (serverlevel2 != null) {
                  try {
-+                    NeoForge.EVENT_BUS.post(new LevelEvent.Unload(serverlevel2));
++                    net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.LevelEvent.Unload(serverlevel2));
                      serverlevel2.close();
                  } catch (IOException ioexception1) {
 -                    LOGGER.error("Exception closing the level", (Throwable)ioexception1);
@@ -588,7 +603,7 @@
                  }
              }
          }
-@@ -633,8 +_,18 @@
+@@ -633,8 +_,26 @@
          try {
              this.storageSource.close();
          } catch (IOException ioexception) {
@@ -606,10 +621,31 @@
 +            this.getProfileCache().save();
 +        }
 +        // Spigot end
++        // Paper start - move final shutdown items here
++        Util.shutdownExecutors();
++        try {
++            net.minecrell.terminalconsole.TerminalConsoleAppender.close(); // Paper - Use TerminalConsoleAppender
++        } catch (final Exception ignored) {
++        }
++        this.onServerExit();
++        // Paper end - Improved watchdog support
      }
  
      public String getLocalIp() {
-@@ -655,21 +_,89 @@
+@@ -650,26 +_,104 @@
+     }
+ 
+     public void halt(boolean p_129884_) {
++        // Paper start - allow passing of the intent to restart
++        this.safeShutdown(p_129884_, false);
++    }
++    public void safeShutdown(boolean p_129884_, boolean isRestarting) {
++        this.isRestarting = isRestarting;
++        this.hasLoggedStop = true; // Paper - Debugging
++        if (isDebugging()) io.papermc.paper.util.TraceUtil.dumpTraceForThread("Server stopped"); // Paper - Debugging
++        // Paper end
+         this.running = false;
+         if (p_129884_) {
              try {
                  this.serverThread.join();
              } catch (InterruptedException interruptedexception) {
@@ -694,6 +730,8 @@
 +            resetStatusCache(status);
  
 +            // Spigot start
++            LOGGER.info("Running delayed init tasks");
++            this.server.getScheduler().mainThreadHeartbeat(this.tickCount); // run all 1 tick delay tasks during init,
 +            org.spigotmc.WatchdogThread.tick();
 +            org.spigotmc.WatchdogThread.hasStarted = true; // Paper
 +            Arrays.fill( recentTps, 20 );
@@ -746,7 +784,7 @@
                  this.nextTickTimeNanos += i;
                  this.startMetricsRecordingTick();
                  this.profiler.push("tick");
-@@ -714,29 +_,33 @@
+@@ -714,30 +_,39 @@
                  this.isReady = true;
                  JvmProfiler.INSTANCE.onServerTick(this.smoothedTickTimeMillis);
              }
@@ -754,6 +792,12 @@
 +            ServerLifecycleHooks.expectServerStopped(); // Forge: Has to come before MinecraftServer#onServerCrash to avoid race conditions
          } catch (Throwable throwable1) {
 -            LOGGER.error("Encountered an unexpected exception", throwable1);
++            // Paper start
++            if (throwable1 instanceof ThreadDeath) {
++                MinecraftServer.LOGGER.error("Main thread terminated by WatchDog due to hard crash", throwable1);
++                return;
++            }
++            // Paper end
 +            LOGGER.error(I18n.as("minecraftserver.17"), throwable1);
              CrashReport crashreport = constructOrExtractCrashReport(throwable1);
              this.fillSystemReport(crashreport.getSystemReport());
@@ -780,10 +824,11 @@
                      this.services.profileCache().clearExecutor();
                  }
  
+-                this.onServerExit();
 +                ServerLifecycleHooks.handleServerStopped(this);
-                 this.onServerExit();
              }
          }
+     }
 @@ -782,15 +_,27 @@
                  crashreport.addCategory("Wrapped in").setDetailError("Wrapping exception", p_206569_);
              }
@@ -815,17 +860,32 @@
  
      public static boolean throwIfFatalException() {
          RuntimeException runtimeexception = fatalException.get();
-@@ -811,8 +_,8 @@
-     }
+@@ -812,7 +_,7 @@
  
      protected void waitUntilNextTick() {
--        this.runAllTasks();
+         this.runAllTasks();
 -        this.managedBlock(() -> !this.haveTime());
-+        //this.runAllTasks(); // Paper - move this into the tick method for timings
 +        this.managedBlock(() -> !this.canSleepForTickNoOversleep()); // Paper - move oversleep into full server tick
      }
  
      @Override
+@@ -826,6 +_,16 @@
+     }
+ 
+     public TickTask wrapRunnable(Runnable p_129852_) {
++        // Paper start - anything that does try to post to main during watchdog crash, run on watchdog
++        if (this.hasStopped && Thread.currentThread().equals(shutdownThread)) {
++            p_129852_.run();
++            p_129852_ = new Runnable() {
++                @Override
++                public void run() {
++                }
++            };
++        }
++        // Paper end
+         return new TickTask(this.tickCount, p_129852_);
+     }
+ 
 @@ -900,12 +_,26 @@
  
      public void tickServer(BooleanSupplier p_129871_) {
@@ -853,12 +913,11 @@
          }
  
          this.ticksUntilAutosave--;
-@@ -917,7 +_,12 @@
+@@ -917,7 +_,11 @@
              this.profiler.pop();
              LOGGER.debug("Autosave finished");
          }
 -
-+        this.runAllTasks();
 +        // Paper start - Server Tick Events
 +        long endTime = System.nanoTime();
 +        long remaining = (TICK_TIME - (endTime - lastTick)) - catchupTime;

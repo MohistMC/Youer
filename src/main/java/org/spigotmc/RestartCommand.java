@@ -128,4 +128,42 @@ public class RestartCommand extends Command
             ex.printStackTrace();
         }
     }
+
+    // Paper start - copied from above and modified to return if the hook registered
+    public static boolean addShutdownHook(String restartScript) // Paper
+    {
+        String[] split = restartScript.split( " " );
+        if ( split.length > 0 && new File( split[0] ).isFile() )
+        {
+            Thread shutdownHook = new Thread()
+            {
+                @Override
+                public void run()
+                {
+                    try
+                    {
+                        String os = System.getProperty( "os.name" ).toLowerCase(java.util.Locale.ENGLISH);
+                        if ( os.contains( "win" ) )
+                        {
+                            Runtime.getRuntime().exec( "cmd /c start " + restartScript );
+                        } else
+                        {
+                            Runtime.getRuntime().exec( "sh " + restartScript );
+                        }
+                    } catch ( Exception e )
+                    {
+                        e.printStackTrace();
+                    }
+                }
+            };
+
+            shutdownHook.setDaemon( true );
+            Runtime.getRuntime().addShutdownHook( shutdownHook );
+            return true;
+        } else
+        {
+            return false;
+        }
+    }
+    // Paper end
 }

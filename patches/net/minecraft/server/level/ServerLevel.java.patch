@@ -28,6 +28,18 @@
  import java.util.function.BooleanSupplier;
  import java.util.function.Function;
  import java.util.function.Predicate;
+@@ -56,6 +_,11 @@
+ import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
+ import net.minecraft.network.protocol.game.ClientboundLevelEventPacket;
+ import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
++import net.minecraft.network.protocol.game.ClientboundSetBorderCenterPacket;
++import net.minecraft.network.protocol.game.ClientboundSetBorderLerpSizePacket;
++import net.minecraft.network.protocol.game.ClientboundSetBorderSizePacket;
++import net.minecraft.network.protocol.game.ClientboundSetBorderWarningDelayPacket;
++import net.minecraft.network.protocol.game.ClientboundSetBorderWarningDistancePacket;
+ import net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket;
+ import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
+ import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 @@ -79,6 +_,7 @@
  import net.minecraft.util.profiling.ProfilerFiller;
  import net.minecraft.util.valueproviders.IntProvider;
@@ -44,7 +56,7 @@
  import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
  import net.minecraft.world.entity.npc.Npc;
  import net.minecraft.world.entity.player.Player;
-@@ -119,9 +_,11 @@
+@@ -119,11 +_,15 @@
  import net.minecraft.world.level.StructureManager;
  import net.minecraft.world.level.WorldGenLevel;
  import net.minecraft.world.level.biome.Biome;
@@ -55,7 +67,11 @@
 +import net.minecraft.world.level.block.entity.BlockEntity;
  import net.minecraft.world.level.block.entity.TickingBlockEntity;
  import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.border.BorderChangeListener;
++import net.minecraft.world.level.border.WorldBorder;
  import net.minecraft.world.level.chunk.ChunkAccess;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+ import net.minecraft.world.level.chunk.LevelChunk;
 @@ -132,6 +_,7 @@
  import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
  import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
@@ -247,7 +263,7 @@
              this.dragonFight = new EndDragonFight(this, i, p_214999_.getWorldData().endDragonFightData());
          } else {
              this.dragonFight = null;
-@@ -298,6 +_,15 @@
+@@ -298,6 +_,52 @@
          this.randomSequences = Objects.requireNonNullElseGet(
              p_288977_, () -> this.getDataStorage().computeIfAbsent(RandomSequences.factory(i), "random_sequences")
          );
@@ -259,6 +275,43 @@
 +        this.world = new CraftWorld(this, generator, biomeProvider, environment);
 +        this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
 +        this.K.setWorld(this);
++        // CraftBukkit start
++        getWorldBorder().world = this;
++        // From PlayerList.setPlayerFileData
++        getWorldBorder().addListener(new BorderChangeListener() {
++
++            @Override
++            public void onBorderSizeSet(WorldBorder pBorder, double pSize) {
++                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderSizePacket(pBorder), pBorder.world.dimension());
++            }
++
++            @Override
++            public void onBorderSizeLerping(WorldBorder pBorder, double pOldSize, double pNewSize, long pTime) {
++                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderLerpSizePacket(pBorder), pBorder.world.dimension());
++            }
++
++            @Override
++            public void onBorderCenterSet(WorldBorder pBorder, double pX, double pZ) {
++                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderCenterPacket(pBorder), pBorder.world.dimension());
++            }
++
++            @Override
++            public void onBorderSetWarningTime(WorldBorder pBorder, int pWarningTime) {
++                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderWarningDelayPacket(pBorder), pBorder.world.dimension());
++            }
++
++            @Override
++            public void onBorderSetWarningBlocks(WorldBorder pBorder, int pWarningBlocks) {
++                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderWarningDistancePacket(pBorder), pBorder.world.dimension());
++            }
++
++            @Override
++            public void onBorderSetDamagePerBlock(WorldBorder pBorder, double pDamagePerBlock) { }
++
++            @Override
++            public void onBorderSetDamageSafeZOne(WorldBorder pBorder, double pDamageSafeZone) { }
++        });
++        // CraftBukkit end
 +        ConfigByWorlds.initMods(this);
      }
  

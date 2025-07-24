@@ -175,50 +175,6 @@
                  }
              };
          } else {
-@@ -154,6 +_,43 @@
-         this.neighborUpdater = new CollectingNeighborUpdater(this, p_270466_);
-         this.registryAccess = p_270200_;
-         this.damageSources = new DamageSources(p_270200_);
-+        // CraftBukkit start
-+        getWorldBorder().world = this;
-+        // From PlayerList.setPlayerFileData
-+        getWorldBorder().addListener(new BorderChangeListener() {
-+
-+            @Override
-+            public void onBorderSizeSet(WorldBorder pBorder, double pSize) {
-+                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderSizePacket(pBorder), pBorder.world.dimension());
-+            }
-+
-+            @Override
-+            public void onBorderSizeLerping(WorldBorder pBorder, double pOldSize, double pNewSize, long pTime) {
-+                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderLerpSizePacket(pBorder), pBorder.world.dimension());
-+            }
-+
-+            @Override
-+            public void onBorderCenterSet(WorldBorder pBorder, double pX, double pZ) {
-+                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderCenterPacket(pBorder), pBorder.world.dimension());
-+            }
-+
-+            @Override
-+            public void onBorderSetWarningTime(WorldBorder pBorder, int pWarningTime) {
-+                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderWarningDelayPacket(pBorder), pBorder.world.dimension());
-+            }
-+
-+            @Override
-+            public void onBorderSetWarningBlocks(WorldBorder pBorder, int pWarningBlocks) {
-+                getCraftServer().getHandle().broadcastAll(new ClientboundSetBorderWarningDistancePacket(pBorder), pBorder.world.dimension());
-+            }
-+
-+            @Override
-+            public void onBorderSetDamagePerBlock(WorldBorder pBorder, double pDamagePerBlock) { }
-+
-+            @Override
-+            public void onBorderSetDamageSafeZOne(WorldBorder pBorder, double pDamageSafeZone) { }
-+        });
-+        // CraftBukkit end
-     }
- 
-     @Override
 @@ -167,6 +_,13 @@
          return null;
      }

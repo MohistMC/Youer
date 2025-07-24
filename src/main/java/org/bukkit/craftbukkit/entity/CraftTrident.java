@@ -31,4 +31,16 @@ public class CraftTrident extends CraftAbstractArrow implements Trident {
     public String toString() {
         return "CraftTrident";
     }
+
+    // Paper start
+    @Override
+    public boolean hasDealtDamage() {
+        return this.getHandle().dealtDamage;
+    }
+
+    @Override
+    public void setHasDealtDamage(boolean hasDealtDamage) {
+        this.getHandle().dealtDamage = hasDealtDamage;
+    }
+    // Paper end
 }
