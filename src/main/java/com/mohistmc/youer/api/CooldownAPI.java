@@ -3,17 +3,9 @@ package com.mohistmc.youer.api;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
-public class CooldownAPI {
+public record CooldownAPI(LocalDateTime old, LocalDateTime Now) {
 
-    private final LocalDateTime old;
-    private final LocalDateTime Now;
-
-    public CooldownAPI(LocalDateTime old, LocalDateTime Now) {
-        this.old = old;
-        this.Now = Now;
-    }
-
-    public boolean isAfter(){
+    public boolean isAfter() {
         return Now.isAfter(old);
     }
 

@@ -92,7 +92,7 @@ public class PaperSimplePluginClassLoader extends URLClassLoader implements Rema
                 byteSource = () -> {
                     try (InputStream is = connection.getInputStream()) {
                         byte[] classBytes = ByteStreams.toByteArray(is);
-                        classBytes = ClassloaderBytecodeModifier.bytecodeModifier().modify(classBytes);
+                        classBytes = ClassloaderBytecodeModifier.bytecodeModifier().modify(this.configuration, classBytes);
                         classBytes = SwitchTableFixer.INSTANCE.apply(classBytes);
                         return classBytes;
                     }

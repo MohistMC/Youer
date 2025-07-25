@@ -450,7 +450,7 @@
          if (this.isOutsideBuildHeight(p_46732_)) {
              return Blocks.VOID_AIR.defaultBlockState();
          } else {
-@@ -489,10 +_,26 @@
+@@ -489,10 +_,32 @@
          (this.tickingBlockEntities ? this.pendingBlockEntityTickers : this.blockEntityTickers).add(p_151526_);
      }
  
@@ -471,7 +471,13 @@
 +        }
          this.tickingBlockEntities = true;
 +        if (!this.freshBlockEntities.isEmpty()) {
-+            this.freshBlockEntities.forEach(BlockEntity::onLoad);
++            this.freshBlockEntities.forEach(blockEntity -> {
++                // Only call onLoad() on BEs which have been fully added to the level, prevents crashes with BEs that
++                // were discarded due to incompatibility with the BlockState at their position
++                if (!blockEntity.isRemoved() && blockEntity.hasLevel()) {
++                    blockEntity.onLoad();
++                }
++            });
 +            this.freshBlockEntities.clear();
 +        }
          if (!this.pendingBlockEntityTickers.isEmpty()) {

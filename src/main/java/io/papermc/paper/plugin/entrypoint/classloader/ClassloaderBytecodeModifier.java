@@ -1,5 +1,6 @@
 package io.papermc.paper.plugin.entrypoint.classloader;
 
+import io.papermc.paper.plugin.configuration.PluginMeta;
 import net.kyori.adventure.util.Services;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -10,7 +11,7 @@ public interface ClassloaderBytecodeModifier {
         return Provider.INSTANCE;
     }
 
-    byte[] modify(byte[] bytecode);
+    byte[] modify(PluginMeta config, byte[] bytecode);
 
     class Provider {
 
