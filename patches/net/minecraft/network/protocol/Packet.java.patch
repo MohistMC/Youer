@@ -1,5 +1,25 @@
 --- a/net/minecraft/network/protocol/Packet.java
 +++ b/net/minecraft/network/protocol/Packet.java
+@@ -11,6 +_,19 @@
+ 
+     void handle(T p_131342_);
+ 
++    // Paper start
++    default boolean hasLargePacketFallback() {
++        return false;
++    }
++
++    /**
++     * override {@link #hasLargePacketFallback()} to return true when overriding in subclasses
++     */
++    default boolean packetTooLarge(net.minecraft.network.Connection manager) {
++        return false;
++    }
++    // Paper end
++
+     default boolean isSkippable() {
+         return false;
+     }
 @@ -22,4 +_,31 @@
      static <B extends ByteBuf, T extends Packet<?>> StreamCodec<B, T> codec(StreamMemberEncoder<B, T> p_319871_, StreamDecoder<B, T> p_319793_) {
          return StreamCodec.ofMember(p_319871_, p_319793_);

@@ -49,6 +49,9 @@ public class PluginFixManager {
                  "com.sk89q.worldedit.bukkit.adapter.ext.fawe.v1_21_R1.PaperweightAdapter" -> node -> {
                 helloWorld(node, "org.spigotmc.WatchdogThread", "youer");
             };
+            case "cn.lunadeer.dominion.utils.Misc" -> node -> {
+                helloWorld(node, "io.papermc.paper.threadedregions.scheduler.ScheduledTask", "youer");
+            };
             default -> null;
         };
 

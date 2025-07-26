@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import lombok.Getter;
 import net.minecraft.network.ConnectionProtocol;
 import net.minecraft.network.FriendlyByteBuf;
@@ -15,37 +16,43 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.messaging.PluginMessageListenerRegistration;
 
-public class PluginChannel {
+public class PluginChannel<T extends PluginChannelHandler> {
 
-    public static AtomicBoolean pliuginChannel = new AtomicBoolean(false);
     public static final List<ConnectionProtocol> PROTOCOLS = List.of(ConnectionProtocol.CONFIGURATION, ConnectionProtocol.PLAY);
     @Getter
     private final CustomPacketPayload.Type<PluginsDiscardedPayload> type;
     @Getter
     private final StreamCodec<? super FriendlyByteBuf, PluginsDiscardedPayload> streamCodec;
-    private final PluginPayloadHandler handler;
+    private final T handler;
     private final Set<PluginMessageListenerRegistration> incoming;
     @Getter
     private final Set<Plugin> outgoing;
 
-    public PluginChannel(boolean verifyChannel, ResourceLocation channel, Set<PluginMessageListenerRegistration> incoming, Set<Plugin> outgoing) {
+    public PluginChannel(Function<PluginChannel<T>, T> factory, ResourceLocation channel, Set<PluginMessageListenerRegistration> incoming, Set<Plugin> outgoing) {
         this.type = PluginsDiscardedPayload.getType(channel);
         this.streamCodec = PluginsPayload.codec(this.type, 32767);
-        this.handler = new PluginPayloadHandler(this, verifyChannel);
+        this.handler = factory.apply(this);
         this.incoming = Collections.unmodifiableSet(incoming);
         this.outgoing = Collections.unmodifiableSet(outgoing);
     }
 
     public ChannelDirection getDirection() {
-        boolean hasIncoming = !incoming.isEmpty();
-        boolean hasOutgoing = !outgoing.isEmpty();
-        return hasIncoming && hasOutgoing ? ChannelDirection.BIDIRECTIONAL
-                : hasIncoming ? ChannelDirection.INCOMING
-                : hasOutgoing ? ChannelDirection.OUTGOING
-                : ChannelDirection.NONE;
+        if (incoming.isEmpty()) {
+            if (outgoing.isEmpty()) {
+                return ChannelDirection.NONE;
+            } else {
+                return ChannelDirection.OUTGOING;
+            }
+        } else {
+            if (outgoing.isEmpty()) {
+                return ChannelDirection.INCOMING;
+            } else {
+                return ChannelDirection.BIDIRECTIONAL;
+            }
+        }
     }
 
-    public PluginPayloadHandler getChannelHandler() {
+    public T getChannelHandler() {
         return handler;
     }
 
@@ -53,17 +60,23 @@ public class PluginChannel {
         return type.id();
     }
 
-    public void dispatchMessage(Player src, byte[] message) {
-        if (incoming.isEmpty()) {
-            return;
-        }
-        Set.copyOf(incoming).forEach(listener ->
-                listener.getListener().onPluginMessageReceived(type.id().toString(), src, message)
-        );
+    public <B extends FriendlyByteBuf> StreamCodec<B, PluginsDiscardedPayload> getCast() {
+        // This is very OK for our implementation
+        // ByteBuf is always an input argument
+        return (StreamCodec) streamCodec;
     }
 
-    public void sendCustomPayload(CraftPlayer dst, byte[] data) {
-        if (handler == null) return;
-        handler.sendCustomPayload(dst, data);
+    public void dispatchMessage(Player src, byte[] message) {
+        var fire = Set.copyOf(this.incoming);
+        if (fire.isEmpty()) {
+            return;
+        }
+        for (var listener : fire) {
+            listener.getListener().onPluginMessageReceived(type.id().toString(), src, message);
+        }
+    }
+
+    public void sendCustomPayload(Plugin src, CraftPlayer dst, byte[] data) {
+        handler.sendCustomPayload(src, dst, data);
     }
 }

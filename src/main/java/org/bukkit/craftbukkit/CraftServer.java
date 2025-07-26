@@ -14,6 +14,7 @@ import com.mohistmc.org.yaml.snakeyaml.constructor.SafeConstructor;
 import com.mohistmc.org.yaml.snakeyaml.error.MarkedYAMLException;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.ServerAPI;
+import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.mohistmc.youer.util.Level2LevelStem;
 import com.mohistmc.youer.util.ProxyUtils;
@@ -146,6 +147,7 @@ import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.WorldBorder;
 import org.bukkit.WorldCreator;
+import org.bukkit.WorldType;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarFlag;
@@ -1214,6 +1216,9 @@ public final class CraftServer implements Server {
         Level2LevelStem.initPluginWorld.set(true); // Youer
         String name = creator.name();
         ChunkGenerator generator = creator.generator();
+        if (creator.type() == WorldType.FLAT) {
+            generator = new WorldAPI.FlatGenerator();
+        }
         BiomeProvider biomeProvider = creator.biomeProvider();
         File folder = new File(this.getWorldContainer(), name);
         World world = this.getWorld(name);

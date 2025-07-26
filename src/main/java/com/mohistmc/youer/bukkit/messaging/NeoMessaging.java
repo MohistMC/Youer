@@ -18,7 +18,11 @@ public class NeoMessaging {
     public static String CHANNEL_VERSION = "youer:neomessaging";
 
     public static PluginChannel setupChannel(ResourceLocation location, Set<PluginMessageListenerRegistration> incoming, Set<Plugin> outgoing) {
-        return new PluginChannel(verifyChannel(location, incoming, outgoing), location, incoming, outgoing);
+        if (verifyChannel(location, incoming, outgoing)) {
+            return new PluginChannel<>(PluginPayloadHandler::new, location, incoming, outgoing);
+        } else {
+            return new PluginChannel<>(NeoForgePayloadDestroyer::new, location, incoming, outgoing);
+        }
     }
 
     public static boolean verifyChannel(ResourceLocation location, Set<PluginMessageListenerRegistration> incoming, Set<Plugin> outgoing) {
@@ -65,7 +69,7 @@ public class NeoMessaging {
                 ).orElse(ChannelDirection.BIDIRECTIONAL);
     }
 
-    public static PayloadRegistration<?> createRegistration(PluginChannel channel) {
+    public static PayloadRegistration<?> createRegistration(PluginChannel<NeoForgePayloadHandler> channel) {
         var direction = channel.getDirection();
         if (direction.bitmap == 0) {
             return null;

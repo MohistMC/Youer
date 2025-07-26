@@ -20,6 +20,10 @@ public interface PluginsPayload extends CustomPacketPayload {
         return allocate;
     }
 
+    default ByteBuf getSlicedData() {
+        return getData().slice();
+    }
+
     static <B extends FriendlyByteBuf> StreamCodec<B, PluginsDiscardedPayload> codec(Type<PluginsDiscardedPayload> type, int max) {
         return StreamCodec.composite(
                 StreamCodec.of(FriendlyByteBuf::writeBytes, buf -> {
@@ -27,7 +31,7 @@ public interface PluginsPayload extends CustomPacketPayload {
                     Preconditions.checkArgument(size <= max, "Custom payload size may not be larger than " + max);
                     return buf.readRetainedSlice(size);
                 }),
-                PluginsPayload::getData,
+                PluginsPayload::getSlicedData,
                 it -> new PluginsDiscardedPayload(type, it)
         );
     }
@@ -48,7 +52,7 @@ public interface PluginsPayload extends CustomPacketPayload {
             @Override
             public void encode(B buf, CustomPacketPayload obj) {
                 if (obj instanceof PluginsPayload raw) {
-                    buf.writeBytes(raw.getData());
+                    buf.writeBytes(raw.getSlicedData());
                 }
             }
         };

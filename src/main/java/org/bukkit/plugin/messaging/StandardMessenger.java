@@ -6,6 +6,7 @@ import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.bukkit.messaging.NeoMessaging;
+import com.mohistmc.youer.bukkit.messaging.PacketRecorder;
 import com.mohistmc.youer.bukkit.messaging.PluginChannel;
 import com.mohistmc.youer.util.I18n;
 import java.util.HashMap;
@@ -30,8 +31,10 @@ public class StandardMessenger implements Messenger {
     private final Map<Plugin, Set<String>> outgoingByPlugin = new HashMap<Plugin, Set<String>>();
     private final Object incomingLock = new Object();
     private final Object outgoingLock = new Object();
+
     public final Map<ResourceLocation, PluginChannel> registry = new HashMap<>();
     private final SetMultimap<Plugin, ResourceLocation> crossSend = MultimapBuilder.hashKeys().hashSetValues().build();
+    private final PacketRecorder recorder = new PacketRecorder();
     private void addToOutgoing(@NotNull Plugin plugin, @NotNull String channel) {
         synchronized (outgoingLock) {
             Set<Plugin> plugins = outgoingByChannel.get(channel);
@@ -605,7 +608,7 @@ public class StandardMessenger implements Messenger {
             }
         }
 
-        channel.sendCustomPayload(dst, data);
+        channel.sendCustomPayload(src, dst, data);
     }
 
     public void registerAnonymousOutgoing(ResourceLocation location) {
@@ -630,5 +633,10 @@ public class StandardMessenger implements Messenger {
     }
     private void updateChannel(String location, boolean create) {
         updateChannel(ResourceLocation.tryParse(location), create);
+    }
+
+    @Override
+    public PacketRecorder getPacketRecorder() {
+        return recorder;
     }
 }

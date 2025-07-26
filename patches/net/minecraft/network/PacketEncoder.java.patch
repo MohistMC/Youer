@@ -13,7 +13,7 @@
              this.protocolInfo.codec().encode(p_130547_, p_130546_);
              int i = p_130547_.readableBytes();
              if (LOGGER.isDebugEnabled()) {
-@@ -31,7 +_,7 @@
+@@ -31,14 +_,44 @@
  
              JvmProfiler.INSTANCE.onPacketSent(this.protocolInfo.id(), packettype, p_130545_.channel().remoteAddress(), i);
          } catch (Throwable throwable) {
@@ -22,13 +22,40 @@
              if (p_130546_.isSkippable()) {
                  throw new SkipPacketException(throwable);
              }
-@@ -40,5 +_,9 @@
+ 
+             throw throwable;
          } finally {
++            // Paper start - Handle large packets disconnecting client
++            int packetLength = p_130547_.readableBytes();
++            if (packetLength > MAX_PACKET_SIZE || (packetLength > MAX_FINAL_PACKET_SIZE && p_130546_.hasLargePacketFallback())) {
++                throw new PacketTooLargeException(p_130546_, packetLength);
++            }
++            // Paper end - Handle large packets disconnecting client
              ProtocolSwapHandler.handleOutboundTerminalPacket(p_130545_, p_130546_);
          }
-+    }
+     }
 +
 +    public ProtocolInfo<T> getProtocolInfo() {
 +        return protocolInfo;
-     }
++    }
++
++    // Paper start
++    // packet size is encoded into 3-byte varint
++    private static final int MAX_FINAL_PACKET_SIZE = (1 << 21) - 1;
++    // Vanilla Max size for the encoder (before compression)
++    private static final int MAX_PACKET_SIZE = 8388608;
++
++    public static class PacketTooLargeException extends RuntimeException {
++        private final Packet<?> packet;
++
++        PacketTooLargeException(Packet<?> packet, int packetLength) {
++            super("PacketTooLarge - " + packet.getClass().getSimpleName() + " is " + packetLength + ". Max is " + MAX_PACKET_SIZE);
++            this.packet = packet;
++        }
++
++        public Packet<?> getPacket() {
++            return this.packet;
++        }
++    }
++    // Paper end
  }

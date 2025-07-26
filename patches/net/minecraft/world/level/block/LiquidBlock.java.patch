@@ -39,22 +39,24 @@
      private boolean shouldSpreadLiquid(Level p_54697_, BlockPos p_54698_, BlockState p_54699_) {
          if (this.fluid.is(FluidTags.LAVA)) {
              boolean flag = p_54697_.getBlockState(p_54698_.below()).is(Blocks.SOUL_SOIL);
-@@ -163,14 +_,16 @@
+@@ -163,14 +_,20 @@
                  BlockPos blockpos = p_54698_.relative(direction.getOpposite());
                  if (p_54697_.getFluidState(blockpos).is(FluidTags.WATER)) {
                      Block block = p_54697_.getFluidState(p_54698_).isSource() ? Blocks.OBSIDIAN : Blocks.COBBLESTONE;
--                    p_54697_.setBlockAndUpdate(p_54698_, block.defaultBlockState());
++                    p_54697_.callEvent(true);
+                     p_54697_.setBlockAndUpdate(p_54698_, block.defaultBlockState());
 -                    this.fizz(p_54697_, p_54698_);
-+                    if (CraftEventFactory.handleBlockFormEvent(p_54697_, p_54698_, block.defaultBlockState())) {
++                    if (CraftEventFactory.handleBlockFormEvent(p_54697_, p_54698_, p_54697_.mohist$defaultBlockState)) {
 +                        this.fizz(p_54697_, p_54698_);
 +                    }
                      return false;
                  }
  
                  if (flag && p_54697_.getBlockState(blockpos).is(Blocks.BLUE_ICE)) {
--                    p_54697_.setBlockAndUpdate(p_54698_, Blocks.BASALT.defaultBlockState());
++                    p_54697_.callEvent(true);
+                     p_54697_.setBlockAndUpdate(p_54698_, Blocks.BASALT.defaultBlockState());
 -                    this.fizz(p_54697_, p_54698_);
-+                    if (CraftEventFactory.handleBlockFormEvent(p_54697_, p_54698_, Blocks.BASALT.defaultBlockState())) {
++                    if (CraftEventFactory.handleBlockFormEvent(p_54697_, p_54698_, p_54697_.mohist$defaultBlockState)) {
 +                        this.fizz(p_54697_, p_54698_);
 +                    }
                      return false;

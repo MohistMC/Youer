@@ -1044,10 +1044,14 @@
      }
  
      @Nullable
-@@ -876,6 +_,7 @@
+@@ -876,6 +_,11 @@
              playeradvancements.reload(this.server.getAdvancements());
          }
  
++        for (ServerPlayer player: this.players) {
++            player.getAdvancements().flushDirty(player); // CraftBukkit - trigger immediate flush of advancements
++        }
++
 +        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.OnDatapackSyncEvent(this, null));
          this.broadcastAll(new ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.registries)));
          ClientboundUpdateRecipesPacket clientboundupdaterecipespacket = new ClientboundUpdateRecipesPacket(this.server.getRecipeManager().getOrderedRecipes());

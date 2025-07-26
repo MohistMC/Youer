@@ -8,6 +8,7 @@ package net.neoforged.neoforge.network.registration;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.bukkit.messaging.PacketRecorder;
 import com.mohistmc.youer.bukkit.messaging.PluginsPayload;
 import com.mohistmc.youer.util.I18n;
 import com.mojang.logging.LogUtils;
@@ -214,7 +215,9 @@ public class NetworkRegistry {
         // Now ask the protocol what kind of payload is being sent and get the channel for it.
         if (PAYLOAD_REGISTRATIONS.containsKey(protocol)) {
             PayloadRegistration<?> registration = PAYLOAD_REGISTRATIONS.get(protocol).get(id);
-
+            PacketRecorder recorder = Bukkit.getMessenger().getPacketRecorder();
+            recorder.recordUnknown(id);
+            recorder.update();
             // These two checks can only be hit on receipt of a payload, as senders will be checked before reaching this method.
             if (registration == null) {
                 LOGGER.warn("No registration for payload {}; refusing to decode.", id);
