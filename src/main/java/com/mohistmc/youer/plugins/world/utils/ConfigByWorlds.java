@@ -99,16 +99,18 @@ public class ConfigByWorlds {
         YamlUtils.save(f, config);
     }
 
-    public static void initMods(Level level) {
-        if (level != null && level instanceof ServerLevel serverLevel) {
-            CraftWorld world = serverLevel.getWorld();
-            if (world.isMods()) {
-                ConfigByWorlds.addWorld(world.getName(), false);
-                config.set("worlds." + world.getName() + ".ismods", world.isMods());
-                config.set("worlds." + world.getName() + ".modName", world.getModid());
-            }
-            init();
+    public static void initMods(ServerLevel level) {
+        CraftWorld world = level.getWorld();
+        if (config.get("worlds." + world.getName() + ".youer") == null) {
+            config.set("worlds." + world.getName() + ".youer", false);
         }
+        if (world.isMods()) {
+            ConfigByWorlds.addWorld(world.getName(), false);
+            config.set("worlds." + world.getName() + ".ismods", world.isMods());
+            config.set("worlds." + world.getName() + ".modName", world.getModid());
+        }
+        init();
+
     }
 
     public static void loadWorlds() {
@@ -130,7 +132,6 @@ public class ConfigByWorlds {
                     }
                 }
                 String environment = "NORMAL";
-                String difficulty = "EASY";
                 boolean isMods = false;
                 boolean isMohist = false;
                 String modName = null;
@@ -144,9 +145,6 @@ public class ConfigByWorlds {
                     }
                     if (config.get("worlds." + w + ".environment") != null) {
                         environment = config.getString("worlds." + w + ".environment");
-                    }
-                    if (config.get("worlds." + w + ".difficulty") != null) {
-                        difficulty = config.getString("worlds." + w + ".difficulty");
                     }
                     if (config.get("worlds." + w + ".ismods") != null) {
                         isMods = config.getBoolean("worlds." + w + ".ismods");
@@ -192,9 +190,6 @@ public class ConfigByWorlds {
                 if (world != null) {
                     world.setVoid(isVoid);
                     world.setFlat(isFlat);
-                    if (difficulty != null) {
-                        world.setDifficulty(Difficulty.valueOf(difficulty));
-                    }
                     if (config.get("worlds." + w + ".worldborder") != null) {
                         world.getWorldBorder().setSize(config.getDouble("worlds." + w + ".worldborder"));
                     }
@@ -245,8 +240,8 @@ public class ConfigByWorlds {
         }
     }
 
-    public static void difficulty(String w, String difficulty) {
-        config.set("worlds." + w + ".difficulty", difficulty);
+    public static void youer(String w, boolean difficulty) {
+        config.set("worlds." + w + ".youer", difficulty);
         init();
     }
 
