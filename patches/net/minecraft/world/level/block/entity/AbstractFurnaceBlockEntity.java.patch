@@ -170,7 +170,7 @@
                      p_155017_.cookingProgress = 0;
                      p_155017_.cookingTotalTime = getTotalCookTime(p_155014_, p_155017_);
 -                    if (burn(p_155014_.registryAccess(), recipeholder, p_155017_.items, i)) {
-+                    if (burn(p_155017_.level, p_155017_.worldPosition, p_155014_.registryAccess(), recipeholder, p_155017_.items, i, p_155017_)) { // CraftBukkit
++                    if (burn(p_155014_.registryAccess(), recipeholder, p_155017_.items, i, p_155017_)) { // CraftBukkit
                          p_155017_.setRecipeUsed(recipeholder);
                      }
  
@@ -204,7 +204,7 @@
  
 -    private static boolean burn(RegistryAccess p_266740_, @Nullable RecipeHolder<?> p_300910_, NonNullList<ItemStack> p_267073_, int p_267157_) {
 -        if (p_300910_ != null && canBurn(p_266740_, p_300910_, p_267073_, p_267157_)) {
-+    private static boolean burn(Level level, BlockPos blockposition, RegistryAccess p_266740_, @Nullable RecipeHolder<?> p_300910_, NonNullList<ItemStack> p_267073_, int p_267157_, AbstractFurnaceBlockEntity furnace) { // CraftBukkit
++    private static boolean burn(RegistryAccess p_266740_, @Nullable RecipeHolder<?> p_300910_, NonNullList<ItemStack> p_267073_, int p_267157_, AbstractFurnaceBlockEntity furnace) { // CraftBukkit
 +        if (p_300910_ != null && canBurn(p_266740_, p_300910_, p_267073_, p_267157_, furnace)) {
              ItemStack itemstack = p_267073_.get(0);
 -            ItemStack itemstack1 = p_300910_.value().getResultItem(p_266740_);
@@ -214,8 +214,8 @@
 +            CraftItemStack source = CraftItemStack.asCraftMirror(itemstack);
 +            org.bukkit.inventory.ItemStack result = CraftItemStack.asBukkitCopy(itemstack1);
 +
-+            org.bukkit.event.inventory.FurnaceSmeltEvent furnaceSmeltEvent = new org.bukkit.event.inventory.FurnaceSmeltEvent(CraftBlock.at(level, blockposition), source, result);
-+            level.getCraftServer().getPluginManager().callEvent(furnaceSmeltEvent);
++            org.bukkit.event.inventory.FurnaceSmeltEvent furnaceSmeltEvent = new org.bukkit.event.inventory.FurnaceSmeltEvent(CraftBlock.at(furnace.level, furnace.worldPosition), source, result);
++            Bukkit.getPluginManager().callEvent(furnaceSmeltEvent);
 +
 +            if (furnaceSmeltEvent.isCancelled()) {
 +                return false;
