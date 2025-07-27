@@ -1,6 +1,9 @@
 --- a/net/minecraft/world/inventory/AnvilMenu.java
 +++ b/net/minecraft/world/inventory/AnvilMenu.java
-@@ -3,7 +_,6 @@
+@@ -1,9 +_,9 @@
+ package net.minecraft.world.inventory;
+ 
++import com.mohistmc.youer.YouerConfig;
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
  import javax.annotation.Nullable;
@@ -31,7 +34,7 @@
      private static final int SLOT_Y_PLACEMENT = 47;
 +    // CraftBukkit start
 +    public static final int DEFAULT_DENIED_COST = -1;
-+    public int maximumRepairCost = 40;
++    public int maximumRepairCost = Math.min(Short.MAX_VALUE, Math.max(41, YouerConfig.maximumRepairCost));
 +    private CraftAnvilView bukkitEntity;
 +    // CraftBukkit end
 +    public boolean bypassEnchantmentLevelRestriction = false; // Paper - bypass anvil level restrictions
@@ -166,21 +169,33 @@
  
              int k2 = (int)Mth.clamp(j + (long)i, 0L, 2147483647L);
              this.cost.set(k2);
-@@ -235,11 +_,11 @@
+@@ -235,12 +_,20 @@
                  itemstack1 = ItemStack.EMPTY;
              }
  
 -            if (k == i && k > 0 && this.cost.get() >= 40) {
 -                this.cost.set(39);
-+            if (k == i && k > 0 && this.cost.get() >= maximumRepairCost) { // CraftBukkit
-+                this.cost.set(maximumRepairCost - 1); // CraftBukkit
-             }
- 
+-            }
+-
 -            if (this.cost.get() >= 40 && !this.player.getAbilities().instabuild) {
-+            if (this.cost.get() >= maximumRepairCost && !this.player.getAbilities().instabuild) { // CraftBukkit
-                 itemstack1 = ItemStack.EMPTY;
+-                itemstack1 = ItemStack.EMPTY;
++            if (maximumRepairCost == 40) {
++                if (k == i && k > 0 && this.cost.get() >= 40) {
++                    this.cost.set(39);
++                }
++                if (this.cost.get() >= 40 && !this.player.getAbilities().instabuild) { // CraftBukkit
++                    itemstack1 = ItemStack.EMPTY;
++                }
++            } else {
++                if (k == i && k > 0 && this.cost.get() >= maximumRepairCost) { // CraftBukkit
++                    this.cost.set(maximumRepairCost - 1); // CraftBukkit
++                }
++                if (this.cost.get() >= maximumRepairCost && !this.player.getAbilities().instabuild) { // CraftBukkit
++                    itemstack1 = ItemStack.EMPTY;
++                }
              }
  
+             if (!itemstack1.isEmpty()) {
 @@ -257,11 +_,13 @@
                  EnchantmentHelper.setEnchantments(itemstack1, itemenchantments$mutable.toImmutable());
              }
