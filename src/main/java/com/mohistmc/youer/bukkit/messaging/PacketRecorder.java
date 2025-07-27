@@ -33,6 +33,7 @@ public class PacketRecorder {
 
     public void consumeAndLog() {
         String unknowns = unknown.object2IntEntrySet().stream()
+                .filter(entry -> entry.getKey() != null)
                 .map(it -> it.getKey().toString() + '(' + it.getIntValue() + ')')
                 .collect(Collectors.joining(", ", "unknown=[", "];"));
         unknown.clear();
