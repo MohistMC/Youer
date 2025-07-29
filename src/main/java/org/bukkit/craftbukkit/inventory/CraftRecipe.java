@@ -43,16 +43,12 @@ public interface CraftRecipe extends Recipe {
     public static RecipeChoice toBukkit(Ingredient list) {
         list.getItems();
 
-        if (list.itemStacks.length == 0) {
-            return RecipeChoice.empty(); // Paper - null breaks API contracts
-        }
-
         if (!list.isVanilla()) {
             return new MohistSpecialIngredient(list);
         }
         net.minecraft.world.item.ItemStack[] items = list.getItems();
         if (items.length == 0) {
-            return null;
+            return RecipeChoice.empty(); // Paper - null breaks API contracts
         }
 
         if (list.exact) {
