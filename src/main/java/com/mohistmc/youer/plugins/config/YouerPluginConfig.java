@@ -5,12 +5,12 @@ import java.io.File;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-public class MohistPluginConfig {
+public class YouerPluginConfig {
 
     private final File config;
     public final FileConfiguration yaml;
 
-    public MohistPluginConfig(File file) {
+    public YouerPluginConfig(File file) {
         config = file;
         yaml = YamlConfiguration.loadConfiguration(config);
         if (!config.exists()) {

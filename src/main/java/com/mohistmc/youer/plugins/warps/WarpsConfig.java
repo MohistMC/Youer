@@ -1,6 +1,6 @@
 package com.mohistmc.youer.plugins.warps;
 
-import com.mohistmc.youer.plugins.config.MohistPluginConfig;
+import com.mohistmc.youer.plugins.config.YouerPluginConfig;
 import java.io.File;
 import org.bukkit.Location;
 
@@ -8,7 +8,7 @@ import org.bukkit.Location;
  * @author Mgazul by MohistMC
  * @date 2023/9/12 16:39:15
  */
-public class WarpsConfig extends MohistPluginConfig {
+public class WarpsConfig extends YouerPluginConfig {
 
     public static WarpsConfig INSTANCE;
 

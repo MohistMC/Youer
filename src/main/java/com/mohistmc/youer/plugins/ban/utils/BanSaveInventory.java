@@ -1,6 +1,7 @@
 package com.mohistmc.youer.plugins.ban.utils;
 
 import com.mohistmc.youer.plugins.ban.BanType;
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -9,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 public class BanSaveInventory implements InventoryHolder {
 
     private final Inventory inventory;
+    @Getter
     private final BanType banType;
 
     public BanSaveInventory(BanType banType, String title) {
@@ -20,7 +22,4 @@ public class BanSaveInventory implements InventoryHolder {
         return inventory;
     }
 
-    public BanType getBanType() {
-        return banType;
-    }
 }

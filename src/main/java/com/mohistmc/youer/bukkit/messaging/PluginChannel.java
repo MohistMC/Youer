@@ -3,7 +3,6 @@ package com.mohistmc.youer.bukkit.messaging;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import lombok.Getter;
 import net.minecraft.network.ConnectionProtocol;

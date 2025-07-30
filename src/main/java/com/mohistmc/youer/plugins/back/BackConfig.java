@@ -1,14 +1,14 @@
 package com.mohistmc.youer.plugins.back;
 
 import com.mohistmc.youer.YouerConfig;
-import com.mohistmc.youer.plugins.config.MohistPluginConfig;
+import com.mohistmc.youer.plugins.config.YouerPluginConfig;
 import java.io.File;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-public class BackConfig extends MohistPluginConfig {
+public class BackConfig extends YouerPluginConfig {
 
     public static BackConfig INSTANCE;
 

@@ -5,6 +5,7 @@ import com.mohistmc.youer.api.gui.GuiListener;
 import com.mohistmc.youer.feature.GlobalVariableSystem;
 import com.mohistmc.youer.plugins.back.BackCommands;
 import com.mohistmc.youer.plugins.back.BackConfig;
+import com.mohistmc.youer.plugins.ban.BanConfig;
 import com.mohistmc.youer.plugins.ban.BanListener;
 import com.mohistmc.youer.plugins.item.ItemsConfig;
 import com.mohistmc.youer.plugins.tpa.TpaComamands;
@@ -39,6 +40,7 @@ public class MohistPlugin {
         ItemsConfig.init();
         BackConfig.init();
         WarpsConfig.init();
+        BanConfig.init();
         EntityClear.start();
         GlobalVariableSystem.getInstance().registerDefaultPlayerVariables();
     }
@@ -47,7 +49,9 @@ public class MohistPlugin {
         if (YouerConfig.config.getBoolean("worldmanage", true)) {
             map.put("worlds", new WorldsCommands("worlds"));
         }
-        map.put("warps", new WarpsCommands("warps"));
+        if (YouerConfig.config.getBoolean("warps.enable", false)) {
+            map.put("warps", new WarpsCommands("warps"));
+        }
         if (YouerConfig.config.getBoolean("tpa.enable", false)) {
             map.put("tpa", new TpaComamands("tpa"));
             map.put("tpadeny", new TpadenyCommands("tpadeny"));

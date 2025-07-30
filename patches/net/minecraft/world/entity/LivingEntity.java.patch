@@ -1,10 +1,12 @@
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -7,6 +_,7 @@
+@@ -7,6 +_,9 @@
  import com.google.common.collect.Iterables;
  import com.google.common.collect.Lists;
  import com.google.common.collect.Maps;
 +import com.mohistmc.youer.neoforge.BukkitDamageHooks;
++import com.mohistmc.youer.plugins.ban.bans.BanItem;
++import com.mohistmc.youer.util.EmeraldClose;
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.DataResult;
@@ -844,7 +846,7 @@
              }
  
              this.dead = true;
-@@ -1361,32 +_,45 @@
+@@ -1361,32 +_,46 @@
          if (!this.level().isClientSide) {
              boolean flag = false;
              if (p_21269_ instanceof WitherBoss) {
@@ -890,6 +892,7 @@
          this.dropExperience(p_21192_.getEntity());
 +
 +        Collection<ItemEntity> drops = captureDrops(null);
++        EmeraldClose.init(this, drops); // Mohist
 +        if (!net.neoforged.neoforge.common.CommonHooks.onLivingDrops(this, p_21192_, drops, lastHurtByPlayerTime > 0))
 +            drops.forEach(e -> level().addFreshEntity(e));
      }
@@ -1569,10 +1572,11 @@
          int i = this.entityData.get(DATA_LIVING_ENTITY_FLAGS);
          if (p_21157_) {
              i |= p_21156_;
-@@ -3029,8 +_,10 @@
+@@ -3029,8 +_,11 @@
      public void startUsingItem(InteractionHand p_21159_) {
          ItemStack itemstack = this.getItemInHand(p_21159_);
          if (!itemstack.isEmpty() && !this.isUsingItem()) {
++            if (this instanceof ServerPlayer player && BanItem.check(player, itemstack)) return;
 +            int duration = net.neoforged.neoforge.event.EventHooks.onItemUseStart(this, itemstack, p_21159_, itemstack.getUseDuration(this));
 +            if (duration < 0) return; // Neo: Early return for negative values, as that indicates event cancellation.
              this.useItem = itemstack;

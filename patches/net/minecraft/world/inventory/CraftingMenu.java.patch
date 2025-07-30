@@ -1,7 +1,9 @@
 --- a/net/minecraft/world/inventory/CraftingMenu.java
 +++ b/net/minecraft/world/inventory/CraftingMenu.java
-@@ -2,7 +_,6 @@
+@@ -1,8 +_,8 @@
+ package net.minecraft.world.inventory;
  
++import com.mohistmc.youer.plugins.ban.bans.BanItem;
  import java.util.Optional;
  import javax.annotation.Nullable;
 -import net.minecraft.core.BlockPos;
@@ -50,7 +52,7 @@
          this.access = p_39358_;
          this.player = p_39357_.player;
          this.addSlot(new ResultSlot(p_39357_.player, this.craftSlots, this.resultSlots, 0, 124, 35));
-@@ -73,6 +_,7 @@
+@@ -73,16 +_,20 @@
              Optional<RecipeHolder<CraftingRecipe>> optional = p_150548_.getServer()
                  .getRecipeManager()
                  .getRecipeFor(RecipeType.CRAFTING, craftinginput, p_150548_, p_345124_);
@@ -58,7 +60,14 @@
              if (optional.isPresent()) {
                  RecipeHolder<CraftingRecipe> recipeholder = optional.get();
                  CraftingRecipe craftingrecipe = recipeholder.value();
-@@ -83,6 +_,7 @@
+                 if (p_150551_.setRecipeUsed(p_150548_, serverplayer, recipeholder)) {
+                     ItemStack itemstack1 = craftingrecipe.assemble(craftinginput, p_150548_.registryAccess());
+-                    if (itemstack1.isItemEnabled(p_150548_.enabledFeatures())) {
+-                        itemstack = itemstack1;
++                    if (!BanItem.check(serverplayer, itemstack1)) {
++                        if (itemstack1.isItemEnabled(p_150548_.enabledFeatures())) {
++                            itemstack = itemstack1;
++                        }
                      }
                  }
              }

@@ -1,5 +1,12 @@
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.server.level;
+ 
++import com.mohistmc.youer.plugins.ban.bans.BanItem;
+ import com.mojang.logging.LogUtils;
+ import java.util.Objects;
+ import javax.annotation.Nullable;
 @@ -15,7 +_,6 @@
  import net.minecraft.world.ItemInteractionResult;
  import net.minecraft.world.MenuProvider;
@@ -257,7 +264,7 @@
              int i = p_9264_.getCount();
              int j = p_9264_.getDamageValue();
              InteractionResultHolder<ItemStack> interactionresultholder = p_9264_.use(p_9263_, p_9262_, p_9265_);
-@@ -304,12 +_,26 @@
+@@ -304,12 +_,31 @@
          }
      }
  
@@ -268,6 +275,11 @@
 +    public InteractionHand interactHand;
 +    public ItemStack interactItemStack;
      public InteractionResult useItemOn(ServerPlayer p_9266_, Level p_9267_, ItemStack p_9268_, InteractionHand p_9269_, BlockHitResult p_9270_) {
++        if (BanItem.checkMoShou(p_9266_, p_9266_.getItemInHand(p_9269_))) {
++            p_9266_.setItemInHand(p_9269_, ItemStack.EMPTY);
++            return InteractionResult.FAIL;
++        }
++        if (BanItem.check(p_9266_, p_9268_)) return InteractionResult.FAIL;
          BlockPos blockpos = p_9270_.getBlockPos();
          BlockState blockstate = p_9267_.getBlockState(blockpos);
          if (!blockstate.getBlock().isEnabled(p_9267_.enabledFeatures())) {

@@ -1,9 +1,11 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -4,6 +_,7 @@
+@@ -4,6 +_,9 @@
  import com.google.common.collect.Lists;
  import com.google.common.collect.Sets;
  import com.google.common.collect.ImmutableList.Builder;
++import com.mohistmc.youer.YouerConfig;
++import com.mohistmc.youer.plugins.ban.bans.BanEntity;
 +import com.mohistmc.youer.util.LambdaFix;
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.floats.FloatArraySet;
@@ -401,7 +403,7 @@
          this.setYRot(p_19916_ % 360.0F);
          this.setXRot(p_19917_ % 360.0F);
      }
-@@ -419,6 +_,15 @@
+@@ -419,7 +_,19 @@
          this.baseTick();
      }
  
@@ -415,8 +417,12 @@
 +    // CraftBukkit end
 +
      public void baseTick() {
++        if (BanEntity.check(this)) {
++            this.discard();
++        }
          this.level().getProfiler().push("entityBaseTick");
          this.inBlockState = null;
+         if (this.isPassenger() && this.getVehicle().isRemoved()) {
 @@ -433,7 +_,7 @@
          this.walkDistO = this.walkDist;
          this.xRotO = this.getXRot();
@@ -1100,6 +1106,17 @@
      protected boolean couldAcceptPassenger() {
          return true;
      }
+@@ -2157,7 +_,9 @@
+                         ServerLevel serverlevel1 = dimensiontransition.newLevel();
+                         if (serverlevel.getServer().isLevelEnabled(serverlevel1)
+                             && (serverlevel1.dimension() == serverlevel.dimension() || this.canChangeDimensions(serverlevel, serverlevel1))) {
+-                            this.changeDimension(dimensiontransition);
++                            if (YouerConfig.custom_entity_tp_nether) {
++                                this.changeDimension(dimensiontransition);
++                            }
+                         }
+                     }
+ 
 @@ -2257,10 +_,17 @@
      }
  

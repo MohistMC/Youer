@@ -18,6 +18,13 @@ public class DeepSeek {
             if (msg.startsWith(cmd)) {
                 String message = msg.replace(cmd, "");
                 CompletableFuture.supplyAsync(() -> chat(message))
+                        .thenAccept(reply -> player.sendMessage(MiniMessage.miniMessage().deserialize(YouerConfig.deepseek_chatfromat.formatted(reply))));
+            }
+
+            String all_cmd = YouerConfig.deepseek_all_command + " ";
+            if (msg.startsWith(all_cmd)) {
+                String message = msg.replace(all_cmd, "");
+                CompletableFuture.supplyAsync(() -> chat(message))
                         .thenAccept(reply -> Bukkit.broadcast(MiniMessage.miniMessage().deserialize(YouerConfig.deepseek_chatfromat.formatted(reply))));
             }
         }
@@ -51,7 +58,7 @@ public class DeepSeek {
         userMessage.setContent(msg);
 
         request.setMessages(List.of(systemMessage, userMessage));
-        HttpResponse<String> response = Unirest.post("https://api.deepseek.com/chat/completions")
+        HttpResponse<String> response = Unirest.post(YouerConfig.deepseek_baseUrl)
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
                 .header("Authorization", "Bearer %s".formatted(YouerConfig.deepseek_apikey))

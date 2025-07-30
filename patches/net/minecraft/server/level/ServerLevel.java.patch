@@ -1,9 +1,11 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,7 +_,11 @@
+@@ -1,7 +_,13 @@
  package net.minecraft.server.level;
  
++import com.mohistmc.youer.YouerConfig;
 +import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
++import com.mohistmc.youer.plugins.ban.bans.BanEntity;
 +import com.mohistmc.youer.plugins.world.utils.ConfigByWorlds;
 +import com.mohistmc.youer.util.Level2LevelStem;
  import com.google.common.annotations.VisibleForTesting;
@@ -48,14 +50,17 @@
  import net.minecraft.world.DifficultyInstance;
  import net.minecraft.world.RandomSequences;
  import net.minecraft.world.TickRateManager;
-@@ -98,7 +_,6 @@
+@@ -98,9 +_,9 @@
  import net.minecraft.world.entity.animal.Animal;
  import net.minecraft.world.entity.animal.WaterAnimal;
  import net.minecraft.world.entity.animal.horse.SkeletonHorse;
 -import net.minecraft.world.entity.boss.EnderDragonPart;
  import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
  import net.minecraft.world.entity.npc.Npc;
++import net.minecraft.world.entity.npc.Villager;
  import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.entity.raid.Raid;
+ import net.minecraft.world.entity.raid.Raids;
 @@ -119,11 +_,15 @@
  import net.minecraft.world.level.StructureManager;
  import net.minecraft.world.level.WorldGenLevel;
@@ -618,7 +623,7 @@
          Entity entity = this.getEntities().get(p_8854_.getUUID());
          if (entity != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", p_8854_.getUUID());
-@@ -903,15 +_,40 @@
+@@ -903,15 +_,44 @@
              this.removePlayerImmediately((ServerPlayer)entity, Entity.RemovalReason.DISCARDED);
          }
  
@@ -636,6 +641,10 @@
 +            if (false) LOGGER.warn("Tried to add entity {} but it was marked as removed already", EntityType.getKey(p_8873_.getType()));
 +            return false;
 +        } else {
++            if (p_8873_ instanceof Villager && YouerConfig.custom_no_villager) return false;
++            if (BanEntity.check(p_8873_)) {
++                return false;
++            }
 +            if (!AsyncCatcher.catchAsync() && p_8873_.spawnReason != null && !CraftEventFactory.doEntityAddEventCalling(this, p_8873_, p_8873_.spawnReason)) {
 +                return false;
 +            }

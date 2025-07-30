@@ -1,9 +1,8 @@
 package com.mohistmc.youer;
 
 import com.google.common.base.Throwables;
-import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.commands.BackupWorldCommand;
-import com.mohistmc.youer.commands.BansCommand;
+import com.mohistmc.youer.plugins.ban.BansCommand;
 import com.mohistmc.youer.commands.DumpCommand;
 import com.mohistmc.youer.commands.GetPluginListCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
@@ -169,11 +168,6 @@ public class YouerConfig {
     public static boolean enchantment_fix;
     public static int max_enchantment_level;
 
-    public static boolean player_modlist_blacklist_enable;
-    public static List<String> player_modlist_blacklist;
-
-    public static boolean server_modlist_whitelist_enable;
-    public static String server_modlist_whitelist;
     public static int maxBees;
     public static boolean bookAnimationTick;
     public static boolean networkmanager_debug;
@@ -200,12 +194,8 @@ public class YouerConfig {
 
     // Ban
     public static boolean ban_item_enable;
-    public static List<String> ban_item_materials;
     public static boolean ban_entity_enable;
-    public static List<String> ban_entity_types;
-
     public static boolean ban_enchantment_enable;
-    public static List<String> ban_enchantment_list;
 
     public static String pingCommandOutput;
 
@@ -231,11 +221,22 @@ public class YouerConfig {
     public static boolean pluginchannel_debug;
 
     public static boolean deepseek_enable;
+    public static String deepseek_baseUrl;
     public static String deepseek_apikey;
     public static String deepseek_model;
     public static String deepseek_system;
     public static String deepseek_command;
+    public static String deepseek_all_command;
     public static String deepseek_chatfromat;
+
+    public static boolean warps_enable;
+
+    public static boolean custom_no_villager;
+    public static boolean custom_entity_tp_end;
+    public static boolean custom_entity_tp_nether;
+    public static boolean custom_raid_no_emerald;
+    public static int custom_lava_speed_normal;
+    public static int custom_lava_speed_nether;
 
     private static void mohist() {
         show_logo = getBoolean("youer.show_logo", true);
@@ -246,10 +247,6 @@ public class YouerConfig {
         maximumRepairCost = getInt("anvilfix.maximumrepaircost", 40);
         enchantment_fix = getBoolean("anvilfix.enchantment_fix", false);
         max_enchantment_level = getInt("anvilfix.max_enchantment_level", 32767);
-        player_modlist_blacklist_enable = getBoolean("player_modlist_blacklist.enable", false);
-        player_modlist_blacklist = getStringList("player_modlist_blacklist.list", new ArrayList<>());
-        server_modlist_whitelist_enable = getBoolean("server_modlist_whitelist.enable", false);
-        server_modlist_whitelist = getString("server_modlist_whitelist.list", ServerAPI.modlists_All.toString().replace(", youer", ""));
         maxBees = getInt("max-bees-in-hive", 3);
         bookAnimationTick = getBoolean("enchantment-table-book-animation-tick", false);
         networkmanager_debug = getBoolean("networkmanager.debug", false);
@@ -272,12 +269,9 @@ public class YouerConfig {
         clear_monster_msg = getString("entity.clear.monster.msg", "[Server] Cleaned up %size% monster");
         clear_monster_time = getInt("entity.clear.monster.time", 1800);
 
-        ban_item_enable = getBoolean("ban.item.enable" , false);
-        ban_item_materials = getStringList("ban.item.list", new ArrayList<>());
-        ban_entity_enable = getBoolean("ban.entity.enable", false);
-        ban_entity_types = getStringList("ban.entity.list", new ArrayList<>());
-        ban_enchantment_enable = getBoolean("ban.enchantment.enable", false);
-        ban_enchantment_list = getStringList("ban.enchantment.list", new ArrayList<>());
+        ban_item_enable = getBoolean("bans.item" , false);
+        ban_entity_enable = getBoolean("bans.entity", false);
+        ban_enchantment_enable = getBoolean("bans.enchantment", false);
 
         pingCommandOutput = getString("settings.messages.ping-command-output", "§2%s's ping is %sms");
 
@@ -297,11 +291,22 @@ public class YouerConfig {
         pluginchannel_debug = getBoolean("pluginchannel.debug", false);
 
         deepseek_enable = getBoolean("deepseek.enable", false);
+        deepseek_baseUrl = getString("deepseek.baseUrl", "https://api.deepseek.com/chat/completions");
         deepseek_apikey = getString("deepseek.apikey", "youer");
         deepseek_model = getString("deepseek.model", "deepseek-chat");
         deepseek_system = getString("deepseek.system", "你的名字叫小小墨，年龄18岁，是个可爱的女孩子!");
         deepseek_command = getString("deepseek.command", "ai");
+        deepseek_all_command = getString("deepseek.all_command", "ai-all");
         deepseek_chatfromat = getString("deepseek.chatfromat", "<小小墨> %s");
+
+        warps_enable = getBoolean("warps.enable", false);
+
+        custom_no_villager = getBoolean("custom.no_villager", false);
+        custom_entity_tp_end = getBoolean("custom.entity_tp_end", true);
+        custom_entity_tp_nether = getBoolean("custom.entity_tp_nether", true);
+        custom_raid_no_emerald = getBoolean("custom.raid_no_emerald", false);
+        custom_lava_speed_normal = getInt("custom.lava_speed.normal", 30);
+        custom_lava_speed_nether = getInt("custom.lava_speed.nether", 10);
     }
     public static boolean isCN() {
         return yml.getString("youer.lang", Locale.getDefault().toString()).contains("CN");

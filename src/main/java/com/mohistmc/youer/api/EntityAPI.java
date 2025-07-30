@@ -1,6 +1,7 @@
 package com.mohistmc.youer.api;
 
 import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.plugins.ban.BanConfig;
 import java.util.Objects;
 import net.minecraft.world.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -30,6 +31,6 @@ public class EntityAPI {
     }
 
     public static boolean isBan(org.bukkit.entity.Entity entity) {
-        return YouerConfig.ban_entity_types.contains(entity.getType().name());
+        return BanConfig.ENTITY.getEntity().contains(entity.getType().name());
     }
 }

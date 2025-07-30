@@ -1,6 +1,13 @@
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
-@@ -7,7 +_,6 @@
+@@ -1,13 +_,13 @@
+ package net.minecraft.world.item;
+ 
+ import com.google.common.collect.Lists;
++import com.mohistmc.youer.plugins.ban.bans.BanItem;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.DataResult;
  import com.mojang.serialization.MapCodec;
  import com.mojang.serialization.DataResult.Error;
  import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -74,10 +81,15 @@
      }
  
      public boolean is(HolderSet<Item> p_298683_) {
-@@ -351,13 +_,26 @@
+@@ -351,13 +_,36 @@
      }
  
      public InteractionResult useOn(UseOnContext p_41662_) {
++        if (BanItem.checkMoShou(p_41662_.getPlayer(), p_41662_.getItemInHand())) {
++            p_41662_.getPlayer().setItemInHand(p_41662_.getHand(), ItemStack.EMPTY);
++            return InteractionResult.FAIL;
++        }
++        if (BanItem.check(p_41662_.getPlayer(), p_41662_.getItemInHand())) return InteractionResult.FAIL;
 +        var e = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent(p_41662_, net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent.UsePhase.ITEM_AFTER_BLOCK));
 +        if (e.isCanceled()) return e.getCancellationResult().result();
 +        if (!p_41662_.getLevel().isClientSide) return net.neoforged.neoforge.common.CommonHooks.onPlaceItemIntoWorld(p_41662_);
@@ -92,6 +104,11 @@
 +
 +    private InteractionResult onItemUse(UseOnContext p_41662_, java.util.function.Function<UseOnContext, InteractionResult> callback) {
          Player player = p_41662_.getPlayer();
++        if (BanItem.checkMoShou(p_41662_.getPlayer(), p_41662_.getItemInHand())) {
++            p_41662_.getPlayer().setItemInHand(p_41662_.getHand(), ItemStack.EMPTY);
++            return InteractionResult.FAIL;
++        }
++        if (BanItem.check(player, p_41662_.getItemInHand())) return InteractionResult.FAIL;
          BlockPos blockpos = p_41662_.getClickedPos();
          if (player != null && !player.getAbilities().mayBuild && !this.canPlaceOnBlockInAdventureMode(new BlockInWorld(p_41662_.getLevel(), blockpos, false))) {
              return InteractionResult.PASS;

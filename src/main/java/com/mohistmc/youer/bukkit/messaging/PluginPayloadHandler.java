@@ -6,7 +6,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 public record PluginPayloadHandler(PluginChannel<PluginPayloadHandler> channel) implements NeoForgePayloadHandler {

@@ -1,6 +1,6 @@
 package com.mohistmc.youer.plugins.item;
 
-import com.mohistmc.youer.plugins.config.MohistPluginConfig;
+import com.mohistmc.youer.plugins.config.YouerPluginConfig;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +12,7 @@ import org.bukkit.inventory.ItemStack;
  * @author Mgazul by MohistMC
  * @date 2023/8/2 18:27:05
  */
-public class ItemsConfig extends MohistPluginConfig {
+public class ItemsConfig extends YouerPluginConfig {
 
     public static ItemsConfig INSTANCE;
 
