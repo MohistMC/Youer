@@ -533,6 +533,47 @@ public class Location implements Cloneable, ConfigurationSerializable, io.paperm
         return this;
     }
 
+    public boolean isChunkLoaded() { return this.getWorld().isChunkLoaded(locToBlock(x) >> 4, locToBlock(z) >> 4); } // Paper
+
+    // Paper start - expand Location API
+    /**
+     * @return A new location where X/Y/Z are on the Block location (integer value of X/Y/Z)
+     */
+    @NotNull
+    public Location toBlockLocation() {
+        Location blockLoc = clone();
+        blockLoc.setX(getBlockX());
+        blockLoc.setY(getBlockY());
+        blockLoc.setZ(getBlockZ());
+        return blockLoc;
+    }
+
+    /**
+     * @return A new location where X/Y/Z are the center of the block
+     */
+    @NotNull
+    public Location toCenterLocation() {
+        Location centerLoc = clone();
+        centerLoc.setX(getBlockX() + 0.5);
+        centerLoc.setY(getBlockY() + 0.5);
+        centerLoc.setZ(getBlockZ() + 0.5);
+        return centerLoc;
+    }
+    // Paper end - expand Location API
+
+    // Paper start - isGenerated API
+    /**
+     * Checks if a {@link Chunk} has been generated at this location.
+     *
+     * @return true if a chunk has been generated at this location
+     */
+    public boolean isGenerated() {
+        World world = this.getWorld();
+        Preconditions.checkNotNull(world, "Location has no world!");
+        return world.isChunkGenerated(locToBlock(x) >> 4, locToBlock(z) >> 4);
+    }
+    // Paper end - isGenerated API
+
     @Override
     public boolean equals(Object obj) {
         if (obj == null) {

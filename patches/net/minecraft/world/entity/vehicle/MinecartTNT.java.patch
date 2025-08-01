@@ -1,5 +1,26 @@
 --- a/net/minecraft/world/entity/vehicle/MinecartTNT.java
 +++ b/net/minecraft/world/entity/vehicle/MinecartTNT.java
+@@ -19,6 +_,7 @@
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.material.FluidState;
++import org.bukkit.event.entity.EntityRemoveEvent;
+ 
+ public class MinecartTNT extends AbstractMinecart {
+     private static final byte EVENT_PRIME = 10;
+@@ -46,6 +_,12 @@
+     public void tick() {
+         super.tick();
+         if (this.fuse > 0) {
++            // Paper start - Configurable TNT height nerf
++            if (this.level().paperConfig().fixes.tntEntityHeightNerf.test(v -> this.getY() > v)) {
++                this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);
++                return;
++            }
++            // Paper end - Configurable TNT height nerf
+             this.fuse--;
+             this.level().addParticle(ParticleTypes.SMOKE, this.getX(), this.getY() + 0.5, this.getZ(), 0.0, 0.0, 0.0);
+         } else if (this.fuse == 0) {
 @@ -92,26 +_,23 @@
          this.explode(null, p_38689_);
      }

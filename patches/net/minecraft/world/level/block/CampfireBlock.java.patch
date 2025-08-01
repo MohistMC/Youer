@@ -16,9 +16,11 @@
  
  public class CampfireBlock extends BaseEntityBlock implements SimpleWaterloggedBlock {
      public static final MapCodec<CampfireBlock> CODEC = RecordCodecBuilder.mapCodec(
-@@ -110,7 +_,7 @@
+@@ -109,8 +_,9 @@
+ 
      @Override
      protected void entityInside(BlockState p_51269_, Level p_51270_, BlockPos p_51271_, Entity p_51272_) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_51272_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_51270_, p_51271_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
          if (p_51269_.getValue(LIT) && p_51272_ instanceof LivingEntity) {
 -            p_51272_.hurt(p_51270_.damageSources().campfire(), (float)this.fireDamage);
 +            p_51272_.hurt(p_51270_.damageSources().campfire().directBlock(p_51270_, p_51271_), (float)this.fireDamage); // CraftBukkit

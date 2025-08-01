@@ -163,7 +163,8 @@
      private final StructureTemplateManager structureTemplateManager;
      private final ServerTickRateManager tickRateManager;
      public WorldData worldData;
-     private final PotionBrewing potionBrewing;
+-    private final PotionBrewing potionBrewing;
++    public PotionBrewing potionBrewing;
      private volatile boolean isSaving;
      private static final AtomicReference<RuntimeException> fatalException = new AtomicReference<>();
 +    // CraftBukkit start
@@ -990,7 +991,7 @@
              ObjectArrayList<GameProfile> objectarraylist = new ObjectArrayList<>(j);
              int k = Mth.nextInt(this.random, 0, list.size() - j);
  
-@@ -992,19 +_,62 @@
+@@ -992,19 +_,63 @@
  
      public void tickChildren(BooleanSupplier p_129954_) {
          this.getPlayerList().getPlayers().forEach(p_341570_ -> p_341570_.connection.suspendFlushing());
@@ -1040,6 +1041,7 @@
 +        // Paper end - Perf: Optimize time updates
 +        for(ServerLevel serverlevel : this.getWorldArray()) {
 +            long tickStart = Util.getNanos();
++            serverlevel.hasPhysicsEvent = org.bukkit.event.block.BlockPhysicsEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - BlockPhysicsEvent
 +            serverlevel.hasEntityMoveEvent = io.papermc.paper.event.entity.EntityMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - Add EntityMoveEvent
              this.profiler.push(() -> serverlevel + " " + serverlevel.dimension().location());
 +            /* Drop global time updates
@@ -1253,7 +1255,12 @@
                      this.resources.close();
                      this.resources = p_335203_;
                      this.packRepository.setSelected(p_129862_);
-@@ -1478,6 +_,18 @@
+@@ -1474,10 +_,23 @@
+                     );
+                     this.worldData.setDataConfiguration(worlddataconfiguration);
+                     this.resources.managers.updateRegistryTags();
++                    this.potionBrewing = this.potionBrewing.reload(this.worldData.enabledFeatures()); // Paper - Custom Potion Mixes
+                     this.getPlayerList().saveAll();
                      this.getPlayerList().reloadResources();
                      this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
                      this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);

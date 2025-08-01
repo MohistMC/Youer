@@ -8,6 +8,29 @@
  
  public class EndPortalBlock extends BaseEntityBlock implements Portal {
      public static final MapCodec<EndPortalBlock> CODEC = simpleCodec(EndPortalBlock::new);
+@@ -51,15 +_,19 @@
+ 
+     @Override
+     protected void entityInside(BlockState p_53025_, Level p_53026_, BlockPos p_53027_, Entity p_53028_) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_53028_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_53026_, p_53027_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (p_53028_.canUsePortal(false)
+             && Shapes.joinIsNotEmpty(
+                 Shapes.create(p_53028_.getBoundingBox().move((double)(-p_53027_.getX()), (double)(-p_53027_.getY()), (double)(-p_53027_.getZ()))),
+                 p_53025_.getShape(p_53026_, p_53027_),
+                 BooleanOp.AND
+             )) {
+-            if (!p_53026_.isClientSide && p_53026_.dimension() == Level.END && p_53028_ instanceof ServerPlayer serverplayer && !serverplayer.seenCredits) {
+-                serverplayer.showEndCredits();
+-                return;
++            if (!p_53026_.isClientSide && p_53026_.dimension() == Level.END && p_53028_ instanceof ServerPlayer serverplayer) {
++                if (p_53026_.paperConfig().misc.disableEndCredits) serverplayer.seenCredits = true; // Paper - Option to disable end credits
++                if (!serverplayer.seenCredits) {
++                    serverplayer.showEndCredits();
++                    return;
++                }
+             }
+ 
+             p_53028_.setAsInsidePortal(this, p_53027_);
 @@ -85,7 +_,7 @@
                  }
              } else {

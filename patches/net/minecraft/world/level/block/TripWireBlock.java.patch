@@ -74,11 +74,12 @@
          for (Direction direction : new Direction[]{Direction.SOUTH, Direction.WEST}) {
              for (int i = 1; i < 42; i++) {
                  BlockPos blockpos = p_57612_.relative(direction, i);
-@@ -133,6 +_,7 @@
+@@ -133,6 +_,8 @@
  
      @Override
      protected void entityInside(BlockState p_57625_, Level p_57626_, BlockPos p_57627_, Entity p_57628_) {
 +        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent tripwires from detecting collision
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_57628_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_57626_, p_57627_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
          if (!p_57626_.isClientSide) {
              if (!p_57625_.getValue(POWERED)) {
                  this.checkPressed(p_57626_, p_57627_);

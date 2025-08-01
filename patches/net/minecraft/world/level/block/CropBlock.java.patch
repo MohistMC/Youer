@@ -97,11 +97,12 @@
          return hasSufficientLight(p_52283_, p_52284_) && super.canSurvive(p_52282_, p_52283_, p_52284_);
      }
  
-@@ -164,7 +_,9 @@
+@@ -164,7 +_,10 @@
  
      @Override
      protected void entityInside(BlockState p_52277_, Level p_52278_, BlockPos p_52279_, Entity p_52280_) {
 -        if (p_52280_ instanceof Ravager && p_52278_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_52280_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_52278_, p_52279_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
 +        if (p_52280_ instanceof Ravager &&
 +            net.neoforged.neoforge.event.EventHooks.canEntityGrief(p_52278_, p_52280_) &&
 +            CraftEventFactory.callEntityChangeBlockEvent(p_52280_, p_52279_, Blocks.AIR.defaultBlockState(), true)) { // CraftBukkit

@@ -79,7 +79,7 @@
  
          for (EnchantmentInstance enchantmentinstance : list) {
 -            p_220294_.enchant(enchantmentinstance.enchantment, enchantmentinstance.level);
-+            if (!BanEnchantment.check(enchantmentinstance.enchantment.value())) {
++            if (!BanEnchantment.check(p_220294_)) {
 +                p_220294_.enchant(enchantmentinstance.enchantment, enchantmentinstance.level);
 +            }
          }
@@ -94,7 +94,7 @@
          if (i <= 0) {
              return list;
          } else {
-@@ -575,9 +_,11 @@
+@@ -575,11 +_,12 @@
      public static List<EnchantmentInstance> getAvailableEnchantmentResults(int p_44818_, ItemStack p_44819_, Stream<Holder<Enchantment>> p_345348_) {
          List<EnchantmentInstance> list = Lists.newArrayList();
          boolean flag = p_44819_.is(Items.BOOK);
@@ -104,7 +104,9 @@
 +        p_345348_.filter(p_44819_::isPrimaryItemFor).forEach(p_344478_ -> {
              Enchantment enchantment = p_344478_.value();
 -
-+            if (BanEnchantment.check(enchantment)) return;
              for (int i = enchantment.getMaxLevel(); i >= enchantment.getMinLevel(); i--) {
-                 if (p_44818_ >= enchantment.getMinCost(i) && p_44818_ <= enchantment.getMaxCost(i)) {
+-                if (p_44818_ >= enchantment.getMinCost(i) && p_44818_ <= enchantment.getMaxCost(i)) {
++                if (!BanEnchantment.check(p_44819_) && p_44818_ >= enchantment.getMinCost(i) && p_44818_ <= enchantment.getMaxCost(i)) {
                      list.add(new EnchantmentInstance((Holder<Enchantment>)p_344478_, i));
+                     break;
+                 }

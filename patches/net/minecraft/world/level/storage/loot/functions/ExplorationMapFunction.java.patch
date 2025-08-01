@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/level/storage/loot/functions/ExplorationMapFunction.java
++++ b/net/minecraft/world/level/storage/loot/functions/ExplorationMapFunction.java
+@@ -80,8 +_,17 @@
+             Vec3 vec3 = p_80548_.getParamOrNull(LootContextParams.ORIGIN);
+             if (vec3 != null) {
+                 ServerLevel serverlevel = p_80548_.getLevel();
++                // Paper start - Configurable cartographer treasure maps
++                if (!serverlevel.paperConfig().environment.treasureMaps.enabled) {
++                    /*
++                     * NOTE: I fear users will just get a plain map as their "treasure"
++                     * This is preferable to disrespecting the config.
++                     */
++                    return p_80547_;
++                }
++                // Paper end - Configurable cartographer treasure maps
+                 BlockPos blockpos = serverlevel.findNearestMapStructure(
+-                    this.destination, BlockPos.containing(vec3), this.searchRadius, this.skipKnownStructures
++                    this.destination, BlockPos.containing(vec3), this.searchRadius, !serverlevel.paperConfig().environment.treasureMaps.findAlreadyDiscoveredLootTable.or(!this.skipKnownStructures) // Paper - Configurable cartographer treasure maps
+                 );
+                 if (blockpos != null) {
+                     ItemStack itemstack = MapItem.create(serverlevel, blockpos.getX(), blockpos.getZ(), this.zoom, true, true);

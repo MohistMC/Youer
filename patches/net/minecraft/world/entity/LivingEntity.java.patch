@@ -255,6 +255,21 @@
          this.activeEffects.clear();
      }
  
+@@ -712,7 +_,13 @@
+ 
+     @Override
+     public void readAdditionalSaveData(CompoundTag p_21096_) {
+-        this.internalSetAbsorptionAmount(p_21096_.getFloat("AbsorptionAmount"));
++        // Paper start - Check for NaN
++        float absorptionAmount = p_21096_.getFloat("AbsorptionAmount");
++        if (Float.isNaN(absorptionAmount)) {
++            absorptionAmount = 0;
++        }
++        this.internalSetAbsorptionAmount(absorptionAmount);
++        // Paper end - Check for NaN
+         if (p_21096_.contains("attributes", 9) && this.level() != null && !this.level().isClientSide) {
+             this.getAttributes().load(p_21096_.getList("attributes", 10));
+         }
 @@ -729,6 +_,17 @@
              }
          }
@@ -547,7 +562,7 @@
      protected void onEffectAdded(MobEffectInstance p_147190_, @Nullable Entity p_147191_) {
          this.effectsDirty = true;
          if (!this.level().isClientSide) {
-@@ -1060,18 +_,62 @@
+@@ -1060,18 +_,66 @@
          }
      }
  
@@ -592,6 +607,10 @@
 +        fake$setHealth.set(fake);
 +    }
      public void setHealth(float p_21154_) {
++        // Paper start - Check for NaN
++        if (Float.isNaN(p_21154_)) { p_21154_ = getMaxHealth(); if (this.valid) {
++            System.err.println("[NAN-HEALTH] " + getScoreboardName() + " had NaN health set");
++        } } // Paper end - Check for NaN
 +        // CraftBukkit start - Handle scaled health
 +        if (this instanceof ServerPlayer serverPlayer && !fake$setHealth.getAndSet(false) && serverPlayer.initialized) {
 +            CraftPlayer player = serverPlayer.getBukkitEntity();
@@ -1524,6 +1543,15 @@
  
      @Override
      public float getYHeadRot() {
+@@ -2950,7 +_,7 @@
+     }
+ 
+     public final void setAbsorptionAmount(float p_21328_) {
+-        this.internalSetAbsorptionAmount(Mth.clamp(p_21328_, 0.0F, this.getMaxAbsorption()));
++        this.internalSetAbsorptionAmount(!Float.isNaN(p_21328_) ? Mth.clamp(p_21328_, 0.0F, this.getMaxAbsorption()) : 0.0F); // Paper - Check for NaN
+     }
+ 
+     protected void internalSetAbsorptionAmount(float p_295258_) {
 @@ -2977,10 +_,19 @@
          return (this.entityData.get(DATA_LIVING_ENTITY_FLAGS) & 2) > 0 ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
      }
@@ -1741,7 +1769,7 @@
 +                    if (!(this instanceof ServerPlayer)) {
 +                        org.bukkit.event.entity.EntityTeleportEvent teleport = new org.bukkit.event.entity.EntityTeleportEvent(this.getBukkitEntity(), new org.bukkit.Location(this.level().getWorld(), d0, d1, d2), new org.bukkit.Location(this.level().getWorld(), p_20985_, d3, p_20987_));
 +                        this.level().getCraftServer().getPluginManager().callEvent(teleport);
-+                        if (!teleport.isCancelled()) {
++                        if (!teleport.isCancelled() && teleport.getTo() != null) {
 +                            org.bukkit.Location to = teleport.getTo();
 +                            this.teleportTo(to.getX(), to.getY(), to.getZ());
 +                        } else {
@@ -1759,8 +1787,9 @@
          }
  
          if (!flag) {
-             this.teleportTo(d0, d1, d2);
+-            this.teleportTo(d0, d1, d2);
 -            return false;
++            // this.teleportTo(d0, d1, d2); // CraftBukkit - already set the location back
 +            return Optional.of(false); // CraftBukkit
          } else {
              if (p_20988_) {

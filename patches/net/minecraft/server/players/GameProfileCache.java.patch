@@ -12,6 +12,24 @@
      public GameProfileCache(GameProfileRepository p_10974_, File p_10975_) {
          this.profileRepository = p_10974_;
          this.file = p_10975_;
+@@ -86,6 +_,8 @@
+                     atomicreference.set(null);
+                 }
+             };
++            if (!org.apache.commons.lang3.StringUtils.isBlank(p_10995_) // Paper - Don't lookup a profile with a blank name
++                    && io.papermc.paper.configuration.GlobalConfiguration.get().proxies.isProxyOnlineMode()) // Paper - Add setting for proxy online mode status
+             p_10994_.findProfilesByNames(new String[]{p_10995_}, profilelookupcallback);
+             GameProfile gameprofile = atomicreference.get();
+             return gameprofile != null ? Optional.of(gameprofile) : createUnknownProfile(p_10995_);
+@@ -101,7 +_,7 @@
+     }
+ 
+     private static boolean usesAuthentication() {
+-        return usesAuthentication;
++        return io.papermc.paper.configuration.GlobalConfiguration.get().proxies.isProxyOnlineMode(); // Paper - Add setting for proxy online mode status
+     }
+ 
+     public void add(GameProfile p_10992_) {
 @@ -111,13 +_,26 @@
          Date date = calendar.getTime();
          GameProfileCache.GameProfileInfo gameprofilecache$gameprofileinfo = new GameProfileCache.GameProfileInfo(p_10992_, date);

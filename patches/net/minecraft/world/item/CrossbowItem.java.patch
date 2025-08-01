@@ -9,6 +9,19 @@
      public static final float MOB_ARROW_POWER = 1.6F;
      private static final CrossbowItem.ChargingSounds DEFAULT_SOUNDS = new CrossbowItem.ChargingSounds(
          Optional.of(SoundEvents.CROSSBOW_LOADING_START), Optional.of(SoundEvents.CROSSBOW_LOADING_MIDDLE), Optional.of(SoundEvents.CROSSBOW_LOADING_END)
+@@ -161,7 +_,11 @@
+     @Override
+     protected Projectile createProjectile(Level p_331583_, LivingEntity p_40863_, ItemStack p_40864_, ItemStack p_40865_, boolean p_40866_) {
+         if (p_40865_.is(Items.FIREWORK_ROCKET)) {
+-            return new FireworkRocketEntity(p_331583_, p_40865_, p_40863_, p_40863_.getX(), p_40863_.getEyeY() - 0.15F, p_40863_.getZ(), true);
++            // Paper start
++            FireworkRocketEntity entity =  new FireworkRocketEntity(p_331583_, p_40865_, p_40863_, p_40863_.getX(), p_40863_.getEyeY() - 0.15F, p_40863_.getZ(), true);
++            entity.spawningEntity = p_40863_.getUUID(); // Paper
++            return entity;
++            // Paper end
+         } else {
+             Projectile projectile = super.createProjectile(p_331583_, p_40863_, p_40864_, p_40865_, p_40866_);
+             if (projectile instanceof AbstractArrow abstractarrow) {
 @@ -181,6 +_,7 @@
          Level p_40888_, LivingEntity p_40889_, InteractionHand p_40890_, ItemStack p_40891_, float p_40892_, float p_40893_, @Nullable LivingEntity p_331602_
      ) {

@@ -135,7 +135,7 @@
          }
      }
  
-@@ -83,35 +_,103 @@
+@@ -83,35 +_,107 @@
  
      @Override
      public void handleCustomPayload(ServerboundCustomPayloadPacket p_294276_) {
@@ -207,7 +207,11 @@
 +            callback.packEventReceived(p_295695_.id(), net.kyori.adventure.resource.ResourcePackStatus.valueOf(p_295695_.action().name()), this.getCraftPlayer());
 +        }
 +        // Paper end
-+        this.cserver.getPluginManager().callEvent(new PlayerResourcePackStatusEvent(getCraftPlayer(), p_295695_.id(), PlayerResourcePackStatusEvent.Status.values()[p_295695_.action().ordinal()])); // CraftBukkit
++        // Paper start - store last pack status
++        PlayerResourcePackStatusEvent.Status packStatus = PlayerResourcePackStatusEvent.Status.values()[p_295695_.action().ordinal()];
++        player.getBukkitEntity().resourcePackStatus = packStatus;
++        this.cserver.getPluginManager().callEvent(new PlayerResourcePackStatusEvent(this.getCraftPlayer(), p_295695_.id(), packStatus)); // CraftBukkit
++        // Paper end - store last pack status
      }
  
      @Override

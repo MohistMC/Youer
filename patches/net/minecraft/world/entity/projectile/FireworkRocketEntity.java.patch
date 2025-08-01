@@ -8,6 +8,14 @@
  
  public class FireworkRocketEntity extends Projectile implements ItemSupplier {
      public static final EntityDataAccessor<ItemStack> DATA_ID_FIREWORKS_ITEM = SynchedEntityData.defineId(
+@@ -42,6 +_,7 @@
+     public int lifetime;
+     @Nullable
+     public LivingEntity attachedToEntity;
++    @Nullable public java.util.UUID spawningEntity; // Paper
+ 
+     public FireworkRocketEntity(EntityType<? extends FireworkRocketEntity> p_37027_, Level p_37028_) {
+         super(p_37027_, p_37028_);
 @@ -83,6 +_,21 @@
          this.setOwner(p_37052_);
      }
@@ -93,6 +101,30 @@
          }
  
          super.onHitBlock(p_37069_);
+@@ -269,6 +_,11 @@
+         p_37075_.putInt("LifeTime", this.lifetime);
+         p_37075_.put("FireworksItem", this.getItem().save(this.registryAccess()));
+         p_37075_.putBoolean("ShotAtAngle", this.entityData.get(DATA_SHOT_AT_ANGLE));
++        // Paper start
++        if (this.spawningEntity != null) {
++            p_37075_.putUUID("SpawningEntity", this.spawningEntity);
++        }
++        // Paper end
+     }
+ 
+     @Override
+@@ -289,6 +_,11 @@
+         if (p_37073_.contains("ShotAtAngle")) {
+             this.entityData.set(DATA_SHOT_AT_ANGLE, p_37073_.getBoolean("ShotAtAngle"));
+         }
++        // Paper start
++        if (p_37073_.hasUUID("SpawningEntity")) {
++            this.spawningEntity = p_37073_.getUUID("SpawningEntity");
++        }
++        // Paper end
+     }
+ 
+     private List<FireworkExplosion> getExplosions() {
 @@ -307,7 +_,7 @@
          return false;
      }

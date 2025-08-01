@@ -2228,6 +2228,13 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
     @NotNull
     io.papermc.paper.datapack.DatapackManager getDatapackManager();
 
+    /**
+     * Gets the potion brewer.
+     *
+     * @return the potion brewer
+     */
+    @NotNull org.bukkit.potion.PotionBrewer getPotionBrewer();
+
     // Paper start - Folia region threading API
     /**
      * Returns the Folia region task scheduler. The region task scheduler can be used to schedule
@@ -2344,6 +2351,14 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
     // Paper end - Folia region threading API
 
     boolean reloadCommandAliases(); // Paper
+
+    /**
+     * Checks if player names should be suggested when a command returns {@code null} as
+     * their tab completion result.
+     *
+     * @return true if player names should be suggested
+     */
+    boolean suggestPlayerNamesWhenNullTabCompletions();
 
     void reloadPermissions(); // Paper
 }

@@ -9,7 +9,7 @@
  
  public class SweetBerryBushBlock extends BushBlock implements BonemealableBlock {
      public static final MapCodec<SweetBerryBushBlock> CODEC = simpleCodec(SweetBerryBushBlock::new);
-@@ -69,9 +_,14 @@
+@@ -69,22 +_,28 @@
      @Override
      protected void randomTick(BlockState p_222563_, ServerLevel p_222564_, BlockPos p_222565_, RandomSource p_222566_) {
          int i = p_222563_.getValue(AGE);
@@ -26,7 +26,13 @@
              p_222564_.gameEvent(GameEvent.BLOCK_CHANGE, p_222565_, GameEvent.Context.of(blockstate));
          }
      }
-@@ -84,7 +_,7 @@
+ 
+     @Override
+     protected void entityInside(BlockState p_57270_, Level p_57271_, BlockPos p_57272_, Entity p_57273_) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_57273_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_57271_, p_57272_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (p_57273_ instanceof LivingEntity && p_57273_.getType() != EntityType.FOX && p_57273_.getType() != EntityType.BEE) {
+             p_57273_.makeStuckInBlock(p_57270_, new Vec3(0.8F, 0.75, 0.8F));
+             if (!p_57271_.isClientSide && p_57270_.getValue(AGE) > 0 && (p_57273_.xOld != p_57273_.getX() || p_57273_.zOld != p_57273_.getZ())) {
                  double d0 = Math.abs(p_57273_.getX() - p_57273_.xOld);
                  double d1 = Math.abs(p_57273_.getZ() - p_57273_.zOld);
                  if (d0 >= 0.003F || d1 >= 0.003F) {

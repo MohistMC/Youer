@@ -119,6 +119,12 @@ public class CraftFirework extends CraftProjectile implements Firework {
         this.getHandle().getEntityData().set(FireworkRocketEntity.DATA_SHOT_AT_ANGLE, shotAtAngle);
     }
 
+    // Paper start
+    @Override
+    public java.util.UUID getSpawningEntity() {
+        return getHandle().spawningEntity;
+    }
+    // Paper end
     // Paper start - Expose firework item directly + manually setting flight
     @Override
     public org.bukkit.inventory.ItemStack getItem() {

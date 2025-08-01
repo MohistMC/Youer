@@ -43,7 +43,7 @@ public class Remapper {
         put("org/bukkit/craftbukkit/v1_21_R1/", "org/bukkit/craftbukkit/");
         put("org/yaml/snakeyaml/", "com/mohistmc/org/yaml/snakeyaml/");
         put("javax/inject/", "com/mohistmc/javax/inject/");
-        put("org/spongepowered/configurate/", "com/mohistmc/org.spongepowered/configurate/");
+        put("org/spongepowered/configurate/", "com/mohistmc/org/spongepowered/configurate/");
         put("io/leangen/geantyref/", "com/mohistmc/io/leangen/geantyref/");
         put("com/mohistmc/net/kyori/option/", "net/kyori/option/");
         put("com/destroystokyo/paper/", "io/papermc/paper/");

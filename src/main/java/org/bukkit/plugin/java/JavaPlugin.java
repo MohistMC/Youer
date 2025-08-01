@@ -312,7 +312,7 @@ public abstract class JavaPlugin extends PluginBase {
         this.classLoader = classLoader;
         this.configFile = new File(dataFolder, "config.yml");
         this.pluginMeta = configuration; // Paper
-        this.logger = logger; // Paper
+        this.logger = Logger.getLogger(description.getPrefix() != null ? description.getPrefix() : description.getName()); // Paper - Handle plugin prefix in implementation
     }
 
     /**

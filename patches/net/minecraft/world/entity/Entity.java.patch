@@ -370,10 +370,12 @@
      protected abstract void defineSynchedData(SynchedEntityData.Builder p_326003_);
  
      public SynchedEntityData getEntityData() {
-@@ -380,6 +_,32 @@
+@@ -379,7 +_,33 @@
+         return Mth.lengthSquared(d0, d2) < Mth.square(p_216994_) && Mth.square(d1) < Mth.square(p_216995_);
      }
  
-     protected void setRot(float p_19916_, float p_19917_) {
+-    protected void setRot(float p_19916_, float p_19917_) {
++    public void setRot(float p_19916_, float p_19917_) {
 +        // CraftBukkit start - yaw was sometimes set to NaN, so we need to set it back to 0
 +        if (Float.isNaN(p_19916_)) {
 +            p_19916_ = 0;
@@ -1351,6 +1353,21 @@
      }
  
      public final float getEyeHeight(Pose p_20237_) {
+@@ -2896,8 +_,14 @@
+     public void startSeenByPlayer(ServerPlayer p_20119_) {
+     }
+ 
++    // Paper start - entity tracking events
+     public void stopSeenByPlayer(ServerPlayer p_20174_) {
++        // Since this event cannot be cancelled, we should call it here to catch all "un-tracks"
++        if (io.papermc.paper.event.player.PlayerUntrackEntityEvent.getHandlerList().getRegisteredListeners().length > 0) {
++            new io.papermc.paper.event.player.PlayerUntrackEntityEvent(p_20174_.getBukkitEntity(), this.getBukkitEntity()).callEvent();
++        }
+     }
++    // Paper end - entity tracking events
+ 
+     public float rotate(Rotation p_20004_) {
+         float f = Mth.wrapDegrees(this.getYRot());
 @@ -3110,9 +_,17 @@
          return Mth.lerp(p_352259_, this.yRotO, this.yRot);
      }

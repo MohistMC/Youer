@@ -1265,6 +1265,168 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
     public void sendActionBar(@NotNull net.md_5.bungee.api.chat.BaseComponent... message);
 
     /**
+     * Sends the component to the player
+     *
+     * @param component the components to send
+     * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
+     */
+    @Override
+    @Deprecated
+    public default void sendMessage(@NotNull net.md_5.bungee.api.chat.BaseComponent component) {
+        spigot().sendMessage(component);
+    }
+
+    /**
+     * Sends an array of components as a single message to the player
+     *
+     * @param components the components to send
+     * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
+     */
+    @Override
+    @Deprecated
+    public default void sendMessage(@NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
+        spigot().sendMessage(components);
+    }
+
+    /**
+     * Sends an array of components as a single message to the specified screen position of this player
+     *
+     * @deprecated This is unlikely the API you want to use. See {@link #sendActionBar(String)} for a more proper Action Bar API. This deprecated API may send unsafe items to the client.
+     * @param position the screen position
+     * @param components the components to send
+     */
+    @Deprecated
+    public default void sendMessage(net.md_5.bungee.api.ChatMessageType position, net.md_5.bungee.api.chat.BaseComponent... components) {
+        spigot().sendMessage(position, components);
+    }
+
+    /**
+     * Set the text displayed in the player list header and footer for this player
+     *
+     * @param header content for the top of the player list
+     * @param footer content for the bottom of the player list
+     * @deprecated in favour of {@link #sendPlayerListHeaderAndFooter(net.kyori.adventure.text.Component, net.kyori.adventure.text.Component)}
+     */
+    @Deprecated
+    public void setPlayerListHeaderFooter(@Nullable net.md_5.bungee.api.chat.BaseComponent[] header, @Nullable net.md_5.bungee.api.chat.BaseComponent[] footer);
+
+    /**
+     * Set the text displayed in the player list header and footer for this player
+     *
+     * @param header content for the top of the player list
+     * @param footer content for the bottom of the player list
+     * @deprecated in favour of {@link #sendPlayerListHeaderAndFooter(net.kyori.adventure.text.Component, net.kyori.adventure.text.Component)}
+     */
+    @Deprecated
+    public void setPlayerListHeaderFooter(@Nullable net.md_5.bungee.api.chat.BaseComponent header, @Nullable net.md_5.bungee.api.chat.BaseComponent footer);
+
+    /**
+     * Update the times for titles displayed to the player
+     *
+     * @param fadeInTicks  ticks to fade-in
+     * @param stayTicks    ticks to stay visible
+     * @param fadeOutTicks ticks to fade-out
+     * @deprecated Use {@link #showTitle(net.kyori.adventure.title.Title)} or {@link #sendTitlePart(net.kyori.adventure.title.TitlePart, Object)}
+     */
+    @Deprecated
+    public void setTitleTimes(int fadeInTicks, int stayTicks, int fadeOutTicks);
+
+    /**
+     * Update the subtitle of titles displayed to the player
+     *
+     * @param subtitle Subtitle to set
+     * @deprecated Use {@link #showTitle(net.kyori.adventure.title.Title)} or {@link #sendTitlePart(net.kyori.adventure.title.TitlePart, Object)}
+     */
+    @Deprecated
+    public void setSubtitle(net.md_5.bungee.api.chat.BaseComponent[] subtitle);
+
+    /**
+     * Update the subtitle of titles displayed to the player
+     *
+     * @param subtitle Subtitle to set
+     * @deprecated Use {@link #showTitle(net.kyori.adventure.title.Title)} or {@link #sendTitlePart(net.kyori.adventure.title.TitlePart, Object)}
+     */
+    @Deprecated
+    public void setSubtitle(net.md_5.bungee.api.chat.BaseComponent subtitle);
+
+    /**
+     * Show the given title to the player, along with the last subtitle set, using the last set times
+     *
+     * @param title Title to set
+     * @deprecated Use {@link #showTitle(net.kyori.adventure.title.Title)} or {@link #sendTitlePart(net.kyori.adventure.title.TitlePart, Object)}
+     */
+    @Deprecated
+    public void showTitle(@Nullable net.md_5.bungee.api.chat.BaseComponent[] title);
+
+    /**
+     * Show the given title to the player, along with the last subtitle set, using the last set times
+     *
+     * @param title Title to set
+     * @deprecated Use {@link #showTitle(net.kyori.adventure.title.Title)} or {@link #sendTitlePart(net.kyori.adventure.title.TitlePart, Object)}
+     */
+    @Deprecated
+    public void showTitle(@Nullable net.md_5.bungee.api.chat.BaseComponent title);
+
+    /**
+     * Show the given title and subtitle to the player using the given times
+     *
+     * @param title        big text
+     * @param subtitle     little text under it
+     * @param fadeInTicks  ticks to fade-in
+     * @param stayTicks    ticks to stay visible
+     * @param fadeOutTicks ticks to fade-out
+     * @deprecated Use {@link #showTitle(net.kyori.adventure.title.Title)} or {@link #sendTitlePart(net.kyori.adventure.title.TitlePart, Object)}
+     */
+    @Deprecated
+    public void showTitle(@Nullable net.md_5.bungee.api.chat.BaseComponent[] title, @Nullable net.md_5.bungee.api.chat.BaseComponent[] subtitle, int fadeInTicks, int stayTicks, int fadeOutTicks);
+
+    /**
+     * Show the given title and subtitle to the player using the given times
+     *
+     * @param title        big text
+     * @param subtitle     little text under it
+     * @param fadeInTicks  ticks to fade-in
+     * @param stayTicks    ticks to stay visible
+     * @param fadeOutTicks ticks to fade-out
+     * @deprecated Use {@link #showTitle(net.kyori.adventure.title.Title)} or {@link #sendTitlePart(net.kyori.adventure.title.TitlePart, Object)}
+     */
+    @Deprecated
+    public void showTitle(@Nullable net.md_5.bungee.api.chat.BaseComponent title, @Nullable net.md_5.bungee.api.chat.BaseComponent subtitle, int fadeInTicks, int stayTicks, int fadeOutTicks);
+
+    /**
+     * Show the title to the player, overriding any previously displayed title.
+     *
+     * <p>This method overrides any previous title, use {@link #updateTitle(io.papermc.paper.Title)} to change the existing one.</p>
+     *
+     * @param title the title to send
+     * @throws NullPointerException if the title is null
+     * @deprecated Use {@link #showTitle(net.kyori.adventure.title.Title)} or {@link #sendTitlePart(net.kyori.adventure.title.TitlePart, Object)}
+     */
+    @Deprecated
+    void sendTitle(@NotNull io.papermc.paper.Title title);
+
+    /**
+     * Show the title to the player, overriding any previously displayed title.
+     *
+     * <p>This method doesn't override previous titles, but changes their values.</p>
+     *
+     * @param title the title to send
+     * @throws NullPointerException if title is null
+     * @deprecated Use {@link #showTitle(net.kyori.adventure.title.Title)} or {@link #sendTitlePart(net.kyori.adventure.title.TitlePart, Object)}
+     */
+    @Deprecated
+    void updateTitle(@NotNull io.papermc.paper.Title title);
+
+    /**
+     * Hide any title that is currently visible to the player
+     *
+     * @deprecated use {@link #clearTitle()}
+     */
+    @Deprecated
+    public void hideTitle();
+    // Paper end
+
+    /**
      * Send a hurt animation. This fakes incoming damage towards the player from
      * the given yaw relative to the player's direction.
      *

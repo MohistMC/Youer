@@ -1,0 +1,30 @@
+--- a/net/minecraft/tags/TagManager.java
++++ b/net/minecraft/tags/TagManager.java
+@@ -37,6 +_,7 @@
+         Executor p_13486_,
+         Executor p_13487_
+     ) {
++        createLoader$cause = p_13487_ instanceof net.minecraft.server.MinecraftServer ? io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL : io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD;  // Paper - add registrar event cause
+         List<? extends CompletableFuture<? extends TagManager.LoadResult<?>>> list = this.registryAccess
+             .registries()
+             .map(p_203927_ -> this.createLoader(p_13483_, p_13486_, (RegistryAccess.RegistryEntry<?>)p_203927_))
+@@ -46,13 +_,18 @@
+             .thenAcceptAsync(p_203917_ -> this.results = list.stream().map(CompletableFuture::join).collect(Collectors.toUnmodifiableList()), p_13487_);
+     }
+ 
++    io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause createLoader$cause;
++
+     private <T> CompletableFuture<TagManager.LoadResult<T>> createLoader(
+         ResourceManager p_203908_, Executor p_203909_, RegistryAccess.RegistryEntry<T> p_203910_
+     ) {
+         ResourceKey<? extends Registry<T>> resourcekey = p_203910_.key();
+         Registry<T> registry = p_203910_.value();
+         TagLoader<Holder<T>> tagloader = new TagLoader<>(registry::getHolder, Registries.tagsDirPath(resourcekey));
+-        return CompletableFuture.supplyAsync(() -> new TagManager.LoadResult<>(resourcekey, tagloader.loadAndBuild(p_203908_)), p_203909_);
++        // Paper start - fire tag registrar events
++        final io.papermc.paper.tag.TagEventConfig<Holder<T>, ?> config = io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.createEventConfig(registry, createLoader$cause);
++        return CompletableFuture.supplyAsync(() -> new TagManager.LoadResult<>(resourcekey, tagloader.loadAndBuild(p_203908_, config)), p_203909_);
++        // Paper end - fire tag registrar events
+     }
+ 
+     public static record LoadResult<T>(ResourceKey<? extends Registry<T>> key, Map<ResourceLocation, Collection<Holder<T>>> tags) {

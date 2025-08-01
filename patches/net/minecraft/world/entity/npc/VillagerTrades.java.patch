@@ -118,6 +118,16 @@
          private final int emeraldCost;
          private final TagKey<Structure> destination;
          private final String displayName;
+@@ -1825,7 +_,8 @@
+                 return null;
+             } else {
+                 ServerLevel serverlevel = (ServerLevel)p_219708_.level();
+-                BlockPos blockpos = serverlevel.findNearestMapStructure(this.destination, p_219708_.blockPosition(), 100, true);
++                if (!serverlevel.paperConfig().environment.treasureMaps.enabled) return null; // Paper - Configurable cartographer treasure maps
++                BlockPos blockpos = serverlevel.findNearestMapStructure(this.destination, p_219708_.blockPosition(), 100, !serverlevel.paperConfig().environment.treasureMaps.findAlreadyDiscoveredVillager); // Paper - Configurable cartographer treasure maps
+                 if (blockpos != null) {
+                     ItemStack itemstack = MapItem.create(serverlevel, blockpos.getX(), blockpos.getZ(), (byte)2, true, true);
+                     MapItem.renderBiomePreviewMap(serverlevel, itemstack);
 @@ -1841,7 +_,7 @@
          }
      }

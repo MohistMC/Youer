@@ -1,10 +1,11 @@
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -23,6 +_,7 @@
+@@ -23,6 +_,8 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.material.FluidState;
  import net.minecraft.world.level.portal.DimensionTransition;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityRemoveEvent;
  
  public class PrimedTnt extends Entity implements TraceableEntity {
      private static final EntityDataAccessor<Integer> DATA_FUSE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.INT);
@@ -17,7 +18,7 @@
  
      public PrimedTnt(EntityType<? extends PrimedTnt> p_32076_, Level p_32077_) {
          super(p_32076_, p_32077_);
-@@ -89,6 +_,7 @@
+@@ -89,9 +_,16 @@
  
      @Override
      public void tick() {
@@ -25,6 +26,15 @@
          this.handlePortal();
          this.applyGravity();
          this.move(MoverType.SELF, this.getDeltaMovement());
++        // Paper start - Configurable TNT height nerf
++        if (this.level().paperConfig().fixes.tntEntityHeightNerf.test(v -> this.getY() > v)) {
++            this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);
++            return;
++        }
++        // Paper end - Configurable TNT height nerf
+         this.setDeltaMovement(this.getDeltaMovement().scale(0.98));
+         if (this.onGround()) {
+             this.setDeltaMovement(this.getDeltaMovement().multiply(0.7, -0.5, 0.7));
 @@ -100,10 +_,13 @@
          int i = this.getFuse() - 1;
          this.setFuse(i);

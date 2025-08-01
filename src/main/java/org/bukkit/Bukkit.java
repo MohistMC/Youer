@@ -335,6 +335,15 @@ public final class Bukkit {
     }
 
     /**
+     * Gets the potion brewer.
+     *
+     * @return the potion brewer
+     */
+    public static @NotNull org.bukkit.potion.PotionBrewer getPotionBrewer() {
+        return server.getPotionBrewer();
+    }
+
+    /**
      * Gets the resource pack configured to be sent to clients by the server.
      *
      * @return the resource pack
@@ -2723,5 +2732,15 @@ public final class Bukkit {
      */
     public static boolean reloadCommandAliases() {
         return server.reloadCommandAliases();
+    }
+
+    /**
+     * Checks if player names should be suggested when a command returns {@code null} as
+     * their tab completion result.
+     *
+     * @return true if player names should be suggested
+     */
+    public static boolean suggestPlayerNamesWhenNullTabCompletions() {
+        return server.suggestPlayerNamesWhenNullTabCompletions();
     }
 }

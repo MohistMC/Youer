@@ -12,6 +12,8 @@ public final class LifecycleEventTypeProviderImpl implements LifecycleEventTypeP
         return (LifecycleEventTypeProviderImpl) LifecycleEventTypeProvider.provider();
     }
 
+    private final PaperTagEventTypeProvider provider = new PaperTagEventTypeProvider();
+
     @Override
     public <O extends LifecycleEventOwner, E extends LifecycleEvent> LifecycleEventType.Monitorable<O, E> monitor(final String name, final Class<? extends O> ownerType) {
         return new MonitorableLifecycleEventType<>(name, ownerType);
@@ -20,5 +22,10 @@ public final class LifecycleEventTypeProviderImpl implements LifecycleEventTypeP
     @Override
     public <O extends LifecycleEventOwner, E extends LifecycleEvent> LifecycleEventType.Prioritizable<O, E> prioritized(final String name, final Class<? extends O> ownerType) {
         return new PrioritizableLifecycleEventType.Simple<>(name, ownerType);
+    }
+
+    @Override
+    public PaperTagEventTypeProvider tagProvider() {
+        return this.provider;
     }
 }

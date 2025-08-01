@@ -126,6 +126,7 @@ public class ReflectionHandler extends ClassLoader {
 
     // srg -> bukkit
     public static String redirectClassGetSimpleName(Class<?> cl) {
+        if (cl == null) return "";
         String simpleName = cl.getSimpleName();
         if (simpleName.isEmpty()) {
             return simpleName; // anon class

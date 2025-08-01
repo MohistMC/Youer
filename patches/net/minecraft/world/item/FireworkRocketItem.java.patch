@@ -1,11 +1,12 @@
 --- a/net/minecraft/world/item/FireworkRocketItem.java
 +++ b/net/minecraft/world/item/FireworkRocketItem.java
-@@ -42,8 +_,12 @@
+@@ -42,8 +_,13 @@
                  vec3.z + (double)direction.getStepZ() * 0.15,
                  itemstack
              );
 -            level.addFreshEntity(fireworkrocketentity);
 -            itemstack.shrink(1);
++            fireworkrocketentity.spawningEntity = p_41216_.getPlayer() == null ? null : p_41216_.getPlayer().getUUID(); // Paper
 +            // Paper start - PlayerLaunchProjectileEvent
 +            io.papermc.paper.event.player.PlayerLaunchProjectileEvent event = new io.papermc.paper.event.player.PlayerLaunchProjectileEvent((org.bukkit.entity.Player) p_41216_.getPlayer().getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack), (org.bukkit.entity.Firework) fireworkrocketentity.getBukkitEntity());
 +            if (!event.callEvent() || !level.addFreshEntity(fireworkrocketentity)) return InteractionResult.PASS;
@@ -15,3 +16,11 @@
          }
  
          return InteractionResult.sidedSuccess(level.isClientSide);
+@@ -55,6 +_,7 @@
+             ItemStack itemstack = p_41219_.getItemInHand(p_41220_);
+             if (!p_41218_.isClientSide) {
+                 FireworkRocketEntity fireworkrocketentity = new FireworkRocketEntity(p_41218_, itemstack, p_41219_);
++                fireworkrocketentity.spawningEntity = p_41219_.getUUID(); // Paper
+                 p_41218_.addFreshEntity(fireworkrocketentity);
+                 itemstack.consume(1, p_41219_);
+                 p_41219_.awardStat(Stats.ITEM_USED.get(this));

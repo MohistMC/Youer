@@ -174,6 +174,13 @@ public class CraftChunk implements Chunk {
 
     @Override
     public BlockState[] getTileEntities() {
+        // Paper start
+        return getTileEntities(true);
+    }
+
+    @Override
+    public BlockState[] getTileEntities(boolean useSnapshot) {
+        // Paper end
         if (!this.isLoaded()) {
             this.getWorld().getChunkAt(this.x, this.z); // Transient load for this tick
         }
@@ -184,7 +191,28 @@ public class CraftChunk implements Chunk {
 
         for (BlockPos position : chunk.blockEntities.keySet()) {
             // Paper start
-            entities[index++] = this.worldServer.getWorld().getBlockAt(position.getX(), position.getY(), position.getZ()).getState();
+            entities[index++] = this.worldServer.getWorld().getBlockAt(position.getX(), position.getY(), position.getZ()).getState(useSnapshot);
+        }
+
+        return entities;
+    }
+
+    @Override
+    public Collection<BlockState> getTileEntities(Predicate<? super Block> blockPredicate, boolean useSnapshot) {
+        Preconditions.checkNotNull(blockPredicate, "blockPredicate");
+        if (!this.isLoaded()) {
+            this.getWorld().getChunkAt(this.x, this.z); // Transient load for this tick
+        }
+        ChunkAccess chunk = this.getHandle(ChunkStatus.FULL);
+
+        java.util.List<BlockState> entities = new java.util.ArrayList<>();
+
+        for (BlockPos position : chunk.blockEntities.keySet()) {
+            Block block = this.worldServer.getWorld().getBlockAt(position.getX(), position.getY(), position.getZ());
+            if (blockPredicate.test(block)) {
+                entities.add(block.getState(useSnapshot));
+            }
+            // Paper end
         }
 
         return entities;

@@ -8,24 +8,37 @@
  import net.minecraft.util.Mth;
  import net.minecraft.world.damagesource.DamageSource;
  import net.minecraft.world.entity.Entity;
-@@ -47,6 +_,7 @@
+@@ -47,6 +_,8 @@
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityRemoveEvent;
  import org.slf4j.Logger;
  
  public class FallingBlockEntity extends Entity {
-@@ -128,7 +_,7 @@
+@@ -128,17 +_,28 @@
      @Override
      public void tick() {
          if (this.blockState.isAir()) {
--            this.discard();
-+            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          } else {
              Block block = this.blockState.getBlock();
              this.time++;
-@@ -138,7 +_,7 @@
+             this.applyGravity();
+             this.move(MoverType.SELF, this.getDeltaMovement());
++            // Paper start - Configurable falling blocks height nerf
++            if (this.level().paperConfig().fixes.fallingBlockHeightNerf.test(v -> this.getY() > v)) {
++                if (this.dropItem && this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
++                    this.spawnAtLocation(block);
++                }
++
++                this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);
++                return;
++            }
++            // Paper end - Configurable falling blocks height nerf
+             this.handlePortal();
              if (!this.level().isClientSide && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
                  BlockPos blockpos = this.blockPosition();
                  boolean flag = this.blockState.getBlock() instanceof ConcretePowderBlock;

@@ -20,6 +20,25 @@
  
      public boolean isWithinBounds(BlockPos p_61938_) {
          return this.isWithinBounds((double)p_61938_.getX(), (double)p_61938_.getZ());
+@@ -42,6 +_,18 @@
+             && this.isWithinBounds((double)p_61928_.getMaxBlockX(), (double)p_61928_.getMaxBlockZ());
+     }
+ 
++    // Paper start - Bound treasure maps to world border
++    private final BlockPos.MutableBlockPos mutPos = new BlockPos.MutableBlockPos();
++    public boolean isBlockInBounds(int chunkX, int chunkZ) {
++        this.mutPos.set(chunkX, 64, chunkZ);
++        return this.isWithinBounds(this.mutPos);
++    }
++    public boolean isChunkInBounds(int chunkX, int chunkZ) {
++        this.mutPos.set(((chunkX << 4) + 15), 64, (chunkZ << 4) + 15);
++        return this.isWithinBounds(this.mutPos);
++    }
++    // Paper end - Bound treasure maps to world border
++
+     public boolean isWithinBounds(AABB p_61936_) {
+         return this.isWithinBounds(p_61936_.minX, p_61936_.minZ, p_61936_.maxX - 1.0E-5F, p_61936_.maxZ - 1.0E-5F);
+     }
 @@ -171,6 +_,7 @@
      }
  
