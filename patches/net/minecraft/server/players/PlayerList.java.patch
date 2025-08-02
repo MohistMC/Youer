@@ -274,7 +274,7 @@
              );
              if (entity != null) {
                  UUID uuid;
-@@ -255,16 +_,27 @@
+@@ -255,16 +_,29 @@
  
                  if (!p_11263_.isPassenger()) {
                      LOGGER.warn("Couldn't reattach entity to player");
@@ -290,6 +290,8 @@
          }
  
          p_11263_.initInventoryMenu();
++
++        net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(p_11263_);
 +        net.neoforged.neoforge.event.EventHooks.firePlayerLoggedIn( p_11263_ );
 +        // CraftBukkit - Moved from above, added world
 +        LOGGER.info(
@@ -544,7 +546,7 @@
          UUID uuid = p_295670_.getId();
          Set<ServerPlayer> set = Sets.newIdentityHashSet();
  
-@@ -434,72 +_,138 @@
+@@ -434,72 +_,139 @@
          }
  
          return !set.isEmpty();
@@ -634,6 +636,7 @@
 +        }
          serverplayer.initInventoryMenu();
          serverplayer.setHealth(serverplayer.getHealth());
++        net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(serverplayer);
 +        net.neoforged.neoforge.event.EventHooks.firePlayerRespawnEvent(serverplayer, p_11238_);
          if (!p_11238_) {
              BlockPos blockpos = BlockPos.containing(dimensiontransition.pos());
@@ -876,7 +879,7 @@
      public UserWhiteList getWhiteList() {
          return this.whitelist;
      }
-@@ -682,13 +_,18 @@
+@@ -682,23 +_,36 @@
      public void sendLevelInfo(ServerPlayer p_11230_, ServerLevel p_11231_) {
          WorldBorder worldborder = this.server.overworld().getWorldBorder();
          p_11230_.connection.send(new ClientboundInitializeBorderPacket(worldborder));
@@ -898,7 +901,9 @@
          }
  
          p_11230_.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.LEVEL_CHUNKS_LOAD_START, 0.0F));
-@@ -697,8 +_,15 @@
+         this.server.tickRateManager().updateJoiningPlayer(p_11230_);
++        net.neoforged.neoforge.attachment.AttachmentSync.syncInitialLevelAttachments(p_11231_, p_11230_);
+     }
  
      public void sendAllPlayerInfo(ServerPlayer p_11293_) {
          p_11293_.inventoryMenu.sendAllDataToRemote();

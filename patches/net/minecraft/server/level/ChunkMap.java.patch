@@ -280,11 +280,25 @@
      }
  
      protected void tick() {
-@@ -1199,7 +_,7 @@
+@@ -1199,7 +_,21 @@
          });
      }
  
 -    class DistanceManager extends net.minecraft.server.level.DistanceManager {
++    // Neo: Getter for players watching an entity.
++    public List<ServerPlayer> getPlayersWatching(Entity entity) {
++        var trackedEntity = entityMap.get(entity.getId());
++        if (trackedEntity != null) {
++            var ret = new java.util.ArrayList<ServerPlayer>(trackedEntity.seenBy.size());
++            for (var connection : trackedEntity.seenBy) {
++                ret.add(connection.getPlayer());
++            }
++            return java.util.Collections.unmodifiableList(ret);
++        } else {
++            return List.of();
++        }
++    }
++
 +    public class DistanceManager extends net.minecraft.server.level.DistanceManager { // Paper - public
          protected DistanceManager(Executor p_140459_, Executor p_140460_) {
              super(p_140459_, p_140460_);

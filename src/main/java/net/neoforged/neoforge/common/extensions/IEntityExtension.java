@@ -401,6 +401,8 @@ public interface IEntityExtension extends INBTSerializable<CompoundTag> {
     /**
      * Copies the serialized attachments from another entity to this entity.
      *
+     * <p>This does not trigger {@link IAttachmentHolder#syncData syncing} of the copied attachments.
+     *
      * @param other   the entity that attachments should be copied from
      * @param isDeath if {@code true}, only attachments with {@link AttachmentType.Builder#copyOnDeath()} set are copied;
      *                if {@code false}, all serializable attachments are copied.
