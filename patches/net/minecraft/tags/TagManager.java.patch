@@ -8,7 +8,7 @@
          List<? extends CompletableFuture<? extends TagManager.LoadResult<?>>> list = this.registryAccess
              .registries()
              .map(p_203927_ -> this.createLoader(p_13483_, p_13486_, (RegistryAccess.RegistryEntry<?>)p_203927_))
-@@ -46,13 +_,18 @@
+@@ -46,13 +_,21 @@
              .thenAcceptAsync(p_203917_ -> this.results = list.stream().map(CompletableFuture::join).collect(Collectors.toUnmodifiableList()), p_13487_);
      }
  
@@ -23,7 +23,10 @@
 -        return CompletableFuture.supplyAsync(() -> new TagManager.LoadResult<>(resourcekey, tagloader.loadAndBuild(p_203908_)), p_203909_);
 +        // Paper start - fire tag registrar events
 +        final io.papermc.paper.tag.TagEventConfig<Holder<T>, ?> config = io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.createEventConfig(registry, createLoader$cause);
-+        return CompletableFuture.supplyAsync(() -> new TagManager.LoadResult<>(resourcekey, tagloader.loadAndBuild(p_203908_, config)), p_203909_);
++        return CompletableFuture.supplyAsync(() -> {
++            tagloader.loadAndBuild$eventConfig = config;
++            return new LoadResult<>(resourcekey, tagloader.loadAndBuild(p_203908_));
++        }, p_203909_);
 +        // Paper end - fire tag registrar events
      }
  
