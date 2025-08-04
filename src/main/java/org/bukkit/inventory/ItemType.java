@@ -46,8 +46,8 @@ import org.jetbrains.annotations.Nullable;
  * official replacement for the aforementioned enum. Entirely incompatible
  * changes may occur. Do not use this API in plugins.
  */
-@ApiStatus.Internal
-public interface ItemType extends Keyed, Translatable, io.papermc.paper.world.flag.FeatureDependant { // Paper - add Translatable & feature flag API
+@ApiStatus.Experimental // Paper - already required for registry builders
+public interface ItemType extends Keyed, Translatable, net.kyori.adventure.translation.Translatable, io.papermc.paper.world.flag.FeatureDependant { // Paper - add Translatable & feature flag API
 
     /**
      * Typed represents a subtype of {@link ItemType}s that have a known item meta type
@@ -1791,7 +1791,7 @@ public interface ItemType extends Keyed, Translatable, io.papermc.paper.world.fl
     ItemType.Typed<ItemMeta> RABBIT_STEW = getItemType("rabbit_stew");
     ItemType.Typed<ItemMeta> RABBIT_FOOT = getItemType("rabbit_foot");
     ItemType.Typed<ItemMeta> RABBIT_HIDE = getItemType("rabbit_hide");
-    ItemType.Typed<ItemMeta> ARMOR_STAND = getItemType("armor_stand");
+    ItemType.Typed<io.papermc.paper.inventory.meta.ArmorStandMeta> ARMOR_STAND = getItemType("armor_stand");
     ItemType.Typed<ItemMeta> IRON_HORSE_ARMOR = getItemType("iron_horse_armor");
     ItemType.Typed<ItemMeta> GOLDEN_HORSE_ARMOR = getItemType("golden_horse_armor");
     ItemType.Typed<ItemMeta> DIAMOND_HORSE_ARMOR = getItemType("diamond_horse_armor");
@@ -2299,4 +2299,13 @@ public interface ItemType extends Keyed, Translatable, io.papermc.paper.world.fl
     @Nullable
     @Deprecated
     Material asMaterial();
+
+    // Paper start - add Translatable
+    /**
+     * @deprecated use {@link #translationKey()} and {@link net.kyori.adventure.text.Component#translatable(net.kyori.adventure.translation.Translatable)}
+     */
+    @Deprecated(forRemoval = true)
+    @Override
+    @NotNull String getTranslationKey();
+    // Paper end - add Translatable
 }

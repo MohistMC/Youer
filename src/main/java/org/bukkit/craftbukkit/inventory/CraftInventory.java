@@ -432,6 +432,15 @@ public class CraftInventory implements Inventory {
         }
     }
 
+    // Paper start
+    @Override
+    public int close() {
+        int count = this.inventory.getViewers().size();
+        com.google.common.collect.Lists.newArrayList(this.inventory.getViewers()).forEach(HumanEntity::closeInventory);
+        return count;
+    }
+    // Paper end
+
     @Override
     public ListIterator<ItemStack> iterator() {
         return new InventoryIterator(this);
@@ -513,6 +522,10 @@ public class CraftInventory implements Inventory {
             return InventoryType.COMPOSTER;
         } else if (this.inventory instanceof JukeboxBlockEntity) {
             return InventoryType.JUKEBOX;
+            // Paper start
+        } else if (this.inventory instanceof net.minecraft.world.level.block.entity.DecoratedPotBlockEntity) {
+            return org.bukkit.event.inventory.InventoryType.DECORATED_POT;
+            // Paper end
         } else {
             return InventoryType.CHEST;
         }

@@ -17,6 +17,7 @@ public class CraftEnderman extends CraftMonster implements Enderman {
         super(server, entity);
     }
 
+    @Override public boolean teleportRandomly() { return getHandle().teleport(); } // Paper
     @Override
     public MaterialData getCarriedMaterial() {
         BlockState blockData = this.getHandle().getCarriedBlock();
@@ -38,6 +39,28 @@ public class CraftEnderman extends CraftMonster implements Enderman {
     public void setCarriedBlock(BlockData blockData) {
         this.getHandle().setCarriedBlock(blockData == null ? null : ((CraftBlockData) blockData).getState());
     }
+
+    // Paper start
+    @Override
+    public boolean isScreaming() {
+        return this.getHandle().isCreepy();
+    }
+
+    @Override
+    public void setScreaming(boolean screaming) {
+        this.getHandle().setCreepy(screaming);
+    }
+
+    @Override
+    public boolean hasBeenStaredAt() {
+        return this.getHandle().hasBeenStaredAt();
+    }
+
+    @Override
+    public void setHasBeenStaredAt(boolean hasBeenStaredAt) {
+        this.getHandle().setHasBeenStaredAt(hasBeenStaredAt);
+    }
+    // Paper end
 
     @Override
     public EnderMan getHandle() {

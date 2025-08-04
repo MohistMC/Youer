@@ -61,6 +61,15 @@
              }
          }
      };
+@@ -184,7 +_,7 @@
+     @Deprecated
+     @Nullable
+     public Item item;
+-    final PatchedDataComponentMap components;
++    PatchedDataComponentMap components;
+     @Nullable
+     private Entity entityRepresentation;
+ 
 @@ -234,6 +_,10 @@
          return !this.isEmpty() ? this.components.asPatch() : DataComponentPatch.EMPTY;
      }
@@ -348,7 +357,7 @@
          ItemAttributeModifiers itemattributemodifiers = this.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
          if (!itemattributemodifiers.modifiers().isEmpty()) {
              itemattributemodifiers.forEach(p_332001_, p_330882_);
-@@ -940,9 +_,20 @@
+@@ -940,9 +_,25 @@
              this.getItem().getDefaultAttributeModifiers().forEach(p_332001_, p_330882_);
          }
  
@@ -363,6 +372,11 @@
 +    public void setItem(Item item) {
 +        this.bukkitStack = null; // Paper
 +        this.item = item;
++        // Paper start - change base component prototype
++        final DataComponentPatch patch = this.getComponentsPatch();
++        this.components = new PatchedDataComponentMap(this.item.components());
++        this.applyComponents(patch);
++        // Paper end - change base component prototype
 +    }
 +    // CraftBukkit end
 +

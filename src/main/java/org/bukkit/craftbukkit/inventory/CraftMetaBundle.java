@@ -35,14 +35,14 @@ public class CraftMetaBundle extends CraftMetaItem implements BundleMeta {
         }
     }
 
-    CraftMetaBundle(DataComponentPatch tag) {
-        super(tag);
+    CraftMetaBundle(DataComponentPatch tag, java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) { // Paper
+        super(tag, extraHandledDcts); // Paper
 
         getOrEmpty(tag, CraftMetaBundle.ITEMS).ifPresent((bundle) -> {
             bundle.items().forEach((item) -> {
                 ItemStack itemStack = CraftItemStack.asCraftMirror(item);
 
-                if (!itemStack.getType().isAir()) { // SPIGOT-7174 - Avoid adding air
+                if (!itemStack.isEmpty()) { // SPIGOT-7174 - Avoid adding air // Paper
                     this.addItem(itemStack);
                 }
             });
@@ -55,7 +55,7 @@ public class CraftMetaBundle extends CraftMetaItem implements BundleMeta {
         Iterable<?> items = SerializableMeta.getObject(Iterable.class, map, CraftMetaBundle.ITEMS.BUKKIT, true);
         if (items != null) {
             for (Object stack : items) {
-                if (stack instanceof ItemStack itemStack && !itemStack.getType().isAir()) { // SPIGOT-7174 - Avoid adding air
+                if (stack instanceof ItemStack itemStack && !itemStack.isEmpty()) { // SPIGOT-7174 - Avoid adding air // Paper
                     this.addItem(itemStack);
                 }
             }
@@ -116,7 +116,7 @@ public class CraftMetaBundle extends CraftMetaItem implements BundleMeta {
 
     @Override
     public void addItem(ItemStack item) {
-        Preconditions.checkArgument(item != null && !item.getType().isAir(), "item is null or air");
+        Preconditions.checkArgument(item != null && !item.isEmpty(), "item is null or empty"); // Paper
 
         if (this.items == null) {
             this.items = new ArrayList<>();

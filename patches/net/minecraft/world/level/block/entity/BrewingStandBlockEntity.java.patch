@@ -34,7 +34,40 @@
  
  public class BrewingStandBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer {
      private static final int INGREDIENT_SLOT = 3;
-@@ -65,6 +_,36 @@
+@@ -35,6 +_,7 @@
+     public static final int NUM_DATA_VALUES = 2;
+     private NonNullList<ItemStack> items = NonNullList.withSize(5, ItemStack.EMPTY);
+     public int brewTime;
++    public int recipeBrewTime = 400; // Paper - Add recipeBrewTime
+     private boolean[] lastPotionCount;
+     private Item ingredient;
+     public int fuel;
+@@ -44,6 +_,9 @@
+             return switch (p_59038_) {
+                 case 0 -> BrewingStandBlockEntity.this.brewTime;
+                 case 1 -> BrewingStandBlockEntity.this.fuel;
++                // Paper start - Add recipeBrewTime
++                case 2 -> BrewingStandBlockEntity.this.recipeBrewTime;
++                // Paper end - Add recipeBrewTime
+                 default -> 0;
+             };
+         }
+@@ -56,15 +_,50 @@
+                     break;
+                 case 1:
+                     BrewingStandBlockEntity.this.fuel = p_59041_;
++                    // Paper start - Add recipeBrewTime
++                case 2:
++                    BrewingStandBlockEntity.this.recipeBrewTime = p_59041_;
++                    break;
++                // Paper end - Add recipeBrewTime
+             }
+         }
+ 
+         @Override
+         public int getCount() {
+-            return 2;
++            return 3; // Paper - Add recipeBrewTime
          }
      };
  
@@ -110,7 +143,7 @@
              } else if (!flag || !itemstack1.is(p_155289_.ingredient)) {
                  p_155289_.brewTime = 0;
              }
-@@ -112,7 +_,11 @@
+@@ -112,7 +_,12 @@
              setChanged(p_155286_, p_155287_, p_155288_);
          } else if (flag && p_155289_.fuel > 0) {
              p_155289_.fuel--;
@@ -118,7 +151,8 @@
 +            // CraftBukkit start
 +            BrewingStartEvent event = new BrewingStartEvent(CraftBlock.at(p_155286_, p_155287_), CraftItemStack.asCraftMirror(itemstack1), 400);
 +            p_155286_.getCraftServer().getPluginManager().callEvent(event);
-+            p_155289_.brewTime = event.getTotalBrewTime(); // 400 -> event.getTotalBrewTime()
++            p_155289_.recipeBrewTime = event.getRecipeBrewTime(); // Paper - use recipe brew time from event
++            p_155289_.brewTime = event.getBrewingTime(); // 400 -> event.getTotalBrewTime() // Paper - use brewing time from event
 +            // CraftBukkit end
              p_155289_.ingredient = itemstack1.getItem();
              setChanged(p_155286_, p_155287_, p_155288_);

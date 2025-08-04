@@ -102,6 +102,13 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
         return CraftBlock.at(this.getHandle(), new BlockPos(x, y, z)).getState();
     }
 
+    // Paper start - FluidState API
+    @Override
+    public io.papermc.paper.block.fluid.FluidData getFluidData(final int x, final int y, final int z) {
+        return io.papermc.paper.block.fluid.PaperFluidData.createData(getHandle().getFluidState(new BlockPos(x, y, z)));
+    }
+    // Paper end
+
     @Override
     public BlockData getBlockData(Location location) {
         return this.getBlockData(location.getBlockX(), location.getBlockY(), location.getBlockZ());
@@ -517,6 +524,12 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
         return io.papermc.paper.world.flag.PaperFeatureFlagProviderImpl.fromNms(this.getHandle().enabledFeatures());
     }
     // Paper end - feature flag API
+
+    // Paper start
+    @Override
+    public io.papermc.paper.world.MoonPhase getMoonPhase() {
+        return io.papermc.paper.world.MoonPhase.getPhase(this.getHandle().dayTime() / 24000L);
+    }
 
     @Override
     public org.bukkit.NamespacedKey getKey() {

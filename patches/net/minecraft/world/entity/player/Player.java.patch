@@ -137,7 +137,18 @@
          this.noPhysics = this.isSpectator();
          if (this.isSpectator()) {
              this.setOnGround(false);
-@@ -260,7 +_,7 @@
+@@ -256,11 +_,18 @@
+ 
+         if (this.isSleeping()) {
+             this.sleepCounter++;
++            // Paper start - Add PlayerDeepSleepEvent
++            if (this.sleepCounter == SLEEP_DURATION) {
++                if (!new io.papermc.paper.event.player.PlayerDeepSleepEvent((org.bukkit.entity.Player) getBukkitEntity()).callEvent()) {
++                    this.sleepCounter = Integer.MIN_VALUE;
++                }
++            }
++            // Paper end - Add PlayerDeepSleepEvent
+             if (this.sleepCounter > 100) {
                  this.sleepCounter = 100;
              }
  
@@ -347,6 +358,14 @@
                      if (this.level().getDifficulty() == Difficulty.PEACEFUL) {
                          p_36155_ = 0.0F;
                      }
+@@ -895,6 +_,7 @@
+     protected void blockUsingShield(LivingEntity p_36295_) {
+         super.blockUsingShield(p_36295_);
+         if (p_36295_.canDisableShield()) {
++            this.disableShield$attacker = p_36295_;  // Paper - Add PlayerShieldDisableEvent
+             this.disableShield();
+         }
+     }
 @@ -905,13 +_,29 @@
      }
  
@@ -678,15 +697,35 @@
              }
          }
      }
-@@ -1325,7 +_,7 @@
+@@ -1324,12 +_,27 @@
+         this.attack(p_36355_);
      }
  
++    public LivingEntity disableShield$attacker = null;
      public void disableShield() {
 -        this.getCooldowns().addCooldown(Items.SHIELD, 100);
-+        this.getCooldowns().addCooldown(this.getUseItem().getItem(), 100);
++        final org.bukkit.entity.Entity finalAttacker = disableShield$attacker != null ? disableShield$attacker.getBukkitEntity() : null;
++        if (finalAttacker != null) {
++            final io.papermc.paper.event.player.PlayerShieldDisableEvent shieldDisableEvent = new io.papermc.paper.event.player.PlayerShieldDisableEvent((org.bukkit.entity.Player) getBukkitEntity(), finalAttacker, 100);
++            if (!shieldDisableEvent.callEvent()) return;
++            this.getCooldowns().addCooldown(Items.SHIELD, shieldDisableEvent.getCooldown());
++        } else {
++            this.getCooldowns().addCooldown(Items.SHIELD, 100);
++        }
++        // Paper end - Add PlayerShieldDisableEvent
          this.stopUsingItem();
          this.level().broadcastEntityEvent(this, (byte)30);
      }
+ 
++    public void disableShield(@Nullable LivingEntity attacker) {
++        disableShield$attacker = attacker;
++        disableShield();
++        disableShield$attacker = null;
++    }
++
+     public void crit(Entity p_36156_) {
+     }
+ 
 @@ -1349,7 +_,13 @@
  
      @Override

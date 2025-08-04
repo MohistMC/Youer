@@ -1580,7 +1580,7 @@
                  this.player.containerMenu.sendAllDataToRemote();
              } else if (!this.player.containerMenu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, this.player.containerMenu);
-@@ -1643,7 +_,290 @@
+@@ -1643,7 +_,305 @@
                  } else {
                      boolean flag = p_9856_.getStateId() != this.player.containerMenu.getStateId();
                      this.player.containerMenu.suppressRemoteUpdates();
@@ -1793,6 +1793,7 @@
 +                                }
 +                            }
 +                        }
++
 +                        if (p_9856_.getSlotNum() == 3 && top instanceof org.bukkit.inventory.SmithingInventory) {
 +                            org.bukkit.inventory.ItemStack result = ((org.bukkit.inventory.SmithingInventory) top).getResult();
 +                            if (result != null) {
@@ -1803,6 +1804,20 @@
 +                                }
 +                            }
 +                        }
++
++                        // Paper start - cartography item event
++                        if (p_9856_.getSlotNum() == net.minecraft.world.inventory.CartographyTableMenu.RESULT_SLOT && top instanceof org.bukkit.inventory.CartographyInventory cartographyInventory) {
++                            org.bukkit.inventory.ItemStack result = cartographyInventory.getResult();
++                            if (result != null && !result.isEmpty()) {
++                                if (click == ClickType.NUMBER_KEY) {
++                                    event = new io.papermc.paper.event.player.CartographyItemEvent(inventoryView, type, p_9856_.getSlotNum(), click, action, p_9856_.getButtonNum());
++                                } else {
++                                    event = new io.papermc.paper.event.player.CartographyItemEvent(inventoryView, type, p_9856_.getSlotNum(), click, action);
++                                }
++                            }
++                        }
++                        // Paper end - cartography item event
++
 +                        event.setCancelled(cancelled);
 +                        AbstractContainerMenu oldContainer = this.player.containerMenu; // SPIGOT-1224
 +                        cserver.getPluginManager().callEvent(event);

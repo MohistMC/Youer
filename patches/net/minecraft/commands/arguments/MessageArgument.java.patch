@@ -31,7 +31,7 @@
 -            PlayerChatMessage playerchatmessage = p_249420_.withUnsignedContent(component).filter(p_300688_.mask());
 -            p_250000_.accept(playerchatmessage);
 +        // Paper start - support asynchronous chat decoration
-+        CompletableFuture<Component> componentFuture = minecraftserver.getChatDecorator().decorate(p_252335_.getPlayer(), p_252335_, p_249420_.decoratedContent());
++        CompletableFuture<Component> componentFuture = minecraftserver.getChatDecoratorPaper().decorate(p_252335_.getPlayer(), p_252335_, p_249420_.decoratedContent());
 +        p_252335_.getChatMessageChainer().append(CompletableFuture.allOf(completablefuture, componentFuture), filtered -> {
 +            PlayerChatMessage playerChatMessage2 = p_249420_.withUnsignedContent(componentFuture.join()).filter(completablefuture.join().mask());
 +            // Paper end - support asynchronous chat decoration
@@ -40,9 +40,10 @@
      }
  
      private static void resolveDisguisedMessage(Consumer<PlayerChatMessage> p_249162_, CommandSourceStack p_248759_, PlayerChatMessage p_252332_) {
-         ChatDecorator chatdecorator = p_248759_.getServer().getChatDecorator();
+-        ChatDecorator chatdecorator = p_248759_.getServer().getChatDecorator();
 -        Component component = chatdecorator.decorate(p_248759_.getPlayer(), p_252332_.decoratedContent());
 -        p_249162_.accept(p_252332_.withUnsignedContent(component));
++        ChatDecorator chatdecorator = p_248759_.getServer().getChatDecoratorPaper();
 +        // Paper start - support asynchronous chat decoration
 +        CompletableFuture<Component> componentFuture = chatdecorator.decorate(p_248759_.getPlayer(), p_248759_, p_252332_.decoratedContent());
 +        p_248759_.getChatMessageChainer().append(componentFuture, (result) -> p_249162_.accept(p_252332_.withUnsignedContent(result)));

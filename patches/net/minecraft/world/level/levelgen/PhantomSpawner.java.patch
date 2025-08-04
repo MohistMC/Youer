@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/level/levelgen/PhantomSpawner.java
 +++ b/net/minecraft/world/level/levelgen/PhantomSpawner.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.levelgen;
+ 
++import io.papermc.paper.event.entity.PhantomPreSpawnEvent;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
 @@ -42,13 +_,15 @@
                      for (ServerPlayer serverplayer : p_64576_.players()) {
                          if (!serverplayer.isSpectator()) {
@@ -19,7 +26,7 @@
                                          BlockPos blockpos1 = blockpos.above(20 + randomsource.nextInt(15))
                                              .east(-10 + randomsource.nextInt(21))
                                              .south(-10 + randomsource.nextInt(21));
-@@ -56,13 +_,14 @@
+@@ -56,13 +_,24 @@
                                          FluidState fluidstate = p_64576_.getFluidState(blockpos1);
                                          if (NaturalSpawner.isValidEmptySpawnBlock(p_64576_, blockpos1, blockstate, fluidstate, EntityType.PHANTOM)) {
                                              SpawnGroupData spawngroupdata = null;
@@ -27,8 +34,18 @@
 +                                            int l = event.getPhantomsToSpawn();
  
                                              for (int i1 = 0; i1 < l; i1++) {
++                                                // Paper start - PhantomPreSpawnEvent
++                                                PhantomPreSpawnEvent eventPaper = new PhantomPreSpawnEvent(io.papermc.paper.util.MCUtil.toLocation(p_64576_, blockpos1), serverplayer.getBukkitEntity(), org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL);
++                                                if (!eventPaper.callEvent()) {
++                                                    if (eventPaper.shouldAbortSpawn()) {
++                                                        break;
++                                                    }
++                                                    continue;
++                                                }
++                                                // Paper end - PhantomPreSpawnEvent
                                                  Phantom phantom = EntityType.PHANTOM.create(p_64576_);
                                                  if (phantom != null) {
++                                                    phantom.setSpawningEntity(serverplayer.getUUID()); // Paper - PhantomPreSpawnEvent
                                                      phantom.moveTo(blockpos1, 0.0F, 0.0F);
                                                      spawngroupdata = phantom.finalizeSpawn(p_64576_, difficultyinstance, MobSpawnType.NATURAL, spawngroupdata);
 +                                                    phantom.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL);  // CraftBukkit

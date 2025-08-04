@@ -20,7 +20,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class CraftBlockEntityState<T extends BlockEntity> extends CraftBlockState implements TileState {
+public abstract class CraftBlockEntityState<T extends BlockEntity> extends CraftBlockState implements TileState { // Paper - revert upstream's revert of the block state changes
 
     private final T tileEntity;
     private final T snapshot;
@@ -142,6 +142,19 @@ public class CraftBlockEntityState<T extends BlockEntity> extends CraftBlockStat
         return snapshot.getUpdateTag(getRegistryAccess());
     }
 
+    // Paper start - properly save blockentity itemstacks
+    public CompoundTag getSnapshotCustomNbtOnly() {
+        this.applyTo(this.snapshot);
+        final CompoundTag nbt = this.snapshot.saveCustomOnly(this.getRegistryAccess());
+        this.snapshot.removeComponentsFromTag(nbt);
+        if (!nbt.isEmpty()) {
+            // have to include the "id" if it's going to have block entity data
+            this.snapshot.saveId(nbt);
+        }
+        return nbt;
+    }
+    // Paper end
+
     // copies the data of the given tile entity to this block state
     protected void load(T tileEntity) {
         if (tileEntity != null && tileEntity != this.snapshot) {
@@ -187,14 +200,10 @@ public class CraftBlockEntityState<T extends BlockEntity> extends CraftBlockStat
     }
 
     @Override
-    public CraftBlockEntityState<T> copy() {
-        return new CraftBlockEntityState<>(this, null);
-    }
+    public abstract CraftBlockEntityState<T> copy(); // Paper - make abstract
 
     @Override
-    public CraftBlockEntityState<T> copy(Location location) {
-        return new CraftBlockEntityState<>(this, location);
-    }
+    public abstract CraftBlockEntityState<T> copy(Location location); // Paper - make abstract
 
     // Paper start
     @Override

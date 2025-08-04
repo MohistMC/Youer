@@ -1,12 +1,13 @@
 package org.bukkit.entity;
 
+import io.papermc.paper.entity.RangedEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a Wither boss
  */
-public interface Wither extends Monster, Boss {
+public interface Wither extends Monster, Boss, RangedEntity {
 
     /**
      * {@inheritDoc}
@@ -64,4 +65,43 @@ public interface Wither extends Monster, Boss {
         LEFT,
         RIGHT
     }
+
+    // Paper start
+    /**
+     * @return whether the wither is charged
+     */
+    boolean isCharged();
+
+    /**
+     * @return ticks the wither is invulnerable for
+     */
+    int getInvulnerableTicks();
+
+    /**
+     * Sets for how long in the future, the wither should be invulnerable.
+     *
+     * @param ticks ticks the wither is invulnerable for
+     */
+    void setInvulnerableTicks(int ticks);
+
+    /**
+     * @return whether the wither can travel through portals
+     */
+    boolean canTravelThroughPortals();
+
+    /**
+     * Sets whether the wither can travel through portals.
+     *
+     * @param value whether the wither can travel through portals
+     */
+    void setCanTravelThroughPortals(boolean value);
+
+    /**
+     * Makes the wither invulnerable for 11 seconds and
+     * sets the health to one third of the max health.
+     * <br>
+     * This is called in vanilla directly after spawning the wither.
+     */
+    void enterInvulnerabilityPhase();
+    // Paper end
 }

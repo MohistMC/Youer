@@ -18,6 +18,39 @@ public class CraftVex extends CraftMonster implements Vex {
         return (net.minecraft.world.entity.monster.Vex) super.getHandle();
     }
 
+    // Paper start
+    @Override
+    public org.bukkit.entity.Mob getSummoner() {
+        net.minecraft.world.entity.Mob owner = getHandle().getOwner();
+        return owner != null ? (org.bukkit.entity.Mob) owner.getBukkitEntity() : null;
+    }
+
+    @Override
+    public void setSummoner(org.bukkit.entity.Mob summoner) {
+        getHandle().setOwner(summoner == null ? null : ((CraftMob) summoner).getHandle());
+    }
+
+    @Override
+    public boolean hasLimitedLifetime() {
+        return this.getHandle().hasLimitedLife;
+    }
+
+    @Override
+    public void setLimitedLifetime(boolean hasLimitedLifetime) {
+        this.getHandle().hasLimitedLife = hasLimitedLifetime;
+    }
+
+    @Override
+    public int getLimitedLifetimeTicks() {
+        return this.getHandle().limitedLifeTicks;
+    }
+
+    @Override
+    public void setLimitedLifetimeTicks(int ticks) {
+        this.getHandle().limitedLifeTicks = ticks;
+    }
+    // Paper end
+
     @Override
     public String toString() {
         return "CraftVex";

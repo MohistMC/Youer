@@ -36,8 +36,8 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
         this.bucketEntityTag = bucket.bucketEntityTag;
     }
 
-    CraftMetaAxolotlBucket(DataComponentPatch tag) {
-        super(tag);
+    CraftMetaAxolotlBucket(DataComponentPatch tag, final java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) { // Paper
+        super(tag, extraHandledDcts); // Paper
 
         getOrEmpty(tag, CraftMetaAxolotlBucket.ENTITY_TAG).ifPresent((nbt) -> {
             this.entityTag = nbt.copyTag();
@@ -118,14 +118,13 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
 
     @Override
     public Axolotl.Variant getVariant() {
+        com.google.common.base.Preconditions.checkState(this.hasVariant(), "Variant is absent, check hasVariant first!"); // Paper - fix NPE
         return Axolotl.Variant.values()[this.variant];
     }
 
     @Override
     public void setVariant(Axolotl.Variant variant) {
-        if (variant == null) {
-            variant = Axolotl.Variant.LUCY;
-        }
+        com.google.common.base.Preconditions.checkArgument(variant != null, "Variant cannot be null!"); // Paper
         this.variant = variant.ordinal();
     }
 

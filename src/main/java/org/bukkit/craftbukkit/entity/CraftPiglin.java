@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import io.papermc.paper.entity.CraftRangedEntity;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -12,7 +13,7 @@ import org.bukkit.craftbukkit.inventory.CraftItemType;
 import org.bukkit.entity.Piglin;
 import org.bukkit.inventory.Inventory;
 
-public class CraftPiglin extends CraftPiglinAbstract implements Piglin {
+public class CraftPiglin extends CraftPiglinAbstract implements Piglin, CraftRangedEntity<net.minecraft.world.entity.monster.piglin.Piglin> {
 
     public CraftPiglin(CraftServer server, net.minecraft.world.entity.monster.piglin.Piglin entity) {
         super(server, entity);
@@ -84,4 +85,37 @@ public class CraftPiglin extends CraftPiglinAbstract implements Piglin {
     public String toString() {
         return "CraftPiglin";
     }
+    // Paper start
+    @Override
+    public void setChargingCrossbow(boolean chargingCrossbow) {
+        this.getHandle().setChargingCrossbow(chargingCrossbow);
+    }
+
+    @Override
+    public boolean isChargingCrossbow() {
+        return this.getHandle().isChargingCrossbow();
+    }
+
+    @Override
+    public void setDancing(boolean dancing) {
+        if (dancing) {
+            this.getHandle().getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.DANCING, true);
+            this.getHandle().getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.CELEBRATE_LOCATION, this.getHandle().getOnPos());
+        } else {
+            this.getHandle().getBrain().eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.DANCING);
+            this.getHandle().getBrain().eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.CELEBRATE_LOCATION);
+        }
+    }
+
+    @Override
+    public void setDancing(long duration) {
+        this.getHandle().getBrain().setMemoryWithExpiry(net.minecraft.world.entity.ai.memory.MemoryModuleType.DANCING, true, duration);
+        this.getHandle().getBrain().setMemoryWithExpiry(net.minecraft.world.entity.ai.memory.MemoryModuleType.CELEBRATE_LOCATION, this.getHandle().getOnPos(), duration);
+    }
+
+    @Override
+    public boolean isDancing() {
+        return this.getHandle().isDancing();
+    }
+    // Paper end
 }

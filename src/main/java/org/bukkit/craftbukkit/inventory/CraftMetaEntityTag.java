@@ -38,8 +38,8 @@ public class CraftMetaEntityTag extends CraftMetaItem {
         this.entityTag = entity.entityTag;
     }
 
-    CraftMetaEntityTag(DataComponentPatch tag) {
-        super(tag);
+    CraftMetaEntityTag(DataComponentPatch tag, final java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) { // Paper
+        super(tag, extraHandledDcts); // Paper
 
         getOrEmpty(tag, CraftMetaEntityTag.ENTITY_TAG).ifPresent((nbt) -> {
             this.entityTag = nbt.copyTag();
@@ -97,7 +97,7 @@ public class CraftMetaEntityTag extends CraftMetaItem {
         if (meta instanceof CraftMetaEntityTag) {
             CraftMetaEntityTag that = (CraftMetaEntityTag) meta;
 
-            return this.entityTag != null ? that.entityTag != null && this.entityTag.equals(that.entityTag) : this.entityTag == null;
+            return this.entityTag != null ? that.entityTag != null && this.entityTag.equals(that.entityTag) : that.entityTag == null; // Paper
         }
         return true;
     }

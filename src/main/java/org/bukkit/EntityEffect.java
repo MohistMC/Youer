@@ -112,12 +112,26 @@ public enum EntityEffect {
     // 5 - unused
     /**
      * The smoke when taming an entity fails.
+     * @deprecated use {@link EntityEffect#TAMING_FAILED}
      */
-    WOLF_SMOKE(6, Tameable.class),
+    @Deprecated(since = "1.21") // Paper
+            WOLF_SMOKE(6, Tameable.class),
+    // Paper start - rename "wolf" effects
+    /**
+     * The smoke when taming an entity fails.
+     */
+    TAMING_FAILED(6, Tameable.class),
     /**
      * The hearts when taming an entity succeeds.
      */
-    WOLF_HEARTS(7, Tameable.class),
+    TAMING_SUCCEEDED(7, Tameable.class),
+    // Paper end - rename "wolf" effects
+    /**
+     * The hearts when taming an entity succeeds.
+     * @deprecated use {@link EntityEffect#TAMING_SUCCEEDED}
+     */
+    @Deprecated(since = "1.21") // Paper
+            WOLF_HEARTS(7, Tameable.class),
     /**
      * When a wolf shakes (after being wet).
      *
@@ -204,8 +218,10 @@ public enum EntityEffect {
     ARMOR_STAND_HIT(32, ArmorStand.class),
     /**
      * Entity hurt by thorns attack.
+     * @deprecated in favor of {@link LivingEntity#playHurtAnimation(float)} or {@link Entity#broadcastHurtAnimation(java.util.Collection)}
      */
-    THORNS_HURT(33, LivingEntity.class),
+    @Deprecated(since = "1.19.4", forRemoval = true) // Paper
+            THORNS_HURT(33, LivingEntity.class),
     /**
      * Iron golem puts away rose.
      */
@@ -216,11 +232,15 @@ public enum EntityEffect {
     TOTEM_RESURRECT(35, LivingEntity.class),
     /**
      * Entity hurt due to drowning damage.
+     * @deprecated in favor of {@link LivingEntity#playHurtAnimation(float)} or {@link Entity#broadcastHurtAnimation(java.util.Collection)}
      */
+    @Deprecated(since = "1.19.4", forRemoval = true)
     HURT_DROWN(36, LivingEntity.class),
     /**
      * Entity hurt due to explosion damage.
+     * @deprecated in favor of {@link LivingEntity#playHurtAnimation(float)} or {@link Entity#broadcastHurtAnimation(java.util.Collection)}
      */
+    @Deprecated(since = "1.19.4", forRemoval = true)
     HURT_EXPLOSION(37, LivingEntity.class),
     /**
      * Dolphin has been fed and is locating a structure.
@@ -244,11 +264,15 @@ public enum EntityEffect {
     VILLAGER_SPLASH(42, Villager.class),
     /**
      * Player's bad omen effect removed to start or increase raid difficult.
+     * @deprecated raid system was overhauled in 1.20.5
      */
+    @Deprecated(since = "1.20.5", forRemoval = true)
     PLAYER_BAD_OMEN_RAID(43, Player.class),
     /**
      * Entity hurt due to berry bush. Prickly!
+     * @deprecated in favor of {@link LivingEntity#playHurtAnimation(float)} or {@link Entity#broadcastHurtAnimation(java.util.Collection)}
      */
+    @Deprecated(since = "1.19.4", forRemoval = true)
     HURT_BERRY_BUSH(44, LivingEntity.class),
     /**
      * Fox chews the food in its mouth
@@ -331,7 +355,17 @@ public enum EntityEffect {
      * Sniffer must have a target and be in {@link Sniffer.State#SEARCHING} or
      * {@link Sniffer.State#DIGGING}
      */
-    SNIFFER_DIG(63, Sniffer.class);
+    SNIFFER_DIG(63, Sniffer.class),
+    // Paper start - add missing EntityEffect
+    /**
+     * Armadillo peeks out of its shell
+     */
+    ARMADILLO_PEEK(64, org.bukkit.entity.Armadillo.class),
+    /**
+     * {@link org.bukkit.inventory.EquipmentSlot#BODY} armor piece breaks
+     */
+    BODY_BREAK(65, LivingEntity.class);
+    // Paper end - add missing EntityEffect
 
     private final byte data;
     private final Class<? extends Entity> applicable;
@@ -345,9 +379,9 @@ public enum EntityEffect {
      * Gets the data value of this EntityEffect, may not be unique.
      *
      * @return The data value
-     * @deprecated Magic value
+     * @apiNote Internal Use Only
      */
-    @Deprecated
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper
     public byte getData() {
         return data;
     }

@@ -695,7 +695,7 @@
          p_8713_.clearAllBlockEntities();
          p_8713_.unregisterTickContainerFromLevel(this);
      }
-@@ -933,13 +_,42 @@
+@@ -933,13 +_,53 @@
          p_143262_.remove(p_143263_);
      }
  
@@ -722,6 +722,17 @@
 +        Entity entity = this.getEntity(p_8612_);
 +        if (entity instanceof Player) entityhuman = (Player) entity;
 +        // CraftBukkit end
++
++        // Paper start - Add BlockBreakProgressUpdateEvent
++        // If a plugin is using this method to send destroy packets for a client-side only entity id, no block progress occurred on the server.
++        // Hence, do not call the event.
++        if (entity != null) {
++            float progressFloat = Mth.clamp(p_8614_, 0, 10) / 10.0f;
++            org.bukkit.craftbukkit.block.CraftBlock bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(this, p_8613_);
++            new io.papermc.paper.event.block.BlockBreakProgressUpdateEvent(bukkitBlock, progressFloat, entity.getBukkitEntity())
++                    .callEvent();
++        }
++        // Paper end - Add BlockBreakProgressUpdateEvent
 +
          for (ServerPlayer serverplayer : this.server.getPlayerList().getPlayers()) {
              if (serverplayer != null && serverplayer.level() == this && serverplayer.getId() != p_8612_) {

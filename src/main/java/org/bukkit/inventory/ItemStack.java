@@ -539,7 +539,13 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
             Object raw = args.get("meta");
             if (raw instanceof ItemMeta) {
                 ((ItemMeta) raw).setVersion(version);
-                result.setItemMeta((ItemMeta) raw);
+                // Paper start - for pre 1.20.5 itemstacks, add HIDE_STORED_ENCHANTS flag if HIDE_ADDITIONAL_TOOLTIP is set
+                if (version < 3837) { // 1.20.5
+                    if (((ItemMeta) raw).hasItemFlag(ItemFlag.HIDE_ADDITIONAL_TOOLTIP)) {
+                        ((ItemMeta) raw).addItemFlags(ItemFlag.HIDE_STORED_ENCHANTS);
+                    }
+                }
+                // Paper end
             }
         }
 
@@ -550,7 +556,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
             }
         }
 
-        return result;
+        return result.ensureServerConversions(); // Paper
     }
 
     // Paper start
@@ -648,6 +654,23 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
         return Bukkit.getServer().getItemFactory().enchantWithLevels(this, levels, allowTreasure, random);
     }
 
+    /**
+     * Randomly enchants a copy of this {@link ItemStack} using the given experience levels.
+     *
+     * <p>If the provided ItemStack is already enchanted, the existing enchants will be removed before enchanting.</p>
+     *
+     * <p>Levels must be in range {@code [1, 30]}.</p>
+     *
+     * @param levels levels to use for enchanting
+     * @param keySet registry key set defining the set of possible enchantments, e.g. {@link io.papermc.paper.registry.keys.tags.EnchantmentTagKeys#IN_ENCHANTING_TABLE}.
+     * @param random {@link java.util.Random} instance to use for enchanting
+     * @return enchanted copy of the provided ItemStack
+     * @throws IllegalArgumentException on bad arguments
+     */
+    public @NotNull ItemStack enchantWithLevels(final @org.jetbrains.annotations.Range(from = 1, to = 30) int levels, final @NotNull io.papermc.paper.registry.set.RegistryKeySet<@NotNull Enchantment> keySet, final @NotNull java.util.Random random) {
+        return Bukkit.getItemFactory().enchantWithLevels(this, levels, keySet, random);
+    }
+
     @NotNull
     @Override
     public net.kyori.adventure.text.event.HoverEvent<net.kyori.adventure.text.event.HoverEvent.ShowItem> asHoverEvent(final @NotNull java.util.function.UnaryOperator<net.kyori.adventure.text.event.HoverEvent.ShowItem> op) {
@@ -661,6 +684,130 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     public net.kyori.adventure.text.@NotNull Component displayName() {
         return Bukkit.getServer().getItemFactory().displayName(this);
+    }
+
+    /**
+     * Minecraft updates are converting simple item stacks into more complex NBT oriented Item Stacks.
+     *
+     * Use this method to ensure any desired data conversions are processed.
+     * The input itemstack will not be the same as the returned itemstack.
+     *
+     * @return A potentially Data Converted ItemStack
+     */
+    @NotNull
+    public ItemStack ensureServerConversions() {
+        return Bukkit.getServer().getItemFactory().ensureServerConversions(this);
+    }
+
+    /**
+     * Deserializes this itemstack from raw NBT bytes. NBT is safer for data migrations as it will
+     * use the built in data converter instead of bukkits dangerous serialization system.
+     *
+     * This expects that the DataVersion was stored on the root of the Compound, as saved from
+     * the {@link #serializeAsBytes()} API returned.
+     * @param bytes bytes representing an item in NBT
+     * @return ItemStack migrated to this version of Minecraft if needed.
+     */
+    @NotNull
+    public static ItemStack deserializeBytes(@NotNull byte[] bytes) {
+        return org.bukkit.Bukkit.getUnsafe().deserializeItem(bytes);
+    }
+
+    /**
+     * Serializes this itemstack to raw bytes in NBT. NBT is safer for data migrations as it will
+     * use the built in data converter instead of bukkits dangerous serialization system.
+     * @return bytes representing this item in NBT.
+     */
+    @NotNull
+    public byte[] serializeAsBytes() {
+        return org.bukkit.Bukkit.getUnsafe().serializeItem(this);
+    }
+
+    /**
+     * The current version byte of the item array format used in {@link #serializeItemsAsBytes(java.util.Collection)}
+     * and {@link #deserializeItemsFromBytes(byte[])} respectively.
+     */
+    private static final byte ARRAY_SERIALIZATION_VERSION = 1;
+
+    /**
+     * Serializes a collection of items to raw bytes in NBT. Serializes null items as {@link #empty()}.
+     * <p>
+     * If you need a string representation to put into a file, you can for example use {@link java.util.Base64} encoding.
+     *
+     * @param items items to serialize
+     * @return bytes representing the items in NBT
+     * @see #serializeAsBytes()
+     */
+    public static byte @NotNull [] serializeItemsAsBytes(java.util.@NotNull Collection<ItemStack> items) {
+        try (final java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream()) {
+            final java.io.DataOutput output = new java.io.DataOutputStream(outputStream);
+            output.writeByte(ARRAY_SERIALIZATION_VERSION);
+            output.writeInt(items.size());
+            for (final ItemStack item : items) {
+                if (item == null || item.isEmpty()) {
+                    // Ensure the correct order by including empty/null items
+                    output.writeInt(0);
+                    continue;
+                }
+
+                final byte[] itemBytes = item.serializeAsBytes();
+                output.writeInt(itemBytes.length);
+                output.write(itemBytes);
+            }
+            return outputStream.toByteArray();
+        } catch (final java.io.IOException e) {
+            throw new RuntimeException("Error while writing itemstack", e);
+        }
+    }
+
+    /**
+     * Serializes a collection of items to raw bytes in NBT. Serializes null items as {@link #empty()}.
+     * <p>
+     * If you need a string representation to put into a file, you can for example use {@link java.util.Base64} encoding.
+     *
+     * @param items items to serialize
+     * @return bytes representing the items in NBT
+     * @see #serializeAsBytes()
+     */
+    public static byte @NotNull [] serializeItemsAsBytes(@Nullable ItemStack @NotNull [] items) {
+        return serializeItemsAsBytes(java.util.Arrays.asList(items));
+    }
+
+    /**
+     * Deserializes this itemstack from raw NBT bytes.
+     * <p>
+     * If you need a string representation to put into a file, you can for example use {@link java.util.Base64} encoding.
+     *
+     * @param bytes bytes representing an item in NBT
+     * @return ItemStack array migrated to this version of Minecraft if needed
+     * @see #deserializeBytes(byte[])
+     */
+    public static @NotNull ItemStack @NotNull [] deserializeItemsFromBytes(final byte @NotNull [] bytes) {
+        try (final java.io.ByteArrayInputStream inputStream = new java.io.ByteArrayInputStream(bytes)) {
+            final java.io.DataInputStream input = new java.io.DataInputStream(inputStream);
+            final byte version = input.readByte();
+            if (version != ARRAY_SERIALIZATION_VERSION) {
+                throw new IllegalArgumentException("Unsupported version or bad data: " + version);
+            }
+
+            final int count = input.readInt();
+            final ItemStack[] items = new ItemStack[count];
+            for (int i = 0; i < count; i++) {
+                final int length = input.readInt();
+                if (length == 0) {
+                    // Empty item, keep entry as empty
+                    items[i] = ItemStack.empty();
+                    continue;
+                }
+
+                final byte[] itemBytes = new byte[length];
+                input.read(itemBytes);
+                items[i] = ItemStack.deserializeBytes(itemBytes);
+            }
+            return items;
+        } catch (final java.io.IOException e) {
+            throw new RuntimeException("Error while reading itemstack", e);
+        }
     }
 
     @Override
@@ -895,4 +1042,22 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
         ItemMeta itemMeta = getItemMeta();
         return itemMeta != null && itemMeta.hasItemFlag(flag);
     }
+
+    // Paper start - expose itemstack tooltip lines
+    /**
+     * Computes the tooltip lines for this stack.
+     * <p>
+     * <b>Disclaimer:</b>
+     * Tooltip contents are not guaranteed to be consistent across different
+     * Minecraft versions.
+     *
+     * @param tooltipContext the tooltip context
+     * @param player a player for player-specific tooltip lines
+     * @return an immutable list of components (can be empty)
+     */
+    @SuppressWarnings("deprecation") // abusing unsafe as a bridge
+    public java.util.@NotNull @org.jetbrains.annotations.Unmodifiable List<net.kyori.adventure.text.Component> computeTooltipLines(final @NotNull io.papermc.paper.inventory.tooltip.TooltipContext tooltipContext, final @Nullable org.bukkit.entity.Player player) {
+        return Bukkit.getUnsafe().computeTooltipLines(this, tooltipContext, player);
+    }
+    // Paper end - expose itemstack tooltip lines
 }

@@ -9,8 +9,12 @@
  
  public class BrewingStandMenu extends AbstractContainerMenu {
      private static final int BOTTLE_SLOT_START = 0;
-@@ -30,20 +_,36 @@
-     private final ContainerData brewingStandData;
+@@ -27,26 +_,55 @@
+     private static final int USE_ROW_SLOT_START = 32;
+     private static final int USE_ROW_SLOT_END = 41;
+     private final Container brewingStand;
+-    private final ContainerData brewingStandData;
++    public final ContainerData brewingStandData;
      private final Slot ingredientSlot;
  
 +    // CraftBukkit start
@@ -29,14 +33,16 @@
 +    // CraftBukkit end
 +
      public BrewingStandMenu(int p_39090_, Inventory p_39091_) {
-         this(p_39090_, p_39091_, new SimpleContainer(5), new SimpleContainerData(2));
+-        this(p_39090_, p_39091_, new SimpleContainer(5), new SimpleContainerData(2));
++        this(p_39090_, p_39091_, new SimpleContainer(5), new io.papermc.paper.inventory.BrewingSimpleContainerData());
      }
  
      public BrewingStandMenu(int p_39093_, Inventory p_39094_, Container p_39095_, ContainerData p_39096_) {
          super(MenuType.BREWING_STAND, p_39093_);
 +        player = p_39094_; // CraftBukkit
          checkContainerSize(p_39095_, 5);
-         checkContainerDataCount(p_39096_, 2);
+-        checkContainerDataCount(p_39096_, 2);
++        checkContainerDataCount(p_39096_, 3); // Paper - Add recipeBrewTime
          this.brewingStand = p_39095_;
          this.brewingStandData = p_39096_;
          PotionBrewing potionbrewing = p_39094_.player.level().potionBrewing();
@@ -48,7 +54,24 @@
 +        this.addSlot(new BrewingStandMenu.PotionSlot(potionbrewing, p_39095_, 2, 102, 51));
          this.ingredientSlot = this.addSlot(new BrewingStandMenu.IngredientsSlot(potionbrewing, p_39095_, 3, 79, 17));
          this.addSlot(new BrewingStandMenu.FuelSlot(p_39095_, 4, 17, 17));
-         this.addDataSlots(p_39096_);
+-        this.addDataSlots(p_39096_);
++        // Paper start - Add recipeBrewTime
++        this.addDataSlots(new SimpleContainerData(2) {
++            @Override
++            public int get(final int index) {
++                if (index == 0) return 400 * p_39096_.get(index) / p_39096_.get(2);
++                return p_39096_.get(index);
++            }
++
++            @Override
++            public void set(final int index, final int value) {
++                p_39096_.set(index, value);
++            }
++        });
++        // Paper end - Add recipeBrewTime
+ 
+         for (int i = 0; i < 3; i++) {
+             for (int j = 0; j < 9; j++) {
 @@ -61,6 +_,7 @@
  
      @Override

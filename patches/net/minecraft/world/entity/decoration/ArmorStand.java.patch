@@ -25,6 +25,14 @@
      private final NonNullList<ItemStack> handItems = NonNullList.withSize(2, ItemStack.EMPTY);
      private final NonNullList<ItemStack> armorItems = NonNullList.withSize(4, ItemStack.EMPTY);
      private boolean invisible;
+@@ -85,6 +_,7 @@
+     public Rotations rightArmPose = DEFAULT_RIGHT_ARM_POSE;
+     public Rotations leftLegPose = DEFAULT_LEFT_LEG_POSE;
+     public Rotations rightLegPose = DEFAULT_RIGHT_LEG_POSE;
++    public boolean canMove = true; // Paper
+ 
+     public ArmorStand(EntityType<? extends ArmorStand> p_31553_, Level p_31554_) {
+         super(p_31553_, p_31554_);
 @@ -99,6 +_,13 @@
          return createLivingAttributes().add(Attributes.STEP_HEIGHT, 0.0);
      }
@@ -221,3 +229,17 @@
          this.gameEvent(GameEvent.ENTITY_DIE);
      }
  
+@@ -820,4 +_,13 @@
+     public boolean canBeSeenByAnyone() {
+         return !this.isInvisible() && !this.isMarker();
+     }
++
++    // Paper start
++    @Override
++    public void move(net.minecraft.world.entity.MoverType type, Vec3 movement) {
++        if (this.canMove) {
++            super.move(type, movement);
++        }
++    }
++    // Paper end
+ }

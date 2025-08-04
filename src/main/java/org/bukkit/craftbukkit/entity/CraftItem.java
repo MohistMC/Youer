@@ -63,6 +63,17 @@ public class CraftItem extends CraftEntity implements Item {
         }
     }
 
+    // Paper start
+    @Override
+    public boolean canMobPickup() {
+        return this.getHandle().canMobPickup;
+    }
+
+    @Override
+    public void setCanMobPickup(boolean canMobPickup) {
+        this.getHandle().canMobPickup = canMobPickup;
+    }
+
     @Override
     public void setOwner(UUID uuid) {
         this.getHandle().setTarget(uuid);

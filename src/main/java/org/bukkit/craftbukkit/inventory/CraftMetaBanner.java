@@ -34,8 +34,8 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
         this.patterns = new ArrayList<Pattern>(banner.patterns);
     }
 
-    CraftMetaBanner(DataComponentPatch tag) {
-        super(tag);
+    CraftMetaBanner(DataComponentPatch tag, final java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) { // Paper
+        super(tag, extraHandledDcts); // Paper
 
         getOrEmpty(tag, CraftMetaBanner.PATTERNS).ifPresent((entityTag) -> {
             List<BannerPatternLayers.Layer> patterns = entityTag.layers();
@@ -69,6 +69,7 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
     void applyToItem(CraftMetaItem.Applicator tag) {
         super.applyToItem(tag);
 
+        if (this.patterns.isEmpty()) return; // Paper - don't write empty patterns
         List<BannerPatternLayers.Layer> newPatterns = new ArrayList<>();
 
         for (Pattern p : this.patterns) {

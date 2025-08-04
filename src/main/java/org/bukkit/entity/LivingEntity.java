@@ -264,12 +264,44 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     public int getArrowsInBody();
 
+    // Paper start
+    /**
+     * Set the amount of arrows in the entity's body.
+     * <p>
+     * Does not fire the {@link org.bukkit.event.entity.ArrowBodyCountChangeEvent}.
+     *
+     * @param count amount of arrows in entity's body
+     */
+    default void setArrowsInBody(final int count) {
+        this.setArrowsInBody(count, false);
+    }
+    // Paper end
+
     /**
      * Set the amount of arrows in the entity's body.
      *
      * @param count amount of arrows in entity's body
+     * @param fireEvent whether to fire the {@link org.bukkit.event.entity.ArrowBodyCountChangeEvent} event
      */
-    public void setArrowsInBody(int count);
+    void setArrowsInBody(int count, boolean fireEvent); // Paper
+
+    // Paper start - Add methods for working with arrows stuck in living entities
+    /**
+     * Sets the amount of ticks before the next arrow gets removed from the entities body.
+     * <p>
+     * A value of 0 will cause the server to re-calculate the amount of ticks on the next tick.
+     *
+     * @param ticks Amount of ticks
+     */
+    void setNextArrowRemoval(@org.jetbrains.annotations.Range(from = 0, to = Integer.MAX_VALUE) int ticks);
+
+    /**
+     * Gets the amount of ticks before the next arrow gets removed from the entities body.
+     *
+     * @return ticks Amount of ticks
+     */
+    int getNextArrowRemoval();
+    // Paper end - Add methods for working with arrows stuck in living entities
 
     /**
      * Returns the living entity's current maximum no damage ticks.
@@ -353,6 +385,15 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     @Nullable
     public Player getKiller();
+
+    // Paper start
+    /**
+     * Sets the player identified as the killer of the living entity.
+     *
+     * @param killer player
+     */
+    public void setKiller(@Nullable Player killer);
+    // Paper end
 
     /**
      * Adds the given {@link PotionEffect} to the living entity.
@@ -800,6 +841,7 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      *
      * @param invisible If the entity is invisible
      */
+    @Override // Paper - move invisibility up to Entity
     public void setInvisible(boolean invisible);
 
     /**
@@ -807,5 +849,217 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      *
      * @return Whether the entity is invisible
      */
+    @Override // Paper - move invisibility up to Entity
     public boolean isInvisible();
+
+    /**
+     * Get the number of arrows stuck in this entity
+     * @return Number of arrows stuck
+     * @deprecated use {@link #getArrowsInBody()}
+     */
+    @Deprecated
+    int getArrowsStuck();
+
+    /**
+     * Set the number of arrows stuck in this entity
+     *
+     * @param arrows Number of arrows to stick in this entity
+     * @deprecated use {@link #setArrowsInBody(int, boolean)}. <b>This method previously fired {@link org.bukkit.event.entity.ArrowBodyCountChangeEvent} so if
+     * you want to retain exact functionality, pass {@code true} for {@code fireEvent}.</b>
+     */
+    @Deprecated
+    void setArrowsStuck(int arrows);
+
+    // Paper start - missing entity API
+    /**
+     * Retrieves the sideways movement direction of the entity.
+     * <p>
+     * The returned value ranges from -1 to 1, where:
+     * - Positive 1 represents movement to the left.
+     * - Negative 1 represents movement to the right.
+     * <p>
+     * Please note that for entities of type {@link Player}, this value is updated only when riding another entity.
+     * <p>
+     * This method specifically provides information about the entity's sideways movement, whereas {@link #getVelocity()} returns
+     * a vector representing the entity's overall current momentum.
+     *
+     * @return Sideways movement direction, ranging from -1 (right) to 1 (left).
+     */
+    float getSidewaysMovement();
+
+    /**
+     * Retrieves the upwards movement direction of the entity.
+     * <p>
+     * The returned value ranges from -1 to 1, where:
+     * - Positive 1 represents upward movement.
+     * - Negative 1 represents downward movement.
+     * <p>
+     * Please note that for entities of type {@link Player}, this value is never updated.
+     * <p>
+     * This method specifically provides information about the entity's vertical movement,
+     * whereas {@link #getVelocity()} returns a vector representing the entity's overall
+     * current momentum.
+     *
+     * @return Upwards movement direction, ranging from -1 (downward) to 1 (upward).
+     */
+    float getUpwardsMovement();
+
+    /**
+     * Retrieves the forwards movement direction of the entity.
+     * <p>
+     * The returned value ranges from -1 to 1, where:
+     * - Positive 1 represents movement forwards.
+     * - Negative 1 represents movement backwards.
+     * <p>
+     * Please note that for entities of type {@link Player}, this value is updated only when riding another entity.
+     * <p>
+     * This method specifically provides information about the entity's forward and backward movement,
+     * whereas {@link #getVelocity()} returns a vector representing the entity's overall current momentum.
+     *
+     * @return Forwards movement direction, ranging from -1 (backward) to 1 (forward).
+     */
+    float getForwardsMovement();
+    // Paper end - missing entity API
+
+    // Paper start - active item API
+    /**
+     * Starts using the item in the specified hand, making it the
+     * currently active item. When, for example, called on a skeleton,
+     * this will cause it to start drawing its bow.
+     * <p>
+     * Only HAND or OFF_HAND may be used for the hand parameter.
+     * <p>
+     * When used on a player, the client will stop using the item
+     * if right click is held down.
+     * <p>
+     * This method does not make any guarantees about the effect of this method
+     * as such depends on the entity and its state.
+     *
+     * @param hand the hand that contains the item to be used
+     */
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    void startUsingItem(@NotNull org.bukkit.inventory.EquipmentSlot hand);
+
+    /**
+     * Finishes using the currently active item. When, for example, a
+     * skeleton is drawing its bow, this will cause it to release and
+     * fire the arrow.
+     * <p>
+     * This method does not make any guarantees about the effect of this method
+     * as such depends on the entity and its state.
+     */
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    void completeUsingActiveItem();
+
+    /**
+     * Gets the item being actively "used" or consumed.
+     *
+     * @return the item
+     */
+    org.bukkit.inventory.@NotNull ItemStack getActiveItem();
+
+    /**
+     * Interrupts any ongoing active "usage" or consumption or an item.
+     */
+    void clearActiveItem();
+
+    /**
+     * Gets the remaining number of ticks for {@link #getActiveItem()}'s usage.
+     *
+     * @return remaining ticks to use {@link #getActiveItem()}
+     */
+    int getActiveItemRemainingTime();
+
+    /**
+     * Sets the number of ticks that remain for {@link #getActiveItem()}'s
+     * usage.
+     * <p>
+     * Valid values are between 0 and the max item use duration for
+     * the specific item type.
+     *
+     * @param ticks time in ticks remaining
+     */
+    void setActiveItemRemainingTime(@org.jetbrains.annotations.Range(from = 0, to = Integer.MAX_VALUE) int ticks);
+
+    /**
+     * Gets if the entity is using an item (eating, drinking, etc).
+     *
+     * @return true if using an item
+     */
+    boolean hasActiveItem();
+
+    /**
+     * Get how long the {@link #getActiveItem()} has been in use for.
+     *
+     * @return time used in ticks
+     */
+    int getActiveItemUsedTime();
+
+    /**
+     * Get the hand using the active item. Will be either
+     * {@link org.bukkit.inventory.EquipmentSlot#HAND} or
+     * {@link org.bukkit.inventory.EquipmentSlot#OFF_HAND}.
+     *
+     * @return the hand being used
+     */
+    org.bukkit.inventory.@NotNull EquipmentSlot getActiveItemHand();
+
+    /**
+     * Gets remaining time a player needs to keep hands raised with an item to finish using it.
+     *
+     * @return remaining ticks to use the item
+     * @see #getActiveItemRemainingTime()
+     */
+    @org.jetbrains.annotations.ApiStatus.Obsolete(since = "1.20.4")
+    default int getItemUseRemainingTime() {
+        return this.getActiveItemRemainingTime();
+    }
+
+    /**
+     * Get how long the entity's hands have been raised (Charging Bow attack, using a potion, etc)
+     *
+     * @return Get how long the players hands have been raised (Charging Bow attack, using a potion, etc)
+     * @see #getActiveItemUsedTime()
+     */
+    @org.jetbrains.annotations.ApiStatus.Obsolete(since = "1.20.4")
+    default int getHandRaisedTime() {
+        return this.getActiveItemUsedTime();
+    }
+
+    /**
+     * Whether this entity is using or charging an attack (Bow pulled back, drinking potion, eating food)
+     *
+     * @return whether this entity is using or charging an attack (Bow pulled back, drinking potion, eating food)
+     * @see #hasActiveItem()
+     */
+    @org.jetbrains.annotations.ApiStatus.Obsolete(since = "1.20.4")
+    default boolean isHandRaised() {
+        return this.hasActiveItem();
+    }
+
+    /**
+     * Gets the hand raised by this living entity. Will be either
+     * {@link org.bukkit.inventory.EquipmentSlot#HAND} or
+     * {@link org.bukkit.inventory.EquipmentSlot#OFF_HAND}.
+     *
+     * @return the hand raised
+     * @see #getActiveItemHand()
+     */
+    @NotNull
+    @org.jetbrains.annotations.ApiStatus.Obsolete(since = "1.20.4")
+    default org.bukkit.inventory.EquipmentSlot getHandRaised() {
+        return this.getActiveItemHand();
+    }
+    // Paper end - active item API
+
+    // Paper start - Expose canUseSlot
+    /**
+     * Checks whether this entity can use the equipment slot.
+     * <br>For example, not all entities may have {@link org.bukkit.inventory.EquipmentSlot#BODY}.
+     *
+     * @param slot equipment slot
+     * @return whether this entity can use the equipment slot
+     */
+    boolean canUseEquipmentSlot(org.bukkit.inventory.@NotNull EquipmentSlot slot);
+    // Paper end - Expose canUseSlot
 }

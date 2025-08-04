@@ -115,8 +115,8 @@ public class CraftItemType<M extends ItemMeta> implements ItemType.Typed<M>, Han
         return item;
     }
 
-    public M getItemMeta(net.minecraft.world.item.ItemStack itemStack) {
-        return itemMetaData.get().fromItemStack().apply(itemStack);
+    public M getItemMeta(net.minecraft.world.item.ItemStack itemStack, final java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) {
+        return this.itemMetaData.get().fromItemStack().apply(itemStack, extraHandledDcts);
     }
 
     public M getItemMeta(ItemMeta itemMeta) {
@@ -241,4 +241,11 @@ public class CraftItemType<M extends ItemMeta> implements ItemType.Typed<M>, Han
     public Material asMaterial() {
         return Registry.MATERIAL.get(this.key);
     }
+
+    // Paper start - add Translatable
+    @Override
+    public String translationKey() {
+        return this.item.getDescriptionId();
+    }
+    // Paper end - add Translatable
 }

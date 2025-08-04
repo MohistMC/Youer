@@ -139,7 +139,7 @@
      }
  
      @Override
-@@ -539,7 +_,7 @@
+@@ -539,12 +_,17 @@
              && this.canPickUpLoot()
              && this.isAlive()
              && !this.dead
@@ -148,6 +148,16 @@
              Vec3i vec3i = this.getPickupReach();
  
              for (ItemEntity itementity : this.level()
+                 .getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate((double)vec3i.getX(), (double)vec3i.getY(), (double)vec3i.getZ()))) {
+                 if (!itementity.isRemoved() && !itementity.getItem().isEmpty() && !itementity.hasPickUpDelay() && this.wantsToPickUp(itementity.getItem())) {
++                    // Paper start - Item#canEntityPickup
++                    if (!itementity.canMobPickup) {
++                        continue;
++                    }
++                    // Paper end - Item#canEntityPickup
+                     this.pickUpItem(itementity);
+                 }
+             }
 @@ -559,18 +_,24 @@
  
      protected void pickUpItem(ItemEntity p_21471_) {

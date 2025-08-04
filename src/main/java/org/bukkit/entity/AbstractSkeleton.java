@@ -1,5 +1,6 @@
 package org.bukkit.entity;
 
+import io.papermc.paper.entity.RangedEntity;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -13,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
  * of this type, instanceOf checks against the specific subtypes listed prior
  * are recommended.
  */
-public interface AbstractSkeleton extends Monster {
+public interface AbstractSkeleton extends Monster, RangedEntity { // Paper
 
     /**
      * Gets the current type of this skeleton.
@@ -32,4 +33,24 @@ public interface AbstractSkeleton extends Monster {
     @Deprecated
     @Contract("_ -> fail")
     public void setSkeletonType(Skeleton.SkeletonType type);
+
+    // Paper start
+    /**
+     * Check if this skeleton will burn in the sunlight. This
+     * does not take into account an entity's natural fire
+     * immunity.
+     *
+     * @return True if skeleton will burn in sunlight
+     */
+    boolean shouldBurnInDay();
+
+    /**
+     * Set if this skeleton should burn in the sunlight. This
+     * will not override an entity's natural fire
+     * immunity.
+     *
+     * @param shouldBurnInDay True to burn in sunlight
+     */
+    void setShouldBurnInDay(boolean shouldBurnInDay);
+    // Paper end
 }

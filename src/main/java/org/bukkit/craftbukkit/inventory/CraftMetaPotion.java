@@ -37,7 +37,7 @@ class CraftMetaPotion extends CraftMetaItem implements PotionMeta {
 
     private PotionType type;
     private List<PotionEffect> customEffects;
-    private Color color;
+    private Integer color; // Paper - keep color component consistent with vanilla (top byte is ignored)
 
     CraftMetaPotion(CraftMetaItem meta) {
         super(meta);
@@ -51,8 +51,8 @@ class CraftMetaPotion extends CraftMetaItem implements PotionMeta {
         }
     }
 
-    CraftMetaPotion(DataComponentPatch tag) {
-        super(tag);
+    CraftMetaPotion(DataComponentPatch tag, java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) { // Paper
+        super(tag, extraHandledDcts); // Paper
         getOrEmpty(tag, CraftMetaPotion.POTION_CONTENTS).ifPresent((potionContents) -> {
             potionContents.potion().ifPresent((potion) -> {
                 this.type = CraftPotionType.minecraftHolderToBukkit(potion);
@@ -60,7 +60,7 @@ class CraftMetaPotion extends CraftMetaItem implements PotionMeta {
 
             potionContents.customColor().ifPresent((customColor) -> {
                 try {
-                    this.color = Color.fromRGB(customColor);
+                    this.color = customColor; // Paper
                 } catch (IllegalArgumentException ex) {
                     // Invalid colour
                 }
@@ -120,7 +120,7 @@ class CraftMetaPotion extends CraftMetaItem implements PotionMeta {
         }
 
         Optional<Holder<Potion>> defaultPotion = (hasBasePotionType()) ? Optional.of(CraftPotionType.bukkitToMinecraftHolder(type)) : Optional.empty();
-        Optional<Integer> potionColor = (hasColor()) ? Optional.of(this.color.asRGB()) : Optional.empty();
+        Optional<Integer> potionColor = (this.hasColor()) ? Optional.of(this.color) : Optional.empty(); // Paper
 
         List<MobEffectInstance> effectList = new ArrayList<>();
         if (this.customEffects != null) {
@@ -284,12 +284,12 @@ class CraftMetaPotion extends CraftMetaItem implements PotionMeta {
 
     @Override
     public Color getColor() {
-        return this.color;
+        return this.color == null ? null : Color.fromRGB(this.color & 0xFFFFFF); // Paper
     }
 
     @Override
     public void setColor(Color color) {
-        this.color = color;
+        this.color = color == null ? null : color.asRGB(); // Paper
     }
 
     @Override

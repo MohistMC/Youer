@@ -7,7 +7,7 @@ import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
 
-public class CraftBoat extends CraftVehicle implements Boat {
+public class CraftBoat extends CraftVehicle implements Boat, io.papermc.paper.entity.PaperLeashable { // Paper - Leashable API
 
     public CraftBoat(CraftServer server, net.minecraft.world.entity.vehicle.Boat entity) {
         super(server, entity);

@@ -1,9 +1,10 @@
 package org.bukkit.craftbukkit.entity;
 
+import io.papermc.paper.entity.CraftRangedEntity;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Witch;
 
-public class CraftWitch extends CraftRaider implements Witch {
+public class CraftWitch extends CraftRaider implements Witch, CraftRangedEntity<net.minecraft.world.entity.monster.Witch> {
     public CraftWitch(CraftServer server, net.minecraft.world.entity.monster.Witch entity) {
         super(server, entity);
     }

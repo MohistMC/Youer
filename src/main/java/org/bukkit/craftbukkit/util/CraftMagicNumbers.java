@@ -454,6 +454,84 @@ public final class CraftMagicNumbers implements UnsafeValues {
         return new CraftDamageSourceBuilder(damageType);
     }
 
+    @Override
+    public byte[] serializeItem(ItemStack item) {
+        Preconditions.checkNotNull(item, "null cannot be serialized");
+        Preconditions.checkArgument(item.getType() != Material.AIR, "air cannot be serialized");
+
+        return serializeNbtToBytes((net.minecraft.nbt.CompoundTag) (item instanceof CraftItemStack ? ((CraftItemStack) item).handle : CraftItemStack.asNMSCopy(item)).save(MinecraftServer.getServer().registryAccess()));
+    }
+
+    @Override
+    public ItemStack deserializeItem(byte[] data) {
+        Preconditions.checkNotNull(data, "null cannot be deserialized");
+        Preconditions.checkArgument(data.length > 0, "cannot deserialize nothing");
+
+        net.minecraft.nbt.CompoundTag compound = deserializeNbtFromBytes(data);
+        final int dataVersion = compound.getInt("DataVersion");
+        compound = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ITEM_STACK, compound, dataVersion, this.getDataVersion()); // Paper - replace data conversion system
+        return CraftItemStack.asCraftMirror(net.minecraft.world.item.ItemStack.parse(MinecraftServer.getServer().registryAccess(), compound).orElseThrow());
+    }
+
+    @Override
+    public com.google.gson.JsonObject serializeItemAsJson(ItemStack itemStack) {
+        Preconditions.checkNotNull(itemStack, "Cannot serialize empty ItemStack");
+        Preconditions.checkArgument(!itemStack.isEmpty(), "Cannot serialize empty ItemStack");
+
+        net.minecraft.core.RegistryAccess.Frozen reg = net.minecraft.server.MinecraftServer.getServer().registryAccess();
+        com.mojang.serialization.DynamicOps<com.google.gson.JsonElement> ops = reg.createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE);
+        com.google.gson.JsonObject item;
+        // Serialize as SNBT to preserve exact NBT types; vanilla codecs already can handle such deserialization.
+        net.minecraft.world.item.component.CustomData.SERIALIZE_CUSTOM_AS_SNBT.set(true);
+        try {
+            item = net.minecraft.world.item.ItemStack.CODEC.encodeStart(ops, CraftItemStack.unwrap(itemStack)).getOrThrow().getAsJsonObject();
+        } finally {
+            net.minecraft.world.item.component.CustomData.SERIALIZE_CUSTOM_AS_SNBT.set(false);
+        }
+        item.addProperty("DataVersion", this.getDataVersion());
+        return item;
+    }
+
+    @Override
+    public ItemStack deserializeItemFromJson(com.google.gson.JsonObject data) throws IllegalArgumentException {
+        Preconditions.checkNotNull(data, "null cannot be deserialized");
+
+        final int dataVersion = data.get("DataVersion").getAsInt();
+        final int currentVersion = org.bukkit.craftbukkit.util.CraftMagicNumbers.INSTANCE.getDataVersion();
+        data = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertJson(
+                ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ITEM_STACK,
+                data, false, dataVersion, currentVersion
+        );
+        com.mojang.serialization.DynamicOps<com.google.gson.JsonElement> ops = MinecraftServer.getServer().registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE);
+        return CraftItemStack.asCraftMirror(net.minecraft.world.item.ItemStack.CODEC.parse(ops, data).getOrThrow(IllegalArgumentException::new));
+    }
+
+    @Override
+    public byte[] serializeEntity(org.bukkit.entity.Entity entity) {
+        Preconditions.checkNotNull(entity, "null cannot be serialized");
+        Preconditions.checkArgument(entity instanceof org.bukkit.craftbukkit.entity.CraftEntity, "only CraftEntities can be serialized");
+
+        net.minecraft.nbt.CompoundTag compound = new net.minecraft.nbt.CompoundTag();
+        ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().serializeEntity(compound);
+        return serializeNbtToBytes(compound);
+    }
+
+    @Override
+    public org.bukkit.entity.Entity deserializeEntity(byte[] data, org.bukkit.World world, boolean preserveUUID) {
+        Preconditions.checkNotNull(data, "null cannot be deserialized");
+        Preconditions.checkArgument(data.length > 0, "cannot deserialize nothing");
+
+        net.minecraft.nbt.CompoundTag compound = deserializeNbtFromBytes(data);
+        int dataVersion = compound.getInt("DataVersion");
+        compound = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ENTITY, compound, dataVersion, this.getDataVersion());
+        if (!preserveUUID) {
+            // Generate a new UUID so we don't have to worry about deserializing the same entity twice
+            compound.remove("UUID");
+        }
+        return net.minecraft.world.entity.EntityType.create(compound, ((org.bukkit.craftbukkit.CraftWorld) world).getHandle())
+                .orElseThrow(() -> new IllegalArgumentException("An ID was not found for the data. Did you downgrade?")).getBukkitEntity();
+    }
+
     private byte[] serializeNbtToBytes(net.minecraft.nbt.CompoundTag compound) {
         compound.putInt("DataVersion", getDataVersion());
         java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
@@ -541,6 +619,21 @@ public final class CraftMagicNumbers implements UnsafeValues {
         return eggItem == null ? null : org.bukkit.Color.fromRGB(eggItem.getColor(layer));
     }
     // Paper end - spawn egg color visibility
+
+    // Paper start - expose itemstack tooltip lines
+    @Override
+    public java.util.List<net.kyori.adventure.text.Component> computeTooltipLines(final ItemStack itemStack, final io.papermc.paper.inventory.tooltip.TooltipContext tooltipContext, final org.bukkit.entity.Player player) {
+        Preconditions.checkArgument(tooltipContext != null, "tooltipContext cannot be null");
+        net.minecraft.world.item.TooltipFlag.Default flag = tooltipContext.isAdvanced() ? net.minecraft.world.item.TooltipFlag.ADVANCED : net.minecraft.world.item.TooltipFlag.NORMAL;
+        if (tooltipContext.isCreative()) {
+            flag = flag.asCreative();
+        }
+        final java.util.List<net.minecraft.network.chat.Component> lines = CraftItemStack.asNMSCopy(itemStack).getTooltipLines(
+                net.minecraft.world.item.Item.TooltipContext.of(player == null ? net.minecraft.server.MinecraftServer.getServer().registryAccess() : ((org.bukkit.craftbukkit.entity.CraftPlayer) player).getHandle().level().registryAccess()),
+                player == null ? null : ((org.bukkit.craftbukkit.entity.CraftPlayer) player).getHandle(), flag);
+        return lines.stream().map(io.papermc.paper.adventure.PaperAdventure::asAdventure).toList();
+    }
+    // Paper end - expose itemstack tooltip lines
 
     @Override
     public String get(Class<?> aClass, String s) {

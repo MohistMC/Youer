@@ -1542,9 +1542,24 @@ public final class Bukkit {
      * @return a ban list of the specified type
      */
     @NotNull
+    @Deprecated(since = "1.20.4") // Paper - add BanListType (which has a generic)
     public static <T extends BanList<?>> T getBanList(@NotNull BanList.Type type) {
         return server.getBanList(type);
     }
+    // Paper start - add BanListType (which has a generic)
+    /**
+     * Gets a ban list for the supplied type.
+     *
+     * @param type the type of list to fetch, cannot be null
+     * @param <B> The ban target
+     *
+     * @return a ban list of the specified type
+     */
+    @NotNull
+    public static <B extends BanList<E>, E> B getBanList(final io.papermc.paper.ban.@NotNull BanListType<B> type) {
+        return server.getBanList(type);
+    }
+    // Paper end - add BanListType (which has a generic)
 
     /**
      * Gets a set containing all player operators.
@@ -2580,6 +2595,16 @@ public final class Bukkit {
      */
     public static boolean isStopping() {
         return server.isStopping();
+    }
+
+    /**
+     * Returns the {@link io.papermc.paper.entity.ai.MobGoals} manager
+     *
+     * @return the mob goals manager
+     */
+    @NotNull
+    public static io.papermc.paper.entity.ai.MobGoals getMobGoals() {
+        return server.getMobGoals();
     }
 
     /**

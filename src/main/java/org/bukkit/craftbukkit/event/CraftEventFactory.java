@@ -6,6 +6,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import com.mojang.datafixers.util.Either;
+import io.papermc.paper.event.entity.ProjectileCollideEvent;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
@@ -317,6 +318,10 @@ public class CraftEventFactory {
                         return BedEnterResult.TOO_FAR_AWAY;
                     case NOT_SAFE:
                         return BedEnterResult.NOT_SAFE;
+                    // Paper start
+                    case OBSTRUCTED:
+                        return BedEnterResult.OBSTRUCTED;
+                    // Paper end
                     default:
                         return BedEnterResult.OTHER_PROBLEM;
                 }
@@ -1328,6 +1333,25 @@ public class CraftEventFactory {
         return crafterCraftEvent;
     }
 
+    // Paper start
+    @Deprecated
+    public static ProjectileCollideEvent callProjectileCollideEvent(Entity entity, EntityHitResult position) {
+        Projectile projectile = (Projectile) entity.getBukkitEntity();
+        org.bukkit.entity.Entity collided = position.getEntity().getBukkitEntity();
+        ProjectileCollideEvent event = new ProjectileCollideEvent(projectile, collided);
+
+        if (projectile.getShooter() instanceof Player && collided instanceof Player) {
+            if (!((Player) projectile.getShooter()).canSee((Player) collided)) {
+                event.setCancelled(true);
+                return event;
+            }
+        }
+
+        Bukkit.getPluginManager().callEvent(event);
+        return event;
+    }
+    // Paper end
+
     public static ProjectileLaunchEvent callProjectileLaunchEvent(Entity entity) {
         Projectile bukkitEntity = (Projectile) entity.getBukkitEntity();
         ProjectileLaunchEvent event = new ProjectileLaunchEvent(bukkitEntity);
@@ -1352,8 +1376,15 @@ public class CraftEventFactory {
         if (position.getType() == HitResult.Type.ENTITY) {
             hitEntity = ((EntityHitResult) position).getEntity().getBukkitEntity();
         }
+        // Paper start - legacy event
+        boolean cancelled = false;
+        if (hitEntity != null && position instanceof EntityHitResult entityHitResult) {
+            cancelled = callProjectileCollideEvent(entity, entityHitResult).isCancelled();
+        }
+        // Paper end
 
         ProjectileHitEvent event = new ProjectileHitEvent((Projectile) entity.getBukkitEntity(), hitEntity, hitBlock, hitFace);
+        event.setCancelled(cancelled); // Paper - propagate legacy event cancellation to modern event
         entity.level().getCraftServer().getPluginManager().callEvent(event);
         return event;
     }

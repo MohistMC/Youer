@@ -10,7 +10,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.loot.LootTable;
 
-public abstract class CraftMob extends CraftLivingEntity implements Mob {
+public abstract class CraftMob extends CraftLivingEntity implements Mob, io.papermc.paper.entity.PaperLeashable { // Paper - Leashable API
     public CraftMob(CraftServer server, net.minecraft.world.entity.Mob entity) {
         super(server, entity);
     }
@@ -81,4 +81,44 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob {
     public long getSeed() {
         return this.getHandle().lootTableSeed;
     }
+
+    @Override
+    public boolean isLeftHanded() {
+        return getHandle().isLeftHanded();
+    }
+
+    @Override
+    public void setLeftHanded(boolean leftHanded) {
+        getHandle().setLeftHanded(leftHanded);
+    }
+    // Paper end
+
+    // Paper start
+    @Override
+    public boolean isAggressive() {
+        return this.getHandle().isAggressive();
+    }
+
+    @Override
+    public void setAggressive(boolean aggressive) {
+        this.getHandle().setAggressive(aggressive);
+    }
+    // Paper end
+
+    // Paper start - Leashable API
+    @Override
+    public boolean isLeashed() {
+        return io.papermc.paper.entity.PaperLeashable.super.isLeashed();
+    }
+
+    @Override
+    public org.bukkit.entity.Entity getLeashHolder() throws IllegalStateException {
+        return io.papermc.paper.entity.PaperLeashable.super.getLeashHolder();
+    }
+
+    @Override
+    public boolean setLeashHolder(final org.bukkit.entity.Entity holder) {
+        return io.papermc.paper.entity.PaperLeashable.super.setLeashHolder(holder);
+    }
+    // Paper end - Leashable API
 }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -7,6 +_,9 @@
+@@ -7,21 +_,30 @@
  import com.google.common.collect.Iterables;
  import com.google.common.collect.Lists;
  import com.google.common.collect.Maps;
@@ -10,7 +10,8 @@
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.DataResult;
-@@ -14,14 +_,19 @@
+ import com.mojang.serialization.Dynamic;
++import io.papermc.paper.event.player.PlayerArmorChangeEvent;
  import it.unimi.dsi.fastutil.doubles.DoubleDoubleImmutablePair;
  import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
  import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
@@ -90,7 +91,16 @@
      protected static final EntityDataAccessor<Byte> DATA_LIVING_ENTITY_FLAGS = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.BYTE);
      public static final EntityDataAccessor<Float> DATA_HEALTH_ID = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.FLOAT);
      private static final EntityDataAccessor<List<ParticleOptions>> DATA_EFFECT_PARTICLES = SynchedEntityData.defineId(
-@@ -251,13 +_,39 @@
+@@ -204,7 +_,7 @@
+     public float yHeadRotO;
+     @Nullable
+     public Player lastHurtByPlayer;
+-    protected int lastHurtByPlayerTime;
++    public int lastHurtByPlayerTime;
+     protected boolean dead;
+     protected int noActionTime;
+     protected float oRun;
+@@ -251,13 +_,37 @@
      private float swimAmount;
      private float swimAmountO;
      protected Brain<?> brain;
@@ -121,8 +131,6 @@
 +        return getYHeadRot();
 +    }
 +    // CraftBukkit end
-+    // Youer start
-+    private RegainReason heal$regainReason = RegainReason.CUSTOM;
  
      protected LivingEntity(EntityType<? extends LivingEntity> p_20966_, Level p_20967_) {
          super(p_20966_, p_20967_);
@@ -562,12 +570,18 @@
      protected void onEffectAdded(MobEffectInstance p_147190_, @Nullable Entity p_147191_) {
          this.effectsDirty = true;
          if (!this.level().isClientSide) {
-@@ -1060,18 +_,66 @@
+@@ -1060,18 +_,78 @@
          }
      }
  
++    // Youer start
++    private RegainReason heal$regainReason = RegainReason.CUSTOM;
 +    public void pushHealReason(EntityRegainHealthEvent.RegainReason regainReason) {
 +        this.heal$regainReason = regainReason;
++    }
++    private final AtomicBoolean heal$isFastRegen = new AtomicBoolean(false);
++    public void pushHeal$isFastRegen(boolean isFastRegen) {
++        this.heal$isFastRegen.set(isFastRegen);
 +    }
 +
      public void heal(float p_21116_) {
@@ -576,7 +590,7 @@
          float f = this.getHealth();
          if (f > 0.0F) {
 -            this.setHealth(f + p_21116_);
-+            org.bukkit.event.entity.EntityRegainHealthEvent event = new org.bukkit.event.entity.EntityRegainHealthEvent(this.getBukkitEntity(), p_21116_, heal$regainReason);
++            org.bukkit.event.entity.EntityRegainHealthEvent event = new org.bukkit.event.entity.EntityRegainHealthEvent(this.getBukkitEntity(), p_21116_, heal$regainReason, heal$isFastRegen.getAndSet(false));
 +            // Suppress during worldgen
 +            if (this.valid) {
 +                this.level().getCraftServer().getPluginManager().callEvent(event);
@@ -590,6 +604,12 @@
 +
 +    public void heal(float f, EntityRegainHealthEvent.RegainReason regainReason) {
 +        this.pushHealReason(regainReason);
++        this.heal(f);
++    }
++
++    public void heal(float f, EntityRegainHealthEvent.RegainReason regainReason, boolean isFastRegen) {
++        this.pushHealReason(regainReason);
++        this.pushHeal$isFastRegen(isFastRegen);
 +        this.heal(f);
      }
  
@@ -1434,10 +1454,17 @@
      public void detectEquipmentUpdates() {
          Map<EquipmentSlot, ItemStack> map = this.collectEquipmentChanges();
          if (map != null) {
-@@ -2466,6 +_,7 @@
+@@ -2466,6 +_,14 @@
              };
              ItemStack itemstack1 = this.getItemBySlot(equipmentslot);
              if (this.equipmentHasChanged(itemstack, itemstack1)) {
++                // Paper start - PlayerArmorChangeEvent
++                if (this instanceof ServerPlayer && equipmentslot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
++                    final org.bukkit.inventory.ItemStack oldItem = CraftItemStack.asBukkitCopy(itemstack);
++                    final org.bukkit.inventory.ItemStack newItem = CraftItemStack.asBukkitCopy(itemstack1);
++                    new PlayerArmorChangeEvent((org.bukkit.entity.Player) this.getBukkitEntity(), PlayerArmorChangeEvent.SlotType.valueOf(equipmentslot.name()), oldItem, newItem).callEvent();
++                }
++                // Paper end - PlayerArmorChangeEvent
 +                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent(this, equipmentslot, itemstack, itemstack1));
                  if (map == null) {
                      map = Maps.newEnumMap(EquipmentSlot.class);
@@ -1613,6 +1640,15 @@
              if (!this.level().isClientSide) {
                  this.setLivingEntityFlag(1, true);
                  this.setLivingEntityFlag(2, p_21159_ == InteractionHand.OFF_HAND);
+@@ -3103,7 +_,7 @@
+         }
+     }
+ 
+-    protected void completeUsingItem() {
++    public void completeUsingItem() {
+         if (!this.level().isClientSide || this.isUsingItem()) {
+             InteractionHand interactionhand = this.getUsedItemHand();
+             if (!this.useItem.equals(this.getItemInHand(interactionhand))) {
 @@ -3111,12 +_,45 @@
              } else {
                  if (!this.useItem.isEmpty() && this.isUsingItem()) {

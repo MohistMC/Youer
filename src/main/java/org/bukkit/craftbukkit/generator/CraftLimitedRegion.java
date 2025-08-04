@@ -254,4 +254,12 @@ public class CraftLimitedRegion extends CraftRegionAccessor implements LimitedRe
     public void addEntityWithPassengers(net.minecraft.world.entity.Entity entity, CreatureSpawnEvent.SpawnReason reason) {
         this.entities.add(entity);
     }
+
+    // Paper start - Fluid API
+    @Override
+    public io.papermc.paper.block.fluid.FluidData getFluidData(int x, int y, int z) {
+        Preconditions.checkArgument(this.isInRegion(x, y, z), "Coordinates %s, %s, %s are not in the region", x, y, z);
+        return super.getFluidData(x, y, z);
+    }
+    // Paper end
 }

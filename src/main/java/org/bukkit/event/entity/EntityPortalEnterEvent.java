@@ -24,7 +24,7 @@ public class EntityPortalEnterEvent extends EntityEvent {
      */
     @NotNull
     public Location getLocation() {
-        return location;
+        return location.clone(); // Paper - clone to avoid changes
     }
 
     @NotNull

@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/projectile/AbstractArrow.java
 +++ b/net/minecraft/world/entity/projectile/AbstractArrow.java
+@@ -4,6 +_,7 @@
+ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+ import java.util.Arrays;
+ import java.util.List;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import javax.annotation.Nullable;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
 @@ -34,7 +_,6 @@
  import net.minecraft.world.entity.SlotAccess;
  import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -16,15 +24,6 @@
  
  public abstract class AbstractArrow extends Projectile {
      private static final double ARROW_BASE_DAMAGE = 2.0;
-@@ -63,7 +_,7 @@
-     public int shakeTime;
-     public int life;
-     private double baseDamage = 2.0;
--    private SoundEvent soundEvent = this.getDefaultHitGroundSoundEvent();
-+    public SoundEvent soundEvent = this.getDefaultHitGroundSoundEvent();
-     @Nullable
-     private IntOpenHashSet piercingIgnoreEntityIds;
-     @Nullable
 @@ -72,6 +_,18 @@
      @Nullable
      public ItemStack firedFromWeapon = null;
@@ -179,7 +178,29 @@
          return super.canHitEntity(p_36743_) && (this.piercingIgnoreEntityIds == null || !this.piercingIgnoreEntityIds.contains(p_36743_.getId()));
      }
  
-@@ -580,9 +_,24 @@
+@@ -566,10 +_,12 @@
+         }
+     }
+ 
++    public AtomicBoolean setOwner$resetPickup = new AtomicBoolean(true);
++
+     @Override
+     public void setOwner(@Nullable Entity p_36770_) {
+         super.setOwner(p_36770_);
+-
++        if (!setOwner$resetPickup.getAndSet(true)) return; // Paper - Fix PickupStatus getting reset
+         this.pickup = switch (p_36770_) {
+             case Player player when this.pickup == AbstractArrow.Pickup.DISALLOWED -> AbstractArrow.Pickup.ALLOWED;
+             case OminousItemSpawner ominousitemspawner -> AbstractArrow.Pickup.DISALLOWED;
+@@ -577,12 +_,32 @@
+         };
+     }
+ 
++    public void setOwner(@Nullable Entity entity, boolean resetPickup) {
++        setOwner$resetPickup.set(resetPickup);
++        this.setOwner(entity);
++    }
++
      @Override
      public void playerTouch(Player p_36766_) {
          if (!this.level().isClientSide && (this.inGround || this.isNoPhysics()) && this.shakeTime <= 0) {

@@ -81,7 +81,7 @@
      }
  
      public final CompoundTag saveWithFullMetadata(HolderLookup.Provider p_323767_) {
-@@ -108,6 +_,11 @@
+@@ -108,12 +_,22 @@
              .encodeStart(p_324030_.createSerializationContext(NbtOps.INSTANCE), this.components)
              .resultOrPartial(p_337988_ -> LOGGER.warn("Failed to save components: {}", p_337988_))
              .ifPresent(p_337994_ -> compoundtag.merge((CompoundTag)p_337994_));
@@ -93,6 +93,26 @@
          return compoundtag;
      }
  
+     public final CompoundTag saveCustomOnly(HolderLookup.Provider p_338656_) {
+         CompoundTag compoundtag = new CompoundTag();
+         this.saveAdditional(compoundtag, p_338656_);
++        // Paper start - store PDC here as well
++        if (this.persistentDataContainer != null && !this.persistentDataContainer.isEmpty()) {
++            compoundtag.put("PublicBukkitValues", this.persistentDataContainer.toTagCompound());
++        }
++        // Paper end
+         return compoundtag;
+     }
+ 
+@@ -123,7 +_,7 @@
+         return compoundtag;
+     }
+ 
+-    private void saveId(CompoundTag p_187475_) {
++    public void saveId(CompoundTag p_187475_) {
+         ResourceLocation resourcelocation = BlockEntityType.getKey(this.getType());
+         if (resourcelocation == null) {
+             throw new RuntimeException(this.getClass() + " is missing a mapping! This is a bug!");
 @@ -216,10 +_,14 @@
  
      public void setRemoved() {

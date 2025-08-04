@@ -60,8 +60,8 @@ public class CraftMetaBook extends CraftMetaItem implements BookMeta, WritableBo
         }
     }
 
-    CraftMetaBook(DataComponentPatch tag) { // Paper
-        super(tag); // Paper
+    CraftMetaBook(DataComponentPatch tag, java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) { // Paper
+        super(tag, extraHandledDcts); // Paper
 
         getOrEmpty(tag, CraftMetaBook.BOOK_CONTENT).ifPresent((writable) -> {
             List<Filterable<String>> pages = writable.pages();

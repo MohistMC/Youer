@@ -281,6 +281,22 @@ public final class CraftItemFactory implements ItemFactory {
         );
     }
 
+    @Override
+    public ItemStack enchantWithLevels(ItemStack itemStack, int levels, io.papermc.paper.registry.set.RegistryKeySet<org.bukkit.enchantments.Enchantment> keySet, java.util.Random random) {
+        return enchantWithLevels(
+                itemStack,
+                levels,
+                Optional.of(
+                        io.papermc.paper.registry.set.PaperRegistrySets.convertToNms(
+                                Registries.ENCHANTMENT,
+                                net.minecraft.server.MinecraftServer.getServer().registryAccess().createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE).lookupProvider,
+                                keySet
+                        )
+                ),
+                random
+        );
+    }
+
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private ItemStack enchantWithLevels(
             ItemStack itemStack,
@@ -307,6 +323,14 @@ public final class CraftItemFactory implements ItemFactory {
         return CraftItemStack.asCraftMirror(enchanted);
     }
     // Paper end - enchantWithLevels API
+
+    // Paper start - ensure server conversions API
+    // TODO: DO WE NEED THIS?
+    @Override
+    public ItemStack ensureServerConversions(ItemStack item) {
+        return CraftItemStack.asCraftMirror(CraftItemStack.asNMSCopy(item));
+    }
+    // Paper end - ensure server conversions API
 
     // Paper start - add getI18NDisplayName
     @Override

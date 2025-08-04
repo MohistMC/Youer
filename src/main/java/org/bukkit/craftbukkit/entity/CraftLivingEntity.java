@@ -123,6 +123,13 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         }
     }
 
+    // Paper start - entity heal API
+    @Override
+    public void heal(final double amount, final org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason reason) {
+        this.getHandle().heal((float) amount, reason);
+    }
+    // Paper end - entity heal API
+
     @Override
     public double getAbsorptionAmount() {
         return this.getHandle().getAbsorptionAmount();
@@ -306,10 +313,29 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     }
 
     @Override
-    public void setArrowsInBody(int count) {
+    public void setArrowsInBody(final int count, final boolean fireEvent) { // Paper
         Preconditions.checkArgument(count >= 0, "New arrow amount must be >= 0");
-        this.getHandle().getEntityData().set(net.minecraft.world.entity.LivingEntity.DATA_ARROW_COUNT_ID, count);
+        if (!fireEvent) { // Paper
+            this.getHandle().getEntityData().set(net.minecraft.world.entity.LivingEntity.DATA_ARROW_COUNT_ID, count);
+            // Paper start
+        } else {
+            this.getHandle().setArrowCount(count);
+        }
+        // Paper end
     }
+
+    // Paper start - Add methods for working with arrows stuck in living entities
+    @Override
+    public void setNextArrowRemoval(final int ticks) {
+        Preconditions.checkArgument(ticks >= 0, "New amount of ticks before next arrow removal must be >= 0");
+        this.getHandle().removeArrowTime = ticks;
+    }
+
+    @Override
+    public int getNextArrowRemoval() {
+        return this.getHandle().removeArrowTime;
+    }
+    // Paper end - Add methods for working with arrows stuck in living entities
 
     @Override
     public void damage(double amount) {
@@ -409,6 +435,16 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     public Player getKiller() {
         return this.getHandle().lastHurtByPlayer == null ? null : (Player) this.getHandle().lastHurtByPlayer.getBukkitEntity();
     }
+
+    // Paper start
+    @Override
+    public void setKiller(Player killer) {
+        net.minecraft.server.level.ServerPlayer entityPlayer = killer == null ? null : ((CraftPlayer) killer).getHandle();
+        getHandle().lastHurtByPlayer = entityPlayer;
+        getHandle().lastHurtByMob = entityPlayer;
+        getHandle().lastHurtByPlayerTime = entityPlayer == null ? 0 : 100; // 100 value taken from EntityLiving#damageEntity
+    }
+    // Paper end
 
     @Override
     public boolean addPotionEffect(PotionEffect effect) {
@@ -643,43 +679,17 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public boolean isLeashed() {
-        if (!(this.getHandle() instanceof Mob)) {
-            return false;
-        }
-        return ((Mob) this.getHandle()).getLeashHolder() != null;
+        return false; // Paper - implement in CraftMob & PaperLeashable
     }
 
     @Override
     public Entity getLeashHolder() throws IllegalStateException {
-        Preconditions.checkState(this.isLeashed(), "Entity not leashed");
-        return ((Mob) this.getHandle()).getLeashHolder().getBukkitEntity();
-    }
-
-    private boolean unleash() {
-        if (!this.isLeashed()) {
-            return false;
-        }
-        ((Mob) this.getHandle()).dropLeash(true, false);
-        return true;
+        throw new IllegalStateException("Entity not leashed"); // Paper - implement in CraftMob & PaperLeashable
     }
 
     @Override
     public boolean setLeashHolder(Entity holder) {
-        if (this.getHandle().generation || (this.getHandle() instanceof WitherBoss) || !(this.getHandle() instanceof Mob)) {
-            return false;
-        }
-
-        if (holder == null) {
-            return this.unleash();
-        }
-
-        if (holder.isDead()) {
-            return false;
-        }
-
-        this.unleash();
-        ((Mob) this.getHandle()).setLeashedTo(((CraftEntity) holder).getHandle(), true);
-        return true;
+        return false; // Paper - implement in CraftMob & PaperLeashable
     }
 
     @Override
@@ -857,12 +867,100 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public boolean isInvisible() {
-        return this.getHandle().isInvisible();
+        return super.isInvisible(); // Paper - move invisibility up to Entity - diff on change
     }
 
     @Override
     public void setInvisible(boolean invisible) {
-        this.getHandle().persistentInvisibility = invisible;
-        this.getHandle().setSharedFlag(5, invisible);
+        super.setInvisible(invisible); // Paper - move invisibility up to Entity
     }
+    // Paper start
+    @Override
+    public float getSidewaysMovement() {
+        return this.getHandle().xxa;
+    }
+
+    @Override
+    public float getForwardsMovement() {
+        return this.getHandle().zza;
+    }
+
+    @Override
+    public float getUpwardsMovement() {
+        return this.getHandle().yya;
+    }
+    // Paper end
+
+    @Override
+    public int getArrowsStuck() {
+        return this.getHandle().getArrowCount();
+    }
+
+    @Override
+    public void setArrowsStuck(final int arrows) {
+        this.getHandle().setArrowCount(arrows);
+    }
+
+    // Paper start - active item API
+    @Override
+    public void startUsingItem(org.bukkit.inventory.EquipmentSlot hand) {
+        Preconditions.checkArgument(hand != null, "hand must not be null");
+        switch (hand) {
+            case HAND -> getHandle().startUsingItem(InteractionHand.MAIN_HAND);
+            case OFF_HAND -> getHandle().startUsingItem(InteractionHand.OFF_HAND);
+            default -> throw new IllegalArgumentException("hand may only be HAND or OFF_HAND");
+        }
+    }
+
+    @Override
+    public void completeUsingActiveItem() {
+        getHandle().completeUsingItem();
+    }
+
+    @Override
+    public ItemStack getActiveItem() {
+        return this.getHandle().getUseItem().asBukkitMirror();
+    }
+
+    // Paper start
+    @Override
+    public void clearActiveItem() {
+        getHandle().stopUsingItem();
+    }
+    // Paper end
+
+    @Override
+    public int getActiveItemRemainingTime() {
+        return this.getHandle().getUseItemRemainingTicks();
+    }
+
+    @Override
+    public void setActiveItemRemainingTime(final int ticks) {
+        Preconditions.checkArgument(ticks >= 0, "ticks must be >= 0");
+        Preconditions.checkArgument(ticks <= this.getHandle().getUseItem().getUseDuration(this.getHandle()), "ticks must be <= item use duration");
+        this.getHandle().useItemRemaining = ticks;
+    }
+
+    @Override
+    public int getActiveItemUsedTime() {
+        return this.getHandle().getTicksUsingItem();
+    }
+
+    @Override
+    public boolean hasActiveItem() {
+        return this.getHandle().isUsingItem();
+    }
+
+    @Override
+    public org.bukkit.inventory.EquipmentSlot getActiveItemHand() {
+        return org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(this.getHandle().getUsedItemHand());
+    }
+    // Paper end - active item API
+
+    // Paper start - Expose canUseSlot
+    @Override
+    public boolean canUseEquipmentSlot(org.bukkit.inventory.EquipmentSlot slot) {
+        return this.getHandle().canUseSlot(org.bukkit.craftbukkit.CraftEquipmentSlot.getNMS(slot));
+    }
+    // Paper end - Expose canUseSlot
 }

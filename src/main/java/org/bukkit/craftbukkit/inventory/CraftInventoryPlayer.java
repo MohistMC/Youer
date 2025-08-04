@@ -135,6 +135,10 @@ public class CraftInventoryPlayer extends CraftInventory implements org.bukkit.i
             case HEAD:
                 this.setHelmet(item);
                 break;
+            // Paper start
+            case BODY:
+                throw new IllegalArgumentException("BODY is not valid for players!");
+                // Paper end
             default:
                 throw new IllegalArgumentException("Not implemented. This is a bug");
         }
@@ -162,6 +166,10 @@ public class CraftInventoryPlayer extends CraftInventory implements org.bukkit.i
                 return this.getChestplate();
             case HEAD:
                 return this.getHelmet();
+                // Paper start
+            case BODY:
+                throw new IllegalArgumentException("BODY is not valid for players!");
+                // Paper end
             default:
                 throw new IllegalArgumentException("Not implemented. This is a bug");
         }

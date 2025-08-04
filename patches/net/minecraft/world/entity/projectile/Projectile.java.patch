@@ -90,6 +90,21 @@
  
      protected ProjectileDeflection hitTargetOrDeflectSelf(HitResult p_341949_) {
          if (p_341949_.getType() == HitResult.Type.ENTITY) {
+@@ -186,7 +_,13 @@
+     public boolean deflect(ProjectileDeflection p_341900_, @Nullable Entity p_341912_, @Nullable Entity p_341932_, boolean p_341948_) {
+         if (!this.level().isClientSide) {
+             p_341900_.deflect(this, p_341912_, this.random);
+-            this.setOwner(p_341932_);
++            // Paper start - Fix PickupStatus getting reset
++            if (this instanceof AbstractArrow arrow) {
++                arrow.setOwner(p_341932_, false);
++            } else {
++                this.setOwner(p_341932_);
++            }
++            // Paper end - Fix PickupStatus getting reset
+             this.onDeflection(p_341912_, p_341948_);
+         }
+ 
 @@ -219,6 +_,11 @@
      }
  

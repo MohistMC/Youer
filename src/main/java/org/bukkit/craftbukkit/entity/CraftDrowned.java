@@ -1,9 +1,10 @@
 package org.bukkit.craftbukkit.entity;
 
+import io.papermc.paper.entity.CraftRangedEntity;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Drowned;
 
-public class CraftDrowned extends CraftZombie implements Drowned {
+public class CraftDrowned extends CraftZombie implements Drowned, CraftRangedEntity<net.minecraft.world.entity.monster.Drowned> {
 
     public CraftDrowned(CraftServer server, net.minecraft.world.entity.monster.Drowned entity) {
         super(server, entity);

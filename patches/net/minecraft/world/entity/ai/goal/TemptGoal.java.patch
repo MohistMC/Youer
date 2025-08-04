@@ -1,25 +1,15 @@
 --- a/net/minecraft/world/entity/ai/goal/TemptGoal.java
 +++ b/net/minecraft/world/entity/ai/goal/TemptGoal.java
-@@ -6,8 +_,9 @@
- import net.minecraft.world.entity.LivingEntity;
- import net.minecraft.world.entity.PathfinderMob;
+@@ -8,6 +_,9 @@
  import net.minecraft.world.entity.ai.targeting.TargetingConditions;
--import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.item.ItemStack;
 +import org.bukkit.craftbukkit.entity.CraftLivingEntity;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
  
  public class TemptGoal extends Goal {
      private static final TargetingConditions TEMP_TARGETING = TargetingConditions.forNonCombat().range(10.0).ignoreLineOfSight();
-@@ -20,7 +_,7 @@
-     private double pRotX;
-     private double pRotY;
-     @Nullable
--    protected Player player;
-+    protected LivingEntity player; // CraftBukkit
-     private int calmDown;
-     private boolean isRunning;
-     private final Predicate<ItemStack> items;
 @@ -42,6 +_,15 @@
              return false;
          } else {
@@ -30,7 +20,7 @@
 +                if (event.isCancelled()) {
 +                    return false;
 +                }
-+                this.player = (event.getTarget() == null) ? null : ((CraftLivingEntity) event.getTarget()).getHandle();
++                this.player = (event.getTarget() == null) ? null : ((CraftPlayer) event.getTarget()).getHandle();
 +            }
 +            // CraftBukkit end
              return this.player != null;

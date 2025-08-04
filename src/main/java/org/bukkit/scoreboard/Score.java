@@ -73,4 +73,25 @@ public interface Score {
      */
     @Nullable
     Scoreboard getScoreboard();
+
+    // Paper start - number format api
+    /**
+     * Gets the number format for this score or null if the score has not been set yet
+     * or the objective's default is being used.
+     *
+     * @return this score's number format, or null if the objective's default is used or the score doesn't exist
+     * @throws IllegalStateException if the associated objective has been
+     *     unregistered
+     */
+    @Nullable io.papermc.paper.scoreboard.numbers.NumberFormat numberFormat();
+
+    /**
+     * Sets the number format for this score. If this score has not been set yet {@link #isScoreSet()}, it will be created
+     *
+     * @param format the number format to set, pass null to reset format to default
+     * @throws IllegalStateException if the associated objective has been
+     *     unregistered
+     */
+    void numberFormat(@Nullable io.papermc.paper.scoreboard.numbers.NumberFormat format);
+    // Paper end - number format api
 }

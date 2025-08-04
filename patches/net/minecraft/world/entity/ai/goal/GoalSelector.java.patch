@@ -1,0 +1,82 @@
+--- a/net/minecraft/world/entity/ai/goal/GoalSelector.java
++++ b/net/minecraft/world/entity/ai/goal/GoalSelector.java
+@@ -26,7 +_,8 @@
+     private final Map<Goal.Flag, WrappedGoal> lockedFlags = new EnumMap<>(Goal.Flag.class);
+     private final Set<WrappedGoal> availableGoals = new ObjectLinkedOpenHashSet<>();
+     private final Supplier<ProfilerFiller> profiler;
+-    private final EnumSet<Goal.Flag> disabledFlags = EnumSet.noneOf(Goal.Flag.class);
++    private static final Goal.Flag[] GOAL_FLAG_VALUES = Goal.Flag.values(); // Paper - remove streams from pathfindergoalselector
++    private final ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<net.minecraft.world.entity.ai.goal.Goal.Flag> goalTypes = new ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<>(Goal.Flag.class); // Paper - remove streams from pathfindergoalselector
+ 
+     public GoalSelector(Supplier<ProfilerFiller> p_25351_) {
+         this.profiler = p_25351_;
+@@ -51,18 +_,17 @@
+         this.availableGoals.removeIf(p_25378_ -> p_25378_.getGoal() == p_25364_);
+     }
+ 
+-    private static boolean goalContainsAnyFlags(WrappedGoal p_186076_, EnumSet<Goal.Flag> p_186077_) {
+-        for (Goal.Flag goal$flag : p_186076_.getFlags()) {
+-            if (p_186077_.contains(goal$flag)) {
+-                return true;
+-            }
+-        }
+-
+-        return false;
++    private static boolean goalContainsAnyFlags(WrappedGoal p_186076_, ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<Goal.Flag> controls) {
++        return p_186076_.getFlags().hasCommonElements(controls);
+     }
+ 
+     private static boolean goalCanBeReplacedForAllFlags(WrappedGoal p_186079_, Map<Goal.Flag, WrappedGoal> p_186080_) {
+-        for (Goal.Flag goal$flag : p_186079_.getFlags()) {
++        long flagIterator = p_186079_.getFlags().getBackingSet();
++        int wrappedGoalSize = p_186079_.getFlags().size();
++        for (int i = 0; i < wrappedGoalSize; ++i) {
++            final Goal.Flag goal$flag = GOAL_FLAG_VALUES[Long.numberOfTrailingZeros(flagIterator)];
++            flagIterator ^= ca.spottedleaf.concurrentutil.util.IntegerUtil.getTrailingBit(flagIterator);
++            // Paper end
+             if (!p_186080_.getOrDefault(goal$flag, NO_GOAL).canBeReplacedBy(p_186079_)) {
+                 return false;
+             }
+@@ -76,7 +_,7 @@
+         profilerfiller.push("goalCleanup");
+ 
+         for (WrappedGoal wrappedgoal : this.availableGoals) {
+-            if (wrappedgoal.isRunning() && (goalContainsAnyFlags(wrappedgoal, this.disabledFlags) || !wrappedgoal.canContinueToUse())) {
++            if (wrappedgoal.isRunning() && (goalContainsAnyFlags(wrappedgoal, this.goalTypes) || !wrappedgoal.canContinueToUse())) {
+                 wrappedgoal.stop();
+             }
+         }
+@@ -86,11 +_,14 @@
+         profilerfiller.push("goalUpdate");
+ 
+         for (WrappedGoal wrappedgoal2 : this.availableGoals) {
+-            if (!wrappedgoal2.isRunning()
+-                && !goalContainsAnyFlags(wrappedgoal2, this.disabledFlags)
+-                && goalCanBeReplacedForAllFlags(wrappedgoal2, this.lockedFlags)
+-                && wrappedgoal2.canUse()) {
+-                for (Goal.Flag goal$flag : wrappedgoal2.getFlags()) {
++            // Paper start
++            if (!wrappedgoal2.isRunning() && !goalContainsAnyFlags(wrappedgoal2, this.goalTypes) && goalCanBeReplacedForAllFlags(wrappedgoal2, this.lockedFlags) && wrappedgoal2.canUse()) {
++                long flagIterator = wrappedgoal2.getFlags().getBackingSet();
++                int wrappedGoalSize = wrappedgoal2.getFlags().size();
++                for (int i = 0; i < wrappedGoalSize; ++i) {
++                    final Goal.Flag goal$flag = GOAL_FLAG_VALUES[Long.numberOfTrailingZeros(flagIterator)];
++                    flagIterator ^= ca.spottedleaf.concurrentutil.util.IntegerUtil.getTrailingBit(flagIterator);
++                    // Paper end
+                     WrappedGoal wrappedgoal1 = this.lockedFlags.getOrDefault(goal$flag, NO_GOAL);
+                     wrappedgoal1.stop();
+                     this.lockedFlags.put(goal$flag, wrappedgoal2);
+@@ -122,11 +_,11 @@
+     }
+ 
+     public void disableControlFlag(Goal.Flag p_25356_) {
+-        this.disabledFlags.add(p_25356_);
++        this.goalTypes.addUnchecked(p_25356_);
+     }
+ 
+     public void enableControlFlag(Goal.Flag p_25375_) {
+-        this.disabledFlags.remove(p_25375_);
++        this.goalTypes.removeUnchecked(p_25375_);
+     }
+ 
+     public void setControlFlag(Goal.Flag p_25361_, boolean p_25362_) {

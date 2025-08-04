@@ -144,6 +144,49 @@ public interface UnsafeValues {
     static boolean isLegacyPlugin(org.bukkit.plugin.Plugin plugin) {
         return !Bukkit.getUnsafe().isSupportedApiVersion(plugin.getDescription().getAPIVersion());
     }
+
+    byte[] serializeItem(ItemStack item);
+
+    ItemStack deserializeItem(byte[] data);
+
+    /**
+     * Serializes this itemstack to json format.
+     * It is safe for data migrations as it will use the built-in data converter instead of bukkit's
+     * dangerous serialization system.
+     * <p>
+     * The emitted json object's format will inherently change across versions and hence should not be used for
+     * non-development purposes like plugin configurations or end-user input.
+     *
+     * @return json object representing this item.
+     * @see #deserializeItemFromJson(com.google.gson.JsonObject)
+     * @throws IllegalArgumentException if the passed itemstack is {@link ItemStack#empty()}.
+     */
+    @NotNull
+    com.google.gson.JsonObject serializeItemAsJson(@NotNull ItemStack itemStack);
+
+    /**
+     * Creates an itemstack from a json object.
+     * <p>
+     * This method expects a json object in the format emitted by {@link #serializeItemAsJson(ItemStack)}.
+     * <p>
+     * The emitted json object's format will inherently change across versions and hence should not be used for
+     * non-development purposes like plugin configurations or end-user input.
+     *
+     * @param data object representing an item in Json format
+     * @return the deserialize item stack, migrated to the latest data version if needed.
+     * @throws IllegalArgumentException if the json object is not a valid item
+     * @see #serializeItemAsJson(ItemStack)
+     */
+    @NotNull ItemStack deserializeItemFromJson(@NotNull com.google.gson.JsonObject data) throws IllegalArgumentException;
+
+    byte[] serializeEntity(org.bukkit.entity.Entity entity);
+
+    default org.bukkit.entity.Entity deserializeEntity(byte[] data, World world) {
+        return deserializeEntity(data, world, false);
+    }
+
+    org.bukkit.entity.Entity deserializeEntity(byte[] data, World world, boolean preserveUUID);
+
     // Paper end
 
     /**
@@ -234,6 +277,8 @@ public interface UnsafeValues {
      */
     @org.jetbrains.annotations.ApiStatus.Internal
     io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager<org.bukkit.plugin.Plugin> createPluginLifecycleEventManager(final org.bukkit.plugin.java.JavaPlugin plugin, final java.util.function.BooleanSupplier registrationCheck);
+
+    @NotNull java.util.List<net.kyori.adventure.text.Component> computeTooltipLines(@NotNull ItemStack itemStack, @NotNull io.papermc.paper.inventory.tooltip.TooltipContext tooltipContext, @Nullable org.bukkit.entity.Player player); // Paper - expose itemstack tooltip lines
 
     // Paper end - lifecycle event API
     <A extends Keyed, M> io.papermc.paper.registry.tag.@Nullable Tag<A> getTag(io.papermc.paper.registry.tag.@NotNull TagKey<A> tagKey); // Paper - hack to get tags for non-server backed registries

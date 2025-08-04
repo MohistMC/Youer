@@ -30,12 +30,16 @@
                          this.unRide();
                          this.setAttachFace(direction);
                          this.playSound(SoundEvents.SHULKER_TELEPORT, 1.0F, 1.0F);
-@@ -457,7 +_,7 @@
+@@ -457,6 +_,12 @@
                  if (shulker != null) {
                      shulker.setVariant(this.getVariant());
                      shulker.moveTo(vec3);
--                    this.level().addFreshEntity(shulker);
-+                    this.level().addFreshEntity(shulker, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING); // CraftBukkit - the mysteries of life
++                    // Paper start - Shulker duplicate event
++                    if (!new io.papermc.paper.event.entity.ShulkerDuplicateEvent((org.bukkit.entity.Shulker) shulker.getBukkitEntity(), (org.bukkit.entity.Shulker) this.getBukkitEntity()).callEvent()) {
++                        return;
++                    }
++                    // Paper end - Shulker duplicate event
++                    shulker.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING); // CraftBukkit - the mysteries of life
+                     this.level().addFreshEntity(shulker);
                  }
              }
-         }

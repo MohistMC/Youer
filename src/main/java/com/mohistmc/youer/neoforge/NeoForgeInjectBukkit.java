@@ -131,27 +131,6 @@ public class NeoForgeInjectBukkit {
                 if (material != null) {
                     CraftMagicNumbers.BLOCK_MATERIAL.put(block, material);
                     CraftMagicNumbers.MATERIAL_BLOCK.put(material, block);
-                    if (block.defaultBlockState().is(BlockTags.SIGNS)) {
-                        CraftBlockStates.register(material, CraftSign.class, CraftSign::new, SignBlockEntity::new);
-                    } else if (block.defaultBlockState().is(BlockTags.ALL_HANGING_SIGNS)) {
-                        CraftBlockStates.register(material, CraftHangingSign.class, CraftHangingSign::new, HangingSignBlockEntity::new);
-                    } else if (block instanceof SignBlock signBlock) {
-                        BlockEntity blockEntity = signBlock.newBlockEntity(BlockPos.ZERO, block.defaultBlockState());
-                        if (blockEntity instanceof HangingSignBlockEntity) {
-                            CraftBlockStates.register(material, CraftHangingSign.class, CraftHangingSign::new, HangingSignBlockEntity::new);
-                        } else if (blockEntity instanceof SignBlockEntity) {
-                            CraftBlockStates.register(material, CraftSign.class, CraftSign::new, SignBlockEntity::new);
-                        }
-                    } else if (block instanceof ChestBlock chestBlock) {
-                        BlockEntity blockEntity = chestBlock.newBlockEntity(BlockPos.ZERO, block.defaultBlockState());
-                        if (blockEntity instanceof TrappedChestBlockEntity) {
-                            CraftBlockStates.register(material, CraftChest.class, CraftChest::new, TrappedChestBlockEntity::new);
-                        } else if (blockEntity instanceof ChestBlockEntity) {
-                            CraftBlockStates.register(material, CraftChest.class, CraftChest::new, ChestBlockEntity::new);
-                        }
-                    } else if (block instanceof DecoratedPotBlock) {
-                        CraftBlockStates.register(material, CraftDecoratedPot.class, CraftDecoratedPot::new, DecoratedPotBlockEntity::new);
-                    }
                     Youer.LOGGER.debug("Save-BLOCK:{} - {}", material.name(), material.key);
                 }
             }

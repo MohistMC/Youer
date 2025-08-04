@@ -8,6 +8,39 @@
  
  public class Raid {
      private static final int SECTION_RADIUS_FOR_FINDING_NEW_VILLAGE_CENTER = 2;
+@@ -96,7 +_,7 @@
+     public int raidOmenLevel;
+     private boolean active;
+     private int groupsSpawned;
+-    private final ServerBossEvent raidEvent = new ServerBossEvent(RAID_NAME_COMPONENT, BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.NOTCHED_10);
++    public final ServerBossEvent raidEvent = new ServerBossEvent(RAID_NAME_COMPONENT, BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.NOTCHED_10);
+     private int postRaidTicks;
+     private int raidCooldownTicks;
+     private final RandomSource random = RandomSource.create();
+@@ -104,6 +_,11 @@
+     private Raid.RaidStatus status;
+     private int celebrationTicks;
+     private Optional<BlockPos> waveSpawnPos = Optional.empty();
++    // Paper start
++    private static final String PDC_NBT_KEY = "BukkitValues";
++    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry PDC_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
++    public final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer(PDC_TYPE_REGISTRY);
++    // Paper end
+ 
+     public Raid(int p_37692_, ServerLevel p_37693_, BlockPos p_37694_) {
+         this.id = p_37692_;
+@@ -136,6 +_,11 @@
+                 this.heroesOfTheVillage.add(NbtUtils.loadUUID(tag));
+             }
+         }
++        // Paper start
++        if (p_37697_.contains(PDC_NBT_KEY, net.minecraft.nbt.Tag.TAG_COMPOUND)) {
++            this.persistentDataContainer.putAll(p_37697_.getCompound(PDC_NBT_KEY));
++        }
++        // Paper end
+     }
+ 
+     public boolean isOver() {
 @@ -162,6 +_,12 @@
          return this.status == Raid.RaidStatus.LOSS;
      }
@@ -141,6 +174,18 @@
              }
          }
      }
+@@ -778,6 +_,11 @@
+         }
+ 
+         p_37748_.put("HeroesOfTheVillage", listtag);
++        // Paper start
++        if (!this.persistentDataContainer.isEmpty()) {
++            p_37748_.put(PDC_NBT_KEY, this.persistentDataContainer.toTagCompound());
++        }
++        // Paper end
+         return p_37748_;
+     }
+ 
 @@ -811,6 +_,12 @@
          this.heroesOfTheVillage.add(p_37727_.getUUID());
      }

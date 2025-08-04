@@ -38,8 +38,8 @@ class CraftMetaTropicalFishBucket extends CraftMetaItem implements TropicalFishB
         this.bucketEntityTag = bucket.bucketEntityTag;
     }
 
-    CraftMetaTropicalFishBucket(DataComponentPatch tag) {
-        super(tag);
+    CraftMetaTropicalFishBucket(DataComponentPatch tag, java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) { // Paper
+        super(tag, extraHandledDcts); // Paper
 
         getOrEmpty(tag, CraftMetaTropicalFishBucket.ENTITY_TAG).ifPresent((nbt) -> {
             this.entityTag = nbt.copyTag();
@@ -119,6 +119,7 @@ class CraftMetaTropicalFishBucket extends CraftMetaItem implements TropicalFishB
 
     @Override
     public DyeColor getPatternColor() {
+        com.google.common.base.Preconditions.checkState(this.hasVariant(), "This bucket doesn't have variant, check hasVariant first!"); // Paper - fix NPE
         return CraftTropicalFish.getPatternColor(this.variant);
     }
 
@@ -132,6 +133,7 @@ class CraftMetaTropicalFishBucket extends CraftMetaItem implements TropicalFishB
 
     @Override
     public DyeColor getBodyColor() {
+        com.google.common.base.Preconditions.checkState(this.hasVariant(), "This bucket doesn't have variant, check hasVariant first!"); // Paper - fix NPE
         return CraftTropicalFish.getBodyColor(this.variant);
     }
 
@@ -145,6 +147,7 @@ class CraftMetaTropicalFishBucket extends CraftMetaItem implements TropicalFishB
 
     @Override
     public TropicalFish.Pattern getPattern() {
+        com.google.common.base.Preconditions.checkState(this.hasVariant(), "This bucket doesn't have variant, check hasVariant first!"); // Paper - fix NPE
         return CraftTropicalFish.getPattern(this.variant);
     }
 

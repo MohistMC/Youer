@@ -12,6 +12,18 @@
  
  public class WitherBoss extends Monster implements PowerableMob, RangedAttackMob {
      private static final EntityDataAccessor<Integer> DATA_TARGET_A = SynchedEntityData.defineId(WitherBoss.class, EntityDataSerializers.INT);
+@@ -78,6 +_,11 @@
+     private static final Predicate<LivingEntity> LIVING_ENTITY_SELECTOR = p_348303_ -> !p_348303_.getType().is(EntityTypeTags.WITHER_FRIENDS)
+             && p_348303_.attackable();
+     private static final TargetingConditions TARGETING_CONDITIONS = TargetingConditions.forCombat().range(20.0).selector(LIVING_ENTITY_SELECTOR);
++    // Paper start
++    private boolean canPortal = false;
++
++    public void setCanTravelThroughPortals(boolean canPortal) { this.canPortal = canPortal; }
++    // Paper end
+ 
+     public WitherBoss(EntityType<? extends WitherBoss> p_31437_, Level p_31438_) {
+         super(p_31437_, p_31438_);
 @@ -263,15 +_,37 @@
              int j = this.getInvulnerableTicks() - 1;
              this.bossEvent.setProgress(1.0F - (float)j / 220.0F);
@@ -114,3 +126,12 @@
          } else {
              this.noActionTime = 0;
          }
+@@ -552,7 +_,7 @@
+ 
+     @Override
+     public boolean canUsePortal(boolean p_352936_) {
+-        return false;
++        return this.canPortal; // Paper
+     }
+ 
+     @Override

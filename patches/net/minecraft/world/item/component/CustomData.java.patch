@@ -1,10 +1,21 @@
 --- a/net/minecraft/world/item/component/CustomData.java
 +++ b/net/minecraft/world/item/component/CustomData.java
-@@ -28,6 +_,7 @@
+@@ -28,7 +_,17 @@
  public final class CustomData {
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final CustomData EMPTY = new CustomData(new CompoundTag());
+-    public static final Codec<CustomData> CODEC = Codec.withAlternative(CompoundTag.CODEC, TagParser.AS_CODEC)
++    // Paper start - Item serialization as json
 +    public static ThreadLocal<Boolean> SERIALIZE_CUSTOM_AS_SNBT = ThreadLocal.withInitial(() -> false);
-     public static final Codec<CustomData> CODEC = Codec.withAlternative(CompoundTag.CODEC, TagParser.AS_CODEC)
++    public static final Codec<CustomData> CODEC = Codec.either(CompoundTag.CODEC, TagParser.AS_CODEC)
++            .xmap(com.mojang.datafixers.util.Either::unwrap, data -> { // Both will be used for deserialization, but we decide which one to use for serialization
++                if (!SERIALIZE_CUSTOM_AS_SNBT.get()) {
++                    return com.mojang.datafixers.util.Either.left(data); // First codec
++                } else {
++                    return com.mojang.datafixers.util.Either.right(data); // Second codec
++                }
++            })
++            // Paper end - Item serialization as json
          .xmap(CustomData::new, p_331996_ -> p_331996_.tag);
      public static final Codec<CustomData> CODEC_WITH_ID = CODEC.validate(
+         p_331848_ -> p_331848_.getUnsafe().contains("id", 8) ? DataResult.success(p_331848_) : DataResult.error(() -> "Missing id for entity in: " + p_331848_)

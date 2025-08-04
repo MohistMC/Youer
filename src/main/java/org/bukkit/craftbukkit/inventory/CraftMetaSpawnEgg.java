@@ -33,8 +33,8 @@ public class CraftMetaSpawnEgg extends CraftMetaItem implements SpawnEggMeta {
         this.entityTag = egg.entityTag;
     }
 
-    CraftMetaSpawnEgg(DataComponentPatch tag) {
-        super(tag);
+    CraftMetaSpawnEgg(DataComponentPatch tag, java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) { // Paper
+        super(tag, extraHandledDcts); // Paper
 
         getOrEmpty(tag, CraftMetaSpawnEgg.ENTITY_TAG).ifPresent((nbt) -> {
             this.entityTag = nbt.copyTag();
@@ -97,6 +97,7 @@ public class CraftMetaSpawnEgg extends CraftMetaItem implements SpawnEggMeta {
 
     @Override
     public EntitySnapshot getSpawnedEntity() {
+        if (this.entityTag == null) return null; // Paper - fix NPE
         return CraftEntitySnapshot.create(this.entityTag);
     }
 
@@ -114,7 +115,7 @@ public class CraftMetaSpawnEgg extends CraftMetaItem implements SpawnEggMeta {
         if (meta instanceof CraftMetaSpawnEgg) {
             CraftMetaSpawnEgg that = (CraftMetaSpawnEgg) meta;
 
-            return entityTag != null ? that.entityTag != null && this.entityTag.equals(that.entityTag) : entityTag == null;
+            return this.entityTag != null ? that.entityTag != null && this.entityTag.equals(that.entityTag) : that.entityTag == null; // Paper
         }
         return true;
     }

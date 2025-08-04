@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/monster/ZombieVillager.java
 +++ b/net/minecraft/world/entity/monster/ZombieVillager.java
+@@ -4,6 +_,7 @@
+ import com.mojang.serialization.DataResult;
+ import com.mojang.serialization.Dynamic;
+ import java.util.UUID;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import javax.annotation.Nullable;
+ import net.minecraft.Util;
+ import net.minecraft.advancements.CriteriaTriggers;
 @@ -68,6 +_,7 @@
      @Nullable
      private MerchantOffers tradeOffers;
@@ -28,19 +36,31 @@
      }
  
      @Override
-@@ -186,8 +_,10 @@
+@@ -182,13 +_,21 @@
+         return this.getEntityData().get(DATA_CONVERTING_ID);
+     }
+ 
++    AtomicBoolean startConverting$broadcastEntityEvent = new AtomicBoolean(true);
+     public void startConverting(@Nullable UUID p_34384_, int p_34385_) {
          this.conversionStarter = p_34384_;
          this.villagerConversionTime = p_34385_;
          this.getEntityData().set(DATA_CONVERTING_ID, true);
 -        this.removeEffect(MobEffects.WEAKNESS);
 -        this.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, p_34385_, Math.min(this.level().getDifficulty().getId() - 1, 0)));
+-        this.level().broadcastEntityEvent(this, (byte)16);
 +        // CraftBukkit start
 +        this.removeEffect(MobEffects.WEAKNESS, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
 +        this.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, p_34385_, Math.min(this.level().getDifficulty().getId() - 1, 0)), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
 +        // CraftBukkit end
-         this.level().broadcastEntityEvent(this, (byte)16);
++        if (startConverting$broadcastEntityEvent.getAndSet(true)) this.level().broadcastEntityEvent(this, (byte)16); // Paper - missing entity behaviour api - converting without entity event
++    }
++
++    public void startConverting(@Nullable UUID uuid, int delay, boolean broadcastEntityEvent) {
++        startConverting$broadcastEntityEvent.set(broadcastEntityEvent);
++        startConverting(uuid, delay);
      }
  
+     @Override
 @@ -213,14 +_,22 @@
      }
  

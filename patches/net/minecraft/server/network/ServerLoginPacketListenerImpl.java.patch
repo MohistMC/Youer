@@ -291,7 +291,7 @@
                  }
              }
  
-@@ -220,24 +_,115 @@
+@@ -220,9 +_,8 @@
                      ? ((InetSocketAddress)socketaddress).getAddress()
                      : null;
              }
@@ -303,34 +303,10 @@
      }
  
      @Override
-     public void handleCustomQueryPacket(ServerboundCustomQueryAnswerPacket p_295398_) {
--        this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
-+        // Paper start - Velocity support
-+        if (GlobalConfiguration.get().proxies.velocity.enabled && p_295398_.transactionId() == this.velocityLoginMessageId) {
-+            if (p_295398_.payload() instanceof ServerboundCustomQueryAnswerPacket.QueryAnswerPayload(ByteBuf buffer)) {
-+                youer$handleCustomQueryPacket(new FriendlyByteBuf(buffer), "Youer");
-+            } else {
-+                try {
-+                    Field payloadField = ServerboundCustomQueryAnswerPacket.class.getDeclaredField("payload");
-+                    payloadField.setAccessible(true);
-+                    Object payloadObj = payloadField.get(p_295398_);
-+
-+                    Class<?> queryAnswerPayloadClass = Class.forName("net.fabricmc.fabric.impl.networking.payload.PacketByteBufLoginQueryResponse");
-+                    if (queryAnswerPayloadClass.isInstance(payloadObj)) {
-+                        Field bufferField = queryAnswerPayloadClass.getDeclaredField("data");
-+                        bufferField.setAccessible(true);
-+                        FriendlyByteBuf buffer = (FriendlyByteBuf) bufferField.get(payloadObj);
-+                        youer$handleCustomQueryPacket(new FriendlyByteBuf(Unpooled.wrappedBuffer(Unpooled.copyBoolean(true), buffer.slice())), "Fabric api");
-+                    }
-+                } catch (Exception e) {
-+                    this.disconnect(I18n.as("velocity.requires"));
-+                }
-+            }
-+        } else {
-+            this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
-+        }
-+    }
-+
+@@ -230,14 +_,83 @@
+         this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
+     }
+ 
 +    public void youer$handleCustomQueryPacket(FriendlyByteBuf payload, String type) {
 +        var buffer = payload.readNullable(r -> {
 +            int i = r.readableBytes();
@@ -396,8 +372,8 @@
 +                 InvocationTargetException e) {
 +            this.disconnect(Component.literal("Server encountered an error applying the Fabric Networking API workaround.\nThis is a server-side issue. Please contact an administrator."));
 +        }
-     }
- 
++    }
++
      @Override
      public void handleLoginAcknowledgement(ServerboundLoginAcknowledgedPacket p_295661_) {
 +        PacketUtils.ensureRunningOnSameThread(p_295661_, this, this.server); // CraftBukkit

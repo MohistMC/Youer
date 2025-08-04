@@ -12,6 +12,8 @@ import com.mohistmc.youer.bukkit.entity.YouerModsSkeleton;
 import com.mohistmc.youer.bukkit.entity.YouerModsThrowableProjectile;
 import com.mohistmc.youer.bukkit.entity.YouerModsVehicle;
 import com.mohistmc.youer.bukkit.entity.YouerModsWindCharge;
+import io.papermc.paper.entity.PaperSchoolableFish;
+import io.papermc.paper.entity.SchoolableFish;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
@@ -45,6 +47,7 @@ import net.minecraft.world.entity.ambient.AmbientCreature;
 import net.minecraft.world.entity.ambient.Bat;
 import net.minecraft.world.entity.animal.AbstractFish;
 import net.minecraft.world.entity.animal.AbstractGolem;
+import net.minecraft.world.entity.animal.AbstractSchoolingFish;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Bee;
 import net.minecraft.world.entity.animal.Cat;
@@ -120,6 +123,7 @@ import net.minecraft.world.entity.monster.MagmaCube;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.Phantom;
 import net.minecraft.world.entity.monster.Pillager;
+import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.monster.Ravager;
 import net.minecraft.world.entity.monster.Shulker;
 import net.minecraft.world.entity.monster.Silverfish;
@@ -415,7 +419,9 @@ public class EntityClassLookup {
                 org.bukkit.entity.Breedable.class,
                 org.bukkit.entity.Steerable.class,
                 org.bukkit.entity.Enemy.class,
-                org.bukkit.entity.ComplexLivingEntity.class
+                org.bukkit.entity.ComplexLivingEntity.class,
+                io.papermc.paper.entity.RangedEntity.class,
+                io.papermc.paper.entity.Leashable.class
         );
         boolean error = false;
         for (Class<?> entityClass : allEntityClasses) {
@@ -582,6 +588,7 @@ public class EntityClassLookup {
         add(Salmon.class, new EntityClass<>(org.bukkit.entity.Salmon.class, CraftSalmon.class, CraftSalmon::new));
         add(Pufferfish.class, new EntityClass<>(org.bukkit.entity.PufferFish.class, CraftPufferFish.class, CraftPufferFish::new));
         add(TropicalFish.class, new EntityClass<>(org.bukkit.entity.TropicalFish.class, CraftTropicalFish.class, CraftTropicalFish::new));
+        add(AbstractSchoolingFish.class, new EntityClass<>(SchoolableFish.class, PaperSchoolableFish.class, PaperSchoolableFish::new));
         add(Drowned.class, new EntityClass<>(org.bukkit.entity.Drowned.class, CraftDrowned.class, CraftDrowned::new));
         add(Dolphin.class, new EntityClass<>(org.bukkit.entity.Dolphin.class, CraftDolphin.class, CraftDolphin::new));
         add(Cat.class, new EntityClass<>(org.bukkit.entity.Cat.class, CraftCat.class, CraftCat::new));

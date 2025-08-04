@@ -3,7 +3,7 @@ package org.bukkit.craftbukkit.entity;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Salmon;
 
-public class CraftSalmon extends CraftFish implements Salmon {
+public class CraftSalmon extends io.papermc.paper.entity.PaperSchoolableFish implements Salmon {
 
     public CraftSalmon(CraftServer server, net.minecraft.world.entity.animal.Salmon entity) {
         super(server, entity);

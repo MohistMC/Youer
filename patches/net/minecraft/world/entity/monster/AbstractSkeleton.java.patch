@@ -8,6 +8,23 @@
  
  public abstract class AbstractSkeleton extends Monster implements RangedAttackMob {
      private static final int HARD_ATTACK_INTERVAL = 20;
+@@ -91,9 +_,15 @@
+ 
+     protected abstract SoundEvent getStepSound();
+ 
++    // Paper start - shouldBurnInDay API
++    private boolean shouldBurnInDay = true;
++    public boolean shouldBurnInDay() { return shouldBurnInDay; }
++    public void setShouldBurnInDay(boolean shouldBurnInDay) { this.shouldBurnInDay = shouldBurnInDay; }
++    // Paper end - shouldBurnInDay API
++
+     @Override
+     public void aiStep() {
+-        boolean flag = this.isSunBurnTick();
++        boolean flag = shouldBurnInDay && this.isSunBurnTick(); // Paper - shouldBurnInDay API
+         if (flag) {
+             ItemStack itemstack = this.getItemBySlot(EquipmentSlot.HEAD);
+             if (!itemstack.isEmpty()) {
 @@ -157,8 +_,8 @@
          if (this.level() != null && !this.level().isClientSide) {
              this.goalSelector.removeGoal(this.meleeGoal);
@@ -53,3 +70,25 @@
      }
  
      protected AbstractArrow getArrow(ItemStack p_32156_, float p_32157_, @Nullable ItemStack p_346155_) {
+@@ -207,7 +_,20 @@
+     public void readAdditionalSaveData(CompoundTag p_32152_) {
+         super.readAdditionalSaveData(p_32152_);
+         this.reassessWeaponGoal();
+-    }
++        // Paper start - shouldBurnInDay API
++        if (p_32152_.contains("Paper.ShouldBurnInDay")) {
++            this.shouldBurnInDay = p_32152_.getBoolean("Paper.ShouldBurnInDay");
++        }
++        // Paper end - shouldBurnInDay API
++    }
++
++    // Paper start - shouldBurnInDay API
++    @Override
++    public void addAdditionalSaveData(CompoundTag nbt) {
++        super.addAdditionalSaveData(nbt);
++        nbt.putBoolean("Paper.ShouldBurnInDay", this.shouldBurnInDay);
++    }
++    // Paper end - shouldBurnInDay API
+ 
+     @Override
+     public void setItemSlot(EquipmentSlot p_32138_, ItemStack p_32139_) {

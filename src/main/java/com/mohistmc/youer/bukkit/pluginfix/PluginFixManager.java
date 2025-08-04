@@ -36,10 +36,16 @@ public class PluginFixManager {
         }
         Consumer<ClassNode> patcher = switch (className) {
             case "com.earth2me.essentials.utils.VersionUtil" -> node -> {
-                helloWorld(node, 110, 109);
                 helloWorld(node, "brand:", "peace");
+                helloWorld(node, "8(;4>`", "peace");
             };
-            case "net.Zrips.CMILib.Reflections" -> node -> helloWorld(node, "bR", "f_36096_");
+            case "net.Zrips.CMILib.Reflections" -> node -> {
+                helloWorld(node, "net.minecraft.server.network.PlayerConnection", "net.minecraft.server.network.ServerGamePacketListenerImpl");
+                helloWorld(node, "bR", "f_36096_");
+            };
+            case "net.Zrips.CMILib.RawMessages.RawMessageManager" -> node -> {
+                helloWorld(node, "net.minecraft.server.network.PlayerConnection", "net.minecraft.server.network.ServerGamePacketListenerImpl");
+            };
             case "com.sk89q.worldedit.bukkit.BukkitConfiguration" -> node -> {
                 helloWorld(node, "I accept that I will receive no support with this flag enabled.", "youer");
                 helloWorld(node, "allow-editing-on-unsupported-versions", "youer");

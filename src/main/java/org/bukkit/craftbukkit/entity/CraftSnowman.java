@@ -1,10 +1,11 @@
 package org.bukkit.craftbukkit.entity;
 
+import io.papermc.paper.entity.CraftRangedEntity;
 import net.minecraft.world.entity.animal.SnowGolem;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Snowman;
 
-public class CraftSnowman extends CraftGolem implements Snowman {
+public class CraftSnowman extends CraftGolem implements Snowman, CraftRangedEntity<SnowGolem> {
     public CraftSnowman(CraftServer server, SnowGolem entity) {
         super(server, entity);
     }
