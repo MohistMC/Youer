@@ -32,6 +32,7 @@ import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.DecoratedPotBlock;
 import net.minecraft.world.level.block.SignBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.DecoratedPotBlockEntity;
 import net.minecraft.world.level.block.entity.HangingSignBlockEntity;
@@ -89,6 +90,7 @@ public class NeoForgeInjectBukkit {
         addEnumMaterialInItems();
         addEnumEffectAndPotion();
         addEnumMaterialsInBlocks();
+        // addEnumMaterialsInBlockEntityType();
         addEnumBiome();
         addFluid();
         addEnumEntity();
@@ -133,6 +135,17 @@ public class NeoForgeInjectBukkit {
                     CraftMagicNumbers.MATERIAL_BLOCK.put(material, block);
                     Youer.LOGGER.debug("Save-BLOCK:{} - {}", material.name(), material.key);
                 }
+            }
+        }
+    }
+
+    public static void addEnumMaterialsInBlockEntityType() {
+        var registry = BuiltInRegistries.BLOCK_ENTITY_TYPE;
+        for (BlockEntityType<?> entityType : registry) {
+            ResourceLocation resourceLocation = registry.getKey(entityType);
+            if (isMods(resourceLocation)) {
+                String materialName = MohistDynamEnum.normalizeName(resourceLocation.toString());
+                Youer.LOGGER.error("Discover entity blocks:{} - {}", entityType, materialName);
             }
         }
     }
