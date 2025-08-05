@@ -34,13 +34,15 @@ public class PluginFixManager {
         if (className.equals("com.onarandombox.MultiverseCore.utils.WorldManager")) {
             return patch(clazz, MultiverseCore::fix);
         }
+        if (className.startsWith("net.Zrips.CMILib.") || className.startsWith("com.Zrips.CMI.")) {
+            return patch(clazz, node -> helloWorld(node, "net.minecraft.server.network.PlayerConnection", "net.minecraft.server.network.ServerGamePacketListenerImpl"));
+        }
         Consumer<ClassNode> patcher = switch (className) {
             case "com.earth2me.essentials.utils.VersionUtil" -> node -> {
                 helloWorld(node, "brand:", "peace");
                 helloWorld(node, "8(;4>`", "peace");
             };
             case "net.Zrips.CMILib.Reflections" -> node -> {
-                helloWorld(node, "net.minecraft.server.network.PlayerConnection", "net.minecraft.server.network.ServerGamePacketListenerImpl");
                 helloWorld(node, "bR", "f_36096_");
             };
             case "net.Zrips.CMILib.RawMessages.RawMessageManager" -> node -> {
