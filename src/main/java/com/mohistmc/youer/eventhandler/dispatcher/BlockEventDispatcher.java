@@ -80,7 +80,7 @@ public class BlockEventDispatcher {
     }
 
     @SubscribeEvent(receiveCanceled = true)
-    public void onBlockPlace(BlockDropsEvent event) {
+    public void onBlockDrops(BlockDropsEvent event) {
         org.bukkit.block.Block block = CraftBlock.at(event.getLevel(), event.getPos());
         org.bukkit.block.BlockState state = block.getState();
         Entity entity = event.getBreaker();

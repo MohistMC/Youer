@@ -12,7 +12,11 @@ import org.objectweb.asm.tree.VarInsnNode;
 /**
  * @author Mgazul by MohistMC
  * @date 2023/8/27 11:29:47
+ *
+ * Valid only in MultiverseCore-4.X
+ *
  */
+@Deprecated
 public class MultiverseCore {
 
     public static void fix(ClassNode node) {

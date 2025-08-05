@@ -120,7 +120,7 @@ public final class CraftBlockStates {
         @Override
         public CraftBlockState createBlockState(World world, BlockPos blockPosition, net.minecraft.world.level.block.state.BlockState blockData, BlockEntity tileEntity) {
             // Paper - revert upstream's revert of the block state changes. Block entities that have already had the block type set to AIR are still valid, upstream decided to ignore them
-            Preconditions.checkState(tileEntity == null, "Unexpected BlockState for %s", CraftBlockType.minecraftToBukkit(blockData.getBlock()));
+            // Preconditions.checkState(tileEntity == null, "Unexpected BlockState for %s", CraftBlockType.minecraftToBukkit(blockData.getBlock()));
             return new CraftBlockState(world, blockPosition, blockData);
         }
     };
@@ -185,7 +185,7 @@ public final class CraftBlockStates {
         CraftBlockStates.FACTORIES.put(blockType, factory);
     }
 
-    private static <T extends BlockEntity, B extends CraftBlockEntityState<T>> void register(
+    public static <T extends BlockEntity, B extends CraftBlockEntityState<T>> void register(
             net.minecraft.world.level.block.entity.BlockEntityType<? extends T> blockEntityType, // Paper
             Class<B> blockStateType,
             BiFunction<World, T, B> blockStateConstructor // Paper
