@@ -9,11 +9,15 @@
  import org.slf4j.Logger;
  
  public class EnderDragon extends Mob implements Enemy {
-@@ -87,6 +_,7 @@
+@@ -87,6 +_,11 @@
      private final Node[] nodes = new Node[24];
      private final int[] nodeAdjacency = new int[24];
      private final BinaryHeap openSet = new BinaryHeap();
 +    private final net.minecraft.world.level.Explosion explosionSource; // CraftBukkit - reusable source for CraftTNTPrimed.getSource()
++    // Paper start - Allow changing the EnderDragon podium
++    @Nullable
++    private BlockPos podium;
++    // Paper end - Allow changing the EnderDragon podium
  
      public EnderDragon(EntityType<? extends EnderDragon> p_31096_, Level p_31097_) {
          super(EntityType.ENDER_DRAGON, p_31097_);
@@ -33,6 +37,26 @@
      }
  
      public void setDragonFight(EndDragonFight p_287736_) {
+@@ -121,6 +_,19 @@
+         return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 200.0);
+     }
+ 
++    // Paper start - Allow changing the EnderDragon podium
++    public BlockPos getPodium() {
++        if (this.podium == null) {
++            return EndPodiumFeature.getLocation(this.getFightOrigin());
++        }
++        return this.podium;
++    }
++
++    public void setPodium(@Nullable BlockPos blockPos) {
++        this.podium = blockPos;
++    }
++    // Paper end - Allow changing the EnderDragon podium
++
+     @Override
+     public boolean isFlapping() {
+         float f = Mth.cos(this.flapTime * (float) (Math.PI * 2));
 @@ -170,8 +_,12 @@
          return adouble;
      }
@@ -231,6 +255,24 @@
      }
  
      @Override
+@@ -823,7 +_,7 @@
+         EnderDragonPhase<? extends DragonPhaseInstance> enderdragonphase = dragonphaseinstance.getPhase();
+         double d0;
+         if (enderdragonphase == EnderDragonPhase.LANDING || enderdragonphase == EnderDragonPhase.TAKEOFF) {
+-            BlockPos blockpos = this.level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EndPodiumFeature.getLocation(this.fightOrigin));
++            BlockPos blockpos = this.level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,this.getPodium()); // Paper - Allow changing the EnderDragon podium
+             double d1 = Math.max(Math.sqrt(blockpos.distToCenterSqr(this.position())) / 4.0, 1.0);
+             d0 = (double)p_31109_ / d1;
+         } else if (dragonphaseinstance.isSitting()) {
+@@ -842,7 +_,7 @@
+         EnderDragonPhase<? extends DragonPhaseInstance> enderdragonphase = dragonphaseinstance.getPhase();
+         Vec3 vec3;
+         if (enderdragonphase == EnderDragonPhase.LANDING || enderdragonphase == EnderDragonPhase.TAKEOFF) {
+-            BlockPos blockpos = this.level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EndPodiumFeature.getLocation(this.fightOrigin));
++            BlockPos blockpos = this.level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, this.getPodium()); // Paper - Allow changing the EnderDragon podium
+             float f5 = Math.max((float)Math.sqrt(blockpos.distToCenterSqr(this.position())) / 4.0F, 1.0F);
+             float f2 = 6.0F / f5;
+             float f3 = this.getXRot();
 @@ -912,8 +_,19 @@
      }
  

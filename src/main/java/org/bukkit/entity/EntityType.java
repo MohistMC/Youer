@@ -30,7 +30,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public enum EntityType implements Keyed, Translatable, io.papermc.paper.world.flag.FeatureDependant { // Paper - translatable
+public enum EntityType implements Keyed, Translatable, net.kyori.adventure.translation.Translatable, io.papermc.paper.world.flag.FeatureDependant { // Paper - translatable
 
     // These strings MUST match the strings in nms.EntityTypes and are case sensitive.
     /**
@@ -438,6 +438,16 @@ public enum EntityType implements Keyed, Translatable, io.papermc.paper.world.fl
     @NotNull
     public String getTranslationKey() {
         return Bukkit.getUnsafe().getTranslationKey(this);
+    }
+
+    // Paper start
+    /**
+     * @throws IllegalArgumentException if the entity does not have a translation key (is probably a custom entity)
+     */
+    @Override
+    public @NotNull String translationKey() {
+        Preconditions.checkArgument(this != UNKNOWN, "UNKNOWN entities do not have translation keys");
+        return org.bukkit.Bukkit.getUnsafe().getTranslationKey(this);
     }
 
     /**

@@ -416,7 +416,7 @@
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Ticking player");
              CrashReportCategory crashreportcategory = crashreport.addCategory("Player being ticked");
-@@ -657,9 +_,40 @@
+@@ -657,9 +_,42 @@
      @Override
      public void die(DamageSource p_9035_) {
          this.gameEvent(GameEvent.ENTITY_DIE);
@@ -439,11 +439,13 @@
 +                }
 +            }
 +        }
-+        // SPIGOT-5071: manually add player loot tables (SPIGOT-5195 - ignores keepInventory rule)
-+        this.dropFromLootTable(p_9035_, this.lastHurtByPlayerTime > 0);
-+        this.dropCustomDeathLoot(this.serverLevel(), p_9035_, flag);
-+        loot.addAll(this.drops);
-+        this.drops.clear(); // SPIGOT-5188: make sure to clear
++
++        if (this.shouldDropLoot() && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) { // Paper - fix player loottables running when mob loot gamerule is false
++            // SPIGOT-5071: manually add player loot tables (SPIGOT-5195 - ignores keepInventory rule)
++            this.dropFromLootTable(p_9035_, this.lastHurtByPlayerTime > 0);
++            this.dropCustomDeathLoot(this.serverLevel(), p_9035_, flag);
++        } // Paper - fix player loottables running when mob loot gamerule is false
++
 +        Component defaultMessage = this.getCombatTracker().getDeathMessage();
 +        String deathmessage = defaultMessage.getString();
 +        keepLevel = keepInventory; // SPIGOT-2222: pre-set keepLevel

@@ -100,7 +100,7 @@
      protected boolean dead;
      protected int noActionTime;
      protected float oRun;
-@@ -251,13 +_,37 @@
+@@ -251,13 +_,36 @@
      private float swimAmount;
      private float swimAmountO;
      protected Brain<?> brain;
@@ -119,7 +119,6 @@
 +
 +    // CraftBukkit start
 +    public int expToDrop;
-+    public ArrayList<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
 +    public final CraftAttributeMap craftAttributes;
 +    public boolean collides = true;
 +    public Set<UUID> collidableExemptions = new HashSet<>();
@@ -885,7 +884,7 @@
              }
  
              this.dead = true;
-@@ -1361,32 +_,46 @@
+@@ -1361,32 +_,47 @@
          if (!this.level().isClientSide) {
              boolean flag = false;
              if (p_21269_ instanceof WitherBoss) {
@@ -932,6 +931,7 @@
 +
 +        Collection<ItemEntity> drops = captureDrops(null);
 +        EmeraldClose.init(this, drops); // Mohist
++        CraftEventFactory.callEntityDeathEvent(this, p_21192_, drops);
 +        if (!net.neoforged.neoforge.common.CommonHooks.onLivingDrops(this, p_21192_, drops, lastHurtByPlayerTime > 0))
 +            drops.forEach(e -> level().addFreshEntity(e));
      }
@@ -1499,6 +1499,15 @@
              }
          } else {
              this.noJumpDelay = 0;
+@@ -2683,7 +_,7 @@
+ 
+         this.level().getProfiler().pop();
+         this.level().getProfiler().push("freezing");
+-        if (!this.level().isClientSide && !this.isDeadOrDying()) {
++        if (!this.level().isClientSide && !this.isDeadOrDying() && !this.freezeLocked) { // Paper - Freeze Tick Lock API
+             int i = this.getTicksFrozen();
+             if (this.isInPowderSnow && this.canFreeze()) {
+                 this.setTicksFrozen(Math.min(this.getTicksRequiredToFreeze(), i + 1));
 @@ -2707,6 +_,20 @@
  
          this.pushEntities();
@@ -1718,17 +1727,20 @@
          if (!this.level().isClientSide) {
              boolean flag = this.isUsingItem();
              this.setLivingEntityFlag(1, false);
-@@ -3161,10 +_,55 @@
+@@ -3161,7 +_,7 @@
      public boolean isBlocking() {
          if (this.isUsingItem() && !this.useItem.isEmpty()) {
              Item item = this.useItem.getItem();
 -            return item.getUseAnimation(this.useItem) != UseAnim.BLOCK ? false : item.getUseDuration(this.useItem, this) - this.useItemRemaining >= 5;
-+            return !this.useItem.canPerformAction(net.neoforged.neoforge.common.ItemAbilities.SHIELD_BLOCK) ? false : item.getUseDuration(this.useItem, this) - this.useItemRemaining >= 5;
++            return !this.useItem.canPerformAction(net.neoforged.neoforge.common.ItemAbilities.SHIELD_BLOCK) ? false : item.getUseDuration(this.useItem, this) - this.useItemRemaining >= getShieldBlockingDelay(); // Paper - Make shield blocking delay configurable
          } else {
              return false;
          }
-+    }
-+
+@@ -3171,6 +_,63 @@
+         return this.isShiftKeyDown();
+     }
+ 
++    // Paper start - Make shield blocking delay configurable
 +    public HitResult getRayTrace(int maxDistance, ClipContext.Fluid fluidCollisionOption) {
 +        if (maxDistance < 1 || maxDistance > 120) {
 +            throw new IllegalArgumentException("maxDistance must be between 1-120");
@@ -1772,9 +1784,22 @@
 +        }
 +
 +        return result;
++    }
++
++    public int shieldBlockingDelay = this.level().paperConfig().misc.shieldBlockingDelay;
++
++    public int getShieldBlockingDelay() {
++        return shieldBlockingDelay;
++    }
++
++    public void setShieldBlockingDelay(int shieldBlockingDelay) {
++        this.shieldBlockingDelay = shieldBlockingDelay;
++    }
++    // Paper end - Make shield blocking delay configurable
++
+     public boolean isFallFlying() {
+         return this.getSharedFlag(7);
      }
- 
-     public boolean isSuppressingSlidingDownLadder() {
 @@ -3185,6 +_,12 @@
      }
  

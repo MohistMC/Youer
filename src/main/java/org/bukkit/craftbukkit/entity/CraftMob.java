@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import org.bukkit.Sound;
 import org.bukkit.craftbukkit.CraftLootTable;
@@ -102,6 +103,13 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
     @Override
     public void setAggressive(boolean aggressive) {
         this.getHandle().setAggressive(aggressive);
+    }
+    // Paper end
+
+    // Paper start
+    @Override
+    public int getPossibleExperienceReward() {
+        return getHandle().getExperienceReward((ServerLevel) this.getHandle().level(), null);
     }
     // Paper end
 

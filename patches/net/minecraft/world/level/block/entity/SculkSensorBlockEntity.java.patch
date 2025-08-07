@@ -1,0 +1,42 @@
+--- a/net/minecraft/world/level/block/entity/SculkSensorBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/SculkSensorBlockEntity.java
+@@ -26,6 +_,7 @@
+     private final VibrationSystem.Listener vibrationListener;
+     private final VibrationSystem.User vibrationUser = this.createVibrationUser();
+     public int lastVibrationFrequency;
++    @Nullable public Integer rangeOverride = null; // Paper - Configurable sculk sensor listener range
+ 
+     protected SculkSensorBlockEntity(BlockEntityType<?> p_277405_, BlockPos p_277502_, BlockState p_277699_) {
+         super(p_277405_, p_277502_, p_277699_);
+@@ -52,8 +_,16 @@
+                 .resultOrPartial(p_351973_ -> LOGGER.error("Failed to parse vibration listener for Sculk Sensor: '{}'", p_351973_))
+                 .ifPresent(p_281146_ -> this.vibrationData = p_281146_);
+         }
++        // Paper start - Configurable sculk sensor listener range
++        if (p_338719_.contains(PAPER_LISTENER_RANGE_NBT_KEY)) {
++            this.rangeOverride = p_338719_.getInt(PAPER_LISTENER_RANGE_NBT_KEY);
++        } else {
++            this.rangeOverride = null;
++        }
++        // Paper end - Configurable sculk sensor listener range
+     }
+ 
++    protected static final String PAPER_LISTENER_RANGE_NBT_KEY = "Paper.ListenerRange"; // Paper - Configurable sculk sensor listener range
+     @Override
+     protected void saveAdditional(CompoundTag p_187511_, HolderLookup.Provider p_323787_) {
+         super.saveAdditional(p_187511_, p_323787_);
+@@ -63,7 +_,13 @@
+             .encodeStart(registryops, this.vibrationData)
+             .resultOrPartial(p_351974_ -> LOGGER.error("Failed to encode vibration listener for Sculk Sensor: '{}'", p_351974_))
+             .ifPresent(p_222820_ -> p_187511_.put("listener", p_222820_));
+-    }
++        this.saveRangeOverride(p_187511_); // Paper - Configurable sculk sensor listener range
++    }
++    // Paper start - Configurable sculk sensor listener range
++    protected void saveRangeOverride(CompoundTag nbt) {
++        if (this.rangeOverride != null && this.rangeOverride != VibrationUser.LISTENER_RANGE) nbt.putInt(PAPER_LISTENER_RANGE_NBT_KEY, this.rangeOverride); // only save if it's different from the default
++    }
++    // Paper end - Configurable sculk sensor listener range
+ 
+     @Override
+     public VibrationSystem.Data getVibrationData() {

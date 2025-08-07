@@ -21,4 +21,12 @@ public class CraftAttributeMap implements Attributable {
 
         return (nms == null) ? null : new CraftAttributeInstance(nms, attribute);
     }
+
+    // Paper start - living entity allow attribute registration
+    @Override
+    public void registerAttribute(Attribute attribute) {
+        Preconditions.checkArgument(attribute != null, "attribute");
+        handle.registerAttribute(CraftAttribute.bukkitToMinecraftHolder(attribute));
+    }
+    // Paper end - living entity allow attribute registration
 }

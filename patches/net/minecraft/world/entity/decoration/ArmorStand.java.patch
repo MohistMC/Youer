@@ -1,12 +1,21 @@
 --- a/net/minecraft/world/entity/decoration/ArmorStand.java
 +++ b/net/minecraft/world/entity/decoration/ArmorStand.java
-@@ -37,12 +_,14 @@
- import net.minecraft.world.level.Explosion;
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.LightLayer;
--import net.minecraft.world.level.block.Block;
- import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.gameevent.GameEvent;
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.entity.decoration;
+ 
++import java.util.Collection;
+ import java.util.function.Predicate;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.BlockPos;
+@@ -30,6 +_,7 @@
+ import net.minecraft.world.entity.Pose;
+ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+ import net.minecraft.world.entity.ai.attributes.Attributes;
++import net.minecraft.world.entity.item.ItemEntity;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.entity.vehicle.AbstractMinecart;
+ import net.minecraft.world.item.ItemStack;
+@@ -43,6 +_,9 @@
  import net.minecraft.world.level.material.PushReaction;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
@@ -25,14 +34,24 @@
      private final NonNullList<ItemStack> handItems = NonNullList.withSize(2, ItemStack.EMPTY);
      private final NonNullList<ItemStack> armorItems = NonNullList.withSize(4, ItemStack.EMPTY);
      private boolean invisible;
-@@ -85,6 +_,7 @@
+@@ -85,9 +_,17 @@
      public Rotations rightArmPose = DEFAULT_RIGHT_ARM_POSE;
      public Rotations leftLegPose = DEFAULT_LEFT_LEG_POSE;
      public Rotations rightLegPose = DEFAULT_RIGHT_LEG_POSE;
 +    public boolean canMove = true; // Paper
++    // Paper start - Allow ArmorStands not to tick
++    public boolean canTick = true;
++    public boolean canTickSetByAPI = false;
++    private boolean noTickPoseDirty = false;
++    private boolean noTickEquipmentDirty = false;
++    // Paper end - Allow ArmorStands not to tick
  
      public ArmorStand(EntityType<? extends ArmorStand> p_31553_, Level p_31554_) {
          super(p_31553_, p_31554_);
++        if (p_31554_ != null) this.canTick = p_31554_.paperConfig().entities.armorStands.tick; // Paper - Allow ArmorStands not to tick
+     }
+ 
+     public ArmorStand(Level p_31556_, double p_31557_, double p_31558_, double p_31559_) {
 @@ -99,6 +_,13 @@
          return createLivingAttributes().add(Attributes.STEP_HEIGHT, 0.0);
      }
@@ -47,7 +66,7 @@
      @Override
      public void refreshDimensions() {
          double d0 = this.getX();
-@@ -158,13 +_,19 @@
+@@ -158,14 +_,22 @@
  
      @Override
      public void setItemSlot(EquipmentSlot p_31584_, ItemStack p_31585_) {
@@ -67,8 +86,32 @@
 -                this.onEquipItem(p_31584_, this.armorItems.set(p_31584_.getIndex(), p_31585_), p_31585_);
 +                this.onEquipItem(p_31584_, this.armorItems.set(p_31584_.getIndex(), p_31585_), p_31585_, silent);
          }
++
++        this.noTickEquipmentDirty = true; // Paper - Allow ArmorStands not to tick; Still update equipment
      }
  
+     @Override
+@@ -201,6 +_,7 @@
+         }
+ 
+         p_31619_.put("Pose", this.writePose());
++        if (this.canTickSetByAPI) p_31619_.putBoolean("Paper.CanTickOverride", this.canTick); // Paper - Allow ArmorStands not to tick
+     }
+ 
+     @Override
+@@ -231,6 +_,12 @@
+         this.setNoBasePlate(p_31600_.getBoolean("NoBasePlate"));
+         this.setMarker(p_31600_.getBoolean("Marker"));
+         this.noPhysics = !this.hasPhysics();
++        // Paper start - Allow ArmorStands not to tick
++        if (p_31600_.contains("Paper.CanTickOverride")) {
++            this.canTick = p_31600_.getBoolean("Paper.CanTickOverride");
++            this.canTickSetByAPI = true;
++        }
++        // Paper end - Allow ArmorStands not to tick
+         CompoundTag compoundtag1 = p_31600_.getCompound("Pose");
+         this.readPose(compoundtag1);
+     }
 @@ -290,6 +_,7 @@
  
      @Override
@@ -166,42 +209,37 @@
          } else {
              this.setHealth(f);
              this.gameEvent(GameEvent.ENTITY_DAMAGE, p_31649_.getEntity());
-@@ -493,18 +_,18 @@
-     private void brokenByPlayer(ServerLevel p_348677_, DamageSource p_31647_) {
-         ItemStack itemstack = new ItemStack(Items.ARMOR_STAND);
-         itemstack.set(DataComponents.CUSTOM_NAME, this.getCustomName());
--        Block.popResource(this.level(), this.blockPosition(), itemstack);
-+        drops.add(CraftItemStack.asBukkitCopy(itemstack)); // CraftBukkit - add to drops
-         this.brokenByAnything(p_348677_, p_31647_);
-     }
+@@ -550,7 +_,29 @@
  
-     private void brokenByAnything(ServerLevel p_348553_, DamageSource p_31654_) {
-         this.playBrokenSound();
--        this.dropAllDeathLoot(p_348553_, p_31654_);
-+        // this.dropAllDeathLoot(p_348553_, p_31654_); // CraftBukkit - moved down
- 
-         for (int i = 0; i < this.handItems.size(); i++) {
-             ItemStack itemstack = this.handItems.get(i);
-             if (!itemstack.isEmpty()) {
--                Block.popResource(this.level(), this.blockPosition().above(), itemstack);
-+                drops.add(CraftItemStack.asBukkitCopy(itemstack)); // CraftBukkit - add to drops
-                 this.handItems.set(i, ItemStack.EMPTY);
-             }
-         }
-@@ -512,10 +_,11 @@
-         for (int j = 0; j < this.armorItems.size(); j++) {
-             ItemStack itemstack1 = this.armorItems.get(j);
-             if (!itemstack1.isEmpty()) {
--                Block.popResource(this.level(), this.blockPosition().above(), itemstack1);
-+                drops.add(CraftItemStack.asBukkitCopy(itemstack1)); // CraftBukkit - add to drops
-                 this.armorItems.set(j, ItemStack.EMPTY);
-             }
-         }
-+        this.dropAllDeathLoot(p_348553_, p_31654_); // CraftBukkit - moved from above
-     }
- 
-     private void playBrokenSound() {
-@@ -598,9 +_,26 @@
+     @Override
+     public void tick() {
++        // Paper start - Allow ArmorStands not to tick
++        if (!this.canTick) {
++            if (this.noTickPoseDirty) {
++                this.noTickPoseDirty = false;
++                this.updatePose();
++            }
++
++            if (this.noTickEquipmentDirty) {
++                this.noTickEquipmentDirty = false;
++                this.detectEquipmentUpdatesPublic();
++            }
++
++            return;
++        }
++        // Paper end - Allow ArmorStands not to tick
++
+         super.tick();
++        // Paper start - Allow ArmorStands not to tick
++        updatePose();
++    }
++
++    public void updatePose() {
++        // Paper end - Allow ArmorStands not to tick
+         Rotations rotations = this.entityData.get(DATA_HEAD_POSE);
+         if (!this.headPose.equals(rotations)) {
+             this.setHeadPose(rotations);
+@@ -598,9 +_,28 @@
          return this.isSmall();
      }
  
@@ -215,7 +253,8 @@
      @Override
      public void kill() {
 -        this.remove(Entity.RemovalReason.KILLED);
-+        CraftEventFactory.callEntityDeathEvent(this, this.damageSources().genericKill(), drops); // CraftBukkit - call event
++        Collection<ItemEntity> captureDrops = this.captureDrops(null);
++        CraftEventFactory.callEntityDeathEvent(this, this.damageSources().genericKill(), captureDrops); // CraftBukkit - call event
 +        setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH);
 +        this.remove(Entity.RemovalReason.KILLED); // CraftBukkit - add Bukkit remove cause
 +        // CraftBukkit end
@@ -223,12 +262,51 @@
 +    }
 +
 +    public void kill(DamageSource damageSource) {
-+        CraftEventFactory.callEntityDeathEvent(this, (damageSource == null ? this.damageSources().genericKill() : damageSource), drops); // CraftBukkit - call event
++        Collection<ItemEntity> captureDrops = this.captureDrops(null);
++        CraftEventFactory.callEntityDeathEvent(this, (damageSource == null ? this.damageSources().genericKill() : damageSource), captureDrops); // CraftBukkit - call event
 +        this.remove(Entity.RemovalReason.KILLED, org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
 +        // CraftBukkit end
          this.gameEvent(GameEvent.ENTITY_DIE);
      }
  
+@@ -664,31 +_,37 @@
+     public void setHeadPose(Rotations p_31598_) {
+         this.headPose = p_31598_;
+         this.entityData.set(DATA_HEAD_POSE, p_31598_);
++        this.noTickPoseDirty = true; // Paper - Allow updates when not ticking
+     }
+ 
+     public void setBodyPose(Rotations p_31617_) {
+         this.bodyPose = p_31617_;
+         this.entityData.set(DATA_BODY_POSE, p_31617_);
++        this.noTickPoseDirty = true; // Paper - Allow updates when not ticking
+     }
+ 
+     public void setLeftArmPose(Rotations p_31624_) {
+         this.leftArmPose = p_31624_;
+         this.entityData.set(DATA_LEFT_ARM_POSE, p_31624_);
++        this.noTickPoseDirty = true; // Paper - Allow updates when not ticking
+     }
+ 
+     public void setRightArmPose(Rotations p_31629_) {
+         this.rightArmPose = p_31629_;
+         this.entityData.set(DATA_RIGHT_ARM_POSE, p_31629_);
++        this.noTickPoseDirty = true; // Paper - Allow updates when not ticking
+     }
+ 
+     public void setLeftLegPose(Rotations p_31640_) {
+         this.leftLegPose = p_31640_;
+         this.entityData.set(DATA_LEFT_LEG_POSE, p_31640_);
++        this.noTickPoseDirty = true; // Paper - Allow updates when not ticking
+     }
+ 
+     public void setRightLegPose(Rotations p_31652_) {
+         this.rightLegPose = p_31652_;
+         this.entityData.set(DATA_RIGHT_LEG_POSE, p_31652_);
++        this.noTickPoseDirty = true; // Paper - Allow updates when not ticking
+     }
+ 
+     public Rotations getHeadPose() {
 @@ -820,4 +_,13 @@
      public boolean canBeSeenByAnyone() {
          return !this.isInvisible() && !this.isMarker();

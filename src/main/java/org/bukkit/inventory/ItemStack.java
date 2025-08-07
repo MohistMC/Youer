@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
  * use this class to encapsulate Materials for which {@link Material#isItem()}
  * returns false.</b>
  */
-public class ItemStack implements Cloneable, ConfigurationSerializable, Translatable, net.kyori.adventure.text.event.HoverEventSource<net.kyori.adventure.text.event.HoverEvent.ShowItem>, io.papermc.paper.persistence.PersistentDataViewHolder { // Paper
+public class ItemStack implements Cloneable, ConfigurationSerializable, Translatable, net.kyori.adventure.text.event.HoverEventSource<net.kyori.adventure.text.event.HoverEvent.ShowItem>, io.papermc.paper.persistence.PersistentDataViewHolder, net.kyori.adventure.translation.Translatable { // Paper
     private ItemStack craftDelegate; // Paper - always delegate to server-backed stack
     private MaterialData data = null;
 
@@ -1043,6 +1043,17 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
         return itemMeta != null && itemMeta.hasItemFlag(flag);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * This is not the same as getting the translation key
+     * for the material of this itemstack.
+     */
+    @Override
+    public @NotNull String translationKey() {
+        return Bukkit.getUnsafe().getTranslationKey(this);
+    }
+
     // Paper start - expose itemstack tooltip lines
     /**
      * Computes the tooltip lines for this stack.
@@ -1060,4 +1071,26 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
         return Bukkit.getUnsafe().computeTooltipLines(this, tooltipContext, player);
     }
     // Paper end - expose itemstack tooltip lines
+
+    /**
+     * Checks if an itemstack can repair this itemstack.
+     * Returns false if {@code this} or {@code repairMaterial}'s type is not an item ({@link Material#isItem()}).
+     *
+     * @param repairMaterial the repair material
+     * @return true if it is repairable by, false if not
+     */
+    public boolean isRepairableBy(@NotNull ItemStack repairMaterial) {
+        return Bukkit.getUnsafe().isValidRepairItemStack(this, repairMaterial);
+    }
+
+    /**
+     * Checks if this itemstack can repair another.
+     * Returns false if {@code this} or {@code toBeRepaired}'s type is not an item ({@link Material#isItem()}).
+     *
+     * @param toBeRepaired the itemstack to be repaired
+     * @return true if it can repair, false if not
+     */
+    public boolean canRepair(@NotNull ItemStack toBeRepaired) {
+        return Bukkit.getUnsafe().isValidRepairItemStack(toBeRepaired, this);
+    }
 }

@@ -33,6 +33,20 @@ public class EntityDamageByEntityEvent extends EntityDamageEvent {
         this.damager = damager;
     }
 
+    // Paper start
+    /**
+     * {@inheritDoc}
+     * <p>
+     * The {@link DamageSource#getDirectEntity()} may be different from the {@link #getDamager()}
+     * if the Minecraft damage source did not originally include an damager entity, but one was included
+     * for this event {@link #getDamager()}.
+     */
+    @Override
+    public @NotNull DamageSource getDamageSource() {
+        return super.getDamageSource();
+    }
+    // Paper end
+
     /**
      * Returns the entity that damaged the defender.
      *

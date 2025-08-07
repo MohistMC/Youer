@@ -491,6 +491,13 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         return effects;
     }
 
+    // Paper start - LivingEntity#clearActivePotionEffects();
+    @Override
+    public boolean clearActivePotionEffects() {
+        return this.getHandle().removeAllEffects(EntityPotionEffectEvent.Cause.PLUGIN);
+    }
+    // Paper end
+
     @Override
     public <T extends Projectile> T launchProjectile(Class<? extends T> projectile) {
         return this.launchProjectile(projectile, null);
@@ -739,6 +746,13 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         return this.getHandle().craftAttributes.getAttribute(attribute);
     }
 
+    // Paper start - living entity allow attribute registration
+    @Override
+    public void registerAttribute(Attribute attribute) {
+        getHandle().craftAttributes.registerAttribute(attribute);
+    }
+    // Paper end - living entity allow attribute registration
+
     @Override
     public void setAI(boolean ai) {
         if (this.getHandle() instanceof Mob) {
@@ -900,6 +914,17 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     public void setArrowsStuck(final int arrows) {
         this.getHandle().setArrowCount(arrows);
     }
+
+    @Override
+    public int getShieldBlockingDelay() {
+        return getHandle().getShieldBlockingDelay();
+    }
+
+    @Override
+    public void setShieldBlockingDelay(int delay) {
+        getHandle().setShieldBlockingDelay(delay);
+    }
+    // Paper end
 
     // Paper start - active item API
     @Override

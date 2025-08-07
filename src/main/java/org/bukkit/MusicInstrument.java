@@ -6,7 +6,7 @@ import java.util.Collections;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class MusicInstrument implements Keyed {
+public abstract class MusicInstrument implements Keyed, net.kyori.adventure.translation.Translatable { // Paper - translation keys
 
     public static final MusicInstrument PONDER_GOAT_HORN = getInstrument("ponder_goat_horn");
     public static final MusicInstrument SING_GOAT_HORN = getInstrument("sing_goat_horn");
@@ -56,4 +56,11 @@ public abstract class MusicInstrument implements Keyed {
     @Override
     public abstract @NotNull NamespacedKey getKey();
     // Paper end - deprecate getKey
+
+    // Paper start - translation key
+    @Override
+    public @NotNull String translationKey() {
+        return "instrument.minecraft." + this.getKey().value();
+    }
+    // Paper end - translation key
 }

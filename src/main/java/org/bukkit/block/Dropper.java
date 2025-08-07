@@ -1,11 +1,12 @@
 package org.bukkit.block;
 
+import io.papermc.paper.loottable.LootableBlockInventory;
 import org.bukkit.loot.Lootable;
 
 /**
  * Represents a captured state of a dropper.
  */
-public interface Dropper extends Container, Lootable {
+public interface Dropper extends Container, LootableBlockInventory {
 
     /**
      * Tries to drop a randomly selected item from the dropper's inventory,

@@ -26,4 +26,9 @@ public abstract class EnchantmentWrapper extends Enchantment {
     public net.kyori.adventure.text.Component displayName(int level) {
         return getEnchantment().displayName(level);
     }
+
+    @Override
+    public @NotNull String translationKey() {
+        return getEnchantment().translationKey();
+    }
 }

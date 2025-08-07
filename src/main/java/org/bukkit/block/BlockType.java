@@ -125,7 +125,7 @@ import org.jetbrains.annotations.Nullable;
  * changes may occur. Do not use this API in plugins.
  */
 @ApiStatus.Internal
-public interface BlockType extends Keyed, Translatable, io.papermc.paper.world.flag.FeatureDependant { // Paper - add translatable & feature flag API
+public interface BlockType extends Keyed, Translatable, net.kyori.adventure.translation.Translatable, io.papermc.paper.world.flag.FeatureDependant { // Paper - add translatable & feature flag API
 
     /**
      * Typed represents a subtype of {@link BlockType}s that have a known block
@@ -3498,4 +3498,13 @@ public interface BlockType extends Keyed, Translatable, io.papermc.paper.world.f
     @Nullable
     @Deprecated
     Material asMaterial();
+
+    // Paper start - add Translatable
+    /**
+     * @deprecated use {@link #translationKey()} and {@link net.kyori.adventure.text.Component#translatable(net.kyori.adventure.translation.Translatable)}
+     */
+    @Deprecated(forRemoval = true)
+    @Override
+    @NotNull String getTranslationKey();
+    // Paper end - add Translatable
 }

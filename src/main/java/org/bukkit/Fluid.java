@@ -8,6 +8,12 @@ import org.jetbrains.annotations.NotNull;
  */
 public enum Fluid implements Keyed {
 
+    // Paper start
+    /**
+     * No fluid.
+     */
+    EMPTY,
+    // Paper end
     /**
      * Stationary water.
      */

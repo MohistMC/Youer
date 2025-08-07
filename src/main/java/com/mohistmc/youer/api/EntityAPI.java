@@ -1,6 +1,5 @@
 package com.mohistmc.youer.api;
 
-import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.plugins.ban.BanConfig;
 import java.util.Objects;
 import net.minecraft.world.entity.Entity;

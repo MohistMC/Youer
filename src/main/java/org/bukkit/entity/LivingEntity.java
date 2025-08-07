@@ -463,6 +463,15 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
     @NotNull
     public Collection<PotionEffect> getActivePotionEffects();
 
+    // Paper start - LivingEntity#clearActivePotionEffects();
+    /**
+     * Removes all active potion effects for this entity.
+     *
+     * @return true if any were removed
+     */
+    boolean clearActivePotionEffects();
+    // Paper end
+
     /**
      * Checks whether the living entity has block line of sight to another.
      * <p>
@@ -869,6 +878,21 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     @Deprecated
     void setArrowsStuck(int arrows);
+
+    /**
+     * Get the delay (in ticks) before blocking is effective for this entity
+     *
+     * @return Delay in ticks
+     */
+    int getShieldBlockingDelay();
+
+    /**
+     * Set the delay (in ticks) before blocking is effective for this entity
+     *
+     * @param delay Delay in ticks
+     */
+    void setShieldBlockingDelay(int delay);
+    // Paper end
 
     // Paper start - missing entity API
     /**

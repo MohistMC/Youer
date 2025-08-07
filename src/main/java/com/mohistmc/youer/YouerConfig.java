@@ -2,7 +2,6 @@ package com.mohistmc.youer;
 
 import com.google.common.base.Throwables;
 import com.mohistmc.youer.commands.BackupWorldCommand;
-import com.mohistmc.youer.plugins.ban.BansCommand;
 import com.mohistmc.youer.commands.DumpCommand;
 import com.mohistmc.youer.commands.GetPluginListCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
@@ -11,6 +10,7 @@ import com.mohistmc.youer.commands.PingCommand;
 import com.mohistmc.youer.commands.ShowsCommand;
 import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.plugins.MohistPlugin;
+import com.mohistmc.youer.plugins.ban.BansCommand;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;
 import java.io.IOException;
@@ -277,7 +277,7 @@ public class YouerConfig {
 
         doFireTick = getBoolean("events.fire_tick", false);
         explosion = getBoolean("events.explosion", false);
-        bukkitpermissionshandler = getBoolean("forge.bukkitpermissionshandler", true);
+        bukkitpermissionshandler = getBoolean("neoforge.bukkitpermissionshandler", true);
         worldmanage = getBoolean("worldmanage", true);
 
         recipe_warn = getBoolean("recipe.warn", false);

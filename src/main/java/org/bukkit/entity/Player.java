@@ -3238,6 +3238,23 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
     Spigot spigot();
     // Spigot end
 
+    // Paper start
+    /**
+     * Displays elder guardian effect with a sound
+     *
+     * @see #showElderGuardian(boolean)
+     */
+    default void showElderGuardian() {
+        showElderGuardian(false);
+    }
+
+    /**
+     * Displays elder guardian effect and optionally plays a sound
+     *
+     * @param silent whether sound should be silenced
+     */
+    void showElderGuardian(boolean silent);
+
     // Paper start - brand support
     /**
      * Returns player's client brand name. If the client didn't send this information, the brand name will be null.<br>

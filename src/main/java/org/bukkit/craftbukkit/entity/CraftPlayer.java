@@ -3198,6 +3198,12 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
     // Spigot end
 
+    // Paper start
+    @Override
+    public void showElderGuardian(boolean silent) {
+        if (getHandle().connection != null) getHandle().connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.GUARDIAN_ELDER_EFFECT, silent ? 0F : 1F));
+    }
+
     // Paper start - brand support
     @Override
     public String getClientBrandName() {

@@ -46,7 +46,12 @@ public class CraftDecoratedPot extends CraftBlockEntityState<DecoratedPotBlockEn
     // Paper start - expose loot table
     @Override
     public void setLootTable(final org.bukkit.loot.LootTable table) {
-        this.getSnapshot().setLootTable(org.bukkit.craftbukkit.CraftLootTable.bukkitToMinecraft(table), getSeed());
+        this.setLootTable(table, this.getSeed());
+    }
+
+    @Override
+    public void setLootTable(org.bukkit.loot.LootTable table, long seed) {
+        this.getSnapshot().setLootTable(org.bukkit.craftbukkit.CraftLootTable.bukkitToMinecraft(table), seed);
     }
 
     @Override

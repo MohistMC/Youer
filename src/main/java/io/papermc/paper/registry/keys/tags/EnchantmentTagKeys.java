@@ -1,7 +1,5 @@
 package io.papermc.paper.registry.keys.tags;
 
-import static net.kyori.adventure.key.Key.key;
-
 import io.papermc.paper.generated.GeneratedFrom;
 import io.papermc.paper.registry.RegistryKey;
 import io.papermc.paper.registry.tag.TagKey;
@@ -10,6 +8,8 @@ import org.bukkit.MinecraftExperimental;
 import org.bukkit.enchantments.Enchantment;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.ApiStatus;
+
+import static net.kyori.adventure.key.Key.key;
 
 /**
  * Vanilla keys for {@link RegistryKey#ENCHANTMENT}.

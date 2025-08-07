@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Holds all accepted Biomes in the default server
  */
-public enum Biome implements Keyed {
+public enum Biome implements Keyed, net.kyori.adventure.translation.Translatable { // Paper
     OCEAN,
     PLAINS,
     DESERT,
@@ -89,4 +89,11 @@ public enum Biome implements Keyed {
     public NamespacedKey getKey() {
         return key;
     }
+
+    // Paper start
+    @Override
+    public @NotNull String translationKey() {
+        return "biome.minecraft." + this.key.getKey();
+    }
+    // Paper end
 }

@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
  * (i.e. lighting and power) may not be able to be safely accessed during world
  * generation when used in cases like BlockPhysicsEvent!!!!
  */
-public interface Block extends Metadatable, Translatable {
+public interface Block extends Metadatable, Translatable, net.kyori.adventure.translation.Translatable { // Paper - translatable
 
     /**
      * Gets the metadata for this block
@@ -155,6 +155,19 @@ public interface Block extends Metadatable, Translatable {
      * @return z-coordinate
      */
     int getZ();
+
+    // Paper start - add isValidTool
+    /**
+     * Checks if the itemstack is a valid tool to
+     * break the block with
+     *
+     * @param itemStack The (tool) itemstack
+     * @return whether the block will drop items
+     * @deprecated partially replaced by {@link Block#isPreferredTool(ItemStack)}
+     */
+    @Deprecated(since = "1.21", forRemoval = true) // Paper
+    boolean isValidTool(@NotNull ItemStack itemStack);
+    // Paper end - add isValidTool
 
     /**
      * Gets the Location of the block
@@ -574,4 +587,12 @@ public interface Block extends Metadatable, Translatable {
      * @return <code>true</code> if the block data can be placed here
      */
     boolean canPlace(@NotNull BlockData data);
+
+    /**
+     * @deprecated use {@link #translationKey()}
+     */
+    @NotNull
+    @Deprecated(forRemoval = true)
+    String getTranslationKey();
+    // Paper end
 }

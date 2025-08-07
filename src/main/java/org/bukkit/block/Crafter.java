@@ -1,5 +1,6 @@
 package org.bukkit.block;
 
+import io.papermc.paper.loottable.LootableBlockInventory;
 import org.bukkit.loot.Lootable;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -7,7 +8,7 @@ import org.jetbrains.annotations.ApiStatus;
  * Represents a captured state of a crafter.
  */
 @ApiStatus.Experimental
-public interface Crafter extends Container, Lootable {
+public interface Crafter extends Container, LootableBlockInventory {
 
     /**
      * Gets the number of ticks which this block will remain in the crafting

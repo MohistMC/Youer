@@ -2,7 +2,6 @@ package com.mohistmc.youer.plugins.ban;
 
 import com.mohistmc.tools.ListUtils;
 import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.EnchantmentAPI;
 import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.api.ServerAPI;
@@ -13,7 +12,6 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;

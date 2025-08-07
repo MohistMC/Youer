@@ -1,0 +1,42 @@
+--- a/net/minecraft/world/level/block/ShulkerBoxBlock.java
++++ b/net/minecraft/world/level/block/ShulkerBoxBlock.java
+@@ -153,7 +_,7 @@
+                 itementity.setDefaultPickUpDelay();
+                 p_56212_.addFreshEntity(itementity);
+             } else {
+-                shulkerboxblockentity.unpackLootTable(p_56215_);
++                shulkerboxblockentity.unpackLootTable(p_56215_, true); // Paper - force clear loot table so replenish data isn't persisted in the stack
+             }
+         }
+ 
+@@ -163,7 +_,15 @@
+     @Override
+     protected List<ItemStack> getDrops(BlockState p_287632_, LootParams.Builder p_287691_) {
+         BlockEntity blockentity = p_287691_.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
++        Runnable reAdd = null; // Paper
+         if (blockentity instanceof ShulkerBoxBlockEntity shulkerboxblockentity) {
++            // Paper start - clear loot table if it was already used
++            if (shulkerboxblockentity.lootableData().getLastFill() != -1 || !p_287691_.getLevel().paperConfig().lootables.retainUnlootedShulkerBoxLootTableOnNonPlayerBreak) {
++                net.minecraft.resources.ResourceKey<net.minecraft.world.level.storage.loot.LootTable> lootTableResourceKey = shulkerboxblockentity.getLootTable();
++                reAdd = () -> shulkerboxblockentity.setLootTable(lootTableResourceKey);
++                shulkerboxblockentity.setLootTable(null);
++            }
++            // Paper end
+             p_287691_ = p_287691_.withDynamicDrop(CONTENTS, p_56219_ -> {
+                 for (int i = 0; i < shulkerboxblockentity.getContainerSize(); i++) {
+                     p_56219_.accept(shulkerboxblockentity.getItem(i));
+@@ -171,7 +_,13 @@
+             });
+         }
+ 
+-        return super.getDrops(p_287632_, p_287691_);
++        // Paper start - re-set loot table if it was cleared
++        try {
++            return super.getDrops(p_287632_, p_287691_);
++        } finally {
++            if (reAdd != null) reAdd.run();
++        }
++        // Paper end - re-set loot table if it was cleared
+     }
+ 
+     @Override

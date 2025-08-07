@@ -357,8 +357,8 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @return Whether the chunk was actually regenerated
      *
      * @deprecated regenerating a single chunk is not likely to produce the same
-     * chunk as before as terrain decoration may be spread across chunks. Use of
-     * this method should be avoided as it is known to produce buggy results.
+     * chunk as before as terrain decoration may be spread across chunks. It may
+     * or may not change blocks in the adjacent chunks as well.
      */
     @Deprecated
     public boolean regenerateChunk(int x, int z);
@@ -962,6 +962,18 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      */
     @NotNull
     public Collection<Entity> getNearbyEntities(@NotNull Location location, double x, double y, double z);
+
+    // Paper start - getEntity by UUID API
+    /**
+     * Gets an entity in this world by its UUID
+     *
+     * @param uuid the UUID of the entity
+     * @return the entity with the given UUID, or null if it isn't found
+     */
+    @Nullable
+    public Entity getEntity(@NotNull java.util.UUID uuid);
+    // Paper end
+
 
     /**
      * Returns a list of entities within a bounding box centered around a

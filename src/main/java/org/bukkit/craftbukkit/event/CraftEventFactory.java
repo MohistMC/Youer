@@ -10,6 +10,7 @@ import io.papermc.paper.event.entity.ProjectileCollideEvent;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
@@ -462,13 +463,30 @@ public class CraftEventFactory {
     }
 
     public static void handleBlockDropItemEvent(Block block, BlockState state, ServerPlayer player, List<ItemEntity> items) {
-        BlockDropItemEvent event = new BlockDropItemEvent(block, state, player.getBukkitEntity(), Lists.transform(items, (item) -> (org.bukkit.entity.Item) item.getBukkitEntity()));
+        // Paper start - Allow adding items to BlockDropItemEvent
+        List<Item> list = new ArrayList<>();
+        for (ItemEntity item : items) {
+            list.add((Item) item.getBukkitEntity());
+        }
+        BlockDropItemEvent event = new BlockDropItemEvent(block, state, player.getBukkitEntity(), list);
+        // Paper end - Allow adding items to BlockDropItemEvent
         Bukkit.getPluginManager().callEvent(event);
 
         if (!event.isCancelled()) {
-            for (ItemEntity item : items) {
-                item.level().addFreshEntity(item);
+            // Paper start - Allow adding items to BlockDropItemEvent
+            for (Item bukkit : list) {
+                if (!bukkit.isValid()) {
+                    Entity item = ((org.bukkit.craftbukkit.entity.CraftItem) bukkit).getHandle();
+                    item.level().addFreshEntity(item);
+                }
             }
+        } else {
+            for (Item bukkit : list) {
+                if (bukkit.isValid()) {
+                    bukkit.remove();
+                }
+            }
+            // Paper end - Allow adding items to BlockDropItemEvent
         }
     }
 
@@ -908,10 +926,18 @@ public class CraftEventFactory {
     }
 
     public static EntityDeathEvent callEntityDeathEvent(net.minecraft.world.entity.LivingEntity victim, DamageSource damageSource) {
-        return CraftEventFactory.callEntityDeathEvent(victim, damageSource, new ArrayList<org.bukkit.inventory.ItemStack>(0));
+        return CraftEventFactory.callEntityDeathEvent(victim, damageSource, null);
     }
 
-    public static EntityDeathEvent callEntityDeathEvent(net.minecraft.world.entity.LivingEntity victim, DamageSource damageSource, List<org.bukkit.inventory.ItemStack> drops) {
+    public static EntityDeathEvent callEntityDeathEvent(net.minecraft.world.entity.LivingEntity victim, DamageSource damageSource, Collection<ItemEntity> captureDrops) {
+        List<org.bukkit.inventory.ItemStack> drops;
+        if (captureDrops == null) {
+            drops = new ArrayList<>();
+        } else if (captureDrops instanceof List) {
+            drops = Lists.transform((List<ItemEntity>) captureDrops, e -> CraftItemStack.asCraftMirror(e.getItem()));
+        } else {
+            drops = captureDrops.stream().map(ItemEntity::getItem).map(CraftItemStack::asCraftMirror).collect(Collectors.toList());
+        }
         CraftLivingEntity entity = (CraftLivingEntity) victim.getBukkitEntity();
         CraftDamageSource bukkitDamageSource = new CraftDamageSource(damageSource);
         EntityDeathEvent event = new EntityDeathEvent(entity, bukkitDamageSource, drops, victim.getExperienceReward((ServerLevel) victim.level(), damageSource.getEntity()));
@@ -967,7 +993,7 @@ public class CraftEventFactory {
 
     private static EntityDamageEvent handleEntityDamageEvent(Entity entity, DamageSource source, Map<DamageModifier, Double> modifiers, Map<DamageModifier, Function<? super Double, Double>> modifierFunctions, boolean cancelled) {
         CraftDamageSource bukkitDamageSource = new CraftDamageSource(source);
-        Entity damager = (source.getDamager() != null) ? source.getDamager() : source.getEntity();
+        final Entity damager = source.getCustomEventDamager(); // Paper - fix DamageSource API
         if (source.is(DamageTypeTags.IS_EXPLOSION)) {
             if (damager == null) {
                 return CraftEventFactory.callEntityDamageEvent(source.getDirectBlock(), source.getDirectBlockState(), entity, DamageCause.BLOCK_EXPLOSION, bukkitDamageSource, modifiers, modifierFunctions, cancelled);
@@ -1262,11 +1288,11 @@ public class CraftEventFactory {
         return event;
     }
 
-    public static EntityBreakDoorEvent callEntityBreakDoorEvent(Entity entity, BlockPos pos) {
+    public static EntityBreakDoorEvent callEntityBreakDoorEvent(Entity entity, BlockPos pos, net.minecraft.world.level.block.state.BlockState newState) { // Paper
         org.bukkit.entity.Entity entity1 = entity.getBukkitEntity();
         Block block = CraftBlock.at(entity.level(), pos);
 
-        EntityBreakDoorEvent event = new EntityBreakDoorEvent((LivingEntity) entity1, block);
+        EntityBreakDoorEvent event = new EntityBreakDoorEvent((LivingEntity) entity1, block, newState.createCraftBlockData()); // Paper
         entity1.getServer().getPluginManager().callEvent(event);
 
         return event;

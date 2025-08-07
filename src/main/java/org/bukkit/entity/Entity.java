@@ -3,6 +3,7 @@ package org.bukkit.entity;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.bukkit.Chunk;
 import org.bukkit.EntityEffect;
 import org.bukkit.Location;
 import org.bukkit.Nameable;
@@ -344,6 +345,26 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      */
     boolean hasNoPhysics();
     // Paper end - missing entity api
+
+    // Paper start - Freeze Tick Lock API
+    /**
+     * Gets if the entity currently has its freeze ticks locked
+     * to a set amount.
+     * <p>
+     * This is only set by plugins
+     *
+     * @return locked or not
+     */
+    boolean isFreezeTickingLocked();
+
+    /**
+     * Sets if the entity currently has its freeze ticks locked,
+     * preventing default vanilla freeze tick modification.
+     *
+     * @param locked prevent vanilla modification or not
+     */
+    void lockFreezeTicks(boolean locked);
+    // Paper end - Freeze Tick Lock API
 
     /**
      * Mark the entity's removal.
@@ -931,6 +952,17 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
     boolean fromMobSpawner();
 
     /**
+     * Gets the latest chunk an entity is currently or was in.
+     *
+     * @return The current, or most recent chunk if the entity is invalid (which may load the chunk)
+     */
+    @NotNull
+    default Chunk getChunk() {
+        // TODO remove impl here
+        return getLocation().getChunk();
+    }
+
+    /**
      * @return The {@link org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason} that initially spawned this entity. <!-- Paper - added "initially" to clarify that the SpawnReason doesn't change after the Entity was initially spawned" -->
      */
     @NotNull
@@ -972,6 +1004,20 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
     boolean isInLava();
 
     /**
+     * Check if entity is inside a ticking chunk
+     */
+    boolean isTicking();
+
+    /**
+     * Returns a set of {@link Player Players} within this entity's tracking range (players that can "see" this entity).
+     *
+     * @return players in tracking range
+     * @deprecated slightly misleading name, use {@link #getTrackedBy()}
+     */
+    @Deprecated
+    @NotNull Set<Player> getTrackedPlayers();
+
+    /**
      * Spawns the entity in the world at the given {@link Location} with the default spawn reason.
      * <p>
      * This will not spawn the entity if the entity is already spawned or has previously been despawned.
@@ -1011,4 +1057,15 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      */
     void broadcastHurtAnimation(@NotNull java.util.Collection<Player> players);
     // Paper end - broadcast hurt animation
+
+    // Paper start - entity scoreboard name
+    /**
+     * Gets the string name of the entity used to track it in {@link org.bukkit.scoreboard.Scoreboard Scoreboards}.
+     *
+     * @return the scoreboard entry name
+     * @see org.bukkit.scoreboard.Scoreboard#getScores(String)
+     * @see org.bukkit.scoreboard.Scoreboard#getEntries()
+     */
+    @NotNull String getScoreboardEntryName();
+    // Paper end - entity scoreboard name
 }

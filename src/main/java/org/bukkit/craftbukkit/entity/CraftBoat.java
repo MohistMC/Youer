@@ -81,6 +81,17 @@ public class CraftBoat extends CraftVehicle implements Boat, io.papermc.paper.en
 
     @Override
     public Status getStatus() {
+        // Paper start - Fix NPE on Boat getStatus
+        final net.minecraft.world.entity.vehicle.Boat handle = this.getHandle();
+        if (handle.status == null) {
+            if (handle.valid) {
+                // Don't actually set the status because it would skew the old status check in the next tick
+                return CraftBoat.boatStatusFromNms(handle.getStatus());
+            } else {
+                return Status.NOT_IN_WORLD;
+            }
+        }
+        // Paper end - Fix NPE on Boat getStatus
         return CraftBoat.boatStatusFromNms(this.getHandle().status);
     }
 

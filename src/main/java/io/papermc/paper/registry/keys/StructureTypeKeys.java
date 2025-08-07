@@ -1,7 +1,5 @@
 package io.papermc.paper.registry.keys;
 
-import static net.kyori.adventure.key.Key.key;
-
 import io.papermc.paper.generated.GeneratedFrom;
 import io.papermc.paper.registry.RegistryKey;
 import io.papermc.paper.registry.TypedKey;
@@ -9,6 +7,8 @@ import net.kyori.adventure.key.Key;
 import org.bukkit.generator.structure.StructureType;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.ApiStatus;
+
+import static net.kyori.adventure.key.Key.key;
 
 /**
  * Vanilla keys for {@link RegistryKey#STRUCTURE_TYPE}.

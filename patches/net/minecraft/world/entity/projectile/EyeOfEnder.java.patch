@@ -1,5 +1,30 @@
 --- a/net/minecraft/world/entity/projectile/EyeOfEnder.java
 +++ b/net/minecraft/world/entity/projectile/EyeOfEnder.java
+@@ -63,6 +_,11 @@
+     }
+ 
+     public void signalTo(BlockPos p_36968_) {
++        // Paper start - Change EnderEye target without changing other things
++        this.signalTo(p_36968_, true);
++    }
++    public void signalTo(BlockPos p_36968_, boolean update) {
++        // Paper end - Change EnderEye target without changing other things
+         double d0 = (double)p_36968_.getX();
+         int i = p_36968_.getY();
+         double d1 = (double)p_36968_.getZ();
+@@ -79,8 +_,10 @@
+             this.tz = d1;
+         }
+ 
+-        this.life = 0;
+-        this.surviveAfterDeath = this.random.nextInt(5) > 0;
++        if (update) { // Paper - Change EnderEye target without changing other things
++            this.life = 0;
++            this.surviveAfterDeath = this.random.nextInt(5) > 0;
++        } // Paper - Change EnderEye target without changing other things
+     }
+ 
+     @Override
 @@ -145,7 +_,7 @@
              this.life++;
              if (this.life > 80 && !this.level().isClientSide) {

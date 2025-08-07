@@ -207,4 +207,14 @@ public class CraftEnchantment extends Enchantment implements Handleable<net.mine
         return io.papermc.paper.registry.set.PaperRegistrySets.convertToApi(io.papermc.paper.registry.RegistryKey.ENCHANTMENT, this.handle.value().exclusiveSet());
     }
     // Paper end - even more Enchantment API
+
+    // Paper start - add translationKey methods
+    @Override
+    public String translationKey() {
+        if (!(this.getHandle().description().getContents() instanceof final net.minecraft.network.chat.contents.TranslatableContents translatableContents)) {
+            throw new UnsupportedOperationException("Description isn't translatable!"); // Paper
+        }
+        return translatableContents.getKey();
+    }
+    // Paper end - add translationKey methods
 }

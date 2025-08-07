@@ -1,7 +1,6 @@
 package com.mohistmc.youer.api;
 
 import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.plugins.ban.BanConfig;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

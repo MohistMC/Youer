@@ -1,5 +1,29 @@
 --- a/net/minecraft/world/entity/projectile/FishingHook.java
 +++ b/net/minecraft/world/entity/projectile/FishingHook.java
+@@ -3,6 +_,7 @@
+ import com.mojang.logging.LogUtils;
+ import java.util.Collections;
+ import java.util.List;
++import java.util.concurrent.atomic.AtomicReference;
+ import javax.annotation.Nullable;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+@@ -23,6 +_,7 @@
+ import net.minecraft.tags.ItemTags;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.RandomSource;
++import net.minecraft.world.InteractionHand;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.ExperienceOrb;
+@@ -44,6 +_,7 @@
+ import net.minecraft.world.phys.EntityHitResult;
+ import net.minecraft.world.phys.HitResult;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.event.player.PlayerFishEvent;
+ import org.slf4j.Logger;
+ 
+ public class FishingHook extends Projectile {
 @@ -58,7 +_,7 @@
      private int nibble;
      public int timeUntilLured;
@@ -140,14 +164,19 @@
  
      private boolean calculateOpenWater(BlockPos p_37159_) {
          FishingHook.OpenWaterType fishinghook$openwatertype = FishingHook.OpenWaterType.INVALID;
-@@ -441,7 +_,16 @@
+@@ -437,11 +_,21 @@
+     public void readAdditionalSaveData(CompoundTag p_37151_) {
+     }
+ 
++    public AtomicReference<InteractionHand> retrieve$hand = new AtomicReference<>(InteractionHand.MAIN_HAND);
+     public int retrieve(ItemStack p_37157_) {
          Player player = this.getPlayerOwner();
          if (!this.level().isClientSide && player != null && !this.shouldStopFishing(player)) {
              int i = 0;
 +            net.neoforged.neoforge.event.entity.player.ItemFishedEvent event = null;
              if (this.hookedIn != null) {
 +                // CraftBukkit start
-+                org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), this.hookedIn.getBukkitEntity(), (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.event.player.PlayerFishEvent.State.CAUGHT_ENTITY);
++                PlayerFishEvent playerFishEvent = new PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), this.hookedIn.getBukkitEntity(), (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(retrieve$hand.getAndSet(InteractionHand.MAIN_HAND)), org.bukkit.event.player.PlayerFishEvent.State.CAUGHT_ENTITY);
 +                this.level().getCraftServer().getPluginManager().callEvent(playerFishEvent);
 +
 +                if (playerFishEvent.isCancelled()) {
@@ -177,7 +206,7 @@
                  for (ItemStack itemstack : list) {
                      ItemEntity itementity = new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), itemstack);
 +                    // CraftBukkit start
-+                    org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), itementity.getBukkitEntity(), (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.event.player.PlayerFishEvent.State.CAUGHT_FISH);
++                    PlayerFishEvent playerFishEvent = new PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), itementity.getBukkitEntity(), (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(retrieve$hand.getAndSet(InteractionHand.MAIN_HAND)), org.bukkit.event.player.PlayerFishEvent.State.CAUGHT_FISH);
 +                    playerFishEvent.setExpToDrop(this.random.nextInt(6) + 1);
 +                    this.level().getCraftServer().getPluginManager().callEvent(playerFishEvent);
 +
@@ -193,7 +222,7 @@
  
              if (this.onGround()) {
 +                // CraftBukkit start
-+                org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), null, (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.event.player.PlayerFishEvent.State.IN_GROUND);
++                org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), null, (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(retrieve$hand.getAndSet(InteractionHand.MAIN_HAND)), org.bukkit.event.player.PlayerFishEvent.State.IN_GROUND);
 +                this.level().getCraftServer().getPluginManager().callEvent(playerFishEvent);
 +
 +                if (playerFishEvent.isCancelled()) {
@@ -204,7 +233,7 @@
              }
 +            // CraftBukkit start
 +            if (i == 0) {
-+                org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), null, (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.event.player.PlayerFishEvent.State.REEL_IN);
++                org.bukkit.event.player.PlayerFishEvent playerFishEvent = new org.bukkit.event.player.PlayerFishEvent((org.bukkit.entity.Player) player.getBukkitEntity(), null, (org.bukkit.entity.FishHook) this.getBukkitEntity(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(retrieve$hand.getAndSet(InteractionHand.MAIN_HAND)), org.bukkit.event.player.PlayerFishEvent.State.REEL_IN);
 +                this.level().getCraftServer().getPluginManager().callEvent(playerFishEvent);
 +                if (playerFishEvent.isCancelled()) {
 +                    return 0;

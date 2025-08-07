@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/animal/Rabbit.java
 +++ b/net/minecraft/world/entity/animal/Rabbit.java
+@@ -65,6 +_,7 @@
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.pathfinder.Path;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
+ 
+ public class Rabbit extends Animal implements VariantHolder<Rabbit.Variant> {
+     public static final double STROLL_SPEED_MOD = 0.6;
 @@ -530,7 +_,7 @@
          @Override
          public boolean canUse() {
@@ -9,6 +17,26 @@
                      return false;
                  }
  
+@@ -566,9 +_,19 @@
+                 if (this.canRaid && block instanceof CarrotBlock) {
+                     int i = blockstate.getValue(CarrotBlock.AGE);
+                     if (i == 0) {
++                        // CraftBukkit start
++                        if (!CraftEventFactory.callEntityChangeBlockEvent(this.rabbit, blockpos, blockstate.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
++                            return;
++                        }
++                        // CraftBukkit end
+                         level.setBlock(blockpos, Blocks.AIR.defaultBlockState(), 2);
+                         level.destroyBlock(blockpos, true, this.rabbit);
+                     } else {
++                        // CraftBukkit start
++                        if (!CraftEventFactory.callEntityChangeBlockEvent(this.rabbit, blockpos, blockstate.setValue(CarrotBlock.AGE, i - 1))) {
++                            return;
++                        }
++                        // CraftBukkit end
+                         level.setBlock(blockpos, blockstate.setValue(CarrotBlock.AGE, Integer.valueOf(i - 1)), 2);
+                         level.gameEvent(GameEvent.BLOCK_CHANGE, blockpos, GameEvent.Context.of(this.rabbit));
+                         level.levelEvent(2001, blockpos, Block.getId(blockstate));
 @@ -585,7 +_,7 @@
          @Override
          protected boolean isValidTarget(LevelReader p_29785_, BlockPos p_29786_) {

@@ -2,7 +2,34 @@ package io.papermc.paper.tag;
 
 import org.bukkit.NamespacedKey;
 
-import static org.bukkit.entity.EntityType.*;
+import static org.bukkit.entity.EntityType.AXOLOTL;
+import static org.bukkit.entity.EntityType.BOGGED;
+import static org.bukkit.entity.EntityType.COD;
+import static org.bukkit.entity.EntityType.DOLPHIN;
+import static org.bukkit.entity.EntityType.DROWNED;
+import static org.bukkit.entity.EntityType.ELDER_GUARDIAN;
+import static org.bukkit.entity.EntityType.GLOW_SQUID;
+import static org.bukkit.entity.EntityType.GUARDIAN;
+import static org.bukkit.entity.EntityType.HUSK;
+import static org.bukkit.entity.EntityType.MAGMA_CUBE;
+import static org.bukkit.entity.EntityType.PHANTOM;
+import static org.bukkit.entity.EntityType.PUFFERFISH;
+import static org.bukkit.entity.EntityType.SALMON;
+import static org.bukkit.entity.EntityType.SKELETON;
+import static org.bukkit.entity.EntityType.SKELETON_HORSE;
+import static org.bukkit.entity.EntityType.SLIME;
+import static org.bukkit.entity.EntityType.SQUID;
+import static org.bukkit.entity.EntityType.STRAY;
+import static org.bukkit.entity.EntityType.TADPOLE;
+import static org.bukkit.entity.EntityType.TROPICAL_FISH;
+import static org.bukkit.entity.EntityType.TURTLE;
+import static org.bukkit.entity.EntityType.WITHER;
+import static org.bukkit.entity.EntityType.WITHER_SKELETON;
+import static org.bukkit.entity.EntityType.ZOGLIN;
+import static org.bukkit.entity.EntityType.ZOMBIE;
+import static org.bukkit.entity.EntityType.ZOMBIE_HORSE;
+import static org.bukkit.entity.EntityType.ZOMBIE_VILLAGER;
+import static org.bukkit.entity.EntityType.ZOMBIFIED_PIGLIN;
 
 /**
  * All tags in this class are unmodifiable, attempting to modify them will throw an

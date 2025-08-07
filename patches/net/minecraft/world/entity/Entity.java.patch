@@ -434,6 +434,15 @@
          if (this.canSpawnSprintParticle()) {
              this.spawnSprintParticle();
          }
+@@ -459,7 +_,7 @@
+                 this.setRemainingFireTicks(this.remainingFireTicks - 1);
+             }
+ 
+-            if (this.getTicksFrozen() > 0) {
++            if (this.getTicksFrozen() > 0 && !freezeLocked) { // Paper - Freeze Tick Lock API
+                 this.setTicksFrozen(0);
+                 this.level().levelEvent(null, 1009, this.blockPosition, 1);
+             }
 @@ -467,7 +_,11 @@
  
          if (this.isInLava()) {
@@ -882,7 +891,7 @@
              this.addAdditionalSaveData(p_20241_);
              if (this.isVehicle()) {
                  ListTag listtag1 = new ListTag();
-@@ -1720,6 +_,24 @@
+@@ -1720,6 +_,27 @@
                  }
              }
  
@@ -903,7 +912,10 @@
 +            if (spawnReason != null) {
 +                p_20241_.putString("Paper.SpawnReason", spawnReason.name());
 +            }
-+
++            if (freezeLocked) {
++                p_20241_.putBoolean("Paper.FreezeLock", true);
++            }
++            // Paper end
              return p_20241_;
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
@@ -916,7 +928,7 @@
                  if (p_20259_.contains("Tags", 9)) {
                      this.tags.clear();
                      ListTag listtag3 = p_20259_.getList("Tags", 8);
-@@ -1801,6 +_,80 @@
+@@ -1801,6 +_,84 @@
              } else {
                  throw new IllegalStateException("Entity has invalid rotation");
              }
@@ -993,6 +1005,10 @@
 +            if (spawnReason == null) {
 +                spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT;
 +            }
++            if (p_20259_.contains("Paper.FreezeLock")) {
++                freezeLocked = p_20259_.getBoolean("Paper.FreezeLock");
++            }
++            // Paper end
 +
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Loading entity NBT");
@@ -1244,7 +1260,7 @@
 +            return;
 +        }
 +
-+        if (!this.hurt(this.damageSources().lightningBolt().customEntityDamager(p_19928_), 5.0F)) {
++        if (!this.hurt(this.damageSources().lightningBolt().customEventDamager(p_19928_), 5.0F)) { // Paper - fix DamageSource API
 +            return;
 +        }
 +        // CraftBukkit end

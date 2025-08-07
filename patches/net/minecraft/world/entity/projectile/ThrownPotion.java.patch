@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/projectile/ThrownPotion.java
 +++ b/net/minecraft/world/entity/projectile/ThrownPotion.java
+@@ -30,6 +_,7 @@
+ import net.minecraft.world.phys.BlockHitResult;
+ import net.minecraft.world.phys.EntityHitResult;
+ import net.minecraft.world.phys.HitResult;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
+ 
+ public class ThrownPotion extends ThrowableItemProjectile implements ItemSupplier {
+     public static final double SPLASH_RANGE = 4.0;
 @@ -78,15 +_,40 @@
          }
      }
@@ -83,3 +91,16 @@
      }
  
      public boolean isLingering() {
+@@ -181,7 +_,11 @@
+     private void dowseFire(BlockPos p_150193_) {
+         BlockState blockstate = this.level().getBlockState(p_150193_);
+         if (blockstate.is(BlockTags.FIRE)) {
+-            this.level().destroyBlock(p_150193_, false, this);
++            // CraftBukkit start
++            if (CraftEventFactory.callEntityChangeBlockEvent(this, p_150193_, blockstate.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
++                this.level().destroyBlock(p_150193_, false, this);
++            }
++            // CraftBukkit end
+         } else if (AbstractCandleBlock.isLit(blockstate)) {
+             AbstractCandleBlock.extinguish(null, blockstate, this.level(), p_150193_);
+         } else if (CampfireBlock.isLitCampfire(blockstate)) {

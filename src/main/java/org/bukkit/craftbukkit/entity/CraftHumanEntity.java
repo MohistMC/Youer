@@ -123,10 +123,27 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
         }
     }
 
+    // Paper start
+    @Override
+    public boolean isDeeplySleeping() {
+        return getHandle().isSleepingLongEnough();
+    }
+    // Paper end
+
     @Override
     public int getSleepTicks() {
         return this.getHandle().sleepCounter;
     }
+
+    // Paper start
+    @Override
+    public org.bukkit.entity.FishHook getFishHook() {
+        if (getHandle().fishing == null) {
+            return null;
+        }
+        return (org.bukkit.entity.FishHook) getHandle().fishing.getBukkitEntity();
+    }
+    // Paper end
 
     @Override
     public boolean sleep(Location location, boolean force) {
@@ -616,6 +633,13 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
             entity.remove();
         }
     }
+
+    // Paper start - move open sign method to HumanEntity
+    @Override
+    public void openSign(final org.bukkit.block.Sign sign, final org.bukkit.block.sign.Side side) {
+        org.bukkit.craftbukkit.block.CraftSign.openSign(sign, (CraftPlayer) this, side);
+    }
+    // Paper end
 
     @Override
     public boolean dropItem(boolean dropAll) {

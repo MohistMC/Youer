@@ -28,13 +28,7 @@ import net.neoforged.neoforge.server.permission.nodes.PermissionNode;
 import net.neoforged.neoforge.server.permission.nodes.PermissionTypes;
 import org.bukkit.Bukkit;
 
-public class BukkitPermissionsHandler implements IPermissionHandler {
-
-    private final IPermissionHandler delegate;
-
-    public BukkitPermissionsHandler(IPermissionHandler delegate) {
-        this.delegate = delegate;
-    }
+public record BukkitPermissionsHandler(IPermissionHandler delegate) implements IPermissionHandler {
 
     @Override
     public ResourceLocation getIdentifier() {

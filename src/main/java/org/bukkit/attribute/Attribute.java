@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Types of attributes which may be present on an {@link Attributable}.
  */
-public enum Attribute implements Keyed, Translatable {
+public enum Attribute implements Keyed, Translatable, net.kyori.adventure.translation.Translatable { // Paper - Adventure translations
 
     /**
      * Maximum health of an Entity.
@@ -153,4 +153,12 @@ public enum Attribute implements Keyed, Translatable {
     public String getTranslationKey() {
         return Bukkit.getUnsafe().getTranslationKey(this);
     }
+
+    // Paper start
+    @SuppressWarnings("deprecation")
+    @Override
+    public @NotNull String translationKey() {
+        return Bukkit.getUnsafe().getTranslationKey(this);
+    }
+    // Paper end
 }

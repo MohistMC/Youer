@@ -75,6 +75,22 @@ public class CraftItem extends CraftEntity implements Item {
     }
 
     @Override
+    public int getHealth() {
+        return this.getHandle().health;
+    }
+
+    @Override
+    public void setHealth(int health) {
+        if (health <= 0) {
+            this.getHandle().getItem().onDestroyed(this.getHandle());
+            this.getHandle().discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PLUGIN);
+        } else {
+            this.getHandle().health = health;
+        }
+    }
+    // Paper end
+
+    @Override
     public void setOwner(UUID uuid) {
         this.getHandle().setTarget(uuid);
     }

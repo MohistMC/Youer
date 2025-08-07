@@ -31,4 +31,11 @@ public class CraftAbstractVillager extends CraftAgeable implements CraftMerchant
     public Inventory getInventory() {
         return new CraftInventory(this.getHandle().getInventory());
     }
+
+    // Paper start - Villager#resetOffers
+    @Override
+    public void resetOffers() {
+        getHandle().resetOffers();
+    }
+    // Paper end - Villager#resetOffers
 }

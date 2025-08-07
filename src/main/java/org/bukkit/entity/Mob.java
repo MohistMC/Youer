@@ -62,6 +62,14 @@ public interface Mob extends LivingEntity, Lootable, io.papermc.paper.entity.Lea
     @Nullable
     public Sound getAmbientSound();
 
+    // Paper start - LootTable API
+    @Override
+    default void setLootTable(final @Nullable org.bukkit.loot.LootTable table, final long seed) {
+        this.setLootTable(table);
+        this.setSeed(seed);
+    }
+    // Paper end - LootTable API
+
     // Paper start - Missing Entity API
     /**
      * Some mobs will raise their arm(s) when aggressive:
@@ -111,4 +119,13 @@ public interface Mob extends LivingEntity, Lootable, io.papermc.paper.entity.Lea
      */
     public void setLeftHanded(boolean leftHanded);
     // Paper end - left-handed API
+
+    // Paper start - mob xp reward API
+    /**
+     * Gets the amount of experience the mob will possibly drop. This value is randomized and it can give different results
+     *
+     * @return the amount of experience the mob will possibly drop
+     */
+    public int getPossibleExperienceReward();
+    // Paper end - mob xp reward API
 }

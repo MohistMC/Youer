@@ -1,6 +1,5 @@
 package com.mohistmc.youer.plugins.ban.utils;
 
-import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.plugins.ban.BanConfig;
 import com.mohistmc.youer.plugins.ban.BanType;
 import com.mohistmc.youer.plugins.ban.ClickType;
