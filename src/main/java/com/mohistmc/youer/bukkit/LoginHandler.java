@@ -4,6 +4,7 @@ import com.mohistmc.youer.util.I18n;
 import com.mojang.authlib.GameProfile;
 import io.papermc.paper.configuration.GlobalConfiguration;
 import java.util.concurrent.ExecutionException;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.util.Waitable;
@@ -57,10 +58,10 @@ public class LoginHandler {
     }
 
     public static void disconnect(ServerLoginPacketListenerImpl serverGamePacketListener, String pTextComponent){
-        Waitable waitable = new Waitable() {
+        Waitable<Object> waitable = new Waitable<>() {
             @Override
             protected Object evaluate() {
-                serverGamePacketListener.disconnect(pTextComponent);
+                serverGamePacketListener.disconnect(Component.literal(pTextComponent));
                 return null;
             }
         };

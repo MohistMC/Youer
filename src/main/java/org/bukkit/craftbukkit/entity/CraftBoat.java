@@ -79,6 +79,13 @@ public class CraftBoat extends CraftVehicle implements Boat, io.papermc.paper.en
         this.getHandle().landBoats = workOnLand;
     }
 
+    // Paper start
+    @Override
+    public org.bukkit.Material getBoatMaterial() {
+        return org.bukkit.craftbukkit.util.CraftMagicNumbers.getMaterial(this.getHandle().getDropItem());
+    }
+    // Paper end
+
     @Override
     public Status getStatus() {
         // Paper start - Fix NPE on Boat getStatus

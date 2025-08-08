@@ -126,4 +126,10 @@ public class CraftZombie extends CraftMonster implements Zombie {
     public void setCanBreakDoors(boolean flag) {
         this.getHandle().setCanBreakDoors(flag);
     }
+
+    @Override
+    public boolean supportsBreakingDoors() {
+        return getHandle().supportsBreakDoorGoal();
+    }
+    // Paper end
 }

@@ -198,6 +198,17 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         this.voidDamageMinBuildHeightOffset = minBuildHeightOffset;
     }
     // Paper end - void damage configuration
+
+    // Paper start - structure check API
+    @Override
+    public boolean hasStructureAt(final io.papermc.paper.math.Position position, final Structure structure) {
+        return this.world.structureManager().getStructureWithPieceAt(
+                io.papermc.paper.util.MCUtil.toBlockPos(position),
+                CraftStructure.bukkitToMinecraft(structure)
+        ).isValid();
+    }
+    // Paper end
+
     private static final Random rand = new Random();
 
     public CraftWorld(ServerLevel world, ChunkGenerator gen, BiomeProvider biomeProvider, Environment env) {
@@ -761,6 +772,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
             cp.getHandle().connection.send(new ClientboundSetTimePacket(cp.getHandle().level().getGameTime(), cp.getHandle().getPlayerTime(), cp.getHandle().level().getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)));
         }
     }
+
+    // Paper start
+    @Override
+    public boolean isDayTime() {
+        return getHandle().isDay();
+    }
+    // Paper end
 
     @Override
     public long getGameTime() {

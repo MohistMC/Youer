@@ -1,8 +1,12 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.google.common.base.Preconditions;
 import io.papermc.paper.entity.CraftRangedEntity;
+import org.bukkit.Material;
 import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Witch;
+import org.bukkit.inventory.ItemStack;
 
 public class CraftWitch extends CraftRaider implements Witch, CraftRangedEntity<net.minecraft.world.entity.monster.Witch> {
     public CraftWitch(CraftServer server, net.minecraft.world.entity.monster.Witch entity) {
@@ -23,4 +27,23 @@ public class CraftWitch extends CraftRaider implements Witch, CraftRangedEntity<
     public boolean isDrinkingPotion() {
         return this.getHandle().isDrinkingPotion();
     }
+    // Paper start
+    public int getPotionUseTimeLeft() {
+        return getHandle().usingTime;
+    }
+
+    @Override
+    public void setPotionUseTimeLeft(int ticks) {
+        getHandle().usingTime = ticks;
+    }
+
+    public ItemStack getDrinkingPotion() {
+        return CraftItemStack.asCraftMirror(getHandle().getMainHandItem());
+    }
+
+    public void setDrinkingPotion(ItemStack potion) {
+        Preconditions.checkArgument(potion == null || potion.getType().isEmpty() || potion.getType() == Material.POTION, "must be potion, air, or null");
+        getHandle().setDrinkingPotion(CraftItemStack.asNMSCopy(potion));
+    }
+    // Paper end
 }

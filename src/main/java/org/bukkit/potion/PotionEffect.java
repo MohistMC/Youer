@@ -28,6 +28,7 @@ public class PotionEffect implements ConfigurationSerializable {
      */
     public static final int INFINITE_DURATION = -1;
 
+    private static final String HIDDEN_EFFECT = "hidden_effect"; // Paper
     private static final String AMPLIFIER = "amplifier";
     private static final String DURATION = "duration";
     private static final String TYPE = "effect";
@@ -40,6 +41,32 @@ public class PotionEffect implements ConfigurationSerializable {
     private final boolean ambient;
     private final boolean particles;
     private final boolean icon;
+    private final PotionEffect hiddenEffect; // Paper
+
+    /**
+     * Creates a potion effect.
+     * @param type effect type
+     * @param duration measured in ticks, see {@link
+     *     PotionEffect#getDuration()}
+     * @param amplifier the amplifier, see {@link PotionEffect#getAmplifier()}
+     * @param ambient the ambient status, see {@link PotionEffect#isAmbient()}
+     * @param particles the particle status, see {@link PotionEffect#hasParticles()}
+     * @param icon the icon status, see {@link PotionEffect#hasIcon()}
+     * @param hiddenEffect the hidden PotionEffect
+     * @hidden Internal-- hidden effects are only shown internally
+     */
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper
+    public PotionEffect(@NotNull PotionEffectType type, int duration, int amplifier, boolean ambient, boolean particles, boolean icon, @Nullable PotionEffect hiddenEffect) { // Paper
+        Preconditions.checkArgument(type != null, "effect type cannot be null");
+        this.type = type;
+        this.duration = duration;
+        this.amplifier = amplifier;
+        this.ambient = ambient;
+        this.particles = particles;
+        this.icon = icon;
+        // Paper start
+        this.hiddenEffect = hiddenEffect;
+    }
 
     /**
      * Creates a potion effect.
@@ -52,13 +79,8 @@ public class PotionEffect implements ConfigurationSerializable {
      * @param icon the icon status, see {@link PotionEffect#hasIcon()}
      */
     public PotionEffect(@NotNull PotionEffectType type, int duration, int amplifier, boolean ambient, boolean particles, boolean icon) {
-        Preconditions.checkArgument(type != null, "effect type cannot be null");
-        this.type = type;
-        this.duration = duration;
-        this.amplifier = amplifier;
-        this.ambient = ambient;
-        this.particles = particles;
-        this.icon = icon;
+        this(type, duration, amplifier, ambient, particles, icon, null);
+        // Paper end
     }
 
     /**
@@ -106,8 +128,48 @@ public class PotionEffect implements ConfigurationSerializable {
      * @param map the map to deserialize from
      */
     public PotionEffect(@NotNull Map<String, Object> map) {
-        this(getEffectType(map), getInt(map, DURATION), getInt(map, AMPLIFIER), getBool(map, AMBIENT, false), getBool(map, PARTICLES, true), getBool(map, ICON, getBool(map, PARTICLES, true)));
+        this(getEffectType(map), getInt(map, DURATION), getInt(map, AMPLIFIER), getBool(map, AMBIENT, false), getBool(map, PARTICLES, true), getBool(map, ICON, getBool(map, PARTICLES, true)), (PotionEffect) map.get(HIDDEN_EFFECT)); // Paper
     }
+
+    // Paper start
+    @NotNull
+    public PotionEffect withType(@NotNull PotionEffectType type) {
+        return new PotionEffect(type, duration, amplifier, ambient, particles, icon);
+    }
+    @NotNull
+    public PotionEffect withDuration(int duration) {
+        return new PotionEffect(this.type, duration, amplifier, ambient, particles, icon);
+    }
+    @NotNull
+    public PotionEffect withAmplifier(int amplifier) {
+        return new PotionEffect(this.type, duration, amplifier, ambient, particles, icon);
+    }
+    @NotNull
+    public PotionEffect withAmbient(boolean ambient) {
+        return new PotionEffect(this.type, duration, amplifier, ambient, particles, icon);
+    }
+    @NotNull
+    public PotionEffect withParticles(boolean particles) {
+        return new PotionEffect(this.type, duration, amplifier, ambient, particles, icon);
+    }
+    @NotNull
+    public PotionEffect withIcon(boolean icon) {
+        return new PotionEffect(this.type, duration, amplifier, ambient, particles, icon);
+    }
+
+    /**
+     * Returns the PotionEffect that will become active
+     * after the current PotionEffect has run out.
+     * <p>
+     * Note: This value is only applicable to type applied to living entities.
+     *
+     * @return The hidden PotionEffect.
+     */
+    @Nullable
+    public PotionEffect getHiddenPotionEffect() {
+        return hiddenEffect;
+    }
+    // Paper end
 
     @NotNull
     private static PotionEffectType getEffectType(@NotNull Map<?, ?> map) {
@@ -143,19 +205,27 @@ public class PotionEffect implements ConfigurationSerializable {
     @Override
     @NotNull
     public Map<String, Object> serialize() {
-        return ImmutableMap.<String, Object>builder()
-            .put(TYPE, type.getKey().toString())
-            .put(DURATION, duration)
-            .put(AMPLIFIER, amplifier)
-            .put(AMBIENT, ambient)
-            .put(PARTICLES, particles)
-            .put(ICON, icon)
-            .build();
+        ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object>builder() // Paper
+                .put(TYPE, type.getKey().toString())
+                .put(DURATION, duration)
+                .put(AMPLIFIER, amplifier)
+                .put(AMBIENT, ambient)
+                .put(PARTICLES, particles)
+                .put(ICON, icon);
+        // Paper start
+        if (this.hiddenEffect != null) {
+            builder.put(HIDDEN_EFFECT, this.hiddenEffect);
+        }
+        return builder.build();
+        // Paper end
     }
 
     /**
      * Attempts to add the effect represented by this object to the given
      * {@link LivingEntity}.
+     * <p>
+     * Note: {@link PotionEffect#getHiddenPotionEffect()} is ignored when
+     * adding the effect to the entity.
      *
      * @param entity The entity to add this effect to
      * @return Whether the effect could be added
@@ -174,7 +244,7 @@ public class PotionEffect implements ConfigurationSerializable {
             return false;
         }
         PotionEffect that = (PotionEffect) obj;
-        return this.type.equals(that.type) && this.ambient == that.ambient && this.amplifier == that.amplifier && this.duration == that.duration && this.particles == that.particles && this.icon == that.icon;
+        return this.type.equals(that.type) && this.ambient == that.ambient && this.amplifier == that.amplifier && this.duration == that.duration && this.particles == that.particles && this.icon == that.icon && java.util.Objects.equals(this.hiddenEffect, that.hiddenEffect); // Paper
     }
 
     /**
@@ -256,9 +326,9 @@ public class PotionEffect implements ConfigurationSerializable {
      * @return color of this potion's particles. May be null if the potion has no particles or defined color.
      * @deprecated color is not part of potion effects
      */
-     @Deprecated
-     @Nullable
-     @Contract("-> null")
+    @Deprecated
+    @Nullable
+    @Contract("-> null")
     public Color getColor() {
         return null;
     }
@@ -279,11 +349,12 @@ public class PotionEffect implements ConfigurationSerializable {
         hash ^= 0x22222222 >> (ambient ? 1 : -1);
         hash ^= 0x22222222 >> (particles ? 1 : -1);
         hash ^= 0x22222222 >> (icon ? 1 : -1);
+        if (hiddenEffect != null) hash = hash * 31 + hiddenEffect.hashCode(); // Paper
         return hash;
     }
 
     @Override
     public String toString() {
-        return type.getName() + (ambient ? ":(" : ":") + duration + "t-x" + amplifier + (ambient ? ")" : "");
+        return "PotionEffect{" + "amplifier=" + amplifier + ", duration=" + duration + ", type=" + type + ", ambient=" + ambient + ", particles=" + particles + ", icon=" + icon + ", hiddenEffect=" + hiddenEffect + '}'; // Paper
     }
 }

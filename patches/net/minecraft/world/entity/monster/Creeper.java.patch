@@ -64,7 +64,7 @@
                      itemstack.shrink(1);
                  } else {
                      itemstack.hurtAndBreak(1, p_32301_, getSlotForHand(p_32302_));
-@@ -234,11 +_,20 @@
+@@ -234,11 +_,26 @@
      public void explodeCreeper() {
          if (!this.level().isClientSide) {
              float f = this.isPowered() ? 2.0F : 1.0F;
@@ -78,7 +78,13 @@
 +            if (!event.isCancelled()) {
 +                // CraftBukkit end
 +                this.dead = true;
-+                this.level().explode(this, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB); // CraftBukkit // Paper - fix DamageSource API (revert to vanilla, no, just no, don't change this)
++                // Youer - fix mixin
++                if (event.getFire()) {
++                    this.level().explode(this, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB); // CraftBukkit // Paper - fix DamageSource API (revert to vanilla, no, just no, don't change this)
++                } else {
++                    this.level().explode(this, this.getX(), this.getY(), this.getZ(), event.getRadius(), Level.ExplosionInteraction.MOB);
++                }
++                // Youer end
 +                this.spawnLingeringCloud();
 +                this.triggerOnDeathMobEffects(Entity.RemovalReason.KILLED);
 +                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause

@@ -25,14 +25,16 @@ public class PluginFixManager {
                 System.setProperty("worldedit.bukkit.adapter", "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter");
             }
         }
-        if (className.equals("com.ghostchu.quickshop.platform.spigot.AbstractSpigotPlatform")) {
-            return patch(clazz, PluginFixManager::qs);
-        }
-        if (className.equals("com.bgsoftware.superiorskyblock.external.ProvidersManagerImpl")) {
-            return patch(clazz, PluginFixManager::removePaper);
-        }
-        if (className.equals("com.onarandombox.MultiverseCore.utils.WorldManager")) {
-            return patch(clazz, MultiverseCore::fix);
+        switch (className) {
+            case "com.ghostchu.quickshop.platform.spigot.AbstractSpigotPlatform" -> {
+                return patch(clazz, PluginFixManager::qs);
+            }
+            case "com.bgsoftware.superiorskyblock.external.ProvidersManagerImpl" -> {
+                return patch(clazz, PluginFixManager::removePaper);
+            }
+            case "com.onarandombox.MultiverseCore.utils.WorldManager" -> {
+                return patch(clazz, MultiverseCore::fix);
+            }
         }
         if (className.startsWith("net.Zrips.CMILib.") || className.startsWith("com.Zrips.CMI.")) {
             return patch(clazz, node -> helloWorld(node, "net.minecraft.server.network.PlayerConnection", "net.minecraft.server.network.ServerGamePacketListenerImpl"));
@@ -42,24 +44,16 @@ public class PluginFixManager {
                 helloWorld(node, "brand:", "peace");
                 helloWorld(node, "8(;4>`", "peace");
             };
-            case "net.Zrips.CMILib.Reflections" -> node -> {
-                helloWorld(node, "bR", "f_36096_");
-            };
-            case "net.Zrips.CMILib.RawMessages.RawMessageManager" -> node -> {
-                helloWorld(node, "net.minecraft.server.network.PlayerConnection", "net.minecraft.server.network.ServerGamePacketListenerImpl");
-            };
+            case "net.Zrips.CMILib.Reflections" -> node -> helloWorld(node, "bR", "f_36096_");
+            case "net.Zrips.CMILib.RawMessages.RawMessageManager" -> node -> helloWorld(node, "net.minecraft.server.network.PlayerConnection", "net.minecraft.server.network.ServerGamePacketListenerImpl");
             case "com.sk89q.worldedit.bukkit.BukkitConfiguration" -> node -> {
                 helloWorld(node, "I accept that I will receive no support with this flag enabled.", "youer");
                 helloWorld(node, "allow-editing-on-unsupported-versions", "youer");
                 helloWorld(node, "false", "youer");
             };
             case "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter",
-                 "com.sk89q.worldedit.bukkit.adapter.ext.fawe.v1_21_R1.PaperweightAdapter" -> node -> {
-                helloWorld(node, "org.spigotmc.WatchdogThread", "youer");
-            };
-            case "cn.lunadeer.dominion.utils.Misc" -> node -> {
-                helloWorld(node, "io.papermc.paper.threadedregions.scheduler.ScheduledTask", "youer");
-            };
+                 "com.sk89q.worldedit.bukkit.adapter.ext.fawe.v1_21_R1.PaperweightAdapter" -> node -> helloWorld(node, "org.spigotmc.WatchdogThread", "youer");
+            case "cn.lunadeer.dominion.utils.Misc" -> node -> helloWorld(node, "io.papermc.paper.threadedregions.scheduler.ScheduledTask", "youer");
             default -> null;
         };
 

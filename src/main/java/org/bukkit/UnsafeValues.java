@@ -290,4 +290,5 @@ public interface UnsafeValues {
     default io.papermc.paper.util.VersionFetcher getVersionFetcher() {
         return new io.papermc.paper.util.VersionFetcher.DummyVersionFetcher();
     }
+
 }

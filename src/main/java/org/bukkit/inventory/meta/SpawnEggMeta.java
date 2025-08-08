@@ -54,6 +54,22 @@ public interface SpawnEggMeta extends ItemMeta {
      */
     void setSpawnedEntity(@NotNull EntitySnapshot snapshot);
 
+    // Paper start
+    /**
+     * Get the custom type of entity this egg will spawn.
+     *
+     * @return the entity type or null if no custom type is set
+     */
+    @org.jetbrains.annotations.Nullable EntityType getCustomSpawnedType();
+
+    /**
+     * Set the custom type of entity this egg will spawn.
+     *
+     * @param type the entity type or null to clear the custom type
+     */
+    void setCustomSpawnedType(@org.jetbrains.annotations.Nullable EntityType type);
+    // Paper end
+
     @NotNull
     @Override
     SpawnEggMeta clone();

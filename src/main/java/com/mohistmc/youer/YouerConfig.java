@@ -37,14 +37,15 @@ public class YouerConfig {
             As you can see, there's tons to configure. Some options may impact gameplay, so use
             with caution, and make sure you know what each option does before configuring.
             For a reference for any variable inside this file, check out the Youer wiki at
-            https://wiki.mohistmc.com/
+            - [English Documentation](https://mohistmc.com/youer/docs)
+            - [中文文档](https://www.mohistmc.cn/docs/youer)
 
             If you need help with the configuration or have any questions related to Spigot,
             join us at the Discord or drop by our forums and leave a post.
 
             Discord: https://discord.gg/mohistmc
             Forums: https://mohistmc.com/
-            Forums (CN): https://www.mohistmc.cn/
+            Forums (中文): https://www.mohistmc.cn/
             
             """.split("\\n"));
     /*========================================================================*/
@@ -101,7 +102,7 @@ public class YouerConfig {
 
     public static void registerCommands() {
         for (Map.Entry<String, Command> entry : commands.entrySet()) {
-            MinecraftServer.getServer().server.getCommandMap().register(entry.getKey(), "Mohist", entry.getValue());
+            MinecraftServer.getServer().server.getCommandMap().register(entry.getKey(), "Youer", entry.getValue());
         }
     }
 

@@ -265,6 +265,16 @@ public interface HumanEntity extends LivingEntity, AnimalTamer, InventoryHolder 
 
     // Paper start
     /**
+     * Sets player hurt direction
+     *
+     * @param hurtDirection hurt direction
+     */
+    @Override
+    void setHurtDirection(float hurtDirection);
+    // Paper end
+
+    // Paper start
+    /**
      * If the player has slept enough to count towards passing the night.
      *
      * @return true if the player has slept enough
@@ -278,6 +288,18 @@ public interface HumanEntity extends LivingEntity, AnimalTamer, InventoryHolder 
      * @return slumber ticks
      */
     public int getSleepTicks();
+
+    // Paper start - Potential bed api
+    /**
+     * Gets the Location of the player's bed, null if they have not slept
+     * in one. This method will not attempt to validate if the current bed
+     * is still valid.
+     *
+     * @return Bed Location if has slept in one, otherwise null.
+     */
+    @Nullable
+    public Location getPotentialBedLocation();
+    // Paper end
 
     // Paper start
     /**
@@ -364,6 +386,26 @@ public interface HumanEntity extends LivingEntity, AnimalTamer, InventoryHolder 
      * @return Experience required to level up
      */
     public int getExpToLevel();
+
+    // Paper start
+    /**
+     * If there is an Entity on this entities left shoulder, it will be released to the world and returned.
+     * If no Entity is released, null will be returned.
+     *
+     * @return The released entity, or null
+     */
+    @Nullable
+    public Entity releaseLeftShoulderEntity();
+
+    /**
+     * If there is an Entity on this entities left shoulder, it will be released to the world and returned.
+     * If no Entity is released, null will be returned.
+     *
+     * @return The released entity, or null
+     */
+    @Nullable
+    public Entity releaseRightShoulderEntity();
+    // Paper end
 
     /**
      * Gets the current cooldown for a player's attack.

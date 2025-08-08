@@ -32,6 +32,7 @@ import org.bukkit.craftbukkit.block.CraftBlock;
 import org.bukkit.craftbukkit.block.CraftBlockState;
 import org.bukkit.craftbukkit.block.CraftBlockStates;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -91,6 +92,13 @@ public class BlockEventDispatcher {
                 Bukkit.getPluginManager().callEvent(bukkitEvent);
                 bukkitEvent.setCancelled(event.isCanceled());
                 event.setCanceled(bukkitEvent.isCancelled());
+                if (event.getPapersource() != null) {
+                    org.bukkit.block.Block sourceblock = CraftBlock.at(event.getLevel(), event.getPapersource());
+                    io.papermc.paper.event.block.BlockBreakBlockEvent eventPaper = new io.papermc.paper.event.block.BlockBreakBlockEvent(block, sourceblock, Lists.transform(event.getDrops(), (item) -> CraftItemStack.asBukkitCopy(item.getItem())));
+                    eventPaper.setExpToDrop(event.getDroppedExperience()); // Paper - Properly handle xp dropping
+                    eventPaper.callEvent();
+                    event.setDroppedExperience(eventPaper.getExpToDrop());
+                }
             }
         }
     }

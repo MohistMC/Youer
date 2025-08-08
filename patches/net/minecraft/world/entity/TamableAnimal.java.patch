@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/TamableAnimal.java
 +++ b/net/minecraft/world/entity/TamableAnimal.java
+@@ -2,6 +_,7 @@
+ 
+ import java.util.Optional;
+ import java.util.UUID;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import javax.annotation.Nullable;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
 @@ -26,6 +_,7 @@
  import net.minecraft.world.level.pathfinder.PathType;
  import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
@@ -8,6 +16,50 @@
  
  public abstract class TamableAnimal extends Animal implements OwnableEntity {
      public static final int TELEPORT_WHEN_DISTANCE_IS_SQ = 144;
+@@ -80,6 +_,7 @@
+         }
+ 
+         this.orderedToSit = p_21815_.getBoolean("Sitting");
++        setInSittingPose$callEvent.set(false);
+         this.setInSittingPose(this.orderedToSit);
+     }
+ 
+@@ -91,8 +_,12 @@
+     @Override
+     public boolean handleLeashAtDistance(Entity p_352258_, float p_352278_) {
+         if (this.isInSittingPose()) {
+-            if (p_352278_ > 10.0F) {
+-                this.dropLeash(true, true);
++            if (p_352278_ > (float) this.level().paperConfig().misc.maxLeashDistance.or(Leashable.LEASH_TOO_FAR_DIST)) { // Paper - Configurable max leash distance
++                // Paper start - Expand EntityUnleashEvent
++                org.bukkit.event.entity.EntityUnleashEvent event = new org.bukkit.event.entity.EntityUnleashEvent(this.getBukkitEntity(), org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.DISTANCE, true);
++                if (!event.callEvent()) return false;
++                this.dropLeash(true, event.isDropLeash());
++                // Paper end - Expand EntityUnleashEvent
+             }
+ 
+             return false;
+@@ -151,6 +_,7 @@
+     }
+ 
+     public void setInSittingPose(boolean p_21838_) {
++        if (setInSittingPose$callEvent.getAndSet(true) && !new io.papermc.paper.event.entity.EntityToggleSitEvent(this.getBukkitEntity(), p_21838_).callEvent()) return;
+         byte b0 = this.entityData.get(DATA_FLAGS_ID);
+         if (p_21838_) {
+             this.entityData.set(DATA_FLAGS_ID, (byte)(b0 | 1));
+@@ -159,6 +_,12 @@
+         }
+     }
+ 
++    public AtomicBoolean setInSittingPose$callEvent = new AtomicBoolean(true);
++    public void setInSittingPose(boolean inSittingPose, boolean callEvent) {
++        setInSittingPose$callEvent.set(callEvent);
++        setInSittingPose(inSittingPose);
++    }
++
+     @Nullable
+     @Override
+     public UUID getOwnerUUID() {
 @@ -220,11 +_,15 @@
  
      @Override

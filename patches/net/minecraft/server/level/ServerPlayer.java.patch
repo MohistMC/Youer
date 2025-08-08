@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -1,16 +_,25 @@
+@@ -1,16 +_,26 @@
  package net.minecraft.server.level;
  
 +import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
@@ -11,6 +11,7 @@
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Dynamic;
 +import io.papermc.paper.adventure.PaperAdventure;
++import io.papermc.paper.event.player.PlayerTeleportEndGatewayEvent;
  import java.net.InetSocketAddress;
 +import java.util.ArrayList;
  import java.util.Collection;
@@ -585,6 +586,30 @@
          if (this.isRemoved()) {
              return null;
          } else {
+@@ -865,7 +_,22 @@
+             ServerLevel serverlevel1 = this.serverLevel();
+             ResourceKey<Level> resourcekey = serverlevel1.dimension();
+             if (serverlevel.dimension() == resourcekey) {
+-                this.connection.teleport(p_350472_.pos().x, p_350472_.pos().y, p_350472_.pos().z, p_350472_.yRot(), p_350472_.xRot());
++                // Paper start - gateway-specific teleport event
++                if (this.portalProcess != null && this.portalProcess.isSamePortal(((net.minecraft.world.level.block.EndGatewayBlock) net.minecraft.world.level.block.Blocks.END_GATEWAY)) && this.serverLevel().getBlockEntity(this.portalProcess.getEntryPosition()) instanceof net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
++                    Location to = CraftLocation.toBukkit(p_350472_.pos(), this.serverLevel().getWorld(), p_350472_.yRot(), p_350472_.xRot());
++                    final PlayerTeleportEndGatewayEvent event = new PlayerTeleportEndGatewayEvent(this.getBukkitEntity(), this.getBukkitEntity().getLocation(), to, new org.bukkit.craftbukkit.block.CraftEndGateway(to.getWorld(), theEndGatewayBlockEntity));
++                    if (!event.callEvent() || event.getTo() == null) {
++                        return null;
++                    }
++                    this.connection.teleport(event.getTo());
++                } else {
++                    // Paper end - gateway-specific teleport event
++                    boolean result = this.connection.teleport(p_350472_.pos().x, p_350472_.pos().y, p_350472_.pos().z, p_350472_.yRot(), p_350472_.xRot(), p_350472_.cause());
++                    if (!result) {
++                        return null;
++                    }
++                    // CraftBukkit end
++                } // Paper
+                 this.connection.resetPosition();
+                 p_350472_.postDimensionTransition().onTransition(this);
+                 return this;
 @@ -877,7 +_,7 @@
                  PlayerList playerlist = this.server.getPlayerList();
                  playerlist.sendPlayerPermissionLevel(this);

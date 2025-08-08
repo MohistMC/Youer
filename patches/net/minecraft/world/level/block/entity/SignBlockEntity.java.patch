@@ -8,10 +8,11 @@
  import net.minecraft.server.network.FilteredText;
  import net.minecraft.sounds.SoundEvent;
  import net.minecraft.sounds.SoundEvents;
-@@ -30,9 +_,12 @@
+@@ -30,9 +_,13 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
++import org.bukkit.block.sign.Side;
 +import org.bukkit.craftbukkit.block.CraftBlock;
 +import org.bukkit.craftbukkit.block.CraftSign;
 +import org.bukkit.craftbukkit.command.CraftBlockCommandSender;
@@ -77,10 +78,30 @@
          return p_277359_;
      }
  
-@@ -218,11 +_,35 @@
+@@ -210,7 +_,17 @@
+             Style style = component.getStyle();
+             ClickEvent clickevent = style.getClickEvent();
+             if (clickevent != null && clickevent.getAction() == ClickEvent.Action.RUN_COMMAND) {
+-                p_279304_.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(p_279304_, p_279201_, p_278282_), clickevent.getValue());
++                // Paper start - Fix commands from signs not firing command events
++                String command = clickevent.getValue().startsWith("/") ? clickevent.getValue() : "/" + clickevent.getValue();
++                if (org.spigotmc.SpigotConfig.logCommands)  {
++                    LOGGER.info("{} issued server command: {}", p_279304_.getScoreboardName(), command);
++                }
++                io.papermc.paper.event.player.PlayerSignCommandPreprocessEvent event = new io.papermc.paper.event.player.PlayerSignCommandPreprocessEvent((org.bukkit.entity.Player) p_279304_.getBukkitEntity(), command, new org.bukkit.craftbukkit.util.LazyPlayerSet(p_279304_.getServer()), (org.bukkit.block.Sign) CraftBlock.at(this.level, this.worldPosition).getState(), p_278254_ ? Side.FRONT : Side.BACK);
++                if (!event.callEvent()) {
++                    return false;
++                }
++                p_279304_.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(((org.bukkit.craftbukkit.entity.CraftPlayer) event.getPlayer()).getHandle(), p_279201_, p_278282_), event.getMessage());
++                // Paper end - Fix commands from signs not firing command events
+                 flag = true;
+             }
+         }
+@@ -218,11 +_,52 @@
          return flag;
      }
  
+-    private static CommandSourceStack createCommandSourceStack(@Nullable Player p_279428_, Level p_279359_, BlockPos p_279430_) {
 +    // CraftBukkit start
 +    @Override
 +    public void sendSystemMessage(Component ichatbasecomponent) {}
@@ -105,12 +126,29 @@
 +        return false;
 +    }
 +
-     private static CommandSourceStack createCommandSourceStack(@Nullable Player p_279428_, Level p_279359_, BlockPos p_279430_) {
++    private CommandSourceStack createCommandSourceStack(@Nullable Player p_279428_, Level p_279359_, BlockPos p_279430_) {
          String s = p_279428_ == null ? "Sign" : p_279428_.getName().getString();
          Component component = (Component)(p_279428_ == null ? Component.literal("Sign") : p_279428_.getDisplayName());
++
++        // Paper start - Fix commands from signs not firing command events
++        CommandSource commandSource = p_279359_.paperConfig().misc.showSignClickCommandFailureMsgsToPlayer ? new io.papermc.paper.commands.DelegatingCommandSource(SignBlockEntity.this) {
++            @Override
++            public void sendSystemMessage(Component message) {
++                if (p_279428_ != null) {
++                    p_279428_.sendSystemMessage(message);
++                }
++            }
++
++            @Override
++            public boolean acceptsFailure() {
++                return true;
++            }
++        } : this;
++        // Paper end - Fix commands from signs not firing command events
++
          return new CommandSourceStack(
 -            CommandSource.NULL, Vec3.atCenterOf(p_279430_), Vec2.ZERO, (ServerLevel)p_279359_, 2, s, component, p_279359_.getServer(), p_279428_
-+                CommandSource.NULL, Vec3.atCenterOf(p_279430_), Vec2.ZERO, (ServerLevel)p_279359_, 2, s, component, p_279359_.getServer(), p_279428_
++                commandSource, Vec3.atCenterOf(p_279430_), Vec2.ZERO, (ServerLevel)p_279359_, 2, s, component, p_279359_.getServer(), p_279428_
          );
      }
  

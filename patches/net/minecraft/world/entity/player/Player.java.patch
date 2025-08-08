@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -1,16 +_,20 @@
+@@ -1,16 +_,21 @@
  package net.minecraft.world.entity.player;
  
 +import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
@@ -18,6 +18,7 @@
  import java.util.Optional;
  import java.util.OptionalInt;
 +import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.concurrent.atomic.AtomicReference;
  import java.util.function.Predicate;
  import javax.annotation.Nonnull;
  import javax.annotation.Nullable;
@@ -54,7 +55,7 @@
  import net.minecraft.world.item.crafting.RecipeHolder;
  import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
  import net.minecraft.world.item.enchantment.EnchantmentHelper;
-@@ -110,10 +_,15 @@
+@@ -110,10 +_,16 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Scoreboard;
@@ -62,6 +63,7 @@
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.util.CraftVector;
++import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.entity.EntityExhaustionEvent;
 +import org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason;
  import org.slf4j.Logger;
@@ -80,7 +82,7 @@
      protected int jumpTriggerTime;
      public float oBob;
      public float bob;
-@@ -179,7 +_,7 @@
+@@ -179,25 +_,44 @@
      public int enchantmentSeed;
      protected final float defaultFlySpeed = 0.02F;
      private int lastLevelUpTime;
@@ -89,7 +91,14 @@
      private boolean reducedDebugInfo;
      private ItemStack lastItemInMainHand = ItemStack.EMPTY;
      private final ItemCooldowns cooldowns = this.createItemCooldowns();
-@@ -193,11 +_,29 @@
+     private Optional<GlobalPos> lastDeathLocation = Optional.empty();
+     @Nullable
+     public FishingHook fishing;
+-    protected float hurtDir;
++    public float hurtDir;
+     @Nullable
+     public Vec3 currentImpulseImpactPos;
+     @Nullable
      public Entity currentExplosionCause;
      private boolean ignoreFallDamageFromCurrentImpulse;
      private int currentImpulseContextResetGraceTime;
@@ -98,6 +107,7 @@
 +    @Nullable private Pose forcedPose;
 +    private long lastDayTimeTick = -1L; // Neo: Used to limit TIME_SINCE_REST increases when day length is non-standard. No need to persist, at most Phantoms will spawn one tick too early for each save/load cycle.
 +    public boolean affectsSpawning = true; // Paper - Affects Spawning API
++    public net.kyori.adventure.util.TriState flyingFallDamage = net.kyori.adventure.util.TriState.NOT_SET; // Paper - flying fall damage
 +
 +    // CraftBukkit start
 +    public boolean fauxSleeping;
@@ -792,7 +802,7 @@
      @Override
      public boolean causeFallDamage(float p_150093_, float p_150094_, DamageSource p_150095_) {
 -        if (this.abilities.mayfly) {
-+        if (this.mayFly()) {
++        if (this.mayFly() && !this.flyingFallDamage.toBooleanOrElse(false)) { // Paper - flying fall damage
 +            net.neoforged.neoforge.event.EventHooks.onPlayerFall(this, p_150093_, p_150093_);
              return false;
          } else {
@@ -937,14 +947,14 @@
      public boolean addItem(ItemStack p_36357_) {
          return this.inventory.add(p_36357_);
      }
-@@ -1801,26 +_,41 @@
+@@ -1799,28 +_,69 @@
+         }
+     }
  
-     protected void removeEntitiesOnShoulder() {
+-    protected void removeEntitiesOnShoulder() {
++    public void removeEntitiesOnShoulder() {
          if (this.timeEntitySatOnShoulder + 20L < this.level().getGameTime()) {
 -            this.respawnEntityOnShoulder(this.getShoulderEntityLeft());
--            this.setShoulderEntityLeft(new CompoundTag());
--            this.respawnEntityOnShoulder(this.getShoulderEntityRight());
--            this.setShoulderEntityRight(new CompoundTag());
 +            // CraftBukkit start
 +            if (this.spawnEntityFromShoulder(this.getShoulderEntityLeft())) {
 +                this.setShoulderEntityLeft(new CompoundTag());
@@ -953,12 +963,39 @@
 +                this.setShoulderEntityRight(new CompoundTag());
 +            }
 +            // CraftBukkit end
++        }
++
++    }
++
++    // Paper start
++    public Entity releaseLeftShoulderEntity() {
++        Entity entity = this.respawnEntityOnShoulder0(this.getShoulderEntityLeft());
++        if (entity != null) {
+             this.setShoulderEntityLeft(new CompoundTag());
+-            this.respawnEntityOnShoulder(this.getShoulderEntityRight());
++        }
++        return entity;
++    }
++
++    public Entity releaseRightShoulderEntity() {
++        Entity entity = this.respawnEntityOnShoulder0(this.getShoulderEntityRight());
++        if (entity != null) {
+             this.setShoulderEntityRight(new CompoundTag());
          }
+-    }
++        return entity;
++    }
++    // Paper - maintain old signature
 +
-     }
++    // Paper - return entity
++    private Entity respawnEntityOnShoulder0(CompoundTag nbttagcompound) { // CraftBukkit void->boolean
++        respawnEntityOnShoulder(nbttagcompound);
++        return spawnEntityFromShoulder.getAndSet(null);
++    }
++    // Paper end
 +
-+    // Mohist start
-+    public AtomicBoolean spawnEntityFromShoulder = new AtomicBoolean(true);
++    // Youer start
++    public AtomicReference<Entity> spawnEntityFromShoulder = new AtomicReference<>(null);
  
      private void respawnEntityOnShoulder(CompoundTag p_36371_) {
          if (!this.level().isClientSide && !p_36371_.isEmpty()) {
@@ -974,16 +1011,17 @@
 -                ((ServerLevel)this.level()).addWithUUID(p_352835_);
 +                p_276001_.setPos(this.getX(), this.getY() + (double)0.7F, this.getZ());
 +                boolean canAdd = ((ServerLevel)this.level()).addWithUUID(p_276001_);
-+                spawnEntityFromShoulder.set(canAdd);
++                if (canAdd) {
++                    spawnEntityFromShoulder.set(p_276001_);
++                }
              });
          }
      }
  
 +    private boolean spawnEntityFromShoulder(CompoundTag pEntityCompound) { // CraftBukkit void->boolean
-+        respawnEntityOnShoulder(pEntityCompound);
-+        return spawnEntityFromShoulder.getAndSet(true);
++        return this.respawnEntityOnShoulder0(pEntityCompound) != null;
 +    }
-+    // Mohist end
++    // Youer end
 +
      @Override
      public abstract boolean isSpectator();

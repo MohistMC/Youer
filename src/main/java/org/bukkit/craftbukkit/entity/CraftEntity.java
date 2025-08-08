@@ -861,6 +861,20 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
     public boolean isSneaking() {
         return this.getHandle().isShiftKeyDown();
     }
+
+    @Override
+    public void setPose(Pose pose, boolean fixed) {
+        Preconditions.checkNotNull(pose, "Pose cannot be null");
+        final Entity handle = this.getHandle();
+        handle.fixedPose = false;
+        handle.setPose(net.minecraft.world.entity.Pose.values()[pose.ordinal()]);
+        handle.fixedPose = fixed;
+    }
+
+    @Override
+    public boolean hasFixedPose() {
+        return this.getHandle().fixedPose;
+    }
     // Paper end
 
     @Override
@@ -1098,6 +1112,13 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         return !this.entity.valid && this.entity.level().addFreshEntity(this.entity, reason);
     }
     // Paper end - raw entity serialization API
+
+    // Paper start - entity powdered snow API
+    @Override
+    public boolean isInPowderedSnow() {
+        return getHandle().isInPowderSnow || getHandle().wasInPowderSnow; // depending on the location in the entity "tick" either could be needed.
+    }
+    // Paper end - entity powdered snow API
 
     // Paper start - entity liquid API
     @Override

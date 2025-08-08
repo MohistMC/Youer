@@ -37,7 +37,7 @@ public class PlayerEventDispatcher {
         if (abstractcontainermenu.getBukkitView() == null) {
             org.bukkit.inventory.Inventory inventory = new CraftInventory(new YouerModsInventory(abstractcontainermenu, event.getEntity()));
             inventory.getType().setMods(true);
-            abstractcontainermenu.bukkitView = new CraftInventoryView(event.getEntity().getBukkitEntity(), inventory, abstractcontainermenu);
+            abstractcontainermenu.bukkitView = new CraftInventoryView<>(event.getEntity().getBukkitEntity(), inventory, abstractcontainermenu);
         }
         // Youer end
         CraftEventFactory.handleInventoryCloseEvent(event.getEntity()); // CraftBukkit

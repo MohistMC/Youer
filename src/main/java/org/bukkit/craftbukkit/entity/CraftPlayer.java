@@ -250,6 +250,13 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         return this.server.getPlayer(this.getUniqueId()) != null;
     }
 
+    // Paper start
+    @Override
+    public boolean isConnected() {
+        return !this.getHandle().hasDisconnected();
+    }
+    // Paper end
+
     @Override
     public InetSocketAddress getAddress() {
         if (this.getHandle().connection == null) return null;
@@ -672,6 +679,24 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
     // Paper end - Add sendOpLevel API
 
+    // Paper start - custom chat completions API
+    @Override
+    public void addAdditionalChatCompletions(@NotNull Collection<String> completions) {
+        this.getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacket(
+                net.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacket.Action.ADD,
+                new ArrayList<>(completions)
+        ));
+    }
+
+    @Override
+    public void removeAdditionalChatCompletions(@NotNull Collection<String> completions) {
+        this.getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacket(
+                net.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacket.Action.REMOVE,
+                new ArrayList<>(completions)
+        ));
+    }
+    // Paper end - custom chat completions API
+
     @Override
     public void setCompassTarget(Location loc) {
         Preconditions.checkArgument(loc != null, "Location cannot be null");
@@ -913,6 +938,32 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         ClientboundBlockUpdatePacket packet = new ClientboundBlockUpdatePacket(CraftLocation.toBlockPosition(loc), ((CraftBlockData) block).getState());
         this.getHandle().connection.send(packet);
     }
+
+    // Paper start
+    @Override
+    public void sendMultiBlockChange(final Map<? extends io.papermc.paper.math.Position, BlockData> blockChanges) {
+        if (this.getHandle().connection == null) return;
+
+        Map<SectionPos, it.unimi.dsi.fastutil.shorts.Short2ObjectMap<net.minecraft.world.level.block.state.BlockState>> sectionMap = new HashMap<>();
+
+        for (Map.Entry<? extends io.papermc.paper.math.Position, BlockData> entry : blockChanges.entrySet()) {
+            BlockData blockData = entry.getValue();
+            BlockPos blockPos = io.papermc.paper.util.MCUtil.toBlockPos(entry.getKey());
+            SectionPos sectionPos = SectionPos.of(blockPos);
+
+            it.unimi.dsi.fastutil.shorts.Short2ObjectMap<net.minecraft.world.level.block.state.BlockState> sectionData = sectionMap.computeIfAbsent(sectionPos, key -> new it.unimi.dsi.fastutil.shorts.Short2ObjectArrayMap<>());
+            sectionData.put(SectionPos.sectionRelativePos(blockPos), ((CraftBlockData) blockData).getState());
+        }
+
+        for (Map.Entry<SectionPos, it.unimi.dsi.fastutil.shorts.Short2ObjectMap<net.minecraft.world.level.block.state.BlockState>> entry : sectionMap.entrySet()) {
+            SectionPos sectionPos = entry.getKey();
+            it.unimi.dsi.fastutil.shorts.Short2ObjectMap<net.minecraft.world.level.block.state.BlockState> blockData = entry.getValue();
+
+            net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket packet = new net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket(sectionPos, blockData);
+            this.getHandle().connection.send(packet);
+        }
+    }
+    // Paper end
 
     @Override
     public void sendBlockChanges(Collection<BlockState> blocks) {
@@ -2504,6 +2555,19 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         this.getHandle().onUpdateAbilities();
     }
 
+    // Paper start - flying fall damage
+    @Override
+    public void setFlyingFallDamage(@NotNull net.kyori.adventure.util.TriState flyingFallDamage) {
+        getHandle().flyingFallDamage = flyingFallDamage;
+    }
+
+    @NotNull
+    @Override
+    public net.kyori.adventure.util.TriState hasFlyingFallDamage() {
+        return getHandle().flyingFallDamage;
+    }
+    // Paper end - flying fall damage
+
     @Override
     public int getNoDamageTicks() {
         if (this.getHandle().spawnInvulnerableTime > 0) {
@@ -3266,4 +3330,16 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         this.getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundEntityEventPacket(((CraftEntity) target).getHandle(), effect.getData()));
     }
     // Paper end - entity effect API
+
+    // Paper start
+    @Override
+    public Duration getIdleDuration() {
+        return Duration.ofMillis(net.minecraft.Util.getMillis() - this.getHandle().getLastActionTime());
+    }
+
+    @Override
+    public void resetIdleDuration() {
+        this.getHandle().resetLastActionTime();
+    }
+    // Paper end
 }

@@ -106,6 +106,35 @@ public interface Item extends Entity {
     public void setCanMobPickup(boolean canMobPickup);
 
     /**
+     * Gets whether the player can pickup the item or not
+     *
+     * @return True if a player can pickup the item
+     */
+    public boolean canPlayerPickup();
+
+    /**
+     * Sets whether the item can be picked up or not. Modifies the pickup delay value to do so.
+     *
+     * @param canPlayerPickup True if the player can pickup the item
+     */
+    public void setCanPlayerPickup(boolean canPlayerPickup);
+
+    /**
+     * Gets whether the item will age and despawn from being on the ground too long
+     *
+     * @return True if the item will age
+     */
+    public boolean willAge();
+
+    /**
+     * Sets whether the item will age or not. If the item is not ageing, it will not despawn
+     * by being on the ground for too long.
+     *
+     * @param willAge True if the item should age
+     */
+    public void setWillAge(boolean willAge);
+
+    /**
      * Gets the health of item stack.
      * <p>
      * Currently the default max health is 5.

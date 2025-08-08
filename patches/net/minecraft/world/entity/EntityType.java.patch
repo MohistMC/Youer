@@ -180,6 +180,27 @@
                  mob.playAmbientSound();
              }
  
+@@ -1062,10 +_,18 @@
+     }
+ 
+     public static Optional<Entity> create(CompoundTag p_20643_, Level p_20644_) {
++        // Paper start - Don't fire sync event during generation
++        return create(p_20643_, p_20644_, false);
++    }
++    public static Optional<Entity> create(CompoundTag p_20643_, Level p_20644_, boolean generation) {
++        // Paper end - Don't fire sync event during generation
+         return Util.ifElse(
+             by(p_20643_).map(p_185998_ -> p_185998_.create(p_20644_)),
+-            p_185990_ -> p_185990_.load(p_20643_),
+-            () -> LOGGER.warn("Skipping Entity with id {}", p_20643_.getString("id"))
++                (p_185990_) -> {
++                    if (generation) p_185990_.generation = true; // Paper - Don't fire sync event during generation
++                    p_185990_.load(p_20643_);
++                },
++                () -> LOGGER.warn("Skipping Entity with id {}", p_20643_.getString("id"))
+         );
+     }
+ 
 @@ -1149,14 +_,23 @@
      }
  

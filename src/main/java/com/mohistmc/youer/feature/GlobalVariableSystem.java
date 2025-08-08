@@ -89,7 +89,7 @@ public class GlobalVariableSystem {
             return parsedCache.get(cacheKey);
         }
 
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         Matcher matcher = VARIABLE_PATTERN.matcher(input);
 
         while (matcher.find()) {

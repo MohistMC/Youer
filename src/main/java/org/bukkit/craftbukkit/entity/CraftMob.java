@@ -83,6 +83,12 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
         return this.getHandle().lootTableSeed;
     }
 
+    // Paper start
+    @Override
+    public boolean isInDaylight() {
+        return getHandle().isSunBurnTick();
+    }
+
     @Override
     public boolean isLeftHanded() {
         return getHandle().isLeftHanded();

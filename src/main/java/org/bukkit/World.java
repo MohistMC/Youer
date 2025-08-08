@@ -97,6 +97,32 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      */
     void setVoidDamageMinBuildHeightOffset(double minBuildHeightOffset);
     // Paper end - void damage configuration
+
+    // Paper start - structure check API
+    /**
+     * Check if the naturally-generated structure exists at the position.
+     * <p>
+     * Note that if the position is not loaded, this may cause chunk loads/generation
+     * to check if a structure is at that position. Use {@link #isPositionLoaded(io.papermc.paper.math.Position)}
+     * to check if a position is loaded
+     *
+     * @param position the position to check at
+     * @param structure the structure to check for
+     * @return true if that structure exists at the position
+     */
+    boolean hasStructureAt(io.papermc.paper.math.@NotNull Position position, @NotNull Structure structure);
+
+    /**
+     * Checks if this position is loaded.
+     *
+     * @param position position to check
+     * @return true if loaded
+     */
+    default boolean isPositionLoaded(io.papermc.paper.math.@NotNull Position position) {
+        return this.isChunkLoaded(position.blockX() >> 4, position.blockZ() >> 4);
+    }
+    // Paper end
+
     /**
      * Gets the {@link Block} at the given coordinates
      *
@@ -1284,6 +1310,15 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      * @see #setTime(long) Sets the relative time of this world
      */
     public void setFullTime(long time);
+
+    // Paper start
+    /**
+     * Check if it is currently daytime in this world
+     *
+     * @return True if it is daytime
+     */
+    public boolean isDayTime();
+    // Paper end
 
     /**
      * Gets the full in-game time on this world since the world generation

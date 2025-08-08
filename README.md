@@ -36,8 +36,12 @@
 - [x] Spigot ([a759b629](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/spigot/commits/a759b629))
 
 🔄 **In Progress**
-- [ ] Paper API ([3cb8529bd](https://github.com/PaperMC/Paper-archive/commit/3cb8529bd))
+- [ ] Paper ([3cb8529bd](https://github.com/PaperMC/Paper-archive/commit/3cb8529bd))
+  - [ ] api
+  - [ ] server
 - [ ] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))
+  - [ ] api
+  - [ ] server
 
 ## 📚 Documentation
 

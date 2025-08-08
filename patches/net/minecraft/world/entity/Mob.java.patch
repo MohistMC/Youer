@@ -16,7 +16,7 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.LevelAccessor;
  import net.minecraft.world.level.LevelReader;
-@@ -85,6 +_,10 @@
+@@ -85,6 +_,11 @@
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
  import net.minecraft.world.phys.AABB;
@@ -24,6 +24,7 @@
 +import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.entity.EntityTargetEvent;
 +import org.bukkit.event.entity.EntityTransformEvent;
++import org.bukkit.event.entity.EntityUnleashEvent;
  
  public abstract class Mob extends LivingEntity implements EquipmentUser, Leashable, Targeting {
      private static final EntityDataAccessor<Byte> DATA_MOB_FLAGS_ID = SynchedEntityData.defineId(Mob.class, EntityDataSerializers.BYTE);
@@ -251,6 +252,15 @@
          ProfilerFiller profilerfiller = this.level().getProfiler();
          profilerfiller.push("sensing");
          this.sensing.tick();
+@@ -960,7 +_,7 @@
+         }
+     }
+ 
+-    protected float getEquipmentDropChance(EquipmentSlot p_21520_) {
++    public float getEquipmentDropChance(EquipmentSlot p_21520_) {
+         return switch (p_21520_.getType()) {
+             case HAND -> this.handDropChances[p_21520_.getIndex()];
+             case HUMANOID_ARMOR -> this.armorDropChances[p_21520_.getIndex()];
 @@ -1133,6 +_,11 @@
          }
      }
@@ -310,14 +320,19 @@
      @Nullable
      @Override
      public Leashable.LeashData getLeashData() {
-@@ -1351,6 +_,7 @@
+@@ -1351,7 +_,11 @@
      public boolean startRiding(Entity p_21396_, boolean p_21397_) {
          boolean flag = super.startRiding(p_21396_, p_21397_);
          if (flag && this.isLeashed()) {
-+            this.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.entity.EntityUnleashEvent(this.getBukkitEntity(), org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.UNKNOWN)); // CraftBukkit
-             this.dropLeash(true, true);
+-            this.dropLeash(true, true);
++            // Paper start - Expand EntityUnleashEvent
++            EntityUnleashEvent event = new EntityUnleashEvent(this.getBukkitEntity(), EntityUnleashEvent.UnleashReason.UNKNOWN, true);
++            if (!event.callEvent()) { return flag; }
++            this.dropLeash(true, event.isDropLeash());
++            // Paper end - Expand EntityUnleashEvent
          }
  
+         return flag;
 @@ -1434,6 +_,8 @@
          if (flag) {
              float f1 = this.getKnockback(p_21372_, damagesource);
@@ -327,6 +342,15 @@
                  livingentity.knockback(
                      (double)(f1 * 0.5F),
                      (double)Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)),
+@@ -1456,7 +_,7 @@
+     protected void playAttackSound() {
+     }
+ 
+-    protected boolean isSunBurnTick() {
++    public boolean isSunBurnTick() {
+         if (this.level().isDay() && !this.level().isClientSide) {
+             float f = this.getLightLevelDependentMagicValue();
+             BlockPos blockpos = BlockPos.containing(this.getX(), this.getEyeY(), this.getZ());
 @@ -1470,14 +_,24 @@
      }
  

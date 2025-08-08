@@ -16,13 +16,7 @@ import org.objectweb.asm.tree.ClassNode;
  * @author Mainly by IzzelAliz
  * @originalClassName ClassLoaderRepo
  */
-public class ClassLoaderRepo implements ClassRepo {
-
-    private final ClassLoader classLoader;
-
-    public ClassLoaderRepo(ClassLoader classLoader) {
-        this.classLoader = classLoader;
-    }
+public record ClassLoaderRepo(ClassLoader classLoader) implements ClassRepo {
 
     @Override
     public ClassNode findClass(String internalName) {
@@ -32,8 +26,8 @@ public class ClassLoaderRepo implements ClassRepo {
     public ClassNode findClass(String internalName, int parsingOptions) {
         try {
             URL url = classLoader instanceof URLClassLoader
-                ? ((URLClassLoader) classLoader).findResource(internalName + ".class") // search local
-                : (URL) H_FIND_RESOURCE.invokeExact(classLoader, internalName + ".class");
+                    ? ((URLClassLoader) classLoader).findResource(internalName + ".class") // search local
+                    : (URL) H_FIND_RESOURCE.invokeExact(classLoader, internalName + ".class");
             if (url == null) return null;
             URLConnection connection = url.openConnection();
             try (InputStream inputStream = connection.getInputStream()) {

@@ -5,7 +5,7 @@
      }
  
 +    // CraftBukkit start - Add constructor
-+    public ClientboundSectionBlocksUpdatePacket(SectionPos sectionposition, ShortSet shortset, net.minecraft.world.level.block.state.BlockState[] states) {
++    public ClientboundSectionBlocksUpdatePacket(SectionPos sectionposition, ShortSet shortset, BlockState[] states) {
 +        this.sectionPos = sectionposition;
 +        this.positions = shortset.toShortArray();
 +        this.states = states;
@@ -15,3 +15,18 @@
      private ClientboundSectionBlocksUpdatePacket(FriendlyByteBuf p_179196_) {
          this.sectionPos = SectionPos.of(p_179196_.readLong());
          int i = p_179196_.readVarInt();
+@@ -49,6 +_,14 @@
+             this.states[j] = Block.BLOCK_STATE_REGISTRY.byId((int)(k >>> 12));
+         }
+     }
++
++    // Paper start - Multi Block Change API
++    public ClientboundSectionBlocksUpdatePacket(SectionPos sectionPos, it.unimi.dsi.fastutil.shorts.Short2ObjectMap<BlockState> blockChanges) {
++        this.sectionPos = sectionPos;
++        this.positions = blockChanges.keySet().toShortArray();
++        this.states = blockChanges.values().toArray(new BlockState[0]);
++    }
++    // Paper end - Multi Block Change API
+ 
+     private void write(FriendlyByteBuf p_133002_) {
+         p_133002_.writeLong(this.sectionPos.asLong());

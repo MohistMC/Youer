@@ -9,6 +9,25 @@
  
  public class CampfireBlockEntity extends BlockEntity implements Clearable {
      private static final int BURN_COOL_SPEED = 2;
+@@ -36,6 +_,7 @@
+     public final int[] cookingProgress = new int[4];
+     public final int[] cookingTime = new int[4];
+     private final RecipeManager.CachedCheck<SingleRecipeInput, CampfireCookingRecipe> quickCheck = RecipeManager.createCheck(RecipeType.CAMPFIRE_COOKING);
++    public final boolean[] stopCooking = new boolean[4]; // Paper - Add more Campfire API
+ 
+     public CampfireBlockEntity(BlockPos p_155301_, BlockState p_155302_) {
+         super(BlockEntityType.CAMPFIRE, p_155301_, p_155302_);
+@@ -48,7 +_,9 @@
+             ItemStack itemstack = p_155310_.items.get(i);
+             if (!itemstack.isEmpty()) {
+                 flag = true;
+-                p_155310_.cookingProgress[i]++;
++                if (!p_155310_.stopCooking[i]) { // Paper - Add more Campfire API
++                    p_155310_.cookingProgress[i]++;
++                } // Paper - Add more Campfire API
+                 if (p_155310_.cookingProgress[i] >= p_155310_.cookingTime[i]) {
+                     SingleRecipeInput singlerecipeinput = new SingleRecipeInput(itemstack);
+                     ItemStack itemstack1 = p_155310_.quickCheck
 @@ -56,6 +_,20 @@
                          .map(p_344662_ -> p_344662_.value().assemble(singlerecipeinput, p_155307_.registryAccess()))
                          .orElse(itemstack);
@@ -30,6 +49,38 @@
                          Containers.dropItemStack(p_155307_, (double)p_155308_.getX(), (double)p_155308_.getY(), (double)p_155308_.getZ(), itemstack1);
                          p_155310_.items.set(i, ItemStack.EMPTY);
                          p_155307_.sendBlockUpdated(p_155308_, p_155309_, p_155309_, 3);
+@@ -134,6 +_,17 @@
+             int[] aint1 = p_155312_.getIntArray("CookingTotalTimes");
+             System.arraycopy(aint1, 0, this.cookingTime, 0, Math.min(this.cookingTime.length, aint1.length));
+         }
++
++        // Paper start - Add more Campfire API
++        if (p_155312_.contains("Paper.StopCooking", org.bukkit.craftbukkit.util.CraftMagicNumbers.NBT.TAG_BYTE_ARRAY)) {
++            byte[] abyte = p_155312_.getByteArray("Paper.StopCooking");
++            boolean[] cookingState = new boolean[4];
++            for (int index = 0; index < abyte.length; index++) {
++                cookingState[index] = abyte[index] == 1;
++            }
++            System.arraycopy(cookingState, 0, this.stopCooking, 0, Math.min(this.stopCooking.length, abyte.length));
++        }
++        // Paper end - Add more Campfire API
+     }
+ 
+     @Override
+@@ -142,6 +_,13 @@
+         ContainerHelper.saveAllItems(p_187486_, this.items, true, p_324005_);
+         p_187486_.putIntArray("CookingTimes", this.cookingProgress);
+         p_187486_.putIntArray("CookingTotalTimes", this.cookingTime);
++        // Paper start - Add more Campfire API
++        byte[] cookingState = new byte[4];
++        for (int index = 0; index < cookingState.length; index++) {
++            cookingState[index] = (byte) (this.stopCooking[index] ? 1 : 0);
++        }
++        p_187486_.putByteArray("Paper.StopCooking", cookingState);
++        // Paper end - Add more Campfire API
+     }
+ 
+     public ClientboundBlockEntityDataPacket getUpdatePacket() {
 @@ -163,7 +_,11 @@
          for (int i = 0; i < this.items.size(); i++) {
              ItemStack itemstack = this.items.get(i);

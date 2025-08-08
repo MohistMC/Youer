@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/block/Block.java
 +++ b/net/minecraft/world/level/block/Block.java
+@@ -8,6 +_,8 @@
+ import com.mojang.serialization.MapCodec;
+ import it.unimi.dsi.fastutil.objects.Object2ByteLinkedOpenHashMap;
+ import java.util.List;
++import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.Function;
+ import java.util.function.Supplier;
+ import javax.annotation.Nullable;
 @@ -65,7 +_,7 @@
      public static final MapCodec<Block> CODEC = simpleCodec(Block::new);
      private static final Logger LOGGER = LogUtils.getLogger();
@@ -48,7 +57,7 @@
          } else if (blockstate.canOcclude()) {
              Block.BlockStatePairKey block$blockstatepairkey = new Block.BlockStatePairKey(p_152445_, blockstate, p_152448_);
              Object2ByteLinkedOpenHashMap<Block.BlockStatePairKey> object2bytelinkedopenhashmap = OCCLUSION_CACHE.get();
-@@ -281,24 +_,30 @@
+@@ -281,24 +_,39 @@
  
      public static void dropResources(BlockState p_49951_, Level p_49952_, BlockPos p_49953_) {
          if (p_49952_ instanceof ServerLevel) {
@@ -69,6 +78,15 @@
 +            net.neoforged.neoforge.common.CommonHooks.handleBlockDrops((ServerLevel) p_49894_, p_49895_, p_49893_, p_49896_, captured, null, ItemStack.EMPTY);
          }
      }
++
++    // Paper start - Add BlockBreakBlockEvent TODO Youer hook neoforge event
++    public static AtomicReference<BlockPos> dropResources$paperSource = new AtomicReference<>(null);
++    public static boolean dropResources(BlockState p_49893_, LevelAccessor p_49894_, BlockPos p_49895_, @Nullable BlockEntity p_49896_, BlockPos source) {
++        dropResources$paperSource.set(source);
++        dropResources(p_49893_, p_49894_, p_49895_, p_49896_);
++        return true;
++    }
++    // Paper end - Add BlockBreakBlockEvent
  
      public static void dropResources(
 -        BlockState p_49882_, Level p_49883_, BlockPos p_49884_, @Nullable BlockEntity p_49885_, @Nullable Entity p_49886_, ItemStack p_49887_

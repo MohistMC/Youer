@@ -395,30 +395,22 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
         }
     }
 
-    static class WrappedMethod {
-
-        private final String name;
-        private final Class<?>[] pTypes;
-
-        public WrappedMethod(String name, Class<?>[] pTypes) {
-            this.name = name;
-            this.pTypes = pTypes;
-        }
+    record WrappedMethod(String name, Class<?>[] pTypes) {
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            WrappedMethod that = (WrappedMethod) o;
-            return Objects.equals(name, that.name) &&
-                    Arrays.equals(pTypes, that.pTypes);
-        }
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                WrappedMethod that = (WrappedMethod) o;
+                return Objects.equals(name, that.name) &&
+                        Arrays.equals(pTypes, that.pTypes);
+            }
 
-        @Override
-        public int hashCode() {
-            int result = Objects.hash(name);
-            result = 31 * result + Arrays.hashCode(pTypes);
-            return result;
+            @Override
+            public int hashCode() {
+                int result = Objects.hash(name);
+                result = 31 * result + Arrays.hashCode(pTypes);
+                return result;
+            }
         }
-    }
 }

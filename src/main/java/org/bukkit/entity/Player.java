@@ -947,6 +947,29 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      */
     public void sendBlockDamage(@NotNull Location loc, float progress);
 
+    // Paper start
+    /**
+     * Send multiple block changes. This fakes a multi block change packet for each
+     * chunk section that a block change occurs. This will not actually change the world in any way.
+     *
+     * @param blockChanges A map of the positions you want to change to their new block data
+     */
+    void sendMultiBlockChange(@NotNull Map<? extends io.papermc.paper.math.Position, BlockData> blockChanges);
+
+    /**
+     * Send multiple block changes. This fakes a multi block change packet for each
+     * chunk section that a block change occurs. This will not actually change the world in any way.
+     *
+     * @param blockChanges A map of the positions you want to change to their new block data
+     * @param suppressLightUpdates Whether to suppress light updates or not
+     * @deprecated suppressLightUpdates is no longer available in 1.20+, use {@link #sendMultiBlockChange(Map)}
+     */
+    @Deprecated
+    default void sendMultiBlockChange(@NotNull Map<? extends io.papermc.paper.math.Position, BlockData> blockChanges, boolean suppressLightUpdates) {
+        this.sendMultiBlockChange(blockChanges);
+    }
+    // Paper end
+
     /**
      * Send block damage. This fakes block break progress at a certain location
      * sourced by the provided entity. This will not actually change the block's
@@ -1692,6 +1715,23 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * @param flight If flight should be allowed.
      */
     public void setAllowFlight(boolean flight);
+
+    // Paper start - flying fall damage
+    /**
+     * Allows you to enable fall damage while {@link #getAllowFlight()} is {@code true}
+     *
+     * @param flyingFallDamage Enables fall damage when {@link #getAllowFlight()} is {@code true}
+     */
+    public void setFlyingFallDamage(@NotNull net.kyori.adventure.util.TriState flyingFallDamage);
+
+    /**
+     * Allows you to get if fall damage is enabled while {@link #getAllowFlight()} is {@code true}
+     *
+     * @return A tristate of whether fall damage is enabled, not set, or disabled when {@link #getAllowFlight()} is {@code true}
+     */
+    @NotNull
+    public net.kyori.adventure.util.TriState hasFlyingFallDamage();
+    // Paper end
 
     /**
      * Hides a player from this player
@@ -3127,6 +3167,50 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      */
     public boolean isAllowingServerListings();
 
+    // Paper start - elytra boost API
+    /**
+     * Boost a Player that's {@link #isGliding()} using a {@link Firework}.
+     * If the creation of the entity is cancelled, no boosting is done.
+     * This method does not fire {@link io.papermc.paper.event.player.PlayerElytraBoostEvent}.
+     *
+     * @param firework The {@link Material#FIREWORK_ROCKET} to boost the player with
+     * @return The {@link Firework} boosting the Player or null if the spawning of the entity was cancelled
+     * @throws IllegalArgumentException if {@link #isGliding()} is false
+     * or if the {@code firework} isn't a {@link Material#FIREWORK_ROCKET}
+     * @deprecated use {@link HumanEntity#fireworkBoost(ItemStack)} instead. Note that this method <b>does not</b>
+     * check if the player is gliding or not.
+     */
+    default @Nullable Firework boostElytra(final @NotNull ItemStack firework) {
+        com.google.common.base.Preconditions.checkState(this.isGliding(), "Player must be gliding");
+        return this.fireworkBoost(firework);
+    }
+    // Paper end - elytra boost API
+
+    // Paper start - custom chat completions API
+    /**
+     * Adds custom chat completion suggestions that the client will
+     * suggest when typing in chat.
+     *
+     * @param completions custom completions
+     * @deprecated use {@link #addCustomChatCompletions(Collection)}
+     */
+    @Deprecated(since = "1.20.1")
+    void addAdditionalChatCompletions(@NotNull java.util.Collection<String> completions);
+
+    /**
+     * Removes custom chat completion suggestions that the client
+     * suggests when typing in chat.
+     *
+     * Note: this only applies to previously added custom completions,
+     * online player names are always suggested and cannot be removed.
+     *
+     * @param completions custom completions
+     * @deprecated use {@link #addCustomChatCompletions(Collection)}
+     */
+    @Deprecated(since = "1.20.1")
+    void removeAdditionalChatCompletions(@NotNull java.util.Collection<String> completions);
+    // Paper end - custom chat completions API
+
     // Spigot start
     public class Spigot extends Entity.Spigot {
 
@@ -3232,6 +3316,29 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
         }
         // Paper end
     }
+
+    // Paper start
+    /**
+     * The idle duration is reset when the player
+     * sends specific action packets.
+     * <p>
+     * After the idle duration exceeds {@link org.bukkit.Bukkit#getIdleTimeout()}, the
+     * player will be kicked for {@link org.bukkit.event.player.PlayerKickEvent.Cause#IDLING}.
+     *
+     * @return the current idle duration of this player
+     */
+    @NotNull Duration getIdleDuration();
+
+    /**
+     * Resets this player's idle duration.
+     * <p>
+     * After the idle duration exceeds {@link org.bukkit.Bukkit#getIdleTimeout()}, the
+     * player will be kicked for {@link org.bukkit.event.player.PlayerKickEvent.Cause#IDLING}.
+     *
+     * @see #getIdleDuration()
+     */
+    void resetIdleDuration();
+    // Paper end
 
     @NotNull
     @Override

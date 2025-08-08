@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/Leashable.java
 +++ b/net/minecraft/world/entity/Leashable.java
+@@ -11,6 +_,7 @@
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.entity.decoration.LeashFenceKnotEntity;
+ import net.minecraft.world.item.Items;
++import org.bukkit.event.entity.EntityUnleashEvent;
+ 
+ public interface Leashable {
+     String LEASH_TAG = "leash";
 @@ -62,6 +_,12 @@
      default void writeLeashData(CompoundTag p_352349_, @Nullable Leashable.LeashData p_352363_) {
          if (p_352363_ != null) {
@@ -33,25 +41,35 @@
              }
  
              if (p_352286_ && p_352163_.level() instanceof ServerLevel serverlevel) {
-@@ -126,7 +_,8 @@
+@@ -126,7 +_,11 @@
  
          if (leashable$leashdata != null && leashable$leashdata.leashHolder != null) {
              if (!p_352082_.isAlive() || !leashable$leashdata.leashHolder.isAlive()) {
 -                dropLeash(p_352082_, true, true);
-+                p_352082_.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.entity.EntityUnleashEvent(p_352082_.getBukkitEntity(), (!p_352082_.isAlive()) ? org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.PLAYER_UNLEASH : org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.HOLDER_GONE)); // CraftBukkit
-+                dropLeash(p_352082_, true, !p_352082_.pluginRemoved); // CraftBukkit - SPIGOT-7487: Don't drop leash, when the holder was removed by a plugin
++                // Paper start - Expand EntityUnleashEvent
++                final EntityUnleashEvent event = new EntityUnleashEvent(p_352082_.getBukkitEntity(), (!p_352082_.isAlive()) ? EntityUnleashEvent.UnleashReason.PLAYER_UNLEASH : EntityUnleashEvent.UnleashReason.HOLDER_GONE, !p_352082_.pluginRemoved);
++                event.callEvent();
++                dropLeash(p_352082_, true, event.isDropLeash()); // CraftBukkit - SPIGOT-7487: Don't drop leash, when the holder was removed by a plugin
++                // Paper end - Expand EntityUnleashEvent
              }
  
              Entity entity = p_352082_.getLeashHolder();
-@@ -153,6 +_,11 @@
+@@ -153,7 +_,17 @@
      }
  
      default void leashTooFarBehaviour() {
+-        this.dropLeash(true, true);
 +        // CraftBukkit start
++        boolean dropLeash = true; // Paper
 +        if (this instanceof Entity entity) {
-+            entity.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.entity.EntityUnleashEvent(entity.getBukkitEntity(), org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.DISTANCE));
++            // Paper start - Expand EntityUnleashEvent
++            final EntityUnleashEvent event = new EntityUnleashEvent(entity.getBukkitEntity(), EntityUnleashEvent.UnleashReason.DISTANCE, true);
++            if (!event.callEvent()) return;
++            dropLeash = event.isDropLeash();
++            // Paper end - Expand EntityUnleashEvent
 +        }
 +        // CraftBukkit end
-         this.dropLeash(true, true);
++        this.dropLeash(true, dropLeash); // Paper
      }
  
+     default void closeRangeLeashBehaviour(Entity p_352073_) {

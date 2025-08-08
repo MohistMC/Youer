@@ -1,8 +1,10 @@
 package org.bukkit.craftbukkit.entity;
 
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
@@ -67,6 +69,22 @@ public abstract class CraftMinecart extends CraftVehicle implements Minecart {
     public void setDerailedVelocityMod(Vector derailed) {
         this.getHandle().setDerailedVelocityMod(derailed);
     }
+
+    // Paper start
+    @Override
+    public Material getMinecartMaterial() {
+        net.minecraft.world.item.Item minecartItem = switch (getHandle().getMinecartType()) {
+            case CHEST -> Items.CHEST_MINECART;
+            case FURNACE ->  Items.FURNACE_MINECART;
+            case TNT ->  Items.TNT_MINECART;
+            case HOPPER ->  Items.HOPPER_MINECART;
+            case COMMAND_BLOCK ->  Items.COMMAND_BLOCK_MINECART;
+            case RIDEABLE, SPAWNER ->  Items.MINECART;
+        };
+
+        return CraftMagicNumbers.getMaterial(minecartItem);
+    }
+    // Paper end
 
     @Override
     public AbstractMinecart getHandle() {

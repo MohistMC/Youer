@@ -24,7 +24,7 @@
                      leashable.setLeashedTo(this, true);
                      flag = true;
                  }
-@@ -87,14 +_,30 @@
+@@ -87,14 +_,35 @@
  
              boolean flag1 = false;
              if (!flag) {
@@ -39,13 +39,18 @@
                          if (leashable1.isLeashed() && leashable1.getLeashHolder() == this) {
 -                            leashable1.dropLeash(true, false);
 +                            // CraftBukkit start
++                            boolean dropLeash = !p_31842_.hasInfiniteMaterials();
 +                            if (leashable1 instanceof Entity leashed) {
-+                                if (CraftEventFactory.callPlayerUnleashEntityEvent(leashed, p_31842_, p_31843_).isCancelled()) {
++                                // Paper start - Expand EntityUnleashEvent
++                                org.bukkit.event.player.PlayerUnleashEntityEvent event = CraftEventFactory.callPlayerUnleashEntityEvent(leashed, p_31842_, p_31843_, dropLeash);
++                                dropLeash = event.isDropLeash();
++                                if (event.isCancelled()) {
++                                    // Paper end - Expand EntityUnleashEvent
 +                                    die = false;
 +                                    continue;
 +                                }
 +                            }
-+                            leashable1.dropLeash(true, !p_31842_.getAbilities().instabuild); // false -> survival mode boolean
++                            leashable1.dropLeash(true, dropLeash); // false -> survival mode boolean
 +                            // CraftBukkit end
                              flag1 = true;
                          }

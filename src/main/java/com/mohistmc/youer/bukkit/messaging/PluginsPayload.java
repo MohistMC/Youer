@@ -2,6 +2,7 @@ package com.mohistmc.youer.bukkit.messaging;
 
 import com.google.common.base.Preconditions;
 import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCountUtil;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -17,6 +18,8 @@ public interface PluginsPayload extends CustomPacketPayload {
         final var buf = getData();
         byte[] allocate = new byte[buf.readableBytes()];
         buf.readBytes(allocate);
+        ReferenceCountUtil.release(buf);
+        setData(null);
         return allocate;
     }
 

@@ -75,14 +75,15 @@
      private void makeAreaOfEffectCloud(PotionContents p_332124_) {
          AreaEffectCloud areaeffectcloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());
          if (this.getOwner() instanceof LivingEntity livingentity) {
-@@ -171,7 +_,14 @@
+@@ -171,7 +_,15 @@
          areaeffectcloud.setWaitTime(10);
          areaeffectcloud.setRadiusPerTick(-areaeffectcloud.getRadius() / (float)areaeffectcloud.getDuration());
          areaeffectcloud.setPotionContents(p_332124_);
 -        this.level().addFreshEntity(areaeffectcloud);
++        boolean noEffects = p_332124_.hasEffects(); // Paper - Fix potions splash events
 +        // CraftBukkit start
 +        org.bukkit.event.entity.LingeringPotionSplashEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callLingeringPotionSplashEvent(this, makeAreaOfEffectCloud$position, areaeffectcloud);
-+        if (!(event.isCancelled() || areaeffectcloud.isRemoved())) { // Paper - don't spawn area effect cloud if the effects were empty and not changed during the event handling
++        if (!(event.isCancelled() || areaeffectcloud.isRemoved() || (!event.allowsEmptyCreation() && (noEffects && !areaeffectcloud.potionContents.hasEffects())))) { // Paper - don't spawn area effect cloud if the effects were empty and not changed during the event handling
 +            this.level().addFreshEntity(areaeffectcloud);
 +        } else {
 +            areaeffectcloud.discard(null); // CraftBukkit - add Bukkit remove cause

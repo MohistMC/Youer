@@ -16,8 +16,9 @@
 +        this.spawnPotentials = SimpleWeightedRandomList.empty(); // CraftBukkit - SPIGOT-3496, MC-92282
      }
  
-     private boolean isNearPlayer(Level p_151344_, BlockPos p_151345_) {
+-    private boolean isNearPlayer(Level p_151344_, BlockPos p_151345_) {
 -        return p_151344_.hasNearbyAlivePlayer(
++    public boolean isNearPlayer(Level p_151344_, BlockPos p_151345_) {
 +        return p_151344_.hasNearbyAlivePlayerThatAffectsSpawning(
              (double)p_151345_.getX() + 0.5, (double)p_151345_.getY() + 0.5, (double)p_151345_.getZ() + 0.5, (double)this.requiredPlayerRange
 -        );
@@ -96,6 +97,82 @@
 -                        flag = true;
                      }
                  }
+ 
+@@ -186,7 +_,7 @@
+         }
+     }
+ 
+-    private void delay(Level p_151351_, BlockPos p_151352_) {
++    public void delay(Level p_151351_, BlockPos p_151352_) {
+         RandomSource randomsource = p_151351_.random;
+         if (this.maxSpawnDelay <= this.minSpawnDelay) {
+             this.spawnDelay = this.minSpawnDelay;
+@@ -199,7 +_,13 @@
+     }
+ 
+     public void load(@Nullable Level p_151329_, BlockPos p_151330_, CompoundTag p_151331_) {
+-        this.spawnDelay = p_151331_.getShort("Delay");
++        // Paper start - use larger int if set
++        if (p_151331_.contains("Paper.Delay")) {
++            this.spawnDelay = p_151331_.getInt("Paper.Delay");
++        } else {
++            this.spawnDelay = p_151331_.getShort("Delay");
++        }
++        // Paper end
+         boolean flag = p_151331_.contains("SpawnData", 10);
+         if (flag) {
+             SpawnData spawndata = SpawnData.CODEC
+@@ -220,9 +_,15 @@
+             this.spawnPotentials = SimpleWeightedRandomList.single(this.nextSpawnData != null ? this.nextSpawnData : new SpawnData());
+         }
+ 
+-        if (p_151331_.contains("MinSpawnDelay", 99)) {
+-            this.minSpawnDelay = p_151331_.getShort("MinSpawnDelay");
+-            this.maxSpawnDelay = p_151331_.getShort("MaxSpawnDelay");
++        // Paper start - use ints if set
++        if (p_151331_.contains("Paper.MinSpawnDelay", net.minecraft.nbt.Tag.TAG_ANY_NUMERIC)) {
++            this.minSpawnDelay = p_151331_.getInt("Paper.MinSpawnDelay");
++            this.maxSpawnDelay = p_151331_.getInt("Paper.MaxSpawnDelay");
++            this.spawnCount = p_151331_.getShort("SpawnCount");
++        } else // Paper end
++            if (p_151331_.contains("MinSpawnDelay", 99)) {
++                this.minSpawnDelay = p_151331_.getInt("MinSpawnDelay"); // Paper - short -> int
++                this.maxSpawnDelay = p_151331_.getInt("MaxSpawnDelay"); // Paper - short -> int
+             this.spawnCount = p_151331_.getShort("SpawnCount");
+         }
+ 
+@@ -239,9 +_,20 @@
+     }
+ 
+     public CompoundTag save(CompoundTag p_186382_) {
+-        p_186382_.putShort("Delay", (short)this.spawnDelay);
+-        p_186382_.putShort("MinSpawnDelay", (short)this.minSpawnDelay);
+-        p_186382_.putShort("MaxSpawnDelay", (short)this.maxSpawnDelay);
++        // Paper start
++        if (spawnDelay > Short.MAX_VALUE) {
++            p_186382_.putInt("Paper.Delay", this.spawnDelay);
++        }
++        p_186382_.putShort("Delay", (short) Math.min(Short.MAX_VALUE, this.spawnDelay));
++
++        if (minSpawnDelay > Short.MAX_VALUE || maxSpawnDelay > Short.MAX_VALUE) {
++            p_186382_.putInt("Paper.MinSpawnDelay", this.minSpawnDelay);
++            p_186382_.putInt("Paper.MaxSpawnDelay", this.maxSpawnDelay);
++        }
++
++        p_186382_.putShort("MinSpawnDelay", (short) Math.min(Short.MAX_VALUE, this.minSpawnDelay));
++        p_186382_.putShort("MaxSpawnDelay", (short) Math.min(Short.MAX_VALUE, this.maxSpawnDelay));
++        // Paper end
+         p_186382_.putShort("SpawnCount", (short)this.spawnCount);
+         p_186382_.putShort("MaxNearbyEntities", (short)this.maxNearbyEntities);
+         p_186382_.putShort("RequiredPlayerRange", (short)this.requiredPlayerRange);
+@@ -287,7 +_,7 @@
+         }
+     }
+ 
+-    protected void setNextSpawnData(@Nullable Level p_151325_, BlockPos p_151326_, SpawnData p_151327_) {
++    public void setNextSpawnData(@Nullable Level p_151325_, BlockPos p_151326_, SpawnData p_151327_) {
+         this.nextSpawnData = p_151327_;
+     }
  
 @@ -308,5 +_,12 @@
  

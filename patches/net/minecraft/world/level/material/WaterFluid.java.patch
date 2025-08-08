@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/level/material/WaterFluid.java
++++ b/net/minecraft/world/level/material/WaterFluid.java
+@@ -80,6 +_,13 @@
+         return p_256670_.getGameRules().getBoolean(GameRules.RULE_WATER_SOURCE_CONVERSION);
+     }
+ 
++    // Paper start - Add BlockBreakBlockEvent
++    @Override
++    protected void beforeDestroyingBlock(LevelAccessor world, BlockPos pos, BlockState state,  BlockPos source) {
++        BlockEntity tileentity = state.hasBlockEntity() ? world.getBlockEntity(pos) : null;
++        Block.dropResources(state, world, pos, tileentity, source);
++    }
++    // Paper end - Add BlockBreakBlockEvent
+     @Override
+     protected void beforeDestroyingBlock(LevelAccessor p_76450_, BlockPos p_76451_, BlockState p_76452_) {
+         BlockEntity blockentity = p_76452_.hasBlockEntity() ? p_76450_.getBlockEntity(p_76451_) : null;

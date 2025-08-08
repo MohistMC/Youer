@@ -12,6 +12,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.Entity;
@@ -125,6 +126,13 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
 
     // Paper start
     @Override
+    public void setHurtDirection(float hurtDirection) {
+        this.getHandle().hurtDir = hurtDirection;
+    }
+    // Paper end
+
+    // Paper start
+    @Override
     public boolean isDeeplySleeping() {
         return getHandle().isSleepingLongEnough();
     }
@@ -134,6 +142,23 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
     public int getSleepTicks() {
         return this.getHandle().sleepCounter;
     }
+
+    // Paper start - Potential bed api
+    @Override
+    public Location getPotentialBedLocation() {
+        ServerPlayer handle = (ServerPlayer) getHandle();
+        BlockPos bed = handle.getRespawnPosition();
+        if (bed == null) {
+            return null;
+        }
+
+        ServerLevel worldServer = handle.server.getLevel(handle.getRespawnDimension());
+        if (worldServer == null) {
+            return null;
+        }
+        return new Location(worldServer.getWorld(), bed.getX(), bed.getY(), bed.getZ());
+    }
+    // Paper end
 
     // Paper start
     @Override
@@ -549,6 +574,33 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
 
         this.getHandle().getCooldowns().addCooldown(CraftItemType.bukkitToMinecraft(material), ticks);
     }
+
+    // Paper start
+    @Override
+    public org.bukkit.entity.Entity releaseLeftShoulderEntity() {
+        if (!getHandle().getShoulderEntityLeft().isEmpty()) {
+            Entity entity = getHandle().releaseLeftShoulderEntity();
+            if (entity != null) {
+                return entity.getBukkitEntity();
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public org.bukkit.entity.Entity releaseRightShoulderEntity() {
+        if (!getHandle().getShoulderEntityRight().isEmpty()) {
+            Entity entity = getHandle().releaseRightShoulderEntity();
+            if (entity != null) {
+                return entity.getBukkitEntity();
+            }
+        }
+
+        return null;
+    }
+    // Paper end
+
 
     @Override
     public boolean discoverRecipe(NamespacedKey recipe) {

@@ -107,4 +107,15 @@ public interface Zombie extends Monster, Ageable {
      * @param flag Whether this zombie can break doors
      */
     void setCanBreakDoors(boolean flag);
+
+    /**
+     * Checks if this zombie type supports breaking doors.
+     * {@link Drowned} do not have support for breaking doors
+     * so using {@link #setCanBreakDoors(boolean)} on them has
+     * no effect.
+     *
+     * @return true if entity supports breaking doors
+     */
+    boolean supportsBreakingDoors();
+    // Paper end
 }

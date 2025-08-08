@@ -62,6 +62,13 @@ public interface Mob extends LivingEntity, Lootable, io.papermc.paper.entity.Lea
     @Nullable
     public Sound getAmbientSound();
 
+    /**
+     * Check if this mob is exposed to daylight
+     *
+     * @return True if mob is exposed to daylight
+     */
+    boolean isInDaylight();
+
     // Paper start - LootTable API
     @Override
     default void setLootTable(final @Nullable org.bukkit.loot.LootTable table, final long seed) {

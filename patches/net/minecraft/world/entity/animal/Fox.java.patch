@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/animal/Fox.java
 +++ b/net/minecraft/world/entity/animal/Fox.java
+@@ -5,6 +_,7 @@
+ import java.util.List;
+ import java.util.Optional;
+ import java.util.UUID;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.IntFunction;
+ import java.util.function.Predicate;
+ import javax.annotation.Nullable;
 @@ -91,6 +_,7 @@
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.level.pathfinder.PathType;
@@ -8,6 +16,31 @@
  
  public class Fox extends Animal implements VariantHolder<Fox.Type> {
      private static final EntityDataAccessor<Integer> DATA_TYPE_ID = SynchedEntityData.defineId(Fox.class, EntityDataSerializers.INT);
+@@ -416,6 +_,7 @@
+ 
+         this.setSleeping(p_28493_.getBoolean("Sleeping"));
+         this.setVariant(Fox.Type.byName(p_28493_.getString("Type")));
++        setSitting$fireEvent.set(false);
+         this.setSitting(p_28493_.getBoolean("Sitting"));
+         this.setIsCrouching(p_28493_.getBoolean("Crouching"));
+         if (this.level() instanceof ServerLevel) {
+@@ -428,9 +_,16 @@
+     }
+ 
+     public void setSitting(boolean p_28611_) {
++        if (setSitting$fireEvent.getAndSet(true) && !new io.papermc.paper.event.entity.EntityToggleSitEvent(this.getBukkitEntity(), p_28611_).callEvent()) return;
+         this.setFlag(1, p_28611_);
+     }
+ 
++    public AtomicBoolean setSitting$fireEvent = new AtomicBoolean(true);
++    public void setSitting(boolean sitting, boolean fireEvent) {
++        setSitting$fireEvent.set(fireEvent);
++        setSitting(sitting);
++    }
++
+     public boolean isFaceplanted() {
+         return this.getFlag(64);
+     }
 @@ -500,7 +_,7 @@
      @Override
      protected void pickUpItem(ItemEntity p_28514_) {

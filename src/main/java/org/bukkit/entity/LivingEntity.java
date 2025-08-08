@@ -1086,4 +1086,56 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     boolean canUseEquipmentSlot(org.bukkit.inventory.@NotNull EquipmentSlot slot);
     // Paper end - Expose canUseSlot
+
+    // Paper start - knockback API
+    /**
+     * Knocks back this entity from a specific direction with a specified strength. Mechanics such
+     * as knockback resistance will be factored in.
+     *
+     * The direction specified in this method will be the direction of the source of the knockback,
+     * so the entity will be pushed in the opposite direction.
+     * @param strength The strength of the knockback. Must be greater than 0.
+     * @param directionX The relative x position of the knockback source direction
+     * @param directionZ The relative z position of the knockback source direction
+     */
+    void knockback(double strength, double directionX, double directionZ);
+    // Paper end - knockback API
+
+    // Paper start - hurt direction API
+    /**
+     * Gets player hurt direction
+     *
+     * @return hurt direction
+     */
+    float getHurtDirection();
+
+    /**
+     * Sets player hurt direction
+     *
+     * @param hurtDirection hurt direction
+     * @deprecated use {@link Player#setHurtDirection(float)}
+     */
+    @Deprecated
+    void setHurtDirection(float hurtDirection);
+    // Paper end - hurt direction API
+
+    // Paper start - swing hand API
+    /**
+     * Makes this entity swing their hand.
+     *
+     * <p>This method does nothing if this entity does not
+     * have an animation for swinging their hand.
+     *
+     * @param hand hand to be swung, either {@link org.bukkit.inventory.EquipmentSlot#HAND} or {@link org.bukkit.inventory.EquipmentSlot#OFF_HAND}
+     * @throws IllegalArgumentException if invalid hand is passed
+     */
+    default void swingHand(@NotNull org.bukkit.inventory.EquipmentSlot hand) {
+        com.google.common.base.Preconditions.checkArgument(hand != null && hand.isHand(), String.format("Expected a valid hand, got \"%s\" instead!", hand));
+        if (hand == org.bukkit.inventory.EquipmentSlot.HAND) {
+            this.swingMainHand();
+        } else {
+            this.swingOffHand();
+        }
+    }
+    // Paper end - swing hand API
 }

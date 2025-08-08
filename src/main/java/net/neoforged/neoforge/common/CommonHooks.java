@@ -540,6 +540,7 @@ public class CommonHooks {
     public static void handleBlockDrops(ServerLevel level, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, List<ItemEntity> drops, @Nullable Entity breaker, ItemStack tool) {
         BlockDropsEvent event = new BlockDropsEvent(level, pos, state, blockEntity, drops, breaker, tool);
         NeoForge.EVENT_BUS.post(event);
+        event.setPapersource(Block.dropResources$paperSource.getAndSet(null));
         if (!event.isCanceled()) {
             for (ItemEntity entity : event.getDrops()) {
                 level.addFreshEntity(entity);

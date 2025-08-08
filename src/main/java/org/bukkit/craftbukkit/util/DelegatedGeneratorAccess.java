@@ -92,15 +92,17 @@ public abstract class DelegatedGeneratorAccess implements WorldGenLevel {
         return this.handle.getLevel();
     }
 
-    @Override
-    public void addFreshEntityWithPassengers(Entity arg0, CreatureSpawnEvent.SpawnReason arg1) {
-        this.handle.addFreshEntityWithPassengers(arg0, arg1);
-    }
-
-    @Override
-    public void addFreshEntityWithPassengers(Entity entity) {
-        this.handle.addFreshEntityWithPassengers(entity);
-    }
+    // Paper start - Don't fire sync event during generation; don't override these methods so all entities are run through addFreshEntity
+    // @Override
+    // public void addFreshEntityWithPassengers(Entity arg0, CreatureSpawnEvent.SpawnReason arg1) {
+    //     this.handle.addFreshEntityWithPassengers(arg0, arg1);
+    // }
+    //
+    // @Override
+    // public void addFreshEntityWithPassengers(Entity entity) {
+    //     this.handle.addFreshEntityWithPassengers(entity);
+    // }
+    // Paper end - Don't fire sync event during generation; don't override these methods
 
     @Override
     public ServerLevel getMinecraftWorld() {

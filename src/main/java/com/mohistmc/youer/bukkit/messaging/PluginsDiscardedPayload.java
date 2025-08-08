@@ -25,7 +25,7 @@ public class PluginsDiscardedPayload implements PluginsPayload {
     }
 
     public PluginsDiscardedPayload(Type<PluginsDiscardedPayload> type, byte[] raw) {
-        this(type, Unpooled.copiedBuffer(raw));
+        this(type, Unpooled.wrappedBuffer(raw));
     }
 
     public static CustomPacketPayload.Type<PluginsDiscardedPayload> getType(ResourceLocation channel) {

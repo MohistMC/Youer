@@ -41,32 +41,26 @@ public class ChatComponentAPI {
         return new ChatComponent(getHoverChat(message, hover)).setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, command)).create();
     }
 
-    private static class ChatComponent {
-
-        private final TextComponent component;
-
-        public ChatComponent(TextComponent component) {
-            this.component = component;
-        }
+    private record ChatComponent(TextComponent component) {
 
         public ChatComponent(String message) {
-            this(new TextComponent(message));
-        }
+                this(new TextComponent(message));
+            }
 
-        public ChatComponent setHoverEvent(HoverEvent event) {
-            this.component.setHoverEvent(event);
-            return this;
-        }
+            public ChatComponent setHoverEvent(HoverEvent event) {
+                this.component.setHoverEvent(event);
+                return this;
+            }
 
-        public ChatComponent setClickEvent(ClickEvent event) {
-            this.component.setClickEvent(event);
-            return this;
-        }
+            public ChatComponent setClickEvent(ClickEvent event) {
+                this.component.setClickEvent(event);
+                return this;
+            }
 
-        public TextComponent create() {
-            return component;
+            public TextComponent create() {
+                return component;
+            }
         }
-    }
 }
 
 
