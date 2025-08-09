@@ -1,5 +1,7 @@
 package org.bukkit.plugin;
 
+import com.mohistmc.youer.util.I18n;
+
 /**
  * Thrown when attempting to load an invalid Plugin file
  */
@@ -52,7 +54,7 @@ public class UnknownDependencyException extends RuntimeException {
      * @param pluginName plugin which is missing said dependencies
      */
     public UnknownDependencyException(final @org.jetbrains.annotations.NotNull java.util.Collection<String> missingDependencies, final @org.jetbrains.annotations.NotNull String pluginName) {
-        this("Unknown/missing dependency plugins: [" + String.join(", ", missingDependencies) + "]. Please download and install these plugins to run '" + pluginName + "'.");
+        this(I18n.as("unknowndependencyexception", String.join(", ", missingDependencies), pluginName));
     }
     // Paper end
 }

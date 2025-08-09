@@ -17,7 +17,7 @@
  
      public CampfireBlockEntity(BlockPos p_155301_, BlockState p_155302_) {
          super(BlockEntityType.CAMPFIRE, p_155301_, p_155302_);
-@@ -48,7 +_,9 @@
+@@ -48,14 +_,31 @@
              ItemStack itemstack = p_155310_.items.get(i);
              if (!itemstack.isEmpty()) {
                  flag = true;
@@ -27,8 +27,11 @@
 +                } // Paper - Add more Campfire API
                  if (p_155310_.cookingProgress[i] >= p_155310_.cookingTime[i]) {
                      SingleRecipeInput singlerecipeinput = new SingleRecipeInput(itemstack);
-                     ItemStack itemstack1 = p_155310_.quickCheck
-@@ -56,6 +_,20 @@
+-                    ItemStack itemstack1 = p_155310_.quickCheck
+-                        .getRecipeFor(singlerecipeinput, p_155307_)
++                    // Paper start - add recipe to cook events
++                    Optional<RecipeHolder<CampfireCookingRecipe>> recipeHolderOptional = p_155310_.quickCheck.getRecipeFor(singlerecipeinput, p_155307_);
++                    ItemStack itemstack1 = recipeHolderOptional
                          .map(p_344662_ -> p_344662_.value().assemble(singlerecipeinput, p_155307_.registryAccess()))
                          .orElse(itemstack);
                      if (itemstack1.isItemEnabled(p_155307_.enabledFeatures())) {
@@ -36,7 +39,7 @@
 +                        CraftItemStack source = CraftItemStack.asCraftMirror(itemstack);
 +                        org.bukkit.inventory.ItemStack result = CraftItemStack.asBukkitCopy(itemstack1);
 +
-+                        org.bukkit.event.block.BlockCookEvent blockCookEvent = new org.bukkit.event.block.BlockCookEvent(CraftBlock.at(p_155307_, p_155308_), source, result);
++                        org.bukkit.event.block.BlockCookEvent blockCookEvent = new org.bukkit.event.block.BlockCookEvent(CraftBlock.at(p_155307_, p_155308_), source, result, (org.bukkit.inventory.CookingRecipe<?>) recipeHolderOptional.map(RecipeHolder::toBukkitRecipe).orElse(null)); // Paper - Add recipe to cook events
 +                        p_155307_.getCraftServer().getPluginManager().callEvent(blockCookEvent);
 +
 +                        if (blockCookEvent.isCancelled()) {

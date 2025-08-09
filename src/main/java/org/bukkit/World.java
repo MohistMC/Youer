@@ -143,6 +143,41 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     @NotNull
     public Block getBlockAt(@NotNull Location location);
 
+    // Paper start
+    /**
+     * Gets the {@link Block} at the given block key
+     *
+     * @param key The block key. See {@link Block#getBlockKey()}
+     * @return Block at the key
+     * @see Block#getBlockKey(int, int, int)
+     * @deprecated only encodes y block ranges from -512 to 511 and represents an already changed implementation detail
+     */
+    @NotNull
+    @Deprecated(since = "1.18.1")
+    public default Block getBlockAtKey(long key) {
+        int x = Block.getBlockKeyX(key);
+        int y = Block.getBlockKeyY(key);
+        int z = Block.getBlockKeyZ(key);
+        return getBlockAt(x, y, z);
+    }
+
+    /**
+     * Gets the {@link Location} at the given block key
+     *
+     * @param key The block key. See {@link Location#toBlockKey()}
+     * @return Location at the key
+     * @see Block#getBlockKey(int, int, int)
+     */
+    @NotNull
+    @Deprecated(since = "1.18.1")
+    public default Location getLocationAtKey(long key) {
+        int x = Block.getBlockKeyX(key);
+        int y = Block.getBlockKeyY(key);
+        int z = Block.getBlockKeyZ(key);
+        return new Location(this, x, y, z);
+    }
+    // Paper end
+
     /**
      * Gets the highest non-empty (impassable) block at the given coordinates.
      *
@@ -670,6 +705,37 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      */
     @NotNull
     public LightningStrike strikeLightningEffect(@NotNull Location loc);
+
+    // Paper start
+    /**
+     * Finds the location of the nearest unobstructed Lightning Rod in a 128-block
+     * radius around the given location. Returns {@code null} if no Lightning Rod is found.
+     *
+     * <p>Note: To activate a Lightning Rod, the position one block above it must be struck by lightning.</p>
+     *
+     * @param location {@link Location} to search for Lightning Rod around
+     * @return {@link Location} of Lightning Rod or {@code null}
+     */
+    @Nullable
+    public Location findLightningRod(@NotNull Location location);
+
+    /**
+     * Finds a target {@link Location} for lightning to strike.
+     * <p>It selects from (in the following order):</p>
+     * <ol>
+     *  <li>the block above the nearest Lightning Rod, found using {@link World#findLightningRod(Location)}</li>
+     *  <li>a random {@link LivingEntity} that can see the sky in a 6x6 cuboid
+     *      around input X/Z coordinates. Y ranges from <i>the highest motion-blocking
+     *      block at the input X/Z - 3</i> to <i>the height limit + 3</i></li>
+     * </ol>
+     * <p>Returns {@code null} if no target is found.</p>
+     *
+     * @param location {@link Location} to search for target around
+     * @return lightning target or {@code null}
+     */
+    @Nullable
+    public Location findLightningTarget(@NotNull Location location);
+    // Paper end
 
     /**
      * Get a list of all entities in this World

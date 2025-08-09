@@ -8,10 +8,19 @@
  
      @Override
      public MapCodec<? extends DispenserBlock> codec() {
-@@ -101,6 +_,7 @@
+@@ -95,12 +_,16 @@
+             BlockSource blocksource = new BlockSource(p_52665_, p_52666_, p_302451_, dispenserblockentity);
+             int i = dispenserblockentity.getRandomSlot(p_52665_.random);
+             if (i < 0) {
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFailedDispenseEvent(p_52665_, p_52666_)) { // Paper - Add BlockFailedDispenseEvent
+                 p_52665_.levelEvent(1001, p_52666_, 0);
+                 p_52665_.gameEvent(GameEvent.BLOCK_ACTIVATE, p_52666_, GameEvent.Context.of(dispenserblockentity.getBlockState()));
++                } // Paper - Add BlockFailedDispenseEvent
+             } else {
                  ItemStack itemstack = dispenserblockentity.getItem(i);
                  DispenseItemBehavior dispenseitembehavior = this.getDispenseMethod(p_52665_, itemstack);
                  if (dispenseitembehavior != DispenseItemBehavior.NOOP) {
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockPreDispenseEvent(p_52665_, p_52666_, itemstack, i)) return; // Paper - Add BlockPreDispenseEvent
 +                    eventFired = false; // CraftBukkit - reset event status
                      dispenserblockentity.setItem(i, dispenseitembehavior.dispense(blocksource, itemstack));
                  }

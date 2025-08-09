@@ -8,6 +8,33 @@
  import java.util.function.Predicate;
  import javax.annotation.Nullable;
  import net.minecraft.Util;
+@@ -68,7 +_,7 @@
+     public static final int TIME_BETWEEN_PLAYER_SCANS = 20;
+     private static final int ARENA_SIZE_CHUNKS = 8;
+     public static final int ARENA_TICKET_LEVEL = 9;
+-    private static final int GATEWAY_COUNT = 20;
++    public static final int GATEWAY_COUNT = 20;
+     private static final int GATEWAY_DISTANCE = 96;
+     public static final int DRAGON_SPAWN_Y = 128;
+     private final Predicate<Entity> validPlayer;
+@@ -79,7 +_,7 @@
+         .setCreateWorldFog(true);
+     public final ServerLevel level;
+     private final BlockPos origin;
+-    private final ObjectArrayList<Integer> gateways = new ObjectArrayList<>();
++    public final ObjectArrayList<Integer> gateways = new ObjectArrayList<>();
+     private final BlockPattern exitPortalPattern;
+     private int ticksSinceDragonSeen;
+     private int crystalsAlive;
+@@ -97,7 +_,7 @@
+     public DragonRespawnAnimation respawnStage;
+     private int respawnTime;
+     @Nullable
+-    private List<EndCrystal> respawnCrystals;
++    public List<EndCrystal> respawnCrystals;
+ 
+     public EndDragonFight(ServerLevel p_289759_, long p_289805_, EndDragonFight.Data p_289800_) {
+         this(p_289759_, p_289805_, p_289800_, BlockPos.ZERO);
 @@ -214,7 +_,7 @@
              this.dragonKilled = false;
              if (!flag) {
@@ -17,6 +44,69 @@
                  this.dragonUUID = null;
              }
          }
+@@ -370,12 +_,22 @@
+             this.dragonEvent.setVisible(false);
+             this.spawnExitPortal(true);
+             this.spawnNewGateway();
+-            if (!this.previouslyKilled) {
+-                this.level
+-                    .setBlockAndUpdate(
+-                        this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin)),
+-                        Blocks.DRAGON_EGG.defaultBlockState()
+-                    );
++            // Paper start - Add DragonEggFormEvent
++            BlockPos eggPosition = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin));
++            org.bukkit.craftbukkit.block.CraftBlockState eggState = org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(this.level, eggPosition);
++            eggState.setData(Blocks.DRAGON_EGG.defaultBlockState());
++            io.papermc.paper.event.block.DragonEggFormEvent eggEvent = new io.papermc.paper.event.block.DragonEggFormEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this.level, eggPosition), eggState,
++                    new org.bukkit.craftbukkit.boss.CraftDragonBattle(this));
++            // Paper end - Add DragonEggFormEvent
++            if (this.level.paperConfig().entities.behavior.enderDragonsDeathAlwaysPlacesDragonEgg || !this.previouslyKilled) { // Paper - Add toggle for always placing the dragon egg
++                // Paper start - Add DragonEggFormEvent
++                // this.level.setBlockAndUpdate(this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin)), Blocks.DRAGON_EGG.defaultBlockState());
++            } else {
++                eggEvent.setCancelled(true);
++            }
++            if (eggEvent.callEvent()) {
++                eggEvent.getNewState().update(true);
++                // Paper end - Add DragonEggFormEvent
+             }
+ 
+             this.previouslyKilled = true;
+@@ -389,6 +_,24 @@
+         this.gateways.clear();
+     }
+ 
++    // Paper start - More DragonBattle API
++    public boolean spawnNewGatewayIfPossible() {
++        if (!this.gateways.isEmpty()) {
++            this.spawnNewGateway();
++            return true;
++        }
++        return false;
++    }
++
++    public List<EndCrystal> getSpikeCrystals() {
++        final List<EndCrystal> endCrystals = new java.util.ArrayList<>();
++        for (final SpikeFeature.EndSpike spike : SpikeFeature.getSpikesForLevel(this.level)) {
++            endCrystals.addAll(this.level.getEntitiesOfClass(EndCrystal.class, spike.getTopBoundingBox()));
++        }
++        return endCrystals;
++    }
++    // Paper end - More DragonBattle API
++
+     private void spawnNewGateway() {
+         if (!this.gateways.isEmpty()) {
+             int i = this.gateways.remove(this.gateways.size() - 1);
+@@ -398,7 +_,7 @@
+         }
+     }
+ 
+-    private void spawnNewGateway(BlockPos p_64090_) {
++    public void spawnNewGateway(BlockPos p_64090_) {
+         this.level.levelEvent(3000, p_64090_, 0);
+         this.level
+             .registryAccess()
 @@ -477,6 +_,10 @@
          return this.previouslyKilled;
      }

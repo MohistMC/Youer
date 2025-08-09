@@ -467,7 +467,7 @@
 +                override = new MobEffectInstance(mobeffectinstance).update(p_147208_);
 +            }
 +
-+            if (!isAsync || addEffect$fireEvent.getAndSet(true)) {
++            if (!isAsync && addEffect$fireEvent.getAndSet(true)) {
 +                org.bukkit.event.entity.EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, mobeffectinstance, p_147208_, addEffect$Cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), override);
 +                override = event.isOverride(); // Paper - Don't fire sync event during generation
 +                if (event.isCancelled()) {
@@ -1145,7 +1145,7 @@
                  }
  
                  return p_21194_;
-@@ -1677,22 +_,156 @@
+@@ -1677,22 +_,166 @@
          }
      }
  
@@ -1185,7 +1185,17 @@
 +            }
 +
 +            if (damagesource.getEntity() instanceof Player) {
-+                ((Player) damagesource.getEntity()).resetAttackStrengthTicker(); // Moved from Player in order to make the cooldown reset get called after the damage event is fired
++                // Paper start - PlayerAttackEntityCooldownResetEvent
++                //((net.minecraft.world.entity.player.Player) damagesource.getEntity()).resetAttackStrengthTicker(); // Moved from EntityHuman in order to make the cooldown reset get called after the damage event is fired
++                if (damagesource.getEntity() instanceof ServerPlayer) {
++                    ServerPlayer player = (ServerPlayer) damagesource.getEntity();
++                    if (new io.papermc.paper.event.player.PlayerAttackEntityCooldownResetEvent(player.getBukkitEntity(), this.getBukkitEntity(), player.getAttackStrengthScale(0F)).callEvent()) {
++                        player.resetAttackStrengthTicker();
++                    }
++                } else {
++                    ((net.minecraft.world.entity.player.Player) damagesource.getEntity()).resetAttackStrengthTicker();
++                }
++                // Paper end - PlayerAttackEntityCooldownResetEvent
 +            }
 +
 +            // Resistance
@@ -1566,6 +1576,15 @@
              this.dismountVehicle(entity);
          }
      }
+@@ -2891,7 +_,7 @@
+         } else {
+             Vec3 vec3 = new Vec3(this.getX(), this.getEyeY(), this.getZ());
+             Vec3 vec31 = new Vec3(p_147185_.getX(), p_147185_.getEyeY(), p_147185_.getZ());
+-            return vec31.distanceTo(vec3) > 128.0
++            return vec31.distanceTo(vec3) > 128.0D * 128.0D // Paper - Perf: Use distance squared
+                 ? false
+                 : this.level().clip(new ClipContext(vec3, vec31, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this)).getType() == HitResult.Type.MISS;
+         }
 @@ -2913,13 +_,20 @@
  
      @Override

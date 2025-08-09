@@ -127,7 +127,7 @@
                          } else {
                              flag = true;
                          }
-@@ -485,6 +_,49 @@
+@@ -485,6 +_,54 @@
              }
          }
  
@@ -167,6 +167,11 @@
 +                    });
 +                    craftBlock.getNMS().spawnAfterBreak((ServerLevel) this.level(), blockposition, net.minecraft.world.item.ItemStack.EMPTY, false);
 +                }
++                // Paper start - TNTPrimeEvent
++                org.bukkit.block.Block tntBlock = CraftBlock.at(this.level(), blockposition);
++                if (!new io.papermc.paper.event.block.TNTPrimeEvent(tntBlock, io.papermc.paper.event.block.TNTPrimeEvent.PrimeReason.EXPLOSION, explosionSource.getIndirectSourceEntity().getBukkitEntity()).callEvent())
++                    continue;
++                // Paper end - TNTPrimeEvent
 +                nmsBlock.wasExploded(this.level(), blockposition, explosionSource);
 +
 +                this.level().removeBlock(blockposition, false);

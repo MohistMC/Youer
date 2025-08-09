@@ -43,8 +43,22 @@
 -        p_155189_.stream().filter(p_155219_ -> isRaiderWithinRange(p_155188_, p_155219_)).forEach(BellBlockEntity::glow);
 +        // CraftBukkit start
 +        List<org.bukkit.entity.LivingEntity> entities = p_155189_.stream().filter(p_155219_ -> isRaiderWithinRange(p_155188_, p_155219_)).map((entity) -> (org.bukkit.entity.LivingEntity) entity.getBukkitEntity()).collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new)); // CraftBukkit
-+        CraftEventFactory.handleBellResonateEvent(p_155187_, p_155188_, entities).forEach(BellBlockEntity::glow);
++        CraftEventFactory.handleBellResonateEvent(p_155187_, p_155188_, entities).forEach(entity -> glow(entity, p_155188_)); // Paper - Add BellRevealRaiderEvent
 +        // CraftBukkit end
      }
  
      private static void showBellParticles(Level p_155208_, BlockPos p_155209_, List<LivingEntity> p_155210_) {
+@@ -168,6 +_,13 @@
+     }
+ 
+     private static void glow(LivingEntity p_58841_) {
++        // Paper start - Add BellRevealRaiderEvent
++        glow(p_58841_, null);
++    }
++
++    private static void glow(LivingEntity p_58841_, @javax.annotation.Nullable BlockPos pos) {
++        if (pos != null && !new io.papermc.paper.event.block.BellRevealRaiderEvent(org.bukkit.craftbukkit.block.CraftBlock.at(p_58841_.level(), pos), (org.bukkit.entity.Raider) p_58841_.getBukkitEntity()).callEvent()) return;
++        // Paper end - Add BellRevealRaiderEvent
+         p_58841_.addEffect(new MobEffectInstance(MobEffects.GLOWING, 60));
+     }
+ 

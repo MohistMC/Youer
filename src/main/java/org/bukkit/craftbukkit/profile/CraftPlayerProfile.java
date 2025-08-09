@@ -32,7 +32,7 @@ import org.bukkit.profile.PlayerTextures;
 import org.jetbrains.annotations.ApiStatus;
 
 @SerializableAs("PlayerProfile")
-public final class CraftPlayerProfile implements PlayerProfile, SharedPlayerProfile { // Paper
+public final class CraftPlayerProfile implements PlayerProfile, SharedPlayerProfile, io.papermc.paper.profile.PlayerProfile { // Paper
 
     @Nonnull
     public static GameProfile validateSkullProfile(@Nonnull GameProfile gameProfile) {
@@ -146,8 +146,8 @@ public final class CraftPlayerProfile implements PlayerProfile, SharedPlayerProf
     }
 
     @Override
-    public CompletableFuture<PlayerProfile> update() {
-        return CompletableFuture.supplyAsync(this::getUpdatedProfile, Util.backgroundExecutor());
+    public CompletableFuture update() {  // Paper - have to remove generic to avoid clashing between bukkit.PlayerProfile and paper.PlayerProfile
+        return CompletableFuture.supplyAsync(this::getUpdatedProfile, Util.PROFILE_EXECUTOR); // Paper - don't submit BLOCKING PROFILE LOOKUPS to the world gen thread
     }
 
     private CraftPlayerProfile getUpdatedProfile() {
@@ -304,5 +304,72 @@ public final class CraftPlayerProfile implements PlayerProfile, SharedPlayerProf
         }
         // Paper - diff on change
         return profile;
+    }
+
+    // Paper start - This must implement our PlayerProfile so generic casts succeed from cb.CraftPlayerProfile to paper.PlayerProfile
+    // The methods don't actually have to be implemented, because the profile should immediately be cast to SharedPlayerProfile
+    @Override
+    public String setName(final String name) {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    }
+
+    @Override
+    public UUID getId() {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    }
+
+    @Override
+    public UUID setId(final UUID uuid) {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    }
+
+    @Override
+    public java.util.Set<io.papermc.paper.profile.ProfileProperty> getProperties() {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    }
+
+    @Override
+    public boolean hasProperty(final String property) {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    }
+
+    @Override
+    public void setProperty(final io.papermc.paper.profile.ProfileProperty property) {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    }
+
+    @Override
+    public void setProperties(final java.util.Collection<io.papermc.paper.profile.ProfileProperty> properties) {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    }
+
+    @Override
+    public void clearProperties() {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    }
+
+    @Override
+    public boolean completeFromCache() {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    }
+
+    @Override
+    public boolean completeFromCache(final boolean onlineMode) {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    }
+
+    @Override
+    public boolean completeFromCache(final boolean lookupUUID, final boolean onlineMode) {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    }
+
+    @Override
+    public boolean complete(final boolean textures) {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    }
+
+    @Override
+    public boolean complete(final boolean textures, final boolean onlineMode) {
+        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
     }
 }

@@ -96,7 +96,7 @@ public interface OfflinePlayer extends ServerOperator, AnimalTamer, Configuratio
      *     (updated) previous ban
      */
     @Nullable
-    public BanEntry<PlayerProfile> ban(@Nullable String reason, @Nullable Date expires, @Nullable String source);
+    public <E extends BanEntry<? super io.papermc.paper.profile.PlayerProfile>> E ban(@Nullable String reason, @Nullable Date expires, @Nullable String source); // Paper - fix ban list API
 
     /**
      * Adds this user to the {@link ProfileBanList}. If a previous ban exists, this will
@@ -110,7 +110,7 @@ public interface OfflinePlayer extends ServerOperator, AnimalTamer, Configuratio
      *     (updated) previous ban
      */
     @Nullable
-    public BanEntry<PlayerProfile> ban(@Nullable String reason, @Nullable Instant expires, @Nullable String source);
+    public <E extends BanEntry<? super io.papermc.paper.profile.PlayerProfile>> E ban(@Nullable String reason, @Nullable Instant expires, @Nullable String source); // Paper - fix ban list API
 
     /**
      * Adds this user to the {@link ProfileBanList}. If a previous ban exists, this will
@@ -124,7 +124,7 @@ public interface OfflinePlayer extends ServerOperator, AnimalTamer, Configuratio
      *     (updated) previous ban
      */
     @Nullable
-    public BanEntry<PlayerProfile> ban(@Nullable String reason, @Nullable Duration duration, @Nullable String source);
+    public <E extends BanEntry<? super io.papermc.paper.profile.PlayerProfile>> E ban(@Nullable String reason, @Nullable Duration duration, @Nullable String source); // Paper - fix ban list API
 
     /**
      * Checks if this player is whitelisted or not

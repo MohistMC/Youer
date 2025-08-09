@@ -52,7 +52,42 @@
                  : Blocks.AIR)
              .defaultBlockState();
          if (blockstate.isAir()) {
-@@ -84,7 +_,7 @@
+@@ -66,6 +_,18 @@
+         } else if (!this.isEmpty()) {
+             return ItemInteractionResult.CONSUME;
+         } else {
++            // Paper start - Add PlayerFlowerPotManipulateEvent
++            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(p_316456_, p_316502_);
++            org.bukkit.inventory.ItemStack placedStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(p_316610_);
++
++            io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent event = new io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent((org.bukkit.entity.Player) p_316491_.getBukkitEntity(), block, placedStack, true);
++            if (!event.callEvent()) {
++                // Update client
++                p_316491_.containerMenu.sendAllDataToRemote();
++
++                return ItemInteractionResult.CONSUME;
++            }
++            // Paper end - Add PlayerFlowerPotManipulateEvent
+             p_316456_.setBlock(p_316502_, blockstate, 3);
+             p_316456_.gameEvent(p_316491_, GameEvent.BLOCK_CHANGE, p_316502_);
+             p_316491_.awardStat(Stats.POT_FLOWER);
+@@ -80,11 +_,23 @@
+             return InteractionResult.CONSUME;
+         } else {
+             ItemStack itemstack = new ItemStack(this.potted);
++            // Paper start - Add PlayerFlowerPotManipulateEvent
++            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(p_316655_, p_316654_);
++            org.bukkit.inventory.ItemStack pottedStack = new org.bukkit.inventory.ItemStack(org.bukkit.craftbukkit.block.CraftBlockType.minecraftToBukkit(this.potted));
++
++            io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent event = new io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent((org.bukkit.entity.Player) p_316338_.getBukkitEntity(), block, pottedStack, false);
++            if (!event.callEvent()) {
++                // Update client
++                p_316338_.containerMenu.sendAllDataToRemote();
++
++                return InteractionResult.PASS;
++            }
++            // Paper end - Add PlayerFlowerPotManipulateEvent
+             if (!p_316338_.addItem(itemstack)) {
                  p_316338_.drop(itemstack, false);
              }
  

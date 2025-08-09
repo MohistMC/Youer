@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
-@@ -45,6 +_,14 @@
+@@ -45,6 +_,16 @@
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.phys.Vec3;
@@ -12,10 +12,12 @@
 +import org.bukkit.entity.HumanEntity;
 +import org.bukkit.event.block.BlockExpEvent;
 +import org.bukkit.event.inventory.FurnaceExtractEvent;
++import org.bukkit.event.inventory.FurnaceSmeltEvent;
++import org.bukkit.event.inventory.FurnaceStartSmeltEvent;
  
  public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer, RecipeCraftingHolder, StackedContentsCompatible {
      protected static final int SLOT_INPUT = 0;
-@@ -60,6 +_,7 @@
+@@ -60,9 +_,11 @@
      public static final int NUM_DATA_VALUES = 4;
      public static final int BURN_TIME_STANDARD = 200;
      public static final int BURN_COOL_SPEED = 2;
@@ -23,6 +25,10 @@
      protected NonNullList<ItemStack> items = NonNullList.withSize(3, ItemStack.EMPTY);
      public int litTime;
      int litDuration;
++    public double cookSpeedMultiplier = 1.0; // Paper - cook speed multiplier API
+     public int cookingProgress;
+     public int cookingTotalTime;
+     @Nullable
 @@ -72,9 +_,14 @@
          public int get(int p_58431_) {
              switch (p_58431_) {
@@ -89,7 +95,7 @@
          }
      }
  
-@@ -226,9 +_,9 @@
+@@ -226,23 +_,30 @@
          super.loadAdditional(p_155025_, p_323468_);
          this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
          ContainerHelper.loadAllItems(p_155025_, this.items, p_323468_);
@@ -102,7 +108,17 @@
          this.litDuration = this.getBurnDuration(this.items.get(1));
          CompoundTag compoundtag = p_155025_.getCompound("RecipesUsed");
  
-@@ -240,9 +_,9 @@
+         for (String s : compoundtag.getAllKeys()) {
+             this.recipesUsed.put(ResourceLocation.parse(s), compoundtag.getInt(s));
+         }
++
++        // Paper start - cook speed multiplier API
++        if (p_155025_.contains("Paper.CookSpeedMultiplier")) {
++            this.cookSpeedMultiplier = p_155025_.getDouble("Paper.CookSpeedMultiplier");
++        }
++        // Paper end - cook speed multiplier API
+     }
+ 
      @Override
      protected void saveAdditional(CompoundTag p_187452_, HolderLookup.Provider p_323656_) {
          super.saveAdditional(p_187452_, p_323656_);
@@ -112,6 +128,7 @@
 +        p_187452_.putInt("BurnTime", this.litTime);
 +        p_187452_.putInt("CookTime", this.cookingProgress);
 +        p_187452_.putInt("CookTimeTotal", this.cookingTotalTime);
++        p_187452_.putDouble("Paper.CookSpeedMultiplier", this.cookSpeedMultiplier); // Paper - cook speed multiplier API
          ContainerHelper.saveAllItems(p_187452_, this.items, p_323656_);
          CompoundTag compoundtag = new CompoundTag();
          this.recipesUsed.forEach((p_187449_, p_187450_) -> compoundtag.putInt(p_187449_.toString(), p_187450_));
@@ -160,17 +177,19 @@
 +                if (recipeholder != null && p_155017_.cookingProgress == 0) {
 +                    CraftItemStack source = CraftItemStack.asCraftMirror(p_155017_.items.get(0));
 +                    org.bukkit.inventory.CookingRecipe<?> recipe = (org.bukkit.inventory.CookingRecipe<?>) recipeholder.toBukkitRecipe();
-+                    org.bukkit.event.inventory.FurnaceStartSmeltEvent event = new org.bukkit.event.inventory.FurnaceStartSmeltEvent(CraftBlock.at(p_155014_, p_155015_), source, recipe);
++                    FurnaceStartSmeltEvent event = new FurnaceStartSmeltEvent(CraftBlock.at(p_155014_, p_155015_), source, recipe, AbstractFurnaceBlockEntity.getTotalCookTime(p_155014_, p_155017_.recipeType, p_155017_, p_155017_.cookSpeedMultiplier)); // Paper - cook speed multiplier API
 +                    p_155014_.getCraftServer().getPluginManager().callEvent(event);
 +                    p_155017_.cookingTotalTime = event.getTotalCookTime();
 +                }
 +                // CraftBukkit end
 +
                  p_155017_.cookingProgress++;
-                 if (p_155017_.cookingProgress == p_155017_.cookingTotalTime) {
+-                if (p_155017_.cookingProgress == p_155017_.cookingTotalTime) {
++                if (p_155017_.cookingProgress >= p_155017_.cookingTotalTime) {
                      p_155017_.cookingProgress = 0;
-                     p_155017_.cookingTotalTime = getTotalCookTime(p_155014_, p_155017_);
+-                    p_155017_.cookingTotalTime = getTotalCookTime(p_155014_, p_155017_);
 -                    if (burn(p_155014_.registryAccess(), recipeholder, p_155017_.items, i)) {
++                    p_155017_.cookingTotalTime = getTotalCookTime(p_155014_, p_155017_.recipeType, p_155017_, p_155017_.cookSpeedMultiplier); // Paper - cook speed multiplier API
 +                    if (burn(p_155014_.registryAccess(), recipeholder, p_155017_.items, i, p_155017_)) { // CraftBukkit
                          p_155017_.setRecipeUsed(recipeholder);
                      }
@@ -215,7 +234,7 @@
 +            CraftItemStack source = CraftItemStack.asCraftMirror(itemstack);
 +            org.bukkit.inventory.ItemStack result = CraftItemStack.asBukkitCopy(itemstack1);
 +
-+            org.bukkit.event.inventory.FurnaceSmeltEvent furnaceSmeltEvent = new org.bukkit.event.inventory.FurnaceSmeltEvent(CraftBlock.at(furnace.level, furnace.worldPosition), source, result);
++            FurnaceSmeltEvent furnaceSmeltEvent = new FurnaceSmeltEvent(CraftBlock.at(furnace.level, furnace.worldPosition), source, result, (org.bukkit.inventory.CookingRecipe<?>) p_300910_.toBukkitRecipe()); // Paper - Add recipe to cook events
 +            Bukkit.getPluginManager().callEvent(furnaceSmeltEvent);
 +
 +            if (furnaceSmeltEvent.isCancelled()) {
@@ -247,7 +266,7 @@
              if (itemstack.is(Blocks.WET_SPONGE.asItem()) && !p_267073_.get(1).isEmpty() && p_267073_.get(1).is(Items.BUCKET)) {
                  p_267073_.set(1, new ItemStack(Items.WATER_BUCKET));
              }
-@@ -362,18 +_,18 @@
+@@ -362,18 +_,28 @@
          if (p_58343_.isEmpty()) {
              return 0;
          } else {
@@ -263,12 +282,31 @@
          return p_222694_.quickCheck.getRecipeFor(singlerecipeinput, p_222693_).map(p_300840_ -> p_300840_.value().getCookingTime()).orElse(200);
      }
  
++    public static int getTotalCookTime(@Nullable Level world, RecipeType<? extends AbstractCookingRecipe> recipeType, AbstractFurnaceBlockEntity furnace, double cookSpeedMultiplier) { // Paper - cook speed multiplier API
++        SingleRecipeInput singlerecipeinput = new SingleRecipeInput(furnace.getItem(0));
++
++        // Paper start - cook speed multiplier API
++        /* Scale the recipe's cooking time to the current cookSpeedMultiplier */
++        int cookTime = world != null ? furnace.quickCheck.getRecipeFor(singlerecipeinput, world).map(holder -> holder.value().getCookingTime()).orElse(200) : (net.minecraft.server.MinecraftServer.getServer().getRecipeManager().getRecipeFor(recipeType, singlerecipeinput, world /* passing a null level here is safe. world is only used for map extending recipes which won't happen here */).map(holder -> holder.value().getCookingTime()).orElse(200));
++        return (int) Math.ceil (cookTime / cookSpeedMultiplier);
++        // Paper end - cook speed multiplier API
++    }
++
      public static boolean isFuel(ItemStack p_58400_) {
 -        return getFuel().containsKey(p_58400_.getItem());
 +        return p_58400_.getBurnTime(null) > 0;
      }
  
      @Override
+@@ -417,7 +_,7 @@
+         this.items.set(p_58333_, p_58334_);
+         p_58334_.limitSize(this.getMaxStackSize(p_58334_));
+         if (p_58333_ == 0 && !flag) {
+-            this.cookingTotalTime = getTotalCookTime(this.level, this);
++            this.cookingTotalTime = getTotalCookTime(this.level, this.recipeType, this, this.cookSpeedMultiplier); // Paper - cook speed multiplier API
+             this.cookingProgress = 0;
+             this.setChanged();
+         }
 @@ -431,7 +_,7 @@
              return true;
          } else {

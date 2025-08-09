@@ -1120,6 +1120,33 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
     }
     // Paper end - entity powdered snow API
 
+    // Paper start - entity body yaw API
+    @Override
+    public double getX() {
+        return this.entity.getX();
+    }
+
+    @Override
+    public double getY() {
+        return this.entity.getY();
+    }
+
+    @Override
+    public double getZ() {
+        return this.entity.getZ();
+    }
+
+    @Override
+    public float getPitch() {
+        return this.entity.getXRot();
+    }
+
+    @Override
+    public float getYaw() {
+        return this.entity.getBukkitYaw();
+    }
+    // Paper end - entity body yaw API
+
     // Paper start - entity liquid API
     @Override
     public boolean isUnderWater() {
@@ -1214,6 +1241,22 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         return this.getHandle().noPhysics;
     }
     // Paper end - missing entity api
+
+    // Paper start - Collision API
+    @Override
+    public boolean collidesAt(@org.jetbrains.annotations.NotNull Location location) {
+        net.minecraft.world.phys.AABB aabb = this.getHandle().getBoundingBoxAt(location.getX(), location.getY(), location.getZ());
+
+        return !this.getHandle().level().noCollision(this.getHandle(), aabb);
+    }
+
+    @Override
+    public boolean wouldCollideUsing(@org.jetbrains.annotations.NotNull BoundingBox boundingBox) {
+        net.minecraft.world.phys.AABB aabb = new AABB(boundingBox.getMinX(), boundingBox.getMinY(), boundingBox.getMinZ(), boundingBox.getMaxX(), boundingBox.getMaxY(), boundingBox.getMaxZ());
+
+        return !this.getHandle().level().noCollision(this.getHandle(), aabb);
+    }
+    // Paper end - Collision API
 
     // Paper start - entity scoreboard name
     @Override

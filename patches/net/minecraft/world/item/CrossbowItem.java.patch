@@ -9,6 +9,35 @@
      public static final float MOB_ARROW_POWER = 1.6F;
      private static final CrossbowItem.ChargingSounds DEFAULT_SOUNDS = new CrossbowItem.ChargingSounds(
          Optional.of(SoundEvents.CROSSBOW_LOADING_START), Optional.of(SoundEvents.CROSSBOW_LOADING_MIDDLE), Optional.of(SoundEvents.CROSSBOW_LOADING_END)
+@@ -90,7 +_,14 @@
+     public void releaseUsing(ItemStack p_40875_, Level p_40876_, LivingEntity p_40877_, int p_40878_) {
+         int i = this.getUseDuration(p_40875_, p_40877_) - p_40878_;
+         float f = getPowerForTime(i, p_40875_, p_40877_);
+-        if (f >= 1.0F && !isCharged(p_40875_) && tryLoadProjectiles(p_40877_, p_40875_)) {
++        // Paper start - Add EntityLoadCrossbowEvent
++        if (f >= 1.0F && !isCharged(p_40875_)) {
++            final io.papermc.paper.event.entity.EntityLoadCrossbowEvent event = new io.papermc.paper.event.entity.EntityLoadCrossbowEvent(p_40877_.getBukkitLivingEntity(), p_40875_.asBukkitMirror(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(p_40877_.getUsedItemHand()));
++            if (!event.callEvent() || !tryLoadProjectiles(p_40877_, p_40875_, event.shouldConsumeItem()) || !event.shouldConsumeItem()) {
++                if (p_40877_ instanceof ServerPlayer player) player.containerMenu.sendAllDataToRemote();
++                return;
++            }
++            // Paper end - Add EntityLoadCrossbowEvent
+             CrossbowItem.ChargingSounds crossbowitem$chargingsounds = this.getChargingSounds(p_40875_);
+             crossbowitem$chargingsounds.end()
+                 .ifPresent(
+@@ -109,7 +_,11 @@
+     }
+ 
+     private static boolean tryLoadProjectiles(LivingEntity p_40860_, ItemStack p_40861_) {
+-        List<ItemStack> list = draw(p_40861_, p_40860_.getProjectile(p_40861_), p_40860_);
++        // Paper start - Add EntityLoadCrossbowEvent
++        return CrossbowItem.tryLoadProjectiles(p_40860_, p_40861_, true);
++    }
++    private static boolean tryLoadProjectiles(LivingEntity p_40860_, ItemStack p_40861_, boolean consume) {
++        List<ItemStack> list = draw(p_40861_, p_40860_.getProjectile(p_40861_), p_40860_, consume);
+         if (!list.isEmpty()) {
+             p_40861_.set(DataComponents.CHARGED_PROJECTILES, ChargedProjectiles.of(list));
+             return true;
 @@ -161,7 +_,11 @@
      @Override
      protected Projectile createProjectile(Level p_331583_, LivingEntity p_40863_, ItemStack p_40864_, ItemStack p_40865_, boolean p_40866_) {

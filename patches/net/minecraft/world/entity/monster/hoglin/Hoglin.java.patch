@@ -9,11 +9,18 @@
                  this.makeSound(SoundEvents.HOGLIN_CONVERTED_TO_ZOMBIFIED);
                  this.finishConversion((ServerLevel)this.level());
              }
-@@ -259,6 +_,7 @@
+@@ -259,7 +_,13 @@
          Zoglin zoglin = this.convertTo(EntityType.ZOGLIN, true);
          if (zoglin != null) {
              zoglin.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 200, 0));
+-        }
 +            net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, zoglin);
-         }
++        }
++        // Paper start - Fix issues with mob conversion; reset to prevent event spam
++        else {
++            this.timeInOverworld = 0;
++        }
++        // Paper end - Fix issues with mob conversion
      }
  
+     @Override

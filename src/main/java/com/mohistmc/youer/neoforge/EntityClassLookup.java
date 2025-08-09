@@ -420,7 +420,9 @@ public class EntityClassLookup {
                 org.bukkit.entity.Enemy.class,
                 org.bukkit.entity.ComplexLivingEntity.class,
                 io.papermc.paper.entity.RangedEntity.class,
-                io.papermc.paper.entity.Leashable.class
+                io.papermc.paper.entity.Leashable.class,
+                io.papermc.paper.entity.Bucketable.class,
+                io.papermc.paper.entity.Shearable.class
         );
         boolean error = false;
         for (Class<?> entityClass : allEntityClasses) {

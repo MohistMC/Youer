@@ -353,7 +353,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *     (updated) previous ban
      */
     @Nullable
-    public BanEntry<PlayerProfile> ban(@Nullable String reason, @Nullable Date expires, @Nullable String source, boolean kickPlayer);
+    public <E extends BanEntry<? super io.papermc.paper.profile.PlayerProfile>> E ban(@Nullable String reason, @Nullable Date expires, @Nullable String source, boolean kickPlayer); // Paper - fix ban list API
 
     /**
      * Adds this user to the {@link ProfileBanList}. If a previous ban exists, this will
@@ -369,7 +369,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *     (updated) previous ban
      */
     @Nullable
-    public BanEntry<PlayerProfile> ban(@Nullable String reason, @Nullable Instant expires, @Nullable String source, boolean kickPlayer);
+    public <E extends BanEntry<? super io.papermc.paper.profile.PlayerProfile>> E ban(@Nullable String reason, @Nullable Instant expires, @Nullable String source, boolean kickPlayer); // Paper - fix ban list API
 
     /**
      * Adds this user to the {@link ProfileBanList}. If a previous ban exists, this will
@@ -385,7 +385,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *     (updated) previous ban
      */
     @Nullable
-    public BanEntry<PlayerProfile> ban(@Nullable String reason, @Nullable Duration duration, @Nullable String source, boolean kickPlayer);
+    public <E extends BanEntry<? super io.papermc.paper.profile.PlayerProfile>> E ban(@Nullable String reason, @Nullable Duration duration, @Nullable String source, boolean kickPlayer); // Paper - fix ban list API
 
     /**
      * Adds this user's current IP address to the {@link IpBanList}. If a previous ban exists, this will
@@ -1255,6 +1255,47 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      */
     public void sendMap(@NotNull MapView map);
 
+    // Paper start
+    /**
+     * Shows the player the win screen that normally is only displayed after one kills the ender dragon
+     * and exits the end for the first time.
+     * In vanilla, the win screen starts with a poem and then continues with the credits but its content can be
+     * changed by using a resource pack.
+     * <br>
+     * Calling this method does not change the value of {@link #hasSeenWinScreen()}.
+     * That means that the win screen is still displayed to a player if they leave the end for the first time, even though
+     * they have seen it before because this method was called.
+     * Note this method does not make the player invulnerable, which is normally expected when viewing credits.
+     *
+     * @see #hasSeenWinScreen()
+     * @see #setHasSeenWinScreen(boolean)
+     * @see <a href="https://minecraft.wiki/wiki/End_Poem#Technical_details">https://minecraft.wiki/wiki/End_Poem#Technical_details</a>
+     */
+    public void showWinScreen();
+
+    /**
+     * Returns whether this player has seen the win screen before.
+     * When a player leaves the end the win screen is shown to them if they have not seen it before.
+     *
+     * @return Whether this player has seen the win screen before
+     * @see #setHasSeenWinScreen(boolean)
+     * @see #showWinScreen()
+     * @see <a href="https://minecraft.wiki/wiki/End_Poem">https://minecraft.wiki/wiki/End_Poem</a>
+     */
+    public boolean hasSeenWinScreen();
+
+    /**
+     * Changes whether this player has seen the win screen before.
+     * When a player leaves the end the win screen is shown to them if they have not seen it before.
+     *
+     * @param hasSeenWinScreen Whether this player has seen the win screen before
+     * @see #hasSeenWinScreen()
+     * @see #showWinScreen()
+     * @see <a href="https://minecraft.wiki/wiki/End_Poem">https://minecraft.wiki/wiki/End_Poem</a>
+     */
+    public void setHasSeenWinScreen(boolean hasSeenWinScreen);
+    // Paper end
+
     /**
      * Sends an Action Bar message to the client.
      *
@@ -1587,6 +1628,15 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      */
     public void resetPlayerWeather();
 
+    // Paper start
+    /**
+     * Gives the player the amount of experience specified.
+     *
+     * @param amount Exp amount to give
+     */
+    public default void giveExp(int amount) {
+        giveExp(amount, false);
+    }
     /**
      * Gets the player's cooldown between picking up experience orbs.
      *
@@ -1612,9 +1662,20 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * Gives the player the amount of experience specified.
      *
      * @param amount Exp amount to give
+     * @param applyMending Mend players items with mending, with same behavior as picking up orbs. calls {@link #applyMending(int)}
      */
-    public void giveExp(int amount);
+    public void giveExp(int amount, boolean applyMending);
 
+    /**
+     * Applies the mending effect to any items just as picking up an orb would.
+     *
+     * Can also be called with {@link #giveExp(int, boolean)} by passing true to applyMending
+     *
+     * @param amount Exp to apply
+     * @return the remaining experience
+     */
+    public int applyMending(int amount);
+    // Paper end
     /**
      * Gives the player the amount of experience levels specified. Levels can
      * be taken by specifying a negative amount.
@@ -1674,6 +1735,45 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * @param exp New total experience points
      */
     public void setTotalExperience(int exp);
+    // Paper start
+    /**
+     * Gets the players total amount of experience points he collected to reach the current level and level progress.
+     *
+     * <p>This method differs from {@link #getTotalExperience()} in that this method always returns an
+     * up-to-date value that reflects the players{@link #getLevel() level} and {@link #getExp() level progress}</p>
+     *
+     * @return Current total experience points
+     * @see #getLevel()
+     * @see #getExp()
+     * @see #setExperienceLevelAndProgress(int)
+     */
+    @org.jetbrains.annotations.Range(from = 0, to = Integer.MAX_VALUE) int calculateTotalExperiencePoints();
+
+    /**
+     * Updates the players level and level progress to that what would be reached when the total amount of experience
+     * had been collected.
+     *
+     * <p>This method differs from {@link #setTotalExperience(int)} in that this method actually updates the
+     * {@link #getLevel() level} and {@link #getExp() level progress} so that a subsequent call of
+     * {@link #calculateTotalExperiencePoints()} yields the same amount of points that have been set</p>
+     *
+     * @param totalExperience New total experience points
+     * @see #setLevel(int)
+     * @see #setExp(float)
+     * @see #calculateTotalExperiencePoints()
+     */
+    void setExperienceLevelAndProgress(@org.jetbrains.annotations.Range(from = 0, to = Integer.MAX_VALUE) int totalExperience);
+
+    /**
+     * Gets the total amount of experience points that are needed to reach the next level from zero progress towards it.
+     *
+     * <p>Can be used with {@link #getExp()} to calculate the current points for the current level and alike</p>
+     *
+     * @return The required experience points
+     * @see #getExp()
+     */
+    int getExperiencePointsNeededForNextLevel();
+    // Paper end
 
     /**
      * Send an experience change.
@@ -3417,7 +3517,8 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      *
      * @return The players profile object
      */
-    io.papermc.paper.profile.@NotNull PlayerProfile getPlayerProfile();
+    @NotNull
+    io.papermc.paper.profile.PlayerProfile getPlayerProfile();
 
     /**
      * Changes the PlayerProfile for this player. This will cause this player

@@ -17,7 +17,7 @@
  
  public class Zombie extends Monster {
      private static final ResourceLocation SPEED_MODIFIER_BABY_ID = ResourceLocation.withDefaultNamespace("baby");
-@@ -84,7 +_,7 @@
+@@ -84,11 +_,12 @@
      public static final int REINFORCEMENT_RANGE_MIN = 7;
      private static final EntityDimensions BABY_DIMENSIONS = EntityType.ZOMBIE.getDimensions().scale(0.5F).withEyeHeight(0.93F);
      private static final float BREAK_DOOR_CHANCE = 0.1F;
@@ -26,6 +26,11 @@
      private final BreakDoorGoal breakDoorGoal = new BreakDoorGoal(this, DOOR_BREAKING_PREDICATE);
      private boolean canBreakDoors;
      private int inWaterTime;
+     public int conversionTime;
++    private boolean shouldBurnInDay = true; // Paper - Add more Zombie API
+ 
+     public Zombie(EntityType<? extends Zombie> p_34271_, Level p_34272_) {
+         super(p_34271_, p_34272_);
 @@ -112,7 +_,7 @@
          this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0));
          this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(ZombifiedPiglin.class));
@@ -53,7 +58,20 @@
                  if (this.conversionTime < 0) {
                      this.doUnderWaterConversion();
                  }
-@@ -259,6 +_,7 @@
+@@ -253,12 +_,20 @@
+         super.aiStep();
+     }
+ 
++    // Paper start - Add more Zombie API
++    public void stopDrowning() {
++        this.conversionTime = -1;
++        this.getEntityData().set(Zombie.DATA_DROWNED_CONVERSION_ID, false);
++    }
++    // Paper end - Add more Zombie API
++
+     public void startUnderWaterConversion(int p_34279_) {
+         this.conversionTime = p_34279_;
+         this.getEntityData().set(DATA_DROWNED_CONVERSION_ID, true);
      }
  
      protected void doUnderWaterConversion() {
@@ -61,7 +79,7 @@
          this.convertToZombieType(EntityType.DROWNED);
          if (!this.isSilent()) {
              this.level().levelEvent(null, 1040, this.blockPosition(), 0);
-@@ -266,10 +_,15 @@
+@@ -266,16 +_,27 @@
      }
  
      protected void convertToZombieType(EntityType<? extends Zombie> p_34311_) {
@@ -78,6 +96,21 @@
          }
      }
  
+-    protected boolean isSunSensitive() {
+-        return true;
+-    }
++    public boolean isSunSensitive() {
++        return this.shouldBurnInDay; // Paper - Add more Zombie API
++    }
++
++    // Paper start - Add more Zombie API
++    public void setShouldBurnInDay(boolean shouldBurnInDay) {
++        this.shouldBurnInDay = shouldBurnInDay;
++    }
++    // Paper end - Add more Zombie API
+ 
+     @Override
+     public boolean hurt(DamageSource p_34288_, float p_34289_) {
 @@ -308,13 +_,14 @@
                      if (SpawnPlacements.isSpawnPositionOk(entitytype, this.level(), blockpos)
                          && SpawnPlacements.checkSpawnRules(entitytype, serverlevel, MobSpawnType.REINFORCEMENT, blockpos, this.level().random)) {
@@ -111,7 +144,25 @@
              }
          }
  
-@@ -406,32 +_,38 @@
+@@ -390,6 +_,7 @@
+         p_34319_.putBoolean("CanBreakDoors", this.canBreakDoors());
+         p_34319_.putInt("InWaterTime", this.isInWater() ? this.inWaterTime : -1);
+         p_34319_.putInt("DrownedConversionTime", this.isUnderWaterConverting() ? this.conversionTime : -1);
++        p_34319_.putBoolean("Paper.ShouldBurnInDay", this.shouldBurnInDay); // Paper - Add more Zombie API
+     }
+ 
+     @Override
+@@ -401,37 +_,48 @@
+         if (p_34305_.contains("DrownedConversionTime", 99) && p_34305_.getInt("DrownedConversionTime") > -1) {
+             this.startUnderWaterConversion(p_34305_.getInt("DrownedConversionTime"));
+         }
++        // Paper start - Add more Zombie API
++        if (p_34305_.contains("Paper.ShouldBurnInDay")) {
++            this.shouldBurnInDay = p_34305_.getBoolean("Paper.ShouldBurnInDay");
++        }
++        // Paper end - Add more Zombie API
+     }
+ 
      @Override
      public boolean killedEntity(ServerLevel p_219160_, LivingEntity p_219161_) {
          boolean flag = super.killedEntity(p_219160_, p_219161_);

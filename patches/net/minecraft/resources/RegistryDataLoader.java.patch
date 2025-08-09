@@ -9,7 +9,7 @@
          new RegistryDataLoader.RegistryData<>(Registries.BIOME, Biome.NETWORK_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.CHAT_TYPE, ChatType.DIRECT_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.TRIM_PATTERN, TrimPattern.DIRECT_CODEC),
-@@ -112,10 +_,10 @@
+@@ -112,10 +_,13 @@
          new RegistryDataLoader.RegistryData<>(Registries.BANNER_PATTERN, BannerPattern.DIRECT_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.ENCHANTMENT, Enchantment.DIRECT_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.JUKEBOX_SONG, JukeboxSong.DIRECT_CODEC)
@@ -18,7 +18,10 @@
  
      public static RegistryAccess.Frozen load(ResourceManager p_252046_, RegistryAccess p_249916_, List<RegistryDataLoader.RegistryData<?>> p_250344_) {
 -        return load((p_321412_, p_321413_) -> p_321412_.loadFromResources(p_252046_, p_321413_), p_249916_, p_250344_);
-+        return load((p_321412_, p_321413_, conversions) -> p_321412_.loadFromResources(p_252046_, p_321413_, conversions), p_249916_, p_250344_);
++        return load((p_321412_, p_321413_, conversions) -> {
++            loadElementFromResource$conversions = conversions;
++            p_321412_.loadFromResources(p_252046_, p_321413_);
++        }, p_249916_, p_250344_);
      }
  
      public static RegistryAccess.Frozen load(
@@ -110,14 +113,11 @@
                          loadElementFromResource(p_321671_, p_321718_, registryops1, resourcekey, resource, NETWORK_REGISTRATION_INFO);
                      } catch (Exception exception1) {
                          p_321625_.put(resourcekey, new IllegalStateException("Failed to parse local data", exception1));
-@@ -286,31 +_,41 @@
-     }
+@@ -287,30 +_,39 @@
  
      static record Loader<T>(RegistryDataLoader.RegistryData<T> data, WritableRegistry<T> registry, Map<ResourceKey<?>, Exception> loadingErrors) {
--        public void loadFromResources(ResourceManager p_321702_, RegistryOps.RegistryInfoLookup p_321840_) {
+         public void loadFromResources(ResourceManager p_321702_, RegistryOps.RegistryInfoLookup p_321840_) {
 -            RegistryDataLoader.loadContentsFromManager(p_321702_, p_321840_, this.registry, this.data.elementCodec, this.loadingErrors);
-+        public void loadFromResources(ResourceManager p_321702_, RegistryOps.RegistryInfoLookup p_321840_, io.papermc.paper.registry.data.util.Conversions conversions) { // Paper - pass conversions
-+            loadContentsFromManager$conversions = conversions;
 +            RegistryDataLoader.loadContentsFromManager(p_321702_, p_321840_, this.registry, this.data.elementCodec, this.loadingErrors); // Paper - pass conversions
          }
  

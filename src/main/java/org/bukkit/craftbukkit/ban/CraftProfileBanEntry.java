@@ -9,7 +9,7 @@ import org.bukkit.BanEntry;
 import org.bukkit.craftbukkit.profile.CraftPlayerProfile;
 import org.bukkit.profile.PlayerProfile;
 
-public final class CraftProfileBanEntry implements BanEntry<PlayerProfile> {
+public final class CraftProfileBanEntry implements BanEntry<io.papermc.paper.profile.PlayerProfile> {
     private static final Date minorDate = Date.from(Instant.parse("1899-12-31T04:00:00Z"));
     private final UserBanList list;
     private final GameProfile profile;
@@ -33,8 +33,8 @@ public final class CraftProfileBanEntry implements BanEntry<PlayerProfile> {
     }
 
     @Override
-    public PlayerProfile getBanTarget() {
-        return new CraftPlayerProfile(this.profile);
+    public io.papermc.paper.profile.PlayerProfile getBanTarget() {
+        return new io.papermc.paper.profile.CraftPlayerProfile(this.profile); // Paper
     }
 
     @Override

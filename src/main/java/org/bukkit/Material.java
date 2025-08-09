@@ -4721,6 +4721,21 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     }
     // Paper end - add Translatable
 
+    // Paper start - isCollidable API
+    /**
+     * Checks if this material is collidable.
+     *
+     * @return true if collidable
+     * @throws IllegalArgumentException if {@link #isBlock()} is false
+     */
+    public boolean isCollidable() {
+        if (this.isBlock()) {
+            return this.asBlockType().hasCollision();
+        }
+        throw new IllegalArgumentException(this + " isn't a block type");
+    }
+    // Paper end - isCollidable API
+
     /**
      * Do not use for any reason.
      *

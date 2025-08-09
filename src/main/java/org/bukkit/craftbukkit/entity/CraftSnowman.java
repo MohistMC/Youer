@@ -5,7 +5,7 @@ import net.minecraft.world.entity.animal.SnowGolem;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Snowman;
 
-public class CraftSnowman extends CraftGolem implements Snowman, CraftRangedEntity<SnowGolem> {
+public class CraftSnowman extends CraftGolem implements Snowman, CraftRangedEntity<SnowGolem>, io.papermc.paper.entity.PaperShearable { // Paper
     public CraftSnowman(CraftServer server, SnowGolem entity) {
         super(server, entity);
     }

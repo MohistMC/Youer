@@ -8,7 +8,7 @@
  
  public class TntBlock extends Block {
      public static final MapCodec<TntBlock> CODEC = simpleCodec(TntBlock::new);
-@@ -41,10 +_,14 @@
+@@ -41,10 +_,20 @@
      }
  
      @Override
@@ -21,17 +21,29 @@
 -            if (p_57467_.hasNeighborSignal(p_57468_)) {
 -                explode(p_57467_, p_57468_);
 +            if (p_57467_.hasNeighborSignal(p_57468_) && CraftEventFactory.callTNTPrimeEvent(p_57467_, p_57468_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.REDSTONE, null, null)) { // CraftBukkit - TNTPrimeEvent
++                // Paper start - TNTPrimeEvent
++                org.bukkit.block.Block tntBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_57467_, p_57468_);
++                if (!new io.papermc.paper.event.block.TNTPrimeEvent(tntBlock, io.papermc.paper.event.block.TNTPrimeEvent.PrimeReason.REDSTONE, null).callEvent()) {
++                    return;
++                }
++                // Paper end - TNTPrimeEvent
 +                onCaughtFire(p_57466_, p_57467_, p_57468_, null, null);
                  p_57467_.removeBlock(p_57468_, false);
              }
          }
-@@ -52,16 +_,16 @@
+@@ -52,16 +_,22 @@
  
      @Override
      protected void neighborChanged(BlockState p_57457_, Level p_57458_, BlockPos p_57459_, Block p_57460_, BlockPos p_57461_, boolean p_57462_) {
 -        if (p_57458_.hasNeighborSignal(p_57459_)) {
 -            explode(p_57458_, p_57459_);
 +        if (p_57458_.hasNeighborSignal(p_57459_) && CraftEventFactory.callTNTPrimeEvent(p_57458_, p_57459_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.REDSTONE, null, p_57461_)) { // CraftBukkit - TNTPrimeEvent
++            // Paper start - TNTPrimeEvent
++            org.bukkit.block.Block tntBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_57458_, p_57459_);
++            if (!new io.papermc.paper.event.block.TNTPrimeEvent(tntBlock, io.papermc.paper.event.block.TNTPrimeEvent.PrimeReason.REDSTONE, null).callEvent()) {
++                return;
++            }
++            // Paper end - TNTPrimeEvent
 +            onCaughtFire(p_57457_, p_57458_, p_57459_, null, null);
              p_57458_.removeBlock(p_57459_, false);
          }
@@ -46,6 +58,20 @@
          }
  
          return super.playerWillDestroy(p_57445_, p_57446_, p_57447_, p_57448_);
+@@ -70,6 +_,13 @@
+     @Override
+     public void wasExploded(Level p_57441_, BlockPos p_57442_, Explosion p_57443_) {
+         if (!p_57441_.isClientSide) {
++            // Paper start - TNTPrimeEvent
++            org.bukkit.block.Block tntBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_57441_, p_57442_);
++            org.bukkit.entity.Entity source = p_57443_.source != null ? p_57443_.source.getBukkitEntity() : null;
++            if (!new io.papermc.paper.event.block.TNTPrimeEvent(tntBlock, io.papermc.paper.event.block.TNTPrimeEvent.PrimeReason.EXPLOSION, source).callEvent()) {
++                return;
++            }
++            // Paper end - TNTPrimeEvent
+             PrimedTnt primedtnt = new PrimedTnt(
+                 p_57441_, (double)p_57442_.getX() + 0.5, (double)p_57442_.getY(), (double)p_57442_.getZ() + 0.5, p_57443_.getIndirectSourceEntity()
+             );
 @@ -79,10 +_,12 @@
          }
      }
@@ -59,7 +85,7 @@
      private static void explode(Level p_57437_, BlockPos p_57438_, @Nullable LivingEntity p_57439_) {
          if (!p_57437_.isClientSide) {
              PrimedTnt primedtnt = new PrimedTnt(p_57437_, (double)p_57438_.getX() + 0.5, (double)p_57438_.getY(), (double)p_57438_.getZ() + 0.5, p_57439_);
-@@ -99,7 +_,12 @@
+@@ -99,7 +_,18 @@
          if (!p_316149_.is(Items.FLINT_AND_STEEL) && !p_316149_.is(Items.FIRE_CHARGE)) {
              return super.useItemOn(p_316149_, p_316217_, p_316520_, p_316601_, p_316770_, p_316393_, p_316532_);
          } else {
@@ -69,11 +95,17 @@
 +                return ItemInteractionResult.CONSUME;
 +            }
 +            // CraftBukkit end
++            // Paper start - TNTPrimeEvent
++            org.bukkit.block.Block tntBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_316520_, p_316601_);
++            if (!new io.papermc.paper.event.block.TNTPrimeEvent(tntBlock, io.papermc.paper.event.block.TNTPrimeEvent.PrimeReason.ITEM, p_316770_.getBukkitEntity()).callEvent()) {
++                return ItemInteractionResult.FAIL;
++            }
++            // Paper end - TNTPrimeEvent
 +            onCaughtFire(p_316217_, p_316520_, p_316601_, p_316532_.getDirection(), p_316770_);
              p_316520_.setBlock(p_316601_, Blocks.AIR.defaultBlockState(), 11);
              Item item = p_316149_.getItem();
              if (p_316149_.is(Items.FLINT_AND_STEEL)) {
-@@ -119,7 +_,12 @@
+@@ -119,7 +_,18 @@
              BlockPos blockpos = p_57431_.getBlockPos();
              Entity entity = p_57432_.getOwner();
              if (p_57432_.isOnFire() && p_57432_.mayInteract(p_57429_, blockpos)) {
@@ -83,6 +115,12 @@
 +                    return;
 +                }
 +                // CraftBukkit end
++                // Paper start - TNTPrimeEvent
++                org.bukkit.block.Block tntBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_57429_, blockpos);
++                if (!new io.papermc.paper.event.block.TNTPrimeEvent(tntBlock, io.papermc.paper.event.block.TNTPrimeEvent.PrimeReason.PROJECTILE, p_57432_.getBukkitEntity()).callEvent()) {
++                    return;
++                }
++                // Paper end - TNTPrimeEvent
 +                onCaughtFire(p_57430_, p_57429_, blockpos, null, entity instanceof LivingEntity ? (LivingEntity)entity : null);
                  p_57429_.removeBlock(blockpos, false);
              }

@@ -117,7 +117,7 @@
                  }
              }
          }
-@@ -247,12 +_,21 @@
+@@ -247,12 +_,24 @@
          Optional<EnchantedItemInUse> optional = EnchantmentHelper.getRandomItemWith(EnchantmentEffectComponents.REPAIR_WITH_XP, p_344821_, ItemStack::isDamaged);
          if (optional.isPresent()) {
              ItemStack itemstack = optional.get().itemStack();
@@ -125,7 +125,10 @@
 +            int i = EnchantmentHelper.modifyDurabilityToRepairFromXp(p_344821_.serverLevel(), itemstack, (int) (p_147094_ * itemstack.getXpRepairRatio()));
              int j = Math.min(i, itemstack.getDamageValue());
 +            // CraftBukkit start
-+            org.bukkit.event.player.PlayerItemMendEvent event = CraftEventFactory.callPlayerItemMendEvent(p_344821_, this, itemstack, optional.get().inSlot(), j);
++            // Paper start - mending event
++            final int consumedExperience = j > 0 ? j * p_147094_ / j : 0;
++            org.bukkit.event.player.PlayerItemMendEvent event = CraftEventFactory.callPlayerItemMendEvent(p_344821_, this, itemstack, optional.get().inSlot(), j, consumedExperience);
++            // Paper end - mending event
 +            j = event.getRepairAmount();
 +            if (event.isCancelled()) {
 +                return p_147094_;

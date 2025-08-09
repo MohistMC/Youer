@@ -361,8 +361,31 @@ public interface RegionAccessor extends Keyed, io.papermc.paper.world.flag.Featu
      * @throws IllegalArgumentException if either parameter is null or the
      *     {@link Entity} requested cannot be spawned
      */
-    @NotNull
-    <T extends Entity> T spawn(@NotNull Location location, @NotNull Class<T> clazz, @Nullable Consumer<? super T> function) throws IllegalArgumentException;
+    // Paper start
+    default <T extends Entity> @NotNull T spawn(final @NotNull Location location, final @NotNull Class<T> clazz, final @Nullable Consumer<? super T> function) throws IllegalArgumentException {
+        return this.spawn(location, clazz, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CUSTOM, function);
+    }
+
+    default @NotNull <T extends Entity> T spawn(final @NotNull Location location, final @NotNull Class<T> clazz, final org.bukkit.event.entity.CreatureSpawnEvent.@NotNull SpawnReason reason) throws IllegalArgumentException {
+        return this.spawn(location, clazz, reason, null);
+    }
+
+    default @NotNull <T extends Entity> T spawn(final @NotNull Location location, final @NotNull Class<T> clazz, final org.bukkit.event.entity.CreatureSpawnEvent.@NotNull SpawnReason reason, final @Nullable Consumer<? super T> function) throws IllegalArgumentException {
+        return this.spawn(location, clazz, function, reason);
+    }
+
+    default @NotNull Entity spawnEntity(final @NotNull Location loc, final @NotNull EntityType type, final org.bukkit.event.entity.CreatureSpawnEvent.@NotNull SpawnReason reason) {
+        com.google.common.base.Preconditions.checkArgument(type.getEntityClass() != null, "%s is not a valid EntityType, must have an entity class", type);
+        return this.spawn(loc, type.getEntityClass(), reason, null);
+    }
+
+    default @NotNull Entity spawnEntity(final @NotNull Location loc, final @NotNull EntityType type, final org.bukkit.event.entity.CreatureSpawnEvent.@NotNull SpawnReason reason, final @Nullable Consumer<? super Entity> function) {
+        com.google.common.base.Preconditions.checkArgument(type.getEntityClass() != null, "%s is not a valid EntityType, must have an entity class", type);
+        return this.spawn(loc, type.getEntityClass(), reason, function);
+    }
+
+    <T extends Entity> @NotNull T spawn(@NotNull Location location, @NotNull Class<T> clazz, @Nullable Consumer<? super T> function, org.bukkit.event.entity.CreatureSpawnEvent.@NotNull SpawnReason reason) throws IllegalArgumentException;
+    // Paper end
 
     /**
      * Creates a new entity at the given {@link Location} with the supplied
@@ -473,4 +496,23 @@ public interface RegionAccessor extends Keyed, io.papermc.paper.world.flag.Featu
     @NotNull
     @Override
     NamespacedKey getKey();
+
+    /**
+     * Tell whether a line of sight exists between the given locations
+     * @param from Location to start at
+     * @param to target Location
+     * @return whether a line of sight exists between {@code from} and {@code to}
+     */
+    public boolean lineOfSightExists(@NotNull Location from, @NotNull Location to);
+
+    /**
+     * Checks if the world collides with the given boundingbox.
+     * This will check for any colliding hard entities (boats, shulkers) / worldborder / blocks.
+     * Does not load chunks that are within the bounding box.
+     *
+     * @param boundingBox the box to check collisions in
+     * @return collides or not
+     */
+    boolean hasCollisionsIn(@NotNull org.bukkit.util.BoundingBox boundingBox);
+    // Paper end
 }

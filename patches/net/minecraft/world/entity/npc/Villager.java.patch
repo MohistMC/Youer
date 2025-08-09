@@ -171,6 +171,32 @@
              && this.getInventory().canAddItem(p_35543_);
      }
  
+@@ -854,6 +_,12 @@
+ 
+     @Override
+     protected void updateTrades() {
++        // Paper start - More vanilla friendly methods to update trades
++        updateTrades(TRADES_PER_LEVEL);
++    }
++
++    public boolean updateTrades(int amount) {
++        // Paper end - More vanilla friendly methods to update trades
+         VillagerData villagerdata = this.getVillagerData();
+         Int2ObjectMap<VillagerTrades.ItemListing[]> int2objectmap;
+         if (this.level().enabledFeatures().contains(FeatureFlags.TRADE_REBALANCE)) {
+@@ -867,9 +_,11 @@
+             VillagerTrades.ItemListing[] avillagertrades$itemlisting = int2objectmap.get(villagerdata.getLevel());
+             if (avillagertrades$itemlisting != null) {
+                 MerchantOffers merchantoffers = this.getOffers();
+-                this.addOffersFromItemListings(merchantoffers, avillagertrades$itemlisting, 2);
++                this.addOffersFromItemListings(merchantoffers, avillagertrades$itemlisting, amount);
++                return true; // Paper - More vanilla friendly methods to update trades
+             }
+         }
++        return false; // Paper - More vanilla friendly methods to update trades
+     }
+ 
+     public void gossip(ServerLevel p_35412_, Villager p_35413_, long p_35414_) {
 @@ -898,7 +_,9 @@
              List<Villager> list = p_35398_.getEntitiesOfClass(Villager.class, aabb);
              List<Villager> list1 = list.stream().filter(p_186293_ -> p_186293_.wantsToSpawnGolem(p_35399_)).limit(5L).collect(Collectors.toList());

@@ -88,6 +88,48 @@ public class CraftZombie extends CraftMonster implements Zombie {
     public void setAgeLock(boolean b) {
     }
 
+    // Paper start
+    @Override
+    public boolean isDrowning() {
+        return getHandle().isUnderWaterConverting();
+    }
+
+    @Override
+    public void startDrowning(int drownedConversionTime) {
+        getHandle().startUnderWaterConversion(drownedConversionTime);
+    }
+
+    @Override
+    public void stopDrowning() {
+        getHandle().stopDrowning();
+    }
+
+    @Override
+    public boolean shouldBurnInDay() {
+        return getHandle().isSunSensitive();
+    }
+
+    @Override
+    public boolean isArmsRaised() {
+        return getHandle().isAggressive();
+    }
+
+    @Override
+    public void setArmsRaised(final boolean raised) {
+        getHandle().setAggressive(raised);
+    }
+
+    @Override
+    public void setShouldBurnInDay(boolean shouldBurnInDay) {
+        getHandle().setShouldBurnInDay(shouldBurnInDay);
+    }
+
+    @Override
+    public boolean supportsBreakingDoors() {
+        return getHandle().supportsBreakDoorGoal();
+    }
+    // Paper end
+
     @Override
     public boolean getAgeLock() {
         return false;
@@ -126,10 +168,4 @@ public class CraftZombie extends CraftMonster implements Zombie {
     public void setCanBreakDoors(boolean flag) {
         this.getHandle().setCanBreakDoors(flag);
     }
-
-    @Override
-    public boolean supportsBreakingDoors() {
-        return getHandle().supportsBreakDoorGoal();
-    }
-    // Paper end
 }

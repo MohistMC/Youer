@@ -9,6 +9,7 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.inventory.EquipmentSlot;
+import org.jetbrains.annotations.NotNull;
 
 public class CraftAttributeInstance implements AttributeInstance {
 
@@ -45,11 +46,46 @@ public class CraftAttributeInstance implements AttributeInstance {
         return result;
     }
 
+    // Paper start
+    @Override
+    public AttributeModifier getModifier(final net.kyori.adventure.key.Key key) {
+        Preconditions.checkArgument(key != null, "Key cannot be null");
+        net.minecraft.world.entity.ai.attributes.AttributeModifier modifier = this.handle.getModifier(io.papermc.paper.adventure.PaperAdventure.asVanilla(key));
+        return modifier == null ? null : CraftAttributeInstance.convert(modifier);
+    }
+
+    @Override
+    public void removeModifier(final net.kyori.adventure.key.Key key) {
+        Preconditions.checkArgument(key != null, "Key cannot be null");
+        this.handle.removeModifier(io.papermc.paper.adventure.PaperAdventure.asVanilla(key));
+    }
+
+    @Override
+    public AttributeModifier getModifier(java.util.UUID uuid) {
+        Preconditions.checkArgument(uuid != null, "UUID cannot be null");
+        return this.getModifier(AttributeMappings.uuidToKey(uuid));
+    }
+
+    @Override
+    public void removeModifier(java.util.UUID uuid) {
+        Preconditions.checkArgument(uuid != null, "UUID cannot be null");
+        this.removeModifier(AttributeMappings.uuidToKey(uuid));
+    }
+    // Paper end
+
     @Override
     public void addModifier(AttributeModifier modifier) {
         Preconditions.checkArgument(modifier != null, "modifier");
         this.handle.addPermanentModifier(CraftAttributeInstance.convert(modifier));
     }
+
+    // Paper start - Transient modifier API
+    @Override
+    public void addTransientModifier(AttributeModifier modifier) {
+        Preconditions.checkArgument(modifier != null, "modifier");
+        this.handle.addTransientModifier(CraftAttributeInstance.convert(modifier));
+    }
+    // Paper end
 
     @Override
     public void removeModifier(AttributeModifier modifier) {

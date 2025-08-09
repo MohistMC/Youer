@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/ThrownEgg.java
 +++ b/net/minecraft/world/entity/projectile/ThrownEgg.java
-@@ -57,28 +_,57 @@
+@@ -57,28 +_,65 @@
      protected void onHit(HitResult p_37488_) {
          super.onHit(p_37488_);
          if (!this.level().isClientSide) {
@@ -35,6 +35,14 @@
 +                    }
 +                }
 +                // CraftBukkit end
++
++                // Paper start - Add ThrownEggHatchEvent
++                io.papermc.paper.event.entity.ThrownEggHatchEvent event = new io.papermc.paper.event.entity.ThrownEggHatchEvent((org.bukkit.entity.Egg) getBukkitEntity(), hatching, (byte) i, hatchingType);
++                event.callEvent();
++                hatching = event.isHatching();
++                i = hatching ? event.getNumHatches() : 0; // If hatching is set to false, ensure child count is 0
++                hatchingType = event.getHatchingType();
++                // Paper end - Add ThrownEggHatchEvent
 +
                  for (int j = 0; j < i; j++) {
 -                    Chicken chicken = EntityType.CHICKEN.create(this.level());

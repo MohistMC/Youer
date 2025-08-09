@@ -587,6 +587,13 @@ public final class CraftMagicNumbers implements UnsafeValues {
     public boolean hasDefaultEntityAttributes(NamespacedKey bukkitEntityKey) {
         return net.minecraft.world.entity.ai.attributes.DefaultAttributes.hasSupplier(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.get(CraftNamespacedKey.toMinecraft(bukkitEntityKey)));
     }
+
+    @Override
+    public org.bukkit.attribute.Attributable getDefaultEntityAttributes(NamespacedKey bukkitEntityKey) {
+        Preconditions.checkArgument(hasDefaultEntityAttributes(bukkitEntityKey), bukkitEntityKey + " doesn't have default attributes");
+        var supplier = net.minecraft.world.entity.ai.attributes.DefaultAttributes.getSupplier((net.minecraft.world.entity.EntityType<? extends net.minecraft.world.entity.LivingEntity>) net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.get(CraftNamespacedKey.toMinecraft(bukkitEntityKey)));
+        return new io.papermc.paper.attribute.UnmodifiableAttributeMap(supplier);
+    }
     // Paper end
 
     // Paper start - namespaced key biome methods

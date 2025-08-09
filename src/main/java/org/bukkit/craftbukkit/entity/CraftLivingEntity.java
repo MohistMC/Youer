@@ -323,6 +323,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         }
         // Paper end
     }
+    // Paper start - Bee Stinger API
+    @Override
+    public int getBeeStingerCooldown() {
+        return getHandle().removeStingerTime;
+    }
 
     // Paper start - Add methods for working with arrows stuck in living entities
     @Override
@@ -336,6 +341,34 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         return this.getHandle().removeArrowTime;
     }
     // Paper end - Add methods for working with arrows stuck in living entities
+
+    @Override
+    public void setBeeStingerCooldown(int ticks) {
+        getHandle().removeStingerTime = ticks;
+    }
+
+    @Override
+    public int getBeeStingersInBody() {
+        return getHandle().getStingerCount();
+    }
+
+    @Override
+    public void setBeeStingersInBody(int count) {
+        Preconditions.checkArgument(count >= 0, "New bee stinger amount must be >= 0");
+        getHandle().setStingerCount(count);
+    }
+
+    @Override
+    public void setNextBeeStingerRemoval(final int ticks) {
+        Preconditions.checkArgument(ticks >= 0, "New amount of ticks before next bee stinger removal must be >= 0");
+        this.getHandle().removeStingerTime = ticks;
+    }
+
+    @Override
+    public int getNextBeeStingerRemoval() {
+        return this.getHandle().removeStingerTime;
+    }
+    // Paper end - Bee Stinger API
 
     @Override
     public void damage(double amount) {
@@ -639,6 +672,23 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
         return this.getHandle().hasLineOfSight(((CraftEntity) other).getHandle());
     }
+
+    // Paper start
+    @Override
+    public boolean hasLineOfSight(Location loc) {
+        if (this.getHandle().level() != ((CraftWorld) loc.getWorld()).getHandle()) {
+            return false;
+        }
+
+        net.minecraft.world.phys.Vec3 start = new net.minecraft.world.phys.Vec3(this.getHandle().getX(), this.getHandle().getEyeY(), this.getHandle().getZ());
+        net.minecraft.world.phys.Vec3 end = new net.minecraft.world.phys.Vec3(loc.getX(), loc.getY(), loc.getZ());
+        if (end.distanceToSqr(start) > 128D * 128D) {
+            return false; // Return early if the distance is greater than 128 blocks
+        }
+
+        return this.getHandle().level().clipDirect(start, end, net.minecraft.world.phys.shapes.CollisionContext.of(this.getHandle())) == net.minecraft.world.phys.HitResult.Type.MISS;
+    }
+    // Paper end
 
     @Override
     public boolean getRemoveWhenFarAway() {
@@ -1008,4 +1058,16 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         this.getHandle().knockback(strength, directionX, directionZ);
     };
     // Paper end - knockback API
+
+    // Paper start - body yaw API
+    @Override
+    public float getBodyYaw() {
+        return this.getHandle().getVisualRotationYInDegrees();
+    }
+
+    @Override
+    public void setBodyYaw(final float bodyYaw) {
+        this.getHandle().setYBodyRot(bodyYaw);
+    }
+    // Paper end - body yaw API
 }

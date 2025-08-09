@@ -26,17 +26,20 @@
              resetBookState(p_347484_, p_270065_, p_270155_, p_270753_, true);
              p_270065_.playSound(null, p_270155_, SoundEvents.BOOK_PUT, SoundSource.BLOCKS, 1.0F, 1.0F);
          }
-@@ -221,9 +_,12 @@
-     }
- 
-     private void popBook(BlockState p_54588_, Level p_54589_, BlockPos p_54590_) {
--        if (p_54589_.getBlockEntity(p_54590_) instanceof LecternBlockEntity lecternblockentity) {
-+        BlockEntity blockentity = p_54589_.getBlockEntity(p_54590_, false);
-+
-+        if (blockentity instanceof LecternBlockEntity lecternblockentity) {
+@@ -224,6 +_,7 @@
+         if (p_54589_.getBlockEntity(p_54590_) instanceof LecternBlockEntity lecternblockentity) {
              Direction direction = p_54588_.getValue(FACING);
              ItemStack itemstack = lecternblockentity.getBook().copy();
 +            if (itemstack.isEmpty()) return; // CraftBukkit - SPIGOT-5500
              float f = 0.25F * (float)direction.getStepX();
              float f1 = 0.25F * (float)direction.getStepZ();
              ItemEntity itementity = new ItemEntity(
+@@ -299,7 +_,7 @@
+ 
+     @Nullable
+     @Override
+-    protected MenuProvider getMenuProvider(BlockState p_54571_, Level p_54572_, BlockPos p_54573_) {
++    public MenuProvider getMenuProvider(BlockState p_54571_, Level p_54572_, BlockPos p_54573_) {
+         return !p_54571_.getValue(HAS_BOOK) ? null : super.getMenuProvider(p_54571_, p_54572_, p_54573_);
+     }
+ 

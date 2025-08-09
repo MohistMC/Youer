@@ -1086,6 +1086,43 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * @return true if in powdered snow.
      */
     boolean isInPowderedSnow();
+
+    /**
+     * Gets the x-coordinate of this entity
+     *
+     * @return x-coordinate
+     */
+    double getX();
+
+    /**
+     * Gets the y-coordinate of this entity
+     *
+     * @return y-coordinate
+     */
+    double getY();
+
+    /**
+     * Gets the z-coordinate of this entity
+     *
+     * @return z-coordinate
+     */
+    double getZ();
+
+    /**
+     * Gets this entity's pitch
+     *
+     * @see Location#getPitch()
+     * @return the entity's pitch
+     */
+    float getPitch();
+
+    /**
+     * Gets this entity's yaw
+     *
+     * @see Location#getYaw()
+     * @return the entity's yaw
+     */
+    float getYaw();
     // Paper end
 
     // Paper start - broadcast hurt animation
@@ -1111,4 +1148,26 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      */
     @NotNull String getScoreboardEntryName();
     // Paper end - entity scoreboard name
+
+    // Paper start - Collision API
+    /**
+     * Checks for any collisions with the entity's bounding box at the provided location.
+     * This will check for any colliding entities (boats, shulkers) / worldborder / blocks.
+     * Does not load chunks that are within the bounding box at the specified location.
+     *
+     * @param location the location to check collisions in
+     * @return collides or not
+     */
+    boolean collidesAt(@NotNull Location location);
+
+    /**
+     * This checks using the given boundingbox as the entity's boundingbox if the entity would collide with anything.
+     * This will check for any colliding entities (boats, shulkers) / worldborder / blocks.
+     * Does not load chunks that are within the bounding box.
+     *
+     * @param boundingBox the box to check collisions in
+     * @return collides or not
+     */
+    boolean wouldCollideUsing(@NotNull BoundingBox boundingBox);
+    // Paper end - Collision API
 }

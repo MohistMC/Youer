@@ -303,6 +303,52 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
     int getNextArrowRemoval();
     // Paper end - Add methods for working with arrows stuck in living entities
 
+    // Paper start - Bee Stinger API
+    /**
+     * Gets the time in ticks until the next bee stinger leaves the entity's body.
+     *
+     * @return ticks until bee stinger leaves
+     */
+    public int getBeeStingerCooldown();
+
+    /**
+     * Sets the time in ticks until the next stinger leaves the entity's body.
+     *
+     * @param ticks time until bee stinger leaves
+     */
+    public void setBeeStingerCooldown(int ticks);
+
+    /**
+     * Gets the amount of bee stingers in an entity's body.
+     *
+     * @return amount of bee stingers in body
+     */
+    public int getBeeStingersInBody();
+
+    /**
+     * Set the amount of bee stingers in the entity's body.
+     *
+     * @param count amount of bee stingers in entity's body
+     */
+    public void setBeeStingersInBody(int count);
+
+    /**
+     * Sets the amount of ticks before the next bee stinger gets removed from the entities body.
+     * <p>
+     * A value of 0 will cause the server to re-calculate the amount of ticks on the next tick.
+     *
+     * @param ticks Amount of ticks
+     */
+    void setNextBeeStingerRemoval(@org.jetbrains.annotations.Range(from = 0, to = Integer.MAX_VALUE) int ticks);
+
+    /**
+     * Gets the amount of ticks before the next bee stinger gets removed from the entities body.
+     *
+     * @return ticks Amount of ticks
+     */
+    int getNextBeeStingerRemoval();
+    // Paper end - Stinger API
+
     /**
      * Returns the living entity's current maximum no damage ticks.
      * <p>
@@ -482,6 +528,19 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      * @return true if there is a line of sight, false if not
      */
     public boolean hasLineOfSight(@NotNull Entity other);
+
+    // Paper start
+    /**
+     * Checks whether the living entity has block line of sight to the given block.
+     * <p>
+     * This uses the same algorithm that hostile mobs use to find the closest
+     * player.
+     *
+     * @param location the location to determine line of sight to
+     * @return true if there is a line of sight, false if not
+     */
+    public boolean hasLineOfSight(@NotNull Location location);
+    // Paper end
 
     /**
      * Returns if the living entity despawns when away from players or not.
@@ -1138,4 +1197,22 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
         }
     }
     // Paper end - swing hand API
+
+    // Paper start - body yaw API
+    /**
+     * Gets entity body yaw
+     *
+     * @return entity body yaw
+     * @see Location#getYaw()
+     */
+    float getBodyYaw();
+
+    /**
+     * Sets entity body yaw
+     *
+     * @param bodyYaw new entity body yaw
+     * @see Location#setYaw(float)
+     */
+    void setBodyYaw(float bodyYaw);
+    // Paper end - body yaw API
 }

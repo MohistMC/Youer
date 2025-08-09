@@ -18,6 +18,15 @@
  
  public class StonecutterMenu extends AbstractContainerMenu {
      public static final int INPUT_SLOT = 0;
+@@ -26,7 +_,7 @@
+     private static final int USE_ROW_SLOT_START = 29;
+     private static final int USE_ROW_SLOT_END = 38;
+     private final ContainerLevelAccess access;
+-    private final DataSlot selectedRecipeIndex = DataSlot.standalone();
++    private final DataSlot selectedRecipeIndex = DataSlot.shared(new int[1], 0); // Paper - Add PlayerStonecutterRecipeSelectEvent
+     private final Level level;
+     private List<RecipeHolder<StonecutterRecipe>> recipes = Lists.newArrayList();
+     private ItemStack input = ItemStack.EMPTY;
 @@ -42,9 +_,32 @@
              StonecutterMenu.this.slotsChanged(this);
              StonecutterMenu.this.slotUpdateListener.run();
@@ -59,11 +68,42 @@
      }
  
      public int getSelectedRecipeIndex() {
-@@ -115,6 +_,7 @@
+@@ -115,13 +_,37 @@
  
      @Override
      public boolean stillValid(Player p_40307_) {
 +        if (!this.checkReachable) return true; // CraftBukkit
          return stillValid(this.access, p_40307_, Blocks.STONECUTTER);
      }
+ 
+     @Override
+     public boolean clickMenuButton(Player p_40309_, int p_40310_) {
+         if (this.isValidRecipeIndex(p_40310_)) {
+-            this.selectedRecipeIndex.set(p_40310_);
++            // Paper start - Add PlayerStonecutterRecipeSelectEvent
++            int recipeIndex = p_40310_;
++            this.selectedRecipeIndex.set(recipeIndex);
++            this.selectedRecipeIndex.checkAndClearUpdateFlag(); // mark as changed
++            if (this.isValidRecipeIndex(p_40310_)) {
++                io.papermc.paper.event.player.PlayerStonecutterRecipeSelectEvent event = new io.papermc.paper.event.player.PlayerStonecutterRecipeSelectEvent((org.bukkit.entity.Player) p_40309_.getBukkitEntity(), (org.bukkit.inventory.StonecutterInventory) getBukkitView().getTopInventory(), (org.bukkit.inventory.StonecuttingRecipe) this.getRecipes().get(p_40310_).toBukkitRecipe());
++                if (!event.callEvent()) {
++                    p_40309_.containerMenu.sendAllDataToRemote();
++                    return false;
++                }
++
++                net.minecraft.resources.ResourceLocation key = org.bukkit.craftbukkit.util.CraftNamespacedKey.toMinecraft(event.getStonecuttingRecipe().getKey());
++                if (!this.getRecipes().get(recipeIndex).id().equals(key)) { // If the recipe did NOT stay the same
++                    for (int newRecipeIndex = 0; newRecipeIndex < this.getRecipes().size(); newRecipeIndex++) {
++                        if (this.getRecipes().get(newRecipeIndex).id().equals(key)) {
++                            recipeIndex = newRecipeIndex;
++                            break;
++                        }
++                    }
++                }
++            }
++            p_40309_.containerMenu.sendAllDataToRemote();
++            this.selectedRecipeIndex.set(recipeIndex); // set new index, so that listeners can read it
++            // Paper end - Add PlayerStonecutterRecipeSelectEvent
+             this.setupResultSlot();
+         }
  

@@ -102,4 +102,42 @@ public interface LightningStrike extends Entity {
     @Override
     Spigot spigot();
     // Spigot end
+
+    // Paper start
+    /**
+     * Returns the amount of flash iterations that will be done before the lightning dies.
+     *
+     * @see #getLifeTicks() for how long the current flash will last
+     * @return amount of flashes that will be shown before the lightning dies
+     */
+    int getFlashCount();
+
+    /**
+     * Sets the amount of life iterations that will be done before the lightning dies.
+     * Default number of flashes on creation is between 1-3.
+     *
+     * @param flashes amount of iterations that will be done before the lightning dies, must to be a positive number
+     */
+    void setFlashCount(int flashes);
+
+    /**
+     * Returns the potential entity that caused this lightning strike to spawn in the world.
+     * <p>
+     * As of implementing this method, only {@link Player}s are capable of causing a lightning strike, however as this
+     * might change in future minecraft releases, this method does not guarantee a player as the cause of a lightning.
+     * Consumers of this method should hence validate whether or not the entity is a player if they want to use player
+     * specific methods through an {@code instanceOf} check.
+     * </p>
+     * <p>
+     * A player is, as of implementing this method, responsible for a lightning, and will hence be returned here as
+     * a cause, if they channeled a {@link Trident} to summon it or were explicitly defined as the cause of this
+     * lightning through {@link #setCausingPlayer(Player)}.
+     * </p>
+     *
+     * @return the entity that caused this lightning or null if the lightning was not caused by a entity (e.g. normal
+     * weather)
+     */
+    @org.jetbrains.annotations.Nullable
+    Entity getCausingEntity();
+    // Paper end
 }

@@ -27,6 +27,28 @@ public class CraftMinecartFurnace extends CraftMinecart implements PoweredMineca
         this.getHandle().fuel = fuel;
     }
 
+    // Paper start
+    @Override
+    public double getPushX() {
+        return getHandle().xPush;
+    }
+
+    @Override
+    public double getPushZ() {
+        return getHandle().zPush;
+    }
+
+    @Override
+    public void setPushX(double xPush) {
+        getHandle().xPush = xPush;
+    }
+
+    @Override
+    public void setPushZ(double zPush) {
+        getHandle().zPush = zPush;
+    }
+    // Paper end
+
     @Override
     public String toString() {
         return "CraftMinecartFurnace";

@@ -88,7 +88,7 @@
              } else {
                  int j = Math.min(15, i + p_221163_.nextInt(3) / 2);
                  if (i != j) {
-@@ -178,26 +_,36 @@
+@@ -178,26 +_,28 @@
                      if (!this.isValidFireLocation(p_221161_, p_221162_)) {
                          BlockPos blockpos = p_221162_.below();
                          if (!p_221161_.getBlockState(blockpos).isFaceSturdy(p_221161_, blockpos, Direction.UP) || i > 3) {
@@ -116,20 +116,12 @@
 -                this.checkBurnOut(p_221161_, p_221162_.north(), 300 + k, p_221163_, i);
 -                this.checkBurnOut(p_221161_, p_221162_.south(), 300 + k, p_221163_, i);
 +
-+                // CraftBukkit start - add source blockposition to burn calls
-+                sourceposition.set(p_221162_);
-+                this.trySpread(p_221161_, p_221162_.east(), 300 + k, p_221163_, i);
-+                sourceposition.set(p_221162_);
-+                this.trySpread(p_221161_, p_221162_.west(), 300 + k, p_221163_, i);
-+                sourceposition.set(p_221162_);
-+                this.trySpread(p_221161_, p_221162_.below(), 250 + k, p_221163_, i);
-+                sourceposition.set(p_221162_);
-+                this.trySpread(p_221161_, p_221162_.above(), 250 + k, p_221163_, i);
-+                sourceposition.set(p_221162_);
-+                this.trySpread(p_221161_, p_221162_.north(), 300 + k, p_221163_, i);
-+                sourceposition.set(p_221162_);
-+                this.trySpread(p_221161_, p_221162_.south(), 300 + k, p_221163_, i);
-+                // CraftBukkit end
++                this.checkBurnOut(p_221161_, p_221162_.east(), 300 + k, p_221163_, i, Direction.WEST);
++                this.checkBurnOut(p_221161_, p_221162_.west(), 300 + k, p_221163_, i, Direction.EAST);
++                this.checkBurnOut(p_221161_, p_221162_.below(), 250 + k, p_221163_, i, Direction.UP);
++                this.checkBurnOut(p_221161_, p_221162_.above(), 250 + k, p_221163_, i, Direction.DOWN);
++                this.checkBurnOut(p_221161_, p_221162_.north(), 300 + k, p_221163_, i, Direction.SOUTH);
++                this.checkBurnOut(p_221161_, p_221162_.south(), 300 + k, p_221163_, i, Direction.NORTH);
 +
                  BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
  
@@ -155,7 +147,7 @@
                                      }
                                  }
                              }
-@@ -240,33 +_,71 @@
+@@ -240,32 +_,54 @@
              || p_53429_.isRainingAt(p_53430_.south());
      }
  
@@ -181,59 +173,43 @@
  
 -    private void checkBurnOut(Level p_221151_, BlockPos p_221152_, int p_221153_, RandomSource p_221154_, int p_221155_) {
 -        int i = this.getBurnOdds(p_221151_.getBlockState(p_221152_));
-+    private void trySpread(Level world, BlockPos blockposition, int i, RandomSource randomsource, int j) { // CraftBukkit add sourceposition
-+        int k = world.getBlockState(blockposition).getFlammability(world, blockposition, Direction.UP);
-+
-+        if (randomsource.nextInt(i) < k) {
-+            BlockState iblockdata = world.getBlockState(blockposition);
++    private void checkBurnOut(Level p_221151_, BlockPos p_221152_, int p_221153_, RandomSource p_221154_, int p_221155_, Direction face) {
++        int i = p_221151_.getBlockState(p_221152_).getFlammability(p_221151_, p_221152_, face);
+         if (p_221154_.nextInt(p_221153_) < i) {
+             BlockState blockstate = p_221151_.getBlockState(p_221152_);
 +
 +            // CraftBukkit start
-+            org.bukkit.block.Block theBlock = world.getWorld().getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ());
-+            org.bukkit.block.Block sourceBlock = CraftBlock.at(world, sourceposition.get());
++            org.bukkit.block.Block theBlock = p_221151_.getWorld().getBlockAt(p_221152_.getX(), p_221152_.getY(), p_221152_.getZ());
++            org.bukkit.block.Block sourceBlock = CraftBlock.at(p_221151_, sourceposition.get());
 +
 +            org.bukkit.event.block.BlockBurnEvent event = new org.bukkit.event.block.BlockBurnEvent(theBlock, sourceBlock);
-+            world.getCraftServer().getPluginManager().callEvent(event);
++            p_221151_.getCraftServer().getPluginManager().callEvent(event);
 +
 +            if (event.isCancelled()) {
 +                return;
 +            }
 +
-+            if (iblockdata.getBlock() instanceof TntBlock && !CraftEventFactory.callTNTPrimeEvent(world, blockposition, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.FIRE, null, sourceposition.getAndSet(BlockPos.ZERO))) {
++            if (blockstate.getBlock() instanceof TntBlock && !CraftEventFactory.callTNTPrimeEvent(p_221151_, p_221152_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.FIRE, null, sourceposition.getAndSet(BlockPos.ZERO))) {
 +                return;
 +            }
 +            // CraftBukkit end
 +
-+            if (randomsource.nextInt(j + 10) < 5 && !world.isRainingAt(blockposition)) {
-+                int l = Math.min(j + randomsource.nextInt(5) / 4, 15);
-+                world.setBlock(blockposition, this.getStateWithAge(world, blockposition, l), 3);
-+            } else {
-+                world.removeBlock(blockposition, false);
-+            }
-+
-+            iblockdata.onCaughtFire(world, blockposition, Direction.UP, null);
-+        }
-+    }
-+
-+    private void checkBurnOut(Level p_221151_, BlockPos p_221152_, int p_221153_, RandomSource p_221154_, int p_221155_, Direction face) {
-+        int i = p_221151_.getBlockState(p_221152_).getFlammability(p_221151_, p_221152_, face);
-         if (p_221154_.nextInt(p_221153_) < i) {
-             BlockState blockstate = p_221151_.getBlockState(p_221152_);
 +            blockstate.onCaughtFire(p_221151_, p_221152_, face, null);
 +
              if (p_221154_.nextInt(p_221155_ + 10) < 5 && !p_221151_.isRainingAt(p_221152_)) {
                  int j = Math.min(p_221155_ + p_221154_.nextInt(5) / 4, 15);
                  p_221151_.setBlock(p_221152_, this.getStateWithAge(p_221151_, p_221152_, j), 3);
              } else {
-                 p_221151_.removeBlock(p_221152_, false);
-             }
+-                p_221151_.removeBlock(p_221152_, false);
+-            }
 -
 -            Block block = blockstate.getBlock();
 -            if (block instanceof TntBlock) {
 -                TntBlock.explode(p_221151_, p_221152_);
--            }
++                if(blockstate.getBlock() != Blocks.TNT) p_221151_.removeBlock(p_221152_, false); // Paper - TNTPrimeEvent; We might be cancelling it below, move the setAir down
+             }
          }
      }
- 
 @@ -277,7 +_,7 @@
  
      private boolean isValidFireLocation(BlockGetter p_53486_, BlockPos p_53487_) {

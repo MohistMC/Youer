@@ -46,10 +46,11 @@
  import net.minecraft.world.level.BaseCommandBlock;
  import net.minecraft.world.level.GameRules;
  import net.minecraft.world.level.GameType;
-@@ -184,7 +_,24 @@
+@@ -184,7 +_,25 @@
  import net.minecraft.world.phys.shapes.BooleanOp;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.Location;
 +import org.bukkit.craftbukkit.entity.CraftEntity;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -441,7 +442,7 @@
          }
      }
  
-@@ -833,14 +_,20 @@
+@@ -833,28 +_,42 @@
          }
      }
  
@@ -464,7 +465,18 @@
                  if (this.tickCount == 0) {
                      this.resetPosition();
                  }
-@@ -854,7 +_,15 @@
+ 
+                 if (!this.updateAwaitingTeleport()) {
+-                    double d0 = clampHorizontal(p_9874_.getX(this.player.getX()));
+-                    double d1 = clampVertical(p_9874_.getY(this.player.getY()));
+-                    double d2 = clampHorizontal(p_9874_.getZ(this.player.getZ()));
+-                    float f = Mth.wrapDegrees(p_9874_.getYRot(this.player.getYRot()));
+-                    float f1 = Mth.wrapDegrees(p_9874_.getXRot(this.player.getXRot()));
++                    double d0 = clampHorizontal(p_9874_.getX(this.player.getX()));  final double toX = d0; // Paper - OBFHELPER
++                    double d1 = clampVertical(p_9874_.getY(this.player.getY())); final double toY = d1; // Paper - OBFHELPER
++                    double d2 = clampHorizontal(p_9874_.getZ(this.player.getZ())); final double toZ = d2; // Paper - OBFHELPER
++                    float f = Mth.wrapDegrees(p_9874_.getYRot(this.player.getYRot())); final float toYaw = f; // Paper - OBFHELPER
++                    float f1 = Mth.wrapDegrees(p_9874_.getXRot(this.player.getXRot())); final float toPitch = f1; // Paper - OBFHELPER
                      if (this.player.isPassenger()) {
                          this.player.absMoveTo(this.player.getX(), this.player.getY(), this.player.getZ(), f, f1);
                          this.player.serverLevel().getChunkSource().move(this.player);
@@ -480,7 +492,7 @@
                          double d3 = this.player.getX();
                          double d4 = this.player.getY();
                          double d5 = this.player.getZ();
-@@ -872,15 +_,32 @@
+@@ -872,18 +_,55 @@
                              if (serverlevel.tickRateManager().runsNormally()) {
                                  this.receivedMovePacketCount++;
                                  int i = this.receivedMovePacketCount - this.knownMovePacketCount;
@@ -506,15 +518,41 @@
 +                                    speed = player.getAbilities().walkingSpeed * 10f;
 +                                }
 +
++                                // Paper start - Prevent moving into unloaded chunks
++                                if (this.player.level().paperConfig().chunks.preventMovingIntoUnloadedChunks && (this.player.getX() != toX || this.player.getZ() != toZ) && !serverlevel.areChunksLoadedForMove(this.player.getBoundingBox().expandTowards(new Vec3(toX, toY, toZ).subtract(this.player.position())))) {
++                                    // Paper start - Add fail move event
++                                    io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_INTO_UNLOADED_CHUNK,
++                                            toX, toY, toZ, toYaw, toPitch, false);
++                                    if (!event.isAllowed()) {
++                                        this.internalTeleport(this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot(), Collections.emptySet());
++                                        return;
++                                    }
++                                    // Paper end - Add fail move event
++                                }
++                                // Paper end - Prevent moving into unloaded chunks
++
                                  if (!this.player.isChangingDimension()
                                      && (!this.player.level().getGameRules().getBoolean(GameRules.RULE_DISABLE_ELYTRA_MOVEMENT_CHECK) || !flag)) {
                                      float f2 = flag ? 300.0F : 100.0F;
 -                                    if (d10 - d9 > (double)(f2 * (float)i) && !this.isSingleplayerOwner()) {
+-                                        LOGGER.warn("{} moved too quickly! {},{},{}", this.player.getName().getString(), d6, d7, d8);
+-                                        this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot());
+-                                        return;
 +                                    if (d10 - d9 > Math.max(f2, Math.pow((double) (org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) i * speed), 2)) && !this.isSingleplayerOwner()) {
-+                                    // CraftBukkit end
-                                         LOGGER.warn("{} moved too quickly! {},{},{}", this.player.getName().getString(), d6, d7, d8);
-                                         this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot());
-                                         return;
++                                        // CraftBukkit end
++                                        // Paper start - Add fail move event
++                                        io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_TOO_QUICKLY,
++                                                toX, toY, toZ, toYaw, toPitch, true);
++                                        if (!event.isAllowed()) {
++                                            if (event.getLogWarning())
++                                                ServerGamePacketListenerImpl.LOGGER.warn("{} moved too quickly! {},{},{}", new Object[]{this.player.getName().getString(), d6, d7, d8});
++                                            this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot());
++                                            return;
++                                        }
++                                        // Paper end - Add fail move event
+                                     }
+                                 }
+                             }
 @@ -899,6 +_,7 @@
  
                              boolean flag1 = this.player.verticalCollisionBelow;
@@ -523,18 +561,35 @@
                              d6 = d0 - this.player.getX();
                              d7 = d1 - this.player.getY();
                              if (d7 > -0.5 || d7 < 0.5) {
-@@ -909,7 +_,7 @@
+@@ -907,27 +_,91 @@
+ 
+                             d8 = d2 - this.player.getZ();
                              d10 = d6 * d6 + d7 * d7 + d8 * d8;
-                             boolean flag2 = false;
+-                            boolean flag2 = false;
++                            boolean movedWrongly = false; // Paper - Add fail move event; rename
                              if (!this.player.isChangingDimension()
 -                                && d10 > 0.0625
 +                                && d10 > org.spigotmc.SpigotConfig.movedWronglyThreshold
                                  && !this.player.isSleeping()
                                  && !this.player.gameMode.isCreative()
                                  && this.player.gameMode.getGameModeForPlayer() != GameType.SPECTATOR) {
-@@ -921,13 +_,70 @@
+-                                flag2 = true;
+-                                LOGGER.warn("{} moved wrongly!", this.player.getName().getString());
++                                // Paper start - Add fail move event
++                                io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_WRONGLY,
++                                        toX, toY, toZ, toYaw, toPitch, true);
++                                if (!event.isAllowed()) {
++                                    movedWrongly = true;
++                                    if (event.getLogWarning())
++                                        // Paper end
++                                        ServerGamePacketListenerImpl.LOGGER.warn("{} moved wrongly!", this.player.getName().getString());
++                                } // Paper
+                             }
+ 
+                             if (this.player.noPhysics
                                  || this.player.isSleeping()
-                                 || (!flag2 || !serverlevel.noCollision(this.player, aabb))
+-                                || (!flag2 || !serverlevel.noCollision(this.player, aabb))
++                                || (!movedWrongly || !serverlevel.noCollision(this.player, aabb))
                                      && !this.isPlayerCollidingWithAnythingNew(serverlevel, aabb, d0, d1, d2)) {
 +                                // CraftBukkit start - fire PlayerMoveEvent
 +                                // Reset to old location first
@@ -833,7 +888,7 @@
                                  Component component = Component.translatable("build.tooHigh", i - 1).withStyle(ChatFormatting.RED);
                                  this.player.sendSystemMessage(component, true);
 -                            } else if (interactionresult.shouldSwing()) {
-+                            } else if (interactionresult.shouldSwing() && !this.player.gameMode.interactResult) { // Paper - Call interact event
++                            } else if (interactionresult.shouldSwing() ) {
                                  this.player.swing(interactionhand, true);
                              }
                          }
@@ -846,53 +901,6 @@
          this.ackBlockChangesUpTo(p_9932_.getSequence());
          ServerLevel serverlevel = this.player.serverLevel();
          InteractionHand interactionhand = p_9932_.getHand();
-@@ -1147,6 +_,46 @@
-                 this.player.absRotateTo(f, f1);
-             }
- 
-+            // CraftBukkit start
-+            // Raytrace to look for 'rogue armswings'
-+            double d0 = this.player.getX();
-+            double d1 = this.player.getY() + (double) this.player.getEyeHeight();
-+            double d2 = this.player.getZ();
-+            Vec3 vec3d = new Vec3(d0, d1, d2);
-+            float f3 = Mth.cos(-f * 0.017453292F - 3.1415927F);
-+            float f4 = Mth.sin(-f * 0.017453292F - 3.1415927F);
-+            float f5 = -Mth.cos(-f1 * 0.017453292F);
-+            float f6 = Mth.sin(-f1 * 0.017453292F);
-+            float f7 = f4 * f5;
-+            float f8 = f3 * f5;
-+            double d3 = player.blockInteractionRange();
-+            Vec3 vec3d1 = vec3d.add((double) f7 * d3, (double) f6 * d3, (double) f8 * d3);
-+            net.minecraft.world.phys.HitResult movingobjectposition = this.player.level().clip(new net.minecraft.world.level.ClipContext(vec3d, vec3d1, net.minecraft.world.level.ClipContext.Block.OUTLINE, net.minecraft.world.level.ClipContext.Fluid.NONE, player));
-+            boolean cancelled;
-+            if (movingobjectposition == null || movingobjectposition.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK) {
-+                org.bukkit.event.player.PlayerInteractEvent event = CraftEventFactory.callPlayerInteractEvent(this.player, org.bukkit.event.block.Action.RIGHT_CLICK_AIR, itemstack, interactionhand);
-+                cancelled = event.useItemInHand() == org.bukkit.event.Event.Result.DENY;
-+            } else {
-+                BlockHitResult movingobjectpositionblock = (BlockHitResult) movingobjectposition;
-+                if (player.gameMode.firedInteract && player.gameMode.interactPosition.equals(movingobjectpositionblock.getBlockPos()) && player.gameMode.interactHand == interactionhand && ItemStack.isSameItemSameComponents(player.gameMode.interactItemStack, itemstack)) {
-+                    cancelled = player.gameMode.interactResult;
-+                } else {
-+                    org.bukkit.event.player.PlayerInteractEvent event = CraftEventFactory.callPlayerInteractEvent(player, org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK, movingobjectpositionblock.getBlockPos(), movingobjectpositionblock.getDirection(), itemstack, true, interactionhand, movingobjectpositionblock.getLocation());
-+                    cancelled = event.useItemInHand() == org.bukkit.event.Event.Result.DENY;
-+                }
-+                player.gameMode.firedInteract = false;
-+            }
-+            if (cancelled) {
-+                this.player.resyncUsingItem(this.player); // Paper - Properly cancel usable items
-+                this.player.getBukkitEntity().updateInventory(); // SPIGOT-2524
-+                return;
-+            }
-+            itemstack = this.player.getItemInHand(interactionhand); // Update in case it was changed in the event
-+            if (itemstack.isEmpty()) {
-+                return;
-+            }
-+            // CraftBukkit end
-+
-             InteractionResult interactionresult = this.player.gameMode.useItem(this.player, serverlevel, itemstack, interactionhand);
-             if (interactionresult.shouldSwing()) {
-                 this.player.swing(interactionhand, true);
 @@ -1178,22 +_,55 @@
  
      @Override
@@ -1349,7 +1357,7 @@
 +            }
 +        } // Paper end - Call interact event
 +        // Arm swing animation
-+        org.bukkit.event.player.PlayerAnimationEvent event = new org.bukkit.event.player.PlayerAnimationEvent(this.getCraftPlayer(), (p_9926_.getHand() == InteractionHand.MAIN_HAND) ? org.bukkit.event.player.PlayerAnimationType.ARM_SWING : org.bukkit.event.player.PlayerAnimationType.OFF_ARM_SWING);
++        io.papermc.paper.event.player.PlayerArmSwingEvent event = new io.papermc.paper.event.player.PlayerArmSwingEvent(this.getCraftPlayer(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(p_9926_.getHand())); // Paper - Add PlayerArmSwingEvent
 +        this.cserver.getPluginManager().callEvent(event);
 +        if (event.isCancelled()) return;
 +        // CraftBukkit end
@@ -2060,3 +2068,21 @@
      }
  
      @Override
+@@ -1858,4 +_,17 @@
+     public interface EntityInteraction {
+         InteractionResult run(ServerPlayer p_143695_, Entity p_143696_, InteractionHand p_143697_);
+     }
++
++    // Paper start - Add fail move event
++    private io.papermc.paper.event.player.PlayerFailMoveEvent fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason failReason,
++                                                                           double toX, double toY, double toZ, float toYaw, float toPitch, boolean logWarning) {
++        org.bukkit.entity.Player player = this.getCraftPlayer();
++        Location from = new Location(player.getWorld(), this.lastPosX, this.lastPosY, this.lastPosZ, this.lastYaw, this.lastPitch);
++        Location to = new Location(player.getWorld(), toX, toY, toZ, toYaw, toPitch);
++        io.papermc.paper.event.player.PlayerFailMoveEvent event = new io.papermc.paper.event.player.PlayerFailMoveEvent(player, failReason,
++                false, logWarning, from, to);
++        event.callEvent();
++        return event;
++    }
++    // Paper end - Add fail move event
+ }

@@ -8,7 +8,7 @@
  import javax.annotation.Nullable;
  import net.minecraft.core.Holder;
  import net.minecraft.network.chat.Component;
-@@ -44,6 +_,10 @@
+@@ -44,21 +_,57 @@
          return p_19589_.hasEffect(MobEffects.WATER_BREATHING) || p_19589_.hasEffect(MobEffects.CONDUIT_POWER);
      }
  
@@ -16,12 +16,40 @@
 +    public static void addEffectToPlayersAround$cause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
 +        addEffectToPlayersAround$cause.set(cause);
 +    }
++    @Nullable static java.util.function.Predicate<ServerPlayer> playerPredicate = null;
      public static List<ServerPlayer> addEffectToPlayersAround(
          ServerLevel p_216947_, @Nullable Entity p_216948_, Vec3 p_216949_, double p_216950_, MobEffectInstance p_216951_, int p_216952_
      ) {
-@@ -58,7 +_,17 @@
-                             || p_267925_.getEffect(holder).endsWithin(p_216952_ - 1)
-                     )
+         Holder<MobEffect> holder = p_216951_.getEffect();
+         List<ServerPlayer> list = p_216947_.getPlayers(
+-            p_267925_ -> p_267925_.gameMode.isSurvival()
+-                    && (p_216948_ == null || !p_216948_.isAlliedTo(p_267925_))
+-                    && p_216949_.closerThan(p_267925_.position(), p_216950_)
+-                    && (
+-                        !p_267925_.hasEffect(holder)
+-                            || p_267925_.getEffect(holder).getAmplifier() < p_216951_.getAmplifier()
+-                            || p_267925_.getEffect(holder).endsWithin(p_216952_ - 1)
+-                    )
++            p_267925_ -> {
++                // Paper start - Add ElderGuardianAppearanceEvent
++                boolean condition =  p_267925_.gameMode.isSurvival()
++                        && (p_216948_ == null || !p_216948_.isAlliedTo(p_267925_))
++                        && p_216949_.closerThan(p_267925_.position(), p_216950_)
++                        && (
++                            !p_267925_.hasEffect(holder)
++                                    || p_267925_.getEffect(holder).getAmplifier() < p_216951_.getAmplifier()
++                                    || p_267925_.getEffect(holder).endsWithin(p_216952_ - 1)
++                );
++                if (condition) {
++                    boolean test = playerPredicate == null || playerPredicate.test(p_267925_); // Only test the player AFTER it is true
++                    playerPredicate = null;
++                    return test;
++                } else {
++                    playerPredicate = null;
++                    return false;
++                }
++                // Paper ned - Add ElderGuardianAppearanceEvent
++            }
          );
 -        list.forEach(p_238232_ -> p_238232_.addEffect(new MobEffectInstance(p_216951_), p_216948_));
 +        list.forEach(p_238232_ -> {
@@ -32,9 +60,18 @@
 +    }
 +
 +    public static List<ServerPlayer> addEffectToPlayersAround(
++            ServerLevel p_216947_, @Nullable Entity p_216948_, Vec3 p_216949_, double p_216950_, MobEffectInstance p_216951_, int p_216952_, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause, @Nullable java.util.function.Predicate<ServerPlayer> playerPredicate
++    ) {
++        addEffectToPlayersAround$cause(cause);
++        MobEffectUtil.playerPredicate = playerPredicate;
++        return addEffectToPlayersAround(p_216947_, p_216948_, p_216949_, p_216950_, p_216951_, p_216952_);
++    }
++
++    public static List<ServerPlayer> addEffectToPlayersAround(
 +            ServerLevel p_216947_, @Nullable Entity p_216948_, Vec3 p_216949_, double p_216950_, MobEffectInstance p_216951_, int p_216952_, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause
 +    ) {
 +        addEffectToPlayersAround$cause(cause);
++        MobEffectUtil.playerPredicate = null;
 +        return addEffectToPlayersAround(p_216947_, p_216948_, p_216949_, p_216950_, p_216951_, p_216952_);
      }
  }

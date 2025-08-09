@@ -761,6 +761,20 @@ public final class Bukkit {
         return server.getPlayer(id);
     }
 
+    // Paper start
+    /**
+     * Gets the unique ID of the player currently known as the specified player name
+     * In Offline Mode, will return an Offline UUID
+     *
+     * @param playerName the player name to look up the unique ID for
+     * @return A UUID, or null if that player name is not registered with Minecraft and the server is in online mode
+     */
+    @Nullable
+    public static UUID getPlayerUniqueId(@NotNull String playerName) {
+        return server.getPlayerUniqueId(playerName);
+    }
+    // Paper end
+
     /**
      * Gets the plugin manager for interfacing with plugins.
      *
@@ -1600,6 +1614,20 @@ public final class Bukkit {
     public static ConsoleCommandSender getConsoleSender() {
         return server.getConsoleSender();
     }
+
+    // Paper start
+    /**
+     * Creates a special {@link CommandSender} which redirects command feedback (in the form of chat messages) to the
+     * specified listener. The returned sender will have the same effective permissions as {@link #getConsoleSender()}.
+     *
+     * @param feedback feedback listener
+     * @return a command sender
+     */
+    @NotNull
+    public static CommandSender createCommandSender(final @NotNull java.util.function.Consumer<? super net.kyori.adventure.text.Component> feedback) {
+        return server.createCommandSender(feedback);
+    }
+    // Paper end
 
     /**
      * Gets the folder that contains all of the various {@link World}s.

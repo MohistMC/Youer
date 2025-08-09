@@ -161,7 +161,7 @@
 +                    }
 +                    return;
 +                }
-+                org.bukkit.event.block.BlockDamageEvent blockEvent = CraftEventFactory.callBlockDamageEvent(this.player, p_215120_, this.player.getInventory().getSelected(), f >= 1.0f);
++                org.bukkit.event.block.BlockDamageEvent blockEvent = CraftEventFactory.callBlockDamageEvent(this.player, p_215120_, p_215122_, this.player.getInventory().getSelected(), f >= 1.0f);
 +                if (blockEvent.isCancelled()) {
 +                    // Let the client know the block still exists
 +                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, p_215120_));
@@ -264,16 +264,9 @@
              int i = p_9264_.getCount();
              int j = p_9264_.getDamageValue();
              InteractionResultHolder<ItemStack> interactionresultholder = p_9264_.use(p_9263_, p_9262_, p_9265_);
-@@ -304,12 +_,31 @@
-         }
+@@ -305,11 +_,19 @@
      }
  
-+    // CraftBukkit start - whole method
-+    public boolean interactResult = false;
-+    public boolean firedInteract = false;
-+    public BlockPos interactPosition;
-+    public InteractionHand interactHand;
-+    public ItemStack interactItemStack;
      public InteractionResult useItemOn(ServerPlayer p_9266_, Level p_9267_, ItemStack p_9268_, InteractionHand p_9269_, BlockHitResult p_9270_) {
 +        if (BanItem.checkMoShou(p_9266_, p_9266_.getItemInHand(p_9269_))) {
 +            p_9266_.setItemInHand(p_9269_, ItemStack.EMPTY);
@@ -287,11 +280,6 @@
 -        } else if (this.gameModeForPlayer == GameType.SPECTATOR) {
 +        }
 +        net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock event = net.neoforged.neoforge.common.CommonHooks.onRightClickBlock(p_9266_, p_9269_, blockpos, p_9270_);
-+        this.firedInteract = true;
-+        this.interactResult = event.getUseItem().isFalse();
-+        this.interactPosition = blockpos.immutable();
-+        this.interactHand = p_9269_;
-+        this.interactItemStack = p_9268_.copy();
 +        if (event.isCanceled()) return event.getCancellationResult();
 +        if (this.gameModeForPlayer == GameType.SPECTATOR) {
              MenuProvider menuprovider = blockstate.getMenuProvider(p_9267_, blockpos);

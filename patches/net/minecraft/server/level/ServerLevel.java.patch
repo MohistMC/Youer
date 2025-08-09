@@ -144,7 +144,7 @@
      private final MinecraftServer server;
      public final ServerLevelData serverLevelData;
      private int lastSpawnChunkRadius;
-@@ -199,12 +_,37 @@
+@@ -199,12 +_,67 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -165,6 +165,36 @@
 +    @Override
 +    public ResourceKey<LevelStem> getTypeKey() {
 +        return typeKey == null ? super.getTypeKey() : typeKey;
++    }
++
++    // Paper start
++    public final boolean areChunksLoadedForMove(AABB axisalignedbb) {
++        // copied code from collision methods, so that we can guarantee that they wont load chunks (we don't override
++        // ICollisionAccess methods for VoxelShapes)
++        // be more strict too, add a block (dumb plugins in move events?)
++        int minBlockX = Mth.floor(axisalignedbb.minX - 1.0E-7D) - 3;
++        int maxBlockX = Mth.floor(axisalignedbb.maxX + 1.0E-7D) + 3;
++
++        int minBlockZ = Mth.floor(axisalignedbb.minZ - 1.0E-7D) - 3;
++        int maxBlockZ = Mth.floor(axisalignedbb.maxZ + 1.0E-7D) + 3;
++
++        int minChunkX = minBlockX >> 4;
++        int maxChunkX = maxBlockX >> 4;
++
++        int minChunkZ = minBlockZ >> 4;
++        int maxChunkZ = maxBlockZ >> 4;
++
++        ServerChunkCache chunkProvider = this.getChunkSource();
++
++        for (int cx = minChunkX; cx <= maxChunkX; ++cx) {
++            for (int cz = minChunkZ; cz <= maxChunkZ; ++cz) {
++                if (chunkProvider.getChunkAtIfLoadedImmediately(cx, cz) == null) {
++                    return false;
++                }
++            }
++        }
++
++        return true;
 +    }
 +
 +    public LevelChunk getChunkIfLoaded(int x, int z) {
@@ -475,6 +505,37 @@
                  }
              }
  
+@@ -570,7 +_,7 @@
+         }
+     }
+ 
+-    private Optional<BlockPos> findLightningRod(BlockPos p_143249_) {
++    public Optional<BlockPos> findLightningRod(BlockPos p_143249_) {
+         Optional<BlockPos> optional = this.getPoiManager()
+             .findClosest(
+                 p_215059_ -> p_215059_.is(PoiTypes.LIGHTNING_ROD),
+@@ -582,7 +_,12 @@
+         return optional.map(p_184053_ -> p_184053_.above(1));
+     }
+ 
+-    protected BlockPos findLightningTargetAround(BlockPos p_143289_) {
++    public BlockPos findLightningTargetAround(BlockPos p_143289_) {
++        // Paper start - Add methods to find targets for lightning strikes
++        return this.findLightningTargetAround(p_143289_, false);
++    }
++    public BlockPos findLightningTargetAround(BlockPos p_143289_, boolean returnNullWhenNoTarget) {
++        // Paper end - Add methods to find targets for lightning strikes
+         BlockPos blockpos = this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, p_143289_);
+         Optional<BlockPos> optional = this.findLightningRod(blockpos);
+         if (optional.isPresent()) {
+@@ -595,6 +_,7 @@
+             if (!list.isEmpty()) {
+                 return list.get(this.random.nextInt(list.size())).blockPosition();
+             } else {
++                if (returnNullWhenNoTarget) return null; // Paper - Add methods to find targets for lightning strikes
+                 if (blockpos.getY() == this.getMinBuildHeight() - 1) {
+                     blockpos = blockpos.above(2);
+                 }
 @@ -714,15 +_,19 @@
                  .broadcastAll(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, this.thunderLevel), this.dimension());
          }

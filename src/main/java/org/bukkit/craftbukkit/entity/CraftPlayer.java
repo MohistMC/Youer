@@ -1299,6 +1299,25 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         this.getHandle().connection.send(packet);
     }
 
+    // Paper start
+    @Override
+    public void showWinScreen() {
+        if (getHandle().connection == null) return;
+        var packet = new ClientboundGameEventPacket(ClientboundGameEventPacket.WIN_GAME, 1);
+        getHandle().connection.send(packet);
+    }
+
+    @Override
+    public boolean hasSeenWinScreen() {
+        return getHandle().seenCredits;
+    }
+
+    @Override
+    public void setHasSeenWinScreen(boolean hasSeenWinScreen) {
+        getHandle().seenCredits = hasSeenWinScreen;
+    }
+    // Paper end
+
     @Override
     public void setRotation(float yaw, float pitch) {
         // Paper start - Teleport API
@@ -1723,23 +1742,23 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     @Override
-    public BanEntry<PlayerProfile> ban(String reason, Date expires, String source) {
+    public BanEntry<io.papermc.paper.profile.PlayerProfile> ban(String reason, Date expires, String source) { // Paper - fix ban list API
         return this.ban(reason, expires, source, true);
     }
 
     @Override
-    public BanEntry<PlayerProfile> ban(String reason, Instant expires, String source) {
+    public BanEntry<io.papermc.paper.profile.PlayerProfile> ban(String reason, Instant expires, String source) { // Paper - fix ban list API
         return this.ban(reason, expires != null ? Date.from(expires) : null, source);
     }
 
     @Override
-    public BanEntry<PlayerProfile> ban(String reason, Duration duration, String source) {
+    public BanEntry<io.papermc.paper.profile.PlayerProfile> ban(String reason, Duration duration, String source) { // Paper - fix ban list API
         return this.ban(reason, duration != null ? Instant.now().plus(duration) : null, source);
     }
 
     @Override
-    public BanEntry<PlayerProfile> ban(String reason, Date expires, String source, boolean kickPlayer) {
-        BanEntry<PlayerProfile> banEntry = ((ProfileBanList) this.server.getBanList(BanList.Type.PROFILE)).addBan(this.getPlayerProfile(), reason, expires, source);
+    public BanEntry<io.papermc.paper.profile.PlayerProfile> ban(String reason, Date expires, String source, boolean kickPlayer) { // Paper - fix ban list API
+        BanEntry<io.papermc.paper.profile.PlayerProfile> banEntry = ((ProfileBanList) this.server.getBanList(BanList.Type.PROFILE)).addBan(this.getPlayerProfile(), reason, expires, source); // Paper - fix ban list API
         if (kickPlayer) {
             this.kickPlayer(reason);
         }
@@ -1747,12 +1766,12 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     @Override
-    public BanEntry<PlayerProfile> ban(String reason, Instant instant, String source, boolean kickPlayer) {
+    public BanEntry<io.papermc.paper.profile.PlayerProfile> ban(String reason, Instant instant, String source, boolean kickPlayer) { // Paper - fix ban list API
         return this.ban(reason, instant != null ? Date.from(instant) : null, source, kickPlayer);
     }
 
     @Override
-    public BanEntry<PlayerProfile> ban(String reason, Duration duration, String source, boolean kickPlayer) {
+    public BanEntry<io.papermc.paper.profile.PlayerProfile> ban(String reason, Duration duration, String source, boolean kickPlayer) { // Paper - fix ban list API
         return this.ban(reason, duration != null ? Instant.now().plus(duration) : null, source, kickPlayer);
     }
 
@@ -1811,7 +1830,41 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     @Override
-    public void giveExp(int exp) {
+    // Paper start
+    public int applyMending(int amount) {
+        ServerPlayer handle = this.getHandle();
+        // Logic copied from EntityExperienceOrb and remapped to unobfuscated methods/properties
+
+        final Optional<net.minecraft.world.item.enchantment.EnchantedItemInUse> stackEntry = net.minecraft.world.item.enchantment.EnchantmentHelper
+                .getRandomItemWith(net.minecraft.world.item.enchantment.EnchantmentEffectComponents.REPAIR_WITH_XP, handle, net.minecraft.world.item.ItemStack::isDamaged);
+        final net.minecraft.world.item.ItemStack itemstack = stackEntry.map(net.minecraft.world.item.enchantment.EnchantedItemInUse::itemStack).orElse(net.minecraft.world.item.ItemStack.EMPTY);
+        if (!itemstack.isEmpty() && itemstack.getItem().components().has(net.minecraft.core.component.DataComponents.MAX_DAMAGE)) {
+            net.minecraft.world.entity.ExperienceOrb orb = net.minecraft.world.entity.EntityType.EXPERIENCE_ORB.create(handle.level());
+            orb.value = amount;
+            orb.setPosRaw(handle.getX(), handle.getY(), handle.getZ());
+
+            final int possibleDurabilityFromXp = net.minecraft.world.item.enchantment.EnchantmentHelper.modifyDurabilityToRepairFromXp(
+                    handle.serverLevel(), itemstack, amount
+            );
+            int i = Math.min(possibleDurabilityFromXp, itemstack.getDamageValue());
+            final int consumedExperience = i * amount / possibleDurabilityFromXp; // Paper - taken from ExperienceOrb#repairPlayerItems
+            org.bukkit.event.player.PlayerItemMendEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemMendEvent(handle, orb, itemstack, stackEntry.get().inSlot(), i, consumedExperience);
+            i = event.getRepairAmount();
+            orb.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN);
+            if (!event.isCancelled()) {
+                amount -= consumedExperience; // Use previously computed variable to reduce diff on change.
+                itemstack.setDamageValue(itemstack.getDamageValue() - i);
+            }
+        }
+        return amount;
+    }
+
+    @Override
+    public void giveExp(int exp, boolean applyMending) {
+        if (applyMending) {
+            exp = this.applyMending(exp);
+        }
+        // Paper end
         this.getHandle().giveExperiencePoints(exp);
     }
 
@@ -1854,6 +1907,49 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         Preconditions.checkArgument(exp >= 0, "Total experience points must not be negative (%s)", exp);
         this.getHandle().totalExperience = exp;
     }
+    // Paper start
+    @Override
+    public int calculateTotalExperiencePoints() {
+        return calculateTotalExperiencePoints(this.getLevel()) + Math.round(this.getExperiencePointsNeededForNextLevel() * getExp());
+    }
+
+    @Override
+    public void setExperienceLevelAndProgress(final int totalExperience) {
+        Preconditions.checkArgument(totalExperience >= 0, "Total experience points must not be negative (%s)", totalExperience);
+        int level = calculateLevelsForExperiencePoints(totalExperience);
+        int remainingPoints = totalExperience - calculateTotalExperiencePoints(level);
+
+        this.getHandle().experienceLevel = level;
+        this.getHandle().experienceProgress = (float) remainingPoints / this.getExperiencePointsNeededForNextLevel();
+        this.getHandle().lastSentExp = -1;
+    }
+
+    @Override
+    public int getExperiencePointsNeededForNextLevel() {
+        return this.getHandle().getXpNeededForNextLevel();
+    }
+
+    // See https://minecraft.wiki/w/Experience#Leveling_up for reference
+    private int calculateTotalExperiencePoints(int level) {
+        if (level <= 16) {
+            return (int) (Math.pow(level, 2) + 6 * level);
+        } else if (level <= 31) {
+            return (int) (2.5 * Math.pow(level, 2) - 40.5 * level + 360.0);
+        } else {
+            return (int) (4.5 * Math.pow(level, 2) - 162.5 * level + 2220.0);
+        }
+    }
+
+    private int calculateLevelsForExperiencePoints(int points) {
+        if (points <= 352) { // Level 0-16
+            return (int) Math.floor(Math.sqrt(points + 9) - 3);
+        } else if (points <= 1507) { // Level 17-31
+            return (int) Math.floor(8.1 + Math.sqrt(0.4 * (points - (7839.0 / 40.0))));
+        } else { // 32+
+            return (int) Math.floor((325.0 / 18.0) + Math.sqrt((2.0 / 9.0) * (points - (54215.0 / 72.0))));
+        }
+    }
+    // Paper end
 
     @Override
     public void sendExperienceChange(float progress) {

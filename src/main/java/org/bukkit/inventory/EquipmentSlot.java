@@ -17,8 +17,10 @@ public enum EquipmentSlot {
      */
     BODY(() -> EquipmentSlotGroup.BODY); // Paper - add missing slot type
 
-    private final Supplier<EquipmentSlotGroup> group; // Supplier because of class loading order, since EquipmentSlot and EquipmentSlotGroup reference each other on class init
+    private Supplier<EquipmentSlotGroup> group; // Supplier because of class loading order, since EquipmentSlot and EquipmentSlotGroup reference each other on class init
     public EquipmentSlotGroup group1;
+
+    private EquipmentSlot(){}
 
     private EquipmentSlot(/*@NotNull*/ Supplier<EquipmentSlotGroup> group) {
         this.group = group;

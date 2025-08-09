@@ -31,12 +31,13 @@
  import net.minecraft.util.NullOps;
  import net.minecraft.util.Unit;
  import net.minecraft.world.InteractionHand;
-@@ -90,9 +_,11 @@
+@@ -90,9 +_,12 @@
  import net.minecraft.world.level.block.state.pattern.BlockInWorld;
  import net.minecraft.world.level.saveddata.maps.MapId;
  import org.apache.commons.lang3.mutable.MutableBoolean;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.event.player.PlayerItemDamageEvent;
  import org.slf4j.Logger;
  
 -public final class ItemStack implements DataComponentHolder, net.neoforged.neoforge.common.MutableDataComponentHolder, net.neoforged.neoforge.common.extensions.IItemStackExtension {
@@ -157,7 +158,7 @@
      }
  
      public boolean isStackable() {
-@@ -411,33 +_,51 @@
+@@ -411,39 +_,70 @@
      }
  
      public boolean isDamaged() {
@@ -190,8 +191,8 @@
              if (p_220160_ == null || !p_220160_.hasInfiniteMaterials()) {
                  if (p_220158_ > 0) {
                      p_220158_ = EnchantmentHelper.processDurabilityChange(p_346256_, this, p_220158_);
-+                    if (p_220160_ instanceof ServerPlayer) {
-+                        org.bukkit.event.player.PlayerItemDamageEvent event = new org.bukkit.event.player.PlayerItemDamageEvent((org.bukkit.entity.Player) p_220160_.getBukkitEntity(), CraftItemStack.asCraftMirror(this), p_220158_);
++                    if (p_220160_ instanceof ServerPlayer serverPlayer) { // Paper - Add EntityDamageItemEvent
++                        PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverPlayer.getBukkitEntity(), CraftItemStack.asCraftMirror(this), p_220158_); // Paper - Add EntityDamageItemEvent
 +                        event.getPlayer().getServer().getPluginManager().callEvent(event);
 +
 +                        if (p_220158_ != event.getDamage() || event.isCancelled()) {
@@ -202,6 +203,14 @@
 +                        }
 +
 +                        p_220158_ = event.getDamage();
++                        // Paper start - Add EntityDamageItemEvent
++                    } else if (p_220160_ != null) {
++                        io.papermc.paper.event.entity.EntityDamageItemEvent event = new io.papermc.paper.event.entity.EntityDamageItemEvent(p_220160_.getBukkitLivingEntity(), CraftItemStack.asCraftMirror(this), p_220158_);
++                        if (!event.callEvent()) {
++                            return;
++                        }
++                        p_220158_ = event.getDamage();
++                        // Paper end - Add EntityDamageItemEvent
 +                    }
                      if (p_220158_ <= 0) {
                          return;
@@ -215,7 +224,18 @@
                  }
  
                  int i = this.getDamageValue() + p_220158_;
-@@ -456,8 +_,13 @@
+                 this.setDamageValue(i);
+                 if (i >= this.getMaxDamage()) {
+                     Item item = this.getItem();
++                    // CraftBukkit start - Check for item breaking
++                    if (this.count == 1 && p_220160_ != null && p_220160_ instanceof final ServerPlayer serverPlayer) { // Paper - Add EntityDamageItemEvent
++                        org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemBreakEvent(serverPlayer, this); // Paper - Add EntityDamageItemEvent
++                    }
++                    // CraftBukkit end
+                     this.shrink(1);
+                     p_348596_.accept(item);
+                 }
+@@ -456,8 +_,10 @@
              this.hurtAndBreak(
                  p_41623_,
                  serverlevel,
@@ -223,9 +243,6 @@
 -                p_348383_ -> p_41624_.onEquippedItemBroken(p_348383_, p_319898_)
 +                p_41624_,
 +                p_348383_ -> {
-+                    if (this.count == 1 && p_41624_ instanceof ServerPlayer player) {
-+                        CraftEventFactory.callPlayerItemBreakEvent(player, this);
-+                    }
 +                    p_41624_.onEquippedItemBroken(p_348383_, p_319898_);
 +                }
              );

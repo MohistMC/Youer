@@ -58,7 +58,7 @@
  import net.minecraft.world.level.entity.EntityAccess;
  import net.minecraft.world.level.entity.EntityInLevelCallback;
  import net.minecraft.world.level.gameevent.DynamicGameEventListener;
-@@ -126,9 +_,30 @@
+@@ -126,9 +_,31 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreHolder;
  import net.minecraft.world.scores.Team;
@@ -84,6 +84,7 @@
 +import org.bukkit.event.vehicle.VehicleExitEvent;
  import org.slf4j.Logger;
 +import org.spigotmc.ActivationRange;
++import org.spigotmc.AsyncCatcher;
  
 -public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess, CommandSource, ScoreHolder, net.neoforged.neoforge.common.extensions.IEntityExtension {
 +public abstract class Entity extends net.neoforged.neoforge.attachment.AttachmentHolder implements SyncedDataHolder, Nameable, EntityAccess, CommandSource, ScoreHolder, net.neoforged.neoforge.common.extensions.IEntityExtension {
@@ -1226,22 +1227,26 @@
      }
  
      public int getAirSupply() {
-@@ -2336,7 +_,18 @@
+@@ -2336,7 +_,22 @@
      }
  
      public void setAirSupply(int p_20302_) {
 -        this.entityData.set(DATA_AIR_SUPPLY_ID, p_20302_);
 +        // CraftBukkit start
-+        org.bukkit.event.entity.EntityAirChangeEvent event = new org.bukkit.event.entity.EntityAirChangeEvent(this.getBukkitEntity(), p_20302_);
-+        // Suppress during worldgen
-+        if (this.valid) {
-+            event.getEntity().getServer().getPluginManager().callEvent(event);
++        if (!AsyncCatcher.catchAsync()) {
++            org.bukkit.event.entity.EntityAirChangeEvent event = new org.bukkit.event.entity.EntityAirChangeEvent(this.getBukkitEntity(), p_20302_);
++            // Suppress during worldgen
++            if (this.valid) {
++                event.getEntity().getServer().getPluginManager().callEvent(event);
++            }
++            if (event.isCancelled() && this.getAirSupply() != p_20302_) {
++                this.entityData.markDirty(Entity.DATA_AIR_SUPPLY_ID);
++                return;
++            }
++            p_20302_ = event.getAmount();
 +        }
-+        if (event.isCancelled() && this.getAirSupply() != p_20302_) {
-+            this.entityData.markDirty(Entity.DATA_AIR_SUPPLY_ID);
-+            return;
-+        }
-+        this.entityData.set(Entity.DATA_AIR_SUPPLY_ID, event.getAmount());
++
++        this.entityData.set(Entity.DATA_AIR_SUPPLY_ID, p_20302_);
 +        // CraftBukkit end
      }
  

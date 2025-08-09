@@ -1,7 +1,9 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -2,16 +_,21 @@
+@@ -1,17 +_,23 @@
+ package net.minecraft.world.level;
  
++import ca.spottedleaf.moonrise.common.util.TickThread;
  import com.google.common.collect.Lists;
  import com.mojang.serialization.Codec;
 +import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -23,16 +25,7 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.Holder;
-@@ -22,10 +_,16 @@
- import net.minecraft.core.registries.BuiltInRegistries;
- import net.minecraft.core.registries.Registries;
- import net.minecraft.network.protocol.Packet;
-+import net.minecraft.network.protocol.game.ClientboundSetBorderCenterPacket;
-+import net.minecraft.network.protocol.game.ClientboundSetBorderLerpSizePacket;
-+import net.minecraft.network.protocol.game.ClientboundSetBorderSizePacket;
-+import net.minecraft.network.protocol.game.ClientboundSetBorderWarningDelayPacket;
-+import net.minecraft.network.protocol.game.ClientboundSetBorderWarningDistancePacket;
- import net.minecraft.resources.ResourceKey;
+@@ -26,6 +_,7 @@
  import net.minecraft.resources.ResourceLocation;
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.FullChunkStatus;
@@ -48,13 +41,7 @@
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.alchemy.PotionBrewing;
-@@ -54,11 +_,13 @@
- import net.minecraft.world.level.block.entity.BlockEntity;
- import net.minecraft.world.level.block.entity.TickingBlockEntity;
- import net.minecraft.world.level.block.state.BlockState;
-+import net.minecraft.world.level.border.BorderChangeListener;
- import net.minecraft.world.level.border.WorldBorder;
- import net.minecraft.world.level.chunk.ChunkAccess;
+@@ -59,6 +_,7 @@
  import net.minecraft.world.level.chunk.LevelChunk;
  import net.minecraft.world.level.chunk.status.ChunkStatus;
  import net.minecraft.world.level.dimension.DimensionType;
@@ -574,33 +561,22 @@
          explosion.explode();
          explosion.finalizeExplosion(p_312145_);
          return explosion;
-@@ -705,10 +_,23 @@
-     @Nullable
-     @Override
-     public BlockEntity getBlockEntity(BlockPos p_46716_) {
-+        // CraftBukkit start
-+        return getBlockEntity(p_46716_, true);
-+    }
-+
-+    @Nullable
-+    public BlockEntity getBlockEntity(BlockPos p_46716_, boolean validate) {
-+        // Paper start - Perf: Optimize capturedTileEntities lookup
-+        net.minecraft.world.level.block.entity.BlockEntity blockEntity;
-+        if (!this.capturedTileEntities.isEmpty() && (blockEntity = this.capturedTileEntities.get(p_46716_)) != null) {
-+            return blockEntity;
-+        }
-+        // Paper end - Perf: Optimize capturedTileEntities lookup
-+        // CraftBukkit end
+@@ -708,15 +_,27 @@
          if (this.isOutsideBuildHeight(p_46716_)) {
              return null;
          } else {
 -            return !this.isClientSide && Thread.currentThread() != this.thread
-+            return !this.isClientSide && !ca.spottedleaf.moonrise.common.util.TickThread.isTickThread()
++            return !this.isClientSide && !(Thread.currentThread() instanceof TickThread)
                  ? null
                  : this.getChunkAt(p_46716_).getBlockEntity(p_46716_, LevelChunk.EntityCreationType.IMMEDIATE);
          }
-@@ -716,7 +_,14 @@
+     }
  
++    @Nullable
++    public BlockEntity getBlockEntity(BlockPos p_46716_, boolean validate) {
++      return getBlockEntity(p_46716_);
++    }
++
      public void setBlockEntity(BlockEntity p_151524_) {
          BlockPos blockpos = p_151524_.getBlockPos();
 +
@@ -608,7 +584,7 @@
 +            // CraftBukkit start
 +            if (captureBlockStates) {
 +                capturedTileEntities.put(blockpos.immutable(), p_151524_);
-+                return;
++                // return; // Youer
 +            }
 +            // CraftBukkit end
              this.getChunkAt(blockpos).addAndRegisterBlockEntity(p_151524_);
