@@ -10,7 +10,7 @@
       <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-21.1.197-FF8B00?style=flat-square">
     </a>
     <a href="https://www.azul.com/downloads/?version=java-21-lts#zulu">
-      <img alt="JDK" src="https://img.shields.io/badge/JDK-21.0.7-007396?logo=java&logoColor=white&style=flat-square">
+      <img alt="JDK" src="https://img.shields.io/badge/JDK-21.0.8-007396?logo=java&logoColor=white&style=flat-square">
     </a>
     <a href="https://docs.gradle.org/8.13/release-notes.html">
       <img alt="Gradle" src="https://img.shields.io/badge/Gradle-8.13-02303A?logo=gradle&logoColor=white&style=flat-square">
@@ -30,7 +30,7 @@
 ## 📊 Progress Status
 
 ✅ **Core Integration**
-- [x] NeoForge ([8404b0625](https://github.com/neoforged/NeoForge/commit/8404b0625))
+- [x] NeoForge ([f423d0efe](https://github.com/neoforged/NeoForge/commit/f423d0efe))
 - [x] Bukkit API ([69fa4695](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/bukkit/commits/69fa4695))
 - [x] CraftBukkit ([19bf84656](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/19bf84656))
 - [x] Spigot ([a759b629](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/spigot/commits/a759b629))
