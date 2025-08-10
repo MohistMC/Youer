@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/item/ProjectileWeaponItem.java
 +++ b/net/minecraft/world/item/ProjectileWeaponItem.java
+@@ -2,6 +_,7 @@
+ 
+ import java.util.ArrayList;
+ import java.util.List;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.Predicate;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.component.DataComponents;
 @@ -15,6 +_,7 @@
  import net.minecraft.world.entity.projectile.Projectile;
  import net.minecraft.world.item.enchantment.EnchantmentHelper;
@@ -79,34 +87,35 @@
                  p_330646_.hurtAndBreak(this.getDurabilityUse(itemstack), p_330728_, LivingEntity.getSlotForHand(p_331152_));
                  if (p_330646_.isEmpty()) {
                      break;
-@@ -92,10 +_,15 @@
+@@ -92,8 +_,10 @@
              abstractarrow.setCritArrow(true);
          }
  
 -        return abstractarrow;
 +        return customArrow(abstractarrow, p_331497_, p_330846_);
      }
++
++    protected static AtomicBoolean draw$consume = new AtomicBoolean(true);
  
      protected static List<ItemStack> draw(ItemStack p_331565_, ItemStack p_330406_, LivingEntity p_330823_) {
-+        // Paper start
-+        return draw(p_331565_, p_330406_, p_330823_, true);
-+    }
-+    protected static List<ItemStack> draw(ItemStack p_331565_, ItemStack p_330406_, LivingEntity p_330823_, boolean consume) {
-+        // Paper end
          if (p_330406_.isEmpty()) {
-             return List.of();
-         } else {
 @@ -104,7 +_,7 @@
              ItemStack itemstack1 = p_330406_.copy();
  
              for (int j = 0; j < i; j++) {
 -                ItemStack itemstack = useAmmo(p_331565_, j == 0 ? p_330406_ : itemstack1, p_330823_, j > 0);
-+                ItemStack itemstack = useAmmo(p_331565_, j == 0 ? p_330406_ : itemstack1, p_330823_, j > 0 || !consume); // Paper
++                ItemStack itemstack = useAmmo(p_331565_, j == 0 ? p_330406_ : itemstack1, p_330823_, j > 0 || !draw$consume.getAndSet(true)); // Paper
                  if (!itemstack.isEmpty()) {
                      list.add(itemstack);
                  }
-@@ -115,7 +_,8 @@
+@@ -113,9 +_,14 @@
+             return list;
+         }
      }
++    protected static List<ItemStack> draw(ItemStack p_331565_, ItemStack p_330406_, LivingEntity p_330823_, boolean consume) {
++        draw$consume.set(consume);
++        return draw(p_331565_, p_330406_, p_330823_);
++    }
  
      protected static ItemStack useAmmo(ItemStack p_331207_, ItemStack p_331434_, LivingEntity p_330302_, boolean p_330934_) {
 -        int i = !p_330934_ && !p_330302_.hasInfiniteMaterials() && p_330302_.level() instanceof ServerLevel serverlevel

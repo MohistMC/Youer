@@ -514,28 +514,43 @@
          Optional<BlockPos> optional = this.getPoiManager()
              .findClosest(
                  p_215059_ -> p_215059_.is(PoiTypes.LIGHTNING_ROD),
-@@ -582,7 +_,12 @@
+@@ -582,7 +_,10 @@
          return optional.map(p_184053_ -> p_184053_.above(1));
      }
  
 -    protected BlockPos findLightningTargetAround(BlockPos p_143289_) {
++    public AtomicBoolean findLightningTargetAround$returnNullWhenNoTarget = new AtomicBoolean(false);
++
 +    public BlockPos findLightningTargetAround(BlockPos p_143289_) {
-+        // Paper start - Add methods to find targets for lightning strikes
-+        return this.findLightningTargetAround(p_143289_, false);
-+    }
-+    public BlockPos findLightningTargetAround(BlockPos p_143289_, boolean returnNullWhenNoTarget) {
 +        // Paper end - Add methods to find targets for lightning strikes
          BlockPos blockpos = this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, p_143289_);
          Optional<BlockPos> optional = this.findLightningRod(blockpos);
          if (optional.isPresent()) {
-@@ -595,6 +_,7 @@
+@@ -590,11 +_,12 @@
+         } else {
+             AABB aabb = AABB.encapsulatingFullBlocks(blockpos, new BlockPos(blockpos.atY(this.getMaxBuildHeight()))).inflate(3.0);
+             List<LivingEntity> list = this.getEntitiesOfClass(
+-                LivingEntity.class, aabb, p_352698_ -> p_352698_ != null && p_352698_.isAlive() && this.canSeeSky(p_352698_.blockPosition())
++                    LivingEntity.class, aabb, p_352698_ -> p_352698_ != null && p_352698_.isAlive() && this.canSeeSky(p_352698_.blockPosition())
+             );
              if (!list.isEmpty()) {
                  return list.get(this.random.nextInt(list.size())).blockPosition();
              } else {
-+                if (returnNullWhenNoTarget) return null; // Paper - Add methods to find targets for lightning strikes
++                if (findLightningTargetAround$returnNullWhenNoTarget.getAndSet(false)) return null; // Paper - Add methods to find targets for lightning strikes
                  if (blockpos.getY() == this.getMinBuildHeight() - 1) {
                      blockpos = blockpos.above(2);
                  }
+@@ -603,6 +_,10 @@
+             }
+         }
+     }
++    public BlockPos findLightningTargetAround(BlockPos p_143289_, boolean returnNullWhenNoTarget) {
++        findLightningTargetAround$returnNullWhenNoTarget.set(returnNullWhenNoTarget);
++        return findLightningTargetAround(p_143289_);
++    }
+ 
+     public boolean isHandlingTick() {
+         return this.handlingTick;
 @@ -714,15 +_,19 @@
                  .broadcastAll(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, this.thunderLevel), this.dimension());
          }

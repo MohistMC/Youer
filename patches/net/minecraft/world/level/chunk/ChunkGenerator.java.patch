@@ -53,6 +53,31 @@
      }
  
      public Optional<ResourceKey<MapCodec<? extends ChunkGenerator>>> getTypeNameForDataFixer() {
+@@ -132,6 +_,24 @@
+     public Pair<BlockPos, Holder<Structure>> findNearestMapStructure(
+         ServerLevel p_223038_, HolderSet<Structure> p_223039_, BlockPos p_223040_, int p_223041_, boolean p_223042_
+     ) {
++        // Paper start - StructuresLocateEvent
++        final org.bukkit.World bukkitWorld = p_223038_.getWorld();
++        final org.bukkit.Location origin = io.papermc.paper.util.MCUtil.toLocation(p_223038_, p_223040_);
++        final List<org.bukkit.generator.structure.Structure> apiStructures = p_223039_.stream().map(Holder::value).map(nms -> org.bukkit.craftbukkit.generator.structure.CraftStructure.minecraftToBukkit(nms)).toList();
++        if (!apiStructures.isEmpty()) {
++            final io.papermc.paper.event.world.StructuresLocateEvent event = new io.papermc.paper.event.world.StructuresLocateEvent(bukkitWorld, origin, apiStructures, p_223041_, p_223042_);
++            if (!event.callEvent()) {
++                return null;
++            }
++            if (event.getResult() != null) {
++                return Pair.of(io.papermc.paper.util.MCUtil.toBlockPos(event.getResult().pos()), p_223038_.registryAccess().registryOrThrow(Registries.STRUCTURE).wrapAsHolder(org.bukkit.craftbukkit.generator.structure.CraftStructure.bukkitToMinecraft(event.getResult().structure())));
++            }
++            p_223040_ = io.papermc.paper.util.MCUtil.toBlockPosition(event.getOrigin());
++            p_223041_ = event.getRadius();
++            p_223042_ = event.shouldFindUnexplored();
++            p_223039_ = HolderSet.direct(api -> p_223038_.registryAccess().registryOrThrow(Registries.STRUCTURE).wrapAsHolder(org.bukkit.craftbukkit.generator.structure.CraftStructure.bukkitToMinecraft(api)), event.getStructures());
++        }
++        // Paper end
+         ChunkGeneratorStructureState chunkgeneratorstructurestate = p_223038_.getChunkSource().getGeneratorState();
+         Map<StructurePlacement, Set<Holder<Structure>>> map = new Object2ObjectArrayMap<>();
+ 
 @@ -227,6 +_,8 @@
              BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
  

@@ -947,12 +947,6 @@ public class CraftEventFactory {
 
         victim.expToDrop = event.getDroppedExp();
 
-        for (org.bukkit.inventory.ItemStack stack : event.getDrops()) {
-            if (stack == null || stack.getType() == Material.AIR || stack.getAmount() == 0) continue;
-
-            world.dropItem(entity.getLocation(), stack);
-        }
-
         return event;
     }
 
@@ -969,12 +963,6 @@ public class CraftEventFactory {
         victim.newTotalExp = event.getNewTotalExp();
         victim.expToDrop = event.getDroppedExp();
         victim.newExp = event.getNewExp();
-
-        for (org.bukkit.inventory.ItemStack stack : event.getDrops()) {
-            if (stack == null || stack.getType() == Material.AIR) continue;
-
-            //victim.drop(CraftItemStack.asNMSCopy(stack), true, false, false); // SPIGOT-7800, SPIGOT-7801: Vanilla Behaviour for dropped items
-        }
 
         return event;
     }
