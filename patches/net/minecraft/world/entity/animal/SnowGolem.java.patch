@@ -40,27 +40,45 @@
                      this.level().gameEvent(GameEvent.BLOCK_PLACE, blockpos, GameEvent.Context.of(this, blockstate));
                  }
              }
-@@ -127,7 +_,12 @@
+@@ -127,7 +_,7 @@
      @Override
      protected InteractionResult mobInteract(Player p_29920_, InteractionHand p_29921_) {
          ItemStack itemstack = p_29920_.getItemInHand(p_29921_);
 -        if (itemstack.is(Items.SHEARS) && this.readyForShearing()) {
 +        if (false && itemstack.is(Items.SHEARS) && this.readyForShearing()) { // Neo: Shear logic is handled by IShearable
-+            // CraftBukkit start
-+            if (!CraftEventFactory.handlePlayerShearEntityEvent(p_29920_, this, itemstack, p_29921_)) {
-+                return InteractionResult.PASS;
-+            }
-+            // CraftBukkit end
              this.shear(SoundSource.PLAYERS);
              this.gameEvent(GameEvent.SHEAR, p_29920_);
              if (!this.level().isClientSide) {
-@@ -145,7 +_,9 @@
+@@ -141,12 +_,31 @@
+     }
+ 
+     @Override
++    public java.util.List<ItemStack> generateDefaultDrops() {
++        return java.util.Collections.singletonList(new ItemStack(Items.CARVED_PUMPKIN));
++    }
++
++    @Override
+     public void shear(SoundSource p_29907_) {
          this.level().playSound(null, this, SoundEvents.SNOW_GOLEM_SHEAR, p_29907_, 1.0F, 1.0F);
          if (!this.level().isClientSide()) {
              this.setPumpkin(false);
-+            this.forceDrops = true; // CraftBukkit
-             this.spawnAtLocation(new ItemStack(Items.CARVED_PUMPKIN), this.getEyeHeight());
-+            this.forceDrops = false; // CraftBukkit
+-            this.spawnAtLocation(new ItemStack(Items.CARVED_PUMPKIN), this.getEyeHeight());
++            // Paper start - custom shear drops (moved drop generation to separate method)
++            for (final ItemStack drop : shear$drops.isEmpty() ? generateDefaultDrops() : shear$drops) {
++                this.forceDrops = true;
++                this.spawnAtLocation(drop, this.getEyeHeight());
++                this.forceDrops = false;
++            }
++            // Paper end - custom shear drops
          }
++    }
++
++    public java.util.List<net.minecraft.world.item.ItemStack> shear$drops = new java.util.ArrayList<>();
++
++    @Override
++    public void shear(SoundSource p_331493_, java.util.List<net.minecraft.world.item.ItemStack> drops) {
++        shear$drops = drops;
++        this.shear(p_331493_);
      }
  
+     @Override

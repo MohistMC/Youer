@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/item/ServerItemCooldowns.java
++++ b/net/minecraft/world/item/ServerItemCooldowns.java
+@@ -10,6 +_,16 @@
+         this.player = p_43067_;
+     }
+ 
++    // Paper start - Add PlayerItemCooldownEvent
++    @Override
++    public void addCooldown(Item item, int duration) {
++        io.papermc.paper.event.player.PlayerItemCooldownEvent event = new io.papermc.paper.event.player.PlayerItemCooldownEvent(this.player.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemType.minecraftToBukkit(item), duration);
++        if (event.callEvent()) {
++            super.addCooldown(item, event.getCooldown());
++        }
++    }
++    // Paper end - Add PlayerItemCooldownEvent
++
+     @Override
+     protected void onCooldownStarted(Item p_43069_, int p_43070_) {
+         super.onCooldownStarted(p_43069_, p_43070_);

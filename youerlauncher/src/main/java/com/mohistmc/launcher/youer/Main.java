@@ -55,7 +55,7 @@ public class Main {
         YouerConfigUtil.init();
         YouerConfigUtil.i18n();
         jarTool = new JarTool(Main.class);
-        if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.aBoolean("mohist.show_logo", true)) {
+        if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.aBoolean("youer.show_logo", true)) {
             String test = """
                     
                      ██╗   ██╗ ██████╗ ██╗   ██╗███████╗██████╗

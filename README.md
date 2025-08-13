@@ -37,7 +37,7 @@
 
 🔄 **In Progress**
 - [ ] Paper ([3cb8529bd](https://github.com/PaperMC/Paper-archive/commit/3cb8529bd))
-  - [ ] api
+  - [x] api
   - [ ] server
 - [ ] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))
   - [ ] api

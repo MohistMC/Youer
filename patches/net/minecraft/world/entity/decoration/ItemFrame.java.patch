@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/entity/decoration/ItemFrame.java
 +++ b/net/minecraft/world/entity/decoration/ItemFrame.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.entity.decoration;
+ 
++import io.papermc.paper.event.player.PlayerItemFrameChangeEvent;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
 @@ -38,6 +_,7 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
@@ -33,7 +40,7 @@
          if (!this.fixed) {
              super.push(p_31817_, p_31818_, p_31819_);
          }
-@@ -138,6 +_,11 @@
+@@ -138,6 +_,18 @@
              return false;
          } else if (!p_31776_.is(DamageTypeTags.IS_EXPLOSION) && !this.getItem().isEmpty()) {
              if (!this.level().isClientSide) {
@@ -42,6 +49,13 @@
 +                    return true;
 +                }
 +                // CraftBukkit end
++                // Paper start - Add PlayerItemFrameChangeEvent
++                if (p_31776_.getEntity() instanceof Player player) {
++                    var event = new PlayerItemFrameChangeEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.ItemFrame) this.getBukkitEntity(), this.getItem().asBukkitCopy(), PlayerItemFrameChangeEvent.ItemFrameChangeAction.REMOVE);
++                    if (!event.callEvent()) return true; // return true here because you aren't cancelling the damage, just the change
++                    this.setItem(ItemStack.fromBukkitCopy(event.getItemStack()), false);
++                }
++                // Paper end - Add PlayerItemFrameChangeEvent
                  this.dropItem(p_31776_.getEntity(), false);
                  this.gameEvent(GameEvent.BLOCK_CHANGE, p_31776_.getEntity());
                  this.playSound(this.getRemoveItemSound(), 1.0F, 1.0F);
@@ -54,18 +68,10 @@
              if (mapitemsaveddata != null) {
                  mapitemsaveddata.removedFromFrame(this.pos, this.getId());
                  mapitemsaveddata.setDirty(true);
-@@ -247,6 +_,22 @@
-         this.onItemChanged(p_31790_);
-         this.getEntityData().set(DATA_ITEM, p_31790_);
-         if (!p_31790_.isEmpty()) {
-+            this.playSound(this.getAddItemSound(), 1.0F, 1.0F);
-+        }
-+
-+        if (p_31791_ && this.pos != null) {
-+            this.level().updateNeighbourForOutputSignal(this.pos, Blocks.AIR);
-+        }
-+    }
-+
+@@ -255,6 +_,22 @@
+         }
+     }
+ 
 +    public void setItem(ItemStack p_31790_, boolean p_31791_, boolean playSound) {
 +        if (!p_31790_.isEmpty()) {
 +            p_31790_ = p_31790_.copyWithCount(1);
@@ -74,6 +80,40 @@
 +        this.onItemChanged(p_31790_);
 +        this.getEntityData().set(DATA_ITEM, p_31790_);
 +        if (!p_31790_.isEmpty() && playSound) { // CraftBukkit
-             this.playSound(this.getAddItemSound(), 1.0F, 1.0F);
-         }
++            this.playSound(this.getAddItemSound(), 1.0F, 1.0F);
++        }
++
++        if (p_31791_ && this.pos != null) {
++            this.level().updateNeighbourForOutputSignal(this.pos, Blocks.AIR);
++        }
++    }
++
+     public SoundEvent getAddItemSound() {
+         return SoundEvents.ITEM_FRAME_ADD_ITEM;
+     }
+@@ -354,11 +_,24 @@
+                         }
+                     }
  
+-                    this.setItem(itemstack);
++                    // Paper start - Add PlayerItemFrameChangeEvent
++                    PlayerItemFrameChangeEvent event = new PlayerItemFrameChangeEvent((org.bukkit.entity.Player) p_31787_.getBukkitEntity(), (org.bukkit.entity.ItemFrame) this.getBukkitEntity(), itemstack.asBukkitCopy(), PlayerItemFrameChangeEvent.ItemFrameChangeAction.PLACE);
++                    if (!event.callEvent()) {
++                        return InteractionResult.FAIL;
++                    }
++                    this.setItem(ItemStack.fromBukkitCopy(event.getItemStack()));
++                    // Paper end - Add PlayerItemFrameChangeEvent
+                     this.gameEvent(GameEvent.BLOCK_CHANGE, p_31787_);
+                     itemstack.consume(1, p_31787_);
+                 }
+             } else {
++                // Paper start - Add PlayerItemFrameChangeEvent
++                PlayerItemFrameChangeEvent event = new PlayerItemFrameChangeEvent((org.bukkit.entity.Player) p_31787_.getBukkitEntity(), (org.bukkit.entity.ItemFrame) this.getBukkitEntity(), this.getItem().asBukkitCopy(), PlayerItemFrameChangeEvent.ItemFrameChangeAction.ROTATE);
++                if (!event.callEvent()) {
++                    return InteractionResult.FAIL;
++                }
++                setItem(ItemStack.fromBukkitCopy(event.getItemStack()), false, false);
++                // Paper end - Add PlayerItemFrameChangeEvent
+                 this.playSound(this.getRotateItemSound(), 1.0F, 1.0F);
+                 this.setRotation(this.getRotation() + 1);
+                 this.gameEvent(GameEvent.BLOCK_CHANGE, p_31787_);

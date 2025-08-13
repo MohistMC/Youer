@@ -8,3 +8,19 @@
  import net.minecraft.commands.CommandSourceStack;
  import net.minecraft.commands.Commands;
  import net.minecraft.commands.arguments.GameModeArgument;
+@@ -29,9 +_,13 @@
+         GameType gametype = minecraftserver.getForcedGameType();
+         if (gametype != null) {
+             for (ServerPlayer serverplayer : minecraftserver.getPlayerList().getPlayers()) {
+-                if (serverplayer.setGameMode(gametype)) {
+-                    i++;
++                // Paper start - Expand PlayerGameModeChangeEvent
++                org.bukkit.event.player.PlayerGameModeChangeEvent event = serverplayer.setGameMode(p_136932_, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.DEFAULT_GAMEMODE, net.kyori.adventure.text.Component.empty());
++                if (event != null && event.isCancelled()) {
++                    p_136931_.sendSuccess(() -> io.papermc.paper.adventure.PaperAdventure.asVanilla(event.cancelMessage()), false);
+                 }
++                // Paper end - Expand PlayerGameModeChangeEvent
++                i++;
+             }
+         }
+ 

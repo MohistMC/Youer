@@ -100,7 +100,16 @@
      protected boolean dead;
      protected int noActionTime;
      protected float oRun;
-@@ -251,13 +_,36 @@
+@@ -214,7 +_,7 @@
+     protected float rotOffs;
+     protected int deathScore;
+     public float lastHurt;
+-    protected boolean jumping;
++    public boolean jumping;
+     public float xxa;
+     public float yya;
+     public float zza;
+@@ -251,13 +_,37 @@
      private float swimAmount;
      private float swimAmountO;
      protected Brain<?> brain;
@@ -123,6 +132,7 @@
 +    public boolean collides = true;
 +    public Set<UUID> collidableExemptions = new HashSet<>();
 +    public boolean bukkitPickUpLoot;
++    public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
 +    public CraftLivingEntity getBukkitLivingEntity() { return (CraftLivingEntity) super.getBukkitEntity(); } // Paper
 +
 +    @Override
@@ -209,6 +219,15 @@
          }
      }
  
+@@ -634,7 +_,7 @@
+     }
+ 
+     public boolean shouldDiscardFriction() {
+-        return this.discardFriction;
++        return !this.frictionState.toBooleanOrElse(!this.discardFriction); // Paper - Friction API
+     }
+ 
+     public void setDiscardFriction(boolean p_147245_) {
 @@ -664,13 +_,43 @@
          }
      }
@@ -254,7 +273,7 @@
          this.brain.clearMemories();
      }
  
-@@ -679,6 +_,7 @@
+@@ -679,11 +_,17 @@
              mobeffectinstance.onMobRemoved(this, p_350496_);
          }
  
@@ -262,7 +281,17 @@
          this.activeEffects.clear();
      }
  
-@@ -712,7 +_,13 @@
+     @Override
+     public void addAdditionalSaveData(CompoundTag p_21145_) {
++        // Paper start - Friction API
++        if (this.frictionState != net.kyori.adventure.util.TriState.NOT_SET) {
++            p_21145_.putString("Paper.FrictionState", this.frictionState.toString());
++        }
++        // Paper end - Friction API
+         p_21145_.putFloat("Health", this.getHealth());
+         p_21145_.putShort("HurtTime", (short)this.hurtTime);
+         p_21145_.putInt("HurtByTimestamp", this.lastHurtByMobTimestamp);
+@@ -712,7 +_,23 @@
  
      @Override
      public void readAdditionalSaveData(CompoundTag p_21096_) {
@@ -274,6 +303,16 @@
 +        }
 +        this.internalSetAbsorptionAmount(absorptionAmount);
 +        // Paper end - Check for NaN
++        // Paper start - Friction API
++        if (p_21096_.contains("Paper.FrictionState")) {
++            String fs = p_21096_.getString("Paper.FrictionState");
++            try {
++                frictionState = net.kyori.adventure.util.TriState.valueOf(fs);
++            } catch (Exception ignored) {
++                LOGGER.error("Unknown friction state " + fs + " for " + this);
++            }
++        }
++        // Paper end - Friction API
          if (p_21096_.contains("attributes", 9) && this.level() != null && !this.level().isClientSide) {
              this.getAttributes().load(p_21096_.getList("attributes", 10));
          }
@@ -895,7 +934,7 @@
              }
  
              this.dead = true;
-@@ -1361,32 +_,47 @@
+@@ -1361,32 +_,54 @@
          if (!this.level().isClientSide) {
              boolean flag = false;
              if (p_21269_ instanceof WitherBoss) {
@@ -928,6 +967,7 @@
          }
      }
  
++    protected AtomicBoolean shouldDropExperience = new AtomicBoolean(true);
      protected void dropAllDeathLoot(ServerLevel p_348524_, DamageSource p_21192_) {
 +        this.captureDrops(new java.util.ArrayList<>());
          boolean flag = this.lastHurtByPlayerTime > 0;
@@ -938,7 +978,14 @@
          }
  
          this.dropEquipment();
-         this.dropExperience(p_21192_.getEntity());
+-        this.dropExperience(p_21192_.getEntity());
++        if (this instanceof ServerPlayer) {
++            if (shouldDropExperience.getAndSet(true)) {
++                this.dropExperience(p_21192_.getEntity());
++            }
++        } else {
++            this.dropExperience(p_21192_.getEntity());
++        }
 +
 +        Collection<ItemEntity> drops = captureDrops(null);
 +        EmeraldClose.init(this, drops); // Mohist
@@ -1500,14 +1547,18 @@
              if (this.isInLava()) {
                  d3 = this.getFluidHeight(FluidTags.LAVA);
              } else {
-@@ -2647,15 +_,17 @@
+@@ -2647,15 +_,19 @@
              double d4 = this.getFluidJumpThreshold();
              if (!flag || this.onGround() && !(d3 > d4)) {
                  if (!this.isInLava() || this.onGround() && !(d3 > d4)) {
 +                    if (fluidType.isAir() || this.onGround() && !(d3 > d4)) {
                      if ((this.onGround() || flag && d3 <= d4) && this.noJumpDelay == 0) {
-                         this.jumpFromGround();
-                         this.noJumpDelay = 10;
+-                        this.jumpFromGround();
+-                        this.noJumpDelay = 10;
++                        if (new io.papermc.paper.event.entity.EntityJumpEvent(getBukkitLivingEntity()).callEvent()) { // Paper - Entity Jump API
++                            this.jumpFromGround();
++                            this.noJumpDelay = 10;
++                        } else { this.setJumping(false); } // Paper - Entity Jump API; setJumping(false) stops a potential loop
                      }
 +                    } else this.jumpInFluid(fluidType);
                  } else {
@@ -1952,7 +2003,7 @@
          return foodproperties != null ? this.eat(p_21067_, p_21068_, foodproperties) : p_21068_;
      }
  
-@@ -3385,7 +_,7 @@
+@@ -3385,13 +_,13 @@
          if (!this.level().isClientSide()) {
              for (FoodProperties.PossibleEffect foodproperties$possibleeffect : p_335472_.effects()) {
                  if (this.random.nextFloat() < foodproperties$possibleeffect.probability()) {
@@ -1961,6 +2012,13 @@
                  }
              }
          }
+     }
+ 
+-    private static byte entityEventForEquipmentBreak(EquipmentSlot p_21267_) {
++    public static byte entityEventForEquipmentBreak(EquipmentSlot p_21267_) {
+         return switch (p_21267_) {
+             case MAINHAND -> 47;
+             case OFFHAND -> 48;
 @@ -3411,6 +_,38 @@
          return p_320526_ == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND;
      }

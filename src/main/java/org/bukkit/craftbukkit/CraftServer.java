@@ -1003,6 +1003,11 @@ public final class CraftServer implements Server {
         return new HashSet<>(worlds.keySet());
     }
 
+    @Override
+    public boolean isTickingWorlds() {
+        return console.isIteratingOverLevels;
+    }
+
     public DedicatedPlayerList getHandle() {
         return this.playerList;
     }
@@ -1132,6 +1137,19 @@ public final class CraftServer implements Server {
     public void reloadData() {
         ReloadCommand.reload(this.console);
     }
+
+
+    // Paper start - API for updating recipes on clients
+    @Override
+    public void updateResources() {
+        this.playerList.reloadResources();
+    }
+
+    @Override
+    public void updateRecipes() {
+        this.playerList.reloadRecipeData();
+    }
+    // Paper end - API for updating recipes on clients
 
     private void loadIcon() {
         this.icon = new CraftIconCache(null);
@@ -1341,11 +1359,11 @@ public final class CraftServer implements Server {
         } else if (name.equals(levelName + "_the_end")) {
             worldKey = net.minecraft.world.level.Level.END;
         } else {
-            worldKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace(name.toLowerCase(java.util.Locale.ENGLISH)));
+            worldKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation.fromNamespaceAndPath(creator.key().namespace(), creator.key().value()));
         }
 
         // If set to not keep spawn in memory (changed from default) then adjust rule accordingly
-        if (!creator.keepSpawnInMemory()) {
+        if (creator.keepSpawnLoaded() == net.kyori.adventure.util.TriState.FALSE) { // Paper
             worlddata.getGameRules().getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(0, null);
         }
         net.minecraft.world.level.Level.craftWorldData(creator.environment(), generator, biomeProvider);
@@ -1454,6 +1472,15 @@ public final class CraftServer implements Server {
         return null;
     }
 
+    // Paper start
+    @Override
+    public World getWorld(net.kyori.adventure.key.Key worldKey) {
+        ServerLevel worldServer = console.getLevel(ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, io.papermc.paper.adventure.PaperAdventure.asVanilla(worldKey)));
+        if (worldServer == null) return null;
+        return worldServer.getWorld();
+    }
+    // Paper end
+
     public void addWorld(World world) {
         // Check if a World already exists with the UID.
         if (this.getWorld(world.getUID()) != null) {
@@ -1492,6 +1519,13 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean addRecipe(Recipe recipe) {
+        // Paper start - API for updating recipes on clients
+        return this.addRecipe(recipe, false);
+    }
+
+    @Override
+    public boolean addRecipe(Recipe recipe, boolean resendRecipes) {
+        // Paper end - API for updating recipes on clients
         CraftRecipe toAdd;
         if (recipe instanceof CraftRecipe) {
             toAdd = (CraftRecipe) recipe;
@@ -1521,6 +1555,11 @@ public final class CraftServer implements Server {
             }
         }
         toAdd.addToCraftingManager();
+        // Paper start - API for updating recipes on clients
+        if (resendRecipes) {
+            this.playerList.reloadRecipeData();
+        }
+        // Paper end - API for updating recipes on clients
         return true;
     }
 
@@ -1701,10 +1740,23 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean removeRecipe(NamespacedKey recipeKey) {
+        // Paper start - API for updating recipes on clients
+        return this.removeRecipe(recipeKey, false);
+    }
+
+    @Override
+    public boolean removeRecipe(NamespacedKey recipeKey, boolean resendRecipes) {
+        // Paper end - API for updating recipes on clients
         Preconditions.checkArgument(recipeKey != null, "recipeKey == null");
 
         ResourceLocation mcKey = CraftNamespacedKey.toMinecraft(recipeKey);
-        return this.getServer().getRecipeManager().removeRecipe(mcKey);
+        // Paper start - resend recipes on successful removal
+        boolean removed = this.getServer().getRecipeManager().removeRecipe(mcKey);
+        if (removed && resendRecipes) {
+            this.playerList.reloadRecipeData();
+        }
+        return removed;
+        // Paper end
     }
 
     @Override
@@ -2034,6 +2086,28 @@ public final class CraftServer implements Server {
 
         return result;
     }
+
+    // Paper start
+    @Override
+    @Nullable
+    public OfflinePlayer getOfflinePlayerIfCached(String name) {
+        Preconditions.checkArgument(name != null, "Name cannot be null");
+        Preconditions.checkArgument(!name.isEmpty(), "Name cannot be empty");
+
+        OfflinePlayer result = getPlayerExact(name);
+        if (result == null) {
+            GameProfile profile = console.getProfileCache().getProfileIfCached(name);
+
+            if (profile != null) {
+                result = getOfflinePlayer(profile);
+            }
+        } else {
+            offlinePlayers.remove(result.getUniqueId());
+        }
+
+        return result;
+    }
+    // Paper end
 
     @Override
     public OfflinePlayer getOfflinePlayer(UUID id) {
@@ -2389,12 +2463,12 @@ public final class CraftServer implements Server {
 
     @Override
     public String getPermissionMessage() {
-        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacyAmpersand().serialize(Component.text("I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error.", NamedTextColor.RED));
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacyAmpersand().serialize(io.papermc.paper.configuration.GlobalConfiguration.get().messages.noPermission);
     }
 
     @Override
     public net.kyori.adventure.text.Component permissionMessage() {
-        return Component.text("I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error.", NamedTextColor.RED);
+        return io.papermc.paper.configuration.GlobalConfiguration.get().messages.noPermission;
     }
 
     @Override
@@ -2528,7 +2602,7 @@ public final class CraftServer implements Server {
             offers = this.tabCompleteChat(player, message);
         }
 
-        TabCompleteEvent tabEvent = new TabCompleteEvent(player, message, offers);
+        TabCompleteEvent tabEvent = new TabCompleteEvent(player, message, offers, message.startsWith("/") || forceCommand, pos != null ? io.papermc.paper.util.MCUtil.toLocation(((CraftWorld) player.getWorld()).getHandle(), BlockPos.containing(pos)) : null); // Paper - AsyncTabCompleteEvent
         this.getPluginManager().callEvent(tabEvent);
 
         return tabEvent.isCancelled() ? Collections.EMPTY_LIST : tabEvent.getCompletions();

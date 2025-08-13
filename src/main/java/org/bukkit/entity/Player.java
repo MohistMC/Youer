@@ -1296,6 +1296,188 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
     public void setHasSeenWinScreen(boolean hasSeenWinScreen);
     // Paper end
 
+    // Paper start
+    /**
+     * Permanently Bans the Profile and IP address currently used by the player.
+     *
+     * @param reason Reason for ban
+     * @return Ban Entry
+     * @deprecated use {@link #ban(String, Date, String)} and {@link #banIp(String, Date, String, boolean)}
+     */
+    // For reference, Bukkit defines this as nullable, while they impl isn't, we'll follow API.
+    @Nullable
+    @Deprecated(since = "1.20.4")
+    public default org.bukkit.BanEntry banPlayerFull(@Nullable String reason) {
+        return banPlayerFull(reason, null, null);
+    }
+
+    /**
+     * Permanently Bans the Profile and IP address currently used by the player.
+     *
+     * @param reason Reason for ban
+     * @param source Source of ban, or null for default
+     * @return Ban Entry
+     * @deprecated use {@link #ban(String, Date, String)} and {@link #banIp(String, Date, String, boolean)}
+     */
+    @Nullable
+    @Deprecated(since = "1.20.4")
+    public default org.bukkit.BanEntry banPlayerFull(@Nullable String reason, @Nullable String source) {
+        return banPlayerFull(reason, null, source);
+    }
+
+    /**
+     * Bans the Profile and IP address currently used by the player.
+     *
+     * @param reason Reason for Ban
+     * @param expires When to expire the ban
+     * @return Ban Entry
+     * @deprecated use {@link #ban(String, Date, String)} and {@link #banIp(String, Date, String, boolean)}
+     */
+    @Nullable
+    @Deprecated(since = "1.20.4")
+    public default org.bukkit.BanEntry banPlayerFull(@Nullable String reason, @Nullable java.util.Date expires) {
+        return banPlayerFull(reason, expires, null);
+    }
+
+    /**
+     * Bans the Profile and IP address currently used by the player.
+     *
+     * @param reason Reason for Ban
+     * @param expires When to expire the ban
+     * @param source Source of the ban, or null for default
+     * @return Ban Entry
+     * @deprecated use {@link #ban(String, Date, String)} and {@link #banIp(String, Date, String, boolean)}
+     */
+    @Nullable
+    @Deprecated(since = "1.20.4")
+    public default org.bukkit.BanEntry banPlayerFull(@Nullable String reason, @Nullable java.util.Date expires, @Nullable String source) {
+        banPlayer(reason, expires, source);
+        return banPlayerIP(reason, expires, source, true);
+    }
+
+    /**
+     * Permanently Bans the IP address currently used by the player.
+     * Does not ban the Profile, use {@link #banPlayerFull(String, java.util.Date, String)}
+     *
+     * @param reason Reason for ban
+     * @param kickPlayer Whether or not to kick the player afterwards
+     * @return Ban Entry
+     * @deprecated use {@link #ban(String, Date, String)} and {@link #banIp(String, Date, String, boolean)}
+     */
+    @Nullable
+    @Deprecated(since = "1.20.4")
+    public default org.bukkit.BanEntry banPlayerIP(@Nullable String reason, boolean kickPlayer) {
+        return banPlayerIP(reason, null, null, kickPlayer);
+    }
+
+    /**
+     * Permanently Bans the IP address currently used by the player.
+     * Does not ban the Profile, use {@link #banPlayerFull(String, java.util.Date, String)}
+     * @param reason Reason for ban
+     * @param source Source of ban, or null for default
+     * @param kickPlayer Whether or not to kick the player afterwards
+     * @return Ban Entry
+     * @deprecated use {@link #ban(String, Date, String)} and {@link #banIp(String, Date, String, boolean)}
+     */
+    @Nullable
+    @Deprecated(since = "1.20.4")
+    public default org.bukkit.BanEntry banPlayerIP(@Nullable String reason, @Nullable String source, boolean kickPlayer) {
+        return banPlayerIP(reason, null, source, kickPlayer);
+    }
+
+    /**
+     * Bans the IP address currently used by the player.
+     * Does not ban the Profile, use {@link #banPlayerFull(String, java.util.Date, String)}
+     * @param reason Reason for Ban
+     * @param expires When to expire the ban
+     * @param kickPlayer Whether or not to kick the player afterwards
+     * @return Ban Entry
+     * @deprecated use {@link #ban(String, Date, String)} and {@link #banIp(String, Date, String, boolean)}
+     */
+    @Nullable
+    @Deprecated(since = "1.20.4")
+    public default org.bukkit.BanEntry banPlayerIP(@Nullable String reason, @Nullable java.util.Date expires, boolean kickPlayer) {
+        return banPlayerIP(reason, expires, null, kickPlayer);
+    }
+
+    /**
+     * Permanently Bans the IP address currently used by the player.
+     * Does not ban the Profile, use {@link #banPlayerFull(String, java.util.Date, String)}
+     *
+     * @param reason Reason for ban
+     * @return Ban Entry
+     * @deprecated use {@link #ban(String, Date, String)} and {@link #banIp(String, Date, String, boolean)}
+     */
+    @Nullable
+    @Deprecated(since = "1.20.4")
+    public default org.bukkit.BanEntry banPlayerIP(@Nullable String reason) {
+        return banPlayerIP(reason, null, null);
+    }
+
+    /**
+     * Permanently Bans the IP address currently used by the player.
+     * Does not ban the Profile, use {@link #banPlayerFull(String, java.util.Date, String)}
+     * @param reason Reason for ban
+     * @param source Source of ban, or null for default
+     * @return Ban Entry
+     * @deprecated use {@link #ban(String, Date, String)} and {@link #banIp(String, Date, String, boolean)}
+     */
+    @Nullable
+    @Deprecated(since = "1.20.4")
+    public default org.bukkit.BanEntry banPlayerIP(@Nullable String reason, @Nullable String source) {
+        return banPlayerIP(reason, null, source);
+    }
+
+    /**
+     * Bans the IP address currently used by the player.
+     * Does not ban the Profile, use {@link #banPlayerFull(String, java.util.Date, String)}
+     * @param reason Reason for Ban
+     * @param expires When to expire the ban
+     * @return Ban Entry
+     * @deprecated use {@link #ban(String, Date, String)} and {@link #banIp(String, Date, String, boolean)}
+     */
+    @Nullable
+    @Deprecated(since = "1.20.4")
+    public default org.bukkit.BanEntry banPlayerIP(@Nullable String reason, @Nullable java.util.Date expires) {
+        return banPlayerIP(reason, expires, null);
+    }
+
+    /**
+     * Bans the IP address currently used by the player.
+     * Does not ban the Profile, use {@link #banPlayerFull(String, java.util.Date, String)}
+     * @param reason Reason for Ban
+     * @param expires When to expire the ban
+     * @param source Source of the ban or null for default
+     * @return Ban Entry
+     * @deprecated use {@link #ban(String, Date, String)} and {@link #banIp(String, Date, String, boolean)}
+     */
+    @Nullable
+    @Deprecated(since = "1.20.4")
+    public default org.bukkit.BanEntry banPlayerIP(@Nullable String reason, @Nullable java.util.Date expires, @Nullable String source) {
+        return banPlayerIP(reason, expires, source, true);
+    }
+
+    /**
+     * Bans the IP address currently used by the player.
+     * Does not ban the Profile, use {@link #banPlayerFull(String, java.util.Date, String)}
+     * @param reason Reason for Ban
+     * @param expires When to expire the ban
+     * @param source Source of the ban or null for default
+     * @param kickPlayer if the targeted player should be kicked
+     * @return Ban Entry
+     * @deprecated use {@link #ban(String, Date, String)} and {@link #banIp(String, Date, String, boolean)}
+     */
+    @Nullable
+    @Deprecated(since = "1.20.4")
+    public default org.bukkit.BanEntry banPlayerIP(@Nullable String reason, @Nullable java.util.Date expires, @Nullable String source, boolean kickPlayer) {
+        org.bukkit.BanEntry banEntry = org.bukkit.Bukkit.getServer().getBanList(org.bukkit.BanList.Type.IP).addBan(getAddress().getAddress().getHostAddress(), reason, expires, source);
+        if (kickPlayer && isOnline()) {
+            getPlayer().kickPlayer(reason);
+        }
+
+        return banEntry;
+    }
+
     /**
      * Sends an Action Bar message to the client.
      *
@@ -3311,6 +3493,13 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
     void removeAdditionalChatCompletions(@NotNull java.util.Collection<String> completions);
     // Paper end - custom chat completions API
 
+    // Paper start - client option API
+    /**
+     * @return the client option value of the player
+     */
+    <T> @NotNull T getClientOption(io.papermc.paper.@NotNull ClientOption<T> option);
+    // Paper end - client option API
+
     // Spigot start
     public class Spigot extends Entity.Spigot {
 
@@ -3462,6 +3651,60 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      */
     void showElderGuardian(boolean silent);
 
+    /**
+     * Returns the player's cooldown in ticks until the next Warden warning can occur.
+     *
+     * @return ticks until next Warden warning can occur. 0 means there is no cooldown left.
+     */
+    int getWardenWarningCooldown();
+
+    /**
+     * Sets the player's cooldown in ticks until next Warden warning can occur.
+     *
+     * @param cooldown ticks until next Warden warning can occur. 0 means there is no cooldown left. Values less than 0 are set to 0.
+     */
+    void setWardenWarningCooldown(int cooldown);
+
+    /**
+     * Returns time since last Warden warning in ticks.
+     *
+     * @return ticks since last Warden warning
+     */
+    int getWardenTimeSinceLastWarning();
+
+    /**
+     * Sets time since last Warden warning in ticks.
+     *
+     * @param time ticks since last Warden warning
+     */
+    void setWardenTimeSinceLastWarning(int time);
+
+    /**
+     * Returns the player's current Warden warning level.
+     *
+     * @return current Warden warning level
+     */
+    int getWardenWarningLevel();
+
+    /**
+     * Sets the player's Warden warning level.
+     * <p>
+     * <b>Note:</b> This will not actually spawn the Warden.
+     * Even if the warning level is over threshold, the player still needs to activate a Shrieker in order to summon the Warden.
+     *
+     * @param warningLevel player's Warden warning level. The warning level is internally limited to valid values.
+     */
+    void setWardenWarningLevel(int warningLevel);
+
+    /**
+     * Increases the player's Warden warning level if possible and not on cooldown.
+     * <p>
+     * <b>Note:</b> This will not actually spawn the Warden.
+     * Even if the warning level is over threshold, the player still needs to activate a Shrieker in order to summon the Warden.
+     */
+    void increaseWardenWarningLevel();
+    // Paper end
+
     // Paper start - brand support
     /**
      * Returns player's client brand name. If the client didn't send this information, the brand name will be null.<br>
@@ -3531,6 +3774,28 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      */
     void setPlayerProfile(io.papermc.paper.profile.@NotNull PlayerProfile profile);
     // Paper end - Player Profile API
+
+    // Paper start - attack cooldown API
+    /**
+     * Returns the amount of ticks the current cooldown lasts
+     *
+     * @return Amount of ticks cooldown will last
+     */
+    float getCooldownPeriod();
+
+    /**
+     * Returns the percentage of attack power available based on the cooldown (zero to one).
+     *
+     * @param adjustTicks Amount of ticks to add to cooldown counter for this calculation
+     * @return Percentage of attack power available
+     */
+    float getCooledAttackStrength(float adjustTicks);
+
+    /**
+     * Reset the cooldown counter to 0, effectively starting the cooldown period.
+     */
+    void resetCooldown();
+    // Paper end - attack cooldown API
 
     // Paper start - sendOpLevel API
     /**

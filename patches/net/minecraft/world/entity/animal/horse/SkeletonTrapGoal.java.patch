@@ -1,16 +1,25 @@
 --- a/net/minecraft/world/entity/animal/horse/SkeletonTrapGoal.java
 +++ b/net/minecraft/world/entity/animal/horse/SkeletonTrapGoal.java
-@@ -25,12 +_,16 @@
+@@ -18,6 +_,7 @@
+ 
+ public class SkeletonTrapGoal extends Goal {
+     private final SkeletonHorse horse;
++    private java.util.List<org.bukkit.entity.HumanEntity> eligiblePlayers; // Paper
+ 
+     public SkeletonTrapGoal(SkeletonHorse p_30927_) {
+         this.horse = p_30927_;
+@@ -25,12 +_,17 @@
  
      @Override
      public boolean canUse() {
 -        return this.horse.level().hasNearbyAlivePlayer(this.horse.getX(), this.horse.getY(), this.horse.getZ(), 10.0);
-+        return this.horse.level().hasNearbyAlivePlayerThatAffectsSpawning(this.horse.getX(), this.horse.getY(), this.horse.getZ(), 10.0); // Paper - Affects Spawning API
++        return !(eligiblePlayers = this.horse.level().findNearbyBukkitPlayers(this.horse.getX(), this.horse.getY(), this.horse.getZ(), 10.0D, net.minecraft.world.entity.EntitySelector.PLAYER_AFFECTS_SPAWNING)).isEmpty(); // Paper - Affects Spawning API & SkeletonHorseTrapEvent
      }
  
      @Override
      public void tick() {
          ServerLevel serverlevel = (ServerLevel)this.horse.level();
++        if (!new io.papermc.paper.event.entity.SkeletonHorseTrapEvent((org.bukkit.entity.SkeletonHorse) this.horse.getBukkitEntity(), eligiblePlayers).callEvent()) return; // Paper
 +        // Forge: Trigger the trap in a tick task to avoid crashes when mods add goals to skeleton horses
 +        // (MC-206338/Forge PR #7509)
 +        serverlevel.getServer().tell(new net.minecraft.server.TickTask(serverlevel.getServer().getTickCount(), () -> {

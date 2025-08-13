@@ -35,6 +35,7 @@ import org.bukkit.inventory.ItemType;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 public class CraftItemType<M extends ItemMeta> implements ItemType.Typed<M>, Handleable<Item>, io.papermc.paper.world.flag.PaperFeatureDependent { // Paper - feature flag API
 
@@ -198,8 +199,23 @@ public class CraftItemType<M extends ItemMeta> implements ItemType.Typed<M>, Han
 //        return CraftEquipmentSlot.getSlot(EntityInsentient.getEquipmentSlotForItem(CraftItemStack.asNMSCopy(ItemStack.of(this))));
 //    }
 
+
+    // Paper start - improve default attribute API
+    @Override
+    public @NotNull Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers() {
+        return this.getDefaultAttributeModifiers(sg -> true);
+    }
+    // Paper end - improve default attribute API
+
     @Override
     public Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers(EquipmentSlot slot) {
+        // Paper start - improve/fix item default attribute API
+        final net.minecraft.world.entity.EquipmentSlot nmsSlot = CraftEquipmentSlot.getNMS(slot);
+        return this.getDefaultAttributeModifiers(sg -> sg.test(nmsSlot));
+    }
+
+    private Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers(final java.util.function.Predicate<net.minecraft.world.entity.EquipmentSlotGroup> slotPredicate) {
+        // Paper end - improve/fix item default attribute API
         ImmutableMultimap.Builder<Attribute, AttributeModifier> defaultAttributes = ImmutableMultimap.builder();
 
         ItemAttributeModifiers nmsDefaultAttributes = item.components().getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
@@ -207,11 +223,14 @@ public class CraftItemType<M extends ItemMeta> implements ItemType.Typed<M>, Han
             nmsDefaultAttributes = item.getDefaultAttributeModifiers();
         }
 
-        nmsDefaultAttributes.forEach(CraftEquipmentSlot.getNMS(slot), (key, value) -> {
-            Attribute attribute = CraftAttribute.minecraftToBukkit(key.value());
-            defaultAttributes.put(attribute, CraftAttributeInstance.convert(value, slot));
-        });
-
+        // Paper start - improve/fix item default attribute API
+        for (final net.minecraft.world.item.component.ItemAttributeModifiers.Entry entry : nmsDefaultAttributes.modifiers()) {
+            if (!slotPredicate.test(entry.slot())) continue;
+            final Attribute attribute = CraftAttribute.minecraftHolderToBukkit(entry.attribute());
+            final AttributeModifier modifier = CraftAttributeInstance.convert(entry.modifier(), entry.slot());
+            defaultAttributes.put(attribute, modifier);
+        }
+        // Paper end - improve/fix item default attribute API
         return defaultAttributes.build();
     }
 
@@ -248,4 +267,12 @@ public class CraftItemType<M extends ItemMeta> implements ItemType.Typed<M>, Han
         return this.item.getDescriptionId();
     }
     // Paper end - add Translatable
+
+    // Paper start - expand ItemRarity API
+    @Override
+    public org.bukkit.inventory.ItemRarity getItemRarity() {
+        final net.minecraft.world.item.Rarity rarity = this.item.components().get(DataComponents.RARITY);
+        return rarity == null ? null : org.bukkit.inventory.ItemRarity.valueOf(rarity.name());
+    }
+    // Paper end - expand ItemRarity API
 }

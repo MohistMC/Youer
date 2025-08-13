@@ -1,10 +1,26 @@
 --- a/net/minecraft/world/level/block/EndGatewayBlock.java
 +++ b/net/minecraft/world/level/block/EndGatewayBlock.java
-@@ -85,6 +_,7 @@
+@@ -85,12 +_,17 @@
  
      @Override
      protected void entityInside(BlockState p_350647_, Level p_350785_, BlockPos p_350610_, Entity p_350849_) {
+-        if (p_350849_.canUsePortal(false)
+-            && !p_350785_.isClientSide
+-            && p_350785_.getBlockEntity(p_350610_) instanceof TheEndGatewayBlockEntity theendgatewayblockentity
+-            && !theendgatewayblockentity.isCoolingDown()) {
+-            p_350849_.setAsInsidePortal(this, p_350610_);
+-            TheEndGatewayBlockEntity.triggerCooldown(p_350785_, p_350610_, p_350647_, theendgatewayblockentity);
 +        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_350849_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_350785_, p_350610_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
-         if (p_350849_.canUsePortal(false)
-             && !p_350785_.isClientSide
-             && p_350785_.getBlockEntity(p_350610_) instanceof TheEndGatewayBlockEntity theendgatewayblockentity
++        if (p_350849_.canUsePortal(false)) {
++            // Paper start - call EntityPortalEnterEvent
++            org.bukkit.event.entity.EntityPortalEnterEvent event = new org.bukkit.event.entity.EntityPortalEnterEvent(p_350849_.getBukkitEntity(), new org.bukkit.Location(p_350785_.getWorld(), p_350610_.getX(), p_350610_.getY(), p_350610_.getZ()), org.bukkit.PortalType.END_GATEWAY); // Paper - add portal type
++            if (!event.callEvent()) return;
++            if (!p_350785_.isClientSide
++                    && p_350785_.getBlockEntity(p_350610_) instanceof TheEndGatewayBlockEntity theendgatewayblockentity
++                    && !theendgatewayblockentity.isCoolingDown()) {
++                p_350849_.setAsInsidePortal(this, p_350610_);
++                TheEndGatewayBlockEntity.triggerCooldown(p_350785_, p_350610_, p_350647_, theendgatewayblockentity);
++            }
+         }
+     }
+ 

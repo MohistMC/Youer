@@ -78,8 +78,15 @@
          }
  
          if (this.level() instanceof ServerLevel) {
-@@ -179,6 +_,7 @@
+@@ -177,8 +_,14 @@
+     }
+ 
      private void merge(ExperienceOrb p_147101_) {
++        // Paper start - call orb merge event
++        if (!new io.papermc.paper.event.entity.ExperienceOrbMergeEvent((org.bukkit.entity.ExperienceOrb) this.getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) p_147101_.getBukkitEntity()).callEvent()) {
++            return;
++        }
++        // Paper end - call orb merge event
          this.count = this.count + p_147101_.count;
          this.age = Math.min(this.age, p_147101_.age);
 +        p_147101_.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.MERGE);  // CraftBukkit - add Bukkit remove cause
@@ -95,11 +102,13 @@
              }
  
              return true;
-@@ -228,16 +_,18 @@
+@@ -227,17 +_,19 @@
+     @Override
      public void playerTouch(Player p_20792_) {
          if (p_20792_ instanceof ServerPlayer serverplayer) {
-             if (p_20792_.takeXpDelay == 0) {
+-            if (p_20792_.takeXpDelay == 0) {
 -                p_20792_.takeXpDelay = 2;
++            if (p_20792_.takeXpDelay == 0 && new io.papermc.paper.event.player.PlayerPickupExperienceEvent(serverplayer.getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) this.getBukkitEntity()).callEvent()) { // Paper - PlayerPickupExperienceEvent
 +                if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerXpEvent.PickupXp(p_20792_, this)).isCanceled()) return;
 +                p_20792_.takeXpDelay = CraftEventFactory.callPlayerXpCooldownEvent(p_20792_, 2, org.bukkit.event.player.PlayerExpCooldownChangeEvent.ChangeReason.PICKUP_ORB).getNewCooldown(); // CraftBukkit - p_20792_.takeXpDelay = 2;
                  p_20792_.take(this, 1);
@@ -117,7 +126,7 @@
                  }
              }
          }
-@@ -247,12 +_,24 @@
+@@ -247,8 +_,19 @@
          Optional<EnchantedItemInUse> optional = EnchantmentHelper.getRandomItemWith(EnchantmentEffectComponents.REPAIR_WITH_XP, p_344821_, ItemStack::isDamaged);
          if (optional.isPresent()) {
              ItemStack itemstack = optional.get().itemStack();
@@ -138,11 +147,6 @@
              itemstack.setDamageValue(itemstack.getDamageValue() - j);
              if (j > 0) {
                  int k = p_147094_ - j * p_147094_ / i;
-                 if (k > 0) {
-+                    this.value = k; // CraftBukkit - update exp value of orb for PlayerItemMendEvent calls
-                     return this.repairPlayerItems(p_344821_, k);
-                 }
-             }
 @@ -292,6 +_,25 @@
      }
  

@@ -16,34 +16,43 @@
  
  public class BedBlock extends HorizontalDirectionalBlock implements EntityBlock {
      public static final MapCodec<BedBlock> CODEC = RecordCodecBuilder.mapCodec(
-@@ -91,7 +_,8 @@
-                 }
-             }
- 
--            if (!canSetSpawn(p_49516_)) {
-+            // CraftBukkit - moved world and biome check into EntityHuman
-+            if (false && !canSetSpawn(p_49516_)) {
-                 p_49516_.removeBlock(p_49517_, false);
-                 BlockPos blockpos = p_49517_.relative(p_49515_.getValue(FACING).getOpposite());
-                 if (p_49516_.getBlockState(blockpos).is(this)) {
-@@ -108,7 +_,16 @@
+@@ -108,16 +_,60 @@
  
                  return InteractionResult.SUCCESS;
              } else {
 +                // CraftBukkit start
-+                BlockState finalBlockState = p_49515_;
-+                BlockPos finalBlockPos = p_49517_;
++                BlockState finaliblockdata = p_49515_;
++                BlockPos finalblockposition = p_49517_;
 +                // CraftBukkit end
                  p_49518_.startSleepInBed(p_49517_).ifLeft(p_49477_ -> {
-+                    // CraftBukkit start - handling bed explosion from below here
-+                    if (!p_49516_.dimensionType().bedWorks()) {
-+                        this.explodeBed(finalBlockState, p_49516_, finalBlockPos);
-+                    } else
-+                    // CraftBukkit end
-                     if (p_49477_.getMessage() != null) {
-                         p_49518_.displayClientMessage(p_49477_.getMessage(), true);
-                     }
-@@ -118,8 +_,30 @@
+-                    if (p_49477_.getMessage() != null) {
+-                        p_49518_.displayClientMessage(p_49477_.getMessage(), true);
+-                    }
++                    // Paper start - PlayerBedFailEnterEvent
++                    if (p_49477_ != null) {
++                        io.papermc.paper.event.player.PlayerBedFailEnterEvent event = new io.papermc.paper.event.player.PlayerBedFailEnterEvent(
++                                (org.bukkit.entity.Player) p_49518_.getBukkitEntity(),
++                                io.papermc.paper.event.player.PlayerBedFailEnterEvent.FailReason.values()[p_49477_.ordinal()],
++                                org.bukkit.craftbukkit.block.CraftBlock.at(p_49516_, finalblockposition),
++                                !p_49516_.dimensionType().bedWorks(),
++                                io.papermc.paper.adventure.PaperAdventure.asAdventure(p_49477_.getMessage()));
++                        if (!event.callEvent()) {
++                            return;
++                        }
++                        // Paper end - PlayerBedFailEnterEvent
++                        // CraftBukkit start - handling bed explosion from below here
++                        if (event.getWillExplode()) { // Paper - PlayerBedFailEnterEvent
++                            this.explodeBed(finaliblockdata, p_49516_, finalblockposition);
++                        } else
++                            // CraftBukkit end
++                            if (p_49477_.getMessage() != null) {
++                                final net.kyori.adventure.text.Component message = event.getMessage(); // Paper - PlayerBedFailEnterEvent
++                                if (message != null) p_49518_.displayClientMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(message), true); // Paper - PlayerBedFailEnterEvent
++                            }
++                    } // Paper - PlayerBedFailEnterEvent
+                 });
+                 return InteractionResult.SUCCESS;
+             }
          }
      }
  
@@ -69,12 +78,8 @@
 +    // CraftBukkit end
 +
      public static boolean canSetSpawn(Level p_49489_) {
--        return p_49489_.dimensionType().bedWorks();
-+        // CraftBukkit - moved world and biome check into EntityHuman
-+        return true || p_49489_.dimensionType().bedWorks();
+         return p_49489_.dimensionType().bedWorks();
      }
- 
-     private boolean kickVillagerOutOfBed(Level p_49491_, BlockPos p_49492_) {
 @@ -308,6 +_,11 @@
          if (!p_49499_.isClientSide) {
              BlockPos blockpos = p_49500_.relative(p_49501_.getValue(FACING));

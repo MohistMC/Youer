@@ -1,5 +1,20 @@
 --- a/net/minecraft/world/entity/boss/enderdragon/phases/DragonSittingFlamingPhase.java
 +++ b/net/minecraft/world/entity/boss/enderdragon/phases/DragonSittingFlamingPhase.java
+@@ -83,7 +_,13 @@
+             this.flame.setDuration(200);
+             this.flame.setParticle(ParticleTypes.DRAGON_BREATH);
+             this.flame.addEffect(new MobEffectInstance(MobEffects.HARM));
+-            this.dragon.level().addFreshEntity(this.flame);
++            if (new io.papermc.paper.event.entity.EnderDragonFlameEvent((org.bukkit.entity.EnderDragon) this.dragon.getBukkitEntity(), (org.bukkit.entity.AreaEffectCloud) this.flame.getBukkitEntity()).callEvent()) { // Paper - EnderDragon Events
++                this.dragon.level().addFreshEntity(this.flame);
++                // Paper start - EnderDragon Events
++            } else {
++                this.end();
++            }
++            // Paper end - EnderDragon Events
+         }
+     }
+ 
 @@ -96,7 +_,7 @@
      @Override
      public void end() {

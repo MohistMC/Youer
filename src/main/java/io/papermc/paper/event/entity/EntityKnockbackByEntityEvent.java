@@ -16,7 +16,7 @@ public class EntityKnockbackByEntityEvent extends EntityPushedByEntityAttackEven
     private final float knockbackStrength;
 
     @ApiStatus.Internal
-    public EntityKnockbackByEntityEvent(final LivingEntity entity, final Entity hitBy, final EntityKnockbackEvent.Cause cause, final float knockbackStrength, final Vector knockback) {
+    public EntityKnockbackByEntityEvent(final LivingEntity entity, final Entity hitBy, final Cause cause, final float knockbackStrength, final Vector knockback) {
         super(entity, cause, hitBy, knockback);
         this.knockbackStrength = knockbackStrength;
     }

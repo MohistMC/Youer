@@ -53,4 +53,16 @@ public final class CraftCherryLeaves extends CraftBlockData implements org.bukki
     public void setWaterlogged(boolean waterlogged) {
         this.set(CraftCherryLeaves.WATERLOGGED, waterlogged);
     }
+
+    // Paper start
+    @Override
+    public int getMaximumDistance() {
+        return getMax(DISTANCE);
+    }
+
+    @Override
+    public int getMinimumDistance() {
+        return getMin(DISTANCE);
+    }
+    // Paper end
 }

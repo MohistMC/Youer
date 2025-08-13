@@ -1,0 +1,44 @@
+--- a/net/minecraft/world/level/block/TargetBlock.java
++++ b/net/minecraft/world/level/block/TargetBlock.java
+@@ -48,12 +_,41 @@
+         }
+     }
+ 
++    private static void awardTargetHitCriteria(Projectile projectile, BlockHitResult hit, int i) {
++        // Paper end - Add TargetHitEvent
++        if (projectile.getOwner() instanceof ServerPlayer serverPlayer) {
++            serverPlayer.awardStat(Stats.TARGET_HIT);
++            CriteriaTriggers.TARGET_BLOCK_HIT.trigger(serverPlayer, projectile, hit.getLocation(), i);
++        }
++    }
++
+     private static int updateRedstoneOutput(LevelAccessor p_57392_, BlockState p_57393_, BlockHitResult p_57394_, Entity p_57395_) {
+         int i = getRedstoneStrength(p_57394_, p_57394_.getLocation());
+         int j = p_57395_ instanceof AbstractArrow ? 20 : 8;
++        // Paper start - Add TargetHitEvent
++        boolean shouldAward = false;
++        if (p_57395_ instanceof Projectile) {
++            final Projectile projectile = (Projectile) p_57395_;
++            final org.bukkit.craftbukkit.block.CraftBlock craftBlock = org.bukkit.craftbukkit.block.CraftBlock.at(p_57392_, p_57394_.getBlockPos());
++            final org.bukkit.block.BlockFace blockFace = org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(p_57394_.getDirection());
++            final io.papermc.paper.event.block.TargetHitEvent targetHitEvent = new io.papermc.paper.event.block.TargetHitEvent((org.bukkit.entity.Projectile) projectile.getBukkitEntity(), craftBlock, blockFace, i);
++            if (targetHitEvent.callEvent()) {
++                i = targetHitEvent.getSignalStrength();
++                shouldAward = true;
++            } else {
++                return i;
++            }
++        }
++        // Paper end - Add TargetHitEvent
+         if (!p_57392_.getBlockTicks().hasScheduledTick(p_57394_.getBlockPos(), p_57393_.getBlock())) {
+             setOutputPower(p_57392_, p_57393_, i, p_57394_.getBlockPos(), j);
+         }
++
++        // Paper start - Award Hit Criteria after Block Update
++        if (shouldAward) {
++            awardTargetHitCriteria((Projectile) p_57395_, p_57394_, i);
++        }
++        // Paper end - Award Hit Criteria after Block Update
+ 
+         return i;
+     }

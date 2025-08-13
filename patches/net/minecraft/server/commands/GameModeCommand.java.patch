@@ -1,0 +1,18 @@
+--- a/net/minecraft/server/commands/GameModeCommand.java
++++ b/net/minecraft/server/commands/GameModeCommand.java
+@@ -58,9 +_,14 @@
+         int i = 0;
+ 
+         for (ServerPlayer serverplayer : p_137733_) {
+-            if (serverplayer.setGameMode(p_137734_)) {
++            // Paper start - Expand PlayerGameModeChangeEvent
++            org.bukkit.event.player.PlayerGameModeChangeEvent event = serverplayer.setGameMode(p_137734_, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.COMMAND, net.kyori.adventure.text.Component.empty());
++            if (event != null && !event.isCancelled()) {
+                 logGamemodeChange(p_137732_.getSource(), serverplayer, p_137734_);
+                 i++;
++            } else if (event != null && event.cancelMessage() != null) {
++                p_137732_.getSource().sendSuccess(() -> io.papermc.paper.adventure.PaperAdventure.asVanilla(event.cancelMessage()), true);
++                // Paper end - Expand PlayerGameModeChangeEvent
+             }
+         }
+ 

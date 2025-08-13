@@ -13,6 +13,7 @@ import org.jetbrains.annotations.Nullable;
  * Represents various types of options that may be used to create a world.
  */
 public class WorldCreator {
+    private final NamespacedKey key; // Paper
     private final String name;
     private long seed;
     private World.Environment environment = World.Environment.NORMAL;
@@ -22,7 +23,7 @@ public class WorldCreator {
     private boolean generateStructures = true;
     private String generatorSettings = "";
     private boolean hardcore = false;
-    private boolean keepSpawnInMemory = true;
+    private net.kyori.adventure.util.TriState keepSpawnLoaded = net.kyori.adventure.util.TriState.NOT_SET; // Paper
 
     /**
      * Creates an empty WorldCreationOptions for the given world name
@@ -30,11 +31,80 @@ public class WorldCreator {
      * @param name Name of the world that will be created
      */
     public WorldCreator(@NotNull String name) {
-        Preconditions.checkArgument(name != null, "World name cannot be null");
-
-        this.name = name;
-        this.seed = (new Random()).nextLong();
+        // Paper start
+        this(name, getWorldKey(name));
     }
+
+    private static NamespacedKey getWorldKey(String name) {
+        final String mainLevelName = Bukkit.getUnsafe().getMainLevelName();
+        if (name.equals(mainLevelName)) {
+            return NamespacedKey.minecraft("overworld");
+        } else if (name.equals(mainLevelName + "_nether")) {
+            return NamespacedKey.minecraft("the_nether");
+        } else if (name.equals(mainLevelName + "_the_end")) {
+            return NamespacedKey.minecraft("the_end");
+        } else {
+            return NamespacedKey.minecraft(name.toLowerCase(java.util.Locale.ENGLISH).replace(" ", "_"));
+        }
+    }
+
+    /**
+     * Creates an empty WorldCreator for the given world name and key
+     *
+     * @param levelName LevelName of the world that will be created
+     * @param worldKey NamespacedKey of the world that will be created
+     */
+    public WorldCreator(@NotNull String levelName, @NotNull NamespacedKey worldKey) {
+        if (levelName == null || worldKey == null) {
+            throw new IllegalArgumentException("World name and key cannot be null");
+        }
+        this.name = levelName;
+        this.seed = (new Random()).nextLong();
+        this.key = worldKey;
+    }
+
+    /**
+     * Creates an empty WorldCreator for the given key.
+     * LevelName will be the Key part of the NamespacedKey.
+     *
+     * @param worldKey NamespacedKey of the world that will be created
+     */
+    public WorldCreator(@NotNull NamespacedKey worldKey) {
+        this(worldKey.getKey(), worldKey);
+    }
+
+    /**
+     * Gets the key for this WorldCreator
+     *
+     * @return the key
+     */
+    @NotNull
+    public NamespacedKey key() {
+        return key;
+    }
+
+    /**
+     * Creates an empty WorldCreator for the given world name and key
+     *
+     * @param levelName LevelName of the world that will be created
+     * @param worldKey NamespacedKey of the world that will be created
+     */
+    @NotNull
+    public static WorldCreator ofNameAndKey(@NotNull String levelName, @NotNull NamespacedKey worldKey) {
+        return new WorldCreator(levelName, worldKey);
+    }
+
+    /**
+     * Creates an empty WorldCreator for the given key.
+     * LevelName will be the Key part of the NamespacedKey.
+     *
+     * @param worldKey NamespacedKey of the world that will be created
+     */
+    @NotNull
+    public static WorldCreator ofKey(@NotNull NamespacedKey worldKey) {
+        return new WorldCreator(worldKey);
+    }
+    // Paper end
 
     /**
      * Copies the options from the specified world
@@ -53,7 +123,7 @@ public class WorldCreator {
         type = world.getWorldType();
         generateStructures = world.canGenerateStructures();
         hardcore = world.isHardcore();
-        keepSpawnInMemory = world.getKeepSpawnInMemory();
+        this.keepSpawnLoaded = net.kyori.adventure.util.TriState.byBoolean(world.getKeepSpawnInMemory()); // Paper
 
         return this;
     }
@@ -76,7 +146,7 @@ public class WorldCreator {
         generateStructures = creator.generateStructures();
         generatorSettings = creator.generatorSettings();
         hardcore = creator.hardcore();
-        keepSpawnInMemory = creator.keepSpawnInMemory();
+        keepSpawnLoaded = creator.keepSpawnLoaded(); // Paper
 
         return this;
     }
@@ -400,21 +470,23 @@ public class WorldCreator {
      *
      * @param keepSpawnInMemory Whether the spawn chunks will be kept loaded
      * @return This object, for chaining
+     * @deprecated use {@link #keepSpawnLoaded(net.kyori.adventure.util.TriState)}
      */
     @NotNull
+    @Deprecated(forRemoval = true) // Paper
     public WorldCreator keepSpawnInMemory(boolean keepSpawnInMemory) {
-        this.keepSpawnInMemory = keepSpawnInMemory;
-
-        return this;
+        return this.keepSpawnLoaded(net.kyori.adventure.util.TriState.byBoolean(keepSpawnInMemory)); // Paper
     }
 
     /**
      * Gets whether or not the spawn chunks will be kept loaded.
      *
      * @return True if the spawn chunks will be kept loaded
+     * @deprecated use {@link #keepSpawnLoaded()}
      */
+    @Deprecated(forRemoval = true) // Paper
     public boolean keepSpawnInMemory() {
-        return keepSpawnInMemory;
+        return this.keepSpawnLoaded() == net.kyori.adventure.util.TriState.TRUE; // Paper
     }
 
     /**
@@ -429,6 +501,7 @@ public class WorldCreator {
     public World createWorld() {
         return Bukkit.createWorld(this);
     }
+
     /**
      * Creates a new {@link WorldCreator} for the given world name
      *
@@ -523,4 +596,31 @@ public class WorldCreator {
 
         return result;
     }
+
+    // Paper start - keep spawn loaded tristate
+    /**
+     * Returns the current intent to keep the world loaded, @see {@link WorldCreator#keepSpawnLoaded(net.kyori.adventure.util.TriState)}
+     *
+     * @return the current tristate value
+     */
+    @NotNull
+    public net.kyori.adventure.util.TriState keepSpawnLoaded() {
+        return keepSpawnLoaded;
+    }
+
+    /**
+     * Controls if a world should be kept loaded or not, default (NOT_SET) will use the servers standard
+     * configuration, otherwise, will act as an override towards this setting
+     *
+     * @param keepSpawnLoaded the new value
+     * @return This object, for chaining
+     */
+    @NotNull
+    public WorldCreator keepSpawnLoaded(@NotNull net.kyori.adventure.util.TriState keepSpawnLoaded) {
+        Preconditions.checkArgument(keepSpawnLoaded != null, "keepSpawnLoaded");
+        this.keepSpawnLoaded = keepSpawnLoaded;
+        return this;
+    }
+
+    // Paper end - keep spawn loaded tristate
 }

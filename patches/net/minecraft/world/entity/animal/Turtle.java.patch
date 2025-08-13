@@ -8,6 +8,33 @@
  
  public class Turtle extends Animal {
      private static final EntityDataAccessor<BlockPos> HOME_POS = SynchedEntityData.defineId(Turtle.class, EntityDataSerializers.BLOCK_POS);
+@@ -90,7 +_,7 @@
+         this.entityData.set(HOME_POS, p_30220_);
+     }
+ 
+-    BlockPos getHomePos() {
++    public BlockPos getHomePos() {
+         return this.entityData.get(HOME_POS);
+     }
+ 
+@@ -106,7 +_,7 @@
+         return this.entityData.get(HAS_EGG);
+     }
+ 
+-    void setHasEgg(boolean p_30235_) {
++    public void setHasEgg(boolean p_30235_) {
+         this.entityData.set(HAS_EGG, p_30235_);
+     }
+ 
+@@ -119,7 +_,7 @@
+         this.entityData.set(LAYING_EGG, p_30237_);
+     }
+ 
+-    boolean isGoingHome() {
++    public boolean isGoingHome() {
+         return this.entityData.get(GOING_HOME);
+     }
+ 
 @@ -303,7 +_,9 @@
      protected void ageBoundaryReached() {
          super.ageBoundaryReached();
@@ -27,18 +54,62 @@
      }
  
      @Override
-@@ -509,6 +_,7 @@
-                     this.turtle.setLayingEgg(true);
+@@ -356,6 +_,11 @@
+                 serverplayer = this.partner.getLoveCause();
+             }
+ 
++            // Paper start - Add EntityFertilizeEggEvent event
++            io.papermc.paper.event.entity.EntityFertilizeEggEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityFertilizeEggEvent(this.animal, this.partner);
++            if (event.isCancelled()) return;
++            // Paper end - Add EntityFertilizeEggEvent event
++
+             if (serverplayer != null) {
+                 serverplayer.awardStat(Stats.ANIMALS_BRED);
+                 CriteriaTriggers.BRED_ANIMALS.trigger(serverplayer, this.animal, this.partner, null);
+@@ -368,7 +_,7 @@
+             this.partner.resetLove();
+             RandomSource randomsource = this.animal.getRandom();
+             if (this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
+-                this.level
++                if (event.getExperience() > 0) this.level
+                     .addFreshEntity(new ExperienceOrb(this.level, this.animal.getX(), this.animal.getY(), this.animal.getZ(), randomsource.nextInt(7) + 1));
+             }
+         }
+@@ -395,7 +_,7 @@
+             } else {
+                 return this.turtle.getRandom().nextInt(reducedTickDelay(700)) != 0
+                     ? false
+-                    : !this.turtle.getHomePos().closerToCenterThan(this.turtle.position(), 64.0);
++                    : !this.turtle.getHomePos().closerToCenterThan(this.turtle.position(), 64.0) && new io.papermc.paper.event.entity.TurtleGoHomeEvent((org.bukkit.entity.Turtle) this.turtle.getBukkitEntity()).callEvent(); // Paper - Turtle API;
+             }
+         }
+ 
+@@ -506,16 +_,21 @@
+             BlockPos blockpos = this.turtle.blockPosition();
+             if (!this.turtle.isInWater() && this.isReachedTarget()) {
+                 if (this.turtle.layEggCounter < 1) {
+-                    this.turtle.setLayingEgg(true);
++                    this.turtle.setLayingEgg(new io.papermc.paper.event.entity.TurtleStartDiggingEvent((org.bukkit.entity.Turtle) this.turtle.getBukkitEntity(), io.papermc.paper.util.MCUtil.toLocation(this.turtle.level(), this.blockPos)).callEvent()); // Paper - Turtle API
                  } else if (this.turtle.layEggCounter > this.adjustedTickDelay(200)) {
                      Level level = this.turtle.level();
-+                    if (CraftEventFactory.callEntityChangeBlockEvent(this.turtle, this.blockPos.above(), (BlockState) Blocks.TURTLE_EGG.defaultBlockState().setValue(TurtleEggBlock.EGGS, this.turtle.random.nextInt(4) + 1))) { // CraftBukkit
-                     level.playSound(null, blockpos, SoundEvents.TURTLE_LAY_EGG, SoundSource.BLOCKS, 0.3F, 0.9F + level.random.nextFloat() * 0.2F);
-                     BlockPos blockpos1 = this.blockPos.above();
-                     BlockState blockstate = Blocks.TURTLE_EGG
-@@ -516,6 +_,7 @@
-                         .setValue(TurtleEggBlock.EGGS, Integer.valueOf(this.turtle.random.nextInt(4) + 1));
-                     level.setBlock(blockpos1, blockstate, 3);
-                     level.gameEvent(GameEvent.BLOCK_PLACE, blockpos1, GameEvent.Context.of(this.turtle, blockstate));
+-                    level.playSound(null, blockpos, SoundEvents.TURTLE_LAY_EGG, SoundSource.BLOCKS, 0.3F, 0.9F + level.random.nextFloat() * 0.2F);
+-                    BlockPos blockpos1 = this.blockPos.above();
+-                    BlockState blockstate = Blocks.TURTLE_EGG
+-                        .defaultBlockState()
+-                        .setValue(TurtleEggBlock.EGGS, Integer.valueOf(this.turtle.random.nextInt(4) + 1));
+-                    level.setBlock(blockpos1, blockstate, 3);
+-                    level.gameEvent(GameEvent.BLOCK_PLACE, blockpos1, GameEvent.Context.of(this.turtle, blockstate));
++                    // Paper start - Turtle API
++                    int eggCount = this.turtle.random.nextInt(4) + 1;
++                    io.papermc.paper.event.entity.TurtleLayEggEvent layEggEvent = new io.papermc.paper.event.entity.TurtleLayEggEvent((org.bukkit.entity.Turtle) this.turtle.getBukkitEntity(), io.papermc.paper.util.MCUtil.toLocation(this.turtle.level(), this.blockPos.above()), eggCount);
++                    if (layEggEvent.callEvent() && org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.turtle, this.blockPos.above(), Blocks.TURTLE_EGG.defaultBlockState().setValue(TurtleEggBlock.EGGS, layEggEvent.getEggCount()))) {
++                        level.playSound(null, blockpos, SoundEvents.TURTLE_LAY_EGG, SoundSource.BLOCKS, 0.3F, 0.9F + level.random.nextFloat() * 0.2F);
++                        BlockPos blockpos1 = this.blockPos.above();
++                        BlockState blockstate = Blocks.TURTLE_EGG
++                                .defaultBlockState()
++                                .setValue(TurtleEggBlock.EGGS, layEggEvent.getEggCount()); // Paper
++                        level.setBlock(blockpos1, blockstate, 3);
++                        level.gameEvent(GameEvent.BLOCK_PLACE, blockpos1, GameEvent.Context.of(this.turtle, blockstate));
 +                    } // CraftBukkit
                      this.turtle.setHasEgg(false);
                      this.turtle.setLayingEgg(false);

@@ -379,6 +379,17 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
     @NotNull
     Biome getBiome();
 
+    // Paper start
+    /**
+     * Gets the computed biome at the location of this Block.
+     *
+     * @return computed biome at the location of this Block.
+     * @see org.bukkit.RegionAccessor#getComputedBiome(int, int, int)
+     */
+    @NotNull
+    Biome getComputedBiome();
+    // Paper end
+
     /**
      * Sets the biome that this block resides in
      *
@@ -537,6 +548,87 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
      */
     boolean breakNaturally(@Nullable ItemStack tool);
 
+    // Paper start
+    /**
+     * Breaks the block and spawns item drops as if a player had broken it
+     *
+     * @param triggerEffect Play the block break particle effect and sound
+     * @return true if the block was destroyed
+     * @see #breakNaturally(boolean, boolean) to trigger exp drops
+     */
+    default boolean breakNaturally(boolean triggerEffect) {
+        return this.breakNaturally(triggerEffect, false);
+    }
+
+    /**
+     * Breaks the block and spawns item drops as if a player had broken it
+     *
+     * @param triggerEffect Play the block break particle effect and sound
+     * @param dropExperience drop exp if the block normally does so
+     * @return true if the block was destroyed
+     */
+    boolean breakNaturally(boolean triggerEffect, boolean dropExperience);
+
+    /**
+     * Breaks the block and spawns item drops as if a player had broken it
+     * with a specific tool
+     *
+     * @param tool The tool or item in hand used for digging
+     * @param triggerEffect Play the block break particle effect and sound
+     * @return true if the block was destroyed
+     * @see #breakNaturally(ItemStack, boolean, boolean) to trigger exp drops
+     */
+    default boolean breakNaturally(@NotNull ItemStack tool, boolean triggerEffect) {
+        return this.breakNaturally(tool, triggerEffect, false);
+    }
+
+    /**
+     * Breaks the block and spawns item drops as if a player had broken it
+     * with a specific tool
+     *
+     * @param tool The tool or item in hand used for digging
+     * @param triggerEffect Play the block break particle effect and sound
+     * @param dropExperience drop exp if the block normally does so
+     * @return true if the block was destroyed
+     */
+    boolean breakNaturally(@NotNull ItemStack tool, boolean triggerEffect, boolean dropExperience);
+
+    /**
+     * Causes the block to be ticked, this is different from {@link Block#randomTick()},
+     * in that it is usually scheduled to occur, for example
+     * redstone components being activated, sand falling, etc.
+     * <p>
+     * This method may directly fire events relating to block ticking.
+     *
+     * @see #fluidTick()
+     */
+    void tick();
+
+    /**
+     * Causes the fluid to be ticked, this is different from {@link Block#randomTick()},
+     * in that it is usually scheduled to occur, for example
+     * causing waterlogged blocks to spread.
+     * <p>
+     * This method may directly fire events relating to fluid ticking.
+     *
+     * @see #tick()
+     */
+    void fluidTick();
+
+    /**
+     * Causes the block to be ticked randomly.
+     * This has a chance to execute naturally if {@link BlockData#isRandomlyTicked()} is true.
+     * <p>
+     * For certain blocks, this behavior may be the same as {@link Block#tick()}.
+     * <p>
+     * This method may directly fire events relating to block random ticking.
+     *
+     * @see #tick()
+     * @see #fluidTick()
+     */
+    void randomTick();
+
+    // Paper end
     /**
      * Simulate bone meal application to this block (if possible).
      *
@@ -664,6 +756,26 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
      */
     boolean canPlace(@NotNull BlockData data);
 
+    // Paper start
+    /**
+     * Gets the {@link io.papermc.paper.block.BlockSoundGroup} for this block.
+     * <p>
+     * This object contains the block, step, place, hit, and fall sounds.
+     *
+     * @return the sound group for this block
+     * @deprecated use {@link #getBlockSoundGroup()}
+     */
+    @NotNull
+    @Deprecated(forRemoval = true, since = "1.18.2")
+    io.papermc.paper.block.BlockSoundGroup getSoundGroup();
+
+    /**
+     * Gets the {@link org.bukkit.SoundGroup} for this block.
+     *
+     * @return the sound group for this block
+     */
+    @NotNull org.bukkit.SoundGroup getBlockSoundGroup();
+
     /**
      * @deprecated use {@link #translationKey()}
      */
@@ -671,4 +783,31 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
     @Deprecated(forRemoval = true)
     String getTranslationKey();
     // Paper end
+
+    // Paper start - destroy speed API
+    /**
+     * Gets the speed at which this block will be destroyed by a given {@link ItemStack}
+     * <p>
+     * Default value is 1.0
+     *
+     * @param itemStack {@link ItemStack} used to mine this Block
+     * @return the speed that this Block will be mined by the given {@link ItemStack}
+     */
+    default float getDestroySpeed(final @NotNull ItemStack itemStack) {
+        return this.getBlockData().getDestroySpeed(itemStack);
+    }
+
+    /**
+     * Gets the speed at which this block will be destroyed by a given {@link ItemStack}
+     * <p>
+     * Default value is 1.0
+     *
+     * @param itemStack {@link ItemStack} used to mine this Block
+     * @param considerEnchants true to look at enchants on the itemstack
+     * @return the speed that this Block will be mined by the given {@link ItemStack}
+     */
+    default float getDestroySpeed(@NotNull ItemStack itemStack, boolean considerEnchants) {
+        return this.getBlockData().getDestroySpeed(itemStack, considerEnchants);
+    }
+    // Paper end - destroy speed API
 }

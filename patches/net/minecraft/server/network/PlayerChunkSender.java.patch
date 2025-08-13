@@ -1,6 +1,18 @@
 --- a/net/minecraft/server/network/PlayerChunkSender.java
 +++ b/net/minecraft/server/network/PlayerChunkSender.java
-@@ -73,10 +_,13 @@
+@@ -44,6 +_,11 @@
+     public void dropChunk(ServerPlayer p_294214_, ChunkPos p_294933_) {
+         if (!this.pendingChunks.remove(p_294933_.toLong()) && p_294214_.isAlive()) {
+             p_294214_.connection.send(new ClientboundForgetLevelChunkPacket(p_294933_));
++            // Paper start - PlayerChunkUnloadEvent
++            if (io.papermc.paper.event.packet.PlayerChunkUnloadEvent.getHandlerList().getRegisteredListeners().length > 0) {
++                new io.papermc.paper.event.packet.PlayerChunkUnloadEvent(p_294214_.getBukkitEntity().getWorld().getChunkAt(p_294933_.longKey), p_294214_.getBukkitEntity()).callEvent();
++            }
++            // Paper end - PlayerChunkUnloadEvent
+         }
+     }
+ 
+@@ -73,10 +_,18 @@
          }
      }
  
@@ -10,6 +22,11 @@
 +        p_295237_.send(p_295144_.getAuxLightManager(p_295144_.getPos()).sendLightDataTo(
 +                new ClientboundLevelChunkWithLightPacket(p_295144_, p_294963_.getLightEngine(), null, null)
 +        ));
++        // Paper start - PlayerChunkLoadEvent
++        if (io.papermc.paper.event.packet.PlayerChunkLoadEvent.getHandlerList().getRegisteredListeners().length > 0) {
++            new io.papermc.paper.event.packet.PlayerChunkLoadEvent(new org.bukkit.craftbukkit.CraftChunk(p_295144_), p_295237_.getPlayer().getBukkitEntity()).callEvent();
++        }
++        // Paper end - PlayerChunkLoadEvent
          ChunkPos chunkpos = p_295144_.getPos();
          DebugPackets.sendPoiPacketsForChunk(p_294963_, chunkpos);
 +        net.neoforged.neoforge.event.EventHooks.fireChunkSent(p_295237_.player, p_295144_, p_294963_);

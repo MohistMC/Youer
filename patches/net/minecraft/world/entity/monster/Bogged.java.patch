@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/entity/monster/Bogged.java
 +++ b/net/minecraft/world/entity/monster/Bogged.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.entity.monster;
+ 
++import it.unimi.dsi.fastutil.objects.ObjectListIterator;
+ import javax.annotation.Nullable;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.network.syncher.EntityDataAccessor;
 @@ -30,6 +_,7 @@
  import net.minecraft.world.level.storage.loot.LootTable;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
@@ -8,18 +15,75 @@
  
  public class Bogged extends AbstractSkeleton implements Shearable {
      private static final int HARD_ATTACK_INTERVAL = 50;
-@@ -74,7 +_,13 @@
+@@ -74,7 +_,7 @@
      @Override
      protected InteractionResult mobInteract(Player p_330736_, InteractionHand p_331786_) {
          ItemStack itemstack = p_330736_.getItemInHand(p_331786_);
 -        if (itemstack.is(Items.SHEARS) && this.readyForShearing()) {
 +        if (false && itemstack.is(Items.SHEARS) && this.readyForShearing()) { // Neo: Shear logic is handled by IShearable
-+            // CraftBukkit start
-+            if (!CraftEventFactory.handlePlayerShearEntityEvent(p_330736_, this, itemstack, p_331786_)) {
-+                this.getEntityData().markDirty(Bogged.DATA_SHEARED); // CraftBukkit - mark dirty to restore sheared state to clients
-+                return InteractionResult.PASS;
-+            }
-+            // CraftBukkit end
              this.shear(SoundSource.PLAYERS);
              this.gameEvent(GameEvent.SHEAR, p_330736_);
              if (!this.level().isClientSide) {
+@@ -130,10 +_,18 @@
+     @Override
+     public void shear(SoundSource p_331493_) {
+         this.level().playSound(null, this, SoundEvents.BOGGED_SHEAR, p_331493_, 1.0F, 1.0F);
+-        this.spawnShearedMushrooms();
++        this.spawnDrops(shear$drops.isEmpty() ? generateDefaultDrops() : shear$drops); // Paper - shear drop API
+         this.setSheared(true);
+     }
+ 
++    public java.util.List<net.minecraft.world.item.ItemStack> shear$drops = new java.util.ArrayList<>();
++
++    @Override
++    public void shear(SoundSource p_331493_, java.util.List<net.minecraft.world.item.ItemStack> drops) {
++        shear$drops = drops;
++        this.shear(p_331493_);
++    }
++
+     private void spawnShearedMushrooms() {
+         if (this.level() instanceof ServerLevel serverlevel) {
+             LootTable loottable = serverlevel.getServer().reloadableRegistries().getLootTable(BuiltInLootTables.BOGGED_SHEAR);
+@@ -148,8 +_,42 @@
+         }
+     }
+ 
++    private void spawnDrops(java.util.List<net.minecraft.world.item.ItemStack> drops) {
++        drops.forEach(stack -> {
++            this.forceDrops = true;
++            this.spawnAtLocation(stack, this.getBbHeight());
++            this.forceDrops = false;
++        });
++    }
++    private void generateShearedMushrooms(java.util.function.Consumer<ItemStack> stackConsumer) {
++        // Paper end - shear drops API
++        Level world = this.level();
++
++        if (world instanceof ServerLevel worldserver) {
++            LootTable loottable = worldserver.getServer().reloadableRegistries().getLootTable(BuiltInLootTables.BOGGED_SHEAR);
++            LootParams lootparams = (new LootParams.Builder(worldserver)).withParameter(LootContextParams.ORIGIN, this.position()).withParameter(LootContextParams.THIS_ENTITY, this).create(LootContextParamSets.SHEARING);
++            ObjectListIterator objectlistiterator = loottable.getRandomItems(lootparams).iterator();
++
++            while (objectlistiterator.hasNext()) {
++                ItemStack itemstack = (ItemStack) objectlistiterator.next();
++
++                stackConsumer.accept(itemstack); // Paper
++            }
++        }
++
++    }
++
+     @Override
+     public boolean readyForShearing() {
+         return !this.isSheared() && this.isAlive();
+     }
++
++    // Paper start - shear drops API
++    @Override
++    public java.util.List<ItemStack> generateDefaultDrops() {
++        final java.util.List<ItemStack> drops = new java.util.ArrayList<>();
++        this.generateShearedMushrooms(drops::add);
++        return drops;
++    }
++    // Paper end - shear drops API
+ }

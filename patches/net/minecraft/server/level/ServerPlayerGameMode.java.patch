@@ -15,26 +15,40 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.context.UseOnContext;
  import net.minecraft.world.item.enchantment.EnchantmentHelper;
-@@ -27,6 +_,7 @@
+@@ -27,6 +_,9 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.Vec3;
++import org.bukkit.GameMode;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.player.PlayerGameModeChangeEvent;
  import org.slf4j.Logger;
  
  public class ServerPlayerGameMode {
-@@ -54,12 +_,19 @@
+@@ -51,28 +_,45 @@
+     }
+ 
+     public boolean changeGameModeForPlayer(GameType p_143474_) {
++        // Paper start - Expand PlayerGameModeChangeEvent
++        PlayerGameModeChangeEvent event = this.changeGameModeForPlayer(p_143474_, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.UNKNOWN, null);
++        return event != null && event.isCancelled();
++    }
++    @Nullable
++    public PlayerGameModeChangeEvent changeGameModeForPlayer(GameType p_143474_, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause cause, @Nullable net.kyori.adventure.text.Component cancelMessage) {
++        // Paper end - Expand PlayerGameModeChangeEvent
          if (p_143474_ == this.gameModeForPlayer) {
-             return false;
+-            return false;
++            return null;
          } else {
+-            this.setGameModeForPlayer(p_143474_, this.previousGameModeForPlayer);
 +            // CraftBukkit start
-+            org.bukkit.event.player.PlayerGameModeChangeEvent event = new org.bukkit.event.player.PlayerGameModeChangeEvent(player.getBukkitEntity(), org.bukkit.GameMode.getByValue(p_143474_.getId()));
-+            level.getCraftServer().getPluginManager().callEvent(event);
++            PlayerGameModeChangeEvent event = new PlayerGameModeChangeEvent(this.player.getBukkitEntity(), GameMode.getByValue(p_143474_.getId()), cause, cancelMessage); // Paper
++            this.level.getCraftServer().getPluginManager().callEvent(event);
 +            if (event.isCancelled()) {
-+                return false;
++                return event; // Paper - Expand PlayerGameModeChangeEvent
 +            }
 +            // CraftBukkit end
-             this.setGameModeForPlayer(p_143474_, this.previousGameModeForPlayer);
++            this.setGameModeForPlayer(p_143474_, this.gameModeForPlayer);
              this.player.onUpdateAbilities();
              this.player
                  .server
@@ -44,7 +58,13 @@
              this.level.updateSleepingPlayerList();
              if (p_143474_ == GameType.CREATIVE) {
                  this.player.resetCurrentImpulseContext();
-@@ -72,7 +_,10 @@
+             }
+ 
+-            return true;
++            return event; // Paper - Expand PlayerGameModeChangeEvent
+         }
+     }
+ 
      protected void setGameModeForPlayer(GameType p_9274_, @Nullable GameType p_9275_) {
          this.previousGameModeForPlayer = p_9275_;
          this.gameModeForPlayer = p_9274_;

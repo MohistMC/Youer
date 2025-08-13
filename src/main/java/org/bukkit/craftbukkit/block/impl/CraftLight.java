@@ -34,6 +34,13 @@ public final class CraftLight extends CraftBlockData implements org.bukkit.block
         return getMax(CraftLight.LEVEL);
     }
 
+    // Paper start
+    @Override
+    public int getMinimumLevel() {
+        return getMin(CraftLight.LEVEL);
+    }
+    // Paper end
+
     // org.bukkit.craftbukkit.block.data.CraftWaterlogged
 
     private static final net.minecraft.world.level.block.state.properties.BooleanProperty WATERLOGGED = getBoolean(net.minecraft.world.level.block.LightBlock.class, "waterlogged");

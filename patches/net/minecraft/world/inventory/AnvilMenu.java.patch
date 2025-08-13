@@ -73,7 +73,7 @@
          this.inputSlots.setItem(0, ItemStack.EMPTY);
          if (this.repairItemCountCost > 0) {
              ItemStack itemstack = this.inputSlots.getItem(1);
-@@ -92,10 +_,10 @@
+@@ -92,11 +_,21 @@
              this.inputSlots.setItem(1, ItemStack.EMPTY);
          }
  
@@ -84,8 +84,19 @@
 -            if (!p_150474_.hasInfiniteMaterials() && blockstate.is(BlockTags.ANVIL) && p_150474_.getRandom().nextFloat() < 0.12F) {
 +            if (!p_150474_.getAbilities().instabuild && blockstate.is(BlockTags.ANVIL) && p_150474_.getRandom().nextFloat() < breakChance) {
                  BlockState blockstate1 = AnvilBlock.damage(blockstate);
++                // Paper start - AnvilDamageEvent
++                io.papermc.paper.event.block.AnvilDamagedEvent event = new io.papermc.paper.event.block.AnvilDamagedEvent(getBukkitView(), blockstate1 != null ? org.bukkit.craftbukkit.block.data.CraftBlockData.fromData(blockstate1) : null);
++                if (!event.callEvent()) {
++                    return;
++                } else if (event.getDamageState() == io.papermc.paper.event.block.AnvilDamagedEvent.DamageState.BROKEN) {
++                    blockstate1 = null;
++                } else {
++                    blockstate1 = ((org.bukkit.craftbukkit.block.data.CraftBlockData) event.getDamageState().getMaterial().createBlockData()).getState().setValue(AnvilBlock.FACING, blockstate.getValue(AnvilBlock.FACING));
++                }
++                // Paper end - AnvilDamageEvent
                  if (blockstate1 == null) {
                      p_150479_.removeBlock(p_150480_, false);
+                     p_150479_.levelEvent(1029, p_150480_, 0);
 @@ -117,6 +_,11 @@
          int i = 0;
          long j = 0L;
@@ -213,6 +224,14 @@
          }
      }
  
+@@ -283,6 +_,7 @@
+             }
+ 
+             this.createResult();
++            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareResultEvent(this, RESULT_SLOT); // Paper - Add PrepareResultEvent
+             return true;
+         } else {
+             return false;
 @@ -297,5 +_,12 @@
  
      public int getCost() {

@@ -1,5 +1,6 @@
 package org.bukkit.event.inventory;
 
+import io.papermc.paper.event.inventory.PrepareResultEvent;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
@@ -10,9 +11,9 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Called when an item is put in a slot for repair by an anvil.
  */
-public class PrepareAnvilEvent extends PrepareInventoryResultEvent {
+public class PrepareAnvilEvent extends PrepareResultEvent {
 
-    private static final HandlerList handlers = new HandlerList();
+    // Paper - move HandlerList to PrepareInventoryResultEvent
 
     public PrepareAnvilEvent(@NotNull AnvilView inventory, @Nullable ItemStack result) {
         super(inventory, result);
@@ -30,14 +31,5 @@ public class PrepareAnvilEvent extends PrepareInventoryResultEvent {
         return (AnvilView) super.getView();
     }
 
-    @NotNull
-    @Override
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-
-    @NotNull
-    public static HandlerList getHandlerList() {
-        return handlers;
-    }
+    // Paper - move HandlerList to PrepareInventoryResultEvent
 }

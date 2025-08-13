@@ -154,7 +154,7 @@
      @Nullable
      private KeyPair keyPair;
      @Nullable
-@@ -254,18 +_,40 @@
+@@ -254,18 +_,41 @@
      public final Executor executor;
      @Nullable
      private String serverId;
@@ -187,6 +187,7 @@
 +    public final double[] recentTps = new double[ 3 ];
 +    // Spigot end
 +    public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
++    public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
 +    public volatile Thread shutdownThread; // Paper
 +    public volatile boolean abnormalExit = false; // Paper
  
@@ -990,7 +991,7 @@
              ObjectArrayList<GameProfile> objectarraylist = new ObjectArrayList<>(j);
              int k = Mth.nextInt(this.random, 0, list.size() - j);
  
-@@ -992,19 +_,63 @@
+@@ -992,19 +_,64 @@
  
      public void tickChildren(BooleanSupplier p_129954_) {
          this.getPlayerList().getPlayers().forEach(p_341570_ -> p_341570_.connection.suspendFlushing());
@@ -1038,6 +1039,7 @@
 +            }
 +        }
 +        // Paper end - Perf: Optimize time updates
++        this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
 +        for(ServerLevel serverlevel : this.getWorldArray()) {
 +            long tickStart = Util.getNanos();
 +            serverlevel.hasPhysicsEvent = org.bukkit.event.block.BlockPhysicsEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - BlockPhysicsEvent
@@ -1057,7 +1059,7 @@
  
              try {
                  serverlevel.tick(p_129954_);
-@@ -1013,16 +_,18 @@
+@@ -1013,16 +_,19 @@
                  serverlevel.fillReportDetails(crashreport);
                  throw new ReportedException(crashreport);
              }
@@ -1067,6 +1069,7 @@
              this.profiler.pop();
 +            perWorldTickTimes.computeIfAbsent(serverlevel.dimension(), k -> new long[100])[this.tickCount % 100] = Util.getNanos() - tickStart;
          }
++        this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
          this.profiler.popPush("connection");
          this.getConnection().tick();

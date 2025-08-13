@@ -1,0 +1,14 @@
+--- a/net/minecraft/network/protocol/game/ClientboundSetPlayerTeamPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundSetPlayerTeamPacket.java
+@@ -58,6 +_,11 @@
+         );
+     }
+ 
++    // Paper start - Multiple Entries with Scoreboards
++    public static ClientboundSetPlayerTeamPacket createMultiplePlayerPacket(PlayerTeam team, Collection<String> players, ClientboundSetPlayerTeamPacket.Action operation) {
++        return new ClientboundSetPlayerTeamPacket(team.getName(), operation == ClientboundSetPlayerTeamPacket.Action.ADD ? 3 : 4, Optional.empty(), players);
++    }
++    // Paper end - Multiple Entries with Scoreboards
+     private ClientboundSetPlayerTeamPacket(RegistryFriendlyByteBuf p_323831_) {
+         this.name = p_323831_.readUtf();
+         this.method = p_323831_.readByte();

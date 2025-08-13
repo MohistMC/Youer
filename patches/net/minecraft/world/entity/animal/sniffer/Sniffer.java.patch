@@ -23,3 +23,19 @@
                          );
                  }
              }
+@@ -337,10 +_,14 @@
+ 
+     @Override
+     public void spawnChildFromBreeding(ServerLevel p_277923_, Animal p_277857_) {
++        // Paper start - Add EntityFertilizeEggEvent event
++        final io.papermc.paper.event.entity.EntityFertilizeEggEvent result = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityFertilizeEggEvent(this, p_277857_);
++        if (result.isCancelled()) return;
++        // Paper end - Add EntityFertilizeEggEvent event
+         ItemStack itemstack = new ItemStack(Items.SNIFFER_EGG);
+         ItemEntity itementity = new ItemEntity(p_277923_, this.position().x(), this.position().y(), this.position().z(), itemstack);
+         itementity.setDefaultPickUpDelay();
+-        this.finalizeSpawnChildFromBreeding(p_277923_, p_277857_, null);
++        this.finalizeSpawnChildFromBreeding(p_277923_, p_277857_, null, result.getExperience()); // Paper - Add EntityFertilizeEggEvent event
+         this.playSound(SoundEvents.SNIFFER_EGG_PLOP, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 0.5F);
+         p_277923_.addFreshEntity(itementity);
+     }

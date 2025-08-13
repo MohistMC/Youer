@@ -2032,25 +2032,26 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
             // Paper start - support components
             if(object instanceof net.md_5.bungee.api.chat.BaseComponent[] baseComponentArr) {
                 addTo.add(CraftChatMessage.fromJSON(net.md_5.bungee.chat.ComponentSerializer.toString(baseComponentArr)));
-            } else
-                // Paper end
-            if (!(object instanceof String)) {
-                if (object != null) {
-                    // SPIGOT-7399: Null check via if is important,
-                    // otherwise object.getClass().getName() could throw an error for a valid argument -> when it is null which is valid,
-                    // when using Preconditions
-                    throw new IllegalArgumentException(addFrom + " cannot contain non-string " + object.getClass().getName());
-                }
-
-                addTo.add(Component.empty());
             } else {
-                String entry = object.toString();
-                Component component = (possiblyJsonInput) ? CraftChatMessage.fromJSONOrString(entry) : CraftChatMessage.fromStringOrNull(entry);
+                // Paper end
+                if (!(object instanceof String)) {
+                    if (object != null) {
+                        // SPIGOT-7399: Null check via if is important,
+                        // otherwise object.getClass().getName() could throw an error for a valid argument -> when it is null which is valid,
+                        // when using Preconditions
+                        throw new IllegalArgumentException(addFrom + " cannot contain non-string " + object.getClass().getName());
+                    }
 
-                if (component != null) {
-                    addTo.add(component);
-                } else {
                     addTo.add(Component.empty());
+                } else {
+                    String entry = object.toString();
+                    Component component = (possiblyJsonInput) ? CraftChatMessage.fromJSONOrString(entry) : CraftChatMessage.fromStringOrNull(entry);
+
+                    if (component != null) {
+                        addTo.add(component);
+                    } else {
+                        addTo.add(Component.empty());
+                    }
                 }
             }
         }

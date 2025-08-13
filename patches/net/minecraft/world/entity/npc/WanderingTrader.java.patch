@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/npc/WanderingTrader.java
 +++ b/net/minecraft/world/entity/npc/WanderingTrader.java
-@@ -45,6 +_,7 @@
+@@ -45,12 +_,17 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.phys.Vec3;
  import org.apache.commons.lang3.tuple.Pair;
@@ -8,6 +8,34 @@
  
  public class WanderingTrader extends AbstractVillager {
      private static final int NUMBER_OF_TRADE_OFFERS = 5;
+     @Nullable
+     private BlockPos wanderTarget;
+     private int despawnDelay;
++    // Paper start - Add more WanderingTrader API
++    public boolean canDrinkPotion = true;
++    public boolean canDrinkMilk = true;
++    // Paper end - Add more WanderingTrader API
+ 
+     public WanderingTrader(EntityType<? extends WanderingTrader> p_35843_, Level p_35844_) {
+         super(p_35843_, p_35844_);
+@@ -66,7 +_,7 @@
+                     this,
+                     PotionContents.createItemStack(Items.POTION, Potions.INVISIBILITY),
+                     SoundEvents.WANDERING_TRADER_DISAPPEARED,
+-                    p_352831_ -> this.level().isNight() && !p_352831_.isInvisible()
++                    p_352831_ -> this.canDrinkPotion && this.level().isNight() && !p_352831_.isInvisible()
+                 )
+             );
+         this.goalSelector
+@@ -76,7 +_,7 @@
+                     this,
+                     new ItemStack(Items.MILK_BUCKET),
+                     SoundEvents.WANDERING_TRADER_REAPPEARED,
+-                    p_352832_ -> this.level().isDay() && p_352832_.isInvisible()
++                    p_352832_ -> this.canDrinkMilk && this.level().isDay() && p_352832_.isInvisible()
+                 )
+             );
+         this.goalSelector.addGoal(1, new TradeWithPlayerGoal(this));
 @@ -144,7 +_,16 @@
                  VillagerTrades.ItemListing villagertrades$itemlisting = avillagertrades$itemlisting1[i];
                  MerchantOffer merchantoffer = villagertrades$itemlisting.getOffer(this, this.random);

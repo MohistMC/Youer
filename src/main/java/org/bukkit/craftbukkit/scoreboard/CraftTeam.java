@@ -229,6 +229,21 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
         scoreboard.board.addPlayerToTeam(entry, this.team);
     }
 
+    // Paper start - Multiple Entries with Scoreboards
+    @Override
+    public void addEntities(java.util.Collection<org.bukkit.entity.Entity> entities) throws IllegalStateException, IllegalArgumentException {
+        this.addEntries(entities.stream().map(entity -> ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getScoreboardName()).toList());
+    }
+
+    @Override
+    public void addEntries(java.util.Collection<String> entries) throws IllegalStateException, IllegalArgumentException {
+        Preconditions.checkArgument(entries != null, "Entries cannot be null");
+        CraftScoreboard scoreboard = this.checkState();
+
+        ((net.minecraft.server.ServerScoreboard) scoreboard.board).addPlayersToTeam(entries, this.team);
+    }
+    // Paper end - Multiple Entries with Scoreboards
+
     @Override
     public boolean removePlayer(OfflinePlayer player) {
         Preconditions.checkArgument(player != null, "OfflinePlayer cannot be null");
@@ -247,6 +262,28 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
         scoreboard.board.removePlayerFromTeam(entry, this.team);
         return true;
     }
+
+    // Paper start - Multiple Entries with Scoreboards
+    @Override
+    public boolean removeEntities(java.util.Collection<org.bukkit.entity.Entity> entities) throws IllegalStateException, IllegalArgumentException {
+        return this.removeEntries(entities.stream().map(entity -> ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getScoreboardName()).toList());
+    }
+
+    @Override
+    public boolean removeEntries(java.util.Collection<String> entries) throws IllegalStateException, IllegalArgumentException {
+        Preconditions.checkArgument(entries != null, "Entry cannot be null");
+        CraftScoreboard scoreboard = this.checkState();
+
+        for (String entry : entries) {
+            if (this.team.getPlayers().contains(entry)) {
+                ((net.minecraft.server.ServerScoreboard) scoreboard.board).removePlayersFromTeam(entries, this.team);
+                return true;
+            }
+        }
+
+        return false;
+    }
+    // Paper end - Multiple Entries with Scoreboards
 
     @Override
     public boolean hasPlayer(OfflinePlayer player) throws IllegalArgumentException, IllegalStateException {
@@ -303,6 +340,26 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
                 throw new IllegalArgumentException("Unrecognised option " + option);
         }
     }
+
+    // Paper start
+    @Override
+    public void addEntity(org.bukkit.entity.Entity entity) throws IllegalStateException, IllegalArgumentException {
+        Preconditions.checkArgument(entity != null, "Entity cannot be null");
+        this.addEntry(((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getScoreboardName());
+    }
+
+    @Override
+    public boolean removeEntity(org.bukkit.entity.Entity entity) throws IllegalStateException, IllegalArgumentException {
+        Preconditions.checkArgument(entity != null, "Entity cannot be null");
+        return this.removeEntry(((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getScoreboardName());
+    }
+
+    @Override
+    public boolean hasEntity(org.bukkit.entity.Entity entity) throws IllegalStateException, IllegalArgumentException {
+        Preconditions.checkArgument(entity != null, "Entity cannot be null");
+        return this.hasEntry(((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getScoreboardName());
+    }
+    // Paper end
 
     public static Visibility bukkitToNotch(NameTagVisibility visibility) {
         switch (visibility) {

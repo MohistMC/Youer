@@ -78,6 +78,12 @@ public class CraftBlock implements Block {
         return this.world.getBlockState(this.position);
     }
 
+    // Paper start
+    public net.minecraft.world.level.material.FluidState getNMSFluid() {
+        return this.world.getFluidState(this.position);
+    }
+    // Paper end
+
     public BlockPos getPosition() {
         return this.position;
     }
@@ -340,6 +346,13 @@ public class CraftBlock implements Block {
         return this.getWorld().getBiome(this.getX(), this.getY(), this.getZ());
     }
 
+    // Paper start
+    @Override
+    public Biome getComputedBiome() {
+        return this.getWorld().getComputedBiome(this.getX(), this.getY(), this.getZ());
+    }
+    // Paper end
+
     @Override
     public void setBiome(Biome bio) {
         this.getWorld().setBiome(this.getX(), this.getY(), this.getZ(), bio);
@@ -476,6 +489,18 @@ public class CraftBlock implements Block {
 
     @Override
     public boolean breakNaturally(ItemStack item) {
+        // Paper start
+        return this.breakNaturally(item, false);
+    }
+
+    @Override
+    public boolean breakNaturally(boolean triggerEffect, boolean dropExperience) {
+        return this.breakNaturally(null, triggerEffect, dropExperience);
+    }
+
+    @Override
+    public boolean breakNaturally(ItemStack item, boolean triggerEffect, boolean dropExperience) {
+        // Paper end
         // Order matters here, need to drop before setting to air so skulls can get their data
         net.minecraft.world.level.block.state.BlockState iblockdata = this.getNMS();
         net.minecraft.world.level.block.Block block = iblockdata.getBlock();
@@ -485,11 +510,35 @@ public class CraftBlock implements Block {
         // Modelled off EntityHuman#hasBlock
         if (block != Blocks.AIR && (item == null || !iblockdata.requiresCorrectToolForDrops() || nmsItem.isCorrectToolForDrops(iblockdata))) {
             net.minecraft.world.level.block.Block.dropResources(iblockdata, this.world.getMinecraftWorld(), this.position, this.world.getBlockEntity(this.position), null, nmsItem);
+            // Paper start - improve Block#breanNaturally
+            if (triggerEffect) {
+                if (iblockdata.getBlock() instanceof net.minecraft.world.level.block.BaseFireBlock) {
+                    this.world.levelEvent(net.minecraft.world.level.block.LevelEvent.SOUND_EXTINGUISH_FIRE, this.position, 0);
+                } else {
+                    this.world.levelEvent(net.minecraft.world.level.block.LevelEvent.PARTICLES_DESTROY_BLOCK, this.position, net.minecraft.world.level.block.Block.getId(iblockdata));
+                }
+            }
+            if (dropExperience) block.popExperience(this.world.getMinecraftWorld(), this.position, block.getExpDrop(iblockdata, this.world.getMinecraftWorld(), this.position, nmsItem, true));
+            // Paper end
             result = true;
         }
 
         // SPIGOT-6778: Directly call setBlock instead of setTypeAndData, so that the tile entiy is not removed and custom remove logic is run.
-        return this.world.setBlock(this.position, Blocks.AIR.defaultBlockState(), 3) && result;
+        // Paper start - improve breakNaturally
+        boolean destroyed = this.world.removeBlock(this.position, false);
+        if (destroyed) {
+            block.destroy(this.world, this.position, iblockdata);
+        }
+        if (result) {
+            // special cases
+            if (block instanceof net.minecraft.world.level.block.IceBlock iceBlock) {
+                iceBlock.afterDestroy(this.world.getMinecraftWorld(), this.position, nmsItem);
+            } else if (block instanceof net.minecraft.world.level.block.TurtleEggBlock turtleEggBlock) {
+                turtleEggBlock.decreaseEggs(this.world.getMinecraftWorld(), this.position, iblockdata);
+            }
+        }
+        return destroyed && result;
+        // Paper end
     }
 
     @Override
@@ -641,6 +690,17 @@ public class CraftBlock implements Block {
 
         return iblockdata.canSurvive(world, this.position);
     }
+    
+    // Paper start
+    @Override
+    public io.papermc.paper.block.BlockSoundGroup getSoundGroup() {
+        return new io.papermc.paper.block.CraftBlockSoundGroup(getNMS().getBlock().defaultBlockState().getSoundType());
+    }
+
+    @Override
+    public org.bukkit.SoundGroup getBlockSoundGroup() {
+        return org.bukkit.craftbukkit.CraftSoundGroup.getSoundGroup(this.getNMS().getSoundType());
+    }
 
     @Override
     public String getTranslationKey() {
@@ -655,4 +715,22 @@ public class CraftBlock implements Block {
     public boolean isValidTool(ItemStack itemStack) {
         return getDrops(itemStack).size() != 0;
     }
+
+    @Override
+    public void tick() {
+        final ServerLevel level = this.world.getMinecraftWorld();
+        this.getNMS().tick(level, this.position, level.random);
+    }
+
+    @Override
+    public void fluidTick() {
+        this.getNMSFluid().tick(this.world.getMinecraftWorld(), this.position);
+    }
+
+    @Override
+    public void randomTick() {
+        final ServerLevel level = this.world.getMinecraftWorld();
+        this.getNMS().randomTick(level, this.position, level.random);
+    }
+    // Paper end
 }

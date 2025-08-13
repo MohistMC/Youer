@@ -9,3 +9,19 @@
      }
  
      @Override
+@@ -469,6 +_,15 @@
+     @VisibleForTesting
+     public void increaseAngerAt(@Nullable Entity p_219388_, int p_219389_, boolean p_219390_) {
+         if (!this.isNoAi() && this.canTargetEntity(p_219388_)) {
++            // Paper start - Add WardenAngerChangeEvent
++            int activeAnger = this.angerManagement.getActiveAnger(p_219388_);
++            io.papermc.paper.event.entity.WardenAngerChangeEvent event = new io.papermc.paper.event.entity.WardenAngerChangeEvent((org.bukkit.entity.Warden) this.getBukkitEntity(), p_219388_.getBukkitEntity(), activeAnger, Math.min(150, activeAnger + p_219389_));
++            this.level().getCraftServer().getPluginManager().callEvent(event);
++            if (event.isCancelled()) {
++                return;
++            }
++            p_219389_ = event.getNewAnger() - activeAnger;
++            // Paper end - Add WardenAngerChangeEvent
+             WardenAi.setDigCooldown(this);
+             boolean flag = !(this.getTarget() instanceof Player);
+             int i = this.angerManagement.increaseAnger(p_219388_, p_219389_);

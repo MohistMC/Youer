@@ -1,0 +1,64 @@
+--- a/net/minecraft/world/entity/ai/gossip/GossipContainer.java
++++ b/net/minecraft/world/entity/ai/gossip/GossipContainer.java
+@@ -33,7 +_,7 @@
+ public class GossipContainer {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public static final int DISCARD_THRESHOLD = 2;
+-    private final Map<UUID, GossipContainer.EntityGossips> gossips = Maps.newHashMap();
++    public final Map<UUID, GossipContainer.EntityGossips> gossips = Maps.newHashMap();
+ 
+     @VisibleForDebug
+     public Map<UUID, Object2IntMap<GossipType>> getGossipEntries() {
+@@ -175,7 +_,7 @@
+         return i > p_26168_.max ? Math.max(p_26168_.max, p_26169_) : i;
+     }
+ 
+-    static class EntityGossips {
++    public static class EntityGossips {
+         final Object2IntMap<GossipType> entries = new Object2IntOpenHashMap<>();
+ 
+         public int weightedValue(Predicate<GossipType> p_26221_) {
+@@ -226,6 +_,43 @@
+         public void remove(GossipType p_26227_) {
+             this.entries.removeInt(p_26227_);
+         }
++
++        // Paper start - Add villager reputation API
++        private static final GossipType[] TYPES = GossipType.values();
++        public io.papermc.paper.entity.villager.Reputation getPaperReputation() {
++            Map<io.papermc.paper.entity.villager.ReputationType, Integer> map = new java.util.EnumMap<>(io.papermc.paper.entity.villager.ReputationType.class);
++            for (Object2IntMap.Entry<GossipType> type : this.entries.object2IntEntrySet()) {
++                map.put(toApi(type.getKey()), type.getIntValue());
++            }
++
++            return new io.papermc.paper.entity.villager.Reputation(map);
++        }
++
++        public void assignFromPaperReputation(io.papermc.paper.entity.villager.Reputation rep) {
++            for (GossipType type : TYPES) {
++                io.papermc.paper.entity.villager.ReputationType api = toApi(type);
++
++                if (rep.hasReputationSet(api)) {
++                    int reputation = rep.getReputation(api);
++                    if (reputation == 0) {
++                        this.entries.removeInt(type);
++                    } else {
++                        this.entries.put(type, reputation);
++                    }
++                }
++            }
++        }
++
++        private static io.papermc.paper.entity.villager.ReputationType toApi(GossipType type) {
++            return switch (type) {
++                case MAJOR_NEGATIVE -> io.papermc.paper.entity.villager.ReputationType.MAJOR_NEGATIVE;
++                case MINOR_NEGATIVE -> io.papermc.paper.entity.villager.ReputationType.MINOR_NEGATIVE;
++                case MINOR_POSITIVE -> io.papermc.paper.entity.villager.ReputationType.MINOR_POSITIVE;
++                case MAJOR_POSITIVE -> io.papermc.paper.entity.villager.ReputationType.MAJOR_POSITIVE;
++                case TRADING -> io.papermc.paper.entity.villager.ReputationType.TRADING;
++            };
++        }
++        // Paper end - Add villager reputation API
+     }
+ 
+     static record GossipEntry(UUID target, GossipType type, int value) {

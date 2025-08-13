@@ -310,6 +310,60 @@ public interface Team extends net.kyori.adventure.audience.ForwardingAudience { 
      */
     void addEntry(@NotNull String entry);
 
+    // Paper start
+    /**
+     * This puts a collection of entities onto this team for the scoreboard which results in one
+     * packet for the updates rather than a packet-per-entity.
+     * <p>
+     * Entities on other teams will be removed from their respective teams.
+     *
+     * @param entities the entities to add
+     * @throws IllegalArgumentException if entities are null
+     * @throws IllegalStateException if this team has been unregistered
+     */
+    default void addEntities(@NotNull org.bukkit.entity.Entity @NotNull ...entities) {
+        this.addEntities(java.util.List.of(entities));
+    }
+
+    /**
+     * This puts a collection of entities onto this team for the scoreboard which results in one
+     * packet for the updates rather than a packet-per-entity.
+     * <p>
+     * Entities on other teams will be removed from their respective teams.
+     *
+     * @param entities the entities to add
+     * @throws IllegalArgumentException if entities are null
+     * @throws IllegalStateException if this team has been unregistered
+     */
+    void addEntities(@NotNull java.util.Collection<org.bukkit.entity.Entity> entities) throws IllegalStateException, IllegalArgumentException;
+
+    /**
+     * This puts a collection of entries onto this team for the scoreboard which results in one
+     * packet for the updates rather than a packet-per-entry.
+     * <p>
+     * Entries on other teams will be removed from their respective teams.
+     *
+     * @param entries the entries to add
+     * @throws IllegalArgumentException if entries are null
+     * @throws IllegalStateException if this team has been unregistered
+     */
+    default void addEntries(@NotNull String... entries) throws IllegalStateException, IllegalArgumentException {
+        this.addEntries(java.util.List.of(entries));
+    }
+
+    /**
+     * This puts a collection of entries onto this team for the scoreboard which results in one
+     * packet for the updates rather than a packet-per-entry.
+     * <p>
+     * Entries on other teams will be removed from their respective teams.
+     *
+     * @param entries the entries to add
+     * @throws IllegalArgumentException if entries are null
+     * @throws IllegalStateException if this team has been unregistered
+     */
+    void addEntries(@NotNull java.util.Collection<String> entries) throws IllegalStateException, IllegalArgumentException;
+    // Paper end
+
     /**
      * Removes the player from this team.
      *
@@ -330,6 +384,56 @@ public interface Team extends net.kyori.adventure.audience.ForwardingAudience { 
      * @throws IllegalStateException if this team has been unregistered
      */
     boolean removeEntry(@NotNull String entry);
+
+    // Paper start
+    /**
+     * Removes a collection of entities from this team which results in one
+     * packet for the updates rather than a packet-per-entity.
+     *
+     * @param entities the entries to remove
+     * @return if any of the entities were a part of this team
+     * @throws IllegalArgumentException if entities is null
+     * @throws IllegalStateException if this team has been unregistered
+     */
+    default boolean removeEntities(@NotNull org.bukkit.entity.Entity @NotNull ... entities) throws IllegalStateException, IllegalArgumentException {
+        return this.removeEntities(java.util.List.of(entities));
+    }
+
+    /**
+     * Removes a collection of entities from this team which results in one
+     * packet for the updates rather than a packet-per-entity.
+     *
+     * @param entities the entries to remove
+     * @return if any of the entities were a part of this team
+     * @throws IllegalArgumentException if entities is null
+     * @throws IllegalStateException if this team has been unregistered
+     */
+    boolean removeEntities(@NotNull java.util.Collection<org.bukkit.entity.Entity> entities) throws IllegalStateException, IllegalArgumentException;
+
+    /**
+     * Removes a collection of entries from this team which results in one
+     * packet for the updates rather than a packet-per-entry.
+     *
+     * @param entries the entries to remove
+     * @return if any of the entries were a part of this team
+     * @throws IllegalArgumentException if entries is null
+     * @throws IllegalStateException if this team has been unregistered
+     */
+    default boolean removeEntries(@NotNull String... entries) throws IllegalStateException, IllegalArgumentException {
+        return this.removeEntries(java.util.List.of(entries));
+    }
+
+    /**
+     * Removes a collection of entries from this team which results in one
+     * packet for the updates rather than a packet-per-entry.
+     *
+     * @param entries the entries to remove
+     * @return if any of the entries were a part of this team
+     * @throws IllegalArgumentException if entries is null
+     * @throws IllegalStateException if this team has been unregistered
+     */
+    boolean removeEntries(@NotNull java.util.Collection<String> entries) throws IllegalStateException, IllegalArgumentException;
+    // Paper end
 
     /**
      * Unregisters this team from the Scoreboard
@@ -376,6 +480,42 @@ public interface Team extends net.kyori.adventure.audience.ForwardingAudience { 
      * @throws IllegalStateException if this team has been unregistered
      */
     void setOption(@NotNull Option option, @NotNull OptionStatus status);
+
+    // Paper start - improve scoreboard entries
+    /**
+     * This puts the specified entity onto this team for the scoreboard.
+     * <p>
+     * This will remove the entity from any other team on the scoreboard.
+     *
+     * @param entity the entity to add
+     * @throws IllegalArgumentException if entity is null
+     * @throws IllegalStateException if this team has been unregistered
+     * @see #addEntry(String)
+     */
+    void addEntity(@NotNull org.bukkit.entity.Entity entity) throws IllegalStateException, IllegalArgumentException;
+
+    /**
+     * Removes the entity from this team.
+     *
+     * @param entity the entity to remove
+     * @return if the entity was on this team
+     * @throws IllegalArgumentException if entity is null
+     * @throws IllegalStateException if this team has been unregistered
+     * @see #removeEntry(String)
+     */
+    boolean removeEntity(@NotNull org.bukkit.entity.Entity entity) throws IllegalStateException, IllegalArgumentException;
+
+    /**
+     * Checks to see if the specified entity is a member of this team.
+     *
+     * @param entity the entity to search for
+     * @return true if the entity is a member of this team
+     * @throws IllegalArgumentException if entity is null
+     * @throws IllegalStateException if this team has been unregistered
+     * @see #hasEntry(String)
+     */
+    boolean hasEntity(@NotNull org.bukkit.entity.Entity entity) throws IllegalStateException, IllegalArgumentException;
+    // Paper end - improve scoreboard entries
 
     /**
      * Represents an option which may be applied to this team.

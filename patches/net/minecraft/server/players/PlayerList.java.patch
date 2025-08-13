@@ -1097,3 +1097,34 @@
          this.broadcastAll(new ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.registries)));
          ClientboundUpdateRecipesPacket clientboundupdaterecipespacket = new ClientboundUpdateRecipesPacket(this.server.getRecipeManager().getOrderedRecipes());
  
+@@ -883,6 +_,30 @@
+             serverplayer.connection.send(clientboundupdaterecipespacket);
+             serverplayer.getRecipeBook().sendInitialRecipeBook(serverplayer);
+         }
++    }
++
++    public void reloadAdvancementData() {
++        for (ServerPlayer player : this.players) {
++            player.getAdvancements().reload(this.server.getAdvancements());
++            player.getAdvancements().flushDirty(player); // CraftBukkit - trigger immediate flush of advancements
++        }
++    }
++
++    public void reloadTagData() {
++        // Paper end - API for updating recipes on clients
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.OnDatapackSyncEvent(this, null));
++        this.broadcastAll(new ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.registries)));
++        // Paper start - API for updating recipes on clients
++    }
++    public void reloadRecipeData() {
++        // Paper end - API for updating recipes on clients
++        ClientboundUpdateRecipesPacket packetplayoutrecipeupdate = new ClientboundUpdateRecipesPacket(this.server.getRecipeManager().getOrderedRecipes());
++
++        for (ServerPlayer entityplayer : this.players) {
++            entityplayer.connection.send(packetplayoutrecipeupdate);
++            entityplayer.getRecipeBook().sendInitialRecipeBook(entityplayer);
++        }
++
+     }
+ 
+     public boolean isAllowCommandsForAllPlayers() {

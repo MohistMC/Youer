@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Represents a Wolf
  */
-public interface Wolf extends Tameable, Sittable {
+public interface Wolf extends Tameable, Sittable, io.papermc.paper.entity.CollarColorable { // Paper - CollarColorable
 
     /**
      * Checks if this wolf is angry

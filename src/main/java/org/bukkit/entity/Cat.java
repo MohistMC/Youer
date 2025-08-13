@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Meow.
  */
-public interface Cat extends Tameable, Sittable {
+public interface Cat extends Tameable, Sittable, io.papermc.paper.entity.CollarColorable { // Paper - CollarColorable
 
     /**
      * Gets the current type of this cat.

@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Represents a captured state of a container block.
  */
-public interface Container extends TileState, Lockable, Nameable, io.papermc.paper.block.TileStateInventoryHolder { // Paper
+public interface Container extends io.papermc.paper.block.LockableTileState, io.papermc.paper.block.TileStateInventoryHolder { // Paper
 
     // Paper - moved to TileStateInventoryHolder
 }

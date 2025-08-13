@@ -69,3 +69,22 @@
          p_34150_ = super.getDamageAfterMagicAbsorb(p_34149_, p_34150_);
          if (p_34149_.getEntity() == this) {
              p_34150_ = 0.0F;
+@@ -240,9 +_,16 @@
+             } else if (d3 <= 3.0 && !p_34143_.hasEffect(MobEffects.WEAKNESS) && this.random.nextFloat() < 0.25F) {
+                 holder = Potions.WEAKNESS;
+             }
+-
++            // Paper start - WitchThrowPotionEvent
++            ItemStack potion = PotionContents.createItemStack(Items.SPLASH_POTION, holder);
++            io.papermc.paper.event.entity.WitchThrowPotionEvent event = new io.papermc.paper.event.entity.WitchThrowPotionEvent((org.bukkit.entity.Witch) this.getBukkitEntity(), (org.bukkit.entity.LivingEntity) p_34143_.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(potion));
++            if (!event.callEvent()) {
++                return;
++            }
++            potion = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getPotion());
+             ThrownPotion thrownpotion = new ThrownPotion(this.level(), this);
+-            thrownpotion.setItem(PotionContents.createItemStack(Items.SPLASH_POTION, holder));
++            thrownpotion.setItem(potion);
++            // Paper end - WitchThrowPotionEvent
+             thrownpotion.setXRot(thrownpotion.getXRot() - -20.0F);
+             thrownpotion.shoot(d0, d1 + d3 * 0.2, d2, 0.75F, 8.0F);
+             if (!this.isSilent()) {

@@ -27,7 +27,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a living entity, such as a monster or player
  */
-public interface LivingEntity extends Attributable, Damageable, ProjectileSource {
+public interface LivingEntity extends Attributable, Damageable, ProjectileSource, io.papermc.paper.entity.Frictional { // Paper
 
     /**
      * Gets the height of the living entity's eyes above its Location.
@@ -85,6 +85,97 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
     @NotNull
     public Block getTargetBlock(@Nullable Set<Material> transparent, int maxDistance);
 
+    // Paper start
+    /**
+     * Gets the block that the living entity has targeted, ignoring fluids
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @return block that the living entity has targeted,
+     *     or null if no block is within maxDistance
+     * @deprecated use {@link #getTargetBlockExact(int)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public default Block getTargetBlock(int maxDistance) {
+        return getTargetBlock(maxDistance, io.papermc.paper.block.TargetBlockInfo.FluidMode.NEVER);
+    }
+
+    /**
+     * Gets the block that the living entity has targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param fluidMode whether to check fluids or not
+     * @return block that the living entity has targeted,
+     *     or null if no block is within maxDistance
+     * @deprecated use {@link #getTargetBlockExact(int, FluidCollisionMode)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public Block getTargetBlock(int maxDistance, @NotNull io.papermc.paper.block.TargetBlockInfo.FluidMode fluidMode);
+
+    /**
+     * Gets the blockface of that block that the living entity has targeted, ignoring fluids
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @return blockface of the block that the living entity has targeted,
+     *     or null if no block is targeted
+     */
+    @Nullable
+    public default org.bukkit.block.BlockFace getTargetBlockFace(int maxDistance) {
+        return getTargetBlockFace(maxDistance, org.bukkit.FluidCollisionMode.NEVER);
+    }
+
+    /**
+     * Gets the blockface of that block that the living entity has targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param fluidMode whether to check fluids or not
+     * @return blockface of the block that the living entity has targeted,
+     *     or null if no block is targeted
+     * @deprecated use {@link #getTargetBlockFace(int, FluidCollisionMode)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public org.bukkit.block.BlockFace getTargetBlockFace(int maxDistance, @NotNull io.papermc.paper.block.TargetBlockInfo.FluidMode fluidMode);
+
+    /**
+     * Gets the blockface of that block that the living entity has targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param fluidMode whether to check fluids or not
+     * @return blockface of the block that the living entity has targeted,
+     *     or null if no block is targeted
+     */
+    @Nullable
+    public org.bukkit.block.BlockFace getTargetBlockFace(int maxDistance, @NotNull FluidCollisionMode fluidMode);
+
+    /**
+     * Gets information about the block the living entity has targeted, ignoring fluids
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @return TargetBlockInfo about the block the living entity has targeted,
+     *     or null if no block is targeted
+     * @deprecated use {@link #rayTraceBlocks(double)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public default io.papermc.paper.block.TargetBlockInfo getTargetBlockInfo(int maxDistance) {
+        return getTargetBlockInfo(maxDistance, io.papermc.paper.block.TargetBlockInfo.FluidMode.NEVER);
+    }
+
+    /**
+     * Gets information about the block the living entity has targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param fluidMode whether to check fluids or not
+     * @return TargetBlockInfo about the block the living entity has targeted,
+     *     or null if no block is targeted
+     * @deprecated use {@link #rayTraceBlocks(double, FluidCollisionMode)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public io.papermc.paper.block.TargetBlockInfo getTargetBlockInfo(int maxDistance, @NotNull io.papermc.paper.block.TargetBlockInfo.FluidMode fluidMode);
+
     /**
      * Gets information about the entity being targeted
      *
@@ -105,6 +196,57 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     @Nullable
     public Entity getTargetEntity(int maxDistance, boolean ignoreBlocks);
+
+    /**
+     * Gets information about the entity being targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @return TargetEntityInfo about the entity being targeted,
+     *     or null if no entity is targeted
+     * @deprecated use {@link #rayTraceEntities(int)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public default io.papermc.paper.entity.TargetEntityInfo getTargetEntityInfo(int maxDistance) {
+        return getTargetEntityInfo(maxDistance, false);
+    }
+
+    /**
+     * Gets information about the entity being targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @return RayTraceResult about the entity being targeted,
+     *     or null if no entity is targeted
+     */
+    @Nullable
+    default RayTraceResult rayTraceEntities(int maxDistance) {
+        return this.rayTraceEntities(maxDistance, false);
+    }
+
+    /**
+     * Gets information about the entity being targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param ignoreBlocks true to scan through blocks
+     * @return TargetEntityInfo about the entity being targeted,
+     *     or null if no entity is targeted
+     * @deprecated use {@link #rayTraceEntities(int, boolean)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public io.papermc.paper.entity.TargetEntityInfo getTargetEntityInfo(int maxDistance, boolean ignoreBlocks);
+
+    /**
+     * Gets information about the entity being targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param ignoreBlocks true to scan through blocks
+     * @return RayTraceResult about the entity being targeted,
+     *     or null if no entity is targeted
+     */
+    @Nullable
+    RayTraceResult rayTraceEntities(int maxDistance, boolean ignoreBlocks);
+    // Paper end
 
     /**
      * Gets the last two blocks along the living entity's line of sight.
@@ -1135,6 +1277,28 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
     }
     // Paper end - active item API
 
+    // Paper start - entity jump API
+    /**
+     * Get entity jump state.
+     * <p>
+     * Jump state will be true when the entity has been marked to jump.
+     *
+     * @return entity jump state.
+     */
+    boolean isJumping();
+
+    /**
+     * Set entity jump state
+     * <p>
+     * Setting to true will mark the entity to jump.
+     * <p>
+     * Setting to false will unmark the entity to jump but will not stop a jump already in-progress.
+     *
+     * @param jumping entity jump state
+     */
+    void setJumping(boolean jumping);
+    // Paper end - entity jump API
+
     // Paper start - Expose canUseSlot
     /**
      * Checks whether this entity can use the equipment slot.
@@ -1159,6 +1323,55 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     void knockback(double strength, double directionX, double directionZ);
     // Paper end - knockback API
+
+    // Paper start - ItemStack damage API
+    /**
+     * Notifies all clients tracking this entity that the item in
+     * the slot of this entity broke.
+     * <p>
+     * NOTE: this does not mutate any entity state
+     *
+     * @param slot the slot
+     */
+    void broadcastSlotBreak(org.bukkit.inventory.@NotNull EquipmentSlot slot);
+
+    /**
+     * Notifies specified players that the item in the slot
+     * of this entity broke.
+     * <p>
+     * NOTE: this does not mutate any entity state
+     *
+     * @param slot the slot
+     * @param players the players to notify
+     */
+    void broadcastSlotBreak(org.bukkit.inventory.@NotNull EquipmentSlot slot, @NotNull Collection<Player> players);
+
+    /**
+     * Damages the itemstack in this slot by the specified amount.
+     * <p>
+     * This runs all logic associated with damaging an itemstack like
+     * gamemode and enchantment checks, events, stat changes, and advancement
+     * triggers.
+     *
+     * @param stack the itemstack to damage
+     * @param amount the amount of damage to do
+     * @return the damaged itemstack, or an empty stack if it broke. There are no
+     * guarantees the returned itemstack is the same instance
+     */
+    @NotNull ItemStack damageItemStack(@NotNull ItemStack stack, int amount);
+
+    /**
+     * Damages the itemstack in this slot by the specified amount.
+     * <p>
+     * This runs all logic associated with damaging an itemstack like
+     * gamemode and enchantment checks, events, stat changes, advancement
+     * triggers, and notifying clients to play break animations.
+     *
+     * @param slot the slot of the stack to damage
+     * @param amount the amount of damage to do
+     */
+    void damageItemStack(org.bukkit.inventory.@NotNull EquipmentSlot slot, int amount);
+    // Paper end - ItemStack damage API
 
     // Paper start - hurt direction API
     /**
@@ -1215,4 +1428,29 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     void setBodyYaw(float bodyYaw);
     // Paper end - body yaw API
+
+    // Paper start - pickup animation API
+    /**
+     * Plays pickup item animation towards this entity.
+     * <p>
+     * <b>This will remove the item on the client.</b>
+     * <p>
+     * Quantity is inferred to be that of the {@link Item}.
+     *
+     * @param item item to pickup
+     */
+    default void playPickupItemAnimation(@NotNull Item item) {
+        playPickupItemAnimation(item, item.getItemStack().getAmount());
+    }
+
+    /**
+     * Plays pickup item animation towards this entity.
+     * <p>
+     * <b>This will remove the item on the client.</b>
+     *
+     * @param item item to pickup
+     * @param quantity quantity of item
+     */
+    void playPickupItemAnimation(@NotNull Item item, int quantity);
+    // Paper end - pickup animation API
 }

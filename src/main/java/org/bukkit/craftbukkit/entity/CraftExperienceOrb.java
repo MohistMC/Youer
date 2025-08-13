@@ -18,6 +18,18 @@ public class CraftExperienceOrb extends CraftEntity implements ExperienceOrb {
         this.getHandle().value = value;
     }
 
+    // Paper start - expose count
+    @Override
+    public int getCount() {
+        return this.getHandle().count;
+    }
+
+    @Override
+    public void setCount(final int count) {
+        this.getHandle().count = count;
+    }
+    // Paper end
+
     @Override
     public net.minecraft.world.entity.ExperienceOrb getHandle() {
         return (net.minecraft.world.entity.ExperienceOrb) this.entity;

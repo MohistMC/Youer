@@ -444,6 +444,34 @@ public class Commodore {
                         }
                         // Paper end - Rewrite plugins
 
+                        // Paper start - Rewrite plugins
+                        if ((owner.equals("org/bukkit/OfflinePlayer") || owner.equals("org/bukkit/entity/Player")) && name.equals("getPlayerProfile") && desc.equals("()Lorg/bukkit/profile/PlayerProfile;")) {
+                            super.visitMethodInsn(opcode, owner, name, "()Lio/papermc/paper/profile/PlayerProfile;", itf);
+                            return;
+                        }
+                        if (owner.equals("org/bukkit/advancement/Advancement") && name.equals("getDisplay") && desc.endsWith(")Lorg/bukkit/advancement/AdvancementDisplay;")) {
+                            super.visitTypeInsn(Opcodes.CHECKCAST, runtimeCbPkgPrefix() + "advancement/CraftAdvancement");
+                            super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, runtimeCbPkgPrefix() + "advancement/CraftAdvancement", "getDisplay0", desc, false);
+                            return;
+                        }
+                        if (owner.equals("org/bukkit/WorldCreator") && name.equals("keepSpawnLoaded") && desc.equals("(Lnet/kyori/adventure/util/TriState;)V")) {
+                            super.visitMethodInsn(opcode, owner, name, "(Lnet/kyori/adventure/util/TriState;)Lorg/bukkit/WorldCreator;", itf);
+                            // new method has a return, so, make sure we pop it
+                            super.visitInsn(Opcodes.POP);
+                            return;
+                        }
+                        // Paper end
+
+                        // Paper start - ItemFactory#getSpawnEgg (paper had original method that returned ItemStack, upstream added identical but returned Material)
+                        if (owner.equals("org/bukkit/inventory/ItemFactory") && name.equals("getSpawnEgg") && desc.equals("(Lorg/bukkit/entity/EntityType;)Lorg/bukkit/inventory/ItemStack;")) {
+                            super.visitInsn(Opcodes.SWAP); // has 1 param, this moves the owner instance to the top for the checkcast
+                            super.visitTypeInsn(Opcodes.CHECKCAST, runtimeCbPkgPrefix() + "inventory/CraftItemFactory");
+                            super.visitInsn(Opcodes.SWAP); // moves param back to the the top of stack
+                            super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, runtimeCbPkgPrefix() + "inventory/CraftItemFactory", "getSpawnEgg0", desc, false);
+                            return;
+                        }
+                        // Paper end - ItemFactory#getSpawnEgg
+
                         if (modern) {
                             if (owner.equals("org/bukkit/Material") || (instantiatedMethodType != null && instantiatedMethodType.getDescriptor().startsWith("(Lorg/bukkit/Material;)"))) {
                                 switch (name) {

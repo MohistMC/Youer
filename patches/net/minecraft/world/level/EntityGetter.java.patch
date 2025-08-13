@@ -1,6 +1,33 @@
 --- a/net/minecraft/world/level/EntityGetter.java
 +++ b/net/minecraft/world/level/EntityGetter.java
-@@ -97,11 +_,31 @@
+@@ -92,16 +_,58 @@
+         return player;
+     }
+ 
++    // Paper start
++    default List<org.bukkit.entity.HumanEntity> findNearbyBukkitPlayers(double x, double y, double z, double radius, boolean notSpectator) {
++        return findNearbyBukkitPlayers(x, y, z, radius, notSpectator ? EntitySelector.NO_SPECTATORS : net.minecraft.world.entity.EntitySelector.NO_CREATIVE_OR_SPECTATOR);
++    }
++
++    default List<org.bukkit.entity.HumanEntity> findNearbyBukkitPlayers(double x, double y, double z, double radius, @Nullable Predicate<Entity> predicate) {
++        com.google.common.collect.ImmutableList.Builder<org.bukkit.entity.HumanEntity> builder = com.google.common.collect.ImmutableList.builder();
++
++        for (Player human : this.players()) {
++            if (predicate == null || predicate.test(human)) {
++                double distanceSquared = human.distanceToSqr(x, y, z);
++
++                if (radius < 0.0D || distanceSquared < radius * radius) {
++                    builder.add(human.getBukkitEntity());
++                }
++            }
++        }
++
++        return builder.build();
++    }
++    // Paper end
++
+     @Nullable
+     default Player getNearestPlayer(Entity p_45931_, double p_45932_) {
          return this.getNearestPlayer(p_45931_.getX(), p_45931_.getY(), p_45931_.getZ(), p_45932_, false);
      }
  

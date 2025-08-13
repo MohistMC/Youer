@@ -4721,6 +4721,38 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     }
     // Paper end - add Translatable
 
+    // Paper start - item rarity API
+    /**
+     * Returns the item rarity for the item. The Material <b>MUST</b> be an Item not a block.
+     * Use {@link #isItem()} before this.
+     *
+     * @return the item rarity
+     * @deprecated use {@link org.bukkit.inventory.meta.ItemMeta#hasRarity()} and {@link org.bukkit.inventory.meta.ItemMeta#getRarity()}
+     */
+    @NotNull
+    @Deprecated(forRemoval = true, since = "1.20.5")
+    public io.papermc.paper.inventory.ItemRarity getItemRarity() {
+        return new org.bukkit.inventory.ItemStack(this).getRarity();
+    }
+    // Paper end - item rarity API
+
+    // Paper start - item default attributes API
+    /**
+     * Returns an immutable multimap of attributes for the slot.
+     * {@link #isItem()} must be true for this material.
+     *
+     * @param equipmentSlot the slot to get the attributes for
+     * @throws IllegalArgumentException if {@link #isItem()} is false
+     * @return an immutable multimap of attributes
+     * @deprecated use {@link #getDefaultAttributeModifiers(EquipmentSlot)}
+     */
+    @NotNull
+    @Deprecated(forRemoval = true, since = "1.20.5")
+    public Multimap<Attribute, AttributeModifier> getItemAttributes(@NotNull EquipmentSlot equipmentSlot) {
+        return this.getDefaultAttributeModifiers(equipmentSlot);
+    }
+    // Paper end - item default attributes API
+
     // Paper start - isCollidable API
     /**
      * Checks if this material is collidable.
@@ -5438,13 +5470,34 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
         }
     }
 
+    // Paper start - improve default item attribute API
+    /**
+     * Return an immutable copy of all default {@link Attribute}s and their {@link AttributeModifier}s.
+     * <p>
+     * Default attributes are those that are always preset on some items, unless
+     * they are specifically overridden on that {@link ItemStack}. Examples include
+     * the attack damage on weapons or the armor value on armor.
+     * <p>
+     * Only available when {@link #isItem()} is true.
+     *
+     * @return the immutable {@link Multimap} with the respective default
+     * Attributes and modifiers, or an empty map if no attributes are set.
+     */
+    public @NotNull @org.jetbrains.annotations.Unmodifiable Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers() {
+        final ItemType type = this.asItemType();
+        Preconditions.checkArgument(type != null, "The Material is not an item!");
+        return type.getDefaultAttributeModifiers();
+    }
+    // Paper end - improve default item attribute API
+
     /**
      * Return an immutable copy of all default {@link Attribute}s and their
      * {@link AttributeModifier}s for a given {@link EquipmentSlot}.
-     *
-     * Default attributes are those that are always preset on some items, such
-     * as the attack damage on weapons or the armor value on armor.
-     *
+     * <p>
+     * Default attributes are those that are always preset on some items, unless
+     * they are specifically overridden on that {@link ItemStack}. Examples include
+     * the attack damage on weapons or the armor value on armor.
+     * <p>
      * Only available when {@link #isItem()} is true.
      *
      * @param slot the {@link EquipmentSlot} to check

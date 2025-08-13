@@ -8,6 +8,30 @@
  
  public class IceBlock extends HalfTransparentBlock {
      public static final MapCodec<IceBlock> CODEC = simpleCodec(IceBlock::new);
+@@ -47,6 +_,23 @@
+         }
+     }
+ 
++    public void afterDestroy(Level world, BlockPos pos, ItemStack tool) {
++        // Paper end - Improve Block#breakNaturally API
++        if (!EnchantmentHelper.hasTag(tool, EnchantmentTags.PREVENTS_ICE_MELTING)) {
++            if (world.dimensionType().ultraWarm()) {
++                world.removeBlock(pos, false);
++                return;
++            }
++
++            BlockState iblockdata1 = world.getBlockState(pos.below());
++
++            if (iblockdata1.blocksMotion() || iblockdata1.liquid()) {
++                world.setBlockAndUpdate(pos, IceBlock.meltsInto());
++            }
++        }
++
++    }
++
+     @Override
+     protected void randomTick(BlockState p_221355_, ServerLevel p_221356_, BlockPos p_221357_, RandomSource p_221358_) {
+         if (p_221356_.getBrightness(LightLayer.BLOCK, p_221357_) > 11 - p_221355_.getLightBlock(p_221356_, p_221357_)) {
 @@ -55,6 +_,11 @@
      }
  

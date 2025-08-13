@@ -62,7 +62,7 @@
              if (this.isSuccess()) {
                  p_123581_.hurtAndBreak(1, serverlevel, null, p_348118_ -> {
                  });
-@@ -51,10 +_,24 @@
+@@ -51,10 +_,27 @@
          return false;
      }
  
@@ -81,11 +81,14 @@
 -                shearable.shear(SoundSource.BLOCKS);
 +            if (livingentity instanceof net.neoforged.neoforge.common.IShearable shearable && shearable.isShearable(null, stack, p_123583_, p_123584_)) {
 +                // CraftBukkit start
-+                if (bukkitBlock0.get() != null && craftItem0.get() != null && CraftEventFactory.callBlockShearEntityEvent(livingentity, bukkitBlock0.getAndSet(null), craftItem0.getAndSet(null)).isCancelled()) {
++                // Paper start - Add drops to shear events
++                org.bukkit.event.block.BlockShearEntityEvent event = CraftEventFactory.callBlockShearEntityEvent(livingentity, bukkitBlock0.getAndSet(null), craftItem0.getAndSet(null), shearable.generateDefaultDrops());
++                if (event.isCancelled()) {
++                    // Paper end - Add drops to shear events
 +                    continue;
 +                }
 +                // CraftBukkit end
-+                shearable.onSheared(null, stack, p_123583_, p_123584_)
++                shearable.onSheared(null, stack, p_123583_, p_123584_, CraftItemStack.asNMSCopy(event.getDrops())) // Paper - Add drops to shear events
 +                        .forEach(drop -> shearable.spawnShearedDrop(p_123583_, p_123584_, drop));
                  p_123583_.gameEvent(null, GameEvent.SHEAR, p_123584_);
                  return true;

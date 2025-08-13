@@ -29,6 +29,27 @@ public class CraftWanderingTrader extends CraftAbstractVillager implements Wande
         this.getHandle().setDespawnDelay(despawnDelay);
     }
 
+    // Paper start - Add more WanderingTrader API
+    @Override
+    public void setCanDrinkPotion(boolean bool) {
+        getHandle().canDrinkPotion = bool;
+    }
+
+    @Override
+    public boolean canDrinkPotion() {
+        return getHandle().canDrinkPotion;
+    }
+
+    @Override
+    public void setCanDrinkMilk(boolean bool) {
+        getHandle().canDrinkMilk = bool;
+    }
+
+    @Override
+    public boolean canDrinkMilk() {
+        return getHandle().canDrinkMilk;
+    }
+
     @Override
     public org.bukkit.Location getWanderingTowards() {
         net.minecraft.core.BlockPos pos = this.getHandle().getWanderTarget();

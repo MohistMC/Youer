@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
-@@ -1,13 +_,13 @@
+@@ -1,18 +_,19 @@
  package net.minecraft.world.item;
  
  import com.google.common.collect.Lists;
@@ -15,6 +15,12 @@
  import io.netty.handler.codec.DecoderException;
  import io.netty.handler.codec.EncoderException;
  import java.util.List;
+ import java.util.Objects;
+ import java.util.Optional;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.BiConsumer;
+ import java.util.function.BiFunction;
+ import java.util.function.Consumer;
 @@ -44,7 +_,6 @@
  import net.minecraft.network.chat.ComponentUtils;
  import net.minecraft.network.chat.HoverEvent;
@@ -184,11 +190,12 @@
      public void hurtAndBreak(int p_220158_, ServerLevel p_346256_, @Nullable ServerPlayer p_220160_, Consumer<Item> p_348596_) {
 +        this.hurtAndBreak(p_220158_, p_346256_, (LivingEntity) p_220160_, p_348596_);
 +    }
-+
++    public AtomicBoolean hurtAndBreak$force = new AtomicBoolean(false);
 +    public void hurtAndBreak(int p_220158_, ServerLevel p_346256_, @Nullable LivingEntity p_220160_, Consumer<Item> p_348596_) {
          if (this.isDamageableItem()) {
+-            if (p_220160_ == null || !p_220160_.hasInfiniteMaterials()) {
 +            p_220158_ = getItem().damageItem(this, p_220158_, p_220160_, p_348596_);
-             if (p_220160_ == null || !p_220160_.hasInfiniteMaterials()) {
++            if (p_220160_ == null || !p_220160_.hasInfiniteMaterials() || hurtAndBreak$force.getAndSet(false)) {
                  if (p_220158_ > 0) {
                      p_220158_ = EnchantmentHelper.processDurabilityChange(p_346256_, this, p_220158_);
 +                    if (p_220160_ instanceof ServerPlayer serverPlayer) { // Paper - Add EntityDamageItemEvent
@@ -235,7 +242,17 @@
                      this.shrink(1);
                      p_348596_.accept(item);
                  }
-@@ -456,8 +_,10 @@
+@@ -452,12 +_,20 @@
+     }
+ 
+     public void hurtAndBreak(int p_41623_, LivingEntity p_41624_, EquipmentSlot p_319898_) {
++        // Paper start - add param to skip infinite mats check
++        this.hurtAndBreak(p_41623_, p_41624_, p_319898_, false);
++    }
++    public void hurtAndBreak(int p_41623_, LivingEntity p_41624_, EquipmentSlot p_319898_, boolean force) {
++        // Paper end - add param to skip infinite mats check
+         if (p_41624_.level() instanceof ServerLevel serverlevel) {
++            hurtAndBreak$force.set( force);
              this.hurtAndBreak(
                  p_41623_,
                  serverlevel,
@@ -243,7 +260,7 @@
 -                p_348383_ -> p_41624_.onEquippedItemBroken(p_348383_, p_319898_)
 +                p_41624_,
 +                p_348383_ -> {
-+                    p_41624_.onEquippedItemBroken(p_348383_, p_319898_);
++                    if (p_319898_ != null) p_41624_.onEquippedItemBroken(p_348383_, p_319898_);
 +                }
              );
          }

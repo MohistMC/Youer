@@ -10,9 +10,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Called when an item is put in a slot for repair or unenchanting in a grindstone.
  */
-public class PrepareGrindstoneEvent extends PrepareInventoryResultEvent {
-
-    private static final HandlerList handlers = new HandlerList();
+public class PrepareGrindstoneEvent extends io.papermc.paper.event.inventory.PrepareGrindstoneEvent {
 
     public PrepareGrindstoneEvent(@NotNull InventoryView inventory, @Nullable ItemStack result) {
         super(inventory, result);
@@ -22,16 +20,5 @@ public class PrepareGrindstoneEvent extends PrepareInventoryResultEvent {
     @Override
     public GrindstoneInventory getInventory() {
         return (GrindstoneInventory) super.getInventory();
-    }
-
-    @NotNull
-    @Override
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-
-    @NotNull
-    public static HandlerList getHandlerList() {
-        return handlers;
     }
 }

@@ -1,12 +1,18 @@
 --- a/net/minecraft/world/entity/projectile/DragonFireball.java
 +++ b/net/minecraft/world/entity/projectile/DragonFireball.java
-@@ -54,8 +_,9 @@
+@@ -52,10 +_,12 @@
+                         }
+                     }
                  }
- 
-                 this.level().levelEvent(2006, this.blockPosition(), this.isSilent() ? -1 : 1);
-+                areaeffectcloud.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.EXPLOSION); // Paper - use correct spawn reason
-                 this.level().addFreshEntity(areaeffectcloud);
+-
+-                this.level().levelEvent(2006, this.blockPosition(), this.isSilent() ? -1 : 1);
+-                this.level().addFreshEntity(areaeffectcloud);
 -                this.discard();
++                if (new io.papermc.paper.event.entity.EnderDragonFireballHitEvent((org.bukkit.entity.DragonFireball) this.getBukkitEntity(), list.stream().map(LivingEntity::getBukkitLivingEntity).collect(java.util.stream.Collectors.toList()), (org.bukkit.entity.AreaEffectCloud) areaeffectcloud.getBukkitEntity()).callEvent()) { // Paper - EnderDragon Events
++                    this.level().levelEvent(2006, this.blockPosition(), this.isSilent() ? -1 : 1);
++                    areaeffectcloud.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.EXPLOSION); // Paper - use correct spawn reason
++                    this.level().addFreshEntity(areaeffectcloud);
++                } else areaeffectcloud.discard(null); // Paper - EnderDragon Events
 +                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
              }
          }

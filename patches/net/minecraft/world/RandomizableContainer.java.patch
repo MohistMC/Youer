@@ -1,10 +1,11 @@
 --- a/net/minecraft/world/RandomizableContainer.java
 +++ b/net/minecraft/world/RandomizableContainer.java
-@@ -1,5 +_,7 @@
+@@ -1,5 +_,8 @@
  package net.minecraft.world;
  
 +import io.papermc.paper.loottable.PaperLootableInventory;
 +import io.papermc.paper.loottable.PaperLootableInventoryData;
++import java.util.concurrent.atomic.AtomicBoolean;
  import javax.annotation.Nullable;
  import net.minecraft.advancements.CriteriaTriggers;
  import net.minecraft.core.BlockPos;
@@ -33,7 +34,7 @@
          } else {
              return false;
          }
-@@ -69,26 +_,44 @@
+@@ -69,28 +_,44 @@
              return false;
          } else {
              p_309634_.putString("LootTable", resourcekey.location().toString());
@@ -47,12 +48,10 @@
 +            return this.lootableData() == null; // Paper - only track the loot table if there is chance for replenish
          }
      }
- 
+-
++    AtomicBoolean unpackLootTable$forceClearLootTable = new AtomicBoolean(false);
      default void unpackLootTable(@Nullable Player p_309628_) {
 +        // Paper start - LootTable API
-+        this.unpackLootTable(p_309628_, false);
-+    }
-+    default void unpackLootTable(@Nullable final Player p_309628_, final boolean forceClearLootTable) {
 +        // Paper end - LootTable API
          Level level = this.getLevel();
          BlockPos blockpos = this.getBlockPos();
@@ -60,6 +59,7 @@
 -        if (resourcekey != null && level != null && level.getServer() != null) {
 +        // Paper start - LootTable API
 +        lootReplenish: if (resourcekey != null && level != null && level.getServer() != null) {
++            boolean forceClearLootTable = unpackLootTable$forceClearLootTable.getAndSet(false);
 +            if (this.lootableData() != null && !this.lootableData().shouldReplenish(this, PaperLootableInventoryData.CONTAINER, p_309628_)) {
 +                if (forceClearLootTable) {
 +                    this.setLootTable(null);
@@ -79,12 +79,19 @@
 +            }
 +            // Paper end - LootTable API
              LootParams.Builder lootparams$builder = new LootParams.Builder((ServerLevel)level)
-                 .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(blockpos));
+-                .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(blockpos));
++                    .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(blockpos));
              if (p_309628_ != null) {
-@@ -98,4 +_,16 @@
+                 lootparams$builder.withLuck(p_309628_.getLuck()).withParameter(LootContextParams.THIS_ENTITY, p_309628_);
+             }
+@@ -98,4 +_,20 @@
              loottable.fill(this, lootparams$builder.create(LootContextParamSets.CHEST), this.getLootTableSeed());
          }
      }
++    default void unpackLootTable(@Nullable final Player p_309628_, final boolean forceClearLootTable) {
++        unpackLootTable$forceClearLootTable.set(forceClearLootTable);
++        unpackLootTable(p_309628_);
++    }
 +
 +    // Paper start - LootTable API
 +    @Nullable @org.jetbrains.annotations.Contract(pure = true)

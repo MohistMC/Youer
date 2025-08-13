@@ -26,7 +26,7 @@
      @Nullable
      public UUID thrower;
      @Nullable
-@@ -49,6 +_,11 @@
+@@ -49,6 +_,12 @@
      @Nullable
      public UUID target;
      public final float bobOffs;
@@ -35,6 +35,7 @@
 +     */
 +    public int lifespan = ItemEntity.LIFETIME;
 +    public boolean canMobPickup = true; // Paper - Item#canEntityPickup
++    public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
  
      public ItemEntity(EntityType<? extends ItemEntity> p_31991_, Level p_31992_) {
          super(p_31991_, p_31992_);
@@ -81,11 +82,17 @@
              if (this.isInWater() && this.getFluidHeight(FluidTags.WATER) > 0.1F) {
                  this.setUnderwaterMovement();
              } else if (this.isInLava() && this.getFluidHeight(FluidTags.LAVA) > 0.1F) {
-@@ -153,7 +_,8 @@
+@@ -152,8 +_,13 @@
+             if (!this.onGround() || this.getDeltaMovement().horizontalDistanceSqr() > 1.0E-5F || (this.tickCount + this.getId()) % 4 == 0) {
                  this.move(MoverType.SELF, this.getDeltaMovement());
                  float f = 0.98F;
-                 if (this.onGround()) {
+-                if (this.onGround()) {
 -                    f = this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getBlock().getFriction() * 0.98F;
++                // Paper start - Friction API
++                if (frictionState == net.kyori.adventure.util.TriState.FALSE) {
++                    f = 1F;
++                } else if (this.onGround()) {
++                    // Paper end - Friction API
 +                    BlockPos groundPos = getBlockPosBelowThatAffectsMyMovement();
 +                    f = this.level().getBlockState(groundPos).getFriction(level(), groundPos, this) * 0.98F;
                  }
@@ -213,7 +220,15 @@
                  this.discard();
              }
  
-@@ -295,6 +_,7 @@
+@@ -292,9 +_,15 @@
+ 
+     @Override
+     public void addAdditionalSaveData(CompoundTag p_32050_) {
++        // Paper start - Friction API
++        if (this.frictionState != net.kyori.adventure.util.TriState.NOT_SET) {
++            p_32050_.putString("Paper.FrictionState", this.frictionState.toString());
++        }
++        // Paper end - Friction API
          p_32050_.putShort("Health", (short)this.health);
          p_32050_.putShort("Age", (short)this.age);
          p_32050_.putShort("PickupDelay", (short)this.pickupDelay);
@@ -231,9 +246,21 @@
  
          if (p_32034_.hasUUID("Owner")) {
              this.target = p_32034_.getUUID("Owner");
-@@ -333,7 +_,7 @@
+@@ -332,8 +_,19 @@
+             this.setItem(ItemStack.EMPTY);
          }
  
++        // Paper start - Friction API
++        if (p_32034_.contains("Paper.FrictionState")) {
++            String fs = p_32034_.getString("Paper.FrictionState");
++            try {
++                frictionState = net.kyori.adventure.util.TriState.valueOf(fs);
++            } catch (Exception ignored) {
++                com.mojang.logging.LogUtils.getLogger().error("Unknown friction state " + fs + " for " + this);
++            }
++        }
++        // Paper end - Friction API
++
          if (this.getItem().isEmpty()) {
 -            this.discard();
 +            this.discard(null); // CraftBukkit - add Bukkit remove cause

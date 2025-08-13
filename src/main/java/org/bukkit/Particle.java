@@ -194,6 +194,18 @@ public enum Particle implements Keyed {
         return key;
     }
 
+    // Paper start - Particle API expansion
+    /**
+     * Creates a {@link io.papermc.paper.ParticleBuilder}
+     *
+     * @return a {@link io.papermc.paper.ParticleBuilder} for the particle
+     */
+    @NotNull
+    public io.papermc.paper.ParticleBuilder builder() {
+        return new io.papermc.paper.ParticleBuilder(this);
+    }
+    // Paper end
+
     /**
      * Options which can be applied to redstone dust particles - a particle
      * color and size.

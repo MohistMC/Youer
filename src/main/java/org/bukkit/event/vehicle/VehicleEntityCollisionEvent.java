@@ -10,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
  * Raised when a vehicle collides with an entity.
  */
 public class VehicleEntityCollisionEvent extends VehicleCollisionEvent implements Cancellable {
-    private static final HandlerList handlers = new HandlerList();
     private final Entity entity;
     private boolean cancelled = false;
     private boolean cancelledPickup = false;
@@ -50,16 +49,5 @@ public class VehicleEntityCollisionEvent extends VehicleCollisionEvent implement
 
     public void setCollisionCancelled(boolean cancel) {
         cancelledCollision = cancel;
-    }
-
-    @NotNull
-    @Override
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-
-    @NotNull
-    public static HandlerList getHandlerList() {
-        return handlers;
     }
 }

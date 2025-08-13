@@ -165,6 +165,14 @@ public class CraftLimitedRegion extends CraftRegionAccessor implements LimitedRe
         return super.getBiome(x, y, z);
     }
 
+    // Paper start
+    @Override
+    public Biome getComputedBiome(int x, int y, int z) {
+        Preconditions.checkArgument(this.isInRegion(x, y, z), "Coordinates %s, %s, %s are not in the region", x, y, z);
+        return super.getComputedBiome(x, y, z);
+    }
+    // Paper end
+
     @Override
     public void setBiome(int x, int y, int z, Holder<net.minecraft.world.level.biome.Biome> biomeBase) {
         Preconditions.checkArgument(this.isInRegion(x, y, z), "Coordinates %s, %s, %s are not in the region", x, y, z);
@@ -255,6 +263,46 @@ public class CraftLimitedRegion extends CraftRegionAccessor implements LimitedRe
         this.entities.add(entity);
     }
 
+    // Paper start - Add more LimitedRegion API
+    @Override
+    public void setBlockState(int x, int y, int z, BlockState state) {
+        BlockPos pos = new BlockPos(x, y, z);
+        if (!state.getBlockData().matches(getHandle().getBlockState(pos).createCraftBlockData())) {
+            throw new IllegalArgumentException("BlockData does not match! Expected " + state.getBlockData().getAsString(false) + ", got " + getHandle().getBlockState(pos).createCraftBlockData().getAsString(false));
+        }
+        getHandle().getBlockEntity(pos).loadWithComponents(((org.bukkit.craftbukkit.block.CraftBlockEntityState<?>) state).getSnapshotNBT(), this.getHandle().registryAccess());
+    }
+
+    @Override
+    public void scheduleBlockUpdate(int x, int y, int z) {
+        BlockPos position = new BlockPos(x, y, z);
+        getHandle().scheduleTick(position, getHandle().getBlockState(position).getBlock(), 0);
+    }
+
+    @Override
+    public void scheduleFluidUpdate(int x, int y, int z) {
+        BlockPos position = new BlockPos(x, y, z);
+        getHandle().scheduleTick(position, getHandle().getFluidState(position).getType(), 0);
+    }
+
+    @Override
+    public World getWorld() {
+        // reading/writing the returned Minecraft world causes a deadlock.
+        // By implementing this, and covering it in warnings, we're assuming people won't be stupid, and
+        // if they are stupid, they'll figure it out pretty fast.
+        return getHandle().getMinecraftWorld().getWorld();
+    }
+
+    @Override
+    public int getCenterChunkX() {
+        return centerChunkX;
+    }
+
+    @Override
+    public int getCenterChunkZ() {
+        return centerChunkZ;
+    }
+    // Paper end - Add more LimitedRegion API
     // Paper start - Fluid API
     @Override
     public io.papermc.paper.block.fluid.FluidData getFluidData(int x, int y, int z) {

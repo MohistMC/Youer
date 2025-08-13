@@ -18,6 +18,20 @@
  
  public class Cat extends TamableAnimal implements VariantHolder<Holder<CatVariant>> {
      public static final double TEMPT_SPEED_MOD = 0.6;
+@@ -358,6 +_,13 @@
+                 if (item instanceof DyeItem dyeitem) {
+                     DyeColor dyecolor = dyeitem.getDyeColor();
+                     if (dyecolor != this.getCollarColor()) {
++                        // Paper start - Add EntityDyeEvent and CollarColorable interface
++                        final io.papermc.paper.event.entity.EntityDyeEvent event = new io.papermc.paper.event.entity.EntityDyeEvent(this.getBukkitEntity(), org.bukkit.DyeColor.getByWoolData((byte) dyecolor.getId()), ((net.minecraft.server.level.ServerPlayer) p_28153_).getBukkitEntity());
++                        if (!event.callEvent()) {
++                            return InteractionResult.FAIL;
++                        }
++                        dyecolor = DyeColor.byId(event.getColor().getWoolData());
++                        // Paper end - Add EntityDyeEvent and CollarColorable interface
+                         if (!this.level().isClientSide()) {
+                             this.setCollarColor(dyecolor);
+                             itemstack.consume(1, p_28153_);
 @@ -368,9 +_,9 @@
                      }
                  } else if (this.isFood(itemstack) && this.getHealth() < this.getMaxHealth()) {

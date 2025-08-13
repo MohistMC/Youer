@@ -144,6 +144,15 @@ final class CraftObjective extends CraftScoreboardComponent implements Objective
         return new CraftScore(this, CraftScoreboard.getScoreHolder(entry));
     }
 
+    // Paper start
+    @Override
+    public Score getScoreFor(org.bukkit.entity.Entity entity) throws IllegalArgumentException, IllegalStateException {
+        Preconditions.checkArgument(entity != null, "Entity cannot be null");
+        this.checkState();
+        return new CraftScore(this, ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle());
+    }
+    // Paper end
+
     // Paper start - add number format
     @Override
     public io.papermc.paper.scoreboard.numbers.NumberFormat numberFormat() {
@@ -205,5 +214,17 @@ final class CraftObjective extends CraftScoreboardComponent implements Objective
         return !(this.objective != other.objective && (this.objective == null || !this.objective.equals(other.objective)));
     }
 
+    // Paper start - add more score API
+    @Override
+    public boolean willAutoUpdateDisplay() {
+        this.checkState();
+        return this.objective.displayAutoUpdate();
+    }
 
+    @Override
+    public void setAutoUpdateDisplay(final boolean autoUpdateDisplay) {
+        this.checkState();
+        this.objective.setDisplayAutoUpdate(autoUpdateDisplay);
+    }
+    // Paper end - add more score API
 }

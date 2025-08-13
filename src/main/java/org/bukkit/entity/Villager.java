@@ -3,6 +3,8 @@ package org.bukkit.entity;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 import org.bukkit.Keyed;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -316,4 +318,50 @@ public interface Villager extends AbstractVillager {
         }
         // Paper end
     }
+
+    // Paper start - Add villager reputation API
+    /**
+     * Get the {@link io.papermc.paper.entity.villager.Reputation reputation}
+     * for a specific player by {@link UUID}.
+     *
+     * @param uniqueId The {@link UUID} of the player to get the reputation of.
+     * @return The player's copied reputation with this villager.
+     */
+    @NotNull
+    public io.papermc.paper.entity.villager.Reputation getReputation(@NotNull UUID uniqueId);
+
+    /**
+     * Get all {@link io.papermc.paper.entity.villager.Reputation reputations}
+     * for all players mapped by their {@link UUID unique IDs}.
+     *
+     * @return All {@link io.papermc.paper.entity.villager.Reputation reputations} for all players
+     * in a copied map.
+     */
+    @NotNull
+    public Map<UUID, io.papermc.paper.entity.villager.Reputation> getReputations();
+
+    /**
+     * Set the {@link io.papermc.paper.entity.villager.Reputation reputation}
+     * for a specific player by {@link UUID}.
+     *
+     * @param uniqueId The {@link UUID} of the player to set the reputation of.
+     * @param reputation The {@link io.papermc.paper.entity.villager.Reputation reputation} to set.
+     */
+    public void setReputation(@NotNull UUID uniqueId, @NotNull io.papermc.paper.entity.villager.Reputation reputation);
+
+    /**
+     * Set all {@link io.papermc.paper.entity.villager.Reputation reputations}
+     * for all players mapped by their {@link UUID unique IDs}.
+     *
+     * @param reputations All {@link io.papermc.paper.entity.villager.Reputation reputations}
+     * for all players mapped by their {@link UUID unique IDs}.
+     */
+    public void setReputations(@NotNull Map<UUID, io.papermc.paper.entity.villager.Reputation> reputations);
+
+    /**
+     * Clear all reputations from this villager. This removes every single
+     * reputation regardless of its impact and the player associated.
+     */
+    public void clearReputations();
+    // Paper end
 }

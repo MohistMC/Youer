@@ -670,6 +670,29 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         }
     }
 
+    @Override
+    public <T> T getClientOption(io.papermc.paper.ClientOption<T> type) {
+        if (io.papermc.paper.ClientOption.SKIN_PARTS == type) {
+            return type.getType().cast(new io.papermc.paper.PaperSkinParts(getHandle().getEntityData().get(net.minecraft.world.entity.player.Player.DATA_PLAYER_MODE_CUSTOMISATION)));
+        } else if (io.papermc.paper.ClientOption.CHAT_COLORS_ENABLED == type) {
+            return type.getType().cast(getHandle().canChatInColor());
+        } else if (io.papermc.paper.ClientOption.CHAT_VISIBILITY == type) {
+            return type.getType().cast(getHandle().getChatVisibility() == null ? io.papermc.paper.ClientOption.ChatVisibility.UNKNOWN : io.papermc.paper.ClientOption.ChatVisibility.valueOf(getHandle().getChatVisibility().name()));
+        } else if (io.papermc.paper.ClientOption.LOCALE == type) {
+            return type.getType().cast(getLocale());
+        } else if (io.papermc.paper.ClientOption.MAIN_HAND == type) {
+            return type.getType().cast(getMainHand());
+        } else if (io.papermc.paper.ClientOption.VIEW_DISTANCE == type) {
+            return type.getType().cast(getClientViewDistance());
+        } else if (io.papermc.paper.ClientOption.ALLOW_SERVER_LISTINGS == type) {
+            return type.getType().cast(getHandle().allowsListing());
+        } else if (io.papermc.paper.ClientOption.TEXT_FILTERING_ENABLED == type) {
+            return type.getType().cast(getHandle().isTextFilteringEnabled());
+        }
+        throw new RuntimeException("Unknown settings type");
+    }
+    // Paper end
+
     // Paper start - Add sendOpLevel API
     @Override
     public void sendOpLevel(byte level) {
@@ -1814,7 +1837,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         Preconditions.checkArgument(mode != null, "GameMode cannot be null");
         if (this.getHandle().connection == null) return;
 
-        this.getHandle().setGameMode(GameType.byId(mode.getValue()));
+        this.getHandle().setGameMode(GameType.byId(mode.getValue()), org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.PLUGIN, null); // Paper - Expand PlayerGameModeChangeEvent
     }
 
     @Override
@@ -3274,6 +3297,21 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
         return this.adventure$pointers;
     }
+
+    @Override
+    public float getCooldownPeriod() {
+        return getHandle().getCurrentItemAttackStrengthDelay();
+    }
+
+    @Override
+    public float getCooledAttackStrength(float adjustTicks) {
+        return getHandle().getAttackStrengthScale(adjustTicks);
+    }
+
+    @Override
+    public void resetCooldown() {
+        getHandle().resetAttackStrengthTicker();
+    }
     // Paper end
     // Spigot start
     private final Player.Spigot spigot = new Player.Spigot()
@@ -3363,6 +3401,42 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     public void showElderGuardian(boolean silent) {
         if (getHandle().connection != null) getHandle().connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.GUARDIAN_ELDER_EFFECT, silent ? 0F : 1F));
     }
+
+    @Override
+    public int getWardenWarningCooldown() {
+        return this.getHandle().wardenSpawnTracker.cooldownTicks;
+    }
+
+    @Override
+    public void setWardenWarningCooldown(int cooldown) {
+        this.getHandle().wardenSpawnTracker.cooldownTicks = Math.max(cooldown, 0);
+    }
+
+    @Override
+    public int getWardenTimeSinceLastWarning() {
+        return this.getHandle().wardenSpawnTracker.ticksSinceLastWarning;
+    }
+
+    @Override
+    public void setWardenTimeSinceLastWarning(int time) {
+        this.getHandle().wardenSpawnTracker.ticksSinceLastWarning = time;
+    }
+
+    @Override
+    public int getWardenWarningLevel() {
+        return this.getHandle().wardenSpawnTracker.getWarningLevel();
+    }
+
+    @Override
+    public void setWardenWarningLevel(int warningLevel) {
+        this.getHandle().wardenSpawnTracker.setWarningLevel(warningLevel);
+    }
+
+    @Override
+    public void increaseWardenWarningLevel() {
+        this.getHandle().wardenSpawnTracker.increaseWarningLevel();
+    }
+    // Paper end
 
     // Paper start - brand support
     @Override

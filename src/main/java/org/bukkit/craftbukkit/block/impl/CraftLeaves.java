@@ -53,4 +53,16 @@ public final class CraftLeaves extends CraftBlockData implements org.bukkit.bloc
     public void setWaterlogged(boolean waterlogged) {
         this.set(CraftLeaves.WATERLOGGED, waterlogged);
     }
+
+    // Paper start
+    @Override
+    public int getMaximumDistance() {
+        return getMax(CraftLeaves.DISTANCE);
+    }
+
+    @Override
+    public int getMinimumDistance() {
+        return getMin(CraftLeaves.DISTANCE);
+    }
+    // Paper end
 }

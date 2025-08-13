@@ -23,6 +23,24 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final int MAX_TEXT_LINE_WIDTH = 90;
      private static final int TEXT_LINE_HEIGHT = 10;
+@@ -55,10 +_,15 @@
+     }
+ 
+     public boolean isFacingFrontText(Player p_277382_) {
++        // Paper start - More Sign Block API
++        return this.isFacingFrontText(p_277382_.getX(), p_277382_.getZ());
++    }
++    public boolean isFacingFrontText(double x, double z) {
++        // Paper end - More Sign Block API
+         if (this.getBlockState().getBlock() instanceof SignBlock signblock) {
+             Vec3 vec3 = signblock.getSignHitboxCenterPosition(this.getBlockState());
+-            double d0 = p_277382_.getX() - ((double)this.getBlockPos().getX() + vec3.x);
+-            double d1 = p_277382_.getZ() - ((double)this.getBlockPos().getZ() + vec3.z);
++            double d0 = x - ((double) this.getBlockPos().getX() + vec3.x); // Paper - More Sign Block API
++            double d1 = z - ((double) this.getBlockPos().getZ() + vec3.z); // Paper - More Sign Block API
+             float f = signblock.getYRotationDegrees(this.getBlockState());
+             float f1 = (float)(Mth.atan2(d1, d0) * 180.0F / (float)Math.PI) - 90.0F;
+             return Mth.degreesDifferenceAbs(f, f1) <= 90.0F;
 @@ -146,11 +_,13 @@
  
      public void updateSignText(Player p_278048_, boolean p_278103_, List<FilteredText> p_277990_) {

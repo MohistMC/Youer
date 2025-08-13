@@ -79,7 +79,7 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("the_nether"));
-@@ -114,6 +_,54 @@
+@@ -114,6 +_,55 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -114,6 +114,7 @@
 +    }
 +    public java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator;
 +    // Paper end - add paper world config
++
 +    public CraftWorld getWorld() {
 +        return this.world;
 +    }
@@ -388,6 +389,34 @@
  
      public void onBlockStateChange(BlockPos p_46609_, BlockState p_46610_, BlockState p_46611_) {
      }
+@@ -270,8 +_,25 @@
+             return false;
+         } else {
+             FluidState fluidstate = this.getFluidState(p_46626_);
+-            if (!(blockstate.getBlock() instanceof BaseFireBlock)) {
+-                this.levelEvent(2001, p_46626_, Block.getId(blockstate));
++            // Paper start - BlockDestroyEvent; while the above setAir method is named same and looks very similar
++            // they are NOT used with same intent and the above should not fire this event. The above method is more of a BlockSetToAirEvent,
++            // it doesn't imply destruction of a block that plays a sound effect / drops an item.
++            boolean playEffect = true;
++            BlockState effectType = blockstate;
++            int xp = blockstate.getBlock().getExpDrop(blockstate, (ServerLevel) this, p_46626_, ItemStack.EMPTY, true);
++            if (io.papermc.paper.event.block.BlockDestroyEvent.getHandlerList().getRegisteredListeners().length > 0) {
++                io.papermc.paper.event.block.BlockDestroyEvent event = new io.papermc.paper.event.block.BlockDestroyEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this, p_46626_), fluidstate.createLegacyBlock().createCraftBlockData(), effectType.createCraftBlockData(), xp, p_46627_);
++                if (!event.callEvent()) {
++                    return false;
++                }
++                effectType = ((CraftBlockData) event.getEffectBlock()).getState();
++                playEffect = event.playEffect();
++                p_46627_ = event.willDrop();
++                xp = event.getExpToDrop();
++            }
++            // Paper end - BlockDestroyEvent
++            if (playEffect && !(effectType.getBlock() instanceof BaseFireBlock)) { // Paper - BlockDestroyEvent
++                this.levelEvent(2001, p_46626_, Block.getId(effectType)); // Paper - BlockDestroyEvent
+             }
+ 
+             if (p_46627_) {
 @@ -291,9 +_,20 @@
      public void addDestroyBlockEffect(BlockPos p_151531_, BlockState p_151532_) {
      }

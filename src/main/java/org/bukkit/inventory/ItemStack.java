@@ -1054,6 +1054,19 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
         return Bukkit.getUnsafe().getTranslationKey(this);
     }
 
+    /**
+     * Gets the item rarity of the itemstack. The rarity can change based on enchantments.
+     *
+     * @return the itemstack rarity
+     * @deprecated Use {@link ItemMeta#hasRarity()} and {@link ItemMeta#getRarity()}
+     */
+    @NotNull
+    @Deprecated(forRemoval = true, since = "1.20.5")
+    public io.papermc.paper.inventory.ItemRarity getRarity() {
+        return io.papermc.paper.inventory.ItemRarity.valueOf(this.getItemMeta().getRarity().name());
+    }
+
+
     // Paper start - expose itemstack tooltip lines
     /**
      * Computes the tooltip lines for this stack.
@@ -1092,5 +1105,19 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     public boolean canRepair(@NotNull ItemStack toBeRepaired) {
         return Bukkit.getUnsafe().isValidRepairItemStack(toBeRepaired, this);
+    }
+
+    /**
+     * Damages this itemstack by the specified amount. This
+     * runs all logic associated with damaging an itemstack like
+     * events and stat changes.
+     *
+     * @param amount the amount of damage to do
+     * @param livingEntity the entity related to the damage
+     * @return the damaged itemstack or an empty one if it broke. May return the same instance of ItemStack
+     * @see org.bukkit.entity.LivingEntity#damageItemStack(EquipmentSlot, int) to damage itemstacks in equipment slots
+     */
+    public @NotNull ItemStack damage(int amount, @NotNull org.bukkit.entity.LivingEntity livingEntity) {
+        return livingEntity.damageItemStack(this, amount);
     }
 }

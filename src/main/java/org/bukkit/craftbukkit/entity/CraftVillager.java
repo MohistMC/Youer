@@ -1,7 +1,10 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import io.papermc.paper.entity.villager.Reputation;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.monster.Zombie;
@@ -326,4 +329,45 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
             return this.getKey().hashCode();
         }
     }
+
+    // Paper start - Add villager reputation API
+    @Override
+    public Reputation getReputation(UUID uniqueId) {
+        net.minecraft.world.entity.ai.gossip.GossipContainer.EntityGossips rep = getHandle().getGossips().gossips.get(uniqueId);
+        if (rep == null) {
+            return new Reputation(new java.util.EnumMap<>(io.papermc.paper.entity.villager.ReputationType.class));
+        }
+
+        return rep.getPaperReputation();
+    }
+
+    @Override
+    public Map<UUID, Reputation> getReputations() {
+        return getHandle().getGossips().gossips.entrySet()
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getPaperReputation()));
+    }
+
+    @Override
+    public void setReputation(UUID uniqueId, Reputation reputation) {
+        net.minecraft.world.entity.ai.gossip.GossipContainer.EntityGossips nmsReputation =
+                getHandle().getGossips().gossips.computeIfAbsent(
+                        uniqueId,
+                        key -> new net.minecraft.world.entity.ai.gossip.GossipContainer.EntityGossips()
+                );
+        nmsReputation.assignFromPaperReputation(reputation);
+    }
+
+    @Override
+    public void setReputations(Map<UUID, Reputation> reputations) {
+        for (Map.Entry<UUID, Reputation> entry : reputations.entrySet()) {
+            setReputation(entry.getKey(), entry.getValue());
+        }
+    }
+
+    @Override
+    public void clearReputations() {
+        getHandle().getGossips().gossips.clear();
+    }
+    // Paper end
 }

@@ -16,11 +16,32 @@
          }
  
          return InteractionResult.sidedSuccess(level.isClientSide);
-@@ -55,6 +_,7 @@
+@@ -55,9 +_,25 @@
              ItemStack itemstack = p_41219_.getItemInHand(p_41220_);
              if (!p_41218_.isClientSide) {
                  FireworkRocketEntity fireworkrocketentity = new FireworkRocketEntity(p_41218_, itemstack, p_41219_);
+-                p_41218_.addFreshEntity(fireworkrocketentity);
+-                itemstack.consume(1, p_41219_);
+-                p_41219_.awardStat(Stats.ITEM_USED.get(this));
 +                fireworkrocketentity.spawningEntity = p_41219_.getUUID(); // Paper
-                 p_41218_.addFreshEntity(fireworkrocketentity);
-                 itemstack.consume(1, p_41219_);
-                 p_41219_.awardStat(Stats.ITEM_USED.get(this));
++                // Paper start - PlayerElytraBoostEvent
++                io.papermc.paper.event.player.PlayerElytraBoostEvent event = new io.papermc.paper.event.player.PlayerElytraBoostEvent(
++                        (org.bukkit.entity.Player) p_41219_.getBukkitEntity(),
++                        org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack),
++                        (org.bukkit.entity.Firework) fireworkrocketentity.getBukkitEntity(),
++                        org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(p_41220_));
++                if (event.callEvent()) {
++                    p_41218_.addFreshEntity(fireworkrocketentity);
++                    if (p_41218_.canAddFreshEntity()) {
++                        p_41219_.awardStat(Stats.ITEM_USED.get(this));
++                        if (event.shouldConsume() && !p_41219_.hasInfiniteMaterials()) {
++                            itemstack.shrink(1);
++                        } else ((net.minecraft.server.level.ServerPlayer) p_41219_).getBukkitEntity().updateInventory();
++                    }
++                } else if (p_41219_ instanceof net.minecraft.server.level.ServerPlayer) {
++                    ((net.minecraft.server.level.ServerPlayer) p_41219_).getBukkitEntity().updateInventory();
++                    // Paper end - PlayerElytraBoostEvent
++                }
+             }
+ 
+             return InteractionResultHolder.sidedSuccess(p_41219_.getItemInHand(p_41220_), p_41218_.isClientSide());

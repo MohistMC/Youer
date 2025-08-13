@@ -47,4 +47,18 @@ public final class CraftDecoratedPot extends CraftBlockData implements org.bukki
     public void setWaterlogged(boolean waterlogged) {
         this.set(CraftDecoratedPot.WATERLOGGED, waterlogged);
     }
+
+    // Paper start - add missing block data api
+    private static final net.minecraft.world.level.block.state.properties.BooleanProperty CRACKED = getBoolean(net.minecraft.world.level.block.DecoratedPotBlock.class, "cracked");
+
+    @Override
+    public boolean isCracked() {
+        return this.get(CraftDecoratedPot.CRACKED);
+    }
+
+    @Override
+    public void setCracked(final boolean cracked) {
+        this.set(CraftDecoratedPot.CRACKED, cracked);
+    }
+    // Paper end - add missing block data api
 }

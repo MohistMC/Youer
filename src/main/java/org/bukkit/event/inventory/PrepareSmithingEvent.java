@@ -1,5 +1,6 @@
 package org.bukkit.event.inventory;
 
+import io.papermc.paper.event.inventory.PrepareResultEvent;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
@@ -10,9 +11,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Called when an item is put in a slot for upgrade by a Smithing Table.
  */
-public class PrepareSmithingEvent extends PrepareInventoryResultEvent {
-
-    private static final HandlerList handlers = new HandlerList();
+public class PrepareSmithingEvent extends PrepareResultEvent {
 
     public PrepareSmithingEvent(@NotNull InventoryView inventory, @Nullable ItemStack result) {
         super(inventory, result);
@@ -22,16 +21,5 @@ public class PrepareSmithingEvent extends PrepareInventoryResultEvent {
     @Override
     public SmithingInventory getInventory() {
         return (SmithingInventory) super.getInventory();
-    }
-
-    @NotNull
-    @Override
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-
-    @NotNull
-    public static HandlerList getHandlerList() {
-        return handlers;
     }
 }

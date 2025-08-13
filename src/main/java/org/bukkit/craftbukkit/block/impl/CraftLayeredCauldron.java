@@ -33,4 +33,11 @@ public final class CraftLayeredCauldron extends CraftBlockData implements org.bu
     public int getMaximumLevel() {
         return getMax(CraftLayeredCauldron.LEVEL);
     }
+
+    // Paper start
+    @Override
+    public int getMinimumLevel() {
+        return getMin(CraftLayeredCauldron.LEVEL);
+    }
+    // Paper end
 }

@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
  * guarantee values will not be removed from this Enum. As such, you should not
  * depend on the ordinal values of this class.
  */
-public enum Sound implements Keyed { // Paper - implement Sound.Type
+public enum Sound implements Keyed, net.kyori.adventure.sound.Sound.Type { // Paper - implement Sound.Type
 
     AMBIENT_BASALT_DELTAS_ADDITIONS("ambient.basalt_deltas.additions"),
     AMBIENT_BASALT_DELTAS_LOOP("ambient.basalt_deltas.loop"),
@@ -1642,4 +1642,11 @@ public enum Sound implements Keyed { // Paper - implement Sound.Type
     public NamespacedKey getKey() {
         return key;
     }
+
+    // Paper start
+    @Override
+    public net.kyori.adventure.key.@NotNull Key key() {
+        return this.key;
+    }
+    // Paper end
 }

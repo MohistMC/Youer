@@ -149,6 +149,15 @@
      @Nullable
      private Vec3 startingToFallPosition;
      @Nullable
+@@ -221,7 +_,7 @@
+     private boolean textFilteringEnabled;
+     private boolean allowsListing;
+     private boolean spawnExtraParticlesOnFall;
+-    private WardenSpawnTracker wardenSpawnTracker = new WardenSpawnTracker(0, 0, 0);
++    public WardenSpawnTracker wardenSpawnTracker = new WardenSpawnTracker(0, 0, 0);
+     @Nullable
+     private BlockPos raidOmenPosition;
+     private Vec3 lastKnownClientMovement = Vec3.ZERO;
 @@ -252,6 +_,10 @@
          }
  
@@ -160,6 +169,33 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(p_143455_.containerId, p_143456_, p_143457_));
          }
      };
+@@ -266,6 +_,26 @@
+             }
+         }
+ 
++        // Paper start - Add PlayerInventorySlotChangeEvent
++        @Override
++        public void slotChanged(AbstractContainerMenu handler, int slotId, ItemStack oldStack, ItemStack stack) {
++            Slot slot = handler.getSlot(slotId);
++            if (!(slot instanceof ResultSlot)) {
++                if (slot.container == ServerPlayer.this.getInventory()) {
++                    if (io.papermc.paper.event.player.PlayerInventorySlotChangeEvent.getHandlerList().getRegisteredListeners().length == 0) {
++                        CriteriaTriggers.INVENTORY_CHANGED.trigger(ServerPlayer.this, ServerPlayer.this.getInventory(), stack);
++                        return;
++                    }
++                    io.papermc.paper.event.player.PlayerInventorySlotChangeEvent event = new io.papermc.paper.event.player.PlayerInventorySlotChangeEvent(ServerPlayer.this.getBukkitEntity(), slotId, CraftItemStack.asBukkitCopy(oldStack), CraftItemStack.asBukkitCopy(stack));
++                    event.callEvent();
++                    if (event.shouldTriggerAdvancements()) {
++                        CriteriaTriggers.INVENTORY_CHANGED.trigger(ServerPlayer.this, ServerPlayer.this.getInventory(), stack);
++                    }
++                }
++            }
++        }
++        // Paper end - Add PlayerInventorySlotChangeEvent
++
+         @Override
+         public void dataChanged(AbstractContainerMenu p_143462_, int p_143463_, int p_143464_) {
+         }
 @@ -276,6 +_,28 @@
      public final Object object;
      private int containerCounter;
@@ -194,9 +230,10 @@
          this.stats = p_254143_.getPlayerList().getPlayerStats(this);
          this.advancements = p_254143_.getPlayerList().getPlayerAdvancements(this);
 -        this.moveTo(this.adjustSpawnLocation(p_254435_, p_254435_.getSharedSpawnPos()).getBottomCenter(), 0.0F, 0.0F);
+-        this.updateOptions(p_301997_);
 +        this.disable$moveTo.set(true);
 +        this.moveTo(this.adjustSpawnLocation(p_254435_, p_254435_.getSharedSpawnPos()).getBottomCenter(), 0.0F, 0.0F); // Paper - Don't move existing players to world spawn
-         this.updateOptions(p_301997_);
++        this.updateOptionsNoEvents(p_301997_); // Paper - don't call options events on login
          this.object = null;
 -    }
 +
@@ -461,11 +498,13 @@
              this.connection
                  .send(
                      new ClientboundPlayerCombatKillPacket(this.getId(), component),
-@@ -693,9 +_,12 @@
+@@ -692,10 +_,13 @@
+         if (this.level().getGameRules().getBoolean(GameRules.RULE_FORGIVE_DEAD_PLAYERS)) {
              this.tellNeutralMobsThatIDied();
          }
- 
+-
 -        if (!this.isSpectator()) {
++        shouldDropExperience.set(event.shouldDropExperience()); // Paper - tie to event
 +        // we clean the player's inventory after the EntityDeathEvent is called so plugins can get the exact state of the inventory.
 +        if (!event.getKeepInventory()) {
              this.dropAllDeathLoot(this.serverLevel(), p_9035_);
@@ -475,7 +514,7 @@
  
          this.getScoreboard().forAllObjectives(ObjectiveCriteria.DEATH_COUNT, this, ScoreAccess::increment);
          LivingEntity livingentity = this.getKillCredit();
-@@ -783,30 +_,62 @@
+@@ -783,30 +_,68 @@
      }
  
      private boolean isPvpAllowed() {
@@ -533,7 +572,13 @@
 +
 +        org.bukkit.entity.Player respawnPlayer = this.getBukkitEntity();
 +        Location location = CraftLocation.toBukkit(dimensionTransition.pos(), dimensionTransition.newLevel().getWorld(), dimensionTransition.yRot(), dimensionTransition.xRot());
-+        PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(respawnPlayer, location, isBedSpawn, isAnchorSpawn, reason);
++        // Paper start - respawn flags
++        com.google.common.collect.ImmutableSet.Builder<org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag> builder = com.google.common.collect.ImmutableSet.builder();
++        if (reason == org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.END_PORTAL) {
++            builder.add(org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag.END_PORTAL);
++        }
++        PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(respawnPlayer, location, isBedSpawn, isAnchorSpawn, reason, builder);
++        // Paper end - respawn flags
 +        this.level().getCraftServer().getPluginManager().callEvent(respawnEvent);
 +        // Spigot Start
 +        if (this.connection.isDisconnected()) {
@@ -1058,15 +1103,36 @@
      public void moveTo(double p_9171_, double p_9172_, double p_9173_) {
          super.moveTo(p_9171_, p_9172_, p_9173_);
          this.connection.resetPosition();
-@@ -1469,6 +_,8 @@
+@@ -1468,9 +_,18 @@
+     }
  
      public boolean setGameMode(GameType p_143404_) {
++        // Paper start - Expand PlayerGameModeChangeEvent
++        org.bukkit.event.player.PlayerGameModeChangeEvent event = this.setGameMode(p_143404_, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.UNKNOWN, null);
++        return event == null ? false : event.isCancelled();
++    }
++    @Nullable
++    public org.bukkit.event.player.PlayerGameModeChangeEvent setGameMode(GameType p_143404_, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause cause, @Nullable net.kyori.adventure.text.Component message) {
          boolean flag = this.isSpectator();
-+        p_143404_ = CommonHooks.onChangeGameType(this, this.gameMode.getGameModeForPlayer(), p_143404_);
-+        if (p_143404_ == null) return false;
-         if (!this.gameMode.changeGameModeForPlayer(p_143404_)) {
-             return false;
+-        if (!this.gameMode.changeGameModeForPlayer(p_143404_)) {
+-            return false;
++
++        org.bukkit.event.player.PlayerGameModeChangeEvent event = this.gameMode.changeGameModeForPlayer(p_143404_, cause, message);
++        if (event == null || event.isCancelled()) {
++            return null;
++            // Paper end - Expand PlayerGameModeChangeEvent
          } else {
+             this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE, (float)p_143404_.getId()));
+             if (p_143404_ == GameType.SPECTATOR) {
+@@ -1486,7 +_,7 @@
+ 
+             this.onUpdateAbilities();
+             this.updateEffectVisibility();
+-            return true;
++            return event; // Paper - Expand PlayerGameModeChangeEvent
+         }
+     }
+ 
 @@ -1529,9 +_,15 @@
      }
  
@@ -1084,10 +1150,36 @@
      }
  
      public String getIpAddress() {
-@@ -1541,7 +_,18 @@
+@@ -1540,16 +_,57 @@
+             : "<unknown>";
      }
  
++    // Paper start - Client option API
++    private java.util.Map<io.papermc.paper.ClientOption<?>, ?> getClientOptionMap(String locale, int viewDistance, io.papermc.paper.ClientOption.ChatVisibility chatVisibility, boolean chatColors, io.papermc.paper.PaperSkinParts skinParts, org.bukkit.inventory.MainHand mainHand, boolean allowsServerListing, boolean textFilteringEnabled) {
++        java.util.Map<io.papermc.paper.ClientOption<?>, Object> map = new java.util.HashMap<>();
++        map.put(io.papermc.paper.ClientOption.LOCALE, locale);
++        map.put(io.papermc.paper.ClientOption.VIEW_DISTANCE, viewDistance);
++        map.put(io.papermc.paper.ClientOption.CHAT_VISIBILITY, chatVisibility);
++        map.put(io.papermc.paper.ClientOption.CHAT_COLORS_ENABLED, chatColors);
++        map.put(io.papermc.paper.ClientOption.SKIN_PARTS, skinParts);
++        map.put(io.papermc.paper.ClientOption.MAIN_HAND, mainHand);
++        map.put(io.papermc.paper.ClientOption.ALLOW_SERVER_LISTINGS, allowsServerListing);
++        map.put(io.papermc.paper.ClientOption.TEXT_FILTERING_ENABLED, textFilteringEnabled);
++        return map;
++    }
++    // Paper end
++
      public void updateOptions(ClientInformation p_301998_) {
+-        this.language = p_301998_.language();
+-        this.requestedViewDistance = p_301998_.viewDistance();
+-        this.chatVisibility = p_301998_.chatVisibility();
+-        this.canChatColor = p_301998_.chatColors();
+-        this.textFilteringEnabled = p_301998_.textFilteringEnabled();
+-        this.allowsListing = p_301998_.allowsListing();
+-        this.getEntityData().set(DATA_PLAYER_MODE_CUSTOMISATION, (byte)p_301998_.modelCustomisation());
+-        this.getEntityData().set(DATA_PLAYER_MAIN_HAND, (byte)p_301998_.mainHand().getId());
+-    }
++        new io.papermc.paper.event.player.PlayerClientOptionsChangeEvent(getBukkitEntity(), getClientOptionMap(p_301998_.language(), p_301998_.viewDistance(), io.papermc.paper.ClientOption.ChatVisibility.valueOf(p_301998_.chatVisibility().name()), p_301998_.chatColors(), new io.papermc.paper.PaperSkinParts(p_301998_.modelCustomisation()), p_301998_.mainHand() == HumanoidArm.LEFT ? MainHand.LEFT : MainHand.RIGHT, p_301998_.allowsListing(), p_301998_.textFilteringEnabled())).callEvent(); // Paper - settings event
 +        // CraftBukkit start
 +        if (getMainArm() != p_301998_.mainHand()) {
 +            PlayerChangedMainHandEvent event = new PlayerChangedMainHandEvent(getBukkitEntity(), getMainArm() == HumanoidArm.LEFT ? MainHand.LEFT : MainHand.RIGHT);
@@ -1098,19 +1190,57 @@
 +            this.server.server.getPluginManager().callEvent(event);
 +        }
 +        // CraftBukkit end
-         this.language = p_301998_.language();
++        this.language = p_301998_.language();
 +        this.adventure$locale = java.util.Objects.requireNonNullElse(net.kyori.adventure.translation.Translator.parseLocale(this.language), java.util.Locale.US); // Paper
-         this.requestedViewDistance = p_301998_.viewDistance();
-         this.chatVisibility = p_301998_.chatVisibility();
-         this.canChatColor = p_301998_.chatColors();
-@@ -1617,6 +_,7 @@
++        this.requestedViewDistance = p_301998_.viewDistance();
++        this.chatVisibility = p_301998_.chatVisibility();
++        this.canChatColor = p_301998_.chatColors();
++        this.textFilteringEnabled = p_301998_.textFilteringEnabled();
++        this.allowsListing = p_301998_.allowsListing();
++        this.getEntityData().set(DATA_PLAYER_MODE_CUSTOMISATION, (byte)p_301998_.modelCustomisation());
++        this.getEntityData().set(DATA_PLAYER_MAIN_HAND, (byte)p_301998_.mainHand().getId());
++    }
++
++    // Paper start - don't call options events on login
++    public void updateOptionsNoEvents(ClientInformation p_301998_) {
++        this.language = p_301998_.language();
++        this.adventure$locale = java.util.Objects.requireNonNullElse(net.kyori.adventure.translation.Translator.parseLocale(this.language), java.util.Locale.US); // Paper
++        this.requestedViewDistance = p_301998_.viewDistance();
++        this.chatVisibility = p_301998_.chatVisibility();
++        this.canChatColor = p_301998_.chatColors();
++        this.textFilteringEnabled = p_301998_.textFilteringEnabled();
++        this.allowsListing = p_301998_.allowsListing();
++        this.getEntityData().set(DATA_PLAYER_MODE_CUSTOMISATION, (byte)p_301998_.modelCustomisation());
++        this.getEntityData().set(DATA_PLAYER_MAIN_HAND, (byte)p_301998_.mainHand().getId());
++    }
++    // Paper end
+ 
+     public ClientInformation clientInformation() {
+         int i = this.getEntityData().get(DATA_PLAYER_MODE_CUSTOMISATION);
+@@ -1617,7 +_,23 @@
      public void setCamera(@Nullable Entity p_9214_) {
          Entity entity = this.getCamera();
          this.camera = (Entity)(p_9214_ == null ? this : p_9214_);
 +        while (this.camera instanceof PartEntity<?> partEntity) this.camera = partEntity.getParent(); // Neo: fix MC-46486
          if (entity != this.camera) {
++            // Paper start - Add PlayerStartSpectatingEntityEvent and PlayerStopSpectatingEntity
++            if (this.camera == this) {
++                io.papermc.paper.event.player.PlayerStopSpectatingEntityEvent playerStopSpectatingEntityEvent = new io.papermc.paper.event.player.PlayerStopSpectatingEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity());
++                if (!playerStopSpectatingEntityEvent.callEvent()) {
++                    this.camera = entity; // rollback camera entity again
++                    return;
++                }
++            } else {
++                io.papermc.paper.event.player.PlayerStartSpectatingEntityEvent playerStartSpectatingEntityEvent = new io.papermc.paper.event.player.PlayerStartSpectatingEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity(), p_9214_.getBukkitEntity());
++                if (!playerStartSpectatingEntityEvent.callEvent()) {
++                    this.camera = entity; // rollback camera entity again
++                    return;
++                }
++            }
++            // Paper end - Add PlayerStartSpectatingEntityEvent and PlayerStopSpectatingEntity
              if (this.camera.level() instanceof ServerLevel serverlevel) {
                  this.teleportTo(serverlevel, this.camera.getX(), this.camera.getY(), this.camera.getZ(), Set.of(), this.getYRot(), this.getXRot());
+             }
 @@ -1653,7 +_,15 @@
  
      @Nullable
@@ -1272,6 +1402,23 @@
      public TextFilter getTextFilter() {
          return this.textFilter;
      }
+@@ -1805,6 +_,16 @@
+     }
+ 
+     public void loadGameTypes(@Nullable CompoundTag p_143428_) {
++        // Paper start - Expand PlayerGameModeChangeEvent
++        if (this.server.getForcedGameType() != null && this.server.getForcedGameType() != ServerPlayer.readPlayerMode(p_143428_, "playerGameType")) {
++            if (new org.bukkit.event.player.PlayerGameModeChangeEvent(this.getBukkitEntity(), org.bukkit.GameMode.getByValue(this.server.getDefaultGameType().getId()), org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.DEFAULT_GAMEMODE, null).callEvent()) {
++                this.gameMode.setGameModeForPlayer(this.server.getForcedGameType(), GameType.DEFAULT_MODE);
++            } else {
++                this.gameMode.setGameModeForPlayer(ServerPlayer.readPlayerMode(p_143428_,"playerGameType"), ServerPlayer.readPlayerMode(p_143428_, "previousPlayerGameType"));
++            }
++            return;
++        }
++        // Paper end - Expand PlayerGameModeChangeEvent
+         this.gameMode
+             .setGameModeForPlayer(
+                 this.calculateGameModeForNewPlayer(readPlayerMode(p_143428_, "playerGameType")), readPlayerMode(p_143428_, "previousPlayerGameType")
 @@ -1841,9 +_,12 @@
  
      public boolean drop(boolean p_182295_) {

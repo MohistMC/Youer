@@ -74,6 +74,17 @@ public interface IShearable {
         return Collections.emptyList();
     }
 
+    default List<ItemStack> onSheared(@Nullable Player player, ItemStack item, Level level, BlockPos pos, java.util.List<net.minecraft.world.item.ItemStack> drops) {
+        if (this instanceof LivingEntity entity && this instanceof Shearable shearable) {
+            if (!level.isClientSide) {
+                Collection<ItemEntity> previous = entity.captureDrops(new ArrayList<>());
+                shearable.shear(player == null ? SoundSource.BLOCKS : SoundSource.PLAYERS, drops);
+                return entity.captureDrops(previous).stream().map(ItemEntity::getItem).toList();
+            }
+        }
+        return Collections.emptyList();
+    }
+
     /**
      * Performs the logic used to drop a shear result into the world at the correct position and with the proper movement.
      * <br>
@@ -113,4 +124,10 @@ public interface IShearable {
             level.addFreshEntity(new ItemEntity(level, pos.getX(), pos.getY(), pos.getZ(), drop));
         }
     }
+
+    // Paper start - custom shear drops; ensure all implementing entities override this
+    default java.util.List<net.minecraft.world.item.ItemStack> generateDefaultDrops() {
+        return java.util.Collections.emptyList();
+    }
+    // Paper end - custom shear drops
 }

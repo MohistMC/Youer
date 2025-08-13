@@ -73,6 +73,15 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final HumanoidArm DEFAULT_MAIN_HAND = HumanoidArm.RIGHT;
      public static final int DEFAULT_MODEL_CUSTOMIZATION = 0;
+@@ -150,7 +_,7 @@
+         .build();
+     private static final EntityDataAccessor<Float> DATA_PLAYER_ABSORPTION_ID = SynchedEntityData.defineId(Player.class, EntityDataSerializers.FLOAT);
+     private static final EntityDataAccessor<Integer> DATA_SCORE_ID = SynchedEntityData.defineId(Player.class, EntityDataSerializers.INT);
+-    protected static final EntityDataAccessor<Byte> DATA_PLAYER_MODE_CUSTOMISATION = SynchedEntityData.defineId(Player.class, EntityDataSerializers.BYTE);
++    public static final EntityDataAccessor<Byte> DATA_PLAYER_MODE_CUSTOMISATION = SynchedEntityData.defineId(Player.class, EntityDataSerializers.BYTE);
+     protected static final EntityDataAccessor<Byte> DATA_PLAYER_MAIN_HAND = SynchedEntityData.defineId(Player.class, EntityDataSerializers.BYTE);
+     protected static final EntityDataAccessor<CompoundTag> DATA_SHOULDER_LEFT = SynchedEntityData.defineId(Player.class, EntityDataSerializers.COMPOUND_TAG);
+     protected static final EntityDataAccessor<CompoundTag> DATA_SHOULDER_RIGHT = SynchedEntityData.defineId(Player.class, EntityDataSerializers.COMPOUND_TAG);
 @@ -159,7 +_,7 @@
      protected PlayerEnderChestContainer enderChestInventory = new PlayerEnderChestContainer();
      public final InventoryMenu inventoryMenu;
@@ -549,14 +558,26 @@
      private boolean isAboveGround(float p_341626_) {
          return this.onGround() || this.fallDistance < p_341626_ && !this.canFallAtLeast(0.0, 0.0, p_341626_ - this.fallDistance);
      }
-@@ -1132,6 +_,7 @@
+@@ -1132,8 +_,17 @@
      }
  
      public void attack(Entity p_36347_) {
+-        if (p_36347_.isAttackable()) {
+-            if (!p_36347_.skipAttackInteraction(this)) {
 +        if (!net.neoforged.neoforge.common.CommonHooks.onPlayerAttackTarget(this, p_36347_)) return;
-         if (p_36347_.isAttackable()) {
-             if (!p_36347_.skipAttackInteraction(this)) {
++        // Paper start - PlayerAttackEntityEvent
++        boolean willAttack = p_36347_.isAttackable() && !p_36347_.skipAttackInteraction(this); // Vanilla logic
++        io.papermc.paper.event.player.PrePlayerAttackEntityEvent playerAttackEntityEvent = new io.papermc.paper.event.player.PrePlayerAttackEntityEvent(
++                (org.bukkit.entity.Player) this.getBukkitEntity(),
++                p_36347_.getBukkitEntity(),
++                willAttack
++        );
++        if (playerAttackEntityEvent.callEvent() && willAttack) { // Logic moved to willAttack local variable.
++            {
++                // Paper end - PlayerAttackEntityEvent
                  float f = this.isAutoSpinAttack() ? this.autoSpinAttackDmg : (float)this.getAttributeValue(Attributes.ATTACK_DAMAGE);
+                 ItemStack itemstack = this.getWeaponItem();
+                 DamageSource damagesource = this.damageSources().playerAttack(this);
 @@ -1141,7 +_,6 @@
                  float f2 = this.getAttackStrengthScale(0.5F);
                  f *= 0.2F + f2 * f2 * 0.8F;
@@ -565,7 +586,7 @@
                  if (p_36347_.getType().is(EntityTypeTags.REDIRECTABLE_PROJECTILE)
                      && p_36347_ instanceof Projectile projectile
                      && projectile.deflect(ProjectileDeflection.AIM_DEFLECT, this, this, true)) {
-@@ -1170,19 +_,28 @@
+@@ -1170,19 +_,30 @@
                          && !this.isPassenger()
                          && p_36347_ instanceof LivingEntity
                          && !this.isSprinting();
@@ -573,8 +594,10 @@
 +                    // The boolean local above (flag1) is the vanilla critical hit result.
 +                    var critEvent = net.neoforged.neoforge.common.CommonHooks.fireCriticalHit(this, p_36347_, flag1, flag1 ? 1.5F : 1.0F);
 +                    flag1 = critEvent.isCriticalHit();
++                    flag1 = flag1 && !this.level().paperConfig().entities.behavior.disablePlayerCrits; // Paper - Toggleable player crits
                      if (flag1) {
 -                        f *= 1.5F;
++                        damagesource = damagesource.critical(true); // Paper start - critical damage API
 +                        f *= critEvent.getDamageMultiplier();
                      }
  
@@ -615,7 +638,7 @@
                                  p_36347_.push(
                                      (double)(-Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)) * f4 * 0.5F),
                                      0.1,
-@@ -1216,13 +_,16 @@
+@@ -1216,19 +_,27 @@
                              float f7 = 1.0F + (float)this.getAttributeValue(Attributes.SWEEPING_DAMAGE_RATIO) * f;
  
                              for (LivingEntity livingentity2 : this.level()
@@ -629,11 +652,23 @@
 -                                    && this.distanceToSqr(livingentity2) < 9.0) {
 +                                    && this.distanceToSqr(livingentity2) < entityReachSq) {
                                      float f5 = this.getEnchantedDamage(livingentity2, f7, damagesource) * f2;
++                                    // CraftBukkit start - Only apply knockback if the damage hits
++                                    if (!livingentity2.hurt(this.damageSources().playerAttack(this).sweep().critical(flag1), f5)) { // Paper - add critical damage API
++                                        continue;
++                                    }
++                                    // CraftBukkit end
 +                                    livingentity2.knockback$attacker = this;
 +                                    livingentity2.knockback$cause = io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.SWEEP_ATTACK; // CraftBukkit // Paper - knockback events
                                      livingentity2.knockback(
                                          0.4F,
                                          (double)Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)),
+                                         (double)(-Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)))
+                                     );
+-                                    livingentity2.hurt(damagesource, f5);
++                                    // livingentity2.hurt(damagesource, f5); // CraftBukkit - moved up
+                                     if (this.level() instanceof ServerLevel serverlevel) {
+                                         EnchantmentHelper.doPostAttackEffects(serverlevel, livingentity2, damagesource);
+                                     }
 @@ -1241,9 +_,26 @@
                          }
  
@@ -1039,19 +1074,35 @@
          return this.decorateDisplayNameComponent(mutablecomponent);
      }
  
-@@ -2009,28 +_,28 @@
+@@ -2004,33 +_,44 @@
+         return ImmutableList.of(Pose.STANDING, Pose.CROUCHING, Pose.SWIMMING);
+     }
+ 
++    // Paper start - PlayerReadyArrowEvent
++    protected boolean tryReadyArrow(ItemStack bow, ItemStack itemstack) {
++        return !(this instanceof ServerPlayer) ||
++                new io.papermc.paper.event.player.PlayerReadyArrowEvent(
++                        ((ServerPlayer) this).getBukkitEntity(),
++                        org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(bow),
++                        org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack)
++                ).callEvent();
++    }
++    // Paper end - PlayerReadyArrowEvent
++
+     @Override
+     public ItemStack getProjectile(ItemStack p_36349_) {
          if (!(p_36349_.getItem() instanceof ProjectileWeaponItem)) {
              return ItemStack.EMPTY;
          } else {
 -            Predicate<ItemStack> predicate = ((ProjectileWeaponItem)p_36349_.getItem()).getSupportedHeldProjectiles();
-+            Predicate<ItemStack> predicate = ((ProjectileWeaponItem)p_36349_.getItem()).getSupportedHeldProjectiles(p_36349_);
++            Predicate<ItemStack> predicate = ((ProjectileWeaponItem)p_36349_.getItem()).getSupportedHeldProjectiles(p_36349_).and(item -> tryReadyArrow(p_36349_, item)); // Paper - PlayerReadyArrowEvent
              ItemStack itemstack = ProjectileWeaponItem.getHeldProjectile(this, predicate);
              if (!itemstack.isEmpty()) {
 -                return itemstack;
 +                return net.neoforged.neoforge.common.CommonHooks.getProjectile(this, p_36349_, itemstack);
              } else {
 -                predicate = ((ProjectileWeaponItem)p_36349_.getItem()).getAllSupportedProjectiles();
-+                predicate = ((ProjectileWeaponItem)p_36349_.getItem()).getAllSupportedProjectiles(p_36349_);
++                predicate = ((ProjectileWeaponItem)p_36349_.getItem()).getAllSupportedProjectiles(p_36349_).and(item -> tryReadyArrow(p_36349_, item)); // Paper - PlayerReadyArrowEvent
  
                  for (int i = 0; i < this.inventory.getContainerSize(); i++) {
                      ItemStack itemstack1 = this.inventory.getItem(i);

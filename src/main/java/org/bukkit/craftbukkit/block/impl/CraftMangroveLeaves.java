@@ -53,4 +53,16 @@ public final class CraftMangroveLeaves extends CraftBlockData implements org.buk
     public void setWaterlogged(boolean waterlogged) {
         this.set(CraftMangroveLeaves.WATERLOGGED, waterlogged);
     }
+
+    // Paper start
+    @Override
+    public int getMinimumDistance() {
+        return getMin(CraftMangroveLeaves.DISTANCE);
+    }
+
+    @Override
+    public int getMaximumDistance() {
+        return getMax(CraftMangroveLeaves.DISTANCE);
+    }
+    // Paper end
 }

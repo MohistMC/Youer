@@ -422,7 +422,8 @@ public class EntityClassLookup {
                 io.papermc.paper.entity.RangedEntity.class,
                 io.papermc.paper.entity.Leashable.class,
                 io.papermc.paper.entity.Bucketable.class,
-                io.papermc.paper.entity.Shearable.class
+                io.papermc.paper.entity.Shearable.class,
+                io.papermc.paper.entity.CollarColorable.class
         );
         boolean error = false;
         for (Class<?> entityClass : allEntityClasses) {

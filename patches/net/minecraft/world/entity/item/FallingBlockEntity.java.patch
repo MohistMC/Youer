@@ -8,7 +8,7 @@
  import net.minecraft.util.Mth;
  import net.minecraft.world.damagesource.DamageSource;
  import net.minecraft.world.entity.Entity;
-@@ -47,6 +_,8 @@
+@@ -47,11 +_,13 @@
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
@@ -17,6 +17,20 @@
  import org.slf4j.Logger;
  
  public class FallingBlockEntity extends Entity {
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    private BlockState blockState = Blocks.SAND.defaultBlockState();
++    public BlockState blockState = Blocks.SAND.defaultBlockState();
+     public int time;
+     public boolean dropItem = true;
+     public boolean cancelDrop;
+@@ -62,6 +_,7 @@
+     public CompoundTag blockData;
+     public boolean forceTickAfterTeleportToDuplicate;
+     protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
++    public boolean autoExpire = true; // Paper - Expand FallingBlock API
+ 
+     public FallingBlockEntity(EntityType<? extends FallingBlockEntity> p_31950_, Level p_31951_) {
+         super(p_31950_, p_31951_);
 @@ -128,17 +_,28 @@
      @Override
      public void tick() {
@@ -92,3 +106,35 @@
                                  if (this.dropItem && this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
                                      this.callOnBrokenAfterFall(block, blockpos);
                                      this.spawnAtLocation(block);
+@@ -216,8 +_,8 @@
+                     }
+                 } else if (!this.level().isClientSide
+                     && (
+-                        this.time > 100 && (blockpos.getY() <= this.level().getMinBuildHeight() || blockpos.getY() > this.level().getMaxBuildHeight())
+-                            || this.time > 600
++                        (this.time > 100 && autoExpire) && (blockpos.getY() <= this.level().getMinBuildHeight() || blockpos.getY() > this.level().getMaxBuildHeight())
++                            || (this.time > 600 && autoExpire)
+                     )) {
+                     if (this.dropItem && this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+                         this.spawnAtLocation(block);
+@@ -280,6 +_,7 @@
+         }
+ 
+         p_31973_.putBoolean("CancelDrop", this.cancelDrop);
++        if (!autoExpire) {p_31973_.putBoolean("Paper.AutoExpire", false);} // Paper - Expand FallingBlock API
+     }
+ 
+     @Override
+@@ -306,6 +_,12 @@
+         if (this.blockState.isAir()) {
+             this.blockState = Blocks.SAND.defaultBlockState();
+         }
++
++        // Paper start - Expand FallingBlock API
++        if (p_31964_.contains("Paper.AutoExpire")) {
++            this.autoExpire = p_31964_.getBoolean("Paper.AutoExpire");
++        }
++        // Paper end - Expand FallingBlock API
+     }
+ 
+     public void setHurtsEntities(float p_149657_, int p_149658_) {

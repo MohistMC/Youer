@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/PumpkinBlock.java
 +++ b/net/minecraft/world/level/block/PumpkinBlock.java
-@@ -35,7 +_,7 @@
+@@ -35,21 +_,31 @@
      protected ItemInteractionResult useItemOn(
          ItemStack p_316383_, BlockState p_316676_, Level p_316272_, BlockPos p_316484_, Player p_316367_, InteractionHand p_316216_, BlockHitResult p_316827_
      ) {
@@ -9,3 +9,36 @@
              return super.useItemOn(p_316383_, p_316676_, p_316272_, p_316484_, p_316367_, p_316216_, p_316827_);
          } else if (p_316272_.isClientSide) {
              return ItemInteractionResult.sidedSuccess(p_316272_.isClientSide);
+         } else {
++            // Paper start - Add PlayerShearBlockEvent
++            io.papermc.paper.event.block.PlayerShearBlockEvent event = new io.papermc.paper.event.block.PlayerShearBlockEvent(
++                    (org.bukkit.entity.Player) p_316367_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_316272_, p_316484_),
++                    org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(p_316383_), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(p_316216_), new java.util.ArrayList<>());
++            event.getDrops().add(org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(new ItemStack(Items.PUMPKIN_SEEDS, 4)));
++            if (!event.callEvent()) {
++                return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
++            }
++            // Paper end - Add PlayerShearBlockEvent
+             Direction direction = p_316827_.getDirection();
+             Direction direction1 = direction.getAxis() == Direction.Axis.Y ? p_316367_.getDirection().getOpposite() : direction;
+             p_316272_.playSound(null, p_316484_, SoundEvents.PUMPKIN_CARVE, SoundSource.BLOCKS, 1.0F, 1.0F);
+             p_316272_.setBlock(p_316484_, Blocks.CARVED_PUMPKIN.defaultBlockState().setValue(CarvedPumpkinBlock.FACING, direction1), 11);
++            for (org.bukkit.inventory.ItemStack item : event.getDrops()) { // Paper - Add PlayerShearBlockEvent
+             ItemEntity itementity = new ItemEntity(
+                 p_316272_,
+                 (double)p_316484_.getX() + 0.5 + (double)direction1.getStepX() * 0.65,
+                 (double)p_316484_.getY() + 0.1,
+                 (double)p_316484_.getZ() + 0.5 + (double)direction1.getStepZ() * 0.65,
+-                new ItemStack(Items.PUMPKIN_SEEDS, 4)
++                org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(item) // Paper - Add PlayerShearBlockEvent
+             );
+             itementity.setDeltaMovement(
+                 0.05 * (double)direction1.getStepX() + p_316272_.random.nextDouble() * 0.02,
+@@ -57,6 +_,7 @@
+                 0.05 * (double)direction1.getStepZ() + p_316272_.random.nextDouble() * 0.02
+             );
+             p_316272_.addFreshEntity(itementity);
++            } // Paper - Add PlayerShearBlockEvent
+             p_316383_.hurtAndBreak(1, p_316367_, LivingEntity.getSlotForHand(p_316216_));
+             p_316272_.gameEvent(p_316367_, GameEvent.SHEAR, p_316484_);
+             p_316367_.awardStat(Stats.ITEM_USED.get(Items.SHEARS));

@@ -815,6 +815,17 @@ public final class Bukkit {
         return server.getWorlds();
     }
 
+    // Paper start
+    /**
+     * Gets whether the worlds are being ticked right now.
+     *
+     * @return true if the worlds are being ticked, false otherwise.
+     */
+    public static boolean isTickingWorlds(){
+        return server.isTickingWorlds();
+    }
+    // Paper end
+
     /**
      * Gets a list of all world name on this server.
      *
@@ -883,6 +894,30 @@ public final class Bukkit {
     public static World getWorld(@NotNull UUID uid) {
         return server.getWorld(uid);
     }
+
+    // Paper start
+    /**
+     * Gets the world from the given NamespacedKey
+     *
+     * @param worldKey the NamespacedKey of the world to retrieve
+     * @return a world with the given NamespacedKey, or null if none exists
+     */
+    @Nullable
+    public static World getWorld(@NotNull NamespacedKey worldKey) {
+        return server.getWorld(worldKey);
+    }
+
+    /**
+     * Gets the world from the given Key
+     *
+     * @param worldKey the Key of the world to retrieve
+     * @return a world with the given Key, or null if none exists
+     */
+    @Nullable
+    public static World getWorld(@NotNull net.kyori.adventure.key.Key worldKey) {
+        return server.getWorld(worldKey);
+    }
+    // Paper end
 
     /**
      * Create a new virtual {@link WorldBorder}.
@@ -1019,6 +1054,27 @@ public final class Bukkit {
     public static void reloadData() {
         server.reloadData();
     }
+
+    // Paper start - update reloadable data
+    /**
+     * Updates all advancement, tag, and recipe data for all connected clients.
+     * Useful for updating clients to new advancements/recipes/tags.
+     * @see #updateRecipes()
+     */
+    public static void updateResources() {
+        server.updateResources();
+    }
+
+    /**
+     * Updates recipe data and the recipe book for all connected clients. Useful for
+     * updating clients to new recipes.
+     * @see #updateResources()
+     */
+    public static void updateRecipes() {
+        server.updateRecipes();
+    }
+    // Paper end - update reloadable data
+
     public static final Logger logger = Logger.getLogger("Bukkit");
     /**
      * Returns the primary logger associated with this server instance.
@@ -1073,6 +1129,20 @@ public final class Bukkit {
     public static boolean addRecipe(@Nullable Recipe recipe) {
         return server.addRecipe(recipe);
     }
+
+    // Paper start - method to send recipes immediately
+    /**
+     * Adds a recipe to the crafting manager.
+     *
+     * @param recipe the recipe to add
+     * @param resendRecipes true to update the client with the full set of recipes
+     * @return true if the recipe was added, false if it wasn't for some reason
+     */
+    @Contract("null, _ -> false")
+    public static boolean addRecipe(@Nullable Recipe recipe, boolean resendRecipes) {
+        return server.addRecipe(recipe, resendRecipes);
+    }
+    // Paper end - method to send recipes immediately
 
     /**
      * Get a list of all recipes for a given item. The stack size is ignored
@@ -1430,6 +1500,27 @@ public final class Bukkit {
     public static OfflinePlayer getOfflinePlayer(@NotNull String name) {
         return server.getOfflinePlayer(name);
     }
+
+    // Paper start
+    /**
+     * Gets the player by the given name, regardless if they are offline or
+     * online.
+     * <p>
+     * This will not make a web request to get the UUID for the given name,
+     * thus this method will not block. However this method will return
+     * {@code null} if the player is not cached.
+     * </p>
+     *
+     * @param name the name of the player to retrieve
+     * @return an offline player if cached, {@code null} otherwise
+     * @see #getOfflinePlayer(String)
+     * @see #getOfflinePlayer(java.util.UUID)
+     */
+    @Nullable
+    public static OfflinePlayer getOfflinePlayerIfCached(@NotNull String name) {
+        return server.getOfflinePlayerIfCached(name);
+    }
+    // Paper end
 
     /**
      * Gets the player by the given UUID, regardless if they are offline or
@@ -2502,28 +2593,6 @@ public final class Bukkit {
     }
 
     /**
-     * Gets the default no permission message used on the server
-     *
-     * @return the default message
-     * @deprecated use {@link #permissionMessage()}
-     */
-    @NotNull
-    @Deprecated
-    public static String getPermissionMessage() {
-        return server.getPermissionMessage();
-    }
-
-    /**
-     * Gets the default no permission message used on the server
-     *
-     * @return the default message
-     */
-    @NotNull
-    public static net.kyori.adventure.text.Component permissionMessage() {
-        return server.permissionMessage();
-    }
-
-    /**
      * Creates a PlayerProfile for the specified uuid, with name as null.
      *
      * If a player with the passed uuid exists on the server at the time of creation, the returned player profile will
@@ -2796,4 +2865,27 @@ public final class Bukkit {
     public static boolean suggestPlayerNamesWhenNullTabCompletions() {
         return server.suggestPlayerNamesWhenNullTabCompletions();
     }
+
+    /**
+     * Gets the default no permission message used on the server
+     *
+     * @return the default message
+     * @deprecated use {@link #permissionMessage()}
+     */
+    @NotNull
+    @Deprecated
+    public static String getPermissionMessage() {
+        return server.getPermissionMessage();
+    }
+
+    /**
+     * Gets the default no permission message used on the server
+     *
+     * @return the default message
+     */
+    @NotNull
+    public static net.kyori.adventure.text.Component permissionMessage() {
+        return server.permissionMessage();
+    }
+
 }

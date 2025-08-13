@@ -8,12 +8,28 @@
                      bee.setTarget(player);
                  }
              }
-@@ -126,7 +_,7 @@
+@@ -126,9 +_,22 @@
          boolean flag = false;
          if (i >= 5) {
              Item item = p_316844_.getItem();
 -            if (p_316844_.is(Items.SHEARS)) {
 +            if (p_316844_.canPerformAction(net.neoforged.neoforge.common.ItemAbilities.SHEARS_HARVEST)) {
++                // Paper start - Add PlayerShearBlockEvent
++                io.papermc.paper.event.block.PlayerShearBlockEvent event = new io.papermc.paper.event.block.PlayerShearBlockEvent(
++                        (org.bukkit.entity.Player) p_316824_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_316306_, p_316497_),
++                        org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(p_316844_), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(p_316436_), new java.util.ArrayList<>());
++                event.getDrops().add(org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(new ItemStack(Items.HONEYCOMB, 3)));
++                if (!event.callEvent()) {
++                    return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
++                }
++                // Paper end
                  p_316306_.playSound(p_316824_, p_316824_.getX(), p_316824_.getY(), p_316824_.getZ(), SoundEvents.BEEHIVE_SHEAR, SoundSource.BLOCKS, 1.0F, 1.0F);
-                 dropHoneycomb(p_316306_, p_316497_);
+-                dropHoneycomb(p_316306_, p_316497_);
++                // Paper start - Add PlayerShearBlockEvent
++                for (org.bukkit.inventory.ItemStack itemDrop : event.getDrops()) {
++                    popResource(p_316306_, p_316497_, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(itemDrop));
++                }
++                // Paper end - Add PlayerShearBlockEvent
                  p_316844_.hurtAndBreak(1, p_316824_, LivingEntity.getSlotForHand(p_316436_));
+                 flag = true;
+                 p_316306_.gameEvent(p_316824_, GameEvent.SHEAR, p_316497_);

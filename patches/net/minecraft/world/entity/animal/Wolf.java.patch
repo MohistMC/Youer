@@ -25,7 +25,7 @@
          } else {
              this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(8.0);
          }
-@@ -419,10 +_,11 @@
+@@ -419,15 +_,23 @@
          if (!this.level().isClientSide || this.isBaby() && this.isFood(itemstack)) {
              if (this.isTame()) {
                  if (this.isFood(itemstack) && this.getHealth() < this.getMaxHealth()) {
@@ -40,6 +40,18 @@
                      return InteractionResult.sidedSuccess(this.level().isClientSide());
                  } else {
                      if (item instanceof DyeItem dyeitem && this.isOwnedBy(p_30412_)) {
+                         DyeColor dyecolor = dyeitem.getDyeColor();
+                         if (dyecolor != this.getCollarColor()) {
++                            // Paper start - Add EntityDyeEvent and CollarColorable interface
++                            final io.papermc.paper.event.entity.EntityDyeEvent event = new io.papermc.paper.event.entity.EntityDyeEvent(this.getBukkitEntity(), org.bukkit.DyeColor.getByWoolData((byte) dyecolor.getId()), ((net.minecraft.server.level.ServerPlayer) p_30412_).getBukkitEntity());
++                            if (!event.callEvent()) {
++                                return InteractionResult.FAIL;
++                            }
++                            dyecolor = DyeColor.byId(event.getColor().getWoolData());
++                            // Paper end - Add EntityDyeEvent and CollarColorable interface
+                             this.setCollarColor(dyecolor);
+                             itemstack.consume(1, p_30412_);
+                             return InteractionResult.SUCCESS;
 @@ -440,14 +_,16 @@
                          this.setBodyArmorItem(itemstack.copyWithCount(1));
                          itemstack.consume(1, p_30412_);

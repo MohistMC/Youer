@@ -24,23 +24,48 @@
          AttributeInstance attributeinstance = this.getAttribute(Attributes.MOVEMENT_SPEED);
          if (p_32537_ == null) {
              this.targetChangeTime = 0;
-@@ -132,6 +_,7 @@
+@@ -132,7 +_,14 @@
                  attributeinstance.addTransientModifier(SPEED_MODIFIER_ATTACKING);
              }
          }
+-    }
 +        super.setTarget(p_32537_); //Forge: Moved down to allow event handlers to write data manager values.
-     }
++    }
++
++    // Paper start - EndermanEscapeEvent
++    private boolean tryEscape(io.papermc.paper.event.entity.EndermanEscapeEvent.Reason reason) {
++        return new io.papermc.paper.event.entity.EndermanEscapeEvent((org.bukkit.craftbukkit.entity.CraftEnderman) this.getBukkitEntity(), reason).callEvent();
++    }
++    // Paper end - EndermanEscapeEvent
  
      @Override
-@@ -214,7 +_,7 @@
+     protected void defineSynchedData(SynchedEntityData.Builder p_326272_) {
+@@ -213,8 +_,15 @@
+     }
  
      boolean isLookingAtMe(Player p_32535_) {
++        boolean shouldAttack = isLookingAtMe_check(p_32535_);
++        io.papermc.paper.event.entity.EndermanAttackPlayerEvent event = new io.papermc.paper.event.entity.EndermanAttackPlayerEvent((org.bukkit.entity.Enderman) getBukkitEntity(), (org.bukkit.entity.Player) p_32535_.getBukkitEntity());
++        event.setCancelled(!shouldAttack);
++        return event.callEvent();
++    }
++    private boolean isLookingAtMe_check(Player p_32535_) {
++        // Paper end - EndermanAttackPlayerEvent
          ItemStack itemstack = p_32535_.getInventory().armor.get(3);
 -        if (itemstack.is(Blocks.CARVED_PUMPKIN.asItem())) {
 +        if (net.neoforged.neoforge.common.CommonHooks.shouldSuppressEnderManAnger(this, p_32535_, itemstack)) {
              return false;
          } else {
              Vec3 vec3 = p_32535_.getViewVector(1.0F).normalize();
+@@ -260,7 +_,7 @@
+     protected void customServerAiStep() {
+         if (this.level().isDay() && this.tickCount >= this.targetChangeTime + 600) {
+             float f = this.getLightLevelDependentMagicValue();
+-            if (f > 0.5F && this.level().canSeeSky(this.blockPosition()) && this.random.nextFloat() * 30.0F < (f - 0.4F) * 2.0F) {
++            if (f > 0.5F && this.level().canSeeSky(this.blockPosition()) && this.random.nextFloat() * 30.0F < (f - 0.4F) * 2.0F && this.tryEscape(io.papermc.paper.event.entity.EndermanEscapeEvent.Reason.RUNAWAY)) { // Paper - EndermanEscapeEvent
+                 this.setTarget(null);
+                 this.teleport();
+             }
 @@ -301,8 +_,10 @@
          boolean flag = blockstate.blocksMotion();
          boolean flag1 = blockstate.getFluidState().is(FluidTags.WATER);
@@ -53,6 +78,21 @@
              if (flag2) {
                  this.level().gameEvent(GameEvent.TELEPORT, vec3, GameEvent.Context.of(this));
                  if (!this.isSilent()) {
+@@ -381,11 +_,13 @@
+             } else {
+                 boolean flag1 = flag && this.hurtWithCleanWater(p_32494_, (ThrownPotion)p_32494_.getDirectEntity(), p_32495_);
+ 
+-                for (int i = 0; i < 64; i++) {
++                if (this.tryEscape(io.papermc.paper.event.entity.EndermanEscapeEvent.Reason.INDIRECT)) { // Paper - EndermanEscapeEvent
++                    for (int i = 0; i < 64; i++) {
+                     if (this.teleport()) {
+                         return true;
+                     }
+                 }
++                } // Paper - EndermanEscapeEvent
+ 
+                 return flag1;
+             }
 @@ -410,6 +_,16 @@
          this.entityData.set(DATA_STARED_AT, true);
      }
@@ -104,6 +144,15 @@
                  && p_32563_.isCollisionShapeFullBlock(p_32559_, p_32564_)
                  && p_32561_.canSurvive(p_32559_, p_32560_)
                  && p_32559_.getEntities(this.enderman, AABB.unitCubeFromLowerCorner(Vec3.atLowerCornerOf(p_32560_))).isEmpty();
+@@ -573,7 +_,7 @@
+             } else {
+                 if (this.target != null && !this.enderman.isPassenger()) {
+                     if (this.enderman.isLookingAtMe((Player)this.target)) {
+-                        if (this.target.distanceToSqr(this.enderman) < 16.0) {
++                        if (this.target.distanceToSqr(this.enderman) < 16.0 && this.enderman.tryEscape(io.papermc.paper.event.entity.EndermanEscapeEvent.Reason.STARE)) { // Paper - EndermanEscapeEvent
+                             this.enderman.teleport();
+                         }
+ 
 @@ -602,7 +_,7 @@
              if (this.enderman.getCarriedBlock() != null) {
                  return false;

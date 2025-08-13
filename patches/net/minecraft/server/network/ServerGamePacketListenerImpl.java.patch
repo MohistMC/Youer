@@ -72,13 +72,15 @@
  
  public class ServerGamePacketListenerImpl
      extends ServerCommonPacketListenerImpl
-@@ -202,7 +_,9 @@
+@@ -202,7 +_,11 @@
      public final PlayerChunkSender chunkSender;
      private int tickCount;
      private int ackBlockChangesUpTo = -1;
 -    private int chatSpamTickCount;
 +    // CraftBukkit start - multithreaded fields
 +    private final AtomicInteger chatSpamTickCount = new AtomicInteger();
++    private final java.util.concurrent.atomic.AtomicInteger tabSpamLimiter = new java.util.concurrent.atomic.AtomicInteger(); // Paper - configurable tab spam limits
++    private final java.util.concurrent.atomic.AtomicInteger recipeSpamPackets =  new java.util.concurrent.atomic.AtomicInteger(); // Paper - auto recipe limit
 +    // CraftBukkit end
      private int dropSpamTickCount;
      private double firstGoodX;
@@ -133,12 +135,14 @@
                      return;
                  }
              } else {
-@@ -297,9 +_,14 @@
+@@ -297,9 +_,16 @@
          }
  
          this.keepConnectionAlive();
 +        // CraftBukkit start
 +        for (int spam; (spam = this.chatSpamTickCount.get()) > 0 && !this.chatSpamTickCount.compareAndSet(spam, spam - 1); ) ;
++        if (tabSpamLimiter.get() > 0) tabSpamLimiter.getAndDecrement(); // Paper - configurable tab spam limits
++        if (recipeSpamPackets.get() > 0) recipeSpamPackets.getAndDecrement(); // Paper - auto recipe limit
 +        /* Use thread-safe field access instead
          if (this.chatSpamTickCount > 0) {
 -            this.chatSpamTickCount--;
@@ -343,27 +347,122 @@
          this.player.getRecipeBook().setBookSetting(p_9895_.getBookType(), p_9895_.isOpen(), p_9895_.isFiltering());
      }
  
-@@ -523,6 +_,12 @@
+@@ -520,25 +_,108 @@
+         }
+     }
+ 
++    // Paper start - AsyncTabCompleteEvent
++    private static final java.util.concurrent.ExecutorService TAB_COMPLETE_EXECUTOR = java.util.concurrent.Executors.newFixedThreadPool(4,
++            new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Tab Complete Thread - #%d").setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER)).build());
++    // Paper end - AsyncTabCompleteEvent
      @Override
      public void handleCustomCommandSuggestions(ServerboundCommandSuggestionPacket p_9847_) {
-         PacketUtils.ensureRunningOnSameThread(p_9847_, this, this.player.serverLevel());
+-        PacketUtils.ensureRunningOnSameThread(p_9847_, this, this.player.serverLevel());
+-        StringReader stringreader = new StringReader(p_9847_.getCommand());
++        // PacketUtils.ensureRunningOnSameThread(p_9847_, this, this.player.serverLevel());
 +        // CraftBukkit start
 +        if (this.chatSpamTickCount.addAndGet(io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.tabSpamIncrement) > io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.tabSpamLimit && !this.server.getPlayerList().isOp(this.player.getGameProfile())) { // Paper - configurable tab spam limits
 +            this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - Kick event cause // Paper - add proper async disconnect
 +            return;
 +        }
 +        // CraftBukkit end
-         StringReader stringreader = new StringReader(p_9847_.getCommand());
++        // Paper start - Don't suggest if tab-complete is disabled
++        if (org.spigotmc.SpigotConfig.tabComplete < 0) {
++            return;
++        }
++        // Paper end - Don't suggest if tab-complete is disabled
++        // Paper start
++        final int index;
++        if (p_9847_.getCommand().length() > 64 && ((index = p_9847_.getCommand().indexOf(' ')) == -1 || index >= 64)) {
++            this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - add proper async disconnect
++            return;
++        }
++        // Paper end
++        // Paper start - AsyncTabCompleteEvent
++        TAB_COMPLETE_EXECUTOR.execute(() -> this.handleCustomCommandSuggestions0(p_9847_));
++    }
++
++    private void handleCustomCommandSuggestions0(final ServerboundCommandSuggestionPacket packet) {
++        // CraftBukkit end
++        StringReader stringreader = new StringReader(packet.getCommand());
          if (stringreader.canRead() && stringreader.peek() == '/') {
              stringreader.skip();
-@@ -535,6 +_,7 @@
+         }
+ 
++        final io.papermc.paper.event.server.AsyncTabCompleteEvent event = new io.papermc.paper.event.server.AsyncTabCompleteEvent(this.getCraftPlayer(), packet.getCommand(), true, null);
++        event.callEvent();
++        final List<io.papermc.paper.event.server.AsyncTabCompleteEvent.Completion> completions = event.isCancelled() ? com.google.common.collect.ImmutableList.of() : event.completions();
++        // If the event isn't handled, we can assume that we have no completions, and so we'll ask the server
++        if (!event.isHandled()) {
++            if (event.isCancelled()) {
++                return;
++            }
++
++            // This needs to be on main
++            this.server.scheduleOnMain(() -> this.sendServerSuggestions(packet, stringreader));
++        } else if (!completions.isEmpty()) {
++            final com.mojang.brigadier.suggestion.SuggestionsBuilder builder0 = new com.mojang.brigadier.suggestion.SuggestionsBuilder(packet.getCommand(), stringreader.getTotalLength());
++            final com.mojang.brigadier.suggestion.SuggestionsBuilder builder = builder0.createOffset(builder0.getInput().lastIndexOf(' ') + 1);
++            for (final io.papermc.paper.event.server.AsyncTabCompleteEvent.Completion completion : completions) {
++                final Integer intSuggestion = com.google.common.primitives.Ints.tryParse(completion.suggestion());
++                if (intSuggestion != null) {
++                    builder.suggest(intSuggestion, PaperAdventure.asVanilla(completion.tooltip()));
++                } else {
++                    builder.suggest(completion.suggestion(), PaperAdventure.asVanilla(completion.tooltip()));
++                }
++            }
++            // Paper start - Brigadier API
++            com.mojang.brigadier.suggestion.Suggestions suggestions = builder.buildFuture().join();
++            io.papermc.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent suggestEvent = new io.papermc.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent(this.getCraftPlayer(), suggestions, packet.getCommand());
++            suggestEvent.setCancelled(suggestions.isEmpty());
++            if (suggestEvent.callEvent()) {
++                this.connection.send(new ClientboundCommandSuggestionsPacket(packet.getId(), limitTo(suggestEvent.getSuggestions(), ServerGamePacketListenerImpl.MAX_COMMAND_SUGGESTIONS)));
++            }
++            // Paper end - Brigadier API
++        }
++    }
++    // Paper start - brig API
++    private static Suggestions limitTo(final Suggestions suggestions, final int size) {
++        return suggestions.getList().size() <= size ? suggestions : new Suggestions(suggestions.getRange(), suggestions.getList().subList(0, size));
++    }
++    // Paper end - brig API
++
++    private void sendServerSuggestions(final ServerboundCommandSuggestionPacket packet, final StringReader stringreader) {
++        // Paper end - AsyncTabCompleteEvent
+         ParseResults<CommandSourceStack> parseresults = this.server.getCommands().getDispatcher().parse(stringreader, this.player.createCommandSourceStack());
++        // Paper start - Handle non-recoverable exceptions
++        if (!parseresults.getExceptions().isEmpty()
++                && parseresults.getExceptions().values().stream().anyMatch(e -> e instanceof io.papermc.paper.brigadier.TagParseCommandSyntaxException)) {
++            this.disconnect(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
++            return;
++        }
++        // Paper end - Handle non-recoverable exceptions
+         this.server
+             .getCommands()
+             .getDispatcher()
              .getCompletionSuggestions(parseresults)
              .thenAccept(
-                 p_333513_ -> {
-+                    if (p_333513_.isEmpty()) return; // CraftBukkit - don't send through empty suggestions - prevents [<args>] from showing for plugins with nothing more to offer
-                     Suggestions suggestions = p_333513_.getList().size() <= 1000
-                         ? p_333513_
-                         : new Suggestions(p_333513_.getRange(), p_333513_.getList().subList(0, 1000));
+-                p_333513_ -> {
+-                    Suggestions suggestions = p_333513_.getList().size() <= 1000
+-                        ? p_333513_
+-                        : new Suggestions(p_333513_.getRange(), p_333513_.getList().subList(0, 1000));
+-                    this.send(new ClientboundCommandSuggestionsPacket(p_9847_.getId(), suggestions));
++                    suggestions -> {
++                    // Paper start - Don't tab-complete namespaced commands if send-namespaced is false
++                    if (!org.spigotmc.SpigotConfig.sendNamespaced && suggestions.getRange().getStart() <= 1) {
++                        suggestions.getList().removeIf(suggestion -> suggestion.getText().contains(":"));
++                    }
++                    // Paper end - Don't tab-complete namespaced commands if send-namespaced is false
++                    // Paper start - Brigadier API
++                    io.papermc.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent suggestEvent = new io.papermc.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent(this.getCraftPlayer(), suggestions, packet.getCommand());
++                    suggestEvent.setCancelled(suggestions.isEmpty());
++                    if (suggestEvent.callEvent()) {
++                        this.send(new ClientboundCommandSuggestionsPacket(packet.getId(), limitTo(suggestEvent.getSuggestions(), ServerGamePacketListenerImpl.MAX_COMMAND_SUGGESTIONS)));
++                    }
++                    // Paper end - Brigadier API
+                 }
+             );
+     }
 @@ -625,6 +_,23 @@
      public void handlePickItem(ServerboundPickItemPacket p_9880_) {
          PacketUtils.ensureRunningOnSameThread(p_9880_, this, this.player.serverLevel());
@@ -553,7 +652,40 @@
                                      }
                                  }
                              }
-@@ -899,6 +_,7 @@
+@@ -894,11 +_,39 @@
+                             d8 = d2 - this.lastGoodZ;
+                             boolean flag4 = d7 > 0.0;
+                             if (this.player.onGround() && !p_9874_.isOnGround() && flag4) {
+-                                this.player.jumpFromGround();
++                                // Paper start - Add PlayerJumpEvent
++                                org.bukkit.entity.Player player = this.getCraftPlayer();
++                                Location from = new Location(player.getWorld(), lastPosX, lastPosY, lastPosZ, lastYaw, lastPitch); // Get the Players previous Event location.
++                                Location to = player.getLocation().clone(); // Start off the To location as the Players current location.
++
++                                // If the packet contains movement information then we update the To location with the correct XYZ.
++                                if (p_9874_.hasPos) {
++                                    to.setX(p_9874_.x);
++                                    to.setY(p_9874_.y);
++                                    to.setZ(p_9874_.z);
++                                }
++
++                                // If the packet contains look information then we update the To location with the correct Yaw & Pitch.
++                                if (p_9874_.hasRot) {
++                                    to.setYaw(p_9874_.yRot);
++                                    to.setPitch(p_9874_.xRot);
++                                }
++
++                                io.papermc.paper.event.player.PlayerJumpEvent event = new io.papermc.paper.event.player.PlayerJumpEvent(player, from, to);
++
++                                if (event.callEvent()) {
++                                    this.player.jumpFromGround();
++                                } else {
++                                    from = event.getFrom();
++                                    this.internalTeleport(from.getX(), from.getY(), from.getZ(), from.getYaw(), from.getPitch(), Collections.emptySet());
++                                    return;
++                                }
++                                // Paper end - Add PlayerJumpEvent
+                             }
  
                              boolean flag1 = this.player.verticalCollisionBelow;
                              this.player.move(MoverType.PLAYER, new Vec3(d6, d7, d8));
@@ -1544,7 +1676,34 @@
                              ServerGamePacketListenerImpl.LOGGER
                                  .warn("Player {} tried to attack an invalid entity", ServerGamePacketListenerImpl.this.player.getName().getString());
                          }
-@@ -1600,14 +_,14 @@
+@@ -1589,6 +_,26 @@
+                 );
+             }
+         }
++        // Paper start - PlayerUseUnknownEntityEvent
++        else {
++            p_9866_.dispatch(new net.minecraft.network.protocol.game.ServerboundInteractPacket.Handler() {
++                @Override
++                public void onInteraction(net.minecraft.world.InteractionHand hand) {
++                    CraftEventFactory.callPlayerUseUnknownEntityEvent(ServerGamePacketListenerImpl.this.player, p_9866_, hand, null);
++                }
++
++                @Override
++                public void onInteraction(net.minecraft.world.InteractionHand hand, net.minecraft.world.phys.Vec3 pos) {
++                    CraftEventFactory.callPlayerUseUnknownEntityEvent(ServerGamePacketListenerImpl.this.player, p_9866_, hand, pos);
++                }
++
++                @Override
++                public void onAttack() {
++                    CraftEventFactory.callPlayerUseUnknownEntityEvent(ServerGamePacketListenerImpl.this.player, p_9866_, net.minecraft.world.InteractionHand.MAIN_HAND, null);
++                }
++            });
++        }
++        // Paper end - PlayerUseUnknownEntityEvent
+     }
+ 
+     @Override
+@@ -1600,16 +_,16 @@
              case PERFORM_RESPAWN:
                  if (this.player.wonGame) {
                      this.player.wonGame = false;
@@ -1559,8 +1718,11 @@
 -                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED);
 +                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.DEATH); // CraftBukkit
                      if (this.server.isHardcore()) {
-                         this.player.setGameMode(GameType.SPECTATOR);
+-                        this.player.setGameMode(GameType.SPECTATOR);
++                        this.player.setGameMode(GameType.SPECTATOR, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.HARDCORE_DEATH, null); // Paper - Expand PlayerGameModeChangeEvent
                          this.player.level().getGameRules().getRule(GameRules.RULE_SPECTATORSGENERATECHUNKS).set(false, this.server);
+                     }
+                 }
 @@ -1622,15 +_,24 @@
      @Override
      public void handleContainerClose(ServerboundContainerClosePacket p_9858_) {
@@ -1895,7 +2057,22 @@
  
                      for (Entry<ItemStack> entry : Int2ObjectMaps.fastIterable(p_9856_.getChangedSlots())) {
                          this.player.containerMenu.setRemoteSlotNoCopy(entry.getIntKey(), entry.getValue());
-@@ -1671,13 +_,17 @@
+@@ -1663,6 +_,14 @@
+ 
+     @Override
+     public void handlePlaceRecipe(ServerboundPlaceRecipePacket p_9882_) {
++        // Paper start - auto recipe limit
++        if (!org.bukkit.Bukkit.isPrimaryThread()) {
++            if (this.recipeSpamPackets.addAndGet(io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.recipeSpamIncrement) > io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.recipeSpamLimit) {
++                this.disconnectAsync(net.minecraft.network.chat.Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - kick event cause // Paper - add proper async disconnect
++                return;
++            }
++        }
++        // Paper end - auto recipe limit
+         PacketUtils.ensureRunningOnSameThread(p_9882_, this, this.player.serverLevel());
+         this.player.resetLastActionTime();
+         if (!this.player.isSpectator()
+@@ -1671,13 +_,42 @@
              if (!this.player.containerMenu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, this.player.containerMenu);
              } else {
@@ -1906,15 +2083,40 @@
 -                        p_300787_ -> ((RecipeBookMenu)this.player.containerMenu)
 -                                .handlePlacement(p_9882_.isShiftDown(), (RecipeHolder<?>)p_300787_, this.player)
 -                    );
-+                // CraftBukkit start - implement PlayerRecipeBookClickEvent
-+                org.bukkit.inventory.Recipe recipe = this.cserver.getRecipe(CraftNamespacedKey.fromMinecraft(p_9882_.getRecipe()));
-+                if (recipe == null) {
++                // Paper start - Add PlayerRecipeBookClickEvent
++                ResourceLocation recipeName = p_9882_.getRecipe();
++                boolean makeAll = p_9882_.isShiftDown();
++                io.papermc.paper.event.player.PlayerRecipeBookClickEvent paperEvent = new io.papermc.paper.event.player.PlayerRecipeBookClickEvent(
++                        this.player.getBukkitEntity(), org.bukkit.craftbukkit.util.CraftNamespacedKey.fromMinecraft(recipeName), makeAll
++                );
++                if (!paperEvent.callEvent()) {
 +                    return;
 +                }
-+                org.bukkit.event.player.PlayerRecipeBookClickEvent event = CraftEventFactory.callRecipeBookClickEvent(this.player, recipe, p_9882_.isShiftDown());
++                recipeName = CraftNamespacedKey.toMinecraft(paperEvent.getRecipe());
++                makeAll = paperEvent.isMakeAll();
++                if (org.bukkit.event.player.PlayerRecipeBookClickEvent.getHandlerList().getRegisteredListeners().length > 0) {
++                    // Paper end - Add PlayerRecipeBookClickEvent
++                    // CraftBukkit start - implement PlayerRecipeBookClickEvent
++                    org.bukkit.inventory.Recipe recipe = this.cserver.getRecipe(CraftNamespacedKey.fromMinecraft(recipeName)); // Paper
++                    if (recipe == null) {
++                        return;
++                    }
++                    // Paper start - Add PlayerRecipeBookClickEvent
++                    org.bukkit.event.player.PlayerRecipeBookClickEvent event = CraftEventFactory.callRecipeBookClickEvent(this.player, recipe, makeAll);
++                    recipeName = CraftNamespacedKey.toMinecraft(((org.bukkit.Keyed) event.getRecipe()).getKey());
++                    makeAll = event.isShiftClick();
++                }
++                if (!(this.player.containerMenu instanceof RecipeBookMenu<?, ?> recipeBookMenu)) {
++                    return;
++                }
++                // Paper end - Add PlayerRecipeBookClickEvent
++
 +                // Cast to keyed should be safe as the recipe will never be a MerchantRecipe.
-+                this.server.getRecipeManager().byKey(CraftNamespacedKey.toMinecraft(((org.bukkit.Keyed) event.getRecipe()).getKey())).ifPresent((recipeholder) -> {
-+                    ((RecipeBookMenu) this.player.containerMenu).handlePlacement(event.isShiftClick(), recipeholder, this.player);
++                // Paper start - Add PlayerRecipeBookClickEvent
++                final boolean finalMakeAll = makeAll;
++                this.server.getRecipeManager().byKey(recipeName).ifPresent((recipeholder) -> {
++                    recipeBookMenu.handlePlacement(finalMakeAll, recipeholder, this.player);
++                    // Paper end - Add PlayerRecipeBookClickEvent
 +                });
 +                // CraftBukkit end
              }
@@ -1989,7 +2191,7 @@
          this.player.resetLastActionTime();
          ServerLevel serverlevel = this.player.serverLevel();
          BlockPos blockpos = p_9923_.getPos();
-@@ -1753,20 +_,33 @@
+@@ -1753,20 +_,40 @@
      @Override
      public void handlePlayerAbilities(ServerboundPlayerAbilitiesPacket p_9887_) {
          PacketUtils.ensureRunningOnSameThread(p_9887_, this, this.player.serverLevel());
@@ -2010,6 +2212,13 @@
      @Override
      public void handleClientInformation(ServerboundClientInformationPacket p_301979_) {
          PacketUtils.ensureRunningOnSameThread(p_301979_, this, this.player.serverLevel());
++        // Paper start - do not accept invalid information
++        if (p_301979_.information().viewDistance() < 0) {
++            LOGGER.warn("Disconnecting " + this.player.getScoreboardName() + " for invalid view distance: " + p_301979_.information().viewDistance());
++            this.disconnect(Component.literal("Invalid client settings"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION);
++            return;
++        }
++        // Paper end - do not accept invalid information
 +        net.minecraft.server.level.ClientInformation oldInfo = this.player.clientInformation();
          this.player.updateOptions(p_301979_.information());
 +        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.ClientInformationUpdatedEvent(this.player, oldInfo, p_301979_.information()));

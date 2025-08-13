@@ -2258,6 +2258,21 @@ public interface ItemType extends Keyed, Translatable, net.kyori.adventure.trans
 //    @NotNull
 //    EquipmentSlot getEquipmentSlot();
 
+    // Paper start - improve default item attribute API
+    /**
+     * Return an immutable copy of all default {@link Attribute}s and their
+     * {@link AttributeModifier}s.
+     * <p>
+     * Default attributes are those that are always preset on some items, unless
+     * they are specifically overridden on that {@link ItemStack}. Examples include
+     * the attack damage on weapons or the armor value on armor.
+     *
+     * @return the immutable {@link Multimap} with the respective default
+     * Attributes and modifiers, or an empty map if no attributes are set.
+     */
+    @NotNull @org.jetbrains.annotations.Unmodifiable Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers();
+    // Paper end - improve default item attribute API
+
     /**
      * Return an immutable copy of all default {@link Attribute}s and their
      * {@link AttributeModifier}s for a given {@link EquipmentSlot}.
@@ -2308,4 +2323,13 @@ public interface ItemType extends Keyed, Translatable, net.kyori.adventure.trans
     @Override
     @NotNull String getTranslationKey();
     // Paper end - add Translatable
+
+    // Paper start - expand ItemRarity API
+    /**
+     * Returns the item rarity for the item.
+     *
+     * @return the item rarity (or null if none is set)
+     */
+    @Nullable ItemRarity getItemRarity();
+    // Paper end - expand ItemRarity API
 }
