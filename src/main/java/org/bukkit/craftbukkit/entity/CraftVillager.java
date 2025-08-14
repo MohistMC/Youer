@@ -370,4 +370,11 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
         getHandle().getGossips().gossips.clear();
     }
     // Paper end
+
+    // Purpur start
+    @Override
+    public boolean isLobotomized() {
+        return getHandle().isLobotomized();
+    }
+    // Purpur end
 }

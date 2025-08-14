@@ -23,7 +23,7 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
 
     private WatchdogThread(long timeoutTime, boolean restart)
     {
-        super( "Youer Watchdog Thread" );
+        super( "Watchdog Thread" );
         this.timeoutTime = timeoutTime;
         this.restart = restart;
         earlyWarningEvery = Math.min(io.papermc.paper.configuration.GlobalConfiguration.get().watchdog.earlyWarningEvery, timeoutTime); // Paper

@@ -41,6 +41,17 @@
  
      public SmithingMenu(int p_40245_, Inventory p_40246_) {
          this(p_40245_, p_40246_, ContainerLevelAccess.NULL);
+@@ -62,6 +_,10 @@
+ 
+     @Override
+     protected void onTake(Player p_150663_, ItemStack p_150664_) {
++        // Purpur start - Anvil API
++        ItemStack itemstack = this.activeQuickItem != null ? this.activeQuickItem : p_150664_;
++        if (org.purpurmc.purpur.event.inventory.AnvilTakeResultEvent.getHandlerList().getRegisteredListeners().length > 0) new org.purpurmc.purpur.event.inventory.AnvilTakeResultEvent(player.getBukkitEntity(), getBukkitView(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack)).callEvent();
++        // Purpur end - Anvil API
+         p_150664_.onCraftedBy(p_150663_.level(), p_150663_, p_150664_.getCount());
+         this.resultSlots.awardUsedRecipes(p_150663_, this.getRelevantItems());
+         this.shrinkStackInSlot(0);
 @@ -91,16 +_,19 @@
          SmithingRecipeInput smithingrecipeinput = this.createRecipeInput();
          List<RecipeHolder<SmithingRecipe>> list = this.level.getRecipeManager().getRecipesFor(RecipeType.SMITHING, smithingrecipeinput, this.level);

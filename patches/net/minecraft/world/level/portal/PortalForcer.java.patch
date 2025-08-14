@@ -1,6 +1,10 @@
 --- a/net/minecraft/world/level/portal/PortalForcer.java
 +++ b/net/minecraft/world/level/portal/PortalForcer.java
-@@ -5,7 +_,6 @@
+@@ -2,10 +_,10 @@
+ 
+ import java.util.Comparator;
+ import java.util.Optional;
++import java.util.concurrent.atomic.AtomicInteger;
  import net.minecraft.BlockUtil;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
@@ -16,29 +20,31 @@
  
  public class PortalForcer {
      public static final int TICKET_RADIUS = 3;
-@@ -40,18 +_,30 @@
+@@ -39,19 +_,32 @@
+         this.level = p_77650_;
      }
  
++    public AtomicInteger findClosestPortalPosition$i = new AtomicInteger(-1);
      public Optional<BlockPos> findClosestPortalPosition(BlockPos p_352378_, boolean p_352309_, WorldBorder p_352374_) {
-+        // CraftBukkit start
-+        return findClosestPortalPosition(p_352378_, p_352374_, p_352309_ ? 16 : 128); // Search Radius
-+    }
-+
-+    public Optional<BlockPos> findClosestPortalPosition(BlockPos blockposition, WorldBorder worldborder, int i) {
 +        // CraftBukkit end
          PoiManager poimanager = this.level.getPoiManager();
 -        int i = p_352309_ ? 16 : 128;
--        poimanager.ensureLoadedAndValid(this.level, p_352378_, i);
--        return poimanager.getInSquare(p_230634_ -> p_230634_.is(PoiTypes.NETHER_PORTAL), p_352378_, i, PoiManager.Occupancy.ANY)
-+        // int i = p_352309_ ? 16 : 128; // CraftBukkit - moved up
-+        poimanager.ensureLoadedAndValid(this.level, blockposition, i);
-+        return poimanager.getInSquare(p_230634_ -> p_230634_.is(PoiTypes.NETHER_PORTAL), blockposition, i, PoiManager.Occupancy.ANY)
-             .map(PoiRecord::getPos)
++        int i = (findClosestPortalPosition$i.get() != -1) ? findClosestPortalPosition$i.getAndSet(-1) : p_352309_ ? 16 : 128; // CraftBukkit - moved up
+         poimanager.ensureLoadedAndValid(this.level, p_352378_, i);
+         return poimanager.getInSquare(p_230634_ -> p_230634_.is(PoiTypes.NETHER_PORTAL), p_352378_, i, PoiManager.Occupancy.ANY)
+-            .map(PoiRecord::getPos)
 -            .filter(p_352374_::isWithinBounds)
-+            .filter(worldborder::isWithinBounds)
-             .filter(p_352047_ -> this.level.getBlockState(p_352047_).hasProperty(BlockStateProperties.HORIZONTAL_AXIS))
+-            .filter(p_352047_ -> this.level.getBlockState(p_352047_).hasProperty(BlockStateProperties.HORIZONTAL_AXIS))
 -            .min(Comparator.<BlockPos>comparingDouble(p_352046_ -> p_352046_.distSqr(p_352378_)).thenComparingInt(Vec3i::getY));
-+            .min(Comparator.<BlockPos>comparingDouble(p_352046_ -> p_352046_.distSqr(blockposition)).thenComparingInt(Vec3i::getY));
++                .map(PoiRecord::getPos)
++                .filter(p_352374_::isWithinBounds)
++                .filter(p_352047_ -> this.level.getBlockState(p_352047_).hasProperty(BlockStateProperties.HORIZONTAL_AXIS))
++                .min(Comparator.<BlockPos>comparingDouble(p_352046_ -> p_352046_.distSqr(p_352378_)).thenComparingInt(Vec3i::getY));
++    }
++
++    public Optional<BlockPos> findClosestPortalPosition(BlockPos blockposition, WorldBorder worldborder, int i) {
++        findClosestPortalPosition$i.set(i);
++        return findClosestPortalPosition(blockposition, true, worldborder);
      }
  
      public Optional<BlockUtil.FoundRectangle> createPortal(BlockPos p_77667_, Direction.Axis p_77668_) {

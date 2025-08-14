@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/BeehiveBlock.java
 +++ b/net/minecraft/world/level/block/BeehiveBlock.java
-@@ -108,6 +_,7 @@
+@@ -108,14 +_,17 @@
              for (Bee bee : list) {
                  if (bee.getTarget() == null) {
                      Player player = Util.getRandom(list1, p_49650_.random);
@@ -8,7 +8,18 @@
                      bee.setTarget(player);
                  }
              }
-@@ -126,9 +_,22 @@
+         }
+     }
+ 
++    private static ItemStack useItemOn$Item = null;
+     public static void dropHoneycomb(Level p_49601_, BlockPos p_49602_) {
+-        popResource(p_49601_, p_49602_, new ItemStack(Items.HONEYCOMB, 3));
++        ItemStack itemstack = useItemOn$Item != null ? useItemOn$Item : new ItemStack(Items.HONEYCOMB, 3);
++        popResource(p_49601_, p_49602_, itemstack);
+     }
+ 
+     @Override
+@@ -126,9 +_,24 @@
          boolean flag = false;
          if (i >= 5) {
              Item item = p_316844_.getItem();
@@ -27,7 +38,9 @@
 -                dropHoneycomb(p_316306_, p_316497_);
 +                // Paper start - Add PlayerShearBlockEvent
 +                for (org.bukkit.inventory.ItemStack itemDrop : event.getDrops()) {
-+                    popResource(p_316306_, p_316497_, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(itemDrop));
++                    useItemOn$Item = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(itemDrop);
++                    dropHoneycomb(p_316306_, p_316497_);
++                    useItemOn$Item = null;
 +                }
 +                // Paper end - Add PlayerShearBlockEvent
                  p_316844_.hurtAndBreak(1, p_316824_, LivingEntity.getSlotForHand(p_316436_));

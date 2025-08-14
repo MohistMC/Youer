@@ -7,7 +7,7 @@
 -        int i = (int)p_144006_.stream().filter(Player::isSleepingLongEnough).count();
 -        return i >= this.sleepersNeeded(p_144005_);
 +        // CraftBukkit start
-+        int j = (int) p_144006_.stream().filter((eh) -> { return eh.isSleepingLongEnough() || eh.fauxSleeping; }).count();
++        int j = (int) p_144006_.stream().filter((eh) -> { return eh.isSleepingLongEnough() || eh.fauxSleeping || (eh.level().purpurConfig.idleTimeoutCountAsSleeping && eh.isAfk()); }).count(); // Purpur
 +        boolean anyDeepSleep = p_144006_.stream().anyMatch(Player::isSleepingLongEnough);
 +        return anyDeepSleep && j >= this.sleepersNeeded(p_144005_);
 +        // CraftBukkit end
@@ -24,7 +24,7 @@
              if (!serverplayer.isSpectator()) {
                  this.activePlayers++;
 -                if (serverplayer.isSleeping()) {
-+                if (serverplayer.isSleeping() || serverplayer.fauxSleeping) { // CraftBukkit
++                if ((serverplayer.isSleeping() || serverplayer.fauxSleeping) || (serverplayer.level().purpurConfig.idleTimeoutCountAsSleeping && serverplayer.isAfk())) { // CraftBukkit // Purpur
                      this.sleepingPlayers++;
                  }
 +                // CraftBukkit start

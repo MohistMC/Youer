@@ -151,4 +151,51 @@ public class CraftItem extends CraftEntity implements Item {
     public String toString() {
         return "CraftItem";
     }
+
+    // Purpur start
+    @Override
+    public void setImmuneToCactus(boolean immuneToCactus) {
+        this.getHandle().immuneToCactus = immuneToCactus;
+    }
+
+    @Override
+    public boolean isImmuneToCactus() {
+        return this.getHandle().immuneToCactus;
+    }
+
+    @Override
+    public void setImmuneToExplosion(boolean immuneToExplosion) {
+        this.getHandle().immuneToExplosion = immuneToExplosion;
+    }
+
+    @Override
+    public boolean isImmuneToExplosion() {
+        return this.getHandle().immuneToExplosion;
+    }
+
+    @Override
+    public void setImmuneToFire(@org.jetbrains.annotations.Nullable Boolean immuneToFire) {
+        this.getHandle().immuneToFire = (immuneToFire != null && immuneToFire);
+    }
+
+    @Override
+    public void setImmuneToFire(boolean immuneToFire) {
+        this.setImmuneToFire((Boolean) immuneToFire);
+    }
+
+    @Override
+    public boolean isImmuneToFire() {
+        return this.getHandle().immuneToFire;
+    }
+
+    @Override
+    public void setImmuneToLightning(boolean immuneToLightning) {
+        this.getHandle().immuneToLightning = immuneToLightning;
+    }
+
+    @Override
+    public boolean isImmuneToLightning() {
+        return this.getHandle().immuneToLightning;
+    }
+    // Purpur end
 }

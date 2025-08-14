@@ -40,7 +40,7 @@
   - [x] api
   - [ ] server
 - [ ] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))
-  - [ ] api
+  - [x] api
   - [ ] server
 
 ## 📚 Documentation

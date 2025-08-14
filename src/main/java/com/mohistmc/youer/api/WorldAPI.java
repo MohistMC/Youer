@@ -5,10 +5,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.generator.ChunkGenerator;
 
 /**
@@ -18,6 +20,10 @@ import org.bukkit.generator.ChunkGenerator;
 public class WorldAPI {
 
     public static Map<BlockPos, Entity> destroyBlockProgress = new HashMap<>();
+
+    public static ServerLevel getServerLevel(World world) {
+        return ((CraftWorld)world).getHandle();
+    }
 
     public static String getWorldName(World world) {
         if (ConfigByWorlds.config.get("worlds." + world.getName() + ".name") == null) {

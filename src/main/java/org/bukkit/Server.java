@@ -2217,6 +2217,38 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
             throw new UnsupportedOperationException("Not supported yet.");
         }
 
+        // Paper start
+        @NotNull
+        public org.bukkit.configuration.file.YamlConfiguration getBukkitConfig()
+        {
+            throw new UnsupportedOperationException( "Not supported yet." );
+        }
+
+        @NotNull
+        public org.bukkit.configuration.file.YamlConfiguration getSpigotConfig()
+        {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @NotNull
+        public org.bukkit.configuration.file.YamlConfiguration getPaperConfig()
+        {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+        // Paper end
+
+        // Purpur start
+        @NotNull
+        public org.bukkit.configuration.file.YamlConfiguration getPurpurConfig() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @NotNull
+        public java.util.Properties getServerProperties() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+        // Purpur end
+
         /**
          * Sends the component to the player
          *
@@ -2501,4 +2533,105 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
     @NotNull net.kyori.adventure.text.Component permissionMessage();
 
     void reloadPermissions(); // Paper
+
+    // Purpur start
+    /**
+     * Get the name of this server
+     * @return the name of the server
+     */
+    @NotNull
+    String getServerName();
+
+    /**
+     * Check if server is lagging according to laggy threshold setting
+     *
+     * @return True if lagging
+     */
+    boolean isLagging();
+
+    /**
+     * Add an Item as fuel for furnaces
+     *
+     * @param material The material that will be the fuel
+     * @param burnTime The time (in ticks) this item will burn for
+     */
+    public void addFuel(@NotNull Material material, int burnTime);
+
+    /**
+     * Remove an item as fuel for furnaces
+     *
+     * @param material The material that will no longer be a fuel
+     */
+    public void removeFuel(@NotNull Material material);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to all players on the server.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to all players on the server.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param argb Color of the highlight. ARGB int. Will be ignored on some versions of vanilla client
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, int argb);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to all players on the server.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param text Text to show above the highlight
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to all players on the server.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param text Text to show above the highlight
+     * @param argb Color of the highlight. ARGB int. Will be ignored on some versions of vanilla client
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text, int argb);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to all players on the server.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param color Color of the highlight. Will be ignored on some versions of vanilla client
+     * @param transparency Transparency of the highlight
+     * @throws IllegalArgumentException If transparency is outside 0-255 range
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull org.bukkit.Color color, int transparency);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to all players on the server.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param text Text to show above the highlight
+     * @param color Color of the highlight. Will be ignored on some versions of vanilla client
+     * @param transparency Transparency of the highlight
+     * @throws IllegalArgumentException If transparency is outside 0-255 range
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text, @NotNull org.bukkit.Color color, int transparency);
+
+    /**
+     * Clears all debug block highlights for all players on the server.
+     */
+    void clearBlockHighlights();
+    // Purpur end
 }

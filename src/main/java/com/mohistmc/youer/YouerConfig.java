@@ -6,7 +6,6 @@ import com.mohistmc.youer.commands.DumpCommand;
 import com.mohistmc.youer.commands.GetPluginListCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
 import com.mohistmc.youer.commands.PermissionCommand;
-import com.mohistmc.youer.commands.PingCommand;
 import com.mohistmc.youer.commands.ShowsCommand;
 import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.plugins.MohistPlugin;
@@ -78,7 +77,6 @@ public class YouerConfig {
         commands.put("permission", new PermissionCommand("permission"));
         commands.put("bans", new BansCommand("bans"));
         commands.put("shows", new ShowsCommand("shows"));
-        commands.put("ping", new PingCommand("ping"));
 
         MohistPlugin.registerCommands(commands);
 
@@ -196,6 +194,8 @@ public class YouerConfig {
     // Ban
     public static boolean ban_item_enable;
     public static boolean ban_entity_enable;
+    public static boolean no_vanilla_entity_enable;
+    public static List<String> no_vanilla_entity_whitelist;
     public static boolean ban_enchantment_enable;
 
     public static String pingCommandOutput;
@@ -271,7 +271,9 @@ public class YouerConfig {
         clear_monster_time = getInt("entity.clear.monster.time", 1800);
 
         ban_item_enable = getBoolean("bans.item" , false);
-        ban_entity_enable = getBoolean("bans.entity", false);
+        ban_entity_enable = getBoolean("bans.entity.enable", false);
+        no_vanilla_entity_enable = getBoolean("bans.entity.vanilla_entity.enable", false);
+        no_vanilla_entity_whitelist = getStringList("bans.entity.vanilla_entity.whitelist", new ArrayList<>());
         ban_enchantment_enable = getBoolean("bans.enchantment", false);
 
         pingCommandOutput = getString("settings.messages.ping-command-output", "§2%s's ping is %sms");

@@ -100,15 +100,21 @@
      protected boolean dead;
      protected int noActionTime;
      protected float oRun;
-@@ -214,7 +_,7 @@
+@@ -214,10 +_,10 @@
      protected float rotOffs;
      protected int deathScore;
      public float lastHurt;
 -    protected boolean jumping;
+-    public float xxa;
+-    public float yya;
+-    public float zza;
 +    public boolean jumping;
-     public float xxa;
-     public float yya;
-     public float zza;
++    public float xxa; public float getStrafeMot() { return xxa; } public void setStrafeMot(float strafe) { xxa = strafe; } // Purpur - OBFHELPER
++    public float yya; public float getVerticalMot() { return yya; } public void setVerticalMot(float vertical) { yya = vertical; } // Purpur - OBFHELPER
++    public float zza; public float getForwardMot() { return zza; } public void setForwardMot(float forward) { zza = forward; } // Purpur - OBFHELPER
+     protected int lerpSteps;
+     protected double lerpX;
+     protected double lerpY;
 @@ -251,13 +_,37 @@
      private float swimAmount;
      private float swimAmountO;
@@ -134,7 +140,7 @@
 +    public boolean bukkitPickUpLoot;
 +    public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
 +    public CraftLivingEntity getBukkitLivingEntity() { return (CraftLivingEntity) super.getBukkitEntity(); } // Paper
-+
++    protected boolean shouldBurnInDay = false; public boolean shouldBurnInDay() { return this.shouldBurnInDay; } public void setShouldBurnInDay(boolean shouldBurnInDay) { this.shouldBurnInDay = shouldBurnInDay; } // Purpur - API for any mob to burn daylight
 +    @Override
 +    public float getBukkitYaw() {
 +        return getYHeadRot();
@@ -143,7 +149,8 @@
  
      protected LivingEntity(EntityType<? extends LivingEntity> p_20966_, Level p_20967_) {
          super(p_20966_, p_20967_);
-         this.attributes = new AttributeMap(DefaultAttributes.getSupplier(p_20966_));
+-        this.attributes = new AttributeMap(DefaultAttributes.getSupplier(p_20966_));
++        this.attributes = new AttributeMap(DefaultAttributes.getSupplier(p_20966_), this);
 +        this.fake$setHealth(true);
          this.setHealth(this.getMaxHealth());
          this.blocksBuilding = true;
@@ -156,7 +163,7 @@
      }
  
      public Brain<?> getBrain() {
-@@ -320,7 +_,9 @@
+@@ -320,8 +_,11 @@
              .add(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE)
              .add(Attributes.WATER_MOVEMENT_EFFICIENCY)
              .add(Attributes.MOVEMENT_EFFICIENCY)
@@ -165,8 +172,10 @@
 +            .add(net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED)
 +            .add(net.neoforged.neoforge.common.NeoForgeMod.NAMETAG_DISTANCE);
      }
++    public boolean shouldSendAttribute(Attribute attribute) { return true; } // Purpur
  
      @Override
+     protected void checkFallDamage(double p_20990_, boolean p_20991_, BlockState p_20992_, BlockPos p_20993_) {
 @@ -348,7 +_,14 @@
                  float f = (float)Mth.ceil((double)this.fallDistance - d7);
                  double d4 = Math.min((double)(0.2F + f / 15.0F), 2.5);
@@ -291,7 +300,12 @@
          p_21145_.putFloat("Health", this.getHealth());
          p_21145_.putShort("HurtTime", (short)this.hurtTime);
          p_21145_.putInt("HurtByTimestamp", this.lastHurtByMobTimestamp);
-@@ -712,7 +_,23 @@
+@@ -708,11 +_,28 @@
+         });
+         DataResult<Tag> dataresult = this.brain.serializeStart(NbtOps.INSTANCE);
+         dataresult.resultOrPartial(LOGGER::error).ifPresent(p_21102_ -> p_21145_.put("Brain", p_21102_));
++        p_21145_.putBoolean("Purpur.ShouldBurnInDay", this.shouldBurnInDay); // Purpur - API for any mob to burn daylight
+     }
  
      @Override
      public void readAdditionalSaveData(CompoundTag p_21096_) {
@@ -342,10 +356,18 @@
              boolean flag = playerteam != null && scoreboard.addPlayerToTeam(this.getStringUUID(), playerteam);
              if (!flag) {
                  LOGGER.warn("Unable to add mob to team \"{}\" (that team probably doesn't exist)", s);
-@@ -764,15 +_,44 @@
+@@ -762,17 +_,51 @@
+         if (p_21096_.contains("Brain", 10)) {
+             this.brain = this.makeBrain(new Dynamic<>(NbtOps.INSTANCE, p_21096_.get("Brain")));
          }
-     }
- 
+-    }
++        // Purpur start - API for any mob to burn daylight
++        if (p_21096_.contains("Purpur.ShouldBurnInDay")) {
++            this.shouldBurnInDay = p_21096_.getBoolean("Purpur.ShouldBurnInDay");
++        }
++        // Purpur end - API for any mob to burn daylight
++    }
++
 +    // CraftBukkit start
 +    private boolean isTickingEffects = false;
 +    private List<ProcessableEffect> effectsToProcess = Lists.newArrayList();
@@ -367,7 +389,7 @@
 +        }
 +    }
 +    // CraftBukkit end
-+
+ 
      protected void tickEffects() {
          Iterator<Holder<MobEffect>> iterator = this.activeEffects.keySet().iterator();
  
@@ -1580,13 +1602,13 @@
              int i = this.getTicksFrozen();
              if (this.isInPowderSnow && this.canFreeze()) {
                  this.setTicksFrozen(Math.min(this.getTicksRequiredToFreeze(), i + 1));
-@@ -2707,6 +_,20 @@
+@@ -2707,9 +_,66 @@
  
          this.pushEntities();
          this.level().getProfiler().pop();
 +        // Paper start - Add EntityMoveEvent
-+        if (((ServerLevel) this.level()).hasEntityMoveEvent && !(this instanceof net.minecraft.world.entity.player.Player)) {
-+            if (this.xo != this.getX() || this.yo != this.getY() || this.zo != this.getZ() || this.yRotO != this.getYRot() || this.xRotO != this.getXRot()) {
++        if (this.xo != this.getX() || this.yo != this.getY() || this.zo != this.getZ() || this.yRotO != this.getYRot() || this.xRotO != this.getXRot()) {
++            if (((ServerLevel) this.level()).hasEntityMoveEvent && !(this instanceof net.minecraft.world.entity.player.Player)) {
 +                Location from = new Location(this.level().getWorld(), this.xo, this.yo, this.zo, this.yRotO, this.xRotO);
 +                Location to = new Location(this.level().getWorld(), this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
 +                io.papermc.paper.event.entity.EntityMoveEvent event = new io.papermc.paper.event.entity.EntityMoveEvent(this.getBukkitLivingEntity(), from, to.clone());
@@ -1596,11 +1618,57 @@
 +                    this.absMoveTo(event.getTo().getX(), event.getTo().getY(), event.getTo().getZ(), event.getTo().getYaw(), event.getTo().getPitch());
 +                }
 +            }
++            // Purpur start
++            if (getRider() != null) {
++                getRider().resetLastActionTime();
++                if (((ServerLevel) level()).hasRidableMoveEvent && this instanceof Mob) {
++                    Location from = new Location(level().getWorld(), xo, yo, zo, this.yRotO, this.xRotO);
++                    Location to = new Location(level().getWorld(), getX(), getY(), getZ(), this.getYRot(), this.getXRot());
++                    org.purpurmc.purpur.event.entity.RidableMoveEvent event = new org.purpurmc.purpur.event.entity.RidableMoveEvent((org.bukkit.entity.Mob) getBukkitLivingEntity(), (org.bukkit.entity.Player) getRider().getBukkitEntity(), from, to.clone());
++                    if (!event.callEvent()) {
++                        absMoveTo(from.getX(), from.getY(), from.getZ(), from.getYaw(), from.getPitch());
++                    } else if (!to.equals(event.getTo())) {
++                        absMoveTo(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch());
++                    }
++                }
++            }
++            // Purpur end
 +        }
 +        // Paper end - Add EntityMoveEvent
          if (!this.level().isClientSide && this.isSensitiveToWater() && this.isInWaterRainOrBubble()) {
              this.hurt(this.damageSources().drown(), 1.0F);
          }
++        // Purpur start - copied from Zombie - API for any mob to burn daylight
++        if (this.isAlive()) {
++            boolean flag = this.shouldBurnInDay() && this.isSunBurnTick(); // Paper - shouldBurnInDay API // Purpur - use shouldBurnInDay() method to handle Phantoms properly - API for any mob to burn daylight
++
++            if (flag) {
++                ItemStack itemstack = this.getItemBySlot(EquipmentSlot.HEAD);
++
++                if (!itemstack.isEmpty()) {
++                    if (itemstack.isDamageableItem()) {
++                        Item item = itemstack.getItem();
++
++                        itemstack.setDamageValue(itemstack.getDamageValue() + this.random.nextInt(2));
++                        if (itemstack.getDamageValue() >= itemstack.getMaxDamage()) {
++                            this.onEquippedItemBroken(item, EquipmentSlot.HEAD);
++                            this.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
++                        }
++                    }
++
++                    flag = false;
++                }
++
++                if (flag) {
++                    if (getRider() == null || !this.isControllable()) // Purpur - ignore mobs which are uncontrollable or without rider - API for any mob to burn daylight
++                        this.igniteForSeconds(8.0F);
++                }
++            }
++        }
++        // Purpur end - copied from Zombie - API for any mob to burn daylight
+     }
+ 
+     public boolean isSensitiveToWater() {
 @@ -2720,6 +_,8 @@
          boolean flag = this.getSharedFlag(7);
          if (flag && !this.onGround() && !this.isPassenger() && !this.hasEffect(MobEffects.LEVITATION)) {

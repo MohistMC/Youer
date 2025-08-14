@@ -1,11 +1,12 @@
 --- a/net/minecraft/world/entity/animal/horse/Llama.java
 +++ b/net/minecraft/world/entity/animal/horse/Llama.java
-@@ -74,16 +_,23 @@
+@@ -74,16 +_,24 @@
      @Nullable
      private Llama caravanHead;
      @Nullable
 -    private Llama caravanTail;
 +    public Llama caravanTail;
++    public boolean shouldJoinCaravan = true; // Purpur
  
      public Llama(EntityType<? extends Llama> p_30750_, Level p_30751_) {
          super(p_30750_, p_30751_);
@@ -25,6 +26,22 @@
      private void setStrength(int p_30841_) {
          this.entityData.set(DATA_STRENGTH_ID, Math.max(1, Math.min(5, p_30841_)));
      }
+@@ -102,6 +_,7 @@
+         super.addAdditionalSaveData(p_30793_);
+         p_30793_.putInt("Variant", this.getVariant().id);
+         p_30793_.putInt("Strength", this.getStrength());
++        p_30793_.putBoolean("Purpur.ShouldJoinCaravan", shouldJoinCaravan); // Purpur
+     }
+ 
+     @Override
+@@ -109,6 +_,7 @@
+         this.setStrength(p_30780_.getInt("Strength"));
+         super.readAdditionalSaveData(p_30780_);
+         this.setVariant(Llama.Variant.byId(p_30780_.getInt("Variant")));
++        if (p_30780_.contains("Purpur.ShouldJoinCaravan")) this.shouldJoinCaravan = p_30780_.getBoolean("Purpur.ShouldJoinCaravan"); // Purpur
+     }
+ 
+     @Override
 @@ -309,7 +_,7 @@
  
      @Override
@@ -34,3 +51,19 @@
      }
  
      @Override
+@@ -391,6 +_,7 @@
+ 
+     public void leaveCaravan() {
+         if (this.caravanHead != null) {
++            new org.purpurmc.purpur.event.entity.LlamaLeaveCaravanEvent((org.bukkit.entity.Llama) getBukkitEntity()).callEvent(); // Purpur
+             this.caravanHead.caravanTail = null;
+         }
+ 
+@@ -398,6 +_,7 @@
+     }
+ 
+     public void joinCaravan(Llama p_30767_) {
++        if (!shouldJoinCaravan || !new org.purpurmc.purpur.event.entity.LlamaJoinCaravanEvent((org.bukkit.entity.Llama) getBukkitEntity(), (org.bukkit.entity.Llama) p_30767_.getBukkitEntity()).callEvent()) return; // Purpur
+         this.caravanHead = p_30767_;
+         this.caravanHead.caravanTail = this;
+     }

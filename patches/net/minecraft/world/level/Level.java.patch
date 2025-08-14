@@ -79,7 +79,7 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("the_nether"));
-@@ -114,6 +_,55 @@
+@@ -114,6 +_,99 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -114,6 +114,50 @@
 +    }
 +    public java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator;
 +    // Paper end - add paper world config
++    public org.purpurmc.purpur.PurpurWorldConfig purpurConfig; // Purpur
++
++    // Purpur start
++    private com.google.common.cache.Cache<BreedingCooldownPair, Object> playerBreedingCooldowns;
++
++    private com.google.common.cache.Cache<BreedingCooldownPair, Object> getNewBreedingCooldownCache() {
++        return com.google.common.cache.CacheBuilder.newBuilder().expireAfterWrite(this.purpurConfig.animalBreedingCooldownSeconds, java.util.concurrent.TimeUnit.SECONDS).build();
++    }
++
++    public void resetBreedingCooldowns() {
++        this.playerBreedingCooldowns = this.getNewBreedingCooldownCache();
++    }
++
++    public boolean hasBreedingCooldown(java.util.UUID player, Class<? extends net.minecraft.world.entity.animal.Animal> animalType) { // Purpur
++        return this.playerBreedingCooldowns.getIfPresent(new BreedingCooldownPair(player, animalType)) != null;
++    }
++
++    public void addBreedingCooldown(java.util.UUID player, Class<? extends net.minecraft.world.entity.animal.Animal> animalType) {
++        this.playerBreedingCooldowns.put(new BreedingCooldownPair(player, animalType), new Object());
++    }
++
++    private static final class BreedingCooldownPair {
++        private final java.util.UUID playerUUID;
++        private final Class<? extends net.minecraft.world.entity.animal.Animal> animalType;
++
++        public BreedingCooldownPair(java.util.UUID playerUUID, Class<? extends net.minecraft.world.entity.animal.Animal> animalType) {
++            this.playerUUID = playerUUID;
++            this.animalType = animalType;
++        }
++
++        @Override
++        public boolean equals(Object o) {
++            if (this == o) return true;
++            if (o == null || getClass() != o.getClass()) return false;
++            BreedingCooldownPair that = (BreedingCooldownPair) o;
++            return playerUUID.equals(that.playerUUID) && animalType.equals(that.animalType);
++        }
++
++        @Override
++        public int hashCode() {
++            return java.util.Objects.hash(playerUUID, animalType);
++        }
++    }
++    // Purpur end
 +
 +    public CraftWorld getWorld() {
 +        return this.world;

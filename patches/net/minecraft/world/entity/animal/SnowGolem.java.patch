@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/SnowGolem.java
 +++ b/net/minecraft/world/entity/animal/SnowGolem.java
-@@ -31,12 +_,12 @@
+@@ -31,21 +_,32 @@
  import net.minecraft.world.entity.projectile.Snowball;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.Items;
@@ -14,6 +14,42 @@
  
  public class SnowGolem extends AbstractGolem implements Shearable, RangedAttackMob {
      private static final EntityDataAccessor<Byte> DATA_PUMPKIN_ID = SynchedEntityData.defineId(SnowGolem.class, EntityDataSerializers.BYTE);
+     private static final byte PUMPKIN_FLAG = 16;
++    @Nullable private java.util.UUID summoner; // Purpur
+ 
+     public SnowGolem(EntityType<? extends SnowGolem> p_29902_, Level p_29903_) {
+         super(p_29902_, p_29903_);
+     }
+ 
++
++    @Nullable
++    public java.util.UUID getSummoner() {
++        return summoner;
++    }
++
++    public void setSummoner(@Nullable java.util.UUID summoner) {
++        this.summoner = summoner;
++    }
++
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(1, new RangedAttackGoal(this, 1.25, 20, 10.0F));
+@@ -69,6 +_,7 @@
+     public void addAdditionalSaveData(CompoundTag p_29923_) {
+         super.addAdditionalSaveData(p_29923_);
+         p_29923_.putBoolean("Pumpkin", this.hasPumpkin());
++        if (getSummoner() != null) p_29923_.putUUID("Purpur.Summoner", getSummoner()); // Purpur
+     }
+ 
+     @Override
+@@ -77,6 +_,7 @@
+         if (p_29915_.contains("Pumpkin")) {
+             this.setPumpkin(p_29915_.getBoolean("Pumpkin"));
+         }
++        if (p_29915_.contains("Purpur.Summoner")) setSummoner(p_29915_.getUUID("Purpur.Summoner")); // Purpur
+     }
+ 
+     @Override
 @@ -89,10 +_,10 @@
          super.aiStep();
          if (!this.level().isClientSide) {
@@ -76,7 +112,7 @@
 +    public java.util.List<net.minecraft.world.item.ItemStack> shear$drops = new java.util.ArrayList<>();
 +
 +    @Override
-+    public void shear(SoundSource p_331493_, java.util.List<net.minecraft.world.item.ItemStack> drops) {
++    public void shearPaper(SoundSource p_331493_, java.util.List<net.minecraft.world.item.ItemStack> drops) {
 +        shear$drops = drops;
 +        this.shear(p_331493_);
      }

@@ -1,10 +1,37 @@
 --- a/net/minecraft/world/level/block/CarvedPumpkinBlock.java
 +++ b/net/minecraft/world/level/block/CarvedPumpkinBlock.java
-@@ -78,9 +_,14 @@
+@@ -63,7 +_,7 @@
+         if (blockpattern$blockpatternmatch != null) {
+             SnowGolem snowgolem = EntityType.SNOW_GOLEM.create(p_51379_);
+             if (snowgolem != null) {
+-                spawnGolemInWorld(p_51379_, blockpattern$blockpatternmatch, snowgolem, blockpattern$blockpatternmatch.getBlock(0, 2, 0).getPos());
++                spawnGolemInWorld(p_51379_, blockpattern$blockpatternmatch, snowgolem, blockpattern$blockpatternmatch.getBlock(0, 2, 0).getPos(), this.placer);
+             }
+         } else {
+             BlockPattern.BlockPatternMatch blockpattern$blockpatternmatch1 = this.getOrCreateIronGolemFull().find(p_51379_, p_51380_);
+@@ -71,16 +_,31 @@
+                 IronGolem irongolem = EntityType.IRON_GOLEM.create(p_51379_);
+                 if (irongolem != null) {
+                     irongolem.setPlayerCreated(true);
+-                    spawnGolemInWorld(p_51379_, blockpattern$blockpatternmatch1, irongolem, blockpattern$blockpatternmatch1.getBlock(1, 2, 0).getPos());
++                    spawnGolemInWorld(p_51379_, blockpattern$blockpatternmatch1, irongolem, blockpattern$blockpatternmatch1.getBlock(1, 2, 0).getPos(), this.placer);
+                 }
+             }
+         }
      }
  
      private static void spawnGolemInWorld(Level p_249110_, BlockPattern.BlockPatternMatch p_251293_, Entity p_251251_, BlockPos p_251189_) {
 -        clearPatternBlocks(p_249110_, p_251293_);
++        // Purpur start
++        spawnGolemInWorld(p_249110_, p_251293_, p_251251_, p_251189_, null);
++    }
++    private static void spawnGolemInWorld(Level p_249110_, BlockPattern.BlockPatternMatch p_251293_, Entity p_251251_, BlockPos p_251189_, net.minecraft.world.entity.LivingEntity placer) {
++        if (p_251251_ instanceof SnowGolem snowGolem) {
++            snowGolem.setSummoner(placer == null ? null : placer.getUUID());
++        } else if (p_251251_ instanceof IronGolem ironGolem) {
++            ironGolem.setSummoner(placer == null ? null : placer.getUUID());
++        }
++        // Purpur end
          p_251251_.moveTo((double)p_251189_.getX() + 0.5, (double)p_251189_.getY() + 0.05, (double)p_251189_.getZ() + 0.5, 0.0F, 0.0F);
 -        p_249110_.addFreshEntity(p_251251_);
 +

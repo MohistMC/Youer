@@ -3821,4 +3821,123 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      */
     void sendEntityEffect(org.bukkit.@NotNull EntityEffect effect, @NotNull Entity target);
     // Paper end - entity effect API
+
+    // Purpur start
+    /**
+     * Allows you to get if player uses Purpur Client
+     *
+     * @return True if Player uses Purpur Client
+     */
+    public boolean usesPurpurClient();
+
+    /**
+     * Check if player is AFK
+     *
+     * @return True if AFK
+     */
+    boolean isAfk();
+
+    /**
+     * Set player as AFK
+     *
+     * @param setAfk Whether to set AFK or not
+     */
+    void setAfk(boolean setAfk);
+
+    /**
+     * Reset the idle timer back to 0
+     * @deprecated Use {@link #resetIdleDuration()} instead
+     */
+    void resetIdleTimer();
+
+    /**
+     * Creates debug block highlight on specified block location and show it to this player.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to this player.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param argb Color of the highlight. ARGB int. Will be ignored on some versions of vanilla client
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, int argb);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to this player.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param text Text to show above the highlight
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to this player.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param text Text to show above the highlight
+     * @param argb Color of the highlight. ARGB int. Will be ignored on some versions of vanilla client
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text, int argb);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to this player.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param color Color of the highlight. Will be ignored on some versions of vanilla client
+     * @param transparency Transparency of the highlight
+     * @throws IllegalArgumentException If transparency is outside 0-255 range
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull org.bukkit.Color color, int transparency);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to this player.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param text Text to show above the highlight
+     * @param color Color of the highlight. Will be ignored on some versions of vanilla client
+     * @param transparency Transparency of the highlight
+     * @throws IllegalArgumentException If transparency is outside 0-255 range
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text, @NotNull org.bukkit.Color color, int transparency);
+
+    /**
+     * Clears all debug block highlights
+     */
+    void clearBlockHighlights();
+
+    /**
+     * Sends a player the death screen with a specified death message.
+     *
+     * @param message The death message to show the player
+     */
+    void sendDeathScreen(@NotNull net.kyori.adventure.text.Component message);
+
+    /**
+     * Sends a player the death screen with a specified death message,
+     * along with the entity that caused the death.
+     *
+     * @param message The death message to show the player
+     * @param killer The entity that killed the player
+     * @deprecated Use {@link #sendDeathScreen(net.kyori.adventure.text.Component)} instead, as 1.20 removed the killer ID from the packet.
+     */
+    @Deprecated(since = "1.20")
+    default void sendDeathScreen(@NotNull net.kyori.adventure.text.Component message, @Nullable Entity killer) {
+        sendDeathScreen(message);
+    }
+    // Purpur end
 }

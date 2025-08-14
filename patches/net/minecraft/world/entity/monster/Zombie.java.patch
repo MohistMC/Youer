@@ -17,7 +17,7 @@
  
  public class Zombie extends Monster {
      private static final ResourceLocation SPEED_MODIFIER_BABY_ID = ResourceLocation.withDefaultNamespace("baby");
-@@ -84,11 +_,12 @@
+@@ -84,7 +_,7 @@
      public static final int REINFORCEMENT_RANGE_MIN = 7;
      private static final EntityDimensions BABY_DIMENSIONS = EntityType.ZOMBIE.getDimensions().scale(0.5F).withEyeHeight(0.93F);
      private static final float BREAK_DOOR_CHANCE = 0.1F;
@@ -26,11 +26,14 @@
      private final BreakDoorGoal breakDoorGoal = new BreakDoorGoal(this, DOOR_BREAKING_PREDICATE);
      private boolean canBreakDoors;
      private int inWaterTime;
-     public int conversionTime;
-+    private boolean shouldBurnInDay = true; // Paper - Add more Zombie API
+@@ -92,6 +_,7 @@
  
      public Zombie(EntityType<? extends Zombie> p_34271_, Level p_34272_) {
          super(p_34271_, p_34272_);
++        this.setShouldBurnInDay(true); // Purpur - API for any mob to burn daylight
+     }
+ 
+     public Zombie(Level p_34274_) {
 @@ -112,7 +_,7 @@
          this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0));
          this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(ZombifiedPiglin.class));
@@ -58,7 +61,33 @@
                  if (this.conversionTime < 0) {
                      this.doUnderWaterConversion();
                  }
-@@ -253,12 +_,20 @@
+@@ -227,38 +_,23 @@
+ 
+     @Override
+     public void aiStep() {
+-        if (this.isAlive()) {
+-            boolean flag = this.isSunSensitive() && this.isSunBurnTick();
+-            if (flag) {
+-                ItemStack itemstack = this.getItemBySlot(EquipmentSlot.HEAD);
+-                if (!itemstack.isEmpty()) {
+-                    if (itemstack.isDamageableItem()) {
+-                        Item item = itemstack.getItem();
+-                        itemstack.setDamageValue(itemstack.getDamageValue() + this.random.nextInt(2));
+-                        if (itemstack.getDamageValue() >= itemstack.getMaxDamage()) {
+-                            this.onEquippedItemBroken(item, EquipmentSlot.HEAD);
+-                            this.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+-                        }
+-                    }
+-
+-                    flag = false;
+-                }
+-
+-                if (flag) {
+-                    this.igniteForSeconds(8.0F);
+-                }
+-            }
+-        }
+-
          super.aiStep();
      }
  
@@ -79,7 +108,7 @@
          this.convertToZombieType(EntityType.DROWNED);
          if (!this.isSilent()) {
              this.level().levelEvent(null, 1040, this.blockPosition(), 0);
-@@ -266,16 +_,27 @@
+@@ -266,16 +_,28 @@
      }
  
      protected void convertToZombieType(EntityType<? extends Zombie> p_34311_) {
@@ -99,6 +128,7 @@
 -    protected boolean isSunSensitive() {
 -        return true;
 -    }
++    public boolean shouldBurnInDay() { return this.isSunSensitive(); } // Purpur - for ABI compatibility - API for any mob to burn daylight
 +    public boolean isSunSensitive() {
 +        return this.shouldBurnInDay; // Paper - Add more Zombie API
 +    }
@@ -144,25 +174,7 @@
              }
          }
  
-@@ -390,6 +_,7 @@
-         p_34319_.putBoolean("CanBreakDoors", this.canBreakDoors());
-         p_34319_.putInt("InWaterTime", this.isInWater() ? this.inWaterTime : -1);
-         p_34319_.putInt("DrownedConversionTime", this.isUnderWaterConverting() ? this.conversionTime : -1);
-+        p_34319_.putBoolean("Paper.ShouldBurnInDay", this.shouldBurnInDay); // Paper - Add more Zombie API
-     }
- 
-     @Override
-@@ -401,37 +_,48 @@
-         if (p_34305_.contains("DrownedConversionTime", 99) && p_34305_.getInt("DrownedConversionTime") > -1) {
-             this.startUnderWaterConversion(p_34305_.getInt("DrownedConversionTime"));
-         }
-+        // Paper start - Add more Zombie API
-+        if (p_34305_.contains("Paper.ShouldBurnInDay")) {
-+            this.shouldBurnInDay = p_34305_.getBoolean("Paper.ShouldBurnInDay");
-+        }
-+        // Paper end - Add more Zombie API
-     }
- 
+@@ -406,32 +_,38 @@
      @Override
      public boolean killedEntity(ServerLevel p_219160_, LivingEntity p_219161_) {
          boolean flag = super.killedEntity(p_219160_, p_219161_);

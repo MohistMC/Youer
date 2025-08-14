@@ -90,4 +90,16 @@ public class CraftLlama extends CraftChestedHorse implements Llama, CraftRangedE
         return this.getHandle().caravanTail == null ? null : (Llama) this.getHandle().caravanTail.getBukkitEntity();
     }
     // Paper end
+
+    // Purpur start
+    @Override
+    public boolean shouldJoinCaravan() {
+        return getHandle().shouldJoinCaravan;
+    }
+
+    @Override
+    public void setShouldJoinCaravan(boolean shouldJoinCaravan) {
+        getHandle().shouldJoinCaravan = shouldJoinCaravan;
+    }
+    // Purpur end
 }

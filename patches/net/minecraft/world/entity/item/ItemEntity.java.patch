@@ -26,7 +26,7 @@
      @Nullable
      public UUID thrower;
      @Nullable
-@@ -49,6 +_,12 @@
+@@ -49,6 +_,19 @@
      @Nullable
      public UUID target;
      public final float bobOffs;
@@ -35,7 +35,14 @@
 +     */
 +    public int lifespan = ItemEntity.LIFETIME;
 +    public boolean canMobPickup = true; // Paper - Item#canEntityPickup
++    private int despawnRate = -1; // Paper - Alternative item-despawn-rate
 +    public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
++    // Purpur start
++    public boolean immuneToCactus = false;
++    public boolean immuneToExplosion = false;
++    public boolean immuneToFire = false;
++    public boolean immuneToLightning = false;
++    // Purpur end
  
      public ItemEntity(EntityType<? extends ItemEntity> p_31991_, Level p_31992_) {
          super(p_31991_, p_31992_);
@@ -201,6 +208,24 @@
          }
      }
  
+@@ -269,7 +_,16 @@
+ 
+     @Override
+     public boolean hurt(DamageSource p_32013_, float p_32014_) {
+-        if (this.isInvulnerableTo(p_32013_)) {
++        // Purpur start
++        if (
++                (immuneToCactus && p_32013_.is(net.minecraft.world.damagesource.DamageTypes.CACTUS)) ||
++                        (immuneToFire && (p_32013_.is(DamageTypeTags.IS_FIRE) || p_32013_.is(net.minecraft.world.damagesource.DamageTypes.ON_FIRE) || p_32013_.is(net.minecraft.world.damagesource.DamageTypes.IN_FIRE))) ||
++                        (immuneToLightning && p_32013_.is(net.minecraft.world.damagesource.DamageTypes.LIGHTNING_BOLT)) ||
++                        (immuneToExplosion && p_32013_.is(DamageTypeTags.IS_EXPLOSION))
++        ) {
++            return false;
++        } else if (this.isInvulnerableTo(p_32013_)) {
++            // Purpur end
+             return false;
+         } else if (!this.getItem().isEmpty() && this.getItem().is(Items.NETHER_STAR) && p_32013_.is(DamageTypeTags.IS_EXPLOSION)) {
+             return false;
 @@ -278,11 +_,17 @@
          } else if (this.level().isClientSide) {
              return true;
@@ -354,6 +379,20 @@
                      itemstack.setCount(i);
                  }
  
+@@ -384,6 +_,13 @@
+ 
+     public void setItem(ItemStack p_32046_) {
+         this.getEntityData().set(DATA_ITEM, p_32046_);
++        this.despawnRate = this.level().paperConfig().entities.spawning.altItemDespawnRate.enabled ? this.level().paperConfig().entities.spawning.altItemDespawnRate.items.getOrDefault(p_32046_.getItem(), this.level().spigotConfig.itemDespawnRate) : this.level().spigotConfig.itemDespawnRate; // Paper - Alternative item-despawn-rate
++        // Purpur start
++        if (level().purpurConfig.itemImmuneToCactus.contains(p_32046_.getItem())) immuneToCactus = true;
++        if (level().purpurConfig.itemImmuneToExplosion.contains(p_32046_.getItem())) immuneToExplosion = true;
++        if (level().purpurConfig.itemImmuneToFire.contains(p_32046_.getItem())) immuneToFire = true;
++        if (level().purpurConfig.itemImmuneToLightning.contains(p_32046_.getItem())) immuneToLightning = true;
++        // level end
+     }
+ 
+     @Override
 @@ -398,6 +_,15 @@
          this.target = p_266724_;
      }

@@ -29,4 +29,17 @@ public class CraftSnowman extends CraftGolem implements Snowman, CraftRangedEnti
     public String toString() {
         return "CraftSnowman";
     }
+
+    // Purpur start
+    @Override
+    @org.jetbrains.annotations.Nullable
+    public java.util.UUID getSummoner() {
+        return getHandle().getSummoner();
+    }
+
+    @Override
+    public void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner) {
+        getHandle().setSummoner(summoner);
+    }
+    // Purpur end
 }

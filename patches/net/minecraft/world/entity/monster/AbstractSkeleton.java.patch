@@ -8,12 +8,19 @@
  
  public abstract class AbstractSkeleton extends Monster implements RangedAttackMob {
      private static final int HARD_ATTACK_INTERVAL = 20;
-@@ -91,9 +_,15 @@
+@@ -64,6 +_,7 @@
+     protected AbstractSkeleton(EntityType<? extends AbstractSkeleton> p_32133_, Level p_32134_) {
+         super(p_32133_, p_32134_);
+         this.reassessWeaponGoal();
++        this.setShouldBurnInDay(true); // Purpur - API for any mob to burn daylight
+     }
+ 
+     @Override
+@@ -91,29 +_,13 @@
  
      protected abstract SoundEvent getStepSound();
  
 +    // Paper start - shouldBurnInDay API
-+    private boolean shouldBurnInDay = true;
 +    public boolean shouldBurnInDay() { return shouldBurnInDay; }
 +    public void setShouldBurnInDay(boolean shouldBurnInDay) { this.shouldBurnInDay = shouldBurnInDay; }
 +    // Paper end - shouldBurnInDay API
@@ -21,10 +28,29 @@
      @Override
      public void aiStep() {
 -        boolean flag = this.isSunBurnTick();
-+        boolean flag = shouldBurnInDay && this.isSunBurnTick(); // Paper - shouldBurnInDay API
-         if (flag) {
-             ItemStack itemstack = this.getItemBySlot(EquipmentSlot.HEAD);
-             if (!itemstack.isEmpty()) {
+-        if (flag) {
+-            ItemStack itemstack = this.getItemBySlot(EquipmentSlot.HEAD);
+-            if (!itemstack.isEmpty()) {
+-                if (itemstack.isDamageableItem()) {
+-                    Item item = itemstack.getItem();
+-                    itemstack.setDamageValue(itemstack.getDamageValue() + this.random.nextInt(2));
+-                    if (itemstack.getDamageValue() >= itemstack.getMaxDamage()) {
+-                        this.onEquippedItemBroken(item, EquipmentSlot.HEAD);
+-                        this.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+-                    }
+-                }
+-
+-                flag = false;
+-            }
+-
+-            if (flag) {
+-                this.igniteForSeconds(8.0F);
+-            }
+-        }
+-
+         super.aiStep();
+     }
+ 
 @@ -157,8 +_,8 @@
          if (this.level() != null && !this.level().isClientSide) {
              this.goalSelector.removeGoal(this.meleeGoal);
@@ -70,23 +96,15 @@
      }
  
      protected AbstractArrow getArrow(ItemStack p_32156_, float p_32157_, @Nullable ItemStack p_346155_) {
-@@ -207,7 +_,20 @@
-     public void readAdditionalSaveData(CompoundTag p_32152_) {
+@@ -208,6 +_,13 @@
          super.readAdditionalSaveData(p_32152_);
          this.reassessWeaponGoal();
--    }
-+        // Paper start - shouldBurnInDay API
-+        if (p_32152_.contains("Paper.ShouldBurnInDay")) {
-+            this.shouldBurnInDay = p_32152_.getBoolean("Paper.ShouldBurnInDay");
-+        }
-+        // Paper end - shouldBurnInDay API
-+    }
+     }
 +
 +    // Paper start - shouldBurnInDay API
 +    @Override
 +    public void addAdditionalSaveData(CompoundTag nbt) {
 +        super.addAdditionalSaveData(nbt);
-+        nbt.putBoolean("Paper.ShouldBurnInDay", this.shouldBurnInDay);
 +    }
 +    // Paper end - shouldBurnInDay API
  

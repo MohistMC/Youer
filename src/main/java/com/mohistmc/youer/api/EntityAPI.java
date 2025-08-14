@@ -2,18 +2,12 @@ package com.mohistmc.youer.api;
 
 import com.mohistmc.youer.plugins.ban.BanConfig;
 import java.util.Objects;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import org.bukkit.entity.EntityType;
 
 public class EntityAPI {
-
-    public static String entityName(Entity entity) {
-        String entityName = ServerAPI.entityTypeMap.get(entity.getType());
-        if (entityName == null) {
-            entityName = entity.getName().getString();
-        }
-        return entityName;
-    }
 
     public static EntityType entityType(String entityName) {
         EntityType type = EntityType.fromName(entityName);
@@ -29,7 +23,16 @@ public class EntityAPI {
         }
     }
 
-    public static boolean isBan(org.bukkit.entity.Entity entity) {
-        return BanConfig.ENTITY.getEntity().contains(entity.getType().name());
+    public static net.minecraft.world.entity.EntityType<?> getType(String resourceLocation) {
+        return BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(resourceLocation));
+    }
+
+    public static String resourceLocation(Entity nmsEntity) {
+        var key = BuiltInRegistries.ENTITY_TYPE.getKey(nmsEntity.getType());
+        return key.toString();
+    }
+
+    public static boolean isBan(Entity entity) {
+        return BanConfig.ENTITY.getEntity().contains(resourceLocation(entity));
     }
 }

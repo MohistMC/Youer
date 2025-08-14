@@ -1,15 +1,29 @@
 --- a/net/minecraft/world/entity/monster/Phantom.java
 +++ b/net/minecraft/world/entity/monster/Phantom.java
-@@ -140,7 +_,7 @@
+@@ -52,6 +_,11 @@
+         this.xpReward = 5;
+         this.moveControl = new Phantom.PhantomMoveControl(this);
+         this.lookControl = new Phantom.PhantomLookControl(this);
++        this.setShouldBurnInDay(true); // Purpur - API for any mob to burn daylight
++    }
++
++    public static net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder createAttributes() {
++        return Monster.createMonsterAttributes().add(Attributes.FLYING_SPEED, 3.0D);
+     }
+ 
+     @Override
+@@ -140,10 +_,6 @@
  
      @Override
      public void aiStep() {
 -        if (this.isAlive() && this.isSunBurnTick()) {
-+        if (this.isAlive() && this.shouldBurnInDay && this.isSunBurnTick()) { // Paper - shouldBurnInDay API
-             this.igniteForSeconds(8.0F);
-         }
+-            this.igniteForSeconds(8.0F);
+-        }
+-
+         super.aiStep();
+     }
  
-@@ -167,6 +_,14 @@
+@@ -167,6 +_,11 @@
          }
  
          this.setPhantomSize(p_33132_.getInt("Size"));
@@ -17,14 +31,11 @@
 +        if (p_33132_.hasUUID("Paper.SpawningEntity")) {
 +            this.spawningEntity = p_33132_.getUUID("Paper.SpawningEntity");
 +        }
-+        if (p_33132_.contains("Paper.ShouldBurnInDay")) {
-+            this.shouldBurnInDay = p_33132_.getBoolean("Paper.ShouldBurnInDay");
-+        }
 +        // Paper end
      }
  
      @Override
-@@ -176,6 +_,12 @@
+@@ -176,6 +_,11 @@
          p_33141_.putInt("AY", this.anchorPoint.getY());
          p_33141_.putInt("AZ", this.anchorPoint.getZ());
          p_33141_.putInt("Size", this.getPhantomSize());
@@ -32,12 +43,11 @@
 +        if (this.spawningEntity != null) {
 +            p_33141_.putUUID("Paper.SpawningEntity", this.spawningEntity);
 +        }
-+        p_33141_.putBoolean("Paper.ShouldBurnInDay", shouldBurnInDay);
 +        // Paper end
      }
  
      @Override
-@@ -220,6 +_,20 @@
+@@ -220,6 +_,26 @@
          return entitydimensions.scale(1.0F + 0.15F * (float)i);
      }
  
@@ -50,8 +60,14 @@
 +        return this.spawningEntity;
 +    }
 +    public void setSpawningEntity(java.util.UUID entity) { this.spawningEntity = entity; }
-+    private boolean shouldBurnInDay = true;
-+    public boolean shouldBurnInDay() { return shouldBurnInDay; }
++    //private boolean shouldBurnInDay = true; // Purpur - moved to LivingEntity; keep methods for ABI compatibility - API for any mob to burn daylight
++    // Purpur start - API for any mob to burn daylight
++    public boolean shouldBurnInDay() {
++        boolean burnFromDaylight = this.shouldBurnInDay && this.level().purpurConfig.phantomBurnInDaylight;
++        boolean burnFromLightSource = this.level().purpurConfig.phantomBurnInLight > 0 && this.level().getMaxLocalRawBrightness(blockPosition()) >= this.level().purpurConfig.phantomBurnInLight;
++        return burnFromDaylight || burnFromLightSource;
++    }
++    // Purpur end - API for any mob to burn daylight
 +    public void setShouldBurnInDay(boolean shouldBurnInDay) { this.shouldBurnInDay = shouldBurnInDay; }
 +    // Paper end
 +

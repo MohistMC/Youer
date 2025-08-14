@@ -48,7 +48,7 @@
                              bee.setTarget(p_58749_);
                          } else {
                              bee.setStayOutOfHiveCountdown(400);
-@@ -149,11 +_,28 @@
+@@ -149,11 +_,50 @@
          return list;
      }
  
@@ -63,11 +63,33 @@
 +        return list;
 +    }
 +
++    // Purpur start
++    public List<Entity> releaseBee(BlockState iblockdata, BeehiveBlockEntity.BeeData data, BeehiveBlockEntity.BeeReleaseStatus tileentitybeehive_releasestatus, boolean force) {
++        List<Entity> list = Lists.newArrayList();
++
++        BeehiveBlockEntity.releaseOccupantCB(this.level, this.worldPosition, iblockdata, data.occupant, list, tileentitybeehive_releasestatus, this.savedFlowerPos, force);
++
++        if (!list.isEmpty()) {
++            stored.remove(data);
++
++            super.setChanged();
++        }
++
++        return list;
++    }
++    // Purpur end
++
      @VisibleForDebug
      public int getOccupantCount() {
          return this.stored.size();
      }
  
++    // Purpur start
++    public List<BeeData> getStored() {
++        return stored;
++    }
++    // Purpur end
++
 +    // Paper start - Add EntityBlockStorage clearEntities
 +    public void clearBees() {
 +        this.stored.clear();
@@ -218,3 +240,12 @@
          List<BeehiveBlockEntity.Occupant> list = p_338335_.getOrDefault(DataComponents.BEES, List.of());
          list.forEach(this::storeBee);
      }
+@@ -349,7 +_,7 @@
+     }
+ 
+     public static class BeeData {
+-        private final BeehiveBlockEntity.Occupant occupant;
++        public final BeehiveBlockEntity.Occupant occupant;
+         private int ticksInHive;
+ 
+         BeeData(BeehiveBlockEntity.Occupant p_331832_) {

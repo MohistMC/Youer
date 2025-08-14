@@ -46,12 +46,13 @@
  import net.minecraft.world.level.BaseCommandBlock;
  import net.minecraft.world.level.GameRules;
  import net.minecraft.world.level.GameType;
-@@ -184,7 +_,25 @@
+@@ -184,7 +_,26 @@
  import net.minecraft.world.phys.shapes.BooleanOp;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
 +import org.bukkit.Location;
 +import org.bukkit.craftbukkit.entity.CraftEntity;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
 +import org.bukkit.craftbukkit.util.CraftNamespacedKey;
@@ -107,7 +108,7 @@
  
      public ServerGamePacketListenerImpl(MinecraftServer p_9770_, Connection p_9771_, ServerPlayer p_9772_, CommonListenerCookie p_301978_) {
          super(p_9770_, p_9771_, p_301978_);
-@@ -243,7 +_,8 @@
+@@ -243,8 +_,23 @@
          p_9772_.connection = this;
          p_9772_.getTextFilter().join();
          this.signedMessageDecoder = SignedMessageChain.Decoder.unsigned(p_9772_.getUUID(), p_9770_::enforceSecureProfile);
@@ -115,8 +116,23 @@
 +        this.chatMessageChain = new FutureChain(server.chatExecutor); // CraftBukkit - async chat
 +        setPlayer(p_9772_);
      }
++
++    // Purpur start
++    private final com.google.common.cache.LoadingCache<CraftPlayer, Boolean> kickPermissionCache = com.google.common.cache.CacheBuilder.newBuilder()
++            .maximumSize(1000)
++            .expireAfterWrite(1, java.util.concurrent.TimeUnit.MINUTES)
++            .build(
++                    new com.google.common.cache.CacheLoader<>() {
++                        @Override
++                        public Boolean load(CraftPlayer player) {
++                            return player.hasPermission("purpur.bypassIdleKick");
++                        }
++                    }
++            );
++    // Purpur end
  
      @Override
+     public void tick() {
 @@ -264,7 +_,7 @@
          if (this.clientIsFloating && !this.player.isSleeping() && !this.player.isPassenger() && !this.player.isDeadOrDying()) {
              if (++this.aboveGroundTickCount > this.getMaximumFlyingTicks(this.player)) {
@@ -153,11 +169,17 @@
  
          if (this.dropSpamTickCount > 0) {
              this.dropSpamTickCount--;
-@@ -308,7 +_,8 @@
+@@ -308,7 +_,14 @@
          if (this.player.getLastActionTime() > 0L
              && this.server.getPlayerIdleTimeout() > 0
              && Util.getMillis() - this.player.getLastActionTime() > (long)this.server.getPlayerIdleTimeout() * 1000L * 60L) {
 -            this.disconnect(Component.translatable("multiplayer.disconnect.idling"));
++            // Purpur start
++            this.player.setAfk(true);
++            if (!this.player.level().purpurConfig.idleTimeoutKick || (!Boolean.parseBoolean(System.getenv("PURPUR_FORCE_IDLE_KICK")) && kickPermissionCache.getUnchecked(this.player.getBukkitEntity()))) {
++                return;
++            }
++            // Purpur end
 +            this.player.resetLastActionTime(); // CraftBukkit - SPIGOT-854
 +            this.disconnect(Component.translatable("multiplayer.disconnect.idling"), org.bukkit.event.player.PlayerKickEvent.Cause.IDLING); // Paper - kick event cause
          }
@@ -216,7 +238,7 @@
                      LOGGER.warn("{} (vehicle of {}) moved too quickly! {},{},{}", entity.getName().getString(), this.player.getName().getString(), d6, d7, d8);
                      this.send(new ClientboundMoveVehiclePacket(entity));
                      return;
-@@ -433,23 +_,80 @@
+@@ -433,23 +_,83 @@
                  d8 = d5 - entity.getZ();
                  d10 = d6 * d6 + d7 * d7 + d8 * d8;
                  boolean flag2 = false;
@@ -266,6 +288,9 @@
 +                    this.lastPosZ = to.getZ();
 +                    this.lastYaw = to.getYaw();
 +                    this.lastPitch = to.getPitch();
++
++                    if (!to.getWorld().getUID().equals(from.getWorld().getUID()) || to.getBlockX() != from.getBlockX() || to.getBlockY() != from.getBlockY() || to.getBlockZ() != from.getBlockZ() || to.getYaw() != from.getYaw() || to.getPitch() != from.getPitch()) this.player.resetLastActionTime(); // Purpur
++
 +                    org.bukkit.Location oldTo = to.clone();
 +                    org.bukkit.event.player.PlayerMoveEvent event = new org.bukkit.event.player.PlayerMoveEvent(player, from, to);
 +                    this.cserver.getPluginManager().callEvent(event);
@@ -693,7 +718,7 @@
                              d6 = d0 - this.player.getX();
                              d7 = d1 - this.player.getY();
                              if (d7 > -0.5 || d7 < 0.5) {
-@@ -907,27 +_,91 @@
+@@ -907,27 +_,92 @@
  
                              d8 = d2 - this.player.getZ();
                              d10 = d6 * d6 + d7 * d7 + d8 * d8;
@@ -714,7 +739,7 @@
 +                                    movedWrongly = true;
 +                                    if (event.getLogWarning())
 +                                        // Paper end
-+                                        ServerGamePacketListenerImpl.LOGGER.warn("{} moved wrongly!", this.player.getName().getString());
++                                        ServerGamePacketListenerImpl.LOGGER.warn("{} moved wrongly!, ({})", this.player.getName().getString(), d7); // Purpur
 +                                } // Paper
                              }
  
@@ -757,6 +782,7 @@
 +                                    this.lastPosZ = to.getZ();
 +                                    this.lastYaw = to.getYaw();
 +                                    this.lastPitch = to.getPitch();
++                                    if (!to.getWorld().getUID().equals(from.getWorld().getUID()) || to.getBlockX() != from.getBlockX() || to.getBlockY() != from.getBlockY() || to.getBlockZ() != from.getBlockZ() || to.getYaw() != from.getYaw() || to.getPitch() != from.getPitch()) this.player.resetLastActionTime(); // Purpur
 +                                    org.bukkit.Location oldTo = to.clone();
 +                                    org.bukkit.event.player.PlayerMoveEvent event = new org.bukkit.event.player.PlayerMoveEvent(player, from, to);
 +                                    this.cserver.getPluginManager().callEvent(event);
@@ -1586,7 +1612,7 @@
          this.player.resetLastActionTime();
          this.player.setShiftKeyDown(p_9866_.isUsingSecondaryAction());
          if (entity != null) {
-@@ -1535,11 +_,45 @@
+@@ -1535,11 +_,48 @@
              if (this.player.canInteractWithEntity(aabb, 1.0)) {
                  p_9866_.dispatch(
                      new ServerboundInteractPacket.Handler() {
@@ -1600,6 +1626,9 @@
 +                                boolean triggerLeashUpdate = itemInHand != null && itemInHand.getItem() == Items.LEAD && entity instanceof net.minecraft.world.entity.Mob;
 +                                Item origItem = player.getInventory().getSelected() == null ? null : player.getInventory().getSelected().getItem();
 +                                cserver.getPluginManager().callEvent(event);
++
++                                player.processClick(p_143679_); // Purpur
++
 +                                // Entity in bucket - SPIGOT-4048 and SPIGOT-6859a
 +                                if ((entity instanceof net.minecraft.world.entity.animal.Bucketable && entity instanceof LivingEntity && origItem != null && origItem.asItem() == Items.WATER_BUCKET) && (event.isCancelled() || player.getInventory().getSelected() == null || player.getInventory().getSelected().getItem() != origItem)) {
 +                                    entity.resendPossiblyDesyncedEntityData(ServerGamePacketListenerImpl.this.player); // Paper - The entire mob gets deleted, so resend it

@@ -28,7 +28,7 @@
  
  public abstract class Mob extends LivingEntity implements EquipmentUser, Leashable, Targeting {
      private static final EntityDataAccessor<Byte> DATA_MOB_FLAGS_ID = SynchedEntityData.defineId(Mob.class, EntityDataSerializers.BYTE);
-@@ -131,6 +_,10 @@
+@@ -131,13 +_,17 @@
      private Leashable.LeashData leashData;
      private BlockPos restrictCenter = BlockPos.ZERO;
      private float restrictRadius = -1.0F;
@@ -39,6 +39,15 @@
  
      protected Mob(EntityType<? extends Mob> p_21368_, Level p_21369_) {
          super(p_21368_, p_21369_);
+         this.goalSelector = new GoalSelector(p_21369_.getProfilerSupplier());
+         this.targetSelector = new GoalSelector(p_21369_.getProfilerSupplier());
+-        this.lookControl = new LookControl(this);
+-        this.moveControl = new MoveControl(this);
++        this.lookControl = new org.purpurmc.purpur.controller.LookControllerWASD(this); // Purpur
++        this.moveControl = new org.purpurmc.purpur.controller.MoveControllerWASD(this); // Purpur
+         this.jumpControl = new JumpControl(this);
+         this.bodyRotationControl = this.createBodyControl();
+         this.navigation = this.createNavigation(p_21369_);
 @@ -150,6 +_,12 @@
          }
      }
@@ -281,6 +290,15 @@
          return p_21437_;
      }
  
+@@ -1238,7 +_,7 @@
+     }
+ 
+     protected InteractionResult mobInteract(Player p_21472_, InteractionHand p_21473_) {
+-        return InteractionResult.PASS;
++        return tryRide(p_21472_, p_21473_); // Purpur
+     }
+ 
+     public boolean isWithinRestriction() {
 @@ -1304,19 +_,37 @@
                      }
                  }
@@ -342,16 +360,23 @@
                  livingentity.knockback(
                      (double)(f1 * 0.5F),
                      (double)Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)),
-@@ -1456,7 +_,7 @@
+@@ -1456,28 +_,29 @@
      protected void playAttackSound() {
      }
  
 -    protected boolean isSunBurnTick() {
+-        if (this.level().isDay() && !this.level().isClientSide) {
+-            float f = this.getLightLevelDependentMagicValue();
+-            BlockPos blockpos = BlockPos.containing(this.getX(), this.getEyeY(), this.getZ());
+-            boolean flag = this.isInWaterRainOrBubble() || this.isInPowderSnow || this.wasInPowderSnow;
+-            if (f > 0.5F && this.random.nextFloat() * 30.0F < (f - 0.4F) * 2.0F && !flag && this.level().canSeeSky(blockpos)) {
+-                return true;
+-            }
+-        }
+-
+-        return false;
 +    public boolean isSunBurnTick() {
-         if (this.level().isDay() && !this.level().isClientSide) {
-             float f = this.getLightLevelDependentMagicValue();
-             BlockPos blockpos = BlockPos.containing(this.getX(), this.getEyeY(), this.getZ());
-@@ -1470,14 +_,24 @@
++        return super.isSunBurnTick();
      }
  
      @Override
@@ -377,11 +402,10 @@
      @VisibleForTesting
      public void removeFreeWill() {
          this.removeAllGoals(p_351790_ -> true);
-@@ -1503,5 +_,40 @@
-     public ItemStack getPickResult() {
+@@ -1504,4 +_,91 @@
          SpawnEggItem spawneggitem = SpawnEggItem.byId(this.getType());
          return spawneggitem == null ? null : new ItemStack(spawneggitem);
-+    }
+     }
 +
 +    /**
 +    * Returns the type of spawn that created this mob, if applicable.
@@ -416,5 +440,57 @@
 +            throw new UnsupportedOperationException("Late invocations of Mob#setSpawnCancelled are not permitted.");
 +        }
 +        this.spawnCancelled = cancel;
-     }
++    }
++
++    // Purpur start
++    public double getMaxY() {
++        return level().getHeight();
++    }
++
++    public InteractionResult tryRide(Player player, InteractionHand hand) {
++        return tryRide(player, hand, InteractionResult.PASS);
++    }
++
++    public InteractionResult tryRide(Player player, InteractionHand hand, InteractionResult result) {
++        if (!isRidable()) {
++            return result;
++        }
++        if (hand != InteractionHand.MAIN_HAND) {
++            return InteractionResult.PASS;
++        }
++        if (player.isShiftKeyDown()) {
++            return InteractionResult.PASS;
++        }
++        if (!player.getItemInHand(hand).isEmpty()) {
++            return InteractionResult.PASS;
++        }
++        if (!passengers.isEmpty() || player.isPassenger()) {
++            return InteractionResult.PASS;
++        }
++        if (this instanceof TamableAnimal tamable) {
++            if (tamable.isTame() && !tamable.isOwnedBy(player)) {
++                return InteractionResult.PASS;
++            }
++            if (!tamable.isTame() && !level().purpurConfig.untamedTamablesAreRidable) {
++                return InteractionResult.PASS;
++            }
++        }
++        if (this instanceof AgeableMob ageable) {
++            if (ageable.isBaby() && !level().purpurConfig.babiesAreRidable) {
++                return InteractionResult.PASS;
++            }
++        }
++        if (!player.getBukkitEntity().hasPermission("allow.ride." + net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(getType()).getPath())) {
++            player.sendMiniMessage(org.purpurmc.purpur.PurpurConfig.cannotRideMob);
++            return InteractionResult.PASS;
++        }
++        player.setYRot(this.getYRot());
++        player.setXRot(this.getXRot());
++        if (player.startRiding(this)) {
++            return InteractionResult.SUCCESS;
++        } else {
++            return InteractionResult.PASS;
++        }
++    }
++    // Purpur end
  }

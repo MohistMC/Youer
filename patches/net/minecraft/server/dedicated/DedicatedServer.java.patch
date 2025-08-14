@@ -118,7 +118,7 @@
          DedicatedServerProperties dedicatedserverproperties = this.settings.getProperties();
          if (this.isSingleplayer()) {
              this.setLocalIp("127.0.0.1");
-@@ -133,13 +_,36 @@
+@@ -133,13 +_,48 @@
              this.setLocalIp(dedicatedserverproperties.serverIp);
          }
  
@@ -128,6 +128,15 @@
 +        org.spigotmc.SpigotConfig.registerCommands();
 +        // Spigot end
 +        io.papermc.paper.util.ObfHelper.INSTANCE.getClass(); // Paper - load mappings for stacktrace deobf and etc.
++        // Purpur start
++        try {
++            org.purpurmc.purpur.PurpurConfig.init((java.io.File) options.valueOf("purpur-settings"));
++        } catch (Exception e) {
++            DedicatedServer.LOGGER.error("Unable to load server configuration", e);
++            return false;
++        }
++        org.purpurmc.purpur.PurpurConfig.registerCommands();
++        // Purpur end
 +        // Paper start - initialize global and world-defaults configuration
 +        this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
 +        this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
@@ -144,6 +153,9 @@
 +        // Paper end - fix converting txt to json file
 +        thread.start(); // Paper - Enhance console tab completions for brigadier commands; start console thread after MinecraftServer.console & PaperConfig are initialized
 +        io.papermc.paper.command.PaperCommands.registerCommands(this); // Paper - setup /paper command
++        gg.pufferfish.pufferfish.PufferfishConfig.pufferfishFile = (java.io.File) options.valueOf("pufferfish-settings"); // Purpur
++        gg.pufferfish.pufferfish.PufferfishConfig.load(); // Pufferfish
++        gg.pufferfish.pufferfish.PufferfishCommand.init(); // Pufferfish
 +
          this.setPvpAllowed(dedicatedserverproperties.pvp);
          this.setFlightAllowed(dedicatedserverproperties.allowFlight);
@@ -228,7 +240,7 @@
                  Thread thread1 = new Thread(new ServerWatchdog(this));
                  thread1.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(LOGGER));
                  thread1.setName("Server Watchdog");
-@@ -217,10 +_,24 @@
+@@ -217,10 +_,25 @@
                  LOGGER.info("JMX monitoring enabled");
              }
  
@@ -240,6 +252,7 @@
 +            WatchMohist.start();
 +            org.spigotmc.WatchdogThread.doStart(org.spigotmc.SpigotConfig.timeoutTime, org.spigotmc.SpigotConfig.restartOnCrash); // Paper - start watchdog thread
 +            net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStarting(this);
++            org.purpurmc.purpur.task.BossBarTask.startAll(); // Purpur
              return true;
          }
      }

@@ -197,7 +197,7 @@ public class VersionCommand extends BukkitCommand {
         String version = Bukkit.getVersion();
         // Paper start
         if (version.startsWith("null")) { // running from ide?
-            setVersionMessage(Component.text("Unknown version, custom build?", NamedTextColor.YELLOW));
+            setVersionMessage(Component.text("Unknown version, custom build?", NamedTextColor.RED));
             return;
         }
         setVersionMessage(getVersionFetcher().getVersionMessage(version));
@@ -206,9 +206,11 @@ public class VersionCommand extends BukkitCommand {
     // Paper start
     private void setVersionMessage(final @NotNull Component msg) {
         lastCheck = System.currentTimeMillis();
-        final Component message = Component.textOfChildren(
-                Component.text(Bukkit.getVersionMessage(), NamedTextColor.WHITE),
-                Component.newline(),
+        // Purpur start
+        int distance = getVersionFetcher().distance();
+        final Component message = Component.join(net.kyori.adventure.text.JoinConfiguration.separator(Component.newline()),
+                ChatColor.parseMM("<grey>Current Purpur Version: %s%s*", distance == 0 ? "<green>" : distance > 0 ? "<yellow>" : "<red>", Bukkit.getVersion()),
+                // Purpur end
                 msg
         );
         this.versionMessage = Component.text()

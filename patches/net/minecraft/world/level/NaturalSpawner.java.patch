@@ -50,7 +50,7 @@
                  BlockPos blockpos = entity.blockPosition();
                  p_186527_.query(
                      ChunkPos.asLong(blockpos),
-@@ -103,12 +_,24 @@
+@@ -103,8 +_,21 @@
          ServerLevel p_47030_, LevelChunk p_47031_, NaturalSpawner.SpawnState p_47032_, boolean p_47033_, boolean p_47034_, boolean p_47035_
      ) {
          p_47030_.getProfiler().push("spawner");
@@ -68,14 +68,10 @@
 +            if (!spawnThisTick || limit == 0) {
 +                continue;
 +            }
++            p_47032_.canSpawnForCategory$limit = limit;
              if ((p_47033_ || !mobcategory.isFriendly())
                  && (p_47034_ || mobcategory.isFriendly())
                  && (p_47035_ || !mobcategory.isPersistent())
--                && p_47032_.canSpawnForCategory(mobcategory, p_47031_.getPos())) {
-+                && p_47032_.canSpawnForCategory(mobcategory, p_47031_.getPos(), limit)) {
-                 spawnCategoryForChunk(mobcategory, p_47030_, p_47031_, p_47032_::canSpawn, p_47032_::afterSpawn);
-             }
-         }
 @@ -116,6 +_,17 @@
          p_47030_.getProfiler().pop();
      }
@@ -234,15 +230,21 @@
                                      p_220451_.addFreshEntityWithPassengers(mob);
                                      flag = true;
                                  }
-@@ -518,6 +_,11 @@
+@@ -516,9 +_,16 @@
+             return this.unmodifiableMobCategoryCounts;
+         }
  
++        int canSpawnForCategory$limit = -1;
          boolean canSpawnForCategory(MobCategory p_186549_, ChunkPos p_186550_) {
-             int i = p_186549_.getMaxInstancesPerChunk() * this.spawnableChunkCount / NaturalSpawner.MAGIC_NUMBER;
-+            return this.mobCategoryCounts.getInt(p_186549_) >= i ? false : this.localMobCapCalculator.canSpawn(p_186549_, p_186550_);
+-            int i = p_186549_.getMaxInstancesPerChunk() * this.spawnableChunkCount / NaturalSpawner.MAGIC_NUMBER;
++            int i = (canSpawnForCategory$limit == -1 ? p_186549_.getMaxInstancesPerChunk() : canSpawnForCategory$limit) * this.spawnableChunkCount / NaturalSpawner.MAGIC_NUMBER;
++            canSpawnForCategory$limit = -1;
+             return this.mobCategoryCounts.getInt(p_186549_) >= i ? false : this.localMobCapCalculator.canSpawn(p_186549_, p_186550_);
 +        }
 +
 +        boolean canSpawnForCategory(MobCategory p_186549_, ChunkPos p_186550_, int limit) {
-+            int i = limit * this.spawnableChunkCount / NaturalSpawner.MAGIC_NUMBER;
-             return this.mobCategoryCounts.getInt(p_186549_) >= i ? false : this.localMobCapCalculator.canSpawn(p_186549_, p_186550_);
++            canSpawnForCategory$limit = limit;
++            return canSpawnForCategory(p_186549_, p_186550_);
          }
      }
+ }

@@ -1,18 +1,22 @@
 package com.mohistmc.youer.commands;
 
 import com.mohistmc.youer.api.ItemAPI;
+import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import net.minecraft.world.entity.EntityType;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -21,7 +25,6 @@ import org.bukkit.block.BlockState;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
@@ -100,27 +103,33 @@ public class ShowsCommand extends Command {
             }
             case "entitys" -> {
 
-                Map<EntityType, Integer> collect = player.getWorld().getEntities().stream().collect(Collectors.toMap(Entity::getType, entity -> 1, Integer::sum));
+                Map<net.minecraft.world.entity.EntityType<?>, Integer> collect =
+                        StreamSupport.stream(WorldAPI.getServerLevel(player.getWorld()).getAllEntities().spliterator(), false)
+                                .collect(Collectors.toMap(
+                                        net.minecraft.world.entity.Entity::getType,
+                                        entity -> 1,
+                                        Integer::sum
+                                ));
 
-                List<Map.Entry<EntityType, Integer>> infoIds = new ArrayList<>(collect.entrySet());
+                List<Map.Entry<net.minecraft.world.entity.EntityType<?>, Integer>> infoIds = new ArrayList<>(collect.entrySet());
                 infoIds.sort((o1, o2) -> {
                     Integer p1 = o1.getValue();
                     Integer p2 = o2.getValue();
                     return p2 - p1;
                 });
 
-                LinkedHashMap<EntityType, Integer> newMap = new LinkedHashMap<>();
+                LinkedHashMap<net.minecraft.world.entity.EntityType<?>, Integer> newMap = new LinkedHashMap<>();
                 AtomicInteger allSize = new AtomicInteger(0);
-                for (Map.Entry<EntityType, Integer> entity : infoIds) {
+                for (Map.Entry<net.minecraft.world.entity.EntityType<?>, Integer> entity : infoIds) {
                     newMap.put(entity.getKey(), entity.getValue());
                     allSize.addAndGet(entity.getValue());
                 }
 
                 DemoGUI wh = new DemoGUI("Entitys: " + allSize.getAndSet(0));
-                for (Map.Entry<EntityType, Integer> s : newMap.entrySet()) {
+                for (Map.Entry<net.minecraft.world.entity.EntityType<?>, Integer> s : newMap.entrySet()) {
                     wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(s.getKey()))
                             .setDisplayName("§6Size: §4" + s.getValue())
-                            .setLore(List.of("§7EntityType: §2" + s.getKey().name()))
+                            .setLore(List.of("§7Entity: §2" + EntityType.getKey(s.getKey())))
                             .toItemStack())
                     );
                 }

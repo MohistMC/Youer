@@ -35,6 +35,8 @@ public record ServerBuildInfoImpl(
     private static final String ATTRIBUTE_GIT_COMMIT = "Git-Commit";
 
     private static final String BRAND_PAPER_NAME = "Youer";
+    private static final String BRAND_PUFFERFISH_NAME = "Pufferfish"; // Purpur
+    private static final String BRAND_PURPUR_NAME = "Purpur"; // Purpur
 
     private static final String BUILD_DEV = "DEV";
 
@@ -65,7 +67,7 @@ public record ServerBuildInfoImpl(
 
     @Override
     public boolean isBrandCompatible(final @NotNull Key brandId) {
-        return brandId.equals(this.brandId);
+        return brandId.equals(this.brandId) || brandId.equals(BRAND_PAPER_ID); // Purpur
     }
 
     @Override

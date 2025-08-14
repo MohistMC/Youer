@@ -242,29 +242,35 @@
                      this.shrink(1);
                      p_348596_.accept(item);
                  }
-@@ -452,12 +_,20 @@
-     }
- 
-     public void hurtAndBreak(int p_41623_, LivingEntity p_41624_, EquipmentSlot p_319898_) {
-+        // Paper start - add param to skip infinite mats check
-+        this.hurtAndBreak(p_41623_, p_41624_, p_319898_, false);
-+    }
-+    public void hurtAndBreak(int p_41623_, LivingEntity p_41624_, EquipmentSlot p_319898_, boolean force) {
-+        // Paper end - add param to skip infinite mats check
-         if (p_41624_.level() instanceof ServerLevel serverlevel) {
-+            hurtAndBreak$force.set( force);
-             this.hurtAndBreak(
-                 p_41623_,
-                 serverlevel,
--                p_41624_ instanceof ServerPlayer serverplayer ? serverplayer : null,
--                p_348383_ -> p_41624_.onEquippedItemBroken(p_348383_, p_319898_)
-+                p_41624_,
-+                p_348383_ -> {
-+                    if (p_319898_ != null) p_41624_.onEquippedItemBroken(p_348383_, p_319898_);
-+                }
-             );
+@@ -451,15 +_,24 @@
          }
      }
+ 
++    AtomicBoolean hurtAndBreak$force1 = new AtomicBoolean(false);
+     public void hurtAndBreak(int p_41623_, LivingEntity p_41624_, EquipmentSlot p_319898_) {
++        // Paper end - add param to skip infinite mats check
+         if (p_41624_.level() instanceof ServerLevel serverlevel) {
++            hurtAndBreak$force.set( hurtAndBreak$force1.getAndSet(false));
+             this.hurtAndBreak(
+-                p_41623_,
+-                serverlevel,
+-                p_41624_ instanceof ServerPlayer serverplayer ? serverplayer : null,
+-                p_348383_ -> p_41624_.onEquippedItemBroken(p_348383_, p_319898_)
++                    p_41623_,
++                    serverlevel,
++                    p_41624_,
++                    p_348383_ -> {
++                        if (p_319898_ != null) p_41624_.onEquippedItemBroken(p_348383_, p_319898_);
++                    }
+             );
+         }
++    }
++    public void hurtAndBreak(int p_41623_, LivingEntity p_41624_, EquipmentSlot p_319898_, boolean force) {
++        hurtAndBreak$force1.set(force);
++        this.hurtAndBreak(p_41623_, p_41624_, p_319898_);
+     }
+ 
+     public ItemStack hurtAndConvertOnBreak(int p_352405_, ItemLike p_352337_, LivingEntity p_352175_, EquipmentSlot p_352058_) {
 @@ -661,6 +_,12 @@
          return this.getItem().useOnRelease(this);
      }

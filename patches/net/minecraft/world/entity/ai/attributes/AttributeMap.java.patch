@@ -1,5 +1,37 @@
 --- a/net/minecraft/world/entity/ai/attributes/AttributeMap.java
 +++ b/net/minecraft/world/entity/ai/attributes/AttributeMap.java
+@@ -23,14 +_,21 @@
+     private final Set<AttributeInstance> attributesToSync = new ObjectOpenHashSet<>();
+     private final Set<AttributeInstance> attributesToUpdate = new ObjectOpenHashSet<>();
+     private final AttributeSupplier supplier;
++    private final net.minecraft.world.entity.LivingEntity entity; // Purpur
+ 
+     public AttributeMap(AttributeSupplier p_22144_) {
++        // Purpur start
++        this(p_22144_, null);
++    }
++    public AttributeMap(AttributeSupplier p_22144_, net.minecraft.world.entity.LivingEntity entity) {
++        this.entity = entity;
++        // Purpur end
+         this.supplier = p_22144_;
+     }
+ 
+     private void onAttributeModified(AttributeInstance p_22158_) {
+         this.attributesToUpdate.add(p_22158_);
+-        if (p_22158_.getAttribute().value().isClientSyncable()) {
++        if (p_22158_.getAttribute().value().isClientSyncable() && (entity == null || entity.shouldSendAttribute(p_22158_.getAttribute().value()))) { // Purpur
+             this.attributesToSync.add(p_22158_);
+         }
+     }
+@@ -44,7 +_,7 @@
+     }
+ 
+     public Collection<AttributeInstance> getSyncableAttributes() {
+-        return this.attributes.values().stream().filter(p_315935_ -> p_315935_.getAttribute().value().isClientSyncable()).collect(Collectors.toList());
++        return this.attributes.values().stream().filter(p_315935_ -> p_315935_.getAttribute().value().isClientSyncable() && (entity == null || entity.shouldSendAttribute(p_315935_.getAttribute().value()))).collect(Collectors.toList()); // Purpur
+     }
+ 
+     @Nullable
 @@ -140,4 +_,11 @@
              }
          }

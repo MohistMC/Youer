@@ -227,6 +227,28 @@ public enum EnchantmentTarget {
         public boolean includes(@NotNull Material item) {
             return BREAKABLE.includes(item) || (WEARABLE.includes(item) && !item.equals(Material.ELYTRA)) || item.equals(Material.COMPASS);
         }
+        // Purpur start
+    },
+
+    /**
+     * Allow the Enchantment to be placed on bows and crossbows.
+     */
+    BOW_AND_CROSSBOW {
+        @Override
+        public boolean includes(@NotNull Material item) {
+            return item.equals(Material.BOW) || item.equals(Material.CROSSBOW);
+        }
+    },
+
+    /**
+     * Allow the Enchantment to be placed on shears.
+     */
+    WEAPON_AND_SHEARS {
+        @Override
+        public boolean includes(@NotNull Material item) {
+            return WEAPON.includes(item) || item.equals(Material.SHEARS);
+        }
+        // Purpur end
     };
 
     /**

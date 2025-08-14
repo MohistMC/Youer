@@ -2,6 +2,9 @@ package org.bukkit.plugin.java;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.Commands;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import io.papermc.paper.utils.PaperPluginLogger;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -12,6 +15,8 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.logging.Level;
@@ -354,6 +359,22 @@ public abstract class JavaPlugin extends PluginBase {
         } else {
             return null;
         }
+    }
+
+    public void registerCommand(String label, BasicCommand basicCommand) {
+        this.registerCommand(label, (String)null, Collections.emptyList(), basicCommand);
+    }
+
+    public void registerCommand(String label, @org.jspecify.annotations.Nullable String description, BasicCommand basicCommand) {
+        this.registerCommand(label, description, Collections.emptyList(), basicCommand);
+    }
+
+    public void registerCommand(String label, Collection<String> aliases, BasicCommand basicCommand) {
+        this.registerCommand(label, (String)null, aliases, basicCommand);
+    }
+
+    public void registerCommand(String label, @org.jspecify.annotations.Nullable String description, Collection<String> aliases, BasicCommand basicCommand) {
+        this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, (event) -> ((Commands)event.registrar()).register(label, description, aliases, basicCommand));
     }
 
     @Override

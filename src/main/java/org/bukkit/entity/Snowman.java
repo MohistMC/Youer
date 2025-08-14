@@ -23,4 +23,20 @@ public interface Snowman extends Golem, RangedEntity, io.papermc.paper.entity.Sh
      * @param derpMode True to remove the pumpkin, false to add a pumpkin
      */
     void setDerp(boolean derpMode);
+
+    // Purpur start
+    /**
+     * Get the player that summoned this snowman
+     *
+     * @return UUID of summoner
+     */
+    @org.jetbrains.annotations.Nullable java.util.UUID getSummoner();
+
+    /**
+     * Set the player that summoned this snowman
+     *
+     * @param summoner UUID of summoner
+     */
+    void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner);
+    // Purpur end
 }

@@ -77,6 +77,37 @@
      public Vec3 getPosition() {
          return this.worldPosition;
      }
+@@ -477,6 +_,30 @@
+         }
+     }
+ 
++    // Purpur start
++    public void sendSuccess(@Nullable String message) {
++        sendSuccess(message, false);
++    }
++
++    public void sendSuccess(@Nullable String message, boolean broadcastToOps) {
++        if (message == null) {
++            return;
++        }
++        sendSuccess(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(message), broadcastToOps);
++    }
++
++    public void sendSuccess(@Nullable net.kyori.adventure.text.Component message) {
++        sendSuccess(message, false);
++    }
++
++    public void sendSuccess(@Nullable net.kyori.adventure.text.Component message, boolean broadcastToOps) {
++        if (message == null) {
++            return;
++        }
++        sendSuccess(() -> io.papermc.paper.adventure.PaperAdventure.asVanilla(message), broadcastToOps);
++    }
++    // Purpur end
++
+     public void sendSuccess(Supplier<Component> p_288979_, boolean p_289007_) {
+         boolean flag = this.source.acceptsSuccess() && !this.silent;
+         boolean flag1 = p_289007_ && this.source.shouldInformAdmins() && !this.silent;
 @@ -496,7 +_,7 @@
          Component component = Component.translatable("chat.type.admin", this.getDisplayName(), p_81367_).withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC);
          if (this.server.getGameRules().getBoolean(GameRules.RULE_SENDCOMMANDFEEDBACK)) {

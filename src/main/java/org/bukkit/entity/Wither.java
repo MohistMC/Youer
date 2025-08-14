@@ -104,4 +104,20 @@ public interface Wither extends Monster, Boss, RangedEntity {
      */
     void enterInvulnerabilityPhase();
     // Paper end
+
+    // Purpur start
+    /**
+     * Get the player that summoned this wither
+     *
+     * @return UUID of summoner
+     */
+    @org.jetbrains.annotations.Nullable java.util.UUID getSummoner();
+
+    /**
+     * Set the player that summoned this wither
+     *
+     * @param summoner UUID of summoner
+     */
+    void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner);
+    // Purpur end
 }

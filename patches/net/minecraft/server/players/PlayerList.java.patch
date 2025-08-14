@@ -275,7 +275,7 @@
              );
              if (entity != null) {
                  UUID uuid;
-@@ -255,16 +_,29 @@
+@@ -255,16 +_,30 @@
  
                  if (!p_11263_.isPassenger()) {
                      LOGGER.warn("Couldn't reattach entity to player");
@@ -295,6 +295,7 @@
 +        net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(p_11263_);
 +        net.neoforged.neoforge.event.EventHooks.firePlayerLoggedIn( p_11263_ );
 +        // CraftBukkit - Moved from above, added world
++        org.purpurmc.purpur.task.BossBarTask.addToAll(p_11263_); // Purpur
 +        LOGGER.info(
 +                "{}[{}] logged in with entity id {} at ({}, {}, {})",
 +                p_11263_.getName().getString(),
@@ -360,13 +361,14 @@
          this.playerIo.save(p_11277_);
          ServerStatsCounter serverstatscounter = this.stats.get(p_11277_.getUUID());
          if (serverstatscounter != null) {
-@@ -350,23 +_,55 @@
+@@ -350,23 +_,56 @@
          }
      }
  
 +    public net.kyori.adventure.text.Component quitMessage;
 +    public net.kyori.adventure.text.Component remove$leaveMessage;
      public void remove(ServerPlayer p_11287_) {
++        org.purpurmc.purpur.task.BossBarTask.removeFromAll(p_11287_.getBukkitEntity()); // Purpur
 +        net.neoforged.neoforge.event.EventHooks.firePlayerLoggedOut(p_11287_);
          ServerLevel serverlevel = p_11287_.serverLevel();
          p_11287_.awardStat(Stats.LEAVE_GAME);
@@ -756,7 +758,7 @@
              this.sendAllPlayerInfoIn = 0;
          }
      }
-@@ -529,6 +_,24 @@
+@@ -529,6 +_,38 @@
          }
      }
  
@@ -777,6 +779,20 @@
 +        }
 +    }
 +    // CraftBukkit end
++
++    // Purpur Start
++    public void broadcastMiniMessage(@Nullable String message, boolean overlay) {
++        if (message != null && !message.isEmpty()) {
++            this.broadcastMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(message), overlay);
++        }
++    }
++
++    public void broadcastMessage(@Nullable net.kyori.adventure.text.Component message, boolean overlay) {
++        if (message != null) {
++            this.broadcastSystemMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(message), overlay);
++        }
++    }
++    // Purpur end
 +
      public void broadcastAll(Packet<?> p_11271_, ResourceKey<Level> p_11272_) {
          for (ServerPlayer serverplayer : this.players) {

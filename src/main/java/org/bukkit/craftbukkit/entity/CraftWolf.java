@@ -146,4 +146,16 @@ public class CraftWolf extends CraftTameableAnimal implements Wolf {
             return this.getKey().hashCode();
         }
     }
+
+    // Purpur start
+    @Override
+    public boolean isRabid() {
+        return getHandle().isRabid();
+    }
+
+    @Override
+    public void setRabid(boolean isRabid) {
+        getHandle().setRabid(isRabid);
+    }
+    // Purpur end
 }

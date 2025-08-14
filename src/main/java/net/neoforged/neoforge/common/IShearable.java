@@ -78,7 +78,7 @@ public interface IShearable {
         if (this instanceof LivingEntity entity && this instanceof Shearable shearable) {
             if (!level.isClientSide) {
                 Collection<ItemEntity> previous = entity.captureDrops(new ArrayList<>());
-                shearable.shear(player == null ? SoundSource.BLOCKS : SoundSource.PLAYERS, drops);
+                shearable.shearPaper(player == null ? SoundSource.BLOCKS : SoundSource.PLAYERS, drops);
                 return entity.captureDrops(previous).stream().map(ItemEntity::getItem).toList();
             }
         }

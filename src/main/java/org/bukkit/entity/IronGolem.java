@@ -19,4 +19,20 @@ public interface IronGolem extends Golem {
      *     player created, false if you want it to be a natural village golem.
      */
     public void setPlayerCreated(boolean playerCreated);
+
+    // Purpur start
+    /**
+     * Get the player that summoned this iron golem
+     *
+     * @return UUID of summoner
+     */
+    @org.jetbrains.annotations.Nullable java.util.UUID getSummoner();
+
+    /**
+     * Set the player that summoned this iron golem
+     *
+     * @param summoner UUID of summoner
+     */
+    void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner);
+    // Purpur end
 }

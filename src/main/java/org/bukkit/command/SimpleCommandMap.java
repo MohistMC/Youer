@@ -150,9 +150,22 @@ public class SimpleCommandMap implements CommandMap {
             return false;
         }
 
+        // Purpur start
+        String[] parsedArgs = Arrays.copyOfRange(args, 1, args.length);
+        org.purpurmc.purpur.event.ExecuteCommandEvent event = new org.purpurmc.purpur.event.ExecuteCommandEvent(sender, target, sentCommandLabel, parsedArgs);
+        if (!event.callEvent()) {
+            return true; // cancelled
+        }
+
+        sender = event.getSender();
+        target = event.getCommand();
+        sentCommandLabel = event.getLabel();
+        parsedArgs = event.getArgs();
+        // Purpur end
+
         try {
             // Note: we don't return the result of target.execute as thats success / failure, we return handled (true) or not handled (false)
-            target.execute(sender, sentCommandLabel, Arrays.copyOfRange(args, 1, args.length));
+            target.execute(sender, sentCommandLabel, parsedArgs);
         } catch (CommandException ex) {
             throw ex;
         } catch (Throwable ex) {

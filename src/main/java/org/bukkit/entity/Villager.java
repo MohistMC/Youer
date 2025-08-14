@@ -364,4 +364,14 @@ public interface Villager extends AbstractVillager {
      */
     public void clearReputations();
     // Paper end
+
+    // Purpur start
+
+    /**
+     * Check if villager is currently lobotomized
+     *
+     * @return True if lobotomized
+     */
+    boolean isLobotomized();
+    // Purpur end
 }

@@ -1,5 +1,27 @@
 --- a/net/minecraft/world/entity/animal/IronGolem.java
 +++ b/net/minecraft/world/entity/animal/IronGolem.java
+@@ -56,11 +_,21 @@
+     private int remainingPersistentAngerTime;
+     @Nullable
+     private UUID persistentAngerTarget;
++    @Nullable private UUID summoner; // Purpur
+ 
+     public IronGolem(EntityType<? extends IronGolem> p_28834_, Level p_28835_) {
+         super(p_28834_, p_28835_);
+     }
+ 
++    @Nullable
++    public UUID getSummoner() {
++        return summoner;
++    }
++
++    public void setSummoner(@Nullable UUID summoner) {
++        this.summoner = summoner;
++    }
++
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(1, new MeleeAttackGoal(this, 1.0, true));
 @@ -103,6 +_,7 @@
      @Override
      protected void doPush(Entity p_28839_) {
@@ -7,4 +29,20 @@
 +            this.setTargetReason(org.bukkit.event.entity.EntityTargetLivingEntityEvent.TargetReason.COLLISION, true); // CraftBukkit - set reason
              this.setTarget((LivingEntity)p_28839_);
          }
+ 
+@@ -143,6 +_,7 @@
+     public void addAdditionalSaveData(CompoundTag p_28867_) {
+         super.addAdditionalSaveData(p_28867_);
+         p_28867_.putBoolean("PlayerCreated", this.isPlayerCreated());
++        if (getSummoner() != null) p_28867_.putUUID("Purpur.Summoner", getSummoner()); // Purpur
+         this.addPersistentAngerSaveData(p_28867_);
+     }
+ 
+@@ -150,6 +_,7 @@
+     public void readAdditionalSaveData(CompoundTag p_28857_) {
+         super.readAdditionalSaveData(p_28857_);
+         this.setPlayerCreated(p_28857_.getBoolean("PlayerCreated"));
++        if (p_28857_.contains("Purpur.Summoner")) setSummoner(p_28857_.getUUID("Purpur.Summoner")); // Purpur
+         this.readPersistentAngerSaveData(this.level(), p_28857_);
+     }
  

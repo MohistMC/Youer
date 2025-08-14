@@ -154,7 +154,7 @@
      @Nullable
      private KeyPair keyPair;
      @Nullable
-@@ -254,18 +_,41 @@
+@@ -254,18 +_,44 @@
      public final Executor executor;
      @Nullable
      private String serverId;
@@ -173,6 +173,7 @@
 +    public OptionSet options;
 +    public ConsoleCommandSender console;
 +    public static int currentTick; // Paper - improve tick loop
++    public static final long startTimeMillis = System.currentTimeMillis();
 +    public Queue<Runnable> processQueue = new ConcurrentLinkedQueue<Runnable>();
 +    public int autosavePeriod;
 +    public boolean forceTicks;
@@ -188,8 +189,10 @@
 +    // Spigot end
 +    public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
 +    public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
++    public boolean lagging = false; // Purpur
 +    public volatile Thread shutdownThread; // Paper
 +    public volatile boolean abnormalExit = false; // Paper
++    public gg.pufferfish.pufferfish.util.AsyncExecutor mobSpawnExecutor = new gg.pufferfish.pufferfish.util.AsyncExecutor("MobSpawning"); // Pufferfish - optimize mob spawning
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> p_129873_) {
          AtomicReference<S> atomicreference = new AtomicReference<>();
@@ -640,7 +643,7 @@
      }
  
      public String getLocalIp() {
-@@ -650,26 +_,104 @@
+@@ -650,26 +_,105 @@
      }
  
      public void halt(boolean p_129884_) {
@@ -648,6 +651,7 @@
 +        this.safeShutdown(p_129884_, false);
 +    }
 +    public void safeShutdown(boolean p_129884_, boolean isRestarting) {
++        org.purpurmc.purpur.task.BossBarTask.stopAll(); // Purpur
 +        this.isRestarting = isRestarting;
 +        this.hasLoggedStop = true; // Paper - Debugging
 +        if (isDebugging()) io.papermc.paper.util.TraceUtil.dumpTraceForThread("Server stopped"); // Paper - Debugging
@@ -750,7 +754,7 @@
              while (this.running) {
                  long i;
                  if (!this.isPaused() && this.tickRateManager.isSprinting() && this.tickRateManager.checkShouldSprintThisTick()) {
-@@ -682,18 +_,39 @@
+@@ -682,18 +_,40 @@
                      if (k > OVERLOADED_THRESHOLD_NANOS + 20L * i
                          && this.nextTickTimeNanos - this.lastOverloadWarningNanos >= OVERLOADED_WARNING_INTERVAL_NANOS + 100L * i) {
                          long j = k / i;
@@ -776,6 +780,7 @@
 +                    this.recentTps[0] = tps1.getAverage();
 +                    this.recentTps[1] = tps5.getAverage();
 +                    this.recentTps[2] = tps15.getAverage();
++                    lagging = recentTps[0] < org.purpurmc.purpur.PurpurConfig.laggingThreshold; // Purpur
 +                    tickSection = currentTime;
 +                }
 +                // Spigot end
@@ -792,6 +797,19 @@
                  this.nextTickTimeNanos += i;
                  this.startMetricsRecordingTick();
                  this.profiler.push("tick");
+@@ -701,6 +_,12 @@
+                 this.profiler.popPush("nextTickWait");
+                 this.mayHaveDelayedTasks = true;
+                 this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + i, this.nextTickTimeNanos);
++                // Pufferfish start - tps catchup
++                if (!org.purpurmc.purpur.PurpurConfig.tpsCatchup || !gg.pufferfish.pufferfish.PufferfishConfig.tpsCatchup) { // Purpur
++                    this.nextTickTimeNanos = currentTime + i;
++                    this.delayedTasksMaxNextTickTimeNanos = nextTickTimeNanos;
++                }
++                // Pufferfish end
+                 this.startMeasuringTaskExecutionTime();
+                 this.waitUntilNextTick();
+                 this.finishMeasuringTaskExecutionTime();
 @@ -714,30 +_,39 @@
                  this.isReady = true;
                  JvmProfiler.INSTANCE.onServerTick(this.smoothedTickTimeMillis);
@@ -991,7 +1009,7 @@
              ObjectArrayList<GameProfile> objectarraylist = new ObjectArrayList<>(j);
              int k = Mth.nextInt(this.random, 0, list.size() - j);
  
-@@ -992,19 +_,64 @@
+@@ -992,19 +_,66 @@
  
      public void tickChildren(BooleanSupplier p_129954_) {
          this.getPlayerList().getPlayers().forEach(p_341570_ -> p_341570_.connection.suspendFlushing());
@@ -1014,8 +1032,6 @@
          this.profiler.push("commandFunctions");
          this.getFunctions().tick();
          this.profiler.popPush("levels");
--
--        for (ServerLevel serverlevel : this.getAllLevels()) {
 +        // Run tasks that are waiting on processing
 +        while (!processQueue.isEmpty()) {
 +            processQueue.remove().run();
@@ -1044,6 +1060,9 @@
 +            long tickStart = Util.getNanos();
 +            serverlevel.hasPhysicsEvent = org.bukkit.event.block.BlockPhysicsEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - BlockPhysicsEvent
 +            serverlevel.hasEntityMoveEvent = io.papermc.paper.event.entity.EntityMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - Add EntityMoveEvent
++            serverlevel.hasRidableMoveEvent = org.purpurmc.purpur.event.entity.RidableMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Purpur
+ 
+-        for (ServerLevel serverlevel : this.getAllLevels()) {
              this.profiler.push(() -> serverlevel + " " + serverlevel.dimension().location());
 +            /* Drop global time updates
              if (this.tickCount % 20 == 0) {
@@ -1108,7 +1127,7 @@
      @DontObfuscate
      public String getServerModName() {
 -        return "vanilla";
-+        return io.papermc.paper.ServerBuildInfo.buildInfo().brandName(); // Paper
++        return org.purpurmc.purpur.PurpurConfig.serverModName; // Paper // Purpur
      }
  
      public SystemReport fillSystemReport(SystemReport p_177936_) {
@@ -1311,7 +1330,13 @@
                  }
              }
          }
-@@ -1712,6 +_,31 @@
+@@ -1707,11 +_,37 @@
+     }
+ 
+     public ProfilerFiller getProfiler() {
++        if (gg.pufferfish.pufferfish.PufferfishConfig.disableMethodProfiler) return net.minecraft.util.profiling.InactiveProfiler.INSTANCE;
+         return this.profiler;
+     }
  
      public abstract boolean isSingleplayerOwner(GameProfile p_129840_);
  

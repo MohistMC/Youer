@@ -4,10 +4,10 @@ import com.mohistmc.tools.ListUtils;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.EnchantmentAPI;
 import com.mohistmc.youer.api.ItemAPI;
-import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.plugins.ban.utils.BanUtils;
 import com.mohistmc.youer.util.I18n;
 import java.util.List;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
@@ -42,7 +42,8 @@ public class BanListener {
                             ItemStack nmsItem = ItemAPI.toNMSItem(itemStack);
                             if (nmsItem.getItem() instanceof SpawnEggItem spawnEggItem) {
                                 EntityType<?> entitytype = spawnEggItem.getType(nmsItem);
-                                ListUtils.isDuplicate(old, ServerAPI.entityTypeMap.get(entitytype));
+                                var key = BuiltInRegistries.ENTITY_TYPE.getKey(entitytype);
+                                ListUtils.isDuplicate(old, key.toString());
                             }
                         }
                     }

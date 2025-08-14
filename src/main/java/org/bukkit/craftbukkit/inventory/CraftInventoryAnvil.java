@@ -19,6 +19,10 @@ public class CraftInventoryAnvil extends CraftResultInventory implements AnvilIn
     private int repairCost;
     private int repairCostAmount;
     private int maximumRepairCost;
+    // Purpur start - Anvil API
+    private boolean bypassCost;
+    private boolean canDoUnsafeEnchants;
+    // Purpur end - Anvil API
 
     public CraftInventoryAnvil(Location location, Container inventory, Container resultInventory) {
         super(inventory, resultInventory);
@@ -27,6 +31,10 @@ public class CraftInventoryAnvil extends CraftResultInventory implements AnvilIn
         this.repairCost = CraftInventoryAnvil.DEFAULT_REPAIR_COST;
         this.repairCostAmount = CraftInventoryAnvil.DEFAULT_REPAIR_COST_AMOUNT;
         this.maximumRepairCost = CraftInventoryAnvil.DEFAULT_MAXIMUM_REPAIR_COST;
+        // Purpur start - Anvil API
+        this.bypassCost = false;
+        this.canDoUnsafeEnchants = false;
+        // Purpur end - Anvil API
     }
 
     @Override
@@ -113,4 +121,30 @@ public class CraftInventoryAnvil extends CraftResultInventory implements AnvilIn
             consumer.accept(cav);
         }
     }
+
+    // Purpur start - Anvil API
+    @Override
+    public boolean canBypassCost() {
+        this.syncWithArbitraryViewValue((cav) -> this.bypassCost = cav.canBypassCost());
+        return this.bypassCost;
+    }
+
+    @Override
+    public void setBypassCost(boolean bypassCost) {
+        this.bypassCost = bypassCost;
+        this.syncViews((cav) -> cav.setBypassCost(bypassCost));
+    }
+
+    @Override
+    public boolean canDoUnsafeEnchants() {
+        this.syncWithArbitraryViewValue((cav) -> this.canDoUnsafeEnchants = cav.canDoUnsafeEnchants());
+        return this.canDoUnsafeEnchants;
+    }
+
+    @Override
+    public void setDoUnsafeEnchants(boolean canDoUnsafeEnchants) {
+        this.canDoUnsafeEnchants = canDoUnsafeEnchants;
+        this.syncViews((cav) -> cav.setDoUnsafeEnchants(canDoUnsafeEnchants));
+    }
+    // Purpur end - Anvil API
 }

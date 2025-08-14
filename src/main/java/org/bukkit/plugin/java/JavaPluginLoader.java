@@ -55,6 +55,7 @@ public final class JavaPluginLoader implements PluginLoader {
     private final Pattern[] fileFilters = new Pattern[]{Pattern.compile("\\.jar$")};
     private final List<PluginClassLoader> loaders = new CopyOnWriteArrayList<PluginClassLoader>();
     private final LibraryLoader libraryLoader;
+    public static boolean SuppressLibraryLoaderLogger = false; // Purpur
 
     /**
      * This class was not meant to be constructed explicitly
@@ -336,7 +337,9 @@ public final class JavaPluginLoader implements PluginLoader {
             try {
                 jPlugin.setEnabled(true);
             } catch (Throwable ex) {
+                gg.pufferfish.pufferfish.sentry.SentryContext.setPluginContext(plugin); // Pufferfish
                 Youer.LOGGER.error(I18n.as("mohist.i18n.21", plugin.getDescription().getFullName()), ex);
+                gg.pufferfish.pufferfish.sentry.SentryContext.removePluginContext(); // Pufferfish
                 // Mohist start - Disable plugins that fail to load
                 this.server.getPluginManager().disablePlugin(jPlugin);
                 return;
@@ -364,7 +367,9 @@ public final class JavaPluginLoader implements PluginLoader {
             try {
                 jPlugin.setEnabled(false);
             } catch (Throwable ex) {
+                gg.pufferfish.pufferfish.sentry.SentryContext.setPluginContext(plugin); // Pufferfish
                 server.getLogger().log(Level.SEVERE, I18n.as( "mohist.i18n.22", plugin.getDescription().getFullName()), ex);
+                gg.pufferfish.pufferfish.sentry.SentryContext.removePluginContext(); // Pufferfish
             }
 
             if (cloader instanceof PluginClassLoader) {

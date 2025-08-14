@@ -119,4 +119,20 @@ public interface Llama extends ChestedHorse, RangedEntity { // Paper
     @org.jetbrains.annotations.Nullable
     Llama getCaravanTail();
     // Paper end
+
+    // Purpur start
+    /**
+     * Check if this Llama should attempt to join a caravan
+     *
+     * @return True if Llama is allowed to join a caravan
+     */
+    boolean shouldJoinCaravan();
+
+    /**
+     * Set if this Llama should attempt to join a caravan
+     *
+     * @param shouldJoinCaravan True to allow joining a caravan
+     */
+    void setShouldJoinCaravan(boolean shouldJoinCaravan);
+    // Purpur end
 }

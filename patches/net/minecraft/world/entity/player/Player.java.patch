@@ -91,7 +91,7 @@
      protected int jumpTriggerTime;
      public float oBob;
      public float bob;
-@@ -179,25 +_,44 @@
+@@ -179,25 +_,65 @@
      public int enchantmentSeed;
      protected final float defaultFlySpeed = 0.02F;
      private int lastLevelUpTime;
@@ -122,11 +122,32 @@
 +    public boolean fauxSleeping;
 +    public int oldLevel = -1;
 +
++    public void setAfk(boolean afk) {
++    }
++
++    public boolean isAfk() {
++        return false;
++    }
++
 +    @Override
 +    public CraftHumanEntity getBukkitEntity() {
 +        return (CraftHumanEntity) super.getBukkitEntity();
 +    }
 +    // CraftBukkit end
++
++    // Purpur start
++    public abstract void resetLastActionTime();
++
++    @Override
++    public boolean processClick(InteractionHand hand) {
++        Entity vehicle = getRootVehicle();
++        if (vehicle != null && vehicle.getRider() == this) {
++            return vehicle.onClick(hand);
++        }
++        return false;
++    }
++    // Purpur end
++
 +    // Youer start
 +    private EntityExhaustionEvent.ExhaustionReason causeFoodExhaustion$reason = ExhaustionReason.UNKNOWN;
  

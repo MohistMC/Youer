@@ -1170,4 +1170,55 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      */
     boolean wouldCollideUsing(@NotNull BoundingBox boundingBox);
     // Paper end - Collision API
+
+    // Purpur start
+    /**
+     * Get the riding player
+     *
+     * @return Riding player
+     */
+    @Nullable
+    Player getRider();
+
+    /**
+     * Check if entity is being ridden
+     *
+     * @return True if being ridden
+     */
+    boolean hasRider();
+
+    /**
+     * Check if entity is ridable
+     *
+     * @return True if ridable
+     */
+    boolean isRidable();
+
+    /**
+     * Check if entity is ridable in water
+     *
+     * @return True if ridable in water
+     */
+    boolean isRidableInWater();
+
+    /**
+     * Checks if the entity is in daylight
+     *
+     * @return True if in daylight
+     */
+    boolean isInDaylight();
+
+    /**
+     * Checks if the entity is fire immune
+     *
+     * @return True if fire immune
+     */
+    boolean isImmuneToFire();
+
+    /**
+     * Sets if the entity is fire immune
+     * Set this to null to restore the entity type default
+     */
+    void setImmuneToFire(@Nullable Boolean fireImmune);
+    // Purpur end
 }

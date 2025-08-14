@@ -28,6 +28,12 @@ public interface VersionFetcher {
      */
     Component getVersionMessage(String serverVersion);
 
+    // Purpur start
+    default int distance() {
+        return 0;
+    }
+    // Purpur end
+
     @ApiStatus.Internal
     class DummyVersionFetcher implements VersionFetcher {
 

@@ -46,6 +46,15 @@
  import org.slf4j.Logger;
  
  public class Commands {
+@@ -158,7 +_,7 @@
+         DamageCommand.register(this.dispatcher, p_230944_);
+         DataCommands.register(this.dispatcher);
+         DataPackCommand.register(this.dispatcher);
+-        DebugCommand.register(this.dispatcher);
++        //DebugCommand.register(this.dispatcher); // Purpur
+         DefaultGameModeCommands.register(this.dispatcher);
+         DifficultyCommand.register(this.dispatcher);
+         EffectCommands.register(this.dispatcher, p_230944_);
 @@ -214,7 +_,7 @@
              JfrCommand.register(this.dispatcher);
          }
@@ -55,7 +64,20 @@
              TestCommand.register(this.dispatcher);
              RaidCommand.register(this.dispatcher, p_230944_);
              DebugPathCommand.register(this.dispatcher);
-@@ -248,7 +_,32 @@
+@@ -243,12 +_,45 @@
+             StopCommand.register(this.dispatcher);
+             TransferCommand.register(this.dispatcher);
+             WhitelistCommand.register(this.dispatcher);
++            org.purpurmc.purpur.command.CreditsCommand.register(this.dispatcher); // Purpur
++            org.purpurmc.purpur.command.DemoCommand.register(this.dispatcher); // Purpur
++            org.purpurmc.purpur.command.PingCommand.register(this.dispatcher); // Purpur
++            org.purpurmc.purpur.command.UptimeCommand.register(this.dispatcher); // Purpur
++            org.purpurmc.purpur.command.TPSBarCommand.register(this.dispatcher); // Purpur
++            org.purpurmc.purpur.command.CompassCommand.register(this.dispatcher); // Purpur
++            org.purpurmc.purpur.command.RamBarCommand.register(this.dispatcher); // Purpur
++            org.purpurmc.purpur.command.RamCommand.register(this.dispatcher); // Purpur
+         }
+ 
          if (p_230943_.includeIntegrated) {
              PublishCommand.register(this.dispatcher);
          }
@@ -219,7 +241,7 @@
              }
  
              return null;
-@@ -359,11 +_,65 @@
+@@ -359,11 +_,67 @@
      }
  
      public void sendCommands(ServerPlayer p_82096_) {
@@ -275,6 +297,7 @@
 +    private void runSync(ServerPlayer player, Collection<String> bukkit, RootCommandNode<SharedSuggestionProvider> rootcommandnode) {
 +        // Paper end - Perf: Async command map building
 +        new io.papermc.paper.event.brigadier.AsyncPlayerSendCommandsEvent<CommandSourceStack>(player.getBukkitEntity(), (RootCommandNode) rootcommandnode, true).callEvent(); // Paper - Brigadier API
++        if (PlayerCommandSendEvent.getHandlerList().getRegisteredListeners().length > 0) { // Purpur - skip all this crap if there's nothing listening
 +        PlayerCommandSendEvent event = new PlayerCommandSendEvent(player.getBukkitEntity(), new LinkedHashSet<>(bukkit));
 +        event.getPlayer().getServer().getPluginManager().callEvent(event);
 +
@@ -285,6 +308,7 @@
 +            }
 +        }
 +        // CraftBukkit end
++        } // Purpur - skip event
 +        player.connection.send(new ClientboundCommandsPacket(rootcommandnode));
      }
  

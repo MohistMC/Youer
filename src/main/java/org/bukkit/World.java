@@ -3607,6 +3607,86 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     @Nullable
     public DragonBattle getEnderDragonBattle();
 
+    // Purpur start
+    /**
+     * Gets the local difficulty (based on inhabited time) at a location
+     *
+     * @param location Location to check
+     * @return The local difficulty
+     */
+    public float getLocalDifficultyAt(@NotNull Location location);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to all players on this world.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to all players on this world.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param argb Color of the highlight. ARGB int. Will be ignored on some versions of vanilla client
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, int argb);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to all players on this world.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param text Text to show above the highlight
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to all players on this world.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param text Text to show above the highlight
+     * @param argb Color of the highlight. ARGB int. Will be ignored on some versions of vanilla client
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text, int argb);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to all players on this world.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param color Color of the highlight. Will be ignored on some versions of vanilla client
+     * @param transparency Transparency of the highlight
+     * @throws IllegalArgumentException If transparency is outside 0-255 range
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull org.bukkit.Color color, int transparency);
+
+    /**
+     * Creates debug block highlight on specified block location and show it to all players on this world.
+     * <p>
+     * Clients may be inconsistent in displaying it.
+     * @param location Location to highlight
+     * @param duration Duration for highlight to show in milliseconds
+     * @param text Text to show above the highlight
+     * @param color Color of the highlight. Will be ignored on some versions of vanilla client
+     * @param transparency Transparency of the highlight
+     * @throws IllegalArgumentException If transparency is outside 0-255 range
+     */
+    void sendBlockHighlight(@NotNull Location location, int duration, @NotNull String text, @NotNull org.bukkit.Color color, int transparency);
+
+    /**
+     * Clears all debug block highlights for all players on this world.
+     */
+    void clearBlockHighlights();
+    // Purpur end
+
     /**
      * Get all {@link FeatureFlag} enabled in this world.
      *

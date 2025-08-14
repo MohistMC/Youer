@@ -1563,6 +1563,55 @@ public final class CraftServer implements Server {
         return true;
     }
 
+    // Purpur Start
+    @Override
+    public void addFuel(org.bukkit.Material material, int burnTime) {
+        Preconditions.checkArgument(burnTime > 0, "BurnTime must be greater than 0");
+        net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity.addFuel(net.minecraft.world.item.ItemStack.fromBukkitCopy(new ItemStack(material)), burnTime);
+    }
+
+    @Override
+    public void removeFuel(org.bukkit.Material material) {
+        net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity.removeFuel(net.minecraft.world.item.ItemStack.fromBukkitCopy(new ItemStack(material)));
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration) {
+        sendBlockHighlight(location, duration, "", 0x6400FF00);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, int argb) {
+        sendBlockHighlight(location, duration, "", argb);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, String text) {
+        sendBlockHighlight(location, duration, text, 0x6400FF00);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, String text, int argb) {
+        this.worlds.forEach((name, world) -> world.sendBlockHighlight(location, duration, text, argb));
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, org.bukkit.Color color, int transparency) {
+        sendBlockHighlight(location, duration, "", color, transparency);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, String text, org.bukkit.Color color, int transparency) {
+        if (transparency < 0 || transparency > 255) throw new IllegalArgumentException("transparency is outside of 0-255 range");
+        sendBlockHighlight(location, duration, text, transparency << 24 | color.asRGB());
+    }
+
+    @Override
+    public void clearBlockHighlights() {
+        this.worlds.forEach((name, world) -> clearBlockHighlights());
+    }
+    // Purpur End
+
     @Override
     public List<Recipe> getRecipesFor(ItemStack result) {
         Preconditions.checkArgument(result != null, "ItemStack cannot be null");
@@ -3050,6 +3099,36 @@ public final class CraftServer implements Server {
         }
 
         @Override
+        public YamlConfiguration getBukkitConfig()
+        {
+            return configuration;
+        }
+
+        @Override
+        public YamlConfiguration getSpigotConfig()
+        {
+            return org.spigotmc.SpigotConfig.config;
+        }
+
+        @Override
+        public YamlConfiguration getPaperConfig()
+        {
+            return CraftServer.this.console.paperConfigurations.createLegacyObject(CraftServer.this.console);
+        }
+
+        // Purpur start
+        @Override
+        public YamlConfiguration getPurpurConfig() {
+            return org.purpurmc.purpur.PurpurConfig.config;
+        }
+
+        @Override
+        public java.util.Properties getServerProperties() {
+            return getProperties().properties;
+        }
+        // Purpur end
+
+        @Override
         public void restart() {
             org.spigotmc.RestartCommand.restart();
         }
@@ -3109,4 +3188,16 @@ public final class CraftServer implements Server {
     public io.papermc.paper.potion.PaperPotionBrewer getPotionBrewer() {
         return this.potionBrewer;
     }
+
+    // Purpur start
+    @Override
+    public String getServerName() {
+        return this.getProperties().serverName;
+    }
+
+    @Override
+    public boolean isLagging() {
+        return getServer().lagging;
+    }
+    // Purpur end
 }

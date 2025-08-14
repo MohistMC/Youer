@@ -1189,4 +1189,16 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         this.getHandle().setYBodyRot(bodyYaw);
     }
     // Paper end - body yaw API
+
+    // Purpur start - API for any mob to burn daylight
+    @Override
+    public boolean shouldBurnInDay() {
+        return this.getHandle().shouldBurnInDay();
+    }
+
+    @Override
+    public void setShouldBurnInDay(final boolean shouldBurnInDay) {
+        this.getHandle().setShouldBurnInDay(shouldBurnInDay);
+    }
+    // Purpur end - API for any mob to burn daylight
 }

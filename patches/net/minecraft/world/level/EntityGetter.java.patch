@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/EntityGetter.java
 +++ b/net/minecraft/world/level/EntityGetter.java
-@@ -92,16 +_,58 @@
+@@ -92,20 +_,62 @@
          return player;
      }
  
@@ -42,7 +42,7 @@
          Predicate<Entity> predicate = p_45929_ ? EntitySelector.NO_CREATIVE_OR_SPECTATOR : EntitySelector.NO_SPECTATORS;
          return this.getNearestPlayer(p_45925_, p_45926_, p_45927_, p_45928_, predicate);
      }
-+
+ 
 +    // Paper start - Affects Spawning API
 +    default boolean hasNearbyAlivePlayerThatAffectsSpawning(double x, double y, double z, double range) {
 +        for (Player player : this.players()) {
@@ -56,6 +56,11 @@
 +        return false;
 +    }
 +    // Paper end - Affects Spawning API
- 
++
      default boolean hasNearbyAlivePlayer(double p_45915_, double p_45916_, double p_45917_, double p_45918_) {
          for (Player player : this.players()) {
+-            if (EntitySelector.NO_SPECTATORS.test(player) && EntitySelector.LIVING_ENTITY_STILL_ALIVE.test(player)) {
++            if (EntitySelector.NO_SPECTATORS.test(player) && EntitySelector.LIVING_ENTITY_STILL_ALIVE.test(player) && EntitySelector.notAfk.test(player)) { // Purpur
+                 double d0 = player.distanceToSqr(p_45915_, p_45916_, p_45917_);
+                 if (p_45918_ < 0.0 || d0 < p_45918_ * p_45918_) {
+                     return true;

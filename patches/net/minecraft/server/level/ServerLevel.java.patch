@@ -144,7 +144,7 @@
      private final MinecraftServer server;
      public final ServerLevelData serverLevelData;
      private int lastSpawnChunkRadius;
-@@ -199,12 +_,71 @@
+@@ -199,12 +_,72 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -161,6 +161,7 @@
 +    public ResourceKey<LevelStem> typeKey;
 +    public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
 +    public boolean hasPhysicsEvent = true; // Paper - BlockPhysicsEvent
++    public boolean hasRidableMoveEvent = false; // Purpur
 +
 +    @Override
 +    public ResourceKey<LevelStem> getTypeKey() {
@@ -217,7 +218,7 @@
      public ServerLevel(
          MinecraftServer p_214999_,
          Executor p_215000_,
-@@ -230,11 +_,67 @@
+@@ -230,11 +_,68 @@
              p_215007_,
              p_214999_.getMaxChainedNeighborUpdates()
          );
@@ -283,6 +284,7 @@
 +                        p_214999_.registryAccess(),
 +                        (K != null ? K.getGameRules() : serverLevelData.getGameRules())));
 +        this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
++        this.purpurConfig = new org.purpurmc.purpur.PurpurWorldConfig(name, environment); // Purpur
          boolean flag = p_214999_.forceSynchronousWrites();
          DataFixer datafixer = p_214999_.getFixerUpper();
          EntityPersistentStorage<Entity> entitypersistentstorage = new EntityStorage(

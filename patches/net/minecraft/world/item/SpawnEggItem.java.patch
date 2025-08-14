@@ -15,6 +15,32 @@
          BY_ID.put(p_43207_, this);
      }
  
+@@ -62,6 +_,25 @@
+             BlockState blockstate = level.getBlockState(blockpos);
+             if (level.getBlockEntity(blockpos) instanceof Spawner spawner) {
+                 EntityType<?> entitytype1 = this.getType(itemstack);
++
++                // Purpur start
++                if (spawner instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity) {
++                    org.bukkit.block.Block bukkitBlock = level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
++                    org.purpurmc.purpur.event.PlayerSetSpawnerTypeWithEggEvent event = new org.purpurmc.purpur.event.PlayerSetSpawnerTypeWithEggEvent((org.bukkit.entity.Player) p_43223_.getPlayer().getBukkitEntity(), bukkitBlock, (org.bukkit.block.CreatureSpawner) bukkitBlock.getState(), org.bukkit.entity.EntityType.fromName(entitytype1.getName()));
++                    if (!event.callEvent()) {
++                        return InteractionResult.FAIL;
++                    }
++                    entitytype1 = EntityType.getFromBukkitType(event.getEntityType());
++                } else if (spawner instanceof net.minecraft.world.level.block.entity.TrialSpawnerBlockEntity) {
++                    org.bukkit.block.Block bukkitBlock = level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
++                    org.purpurmc.purpur.event.PlayerSetTrialSpawnerTypeWithEggEvent event = new org.purpurmc.purpur.event.PlayerSetTrialSpawnerTypeWithEggEvent((org.bukkit.entity.Player) p_43223_.getPlayer().getBukkitEntity(), bukkitBlock, (org.bukkit.block.TrialSpawner) bukkitBlock.getState(), org.bukkit.entity.EntityType.fromName(entitytype1.getName()));
++                    if (!event.callEvent()) {
++                        return InteractionResult.FAIL;
++                    }
++                    entitytype1 = EntityType.getFromBukkitType(event.getEntityType());
++                }
++                // Purpur end
++
+                 spawner.setEntityId(entitytype1, level.getRandom());
+                 level.sendBlockUpdated(blockpos, blockstate, blockstate, 3);
+                 level.gameEvent(p_43223_.getPlayer(), GameEvent.BLOCK_CHANGE, blockpos);
 @@ -134,6 +_,8 @@
  
      @Nullable
