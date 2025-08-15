@@ -1,15 +1,27 @@
 package com.mohistmc.youer.plugins.world.utils;
 
-import com.mohistmc.youer.api.ItemAPI;
-import com.mohistmc.youer.plugins.world.listener.InventoryClickListener;
+import com.mohistmc.youer.api.WorldAPI;
+import com.mohistmc.youer.api.gui.DemoGUI;
+import com.mohistmc.youer.api.gui.GUIItem;
+import com.mohistmc.youer.api.gui.ItemStackFactory;
+import com.mohistmc.youer.plugins.world.commands.WorldsCommands;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
+import org.bukkit.WorldType;
+import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 /**
  * @author Mgazul by MohistMC
@@ -18,15 +30,9 @@ import org.bukkit.inventory.Inventory;
 public class WorldsGUI {
 
     public static void openWorldGui(Player p, String name) {
-        int groesse = 54;
-        int pos = 0;
-        while (Bukkit.getWorlds().size() > groesse) {
-            groesse += 54;
-        }
-        WorldInventory worldListInventory = new WorldInventory(WorldInventoryType.LIST, groesse, name);
-        Inventory inv = worldListInventory.getInventory();
+        DemoGUI wh = new DemoGUI(name);
         for (World w : Bukkit.getWorlds()) {
-            ArrayList<String> infoLore = new ArrayList<>();
+            List<String> infoLore = new ArrayList<>();
             FileConfiguration config = ConfigByWorlds.config;
             if (ConfigByWorlds.f.exists() && config.getConfigurationSection("worlds.") != null) {
                 String worldtype = w.getEnvironment() == null ? "null" : w.getEnvironment().name();
@@ -57,13 +63,26 @@ public class WorldsGUI {
                     infoLore.add("§bFlat §8>> §7" + config.getBoolean("worlds." + w.getName() + ".flat"));
                 }
             }
-            inv.setItem(pos, ItemAPI.doItem(getMaterial(w), 1, "§7>> §6" + w.getName(), infoLore, 2025604));
-            ++pos;
-            infoLore.clear();
+            wh.addItem(new GUIItem(new ItemStackFactory(getMaterial(w))
+                               .setDisplayName("§7>> §6" + w.getName())
+                               .setLore(infoLore)
+                               .toItemStack()) {
+                           @Override
+                           public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                               ItemMeta itemMeta = itemStack.getItemMeta();
+                               if (itemMeta != null) {
+                                   String worldName = w.getName();
+                                   if (Bukkit.getWorld(worldName) != null) {
+                                       ConfigByWorlds.getSpawn(worldName, p);
+                                   } else {
+                                       WorldsCommands.worldNotExists(p, worldName);
+                                   }
+                               }
+                           }
+                       }
+            );
         }
-        inv.setItem(53, ItemAPI.doItem(Material.REDSTONE_BLOCK, 1, I18n.as("worldmanage.gui.close"), null, 2025604));
-        p.openInventory(inv);
-        InventoryClickListener.worldInventory = worldListInventory;
+        wh.openGUI(p);
     }
 
     public static Material getMaterial(String type) {
@@ -79,6 +98,7 @@ public class WorldsGUI {
         }
         return material;
     }
+
     public static Material getMaterial(World w) {
         if (w.isFlat()) {
             return Material.GREEN_CARPET;
@@ -110,6 +130,51 @@ public class WorldsGUI {
             default:
         }
         return material;
+    }
+
+    public static void createWorld(String worldName, ItemStack itemStack, Player p) {
+        p.closeInventory();
+        p.sendMessage(ChatColor.GREEN + I18n.as("worldlistener.ICL.worldCreateStart", worldName));
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta != null && itemMeta.hasDisplayName()) {
+            String itemName = itemMeta.getDisplayName();
+            boolean isVoid = itemName.equals("VOID");
+            boolean isFlat = itemName.equals("FLAT");
+            World.Environment environment = isVoid ? World.Environment.NORMAL : (isFlat ? World.Environment.NORMAL : World.Environment.valueOf(itemName));
+            WorldCreator wc = new WorldCreator(worldName).environment(environment);
+            if (isFlat) {
+                wc.type(WorldType.FLAT);
+                wc.generator(new WorldAPI.FlatGenerator());
+            }
+            if (isVoid) wc.generator(new WorldAPI.VoidGenerator());
+            wc.seed((new Random()).nextLong());
+            wc.environment(environment);
+
+            wc.createWorld();
+
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                String msg = String.format(I18n.as("worldlistener.ICL.worldCreateFailurePart1") + worldName) + I18n.as("worldlistener.ICL.worldCreateFailurePart2");
+                p.sendMessage(ChatColor.RED + msg);
+                return;
+            }
+
+            Location spawnLocation = world.getSpawnLocation();
+            while (!spawnLocation.getBlock().getType().isAir() || !spawnLocation.getBlock().getRelative(BlockFace.UP).getType().isAir()) {
+                spawnLocation.add(0, 1, 0);
+            }
+
+            world.setSpawnLocation(spawnLocation);
+            p.sendMessage(ChatColor.GREEN + I18n.as("worldlistener.ICL.worldCreateSuccess", worldName));
+            try {
+                ConfigByWorlds.addWorld(world.getName(), true);
+                ConfigByWorlds.addSpawn(spawnLocation);
+                if (isVoid) ConfigByWorlds.aVoid(world.getName(), true);
+                if (isFlat) ConfigByWorlds.aFlat(world.getName(), true);
+            } catch (Exception e) {
+                e.fillInStackTrace();
+            }
+        }
     }
 
 }

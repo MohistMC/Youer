@@ -25,8 +25,7 @@ public class TpadenyCommands extends Command {
                 a.sendMessage(I18n.as("tpadenycommands.successfully.you"));
                 player.sendMessage(I18n.as("tpadenycommands.successfully.me"));
                 TpaComamands.tpa.remove(player);
-            }
-            else {
+            } else {
                 sender.sendMessage(I18n.as("tpadenycommands.nokey"));
             }
         }

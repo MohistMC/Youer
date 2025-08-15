@@ -8,6 +8,18 @@
  import java.util.function.BiConsumer;
  import java.util.function.BiFunction;
  import java.util.function.Consumer;
+@@ -122,8 +_,9 @@
+     }
+ 
+     public static <S> boolean allowSelectors(S p_353135_) {
+-        if (p_353135_ instanceof SharedSuggestionProvider sharedsuggestionprovider && sharedsuggestionprovider.hasPermission(2)) {
+-            return true;
++        if (p_353135_ instanceof SharedSuggestionProvider sharedsuggestionprovider) {
++            // Paper - Fix EntityArgument permissions
++            return p_353135_ instanceof net.minecraft.commands.CommandSourceStack stack ? stack.bypassSelectorPermissions || stack.hasPermission(2, "minecraft.command.selector") : sharedsuggestionprovider.hasPermission(2);
+         }
+ 
+         return false;
 @@ -204,8 +_,14 @@
          };
      }

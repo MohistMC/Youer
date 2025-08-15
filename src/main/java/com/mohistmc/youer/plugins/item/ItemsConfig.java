@@ -24,10 +24,10 @@ public class ItemsConfig extends YouerPluginConfig {
         INSTANCE = new ItemsConfig(new File("youer-config", "items.yml"));
     }
 
-    public List<ItemStack> getItems(){
+    public List<ItemStack> getItems() {
         List<ItemStack> list = new ArrayList<>();
         ConfigurationSection configurationSection = yaml.getConfigurationSection("items");
-        if (yaml.get("items") == null || configurationSection == null)  return list;
+        if (yaml.get("items") == null || configurationSection == null) return list;
         for (String s : configurationSection.getKeys(false)) {
             list.add(yaml.getItemStack("items." + s));
         }

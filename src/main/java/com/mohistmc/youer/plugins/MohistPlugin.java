@@ -15,7 +15,6 @@ import com.mohistmc.youer.plugins.warps.WarpsCommands;
 import com.mohistmc.youer.plugins.warps.WarpsConfig;
 import com.mohistmc.youer.plugins.world.WorldManage;
 import com.mohistmc.youer.plugins.world.commands.WorldsCommands;
-import com.mohistmc.youer.plugins.world.listener.InventoryClickListener;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -64,7 +63,6 @@ public class MohistPlugin {
 
     public static void registerListener(Event event) {
         if (event instanceof InventoryClickEvent inventoryClickEvent) {
-            InventoryClickListener.init(inventoryClickEvent);
             GuiListener.onInventoryClickEvent(inventoryClickEvent);
         }
         if (event instanceof PrepareAnvilEvent prepareAnvilEvent) {

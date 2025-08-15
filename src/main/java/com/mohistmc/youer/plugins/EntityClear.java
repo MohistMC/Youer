@@ -58,7 +58,7 @@ public class EntityClear {
                 }
             }
         }
-        if (!YouerConfig.clear_item_msg.isEmpty()){
+        if (!YouerConfig.clear_item_msg.isEmpty()) {
             Bukkit.broadcastMessage(YouerConfig.clear_item_msg.replace("&", "§").replace("%size%", String.valueOf(size_item.getAndSet(0))));
         }
     }
@@ -75,7 +75,7 @@ public class EntityClear {
                 }
             }
         }
-        if (!YouerConfig.clear_monster_msg.isEmpty()){
+        if (!YouerConfig.clear_monster_msg.isEmpty()) {
             Bukkit.broadcastMessage(YouerConfig.clear_monster_msg.replace("&", "§").replace("%size%", String.valueOf(size_monster.getAndSet(0))));
         }
     }

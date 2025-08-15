@@ -44,23 +44,23 @@ public class ChatComponentAPI {
     private record ChatComponent(TextComponent component) {
 
         public ChatComponent(String message) {
-                this(new TextComponent(message));
-            }
-
-            public ChatComponent setHoverEvent(HoverEvent event) {
-                this.component.setHoverEvent(event);
-                return this;
-            }
-
-            public ChatComponent setClickEvent(ClickEvent event) {
-                this.component.setClickEvent(event);
-                return this;
-            }
-
-            public TextComponent create() {
-                return component;
-            }
+            this(new TextComponent(message));
         }
+
+        public ChatComponent setHoverEvent(HoverEvent event) {
+            this.component.setHoverEvent(event);
+            return this;
+        }
+
+        public ChatComponent setClickEvent(ClickEvent event) {
+            this.component.setClickEvent(event);
+            return this;
+        }
+
+        public TextComponent create() {
+            return component;
+        }
+    }
 }
 
 

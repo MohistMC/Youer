@@ -26,12 +26,18 @@
          EntitySelector entityselector = entityselectorparser.parse();
          if (entityselector.getMaxResults() > 1 && this.single) {
              if (this.playersOnly) {
-@@ -127,7 +_,7 @@
+@@ -127,8 +_,12 @@
          if (p_91482_.getSource() instanceof SharedSuggestionProvider sharedsuggestionprovider) {
              StringReader stringreader = new StringReader(p_91483_.getInput());
              stringreader.setCursor(p_91483_.getStart());
 -            EntitySelectorParser entityselectorparser = new EntitySelectorParser(stringreader, EntitySelectorParser.allowSelectors(sharedsuggestionprovider));
-+            EntitySelectorParser entityselectorparser = new EntitySelectorParser(stringreader, net.neoforged.neoforge.common.CommonHooks.canUseEntitySelectors(sharedsuggestionprovider));
- 
+-
++            // Paper start - Fix EntityArgument permissions
++            final boolean permission = p_91482_.getSource() instanceof CommandSourceStack stack
++                    ? stack.bypassSelectorPermissions || stack.hasPermission(2, "minecraft.command.selector")
++                    : sharedsuggestionprovider.hasPermission(2);
++            EntitySelectorParser entityselectorparser = new EntitySelectorParser(stringreader, permission || net.neoforged.neoforge.common.CommonHooks.canUseEntitySelectors(sharedsuggestionprovider)); // Paper - tell clients to ask server for suggestions for EntityArguments
++            // Paper end - Fix EntityArgument permissions
              try {
                  entityselectorparser.parse();
+             } catch (CommandSyntaxException commandsyntaxexception) {

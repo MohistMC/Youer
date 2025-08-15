@@ -78,4 +78,11 @@ public class ItemStackFactory {
         return this;
     }
 
+    public ItemStackFactory setCustomModelData(int customModelData) {
+        ItemMeta im = this.item.getItemMeta();
+        im.setCustomModelData(customModelData);
+        this.item.setItemMeta(im);
+        return this;
+    }
+
 }

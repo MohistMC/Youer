@@ -5,6 +5,8 @@ import org.bukkit.plugin.Plugin;
 
 public interface PluginChannelHandler {
     PluginChannel<?> channel();
+
     void updateChannel();
+
     void sendCustomPayload(Plugin src, CraftPlayer dst, byte[] data);
 }

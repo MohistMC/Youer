@@ -33,6 +33,7 @@ public class BansCommand extends Command {
 
     private final List<String> params = Arrays.asList("add", "show", "setmessage");
     private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment");
+
     public BansCommand(String name) {
         super(name);
         this.description = I18n.as("banscmd.description");
@@ -219,7 +220,8 @@ public class BansCommand extends Command {
                         return false;
                     }
                 }
-            } case "setmessage" -> {
+            }
+            case "setmessage" -> {
                 if (args.length < 2) {
                     sender.sendMessage(ChatColor.RED + usageMessage);
                     return false;

@@ -176,9 +176,9 @@ public class RedirectAdapter implements PluginTransformer {
             for (AbstractInsnNode insnNode : methodNode.instructions) {
                 if (insnNode instanceof MethodInsnNode from) {
                     if (from.getOpcode() == Opcodes.INVOKESPECIAL
-                        && Objects.equals(from.owner, classNode.superName)
-                        && Objects.equals(from.name, methodNode.name)
-                        && Objects.equals(from.desc, methodNode.desc)) {
+                            && Objects.equals(from.owner, classNode.superName)
+                            && Objects.equals(from.name, methodNode.name)
+                            && Objects.equals(from.desc, methodNode.desc)) {
                         continue;
                     }
                     process(from, methodNode.instructions, remapper, classNode);
@@ -428,55 +428,58 @@ public class RedirectAdapter implements PluginTransformer {
         }
     }
 
-    private record ModifyHandler(String handlerName, Class<?>[] handlerArgs) implements Func4<ClassLoaderRemapper, Method, Object, Object[], Object[]> {
+    private record ModifyHandler(String handlerName,
+                                 Class<?>[] handlerArgs) implements Func4<ClassLoaderRemapper, Method, Object, Object[], Object[]> {
 
         @Override
-            public Object[] apply4(ClassLoaderRemapper remapper, Method method, Object src, Object[] param) {
-                try {
-                    Method handleMethod = remapper.getGeneratedHandlerClass().getMethod(handlerName, handlerArgs);
-                    if (method.getParameterCount() > 0) {
-                        if (handleMethod.getReturnType().isArray() && !Modifier.isStatic(method.getModifiers())) {
-                            Object[] invoke = (Object[]) handleMethod.invoke(null, ArrayUtil.prepend(param, src));
-                            return new Object[]{method, invoke[0], Arrays.copyOfRange(invoke, 1, invoke.length)};
-                        } else {
-                            return new Object[]{method, src, handleMethod.invoke(null, param)};
-                        }
+        public Object[] apply4(ClassLoaderRemapper remapper, Method method, Object src, Object[] param) {
+            try {
+                Method handleMethod = remapper.getGeneratedHandlerClass().getMethod(handlerName, handlerArgs);
+                if (method.getParameterCount() > 0) {
+                    if (handleMethod.getReturnType().isArray() && !Modifier.isStatic(method.getModifiers())) {
+                        Object[] invoke = (Object[]) handleMethod.invoke(null, ArrayUtil.prepend(param, src));
+                        return new Object[]{method, invoke[0], Arrays.copyOfRange(invoke, 1, invoke.length)};
                     } else {
-                        return new Object[]{handleMethod, null, new Object[]{method.invoke(src, param)}};
+                        return new Object[]{method, src, handleMethod.invoke(null, param)};
                     }
-                } catch (Exception e) {
-                    Unsafe.throwException(e);
+                } else {
+                    return new Object[]{handleMethod, null, new Object[]{method.invoke(src, param)}};
                 }
+            } catch (Exception e) {
+                Unsafe.throwException(e);
+            }
+            return null;
+        }
+    }
+
+    private record RedirectHandler(String handlerName,
+                                   Class<?>[] handlerArgs) implements Func4<ClassLoaderRemapper, Method, Object, Object[], Object[]> {
+
+        @Override
+        public Object[] apply4(ClassLoaderRemapper remapper, Method method, Object src, Object[] param) {
+            try {
+                Method redirectMethod = remapper.getGeneratedHandlerClass().getMethod(handlerName, handlerArgs);
+                return new Object[]{redirectMethod, null, Modifier.isStatic(method.getModifiers()) ? param : ArrayUtil.prepend(param, src)};
+            } catch (Exception e) {
+                Unsafe.throwException(e);
                 return null;
             }
         }
+    }
 
-    private record RedirectHandler(String handlerName, Class<?>[] handlerArgs) implements Func4<ClassLoaderRemapper, Method, Object, Object[], Object[]> {
-
-        @Override
-            public Object[] apply4(ClassLoaderRemapper remapper, Method method, Object src, Object[] param) {
-                try {
-                    Method redirectMethod = remapper.getGeneratedHandlerClass().getMethod(handlerName, handlerArgs);
-                    return new Object[]{redirectMethod, null, Modifier.isStatic(method.getModifiers()) ? param : ArrayUtil.prepend(param, src)};
-                } catch (Exception e) {
-                    Unsafe.throwException(e);
-                    return null;
-                }
-            }
-        }
-
-    private record BridgeHandler(Func4<ClassLoaderRemapper, Method, Object, Object[], Object[]> bridge, Method targetMethod) implements Func4<ClassLoaderRemapper, Method, Object, Object[], Object[]> {
+    private record BridgeHandler(Func4<ClassLoaderRemapper, Method, Object, Object[], Object[]> bridge,
+                                 Method targetMethod) implements Func4<ClassLoaderRemapper, Method, Object, Object[], Object[]> {
 
         @Override
-            public Object[] apply4(ClassLoaderRemapper remapper, Method method, Object src, Object[] param) {
-                boolean bridgeStatic = Modifier.isStatic(targetMethod.getModifiers());
-                if (bridgeStatic) {
-                    Object[] ret = bridge.apply(remapper, this.targetMethod, null, param);
-                    return new Object[]{method, src, ret[2]};
-                } else {
-                    Object[] ret = bridge.apply(remapper, this.targetMethod, param[0], Arrays.copyOfRange(param, 1, param.length));
-                    return new Object[]{method, src, ArrayUtil.prepend((Object[]) ret[2], ret[1])};
-                }
+        public Object[] apply4(ClassLoaderRemapper remapper, Method method, Object src, Object[] param) {
+            boolean bridgeStatic = Modifier.isStatic(targetMethod.getModifiers());
+            if (bridgeStatic) {
+                Object[] ret = bridge.apply(remapper, this.targetMethod, null, param);
+                return new Object[]{method, src, ret[2]};
+            } else {
+                Object[] ret = bridge.apply(remapper, this.targetMethod, param[0], Arrays.copyOfRange(param, 1, param.length));
+                return new Object[]{method, src, ArrayUtil.prepend((Object[]) ret[2], ret[1])};
             }
         }
+    }
 }

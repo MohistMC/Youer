@@ -57,7 +57,7 @@ public class LoginHandler {
         // CraftBukkit end
     }
 
-    public static void disconnect(ServerLoginPacketListenerImpl serverGamePacketListener, String pTextComponent){
+    public static void disconnect(ServerLoginPacketListenerImpl serverGamePacketListener, String pTextComponent) {
         Waitable<Object> waitable = new Waitable<>() {
             @Override
             protected Object evaluate() {

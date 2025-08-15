@@ -46,7 +46,8 @@ public class GlobalVariableSystem {
 
     /**
      * 注册变量提供器
-     * @param varName 变量名(带百分号格式，如"player_name")
+     *
+     * @param varName  变量名(带百分号格式，如"player_name")
      * @param provider 变量提供函数
      */
     public void registerVariable(String varName, Function<Player, String> provider) {
@@ -55,7 +56,8 @@ public class GlobalVariableSystem {
 
     /**
      * 设置全局变量
-     * @param key 变量名(不带百分号)
+     *
+     * @param key   变量名(不带百分号)
      * @param value 变量值
      */
     public void setGlobalVariable(String key, String value) {
@@ -65,9 +67,10 @@ public class GlobalVariableSystem {
 
     /**
      * 设置玩家特定变量
+     *
      * @param player 玩家
-     * @param key 变量名(不带百分号)
-     * @param value 变量值
+     * @param key    变量名(不带百分号)
+     * @param value  变量值
      */
     public void setPlayerVariable(Player player, String key, String value) {
         playerVariables.computeIfAbsent(player.getUniqueId(), k -> new ConcurrentHashMap<>())
@@ -77,8 +80,9 @@ public class GlobalVariableSystem {
 
     /**
      * 解析字符串中的变量(需要玩家上下文)
+     *
      * @param player 玩家
-     * @param input 输入字符串
+     * @param input  输入字符串
      * @return 解析后的字符串
      */
     public String parse(Player player, String input) {

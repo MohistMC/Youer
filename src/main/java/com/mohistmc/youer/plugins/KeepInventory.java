@@ -55,7 +55,7 @@ public class KeepInventory {
         return i;
     }
 
-    private static boolean hasPermission(Player bukkit_player, Type type){
+    private static boolean hasPermission(Player bukkit_player, Type type) {
         if (!YouerConfig.keepinventory_permission_enable) return false;
         return bukkit_player.hasPermission(type.permission);
     }

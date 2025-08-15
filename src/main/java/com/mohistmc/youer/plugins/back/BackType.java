@@ -1,7 +1,7 @@
 package com.mohistmc.youer.plugins.back;
 
 public enum BackType {
-    TELEPORT,DEATH;
+    TELEPORT, DEATH;
 
     public boolean isTeleport() {
         return this == TELEPORT;

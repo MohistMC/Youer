@@ -9,7 +9,7 @@
  
  public class CampfireBlockEntity extends BlockEntity implements Clearable {
      private static final int BURN_COOL_SPEED = 2;
-@@ -36,6 +_,7 @@
+@@ -36,11 +_,13 @@
      public final int[] cookingProgress = new int[4];
      public final int[] cookingTime = new int[4];
      private final RecipeManager.CachedCheck<SingleRecipeInput, CampfireCookingRecipe> quickCheck = RecipeManager.createCheck(RecipeType.CAMPFIRE_COOKING);
@@ -17,7 +17,13 @@
  
      public CampfireBlockEntity(BlockPos p_155301_, BlockState p_155302_) {
          super(BlockEntityType.CAMPFIRE, p_155301_, p_155302_);
-@@ -48,14 +_,31 @@
+     }
+ 
++    static Optional<RecipeHolder<CampfireCookingRecipe>> recipeHolderOptional = Optional.empty();
+     public static void cookTick(Level p_155307_, BlockPos p_155308_, BlockState p_155309_, CampfireBlockEntity p_155310_) {
+         boolean flag = false;
+ 
+@@ -48,14 +_,34 @@
              ItemStack itemstack = p_155310_.items.get(i);
              if (!itemstack.isEmpty()) {
                  flag = true;
@@ -30,25 +36,28 @@
 -                    ItemStack itemstack1 = p_155310_.quickCheck
 -                        .getRecipeFor(singlerecipeinput, p_155307_)
 +                    // Paper start - add recipe to cook events
-+                    Optional<RecipeHolder<CampfireCookingRecipe>> recipeHolderOptional = p_155310_.quickCheck.getRecipeFor(singlerecipeinput, p_155307_);
++                    recipeHolderOptional = p_155310_.quickCheck.getRecipeFor(singlerecipeinput, p_155307_);
 +                    ItemStack itemstack1 = recipeHolderOptional
                          .map(p_344662_ -> p_344662_.value().assemble(singlerecipeinput, p_155307_.registryAccess()))
                          .orElse(itemstack);
                      if (itemstack1.isItemEnabled(p_155307_.enabledFeatures())) {
-+                        // CraftBukkit start - fire BlockCookEvent
-+                        CraftItemStack source = CraftItemStack.asCraftMirror(itemstack);
-+                        org.bukkit.inventory.ItemStack result = CraftItemStack.asBukkitCopy(itemstack1);
++                        {
++                            // CraftBukkit start - fire BlockCookEvent
++                            CraftItemStack source = CraftItemStack.asCraftMirror(itemstack);
++                            org.bukkit.inventory.ItemStack result = CraftItemStack.asBukkitCopy(itemstack1);
 +
-+                        org.bukkit.event.block.BlockCookEvent blockCookEvent = new org.bukkit.event.block.BlockCookEvent(CraftBlock.at(p_155307_, p_155308_), source, result, (org.bukkit.inventory.CookingRecipe<?>) recipeHolderOptional.map(RecipeHolder::toBukkitRecipe).orElse(null)); // Paper - Add recipe to cook events
-+                        p_155307_.getCraftServer().getPluginManager().callEvent(blockCookEvent);
++                            org.bukkit.event.block.BlockCookEvent blockCookEvent = new org.bukkit.event.block.BlockCookEvent(CraftBlock.at(p_155307_, p_155308_), source, result, (org.bukkit.inventory.CookingRecipe<?>) recipeHolderOptional.map(RecipeHolder::toBukkitRecipe).orElse(null)); // Paper - Add recipe to cook events
++                            recipeHolderOptional = Optional.empty();
++                            p_155307_.getCraftServer().getPluginManager().callEvent(blockCookEvent);
 +
-+                        if (blockCookEvent.isCancelled()) {
-+                            return;
++                            if (blockCookEvent.isCancelled()) {
++                                return;
++                            }
++
++                            result = blockCookEvent.getResult();
++                            itemstack1 = CraftItemStack.asNMSCopy(result);
++                            // CraftBukkit end
 +                        }
-+
-+                        result = blockCookEvent.getResult();
-+                        itemstack1 = CraftItemStack.asNMSCopy(result);
-+                        // CraftBukkit end
                          Containers.dropItemStack(p_155307_, (double)p_155308_.getX(), (double)p_155308_.getY(), (double)p_155308_.getZ(), itemstack1);
                          p_155310_.items.set(i, ItemStack.EMPTY);
                          p_155307_.sendBlockUpdated(p_155308_, p_155309_, p_155309_, 3);

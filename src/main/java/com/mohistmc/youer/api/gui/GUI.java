@@ -74,7 +74,7 @@ public class GUI {
             }
         }
         this.inv = inv;
-        p.getPlayer().openInventory(inv);
+        p.openInventory(inv);
         GuiListener.openGUI.put(p, this);
     }
 

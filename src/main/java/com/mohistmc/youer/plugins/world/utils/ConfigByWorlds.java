@@ -233,7 +233,8 @@ public class ConfigByWorlds {
                 double pitch = config.getDouble("worlds." + world.getName() + ".spawn.pitch");
                 player.teleport(new Location(world, x, y, z, (float) yaw, (float) pitch));
             } else {
-                player.teleport(world.getSpawnLocation(), PlayerTeleportEvent.TeleportCause.PLUGIN);
+                Location defaultSpawn = new Location(world, 0, world.getHighestBlockYAt(0, 0), 0);
+                player.teleport(defaultSpawn, PlayerTeleportEvent.TeleportCause.YOUER);
             }
         }
     }

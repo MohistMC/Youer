@@ -146,10 +146,10 @@ public class ItemsCommand extends Command {
                     return false;
                 }
                 ItemsConfig.INSTANCE.remove(args[1]);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.removedItemp1") + args[1] + ChatColor.GREEN + I18n.as("itemscmd.removedItemp2") );
+                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.removedItemp1") + args[1] + ChatColor.GREEN + I18n.as("itemscmd.removedItemp2"));
                 return true;
             }
-            case "list" ->{
+            case "list" -> {
                 DemoGUI wh = new DemoGUI("Items");
                 for (ItemStack s : ItemsConfig.INSTANCE.getItems()) {
                     wh.addItem(new GUIItem(s) {

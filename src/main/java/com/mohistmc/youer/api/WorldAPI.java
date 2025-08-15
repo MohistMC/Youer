@@ -22,7 +22,7 @@ public class WorldAPI {
     public static Map<BlockPos, Entity> destroyBlockProgress = new HashMap<>();
 
     public static ServerLevel getServerLevel(World world) {
-        return ((CraftWorld)world).getHandle();
+        return ((CraftWorld) world).getHandle();
     }
 
     public static String getWorldName(World world) {

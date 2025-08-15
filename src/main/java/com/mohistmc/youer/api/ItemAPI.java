@@ -35,16 +35,6 @@ public class ItemAPI {
 
     public static final Logger LOGGER = LogManager.getLogger("ItemAPI");
 
-    public static ItemStack doItem(Material material, int menge, String name, List<String> lore, Integer customModelData) {
-        ItemStack item = new ItemStack(material, menge);
-        ItemMeta meta = item.getItemMeta();
-        meta.setLore(lore);
-        meta.setDisplayName(name);
-        if (customModelData != null) meta.setCustomModelData(customModelData);
-        item.setItemMeta(meta);
-        return item;
-    }
-
     public static net.minecraft.world.item.ItemStack toNMSItem(Material material) {
         ItemStack itemStack = new ItemStack(material);
         return CraftItemStack.asNMSCopy(itemStack);
@@ -124,7 +114,7 @@ public class ItemAPI {
         return null;
     }
 
-    public static byte[] nbtToByte(CompoundTag nbt){
+    public static byte[] nbtToByte(CompoundTag nbt) {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             DataOutputStream dos = new DataOutputStream(baos);
@@ -194,7 +184,7 @@ public class ItemAPI {
                 return getMaterial.getDefaultInstance().getBukkitStack().getType();
             } else {
                 var key = net.minecraft.world.entity.EntityType.getKey(entitytype);
-                if (BuiltInRegistries.ITEM.get(key) == null){
+                if (BuiltInRegistries.ITEM.get(key) == null) {
                     return Material.SPAWNER;
                 }
                 Material material = get(key);

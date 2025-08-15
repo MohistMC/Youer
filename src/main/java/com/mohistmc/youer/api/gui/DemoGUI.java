@@ -15,7 +15,6 @@ public class DemoGUI {
 
     GUI gui;
     List<GUIItem> items = new ArrayList<>();
-    String tempName;
     int pageChoose = 0;
 
     private DemoGUI() {
@@ -129,7 +128,7 @@ public class DemoGUI {
         }
 
         gui.setItem(52, new GUIItem(new ItemStackFactory(Material.PAPER, pageChoose + 1)
-                .setDisplayName(I18n.as("demogui.nowpage",  (pageChoose + 1)))
+                .setDisplayName(I18n.as("demogui.nowpage", (pageChoose + 1)))
                 .toItemStack()));
 
         if (this.pageChoose < page - 1) {

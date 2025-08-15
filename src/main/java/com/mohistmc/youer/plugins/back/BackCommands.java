@@ -23,11 +23,10 @@ public class BackCommands extends Command {
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
         if (sender instanceof Player player) {
             if (BackConfig.INSTANCE.has(player.getName())) {
-               player.teleport(BackConfig.INSTANCE.getLocation(player));
-               player.sendMessage(I18n.as("backcommands.success",
-                       BackConfig.INSTANCE.getBackType(player).isTeleport() ? I18n.as("backcommands.backtype.teleport") : I18n.as("backcommands.backtype.death")));
-            }
-            else {
+                player.teleport(BackConfig.INSTANCE.getLocation(player));
+                player.sendMessage(I18n.as("backcommands.success",
+                        BackConfig.INSTANCE.getBackType(player).isTeleport() ? I18n.as("backcommands.backtype.teleport") : I18n.as("backcommands.backtype.death")));
+            } else {
                 sender.sendMessage(I18n.as("backcommands.none"));
             }
         }

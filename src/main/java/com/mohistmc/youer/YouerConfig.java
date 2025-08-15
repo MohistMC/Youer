@@ -38,10 +38,10 @@ public class YouerConfig {
             For a reference for any variable inside this file, check out the Youer wiki at
             - [English Documentation](https://mohistmc.com/youer/docs)
             - [中文文档](https://www.mohistmc.cn/docs/youer)
-
+            
             If you need help with the configuration or have any questions related to Spigot,
             join us at the Discord or drop by our forums and leave a post.
-
+            
             Discord: https://discord.gg/mohistmc
             Forums: https://mohistmc.com/
             Forums (中文): https://www.mohistmc.cn/
@@ -52,7 +52,7 @@ public class YouerConfig {
     static int version;
     static Map<String, Command> commands;
     private static File CONFIG_FILE;
-    public static File youeryml = new File( "youer-config","youer.yml");
+    public static File youeryml = new File("youer-config", "youer.yml");
     public static YamlConfiguration yml = YamlConfiguration.loadConfiguration(youeryml);
 
     public static void init(File configFile) {
@@ -270,7 +270,7 @@ public class YouerConfig {
         clear_monster_msg = getString("entity.clear.monster.msg", "[Server] Cleaned up %size% monster");
         clear_monster_time = getInt("entity.clear.monster.time", 1800);
 
-        ban_item_enable = getBoolean("bans.item" , false);
+        ban_item_enable = getBoolean("bans.item", false);
         ban_entity_enable = getBoolean("bans.entity.enable", false);
         no_vanilla_entity_enable = getBoolean("bans.entity.vanilla_entity.enable", false);
         no_vanilla_entity_whitelist = getStringList("bans.entity.vanilla_entity.whitelist", new ArrayList<>());
@@ -311,6 +311,7 @@ public class YouerConfig {
         custom_lava_speed_normal = getInt("custom.lava_speed.normal", 30);
         custom_lava_speed_nether = getInt("custom.lava_speed.nether", 10);
     }
+
     public static boolean isCN() {
         return yml.getString("youer.lang", Locale.getDefault().toString()).contains("CN");
     }

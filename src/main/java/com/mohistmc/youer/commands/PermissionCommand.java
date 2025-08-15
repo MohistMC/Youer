@@ -15,7 +15,6 @@ import org.jetbrains.annotations.NotNull;
  * @author Mgazul by MohistMC
  * <p>
  * This is useful when no permission management plugin is installed
- *
  * @date 2023/7/20 15:19:28
  */
 public class PermissionCommand extends Command {

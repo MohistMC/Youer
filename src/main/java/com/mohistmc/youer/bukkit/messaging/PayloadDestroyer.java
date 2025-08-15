@@ -11,5 +11,6 @@ public interface PayloadDestroyer extends PluginChannelHandler {
     }
 
     @Override
-    default void updateChannel() {}
+    default void updateChannel() {
+    }
 }

@@ -1,12 +1,11 @@
 package com.mohistmc.youer.plugins.world.commands;
 
-import com.mohistmc.youer.api.ItemAPI;
+import com.mohistmc.youer.api.gui.DemoGUI;
+import com.mohistmc.youer.api.gui.GUIItem;
+import com.mohistmc.youer.api.gui.ItemStackFactory;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.mohistmc.youer.plugins.world.WorldManage;
-import com.mohistmc.youer.plugins.world.listener.InventoryClickListener;
 import com.mohistmc.youer.plugins.world.utils.ConfigByWorlds;
-import com.mohistmc.youer.plugins.world.utils.WorldInventory;
-import com.mohistmc.youer.plugins.world.utils.WorldInventoryType;
 import com.mohistmc.youer.plugins.world.utils.WorldsGUI;
 import com.mohistmc.youer.util.I18n;
 import java.io.File;
@@ -25,12 +24,11 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 public class WorldsCommands extends Command {
-    public static String type;
 
     public WorldsCommands(String name) {
         super(name);
@@ -64,26 +62,29 @@ public class WorldsCommands extends Command {
                 return true;
             }
             if (args.length == 2 && args[0].equalsIgnoreCase("create")) {
-                type = args[1].toLowerCase(java.util.Locale.ENGLISH);
+                String worldName = args[1].toLowerCase(java.util.Locale.ENGLISH);
                 if (Bukkit.getWorld(args[1]) == null) {
-                    int i = -1;
-                    WorldInventory worldCreateInventory = new WorldInventory(
-                            WorldInventoryType.CREATE,
-                            27,
-                            I18n.as("worldmanage.gui.title0") + type);
-                    Inventory inventory = worldCreateInventory.getInventory();
+                    DemoGUI wh = new DemoGUI(I18n.as("worldmanage.gui.title0") + worldName);
+                    List<String> lore = new ArrayList<>();
                     for (World.Environment environment : NeoForgeInjectBukkit.environment.values()) {
-                        if (environment == World.Environment.CUSTOM) continue;
-                        i++;
-                        inventory.setItem(i, ItemAPI.doItem(WorldsGUI.getMaterial(environment), 1, environment.name(), null, 2025604));
+                        lore.add(environment.name());
                     }
-                    inventory.addItem(ItemAPI.doItem(WorldsGUI.getMaterial("VOID"), 1, "VOID", null, 2025604));
-                    inventory.addItem(ItemAPI.doItem(WorldsGUI.getMaterial("FLAT"), 1, "FLAT", null, 2025604));
-                    player.openInventory(inventory);
-                    InventoryClickListener.worldInventory = worldCreateInventory;
+                    lore.add("VOID");
+                    lore.add("FLAT");
+
+                    for (var environment : lore) {
+                        wh.addItem(new GUIItem(new ItemStackFactory(WorldsGUI.getMaterial(environment)).setDisplayName(environment).toItemStack()) {
+                                       @Override
+                                       public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                                           WorldsGUI.createWorld(worldName, itemStack, u);
+                                       }
+                                   }
+                        );
+                    }
+                    wh.openGUI(player);
                     return true;
                 } else {
-                    worldAllExists(player, type);
+                    worldAllExists(player, worldName);
                     return false;
                 }
             }
@@ -169,7 +170,7 @@ public class WorldsCommands extends Command {
             }
             if (args.length == 2 && args[0].equalsIgnoreCase("addinfo")) {
                 ConfigByWorlds.addInfo(worldByplayer.getName(), args[1]);
-                player.sendMessage(I18n.as("worldmanage.prefix") +  I18n.as("worldcommands.world.worldSetupSuccess"));
+                player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                 return true;
             }
             if (args.length == 1 && args[0].equalsIgnoreCase("info")) {

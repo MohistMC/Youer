@@ -86,7 +86,7 @@ public class YouerCommand extends Command {
             case "mods" -> {
                 // Not recommended for use in games, only test output
                 sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.insidemods") + ServerAPI.modlists_Inside.size() + ") -> " + ServerAPI.modlists_Inside);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.clientOnlymods")+ ServerAPI.modlists_Client.size() + ") -> " + ServerAPI.modlists_Client);
+                sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.clientOnlymods") + ServerAPI.modlists_Client.size() + ") -> " + ServerAPI.modlists_Client);
                 sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.serverOnlymods") + ServerAPI.modlists_Server.size() + ") -> " + ServerAPI.modlists_Server);
                 sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.allMods") + ServerAPI.modlists_All.size() + ") -> " + ServerAPI.modlists_All);
             }
@@ -106,8 +106,8 @@ public class YouerCommand extends Command {
             case "reload" -> {
                 MinecraftServer console = MinecraftServer.getServer();
                 YouerConfig.init((File) console.options.valueOf("youer-settings"));
-                ((CraftServer)Bukkit.getServer()).initConfig();
-                ((CraftServer)Bukkit.getServer()).loadCustomPermissions();
+                ((CraftServer) Bukkit.getServer()).initConfig();
+                ((CraftServer) Bukkit.getServer()).loadCustomPermissions();
                 SpigotConfig.init((File) console.options.valueOf("spigot-settings"));
                 for (ServerLevel world : console.getAllLevels()) {
                     world.spigotConfig.init();

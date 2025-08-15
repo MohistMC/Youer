@@ -12,7 +12,7 @@ import org.objectweb.asm.tree.VarInsnNode;
 /**
  * @author Mgazul by MohistMC
  * @date 2023/8/27 11:29:47
- *
+ * <p>
  * Valid only in MultiverseCore-4.X
  *
  */

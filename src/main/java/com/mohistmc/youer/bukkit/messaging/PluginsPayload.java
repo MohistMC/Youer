@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 public interface PluginsPayload extends CustomPacketPayload {
 
     ByteBuf getData();
+
     void setData(ByteBuf data);
 
     default byte[] readBytes() {

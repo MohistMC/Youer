@@ -13,7 +13,7 @@ public record PluginPayloadHandler(PluginChannel<PluginPayloadHandler> channel) 
     @Override
     public void handle(PluginsDiscardedPayload pkt, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
-            var bukkit = ((ServerPlayer)ctx.player()).getBukkitEntity();
+            var bukkit = ((ServerPlayer) ctx.player()).getBukkitEntity();
             channel.dispatchMessage(bukkit, pkt.readBytes());
         });
     }

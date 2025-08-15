@@ -26,8 +26,7 @@ public class TpacceptCommands extends Command {
                 player.sendMessage(I18n.as("tpacceptcommands.successfully.me"));
                 a.sendMessage(I18n.as("tpacceptcommands.successfully.you"));
                 TpaComamands.tpa.remove(player);
-            }
-            else {
+            } else {
                 sender.sendMessage(I18n.as("tpacceptcommands.nokey"));
             }
         }
