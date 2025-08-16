@@ -51,13 +51,16 @@
                  return Optional.ofNullable(profileresult).map(ProfileResult::profile);
              }
          }, Util.backgroundExecutor());
-@@ -207,9 +_,11 @@
-             : CompletableFuture.completedFuture(Optional.empty());
+@@ -208,8 +_,15 @@
      }
  
--    public static CompletableFuture<Optional<GameProfile>> fetchGameProfile(UUID p_339604_) {
+     public static CompletableFuture<Optional<GameProfile>> fetchGameProfile(UUID p_339604_) {
 -        LoadingCache<UUID, CompletableFuture<Optional<GameProfile>>> loadingcache = profileCacheById;
 -        return loadingcache != null ? loadingcache.getUnchecked(p_339604_) : CompletableFuture.completedFuture(Optional.empty());
++        LoadingCache<com.mojang.datafixers.util.Pair<java.util.UUID,  @org.jetbrains.annotations.Nullable GameProfile>, CompletableFuture<Optional<GameProfile>>> loadingCache = profileCacheById;
++        return loadingCache != null ? loadingCache.getUnchecked(new com.mojang.datafixers.util.Pair<>(p_339604_, null)) : CompletableFuture.completedFuture(Optional.empty());
++    }
++
 +    // Paper start - player profile events
 +    public static CompletableFuture<Optional<GameProfile>> fetchGameProfile(UUID p_339604_, @Nullable String name) {
 +        LoadingCache<com.mojang.datafixers.util.Pair<java.util.UUID,  @org.jetbrains.annotations.Nullable GameProfile>, CompletableFuture<Optional<GameProfile>>> loadingCache = profileCacheById;

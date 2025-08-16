@@ -22,6 +22,7 @@ public class BanEntity {
         if (entity instanceof FakePlayer) return false;
         if (entity instanceof ArmorStand) return false;
         if (!(entity instanceof LivingEntity)) return false;
+        if (entity.getBukkitEntity().hasMetadata("npc")) return false;
         return banVanilla(entity) || EntityAPI.isBan(entity);
     }
 

@@ -169,11 +169,13 @@
  
          if (this.dropSpamTickCount > 0) {
              this.dropSpamTickCount--;
-@@ -308,7 +_,14 @@
+@@ -307,8 +_,15 @@
+ 
          if (this.player.getLastActionTime() > 0L
              && this.server.getPlayerIdleTimeout() > 0
-             && Util.getMillis() - this.player.getLastActionTime() > (long)this.server.getPlayerIdleTimeout() * 1000L * 60L) {
+-            && Util.getMillis() - this.player.getLastActionTime() > (long)this.server.getPlayerIdleTimeout() * 1000L * 60L) {
 -            this.disconnect(Component.translatable("multiplayer.disconnect.idling"));
++            && Util.getMillis() - this.player.getLastActionTime() > (long)this.server.getPlayerIdleTimeout() * 1000L * 60L && !this.player.wonGame) { // Paper - Prevent AFK kick while watching end credits
 +            // Purpur start
 +            this.player.setAfk(true);
 +            if (!this.player.level().purpurConfig.idleTimeoutKick || (!Boolean.parseBoolean(System.getenv("PURPUR_FORCE_IDLE_KICK")) && kickPermissionCache.getUnchecked(this.player.getBukkitEntity()))) {
@@ -1752,12 +1754,11 @@
                          this.player.level().getGameRules().getRule(GameRules.RULE_SPECTATORSGENERATECHUNKS).set(false, this.server);
                      }
                  }
-@@ -1622,15 +_,24 @@
+@@ -1622,15 +_,23 @@
      @Override
      public void handleContainerClose(ServerboundContainerClosePacket p_9858_) {
          PacketUtils.ensureRunningOnSameThread(p_9858_, this, this.player.serverLevel());
 +        if (this.player.isImmobile()) return; // CraftBukkit
-+        CraftEventFactory.handleInventoryCloseEvent(this.player, InventoryOwner.getClose$Reason()); // CraftBukkit
          this.player.doCloseContainer();
      }
  

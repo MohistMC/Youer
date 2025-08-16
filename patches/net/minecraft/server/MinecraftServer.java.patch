@@ -614,7 +614,7 @@
                  }
              }
          }
-@@ -633,8 +_,26 @@
+@@ -633,8 +_,27 @@
          try {
              this.storageSource.close();
          } catch (IOException ioexception) {
@@ -638,6 +638,7 @@
 +            net.minecrell.terminalconsole.TerminalConsoleAppender.close(); // Paper - Use TerminalConsoleAppender
 +        } catch (final Exception ignored) {
 +        }
++        io.papermc.paper.log.CustomLogManager.forceReset(); // Paper - Reset loggers after shutdown
 +        this.onServerExit();
 +        // Paper end - Improved watchdog support
      }
@@ -1321,11 +1322,16 @@
              return configureRepositoryWithSelection(p_248681_, set, featureflagset, true);
          }
      }
-@@ -1599,7 +_,7 @@
- 
+@@ -1596,10 +_,10 @@
+         if (this.isEnforceWhitelist()) {
+             PlayerList playerlist = p_129850_.getServer().getPlayerList();
+             UserWhiteList userwhitelist = playerlist.getWhiteList();
+-
++            if (!((DedicatedServer) getServer()).getProperties().whiteList.get()) return; // Paper - whitelist not enabled
              for (ServerPlayer serverplayer : Lists.newArrayList(playerlist.getPlayers())) {
-                 if (!userwhitelist.isWhiteListed(serverplayer.getGameProfile())) {
+-                if (!userwhitelist.isWhiteListed(serverplayer.getGameProfile())) {
 -                    serverplayer.connection.disconnect(Component.translatable("multiplayer.disconnect.not_whitelisted"));
++                if (!userwhitelist.isWhiteListed(serverplayer.getGameProfile()) && !this.getPlayerList().isOp(serverplayer.getGameProfile())) { // Paper - Fix kicking ops when whitelist is reloaded (MC-171420)
 +                    serverplayer.connection.disconnect(net.kyori.adventure.text.Component.text(org.spigotmc.SpigotConfig.whitelistMessage), org.bukkit.event.player.PlayerKickEvent.Cause.WHITELIST); // Paper - use configurable message & kick event cause
                  }
              }

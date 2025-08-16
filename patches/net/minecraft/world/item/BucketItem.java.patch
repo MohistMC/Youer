@@ -26,7 +26,7 @@
  
  public class BucketItem extends Item implements DispensibleContainerItem {
      public final Fluid content;
-@@ -55,12 +_,23 @@
+@@ -55,12 +_,22 @@
              } else if (this.content == Fluids.EMPTY) {
                  BlockState blockstate1 = p_40703_.getBlockState(blockpos);
                  if (blockstate1.getBlock() instanceof BucketPickup bucketpickup) {
@@ -36,7 +36,6 @@
 +                    PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) p_40703_, p_40704_, blockpos, blockpos, blockhitresult.getDirection(), itemstack, dummyFluid.getItem(), p_40705_);
 +
 +                    if (event.isCancelled()) {
-+                        ((ServerPlayer) p_40704_).connection.send(new ClientboundBlockUpdatePacket(p_40703_, blockpos)); // SPIGOT-5163 (see PlayerInteractManager)
 +                        ((ServerPlayer) p_40704_).getBukkitEntity().updateInventory(); // SPIGOT-4541
 +                        return InteractionResultHolder.fail(itemstack);
 +                    }
@@ -90,7 +89,7 @@
          if (!(this.content instanceof FlowingFluid flowingfluid)) {
              return false;
          } else {
-@@ -125,8 +_,27 @@
+@@ -125,8 +_,26 @@
              }
  
              boolean flag1 = flag2;
@@ -103,7 +102,6 @@
 +            if (flag2 && p_150716_ != null) {
 +                PlayerBucketEmptyEvent event = CraftEventFactory.callPlayerBucketEmptyEvent((ServerLevel) p_150717_, p_150716_, p_150718_, clicked, enumdirection, container, enumhand);
 +                if (event.isCancelled()) {
-+                    ((ServerPlayer) p_150716_).connection.send(new ClientboundBlockUpdatePacket(p_150717_, p_150718_)); // SPIGOT-4238: needed when looking through entity
 +                    ((ServerPlayer) p_150716_).getBukkitEntity().updateInventory(); // SPIGOT-4541
 +                    return false;
 +                }

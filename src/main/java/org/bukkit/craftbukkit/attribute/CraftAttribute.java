@@ -37,6 +37,7 @@ public class CraftAttribute {
         string = FieldRename.convertAttributeName(ApiVersion.CURRENT, string);
         string = string.toLowerCase(Locale.ROOT);
         NamespacedKey key = NamespacedKey.fromString(string);
+        if (key == null) return null; // Paper - Fixup NamespacedKey handling
 
         // Now also convert from when keys where saved
         return CraftRegistry.get(Registry.ATTRIBUTE, key, ApiVersion.CURRENT);

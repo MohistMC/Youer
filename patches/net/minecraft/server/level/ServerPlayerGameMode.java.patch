@@ -95,7 +95,7 @@
          if (!this.player.canInteractWithBlock(p_215120_, 1.0)) {
              this.debugLogging(p_215120_, false, p_215124_, "too far");
          } else if (p_215120_.getY() >= p_215123_) {
-@@ -141,16 +_,46 @@
+@@ -141,16 +_,45 @@
          } else {
              if (p_215121_ == ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK) {
                  if (!this.level.mayInteract(this.player, p_215120_)) {
@@ -136,7 +136,6 @@
 +                // Spigot start - handle debug stick left click for non-creative
 +                if (this.player.getMainHandItem().is(net.minecraft.world.item.Items.DEBUG_STICK)
 +                        && ((net.minecraft.world.item.DebugStickItem) net.minecraft.world.item.Items.DEBUG_STICK).handleInteractionSpigot(this.player, this.level.getBlockState(p_215120_), this.level, p_215120_, false, this.player.getMainHandItem())) {
-+                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, p_215120_));
 +                    return;
 +                }
 +                // Spigot end
@@ -144,28 +143,19 @@
                  if (this.player.blockActionRestricted(this.level, p_215120_, this.gameModeForPlayer)) {
                      this.player.connection.send(new ClientboundBlockUpdatePacket(p_215120_, this.level.getBlockState(p_215120_)));
                      this.debugLogging(p_215120_, false, p_215124_, "block action restricted");
-@@ -160,7 +_,19 @@
+@@ -160,7 +_,10 @@
                  this.destroyProgressStart = this.gameTicks;
                  float f = 1.0F;
                  BlockState blockstate = this.level.getBlockState(p_215120_);
 -                if (!blockstate.isAir()) {
 +                // CraftBukkit start - Swings at air do *NOT* exist.
 +                if (eventCB.useInteractedBlock() == org.bukkit.event.Event.Result.DENY) {
-+                    // If we denied a door from opening, we need to send a correcting update to the client, as it already opened the door.
-+                    BlockState data = this.level.getBlockState(p_215120_);
-+                    if (data.getBlock() instanceof net.minecraft.world.level.block.DoorBlock) {
-+                        // For some reason *BOTH* the bottom/top part have to be marked updated.
-+                        boolean bottom = data.getValue(net.minecraft.world.level.block.DoorBlock.HALF) == net.minecraft.world.level.block.state.properties.DoubleBlockHalf.LOWER;
-+                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, p_215120_));
-+                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, bottom ? p_215120_.above() : p_215120_.below()));
-+                    } else if (data.getBlock() instanceof net.minecraft.world.level.block.TrapDoorBlock) {
-+                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, p_215120_));
-+                    }
++                    // Paper - Don't resync blocks
 +                } else if (!blockstate.isAir()) {
                      EnchantmentHelper.onHitBlock(
                          this.level,
                          this.player.getMainHandItem(),
-@@ -171,10 +_,30 @@
+@@ -171,10 +_,25 @@
                          blockstate,
                          p_348149_ -> this.player.onEquippedItemBroken(p_348149_, EquipmentSlot.MAINHAND)
                      );
@@ -175,16 +165,11 @@
                  }
  
 +                if (eventCB.useItemInHand() == org.bukkit.event.Event.Result.DENY) {
-+                    // If we 'insta destroyed' then the client needs to be informed.
-+                    if (f > 1.0f) {
-+                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, p_215120_));
-+                    }
 +                    return;
 +                }
 +                org.bukkit.event.block.BlockDamageEvent blockEvent = CraftEventFactory.callBlockDamageEvent(this.player, p_215120_, p_215122_, this.player.getInventory().getSelected(), f >= 1.0f);
 +                if (blockEvent.isCancelled()) {
 +                    // Let the client know the block still exists
-+                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, p_215120_));
 +                    return;
 +                }
 +

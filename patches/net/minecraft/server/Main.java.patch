@@ -24,12 +24,20 @@
  import java.util.function.BooleanSupplier;
  import javax.annotation.Nullable;
  import joptsimple.OptionParser;
-@@ -64,7 +_,8 @@
+@@ -63,8 +_,16 @@
+ public class Main {
      private static final Logger LOGGER = LogUtils.getLogger();
  
++    // Paper start - Reset loggers after shutdown
++    static {
++        System.setProperty("java.util.logging.manager", "io.papermc.paper.log.CustomLogManager");
++    }
++    // Paper end - Reset loggers after shutdown
++
      @DontObfuscate
 -    public static void main(String[] p_129699_) {
 +    public static void main(String[] p_129699_) throws Exception {
++        if (System.getProperty("jdk.nio.maxCachedBufferSize") == null) System.setProperty("jdk.nio.maxCachedBufferSize", "262144"); // Paper - cap per-thread NIO cache size; https://www.evanjones.ca/java-bytebuffer-leak.html
 +        Youer.initI18n(); // Youer
          SharedConstants.tryDetectVersion();
          OptionParser optionparser = new OptionParser();

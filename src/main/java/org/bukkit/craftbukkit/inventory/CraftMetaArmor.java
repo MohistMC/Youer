@@ -38,8 +38,9 @@ public class CraftMetaArmor extends CraftMetaItem implements ArmorMeta {
         super(tag, extraHandledDcts); // Paper
 
         getOrEmpty(tag, CraftMetaArmor.TRIM).ifPresent((trimCompound) -> {
-            TrimMaterial trimMaterial = CraftTrimMaterial.minecraftHolderToBukkit(trimCompound.material());
-            TrimPattern trimPattern = CraftTrimPattern.minecraftHolderToBukkit(trimCompound.pattern());
+            TrimMaterial trimMaterial = org.bukkit.craftbukkit.CraftRegistry.unwrapAndConvertHolder(io.papermc.paper.registry.RegistryKey.TRIM_MATERIAL, trimCompound.material()).orElse(null); // Paper - fix upstream not being correct
+            TrimPattern trimPattern = org.bukkit.craftbukkit.CraftRegistry.unwrapAndConvertHolder(io.papermc.paper.registry.RegistryKey.TRIM_PATTERN, trimCompound.pattern()).orElse(null); // Paper - fix upstream not being correct
+            if (trimMaterial == null || trimPattern == null) return; // Paper - just delete the trim because upstream is not doing this right
 
             this.trim = new ArmorTrim(trimMaterial, trimPattern);
 

@@ -43,7 +43,7 @@ public final class ApiVersion implements Comparable<ApiVersion>, Serializable {
 
     public static ApiVersion getOrCreateVersion(String versionString) {
         if (versionString == null || versionString.trim().isEmpty() || versionString.equalsIgnoreCase("none")) {
-            return ApiVersion.versions.computeIfAbsent("none", s -> new ApiVersion());
+            return ApiVersion.CURRENT; // Youer
         }
 
         ApiVersion version = ApiVersion.versions.get(versionString);

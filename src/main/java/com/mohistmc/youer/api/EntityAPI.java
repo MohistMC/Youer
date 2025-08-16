@@ -33,6 +33,6 @@ public class EntityAPI {
     }
 
     public static boolean isBan(Entity entity) {
-        return BanConfig.ENTITY.getEntity().contains(resourceLocation(entity));
+        return BanConfig.ENTITY != null && BanConfig.ENTITY.getEntity().contains(resourceLocation(entity));
     }
 }

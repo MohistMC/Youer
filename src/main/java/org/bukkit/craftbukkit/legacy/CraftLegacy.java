@@ -293,11 +293,7 @@ public final class CraftLegacy {
     }
 
     public static String name(Material material) {
-        if (NeoForgeInjectBukkit.isMods(material.getKey())) {
-            return material.name();
-        } else {
-            return material.name().startsWith(Material.LEGACY_PREFIX) ? material.name().substring(Material.LEGACY_PREFIX.length()) : material.name();
-        }
+        return material.name().substring(Material.LEGACY_PREFIX.length());
     }
 
 
