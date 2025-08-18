@@ -1,9 +1,8 @@
 package org.bukkit.inventory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableMap;
 import com.mohistmc.youer.Youer;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -12,10 +11,8 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.Translatable;
+import org.bukkit.UndefinedNullability;
 import org.bukkit.Utility;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.meta.Damageable;
@@ -23,6 +20,13 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.material.MaterialData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+// Purpur start
+import com.google.common.collect.Multimap;
+import java.util.Collection;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.block.data.BlockData;
+// Purpur end
 
 /**
  * Represents a stack of items.
@@ -31,7 +35,7 @@ import org.jetbrains.annotations.Nullable;
  * use this class to encapsulate Materials for which {@link Material#isItem()}
  * returns false.</b>
  */
-public class ItemStack implements Cloneable, ConfigurationSerializable, Translatable, net.kyori.adventure.text.event.HoverEventSource<net.kyori.adventure.text.event.HoverEvent.ShowItem>, io.papermc.paper.persistence.PersistentDataViewHolder, net.kyori.adventure.translation.Translatable { // Paper
+public class ItemStack implements Cloneable, ConfigurationSerializable, Translatable, net.kyori.adventure.text.event.HoverEventSource<net.kyori.adventure.text.event.HoverEvent.ShowItem>, net.kyori.adventure.translation.Translatable, io.papermc.paper.persistence.PersistentDataViewHolder { // Paper
     private ItemStack craftDelegate; // Paper - always delegate to server-backed stack
     private MaterialData data = null;
 
@@ -58,7 +62,6 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @throws IllegalArgumentException if the amount is less than 1
      */
     @org.jetbrains.annotations.Contract(value = "_, _ -> new", pure = true)
-
     public static @NotNull ItemStack of(final @NotNull Material type, final int amount) {
         Preconditions.checkArgument(type.asItemType() != null, type + " isn't an item");
         Preconditions.checkArgument(amount > 0, "amount must be greater than 0");
@@ -84,7 +87,10 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * {@link Material#isItem()} returns false.</b>
      *
      * @param type item material
+     * @apiNote use {@link #of(Material)}
+     * @see #of(Material)
      */
+    @org.jetbrains.annotations.ApiStatus.Obsolete(since = "1.21") // Paper
     public ItemStack(@NotNull final Material type) {
         this(type, 1);
     }
@@ -98,7 +104,10 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      *
      * @param type item material
      * @param amount stack size
+     * @apiNote Use {@link #of(Material, int)}
+     * @see #of(Material, int)
      */
+    @org.jetbrains.annotations.ApiStatus.Obsolete(since = "1.21") // Paper
     public ItemStack(@NotNull final Material type, final int amount) {
         this(type, amount, (short) 0);
     }
@@ -123,7 +132,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @param data the data value or null
      * @deprecated this method uses an ambiguous data byte object
      */
-    @Deprecated
+    @Deprecated(forRemoval = true, since = "1.13")
     public ItemStack(@NotNull Material type, final int amount, final short damage, @Nullable final Byte data) {
         Preconditions.checkArgument(type != null, "Material cannot be null");
         if (type.isLegacy()) {
@@ -150,7 +159,10 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @param stack the stack to copy
      * @throws IllegalArgumentException if the specified stack is null or
      *     returns an item meta not created by the item factory
+     * @apiNote Use {@link #clone()}
+     * @see #clone()
      */
+    @org.jetbrains.annotations.ApiStatus.Obsolete(since = "1.21") // Paper
     public ItemStack(@NotNull final ItemStack stack) throws IllegalArgumentException {
         Preconditions.checkArgument(stack != null, "Cannot copy null stack");
         this.craftDelegate = stack.clone(); // Paper - delegate
@@ -164,7 +176,6 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      *
      * @return Type of the items in this stack
      */
-    @Utility
     @NotNull
     public Material getType() {
         return this.craftDelegate.getType(); // Paper - delegate
@@ -180,8 +191,17 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * {@link Material#isItem()} returns false.</b>
      *
      * @param type New type to set the items in this stack to
+     * @deprecated <b>Setting the material type of ItemStacks is no longer supported.</b>
+     * <p>
+     * This method is deprecated due to potential illegal behavior that may occur
+     * during the context of which this ItemStack is being used, allowing for certain item validation to be bypassed.
+     * It is recommended to instead create a new ItemStack object with the desired
+     * Material type, and if possible, set it in the appropriate context.
+     *
+     * Using this method in ItemStacks passed in events will result in undefined behavior.
+     * @see ItemStack#withType(Material)
      */
-    @Utility
+    @Deprecated // Paper
     public void setType(@NotNull Material type) {
         Preconditions.checkArgument(type != null, "Material cannot be null");
         this.craftDelegate.setType(type); // Paper - delegate
@@ -199,7 +219,6 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
         return this.craftDelegate.withType(type); // Paper - delegate
     }
     // Paper end
-
 
     /**
      * Gets the amount of items in this stack
@@ -223,8 +242,10 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * Gets the MaterialData for this stack of items
      *
      * @return MaterialData for this item
+     * @deprecated cast to {@link org.bukkit.inventory.meta.BlockDataMeta} and use {@link org.bukkit.inventory.meta.BlockDataMeta#getBlockData(Material)}
      */
     @Nullable
+    @Deprecated(forRemoval = true, since = "1.13")
     public MaterialData getData() {
         Material mat = Bukkit.getUnsafe().toLegacy(getType());
         if (data == null && mat != null && mat.getData() != null) {
@@ -238,7 +259,9 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * Sets the MaterialData for this stack of items
      *
      * @param data New MaterialData for this item
+     * @deprecated cast to {@link org.bukkit.inventory.meta.BlockDataMeta} and use {@link org.bukkit.inventory.meta.BlockDataMeta#setBlockData(org.bukkit.block.data.BlockData)}
      */
+    @Deprecated(forRemoval = true, since = "1.13")
     public void setData(@Nullable MaterialData data) {
         if (data == null) {
             this.data = data;
@@ -288,7 +311,6 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      *
      * @return The maximum you can stack this item to.
      */
-    @Utility
     public int getMaxStackSize() {
         return this.craftDelegate.getMaxStackSize(); // Paper - delegate
     }
@@ -308,7 +330,6 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     }
 
     @Override
-    @Utility
     public boolean equals(Object obj) {
         return this.craftDelegate.equals(obj); // Paper - delegate
     }
@@ -320,7 +341,6 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      * @param stack the item stack to compare to
      * @return true if the two stacks are equal, ignoring the amount
      */
-    @Utility
     public boolean isSimilar(@Nullable ItemStack stack) {
         return this.craftDelegate.isSimilar(stack); // Paper - delegate
     }
@@ -516,10 +536,12 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
         if (args.containsKey("amount")) {
             amount = ((Number) args.get("amount")).intValue();
         }
+
         if (type == null) {
             Youer.LOGGER.error(Youer.i18n.as("bukkit.ItemStack.typenull", args.get("type")));
             type = Material.BROWN_MUSHROOM;
         }
+
         ItemStack result = new ItemStack(type, amount, damage);
 
         if (args.containsKey("enchantments")) { // Backward compatiblity, @deprecated
@@ -551,6 +573,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
                     }
                 }
                 // Paper end
+                result.setItemMeta((ItemMeta) raw);
             }
         }
 
@@ -613,7 +636,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      *
      * @return a copy of the current ItemStack's ItemData
      */
-    @Nullable
+    @UndefinedNullability // Paper
     public ItemMeta getItemMeta() {
         return this.craftDelegate.getItemMeta(); // Paper - delegate
     }
@@ -638,6 +661,15 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     public boolean setItemMeta(@Nullable ItemMeta itemMeta) {
         return this.craftDelegate.setItemMeta(itemMeta); // Paper - delegate
+    }
+
+    // Paper - delegate
+
+    @Override
+    @NotNull
+    @Deprecated(forRemoval = true) // Paper
+    public String getTranslationKey() {
+        return Bukkit.getUnsafe().getTranslationKey(this);
     }
 
     // Paper start
@@ -813,32 +845,6 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
         } catch (final java.io.IOException e) {
             throw new RuntimeException("Error while reading itemstack", e);
         }
-    }
-
-    @Override
-    @NotNull
-    public String getTranslationKey() {
-        return Bukkit.getUnsafe().getTranslationKey(this);
-    }
-
-    /**
-     * Returns an empty item stack, consists of an air material and a stack size of 0.
-     *
-     * Any item stack with a material of air or a stack size of 0 is seen
-     * as being empty by {@link ItemStack#isEmpty}.
-     */
-    @NotNull
-    public static ItemStack empty() {
-        //noinspection deprecation
-        return Bukkit.getUnsafe().createEmptyStack(); // Paper - proxy ItemStack
-    }
-
-    /**
-     * Returns whether this item stack is empty and contains no item. This means
-     * it is either air or the stack has a size of 0.
-     */
-    public boolean isEmpty() {
-        return this.craftDelegate.isEmpty(); // Paper - delegate
     }
 
     /**
@@ -1071,25 +1077,6 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
         return io.papermc.paper.inventory.ItemRarity.valueOf(this.getItemMeta().getRarity().name());
     }
 
-
-    // Paper start - expose itemstack tooltip lines
-    /**
-     * Computes the tooltip lines for this stack.
-     * <p>
-     * <b>Disclaimer:</b>
-     * Tooltip contents are not guaranteed to be consistent across different
-     * Minecraft versions.
-     *
-     * @param tooltipContext the tooltip context
-     * @param player a player for player-specific tooltip lines
-     * @return an immutable list of components (can be empty)
-     */
-    @SuppressWarnings("deprecation") // abusing unsafe as a bridge
-    public java.util.@NotNull @org.jetbrains.annotations.Unmodifiable List<net.kyori.adventure.text.Component> computeTooltipLines(final @NotNull io.papermc.paper.inventory.tooltip.TooltipContext tooltipContext, final @Nullable org.bukkit.entity.Player player) {
-        return Bukkit.getUnsafe().computeTooltipLines(this, tooltipContext, player);
-    }
-    // Paper end - expose itemstack tooltip lines
-
     /**
      * Checks if an itemstack can repair this itemstack.
      * Returns false if {@code this} or {@code repairMaterial}'s type is not an item ({@link Material#isItem()}).
@@ -1125,6 +1112,44 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
     public @NotNull ItemStack damage(int amount, @NotNull org.bukkit.entity.LivingEntity livingEntity) {
         return livingEntity.damageItemStack(this, amount);
     }
+
+    /**
+     * Returns an empty item stack, consists of an air material and a stack size of 0.
+     *
+     * Any item stack with a material of air or a stack size of 0 is seen
+     * as being empty by {@link ItemStack#isEmpty}.
+     */
+    @NotNull
+    public static ItemStack empty() {
+        //noinspection deprecation
+        return Bukkit.getUnsafe().createEmptyStack(); // Paper - proxy ItemStack
+    }
+
+    /**
+     * Returns whether this item stack is empty and contains no item. This means
+     * it is either air or the stack has a size of 0.
+     */
+    public boolean isEmpty() {
+        return this.craftDelegate.isEmpty(); // Paper - delegate
+    }
+    // Paper end
+    // Paper start - expose itemstack tooltip lines
+    /**
+     * Computes the tooltip lines for this stack.
+     * <p>
+     * <b>Disclaimer:</b>
+     * Tooltip contents are not guaranteed to be consistent across different
+     * Minecraft versions.
+     *
+     * @param tooltipContext the tooltip context
+     * @param player a player for player-specific tooltip lines
+     * @return an immutable list of components (can be empty)
+     */
+    @SuppressWarnings("deprecation") // abusing unsafe as a bridge
+    public java.util.@NotNull @org.jetbrains.annotations.Unmodifiable List<net.kyori.adventure.text.Component> computeTooltipLines(final @NotNull io.papermc.paper.inventory.tooltip.TooltipContext tooltipContext, final @Nullable org.bukkit.entity.Player player) {
+        return Bukkit.getUnsafe().computeTooltipLines(this, tooltipContext, player);
+    }
+    // Paper end - expose itemstack tooltip lines
 
     // Purpur start
     /**

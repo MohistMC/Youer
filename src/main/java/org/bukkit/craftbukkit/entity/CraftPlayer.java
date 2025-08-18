@@ -378,8 +378,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void sendRawMessage(UUID sender, String message) {
-        Preconditions.checkArgument(message != null, "message cannot be null");
-
+        if (message == null) message = "";
         if (this.getHandle().connection == null) return;
 
         for (Component component : CraftChatMessage.fromString(message)) {

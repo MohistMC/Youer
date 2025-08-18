@@ -614,7 +614,7 @@
                  }
              }
          }
-@@ -633,8 +_,27 @@
+@@ -633,8 +_,28 @@
          try {
              this.storageSource.close();
          } catch (IOException ioexception) {
@@ -639,6 +639,7 @@
 +        } catch (final Exception ignored) {
 +        }
 +        io.papermc.paper.log.CustomLogManager.forceReset(); // Paper - Reset loggers after shutdown
++        ServerLifecycleHooks.handleServerStopped(this); // Youer
 +        this.onServerExit();
 +        // Paper end - Improved watchdog support
      }
@@ -811,7 +812,7 @@
                  this.startMeasuringTaskExecutionTime();
                  this.waitUntilNextTick();
                  this.finishMeasuringTaskExecutionTime();
-@@ -714,30 +_,39 @@
+@@ -714,30 +_,37 @@
                  this.isReady = true;
                  JvmProfiler.INSTANCE.onServerTick(this.smoothedTickTimeMillis);
              }
@@ -850,9 +851,8 @@
                  if (this.services.profileCache() != null) {
                      this.services.profileCache().clearExecutor();
                  }
- 
+-
 -                this.onServerExit();
-+                ServerLifecycleHooks.handleServerStopped(this);
              }
          }
      }
