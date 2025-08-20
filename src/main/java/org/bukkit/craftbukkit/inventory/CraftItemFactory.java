@@ -9,6 +9,7 @@ import net.minecraft.core.HolderSet;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.util.RandomSource;
@@ -263,6 +264,21 @@ public final class CraftItemFactory implements ItemFactory {
                 new net.md_5.bungee.api.chat.TextComponent(customName));
     }
     // Paper end - bungee hover events
+
+    // Paper start - old getSpawnEgg API
+    // @Override // used to override, upstream added conflicting method, is called via Commodore now
+    @Deprecated
+    public ItemStack getSpawnEgg0(org.bukkit.entity.EntityType type) {
+        if (type == null) {
+            return null;
+        }
+        String typeId = type.getKey().toString();
+        net.minecraft.resources.ResourceLocation typeKey = ResourceLocation.parse(typeId);
+        net.minecraft.world.entity.EntityType<?> nmsType = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.get(typeKey);
+        net.minecraft.world.item.SpawnEggItem eggItem = net.minecraft.world.item.SpawnEggItem.byId(nmsType);
+        return eggItem == null ? null : new net.minecraft.world.item.ItemStack(eggItem).asBukkitMirror();
+    }
+    // Paper end - old getSpawnEgg API
 
     // Paper start - enchantWithLevels API
     @Override

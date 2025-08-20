@@ -35,6 +35,19 @@
  
      public EndDragonFight(ServerLevel p_289759_, long p_289805_, EndDragonFight.Data p_289800_) {
          this(p_289759_, p_289805_, p_289800_, BlockPos.ZERO);
+@@ -115,6 +_,12 @@
+         if (p_289768_.isRespawning) {
+             this.respawnStage = DragonRespawnAnimation.START;
+         }
++        // Paper start - Add config to disable ender dragon legacy check
++        if (p_289768_ == EndDragonFight.Data.DEFAULT && !p_289771_.paperConfig().entities.spawning.scanForLegacyEnderDragon) {
++            this.needsStateScanning = false;
++            this.dragonKilled = true;
++        }
++        // Paper end - Add config to disable ender dragon legacy check
+ 
+         this.portalLocation = p_289768_.exitPortalLocation.orElse(null);
+         this.gateways.addAll(p_289768_.gateways.orElseGet(() -> {
 @@ -214,7 +_,7 @@
              this.dragonKilled = false;
              if (!flag) {

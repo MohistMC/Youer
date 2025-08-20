@@ -20,3 +20,20 @@
                  } catch (Throwable throwable) {
                      CrashReport crashreport = CrashReport.forThrowable(throwable, "Executing command block");
                      CrashReportCategory crashreportcategory = crashreport.addCategory("Command to be executed");
+@@ -162,6 +_,7 @@
+     @Override
+     public void sendSystemMessage(Component p_220330_) {
+         if (this.trackOutput) {
++            org.spigotmc.AsyncCatcher.catchOp("sendSystemMessage to a command block"); // Paper - Don't broadcast messages to command blocks
+             this.lastOutput = Component.literal("[" + TIME_FORMAT.format(new Date()) + "] ").append(p_220330_);
+             this.onUpdated();
+         }
+@@ -184,7 +_,7 @@
+     }
+ 
+     public InteractionResult usedBy(Player p_45413_) {
+-        if (!p_45413_.canUseGameMasterBlocks()) {
++        if (!p_45413_.canUseGameMasterBlocks() && (!p_45413_.isCreative() || !p_45413_.getBukkitEntity().hasPermission("minecraft.commandblock"))) { // Paper - command block permission
+             return InteractionResult.PASS;
+         } else {
+             if (p_45413_.getCommandSenderWorld().isClientSide) {

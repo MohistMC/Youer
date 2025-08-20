@@ -56,7 +56,7 @@
          }
      }
  
-@@ -159,7 +_,8 @@
+@@ -159,18 +_,41 @@
          return this.setText(p_277877_.apply(signtext), p_277426_);
      }
  
@@ -66,10 +66,19 @@
          for (int i = 0; i < p_277744_.size(); i++) {
              FilteredText filteredtext = p_277744_.get(i);
              Style style = p_277359_.getMessage(i, p_277396_.isTextFilteringEnabled()).getStyle();
-@@ -172,6 +_,29 @@
-             }
-         }
- 
+             if (p_277396_.isTextFilteringEnabled()) {
+-                p_277359_ = p_277359_.setMessage(i, Component.literal(filteredtext.filteredOrEmpty()).setStyle(style));
++                p_277359_ = p_277359_.setMessage(i, Component.literal(net.minecraft.util.StringUtil.filterText(filteredtext.filteredOrEmpty())).setStyle(style)); // Paper - filter sign text to chat only
+             } else {
+                 p_277359_ = p_277359_.setMessage(
+-                    i, Component.literal(filteredtext.raw()).setStyle(style), Component.literal(filteredtext.filteredOrEmpty()).setStyle(style)
+-                );
+-            }
+-        }
++                    i, Component.literal(net.minecraft.util.StringUtil.filterText(filteredtext.raw())).setStyle(style), Component.literal(net.minecraft.util.StringUtil.filterText(filteredtext.filteredOrEmpty())).setStyle(style)); // Paper - filter sign text to chat only
++            }
++        }
++
 +        // CraftBukkit start
 +        org.bukkit.entity.Player player = ((net.minecraft.server.level.ServerPlayer) p_277396_).getBukkitEntity();
 +        List<net.kyori.adventure.text.Component> lines = new java.util.ArrayList<>(); // Paper - adventure
@@ -92,10 +101,9 @@
 +            }
 +        }
 +        // CraftBukkit end
-+
+ 
          return p_277359_;
      }
- 
 @@ -210,7 +_,17 @@
              Style style = component.getStyle();
              ClickEvent clickevent = style.getClickEvent();

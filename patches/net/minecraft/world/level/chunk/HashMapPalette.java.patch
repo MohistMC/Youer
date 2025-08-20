@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/level/chunk/HashMapPalette.java
++++ b/net/minecraft/world/level/chunk/HashMapPalette.java
+@@ -20,7 +_,7 @@
+     }
+ 
+     public HashMapPalette(IdMap<T> p_187904_, int p_187905_, PaletteResize<T> p_187906_) {
+-        this(p_187904_, p_187905_, p_187906_, CrudeIncrementalIntIdentityHashBiMap.create(1 << p_187905_));
++        this(p_187904_, p_187905_, p_187906_, CrudeIncrementalIntIdentityHashBiMap.create((1 << p_187905_) + 1)); // Paper - Perf: Avoid unnecessary resize operation in CrudeIncrementalIntIdentityHashBiMap
+     }
+ 
+     private HashMapPalette(IdMap<T> p_199915_, int p_199916_, PaletteResize<T> p_199917_, CrudeIncrementalIntIdentityHashBiMap<T> p_199918_) {
+@@ -38,10 +_,16 @@
+     public int idFor(T p_62673_) {
+         int i = this.values.getId(p_62673_);
+         if (i == -1) {
+-            i = this.values.add(p_62673_);
+-            if (i >= 1 << this.bits) {
++            // Paper start - Perf: Avoid unnecessary resize operation in CrudeIncrementalIntIdentityHashBiMap and optimize
++            // We use size() instead of the result from add(K)
++            // This avoids adding another object unnecessarily
++            // Without this change, + 2 would be required in the constructor
++            if (this.values.size() >= 1 << this.bits) {
+                 i = this.resizeHandler.onResize(this.bits + 1, p_62673_);
++            } else {
++                i = this.values.add(p_62673_);
+             }
++            // Paper end - Perf: Avoid unnecessary resize operation in CrudeIncrementalIntIdentityHashBiMap and optimize
+         }
+ 
+         return i;

@@ -80,7 +80,7 @@
  
      public void tick() {
 -        this.gameTicks++;
-+        this.gameTicks = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit;
++        this.gameTicks = (int)this.level.getLagCompensationTick(); // CraftBukkit; // Paper - lag compensation
          if (this.hasDelayedDestroy) {
              BlockState blockstate = this.level.getBlockState(this.delayedDestroyPos);
              if (blockstate.isAir()) {
@@ -198,7 +198,7 @@
              }
          }
      }
-@@ -238,7 +_,8 @@
+@@ -238,38 +_,58 @@
  
      public boolean destroyBlock(BlockPos p_9281_) {
          BlockState blockstate1 = this.level.getBlockState(p_9281_);
@@ -208,7 +208,12 @@
              return false;
          } else {
              BlockEntity blockentity = this.level.getBlockEntity(p_9281_);
-@@ -250,26 +_,45 @@
+             Block block = blockstate1.getBlock();
+-            if (block instanceof GameMasterBlock && !this.player.canUseGameMasterBlocks()) {
++            if (block instanceof GameMasterBlock && !this.player.canUseGameMasterBlocks() && !(block instanceof net.minecraft.world.level.block.CommandBlock && (this.player.isCreative() && this.player.getBukkitEntity().hasPermission("minecraft.commandblock")))) { // Paper - command block permission
+                 this.level.sendBlockUpdated(p_9281_, blockstate1, blockstate1, 3);
+                 return false;
+             } else if (this.player.blockActionRestricted(this.level, p_9281_, this.gameModeForPlayer)) {
                  return false;
              } else {
                  BlockState blockstate = block.playerWillDestroy(this.level, p_9281_, blockstate1, this.player);

@@ -35,15 +35,22 @@
              }
          }
  
-@@ -65,6 +_,10 @@
+@@ -65,6 +_,16 @@
  
      default boolean isIncomplete() {
          NonNullList<Ingredient> nonnulllist = this.getIngredients();
 -        return nonnulllist.isEmpty() || nonnulllist.stream().anyMatch(p_151268_ -> p_151268_.getItems().length == 0);
+-    }
 +        return nonnulllist.isEmpty() || nonnulllist.stream().anyMatch(Ingredient::hasNoItems);
 +    }
 +
 +    default org.bukkit.inventory.Recipe toBukkitRecipe(NamespacedKey id) {
 +        return new ModSpecialRecipe(id, this);
-     }
++    }
++
++    // Paper start - improved exact choice recipes
++    default boolean hasExactIngredients() {
++        return false;
++    }
++    // Paper end
  }

@@ -31,14 +31,6 @@
  import java.util.function.Predicate;
  import javax.annotation.Nonnull;
  import javax.annotation.Nullable;
-@@ -33,7 +_,6 @@
- import net.minecraft.core.Direction;
- import net.minecraft.core.Holder;
- import net.minecraft.core.NonNullList;
--import net.minecraft.core.component.DataComponents;
- import net.minecraft.core.particles.BlockParticleOption;
- import net.minecraft.core.particles.ItemParticleOption;
- import net.minecraft.core.particles.ParticleOptions;
 @@ -88,7 +_,6 @@
  import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
  import net.minecraft.world.entity.ai.targeting.TargetingConditions;
@@ -1295,7 +1287,7 @@
 +                this.hurtCurrentlyUsedShield((float) -event.getDamage(org.bukkit.event.entity.EntityDamageEvent.DamageModifier.BLOCKING));
 +                Entity entity = damagesource.getDirectEntity();
 +
-+                if (entity instanceof LivingEntity) {
++                if (!damagesource.is(DamageTypeTags.IS_PROJECTILE) && entity instanceof LivingEntity) { // Paper - Fix shield disable inconsistency
 +                    this.blockUsingShield((LivingEntity) entity);
 +                }
 +            }
@@ -1463,7 +1455,32 @@
      public abstract void setItemSlot(EquipmentSlot p_21036_, ItemStack p_21037_);
  
      public Iterable<ItemStack> getHandSlots() {
-@@ -2064,15 +_,18 @@
+@@ -2052,27 +_,43 @@
+         return this.hasEffect(MobEffects.JUMP) ? 0.1F * ((float)this.getEffect(MobEffects.JUMP).getAmplifier() + 1.0F) : 0.0F;
+     }
+ 
++    protected long lastJumpTime = 0L; // Paper - Prevent excessive velocity through repeated crits
+     @VisibleForTesting
+     public void jumpFromGround() {
+         float f = this.getJumpPower();
+         if (!(f <= 1.0E-5F)) {
+             Vec3 vec3 = this.getDeltaMovement();
++            // Paper start - Prevent excessive velocity through repeated crits
++            long time = System.nanoTime();
++            boolean canCrit = true;
++            if (this instanceof net.minecraft.world.entity.player.Player) {
++                canCrit = false;
++                if (time - this.lastJumpTime > (long)(0.250e9)) {
++                    this.lastJumpTime = time;
++                    canCrit = true;
++                }
++            }
++            // Paper end - Prevent excessive velocity through repeated crits
+             this.setDeltaMovement(vec3.x, (double)f, vec3.z);
+             if (this.isSprinting()) {
+                 float f1 = this.getYRot() * (float) (Math.PI / 180.0);
++                if (canCrit) // Paper - Prevent excessive velocity through repeated crits
+                 this.addDeltaMovement(new Vec3((double)(-Mth.sin(f1)) * 0.2, 0.0, (double)Mth.cos(f1) * 0.2));
              }
  
              this.hasImpulse = true;
@@ -1686,6 +1703,31 @@
              this.setSharedFlag(7, flag);
          }
      }
+@@ -2750,9 +_,23 @@
+         if (this.level().isClientSide()) {
+             this.level().getEntities(EntityTypeTest.forClass(Player.class), this.getBoundingBox(), EntitySelector.pushableBy(this)).forEach(this::doPush);
+         } else {
++            // Paper start - don't run getEntities if we're not going to use its result
++            if (!this.isPushable()) {
++                return;
++            }
++            net.minecraft.world.scores.Team team = this.getTeam();
++            if (team != null && team.getCollisionRule() == net.minecraft.world.scores.Team.CollisionRule.NEVER) {
++                return;
++            }
++
++            int i = this.level().getGameRules().getInt(GameRules.RULE_MAX_ENTITY_CRAMMING);
++            if (i <= 0 && this.level().paperConfig().collisions.maxEntityCollisions <= 0) {
++                return;
++            }
++            // Paper end - don't run getEntities if we're not going to use its result
+             List<Entity> list = this.level().getEntities(this, this.getBoundingBox(), EntitySelector.pushableBy(this));
+             if (!list.isEmpty()) {
+-                int i = this.level().getGameRules().getInt(GameRules.RULE_MAX_ENTITY_CRAMMING);
++                // Paper - don't run getEntities if we're not going to use its result; moved up
+                 if (i > 0 && list.size() > i - 1 && this.random.nextInt(4) == 0) {
+                     int j = 0;
+ 
 @@ -2812,7 +_,7 @@
      public void stopRiding() {
          Entity entity = this.getVehicle();
@@ -1737,7 +1779,7 @@
      }
  
      protected void internalSetAbsorptionAmount(float p_295258_) {
-@@ -2977,10 +_,19 @@
+@@ -2977,10 +_,22 @@
          return (this.entityData.get(DATA_LIVING_ENTITY_FLAGS) & 2) > 0 ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
      }
  
@@ -1746,7 +1788,10 @@
 +        this.resendPossiblyDesyncedDataValues(java.util.List.of(DATA_LIVING_ENTITY_FLAGS), serverPlayer);
 +    }
 +    // Paper end - Properly cancel usable items
-+
++    // Paper start - lag compensate eating
++    protected long eatStartTime;
++    protected int totalEatTimeTicks;
++    // Paper end - lag compensate eating
      private void updatingUsingItem() {
          if (this.isUsingItem()) {
 -            if (ItemStack.isSameItem(this.getItemInHand(this.getUsedItemHand()), this.useItem)) {
@@ -1759,20 +1804,26 @@
                  this.updateUsingItem(this.useItem);
              } else {
                  this.stopUsingItem();
-@@ -2989,12 +_,15 @@
+@@ -2989,12 +_,20 @@
      }
  
      protected void updateUsingItem(ItemStack p_147201_) {
+-        p_147201_.onUseTick(this.level(), this, this.getUseItemRemainingTicks());
 +        if (!p_147201_.isEmpty())
 +            this.useItemRemaining = net.neoforged.neoforge.event.EventHooks.onItemUseTick(this, p_147201_, this.getUseItemRemainingTicks());
 +        if (this.getUseItemRemainingTicks() > 0)
-         p_147201_.onUseTick(this.level(), this, this.getUseItemRemainingTicks());
++            p_147201_.onUseTick(this.level(), this, this.getUseItemRemainingTicks());
          if (this.shouldTriggerItemUseEffects()) {
              this.triggerItemUseEffects(p_147201_, 5);
          }
  
 -        if (--this.useItemRemaining == 0 && !this.level().isClientSide && !p_147201_.useOnRelease()) {
-+        if (--this.useItemRemaining <= 0 && !this.level().isClientSide && !p_147201_.useOnRelease()) {
++        // Paper start - lag compensate eating
++        // we add 1 to the expected time to avoid lag compensating when we should not
++        boolean shouldLagCompensate = this.useItem.has(DataComponents.FOOD) && this.eatStartTime != -1 && (System.nanoTime() - this.eatStartTime) > ((1L + this.totalEatTimeTicks) * 50L * (1000L * 1000L));
++        if ((--this.useItemRemaining == 0 || shouldLagCompensate) && !this.level().isClientSide && !p_147201_.useOnRelease()) {
++            this.useItemRemaining = 0;
++            // Paper end - lag compensate eating
              this.completeUsingItem();
          }
      }
@@ -1785,7 +1836,7 @@
          int i = this.entityData.get(DATA_LIVING_ENTITY_FLAGS);
          if (p_21157_) {
              i |= p_21156_;
-@@ -3029,8 +_,11 @@
+@@ -3029,8 +_,14 @@
      public void startUsingItem(InteractionHand p_21159_) {
          ItemStack itemstack = this.getItemInHand(p_21159_);
          if (!itemstack.isEmpty() && !this.isUsingItem()) {
@@ -1794,10 +1845,25 @@
 +            if (duration < 0) return; // Neo: Early return for negative values, as that indicates event cancellation.
              this.useItem = itemstack;
 -            this.useItemRemaining = itemstack.getUseDuration(this);
-+            this.useItemRemaining = duration;
++            // Paper start - lag compensate eating
++            this.useItemRemaining = this.totalEatTimeTicks = duration;
++            this.eatStartTime = System.nanoTime();
++            // Paper end - lag compensate eating
              if (!this.level().isClientSide) {
                  this.setLivingEntityFlag(1, true);
                  this.setLivingEntityFlag(2, p_21159_ == InteractionHand.OFF_HAND);
+@@ -3054,7 +_,10 @@
+                 }
+             } else if (!this.isUsingItem() && !this.useItem.isEmpty()) {
+                 this.useItem = ItemStack.EMPTY;
+-                this.useItemRemaining = 0;
++                // Paper start - lag compensate eating
++                this.useItemRemaining = this.totalEatTimeTicks = 0;
++                this.eatStartTime = -1L;
++                // Paper end - lag compensate eating
+             }
+         }
+     }
 @@ -3103,7 +_,7 @@
          }
      }
@@ -1877,7 +1943,17 @@
          if (!this.level().isClientSide) {
              boolean flag = this.isUsingItem();
              this.setLivingEntityFlag(1, false);
-@@ -3161,7 +_,7 @@
+@@ -3155,13 +_,16 @@
+         }
+ 
+         this.useItem = ItemStack.EMPTY;
+-        this.useItemRemaining = 0;
++        // Paper start - lag compensate eating
++        this.useItemRemaining = this.totalEatTimeTicks = 0;
++        this.eatStartTime = -1L;
++        // Paper end - lag compensate eating
+     }
+ 
      public boolean isBlocking() {
          if (this.isUsingItem() && !this.useItem.isEmpty()) {
              Item item = this.useItem.getItem();

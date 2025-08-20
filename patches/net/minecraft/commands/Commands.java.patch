@@ -16,8 +16,8 @@
  import com.mojang.brigadier.context.ContextChain;
  import com.mojang.brigadier.exceptions.CommandSyntaxException;
  import com.mojang.brigadier.tree.CommandNode;
- import com.mojang.brigadier.tree.RootCommandNode;
 +import com.mojang.brigadier.suggestion.SuggestionProvider;
+ import com.mojang.brigadier.tree.RootCommandNode;
  import com.mojang.logging.LogUtils;
  import java.util.Collection;
 +import java.util.LinkedHashSet;
@@ -29,14 +29,25 @@
  import java.util.function.Consumer;
  import java.util.function.Predicate;
  import java.util.function.UnaryOperator;
-@@ -43,7 +_,6 @@
- import net.minecraft.network.chat.ComponentUtils;
+@@ -40,10 +_,8 @@
+ import net.minecraft.network.chat.ClickEvent;
+ import net.minecraft.network.chat.CommonComponents;
+ import net.minecraft.network.chat.Component;
+-import net.minecraft.network.chat.ComponentUtils;
  import net.minecraft.network.chat.HoverEvent;
  import net.minecraft.network.chat.MutableComponent;
 -import net.minecraft.network.chat.Style;
  import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
  import net.minecraft.resources.ResourceKey;
  import net.minecraft.server.MinecraftServer;
+@@ -58,7 +_,6 @@
+ import net.minecraft.server.commands.DamageCommand;
+ import net.minecraft.server.commands.DataPackCommand;
+ import net.minecraft.server.commands.DeOpCommands;
+-import net.minecraft.server.commands.DebugCommand;
+ import net.minecraft.server.commands.DebugConfigCommand;
+ import net.minecraft.server.commands.DebugMobSpawningCommand;
+ import net.minecraft.server.commands.DebugPathCommand;
 @@ -136,6 +_,8 @@
  import net.minecraft.tags.TagKey;
  import net.minecraft.util.profiling.jfr.JvmProfiler;
@@ -150,7 +161,7 @@
 +
 +    public void performPrefixedCommand(CommandSourceStack commandlistenerwrapper, String s, String label) {
 +        s = s.startsWith("/") ? s.substring(1) : s;
-+        this.performCommand(this.dispatcher.parse(s, commandlistenerwrapper), s, label);
++        this.performCommandCB(this.dispatcher.parse(s, commandlistenerwrapper), s, label);
 +        // CraftBukkit end
 +    }
 +
@@ -159,13 +170,13 @@
 +    private static final AtomicReference<String> finishParsing$label = new AtomicReference<>();
 +    private final AtomicBoolean performCommand$throwCommandError = new AtomicBoolean(false);
 +
-+    public void performCommand(ParseResults<CommandSourceStack> pParseResults, String pCommand, String label) { // CraftBukkit
++    public void performCommandCB(ParseResults<CommandSourceStack> pParseResults, String pCommand, String label) { // CraftBukkit
 +        mohist$label.set(label);
 +        performCommand$throwCommandError.set(false);
 +        this.performCommand(pParseResults, pCommand);
 +    }
 +
-+    public void performCommand(ParseResults<CommandSourceStack> parseresults, String s, String label, boolean throwCommandError) {
++    public void performCommandCB(ParseResults<CommandSourceStack> parseresults, String s, String label, boolean throwCommandError) {
 +        mohist$label.set(label);
 +        performCommand$throwCommandError.set(throwCommandError);
 +        this.performCommand(parseresults, s);

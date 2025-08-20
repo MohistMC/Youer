@@ -144,7 +144,7 @@
      private final MinecraftServer server;
      public final ServerLevelData serverLevelData;
      private int lastSpawnChunkRadius;
-@@ -199,12 +_,72 @@
+@@ -199,12 +_,83 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -214,6 +214,17 @@
 +        return player != null && player.level() == this ? player : null;
 +    }
 +    // Paper end - optimise getPlayerByUUID
++    // Paper start - lag compensation
++    private long lagCompensationTick = net.minecraft.server.MinecraftServer.SERVER_INIT;
++
++    public long getLagCompensationTick() {
++        return this.lagCompensationTick;
++    }
++
++    public void updateLagCompensationTick() {
++        this.lagCompensationTick = (System.nanoTime() - net.minecraft.server.MinecraftServer.SERVER_INIT) / (java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(50L));
++    }
++    // Paper end - lag compensation
 +
      public ServerLevel(
          MinecraftServer p_214999_,
@@ -711,7 +722,7 @@
          Entity entity = this.getEntities().get(p_8854_.getUUID());
          if (entity != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", p_8854_.getUUID());
-@@ -903,15 +_,46 @@
+@@ -903,15 +_,52 @@
              this.removePlayerImmediately((ServerPlayer)entity, Entity.RemovalReason.DISCARDED);
          }
  
@@ -722,6 +733,12 @@
  
      private boolean addEntity(Entity p_8873_) {
 +        p_8873_.generation = false; // Paper - Don't fire sync event during generation; Reset flag if it was added during a ServerLevel generation process
++        // Paper start - extra debug info
++        if (p_8873_.valid) {
++            MinecraftServer.LOGGER.error("Attempted Double World add on {}", p_8873_, new Throwable());
++            return true;
++        }
++        // Paper end - extra debug info
          if (p_8873_.isRemoved()) {
 -            LOGGER.warn("Tried to add entity {} but it was marked as removed already", EntityType.getKey(p_8873_.getType()));
 -            return false;
@@ -964,6 +981,16 @@
          this.getServer().overworld().getDataStorage().set(p_323697_.key(), p_143306_);
      }
  
+@@ -1326,7 +_,9 @@
+         BlockPos blockpos = this.levelData.getSpawnPos();
+         float f = this.levelData.getSpawnAngle();
+         if (!blockpos.equals(p_8734_) || f != p_8735_) {
++            org.bukkit.Location prevSpawnLoc = this.getWorld().getSpawnLocation(); // Paper - Call SpawnChangeEvent
+             this.levelData.setSpawn(p_8734_, p_8735_);
++            new org.bukkit.event.world.SpawnChangeEvent(this.getWorld(), prevSpawnLoc).callEvent(); // Paper - Call SpawnChangeEvent
+             this.getServer().getPlayerList().broadcastAll(new ClientboundSetDefaultSpawnPositionPacket(p_8734_, p_8735_));
+         }
+ 
 @@ -1525,6 +_,11 @@
      @Override
      public void blockUpdated(BlockPos p_8743_, Block p_8744_) {
@@ -991,7 +1018,7 @@
      }
  
      @Nullable
-@@ -1688,6 +_,7 @@
+@@ -1688,11 +_,18 @@
          }
  
          public void onTickingStart(Entity p_143363_) {
@@ -999,6 +1026,17 @@
              ServerLevel.this.entityTickList.add(p_143363_);
          }
  
+         public void onTickingEnd(Entity p_143367_) {
+             ServerLevel.this.entityTickList.remove(p_143367_);
++            // Paper start - Reset pearls when they stop being ticked
++            if (paperConfig().fixes.disableUnloadedChunkEnderpearlExploit && p_143367_ instanceof net.minecraft.world.entity.projectile.ThrownEnderpearl pearl) {
++                pearl.cachedOwner = null;
++                pearl.ownerUUID = null;
++            }
++            // Paper end - Reset pearls when they stop being ticked
+         }
+ 
+         public void onTrackingStart(Entity p_143371_) {
 @@ -1713,16 +_,58 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/crafting/ShapelessRecipe.java
 +++ b/net/minecraft/world/item/crafting/ShapelessRecipe.java
-@@ -4,27 +_,47 @@
+@@ -4,27 +_,48 @@
  import com.mojang.serialization.DataResult;
  import com.mojang.serialization.MapCodec;
  import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -17,7 +17,8 @@
 +import org.bukkit.craftbukkit.inventory.CraftRecipe;
 +import org.bukkit.craftbukkit.inventory.CraftShapelessRecipe;
  
- public class ShapelessRecipe implements CraftingRecipe {
+-public class ShapelessRecipe implements CraftingRecipe {
++public class ShapelessRecipe extends io.papermc.paper.inventory.recipe.RecipeBookExactChoiceRecipe<CraftingInput> implements CraftingRecipe {
      final String group;
      final CraftingBookCategory category;
      final ItemStack result;
@@ -31,6 +32,7 @@
          this.ingredients = p_250689_;
 -    }
 +        this.isSimple = p_250689_.stream().allMatch(Ingredient::isSimple);
++        this.checkExactIngredients(); // Paper - improve exact recipe choices
 +    }
 +
 +    // CraftBukkit start
@@ -51,7 +53,7 @@
  
      @Override
      public RecipeSerializer<?> getSerializer() {
-@@ -54,6 +_,12 @@
+@@ -54,10 +_,22 @@
      public boolean matches(CraftingInput p_346123_, Level p_44263_) {
          if (p_346123_.ingredientCount() != this.ingredients.size()) {
              return false;
@@ -62,8 +64,21 @@
 +                    nonEmptyItems.add(item);
 +            return net.neoforged.neoforge.common.util.RecipeMatcher.findMatches(nonEmptyItems, this.ingredients) != null;
          } else {
-             return p_346123_.size() == 1 && this.ingredients.size() == 1
-                 ? this.ingredients.getFirst().test(p_346123_.getItem(0))
+-            return p_346123_.size() == 1 && this.ingredients.size() == 1
+-                ? this.ingredients.getFirst().test(p_346123_.getItem(0))
+-                : p_346123_.stackedContents().canCraft(this, null);
++            // Paper start - unwrap ternary & better exact choice recipes
++            if (p_346123_.size() == 1 && this.ingredients.size() == 1) {
++                return this.ingredients.getFirst().test(p_346123_.getItem(0));
++            }
++            p_346123_.stackedContents().initializeExtras(this, p_346123_); // setup stacked contents for this recipe
++            final boolean canCraft = p_346123_.stackedContents().canCraft(this, null);
++            p_346123_.stackedContents().resetExtras();
++            return canCraft;
++            // Paper end - unwrap ternary & better exact choice recipes
+         }
+     }
+ 
 @@ -81,12 +_,12 @@
                              .fieldOf("ingredients")
                              .flatXmap(

@@ -243,6 +243,16 @@ public class DummyGeneratorAccess implements WorldGenLevel {
         return false; // SPIGOT-6515
     }
 
+    // Paper start - add more methods
+    public void scheduleTick(BlockPos pos, Fluid fluid, int delay) {}
+
+    @Override
+    public void scheduleTick(BlockPos pos, Block block, int delay, net.minecraft.world.ticks.TickPriority priority) {}
+
+    @Override
+    public void scheduleTick(BlockPos pos, Fluid fluid, int delay, net.minecraft.world.ticks.TickPriority priority) {}
+    // Paper end - add more methods
+
     @javax.annotation.Nullable
     @Override
     public ChunkAccess getChunkIfLoadedImmediately(int x, int z) {

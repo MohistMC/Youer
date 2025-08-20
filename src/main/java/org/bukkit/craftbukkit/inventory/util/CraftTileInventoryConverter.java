@@ -175,7 +175,7 @@ public abstract class CraftTileInventoryConverter implements CraftInventoryCreat
         }
     }
 
-    public static class BlastFurnace extends CraftTileInventoryConverter {
+    public static class BlastFurnace extends AbstractFurnaceInventoryConverter { // Paper - Furnace, BlastFurnace, and Smoker are pretty much identical
 
         @Override
         public Container getTileEntity() {
@@ -191,7 +191,7 @@ public abstract class CraftTileInventoryConverter implements CraftInventoryCreat
         }
     }
 
-    public static class Smoker extends CraftTileInventoryConverter {
+    public static class Smoker extends AbstractFurnaceInventoryConverter { // Paper - Furnace, BlastFurnace, and Smoker are pretty much identical
 
         @Override
         public Container getTileEntity() {

@@ -7,7 +7,7 @@
  import net.minecraft.SharedConstants;
  import net.minecraft.network.Connection;
  import net.minecraft.network.DisconnectionDetails;
-@@ -12,10 +_,22 @@
+@@ -12,10 +_,23 @@
  import net.minecraft.network.protocol.status.StatusProtocols;
  import net.minecraft.server.MinecraftServer;
  
@@ -27,6 +27,7 @@
 +    private static final HashMap<InetAddress, Long> throttleTracker = new HashMap<InetAddress, Long>();
 +    private static int throttleCounter = 0;
 +    // CraftBukkit end
++    private static final boolean BYPASS_HOSTCHECK = Boolean.getBoolean("Paper.bypassHostCheck"); // Paper
  
      public ServerHandshakePacketListenerImpl(MinecraftServer p_9969_, Connection p_9970_) {
          this.server = p_9969_;
@@ -38,7 +39,7 @@
          switch (p_9975_.intention()) {
              case LOGIN:
                  this.beginLogin(p_9975_, false);
-@@ -50,22 +_,119 @@
+@@ -50,22 +_,124 @@
              default:
                  throw new UnsupportedOperationException("Invalid intention " + p_9975_.intention());
          }
@@ -53,34 +54,36 @@
          this.connection.setupOutboundProtocol(LoginProtocols.CLIENTBOUND);
 +        // CraftBukkit start - Connection throttle
 +        try {
-+            long currentTime = System.currentTimeMillis();
-+            long connectionThrottle = this.server.server.getConnectionThrottle();
-+            InetAddress address = ((java.net.InetSocketAddress) this.connection.getRemoteAddress()).getAddress();
++            if (!(this.connection.channel.localAddress() instanceof io.netty.channel.unix.DomainSocketAddress)) { // Paper - Unix domain socket support; the connection throttle is useless when you have a Unix domain socket
++                long currentTime = System.currentTimeMillis();
++                long connectionThrottle = this.server.server.getConnectionThrottle();
++                InetAddress address = ((java.net.InetSocketAddress) this.connection.getRemoteAddress()).getAddress();
 +
-+            synchronized (throttleTracker) {
-+                if (throttleTracker.containsKey(address) && !"127.0.0.1".equals(address.getHostAddress()) && currentTime - throttleTracker.get(address) < connectionThrottle) {
++                synchronized (throttleTracker) {
++                    if (throttleTracker.containsKey(address) && !"127.0.0.1".equals(address.getHostAddress()) && currentTime - throttleTracker.get(address) < connectionThrottle) {
++                        throttleTracker.put(address, currentTime);
++                        net.minecraft.network.chat.Component chatmessage = io.papermc.paper.adventure.PaperAdventure.asVanilla(io.papermc.paper.configuration.GlobalConfiguration.get().messages.kick.connectionThrottle);
++                        this.connection.send(new ClientboundLoginDisconnectPacket(chatmessage));
++                        this.connection.disconnect(chatmessage);
++                        return;
++                    }
++
 +                    throttleTracker.put(address, currentTime);
-+                    net.minecraft.network.chat.MutableComponent chatmessage = Component.literal("Connection throttled! Please wait before reconnecting.");
-+                    this.connection.send(new ClientboundLoginDisconnectPacket(chatmessage));
-+                    this.connection.disconnect(chatmessage);
-+                    return;
-+                }
++                    throttleCounter++;
++                    if (throttleCounter > 200) {
++                        throttleCounter = 0;
 +
-+                throttleTracker.put(address, currentTime);
-+                throttleCounter++;
-+                if (throttleCounter > 200) {
-+                    throttleCounter = 0;
-+
-+                    // Cleanup stale entries
-+                    java.util.Iterator iter = throttleTracker.entrySet().iterator();
-+                    while (iter.hasNext()) {
-+                        java.util.Map.Entry<InetAddress, Long> entry = (java.util.Map.Entry) iter.next();
-+                        if (entry.getValue() > connectionThrottle) {
-+                            iter.remove();
++                        // Cleanup stale entries
++                        java.util.Iterator iter = throttleTracker.entrySet().iterator();
++                        while (iter.hasNext()) {
++                            java.util.Map.Entry<InetAddress, Long> entry = (java.util.Map.Entry) iter.next();
++                            if (entry.getValue() > connectionThrottle) {
++                                iter.remove();
++                            }
 +                        }
 +                    }
 +                }
-+            }
++            } // Paper - Unix domain socket support
 +        } catch (Throwable t) {
 +            org.apache.logging.log4j.LogManager.getLogger().debug("Failed to check connection throttle", t);
 +        }
@@ -140,9 +143,12 @@
 +            // Spigot Start
 +            String[] split = p_320524_.hostName().split("\00");
 +            if (!handledByEvent && proxyLogicEnabled) { // Paper
-+                if ( ( split.length == 3 || split.length == 4 ) && ( HOST_PATTERN.matcher( split[1] ).matches() ) ) {
-+                    connection.hostname = split[0];
-+                    connection.address = new java.net.InetSocketAddress(split[1], ((java.net.InetSocketAddress) connection.getRemoteAddress()).getPort());
++                if ( ( split.length == 3 || split.length == 4 ) && ( BYPASS_HOSTCHECK || HOST_PATTERN.matcher( split[1] ).matches() ) ) { // Paper - Add bypass host check
++                    // Paper start - Unix domain socket support
++                    java.net.SocketAddress socketAddress = this.connection.getRemoteAddress();
++                    this.connection.hostname = split[0];
++                    this.connection.address = new java.net.InetSocketAddress(split[1], socketAddress instanceof java.net.InetSocketAddress ? ((java.net.InetSocketAddress) socketAddress).getPort() : 0);
++                    // Paper end - Unix domain socket support
 +                    connection.spoofedUUID = com.mojang.util.UndashedUuid.fromStringLenient( split[2] );
 +                } else
 +                {

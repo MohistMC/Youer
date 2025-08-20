@@ -8,7 +8,7 @@
  import com.mojang.logging.LogUtils;
  import io.netty.bootstrap.ServerBootstrap;
  import io.netty.channel.Channel;
-@@ -48,16 +_,26 @@
+@@ -48,35 +_,64 @@
  
  public class ServerConnectionListener {
      private static final Logger LOGGER = LogUtils.getLogger();
@@ -37,17 +37,31 @@
  
      public ServerConnectionListener(MinecraftServer p_9707_) {
          this.server = p_9707_;
-@@ -65,18 +_,26 @@
+         this.running = true;
      }
  
-     public void startTcpServerListener(@Nullable InetAddress p_9712_, int p_9713_) throws IOException {
-+        if (p_9712_ == null) p_9712_ = new java.net.InetSocketAddress(p_9713_).getAddress();
-+        net.neoforged.neoforge.network.DualStackUtils.checkIPv6(p_9712_);
+-    public void startTcpServerListener(@Nullable InetAddress p_9712_, int p_9713_) throws IOException {
++    // Paper start - Unix domain socket support
++    public void startTcpServerListener(@Nullable InetAddress address, int port) throws IOException {
++        if (address == null) address = new java.net.InetSocketAddress(port).getAddress();
++        net.neoforged.neoforge.network.DualStackUtils.checkIPv6(address);
++        bind(new java.net.InetSocketAddress(address, port));
++    }
++    public void bind(java.net.SocketAddress address) throws IOException {
++        // Paper end - Unix domain socket support
          synchronized (this.channels) {
-             Class<? extends ServerSocketChannel> oclass;
+-            Class<? extends ServerSocketChannel> oclass;
++            Class oclass;
              EventLoopGroup eventloopgroup;
              if (Epoll.isAvailable() && this.server.isEpollEnabled()) {
-                 oclass = EpollServerSocketChannel.class;
+-                oclass = EpollServerSocketChannel.class;
++                // Paper start - Unix domain socket support
++                if (address instanceof io.netty.channel.unix.DomainSocketAddress) {
++                    oclass = io.netty.channel.epoll.EpollServerDomainSocketChannel.class;
++                } else {
++                    oclass = EpollServerSocketChannel.class;
++                }
++                // Paper end - Unix domain socket support
                  eventloopgroup = SERVER_EPOLL_EVENT_GROUP.get();
 -                LOGGER.info("Using epoll channel type");
 +                LOGGER.info(I18n.as("serverconnectionlistener.1"));
@@ -118,7 +132,7 @@
 +                    io.papermc.paper.network.ChannelInitializeListenerHolder.callListeners(p_9729_); // Paper - Add Channel initialization listeners
                  }
 -            }).group(eventloopgroup).localAddress(p_9712_, p_9713_).bind().syncUninterruptibly());
-+            }).group(eventloopgroup).localAddress(p_9712_, p_9713_).option(ChannelOption.AUTO_READ, false).bind().syncUninterruptibly()); // CraftBukkit
++            }).group(eventloopgroup).localAddress(address).option(ChannelOption.AUTO_READ, false).bind().syncUninterruptibly()); // CraftBukkit // Paper - Unix domain socket support
          }
      }
  

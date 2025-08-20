@@ -1169,7 +1169,6 @@ public class CommonHooks {
             CommonHooks.modList = modListTag;
         }
 
-
         CompoundTag fmlData = new CompoundTag();
         fmlData.put("LoadingModList", CommonHooks.modList);
 

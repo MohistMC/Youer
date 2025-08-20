@@ -28,6 +28,15 @@ public interface PluginsPayload extends CustomPacketPayload {
         return getData().slice();
     }
 
+    default byte[] leak() {
+        final var buf = getData();
+        byte[] allocate = new byte[buf.readableBytes()];
+        buf.readBytes(allocate);
+        ReferenceCountUtil.release(buf);
+        setData(null);
+        return allocate;
+    }
+
     static <B extends FriendlyByteBuf> StreamCodec<B, PluginsDiscardedPayload> codec(Type<PluginsDiscardedPayload> type, int max) {
         return StreamCodec.composite(
                 StreamCodec.of(FriendlyByteBuf::writeBytes, buf -> {

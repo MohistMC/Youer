@@ -187,7 +187,7 @@
          }
      }
  
-@@ -389,11 +_,18 @@
+@@ -389,11 +_,23 @@
      public void handleMoveVehicle(ServerboundMoveVehiclePacket p_9876_) {
          PacketUtils.ensureRunningOnSameThread(p_9876_, this, this.player.serverLevel());
          if (containsInvalidValues(p_9876_.getX(), p_9876_.getY(), p_9876_.getZ(), p_9876_.getYRot(), p_9876_.getXRot())) {
@@ -195,6 +195,11 @@
 +            this.disconnect(Component.translatable("multiplayer.disconnect.invalid_vehicle_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_VEHICLE_MOVEMENT); // Paper - kick event cause
          } else if (!this.updateAwaitingTeleport()) {
              Entity entity = this.player.getRootVehicle();
++            // Paper start - Don't allow vehicle movement from players while teleporting
++            if (this.awaitingPositionFromClient != null || this.player.isImmobile() || entity.isRemoved()) {
++                return;
++            }
++            // Paper end - Don't allow vehicle movement from players while teleporting
              if (entity != this.player && entity.getControllingPassenger() == this.player && entity == this.lastVehicle) {
                  ServerLevel serverlevel = this.player.serverLevel();
 +                // CraftBukkit - store current player position
@@ -490,6 +495,24 @@
                  }
              );
      }
+@@ -548,7 +_,7 @@
+         PacketUtils.ensureRunningOnSameThread(p_9911_, this, this.player.serverLevel());
+         if (!this.server.isCommandBlockEnabled()) {
+             this.player.sendSystemMessage(Component.translatable("advMode.notEnabled"));
+-        } else if (!this.player.canUseGameMasterBlocks()) {
++        } else if (!this.player.canUseGameMasterBlocks() && (!this.player.isCreative() || !this.player.getBukkitEntity().hasPermission("minecraft.commandblock"))) { // Paper - command block permission
+             this.player.sendSystemMessage(Component.translatable("advMode.notAllowed"));
+         } else {
+             BaseCommandBlock basecommandblock = null;
+@@ -604,7 +_,7 @@
+         PacketUtils.ensureRunningOnSameThread(p_9913_, this, this.player.serverLevel());
+         if (!this.server.isCommandBlockEnabled()) {
+             this.player.sendSystemMessage(Component.translatable("advMode.notEnabled"));
+-        } else if (!this.player.canUseGameMasterBlocks()) {
++        } else if (!this.player.canUseGameMasterBlocks() && (!this.player.isCreative() || !this.player.getBukkitEntity().hasPermission("minecraft.commandblock"))) { // Paper - command block permission
+             this.player.sendSystemMessage(Component.translatable("advMode.notAllowed"));
+         } else {
+             BaseCommandBlock basecommandblock = p_9913_.getCommandBlock(this.player.level());
 @@ -625,6 +_,23 @@
      public void handlePickItem(ServerboundPickItemPacket p_9880_) {
          PacketUtils.ensureRunningOnSameThread(p_9880_, this, this.player.serverLevel());
@@ -679,7 +702,7 @@
                                      }
                                  }
                              }
-@@ -894,11 +_,39 @@
+@@ -894,11 +_,44 @@
                              d8 = d2 - this.lastGoodZ;
                              boolean flag4 = d7 > 0.0;
                              if (this.player.onGround() && !p_9874_.isOnGround() && flag4) {
@@ -717,6 +740,11 @@
                              boolean flag1 = this.player.verticalCollisionBelow;
                              this.player.move(MoverType.PLAYER, new Vec3(d6, d7, d8));
 +                            this.player.onGround = p_9874_.isOnGround(); // CraftBukkit - SPIGOT-5810, SPIGOT-5835, SPIGOT-6828: reset by this.player.move
++                            // Paper start - prevent position desync
++                            if (this.awaitingPositionFromClient != null) {
++                                return; // ... thanks Mojang for letting move calls teleport across dimensions.
++                            }
++                            // Paper end - prevent position desync
                              d6 = d0 - this.player.getX();
                              d7 = d1 - this.player.getY();
                              if (d7 > -0.5 || d7 < 0.5) {
@@ -1582,13 +1610,18 @@
      }
  
      public void sendDisguisedChatMessage(Component p_251804_, ChatType.Bound p_250040_) {
-@@ -1507,6 +_,13 @@
+@@ -1507,6 +_,18 @@
          return this.connection.getRemoteAddress();
      }
  
 +    // Spigot Start
 +    public SocketAddress getRawAddress()
 +    {
++        // Paper start - Unix domain socket support; this can be nullable in the case of a Unix domain socket, so if it is, fake something
++        if (connection.channel.remoteAddress() == null) {
++            return new java.net.InetSocketAddress(java.net.InetAddress.getLoopbackAddress(), 0);
++        }
++        // Paper end - Unix domain socket support
 +        return this.connection.channel.remoteAddress();
 +    }
 +    // Spigot End

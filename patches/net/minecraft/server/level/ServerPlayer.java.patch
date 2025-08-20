@@ -150,7 +150,7 @@
      @Nullable
      private Vec3 startingToFallPosition;
      @Nullable
-@@ -221,7 +_,7 @@
+@@ -221,11 +_,11 @@
      private boolean textFilteringEnabled;
      private boolean allowsListing;
      private boolean spawnExtraParticlesOnFall;
@@ -159,6 +159,11 @@
      @Nullable
      private BlockPos raidOmenPosition;
      private Vec3 lastKnownClientMovement = Vec3.ZERO;
+-    private final ContainerSynchronizer containerSynchronizer = new ContainerSynchronizer() {
++    public final ContainerSynchronizer containerSynchronizer = new ContainerSynchronizer() {
+         @Override
+         public void sendInitialData(AbstractContainerMenu p_143448_, NonNullList<ItemStack> p_143449_, ItemStack p_143450_, int[] p_143451_) {
+             ServerPlayer.this.connection
 @@ -252,6 +_,10 @@
          }
  
@@ -411,10 +416,12 @@
          this.gameMode.tick();
          this.wardenSpawnTracker.tick();
          this.spawnInvulnerableTime--;
-@@ -498,6 +_,7 @@
+@@ -497,7 +_,8 @@
+         }
  
          this.containerMenu.broadcastChanges();
-         if (!this.level().isClientSide && !this.containerMenu.stillValid(this)) {
+-        if (!this.level().isClientSide && !this.containerMenu.stillValid(this)) {
++        if (!this.level().isClientSide && this.containerMenu != this.inventoryMenu && (this.isImmobile() || !this.containerMenu.stillValid(this))) { // Paper - Prevent opening inventories when frozen
 +            InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.CANT_USE); // Paper - Inventory close reason
              this.closeContainer();
              this.containerMenu = this.inventoryMenu;
@@ -817,7 +824,7 @@
          if (this.isSleeping()) {
              this.serverLevel().getChunkSource().broadcastAndSend(this, new ClientboundAnimatePacket(this, 2));
          }
-@@ -1072,17 +_,68 @@
+@@ -1072,17 +_,72 @@
          this.containerCounter = this.containerCounter % 100 + 1;
      }
  
@@ -877,6 +884,10 @@
 +                    } else if (p_9033_ instanceof ChestBlock.DoubleInventory) {
 +                        // SPIGOT-5355 - double chests too :(
 +                        ((ChestBlock.DoubleInventory) p_9033_).inventorylargechest.stopOpen(this);
++                        // Paper start - Fix InventoryOpenEvent cancellation
++                    } else if (!this.enderChestInventory.isActiveChest(null)) {
++                        this.enderChestInventory.stopOpen(this);
++                        // Paper end - Fix InventoryOpenEvent cancellation
 +                    }
 +                    return OptionalInt.empty();
 +                }
@@ -890,6 +901,8 @@
  
                  return OptionalInt.empty();
              } else {
+-                this.connection
+-                    .send(new ClientboundOpenScreenPacket(abstractcontainermenu.containerId, abstractcontainermenu.getType(), p_9033_.getDisplayName()));
 +                // Neo: Support sending additional arbitrary data to menu factories on the client-side
 +                AbstractContainerMenu finalAbstractcontainermenu = abstractcontainermenu; // Youer
 +                var extraData = FriendlyByteBufUtil.writeCustomData(
@@ -904,21 +917,18 @@
 +                if (extraData.length != 0) {
 +                    this.connection.send(
 +                        new AdvancedOpenScreenPayload(
-+                                finalAbstractcontainermenu.containerId,
-+                                finalAbstractcontainermenu.getType(),
++                                abstractcontainermenu.containerId,
++                                abstractcontainermenu.getType(),
 +                            p_9033_.getDisplayName(),
 +                            extraData
 +                        )
 +                    );
 +                } else {
-                 this.connection
--                    .send(new ClientboundOpenScreenPacket(abstractcontainermenu.containerId, abstractcontainermenu.getType(), p_9033_.getDisplayName()));
--                this.initMenu(abstractcontainermenu);
--                this.containerMenu = abstractcontainermenu;
-+                    .send(new ClientboundOpenScreenPacket(finalAbstractcontainermenu.containerId, finalAbstractcontainermenu.getType(), Objects.requireNonNullElseGet(title, finalAbstractcontainermenu::getTitle))); // Paper - Add titleOverride to InventoryOpenEvent
++                    if (!this.isImmobile()) this.connection
++                    .send(new ClientboundOpenScreenPacket(abstractcontainermenu.containerId, abstractcontainermenu.getType(), Objects.requireNonNullElseGet(title, abstractcontainermenu::getTitle))); // Paper - Add titleOverride to InventoryOpenEvent
 +                }
-+                this.initMenu(finalAbstractcontainermenu);
-+                this.containerMenu = finalAbstractcontainermenu;
+                 this.initMenu(abstractcontainermenu);
+                 this.containerMenu = abstractcontainermenu;
 +                NeoForge.EVENT_BUS.post(new PlayerContainerEvent.Open(this, this.containerMenu));
                  return OptionalInt.of(this.containerCounter);
              }
@@ -1067,10 +1077,12 @@
          if (!this.useItem.isEmpty() && this.isUsingItem()) {
              this.connection.send(new ClientboundEntityEventPacket(this, (byte)9));
              super.completeUsingItem();
-@@ -1334,19 +_,20 @@
+@@ -1334,19 +_,22 @@
      }
  
      public void restoreFrom(ServerPlayer p_9016_, boolean p_9017_) {
++        p_9016_.getBukkitEntity().setHandle(this);
++        this.setBukkitEntity(p_9016_.getBukkitEntity());
 +        this.isRealPlayer = p_9016_.isRealPlayer;
          this.wardenSpawnTracker = p_9016_.wardenSpawnTracker;
          this.chatSession = p_9016_.chatSession;
@@ -1078,7 +1090,7 @@
          this.onUpdateAbilities();
          this.getAttributes().assignBaseValues(p_9016_.getAttributes());
 -        this.setHealth(this.getMaxHealth());
-+        // this.setHealth(this.getMaxHealth()); // CraftBukkit
++        this.setHealth(this.getMaxHealth()); // CraftBukkit
          if (p_9017_) {
              this.getInventory().replaceWith(p_9016_.getInventory());
              this.setHealth(p_9016_.getHealth());
@@ -1086,7 +1098,7 @@
  
              for (MobEffectInstance mobeffectinstance : p_9016_.getActiveEffects()) {
 -                this.addEffect(new MobEffectInstance(mobeffectinstance));
-+               // this.addEffect(new MobEffectInstance(mobeffectinstance)); // CraftBukkit
++               this.addEffect(new MobEffectInstance(mobeffectinstance));
              }
  
              this.experienceLevel = p_9016_.experienceLevel;
@@ -1108,15 +1120,7 @@
              this.setScore(p_9016_.getScore());
          }
  
-@@ -1368,13 +_,22 @@
-         this.lastSentExp = -1;
-         this.lastSentHealth = -1.0F;
-         this.lastSentFood = -1;
--        this.recipeBook.copyOverData(p_9016_.recipeBook);
-+        // this.recipeBook.copyOverData(p_9016_.recipeBook); // CraftBukkit
-         this.seenCredits = p_9016_.seenCredits;
-         this.enteredNetherPosition = p_9016_.enteredNetherPosition;
-         this.chunkTrackingView = p_9016_.chunkTrackingView;
+@@ -1375,6 +_,15 @@
          this.setShoulderEntityLeft(p_9016_.getShoulderEntityLeft());
          this.setShoulderEntityRight(p_9016_.getShoulderEntityRight());
          this.setLastDeathLocation(p_9016_.getLastDeathLocation());
@@ -1591,7 +1595,7 @@
          }
  
          private static float calculateLookAtYaw(Vec3 p_348686_, BlockPos p_348467_) {
-@@ -1968,4 +_,192 @@
+@@ -1968,4 +_,193 @@
              return (float)Mth.wrapDegrees(Mth.atan2(vec3.z, vec3.x) * 180.0F / (float)Math.PI - 90.0);
          }
      }
@@ -1707,6 +1711,7 @@
 +
 +        this.setHealth(this.getMaxHealth());
 +        this.stopUsingItem(); // CraftBukkit - SPIGOT-6682: Clear active item on reset
++        this.setAirSupply(this.getMaxAirSupply()); // Paper - Reset players airTicks on respawn
 +        this.setRemainingFireTicks(0);
 +        this.fallDistance = 0;
 +        this.foodData = new FoodData().player(this);

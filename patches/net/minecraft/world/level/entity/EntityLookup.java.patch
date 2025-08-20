@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/level/entity/EntityLookup.java
++++ b/net/minecraft/world/level/entity/EntityLookup.java
+@@ -33,6 +_,14 @@
+         UUID uuid = p_156815_.getUUID();
+         if (this.byUuid.containsKey(uuid)) {
+             LOGGER.warn("Duplicate entity UUID {}: {}", uuid, p_156815_);
++            // Paper start - extra debug info
++            if (p_156815_ instanceof net.minecraft.world.entity.Entity) {
++                final T old = this.byUuid.get(p_156815_.getUUID());
++                if (old instanceof net.minecraft.world.entity.Entity oldCast && oldCast.getId() != p_156815_.getId() && oldCast.valid) {
++                    LOGGER.error("Overwrote an existing entity {} with {}", oldCast, p_156815_);
++                }
++            }
++            // Paper end - extra debug info
+         } else {
+             this.byUuid.put(uuid, p_156815_);
+             this.byId.put(p_156815_.getId(), p_156815_);

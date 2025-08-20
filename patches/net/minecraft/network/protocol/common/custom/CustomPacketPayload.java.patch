@@ -19,9 +19,8 @@
              private <T extends CustomPacketPayload> void writeCap(B p_320565_, CustomPacketPayload.Type<T> p_320917_, CustomPacketPayload p_320112_) {
                  p_320565_.writeResourceLocation(p_320917_.id());
                  StreamCodec<B, T> streamcodec = (StreamCodec<B, T>)this.findCodec(p_320917_.id);
--                streamcodec.encode(p_320565_, (T)p_320112_);
 +                try {
-+                    streamcodec.encode(p_320565_, (T) p_320112_);
+                 streamcodec.encode(p_320565_, (T)p_320112_);
 +                } catch (RuntimeException e) {
 +                    throw new RuntimeException("Failed encoding custom payload " + p_320917_.id() + ": " + e, e); // Make it easier to debug which mod payload failed to be encoded
 +                }

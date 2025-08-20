@@ -164,7 +164,7 @@
      }
  
      public boolean isStackable() {
-@@ -411,39 +_,70 @@
+@@ -411,39 +_,71 @@
      }
  
      public boolean isDamaged() {
@@ -197,9 +197,10 @@
 +            p_220158_ = getItem().damageItem(this, p_220158_, p_220160_, p_348596_);
 +            if (p_220160_ == null || !p_220160_.hasInfiniteMaterials() || hurtAndBreak$force.getAndSet(false)) {
                  if (p_220158_ > 0) {
++                    int originalDamage = p_220158_; // Paper - Expand PlayerItemDamageEvent
                      p_220158_ = EnchantmentHelper.processDurabilityChange(p_346256_, this, p_220158_);
 +                    if (p_220160_ instanceof ServerPlayer serverPlayer) { // Paper - Add EntityDamageItemEvent
-+                        PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverPlayer.getBukkitEntity(), CraftItemStack.asCraftMirror(this), p_220158_); // Paper - Add EntityDamageItemEvent
++                        PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverPlayer.getBukkitEntity(), CraftItemStack.asCraftMirror(this), p_220158_, originalDamage); // Paper - Add EntityDamageItemEvent & Expand PlayerItemDamageEvent
 +                        event.getPlayer().getServer().getPluginManager().callEvent(event);
 +
 +                        if (p_220158_ != event.getDamage() || event.isCancelled()) {

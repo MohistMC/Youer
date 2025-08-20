@@ -1396,6 +1396,20 @@
      }
  
      public boolean isInvulnerable() {
+@@ -2535,6 +_,13 @@
+     }
+ 
+     public void restoreFrom(Entity p_20362_) {
++        // Paper start - Forward CraftEntity in teleport command
++        CraftEntity bukkitEntity = p_20362_.bukkitEntity;
++        if (bukkitEntity != null) {
++            bukkitEntity.setHandle(this);
++            this.bukkitEntity = bukkitEntity;
++        }
++        // Paper end - Forward CraftEntity in teleport command
+         CompoundTag compoundtag = p_20362_.saveWithoutId(new CompoundTag());
+         compoundtag.remove("Dimension");
+         this.load(compoundtag);
 @@ -2544,6 +_,7 @@
  
      @Nullable
@@ -1404,15 +1418,7 @@
          if (this.level() instanceof ServerLevel serverlevel && !this.isRemoved()) {
              ServerLevel serverlevel1 = p_350951_.newLevel();
              List<Entity> list = this.getPassengers();
-@@ -2563,11 +_,15 @@
-                 if (this != entity2) {
-                     entity2.restoreFrom(this);
-                     this.removeAfterChangingDimensions();
-+                    // CraftBukkit start - Forward the CraftEntity to the new entity
-+                    this.getBukkitEntity().setHandle(entity2);
-+                    entity2.bukkitEntity = this.getBukkitEntity();
-+                    // CraftBukkit end
-                 }
+@@ -2567,7 +_,7 @@
  
                  entity2.moveTo(p_350951_.pos().x, p_350951_.pos().y, p_350951_.pos().z, p_350951_.yRot(), entity2.getXRot());
                  entity2.setDeltaMovement(p_350951_.speed());

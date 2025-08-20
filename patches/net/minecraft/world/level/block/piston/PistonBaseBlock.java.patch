@@ -8,33 +8,15 @@
  import java.util.List;
  import java.util.Map;
  import java.util.Map.Entry;
-@@ -39,6 +_,7 @@
+@@ -39,6 +_,8 @@
  import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
 +import org.bukkit.craftbukkit.block.CraftBlock;
++import org.bukkit.event.block.BlockPistonRetractEvent;
  
  public class PistonBaseBlock extends DirectionalBlock {
      public static final MapCodec<PistonBaseBlock> CODEC = RecordCodecBuilder.mapCodec(
-@@ -143,6 +_,18 @@
-                 i = 2;
-             }
- 
-+            // CraftBukkit start
-+            if (!this.isSticky) {
-+                org.bukkit.block.Block block = p_60168_.getWorld().getBlockAt(p_60169_.getX(), p_60169_.getY(), p_60169_.getZ());
-+                org.bukkit.event.block.BlockPistonRetractEvent event = new org.bukkit.event.block.BlockPistonRetractEvent(block, com.google.common.collect.ImmutableList.<org.bukkit.block.Block>of(), CraftBlock.notchToBlockFace(direction));
-+                p_60168_.getCraftServer().getPluginManager().callEvent(event);
-+                if (event.isCancelled()) {
-+                    return;
-+                }
-+            }
-+            // PAIL: checkME - what happened to setTypeAndData?
-+            // CraftBukkit end
-+
-             p_60168_.blockEvent(p_60169_, this, i, direction.get3DDataValue());
-         }
-     }
 @@ -186,6 +_,7 @@
          }
  
@@ -51,6 +33,35 @@
              BlockEntity blockentity = p_60193_.getBlockEntity(p_60194_.relative(direction));
              if (blockentity instanceof PistonMovingBlockEntity) {
                  ((PistonMovingBlockEntity)blockentity).finalTick();
+@@ -203,6 +_,14 @@
+                 .defaultBlockState()
+                 .setValue(MovingPistonBlock.FACING, direction)
+                 .setValue(MovingPistonBlock.TYPE, this.isSticky ? PistonType.STICKY : PistonType.DEFAULT);
++
++            // Paper start - Fix sticky pistons and BlockPistonRetractEvent; Move empty piston retract call to fix multiple event fires
++            if (!this.isSticky) {
++                if (!new BlockPistonRetractEvent(CraftBlock.at(p_60193_, p_60194_), java.util.Collections.emptyList(), CraftBlock.notchToBlockFace(direction)).callEvent()) {
++                    return false;
++                }
++            }
++            // Paper end - Fix sticky pistons and BlockPistonRetractEvent
+             p_60193_.setBlock(p_60194_, blockstate1, 20);
+             p_60193_.setBlockEntity(
+                 MovingPistonBlock.newMovingBlockEntity(
+@@ -232,6 +_,13 @@
+                             && !blockstate2.is(Blocks.STICKY_PISTON)) {
+                         p_60193_.removeBlock(p_60194_.relative(direction), false);
+                     } else {
++                        // Paper start - Fix sticky pistons and BlockPistonRetractEvent; fire BlockPistonRetractEvent for sticky pistons retracting nothing (air)
++                        if (p_60195_ == TRIGGER_CONTRACT && blockstate1.isAir()) {
++                            if (!new BlockPistonRetractEvent(CraftBlock.at(p_60193_, p_60194_), java.util.Collections.emptyList(), CraftBlock.notchToBlockFace(direction)).callEvent()) {
++                                return false;
++                            }
++                        }
++                        // Paper end - Fix sticky pistons and BlockPistonRetractEvent
+                         this.moveBlocks(p_60193_, p_60194_, direction, false);
+                     }
+                 }
 @@ -243,6 +_,7 @@
              p_60193_.gameEvent(GameEvent.BLOCK_DEACTIVATE, p_60194_, GameEvent.Context.of(blockstate1));
          }

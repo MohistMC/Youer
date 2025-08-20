@@ -242,7 +242,7 @@ public class NetworkRegistry {
      * Checks if a payload is a modded payload. A modded payload is any payload that does not have `minecraft` as the domain, and is not a discarded payload.
      * <p>
      * The special handling for {@link DiscardedPayload} is because it falsely reports its type as the type that failed to decode.
-     *
+     * 
      * @return True if the payload is modded, and modded payload handling should be invoked for it.
      */
     public static boolean isModdedPayload(CustomPacketPayload payload) {
@@ -299,7 +299,7 @@ public class NetworkRegistry {
      * Handles modded payloads on the client. Invoked after built-in handling.
      * <p>
      * Called on the network thread.
-     *
+     * 
      * @param listener The listener which received the packet.
      * @param packet   The packet that was received.
      */
@@ -759,7 +759,7 @@ public class NetworkRegistry {
      * Since we only support one version, we don't need to do further handling or record the "active" version just yet.
      * <p>
      * Invoked on the network thread.
-     *
+     * 
      * @param listener The receiving listener.
      * @param payload  The incoming version payload.
      */
@@ -814,7 +814,7 @@ public class NetworkRegistry {
      * Invoked when the configuration phase of a connection is completed.
      * <p>
      * Updates the ad-hoc channels to prepare for the game phase by removing the initial channels and building a new list based on the connection type.
-     *
+     * 
      * @param listener
      */
     public static void onConfigurationFinished(ICommonPacketListener listener) {

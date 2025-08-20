@@ -316,6 +316,7 @@ public final class CraftServer implements Server {
     public Set<String> activeCompatibilities = Collections.emptySet();
     private final io.papermc.paper.datapack.PaperDatapackManager datapackManager; // Paper
     private final io.papermc.paper.potion.PaperPotionBrewer potionBrewer; // Paper - Custom Potion Mixes
+    private final io.papermc.paper.logging.SysoutCatcher sysoutCatcher = new io.papermc.paper.logging.SysoutCatcher(); // Paper
 
     // Paper start - Folia region threading API
     private final io.papermc.paper.threadedregions.scheduler.FallbackRegionScheduler regionizedScheduler = new io.papermc.paper.threadedregions.scheduler.FallbackRegionScheduler();
@@ -1062,7 +1063,7 @@ public final class CraftServer implements Server {
         Command target = this.commandMap.getCommand(args[0].toLowerCase(java.util.Locale.ENGLISH));
 
         try {
-            commands.performCommand(results, commandLine, commandLine, true);
+            commands.performCommandCB(results, commandLine, commandLine, true);
         } catch (CommandException ex) {
             this.pluginManager.callEvent(new io.papermc.paper.event.server.ServerExceptionEvent(new io.papermc.paper.exception.ServerCommandException(ex, target, sender, args))); // Paper
             //target.timings.stopTiming(); // Spigot // Paper
@@ -1429,7 +1430,7 @@ public final class CraftServer implements Server {
 
         try {
             if (save) {
-                handle.save(null, true, true);
+                handle.save(null, true, false); // Paper - Fix saving in unloadWorld
             }
 
             handle.getChunkSource().close(save);

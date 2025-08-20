@@ -5,9 +5,13 @@
 
 package net.neoforged.neoforge.items.wrapper;
 
+import com.mohistmc.youer.api.event.InvWrapperMoveItemEvent;
+import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 
 public class InvWrapper implements IItemHandlerModifiable {
     private final Container inv;
@@ -49,6 +53,13 @@ public class InvWrapper implements IItemHandlerModifiable {
             return ItemStack.EMPTY;
 
         ItemStack stackInSlot = getInv().getItem(slot);
+        if (InvWrapperMoveItemEvent.Insert.getHandlerList().getRegisteredListeners().length > 0 && InventoryOwner.inventoryFromForge(this) != null) {
+            var event = new InvWrapperMoveItemEvent.Insert(InventoryOwner.inventoryFromForge(this), stackInSlot.getBukkitStack());
+            Bukkit.getPluginManager().callEvent(event);
+            if (event.isCancelled()) {
+                return stack;
+            }
+        }
 
         int m;
         if (!stackInSlot.isEmpty()) {
@@ -122,6 +133,13 @@ public class InvWrapper implements IItemHandlerModifiable {
         if (stackInSlot.isEmpty())
             return ItemStack.EMPTY;
 
+        if (InvWrapperMoveItemEvent.Extract.getHandlerList().getRegisteredListeners().length > 0 && InventoryOwner.inventoryFromForge(this) != null) {
+            var event = new InvWrapperMoveItemEvent.Extract(InventoryOwner.inventoryFromForge(this), stackInSlot.getBukkitStack());
+            Bukkit.getPluginManager().callEvent(event);
+            if (event.isCancelled()) {
+                return ItemStack.EMPTY;
+            }
+        }
         if (simulate) {
             if (stackInSlot.getCount() < amount) {
                 return stackInSlot.copy();

@@ -68,7 +68,7 @@
          this.textFilterClient = TextFilterClient.createFromConfig(p_214793_.getProperties().textFilteringConfig);
          this.serverLinks = createServerLinks(p_214793_);
      }
-@@ -103,27 +_,36 @@
+@@ -103,27 +_,46 @@
          Thread thread = new Thread("Server console handler") {
              @Override
              public void run() {
@@ -110,15 +110,27 @@
 +        LOGGER.info(I18n.as("minecraftserver.minecraftversion",(Object)SharedConstants.getCurrentVersion().getName()));
          if (Runtime.getRuntime().maxMemory() / 1024L / 1024L < 512L) {
 -            LOGGER.warn("To start the server with more ram, launch it as \"java -Xmx1024M -Xms1024M -jar minecraft_server.jar\"");
-+            LOGGER.warn(I18n.as("minecraftserver.javamemtoolow"));
-         }
- 
+-        }
+-
 -        LOGGER.info("Loading properties");
++            LOGGER.warn(I18n.as("minecraftserver.javamemtoolow"));
++        }
++
++        // Paper start - detect running as root
++        if (io.papermc.paper.util.ServerEnvironment.userIsRootOrAdmin()) {
++            DedicatedServer.LOGGER.warn("****************************");
++            DedicatedServer.LOGGER.warn("YOU ARE RUNNING THIS SERVER AS AN ADMINISTRATIVE OR ROOT USER. THIS IS NOT ADVISED.");
++            DedicatedServer.LOGGER.warn("YOU ARE OPENING YOURSELF UP TO POTENTIAL RISKS WHEN DOING THIS.");
++            DedicatedServer.LOGGER.warn("FOR MORE INFORMATION, SEE https://madelinemiller.dev/blog/root-minecraft-server/");
++            DedicatedServer.LOGGER.warn("****************************");
++        }
++        // Paper end - detect running as root
++
 +        LOGGER.info(I18n.as("minecraftserver.loadingproperties"));
          DedicatedServerProperties dedicatedserverproperties = this.settings.getProperties();
          if (this.isSingleplayer()) {
              this.setLocalIp("127.0.0.1");
-@@ -133,13 +_,48 @@
+@@ -133,51 +_,102 @@
              this.setLocalIp(dedicatedserverproperties.serverIp);
          }
  
@@ -164,20 +176,50 @@
          this.setEnforceWhitelist(dedicatedserverproperties.enforceWhitelist);
 -        this.worldData.setGameType(dedicatedserverproperties.gamemode);
 -        LOGGER.info("Default game type: {}", dedicatedserverproperties.gamemode);
+-        InetAddress inetaddress = null;
+-        if (!this.getLocalIp().isEmpty()) {
+-            inetaddress = InetAddress.getByName(this.getLocalIp());
+-        }
+-
+-        if (this.getPort() < 0) {
+-            this.setPort(dedicatedserverproperties.serverPort);
+-        }
 +        // this.worldData.setGameType(dedicatedserverproperties.gamemode); // CraftBukkit - moved to world loading
 +        LOGGER.info(I18n.as("minecraftserver.defaultgamemode", dedicatedserverproperties.gamemode));
-         InetAddress inetaddress = null;
-         if (!this.getLocalIp().isEmpty()) {
-             inetaddress = InetAddress.getByName(this.getLocalIp());
-@@ -150,34 +_,32 @@
-         }
++        // Paper start - Unix domain socket support
++        java.net.SocketAddress bindAddress;
++        if (this.getLocalIp().startsWith("unix:")) {
++            if (!io.netty.channel.epoll.Epoll.isAvailable()) {
++                DedicatedServer.LOGGER.error("**** INVALID CONFIGURATION!");
++                DedicatedServer.LOGGER.error("You are trying to use a Unix domain socket but you're not on a supported OS.");
++                return false;
++            } else if (!io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled && !org.spigotmc.SpigotConfig.bungee) {
++                DedicatedServer.LOGGER.error("**** INVALID CONFIGURATION!");
++                DedicatedServer.LOGGER.error("Unix domain sockets require IPs to be forwarded from a proxy.");
++                return false;
++            }
++            bindAddress = new io.netty.channel.unix.DomainSocketAddress(this.getLocalIp().substring("unix:".length()));
++        } else {
++            InetAddress inetaddress = null;
++
++            if (!this.getLocalIp().isEmpty()) {
++                inetaddress = InetAddress.getByName(this.getLocalIp());
++            }
++
++            if (this.getPort() < 0) {
++                this.setPort(dedicatedserverproperties.serverPort);
++            }
++            bindAddress = new java.net.InetSocketAddress(inetaddress, this.getPort());
++        }
++        // Paper end - Unix domain socket support
  
          this.initializeKeyPair();
 -        LOGGER.info("Starting Minecraft server on {}:{}", this.getLocalIp().isEmpty() ? "*" : this.getLocalIp(), this.getPort());
 +        LOGGER.info(I18n.as("minecraftserver.startingserver",this.getLocalIp().isEmpty() ? "*" : this.getLocalIp(), this.getPort()) );
  
          try {
-             this.getConnection().startTcpServerListener(inetaddress, this.getPort());
+-            this.getConnection().startTcpServerListener(inetaddress, this.getPort());
++            this.getConnection().bind(bindAddress); // Paper - Unix domain socket support
          } catch (IOException ioexception) {
 -            LOGGER.warn("**** FAILED TO BIND TO PORT!");
 -            LOGGER.warn("The exception was: {}", ioexception.toString());
@@ -275,10 +317,18 @@
      }
  
      @Override
-@@ -295,6 +_,16 @@
-         if (this.queryThreadGs4 != null) {
-             this.queryThreadGs4.stop();
+@@ -289,11 +_,21 @@
          }
+ 
+         if (this.rconThread != null) {
+-            this.rconThread.stop();
++            this.rconThread.stopNonBlocking(); // Paper - don't wait for remote connections
+         }
+ 
+         if (this.queryThreadGs4 != null) {
+-            this.queryThreadGs4.stop();
++            // this.remoteStatusListener.stop(); // Paper - don't wait for remote connections
++        }
 +        if (this.dediLanPinger != null) {
 +            this.dediLanPinger.interrupt();
 +            this.dediLanPinger = null;
@@ -288,10 +338,9 @@
 +            System.exit(0);
 +        } else {
 +            Runtime.getRuntime().halt(0);
-+        }
+         }
      }
  
-     @Override
 @@ -309,13 +_,24 @@
      }
  

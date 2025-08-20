@@ -1,0 +1,116 @@
+--- a/net/minecraft/world/entity/player/StackedContents.java
++++ b/net/minecraft/world/entity/player/StackedContents.java
+@@ -22,8 +_,10 @@
+ public class StackedContents {
+     private static final int EMPTY = 0;
+     public final Int2IntMap contents = new Int2IntOpenHashMap();
++    @Nullable public io.papermc.paper.inventory.recipe.StackedContentsExtraMap extrasMap = null; // Paper - Improve exact choice recipe ingredients
+ 
+     public void accountSimpleStack(ItemStack p_36467_) {
++        if (this.extrasMap != null && !p_36467_.getComponentsPatch().isEmpty() && this.extrasMap.accountStack(p_36467_, Math.min(64, p_36467_.getCount()))) return; // Paper - Improve exact choice recipe ingredients; max of 64 due to accountStack method below
+         if (!p_36467_.isDamaged() && !p_36467_.isEnchanted() && !p_36467_.has(DataComponents.CUSTOM_NAME)) {
+             this.accountStack(p_36467_);
+         }
+@@ -37,6 +_,7 @@
+         if (!p_36469_.isEmpty()) {
+             int i = getStackingIndex(p_36469_);
+             int j = Math.min(p_36470_, p_36469_.getCount());
++            if (this.extrasMap != null && !p_36469_.getComponentsPatch().isEmpty() && this.extrasMap.accountStack(p_36469_, j)) return; // Paper - Improve exact choice recipe ingredients; if an exact ingredient, don't include it
+             this.put(i, j);
+         }
+     }
+@@ -49,7 +_,7 @@
+         return this.contents.get(p_36483_) > 0;
+     }
+ 
+-    int take(int p_36457_, int p_36458_) {
++    public int take(int p_36457_, int p_36458_) {
+         int i = this.contents.get(p_36457_);
+         if (i >= p_36458_) {
+             this.contents.put(p_36457_, i - p_36458_);
+@@ -59,7 +_,7 @@
+         }
+     }
+ 
+-    void put(int p_36485_, int p_36486_) {
++    public void put(int p_36485_, int p_36486_) {
+         this.contents.put(p_36485_, this.contents.get(p_36485_) + p_36486_);
+     }
+ 
+@@ -83,6 +_,31 @@
+         return p_36455_ == 0 ? ItemStack.EMPTY : new ItemStack(Item.byId(p_36455_));
+     }
+ 
++    // Paper start - Improve exact choice recipe ingredients
++    public void initializeExtras(final Recipe<?> recipe, @Nullable final net.minecraft.world.item.crafting.CraftingInput input) {
++        this.extrasMap = new io.papermc.paper.inventory.recipe.StackedContentsExtraMap(this, recipe);
++        if (input != null) this.extrasMap.accountInput(input);
++    }
++
++    public void resetExtras() {
++        if (this.extrasMap != null && !this.contents.isEmpty()) {
++            this.extrasMap.resetExtras();
++        }
++        this.extrasMap = null;
++    }
++
++    public static ItemStack fromStackingIndexWithExtras(final int itemId, @Nullable final StackedContents contents) {
++        if (contents != null && contents.extrasMap != null && itemId >= BuiltInRegistries.ITEM.size()) {
++            return fromStackingIndexExtras(itemId, contents.extrasMap);
++        }
++        return fromStackingIndex(itemId);
++    }
++
++    public static ItemStack fromStackingIndexExtras(final int itemId, final io.papermc.paper.inventory.recipe.StackedContentsExtraMap extrasMap) {
++        return extrasMap.getById(itemId).copy();
++    }
++    // Paper end - Improve exact choice recipe ingredients
++
+     public void clear() {
+         this.contents.clear();
+     }
+@@ -106,7 +_,7 @@
+             this.data = new BitSet(this.ingredientCount + this.itemCount + this.ingredientCount + this.ingredientCount * this.itemCount);
+ 
+             for (int i = 0; i < this.ingredients.size(); i++) {
+-                IntList intlist = this.ingredients.get(i).getStackingIds();
++                IntList intlist = this.getStackingIds(this.ingredients.get(i)); // Paper - Improve exact choice recipe ingredients
+ 
+                 for (int j = 0; j < this.itemCount; j++) {
+                     if (intlist.contains(this.items[j])) {
+@@ -169,7 +_,7 @@
+             IntCollection intcollection = new IntAVLTreeSet();
+ 
+             for (Ingredient ingredient : this.ingredients) {
+-                intcollection.addAll(ingredient.getStackingIds());
++                intcollection.addAll(this.getStackingIds(ingredient)); // Paper - Improve exact choice recipe ingredients
+             }
+ 
+             IntIterator intiterator = intcollection.iterator();
+@@ -298,7 +_,7 @@
+             for (Ingredient ingredient : this.ingredients) {
+                 int j = 0;
+ 
+-                for (int k : ingredient.getStackingIds()) {
++                for (int k : this.getStackingIds(ingredient)) { // Paper - Improve exact choice recipe ingredients
+                     j = Math.max(j, StackedContents.this.contents.get(k));
+                 }
+ 
+@@ -309,5 +_,17 @@
+ 
+             return i;
+         }
++
++        // Paper start - Improve exact choice recipe ingredients
++        private IntList getStackingIds(final Ingredient ingredient) {
++            if (StackedContents.this.extrasMap != null) {
++                final IntList ids = StackedContents.this.extrasMap.extraStackingIds.get(ingredient);
++                if (ids != null) {
++                    return ids;
++                }
++            }
++            return ingredient.getStackingIds();
++        }
++        // Paper end - Improve exact choice recipe ingredients
+     }
+ }

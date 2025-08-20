@@ -444,7 +444,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
         if (adventure$title == null) adventure$title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(container.getBukkitView().getTitle()); // Paper
         if (result.getFirst() != null) adventure$title = result.getFirst(); // Paper - Add titleOverride to InventoryOpenEvent
 
-        player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, io.papermc.paper.adventure.PaperAdventure.asVanilla(adventure$title))); // Paper
+        if (!player.isImmobile()) player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, io.papermc.paper.adventure.PaperAdventure.asVanilla(adventure$title))); // Paper
         player.containerMenu = container;
         player.initMenu(container);
     }
@@ -522,7 +522,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
         if (adventure$title == null) adventure$title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(inventory.getTitle()); // Paper
         if (result.getFirst() != null) adventure$title = result.getFirst(); // Paper - Add titleOverride to InventoryOpenEvent
         //player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, CraftChatMessage.fromString(title)[0])); // Paper - comment
-        player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, io.papermc.paper.adventure.PaperAdventure.asVanilla(adventure$title))); // Paper
+        if (!player.isImmobile()) player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, io.papermc.paper.adventure.PaperAdventure.asVanilla(adventure$title))); // Paper
         player.containerMenu = container;
         player.initMenu(container);
     }
@@ -759,8 +759,15 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
 
     @Override
     public boolean dropItem(boolean dropAll) {
-        if (!(this.getHandle() instanceof ServerPlayer)) return false;
-        return ((ServerPlayer) this.getHandle()).drop(dropAll);
+        // Paper start - Fix HumanEntity#drop not updating the client inv
+        if (!(this.getHandle() instanceof ServerPlayer player)) return false;
+        boolean success = player.drop(dropAll);
+        if (!success) return false;
+        final net.minecraft.world.entity.player.Inventory inv = player.getInventory();
+        final java.util.OptionalInt optionalSlot = player.containerMenu.findSlot(inv, inv.selected);
+        optionalSlot.ifPresent(slot -> player.containerSynchronizer.sendSlotChange(player.containerMenu, slot, inv.getSelected()));
+        return true;
+        // Paper end - Fix HumanEntity#drop not updating the client inv
     }
 
     @Override
