@@ -209,7 +209,7 @@ public class CraftPlayerProfile implements PlayerProfile, SharedPlayerProfile {
             final CraftPlayerProfile clone = clone();
             clone.complete(true);
             return clone;
-        }, Util.PROFILE_EXECUTOR);
+        }, Util.PROFILE_EXECUTOR); // Paper - don't submit BLOCKING PROFILE LOOKUPS to the world gen thread
     }
 
     @Override

@@ -5,7 +5,7 @@
      private static final int DEFAULT_SAFE_FILE_OPERATION_RETRIES = 10;
      private static final String MAX_THREADS_SYSTEM_PROPERTY = "max.bg.threads";
 -    private static final ExecutorService BACKGROUND_EXECUTOR = makeExecutor("Main");
-+    private static final ExecutorService BACKGROUND_EXECUTOR = makeExecutor("Main", -1); // Paper - Perf: add priority
++    private static final ExecutorService BACKGROUND_EXECUTOR = makeExecutorPaper("Main", -1); // Paper - Perf: add priority
      private static final ExecutorService IO_POOL = makeIoExecutor("IO-Worker-", false);
      private static final ExecutorService DOWNLOAD_POOL = makeIoExecutor("Download-", true);
 +    // Paper start - don't submit BLOCKING PROFILE LOOKUPS to the world gen thread
@@ -36,14 +36,11 @@
      }
  
      public static long getEpochMillis() {
-@@ -146,32 +_,28 @@
-         return FILENAME_DATE_TIME_FORMATTER.format(ZonedDateTime.now());
+@@ -174,6 +_,30 @@
+         return executorservice;
      }
  
--    private static ExecutorService makeExecutor(String p_137478_) {
--        int i = Mth.clamp(Runtime.getRuntime().availableProcessors() - 1, 1, getMaxThreads());
--        ExecutorService executorservice;
-+    private static ExecutorService makeExecutor(String p_137478_, int priorityModifier) {
++    private static ExecutorService makeExecutorPaper(String p_137478_, int priorityModifier) {
 +        // Paper start - Perf: use simpler thread pool that allows 1 thread and reduce worldgen thread worker count for low core count CPUs
 +        int cpus = Runtime.getRuntime().availableProcessors() / 2;
 +        int i;
@@ -58,35 +55,18 @@
 +        i = Math.min(8, i);
 +        i = Integer.getInteger("Paper.WorkerThreadCount", i);
 +        ExecutorService executorService;
-         if (i <= 0) {
--            executorservice = MoreExecutors.newDirectExecutorService();
++        if (i <= 0) {
 +            executorService = MoreExecutors.newDirectExecutorService();
-         } else {
--            AtomicInteger atomicinteger = new AtomicInteger(1);
--            executorservice = new ForkJoinPool(i, p_314383_ -> {
--                ForkJoinWorkerThread forkjoinworkerthread = new ForkJoinWorkerThread(p_314383_) {
--                    @Override
--                    protected void onTermination(Throwable p_211561_) {
--                        if (p_211561_ != null) {
--                            Util.LOGGER.warn("{} died", this.getName(), p_211561_);
--                        } else {
--                            Util.LOGGER.debug("{} shutdown", this.getName());
--                        }
--
--                        super.onTermination(p_211561_);
--                    }
--                };
--                forkjoinworkerthread.setName("Worker-" + p_137478_ + "-" + atomicinteger.getAndIncrement());
--                return forkjoinworkerthread;
--            }, Util::onThreadException, true);
++        } else {
 +            executorService = new java.util.concurrent.ThreadPoolExecutor(i, i,0L, TimeUnit.MILLISECONDS, new java.util.concurrent.LinkedBlockingQueue<>(), target -> new io.papermc.paper.util.ServerWorkerThread(target, p_137478_, priorityModifier));
-         }
- 
--        return executorservice;
++        }
++
 +        return executorService;
-     }
- 
++    }
++
      private static int getMaxThreads() {
+         String s = System.getProperty("max.bg.threads");
+         if (s != null) {
 @@ -239,7 +_,7 @@
          throw p_137560_ instanceof RuntimeException ? (RuntimeException)p_137560_ : new RuntimeException(p_137560_);
      }

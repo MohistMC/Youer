@@ -722,7 +722,7 @@
          Entity entity = this.getEntities().get(p_8854_.getUUID());
          if (entity != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", p_8854_.getUUID());
-@@ -903,15 +_,52 @@
+@@ -903,15 +_,59 @@
              this.removePlayerImmediately((ServerPlayer)entity, Entity.RemovalReason.DISCARDED);
          }
  
@@ -752,6 +752,13 @@
 +                p_8873_.discard();
 +                return false;
 +            }
++            if (p_8873_ instanceof net.minecraft.world.entity.item.ItemEntity itemEntity && itemEntity.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
++            // Paper start - capture all item additions to the world
++            if (captureDrops != null && p_8873_ instanceof net.minecraft.world.entity.item.ItemEntity) {
++                captureDrops.add((net.minecraft.world.entity.item.ItemEntity) p_8873_);
++                return true;
++            }
++            // Paper end - capture all item additions to the world
 +            if (!AsyncCatcher.catchAsync() && p_8873_.spawnReason != null && !CraftEventFactory.doEntityAddEventCalling(this, p_8873_, p_8873_.spawnReason)) {
 +                return false;
 +            }
