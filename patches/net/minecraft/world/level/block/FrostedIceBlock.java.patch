@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/level/block/FrostedIceBlock.java
++++ b/net/minecraft/world/level/block/FrostedIceBlock.java
+@@ -40,6 +_,7 @@
+ 
+     @Override
+     protected void tick(BlockState p_221233_, ServerLevel p_221234_, BlockPos p_221235_, RandomSource p_221236_) {
++        if (!p_221234_.paperConfig().environment.frostedIce.enabled) return; // Paper - Frosted ice options
+         if ((p_221236_.nextInt(3) == 0 || this.fewerNeigboursThan(p_221234_, p_221235_, 4))
+             && p_221234_.getMaxLocalRawBrightness(p_221235_) > 11 - p_221233_.getValue(AGE) - p_221233_.getLightBlock(p_221234_, p_221235_)
+             && this.slightlyMelt(p_221233_, p_221234_, p_221235_)) {
+@@ -49,11 +_,11 @@
+                 blockpos$mutableblockpos.setWithOffset(p_221235_, direction);
+                 BlockState blockstate = p_221234_.getBlockState(blockpos$mutableblockpos);
+                 if (blockstate.is(this) && !this.slightlyMelt(blockstate, p_221234_, blockpos$mutableblockpos)) {
+-                    p_221234_.scheduleTick(blockpos$mutableblockpos, this, Mth.nextInt(p_221236_, 20, 40));
++                    p_221234_.scheduleTick(blockpos$mutableblockpos, this, Mth.nextInt(p_221236_, p_221234_.paperConfig().environment.frostedIce.delay.min, p_221234_.paperConfig().environment.frostedIce.delay.max)); // Paper - Frosted ice options
+                 }
+             }
+         } else {
+-            p_221234_.scheduleTick(p_221235_, this, Mth.nextInt(p_221236_, 20, 40));
++            p_221234_.scheduleTick(p_221235_, this, Mth.nextInt(p_221236_, p_221234_.paperConfig().environment.frostedIce.delay.min, p_221234_.paperConfig().environment.frostedIce.delay.max)); // Paper - Frosted ice options
+         }
+     }
+ 

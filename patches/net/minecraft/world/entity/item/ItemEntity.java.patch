@@ -137,7 +137,7 @@
  
 -            if (!this.level().isClientSide && this.age >= 6000) {
 +            ItemStack item = this.getItem();
-+            if (!this.level().isClientSide && this.age >= lifespan) {
++            if (!this.level().isClientSide && this.age >= this.despawnRate) { // Spigot // Paper - Alternative item-despawn-rate
 +            	  // Clamping to MAX_VALUE -1 as age is a Short and going above that would produce an infinite lifespan implicitly (accidentally)
 +                this.lifespan = Mth.clamp(lifespan + net.neoforged.neoforge.event.EventHooks.onItemExpire(this), 0, Short.MAX_VALUE - 1);
 +                if (this.age >= lifespan) {
@@ -168,7 +168,7 @@
 +        }
 +        // Paper end - remove anti tick skipping measures / wall time - copied from above
 +
-+        if (!this.level().isClientSide && this.age >= this.level().spigotConfig.itemDespawnRate) { // Spigot
++        if (!this.level().isClientSide && this.age >= this.despawnRate) { // Spigot // Paper - Alternative item-despawn-rate
 +            // CraftBukkit start - fire ItemDespawnEvent
 +            if (org.bukkit.craftbukkit.event.CraftEventFactory.callItemDespawnEvent(this).isCancelled()) {
 +                this.age = 0;
@@ -190,12 +190,20 @@
 +            double radius = this.level().spigotConfig.itemMerge;
              for (ItemEntity itementity : this.level()
 -                .getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(0.5, 0.0, 0.5), p_186268_ -> p_186268_ != this && p_186268_.isMergable())) {
-+                .getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(radius, radius - 0.5D, radius), p_186268_ -> p_186268_ != this && p_186268_.isMergable())) {
++                .getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(radius, this.level().paperConfig().entities.behavior.onlyMergeItemsHorizontally ? 0 : radius - 0.5D, radius), p_186268_ -> p_186268_ != this && p_186268_.isMergable())) { // Paper - configuration to only merge items horizontally
 +                // Spigot end
                  if (itementity.isMergable()) {
                      this.tryToMerge(itementity);
                      if (this.isRemoved()) {
-@@ -229,7 +_,7 @@
+@@ -222,14 +_,14 @@
+ 
+     private boolean isMergable() {
+         ItemStack itemstack = this.getItem();
+-        return this.isAlive() && this.pickupDelay != 32767 && this.age != -32768 && this.age < 6000 && itemstack.getCount() < itemstack.getMaxStackSize();
++        return this.isAlive() && this.pickupDelay != 32767 && this.age != -32768 && this.age < this.despawnRate && itemstack.getCount() < itemstack.getMaxStackSize(); // Paper - Alternative item-despawn-rate
+     }
+ 
+     private void tryToMerge(ItemEntity p_32016_) {
          ItemStack itemstack = this.getItem();
          ItemStack itemstack1 = p_32016_.getItem();
          if (Objects.equals(this.target, p_32016_.target) && areMergable(itemstack, itemstack1)) {
@@ -397,7 +405,7 @@
  
      public void setItem(ItemStack p_32046_) {
          this.getEntityData().set(DATA_ITEM, p_32046_);
-+        this.despawnRate = this.level().paperConfig().entities.spawning.altItemDespawnRate.enabled ? this.level().paperConfig().entities.spawning.altItemDespawnRate.items.getOrDefault(p_32046_.getItem(), this.level().spigotConfig.itemDespawnRate) : this.level().spigotConfig.itemDespawnRate; // Paper - Alternative item-despawn-rate
++        this.despawnRate = this.level().paperConfig().entities.spawning.altItemDespawnRate.enabled ? this.level().paperConfig().entities.spawning.altItemDespawnRate.items.getOrDefault(p_32046_.getItem(), getItem().getEntityLifespan(this.level())) : getItem().getEntityLifespan(this.level()); // Paper - Alternative item-despawn-rate
 +        // Purpur start
 +        if (level().purpurConfig.itemImmuneToCactus.contains(p_32046_.getItem())) immuneToCactus = true;
 +        if (level().purpurConfig.itemImmuneToExplosion.contains(p_32046_.getItem())) immuneToExplosion = true;

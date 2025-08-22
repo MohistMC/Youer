@@ -23,8 +23,13 @@
  
  public class FarmBlock extends Block {
      public static final MapCodec<FarmBlock> CODEC = simpleCodec(FarmBlock::new);
-@@ -88,29 +_,56 @@
+@@ -86,31 +_,61 @@
+     @Override
+     protected void randomTick(BlockState p_221139_, ServerLevel p_221140_, BlockPos p_221141_, RandomSource p_221142_) {
          int i = p_221139_.getValue(MOISTURE);
++        if (i > 0 && p_221140_.paperConfig().tickRates.wetFarmland != 1 && (p_221140_.paperConfig().tickRates.wetFarmland < 1 || (net.minecraft.server.MinecraftServer.currentTick + p_221141_.hashCode()) % p_221140_.paperConfig().tickRates.wetFarmland != 0)) { return; } // Paper - Configurable random tick rates for blocks
++        if (i == 0 && p_221140_.paperConfig().tickRates.dryFarmland != 1 && (p_221140_.paperConfig().tickRates.dryFarmland < 1 || (net.minecraft.server.MinecraftServer.currentTick + p_221141_.hashCode()) % p_221140_.paperConfig().tickRates.dryFarmland != 0)) { return; } // Paper - Configurable random tick rates for blocks
++
          if (!isNearWater(p_221140_, p_221141_) && !p_221140_.isRainingAt(p_221141_.above())) {
              if (i > 0) {
 -                p_221140_.setBlock(p_221141_, p_221139_.setValue(MOISTURE, Integer.valueOf(i - 1)), 2);

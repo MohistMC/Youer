@@ -30,22 +30,30 @@
      public final String regionFileComression = this.get("region-file-compression", "deflate");
      public final boolean enableJmxMonitoring = this.get("enable-jmx-monitoring", false);
      public final boolean enableStatus = this.get("enable-status", true);
-@@ -103,6 +_,7 @@
+@@ -103,7 +_,8 @@
      private final DedicatedServerProperties.WorldDimensionData worldDimensionData;
      public final WorldOptions worldOptions;
      public boolean acceptsTransfers = this.get("accepts-transfers", false);
+-
 +    public final boolean debug = this.get("debug", false); // CraftBukkit
- 
++    public final String rconIp; // Paper - Configurable rcon ip
      public DedicatedServerProperties(Properties p_180926_) {
          super(p_180926_);
-@@ -128,8 +_,20 @@
+         String s = this.get("level-seed", "");
+@@ -126,10 +_,26 @@
+             this.get("initial-enabled-packs", String.join(",", WorldDataConfiguration.DEFAULT.dataPacks().getEnabled())),
+             this.get("initial-disabled-packs", String.join(",", WorldDataConfiguration.DEFAULT.dataPacks().getDisabled()))
          );
-     }
- 
-+    public DedicatedServerProperties(Properties properties, OptionSet optionset) {
-+        this(properties);
++        // Paper start - Configurable rcon ip
++        final String rconIp = this.getStringRaw("rcon.ip");
++        this.rconIp = rconIp == null ? this.serverIp : rconIp;
++        // Paper end - Configurable rcon ip
 +    }
 +
++    public DedicatedServerProperties(Properties properties, OptionSet optionset) {
++        this(properties);
+     }
+ 
      public static DedicatedServerProperties fromFile(Path p_180930_) {
          return new DedicatedServerProperties(loadFromFile(p_180930_));
 +    }

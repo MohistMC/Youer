@@ -209,6 +209,38 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     }
     // Paper end
 
+    // Paper start - Provide fast information methods
+    @Override
+    public int getEntityCount() {
+        int ret = 0;
+        for (net.minecraft.world.entity.Entity entity : world.getEntities().getAll()) {
+            if (entity.isChunkLoaded()) {
+                ++ret;
+            }
+        }
+        return ret;
+    }
+
+    @Override
+    public int getTileEntityCount() {
+        return this.world.blockEntityTickers.size();
+    }
+
+    @Override
+    public int getTickableTileEntityCount() {
+        return world.blockEntityTickers.size();
+    }
+
+    @Override
+    public int getChunkCount() {
+        return this.world.getChunkSource().getLoadedChunksCount();
+    }
+
+    @Override
+    public int getPlayerCount() {
+        return world.players().size();
+    }
+
     private static final Random rand = new Random();
 
     public CraftWorld(ServerLevel world, ChunkGenerator gen, BiomeProvider biomeProvider, Environment env) {
@@ -440,7 +472,8 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     @Override
     public boolean loadChunk(int x, int z, boolean generate) {
         org.spigotmc.AsyncCatcher.catchOp("chunk load"); // Spigot
-        ChunkAccess chunk = this.world.getChunkSource().getChunk(x, z, generate ? ChunkStatus.FULL : ChunkStatus.EMPTY, true);
+        warnUnsafeChunk("loading a faraway chunk", x, z); // Paper
+        ChunkAccess chunk = this.world.getChunkSource().getChunk(x, z, generate || isChunkGenerated(x, z) ? ChunkStatus.FULL : ChunkStatus.EMPTY, true); // Paper
 
         // If generate = false, but the chunk already exists, we will get this back.
         if (chunk instanceof ImposterProtoChunk) {

@@ -1,9 +1,19 @@
 --- a/net/minecraft/server/rcon/thread/RconThread.java
 +++ b/net/minecraft/server/rcon/thread/RconThread.java
-@@ -105,6 +_,15 @@
+@@ -57,7 +_,7 @@
+     @Nullable
+     public static RconThread create(ServerInterface p_11616_) {
+         DedicatedServerProperties dedicatedserverproperties = p_11616_.getProperties();
+-        String s = p_11616_.getServerIp();
++        String s = dedicatedserverproperties.rconIp; // Paper - Configurable rcon ip
+         if (s.isEmpty()) {
+             s = "0.0.0.0";
+         }
+@@ -104,6 +_,15 @@
+ 
          this.clients.clear();
      }
- 
++
 +    // Paper start - don't wait for remote connections
 +    public void stopNonBlocking() {
 +        this.running = false;
@@ -12,7 +22,6 @@
 +        }
 +    }
 +    // Paper end - don't wait for remote connections
-+
+ 
      private void closeSocket(ServerSocket p_11614_) {
          LOGGER.debug("closeSocket: {}", p_11614_);
- 

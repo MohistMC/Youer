@@ -447,7 +447,7 @@
              }
          }
      }
-@@ -471,7 +_,7 @@
+@@ -471,12 +_,12 @@
          int j = chunkpos.getMinBlockZ();
          ProfilerFiller profilerfiller = this.getProfiler();
          profilerfiller.push("thunder");
@@ -456,6 +456,12 @@
              BlockPos blockpos = this.findLightningTargetAround(this.getBlockRandomPos(i, 0, j, 15));
              if (this.isRainingAt(blockpos)) {
                  DifficultyInstance difficultyinstance = this.getCurrentDifficultyAt(blockpos);
+                 boolean flag1 = this.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)
+-                    && this.random.nextDouble() < (double)difficultyinstance.getEffectiveDifficulty() * 0.01
++                    && this.random.nextDouble() < (double)difficultyinstance.getEffectiveDifficulty() * this.paperConfig().entities.spawning.skeletonHorseThunderSpawnChance.or(0.01D)
+                     && !this.getBlockState(blockpos.below()).is(Blocks.LIGHTNING_ROD);
+                 if (flag1) {
+                     SkeletonHorse skeletonhorse = EntityType.SKELETON_HORSE.create(this);
 @@ -484,6 +_,7 @@
                          skeletonhorse.setTrap(true);
                          skeletonhorse.setAge(0);

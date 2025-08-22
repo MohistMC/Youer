@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1,16 +_,25 @@
+@@ -1,16 +_,26 @@
  package net.minecraft.server;
  
 +import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
@@ -16,6 +16,7 @@
 +import io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner;
 +import io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent;
 +import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
++import java.util.ArrayList;
 +import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  import com.mojang.authlib.GameProfile;
  import com.mojang.authlib.GameProfileRepository;
@@ -80,7 +81,7 @@
  import net.minecraft.world.entity.ai.village.VillageSiege;
  import net.minecraft.world.entity.npc.CatSpawner;
  import net.minecraft.world.entity.npc.WanderingTraderSpawner;
-@@ -161,14 +_,39 @@
+@@ -161,14 +_,40 @@
  import net.minecraft.world.level.storage.LevelResource;
  import net.minecraft.world.level.storage.LevelStorageSource;
  import net.minecraft.world.level.storage.PlayerDataStorage;
@@ -89,6 +90,7 @@
  import net.minecraft.world.level.storage.WorldData;
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
++import net.minecraft.world.scores.PlayerTeam;
 +import net.neoforged.neoforge.common.CommonHooks;
 +import net.neoforged.neoforge.common.NeoForge;
 +import net.neoforged.neoforge.common.world.chunk.ForcedChunkManager;
@@ -372,7 +374,7 @@
                  ServerLevel serverlevel1 = new ServerLevel(
                      this,
                      this.executor,
-@@ -419,12 +_,22 @@
+@@ -419,12 +_,43 @@
                      false,
                      randomsequences
                  );
@@ -385,6 +387,27 @@
  
          worldborder.applySettings(serverleveldata.getWorldBorder());
 +        MohistPlugin.init(); // Youer init mohist plugins
++
++        // Paper start - Configurable player collision; Handle collideRule team for player collision toggle
++        final ServerScoreboard scoreboard = this.getScoreboard();
++        final Collection<String> toRemove = new ArrayList<>();
++        for (PlayerTeam team : scoreboard.getPlayerTeams()) {
++            if (team.getName().startsWith("collideRule_")) {
++                String name = team.getName();
++                toRemove.add(name);
++            }
++        }
++        for (String teamName : toRemove) {
++            scoreboard.removePlayerTeam(scoreboard.getPlayerTeam(teamName)); // Clean up after ourselves
++        }
++
++        if (!io.papermc.paper.configuration.GlobalConfiguration.get().collisions.enablePlayerCollisions) {
++            this.getPlayerList().collideRuleTeamName = org.apache.commons.lang3.StringUtils.left("collideRule_" + java.util.concurrent.ThreadLocalRandom.current().nextInt(), 16);
++            net.minecraft.world.scores.PlayerTeam collideTeam = scoreboard.addPlayerTeam(this.getPlayerList().collideRuleTeamName);
++            collideTeam.setSeeFriendlyInvisibles(false); // Because we want to mimic them not being on a team at all
++        }
++        // Paper end - Configurable player collision
++
 +        this.server.enablePlugins(PluginLoadOrder.POSTWORLD);
 +        if (io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.pluginsEnabled(); // Paper - Remap plugins
 +        io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // Paper - reset invalid state for event fire below

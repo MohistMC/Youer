@@ -20,7 +20,7 @@
  
  public class PortalForcer {
      public static final int TICKET_RADIUS = 3;
-@@ -39,19 +_,32 @@
+@@ -39,29 +_,48 @@
          this.level = p_77650_;
      }
  
@@ -38,6 +38,7 @@
 -            .min(Comparator.<BlockPos>comparingDouble(p_352046_ -> p_352046_.distSqr(p_352378_)).thenComparingInt(Vec3i::getY));
 +                .map(PoiRecord::getPos)
 +                .filter(p_352374_::isWithinBounds)
++                .filter(pos -> !(this.level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER && this.level.paperConfig().environment.netherCeilingVoidDamageHeight.test(v -> pos.getY() >= v))) // Paper - Configurable nether ceiling damage
 +                .filter(p_352047_ -> this.level.getBlockState(p_352047_).hasProperty(BlockStateProperties.HORIZONTAL_AXIS))
 +                .min(Comparator.<BlockPos>comparingDouble(p_352046_ -> p_352046_.distSqr(p_352378_)).thenComparingInt(Vec3i::getY));
 +    }
@@ -59,9 +60,14 @@
          double d0 = -1.0;
          BlockPos blockpos = null;
          double d1 = -1.0;
-@@ -59,9 +_,9 @@
+         BlockPos blockpos1 = null;
          WorldBorder worldborder = this.level.getWorldBorder();
          int i = Math.min(this.level.getMaxBuildHeight(), this.level.getMinBuildHeight() + this.level.getLogicalHeight()) - 1;
++        // Paper start - Configurable nether ceiling damage; make sure the max height doesn't exceed the void damage height
++        if (this.level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER && this.level.paperConfig().environment.netherCeilingVoidDamageHeight.enabled()) {
++            i = Math.min(i, this.level.paperConfig().environment.netherCeilingVoidDamageHeight.intValue() - 1);
++        }
++        // Paper end - Configurable nether ceiling damage
          int j = 1;
 -        BlockPos.MutableBlockPos blockpos$mutableblockpos = p_77667_.mutable();
 +        BlockPos.MutableBlockPos blockpos$mutableblockpos = blockposition.mutable();

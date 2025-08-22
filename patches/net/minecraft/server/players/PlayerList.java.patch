@@ -62,7 +62,7 @@
  import org.slf4j.Logger;
  
  public abstract class PlayerList {
-@@ -128,15 +_,28 @@
+@@ -128,15 +_,29 @@
      private boolean allowCommandsForAllPlayers;
      private static final boolean ALLOW_LOGOUTIVATOR = false;
      private int sendAllPlayerInfoIn;
@@ -71,6 +71,7 @@
 +    // CraftBukkit start
 +    private CraftServer cserver;
 +    private final Map<String,ServerPlayer> playersByName = new java.util.HashMap<>();
++    public @Nullable String collideRuleTeamName; // Paper - Configurable player collision
  
      public PlayerList(MinecraftServer p_203842_, LayeredRegistryAccess<RegistryLayer> p_251844_, PlayerDataStorage p_203844_, int p_203845_) {
 +        this.cserver = p_203842_.server = new CraftServer((DedicatedServer) p_203842_, this);
@@ -275,7 +276,7 @@
              );
              if (entity != null) {
                  UUID uuid;
-@@ -255,16 +_,30 @@
+@@ -255,16 +_,36 @@
  
                  if (!p_11263_.isPassenger()) {
                      LOGGER.warn("Couldn't reattach entity to player");
@@ -291,7 +292,13 @@
          }
  
          p_11263_.initInventoryMenu();
-+
++        // Paper start - Configurable player collision; Add to collideRule team if needed
++        final net.minecraft.world.scores.Scoreboard scoreboard = this.getServer().getLevel(Level.OVERWORLD).getScoreboard();
++        final PlayerTeam collideRuleTeam = scoreboard.getPlayerTeam(this.collideRuleTeamName);
++        if (this.collideRuleTeamName != null && collideRuleTeam != null && p_11263_.getTeam() == null) {
++            scoreboard.addPlayerToTeam(p_11263_.getScoreboardName(), collideRuleTeam);
++        }
++        // Paper end - Configurable player collision
 +        net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(p_11263_);
 +        net.neoforged.neoforge.event.EventHooks.firePlayerLoggedIn( p_11263_ );
 +        // CraftBukkit - Moved from above, added world
@@ -361,7 +368,7 @@
          this.playerIo.save(p_11277_);
          ServerStatsCounter serverstatscounter = this.stats.get(p_11277_.getUUID());
          if (serverstatscounter != null) {
-@@ -350,23 +_,56 @@
+@@ -350,23 +_,66 @@
          }
      }
  
@@ -388,6 +395,16 @@
 +        p_11287_.getBukkitEntity().disconnect(playerQuitEvent.getQuitMessage());
 +        if (server.isSameThread()) p_11287_.doTick(); // SPIGOT-924
 +        // CraftBukkit end
++
++        // Paper start - Configurable player collision; Remove from collideRule team if needed
++        if (this.collideRuleTeamName != null) {
++            final net.minecraft.world.scores.Scoreboard scoreBoard = this.server.getLevel(Level.OVERWORLD).getScoreboard();
++            final PlayerTeam team = scoreBoard.getPlayersTeam(this.collideRuleTeamName);
++            if (p_11287_.getTeam() == team && team != null) {
++                scoreBoard.removePlayerFromTeam(p_11287_.getScoreboardName(), team);
++            }
++        }
++        // Paper end - Configurable player collision
 +
          this.save(p_11287_);
          if (p_11287_.isPassenger()) {
@@ -968,7 +985,7 @@
          this.doWhiteList = p_11276_;
      }
  
-@@ -752,9 +_,17 @@
+@@ -752,9 +_,25 @@
  
      public void removeAll() {
          for (int i = 0; i < this.players.size(); i++) {
@@ -977,6 +994,14 @@
 -    }
 +            this.players.get(i).connection.disconnect(java.util.Objects.requireNonNullElseGet(this.server.server.shutdownMessage(), net.kyori.adventure.text.Component::empty)); // CraftBukkit - add custom shutdown message // Paper - Adventure
 +        }
++
++        // Paper start - Configurable player collision; Remove collideRule team if it exists
++        if (this.collideRuleTeamName != null) {
++            final net.minecraft.world.scores.Scoreboard scoreboard = this.getServer().getLevel(Level.OVERWORLD).getScoreboard();
++            final PlayerTeam team = scoreboard.getPlayersTeam(this.collideRuleTeamName);
++            if (team != null) scoreboard.removePlayerTeam(team);
++        }
++        // Paper end - Configurable player collision
 +    }
 +
 +    // CraftBukkit start

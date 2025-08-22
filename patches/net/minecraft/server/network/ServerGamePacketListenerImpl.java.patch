@@ -1021,18 +1021,19 @@
                  return;
              default:
                  throw new IllegalArgumentException("Invalid player action");
-@@ -1076,16 +_,39 @@
+@@ -1076,16 +_,40 @@
          }
      }
  
 +    // Spigot start - limit place/interactions
 +    private int limitedPackets;
 +    private long lastLimitedPacket = -1;
++    private static int getSpamThreshold() { return io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.incomingPacketThreshold; } // Paper - Configurable threshold
 +    private boolean checkLimit(long timestamp) {
-+        if (lastLimitedPacket != -1 && timestamp - lastLimitedPacket < 30 && limitedPackets++ >= 4) {
++        if (lastLimitedPacket != -1 && timestamp - lastLimitedPacket < getSpamThreshold() && this.limitedPackets++ >= 8) { // Paper - Configurable threshold; raise packet limit to 8
 +            return false;
 +        }
-+        if (lastLimitedPacket == -1 || timestamp - lastLimitedPacket >= 30) {
++        if (lastLimitedPacket == -1 || timestamp - lastLimitedPacket >= getSpamThreshold()) { // Paper - Configurable threshold
 +            lastLimitedPacket = timestamp;
 +            limitedPackets = 0;
 +            return true;
@@ -1514,7 +1515,7 @@
              }
          }
      }
-@@ -1413,13 +_,64 @@
+@@ -1413,17 +_,75 @@
      @Override
      public void handleAnimate(ServerboundSwingPacket p_9926_) {
          PacketUtils.ensureRunningOnSameThread(p_9926_, this, this.player.serverLevel());
@@ -1579,6 +1580,17 @@
          this.player.resetLastActionTime();
          switch (p_9891_.getAction()) {
              case PRESS_SHIFT_KEY:
+                 this.player.setShiftKeyDown(true);
++
++                // Paper start - Add option to make parrots stay
++                if (this.player.level().paperConfig().entities.behavior.parrotsAreUnaffectedByPlayerMovement) {
++                    this.player.removeEntitiesOnShoulder();
++                }
++                // Paper end - Add option to make parrots stay
++
+                 break;
+             case RELEASE_SHIFT_KEY:
+                 this.player.setShiftKeyDown(false);
 @@ -1479,12 +_,20 @@
              }
  
@@ -1647,8 +1659,12 @@
          this.player.resetLastActionTime();
          this.player.setShiftKeyDown(p_9866_.isUsingSecondaryAction());
          if (entity != null) {
-@@ -1535,11 +_,48 @@
-             if (this.player.canInteractWithEntity(aabb, 1.0)) {
+@@ -1532,14 +_,51 @@
+             }
+ 
+             AABB aabb = entity.getBoundingBox();
+-            if (this.player.canInteractWithEntity(aabb, 1.0)) {
++            if (this.player.canInteractWithEntity(aabb, io.papermc.paper.configuration.GlobalConfiguration.get().misc.clientInteractionLeniencyDistance.or(1.0D))) { // Paper - configurable lenience value for interact range
                  p_9866_.dispatch(
                      new ServerboundInteractPacket.Handler() {
 -                        private void performInteraction(InteractionHand p_143679_, ServerGamePacketListenerImpl.EntityInteraction p_143680_) {

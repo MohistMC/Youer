@@ -34,7 +34,7 @@
 +            if (p_261751_.isEmptyBlock(p_261616_.above()) && p_261751_.getRawBrightness(p_261616_.above(), 0) >= 9) {
                  int i = this.getHeightBelowUpToMax(p_261751_, p_261616_) + 1;
 -                if (i < 16) {
-+                if (i < 16 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_261751_, p_261616_, p_261931_, p_261766_.nextFloat() < (p_261751_.spigotConfig.bambooModifier / (100.0f * 3)))) { // Spigot
++                if (i < p_261751_.paperConfig().maxGrowthHeight.bamboo.max && net.neoforged.neoforge.common.CommonHooks.canCropGrow(p_261751_, p_261616_, p_261931_, p_261766_.nextFloat() < (p_261751_.spigotConfig.bambooModifier / (100.0f * 3)))) { // Spigot
                      this.growBamboo(p_261931_, p_261751_, p_261616_, p_261766_, i);
 +                    net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(p_261751_, p_261616_, p_261931_);
                  }
@@ -49,6 +49,24 @@
          return p_262154_.getBlockState(p_261493_.below()).is(BlockTags.BAMBOO_PLANTABLE_ON);
      }
  
+@@ -163,7 +_,7 @@
+     public boolean isValidBonemealTarget(LevelReader p_262065_, BlockPos p_262033_, BlockState p_261700_) {
+         int i = this.getHeightAboveUpToMax(p_262065_, p_262033_);
+         int j = this.getHeightBelowUpToMax(p_262065_, p_262033_);
+-        return i + j + 1 < 16 && p_262065_.getBlockState(p_262033_.above(i)).getValue(STAGE) != 1;
++        return i + j + 1 < ((Level) p_262065_).paperConfig().maxGrowthHeight.bamboo.max && p_262065_.getBlockState(p_262033_.above(i)).getValue(STAGE) != 1;
+     }
+ 
+     @Override
+@@ -181,7 +_,7 @@
+         for (int i1 = 0; i1 < l; i1++) {
+             BlockPos blockpos = p_261955_.above(i);
+             BlockState blockstate = p_261845_.getBlockState(blockpos);
+-            if (k >= 16 || blockstate.getValue(STAGE) == 1 || !p_261845_.isEmptyBlock(blockpos.above())) {
++            if (k >= p_261845_.paperConfig().maxGrowthHeight.bamboo.max || blockstate.getValue(STAGE) == 1 || !p_261845_.isEmptyBlock(blockpos.above())) {
+                 return;
+             }
+ 
 @@ -193,7 +_,7 @@
  
      @Override
@@ -58,7 +76,7 @@
      }
  
      protected void growBamboo(BlockState p_261855_, Level p_262076_, BlockPos p_262109_, RandomSource p_261633_, int p_261759_) {
-@@ -201,23 +_,36 @@
+@@ -201,29 +_,42 @@
          BlockPos blockpos = p_262109_.below(2);
          BlockState blockstate1 = p_262076_.getBlockState(blockpos);
          BambooLeaves bambooleaves = BambooLeaves.NONE;
@@ -82,10 +100,11 @@
          }
  
          int i = p_261855_.getValue(AGE) != 1 && !blockstate1.is(Blocks.BAMBOO) ? 0 : 1;
-         int j = (p_261759_ < 11 || !(p_261633_.nextFloat() < 0.25F)) && p_261759_ != 15 ? 0 : 1;
+-        int j = (p_261759_ < 11 || !(p_261633_.nextFloat() < 0.25F)) && p_261759_ != 15 ? 0 : 1;
 -        p_262076_.setBlock(
 -            p_262109_.above(), this.defaultBlockState().setValue(AGE, Integer.valueOf(i)).setValue(LEAVES, bambooleaves).setValue(STAGE, Integer.valueOf(j)), 3
 -        );
++        int j = (p_261759_ < p_262076_.paperConfig().maxGrowthHeight.bamboo.min || !(p_261633_.nextFloat() < 0.25F)) && p_261759_ != (p_262076_.paperConfig().maxGrowthHeight.bamboo.max - 1) ? 0 : 1;
 +
 +        // CraftBukkit start
 +        if (CraftEventFactory.handleBlockSpreadEvent(
@@ -100,3 +119,19 @@
      }
  
      protected int getHeightAboveUpToMax(BlockGetter p_261541_, BlockPos p_261593_) {
+         int i = 0;
+ 
+-        while (i < 16 && p_261541_.getBlockState(p_261593_.above(i + 1)).is(Blocks.BAMBOO)) {
++        while (i < ((Level) p_261541_).paperConfig().maxGrowthHeight.bamboo.max && p_261541_.getBlockState(p_261593_.above(i + 1)).is(Blocks.BAMBOO)) {
+             i++;
+         }
+ 
+@@ -233,7 +_,7 @@
+     protected int getHeightBelowUpToMax(BlockGetter p_261927_, BlockPos p_261481_) {
+         int i = 0;
+ 
+-        while (i < 16 && p_261927_.getBlockState(p_261481_.below(i + 1)).is(Blocks.BAMBOO)) {
++        while (i < ((Level) p_261927_).paperConfig().maxGrowthHeight.bamboo.max && p_261927_.getBlockState(p_261481_.below(i + 1)).is(Blocks.BAMBOO)) {
+             i++;
+         }
+ 

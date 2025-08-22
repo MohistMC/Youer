@@ -8,7 +8,7 @@
  import net.minecraft.network.syncher.EntityDataAccessor;
  import net.minecraft.network.syncher.EntityDataSerializers;
  import net.minecraft.network.syncher.SynchedEntityData;
-@@ -63,6 +_,8 @@
+@@ -63,12 +_,15 @@
  import net.minecraft.world.level.ServerLevelAccessor;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.state.BlockState;
@@ -17,6 +17,13 @@
  
  public class Zombie extends Monster {
      private static final ResourceLocation SPEED_MODIFIER_BABY_ID = ResourceLocation.withDefaultNamespace("baby");
+     private static final AttributeModifier SPEED_MODIFIER_BABY = new AttributeModifier(
+         SPEED_MODIFIER_BABY_ID, 0.5, AttributeModifier.Operation.ADD_MULTIPLIED_BASE
+     );
++    private final AttributeModifier babyModifier = new AttributeModifier(Zombie.SPEED_MODIFIER_BABY_ID, this.level().paperConfig().entities.behavior.babyZombieMovementModifier, AttributeModifier.Operation.ADD_MULTIPLIED_BASE); // Paper - Make baby speed configurable
+     private static final ResourceLocation REINFORCEMENT_CALLER_CHARGE_ID = ResourceLocation.withDefaultNamespace("reinforcement_caller_charge");
+     private static final AttributeModifier ZOMBIE_REINFORCEMENT_CALLEE_CHARGE = new AttributeModifier(
+         ResourceLocation.withDefaultNamespace("reinforcement_callee_charge"), -0.05F, AttributeModifier.Operation.ADD_VALUE
 @@ -84,7 +_,7 @@
      public static final int REINFORCEMENT_RANGE_MIN = 7;
      private static final EntityDimensions BABY_DIMENSIONS = EntityType.ZOMBIE.getDimensions().scale(0.5F).withEyeHeight(0.93F);
@@ -61,6 +68,18 @@
          return true;
      }
  
+@@ -182,9 +_,9 @@
+         this.getEntityData().set(DATA_BABY_ID, p_34309_);
+         if (this.level() != null && !this.level().isClientSide) {
+             AttributeInstance attributeinstance = this.getAttribute(Attributes.MOVEMENT_SPEED);
+-            attributeinstance.removeModifier(SPEED_MODIFIER_BABY_ID);
++            attributeinstance.removeModifier(this.babyModifier.id()); // Paper - Make baby speed configurable
+             if (p_34309_) {
+-                attributeinstance.addTransientModifier(SPEED_MODIFIER_BABY);
++                attributeinstance.addTransientModifier(this.babyModifier); // Paper - Make baby speed configurable
+             }
+         }
+     }
 @@ -206,7 +_,7 @@
      public void tick() {
          if (!this.level().isClientSide && this.isAlive() && !this.isNoAi()) {

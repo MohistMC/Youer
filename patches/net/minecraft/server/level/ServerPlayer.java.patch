@@ -202,10 +202,11 @@
          @Override
          public void dataChanged(AbstractContainerMenu p_143462_, int p_143463_, int p_143464_) {
          }
-@@ -276,6 +_,32 @@
+@@ -276,6 +_,33 @@
      public final Object object;
      private int containerCounter;
      public boolean wonGame;
++    private int containerUpdateDelay; // Paper - Configurable container update tick rate
 +    // CraftBukkit start
 +    public CraftPlayer.TransferCookieConnection transferCookieConnection;
 +    public String displayName;
@@ -416,11 +417,18 @@
          this.gameMode.tick();
          this.wardenSpawnTracker.tick();
          this.spawnInvulnerableTime--;
-@@ -497,7 +_,8 @@
+@@ -496,8 +_,14 @@
+             this.invulnerableTime--;
          }
  
-         this.containerMenu.broadcastChanges();
+-        this.containerMenu.broadcastChanges();
 -        if (!this.level().isClientSide && !this.containerMenu.stillValid(this)) {
++        // Paper start - Configurable container update tick rate
++        if (--containerUpdateDelay <= 0) {
++            this.containerMenu.broadcastChanges();
++            containerUpdateDelay = this.level().paperConfig().tickRates.containerUpdate;
++        }
++        // Paper end - Configurable container update tick rate
 +        if (!this.level().isClientSide && this.containerMenu != this.inventoryMenu && (this.isImmobile() || !this.containerMenu.stillValid(this))) { // Paper - Prevent opening inventories when frozen
 +            InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.CANT_USE); // Paper - Inventory close reason
              this.closeContainer();

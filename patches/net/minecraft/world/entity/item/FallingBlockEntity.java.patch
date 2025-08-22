@@ -125,6 +125,15 @@
      }
  
      @Override
+@@ -298,7 +_,7 @@
+             this.dropItem = p_31964_.getBoolean("DropItem");
+         }
+ 
+-        if (p_31964_.contains("TileEntityData", 10)) {
++        if (p_31964_.contains("TileEntityData", 10) && !(this.level().paperConfig().entities.spawning.filterBadTileEntityNbtFromFallingBlocks && this.blockState.getBlock() instanceof net.minecraft.world.level.block.GameMasterBlock)) { // Paper - Filter bad block entity nbt data from falling blocks
+             this.blockData = p_31964_.getCompound("TileEntityData").copy();
+         }
+ 
 @@ -306,6 +_,12 @@
          if (this.blockState.isAir()) {
              this.blockState = Blocks.SAND.defaultBlockState();
@@ -138,3 +147,12 @@
      }
  
      public void setHurtsEntities(float p_149657_, int p_149658_) {
+@@ -367,7 +_,7 @@
+         ResourceKey<Level> resourcekey1 = this.level().dimension();
+         boolean flag = (resourcekey1 == Level.END || resourcekey == Level.END) && resourcekey1 != resourcekey;
+         Entity entity = super.changeDimension(p_351015_);
+-        this.forceTickAfterTeleportToDuplicate = entity != null && flag;
++        this.forceTickAfterTeleportToDuplicate = entity != null && flag && io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowUnsafeEndPortalTeleportation; // Paper
+         return entity;
+     }
+ }

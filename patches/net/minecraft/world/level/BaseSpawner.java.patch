@@ -9,7 +9,13 @@
  import org.slf4j.Logger;
  
  public abstract class BaseSpawner implements net.neoforged.neoforge.common.extensions.IOwnedSpawner {
-@@ -49,12 +_,13 @@
+@@ -44,17 +_,19 @@
+     public int maxNearbyEntities = 6;
+     public int requiredPlayerRange = 16;
+     public int spawnRange = 4;
++    private int tickDelay = 0; // Paper - Configurable mob spawner tick rate
+ 
+     public void setEntityId(EntityType<?> p_253682_, @Nullable Level p_254041_, RandomSource p_254221_, BlockPos p_254050_) {
          this.getOrCreateNextSpawnData(p_254041_, p_254221_, p_254050_)
              .getEntityToSpawn()
              .putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(p_253682_).toString());
@@ -26,14 +32,28 @@
      }
  
      public void clientTick(Level p_151320_, BlockPos p_151321_) {
-@@ -77,6 +_,7 @@
+@@ -77,13 +_,19 @@
      }
  
      public void serverTick(ServerLevel p_151312_, BlockPos p_151313_) {
 +        if (spawnCount <= 0 || maxNearbyEntities <= 0) return; // Paper - Ignore impossible spawn tick
++        // Paper start - Configurable mob spawner tick rate
++        if (spawnDelay > 0 && --tickDelay > 0) return;
++        tickDelay = p_151312_.paperConfig().tickRates.mobSpawner;
++        if (tickDelay == -1) { return; } // If disabled
++        // Paper end - Configurable mob spawner tick rate
          if (this.isNearPlayer(p_151312_, p_151313_)) {
-             if (this.spawnDelay == -1) {
+-            if (this.spawnDelay == -1) {
++            if (this.spawnDelay == -tickDelay) { // Paper - Configurable mob spawner tick rate
                  this.delay(p_151312_, p_151313_);
+             }
+ 
+             if (this.spawnDelay > 0) {
+-                this.spawnDelay--;
++                this.spawnDelay -= tickDelay; // Paper - Configurable mob spawner tick rate
+             } else {
+                 boolean flag = false;
+                 RandomSource randomsource = p_151312_.getRandom();
 @@ -121,6 +_,23 @@
                              continue;
                          }

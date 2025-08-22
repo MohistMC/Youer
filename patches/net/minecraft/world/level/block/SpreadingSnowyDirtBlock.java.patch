@@ -8,9 +8,11 @@
  
  public abstract class SpreadingSnowyDirtBlock extends SnowyDirtBlock {
      protected SpreadingSnowyDirtBlock(BlockBehaviour.Properties p_56817_) {
-@@ -42,16 +_,27 @@
+@@ -41,17 +_,29 @@
+ 
      @Override
      protected void randomTick(BlockState p_222508_, ServerLevel p_222509_, BlockPos p_222510_, RandomSource p_222511_) {
++        if (this instanceof GrassBlock && p_222509_.paperConfig().tickRates.grassSpread != 1 && (p_222509_.paperConfig().tickRates.grassSpread < 1 || (net.minecraft.server.MinecraftServer.currentTick + p_222510_.hashCode()) % p_222509_.paperConfig().tickRates.grassSpread != 0)) { return; } // Paper - Configurable random tick rates for blocks
          if (!canBeGrass(p_222508_, p_222509_, p_222510_)) {
 +            if (!p_222509_.isAreaLoaded(p_222510_, 1)) return; // Forge: prevent loading unloaded chunks when checking neighbor's light and spreading
 +            // CraftBukkit start
