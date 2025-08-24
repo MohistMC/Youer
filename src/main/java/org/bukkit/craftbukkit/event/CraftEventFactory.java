@@ -969,8 +969,6 @@ public class CraftEventFactory {
         List<org.bukkit.inventory.ItemStack> drops;
         if (captureDrops == null) {
             drops = new ArrayList<>();
-        } else if (captureDrops instanceof List) {
-            drops = new ArrayList<>(Lists.transform((List<ItemEntity>) captureDrops, e -> CraftItemStack.asCraftMirror(e.getItem())));
         } else {
             drops = captureDrops.stream().map(ItemEntity::getItem).map(CraftItemStack::asCraftMirror).collect(Collectors.toList());
         }
