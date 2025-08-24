@@ -202,11 +202,15 @@
          @Override
          public void dataChanged(AbstractContainerMenu p_143462_, int p_143463_, int p_143464_) {
          }
-@@ -276,6 +_,33 @@
+@@ -276,6 +_,37 @@
      public final Object object;
      private int containerCounter;
      public boolean wonGame;
 +    private int containerUpdateDelay; // Paper - Configurable container update tick rate
++    // Paper start - cancellable death event
++    public boolean queueHealthUpdatePacket;
++    public net.minecraft.network.protocol.game.ClientboundSetHealthPacket queuedHealthUpdatePacket;
++    // Paper end - cancellable death event
 +    // CraftBukkit start
 +    public CraftPlayer.TransferCookieConnection transferCookieConnection;
 +    public String displayName;
@@ -512,10 +516,12 @@
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Ticking player");
              CrashReportCategory crashreportcategory = crashreport.addCategory("Player being ticked");
-@@ -657,9 +_,41 @@
+@@ -656,10 +_,53 @@
+ 
      @Override
      public void die(DamageSource p_9035_) {
-         this.gameEvent(GameEvent.ENTITY_DIE);
+-        this.gameEvent(GameEvent.ENTITY_DIE);
++        // this.gameEvent(GameEvent.ENTITY_DIE); // Paper - move below event cancellation check
 +        if (CommonHooks.onLivingDeath(this, p_9035_)) return;
          boolean flag = this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES);
 -        if (flag) {
@@ -545,6 +551,17 @@
 +        Component defaultMessage = this.getCombatTracker().getDeathMessage();
 +        keepLevel = keepInventory; // SPIGOT-2222: pre-set keepLevel
 +        PlayerDeathEvent event = CraftEventFactory.callPlayerDeathEvent(this, p_9035_, loot, PaperAdventure.asAdventure(defaultMessage), keepInventory); // Paper - Adventure
++        // Paper start - cancellable death event
++        if (event.isCancelled()) {
++            // make compatible with plugins that might have already set the health in an event listener
++            if (this.getHealth() <= 0) {
++                this.setHealth((float) event.getReviveHealth());
++            }
++            return;
++        }
++        this.gameEvent(GameEvent.ENTITY_DIE); // moved from the top of this method
++        // Paper end
++
 +        // SPIGOT-943 - only call if they have an inventory open
 +        if (this.containerMenu != this.inventoryMenu) {
 +            InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.DEATH); // Paper - Inventory close reason
@@ -572,6 +589,25 @@
  
          this.getScoreboard().forAllObjectives(ObjectiveCriteria.DEATH_COUNT, this, ScoreAccess::increment);
          LivingEntity livingentity = this.getKillCredit();
+@@ -772,7 +_,17 @@
+                     return false;
+                 }
+ 
+-                return super.hurt(p_9037_, p_9038_);
++                // Paper start - cancellable death events
++                //return super.hurt(source, amount);
++                this.queueHealthUpdatePacket = true;
++                boolean damaged = super.hurt(p_9037_, p_9038_);
++                this.queueHealthUpdatePacket = false;
++                if (this.queuedHealthUpdatePacket != null) {
++                    this.connection.send(this.queuedHealthUpdatePacket);
++                    this.queuedHealthUpdatePacket = null;
++                }
++                return damaged;
++                // Paper end
+             }
+         }
+     }
 @@ -783,30 +_,68 @@
      }
  

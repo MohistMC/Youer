@@ -227,7 +227,7 @@
          return itemattributemodifiers.compute(this.getAttributeBaseValue(Attributes.ATTACK_DAMAGE), EquipmentSlot.MAINHAND);
      }
  
-@@ -701,23 +_,33 @@
+@@ -701,23 +_,41 @@
  
      @Override
      public void checkDespawn() {
@@ -243,6 +243,22 @@
 -                int i = this.getType().getCategory().getDespawnDistance();
 -                int j = i * i;
 -                if (d0 > (double)j && this.removeWhenFarAway(d0)) {
+-                    this.discard();
+-                }
+-
+-                int k = this.getType().getCategory().getNoDespawnDistance();
+-                int l = k * k;
+-                if (this.noActionTime > 600 && this.random.nextInt(800) == 0 && d0 > (double)l && this.removeWhenFarAway(d0)) {
+-                    this.discard();
+-                } else if (d0 < (double)l) {
++                if (Boolean.parseBoolean("false")) {
++                    double d0 = entity.distanceToSqr(this);
++                    int i = this.getType().getCategory().getDespawnDistance();
++                    int j = i * i;
++                    if (d0 > (double)j && this.removeWhenFarAway(d0)) {
++                        this.discard();
++                    }
++                }
 +                // Paper start - Configurable despawn distances
 +                final io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DespawnRangePair despawnRangePair = this.level().paperConfig().entities.spawning.despawnRanges.get(this.getType().getCategory());
 +                final io.papermc.paper.configuration.type.DespawnRange.Shape shape = this.level().paperConfig().entities.spawning.despawnRangeShape;
@@ -254,14 +270,8 @@
 +                // Despawn if hard/soft limit is exceeded
 +                if (despawnRangePair.hard().shouldDespawn(shape, dxSqr, dySqr, dzSqr, dy) && this.removeWhenFarAway(distanceSquared)) {
 +                    this.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
-                     this.discard();
-                 }
--
--                int k = this.getType().getCategory().getNoDespawnDistance();
--                int l = k * k;
--                if (this.noActionTime > 600 && this.random.nextInt(800) == 0 && d0 > (double)l && this.removeWhenFarAway(d0)) {
--                    this.discard();
--                } else if (d0 < (double)l) {
++                    this.discard();
++                }
 +                if (despawnRangePair.soft().shouldDespawn(shape, dxSqr, dySqr, dzSqr, dy)) {
 +                    if (this.noActionTime > 600 && this.random.nextInt(800) == 0 && this.removeWhenFarAway(distanceSquared)) {
 +                        this.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
@@ -280,7 +290,38 @@
          ProfilerFiller profilerfiller = this.level().getProfiler();
          profilerfiller.push("sensing");
          this.sensing.tick();
-@@ -960,7 +_,7 @@
+@@ -926,11 +_,18 @@
+         }
+     }
+ 
++    // Paper start
++    protected boolean shouldSkipLoot(EquipmentSlot slot) { // method to avoid to fallback into the global mob loot logic (i.e fox)
++        return false;
++    }
++    // Paper end
++
+     @Override
+     protected void dropCustomDeathLoot(ServerLevel p_348683_, DamageSource p_21385_, boolean p_21387_) {
+         super.dropCustomDeathLoot(p_348683_, p_21385_, p_21387_);
+ 
+         for (EquipmentSlot equipmentslot : EquipmentSlot.values()) {
++            if (this.shouldSkipLoot(equipmentslot)) continue; // Paper
+             ItemStack itemstack = this.getItemBySlot(equipmentslot);
+             float f = this.getEquipmentDropChance(equipmentslot);
+             if (f != 0.0F) {
+@@ -954,13 +_,19 @@
+                     }
+ 
+                     this.spawnAtLocation(itemstack);
++                    if (this.clearEquipmentSlots) { // Paper
+                     this.setItemSlot(equipmentslot, ItemStack.EMPTY);
++                        // Paper start
++                    } else {
++                        this.clearedEquipmentSlots.add(equipmentslot);
++                    }
++                    // Paper end
+                 }
+             }
          }
      }
  
