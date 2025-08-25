@@ -34,9 +34,10 @@
                      BlockPos blockpos2 = p_57687_.relative(direction, k);
                      BlockState blockstate2 = ablockstate[k];
                      if (blockstate2 != null) {
-+                    if (!p_57686_.getBlockState(blockpos2).isAir()) { // FORGE: fix MC-129055
-                         p_57686_.setBlock(blockpos2, blockstate2.trySetValue(ATTACHED, Boolean.valueOf(flag2)), 3);
+-                        p_57686_.setBlock(blockpos2, blockstate2.trySetValue(ATTACHED, Boolean.valueOf(flag2)), 3);
 -                        if (!p_57686_.getBlockState(blockpos2).isAir()) {
++                        if (p_57686_.getBlockState(blockpos2).is(Blocks.TRIPWIRE) || io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowTripwireDisarmingExploits) { // Paper - Fix tripwire disarming not working as intended
++                            p_57686_.setBlock(blockpos2, blockstate2.trySetValue(ATTACHED, Boolean.valueOf(flag2)), 3);
                          }
                      }
                  }

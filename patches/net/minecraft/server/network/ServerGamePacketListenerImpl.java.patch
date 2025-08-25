@@ -38,15 +38,22 @@
  import net.minecraft.world.inventory.AnvilMenu;
  import net.minecraft.world.inventory.BeaconMenu;
  import net.minecraft.world.inventory.CrafterMenu;
-@@ -162,7 +_,6 @@
+@@ -162,8 +_,8 @@
  import net.minecraft.world.item.component.CustomData;
  import net.minecraft.world.item.component.WritableBookContent;
  import net.minecraft.world.item.component.WrittenBookContent;
 -import net.minecraft.world.item.crafting.RecipeHolder;
  import net.minecraft.world.level.BaseCommandBlock;
++import net.minecraft.world.level.ClipContext;
  import net.minecraft.world.level.GameRules;
  import net.minecraft.world.level.GameType;
-@@ -184,7 +_,26 @@
+ import net.minecraft.world.level.Level;
+@@ -180,11 +_,33 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.BlockHitResult;
++import net.minecraft.world.phys.HitResult;
+ import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.BooleanOp;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
@@ -59,6 +66,8 @@
 +import org.bukkit.craftbukkit.util.LazyPlayerSet;
 +import org.bukkit.craftbukkit.inventory.CraftItemType;
 +import org.bukkit.craftbukkit.util.Waitable;
++import org.bukkit.event.Event;
++import org.bukkit.event.block.Action;
 +import org.bukkit.event.inventory.ClickType;
 +import org.bukkit.event.inventory.CraftItemEvent;
 +import org.bukkit.event.inventory.InventoryAction;
@@ -1090,6 +1099,55 @@
          this.ackBlockChangesUpTo(p_9932_.getSequence());
          ServerLevel serverlevel = this.player.serverLevel();
          InteractionHand interactionhand = p_9932_.getHand();
+@@ -1147,6 +_,48 @@
+                 this.player.absRotateTo(f, f1);
+             }
+ 
++            // CraftBukkit start
++            // Raytrace to look for 'rogue armswings'
++            double d0 = this.player.getX();
++            double d1 = this.player.getY() + (double) this.player.getEyeHeight();
++            double d2 = this.player.getZ();
++            Vec3 vec3d = new Vec3(d0, d1, d2);
++
++            float f3 = Mth.cos(-f * 0.017453292F - 3.1415927F);
++            float f4 = Mth.sin(-f * 0.017453292F - 3.1415927F);
++            float f5 = -Mth.cos(-f1 * 0.017453292F);
++            float f6 = Mth.sin(-f1 * 0.017453292F);
++            float f7 = f4 * f5;
++            float f8 = f3 * f5;
++            double d3 = this.player.blockInteractionRange();
++            Vec3 vec3d1 = vec3d.add((double) f7 * d3, (double) f6 * d3, (double) f8 * d3);
++            HitResult movingobjectposition = this.player.level().clip(new ClipContext(vec3d, vec3d1, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, this.player));
++
++            boolean cancelled;
++            if (movingobjectposition == null || movingobjectposition.getType() != HitResult.Type.BLOCK) {
++                org.bukkit.event.player.PlayerInteractEvent event = CraftEventFactory.callPlayerInteractEvent(this.player, Action.RIGHT_CLICK_AIR, itemstack, interactionhand);
++                cancelled = event.useItemInHand() == Event.Result.DENY;
++            } else {
++                BlockHitResult movingobjectpositionblock = (BlockHitResult) movingobjectposition;
++                if (this.player.gameMode.firedInteract && this.player.gameMode.interactPosition.equals(movingobjectpositionblock.getBlockPos()) && this.player.gameMode.interactHand == interactionhand && ItemStack.isSameItemSameComponents(this.player.gameMode.interactItemStack, itemstack)) {
++                    cancelled = this.player.gameMode.interactResult;
++                } else {
++                    org.bukkit.event.player.PlayerInteractEvent event = CraftEventFactory.callPlayerInteractEvent(this.player, Action.RIGHT_CLICK_BLOCK, movingobjectpositionblock.getBlockPos(), movingobjectpositionblock.getDirection(), itemstack, true, interactionhand, movingobjectpositionblock.getLocation());
++                    cancelled = event.useItemInHand() == Event.Result.DENY;
++                }
++                this.player.gameMode.firedInteract = false;
++            }
++
++            if (cancelled) {
++                this.player.resyncUsingItem(this.player); // Paper - Properly cancel usable items
++                this.player.getBukkitEntity().updateInventory(); // SPIGOT-2524
++                return;
++            }
++            itemstack = this.player.getItemInHand(interactionhand); // Update in case it was changed in the event
++            if (itemstack.isEmpty()) {
++                return;
++            }
++            // CraftBukkit end
+             InteractionResult interactionresult = this.player.gameMode.useItem(this.player, serverlevel, itemstack, interactionhand);
+             if (interactionresult.shouldSwing()) {
+                 this.player.swing(interactionhand, true);
 @@ -1178,22 +_,55 @@
  
      @Override

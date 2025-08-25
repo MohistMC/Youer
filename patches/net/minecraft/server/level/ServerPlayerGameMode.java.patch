@@ -7,21 +7,31 @@
  import com.mojang.logging.LogUtils;
  import java.util.Objects;
  import javax.annotation.Nullable;
-@@ -15,7 +_,6 @@
+@@ -15,18 +_,26 @@
  import net.minecraft.world.ItemInteractionResult;
  import net.minecraft.world.MenuProvider;
  import net.minecraft.world.entity.EquipmentSlot;
 -import net.minecraft.world.item.Item;
++import net.minecraft.world.item.DoubleHighBlockItem;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.context.UseOnContext;
  import net.minecraft.world.item.enchantment.EnchantmentHelper;
-@@ -27,6 +_,9 @@
+ import net.minecraft.world.level.GameType;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.CakeBlock;
+ import net.minecraft.world.level.block.GameMasterBlock;
+ import net.minecraft.world.level.block.entity.BlockEntity;
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.Vec3;
 +import org.bukkit.GameMode;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.Event;
++import org.bukkit.event.block.Action;
 +import org.bukkit.event.player.PlayerGameModeChangeEvent;
++import org.bukkit.event.player.PlayerInteractEvent;
  import org.slf4j.Logger;
  
  public class ServerPlayerGameMode {
@@ -274,9 +284,16 @@
              int i = p_9264_.getCount();
              int j = p_9264_.getDamageValue();
              InteractionResultHolder<ItemStack> interactionresultholder = p_9264_.use(p_9263_, p_9262_, p_9265_);
-@@ -305,11 +_,19 @@
+@@ -304,24 +_,75 @@
+         }
      }
  
++    // CraftBukkit start - whole method
++    public boolean interactResult = false;
++    public boolean firedInteract = false;
++    public BlockPos interactPosition;
++    public InteractionHand interactHand;
++    public ItemStack interactItemStack;
      public InteractionResult useItemOn(ServerPlayer p_9266_, Level p_9267_, ItemStack p_9268_, InteractionHand p_9269_, BlockHitResult p_9270_) {
 +        if (BanItem.checkMoShou(p_9266_, p_9266_.getItemInHand(p_9269_))) {
 +            p_9266_.setItemInHand(p_9269_, ItemStack.EMPTY);
@@ -285,17 +302,51 @@
 +        if (BanItem.check(p_9266_, p_9268_)) return InteractionResult.FAIL;
          BlockPos blockpos = p_9270_.getBlockPos();
          BlockState blockstate = p_9267_.getBlockState(blockpos);
++        boolean cancelledBlock = false;
++        boolean cancelledItem = false; // Paper - correctly handle items on cooldown
          if (!blockstate.getBlock().isEnabled(p_9267_.enabledFeatures())) {
              return InteractionResult.FAIL;
--        } else if (this.gameModeForPlayer == GameType.SPECTATOR) {
+         } else if (this.gameModeForPlayer == GameType.SPECTATOR) {
++            MenuProvider itileinventory = blockstate.getMenuProvider(p_9267_, blockpos);
++            cancelledBlock = !(itileinventory instanceof MenuProvider);
++        }
++
++        if (player.getCooldowns().isOnCooldown(p_9268_.getItem())) {
++            cancelledItem = true; // Paper - correctly handle items on cooldown
 +        }
 +        net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock event = net.neoforged.neoforge.common.CommonHooks.onRightClickBlock(p_9266_, p_9269_, blockpos, p_9270_);
-+        if (event.isCanceled()) return event.getCancellationResult();
++
++        PlayerInteractEvent bukkitevent = CraftEventFactory.callPlayerInteractEvent(player, Action.RIGHT_CLICK_BLOCK, blockpos, p_9270_.getDirection(), p_9268_, cancelledBlock, cancelledItem, p_9269_, p_9270_.getLocation()); // Paper - correctly handle items on cooldown
++        this.firedInteract = true;
++        this.interactResult = bukkitevent.useItemInHand() == Event.Result.DENY;
++        this.interactPosition = blockpos.immutable();
++        this.interactHand = p_9269_;
++        this.interactItemStack = p_9268_.copy();
++        if (bukkitevent.isCancelled()) {
++            event.setCanceled(true);
++        }
++        if (bukkitevent.useItemInHand() != Event.Result.ALLOW) {
++            event.setCancellationResult(InteractionResult.SUCCESS);
++        }
++        if (event.isCanceled()){
++            // Paper start - Don't resync blocks
++            if (blockstate.getBlock() instanceof CakeBlock) {
++                player.getBukkitEntity().sendHealthUpdate(); // SPIGOT-1341 - reset health for cake
++            } else if (blockstate.is(Blocks.JIGSAW) || blockstate.is(Blocks.STRUCTURE_BLOCK) || blockstate.getBlock() instanceof net.minecraft.world.level.block.CommandBlock) {
++                player.connection.send(new net.minecraft.network.protocol.game.ClientboundContainerClosePacket(this.player.containerMenu.containerId));
++            }
++            // Paper end - extend Player Interact cancellation
++            player.getBukkitEntity().updateInventory(); // SPIGOT-2867
++            this.player.resyncUsingItem(this.player); // Paper - Properly cancel usable items
++            return event.getCancellationResult();
++        }
 +        if (this.gameModeForPlayer == GameType.SPECTATOR) {
              MenuProvider menuprovider = blockstate.getMenuProvider(p_9267_, blockpos);
-             if (menuprovider != null) {
-                 p_9266_.openMenu(menuprovider);
-@@ -318,10 +_,15 @@
+-            if (menuprovider != null) {
+-                p_9266_.openMenu(menuprovider);
++            if (menuprovider != null && player.openMenu(menuprovider).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+                 return InteractionResult.SUCCESS;
+             } else {
                  return InteractionResult.PASS;
              }
          } else {
@@ -319,8 +370,20 @@
  
 -            if (!p_9268_.isEmpty() && !p_9266_.getCooldowns().isOnCooldown(p_9268_.getItem())) {
 -                UseOnContext useoncontext = new UseOnContext(p_9266_, p_9269_, p_9270_);
-+            if (event.getUseItem().isTrue() || (!p_9268_.isEmpty() && !p_9266_.getCooldowns().isOnCooldown(p_9268_.getItem()))) {
++            if (event.getUseItem().isTrue() || (!p_9268_.isEmpty() && !this.interactResult)) { // add !interactResult SPIGOT-764
 +                if (event.getUseItem().isFalse()) return InteractionResult.PASS;
                  InteractionResult interactionresult1;
                  if (this.isCreative()) {
                      int i = p_9268_.getCount();
+@@ -354,6 +_,11 @@
+ 
+                 return interactionresult1;
+             } else {
++                // Paper start - Properly cancel usable items; Cancel only if cancelled + if the interact result is different from default response
++                if (this.interactResult && this.interactResult != cancelledItem) {
++                    this.player.resyncUsingItem(this.player);
++                }
++                // Paper end - Properly cancel usable items
+                 return InteractionResult.PASS;
+             }
+         }
