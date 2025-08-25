@@ -1,5 +1,6 @@
 package gg.pufferfish.pufferfish;
 
+import com.mohistmc.youer.util.I18n;
 import gg.pufferfish.pufferfish.simd.SIMDDetection;
 import java.io.File;
 import java.io.IOException;
@@ -91,17 +92,17 @@ public class PufferfishConfig {
 		} catch (NoClassDefFoundError | Exception ignored) {
 			ignored.printStackTrace();
 		}
-		
-		if (SIMDDetection.isEnabled) {
-			PufferfishLogger.LOGGER.info("SIMD operations detected as functional. Will replace some operations with faster versions.");
-		} else if (SIMDDetection.versionLimited) {
-			PufferfishLogger.LOGGER.warning("Will not enable SIMD! These optimizations are only safely supported on Java 17-21.");
-		} else {
-			PufferfishLogger.LOGGER.warning("SIMD operations are available for your server, but are not configured!");
-			PufferfishLogger.LOGGER.warning("To enable additional optimizations, add \"--add-modules=jdk.incubator.vector\" to your startup flags, BEFORE the \"-jar\".");
-			PufferfishLogger.LOGGER.warning("If you have already added this flag, then SIMD operations are not supported on your JVM or CPU.");
-			PufferfishLogger.LOGGER.warning("Debug: Java: " + System.getProperty("java.version") + ", test run: " + SIMDDetection.testRun);
-		}
+
+        if (SIMDDetection.isEnabled) {
+            PufferfishLogger.LOGGER.info(I18n.as("pufferfish.simd.enabled"));
+        } else if (SIMDDetection.versionLimited) {
+            PufferfishLogger.LOGGER.warning(I18n.as("pufferfish.simd.versionlimited"));
+        } else {
+            PufferfishLogger.LOGGER.warning(I18n.as("pufferfish.simd.notconfigured"));
+            PufferfishLogger.LOGGER.warning(I18n.as("pufferfish.simd.enableinstructions"));
+            PufferfishLogger.LOGGER.warning(I18n.as("pufferfish.simd.notsupported"));
+            PufferfishLogger.LOGGER.warning(I18n.as("pufferfish.simd.debug", System.getProperty("java.version"), SIMDDetection.testRun));
+        }
 	}
 	
 	private static void setComment(String key, String... comment) {

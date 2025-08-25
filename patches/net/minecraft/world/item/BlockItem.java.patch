@@ -33,7 +33,7 @@
                  if (blockstate == null) {
                      return InteractionResult.FAIL;
                  } else if (!this.placeBlock(blockplacecontext, blockstate)) {
-@@ -77,19 +_,32 @@
+@@ -77,16 +_,29 @@
                          this.updateCustomBlockEntityTag(blockpos, level, player, itemstack, blockstate1);
                          updateBlockEntityComponents(level, blockpos, itemstack);
                          blockstate1.getBlock().setPlacedBy(level, blockpos, blockstate1, player, itemstack);
@@ -58,21 +58,13 @@
 -                    SoundType soundtype = blockstate1.getSoundType();
 +                    SoundType soundtype = blockstate1.getSoundType(level, blockpos, p_40577_.getPlayer());
                      level.playSound(
--                        player,
--                        blockpos,
+                         player,
+                         blockpos,
 -                        this.getPlaceSound(blockstate1),
--                        SoundSource.BLOCKS,
--                        (soundtype.getVolume() + 1.0F) / 2.0F,
--                        soundtype.getPitch() * 0.8F
-+                            player,
-+                            blockpos,
-+                            this.getPlaceSound(blockstate1, level, blockpos, p_40577_.getPlayer()),
-+                            SoundSource.BLOCKS,
-+                            (soundtype.getVolume() + 1.0F) / 2.0F,
-+                            soundtype.getPitch() * 0.8F
-                     );
-                     level.gameEvent(GameEvent.BLOCK_PLACE, blockpos, GameEvent.Context.of(player, blockstate1));
-                     itemstack.consume(1, player);
++                        this.getPlaceSound(blockstate1, level, blockpos, p_40577_.getPlayer()),
+                         SoundSource.BLOCKS,
+                         (soundtype.getVolume() + 1.0F) / 2.0F,
+                         soundtype.getPitch() * 0.8F
 @@ -99,10 +_,16 @@
          }
      }

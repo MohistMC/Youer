@@ -11,13 +11,16 @@ import com.mohistmc.youer.util.I18n;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.command.Command;
@@ -65,15 +68,21 @@ public class WorldsCommands extends Command {
                 String worldName = args[1].toLowerCase(java.util.Locale.ENGLISH);
                 if (Bukkit.getWorld(args[1]) == null) {
                     DemoGUI wh = new DemoGUI(I18n.as("worldmanage.gui.title0") + worldName);
-                    List<String> lore = new ArrayList<>();
+                    List<String> environments = new ArrayList<>();
                     for (World.Environment environment : NeoForgeInjectBukkit.environment.values()) {
-                        lore.add(environment.name());
+                        environments.add(environment.name());
                     }
-                    lore.add("VOID");
-                    lore.add("FLAT");
+                    environments.add("VOID");
+                    environments.add("FLAT");
 
-                    for (var environment : lore) {
-                        wh.addItem(new GUIItem(new ItemStackFactory(WorldsGUI.getMaterial(environment)).setDisplayName(environment).toItemStack()) {
+                    for (var environment : environments) {
+                        wh.addItem(new GUIItem(new ItemStackFactory(WorldsGUI.getMaterial(environment))
+                                .setDisplayName(environment)
+                                .setLore(List.of(
+                                        I18n.as("worldmanage.environment." + environment.toLowerCase(Locale.ENGLISH)),
+                                        I18n.as("worldmanage.gui.select")
+                                ))
+                                .toItemStack()) {
                                        @Override
                                        public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                            WorldsGUI.createWorld(worldName, itemStack, u);
@@ -81,6 +90,9 @@ public class WorldsCommands extends Command {
                                    }
                         );
                     }
+                    wh.setItem(49, new GUIItem(new ItemStackFactory(Material.BRUSH)
+                            .setDisplayName(I18n.as("worldmanage.gui.selectenvironment"))
+                            .toItemStack()));
                     wh.openGUI(player);
                     return true;
                 } else {

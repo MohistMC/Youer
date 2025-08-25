@@ -26,7 +26,6 @@ import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.craftbukkit.inventory.CraftInventoryView;
 
-
 public class PlayerEventDispatcher {
 
     @SubscribeEvent
@@ -40,6 +39,6 @@ public class PlayerEventDispatcher {
             abstractcontainermenu.bukkitView = new CraftInventoryView<>(event.getEntity().getBukkitEntity(), inventory, abstractcontainermenu);
         }
         // Youer end
-        CraftEventFactory.handleInventoryCloseEvent(event.getEntity()); // CraftBukkit
+        CraftEventFactory.handleInventoryCloseEvent(event.getEntity(), event.getClose$Reason()); // CraftBukkit
     }
 }

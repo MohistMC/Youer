@@ -14,19 +14,16 @@ public class ItemStackFactory {
 
     ItemStack item;
 
-    private ItemStackFactory() {
-    }
-
-    public ItemStackFactory(String type) {
-        this(Material.getMaterial(type), 1);
+    public ItemStackFactory(String typeOrKey) {
+        this(Material.matchMaterial(typeOrKey), 1);
     }
 
     public ItemStackFactory(Material type) {
         this(type, 1);
     }
 
-    public ItemStackFactory(String type, int amount) {
-        this(Material.getMaterial(type), amount);
+    public ItemStackFactory(String typeOrKey, int amount) {
+        this(Material.matchMaterial(typeOrKey), amount);
     }
 
     public ItemStackFactory(Material type, int amount) {
@@ -81,6 +78,13 @@ public class ItemStackFactory {
     public ItemStackFactory setCustomModelData(int customModelData) {
         ItemMeta im = this.item.getItemMeta();
         im.setCustomModelData(customModelData);
+        this.item.setItemMeta(im);
+        return this;
+    }
+
+    public ItemStackFactory hideTooltip() {
+        ItemMeta im = this.item.getItemMeta();
+        im.setHideTooltip(true);
         this.item.setItemMeta(im);
         return this;
     }

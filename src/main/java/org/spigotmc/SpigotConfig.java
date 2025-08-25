@@ -361,14 +361,6 @@ public class SpigotConfig
             conf.getLoggerConfig( LogManager.ROOT_LOGGER_NAME ).setLevel( org.apache.logging.log4j.Level.ALL );
             ctx.updateLoggers( conf );
         }
-
-        if ( LogManager.getRootLogger().isTraceEnabled() )
-        {
-            Bukkit.getLogger().info( "Debug logging is enabled" );
-        } else
-        {
-            Bukkit.getLogger().info( "Debug logging is disabled" );
-        }
     }
 
     public static boolean disableAdvancementSaving;

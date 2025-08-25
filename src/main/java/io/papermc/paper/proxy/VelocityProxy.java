@@ -1,4 +1,4 @@
-package com.mohistmc.youer.proxy;
+package io.papermc.paper.proxy;
 
 import com.google.common.net.InetAddresses;
 import com.mojang.authlib.GameProfile;

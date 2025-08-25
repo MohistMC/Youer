@@ -21,8 +21,11 @@ public class GuiListener {
             GUI gui = openGUI.get(p);
             event.setCancelled(true);
             if (event.getInventory() == gui.inv) {
-                if (gui.items[event.getSlot()] != null) {
-                    gui.items[event.getSlot()].ClickAction(event.getClick(), p, gui.items[event.getSlot()].display);
+                int index = event.getRawSlot();
+                if(index < gui.items.length) {
+                    if (gui.items[index] != null) {
+                        gui.items[index].ClickAction(event.getClick(), p, gui.items[index].display);
+                    }
                 }
             }
         }

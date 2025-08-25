@@ -1009,7 +1009,7 @@
      }
  
      @Override
-@@ -1140,9 +_,16 @@
+@@ -1140,9 +_,29 @@
      }
  
      @Override
@@ -1018,11 +1018,24 @@
 +        closeContainer();
 +    }
 +
++    // Paper start - special close for unloaded inventory
++    @Override
++    public void closeUnloadedInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
++        // copied from above
++        CraftEventFactory.handleInventoryCloseEvent(this, reason); // CraftBukkit
++        // Paper end
++        // copied from below
++        this.connection.send(new ClientboundContainerClosePacket(this.containerMenu.containerId));
++        this.containerMenu = this.inventoryMenu;
++        // do not run close logic
++    }
++    // Paper end - special close for unloaded inventory
++
 +    @Override
      public void doCloseContainer() {
          this.containerMenu.removed(this);
          this.inventoryMenu.transferState(this.containerMenu);
-+        NeoForge.EVENT_BUS.post(new PlayerContainerEvent.Close(this, this.containerMenu));
++        NeoForge.EVENT_BUS.post(new PlayerContainerEvent.Close(this, this.containerMenu, InventoryOwner.getClose$Reason()));
          this.containerMenu = this.inventoryMenu;
      }
  

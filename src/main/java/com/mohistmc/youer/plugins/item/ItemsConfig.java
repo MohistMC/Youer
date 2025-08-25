@@ -34,6 +34,14 @@ public class ItemsConfig extends YouerPluginConfig {
         return list;
     }
 
+    public List<String> getItemStrings() {
+        List<String> list = new ArrayList<>();
+        ConfigurationSection configurationSection = yaml.getConfigurationSection("items");
+        if (yaml.get("items") == null || configurationSection == null) return list;
+        list.addAll(configurationSection.getKeys(false));
+        return list;
+    }
+
     public ItemStack get(String item_name) {
         return yaml.getItemStack("items." + item_name, new ItemStack(Material.AIR));
     }

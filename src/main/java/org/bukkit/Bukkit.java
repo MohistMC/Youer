@@ -1,6 +1,7 @@
 package org.bukkit;
 
 import com.google.common.collect.ImmutableList;
+import com.mohistmc.youer.util.I18n;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.Serializable;
@@ -122,7 +123,12 @@ public final class Bukkit {
     @NotNull
     public static String getVersionMessage() {
         final io.papermc.paper.ServerBuildInfo version = io.papermc.paper.ServerBuildInfo.buildInfo();
-        return "This server is running " + getName() + " version " + version.asString(io.papermc.paper.ServerBuildInfo.StringRepresentation.VERSION_FULL) + " (Implementing API version " + getBukkitVersion() + ", NeoForge version " + NeoForgeVersion.getVersion() + ")";
+        return I18n.as("server.version.message",
+                getName(),
+                version.asString(io.papermc.paper.ServerBuildInfo.StringRepresentation.VERSION_FULL),
+                getBukkitVersion(),
+                NeoForgeVersion.getVersion()
+        );
         // Paper end
     }
 

@@ -43,7 +43,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class ItemsCommand extends Command {
 
-    private final List<String> params = Arrays.asList("info", "name", "save", "remove", "list", "get");
+    private final List<String> params = Arrays.asList("info", "name", "save", "remove", "list", "get", "modeldata");
 
     public ItemsCommand(String name) {
         super(name);
@@ -56,6 +56,9 @@ public class ItemsCommand extends Command {
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
         List<String> list = new ArrayList<>();
         if (args.length == 1 && (sender.isOp() || testPermission(sender))) {
+            if (args[0].equals("get") || args[0].equals("remove")) {
+                return ItemsConfig.INSTANCE.getItemStrings();
+            }
             for (String param : params) {
                 if (param.toLowerCase().startsWith(args[0].toLowerCase())) {
                     list.add(param);
@@ -115,7 +118,7 @@ public class ItemsCommand extends Command {
                     return false;
                 }
                 ItemsConfig.INSTANCE.put("items." + args[1], itemStack);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.completeSet"));
+                sender.sendMessage(ChatColor.GREEN + "The item was successfully saved");
                 return true;
             }
             case "lore" -> {
@@ -125,6 +128,23 @@ public class ItemsCommand extends Command {
                 }
                 ItemAPI.lore(itemStack, List.of("§4test §2LO§3RE"));
                 sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.completeLore"));
+                return true;
+            }
+            case "modeldata" -> {
+                if (itemStack == null || itemStack.getType().isAir()) {
+                    player.sendMessage(ChatColor.RED + I18n.as("itemscmd.mainhandEmpty"));
+                    return false;
+                }
+                if (args.length != 2) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /items modeldata <number>");
+                    return false;
+                }
+                if (!args[1].matches("[0-9]+")) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /items modeldata <number>");
+                    return false;
+                }
+                ItemAPI.customModelData(itemStack, Integer.parseInt(args[1]));
+                sender.sendMessage(ChatColor.GREEN + "Successfully set up model data:" + args[1]);
                 return true;
             }
             case "get" -> {
@@ -150,7 +170,7 @@ public class ItemsCommand extends Command {
                 return true;
             }
             case "list" -> {
-                DemoGUI wh = new DemoGUI("Items");
+                DemoGUI wh = new DemoGUI("§2Customize Items");
                 for (ItemStack s : ItemsConfig.INSTANCE.getItems()) {
                     wh.addItem(new GUIItem(s) {
                         @Override

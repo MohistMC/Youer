@@ -17,20 +17,17 @@ public class DemoGUI {
     List<GUIItem> items = new ArrayList<>();
     int pageChoose = 0;
 
-    private DemoGUI() {
-    }
-
     public DemoGUI(String name) {
         this.gui = new GUI(GUIType.SIXBYNINE, name);
 
         for (int i = 36; i < 46; i++) {
             this.gui.setItem(i, new GUIItem(new ItemStackFactory(Material.GLASS_PANE)
-                    .setDisplayName(" ")
+                    .hideTooltip()
                     .toItemStack()));
         }
 
         this.gui.setItem(new GUIItem(new ItemStackFactory(Material.GLASS_PANE)
-                .setDisplayName(" ")
+                .hideTooltip()
                 .toItemStack()), 47, 48, 49, 50);
 
         this.gui.setItem(46, new GUIItem(new ItemStackFactory(Material.REDSTONE)
@@ -57,6 +54,10 @@ public class DemoGUI {
 
     public final void addItem(GUIItem item) {
         this.items.add(item);
+    }
+
+    public final void setItem(int slot, GUIItem item) {
+        this.gui.setItem(slot, item);
     }
 
     public final void addItem(List<GUIItem> items) {

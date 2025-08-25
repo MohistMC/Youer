@@ -9,7 +9,12 @@
  import com.google.common.collect.Multimap;
  import com.google.common.collect.ImmutableMultimap.Builder;
  import com.google.gson.Gson;
-@@ -14,6 +_,7 @@
+@@ -10,10 +_,12 @@
+ import com.google.gson.JsonElement;
+ import com.google.gson.JsonObject;
+ import com.google.gson.JsonParseException;
++import com.mohistmc.youer.util.I18n;
+ import com.mojang.logging.LogUtils;
  import com.mojang.serialization.JsonOps;
  import java.util.Collection;
  import java.util.Comparator;
@@ -26,7 +31,7 @@
      private boolean hasErrors;
  
      public RecipeManager(HolderLookup.Provider p_324137_) {
-@@ -50,18 +_,24 @@
+@@ -50,24 +_,30 @@
          this.hasErrors = false;
          Builder<RecipeType<?>, RecipeHolder<?>> builder = ImmutableMultimap.builder();
          com.google.common.collect.ImmutableMap.Builder<ResourceLocation, RecipeHolder<?>> builder1 = ImmutableMap.builder();
@@ -54,6 +59,13 @@
              }
          }
  
+         this.byType = builder.build();
+         this.byName = builder1.build();
+-        LOGGER.info("Loaded {} recipes", this.byType.size());
++        LOGGER.info(I18n.as("recipemanager.loaded", this.byType.size()));
+     }
+ 
+     public boolean hadErrorsLoading() {
 @@ -193,5 +_,54 @@
  
      public interface CachedCheck<I extends RecipeInput, T extends Recipe<I>> {

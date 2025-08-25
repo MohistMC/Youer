@@ -155,6 +155,12 @@ public class ItemAPI {
         itemStack.setItemMeta(im);
     }
 
+    public static void customModelData(ItemStack itemStack, int customModelData) {
+        ItemMeta im = itemStack.getItemMeta();
+        im.setCustomModelData(customModelData);
+        itemStack.setItemMeta(im);
+    }
+
     @Deprecated
     public static TextComponent show(ItemStack itemStack) {
         net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);

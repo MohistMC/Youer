@@ -1,5 +1,6 @@
 package gg.pufferfish.pufferfish;
 
+import com.mohistmc.youer.util.I18n;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -9,6 +10,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.md_5.bungee.api.ChatColor;
 import net.minecraft.server.MinecraftServer;
+import net.neoforged.neoforge.internal.versions.neoforge.NeoForgeVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -60,7 +62,12 @@ public class PufferfishCommand extends Command {
 
             Command.broadcastCommandMessage(sender, prefix + "Pufferfish configuration has been reloaded.");
         } else if (args[0].equalsIgnoreCase("version")) {
-            Command.broadcastCommandMessage(sender, prefix + "This server is running " + Bukkit.getName() + " version " + Bukkit.getVersion() + " (Implementing API version " + Bukkit.getBukkitVersion() + ")");
+            Command.broadcastCommandMessage(sender, prefix + I18n.as("server.version.message",
+                    getName(),
+                    Bukkit.getVersion(),
+                    Bukkit.getBukkitVersion(),
+                    NeoForgeVersion.getVersion()
+            ));
         }
 
         return true;

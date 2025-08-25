@@ -792,16 +792,22 @@
          }
      }
  
-@@ -925,6 +_,15 @@
+@@ -925,6 +_,21 @@
      }
  
      public void unload(LevelChunk p_8713_) {
 +        // Spigot Start
 +        for (BlockEntity tileentity : p_8713_.getBlockEntities().values()) {
 +            if (tileentity instanceof Container container) {
-+                for (HumanEntity h : Lists.newArrayList(container.getViewers())) {
-+                    h.closeInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNLOADED); // Paper - Inventory close reason
++                // Paper start - this area looks like it can load chunks, change the behavior
++                // chests for example can apply physics to the world
++                // so instead we just change the active container and call the event
++                for (org.bukkit.entity.HumanEntity h : Lists.newArrayList(container.getViewers())) {
++                    if (h != null) {
++                        ((org.bukkit.craftbukkit.entity.CraftHumanEntity) h).getHandle().closeUnloadedInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNLOADED); // Paper - Inventory close reason
++                    }
 +                }
++                // Paper end - this area looks like it can load chunks, change the behavior
 +            }
 +        }
 +        // Spigot End
