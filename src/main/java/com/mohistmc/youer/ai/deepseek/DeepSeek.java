@@ -18,14 +18,14 @@ public class DeepSeek {
             if (msg.startsWith(cmd)) {
                 String message = msg.replace(cmd, "");
                 CompletableFuture.supplyAsync(() -> chat(message))
-                        .thenAccept(reply -> player.sendMessage(MiniMessage.miniMessage().deserialize(YouerConfig.deepseek_chatfromat.formatted(reply))));
+                        .thenAccept(reply -> player.sendMessage(MiniMessage.miniMessage().deserialize(YouerConfig.deepseek_chatformat.formatted(reply))));
             }
 
             String all_cmd = YouerConfig.deepseek_all_command + " ";
             if (msg.startsWith(all_cmd)) {
                 String message = msg.replace(all_cmd, "");
                 CompletableFuture.supplyAsync(() -> chat(message))
-                        .thenAccept(reply -> Bukkit.broadcast(MiniMessage.miniMessage().deserialize(YouerConfig.deepseek_chatfromat.formatted(reply))));
+                        .thenAccept(reply -> Bukkit.broadcast(MiniMessage.miniMessage().deserialize(YouerConfig.deepseek_chatformat.formatted(reply))));
             }
         }
     }

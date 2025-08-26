@@ -18,11 +18,10 @@
      }
  
      @CheckReturnValue
-@@ -79,6 +_,14 @@
-             p_18710_.run();
+@@ -80,6 +_,14 @@
          }
      }
-+
+ 
 +    // Paper start
 +    public void scheduleOnMain(Runnable runnable) {
 +        // postToMainThread does not work the same as older versions of mc
@@ -30,6 +29,15 @@
 +        this.tell(this.wrapRunnable(runnable));
 +    }
 +    // Paper end
- 
++
      public void tell(R p_18712_) {
          this.pendingRunnables.add(p_18712_);
+         LockSupport.unpark(this.getRunningThread());
+@@ -142,6 +_,7 @@
+         try {
+             p_18700_.run();
+         } catch (Exception exception) {
++            if (exception.getCause() instanceof ThreadDeath) throw exception; // Paper
+             LOGGER.error(LogUtils.FATAL_MARKER, "Error executing task on {}", this.name(), exception);
+         }
+     }

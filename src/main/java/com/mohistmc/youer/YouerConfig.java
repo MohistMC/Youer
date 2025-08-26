@@ -228,7 +228,7 @@ public class YouerConfig {
     public static String deepseek_system;
     public static String deepseek_command;
     public static String deepseek_all_command;
-    public static String deepseek_chatfromat;
+    public static String deepseek_chatformat;
 
     public static boolean warps_enable;
 
@@ -300,7 +300,7 @@ public class YouerConfig {
         deepseek_system = getString("deepseek.system", "你的名字叫小小墨，年龄18岁，是个可爱的女孩子!");
         deepseek_command = getString("deepseek.command", "ai");
         deepseek_all_command = getString("deepseek.all_command", "ai-all");
-        deepseek_chatfromat = getString("deepseek.chatfromat", "<小小墨> %s");
+        deepseek_chatformat = getString("deepseek.chatformat", "<小小墨> %s");
 
         warps_enable = getBoolean("warps.enable", false);
 
