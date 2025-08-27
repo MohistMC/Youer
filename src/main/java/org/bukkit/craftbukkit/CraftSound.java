@@ -14,8 +14,11 @@ public class CraftSound {
         Preconditions.checkArgument(minecraft != null);
 
         net.minecraft.core.Registry<SoundEvent> registry = CraftRegistry.getMinecraftRegistry(Registries.SOUND_EVENT);
-        Sound bukkit = Registry.SOUNDS.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location()));
-
+        var resourceLocation = registry.getResourceKey(minecraft).orElseThrow().location();
+        Sound bukkit = Registry.SOUNDS.get(CraftNamespacedKey.fromMinecraft(resourceLocation));
+        if (bukkit == null) {
+            bukkit = Sound.lookForModSounds(resourceLocation);
+        }
         Preconditions.checkArgument(bukkit != null);
 
         return bukkit;

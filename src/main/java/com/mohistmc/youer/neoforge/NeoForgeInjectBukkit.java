@@ -18,6 +18,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.stats.StatType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.Pose;
@@ -33,6 +34,7 @@ import org.bukkit.Fluid;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.Statistic;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -83,6 +85,7 @@ public class NeoForgeInjectBukkit {
         addStatistic();
         loadSpawnCategory();
         addPose();
+        addModSound();
     }
 
 
@@ -306,11 +309,20 @@ public class NeoForgeInjectBukkit {
         }
     }
 
-    public static boolean isMods(ResourceLocation resourceLocation) {
-        return resourceLocation != null && !resourceLocation.getNamespace().equals(NamespacedKey.MINECRAFT);
+    public static void addModSound() {
+        var registry = BuiltInRegistries.SOUND_EVENT;
+        for (SoundEvent statType : registry) {
+            ResourceLocation resourceLocation = registry.getKey(statType);
+            if (isMods(resourceLocation)) {
+                String name = MohistDynamEnum.normalizeName(resourceLocation.getPath());
+                Sound sound = MohistDynamEnum.addEnum(Sound.class, name, List.of(String.class), List.of(resourceLocation.toString()));
+                Sound.MODD_SOUNDS.put(resourceLocation, sound);
+                Youer.LOGGER.debug("Registered mods SoundEvent as Sound(Bukkit) {}", sound.name());
+            }
+        }
     }
 
-    public static boolean isMods(NamespacedKey namespacedkey) {
-        return !namespacedkey.getNamespace().equals(NamespacedKey.MINECRAFT);
+    public static boolean isMods(ResourceLocation resourceLocation) {
+        return resourceLocation != null && !resourceLocation.getNamespace().equals(NamespacedKey.MINECRAFT);
     }
 }

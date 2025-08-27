@@ -241,7 +241,7 @@ public final class CraftLegacy {
         } else {
             try {
                 Material material = Material.valueOf(name);
-                if (material != null && NeoForgeInjectBukkit.isMods(material.getKey())) {
+                if (material != null && material.getKey().isMods()) {
                     return material;
                 } else {
                     return Material.valueOf(Material.LEGACY_PREFIX + name);
@@ -258,7 +258,7 @@ public final class CraftLegacy {
         } else {
             try {
                 Material material = Material.getMaterial(name);
-                if (material != null && NeoForgeInjectBukkit.isMods(material.getKey())) {
+                if (material != null && material.getKey().isMods()) {
                     return material;
                 } else {
                     return Material.getMaterial(Material.LEGACY_PREFIX + name);
@@ -275,7 +275,7 @@ public final class CraftLegacy {
         } else {
             try {
                 Material material = Material.matchMaterial(name);
-                if (material != null && NeoForgeInjectBukkit.isMods(material.getKey())) {
+                if (material != null && material.getKey().isMods()) {
                     return material;
                 } else {
                     return Material.matchMaterial(Material.LEGACY_PREFIX + name);

@@ -272,4 +272,8 @@ public final class NamespacedKey implements net.kyori.adventure.key.Key, io.pape
         return this.namespace + ':' + this.key;
     }
     // Paper end
+
+    public boolean isMods() {
+        return !namespace().equals(NamespacedKey.MINECRAFT);
+    }
 }
