@@ -314,7 +314,7 @@ public class NeoForgeInjectBukkit {
         for (SoundEvent statType : registry) {
             ResourceLocation resourceLocation = registry.getKey(statType);
             if (isMods(resourceLocation)) {
-                String name = MohistDynamEnum.normalizeName(resourceLocation.getPath());
+                String name = resourceLocation.getPath().replace(".", "_").toUpperCase(Locale.ROOT);
                 Sound sound = MohistDynamEnum.addEnum(Sound.class, name, List.of(String.class), List.of(resourceLocation.toString()));
                 Sound.MODD_SOUNDS.put(resourceLocation, sound);
                 Youer.LOGGER.debug("Registered mods SoundEvent as Sound(Bukkit) {}", sound.name());

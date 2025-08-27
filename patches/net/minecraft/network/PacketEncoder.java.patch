@@ -1,19 +1,57 @@
 --- a/net/minecraft/network/PacketEncoder.java
 +++ b/net/minecraft/network/PacketEncoder.java
-@@ -17,10 +_,12 @@
+@@ -1,11 +_,13 @@
+ package net.minecraft.network;
+ 
++import com.mohistmc.youer.feature.PacketStatistics;
+ import com.mojang.logging.LogUtils;
+ import io.netty.buffer.ByteBuf;
+ import io.netty.channel.ChannelHandlerContext;
+ import io.netty.handler.codec.MessageToByteEncoder;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.PacketType;
++import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
+ import net.minecraft.util.profiling.jfr.JvmProfiler;
+ import org.slf4j.Logger;
+ 
+@@ -15,30 +_,80 @@
+ 
+     public PacketEncoder(ProtocolInfo<T> p_320006_) {
          this.protocolInfo = p_320006_;
++        PacketStatistics.startStatisticsUpdater(); // Youer
      }
  
 +    static final ThreadLocal<java.util.Locale> ADVENTURE_LOCALE = ThreadLocal.withInitial(() -> null); // Paper - adventure; set player's locale
      protected void encode(ChannelHandlerContext p_130545_, Packet<T> p_130546_, ByteBuf p_130547_) throws Exception {
          PacketType<? extends Packet<? super T>> packettype = p_130546_.type();
++        String protocolId = this.protocolInfo.id().id();
  
          try {
 +            ADVENTURE_LOCALE.set(p_130545_.channel().attr(io.papermc.paper.adventure.PaperAdventure.LOCALE_ATTRIBUTE).get()); // Paper - adventure; set player's locale
              this.protocolInfo.codec().encode(p_130547_, p_130546_);
              int i = p_130547_.readableBytes();
++
++            String packetClassName = p_130546_.getClass().getName();
++            int lastDot = packetClassName.lastIndexOf('.');
++            if (lastDot >= 0) {
++                packetClassName = packetClassName.substring(lastDot + 1);
++            }
++            if (packetClassName.endsWith("ClientboundCustomPayloadPacket")) {
++                packetClassName = ((ClientboundCustomPayloadPacket)p_130546_).payload().type().id().toString();
++            }
++
++            PacketStatistics.updatePacketStats(packetClassName, i);
++
              if (LOGGER.isDebugEnabled()) {
-@@ -31,14 +_,44 @@
+                 LOGGER.debug(
+-                    Connection.PACKET_SENT_MARKER, "OUT: [{}:{}] {} -> {} bytes", this.protocolInfo.id().id(), packettype, p_130546_.getClass().getName(), i
++                        Connection.PACKET_SENT_MARKER,
++                        "OUT: [{}:{}] {} -> {} bytes | Total: {} bytes, {} packets",
++                        protocolId, packettype, p_130546_.getClass().getName(), i,
++                        PacketStatistics.getTotalBytesSent(),
++                        PacketStatistics.getTotalPacketsSent()
+                 );
+             }
  
              JvmProfiler.INSTANCE.onPacketSent(this.protocolInfo.id(), packettype, p_130545_.channel().remoteAddress(), i);
          } catch (Throwable throwable) {

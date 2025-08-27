@@ -1,9 +1,6 @@
 package org.bukkit;
 
-import io.netty.util.internal.ConcurrentSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.resources.ResourceLocation;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;

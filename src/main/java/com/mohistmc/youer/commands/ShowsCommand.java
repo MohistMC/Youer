@@ -7,7 +7,6 @@ import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,17 +16,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.TickingBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.LevelChunk;
 import org.bukkit.ChatColor;
-import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
-import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -85,7 +80,14 @@ public class ShowsCommand extends Command {
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
             case "sound" -> {
                 DemoGUI wh = new DemoGUI("Sounds");
-                wh.getGUI().setItem(47, new GUIItem(new ItemStackFactory(Material.REDSTONE)
+
+                Map<String, List<Sound>> soundsByNamespace = new HashMap<>();
+                for (Sound s : Sound.values()) {
+                    NamespacedKey key = s.getKey();
+                    soundsByNamespace.computeIfAbsent(key.getNamespace(), k -> new ArrayList<>()).add(s);
+                }
+
+                wh.setItem(47, new GUIItem(new ItemStackFactory(Material.REDSTONE)
                         .setDisplayName(I18n.as("shows.sound.stopall"))
                         .toItemStack()) {
                     @Override
@@ -93,13 +95,16 @@ public class ShowsCommand extends Command {
                         u.stopAllSounds();
                     }
                 });
-                for (Sound s : Sound.values()) {
-                    wh.addItem(new GUIItem(new ItemStackFactory(Material.NOTE_BLOCK)
-                            .setDisplayName(s.name())
+                for (Map.Entry<String, List<Sound>> entry : soundsByNamespace.entrySet()) {
+                    String namespace = entry.getKey();
+                    List<Sound> sounds = entry.getValue();
+
+                    wh.addItem(new GUIItem(new ItemStackFactory(Material.CHEST)
+                            .setDisplayName("§b" + namespace + " §7(" + sounds.size() + ")")
                             .toItemStack()) {
                         @Override
                         public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
-                            player.playSound(player.getLocation(), s, 1f, 1.0f);
+                            openSoundCategoryGUI(u, namespace, sounds);
                         }
                     });
                 }
@@ -285,5 +290,31 @@ public class ShowsCommand extends Command {
                 return false;
             }
         }
+    }
+
+    private void openSoundCategoryGUI(Player player, String namespace, List<Sound> sounds) {
+        DemoGUI categoryGUI = new DemoGUI(namespace + " Sounds");
+
+        categoryGUI.setItem(47, new GUIItem(new ItemStackFactory(Material.ARROW)
+                .setDisplayName("§cBack")
+                .toItemStack()) {
+            @Override
+            public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                execute(u, "shows", new String[]{"sound"});
+            }
+        });
+
+        for (Sound s : sounds) {
+            categoryGUI.addItem(new GUIItem(new ItemStackFactory(Material.NOTE_BLOCK)
+                    .setDisplayName(s.name())
+                    .toItemStack()) {
+                @Override
+                public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                    player.playSound(player.getLocation(), s, 1f, 1.0f);
+                }
+            });
+        }
+
+        categoryGUI.openGUI(player);
     }
 }
