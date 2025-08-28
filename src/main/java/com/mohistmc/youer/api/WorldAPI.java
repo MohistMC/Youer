@@ -26,10 +26,7 @@ public class WorldAPI {
     }
 
     public static String getWorldName(World world) {
-        if (ConfigByWorlds.config.get("worlds." + world.getName() + ".name") == null) {
-            return world.getName();
-        }
-        return ConfigByWorlds.config.getString("worlds." + world.getName() + ".name");
+        return ConfigByWorlds.config.getString("worlds." + world.getName() + ".name", world.getName());
     }
 
     public static class VoidGenerator extends ChunkGenerator {

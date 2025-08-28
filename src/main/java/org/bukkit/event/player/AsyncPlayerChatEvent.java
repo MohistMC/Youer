@@ -1,5 +1,6 @@
 package org.bukkit.event.player;
 
+import com.mohistmc.youer.feature.GlobalVariableSystem;
 import java.util.IllegalFormatException;
 import java.util.Set;
 import org.bukkit.entity.Player;
@@ -80,7 +81,7 @@ public class AsyncPlayerChatEvent extends PlayerEvent implements Cancellable {
      */
     @NotNull
     public String getFormat() {
-        return format;
+        return GlobalVariableSystem.as(player, format);
     }
 
     /**

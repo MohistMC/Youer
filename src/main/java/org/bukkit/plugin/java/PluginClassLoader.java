@@ -2,14 +2,12 @@ package org.bukkit.plugin.java;
 
 import com.google.common.base.Preconditions;
 import com.google.common.io.ByteStreams;
-import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.asm.SwitchTableFixer;
 import com.mohistmc.youer.bukkit.pluginfix.PluginFixManager;
 import com.mohistmc.youer.bukkit.remapping.ClassLoaderRemapper;
 import com.mohistmc.youer.bukkit.remapping.Remapper;
 import com.mohistmc.youer.bukkit.remapping.RemappingClassLoader;
 import com.mohistmc.youer.util.I18n;
-import cpw.mods.modlauncher.TransformingClassLoader;
 import io.izzel.tools.product.Product2;
 import io.papermc.paper.utils.PaperPluginLogger;
 import java.io.File;
@@ -126,8 +124,6 @@ public final class PluginClassLoader extends URLClassLoader implements io.paperm
         } catch (ExceptionInInitializerError | InvocationTargetException ex) {
             throw new InvalidPluginException("Exception initializing main class `" + description.getMain() + "'", ex);
         }
-
-        ((TransformingClassLoader) Youer.classLoader).addChild(this);
     }
 
     @Override

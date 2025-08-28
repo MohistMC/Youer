@@ -156,7 +156,7 @@
      @Nullable
      private KeyPair keyPair;
      @Nullable
-@@ -254,18 +_,46 @@
+@@ -254,18 +_,45 @@
      public final Executor executor;
      @Nullable
      private String serverId;
@@ -203,7 +203,6 @@
 -        thread.setUncaughtExceptionHandler((p_177909_, p_177910_) -> LOGGER.error("Uncaught exception in server thread", p_177910_));
 +        Thread thread = new ca.spottedleaf.moonrise.common.util.TickThread(() -> atomicreference.get().runServer(), "Server thread");
 +        thread.setUncaughtExceptionHandler((p_177909_, p_177910_) -> LOGGER.error(I18n.as("minecraftserver.1"), p_177910_));
-+        thread.setPriority(Thread.NORM_PRIORITY+2); // Paper - Perf: Boost priority
          if (Runtime.getRuntime().availableProcessors() > 4) {
              thread.setPriority(8);
          }
@@ -936,25 +935,6 @@
 +        }
 +        // Paper end
          return new TickTask(this.tickCount, p_129852_);
-     }
- 
-@@ -844,15 +_,16 @@
-         if (super.pollTask()) {
-             return true;
-         } else {
-+            boolean ret = false; // Paper - force execution of all worlds, do not just bias the first
-             if (this.tickRateManager.isSprinting() || this.haveTime()) {
-                 for (ServerLevel serverlevel : this.getAllLevels()) {
-                     if (serverlevel.getChunkSource().pollTask()) {
--                        return true;
-+                        ret = true; // Paper - force execution of all worlds, do not just bias the first
-                     }
-                 }
-             }
- 
--            return false;
-+            return ret; // Paper - force execution of all worlds, do not just bias the first
-         }
      }
  
 @@ -900,12 +_,26 @@

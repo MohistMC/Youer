@@ -3,7 +3,10 @@ package com.mohistmc.youer.feature;
 import com.mohistmc.youer.api.WorldAPI;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,9 +15,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 public class GlobalVariableSystem {
-    // 单例实例
-    @Getter
-    public static GlobalVariableSystem instance = new GlobalVariableSystem();
+    public static final GlobalVariableSystem instance = new GlobalVariableSystem();
 
     private final Map<String, Function<Player, String>> variableProviders = new ConcurrentHashMap<>();
     private final Map<String, String> globalVariables = new ConcurrentHashMap<>();
@@ -22,43 +23,68 @@ public class GlobalVariableSystem {
     private final Map<String, String> parsedCache = new ConcurrentHashMap<>();
     private static final int MAX_CACHE_SIZE = 2000;
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("%([^%]+)%");
+    private static final ExecutorService executorService = Executors.newCachedThreadPool();
+
+    public static void register() {
+        instance.registerDefaultPlayerVariables();
+    }
 
     /**
-     * 注册默认玩家变量palyer
+     * Register default player variables
      */
-    public void registerDefaultPlayerVariables() {
-        // 注册内置玩家变量
+    private void registerDefaultPlayerVariables() {
+        // Register built-in player variables
         registerVariable("player_name", Player::getName);
         registerVariable("player_displayname", Player::getDisplayName);
         registerVariable("player_health", p -> String.format("%.1f", p.getHealth()));
         registerVariable("player_max_health", p -> String.format("%.1f", p.getMaxHealth()));
         registerVariable("player_level", p -> String.valueOf(p.getLevel()));
         registerVariable("player_exp", p -> String.format("%.2f", p.getExp()));
-        registerVariable("player_world", p -> p.getWorld().getName());
+        registerVariable("player_world", p -> WorldAPI.getWorldName(p.getWorld()));
         registerVariable("player_world_name", p -> WorldAPI.getWorldName(p.getWorld()));
         registerVariable("player_gamemode", p -> p.getGameMode().name());
-        registerVariable("player_ip", p -> p.getAddress().getAddress().getHostAddress());
+        registerVariable("player_ip", p -> p.getAddress() != null ?
+                p.getAddress().getAddress().getHostAddress() : "unknown");
 
-        // 注册全局变量
-        globalVariables.put("server_name", Bukkit.getServer().getName());
-        globalVariables.put("server_version", Bukkit.getServer().getVersion());
+        // Initialize global variables asynchronously
+        initializeGlobalVariables();
     }
 
     /**
-     * 注册变量提供器
+     * Initialize global variables asynchronously to prevent client lag
+     */
+    private void initializeGlobalVariables() {
+        // Run server-related initialization in a separate thread to avoid blocking
+        executorService.submit(() -> {
+            try {
+                // Add a small delay to ensure server is ready
+                Thread.sleep(1000);
+                // Initialize global variables in background
+                globalVariables.put("server_name", Bukkit.getServer().getName());
+                globalVariables.put("server_version", Bukkit.getServer().getVersion());
+            } catch (Exception ignored) {
+                // Fallback values in case of exception
+                globalVariables.put("server_name", "Youer Server");
+                globalVariables.put("server_version", "Unknown");
+            }
+        });
+    }
+
+    /**
+     * Register variable provider
      *
-     * @param varName  变量名(带百分号格式，如"player_name")
-     * @param provider 变量提供函数
+     * @param varName  Variable name (without percent signs, e.g. "player_name")
+     * @param provider Variable provider function
      */
     public void registerVariable(String varName, Function<Player, String> provider) {
         variableProviders.put(varName.toLowerCase(), provider);
     }
 
     /**
-     * 设置全局变量
+     * Set global variable
      *
-     * @param key   变量名(不带百分号)
-     * @param value 变量值
+     * @param key   Variable key (without percent signs)
+     * @param value Variable value
      */
     public void setGlobalVariable(String key, String value) {
         globalVariables.put(key.toLowerCase(), value);
@@ -66,11 +92,11 @@ public class GlobalVariableSystem {
     }
 
     /**
-     * 设置玩家特定变量
+     * Set player-specific variable
      *
-     * @param player 玩家
-     * @param key    变量名(不带百分号)
-     * @param value  变量值
+     * @param player Player instance
+     * @param key    Variable key (without percent signs)
+     * @param value  Variable value
      */
     public void setPlayerVariable(Player player, String key, String value) {
         playerVariables.computeIfAbsent(player.getUniqueId(), k -> new ConcurrentHashMap<>())
@@ -78,32 +104,51 @@ public class GlobalVariableSystem {
         clearCache();
     }
 
+    public static String as(Player player, String input) {
+        return instance.parse(player,  input);
+    }
+
     /**
-     * 解析字符串中的变量(需要玩家上下文)
+     * Parse variables in string (requires player context)
      *
-     * @param player 玩家
-     * @param input  输入字符串
-     * @return 解析后的字符串
+     * @param player Player context
+     * @param input  Input string
+     * @return Parsed string
      */
     public String parse(Player player, String input) {
         if (input == null || input.isEmpty()) return "";
 
+        // Create cache key
         String cacheKey = player.getUniqueId() + "|" + input;
+
+        // Return cached result if available
         if (parsedCache.containsKey(cacheKey)) {
             return parsedCache.get(cacheKey);
         }
 
+        // Parse variables
         StringBuilder result = new StringBuilder();
         Matcher matcher = VARIABLE_PATTERN.matcher(input);
+        boolean hasVariables = matcher.find();
+
+        if (!hasVariables) {
+            // No variables to parse, return original input
+            return input;
+        }
+
+        // Reset matcher for actual parsing
+        matcher.reset();
 
         while (matcher.find()) {
             String varName = matcher.group(1).toLowerCase();
             String replacement = resolveVariable(player, varName);
-            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
+            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement != null ? replacement : "null"));
         }
         matcher.appendTail(result);
 
         String output = result.toString();
+
+        // Cache result if cache is not full
         if (parsedCache.size() < MAX_CACHE_SIZE) {
             parsedCache.put(cacheKey, output);
         }
@@ -111,41 +156,58 @@ public class GlobalVariableSystem {
         return output;
     }
 
+    /**
+     * Resolve variable value
+     *
+     * @param player   Player context
+     * @param varName  Variable name
+     * @return Resolved variable value
+     */
     private String resolveVariable(Player player, String varName) {
-        // 1. 检查玩家特定变量
+        // 1. Check player-specific variables
         if (playerVariables.containsKey(player.getUniqueId())) {
             String playerValue = playerVariables.get(player.getUniqueId()).get(varName);
             if (playerValue != null) return playerValue;
         }
 
-        // 2. 检查全局变量
+        // 2. Check global variables
         String globalValue = globalVariables.get(varName);
         if (globalValue != null) return globalValue;
 
-        // 3. 检查注册的变量提供器
+        // 3. Check registered variable providers
         Function<Player, String> provider = variableProviders.get(varName);
         if (provider != null) {
-            return provider.apply(player);
+            try {
+                return provider.apply(player);
+            } catch (Exception e) {
+                return "<error:" + varName + ">";
+            }
         }
 
-        // 4. 未知变量保持原样
+        // 4. Return original variable placeholder for unknown variables
         return "%" + varName + "%";
     }
 
     /**
-     * 清空缓存
+     * Clear cache
      */
     public void clearCache() {
         parsedCache.clear();
     }
 
     /**
-     * 重新加载全局变量
+     * Reload global variables
      */
     public void reloadGlobalVariables() {
         globalVariables.clear();
-        globalVariables.put("server_name", Bukkit.getServer().getName());
-        globalVariables.put("server_version", Bukkit.getServer().getVersion());
+        initializeGlobalVariables();
         clearCache();
+    }
+
+    /**
+     * Shutdown the executor service
+     */
+    public static void shutdown() {
+        executorService.shutdown();
     }
 }

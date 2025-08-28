@@ -41,7 +41,7 @@ public class MohistPlugin {
         WarpsConfig.init();
         BanConfig.init();
         EntityClear.start();
-        GlobalVariableSystem.getInstance().registerDefaultPlayerVariables();
+        GlobalVariableSystem.register();
     }
 
     public static void registerCommands(Map<String, Command> map) {
