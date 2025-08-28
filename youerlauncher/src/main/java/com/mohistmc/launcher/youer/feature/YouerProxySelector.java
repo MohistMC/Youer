@@ -8,7 +8,9 @@ import java.net.ProxySelector;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.util.List;
+import lombok.Getter;
 
+@Getter
 public class YouerProxySelector extends ProxySelector {
 
     private final ProxySelector defaultSelector;
@@ -37,7 +39,7 @@ public class YouerProxySelector extends ProxySelector {
         if (intercept) {
             try {
                 IOUtil.throwException(new IOException(defaultMsg));
-            } catch (Throwable throwable) {
+            } catch (Throwable ignored) {
             }
         } else {
             return this.defaultSelector.select(uri);
@@ -50,7 +52,4 @@ public class YouerProxySelector extends ProxySelector {
         this.defaultSelector.connectFailed(uri, sa, ioe);
     }
 
-    public ProxySelector getDefaultSelector() {
-        return this.defaultSelector;
-    }
 }
