@@ -447,7 +447,7 @@
              }
          }
      }
-@@ -471,12 +_,12 @@
+@@ -471,19 +_,20 @@
          int j = chunkpos.getMinBlockZ();
          ProfilerFiller profilerfiller = this.getProfiler();
          profilerfiller.push("thunder");
@@ -458,11 +458,12 @@
                  DifficultyInstance difficultyinstance = this.getCurrentDifficultyAt(blockpos);
                  boolean flag1 = this.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)
 -                    && this.random.nextDouble() < (double)difficultyinstance.getEffectiveDifficulty() * 0.01
+-                    && !this.getBlockState(blockpos.below()).is(Blocks.LIGHTNING_ROD);
 +                    && this.random.nextDouble() < (double)difficultyinstance.getEffectiveDifficulty() * this.paperConfig().entities.spawning.skeletonHorseThunderSpawnChance.or(0.01D)
-                     && !this.getBlockState(blockpos.below()).is(Blocks.LIGHTNING_ROD);
++                    && !(this.getBlockState(blockpos.below()).getBlock() instanceof net.minecraft.world.level.block.LightningRodBlock); // Neo: support custom LightningRodBlocks
                  if (flag1) {
                      SkeletonHorse skeletonhorse = EntityType.SKELETON_HORSE.create(this);
-@@ -484,6 +_,7 @@
+                     if (skeletonhorse != null) {
                          skeletonhorse.setTrap(true);
                          skeletonhorse.setAge(0);
                          skeletonhorse.setPos((double)blockpos.getX(), (double)blockpos.getY(), (double)blockpos.getZ());
