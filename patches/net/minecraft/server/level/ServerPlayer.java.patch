@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -1,16 +_,27 @@
+@@ -1,16 +_,28 @@
  package net.minecraft.server.level;
  
 +import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
@@ -21,6 +21,7 @@
  import java.util.Optional;
  import java.util.OptionalInt;
  import java.util.Set;
++import java.util.concurrent.atomic.AtomicBoolean;
 +import java.util.concurrent.atomic.AtomicReference;
 +import java.util.function.Consumer;
 +import java.util.function.IntConsumer;
@@ -202,7 +203,7 @@
          @Override
          public void dataChanged(AbstractContainerMenu p_143462_, int p_143463_, int p_143464_) {
          }
-@@ -276,6 +_,37 @@
+@@ -276,6 +_,38 @@
      public final Object object;
      private int containerCounter;
      public boolean wonGame;
@@ -223,6 +224,7 @@
 +    public double maxHealthCache;
 +    public boolean joining = true;
 +    public boolean sentListPacket = false;
++    public boolean supressTrackerForLogin = false; // Paper - Fire PlayerJoinEvent when Player is actually ready
 +    // CraftBukkit end
 +
 +    // Mohist start
@@ -1095,6 +1097,20 @@
                      }
                  }
              } else if (this.isFallFlying()) {
+@@ -1295,6 +_,13 @@
+     public void disconnect() {
+         this.disconnected = true;
+         this.ejectPassengers();
++
++        // Paper start - Workaround vehicle not tracking the passenger disconnection dismount
++        if (this.isPassenger() && this.getVehicle() instanceof ServerPlayer) {
++            this.stopRiding();
++        }
++        // Paper end - Workaround vehicle not tracking the passenger disconnection dismount
++
+         if (this.isSleeping()) {
+             this.stopSleepInBed(true, false);
+         }
 @@ -1306,7 +_,28 @@
  
      public void resetSentInfo() {
@@ -1134,11 +1150,12 @@
          if (!this.useItem.isEmpty() && this.isUsingItem()) {
              this.connection.send(new ClientboundEntityEventPacket(this, (byte)9));
              super.completeUsingItem();
-@@ -1334,19 +_,22 @@
+@@ -1334,19 +_,23 @@
      }
  
      public void restoreFrom(ServerPlayer p_9016_, boolean p_9017_) {
 +        p_9016_.getBukkitEntity().setHandle(this);
++        this.transferCookieConnection = p_9016_.transferCookieConnection;
 +        this.setBukkitEntity(p_9016_.getBukkitEntity());
 +        this.isRealPlayer = p_9016_.isRealPlayer;
          this.wardenSpawnTracker = p_9016_.wardenSpawnTracker;
@@ -1177,7 +1194,15 @@
              this.setScore(p_9016_.getScore());
          }
  
-@@ -1375,6 +_,15 @@
+@@ -1368,13 +_,22 @@
+         this.lastSentExp = -1;
+         this.lastSentHealth = -1.0F;
+         this.lastSentFood = -1;
+-        this.recipeBook.copyOverData(p_9016_.recipeBook);
++        // this.recipeBook.copyOverData(p_9016_.recipeBook); // CreatBukkit
+         this.seenCredits = p_9016_.seenCredits;
+         this.enteredNetherPosition = p_9016_.enteredNetherPosition;
+         this.chunkTrackingView = p_9016_.chunkTrackingView;
          this.setShoulderEntityLeft(p_9016_.getShoulderEntityLeft());
          this.setShoulderEntityRight(p_9016_.getShoulderEntityRight());
          this.setLastDeathLocation(p_9016_.getLastDeathLocation());
@@ -1463,15 +1488,20 @@
      public void teleportTo(ServerLevel p_9000_, double p_9001_, double p_9002_, double p_9003_, float p_9004_, float p_9005_) {
          this.setCamera(this);
          this.stopRiding();
-@@ -1709,11 +_,44 @@
+@@ -1709,11 +_,48 @@
          );
      }
  
 +    // Youer start
-+    private final AtomicReference<PlayerSpawnChangeEvent.Cause> setRespawnPosition$cause = new AtomicReference<>(PlayerSpawnChangeEvent.Cause.UNKNOWN);
++    private final AtomicReference<PlayerSetSpawnEvent.Cause> setRespawnPosition$setSpawnCause = new AtomicReference<>(PlayerSetSpawnEvent.Cause.UNKNOWN);
++    private final AtomicBoolean setRespawnPosition$canCancel = new AtomicBoolean(true);
 +
-+    public void setRespawnPosition$cause(PlayerSpawnChangeEvent.Cause cause) {
-+        this.setRespawnPosition$cause.set(cause);
++    public void setRespawnPosition$setSpawnCause(PlayerSetSpawnEvent.Cause cause) {
++        this.setRespawnPosition$setSpawnCause.set(cause);
++    }
++
++    public boolean setRespawnPosition$canCancel() {
++        return setRespawnPosition$canCancel.getAndSet(true);
 +    }
 +
      public void setRespawnPosition(ResourceKey<Level> p_9159_, @Nullable BlockPos p_9160_, float p_9161_, boolean p_9162_, boolean p_9163_) {
@@ -1487,16 +1517,15 @@
 +            spawnLoc.setYaw(p_9161_);
 +            willNotify = p_9163_ && !flag2;
 +        }
-+        PlayerSpawnChangeEvent.Cause cause = setRespawnPosition$cause.getAndSet(PlayerSpawnChangeEvent.Cause.UNKNOWN);
-+        PlayerSetSpawnEvent.Cause causePaper = cause == PlayerSpawnChangeEvent.Cause.RESET ?
-+                PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN : PlayerSetSpawnEvent.Cause.valueOf(cause.name());
++        PlayerSetSpawnEvent.Cause cause = setRespawnPosition$setSpawnCause.getAndSet(PlayerSetSpawnEvent.Cause.UNKNOWN);
 +        PlayerSpawnChangeEvent dumbEvent = new PlayerSpawnChangeEvent(this.getBukkitEntity(), spawnLoc, p_9162_,
-+                causePaper == io.papermc.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN ? PlayerSpawnChangeEvent.Cause.RESET : PlayerSpawnChangeEvent.Cause.valueOf(cause.name()));
++                cause == io.papermc.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN ? PlayerSpawnChangeEvent.Cause.RESET : PlayerSpawnChangeEvent.Cause.valueOf(cause.name()));
 +        dumbEvent.callEvent();
 +
-+        io.papermc.paper.event.player.PlayerSetSpawnEvent event = new io.papermc.paper.event.player.PlayerSetSpawnEvent(this.getBukkitEntity(), causePaper, dumbEvent.getNewSpawn(), dumbEvent.isForced(), willNotify, willNotify ? net.kyori.adventure.text.Component.translatable("block.minecraft.set_spawn") : null);
++        io.papermc.paper.event.player.PlayerSetSpawnEvent event = new io.papermc.paper.event.player.PlayerSetSpawnEvent(this.getBukkitEntity(), cause, dumbEvent.getNewSpawn(), dumbEvent.isForced(), willNotify, willNotify ? net.kyori.adventure.text.Component.translatable("block.minecraft.set_spawn") : null);
 +        event.setCancelled(dumbEvent.isCancelled());
 +        if (!event.callEvent()) {
++            setRespawnPosition$canCancel.set(false);
 +            return;
 +        }
 +        if (event.getLocation() != null) {
@@ -1511,13 +1540,21 @@
              }
  
              this.respawnPosition = p_9160_;
-@@ -1727,6 +_,11 @@
+@@ -1727,6 +_,19 @@
              this.respawnForced = false;
          }
      }
-+    public void setRespawnPosition(ResourceKey<Level> p_9159_, @Nullable BlockPos p_9160_, float p_9161_, boolean p_9162_, boolean p_9163_, PlayerSpawnChangeEvent.Cause cause) {
-+        setRespawnPosition$cause(cause);
++    public boolean setRespawnPosition(ResourceKey<Level> p_9159_, @Nullable BlockPos p_9160_, float p_9161_, boolean p_9162_, boolean p_9163_, PlayerSpawnChangeEvent.Cause cause) {
++        setRespawnPosition$setSpawnCause(cause == PlayerSpawnChangeEvent.Cause.RESET ?
++                io.papermc.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN : io.papermc.paper.event.player.PlayerSetSpawnEvent.Cause.valueOf(cause.name()));
 +        setRespawnPosition(p_9159_, p_9160_, p_9161_, p_9162_, p_9163_);
++        return setRespawnPosition$canCancel.getAndSet(true);
++    }
++
++    public boolean setRespawnPosition(ResourceKey<Level> dimension, @Nullable BlockPos pos, float angle, boolean forced, boolean sendMessage, io.papermc.paper.event.player.PlayerSetSpawnEvent.Cause cause) {
++        setRespawnPosition$setSpawnCause.set( cause);
++        setRespawnPosition(dimension, pos, angle, forced, sendMessage);
++        return setRespawnPosition$canCancel.getAndSet(true);
 +    }
 +    // Youer end
  

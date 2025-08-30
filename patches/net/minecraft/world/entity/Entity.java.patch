@@ -119,7 +119,7 @@
      private float eyeHeight;
      public boolean isInPowderSnow;
      public boolean wasInPowderSnow;
-@@ -243,6 +_,158 @@
+@@ -243,6 +_,159 @@
      public boolean hasVisualFire;
      @Nullable
      private BlockState inBlockState = null;
@@ -202,6 +202,7 @@
 +    public long activatedTick = Integer.MIN_VALUE;
 +    public void inactiveTick() { }
 +    // Spigot end
++    public boolean fromNetherPortal; // Paper - Add option to nerf pigmen from nether portals
 +
 +    // Paper start - Entity origin API
 +    @javax.annotation.Nullable
@@ -589,6 +590,14 @@
      }
  
      public boolean isFree(double p_20230_, double p_20231_, double p_20232_) {
+@@ -599,6 +_,7 @@
+     }
+ 
+     public void move(MoverType p_19973_, Vec3 p_19974_) {
++        final Vec3 originalMovement = p_19974_; // Paper - Expose pre-collision velocity
+         if (this.noPhysics) {
+             this.setPos(this.getX() + p_19974_.x, this.getY() + p_19974_.y, this.getZ() + p_19974_.z);
+         } else {
 @@ -664,6 +_,28 @@
                      block.updateEntityAfterFallOn(this.level(), this);
                  }
@@ -608,10 +617,10 @@
 +                        bl = bl.getRelative(org.bukkit.block.BlockFace.NORTH);
 +                    }
 +
-+//                    if (!bl.getType().isAir()) {
-+//                        org.bukkit.event.vehicle.VehicleBlockCollisionEvent event = new org.bukkit.event.vehicle.VehicleBlockCollisionEvent(vehicle, bl);
-+//                        level.getCraftServer().getPluginManager().callEvent(event);
-+//                    }
++                    if (!bl.getType().isAir()) {
++                        org.bukkit.event.vehicle.VehicleBlockCollisionEvent event = new org.bukkit.event.vehicle.VehicleBlockCollisionEvent(vehicle, bl, org.bukkit.craftbukkit.util.CraftVector.toBukkit(originalMovement)); // Paper - Expose pre-collision velocity
++                        level.getCraftServer().getPluginManager().callEvent(event);
++                    }
 +                }
 +                // CraftBukkit end
 +
@@ -961,13 +970,16 @@
              this.addAdditionalSaveData(p_20241_);
              if (this.isVehicle()) {
                  ListTag listtag1 = new ListTag();
-@@ -1720,6 +_,32 @@
+@@ -1720,6 +_,35 @@
                  }
              }
  
 +            // Save entity's from mob spawner status
 +            if (spawnedViaMobSpawner) {
 +                p_20241_.putBoolean("Paper.FromMobSpawner", true);
++            }
++            if (fromNetherPortal) {
++                p_20241_.putBoolean("Paper.FromNetherPortal", true);
 +            }
 +            // Paper end
 +            // Paper start
@@ -1003,7 +1015,7 @@
                  if (p_20259_.contains("Tags", 9)) {
                      this.tags.clear();
                      ListTag listtag3 = p_20259_.getList("Tags", 8);
-@@ -1801,6 +_,89 @@
+@@ -1801,6 +_,90 @@
              } else {
                  throw new IllegalStateException("Entity has invalid rotation");
              }
@@ -1060,6 +1072,7 @@
 +            }
 +
 +            spawnedViaMobSpawner = p_20259_.getBoolean("Paper.FromMobSpawner"); // Restore entity's from mob spawner status
++            fromNetherPortal = p_20259_.getBoolean("Paper.FromNetherPortal");
 +            if (p_20259_.contains("Paper.SpawnReason")) {
 +                String spawnReasonName = p_20259_.getString("Paper.SpawnReason");
 +                try {

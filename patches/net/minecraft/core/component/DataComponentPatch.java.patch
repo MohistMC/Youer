@@ -1,5 +1,20 @@
 --- a/net/minecraft/core/component/DataComponentPatch.java
 +++ b/net/minecraft/core/component/DataComponentPatch.java
+@@ -124,7 +_,13 @@
+         }
+ 
+         private static <T> void encodeComponent(RegistryFriendlyByteBuf p_331735_, DataComponentType<T> p_330633_, Object p_331089_) {
+-            p_330633_.streamCodec().encode(p_331735_, (T)p_331089_);
++            // Paper start - codec errors of random anonymous classes are useless
++            try {
++                p_330633_.streamCodec().encode(p_331735_, (T) p_331089_); // CraftBukkit - decompile error
++            } catch (final Exception e) {
++                throw new RuntimeException("Error encoding component " + p_330633_, e);
++            }
++            // Paper end - codec errors of random anonymous classes are useless
+         }
+     };
+     private static final String REMOVED_PREFIX = "!";
 @@ -238,7 +_,44 @@
          Builder() {
          }

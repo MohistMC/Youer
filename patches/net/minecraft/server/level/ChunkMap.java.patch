@@ -255,11 +255,14 @@
              this.updateChunkTracking(p_140185_);
          }
      }
-@@ -1069,7 +_,7 @@
+@@ -1068,8 +_,9 @@
+         return builder.build();
      }
  
-     protected void addEntity(Entity p_140200_) {
+-    protected void addEntity(Entity p_140200_) {
 -        if (!(p_140200_ instanceof EnderDragonPart)) {
++    public void addEntity(Entity p_140200_) {
++        if (p_140200_ instanceof ServerPlayer && ((ServerPlayer) p_140200_).supressTrackerForLogin) return; // Paper - Fire PlayerJoinEvent when Player is actually ready; Delay adding to tracker until after list packets
 +        if (!(p_140200_ instanceof net.neoforged.neoforge.entity.PartEntity)) {
              EntityType<?> entitytype = p_140200_.getType();
              int i = entitytype.clientTrackingRange() * 16;
@@ -316,11 +319,24 @@
              this.entity = p_140478_;
              this.range = p_140479_;
              this.lastSectionPos = SectionPos.of(p_140478_);
-@@ -1281,9 +_,20 @@
-                 boolean flag = d1 <= d2
-                     && this.entity.broadcastToPlayer(p_140498_)
-                     && ChunkMap.this.isChunkTracked(p_140498_, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
-+
+@@ -1278,12 +_,30 @@
+                 double d0 = (double)Math.min(this.getEffectiveRange(), i * 16);
+                 double d1 = vec3.x * vec3.x + vec3.z * vec3.z;
+                 double d2 = d0 * d0;
+-                boolean flag = d1 <= d2
+-                    && this.entity.broadcastToPlayer(p_140498_)
+-                    && ChunkMap.this.isChunkTracked(p_140498_, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
++                // Paper start - Configurable entity tracking range by Y
++                boolean flag = d1 <= d2;
++                if (flag && level.paperConfig().entities.trackingRangeY.enabled) {
++                    double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
++                    if (rangeY != -1) {
++                        double vec3d_dy = p_140498_.getY() - this.entity.getY();
++                        flag = vec3d_dy * vec3d_dy <= rangeY * rangeY;
++                    }
++                }
++                flag = flag && this.entity.broadcastToPlayer(p_140498_) && ChunkMap.this.isChunkTracked(p_140498_, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
++                // Paper end - Configurable entity tracking range by Y
 +                // CraftBukkit start - respect vanish API
 +                if (!p_140498_.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
 +                    flag = false;

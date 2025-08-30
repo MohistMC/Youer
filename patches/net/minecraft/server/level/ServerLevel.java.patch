@@ -203,7 +203,7 @@
 +    }
 +
 +    public LevelChunk getChunkIfLoaded(int x, int z) {
-+        return this.chunkSource.getChunk(x, z, false);
++        return this.chunkSource.getChunkAtIfLoadedImmediately(x, z);
 +    }
 +
 +    // Paper start - optimise getPlayerByUUID
@@ -401,6 +401,18 @@
              if (this.getGameRules().getBoolean(GameRules.RULE_WEATHER_CYCLE) && this.isRaining()) {
                  this.resetWeatherCycle();
              }
+@@ -360,9 +_,9 @@
+         if (!this.isDebug() && flag) {
+             long k = this.getGameTime();
+             profilerfiller.push("blockTicks");
+-            this.blockTicks.tick(k, 65536, this::tickBlock);
++            this.blockTicks.tick(k, paperConfig().environment.maxBlockTicks, this::tickBlock); // Paper - configurable max block ticks
+             profilerfiller.popPush("fluidTicks");
+-            this.fluidTicks.tick(k, 65536, this::tickFluid);
++            this.fluidTicks.tick(k, paperConfig().environment.maxFluidTicks, this::tickFluid); // Paper - configurable max block ticks
+             profilerfiller.pop();
+         }
+ 
 @@ -380,7 +_,7 @@
  
          this.handlingTick = false;

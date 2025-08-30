@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/RespawnAnchorBlock.java
 +++ b/net/minecraft/world/level/block/RespawnAnchorBlock.java
+@@ -3,6 +_,7 @@
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableList.Builder;
+ import com.mojang.serialization.MapCodec;
++import io.papermc.paper.event.player.PlayerSetSpawnEvent;
+ import java.util.Optional;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.BlockPos;
 @@ -39,6 +_,7 @@
  import net.minecraft.world.level.pathfinder.PathComputationType;
  import net.minecraft.world.phys.BlockHitResult;
@@ -8,15 +16,42 @@
  
  public class RespawnAnchorBlock extends Block {
      public static final MapCodec<RespawnAnchorBlock> CODEC = simpleCodec(RespawnAnchorBlock::new);
-@@ -101,7 +_,7 @@
+@@ -101,18 +_,24 @@
              if (!p_316150_.isClientSide) {
                  ServerPlayer serverplayer = (ServerPlayer)p_316889_;
                  if (serverplayer.getRespawnDimension() != p_316150_.dimension() || !p_316161_.equals(serverplayer.getRespawnPosition())) {
--                    serverplayer.setRespawnPosition(p_316150_.dimension(), p_316161_, 0.0F, false, true);
-+                    serverplayer.setRespawnPosition(p_316150_.dimension(), p_316161_, 0.0F, false, true, org.bukkit.event.player.PlayerSpawnChangeEvent.Cause.RESPAWN_ANCHOR); // CraftBukkit
-                     p_316150_.playSound(
-                         null,
-                         (double)p_316161_.getX() + 0.5,
++                    serverplayer.setRespawnPosition$setSpawnCause(PlayerSetSpawnEvent.Cause.RESPAWN_ANCHOR);
+                     serverplayer.setRespawnPosition(p_316150_.dimension(), p_316161_, 0.0F, false, true);
+-                    p_316150_.playSound(
+-                        null,
+-                        (double)p_316161_.getX() + 0.5,
+-                        (double)p_316161_.getY() + 0.5,
+-                        (double)p_316161_.getZ() + 0.5,
+-                        SoundEvents.RESPAWN_ANCHOR_SET_SPAWN,
+-                        SoundSource.BLOCKS,
+-                        1.0F,
+-                        1.0F
+-                    );
+-                    return InteractionResult.SUCCESS;
++                    if (serverplayer.setRespawnPosition$canCancel()) {
++                        p_316150_.playSound(
++                            null,
++                            (double)p_316161_.getX() + 0.5,
++                            (double)p_316161_.getY() + 0.5,
++                            (double)p_316161_.getZ() + 0.5,
++                            SoundEvents.RESPAWN_ANCHOR_SET_SPAWN,
++                            SoundSource.BLOCKS,
++                            1.0F,
++                            1.0F
++                        );
++                        return InteractionResult.SUCCESS;
++                    } else {
++                        return InteractionResult.FAIL;
++                    }
++                    // Paper end - Add PlayerSetSpawnEvent
+                 }
+             }
+ 
 @@ -146,6 +_,7 @@
      }
  

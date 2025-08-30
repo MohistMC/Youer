@@ -19,6 +19,7 @@ import static net.kyori.adventure.text.format.NamedTextColor.GRAY;
 import static net.kyori.adventure.text.format.NamedTextColor.GREEN;
 import static net.kyori.adventure.text.format.NamedTextColor.RED;
 import static net.kyori.adventure.text.format.NamedTextColor.YELLOW;
+import com.mohistmc.youer.util.I18n;
 
 @DefaultQualifier(NonNull.class)
 public final class MSPTCommand extends Command {
@@ -27,7 +28,7 @@ public final class MSPTCommand extends Command {
 
     public MSPTCommand(final String name) {
         super(name);
-        this.description = "View server tick times";
+        this.description = I18n.as("msptcmd.description");
         this.usageMessage = "/mspt";
         this.setPermission("bukkit.command.mspt");
     }
@@ -48,34 +49,29 @@ public final class MSPTCommand extends Command {
         times.addAll(eval(server.tickTimes10s.getTimes()));
         times.addAll(eval(server.tickTimes60s.getTimes()));
 
-        sender.sendMessage(text().content("Server tick times ").color(GOLD)
-            .append(text().color(YELLOW)
-                .append(
-                    text("("),
-                    text("avg", GRAY),
-                    text("/"),
-                    text("min", GRAY),
-                    text("/"),
-                    text("max", GRAY),
-                    text(")")
+        sender.sendMessage(text().content(I18n.as("msptcmd.title")).color(GOLD)
+                .append(text().color(YELLOW)
+                        .append(
+                                text("("),
+                                text(I18n.as("msptcmd.avg"), GRAY),
+                                text("/"),
+                                text(I18n.as("msptcmd.min"), GRAY),
+                                text("/"),
+                                text(I18n.as("msptcmd.max"), GRAY),
+                                text(")")
+                        )
+                ).append(
+                        text(" " + I18n.as("msptcmd.periods"))
                 )
-            ).append(
-                text(" from last 5s"),
-                text(",", GRAY),
-                text(" 10s"),
-                text(",", GRAY),
-                text(" 1m"),
-                text(":", YELLOW)
-            )
         );
-        sender.sendMessage(text().content("◴ ").color(GOLD)
-            .append(text().color(GRAY)
-                .append(
-                    times.get(0), SLASH, times.get(1), SLASH, times.get(2), text(", ", YELLOW),
-                    times.get(3), SLASH, times.get(4), SLASH, times.get(5), text(", ", YELLOW),
-                    times.get(6), SLASH, times.get(7), SLASH, times.get(8)
+        sender.sendMessage(text().content(I18n.as("msptcmd.symbol") + " ").color(GOLD)
+                .append(text().color(GRAY)
+                        .append(
+                                times.get(0), SLASH, times.get(1), SLASH, times.get(2), text(", ", YELLOW),
+                                times.get(3), SLASH, times.get(4), SLASH, times.get(5), text(", ", YELLOW),
+                                times.get(6), SLASH, times.get(7), SLASH, times.get(8)
+                        )
                 )
-            )
         );
         return true;
     }

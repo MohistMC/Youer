@@ -8,3 +8,22 @@
  import java.util.Optional;
  import javax.annotation.Nullable;
  import net.minecraft.commands.CommandSourceStack;
+@@ -51,7 +_,8 @@
+             EntitySelectorParser entityselectorparser = new EntitySelectorParser(new StringReader(p_237472_), true);
+             entityselector = entityselectorparser.parse();
+         } catch (CommandSyntaxException commandsyntaxexception) {
+-            LOGGER.warn("Invalid selector component: {}: {}", p_237472_, commandsyntaxexception.getMessage());
++            //LOGGER.warn("Invalid selector component: {}: {}", p_237472_, commandsyntaxexception.getMessage());
++            return null; // Paper
+         }
+ 
+         return entityselector;
+@@ -78,7 +_,7 @@
+     @Override
+     public MutableComponent resolve(@Nullable CommandSourceStack p_237468_, @Nullable Entity p_237469_, int p_237470_) throws CommandSyntaxException {
+         if (p_237468_ != null && this.selector != null) {
+-            Optional<? extends Component> optional = ComponentUtils.updateForEntity(p_237468_, this.separator, p_237469_, p_237470_);
++            Optional<? extends Component> optional = ComponentUtils.updateSeparatorForEntity(p_237468_, this.separator, p_237469_, p_237470_); // Paper - validate separator
+             return ComponentUtils.formatList(this.selector.findEntities(p_237468_), optional, Entity::getDisplayName);
+         } else {
+             return Component.empty();

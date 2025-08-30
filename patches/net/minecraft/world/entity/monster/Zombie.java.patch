@@ -68,6 +68,24 @@
          return true;
      }
  
+@@ -170,11 +_,16 @@
+ 
+     @Override
+     protected int getBaseExperienceReward() {
++        final int previousReward = this.xpReward; // Paper - store previous value to reset after calculating XP reward
+         if (this.isBaby()) {
+             this.xpReward = (int)((double)this.xpReward * 2.5);
+         }
+ 
+-        return super.getBaseExperienceReward();
++        // Paper start - store previous value to reset after calculating XP reward
++        int reward = super.getBaseExperienceReward();
++        this.xpReward = previousReward;
++        return reward;
++        // Paper end - store previous value to reset after calculating XP reward
+     }
+ 
+     @Override
 @@ -182,9 +_,9 @@
          this.getEntityData().set(DATA_BABY_ID, p_34309_);
          if (this.level() != null && !this.level().isClientSide) {
@@ -211,12 +229,13 @@
          return SoundEvents.ZOMBIE_DEATH;
      }
  
-@@ -406,32 +_,38 @@
+@@ -406,32 +_,39 @@
      @Override
      public boolean killedEntity(ServerLevel p_219160_, LivingEntity p_219161_) {
          boolean flag = super.killedEntity(p_219160_, p_219161_);
 -        if ((p_219160_.getDifficulty() == Difficulty.NORMAL || p_219160_.getDifficulty() == Difficulty.HARD) && p_219161_ instanceof Villager villager) {
-+        if ((p_219160_.getDifficulty() == Difficulty.NORMAL || p_219160_.getDifficulty() == Difficulty.HARD) && p_219161_ instanceof Villager villager && net.neoforged.neoforge.event.EventHooks.canLivingConvert(p_219161_, EntityType.ZOMBIE_VILLAGER, (timer) -> {})) {
++        final double fallbackChance = p_219160_.getDifficulty() == Difficulty.HARD ? 100d : p_219160_.getDifficulty() == Difficulty.NORMAL ? 50d : 0d; // Paper - Configurable chance of villager zombie infection
++        if (this.random.nextDouble() * 100 < p_219160_.paperConfig().entities.behavior.zombieVillagerInfectionChance.or(fallbackChance) && p_219161_ instanceof Villager villager && net.neoforged.neoforge.event.EventHooks.canLivingConvert(p_219161_, EntityType.ZOMBIE_VILLAGER, (timer) -> {})) {
              if (p_219160_.getDifficulty() != Difficulty.HARD && this.random.nextBoolean()) {
                  return flag;
              }

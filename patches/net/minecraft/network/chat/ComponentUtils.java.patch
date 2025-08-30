@@ -1,6 +1,36 @@
 --- a/net/minecraft/network/chat/ComponentUtils.java
 +++ b/net/minecraft/network/chat/ComponentUtils.java
-@@ -43,6 +_,11 @@
+@@ -33,16 +_,41 @@
+         }
+     }
+ 
++    @io.papermc.paper.annotation.DoNotUse // Paper - validate separators - right now this method is only used for separator evaluation. Error on build if this changes to re-evaluate.
+     public static Optional<MutableComponent> updateForEntity(
+         @Nullable CommandSourceStack p_178425_, Optional<Component> p_178426_, @Nullable Entity p_178427_, int p_178428_
+     ) throws CommandSyntaxException {
+         return p_178426_.isPresent() ? Optional.of(updateForEntity(p_178425_, p_178426_.get(), p_178427_, p_178428_)) : Optional.empty();
+     }
+ 
++    // Paper start - validate separator
++    public static Optional<MutableComponent> updateSeparatorForEntity(@Nullable CommandSourceStack source, Optional<Component> text, @Nullable Entity sender, int depth) throws CommandSyntaxException {
++        if (text.isEmpty() || !isValidSelector(text.get())) return Optional.empty();
++        return Optional.of(updateForEntity(source, text.get(), sender, depth));
++    }
++    public static boolean isValidSelector(final Component component) {
++        final ComponentContents contents = component.getContents();
++
++        if (contents instanceof net.minecraft.network.chat.contents.NbtContents || contents instanceof net.minecraft.network.chat.contents.SelectorContents) return false;
++        if (contents instanceof final net.minecraft.network.chat.contents.TranslatableContents translatableContents) {
++            for (final Object arg : translatableContents.getArgs()) {
++                if (arg instanceof final Component argumentAsComponent && !isValidSelector(argumentAsComponent)) return false;
++            }
++        }
++
++        return true;
++    }
++    // Paper end - validate separator
++
+     public static MutableComponent updateForEntity(@Nullable CommandSourceStack p_130732_, Component p_130733_, @Nullable Entity p_130734_, int p_130735_) throws CommandSyntaxException {
          if (p_130735_ > 100) {
              return p_130733_.copy();
          } else {

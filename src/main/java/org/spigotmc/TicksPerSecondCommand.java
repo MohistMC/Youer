@@ -2,6 +2,7 @@ package org.spigotmc;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import com.mohistmc.youer.util.I18n;
 
 public class TicksPerSecondCommand extends Command
 {
@@ -9,15 +10,15 @@ public class TicksPerSecondCommand extends Command
     public TicksPerSecondCommand(String name)
     {
         super( name );
-        this.description = "Gets the current ticks per second for the server";
+        this.description = I18n.as("tpscmd.description");
         this.usageMessage = "/tps";
         this.setPermission( "bukkit.command.tps" );
     }
 
     // Paper start
     private static final net.kyori.adventure.text.Component WARN_MSG = net.kyori.adventure.text.Component.text()
-            .append(net.kyori.adventure.text.Component.text("Warning: ", net.kyori.adventure.text.format.NamedTextColor.RED))
-            .append(net.kyori.adventure.text.Component.text("Memory usage on modern garbage collectors is not a stable value and it is perfectly normal to see it reach max. Please do not pay it much attention.", net.kyori.adventure.text.format.NamedTextColor.GOLD))
+            .append(net.kyori.adventure.text.Component.text(I18n.as("tpscmd.warn"), net.kyori.adventure.text.format.NamedTextColor.RED))
+            .append(net.kyori.adventure.text.Component.text(I18n.as("tpscmd.warn_msg"), net.kyori.adventure.text.format.NamedTextColor.GOLD))
             .build();
     // Paper end
 
@@ -38,13 +39,17 @@ public class TicksPerSecondCommand extends Command
         }
 
         net.kyori.adventure.text.TextComponent.Builder builder = net.kyori.adventure.text.Component.text();
-        builder.append(net.kyori.adventure.text.Component.text("TPS from last 1m, 5m, 15m: ", net.kyori.adventure.text.format.NamedTextColor.GOLD));
+        builder.append(net.kyori.adventure.text.Component.text(I18n.as("tpscmd.title"), net.kyori.adventure.text.format.NamedTextColor.GOLD));
         builder.append(net.kyori.adventure.text.Component.join(net.kyori.adventure.text.JoinConfiguration.commas(true), tpsAvg));
         sender.sendMessage(builder.asComponent());
         if (args.length > 0 && args[0].equals("mem") && sender.hasPermission("bukkit.command.tpsmemory")) {
+            long usedMemory = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024);
+            long totalMemory = Runtime.getRuntime().totalMemory() / (1024 * 1024);
+            long maxMemory = Runtime.getRuntime().maxMemory() / (1024 * 1024);
+
             sender.sendMessage(net.kyori.adventure.text.Component.text()
-                    .append(net.kyori.adventure.text.Component.text("Current Memory Usage: ", net.kyori.adventure.text.format.NamedTextColor.GOLD))
-                    .append(net.kyori.adventure.text.Component.text(((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024)) + "/" + (Runtime.getRuntime().totalMemory() / (1024 * 1024)) + " mb (Max: " + (Runtime.getRuntime().maxMemory() / (1024 * 1024)) + " mb)", net.kyori.adventure.text.format.NamedTextColor.GREEN))
+                    .append(net.kyori.adventure.text.Component.text(I18n.as("tpscmd.memory_usage"), net.kyori.adventure.text.format.NamedTextColor.GOLD))
+                    .append(net.kyori.adventure.text.Component.text(usedMemory + "/" + totalMemory + " mb (Max: " + maxMemory + " mb)", net.kyori.adventure.text.format.NamedTextColor.GREEN))
             );
             if (!this.hasShownMemoryWarning) {
                 sender.sendMessage(WARN_MSG);

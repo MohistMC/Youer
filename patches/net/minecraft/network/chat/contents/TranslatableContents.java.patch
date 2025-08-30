@@ -58,17 +58,47 @@
          for (FormattedText formattedtext : this.decomposedParts) {
              Optional<T> optional = formattedtext.visit(p_237521_, p_237522_);
              if (optional.isPresent()) {
-@@ -178,12 +_,21 @@
+@@ -178,12 +_,50 @@
          }
  
          return Optional.empty();
+-    }
 +        } finally {
 +            net.neoforged.neoforge.common.util.InsertingContents.popTranslation();
 +        }
-     }
++    }
++
++    // Paper start - Count visited parts
++    private static final class TranslatableContentConsumer<T> implements FormattedText.ContentConsumer<T> {
++        private static final IllegalArgumentException EX = new IllegalArgumentException("Too long");
++        private final FormattedText.ContentConsumer<T> visitor;
++        private int visited;
++
++        private TranslatableContentConsumer(FormattedText.ContentConsumer<T> visitor) {
++            this.visitor = visitor;
++        }
++
++        @Override
++        public Optional<T> accept(final String asString) {
++            if (visited++ > 32) {
++                throw EX;
++            }
++            return this.visitor.accept(asString);
++        }
++    }
++    // Paper end - Count visited parts
  
      @Override
      public <T> Optional<T> visit(FormattedText.ContentConsumer<T> p_237519_) {
++        // Paper start - Count visited parts
++        try {
++            return this.visit(new TranslatableContentConsumer<>(p_237519_));
++        } catch (IllegalArgumentException ignored) {
++            return p_237519_.accept("...");
++        }
++    }
++    private <T> Optional<T> visit(TranslatableContentConsumer<T> p_237519_) {
++        // Paper end - Count visited parts
          this.decompose();
  
 +        if (!net.neoforged.neoforge.common.util.InsertingContents.pushTranslation(this)) {

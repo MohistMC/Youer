@@ -14,7 +14,7 @@
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.sounds.SoundEvent;
  import net.minecraft.sounds.SoundEvents;
-@@ -27,6 +_,11 @@
+@@ -27,9 +_,15 @@
  import net.minecraft.world.level.material.Fluids;
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
@@ -26,6 +26,10 @@
  
  public class BucketItem extends Item implements DispensibleContainerItem {
      public final Fluid content;
++    private static @Nullable ItemStack itemLeftInHandAfterPlayerBucketEmptyEvent = null; // Paper - Fix PlayerBucketEmptyEvent result itemstack
+ 
+     public BucketItem(Fluid p_40689_, Item.Properties p_40690_) {
+         super(p_40690_);
 @@ -55,12 +_,22 @@
              } else if (this.content == Fluids.EMPTY) {
                  BlockState blockstate1 = p_40703_.getBlockState(blockpos);
@@ -65,6 +69,20 @@
                      this.checkExtraContent(p_40704_, p_40703_, itemstack, blockpos2);
                      if (p_40704_ instanceof ServerPlayer) {
                          CriteriaTriggers.PLACED_BLOCK.trigger((ServerPlayer)p_40704_, blockpos2, itemstack);
+@@ -90,6 +_,13 @@
+     }
+ 
+     public static ItemStack getEmptySuccessItem(ItemStack p_40700_, Player p_40701_) {
++        // Paper start - Fix PlayerBucketEmptyEvent result itemstack
++        if (itemLeftInHandAfterPlayerBucketEmptyEvent != null) {
++            ItemStack itemInHand = itemLeftInHandAfterPlayerBucketEmptyEvent;
++            itemLeftInHandAfterPlayerBucketEmptyEvent = null;
++            return itemInHand;
++        }
++        // Paper end - Fix PlayerBucketEmptyEvent result itemstack
+         return !p_40701_.hasInfiniteMaterials() ? new ItemStack(Items.BUCKET) : p_40700_;
+     }
+ 
 @@ -97,8 +_,23 @@
      public void checkExtraContent(@Nullable Player p_150711_, Level p_150712_, ItemStack p_150713_, BlockPos p_150714_) {
      }
@@ -89,7 +107,7 @@
          if (!(this.content instanceof FlowingFluid flowingfluid)) {
              return false;
          } else {
-@@ -125,8 +_,26 @@
+@@ -125,8 +_,27 @@
              }
  
              boolean flag1 = flag2;
@@ -105,6 +123,7 @@
 +                    ((ServerPlayer) p_150716_).getBukkitEntity().updateInventory(); // SPIGOT-4541
 +                    return false;
 +                }
++                itemLeftInHandAfterPlayerBucketEmptyEvent = event.getItemStack() != null ? event.getItemStack().equals(CraftItemStack.asNewCraftStack(net.minecraft.world.item.Items.BUCKET)) ? null : CraftItemStack.asNMSCopy(event.getItemStack()) : ItemStack.EMPTY; // Paper - Fix PlayerBucketEmptyEvent result itemstack
 +            }
 +            // CraftBukkit end
 +            java.util.Optional<net.neoforged.neoforge.fluids.FluidStack> containedFluidStack = java.util.Optional.ofNullable(container).flatMap(net.neoforged.neoforge.fluids.FluidUtil::getFluidContained);
