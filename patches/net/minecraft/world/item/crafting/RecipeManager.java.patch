@@ -9,10 +9,11 @@
  import com.google.common.collect.Multimap;
  import com.google.common.collect.ImmutableMultimap.Builder;
  import com.google.gson.Gson;
-@@ -10,10 +_,12 @@
+@@ -10,10 +_,13 @@
  import com.google.gson.JsonElement;
  import com.google.gson.JsonObject;
  import com.google.gson.JsonParseException;
++import com.mohistmc.youer.plugins.ban.bans.BanRecipe;
 +import com.mohistmc.youer.util.I18n;
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.JsonOps;
@@ -40,8 +41,9 @@
  
          for (Entry<ResourceLocation, JsonElement> entry : p_44037_.entrySet()) {
              ResourceLocation resourcelocation = entry.getKey();
+-
 +            if (resourcelocation.getPath().startsWith("_")) continue; //Forge: filter anything beginning with "_" as it's used for metadata.
- 
++            if (BanRecipe.checkBan(resourcelocation)) continue;
              try {
 -                Recipe<?> recipe = Recipe.CODEC.parse(registryops, entry.getValue()).getOrThrow(JsonParseException::new);
 +                var decoded = Recipe.CONDITIONAL_CODEC.parse(registryops, entry.getValue()).getOrThrow(JsonParseException::new);
@@ -66,37 +68,31 @@
      }
  
      public boolean hadErrorsLoading() {
-@@ -193,5 +_,54 @@
+@@ -193,5 +_,47 @@
  
      public interface CachedCheck<I extends RecipeInput, T extends Recipe<I>> {
          Optional<RecipeHolder<T>> getRecipeFor(I p_344938_, Level p_220281_);
 +    }
 +
 +    public synchronized void addRecipe(RecipeHolder<?> recipe) {
-+        // 1. 将当前不可变集合转换为可变集合
 +        Multimap<RecipeType<?>, RecipeHolder<?>> mutableByType = LinkedHashMultimap.create(this.byType);
 +        Map<ResourceLocation, RecipeHolder<?>> mutableByName = Maps.newHashMap(this.byName);
 +
-+        // 2. 检查重复ID
 +        if (mutableByName.containsKey(recipe.id())) {
 +            throw new IllegalStateException("Duplicate recipe ignored with ID " + recipe.id());
 +        }
 +
-+        // 3. 添加新配方
 +        mutableByType.put(recipe.value().getType(), recipe);
 +        mutableByName.put(recipe.id(), recipe);
 +
-+        // 4. 重新转换为不可变集合
 +        this.byType = ImmutableMultimap.copyOf(mutableByType);
 +        this.byName = ImmutableMap.copyOf(mutableByName);
 +    }
 +
 +    public synchronized boolean removeRecipe(ResourceLocation mcKey) {
-+        // 1. 转换为可变集合
 +        Multimap<RecipeType<?>, RecipeHolder<?>> mutableByType = LinkedHashMultimap.create(this.byType);
 +        Map<ResourceLocation, RecipeHolder<?>> mutableByName = Maps.newHashMap(this.byName);
 +
-+        // 2. 移除配方
 +        Iterator<RecipeHolder<?>> iter = mutableByType.values().iterator();
 +        boolean removed = false;
 +        while (iter.hasNext()) {
@@ -108,7 +104,6 @@
 +        }
 +        removed |= mutableByName.remove(mcKey) != null;
 +
-+        // 3. 更新为不可变集合
 +        if (removed) {
 +            this.byType = ImmutableMultimap.copyOf(mutableByType);
 +            this.byName = ImmutableMap.copyOf(mutableByName);
@@ -117,7 +112,7 @@
 +    }
 +
 +    public void clearRecipes() {
-+        this.byType = ImmutableMultimap.of(); // 重置为空的不可变集合
++        this.byType = ImmutableMultimap.of();
 +        this.byName = ImmutableMap.of();
      }
  }

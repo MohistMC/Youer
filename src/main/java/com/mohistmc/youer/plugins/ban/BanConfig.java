@@ -13,6 +13,7 @@ public class BanConfig extends YouerPluginConfig {
     public static BanConfig ENTITY;
     public static BanConfig ENCHANTMENT;
     public static BanConfig BAN_MESSAGE;
+    public static BanConfig RECIPE;
     public static final String PARENT = "youer-config/bans";
 
     public BanConfig(File file) {
@@ -25,6 +26,7 @@ public class BanConfig extends YouerPluginConfig {
         ENTITY = new BanConfig(new File(PARENT, "entity.yml"));
         ENCHANTMENT = new BanConfig(new File(PARENT, "enchantment.yml"));
         BAN_MESSAGE = new BanConfig(new File(PARENT, "item-message.yml"));
+        RECIPE = new BanConfig(new File(PARENT, "recipe.yml"));
     }
 
     public void addMoShou(String name) {
@@ -50,6 +52,10 @@ public class BanConfig extends YouerPluginConfig {
 
     public List<String> getEnchantment() {
         return (!has("ENCHANTMENTS")) ? new ArrayList<>() : ENCHANTMENT.yaml.getStringList("ENCHANTMENTS");
+    }
+
+    public List<String> getRecipe() {
+        return (!has("RECIPES")) ? new ArrayList<>() : RECIPE.yaml.getStringList("RECIPES");
     }
 
     public String getMessage(String name) {

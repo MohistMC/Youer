@@ -3,10 +3,12 @@ package com.mohistmc.youer.plugins.ban;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.EntityAPI;
 import com.mohistmc.youer.api.ItemAPI;
+import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
 import com.mohistmc.youer.plugins.ban.bans.BanItem;
+import com.mohistmc.youer.plugins.ban.bans.BanRecipe;
 import com.mohistmc.youer.plugins.ban.utils.BanSaveInventory;
 import com.mohistmc.youer.plugins.ban.utils.BanUtils;
 import com.mohistmc.youer.util.I18n;
@@ -15,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import net.minecraft.resources.ResourceLocation;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -32,12 +35,12 @@ import org.jetbrains.annotations.NotNull;
 public class BansCommand extends Command {
 
     private final List<String> params = Arrays.asList("add", "show", "setmessage");
-    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment");
+    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe");
 
     public BansCommand(String name) {
         super(name);
         this.description = I18n.as("banscmd.description");
-        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment]";
+        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment|recipe]";
         this.setPermission("youer.command.bans");
     }
 
@@ -59,6 +62,23 @@ public class BansCommand extends Command {
         }
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
             case "add" -> {
+                if (args.length == 3 && args[1].equals("recipe")) {
+                    if (!YouerConfig.ban_recipe_enable) {
+                        sender.sendMessage(ChatColor.RED + check);
+                        return false;
+                    }
+                    String name = args[2];
+                    if (BanConfig.RECIPE.has(name)) {
+                        sender.sendMessage(ChatColor.RED + "This recipe already exists.");
+                        return false;
+                    }
+                    if (!BanRecipe.CACHE.contains(ResourceLocation.parse(name))) {
+                        sender.sendMessage(ChatColor.RED + "This recipe does not exist.");
+                        return false;
+                    }
+                    BanRecipe.addBan(player, name);
+                    return true;
+                }
                 if (args.length != 2) {
                     sender.sendMessage(ChatColor.RED + usageMessage);
                     return false;
@@ -215,6 +235,29 @@ public class BansCommand extends Command {
                         wh.openGUI(player);
                         return true;
                     }
+                    case "recipe" -> {
+                        DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.recipe"));
+                        List<String> old = BanConfig.RECIPE.getRecipe();
+                        for (String s : BanConfig.RECIPE.getRecipe()) {
+                            wh.addItem(new GUIItem(new ItemStackFactory(Material.KNOWLEDGE_BOOK)
+                                    .setDisplayName(s)
+                                    .addLore("§e" + I18n.as("banscmd.show.lore"))
+                                    .setEnchantment(ItemAPI.getEnchantmentByKey(s))
+                                    .toItemStack()) {
+                                @Override
+                                public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                                    if (type.isRightClick()) {
+                                        old.remove(s);
+                                        BanUtils.saveToYaml(u, com.mohistmc.youer.plugins.ban.ClickType.REMOVE, old, BanType.RECIPE);
+                                        wh.removeItem(this);
+                                        wh.openGUI(player);
+                                    }
+                                }
+                            });
+                        }
+                        wh.openGUI(player);
+                        return true;
+                    }
                     default -> {
                         sender.sendMessage(ChatColor.RED + usageMessage);
                         return false;
@@ -292,6 +335,11 @@ public class BansCommand extends Command {
                     list.add(param);
                 }
             }
+        }
+        if (args.length == 3 && args[0].equals("add") && args[1].equals("recipe") && (sender.isOp() || testPermission(sender))) {
+            return BanRecipe.CACHE.stream()
+                    .map(ResourceLocation::toString)
+                    .toList();
         }
 
         return list;

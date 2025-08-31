@@ -2,8 +2,8 @@ package com.mohistmc.youer;
 
 import com.mohistmc.i18n.i18n;
 import com.mohistmc.youer.eventhandler.EventDispatcherRegistry;
+import com.mohistmc.youer.plugins.ban.BanConfig;
 import com.mohistmc.youer.util.VersionInfo;
-import cpw.mods.modlauncher.TransformingClassLoader;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -24,12 +24,9 @@ public class Youer {
     public static i18n i18n;
     public static String version = "1.21.1";
     public static final String modid = "youer";
-    public static ClassLoader classLoader;
     public static VersionInfo versionInfo;
 
     public Youer(IEventBus modEventBus, Dist dist, ModContainer container) {
-        classLoader = Youer.class.getClassLoader();
-
         Map<String, String> arguments = new HashMap<>();
         arguments.put("youer", version);
         arguments.put("bukkit", version);
@@ -38,7 +35,7 @@ public class Youer {
         arguments.put("neoforge", NeoForgeVersion.getVersion());
         versionInfo = new VersionInfo(arguments);
         EventDispatcherRegistry.init();
-        ((TransformingClassLoader) Youer.classLoader).addChild(classLoader);
+        BanConfig.init();
     }
 
     public static void initI18n() {

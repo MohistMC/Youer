@@ -39,7 +39,6 @@ public class MohistPlugin {
         ItemsConfig.init();
         BackConfig.init();
         WarpsConfig.init();
-        BanConfig.init();
         EntityClear.start();
         GlobalVariableSystem.register();
     }
@@ -79,5 +78,4 @@ public class MohistPlugin {
             BackCommands.hooktDeath(event1);
         }
     }
-
 }

@@ -4,6 +4,7 @@ import com.google.common.base.Throwables;
 import com.mohistmc.youer.commands.BackupWorldCommand;
 import com.mohistmc.youer.commands.DumpCommand;
 import com.mohistmc.youer.commands.GetPluginListCommand;
+import com.mohistmc.youer.commands.InfoCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
 import com.mohistmc.youer.commands.PermissionCommand;
 import com.mohistmc.youer.commands.ShowsCommand;
@@ -77,6 +78,7 @@ public class YouerConfig {
         commands.put("permission", new PermissionCommand("permission"));
         commands.put("bans", new BansCommand("bans"));
         commands.put("shows", new ShowsCommand("shows"));
+        commands.put("info", new InfoCommand("info"));
 
         MohistPlugin.registerCommands(commands);
 
@@ -197,6 +199,7 @@ public class YouerConfig {
     public static boolean no_vanilla_entity_enable;
     public static List<String> no_vanilla_entity_whitelist;
     public static boolean ban_enchantment_enable;
+    public static boolean ban_recipe_enable;
 
     public static String pingCommandOutput;
 
@@ -275,6 +278,7 @@ public class YouerConfig {
         no_vanilla_entity_enable = getBoolean("bans.entity.vanilla_entity.enable", false);
         no_vanilla_entity_whitelist = getStringList("bans.entity.vanilla_entity.whitelist", new ArrayList<>());
         ban_enchantment_enable = getBoolean("bans.enchantment", false);
+        ban_recipe_enable = getBoolean("bans.recipe", false);
 
         pingCommandOutput = getString("settings.messages.ping-command-output", "§2%s's ping is %sms");
 

@@ -195,11 +195,49 @@ public class ItemsCommand extends Command {
         ItemStack itemStack = player.getInventory().getItemInMainHand();
         net.minecraft.world.item.ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
 
-        sendMessageByCopy(player, ChatColor.GRAY + "Type - ", itemStack.getType().name());
-        player.sendMessage(ChatColor.GRAY + "Name - %s".formatted(nmsItem.getHoverName().getString()));
-        player.sendMessage(ChatColor.GRAY + "ModItem - %s".formatted(itemStack.getType().isModItem));
-        player.sendMessage(ChatColor.GRAY + "ModBlock - %s".formatted(itemStack.getType().isModBlock));
+        sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.type") + " ", itemStack.getType().name());
+        sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.key") + " ", itemStack.getType().getKey().asString());
+        sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.name") + " ", nmsItem.getHoverName().getString());
+        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.moditem") + " %s".formatted(itemStack.getType().isModItem));
+        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.modblock") + " %s".formatted(itemStack.getType().isModBlock));
+        if (itemStack.hasCustomModelData()) {
+            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.custommodeldata") + " %s".formatted(itemStack.getCustomModelData()));
+        }
+        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.itemflags") + " %s".formatted(itemStack.getItemFlags()));
+
+        // 添加更多物品信息
+        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.amount") + " %s".formatted(itemStack.getAmount()));
+        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.maxstacksize") + " %s".formatted(itemStack.getMaxStackSize()));
+
+        if (itemStack.hasItemMeta()) {
+            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.hasitemmeta") + " %s".formatted(true));
+
+            if (itemStack.getItemMeta().hasDisplayName()) {
+                sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.displayname") + " ", itemStack.getItemMeta().getDisplayName());
+            }
+
+            if (itemStack.getItemMeta().hasLore()) {
+                player.sendMessage(ChatColor.GRAY + I18n.as("items.info.lore") + ":");
+                itemStack.getItemMeta().getLore().forEach(lore -> player.sendMessage("  " + lore));
+            }
+
+            if (itemStack.getItemMeta().hasEnchants()) {
+                player.sendMessage(ChatColor.GRAY + I18n.as("items.info.enchants") + ":");
+                itemStack.getItemMeta().getEnchants().forEach((enchant, level) ->
+                        player.sendMessage("  " + enchant.getKey().toString() + " - " + level));
+            }
+        } else {
+            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.hasitemmeta") + " %s".formatted(false));
+        }
+
+        // 添加耐久信息
+        if (itemStack.getType().getMaxDurability() > 0) {
+            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.durability") + " %s/%s".formatted(
+                    itemStack.getType().getMaxDurability() - itemStack.getDurability(),
+                    itemStack.getType().getMaxDurability()));
+        }
     }
+
 
     public static void sendMessageByCopy(Player player, String des, String info) {
         TextComponent textComponent = new TextComponent(des + info);

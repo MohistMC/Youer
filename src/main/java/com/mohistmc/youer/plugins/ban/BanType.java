@@ -9,7 +9,8 @@ public enum BanType {
     ITEM("ITEMS", "bans.add.item", "bans.remove.item"),
     ITEM_MOSHOU("ITEMS", "bans.add.item_moshou", "bans.remove.item_moshou"),
     ENTITY("ENTITYS", "bans.add.entity", "bans.remove.entity"),
-    ENCHANTMENT("ENCHANTMENTS", "bans.add.enchantment", "bans.remove.enchantment");
+    ENCHANTMENT("ENCHANTMENTS", "bans.add.enchantment", "bans.remove.enchantment"),
+    RECIPE("RECIPES", "bans.add.recipe", "bans.remove.recipe");
 
     public final String key;
     public final String i18n_key_add;
