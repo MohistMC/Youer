@@ -2,7 +2,6 @@ package org.bukkit.craftbukkit.inventory;
 
 import io.papermc.paper.inventory.meta.ArmorStandMeta;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;

@@ -1,7 +1,6 @@
 package org.bukkit.event.inventory;
 
 import io.papermc.paper.event.inventory.PrepareResultEvent;
-import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.view.AnvilView;

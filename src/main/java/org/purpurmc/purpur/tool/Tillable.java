@@ -1,13 +1,12 @@
 package org.purpurmc.purpur.tool;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Predicate;
 import net.minecraft.world.item.HoeItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.Block;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Predicate;
 
 public class Tillable extends Actionable {
     private final Condition condition;

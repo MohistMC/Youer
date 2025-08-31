@@ -1,6 +1,5 @@
 package org.bukkit.event.entity;
 
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;

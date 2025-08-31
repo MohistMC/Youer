@@ -1,5 +1,8 @@
 package org.purpurmc.purpur.util;
 
+import java.io.File;
+import java.io.InputStream;
+import java.util.List;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -12,10 +15,6 @@ import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginLogger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.io.File;
-import java.io.InputStream;
-import java.util.List;
 
 public class MinecraftInternalPlugin extends PluginBase {
     private boolean enabled = true;

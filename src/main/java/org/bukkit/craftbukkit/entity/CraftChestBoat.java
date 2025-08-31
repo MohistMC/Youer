@@ -2,11 +2,9 @@ package org.bukkit.craftbukkit.entity;
 
 import io.papermc.paper.loottable.PaperLootableEntityInventory;
 import net.minecraft.world.entity.vehicle.ChestBoat;
-import org.bukkit.craftbukkit.CraftLootTable;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.loot.LootTable;
 
 public class CraftChestBoat extends CraftBoat implements org.bukkit.entity.ChestBoat, PaperLootableEntityInventory {
 

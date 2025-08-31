@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import org.bukkit.Material;
 import org.bukkit.Tag;
-import org.bukkit.inventory.BlockInventoryHolder;
 import org.bukkit.inventory.DecoratedPotInventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -1,16 +1,15 @@
 package org.purpurmc.purpur.task;
 
-import net.kyori.adventure.bossbar.BossBar;
-import net.minecraft.server.level.ServerPlayer;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import net.kyori.adventure.bossbar.BossBar;
+import net.minecraft.server.level.ServerPlayer;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.purpurmc.purpur.util.MinecraftInternalPlugin;
 
 public abstract class BossBarTask extends BukkitRunnable {

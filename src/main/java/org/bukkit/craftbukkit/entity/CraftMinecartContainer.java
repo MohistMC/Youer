@@ -3,10 +3,7 @@ package org.bukkit.craftbukkit.entity;
 import io.papermc.paper.loottable.PaperLootableEntityInventory;
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
 import net.minecraft.world.entity.vehicle.AbstractMinecartContainer;
-import org.bukkit.craftbukkit.CraftLootTable;
 import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.loot.LootTable;
-import org.bukkit.loot.Lootable;
 
 public abstract class CraftMinecartContainer extends CraftMinecart implements PaperLootableEntityInventory {
 

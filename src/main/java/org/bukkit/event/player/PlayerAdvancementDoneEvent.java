@@ -1,12 +1,11 @@
 package org.bukkit.event.player;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.advancement.Advancement;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
-// Paper start
 import org.jetbrains.annotations.Nullable;
-import net.kyori.adventure.text.Component;
 // Paper end
 
 /**

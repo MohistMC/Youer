@@ -1,7 +1,6 @@
 package org.bukkit.craftbukkit.legacy;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.mohistmc.youer.util.I18n;
 import com.mojang.serialization.Dynamic;
 import java.util.Arrays;

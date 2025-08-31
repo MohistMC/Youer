@@ -1,11 +1,11 @@
 package org.purpurmc.purpur.entity;
 
 import io.papermc.paper.adventure.PaperAdventure;
+import java.util.Locale;
 import net.kyori.adventure.text.Component;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.block.entity.BeehiveBlockEntity;
 import org.bukkit.block.EntityBlockStorage;
 import org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer;
@@ -15,8 +15,6 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Locale;
 
 public class PurpurStoredBee implements StoredEntity<Bee> {
     private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();

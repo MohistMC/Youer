@@ -1,9 +1,8 @@
 package org.purpurmc.purpur.entity.ai;
 
+import java.util.EnumSet;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.goal.Goal;
-
-import java.util.EnumSet;
 
 public class HasRider extends Goal {
     public final Mob entity;

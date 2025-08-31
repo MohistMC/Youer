@@ -2,7 +2,6 @@ package org.bukkit.event.vehicle;
 
 import org.bukkit.block.Block;
 import org.bukkit.entity.Vehicle;
-import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
 /**

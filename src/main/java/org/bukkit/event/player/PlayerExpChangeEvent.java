@@ -1,11 +1,10 @@
 package org.bukkit.event.player;
 
-import org.bukkit.entity.Entity; // Paper
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
-
-import org.jetbrains.annotations.Nullable; // Paper
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Called when a players experience changes naturally

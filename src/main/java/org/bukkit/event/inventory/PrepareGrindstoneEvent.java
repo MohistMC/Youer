@@ -1,6 +1,5 @@
 package org.bukkit.event.inventory;
 
-import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.GrindstoneInventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;

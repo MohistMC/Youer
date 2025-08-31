@@ -1,14 +1,13 @@
 package org.purpurmc.purpur.task;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryUsage;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.entity.Player;
 import org.purpurmc.purpur.PurpurConfig;
-
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryUsage;
 
 public class RamBarTask extends BossBarTask {
     private static RamBarTask instance;

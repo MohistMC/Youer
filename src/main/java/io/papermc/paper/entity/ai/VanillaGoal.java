@@ -436,6 +436,18 @@ public interface VanillaGoal<T extends Mob> extends Goal<T> {
 
     GoalKey<Zombie> ZOMBIE_ATTACK_TURTLE_EGG = create("zombie_attack_turtle_egg", Zombie.class);
 
+    // Purpur start
+    GoalKey<Mob> MOB_HAS_RIDER = GoalKey.of(Mob.class, NamespacedKey.minecraft("has_rider"));
+    GoalKey<AbstractHorse> HORSE_HAS_RIDER = GoalKey.of(AbstractHorse.class, NamespacedKey.minecraft("horse_has_rider"));
+    GoalKey<Llama> LLAMA_HAS_RIDER = GoalKey.of(Llama.class, NamespacedKey.minecraft("llama_has_rider"));
+    GoalKey<Phantom> FIND_CRYSTAL = GoalKey.of(Phantom.class, NamespacedKey.minecraft("find_crystal"));
+    GoalKey<Phantom> ORBIT_CRYSTAL = GoalKey.of(Phantom.class, NamespacedKey.minecraft("orbit_crystal"));
+    GoalKey<Drowned> DROWNED_ATTACK_VILLAGER = GoalKey.of(Drowned.class, NamespacedKey.minecraft("drowned_attack_villager"));
+    GoalKey<Zombie> ZOMBIE_ATTACK_VILLAGER = GoalKey.of(Zombie.class, NamespacedKey.minecraft("zombie_attack_villager"));
+    GoalKey<Wolf> AVOID_RABID_WOLF = GoalKey.of(Wolf.class, NamespacedKey.minecraft("avoid_rabid_wolf"));
+    GoalKey<IronGolem> RECEIVE_FLOWER = GoalKey.of(IronGolem.class, NamespacedKey.minecraft("receive_flower"));
+    // Purpur end
+
     private static <T extends Mob> @NonNull GoalKey<T> create(final @NonNull String key,
             final @NonNull Class<T> type) {
         return GoalKey.of(type, NamespacedKey.minecraft(key));

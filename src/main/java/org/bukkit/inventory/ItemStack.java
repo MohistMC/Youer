@@ -1,8 +1,9 @@
 package org.bukkit.inventory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import com.mohistmc.youer.Youer;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -13,6 +14,9 @@ import org.bukkit.Registry;
 import org.bukkit.Translatable;
 import org.bukkit.UndefinedNullability;
 import org.bukkit.Utility;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.meta.Damageable;
@@ -20,12 +24,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.material.MaterialData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-// Purpur start
-import com.google.common.collect.Multimap;
-import java.util.Collection;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.block.data.BlockData;
 // Purpur end
 
 /**

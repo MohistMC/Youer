@@ -1,12 +1,12 @@
 package org.purpurmc.purpur.event.entity;
 
+import java.util.Collections;
 import org.bukkit.ExplosionResult;
 import org.bukkit.Location;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.jetbrains.annotations.ApiStatus;
-import java.util.Collections;
 import org.jspecify.annotations.NullMarked;
 
 /**

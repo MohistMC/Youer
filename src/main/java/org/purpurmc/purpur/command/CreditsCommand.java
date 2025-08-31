@@ -1,15 +1,14 @@
 package org.purpurmc.purpur.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import java.util.Collection;
+import java.util.Collections;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
 import net.minecraft.server.level.ServerPlayer;
 import org.purpurmc.purpur.PurpurConfig;
-
-import java.util.Collection;
-import java.util.Collections;
 
 public class CreditsCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {

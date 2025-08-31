@@ -1,7 +1,6 @@
 package org.bukkit.event.block;
 
 import org.bukkit.block.Block;
-import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 

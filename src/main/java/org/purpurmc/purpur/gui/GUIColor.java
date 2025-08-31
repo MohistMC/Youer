@@ -1,10 +1,9 @@
 package org.purpurmc.purpur.gui;
 
-import net.md_5.bungee.api.ChatColor;
-
 import java.awt.Color;
 import java.util.HashMap;
 import java.util.Map;
+import net.md_5.bungee.api.ChatColor;
 
 public enum GUIColor {
     BLACK(ChatColor.BLACK, new Color(0x000000)),

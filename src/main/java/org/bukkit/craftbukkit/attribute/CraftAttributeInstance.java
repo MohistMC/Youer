@@ -8,8 +8,6 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
-import org.bukkit.inventory.EquipmentSlot;
-import org.jetbrains.annotations.NotNull;
 
 public class CraftAttributeInstance implements AttributeInstance {
 

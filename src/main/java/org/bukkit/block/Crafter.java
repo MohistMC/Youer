@@ -1,7 +1,6 @@
 package org.bukkit.block;
 
 import io.papermc.paper.loottable.LootableBlockInventory;
-import org.bukkit.loot.Lootable;
 import org.jetbrains.annotations.ApiStatus;
 
 /**

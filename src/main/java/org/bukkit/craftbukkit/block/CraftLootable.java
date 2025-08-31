@@ -5,8 +5,6 @@ import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import org.bukkit.Location;
 import org.bukkit.Nameable;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.CraftLootTable;
-import org.bukkit.loot.LootTable;
 import org.bukkit.loot.Lootable;
 
 public abstract class CraftLootable<T extends RandomizableContainerBlockEntity> extends CraftContainer<T> implements Nameable, Lootable, PaperLootableBlockInventory { // Paper

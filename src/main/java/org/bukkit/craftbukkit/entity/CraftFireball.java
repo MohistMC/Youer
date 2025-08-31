@@ -5,7 +5,6 @@ import net.minecraft.world.entity.projectile.AbstractHurtingProjectile;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Fireball;
-import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 

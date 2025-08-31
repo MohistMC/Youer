@@ -1,5 +1,6 @@
 package org.purpurmc.purpur.event;
 
+import java.util.Collections;
 import org.bukkit.ExplosionResult;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -7,7 +8,6 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.jetbrains.annotations.ApiStatus;
-import java.util.Collections;
 import org.jspecify.annotations.NullMarked;
 
 /**

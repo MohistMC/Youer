@@ -1,10 +1,14 @@
 package org.purpurmc.purpur;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
+import java.util.logging.Level;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.monster.Shulker;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
@@ -12,21 +16,16 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.Tilt;
+import org.apache.commons.lang.BooleanUtils;
+import org.bukkit.ChatColor;
+import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
 import org.purpurmc.purpur.tool.Flattenable;
 import org.purpurmc.purpur.tool.Strippable;
 import org.purpurmc.purpur.tool.Tillable;
 import org.purpurmc.purpur.tool.Waxable;
 import org.purpurmc.purpur.tool.Weatherable;
-import org.apache.commons.lang.BooleanUtils;
-import org.bukkit.ChatColor;
-import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
-import java.util.logging.Level;
+
 import static org.purpurmc.purpur.PurpurConfig.log;
 
 @SuppressWarnings("unused")

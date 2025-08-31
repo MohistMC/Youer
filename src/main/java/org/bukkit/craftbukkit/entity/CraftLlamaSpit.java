@@ -2,7 +2,6 @@ package org.bukkit.craftbukkit.entity;
 
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.LlamaSpit;
-import org.bukkit.projectiles.ProjectileSource;
 
 public class CraftLlamaSpit extends AbstractProjectile implements LlamaSpit {
 

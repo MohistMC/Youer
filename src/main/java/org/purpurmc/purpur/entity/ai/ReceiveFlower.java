@@ -1,5 +1,7 @@
 package org.purpurmc.purpur.entity.ai;
 
+import java.util.EnumSet;
+import java.util.UUID;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -8,9 +10,6 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
-
-import java.util.EnumSet;
-import java.util.UUID;
 
 public class ReceiveFlower extends Goal {
     private final IronGolem irongolem;

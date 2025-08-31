@@ -4,9 +4,9 @@ import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.purpurmc.purpur.PurpurConfig;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.purpurmc.purpur.PurpurConfig;
 
 public class TPSBarTask extends BossBarTask {
     private static TPSBarTask instance;

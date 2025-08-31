@@ -1,8 +1,8 @@
 package org.spigotmc;
 
+import com.mohistmc.youer.util.I18n;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import com.mohistmc.youer.util.I18n;
 
 public class TicksPerSecondCommand extends Command
 {
