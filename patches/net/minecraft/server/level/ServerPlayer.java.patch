@@ -317,7 +317,7 @@
 +    public void spawnIn(Level world) {
 +        this.setLevel(world);
 +        if (world == null) {
-+            this.unsetRemoved();
++            this.revive();
 +            Vec3 position = null;
 +            if (this.respawnDimension != null) {
 +                world = this.server.getLevel(this.respawnDimension);
@@ -774,14 +774,12 @@
                  return this;
              }
          }
-@@ -933,20 +_,29 @@
-     }
+@@ -934,6 +_,15 @@
  
      @Override
--    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos p_9115_) {
-+    public Either<BedSleepingProblem, Unit> startSleepInBed(BlockPos p_9115_) {
+     public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos p_9115_) {
 +        // Neo: Encapsulate the vanilla check logic to supply to the CanPlayerSleepEvent
-+        var vanillaResult = ((Supplier<Either<BedSleepingProblem, Unit>>) () -> {
++        var vanillaResult = ((Supplier<Either<Player.BedSleepingProblem, Unit>>) () -> {
 +        // Guard against modded beds that may not have the FACING property.
 +        // We just return success (Unit) here. Modders will need to implement conditions in the CanPlayerSleepEvent
 +        if (!this.level().getBlockState(p_9115_).hasProperty(HorizontalDirectionalBlock.FACING)) {
@@ -791,31 +789,9 @@
 +        // Start vanilla code
          Direction direction = this.level().getBlockState(p_9115_).getValue(HorizontalDirectionalBlock.FACING);
          if (this.isSleeping() || !this.isAlive()) {
--            return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
-+            return Either.left(BedSleepingProblem.OTHER_PROBLEM);
-         } else if (!this.level().dimensionType().natural()) {
--            return Either.left(Player.BedSleepingProblem.NOT_POSSIBLE_HERE);
-+            return Either.left(BedSleepingProblem.NOT_POSSIBLE_HERE);
-         } else if (!this.bedInRange(p_9115_, direction)) {
--            return Either.left(Player.BedSleepingProblem.TOO_FAR_AWAY);
-+            return Either.left(BedSleepingProblem.TOO_FAR_AWAY);
-         } else if (this.bedBlocked(p_9115_, direction)) {
--            return Either.left(Player.BedSleepingProblem.OBSTRUCTED);
-+            return Either.left(BedSleepingProblem.OBSTRUCTED);
-         } else {
-             this.setRespawnPosition(this.level().dimension(), p_9115_, this.getYRot(), false, true);
-             if (this.level().isDay()) {
--                return Either.left(Player.BedSleepingProblem.NOT_POSSIBLE_NOW);
-+                return Either.left(BedSleepingProblem.NOT_POSSIBLE_NOW);
-             } else {
-                 if (!this.isCreative()) {
-                     double d0 = 8.0;
-@@ -959,11 +_,25 @@
-                             p_9062_ -> p_9062_.isPreventingPlayerRest(this)
-                         );
-                     if (!list.isEmpty()) {
--                        return Either.left(Player.BedSleepingProblem.NOT_SAFE);
-+                        return Either.left(BedSleepingProblem.NOT_SAFE);
+             return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
+@@ -962,8 +_,22 @@
+                         return Either.left(Player.BedSleepingProblem.NOT_SAFE);
                      }
                  }
 -
@@ -870,7 +846,7 @@
          if (this.isSleeping()) {
              this.serverLevel().getChunkSource().broadcastAndSend(this, new ClientboundAnimatePacket(this, 2));
          }
-@@ -1072,17 +_,72 @@
+@@ -1072,17 +_,33 @@
          this.containerCounter = this.containerCounter % 100 + 1;
      }
  
@@ -889,61 +865,23 @@
          if (p_9033_ == null) {
              return OptionalInt.empty();
          } else {
-+            // CraftBukkit start - SPIGOT-6552: Handle inventory closing in CraftEventFactory#callInventoryOpenEvent(...)
-+            /*
              if (this.containerMenu != this.inventoryMenu) {
+-                this.closeContainer();
++                InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.OPEN_NEW); // Paper - Inventory close reason
 +                if (p_9033_.shouldTriggerClientSideContainerClosingOnOpen())
-                 this.closeContainer();
++                    this.closeContainer();
 +                else
 +                    this.doCloseContainer();
++                CraftEventFactory.alreadyProcessed = true;
              }
-+            */
-+            // CraftBukkit end
  
              this.nextContainerCounter();
              AbstractContainerMenu abstractcontainermenu = p_9033_.createMenu(this.containerCounter, this.getInventory(), this);
-+            Component title = null; // Paper - Add titleOverride to InventoryOpenEvent
-+            // CraftBukkit start - Inventory open hook
-+            if (abstractcontainermenu != null) {
-+                abstractcontainermenu.setTitle(p_9033_.getDisplayName());
-+                boolean cancelled = false;
-+                // Mohist start - Moved from CraftEventFactory#callInventoryOpenEvent(...) to fix mixin issues
-+                if (this.containerMenu != this.inventoryMenu) {
-+                    InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.OPEN_NEW); // Paper - Inventory close reason
-+                    if (p_9033_.shouldTriggerClientSideContainerClosingOnOpen())
-+                        this.closeContainer();
-+                    else
-+                        this.doCloseContainer();
-+                    CraftEventFactory.alreadyProcessed = true;
-+                }
-+                // Mohist end
-+                abstractcontainermenu.containerOwner = this;
-+                // Paper start - Add titleOverride to InventoryOpenEvent
-+                final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(this, abstractcontainermenu, cancelled);
-+                abstractcontainermenu = result.getSecond();
-+                title = PaperAdventure.asVanilla(result.getFirst());
-+                // Paper end - Add titleOverride to InventoryOpenEvent
-+                if (abstractcontainermenu == null && !cancelled) { // Let pre-cancelled events fall through
-+                    // SPIGOT-5263 - close chest if cancelled
-+                    if (p_9033_ instanceof Container) {
-+                        ((Container) p_9033_).stopOpen(this);
-+                    } else if (p_9033_ instanceof ChestBlock.DoubleInventory) {
-+                        // SPIGOT-5355 - double chests too :(
-+                        ((ChestBlock.DoubleInventory) p_9033_).inventorylargechest.stopOpen(this);
-+                        // Paper start - Fix InventoryOpenEvent cancellation
-+                    } else if (!this.enderChestInventory.isActiveChest(null)) {
-+                        this.enderChestInventory.stopOpen(this);
-+                        // Paper end - Fix InventoryOpenEvent cancellation
-+                    }
-+                    return OptionalInt.empty();
-+                }
-+            }
-+            // CraftBukkit end
 +
              if (abstractcontainermenu == null) {
                  if (this.isSpectator()) {
                      this.displayClientMessage(Component.translatable("container.spectatorCantOpen").withStyle(ChatFormatting.RED), true);
-@@ -1090,10 +_,33 @@
+@@ -1090,10 +_,61 @@
  
                  return OptionalInt.empty();
              } else {
@@ -970,8 +908,36 @@
 +                        )
 +                    );
 +                } else {
-+                    if (!this.isImmobile()) this.connection
-+                    .send(new ClientboundOpenScreenPacket(abstractcontainermenu.containerId, abstractcontainermenu.getType(), Objects.requireNonNullElseGet(title, abstractcontainermenu::getTitle))); // Paper - Add titleOverride to InventoryOpenEvent
++                    if (!this.isImmobile()) {
++                        Component title = null; // Paper - Add titleOverride to InventoryOpenEvent
++                        // CraftBukkit start - Inventory open hook
++                        abstractcontainermenu.setTitle(p_9033_.getDisplayName());
++                        boolean cancelled = false;
++                        abstractcontainermenu.containerOwner = this;
++                        // Paper start - Add titleOverride to InventoryOpenEvent
++                        final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(this, abstractcontainermenu, cancelled);
++                        abstractcontainermenu = result.getSecond();
++                        title = PaperAdventure.asVanilla(result.getFirst());
++                        // Paper end - Add titleOverride to InventoryOpenEvent
++                        if (abstractcontainermenu == null && !cancelled) { // Let pre-cancelled events fall through
++                            // SPIGOT-5263 - close chest if cancelled
++                            if (p_9033_ instanceof Container) {
++                                ((Container) p_9033_).stopOpen(this);
++                            } else if (p_9033_ instanceof ChestBlock.DoubleInventory) {
++                                // SPIGOT-5355 - double chests too :(
++                                ((ChestBlock.DoubleInventory) p_9033_).inventorylargechest.stopOpen(this);
++                                // Paper start - Fix InventoryOpenEvent cancellation
++                            } else if (!this.enderChestInventory.isActiveChest(null)) {
++                                this.enderChestInventory.stopOpen(this);
++                                // Paper end - Fix InventoryOpenEvent cancellation
++                            }
++                            return OptionalInt.empty();
++                        }
++
++                        // CraftBukkit end
++                        this.connection
++                                .send(new ClientboundOpenScreenPacket(abstractcontainermenu.containerId, abstractcontainermenu.getType(), Objects.requireNonNullElseGet(title, abstractcontainermenu::getTitle))); // Paper - Add titleOverride to InventoryOpenEvent
++                    }
 +                }
                  this.initMenu(abstractcontainermenu);
                  this.containerMenu = abstractcontainermenu;

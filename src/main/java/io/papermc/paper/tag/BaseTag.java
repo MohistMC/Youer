@@ -165,15 +165,6 @@ public abstract class BaseTag<T extends Keyed, C extends BaseTag<T, C>> implemen
     }
 
     @NotNull
-    public C ensureSize(@NotNull String label, int size) {
-        long actual = this.tagged.stream().filter(globalPredicates.stream().reduce(Predicate::or).orElse(t -> true)).count();
-        if (size != actual) {
-            throw new IllegalStateException(key.toString() + ": " + label + " - Expected " + size + " values, got " + actual);
-        }
-        return (C) this;
-    }
-
-    @NotNull
     @ApiStatus.Internal
     protected abstract Set<T> getAllPossibleValues();
 
