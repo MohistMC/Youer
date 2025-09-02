@@ -35,13 +35,15 @@
 - [x] CraftBukkit ([19bf84656](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/19bf84656))
 - [x] Spigot ([a759b629](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/spigot/commits/a759b629))
 
-🔄 **In Progress**
-- [ ] Paper ([3cb8529bd](https://github.com/PaperMC/Paper-archive/commit/3cb8529bd))
+✅ **In Progress**
+- [x] Paper ([3cb8529bd](https://github.com/PaperMC/Paper-archive/commit/3cb8529bd))
+  - [x] api (16)
+  - [x] server (225)
+- [x] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))
   - [x] api
-  - [ ] server
-- [ ] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))
-  - [x] api
-  - [ ] server
+  - [x] server (276)
+
+🔄 **Compatible Progress**
 
 ## 📚 Documentation
 
@@ -56,8 +58,8 @@
 | Bukkit      | [Spigot](https://hub.spigotmc.org/stash/scm/spigot/bukkit.git)      | Plugin support               | ✅      |
 | CraftBukkit | [Spigot](https://hub.spigotmc.org/stash/scm/spigot/craftbukkit.git) | Plugin support               | ✅      |
 | Spigot      | [Spigot](https://hub.spigotmc.org/stash/scm/spigot/spigot.git)      | Plugin support               | ✅      |
-| Paper       | [GitHub](https://github.com/PaperMC/Paper.git)                      | Plugin support               | 🔄     |
-| PurPur      | [GitHub](https://github.com/PurpurMC/Purpur.git)                    | Plugin support               | 🔄     |
+| Paper       | [GitHub](https://github.com/PaperMC/Paper.git)                      | Plugin support               | ✅     |
+| PurPur      | [GitHub](https://github.com/PurpurMC/Purpur.git)                    | Plugin support               | ✅     |
 | Arclight    | [GitHub](https://github.com/IzzelAliz/Arclight.git)                 | Plugin Remapping and Message | ✅      |
 
 ## 💖 Special Thanks To:
