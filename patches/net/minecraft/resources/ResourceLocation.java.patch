@@ -8,16 +8,34 @@
      private final String namespace;
      private final String path;
  
-@@ -163,6 +_,12 @@
-         }
- 
+@@ -165,6 +_,12 @@
          return i;
-+    }
-+
+     }
+ 
 +    // Normal compare sorts by path first, this compares namespace first.
 +    public int compareNamespaced(ResourceLocation o) {
 +        int ret = this.namespace.compareTo(o.namespace);
 +        return ret != 0 ? ret : this.path.compareTo(o.path);
-     }
- 
++    }
++
      public String toDebugFileName() {
+         return this.toString().replace('/', '_').replace(':', '_');
+     }
+@@ -254,7 +_,7 @@
+ 
+     private static String assertValidNamespace(String p_250769_, String p_249616_) {
+         if (!isValidNamespace(p_250769_)) {
+-            throw new ResourceLocationException("Non [a-z0-9_.-] character in namespace of location: " + p_250769_ + ":" + p_249616_);
++            throw new ResourceLocationException("Non [a-z0-9_.-] character in namespace of location: " + org.apache.commons.lang3.StringUtils.normalizeSpace(p_250769_) + ":" + org.apache.commons.lang3.StringUtils.normalizeSpace(p_249616_)); // Paper - Sanitize ResourceLocation error logging
+         } else {
+             return p_250769_;
+         }
+@@ -275,7 +_,7 @@
+ 
+     private static String assertValidPath(String p_251418_, String p_248828_) {
+         if (!isValidPath(p_248828_)) {
+-            throw new ResourceLocationException("Non [a-z0-9/._-] character in path of location: " + p_251418_ + ":" + p_248828_);
++            throw new ResourceLocationException("Non [a-z0-9/._-] character in path of location: " + p_251418_ + ":" + org.apache.commons.lang3.StringUtils.normalizeSpace(p_248828_)); // Paper - Sanitize ResourceLocation error logging
+         } else {
+             return p_248828_;
+         }

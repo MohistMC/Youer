@@ -3,6 +3,7 @@ package org.bukkit.craftbukkit.block;
 import com.google.common.base.Preconditions;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import org.bukkit.Registry;
 import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.CraftRegistry;
@@ -27,13 +28,14 @@ public class CraftBiome {
         return CraftBiome.minecraftToBukkit(minecraft.value());
     }
 
+    private static final java.util.Map<org.bukkit.block.Biome, ResourceKey<net.minecraft.world.level.biome.Biome>> BIOME_KEY_CACHE = java.util.Collections.synchronizedMap(new java.util.EnumMap<>(Biome.class)); // Paper
     public static net.minecraft.world.level.biome.Biome bukkitToMinecraft(Biome bukkit) {
         if (bukkit == null || bukkit == Biome.CUSTOM) {
             return null;
         }
 
         return CraftRegistry.getMinecraftRegistry(Registries.BIOME)
-                .getOptional(CraftNamespacedKey.toMinecraft(bukkit.getKey())).orElseThrow();
+                .getOptional(BIOME_KEY_CACHE.computeIfAbsent(bukkit, b -> ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(b.getKey())))).orElseThrow();
     }
 
     public static Holder<net.minecraft.world.level.biome.Biome> bukkitToMinecraftHolder(Biome bukkit) {

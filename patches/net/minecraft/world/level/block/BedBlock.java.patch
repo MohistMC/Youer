@@ -8,6 +8,50 @@
  import java.util.List;
  import java.util.Optional;
  import javax.annotation.Nullable;
+@@ -22,6 +_,7 @@
+ import net.minecraft.world.item.context.BlockPlaceContext;
+ import net.minecraft.world.level.BlockGetter;
+ import net.minecraft.world.level.CollisionGetter;
++import net.minecraft.world.level.ExplosionDamageCalculator;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.block.entity.BedBlockEntity;
+@@ -102,6 +_,7 @@
+                 p_49516_.explode(null, p_49516_.damageSources().badRespawnPointExplosion(vec3), null, vec3, 5.0F, true, Level.ExplosionInteraction.BLOCK);
+                 return InteractionResult.SUCCESS;
+             } else if (p_49515_.getValue(OCCUPIED)) {
++                if (!BedBlock.canSetSpawn(p_49516_)) return this.explodeBed(p_49515_, p_49516_, p_49517_); // Paper - check explode first
+                 if (!this.kickVillagerOutOfBed(p_49516_, p_49517_)) {
+                     p_49518_.displayClientMessage(Component.translatable("block.minecraft.bed.occupied"), true);
+                 }
+@@ -118,6 +_,27 @@
+         }
+     }
+ 
++    // CraftBukkit start
++    private InteractionResult explodeBed(BlockState iblockdata, Level world, BlockPos blockposition) {
++        {
++            {
++                org.bukkit.block.BlockState blockState = org.bukkit.craftbukkit.block.CraftBlock.at(world, blockposition).getState(); // CraftBukkit - capture BlockState before remove block
++                world.removeBlock(blockposition, false);
++                BlockPos blockposition1 = blockposition.relative(((Direction) iblockdata.getValue(BedBlock.FACING)).getOpposite());
++
++                if (world.getBlockState(blockposition1).getBlock() == this) {
++                    world.removeBlock(blockposition1, false);
++                }
++
++                Vec3 vec3d = blockposition.getCenter();
++
++                world.explode((Entity) null, world.damageSources().badRespawnPointExplosionCB(vec3d, blockState), (ExplosionDamageCalculator) null, vec3d, 5.0F, true, Level.ExplosionInteraction.BLOCK); // CraftBukkit - add state
++                return InteractionResult.SUCCESS;
++            }
++        }
++    }
++    // CraftBukkit end
++
+     public static boolean canSetSpawn(Level p_49489_) {
+         return p_49489_.dimensionType().bedWorks();
+     }
 @@ -134,7 +_,7 @@
  
      @Override

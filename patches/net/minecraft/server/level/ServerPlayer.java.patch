@@ -97,7 +97,7 @@
  import net.minecraft.world.level.block.HorizontalDirectionalBlock;
  import net.minecraft.world.level.block.RespawnAnchorBlock;
  import net.minecraft.world.level.block.entity.BlockEntity;
-@@ -158,12 +_,43 @@
+@@ -158,12 +_,44 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreAccess;
  import net.minecraft.world.scores.ScoreHolder;
@@ -127,6 +127,7 @@
 +import org.bukkit.event.entity.PlayerDeathEvent;
 +import org.bukkit.event.player.PlayerBedLeaveEvent;
 +import org.bukkit.event.player.PlayerChangedMainHandEvent;
++import org.bukkit.event.player.PlayerChangedWorldEvent;
 +import org.bukkit.event.player.PlayerLocaleChangeEvent;
 +import org.bukkit.event.player.PlayerRespawnEvent;
 +import org.bukkit.event.player.PlayerSpawnChangeEvent;
@@ -387,7 +388,7 @@
 +                }
 +            }
 +        }
-+        if (persistVehicle && entity != null && entity1 != this && entity1.hasExactlyOnePlayerPassenger()) {
++        if (persistVehicle && entity != null && entity1 != this && entity1.hasExactlyOnePlayerPassenger() && !entity1.isRemoved()) { // Paper - Ensure valid vehicle status
 +            // CraftBukkit end
              CompoundTag compoundtag1 = new CompoundTag();
              CompoundTag compoundtag2 = new CompoundTag();
@@ -759,7 +760,7 @@
                  serverlevel1.getProfiler().push("moving");
                  if (resourcekey == Level.OVERWORLD && serverlevel.dimension() == Level.NETHER) {
                      this.enteredNetherPosition = this.position();
-@@ -895,10 +_,14 @@
+@@ -895,10 +_,22 @@
                  playerlist.sendLevelInfo(this, serverlevel);
                  playerlist.sendAllPlayerInfo(this);
                  playerlist.sendActivePlayerEffects(this);
@@ -771,6 +772,14 @@
 +                // Neo: On the client all attachments are lost on dimension change and need to be re-sent
 +                net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(this);
 +                EventHooks.firePlayerChangedDimensionEvent(this, resourcekey, p_350472_.newLevel().dimension());
++
++                PlayerChangedWorldEvent changeEvent = new PlayerChangedWorldEvent(this.getBukkitEntity(), serverlevel1.getWorld());
++                this.level().getCraftServer().getPluginManager().callEvent(changeEvent);
++                // Paper start - Reset shield blocking on dimension change
++                if (this.isBlocking()) {
++                    this.stopUsingItem();
++                }
++                // Paper end - Reset shield blocking on dimension change
                  return this;
              }
          }
@@ -846,6 +855,15 @@
          if (this.isSleeping()) {
              this.serverLevel().getChunkSource().broadcastAndSend(this, new ClientboundAnimatePacket(this, 2));
          }
+@@ -1017,7 +_,7 @@
+ 
+     @Override
+     public boolean isInvulnerableTo(DamageSource p_9182_) {
+-        return super.isInvulnerableTo(p_9182_) || this.isChangingDimension();
++        return super.isInvulnerableTo(p_9182_) || this.isChangingDimension() || !this.level().paperConfig().collisions.allowPlayerCrammingDamage && p_9182_ == damageSources().cramming(); // Paper - disable player cramming
+     }
+ 
+     @Override
 @@ -1072,17 +_,33 @@
          this.containerCounter = this.containerCounter % 100 + 1;
      }
@@ -1526,7 +1544,7 @@
  
      public SectionPos getLastSectionPos() {
          return this.lastSectionPos;
-@@ -1767,6 +_,8 @@
+@@ -1767,11 +_,13 @@
          if (itementity == null) {
              return null;
          } else {
@@ -1535,6 +1553,12 @@
              this.level().addFreshEntity(itementity);
              ItemStack itemstack = itementity.getItem();
              if (p_9087_) {
+                 if (!itemstack.isEmpty()) {
+-                    this.awardStat(Stats.ITEM_DROPPED.get(itemstack.getItem()), p_9085_.getCount());
++                    this.awardStat(Stats.ITEM_DROPPED.get(itemstack.getItem()), itemstack.getCount()); // Paper - Fix PlayerDropItemEvent using wrong item
+                 }
+ 
+                 this.awardStat(Stats.DROP);
 @@ -1781,6 +_,75 @@
          }
      }

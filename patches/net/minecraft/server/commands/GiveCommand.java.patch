@@ -8,6 +8,14 @@
  import com.mojang.brigadier.exceptions.CommandSyntaxException;
  import java.util.Collection;
  import net.minecraft.commands.CommandBuildContext;
+@@ -52,6 +_,7 @@
+ 
+     private static int giveItem(CommandSourceStack p_137779_, ItemInput p_137780_, Collection<ServerPlayer> p_137781_, int p_137782_) throws CommandSyntaxException {
+         ItemStack itemstack = p_137780_.createItemStack(1, false);
++        final Component displayName = itemstack.getDisplayName(); // Paper - get display name early
+         int i = itemstack.getMaxStackSize();
+         int j = i * 100;
+         if (p_137782_ > j) {
 @@ -67,7 +_,7 @@
                      ItemStack itemstack1 = p_137780_.createItemStack(l, false);
                      boolean flag = serverplayer.getInventory().add(itemstack1);
@@ -17,3 +25,22 @@
                          if (itementity1 != null) {
                              itementity1.makeFakeItem();
                          }
+@@ -97,14 +_,14 @@
+             if (p_137781_.size() == 1) {
+                 p_137779_.sendSuccess(
+                     () -> Component.translatable(
+-                            "commands.give.success.single", p_137782_, itemstack.getDisplayName(), p_137781_.iterator().next().getDisplayName()
+-                        ),
++                            "commands.give.success.single", p_137782_, displayName, p_137781_.iterator().next().getDisplayName()
++                        ), // Paper - use cached display name
+                     true
+                 );
+             } else {
+                 p_137779_.sendSuccess(
+-                    () -> Component.translatable("commands.give.success.single", p_137782_, itemstack.getDisplayName(), p_137781_.size()), true
+-                );
++                    () -> Component.translatable("commands.give.success.single", p_137782_, displayName, p_137781_.size()), true
++                ); // Paper - use cached display name
+             }
+ 
+             return p_137781_.size();

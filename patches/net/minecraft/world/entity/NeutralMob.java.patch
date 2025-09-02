@@ -1,20 +1,37 @@
 --- a/net/minecraft/world/entity/NeutralMob.java
 +++ b/net/minecraft/world/entity/NeutralMob.java
-@@ -42,12 +_,12 @@
-                 Entity entity = ((ServerLevel)p_147286_).getEntity(uuid);
-                 if (entity != null) {
-                     if (entity instanceof Mob mob) {
--                        this.setTarget(mob);
-+                        this.setTargetCB(mob, org.bukkit.event.entity.EntityTargetEvent.TargetReason.UNKNOWN, false); // CraftBukkit
-                         this.setLastHurtByMob(mob);
-                     }
+@@ -8,6 +_,7 @@
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.level.GameRules;
+ import net.minecraft.world.level.Level;
++import org.bukkit.event.entity.EntityTargetEvent;
  
-                     if (entity instanceof Player player) {
+ public interface NeutralMob {
+     String TAG_ANGER_TIME = "AngerTime";
+@@ -39,18 +_,11 @@
+             } else {
+                 UUID uuid = p_147287_.getUUID("AngryAt");
+                 this.setPersistentAngerTarget(uuid);
+-                Entity entity = ((ServerLevel)p_147286_).getEntity(uuid);
+-                if (entity != null) {
+-                    if (entity instanceof Mob mob) {
+-                        this.setTarget(mob);
+-                        this.setLastHurtByMob(mob);
+-                    }
+-
+-                    if (entity instanceof Player player) {
 -                        this.setTarget(player);
-+                        this.setTargetCB(player, org.bukkit.event.entity.EntityTargetEvent.TargetReason.UNKNOWN, false); // CraftBukkit
-                         this.setLastHurtByPlayer(player);
-                     }
-                 }
+-                        this.setLastHurtByPlayer(player);
+-                    }
+-                }
++                // Paper - Prevent entity loading causing async lookups; Moved diff to separate method
++                // If this entity already survived its first tick, e.g. is loaded and ticked in sync, actively
++                // tick the initial persistent anger.
++                // If not, let the first tick on the baseTick call the method later down the line.
++                if (this instanceof Entity entity && !entity.firstTick) this.tickInitialPersistentAnger(p_147286_);
+             }
+         }
+     }
 @@ -109,7 +_,7 @@
      default void stopBeingAngry() {
          this.setLastHurtByMob(null);
@@ -24,12 +41,38 @@
          this.setRemainingPersistentAngerTime(0);
      }
  
-@@ -121,6 +_,8 @@
-     void setLastHurtByPlayer(@Nullable Player p_21680_);
+@@ -122,8 +_,34 @@
  
      void setTarget(@Nullable LivingEntity p_21681_);
-+
-+    boolean setTargetCB(@Nullable LivingEntity entityliving, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent); // CraftBukkit
  
++    boolean setTargetCB(@Nullable LivingEntity entityliving, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent); // CraftBukkit
++
      boolean canAttack(LivingEntity p_181126_);
  
+     @Nullable
+     LivingEntity getTarget();
++
++    // Paper start - Prevent entity loading causing async lookups
++    // Update last hurt when ticking
++    default void tickInitialPersistentAnger(Level level) {
++        UUID target = getPersistentAngerTarget();
++        if (target == null) {
++            return;
++        }
++
++        Entity entity = ((ServerLevel) level).getEntity(target);
++
++        if (entity != null) {
++            if (entity instanceof Mob mob) {
++                this.setTargetCB(mob, EntityTargetEvent.TargetReason.UNKNOWN, false); // CraftBukkit
++                this.setLastHurtByMob(mob);
++            }
++
++            if (entity instanceof Player player) {
++                this.setTargetCB(player, EntityTargetEvent.TargetReason.UNKNOWN, false); // CraftBukkit
++                this.setLastHurtByPlayer(player);
++            }
++        }
++    }
++    // Paper end - Prevent entity loading causing async lookups
+ }

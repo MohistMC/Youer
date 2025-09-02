@@ -17,7 +17,7 @@
  
  public abstract class BaseFireBlock extends Block {
      private static final int SECONDS_ON_FIRE = 8;
-@@ -127,10 +_,18 @@
+@@ -127,10 +_,22 @@
  
      @Override
      protected void entityInside(BlockState p_49260_, Level p_49261_, BlockPos p_49262_, Entity p_49263_) {
@@ -32,6 +32,10 @@
 +
 +                if (!event.isCancelled()) {
 +                    p_49263_.igniteForSeconds(event.getDuration(), false);
++                    // Paper start - fix EntityCombustEvent cancellation
++                } else {
++                    p_49263_.setRemainingFireTicks(p_49263_.getRemainingFireTicks() - 1);
++                    // Paper end - fix EntityCombustEvent cancellation
 +                }
 +                // CraftBukkit end
              }

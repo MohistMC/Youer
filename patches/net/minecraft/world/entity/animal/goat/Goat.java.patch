@@ -18,7 +18,7 @@
          return this.isScreamingGoat() ? SoundEvents.GOAT_SCREAMING_DEATH : SoundEvents.GOAT_DEATH;
      }
  
-@@ -216,8 +_,14 @@
+@@ -216,13 +_,20 @@
      public InteractionResult mobInteract(Player p_149379_, InteractionHand p_149380_) {
          ItemStack itemstack = p_149379_.getItemInHand(p_149380_);
          if (itemstack.is(Items.BUCKET) && !this.isBaby()) {
@@ -34,6 +34,13 @@
              p_149379_.setItemInHand(p_149380_, itemstack1);
              return InteractionResult.sidedSuccess(this.level().isClientSide);
          } else {
++            boolean isFood = this.isFood(itemstack); // Paper - track before stack is possibly decreased to 0 (Fixes MC-244739)
+             InteractionResult interactionresult = super.mobInteract(p_149379_, p_149380_);
+-            if (interactionresult.consumesAction() && this.isFood(itemstack)) {
++            if (interactionresult.consumesAction() && isFood) { // Paper
+                 this.level()
+                     .playSound(null, this, this.getEatingSound(itemstack), SoundSource.NEUTRAL, 1.0F, Mth.randomBetween(this.level().random, 0.8F, 1.2F));
+             }
 @@ -365,4 +_,15 @@
      ) {
          return p_218754_.getBlockState(p_218756_.below()).is(BlockTags.GOATS_SPAWNABLE_ON) && isBrightEnoughToSpawn(p_218754_, p_218756_);

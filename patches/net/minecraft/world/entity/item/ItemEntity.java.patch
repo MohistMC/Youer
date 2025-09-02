@@ -182,7 +182,7 @@
  
      @Override
      public BlockPos getBlockPosBelowThatAffectsMyMovement() {
-@@ -208,8 +_,11 @@
+@@ -208,9 +_,20 @@
  
      private void mergeWithNeighbours() {
          if (this.isMergable()) {
@@ -193,8 +193,17 @@
 +                .getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(radius, this.level().paperConfig().entities.behavior.onlyMergeItemsHorizontally ? 0 : radius - 0.5D, radius), p_186268_ -> p_186268_ != this && p_186268_.isMergable())) { // Paper - configuration to only merge items horizontally
 +                // Spigot end
                  if (itementity.isMergable()) {
++                    // Paper start - Fix items merging through walls
++                    if (this.level().paperConfig().fixes.fixItemsMergingThroughWalls) {
++                        if (this.level().clipDirect(this.position(), itementity.position(),
++                                net.minecraft.world.phys.shapes.CollisionContext.of(this)) == net.minecraft.world.phys.HitResult.Type.BLOCK) {
++                            continue;
++                        }
++                    }
++                    // Paper end - Fix items merging through walls
                      this.tryToMerge(itementity);
                      if (this.isRemoved()) {
+                         break;
 @@ -222,14 +_,14 @@
  
      private boolean isMergable() {

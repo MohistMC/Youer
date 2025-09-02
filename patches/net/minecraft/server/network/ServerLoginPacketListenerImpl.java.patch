@@ -241,7 +241,21 @@
              if (flag) {
                  this.state = ServerLoginPacketListenerImpl.State.WAITING_FOR_DUPE_DISCONNECT;
              } else {
-@@ -184,8 +_,8 @@
+@@ -175,17 +_,19 @@
+             }
+ 
+             SecretKey secretkey = p_10049_.getSecretKey(privatekey);
+-            Cipher cipher = Crypt.getCipher(2, secretkey);
+-            Cipher cipher1 = Crypt.getCipher(1, secretkey);
++            // Paper start - Use Velocity cipher
++            // Cipher cipher = Crypt.getCipher(2, secretkey);
++            // Cipher cipher1 = Crypt.getCipher(1, secretkey);
++            // Paper end - Use Velocity cipher
+             s = new BigInteger(Crypt.digestData("", this.server.getKeyPair().getPublic(), secretkey)).toString(16);
+             this.state = ServerLoginPacketListenerImpl.State.AUTHENTICATING;
+-            this.connection.setEncryptionKey(cipher, cipher1);
++            this.connection.setupEncryption(secretkey); // Paper - Use Velocity cipher
+         } catch (CryptException cryptexception) {
              throw new IllegalStateException("Protocol error", cryptexception);
          }
  

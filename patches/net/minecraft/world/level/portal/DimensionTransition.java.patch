@@ -50,9 +50,18 @@
 +    }
 +
 +    public DimensionTransition(ServerLevel worldserver, Entity entity, DimensionTransition.PostDimensionTransition dimensiontransition_a, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
-+        this(worldserver, findAdjustedSharedSpawnPos(worldserver, entity), Vec3.ZERO, 0.0F, 0.0F, false, dimensiontransition_a, cause);
++        this(worldserver, findAdjustedSharedSpawnPos(worldserver, entity), Vec3.ZERO, worldserver.getSharedSpawnAngle(), 0.0F, false, dimensiontransition_a, cause); // Paper - MC-200092 - fix spawn pos yaw being ignored
 +        // CraftBukkit end
 +    }
      private static void playPortalSound(Entity p_352075_) {
          if (p_352075_ instanceof ServerPlayer serverplayer) {
              serverplayer.connection.send(new ClientboundLevelEventPacket(1032, BlockPos.ZERO, 0, false));
+@@ -42,7 +_,7 @@
+     }
+ 
+     public static DimensionTransition missingRespawnBlock(ServerLevel p_348517_, Entity p_352420_, DimensionTransition.PostDimensionTransition p_352305_) {
+-        return new DimensionTransition(p_348517_, findAdjustedSharedSpawnPos(p_348517_, p_352420_), Vec3.ZERO, 0.0F, 0.0F, true, p_352305_);
++        return new DimensionTransition(p_348517_, findAdjustedSharedSpawnPos(p_348517_, p_352420_), Vec3.ZERO, p_348517_.getSharedSpawnAngle(), 0.0F, true, p_352305_); // Paper - MC-200092 - fix spawn pos yaw being ignored
+     }
+ 
+     private static Vec3 findAdjustedSharedSpawnPos(ServerLevel p_352080_, Entity p_352400_) {

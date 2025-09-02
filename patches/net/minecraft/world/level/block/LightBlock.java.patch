@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/level/block/LightBlock.java
++++ b/net/minecraft/world/level/block/LightBlock.java
+@@ -49,6 +_,14 @@
+         p_153687_.add(LEVEL, WATERLOGGED);
+     }
+ 
++    // Paper start - prevent unintended light block manipulation
++    @Override
++    protected net.minecraft.world.ItemInteractionResult useItemOn(final ItemStack stack, final BlockState state, final Level world, final BlockPos pos, final Player player, final net.minecraft.world.InteractionHand hand, final BlockHitResult hit) {
++        if (player.getItemInHand(hand).getItem() != Items.LIGHT || !player.mayInteract(world, pos) || !player.mayUseItemAt(pos, hit.getDirection(), player.getItemInHand(hand))) { return net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION; } // Paper - Prevent unintended light block manipulation
++        return super.useItemOn(stack, state, world, pos, player, hand, hit);
++    }
++    // Paper end - prevent unintended light block manipulation
++
+     @Override
+     protected InteractionResult useWithoutItem(BlockState p_153673_, Level p_153674_, BlockPos p_153675_, Player p_153676_, BlockHitResult p_153678_) {
+         if (!p_153674_.isClientSide && p_153676_.canUseGameMasterBlocks()) {

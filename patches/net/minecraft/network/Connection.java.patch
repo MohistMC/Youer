@@ -16,7 +16,7 @@
  import org.slf4j.Logger;
  import org.slf4j.Marker;
  import org.slf4j.MarkerFactory;
-@@ -107,6 +_,32 @@
+@@ -107,7 +_,48 @@
      private volatile DisconnectionDetails delayedDisconnect;
      @Nullable
      BandwidthDebugMonitor bandwidthDebugMonitor;
@@ -46,9 +46,25 @@
 +    }
 +    // Paper end - add utility methods
 +    @Nullable public SocketAddress haProxyAddress; // Paper - Add API to get player's proxy address
++    // Paper start - packet limiter
++    protected final Object PACKET_LIMIT_LOCK = new Object();
++    protected final @Nullable io.papermc.paper.util.IntervalledCounter allPacketCounts = io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.allPackets.isEnabled() ? new io.papermc.paper.util.IntervalledCounter(
++            (long)(io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.allPackets.interval() * 1.0e9)
++    ) : null;
++    protected final java.util.Map<Class<? extends net.minecraft.network.protocol.Packet<?>>, io.papermc.paper.util.IntervalledCounter> packetSpecificLimits = new java.util.HashMap<>();
  
++    private boolean stopReadingPackets;
++    private void killForPacketSpam() {
++        this.sendPacket(new ClientboundDisconnectPacket(io.papermc.paper.adventure.PaperAdventure.asVanilla(io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.kickMessage)), PacketSendListener.thenRun(() -> {
++            this.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.kickMessage));
++        }), true);
++        this.setReadOnly();
++        this.stopReadingPackets = true;
++    }
++    // Paper end - packet limiter
      public Connection(PacketFlow p_129482_) {
          this.receiving = p_129482_;
+     }
 @@ -117,30 +_,59 @@
          super.channelActive(p_129525_);
          this.channel = p_129525_.channel();
@@ -123,7 +139,7 @@
                              Packet<?> packet = (Packet<?>)(this.sendLoginDisconnect
                                  ? new ClientboundLoginDisconnectPacket(component)
                                  : new ClientboundDisconnectPacket(component));
-@@ -170,7 +_,7 @@
+@@ -170,15 +_,65 @@
      }
  
      protected void channelRead0(ChannelHandlerContext p_129487_, Packet<?> p_129488_) {
@@ -132,7 +148,57 @@
              PacketListener packetlistener = this.packetListener;
              if (packetlistener == null) {
                  throw new IllegalStateException("Received a packet before the packet listener was initialized");
-@@ -179,6 +_,7 @@
+             } else {
++                // Paper start - packet limiter
++                if (this.stopReadingPackets) {
++                    return;
++                }
++                if (this.allPacketCounts != null ||
++                        io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.overrides.containsKey(p_129488_.getClass())) {
++                    long time = System.nanoTime();
++                    synchronized (PACKET_LIMIT_LOCK) {
++                        if (this.allPacketCounts != null) {
++                            this.allPacketCounts.updateAndAdd(1, time);
++                            if (this.allPacketCounts.getRate() >= io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.allPackets.maxPacketRate()) {
++                                this.killForPacketSpam();
++                                return;
++                            }
++                        }
++
++                        for (Class<?> check = p_129488_.getClass(); check != Object.class; check = check.getSuperclass()) {
++                            io.papermc.paper.configuration.GlobalConfiguration.PacketLimiter.PacketLimit packetSpecificLimit =
++                                    io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.overrides.get(check);
++                            if (packetSpecificLimit == null || !packetSpecificLimit.isEnabled()) {
++                                continue;
++                            }
++                            io.papermc.paper.util.IntervalledCounter counter = this.packetSpecificLimits.computeIfAbsent((Class)check, (clazz) -> {
++                                return new io.papermc.paper.util.IntervalledCounter((long)(packetSpecificLimit.interval() * 1.0e9));
++                            });
++                            counter.updateAndAdd(1, time);
++                            if (counter.getRate() >= packetSpecificLimit.maxPacketRate()) {
++                                switch (packetSpecificLimit.action()) {
++                                    case DROP:
++                                        return;
++                                    case KICK:
++                                        String deobfedPacketName = io.papermc.paper.util.ObfHelper.INSTANCE.deobfClassName(check.getName());
++
++                                        String playerName;
++                                        if (this.packetListener instanceof net.minecraft.server.network.ServerCommonPacketListenerImpl impl) {
++                                            playerName = impl.getOwner().getName();
++                                        } else {
++                                            playerName = this.getLoggableAddress(net.minecraft.server.MinecraftServer.getServer().logIPs());
++                                        }
++
++                                        Connection.LOGGER.warn("{} kicked for packet spamming: {}", playerName, deobfedPacketName.substring(deobfedPacketName.lastIndexOf(".") + 1));
++                                        this.killForPacketSpam();
++                                        return;
++                                }
++                            }
++                        }
++                    }
++                }
++                // Paper end - packet limiter
+                 if (packetlistener.shouldHandleMessage(p_129488_)) {
                      try {
                          genericsFtw(p_129488_, packetlistener);
                      } catch (RunningOnDifferentThreadException runningondifferentthreadexception) {
@@ -234,7 +300,33 @@
          Class<? extends SocketChannel> oclass;
          EventLoopGroup eventloopgroup;
          if (Epoll.isAvailable() && p_290035_) {
-@@ -586,6 +_,14 @@
+@@ -552,11 +_,21 @@
+         return connection;
+     }
+ 
+-    public void setEncryptionKey(Cipher p_129496_, Cipher p_129497_) {
+-        this.encrypted = true;
+-        this.channel.pipeline().addBefore("splitter", "decrypt", new CipherDecoder(p_129496_));
+-        this.channel.pipeline().addBefore("prepender", "encrypt", new CipherEncoder(p_129497_));
++    public void setupEncryption(javax.crypto.SecretKey key) throws net.minecraft.util.CryptException {
++        if (!this.encrypted) {
++            try {
++                com.velocitypowered.natives.encryption.VelocityCipher decryption = com.velocitypowered.natives.util.Natives.cipher.get().forDecryption(key);
++                com.velocitypowered.natives.encryption.VelocityCipher encryption = com.velocitypowered.natives.util.Natives.cipher.get().forEncryption(key);
++
++                this.encrypted = true;
++                this.channel.pipeline().addBefore("splitter", "decrypt", new CipherDecoder(decryption));
++                this.channel.pipeline().addBefore("prepender", "encrypt", new CipherEncoder(encryption));
++            } catch (java.security.GeneralSecurityException e) {
++                throw new net.minecraft.util.CryptException(e);
++            }
++        }
+     }
++    // Paper end - Use Velocity cipher
+ 
+     public boolean isEncrypted() {
+         return this.encrypted;
+@@ -586,10 +_,19 @@
          }
      }
  
@@ -248,10 +340,19 @@
 +
      public void setupCompression(int p_129485_, boolean p_182682_) {
          if (p_129485_ >= 0) {
++            com.velocitypowered.natives.compression.VelocityCompressor compressor = com.velocitypowered.natives.util.Natives.compress.get().create(io.papermc.paper.configuration.GlobalConfiguration.get().misc.compressionLevel.or(-1)); // Paper - Use Velocity cipher
              if (this.channel.pipeline().get("decompress") instanceof CompressionDecoder compressiondecoder) {
-@@ -599,6 +_,7 @@
+-                compressiondecoder.setThreshold(p_129485_, p_182682_);
++                compressiondecoder.setThreshold(compressor, p_129485_, p_182682_);
              } else {
-                 this.channel.pipeline().addAfter("prepender", "compress", new CompressionEncoder(p_129485_));
+                 this.channel.pipeline().addAfter("splitter", "decompress", new CompressionDecoder(p_129485_, p_182682_));
+             }
+@@ -597,8 +_,9 @@
+             if (this.channel.pipeline().get("compress") instanceof CompressionEncoder compressionencoder) {
+                 compressionencoder.setThreshold(p_129485_);
+             } else {
+-                this.channel.pipeline().addAfter("prepender", "compress", new CompressionEncoder(p_129485_));
++                this.channel.pipeline().addAfter("prepender", "compress", new CompressionEncoder(compressor, p_129485_));
              }
 +            this.channel.pipeline().fireUserEventTriggered(io.papermc.paper.network.ConnectionEvent.COMPRESSION_THRESHOLD_SET); // Paper - Add Channel initialization listeners
          } else {

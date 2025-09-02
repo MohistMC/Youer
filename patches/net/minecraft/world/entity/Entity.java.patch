@@ -467,7 +467,7 @@
          this.setYRot(p_19916_ % 360.0F);
          this.setXRot(p_19917_ % 360.0F);
      }
-@@ -419,7 +_,19 @@
+@@ -419,8 +_,21 @@
          this.baseTick();
      }
  
@@ -485,8 +485,10 @@
 +            this.discard();
 +        }
          this.level().getProfiler().push("entityBaseTick");
++        if (firstTick && this instanceof net.minecraft.world.entity.NeutralMob neutralMob) neutralMob.tickInitialPersistentAnger(level); // Paper - Prevent entity loading causing async lookups
          this.inBlockState = null;
          if (this.isPassenger() && this.getVehicle().isRemoved()) {
+             this.stopRiding();
 @@ -433,7 +_,7 @@
          this.walkDistO = this.walkDist;
          this.xRotO = this.getXRot();
@@ -801,6 +803,14 @@
      }
  
      public void moveRelative(float p_19921_, Vec3 p_19922_) {
+@@ -1398,6 +_,7 @@
+         this.setXRot(Mth.clamp(p_348500_, -90.0F, 90.0F) % 360.0F);
+         this.yRotO = this.getYRot();
+         this.xRotO = this.getXRot();
++        this.setYHeadRot(p_348662_); // Paper - Update head rotation
+     }
+ 
+     public void absMoveTo(double p_20249_, double p_20250_, double p_20251_) {
 @@ -1407,6 +_,7 @@
          this.yo = p_20250_;
          this.zo = d1;
@@ -819,6 +829,22 @@
          this.moveTo(p_352318_.x, p_352318_.y, p_352318_.z, p_352438_, p_352125_);
      }
  
+@@ -1431,6 +_,7 @@
+         this.setXRot(p_20112_);
+         this.setOldPosAndRot();
+         this.reapplyPosition();
++        this.setYHeadRot(p_20111_); // Paper - Update head rotation
+     }
+ 
+     public final void setOldPosAndRot() {
+@@ -1478,6 +_,7 @@
+     public void push(Entity p_20293_) {
+         if (!this.isPassengerOfSameVehicle(p_20293_)) {
+             if (!p_20293_.noPhysics && !this.noPhysics) {
++                if (this.level.paperConfig().collisions.onlyPlayersCollide && !(p_20293_ instanceof ServerPlayer || this instanceof ServerPlayer)) return; // Paper - Collision option for requiring a player participant
+                 double d0 = p_20293_.getX() - this.getX();
+                 double d1 = p_20293_.getZ() - this.getZ();
+                 double d2 = Mth.absMax(d0, d1);
 @@ -1510,11 +_,26 @@
          this.push(p_347665_.x, p_347665_.y, p_347665_.z);
      }
@@ -1160,6 +1186,15 @@
          if (this.isPassenger()) {
              this.getVehicle().positionRider(this);
          }
+@@ -1982,7 +_,7 @@
+     }
+ 
+     public boolean startRiding(Entity p_19966_, boolean p_19967_) {
+-        if (p_19966_ == this.vehicle) {
++        if (p_19966_ == this.vehicle || p_19966_.level != this.level) { // Paper - Ensure entity passenger world matches ridden entity (bad plugins)
+             return false;
+         } else if (!p_19966_.couldAcceptPassenger()) {
+             return false;
 @@ -1993,6 +_,7 @@
                  }
              }
@@ -1341,7 +1376,7 @@
      }
  
      public int getTicksFrozen() {
-@@ -2362,11 +_,41 @@
+@@ -2362,11 +_,45 @@
  
      public void thunderHit(ServerLevel p_19927_, LightningBolt p_19928_) {
          this.setRemainingFireTicks(this.remainingFireTicks + 1);
@@ -1361,6 +1396,10 @@
 +            pluginManager.callEvent(entityCombustEvent);
 +            if (!entityCombustEvent.isCancelled()) {
 +                this.igniteForSeconds(entityCombustEvent.getDuration(), false);
++                // Paper start - fix EntityCombustEvent cancellation
++            } else {
++                this.setRemainingFireTicks(this.remainingFireTicks - 1);
++                // Paper end - fix EntityCombustEvent cancellation
 +            }
 +            // CraftBukkit end
 +        }

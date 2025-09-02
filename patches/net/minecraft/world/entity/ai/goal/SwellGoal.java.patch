@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/entity/ai/goal/SwellGoal.java
++++ b/net/minecraft/world/entity/ai/goal/SwellGoal.java
+@@ -21,6 +_,13 @@
+         return this.creeper.getSwellDir() > 0 || livingentity != null && this.creeper.distanceToSqr(livingentity) < 9.0;
+     }
+ 
++    // Paper start - Fix MC-179072
++    @Override
++    public boolean canContinueToUse() {
++        return !net.minecraft.world.entity.EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(this.creeper.getTarget()) && canUse();
++    }
++    // Paper end
++
+     @Override
+     public void start() {
+         this.creeper.getNavigation().stop();

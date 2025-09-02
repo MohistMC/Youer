@@ -8,7 +8,7 @@
  import java.util.function.Predicate;
  import javax.annotation.Nullable;
  import net.minecraft.Util;
-@@ -68,7 +_,7 @@
+@@ -68,18 +_,19 @@
      public static final int TIME_BETWEEN_PLAYER_SCANS = 20;
      private static final int ARENA_SIZE_CHUNKS = 8;
      public static final int ARENA_TICKET_LEVEL = 9;
@@ -17,7 +17,12 @@
      private static final int GATEWAY_DISTANCE = 96;
      public static final int DRAGON_SPAWN_Y = 128;
      private final Predicate<Entity> validPlayer;
-@@ -79,7 +_,7 @@
++    private static final Component DEFAULT_BOSS_EVENT_NAME = Component.translatable("entity.minecraft.ender_dragon"); // Paper - ensure reset EnderDragon boss event name
+     public final ServerBossEvent dragonEvent = (ServerBossEvent)new ServerBossEvent(
+-            Component.translatable("entity.minecraft.ender_dragon"), BossEvent.BossBarColor.PINK, BossEvent.BossBarOverlay.PROGRESS
++            DEFAULT_BOSS_EVENT_NAME, BossEvent.BossBarColor.PINK, BossEvent.BossBarOverlay.PROGRESS
+         )
+         .setPlayBossMusic(true)
          .setCreateWorldFog(true);
      public final ServerLevel level;
      private final BlockPos origin;
@@ -120,6 +125,19 @@
          this.level.levelEvent(3000, p_64090_, 0);
          this.level
              .registryAccess()
+@@ -416,7 +_,11 @@
+                 this.portalLocation = this.portalLocation.below();
+             }
+         }
+-
++        // Paper start - Prevent "softlocked" exit portal generation
++        if (this.portalLocation.getY() <= this.level.getMinBuildHeight()) {
++            this.portalLocation = this.portalLocation.atY(this.level.getMinBuildHeight() + 1);
++        }
++        // Paper end - Prevent "softlocked" exit portal generation
+         if (endpodiumfeature.place(
+             FeatureConfiguration.NONE, this.level, this.level.getChunkSource().getGenerator(), RandomSource.create(), this.portalLocation
+         )) {
 @@ -438,6 +_,7 @@
              );
              this.level.addFreshEntity(enderdragon);
@@ -128,6 +146,17 @@
          }
  
          return enderdragon;
+@@ -449,6 +_,10 @@
+             this.ticksSinceDragonSeen = 0;
+             if (p_64097_.hasCustomName()) {
+                 this.dragonEvent.setName(p_64097_.getDisplayName());
++                // Paper start - ensure reset EnderDragon boss event name
++            } else {
++                this.dragonEvent.setName(DEFAULT_BOSS_EVENT_NAME);
++                // Paper end - ensure reset EnderDragon boss event name
+             }
+         }
+     }
 @@ -477,6 +_,10 @@
          return this.previouslyKilled;
      }

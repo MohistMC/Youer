@@ -327,7 +327,7 @@
          p_155004_.awardRecipes(list);
  
          for (RecipeHolder<?> recipeholder : list) {
-@@ -467,25 +_,44 @@
+@@ -467,32 +_,103 @@
      }
  
      public List<RecipeHolder<?>> getRecipesToAwardAndPopExperience(ServerLevel p_154996_, Vec3 p_154997_) {
@@ -341,6 +341,7 @@
  
          for (Entry<ResourceLocation> entry : this.recipesUsed.object2IntEntrySet()) {
              p_154996_.getRecipeManager().byKey(entry.getKey()).ifPresent(p_300839_ -> {
++                if (!(p_300839_.value() instanceof AbstractCookingRecipe)) return; // Paper - don't process non-cooking recipes
                  list.add((RecipeHolder<?>)p_300839_);
 -                createExperience(p_154996_, p_154997_, entry.getIntValue(), ((AbstractCookingRecipe)p_300839_.value()).getExperience());
 +                createExperience(p_154996_, p_154997_, entry.getIntValue(), ((AbstractCookingRecipe)p_300839_.value()).getExperience(), blockposition, entityplayer, itemstack, amount); // CraftBukkit
@@ -374,10 +375,17 @@
          ExperienceOrb.award(p_154999_, p_155000_, i);
      }
  
-@@ -495,4 +_,54 @@
-             p_58342_.accountStack(itemstack);
-         }
-     }
+     @Override
+     public void fillStackedContents(StackedContents p_58342_) {
+-        for (ItemStack itemstack : this.items) {
+-            p_58342_.accountStack(itemstack);
+-        }
+-    }
++        // Paper start - don't account fuel stack (fixes MC-243057)
++        p_58342_.accountStack(this.items.get(SLOT_INPUT));
++        p_58342_.accountStack(this.items.get(SLOT_RESULT));
++        // Paper end
++    }
 +
 +    // Purpur start
 +    public static void addFuel(ItemStack itemStack, Integer burnTime) {

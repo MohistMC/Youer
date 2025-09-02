@@ -24,19 +24,21 @@
      private static final ResourceLocation REINFORCEMENT_CALLER_CHARGE_ID = ResourceLocation.withDefaultNamespace("reinforcement_caller_charge");
      private static final AttributeModifier ZOMBIE_REINFORCEMENT_CALLEE_CHARGE = new AttributeModifier(
          ResourceLocation.withDefaultNamespace("reinforcement_callee_charge"), -0.05F, AttributeModifier.Operation.ADD_VALUE
-@@ -84,7 +_,7 @@
+@@ -84,14 +_,16 @@
      public static final int REINFORCEMENT_RANGE_MIN = 7;
      private static final EntityDimensions BABY_DIMENSIONS = EntityType.ZOMBIE.getDimensions().scale(0.5F).withEyeHeight(0.93F);
      private static final float BREAK_DOOR_CHANCE = 0.1F;
 -    private static final Predicate<Difficulty> DOOR_BREAKING_PREDICATE = p_34284_ -> p_34284_ == Difficulty.HARD;
+-    private final BreakDoorGoal breakDoorGoal = new BreakDoorGoal(this, DOOR_BREAKING_PREDICATE);
 +    public static final Predicate<Difficulty> DOOR_BREAKING_PREDICATE = p_34284_ -> p_34284_ == Difficulty.HARD;
-     private final BreakDoorGoal breakDoorGoal = new BreakDoorGoal(this, DOOR_BREAKING_PREDICATE);
++    private final BreakDoorGoal breakDoorGoal;
      private boolean canBreakDoors;
      private int inWaterTime;
-@@ -92,6 +_,7 @@
+     public int conversionTime;
  
      public Zombie(EntityType<? extends Zombie> p_34271_, Level p_34272_) {
          super(p_34271_, p_34272_);
++        this.breakDoorGoal = new BreakDoorGoal(this, com.google.common.base.Predicates.in(p_34272_.paperConfig().entities.behavior.doorBreakingDifficulty.getOrDefault(p_34271_, p_34272_.paperConfig().entities.behavior.doorBreakingDifficulty.get(EntityType.ZOMBIE)))); // Paper - Configurable door breaking difficulty
 +        this.setShouldBurnInDay(true); // Purpur - API for any mob to burn daylight
      }
  
@@ -288,6 +290,15 @@
      }
  
      @Override
+@@ -455,7 +_,7 @@
+         RandomSource randomsource = p_34297_.getRandom();
+         p_34300_ = super.finalizeSpawn(p_34297_, p_34298_, p_34299_, p_34300_);
+         float f = p_34298_.getSpecialMultiplier();
+-        this.setCanPickUpLoot(randomsource.nextFloat() < 0.55F * f);
++        this.setCanPickUpLoot(this.level().paperConfig().entities.behavior.mobsCanAlwaysPickUpLoot.zombies || randomsource.nextFloat() < 0.55F * f);
+         if (p_34300_ == null) {
+             p_34300_ = new Zombie.ZombieGroupData(getSpawnAsBabyOdds(randomsource), true);
+         }
 @@ -480,7 +_,7 @@
                              chicken1.finalizeSpawn(p_34297_, p_34298_, MobSpawnType.JOCKEY, null);
                              chicken1.setChickenJockey(true);

@@ -59,7 +59,21 @@
      public static AbstractMinecart createMinecart(
          ServerLevel p_305794_,
          double p_38121_,
-@@ -139,7 +_,7 @@
+@@ -134,12 +_,20 @@
+ 
+     @Override
+     public boolean canCollideWith(Entity p_38168_) {
+-        return Boat.canVehicleCollide(this, p_38168_);
++        // Paper start - fix VehicleEntityCollisionEvent not called when colliding with player
++        boolean collides = Boat.canVehicleCollide(this, p_38168_);
++        if (!collides) {
++            return false;
++        }
++        org.bukkit.event.vehicle.VehicleEntityCollisionEvent collisionEvent = new org.bukkit.event.vehicle.VehicleEntityCollisionEvent((org.bukkit.entity.Vehicle) getBukkitEntity(), p_38168_.getBukkitEntity());
++
++        return collisionEvent.callEvent();
++        // Paper end - fix VehicleEntityCollisionEvent not called when colliding with player
+     }
  
      @Override
      public boolean isPushable() {
@@ -284,7 +298,7 @@
              Pair<Vec3i, Vec3i> pair = exits(railshape);
              Vec3i vec3i = pair.getFirst();
              Vec3i vec3i1 = pair.getSecond();
-@@ -647,9 +_,21 @@
+@@ -647,9 +_,22 @@
  
      @Override
      public void push(Entity p_38165_) {
@@ -293,6 +307,7 @@
 +            return;
 +        }
          if (!this.level().isClientSide) {
++            if (!this.level().paperConfig().collisions.allowVehicleCollisions && this.level().paperConfig().collisions.onlyPlayersCollide && !(p_38165_ instanceof Player)) return; // Paper - Collision option for requiring a player participant
              if (!p_38165_.noPhysics && !this.noPhysics) {
                  if (!this.hasPassenger(p_38165_)) {
 +                    // CraftBukkit start

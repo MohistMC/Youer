@@ -973,7 +973,7 @@
 +            event.setCancelled(itemstack == null);
 +            this.level().getCraftServer().getPluginManager().callEvent(event);
 +            if (!event.isCancelled()) {
-+                if (!itemstack1.isEmpty()) {
++                if (!itemstack1.isEmpty() && itemstack != null) { // Paper - only reduce item if actual totem was found
                      itemstack1.shrink(1);
 -                    break;
                  }
@@ -1520,7 +1520,7 @@
 +                // Duplicate triggers if blocking
 +                if (event.getDamage(EntityDamageEvent.DamageModifier.BLOCKING) < 0) {
 +                    if (this instanceof ServerPlayer) {
-+                        CriteriaTriggers.ENTITY_HURT_PLAYER.trigger((ServerPlayer) this, damagesource, f, originalDamage, true);
++                        CriteriaTriggers.ENTITY_HURT_PLAYER.trigger((ServerPlayer) this, damagesource, originalDamage, f, true); // Paper - fix taken/dealt param order
 +                        f2 = (float) -event.getDamage(EntityDamageEvent.DamageModifier.BLOCKING);
 +                        if (f2 > 0.0F && f2 < 3.4028235E37F) {
 +                            ((ServerPlayer) this).awardStat(Stats.DAMAGE_BLOCKED_BY_SHIELD, Math.round(originalDamage * 10.0F));
@@ -1528,7 +1528,7 @@
 +                    }
 +
 +                    if (damagesource.getEntity() instanceof ServerPlayer) {
-+                        CriteriaTriggers.PLAYER_HURT_ENTITY.trigger((ServerPlayer) damagesource.getEntity(), this, damagesource, f, originalDamage, true);
++                        CriteriaTriggers.PLAYER_HURT_ENTITY.trigger((ServerPlayer) damagesource.getEntity(), this, damagesource, originalDamage, f, true); // Paper - fix taken/dealt param order
 +                    }
 +
 +                    return true;

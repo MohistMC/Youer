@@ -432,7 +432,7 @@
          this.playerIo.save(p_11277_);
          ServerStatsCounter serverstatscounter = this.stats.get(p_11277_.getUUID());
          if (serverstatscounter != null) {
-@@ -350,23 +_,66 @@
+@@ -350,23 +_,74 @@
          }
      }
  
@@ -453,7 +453,7 @@
 +        if (remove$leaveMessage == null) {
 +            remove$leaveMessage = net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? p_11287_.getBukkitEntity().displayName() : io.papermc.paper.adventure.PaperAdventure.asAdventure(p_11287_.getDisplayName()));
 +        }
-+        PlayerQuitEvent playerQuitEvent = new PlayerQuitEvent(p_11287_.getBukkitEntity(), remove$leaveMessage, p_11287_.quitReason); // Paper - Adventure
++        PlayerQuitEvent playerQuitEvent = new PlayerQuitEvent(p_11287_.getBukkitEntity(), remove$leaveMessage, p_11287_.quitReason); // Paper - Adventure & Add API for quit reason
 +        remove$leaveMessage = null; // Youer
 +        cserver.getPluginManager().callEvent(playerQuitEvent);
 +        p_11287_.getBukkitEntity().disconnect(playerQuitEvent.getQuitMessage());
@@ -469,6 +469,14 @@
 +            }
 +        }
 +        // Paper end - Configurable player collision
++
++        // Paper - Drop carried item when player has disconnected
++        if (!p_11287_.containerMenu.getCarried().isEmpty()) {
++            net.minecraft.world.item.ItemStack carried = p_11287_.containerMenu.getCarried();
++            p_11287_.containerMenu.setCarried(net.minecraft.world.item.ItemStack.EMPTY);
++            p_11287_.drop(carried, false);
++        }
++        // Paper end - Drop carried item when player has disconnected
 +
          this.save(p_11287_);
          if (p_11287_.isPassenger()) {
@@ -500,7 +508,7 @@
          this.server.getCustomBossEvents().onPlayerDisconnect(p_11287_);
          UUID uuid = p_11287_.getUUID();
          ServerPlayer serverplayer = this.playersByUUID.get(uuid);
-@@ -376,11 +_,67 @@
+@@ -376,13 +_,70 @@
              this.advancements.remove(uuid);
          }
  
@@ -535,6 +543,8 @@
 +    }
 +    // CraftBukkit start - Whole method, SocketAddress to LoginListener, added hostname to signature, return EntityPlayer
      public Component canPlayerLogin(SocketAddress p_11257_, GameProfile p_11258_) {
+-        if (this.bans.isBanned(p_11258_)) {
+-            UserBanListEntry userbanlistentry = this.bans.get(p_11258_);
 +        // Moved from processLogin
 +        UUID uuid = p_11258_.getId();
 +        List<ServerPlayer> list = Lists.newArrayList();
@@ -569,9 +579,12 @@
 +        org.bukkit.entity.Player player = entity.getBukkitEntity();
 +        org.bukkit.event.player.PlayerLoginEvent event = new org.bukkit.event.player.PlayerLoginEvent(player, hostname, ((java.net.InetSocketAddress) p_11257_).getAddress(), realAddress);
 +
-         if (this.bans.isBanned(p_11258_)) {
-             UserBanListEntry userbanlistentry = this.bans.get(p_11258_);
++        // Paper start - Fix MC-158900
++        UserBanListEntry userbanlistentry;
++        if (this.bans.isBanned(p_11258_) && (userbanlistentry = this.bans.get(p_11258_)) != null) {
              MutableComponent mutablecomponent1 = Component.translatable("multiplayer.disconnect.banned.reason", userbanlistentry.getReason());
+             if (userbanlistentry.getExpires() != null) {
+                 mutablecomponent1.append(
 @@ -390,10 +_,11 @@
                  );
              }
@@ -1280,7 +1293,7 @@
 +    // CraftBukkit start
 +    public ServerStatsCounter getPlayerStats(ServerPlayer p_11240_) {
 +        ServerStatsCounter serverstatisticmanager = p_11240_.getStats();
-+        return serverstatisticmanager == null ? getPlayerStats(p_11240_.getUUID(), p_11240_.getDisplayName().getString()) : serverstatisticmanager;
++        return serverstatisticmanager == null ? getPlayerStats(p_11240_.getUUID(), p_11240_.getGameProfile().getName()) : serverstatisticmanager; // Paper - use username and not display name
 +    }
 +
 +    public ServerStatsCounter getPlayerStats(UUID uuid, String displayName) {

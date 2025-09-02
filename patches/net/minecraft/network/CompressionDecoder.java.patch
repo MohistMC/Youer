@@ -1,0 +1,84 @@
+--- a/net/minecraft/network/CompressionDecoder.java
++++ b/net/minecraft/network/CompressionDecoder.java
+@@ -13,13 +_,20 @@
+     public static final int MAXIMUM_COMPRESSED_LENGTH = 2097152;
+     public static final int MAXIMUM_UNCOMPRESSED_LENGTH = 8388608;
+     private final Inflater inflater;
++    private com.velocitypowered.natives.compression.VelocityCompressor compressor; // Paper - Use Velocity cipher
+     private int threshold;
+     private boolean validateDecompressed;
+ 
++    // Paper start - Use Velocity cipher
+     public CompressionDecoder(int p_182675_, boolean p_182676_) {
+-        this.threshold = p_182675_;
+-        this.validateDecompressed = p_182676_;
+-        this.inflater = new Inflater();
++        this(null, p_182675_, p_182676_);
++    }
++    public CompressionDecoder(com.velocitypowered.natives.compression.VelocityCompressor compressor, int compressionThreshold, boolean rejectsBadPackets) {
++        this.threshold = compressionThreshold;
++        this.validateDecompressed = rejectsBadPackets;
++        this.inflater = compressor == null ? new Inflater() : null;
++        this.compressor = compressor;
++        // Paper end - Use Velocity cipher
+     }
+ 
+     @Override
+@@ -39,13 +_,41 @@
+                     }
+                 }
+ 
+-                this.setupInflaterInput(p_129442_);
+-                ByteBuf bytebuf = this.inflate(p_129441_, i);
+-                this.inflater.reset();
+-                p_129443_.add(bytebuf);
++                if (inflater != null) { // Paper - Use Velocity cipher; fallback to vanilla inflater
++                    this.setupInflaterInput(p_129442_);
++                    ByteBuf byteBuf2 = this.inflate(p_129441_, i);
++                    this.inflater.reset();
++                    p_129443_.add(byteBuf2);
++                    return; // Paper - Use Velocity cipher
++                } // Paper - use velocity compression
++
++                // Paper start - Use Velocity cipher
++                int claimedUncompressedSize = i; // OBFHELPER
++                ByteBuf compatibleIn = com.velocitypowered.natives.util.MoreByteBufUtils.ensureCompatible(p_129441_.alloc(), this.compressor, p_129442_);
++                ByteBuf uncompressed = com.velocitypowered.natives.util.MoreByteBufUtils.preferredBuffer(p_129441_.alloc(), this.compressor, claimedUncompressedSize);
++                try {
++                    this.compressor.inflate(compatibleIn, uncompressed, claimedUncompressedSize);
++                    p_129443_.add(uncompressed);
++                    p_129442_.clear();
++                } catch (Exception e) {
++                    uncompressed.release();
++                    throw e;
++                } finally {
++                    compatibleIn.release();
++                }
++                // Paper end - Use Velocity cipher
+             }
+         }
+     }
++
++    // Paper start - Use Velocity cipher
++    @Override
++    public void handlerRemoved0(ChannelHandlerContext ctx) throws Exception {
++        if (this.compressor != null) {
++            this.compressor.close();
++        }
++    }
++    // Paper end - Use Velocity cipher
+ 
+     private void setupInflaterInput(ByteBuf p_296004_) {
+         ByteBuffer bytebuffer;
+@@ -83,8 +_,8 @@
+         }
+     }
+ 
+-    public void setThreshold(int p_182678_, boolean p_182679_) {
+-        this.threshold = p_182678_;
+-        this.validateDecompressed = p_182679_;
++    public void setThreshold(com.velocitypowered.natives.compression.VelocityCompressor compressor, int compressionThreshold, boolean rejectsBadPackets) { // Paper - Use Velocity cipher
++        this.threshold = compressionThreshold;
++        this.validateDecompressed = rejectsBadPackets;
+     }
+ }

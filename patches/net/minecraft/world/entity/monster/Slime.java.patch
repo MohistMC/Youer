@@ -117,15 +117,43 @@
          return this.isTiny() ? SoundEvents.SLIME_DEATH_SMALL : SoundEvents.SLIME_DEATH;
      }
  
-@@ -305,7 +_,7 @@
+@@ -290,25 +_,31 @@
+                 if (p_219115_ == MobSpawnType.SPAWNER) {
+                     return checkMobSpawnRules(p_219113_, p_219114_, p_219115_, p_219116_, p_219117_);
+                 }
+-
++                // Paper start - Replace rules for Height in Swamp Biome
++                final double maxHeightSwamp = p_219114_.getMinecraftWorld().paperConfig().entities.spawning.slimeSpawnHeight.surfaceBiome.maximum;
++                final double minHeightSwamp = p_219114_.getMinecraftWorld().paperConfig().entities.spawning.slimeSpawnHeight.surfaceBiome.minimum;
+                 if (p_219114_.getBiome(p_219116_).is(BiomeTags.ALLOWS_SURFACE_SLIME_SPAWNS)
+-                    && p_219116_.getY() > 50
+-                    && p_219116_.getY() < 70
++                    && p_219116_.getY() > minHeightSwamp
++                    && p_219116_.getY() < maxHeightSwamp
+                     && p_219117_.nextFloat() < 0.5F
+                     && p_219117_.nextFloat() < p_219114_.getMoonBrightness()
+                     && p_219114_.getMaxLocalRawBrightness(p_219116_) <= p_219117_.nextInt(8)) {
+                     return checkMobSpawnRules(p_219113_, p_219114_, p_219115_, p_219116_, p_219117_);
+                 }
++                // Paper end - Replace rules for Height in Swamp Biome
+ 
+                 if (!(p_219114_ instanceof WorldGenLevel)) {
+                     return false;
                  }
  
                  ChunkPos chunkpos = new ChunkPos(p_219116_);
 -                boolean flag = WorldgenRandom.seedSlimeChunk(chunkpos.x, chunkpos.z, ((WorldGenLevel)p_219114_).getSeed(), 987234911L).nextInt(10) == 0;
+-                if (p_219117_.nextInt(10) == 0 && flag && p_219116_.getY() < 40) {
 +                boolean flag = p_219114_.getMinecraftWorld().paperConfig().entities.spawning.allChunksAreSlimeChunks || WorldgenRandom.seedSlimeChunk(chunkpos.x, chunkpos.z, ((WorldGenLevel)p_219114_).getSeed(), p_219114_.getMinecraftWorld().spigotConfig.slimeSeed).nextInt(10) == 0; // Spigot
-                 if (p_219117_.nextInt(10) == 0 && flag && p_219116_.getY() < 40) {
++                // Paper start - Replace rules for Height in Slime Chunks
++                final double maxHeightSlimeChunk = p_219114_.getMinecraftWorld().paperConfig().entities.spawning.slimeSpawnHeight.slimeChunk.maximum;
++                if (p_219117_.nextInt(10) == 0 && flag && p_219116_.getY() < maxHeightSlimeChunk) {
                      return checkMobSpawnRules(p_219113_, p_219114_, p_219115_, p_219116_, p_219117_);
                  }
++                // Paper end - Replace rules for Height in Slime Chunks
+             }
+ 
+             return false;
 @@ -316,7 +_,7 @@
      }
  

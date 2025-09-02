@@ -1088,7 +1088,7 @@
                              InteractionResult interactionresult = this.player
                                  .gameMode
                                  .useItemOn(this.player, serverlevel, itemstack, interactionhand, blockhitresult);
-@@ -1109,7 +_,7 @@
+@@ -1109,10 +_,10 @@
                                  && wasBlockPlacementAttempt(this.player, itemstack)) {
                                  Component component = Component.translatable("build.tooHigh", i - 1).withStyle(ChatFormatting.RED);
                                  this.player.sendSystemMessage(component, true);
@@ -1096,7 +1096,11 @@
 +                            } else if (interactionresult.shouldSwing() ) {
                                  this.player.swing(interactionhand, true);
                              }
-                         }
+-                        }
++                        } else { this.player.containerMenu.sendAllDataToRemote(); } // Paper - Fix inventory desync; MC-99075
+                     } else {
+                         Component component1 = Component.translatable("build.tooHigh", i - 1).withStyle(ChatFormatting.RED);
+                         this.player.sendSystemMessage(component1, true);
 @@ -1135,6 +_,8 @@
      @Override
      public void handleUseItem(ServerboundUseItemPacket p_9932_) {
@@ -1155,7 +1159,7 @@
              InteractionResult interactionresult = this.player.gameMode.useItem(this.player, serverlevel, itemstack, interactionhand);
              if (interactionresult.shouldSwing()) {
                  this.player.swing(interactionhand, true);
-@@ -1178,22 +_,55 @@
+@@ -1178,24 +_,58 @@
  
      @Override
      public void onDisconnect(DisconnectionDetails p_350554_) {
@@ -1211,7 +1215,10 @@
 +
      public void ackBlockChangesUpTo(int p_215202_) {
          if (p_215202_ < 0) {
++            this.disconnect(Component.literal("Expected packet sequence nr >= 0"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION); // Paper - Treat sequence violations like they should be
              throw new IllegalArgumentException("Expected packet sequence nr >= 0");
+         } else {
+             this.ackBlockChangesUpTo = Math.max(p_215202_, this.ackBlockChangesUpTo);
 @@ -1205,7 +_,17 @@
      @Override
      public void handleSetCarriedItem(ServerboundSetCarriedItemPacket p_9909_) {
@@ -2274,7 +2281,7 @@
          this.player.resetLastActionTime();
          if (this.player.containerMenu.containerId == p_9854_.containerId() && !this.player.isSpectator()) {
              if (!this.player.containerMenu.stillValid(this.player)) {
-@@ -1709,7 +_,7 @@
+@@ -1709,10 +_,15 @@
              }
  
              CustomData customdata = itemstack.getOrDefault(DataComponents.BLOCK_ENTITY_DATA, CustomData.EMPTY);
@@ -2282,7 +2289,16 @@
 +            if (customdata.contains("x") && customdata.contains("y") && customdata.contains("z") && this.player.getBukkitEntity().hasPermission("minecraft.nbt.copy")) { // Spigot
                  BlockPos blockpos = BlockEntity.getPosFromTag(customdata.getUnsafe());
                  if (this.player.level().isLoaded(blockpos)) {
-                     BlockEntity blockentity = this.player.level().getBlockEntity(blockpos);
+-                    BlockEntity blockentity = this.player.level().getBlockEntity(blockpos);
++                    // Paper start - Prevent tile entity copies loading chunks
++                    BlockEntity blockentity = null;
++                    if (this.player.distanceToSqr(blockpos.getX(), blockpos.getY(), blockpos.getZ()) < 32 * 32 && this.player.serverLevel().isLoadedAndInBounds(blockpos)) {
++                        blockentity = this.player.level().getBlockEntity(blockpos);
++                    }
++                    // Paper end - Prevent tile entity copies loading chunks
+                     if (blockentity != null) {
+                         blockentity.saveToItem(itemstack, this.player.level().registryAccess());
+                     }
 @@ -1721,6 +_,43 @@
  
              boolean flag1 = p_9915_.slotNum() >= 1 && p_9915_.slotNum() <= 45;
@@ -2387,11 +2403,13 @@
              } else {
                  try {
                      SignatureValidator signaturevalidator = this.server.getProfileKeySignatureValidator();
-@@ -1798,7 +_,7 @@
+@@ -1797,8 +_,8 @@
+ 
                      this.resetPlayerChatState(remotechatsession$data.validate(this.player.getGameProfile(), signaturevalidator));
                  } catch (ProfilePublicKey.ValidationException profilepublickey$validationexception) {
-                     LOGGER.error("Failed to validate profile key: {}", profilepublickey$validationexception.getMessage());
+-                    LOGGER.error("Failed to validate profile key: {}", profilepublickey$validationexception.getMessage());
 -                    this.disconnect(profilepublickey$validationexception.getComponent());
++                    // LOGGER.error("Failed to validate profile key: {}", profilepublickey$validationexception.getMessage());
 +                    this.disconnect(profilepublickey$validationexception.getComponent(), profilepublickey$validationexception.kickCause); // Paper - kick event causes
                  }
              }
