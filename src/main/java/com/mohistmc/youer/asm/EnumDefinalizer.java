@@ -27,7 +27,8 @@ public class EnumDefinalizer implements Implementer {
             "org/bukkit/inventory/recipe/CookingBookCategory",
             "org/bukkit/Fluid",
             "org/bukkit/entity/Spellcaster$Spell",
-            "org/bukkit/entity/Pose"
+            "org/bukkit/entity/Pose",
+            "org/bukkit/Sound"
     );
 
     @Override

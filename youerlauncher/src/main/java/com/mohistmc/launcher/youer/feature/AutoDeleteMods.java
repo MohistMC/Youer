@@ -61,6 +61,7 @@ public class AutoDeleteMods {
         put("com.buuz135.smithingtemplateviewer.SmithingTemplateViewer", DeletionReason.CLIENT_ONLY);
         put("com.leclowndu93150.particular.Main", DeletionReason.CLIENT_ONLY);
         put("dev.imb11.sounds.loaders.neoforge.SoundsNeoForge", DeletionReason.CLIENT_ONLY);
+        put("me.drex.crashexploitfixer.neoforge.CrashExploitFixerNeoforge", DeletionReason.DUPLICATE_FEATURE);
     }};
 
     /**

@@ -1020,7 +1020,7 @@
              if (this.deathScore >= 0 && livingentity != null) {
                  livingentity.awardKillScore(this, this.deathScore, p_21014_);
              }
-@@ -1338,60 +_,136 @@
+@@ -1338,60 +_,144 @@
              }
  
              if (!this.level().isClientSide && this.hasCustomName()) {
@@ -1155,7 +1155,15 @@
 +
 +        Collection<ItemEntity> drops = captureDrops(null);
 +        EmeraldClose.init(this, drops); // Mohist
-+        deathEvent = CraftEventFactory.callEntityDeathEvent(this, p_21192_, drops);
++        deathEvent = CraftEventFactory.callEntityDeathEvent(this, p_21192_, drops, new Runnable() {
++            @Override
++            public void run() {
++                final LivingEntity entityliving = LivingEntity.this.getKillCredit();
++                if (LivingEntity.this.deathScore >= 0 && entityliving != null) {
++                    entityliving.awardKillScore(LivingEntity.this, LivingEntity.this.deathScore, p_21192_);
++                }
++            }
++        }); // Paper end
 +        this.postDeathDropItems(deathEvent); // Paper
 +        if (!(this instanceof ServerPlayer)) {
 +            drops = ItemEntityTools.convertDrops(deathEvent, this);

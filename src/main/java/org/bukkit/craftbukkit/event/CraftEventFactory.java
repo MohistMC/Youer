@@ -962,10 +962,10 @@ public class CraftEventFactory {
     }
 
     public static EntityDeathEvent callEntityDeathEvent(net.minecraft.world.entity.LivingEntity victim, DamageSource damageSource) {
-        return CraftEventFactory.callEntityDeathEvent(victim, damageSource, null);
+        return CraftEventFactory.callEntityDeathEvent(victim, damageSource, null, com.google.common.util.concurrent.Runnables.doNothing());
     }
 
-    public static EntityDeathEvent callEntityDeathEvent(net.minecraft.world.entity.LivingEntity victim, DamageSource damageSource, Collection<ItemEntity> captureDrops) {
+    public static EntityDeathEvent callEntityDeathEvent(net.minecraft.world.entity.LivingEntity victim, DamageSource damageSource, Collection<ItemEntity> captureDrops, Runnable lootCheck) {
         List<org.bukkit.inventory.ItemStack> drops;
         if (captureDrops == null) {
             drops = new ArrayList<>();
@@ -983,6 +983,7 @@ public class CraftEventFactory {
             return event;
         }
         playDeathSound(victim, event);
+        lootCheck.run(); // Paper - advancement triggers before destroying items
         // Paper end
         victim.expToDrop = event.getDroppedExp();
 

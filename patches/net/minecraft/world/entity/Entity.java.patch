@@ -1462,11 +1462,16 @@
          CompoundTag compoundtag = p_20362_.saveWithoutId(new CompoundTag());
          compoundtag.remove("Dimension");
          this.load(compoundtag);
-@@ -2544,6 +_,7 @@
+@@ -2544,6 +_,12 @@
  
      @Nullable
      public Entity changeDimension(DimensionTransition p_350951_) {
 +        if (!net.neoforged.neoforge.common.CommonHooks.onTravelToDimension(this, p_350951_.newLevel().dimension())) return null;
++        // Paper start - Fix item duplication and teleport issues
++        if (!this.isAlive() || !this.valid) {
++            return null;
++        }
++        // Paper end - Fix item duplication and teleport issues
          if (this.level() instanceof ServerLevel serverlevel && !this.isRemoved()) {
              ServerLevel serverlevel1 = p_350951_.newLevel();
              List<Entity> list = this.getPassengers();
@@ -1494,6 +1499,15 @@
          }
      }
  
+@@ -2609,7 +_,7 @@
+     }
+ 
+     public boolean canChangeDimensions(Level p_352904_, Level p_352909_) {
+-        return true;
++        return this.isAlive() && this.valid; // Paper - Fix item duplication and teleport issues
+     }
+ 
+     public float getBlockExplosionResistance(
 @@ -2667,6 +_,7 @@
          return this.stringUUID;
      }
