@@ -1,5 +1,6 @@
 package com.mohistmc.youer.commands;
 
+import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,8 +77,8 @@ public class InfoCommand extends Command {
                     sender.sendMessage(ChatColor.RED + I18n.as("info.block.not_found"));
                     return false;
                 } else {
-                    ItemsCommand.sendMessageByCopy(player, ChatColor.GREEN + I18n.as("info.block.type") + ChatColor.YELLOW, block.getType().name());
-                    ItemsCommand.sendMessageByCopy(player, ChatColor.GREEN + I18n.as("info.block.key") + ChatColor.YELLOW, block.getType().getKey().asString());
+                    PlayerAPI.sendMessageByCopy(player, ChatColor.GREEN + I18n.as("info.block.type") + ChatColor.YELLOW, block.getType().name());
+                    PlayerAPI.sendMessageByCopy(player, ChatColor.GREEN + I18n.as("info.block.key") + ChatColor.YELLOW, block.getType().getKey().asString());
                     sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.data") + ChatColor.YELLOW + block.getBlockData().getAsString());
                     sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.pos") + ChatColor.YELLOW + block.getX() + ", " + block.getY() + ", " + block.getZ());
                     sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.world") + ChatColor.YELLOW + block.getWorld().getName());
@@ -125,9 +126,9 @@ public class InfoCommand extends Command {
                     sender.sendMessage(ChatColor.RED + I18n.as("info.entity.not_found"));
                     return false;
                 } else {
-                    ItemsCommand.sendMessageByCopy(player, ChatColor.GOLD + I18n.as("info.entity.type") + ChatColor.YELLOW, entity.getType().name());
-                    ItemsCommand.sendMessageByCopy(player, ChatColor.GOLD + I18n.as("info.entity.key") + ChatColor.YELLOW, entity.getType().getKey().asString());
-                    ItemsCommand.sendMessageByCopy(player, ChatColor.GOLD + I18n.as("info.entity.uuid") + ChatColor.YELLOW, entity.getUniqueId().toString());
+                    PlayerAPI.sendMessageByCopy(player, ChatColor.GOLD + I18n.as("info.entity.type") + ChatColor.YELLOW, entity.getType().name());
+                    PlayerAPI.sendMessageByCopy(player, ChatColor.GOLD + I18n.as("info.entity.key") + ChatColor.YELLOW, entity.getType().getKey().asString());
+                    PlayerAPI.sendMessageByCopy(player, ChatColor.GOLD + I18n.as("info.entity.uuid") + ChatColor.YELLOW, entity.getUniqueId().toString());
                     sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.pos") + ChatColor.YELLOW +
                             String.format("%.2f, %.2f, %.2f", entity.getLocation().getX(), entity.getLocation().getY(), entity.getLocation().getZ()));
                     sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.world") + ChatColor.YELLOW + entity.getWorld().getName());

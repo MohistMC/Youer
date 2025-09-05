@@ -90,7 +90,7 @@
      protected final NeighborUpdater neighborUpdater;
      private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
      private boolean tickingBlockEntities;
-@@ -114,6 +_,106 @@
+@@ -114,6 +_,109 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -181,7 +181,10 @@
 +    // Paper start - Use getChunkIfLoadedImmediately
 +    @Override
 +    public boolean hasChunk(int chunkX, int chunkZ) {
-+        return this.getChunkIfLoaded(chunkX, chunkZ) != null;
++        if (this instanceof ServerLevel) {
++            return this.getChunkIfLoaded(chunkX, chunkZ) != null;
++        }
++        return getChunkSource().hasChunk(chunkX, chunkZ);
 +    }
 +    // Paper end - Use getChunkIfLoadedImmediately
 +

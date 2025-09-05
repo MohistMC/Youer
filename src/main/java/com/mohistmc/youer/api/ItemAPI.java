@@ -8,7 +8,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -23,8 +25,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.io.BukkitObjectInputStream;
@@ -226,5 +231,53 @@ public class ItemAPI {
 
     public static Material get(ResourceLocation key) {
         return BuiltInRegistries.ITEM.get(key).getDefaultInstance().asBukkitCopy().getType();
+    }
+
+    /**
+     * Add attribute modifiers to items
+     *
+     * @param itemStack items
+     * @param attribute type
+     * @param value attribute value
+     * @param slot Equipment Slot
+     */
+    public static void attribute(ItemStack itemStack, Attribute attribute, double value, EquipmentSlot slot) {
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+
+        UUID uuid = UUID.randomUUID();
+        String name = attribute.name().toLowerCase().replace("_", " ");
+        AttributeModifier modifier = new AttributeModifier(uuid, "youer." + name, value, AttributeModifier.Operation.ADD_NUMBER, slot);
+        meta.addAttributeModifier(attribute, modifier);
+        itemStack.setItemMeta(meta);
+    }
+
+    /**
+     * Remove the specified attribute modifier from the item
+     *
+     * @param itemStack items
+     * @param attribute type
+     * @return Returns true if successfully removed, otherwise false
+     */
+    public static boolean removeAttribute(ItemStack itemStack, Attribute attribute) {
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta == null) {
+            return false;
+        }
+
+        if (!meta.hasAttributeModifiers() || meta.getAttributeModifiers(attribute) == null) {
+            return false;
+        }
+
+        Collection<AttributeModifier> modifiers = meta.getAttributeModifiers(attribute);
+        if (modifiers == null || modifiers.isEmpty()) {
+            return false;
+        }
+
+        meta.removeAttributeModifier(attribute);
+        itemStack.setItemMeta(meta);
+        return true;
     }
 }

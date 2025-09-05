@@ -1,10 +1,16 @@
 package com.mohistmc.youer.api;
 
+import com.mohistmc.youer.util.I18n;
 import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -53,5 +59,12 @@ public class PlayerAPI {
 
     public static SocketAddress getRemoteAddress(Player player) {
         return getNMSPlayer(player).connection.connection.getRemoteAddress();
+    }
+
+    public static void sendMessageByCopy(Player player, String des, String info) {
+        TextComponent textComponent = new TextComponent(des + info);
+        textComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder("§c%s".formatted(I18n.as("itemscmd.copy"))).create())));
+        textComponent.setClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, info));
+        player.spigot().sendMessage(textComponent);
     }
 }
