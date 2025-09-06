@@ -23,26 +23,7 @@ public class GUI {
     public GUI(GUIType type, String name) {
         this.type = type;
         this.tempName = name;
-        switch (type) {
-            case ONEBYNINE:
-                this.items = new GUIItem[9];
-                break;
-            case TWOBYNINE:
-                this.items = new GUIItem[18];
-                break;
-            case THREEBYNINE:
-                this.items = new GUIItem[27];
-                break;
-            case FIVEBYNINE:
-                this.items = new GUIItem[45];
-                break;
-            case SIXBYNINE:
-                this.items = new GUIItem[54];
-                break;
-            case FOURBYNINE:
-            default:
-                this.items = new GUIItem[36];
-        }
+        this.items = new GUIItem[9 * type.getRows()];
     }
 
     public final void setItem(GUIItem item, int... index) {

@@ -6,6 +6,7 @@ import java.util.List;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -53,6 +54,15 @@ public class ItemStackFactory {
         return this;
     }
 
+    public ItemStackFactory setEnchantment(Enchantment enchantment, int level) {
+        ItemMeta im = this.item.getItemMeta();
+        if (enchantment != null) {
+            im.addEnchant(enchantment, level, false);
+        }
+        this.item.setItemMeta(im);
+        return this;
+    }
+
     public ItemStackFactory setLore(List<String> lores) {
         ItemMeta im = this.item.getItemMeta();
         List<String> lores_ = new ArrayList<>();
@@ -94,6 +104,23 @@ public class ItemStackFactory {
 
     public ItemStackFactory player(Player player) {
         this.player = player;
+        return this;
+    }
+
+    public ItemStackFactory setAmount(int amount) {
+        item.setAmount(amount);
+        return this;
+    }
+
+    public ItemStackFactory setDurability(short durability) {
+        item.setDurability(durability);
+        return this;
+    }
+
+    public ItemStackFactory addItemFlags(ItemFlag... itemFlags) {
+        ItemMeta im = this.item.getItemMeta();
+        im.addItemFlags(itemFlags);
+        this.item.setItemMeta(im);
         return this;
     }
 

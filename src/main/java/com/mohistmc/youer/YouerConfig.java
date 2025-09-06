@@ -11,6 +11,7 @@ import com.mohistmc.youer.commands.ShowsCommand;
 import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.plugins.MohistPlugin;
 import com.mohistmc.youer.plugins.ban.BansCommand;
+import com.mohistmc.youer.plugins.menu.MenuCommand;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;
 import java.io.IOException;
@@ -79,6 +80,7 @@ public class YouerConfig {
         commands.put("bans", new BansCommand("bans"));
         commands.put("shows", new ShowsCommand("shows"));
         commands.put("info", new InfoCommand("info"));
+        commands.put("menus", new MenuCommand("menus"));
 
         MohistPlugin.registerCommands(commands);
 

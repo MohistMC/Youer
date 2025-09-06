@@ -160,7 +160,7 @@
  
              Path path = optionset.valueOf(optionspec14);
              if (path != null) {
-@@ -101,28 +_,49 @@
+@@ -101,28 +_,57 @@
                  JvmProfiler.INSTANCE.start(Environment.SERVER);
              }
  
@@ -196,6 +196,18 @@
 -            if (!eula.hasAgreedToEULA()) {
 -                LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
 -                return;
+-            }
+-
+-            File file1 = new File(optionset.valueOf(optionspec9));
+-            Services services = Services.create(new YggdrasilAuthenticationService(Proxy.NO_PROXY), file1);
++            File configYmenu = new File("youer-config/menu", "example.yml");
++            if (!configYmenu.exists()) {
++                org.bukkit.configuration.file.YamlConfiguration configurationYmenu = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(configYmenu);
++                configurationYmenu.options().copyDefaults(true);
++                configurationYmenu.setDefaults(org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(Main.class.getClassLoader().getResourceAsStream("youer-config/menu/example.yml"), com.google.common.base.Charsets.UTF_8)));
++                configurationYmenu.save(configYmenu);
++            }
++            
 +            // Paper start - fix SPIGOT-5824
 +            File file1;
 +            File userCacheFile = new File(Services.USERID_CACHE_FILE);
@@ -204,10 +216,7 @@
 +                userCacheFile = new File(file1, Services.USERID_CACHE_FILE);
 +            } else {
 +                file1 = new File(bukkitConfiguration.getString("settings.world-container", "."));
-             }
--
--            File file1 = new File(optionset.valueOf(optionspec9));
--            Services services = Services.create(new YggdrasilAuthenticationService(Proxy.NO_PROXY), file1);
++            }
 +            // Paper end - fix SPIGOT-5824
 +            Services services = Services.create(new io.papermc.paper.profile.PaperAuthenticationService(Proxy.NO_PROXY), file1, userCacheFile, optionset); // Paper - pass OptionSet to load paper config files; override authentication service; fix world-container
              String s = Optional.ofNullable(optionset.valueOf(optionspec10)).orElse(dedicatedserversettings.getProperties().levelName);
