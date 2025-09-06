@@ -1,31 +1,15 @@
-/*
- * Mohist - MohistMC
- * Copyright (C) 2018-2025.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
- */
-
 package com.mohistmc.youer.commands;
 
 import com.mohistmc.tools.NumberUtil;
+import com.mohistmc.tools.OSUtil;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.feature.PacketStatistics;
 import com.mohistmc.youer.util.I18n;
-import com.mohistmc.youer.util.MohistThreadCost;
+import com.mohistmc.youer.util.MemoryUtils;
+import com.mohistmc.youer.util.YouerThreadCost;
 import com.mohistmc.youer.util.TimeUtils;
 import java.io.File;
 import java.util.ArrayList;
@@ -33,27 +17,31 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.spigotmc.SpigotConfig;
 
 public class YouerCommand extends Command {
 
-    private final List<String> params = Arrays.asList("mods", "playermods", "reload", "version", "channels_incom", "channels_outgo", "speed", "printthreadcost", "packetstats");
+    private final List<String> params = Arrays.asList("mods", "playermods", "reload", "version", "channels_incom", "channels_outgo", "speed", "printthreadcost", "packetstats", "heal", "help", "cleardropitem", "memoryfix");
 
     public YouerCommand(String name) {
         super(name);
         this.description = "Youer related commands";
-        this.usageMessage = "/youer [mods|playermods|reload|version|channels_incom|channels_outgo|speed|debug|packetstats]";
+        this.usageMessage = "/youer [mods|playermods|reload|version|channels_incom|channels_outgo|speed|debug|packetstats|heal|help|cleardropitem|memoryfix]";
         this.setPermission("youer.command.youer");
     }
 
@@ -73,9 +61,12 @@ public class YouerCommand extends Command {
                 return Stream.of("start", "stop", "status")
                         .filter(param -> param.toLowerCase().startsWith(args[1].toLowerCase()))
                         .toList();
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("heal")) {
+                return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("cleardropitem")) {
+                return Bukkit.getWorldsByName().stream().toList();
             }
         }
-
 
         return list;
     }
@@ -87,8 +78,8 @@ public class YouerCommand extends Command {
         }
 
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
-            return false;
+            showHelp(sender);
+            return true;
         }
 
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
@@ -102,7 +93,7 @@ public class YouerCommand extends Command {
             case "playermods" -> {
                 // Not recommended for use in games, only test output
                 if (args.length == 1) {
-                    sender.sendMessage(ChatColor.RED + "Usage: /mohist playermods <playername>");
+                    sender.sendMessage(ChatColor.RED + "Usage: /youer playermods <playername>");
                     return false;
                 }
                 Player player = Bukkit.getPlayer(args[1]);
@@ -244,10 +235,45 @@ public class YouerCommand extends Command {
                     }
                 }
             }
+            case "heal" -> {
+                Player target;
 
+                if (args.length == 1) {
+                    if (sender instanceof Player player) {
+                        target = player;
+                    } else {
+                        sender.sendMessage(ChatColor.RED + I18n.as("error.notplayer"));
+                        return true;
+                    }
+                } else {
+                    target = Bukkit.getPlayer(args[1]);
+                    if (target == null) {
+                        sender.sendMessage(ChatColor.RED + I18n.as("youercmd.heal.playernotfound", args[1]));
+                        return true;
+                    }
+                }
+
+                target.setHealth(target.getMaxHealth());
+                target.setFoodLevel(20);
+                target.setSaturation(5.0f);
+                target.setFireTicks(0);
+
+                if (sender.equals(target)) {
+                    sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.heal.self"));
+                } else {
+                    sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.heal.other", target.getName()));
+                    target.sendMessage(ChatColor.GREEN + I18n.as("youercmd.heal.byadmin"));
+                }
+
+                return true;
+            }
+            case "help" -> {
+                showHelp(sender);
+                return true;
+            }
 
             case "channels_incom" -> sender.sendMessage(ServerAPI.channels_Incoming().toString());
-            case "printthreadcost" -> MohistThreadCost.dumpThreadCpuTime();
+            case "printthreadcost" -> YouerThreadCost.dumpThreadCpuTime(sender);
             case "channels_outgo" -> sender.sendMessage(ServerAPI.channels_Outgoing().toString());
             case "speed" -> {
                 if (sender instanceof Player p) {
@@ -276,15 +302,65 @@ public class YouerCommand extends Command {
                     sender.sendMessage(ChatColor.RED + I18n.as("error.notplayer"));
                 }
             }
+            case "cleardropitem" -> {
+                if (args.length == 2) {
+                    World world = Bukkit.getWorld(args[1]);
+                    if (world == null) {
+                        sender.sendMessage(ChatColor.RED + " World not found!");
+                        return false;
+                    } else {
+                        AtomicInteger size = new AtomicInteger(0);
+                        for (org.bukkit.entity.Entity entity : world.getEntities().stream().toList()) {
+                            if (entity.getType() == EntityType.ITEM) {
+                                ItemStack item = ((org.bukkit.entity.Item) entity).getItemStack();
+                                entity.remove();
+                                size.addAndGet(item.getAmount());
+                            }
+                        }
+                        sender.sendMessage(I18n.as("worldcommands.world.cleardropitem", size.get(), world.getName()));
+                        return true;
+                    }
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Usage: /mohist cleardropitem <worldname>");
+                    return false;
+                }
+            }
+            case "memoryfix" -> {
+                if (OSUtil.getOS() != OSUtil.OS.WINDOWS) { // 如果不是Windows系统
+                    sender.sendMessage(ChatColor.RED + I18n.as("youercmd.memoryfix.not.windows"));
+                    return true;
+                }
+                String result = MemoryUtils.setProcessWorkingSetSize(50, 100);
+                sender.sendMessage(ChatColor.GREEN + result);
+                return true;
+            }
             default -> {
                 sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
                 return false;
             }
         }
 
-
         return true;
     }
+
+    private void showHelp(CommandSender sender) {
+        sender.sendMessage(ChatColor.GOLD + I18n.as("youercmd.help.title"));
+        sender.sendMessage(ChatColor.GREEN + "/youer mods" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.mods"));
+        sender.sendMessage(ChatColor.GREEN + "/youer playermods <player>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.playermods"));
+        sender.sendMessage(ChatColor.GREEN + "/youer reload" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.reload"));
+        sender.sendMessage(ChatColor.GREEN + "/youer version" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.version"));
+        sender.sendMessage(ChatColor.GREEN + "/youer debug" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.debug"));
+        sender.sendMessage(ChatColor.GREEN + "/youer packetstats <start|stop|status>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.packetstats"));
+        sender.sendMessage(ChatColor.GREEN + "/youer heal [player]" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.heal"));
+        sender.sendMessage(ChatColor.GREEN + "/youer speed <value>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.speed"));
+        sender.sendMessage(ChatColor.GREEN + "/youer cleardropitem <world>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.cleardropitem"));
+        sender.sendMessage(ChatColor.GREEN + "/youer memoryfix" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.memoryfix"));
+        sender.sendMessage(ChatColor.GREEN + "/youer channels_incom" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.channels_incom"));
+        sender.sendMessage(ChatColor.GREEN + "/youer channels_outgo" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.channels_outgo"));
+        sender.sendMessage(ChatColor.GREEN + "/youer printthreadcost" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.printthreadcost"));
+        sender.sendMessage(ChatColor.GREEN + "/youer help" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.help"));
+    }
+
 
     private String formatBytes(long bytes) {
         if (bytes < 1024) {
