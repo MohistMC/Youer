@@ -66,7 +66,7 @@ public class AutoDeleteMods {
         put("dev.imb11.sounds.loaders.neoforge.SoundsNeoForge", DeletionReason.CLIENT_ONLY);
         put("me.drex.crashexploitfixer.neoforge.CrashExploitFixerNeoforge", DeletionReason.DUPLICATE_FEATURE);
         put("fabric-carpet-refmap", DeletionReason.FABRIC_ONLY);
-        put("carpet.CarpetServer", DeletionReason.DUPLICATE_FEATURE);
+        //put("carpet.CarpetServer", DeletionReason.DUPLICATE_FEATURE);
     }};
 
     /**

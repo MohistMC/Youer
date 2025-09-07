@@ -1,6 +1,10 @@
 --- a/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 +++ b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
-@@ -5,7 +_,6 @@
+@@ -2,10 +_,10 @@
+ 
+ import com.google.common.collect.Lists;
+ import com.google.common.collect.Maps;
++import com.mohistmc.youer.util.PaperUnsupportedSettings;
  import com.mojang.serialization.Codec;
  import com.mojang.serialization.MapCodec;
  import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -127,30 +131,17 @@
                  if (!blockstate1.is(BlockTags.FIRE)) {
                      p_60182_.addDestroyBlockEffect(blockpos2, blockstate1);
                  }
-@@ -326,11 +_,26 @@
+@@ -326,11 +_,13 @@
              for (int k = list.size() - 1; k >= 0; k--) {
                  BlockPos blockpos3 = list.get(k);
                  BlockState blockstate5 = p_60182_.getBlockState(blockpos3);
-+                // Paper start - fix a variety of piston desync dupes
-+                boolean allowDesync = io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPistonDuplication;
-+                BlockPos oldPos = blockpos3 = (BlockPos) list.get(k);
-+                BlockState iblockdata1 = allowDesync ? p_60182_.getBlockState(oldPos) : null;
-+                // Paper end - fix a variety of piston desync dupes
++                PaperUnsupportedSettings.start_allowPistonDuplication(blockpos3, p_60182_); // Youer
                  blockpos3 = blockpos3.relative(direction);
                  map.remove(blockpos3);
                  BlockState blockstate8 = Blocks.MOVING_PISTON.defaultBlockState().setValue(FACING, p_60184_);
                  p_60182_.setBlock(blockpos3, blockstate8, 68);
                  p_60182_.setBlockEntity(MovingPistonBlock.newMovingBlockEntity(blockpos3, blockstate8, list1.get(k), p_60184_, p_60185_, false));
-+                // Paper start - fix a variety of piston desync dupes
-+                if (!allowDesync) {
-+                    iblockdata1 = p_60182_.getBlockState(oldPos);
-+                    map.replace(oldPos, iblockdata1);
-+                }
-+                p_60182_.setBlockEntity(MovingPistonBlock.newMovingBlockEntity(blockpos3, blockstate8, allowDesync ? list1.get(k) : iblockdata1, p_60184_, p_60185_, false));
-+                if (!allowDesync) {
-+                    p_60182_.setBlock(oldPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_MOVE_BY_PISTON | 1024); // set air to prevent later physics updates from seeing this block
-+                }
-+                // Paper end - fix a variety of piston desync dupes
++                PaperUnsupportedSettings.end_allowPistonDuplication(blockpos3, list, k, p_60182_, map, blockstate8, list1, p_60184_, p_60185_); // Youer
                  ablockstate[i++] = blockstate5;
              }
  
