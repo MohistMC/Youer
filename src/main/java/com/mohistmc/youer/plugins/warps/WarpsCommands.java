@@ -122,10 +122,11 @@ public class WarpsCommands extends Command {
 
     private void sendHelp(CommandSender player) {
         String prefix = I18n.as("warpscommands.prefix");
-        player.sendMessage(prefix + " /warps set <Name> " + I18n.as("warpscommands.set"));
-        player.sendMessage(prefix + " /warps del <Name> " + I18n.as("warpscommands.del"));
-        player.sendMessage(prefix + " /warps tp <Name> " + I18n.as("warpscommands.tp"));
-        player.sendMessage(prefix + " /warps tp <Player> <Name> " + I18n.as("warpscommands.tp0"));
-        player.sendMessage(prefix + " /warps gui " + I18n.as("warpscommands.gui"));
+        player.sendMessage("§6§l" + prefix);
+        player.sendMessage("§a/warps set §b<Name> §7- " + I18n.as("warpscommands.set"));
+        player.sendMessage("§a/warps del §b<Name> §7- " + I18n.as("warpscommands.del"));
+        player.sendMessage("§a/warps tp §b<Name> §7- " + I18n.as("warpscommands.tp"));
+        player.sendMessage("§a/warps tp §b<Player> <Name> §7- " + I18n.as("warpscommands.tp0"));
+        player.sendMessage("§a/warps gui §7- " + I18n.as("warpscommands.gui"));
     }
 }

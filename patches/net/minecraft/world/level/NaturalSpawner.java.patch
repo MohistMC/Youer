@@ -8,7 +8,7 @@
  import java.util.function.Consumer;
  import java.util.stream.Stream;
  import javax.annotation.Nullable;
-@@ -40,18 +_,22 @@
+@@ -40,18 +_,23 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.level.levelgen.structure.BuiltinStructures;
  import net.minecraft.world.level.levelgen.structure.Structure;
@@ -20,6 +20,7 @@
 +import org.bukkit.entity.SpawnCategory;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
  import org.slf4j.Logger;
++import org.spigotmc.AsyncCatcher;
  
 +// TODO: ForgeHooks.canEntitySpawn
  public final class NaturalSpawner {
@@ -134,27 +135,29 @@
      private static boolean isValidSpawnPostitionForType(
          ServerLevel p_220422_,
          MobCategory p_220423_,
-@@ -235,20 +_,50 @@
+@@ -235,20 +_,52 @@
          BlockPos.MutableBlockPos p_220427_,
          double p_220428_
      ) {
 +        // Paper end - PreCreatureSpawnEvent
          EntityType<?> entitytype = p_220426_.type;
 +
-+        // Paper start - PreCreatureSpawnEvent
-+        io.papermc.paper.event.entity.PreCreatureSpawnEvent event = new io.papermc.paper.event.entity.PreCreatureSpawnEvent(
-+                io.papermc.paper.util.MCUtil.toLocation(p_220422_, p_220427_),
-+                org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(entitytype), CreatureSpawnEvent.SpawnReason.NATURAL
-+        );
-+        if (!event.callEvent()) {
-+            if (event.shouldAbortSpawn()) {
-+                isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.ABORT);
++        if (!AsyncCatcher.catchAsync()) {
++            // Paper start - PreCreatureSpawnEvent
++            io.papermc.paper.event.entity.PreCreatureSpawnEvent event = new io.papermc.paper.event.entity.PreCreatureSpawnEvent(
++                    io.papermc.paper.util.MCUtil.toLocation(p_220422_, p_220427_),
++                    org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(entitytype), CreatureSpawnEvent.SpawnReason.NATURAL
++            );
++            if (!event.callEvent()) {
++                if (event.shouldAbortSpawn()) {
++                    isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.ABORT);
++                    return false;
++                }
++                isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.CANCELLED);
 +                return false;
 +            }
-+            isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.CANCELLED);
-+            return false;
++            // Paper end - PreCreatureSpawnEvent
 +        }
-+        // Paper end - PreCreatureSpawnEvent
          if (entitytype.getCategory() == MobCategory.MISC) {
 +            isValidSpawnPostitionForType$PreSpawnStatus.set(PreSpawnStatus.FAIL);
              return false;
