@@ -21,6 +21,7 @@ public class AutoDeleteMods {
         CORE_CONFLICT("core_conflict"),
         DUPLICATE_FEATURE("duplicate_feature"),
         CLIENT_ONLY("client_only"),
+        FABRIC_ONLY("fabric_only"),
         UNKNOWN("unknown");
 
         private final String i18nKey;
@@ -62,6 +63,8 @@ public class AutoDeleteMods {
         put("com.leclowndu93150.particular.Main", DeletionReason.CLIENT_ONLY);
         put("dev.imb11.sounds.loaders.neoforge.SoundsNeoForge", DeletionReason.CLIENT_ONLY);
         put("me.drex.crashexploitfixer.neoforge.CrashExploitFixerNeoforge", DeletionReason.DUPLICATE_FEATURE);
+        put("fabric-carpet-refmap", DeletionReason.FABRIC_ONLY);
+        put("carpet.CarpetServer", DeletionReason.DUPLICATE_FEATURE);
     }};
 
     /**
@@ -81,10 +84,9 @@ public class AutoDeleteMods {
     /**
      * Check and process individual mod files
      *
-     * @param className of the class to be checked
+     * @param identifier of the class or file to be checked (can be a full class name or a file identifier)
      */
-    private static void checkModFile(String className) throws Exception {
-        String classPath = className.replaceAll("\\.", "/") + ".class";
+    private static void checkModFile(String identifier) throws Exception {
         File modsDir = new File("mods");
 
         if (!modsDir.exists()) {
@@ -96,16 +98,26 @@ public class AutoDeleteMods {
         if (jarFiles == null || jarFiles.length == 0) return;
 
         int threadCount = Math.min(jarFiles.length, Runtime.getRuntime().availableProcessors() * 2);
-        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
 
-        try {
+        try (ExecutorService executor = Executors.newFixedThreadPool(threadCount)) {
             CountDownLatch latch = new CountDownLatch(jarFiles.length);
 
             for (File jarFile : jarFiles) {
                 executor.submit(() -> {
                     try {
-                        if (FileUtils.fileExists(jarFile, classPath)) {
-                            backupAndDelete(jarFile, className);
+                        if (identifier.contains(".")) {
+                            String classPath = identifier.replaceAll("\\.", "/") + ".class";
+                            if (FileUtils.fileExists(jarFile, classPath)) {
+                                backupAndDelete(jarFile, identifier);
+                            }
+                        }
+                        else {
+                            String jsonPath = identifier + ".json";
+                            if (FileUtils.fileExists(jarFile, jsonPath) ||
+                                    FileUtils.fileExists(jarFile, "META-INF/" + jsonPath) ||
+                                    FileUtils.fileExists(jarFile, "assets/" + identifier + "/" + jsonPath)) {
+                                backupAndDelete(jarFile, identifier);
+                            }
                         }
                     } catch (Exception ignored) {
                     } finally {
@@ -115,10 +127,9 @@ public class AutoDeleteMods {
             }
 
             latch.await(30, TimeUnit.SECONDS);
-        } finally {
-            executor.shutdown();
         }
     }
+
 
     /**
      * Backup and delete MOD files
