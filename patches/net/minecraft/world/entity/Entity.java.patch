@@ -1738,7 +1738,7 @@
      }
  
      public void checkDespawn() {
-@@ -3410,8 +_,17 @@
+@@ -3410,8 +_,19 @@
          return this.removalReason;
      }
  
@@ -1751,7 +1751,9 @@
 +
      @Override
      public final void setRemoved(Entity.RemovalReason p_146876_) {
-+        CraftEventFactory.callEntityRemoveEvent(this, setRemoved$cause.getAndSet(null));
++        if (!AsyncCatcher.catchAsync()) {
++            CraftEventFactory.callEntityRemoveEvent(this, setRemoved$cause.getAndSet(null));
++        }
 +        final boolean alreadyRemoved = this.removalReason != null; // Paper - Folia schedulers
          if (this.removalReason == null) {
              this.removalReason = p_146876_;
