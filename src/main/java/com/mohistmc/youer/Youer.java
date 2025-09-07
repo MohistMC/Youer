@@ -41,6 +41,5 @@ public class Youer {
     public static void initI18n() {
         String mohist_lang = YouerConfig.yml.getString("youer.lang", Locale.getDefault().toString());
         i18n = new i18n(Youer.class.getClassLoader(), mohist_lang);
-
     }
 }
