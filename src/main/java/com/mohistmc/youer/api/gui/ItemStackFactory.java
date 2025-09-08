@@ -47,7 +47,7 @@ public class ItemStackFactory {
 
     public ItemStackFactory setDisplayName(String name) {
         ItemMeta im = this.item.getItemMeta();
-        im.displayName(ColorAPI.colorize(name));
+        im.setDisplayName(name);
         this.item.setItemMeta(im);
         return this;
     }
@@ -72,20 +72,20 @@ public class ItemStackFactory {
 
     public ItemStackFactory setLore(List<String> lores) {
         ItemMeta im = this.item.getItemMeta();
-        List<Component> lores_ = lores.stream().map(lore -> ColorAPI.colorize(hook(lore))).collect(Collectors.toList());
-        im.lore(lores_);
+        List<String> lores_ = lores.stream().map(this::hook).collect(Collectors.toList());
+        im.setLore(lores_);
         this.item.setItemMeta(im);
         return this;
     }
 
     public ItemStackFactory addLore(String lore) {
         ItemMeta im = this.item.getItemMeta();
-        List<Component> lores = im.lore();
+        List<String> lores = im.getLore();
         if (lores == null) {
             lores = new ArrayList<>();
         }
-        lores.add(ColorAPI.colorize(hook(lore)));
-        im.lore(lores);
+        lores.add(hook(lore));
+        im.setLore(lores);
         this.item.setItemMeta(im);
         return this;
     }

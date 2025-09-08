@@ -6,10 +6,15 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class ColorAPI {
 
-    private static final Pattern GRADIENT_PATTERN = Pattern.compile("<gradient:[:#]?([0-9A-Fa-f]{6}):[:#]?([0-9A-Fa-f]{6})>(.*?)</gradient>", Pattern.CASE_INSENSITIVE);
+    private static final Pattern GRADIENT_PATTERN = Pattern.compile("<gradient(?:[:]#?[0-9A-Fa-f]{6})+>(.*?)</gradient>", Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern GRADIENT_COLORS = Pattern.compile("#([0-9A-Fa-f]{6})");
+
     private static final Pattern SOLID_COLOR_PATTERN = Pattern.compile("<(#?[0-9A-Fa-f]{6}|[a-zA-Z_]+)>(.*?)</\\1>", Pattern.CASE_INSENSITIVE);
     private static final Pattern HEX_PATTERN = Pattern.compile("&#([0-9A-Fa-f]{6})");
     private static final Pattern LEGACY_PATTERN = Pattern.compile("&([0-9a-fk-orA-FK-OR])");
@@ -42,19 +47,31 @@ public final class ColorAPI {
     }
 
     /**
-     * Process gradient colors - completely rewritten
+     * Process all gradient types (both two-color and multi-color)
      */
     private static String processGradients(String text) {
         Matcher matcher = GRADIENT_PATTERN.matcher(text);
-        StringBuilder buffer = new StringBuilder();
+        StringBuffer buffer = new StringBuffer();
 
         while (matcher.find()) {
-            String startHex = matcher.group(1).replace("#", "");
-            String endHex = matcher.group(2).replace("#", "");
-            String content = matcher.group(3);
+            String fullTag = matcher.group(0);
+            String content = matcher.group(1);
 
-            // Create real gradient text
-            String gradientText = createRealGradient(content, startHex, endHex);
+            List<String> colors = new ArrayList<>();
+            Matcher colorMatcher = GRADIENT_COLORS.matcher(fullTag);
+            while (colorMatcher.find()) {
+                colors.add(colorMatcher.group(1));
+            }
+
+            String gradientText;
+            if (colors.size() >= 2) {
+                gradientText = createMultiGradient(content, colors);
+            } else if (colors.size() == 1) {
+                gradientText = "§x" + convertToHexFormat(colors.getFirst()) + content;
+            } else {
+                gradientText = content;
+            }
+
             matcher.appendReplacement(buffer, Matcher.quoteReplacement(gradientText));
         }
         matcher.appendTail(buffer);
@@ -63,37 +80,59 @@ public final class ColorAPI {
     }
 
     /**
-     * Create real gradient effect
+     * Create multi-color gradient
      */
-    private static String createRealGradient(String text, String startHex, String endHex) {
-        if (text.isEmpty()) return "";
+    private static String createMultiGradient(String text, List<String> hexColors) {
+        if (text.isEmpty() || hexColors.size() < 2) return text;
 
         try {
-            TextColor startColor = TextColor.fromHexString("#" + startHex);
-            TextColor endColor = TextColor.fromHexString("#" + endHex);
-
-            if (startColor == null || endColor == null) {
-                return "§x" + convertToHexFormat(startHex) + text;
+            List<TextColor> colors = new ArrayList<>();
+            for (String hex : hexColors) {
+                TextColor color = TextColor.fromHexString("#" + hex);
+                if (color == null) {
+                    return "§x" + convertToHexFormat(hexColors.getFirst()) + text;
+                }
+                colors.add(color);
             }
 
-            // Create gradient color for each character
             StringBuilder gradientBuilder = new StringBuilder();
             int length = text.length();
+            int segments = colors.size() - 1;
 
-            for (int i = 0; i < length; i++) {
-                char c = text.charAt(i);
-                double ratio = length > 1 ? (double) i / (length - 1) : 0.5;
+            if (segments <= 0) {
+                return text;
+            }
 
-                // Calculate intermediate color
-                TextColor intermediateColor = interpolateColor(startColor, endColor, ratio);
-                String hexColor = String.format("%06X", intermediateColor.value() & 0xFFFFFF);
+            int charsPerSegment = length / segments;
+            int remainingChars = length % segments;
 
-                gradientBuilder.append("§x").append(convertToHexFormat(hexColor)).append(c);
+            int currentIndex = 0;
+
+            for (int i = 0; i < segments; i++) {
+                int segmentLength = charsPerSegment + (i < remainingChars ? 1 : 0);
+                if (currentIndex >= length) break;
+
+                int endIndex = Math.min(currentIndex + segmentLength, length);
+                String segmentText = text.substring(currentIndex, endIndex);
+
+                TextColor startColor = colors.get(i);
+                TextColor endColor = colors.get(i + 1);
+
+                for (int j = 0; j < segmentText.length(); j++) {
+                    char c = segmentText.charAt(j);
+                    double ratio = segmentText.length() > 1 ? (double) j / (segmentText.length() - 1) : 0.5;
+
+                    TextColor intermediateColor = interpolateColor(startColor, endColor, ratio);
+                    String hexColor = String.format("%06X", intermediateColor.value() & 0xFFFFFF);
+                    gradientBuilder.append("§x").append(convertToHexFormat(hexColor)).append(c);
+                }
+
+                currentIndex = endIndex;
             }
 
             return gradientBuilder.toString();
         } catch (Exception e) {
-            return "§x" + convertToHexFormat(startHex) + text;
+            return "§x" + convertToHexFormat(hexColors.get(0)) + text;
         }
     }
 
