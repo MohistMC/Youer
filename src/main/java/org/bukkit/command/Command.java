@@ -2,6 +2,7 @@ package org.bukkit.command;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -393,7 +394,7 @@ public abstract class Command {
     @Deprecated
     @NotNull
     public Command setPermissionMessage(@Nullable String permissionMessage) {
-        this.permissionMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserializeOrNull(permissionMessage); // Paper
+        this.permissionMessage = ColorAPI.colorize(permissionMessage); // Paper
         return this;
     }
 
@@ -448,7 +449,7 @@ public abstract class Command {
 
     public static void broadcastCommandMessage(@NotNull CommandSender source, @NotNull String message, boolean sendToSource) {
         // Paper start
-        broadcastCommandMessage(source, net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message), sendToSource);
+        broadcastCommandMessage(source, ColorAPI.colorize(message), sendToSource);
     }
 
     public static void broadcastCommandMessage(@NotNull CommandSender source, net.kyori.adventure.text.@NotNull Component message) {

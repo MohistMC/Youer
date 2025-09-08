@@ -23,6 +23,7 @@
 
 package io.papermc.paper.event.profile;
 
+import com.mohistmc.youer.api.ColorAPI;
 import io.papermc.paper.profile.PlayerProfile;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -53,7 +54,7 @@ public class ProfileWhitelistVerifyEvent extends Event {
     @Deprecated
     @ApiStatus.Internal
     public ProfileWhitelistVerifyEvent(final PlayerProfile profile, final boolean whitelistEnabled, final boolean whitelisted, final boolean isOp, final @Nullable String kickMessage) {
-        this(profile, whitelistEnabled, whitelisted, isOp, kickMessage == null ? null : LegacyComponentSerializer.legacySection().deserialize(kickMessage));
+        this(profile, whitelistEnabled, whitelisted, isOp, kickMessage == null ? null : ColorAPI.colorize(kickMessage));
     }
 
     @ApiStatus.Internal
@@ -80,7 +81,7 @@ public class ProfileWhitelistVerifyEvent extends Event {
      */
     @Deprecated
     public void setKickMessage(final @Nullable String kickMessage) {
-        this.kickMessage(kickMessage == null ? null : LegacyComponentSerializer.legacySection().deserialize(kickMessage));
+        this.kickMessage(kickMessage == null ? null : ColorAPI.colorize(kickMessage));
     }
 
     /**

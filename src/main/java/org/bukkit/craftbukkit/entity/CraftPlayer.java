@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.feature.GlobalVariableSystem;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
@@ -391,7 +392,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     @Override
     public void sendMessage(String message) {
         if (!this.conversationTracker.isConversingModaly()) {
-            this.sendRawMessage(message);
+            this.sendMessage(ColorAPI.colorize(message));
         }
     }
 
@@ -538,7 +539,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void setDisplayName(final String name) {
-        this.getHandle().adventure$displayName = name != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(name) : net.kyori.adventure.text.Component.text(this.getName()); // Paper
+        this.getHandle().adventure$displayName = name != null ? ColorAPI.colorize(name) : net.kyori.adventure.text.Component.text(this.getName()); // Paper
         this.getHandle().displayName = name == null ? this.getName() : name;
     }
 
@@ -605,20 +606,20 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void setPlayerListHeader(String header) {
-        this.playerListHeader = header == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(header); // Paper - Adventure
+        this.playerListHeader = header == null ? null : ColorAPI.colorize(header); // Paper - Adventure
         this.updatePlayerListHeaderFooter();
     }
 
     @Override
     public void setPlayerListFooter(String footer) {
-        this.playerListFooter = footer == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(footer); // Paper - Adventure
+        this.playerListFooter = footer == null ? null : ColorAPI.colorize(footer); // Paper - Adventure
         this.updatePlayerListHeaderFooter();
     }
 
     @Override
     public void setPlayerListHeaderFooter(String header, String footer) {
-        this.playerListHeader = header == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(header); // Paper - Adventure
-        this.playerListFooter = footer == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(footer); // Paper - Adventure
+        this.playerListHeader = header == null ? null : ColorAPI.colorize(header); // Paper - Adventure
+        this.playerListFooter = footer == null ? null : ColorAPI.colorize(footer); // Paper - Adventure
         this.updatePlayerListHeaderFooter();
     }
 

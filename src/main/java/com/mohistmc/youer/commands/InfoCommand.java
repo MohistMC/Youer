@@ -235,7 +235,7 @@ public class InfoCommand extends Command {
                 "&e" + I18n.as("info.cmd.permission") + " &f" + (permission != null ? permission : I18n.as("info.cmd.none")) + "\n" +
                 "&e" + I18n.as("info.cmd.aliases") + " &f" + (aliases.isEmpty() ? I18n.as("info.cmd.none") : aliases);
 
-        sender.sendMessage(message.replace("&", "§"));
+        sender.sendMessage(message);
     }
 
     public void sendCommandInfo(CommandSender sender, PluginCommand pluginCommand) {
@@ -262,6 +262,6 @@ public class InfoCommand extends Command {
                 "&e" + I18n.as("info.cmd.permission") + " &f" + (permission != null ? permission : I18n.as("info.cmd.none")) + "\n" +
                 "&e" + I18n.as("info.cmd.aliases") + " &f" + (aliases.isEmpty() ? I18n.as("info.cmd.none") : aliases);
 
-        sender.sendMessage(message.replace("&", "§"));
+        sender.sendMessage(message);
     }
 }

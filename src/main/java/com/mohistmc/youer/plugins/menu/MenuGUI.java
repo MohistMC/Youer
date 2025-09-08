@@ -19,7 +19,7 @@ public class MenuGUI {
 
     public static void openMenu(Player player, MenuConfig menuConfig) {
         MenuSettings settings = menuConfig.getMenuSettings();
-        String menuName = settings.getName() != null ? translateColorCodes(settings.getName()) : "Menu";
+        String menuName = settings.getName() != null ? settings.getName() : "Menu";
 
         DefaultGUI gui = new DefaultGUI(GUIType.fromRows(settings.getRows()), menuName);
 
@@ -33,12 +33,10 @@ public class MenuGUI {
             }
 
             ItemStackFactory itemFactory = new ItemStackFactory(material)
-                    .setDisplayName(icon.getName() != null ? translateColorCodes(icon.getName()) : "Unnamed Item");
-
+                    .setDisplayName(icon.getName() != null ? icon.getName() : "Unnamed Item");
+            itemFactory.player(player);
             if (icon.getLore() != null && !icon.getLore().isEmpty()) {
-                List<String> lore = icon.getLore().stream()
-                        .map(MenuGUI::translateColorCodes)
-                        .toList();
+                List<String> lore = icon.getLore();
                 itemFactory.setLore(lore);
             }
 
@@ -68,8 +66,7 @@ public class MenuGUI {
                         if (enchantmentK != null) {
                             itemFactory.setEnchantment(enchantmentK, level);
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    } catch (Exception ignored) {
                     }
                 }
             }
@@ -78,8 +75,7 @@ public class MenuGUI {
                 for (ItemFlag itemFlag : icon.getItemFlags()) {
                     try {
                         itemFactory.addItemFlags(itemFlag);
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    } catch (Exception ignored) {
                     }
                 }
             }
@@ -118,7 +114,7 @@ public class MenuGUI {
     private static void processAction(Player player, String action) {
         if (action.startsWith("tell:")) {
             String message = action.substring(5).trim();
-            player.sendMessage(translateColorCodes(message));
+            player.sendMessage(message);
         } else if (action.equals("player:")) {
           String cmd = action.substring(7).trim();
           player.performCommand(cmd);
@@ -153,10 +149,5 @@ public class MenuGUI {
             return material;
         }
         return Material.STONE;
-    }
-
-    private static String translateColorCodes(String text) {
-        if (text == null) return null;
-        return text.replace('&', '§');
     }
 }

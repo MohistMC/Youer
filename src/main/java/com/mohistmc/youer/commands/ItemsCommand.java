@@ -22,6 +22,7 @@ import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
+import com.mohistmc.youer.api.gui.ItemStackFactory;
 import com.mohistmc.youer.plugins.item.ItemsConfig;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
@@ -207,8 +208,6 @@ public class ItemsCommand extends Command {
                             loreText = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
                         }
 
-                        loreText = ChatColor.translateAlternateColorCodes('&', loreText);
-
                         // Support adding multiple empty lines through newline characters
                         String[] lines = loreText.split("\\\\n");
 
@@ -246,7 +245,6 @@ public class ItemsCommand extends Command {
                             }
 
                             String loreText = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
-                            loreText = ChatColor.translateAlternateColorCodes('&', loreText);
                             List<String> currentLore = itemStack.hasItemMeta() && itemStack.getItemMeta().hasLore()
                                     ? new ArrayList<>(itemStack.getItemMeta().getLore())
                                     : new ArrayList<>();

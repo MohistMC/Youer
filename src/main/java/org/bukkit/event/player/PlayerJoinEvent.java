@@ -1,5 +1,6 @@
 package org.bukkit.event.player;
 
+import com.mohistmc.youer.api.ColorAPI;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
@@ -20,7 +21,7 @@ public class PlayerJoinEvent extends PlayerEvent {
     @Deprecated // Paper end
     public PlayerJoinEvent(@NotNull final Player playerJoined, @Nullable final String joinMessage) {
         super(playerJoined);
-        this.joinMessage = joinMessage != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(joinMessage) : null; // Paper end
+        this.joinMessage = joinMessage != null ? ColorAPI.colorize(joinMessage) : null; // Paper end
     }
 
     // Paper start
@@ -63,7 +64,7 @@ public class PlayerJoinEvent extends PlayerEvent {
      */
     @Deprecated // Paper
     public void setJoinMessage(@Nullable String joinMessage) {
-        this.joinMessage = joinMessage != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(joinMessage) : null; // Paper
+        this.joinMessage = joinMessage != null ? ColorAPI.colorize(joinMessage) : null; // Paper
     }
 
     @NotNull

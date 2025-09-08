@@ -1,5 +1,6 @@
 package org.bukkit.event.entity;
 
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.List;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.entity.Player;
@@ -69,7 +70,7 @@ public class PlayerDeathEvent extends EntityDeathEvent {
         this.newExp = newExp;
         this.newTotalExp = newTotalExp;
         this.newLevel = newLevel;
-        this.deathMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserializeOrNull(deathMessage); // Paper
+        this.deathMessage = ColorAPI.colorize(deathMessage); // Paper
         this.doExpDrop = doExpDrop; // Paper - shouldDropExperience API
     }
 
@@ -171,7 +172,7 @@ public class PlayerDeathEvent extends EntityDeathEvent {
      */
     @Deprecated // Paper
     public void setDeathMessage(@Nullable String deathMessage) {
-        this.deathMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserializeOrNull(deathMessage); // Paper
+        this.deathMessage = ColorAPI.colorize(deathMessage); // Paper
     }
 
     /**

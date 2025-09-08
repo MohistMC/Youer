@@ -2,6 +2,7 @@ package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.function.Supplier;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -37,7 +38,7 @@ public class CraftMenuType<V extends InventoryView> implements MenuType.Typed<V>
     @Override
     public V create(final HumanEntity player, final String title) {
     // Paper start - adventure
-        return create(player, net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(title));
+        return create(player, ColorAPI.colorize(title));
     }
     @Override
     public V create(final HumanEntity player, final net.kyori.adventure.text.Component title) {

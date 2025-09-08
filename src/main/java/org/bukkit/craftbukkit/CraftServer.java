@@ -13,6 +13,7 @@ import com.mohistmc.org.yaml.snakeyaml.Yaml;
 import com.mohistmc.org.yaml.snakeyaml.constructor.SafeConstructor;
 import com.mohistmc.org.yaml.snakeyaml.error.MarkedYAMLException;
 import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
@@ -1847,7 +1848,7 @@ public final class CraftServer implements Server {
     @Override
     public net.kyori.adventure.text.Component shutdownMessage() {
         String msg = getShutdownMessage();
-        return msg != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(msg) : null;
+        return msg != null ? ColorAPI.colorize(msg) : null;
     }
     // Paper end
     @Override
@@ -2058,7 +2059,7 @@ public final class CraftServer implements Server {
     @Deprecated // Paper
     public int broadcast(String message, String permission) {
         // Paper start - Adventure
-        return this.broadcast(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message), permission);
+        return this.broadcast(ColorAPI.colorize(message), permission);
     }
 
     @Override

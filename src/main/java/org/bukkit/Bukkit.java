@@ -1,6 +1,7 @@
 package org.bukkit;
 
 import com.google.common.collect.ImmutableList;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.util.I18n;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -483,7 +484,7 @@ public final class Bukkit {
      */
     @Deprecated // Paper
     public static int broadcastMessage(@NotNull String message) {
-        return server.broadcastMessage(message);
+        return server.broadcast(ColorAPI.colorize(message));
     }
 
     // Paper start

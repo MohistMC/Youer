@@ -1,5 +1,6 @@
 package io.papermc.paper.console;
 
+import com.mohistmc.youer.api.ColorAPI;
 import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.text.Component;
@@ -13,7 +14,7 @@ public class TerminalConsoleCommandSender extends CraftConsoleCommandSender {
     private static final ComponentLogger LOGGER = ComponentLogger.logger(LogManager.getRootLogger().getName());
     @Override
     public void sendRawMessage(String message) {
-        final Component msg = LegacyComponentSerializer.legacySection().deserialize(message);
+        final Component msg = ColorAPI.colorize(message);
         this.sendMessage(Identity.nil(), msg, MessageType.SYSTEM);
     }
 

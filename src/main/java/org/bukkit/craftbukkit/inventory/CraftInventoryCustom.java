@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -108,7 +109,7 @@ public class CraftInventoryCustom extends CraftInventory {
             Preconditions.checkArgument(title != null, "title cannot be null");
             this.items = NonNullList.withSize(size, ItemStack.EMPTY);
             this.title = title;
-            this.adventure$title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(title);
+            this.adventure$title = ColorAPI.colorize(title);
             this.viewers = new ArrayList<HumanEntity>();
             this.owner = owner;
             this.type = InventoryType.CHEST;
@@ -129,7 +130,7 @@ public class CraftInventoryCustom extends CraftInventory {
         public MinecraftInventory(InventoryHolder owner, NonNullList<ItemStack> items) {
             this.items = items;
             this.title = "Chest";
-            this.adventure$title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(title);
+            this.adventure$title = ColorAPI.colorize(title);
             this.viewers = new ArrayList<>();
             this.owner = owner;
             this.type = InventoryType.CHEST;

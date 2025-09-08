@@ -59,8 +59,7 @@ public class BanConfig extends YouerPluginConfig {
     }
 
     public String getMessage(String name) {
-        String message = (!has(name)) ? "" : BAN_MESSAGE.yaml.getString(name, "");
-        return ChatColor.translateAlternateColorCodes('&', message);
+        return (!has(name)) ? "" : BAN_MESSAGE.yaml.getString(name, "");
     }
 
     public void setBanMessage(String key, Object v) {

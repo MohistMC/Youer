@@ -1,5 +1,6 @@
 package org.bukkit.event.server;
 
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.Set;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.Cancellable;
@@ -30,7 +31,7 @@ public class BroadcastMessageEvent extends ServerEvent implements Cancellable {
     public BroadcastMessageEvent(boolean isAsync, @NotNull String message, @NotNull Set<CommandSender> recipients) {
         // Paper start
         super(isAsync);
-        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message);
+        this.message = ColorAPI.colorize(message);
         this.recipients = recipients;
     }
 
@@ -85,7 +86,7 @@ public class BroadcastMessageEvent extends ServerEvent implements Cancellable {
      */
     @Deprecated // Paper
     public void setMessage(@NotNull String message) {
-        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // Paper
+        this.message = ColorAPI.colorize(message); // Paper
     }
 
     /**

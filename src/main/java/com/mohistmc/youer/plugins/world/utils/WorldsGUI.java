@@ -45,8 +45,8 @@ public class WorldsGUI {
                     name1 = config.getString("worlds." + w.getName() + ".name", w.getName());
                     difficulty = config.getString("worlds." + w.getName() + ".difficulty");
                 }
-                infoLore.add(I18n.as("worldmanage.gui.lore0") + name1.replace("&", "§"));
-                infoLore.add(I18n.as("worldmanage.gui.lore1") + infos.replace("&", "§"));
+                infoLore.add(I18n.as("worldmanage.gui.lore0") + name1);
+                infoLore.add(I18n.as("worldmanage.gui.lore1") + infos);
                 infoLore.add(I18n.as("worldmanage.gui.lore2") + w.getWorldBorder().getSize());
                 infoLore.add(I18n.as("worldmanage.gui.lore3") + worldtype);
                 infoLore.add(I18n.as("worldmanage.gui.lore4") + difficulty);

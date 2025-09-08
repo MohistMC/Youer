@@ -1,5 +1,6 @@
 package org.bukkit.event.command;
 
+import com.mohistmc.youer.api.ColorAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.command.CommandSender;
@@ -69,7 +70,7 @@ public class UnknownCommandEvent extends Event {
      */
     @Deprecated
     public void setMessage(@Nullable String message) {
-        this.message(message == null ? null : LegacyComponentSerializer.legacySection().deserialize(message));
+        this.message(message == null ? null : ColorAPI.colorize(message));
     }
 
     /**

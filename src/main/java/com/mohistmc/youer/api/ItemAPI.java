@@ -11,6 +11,8 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import net.kyori.adventure.text.Component;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -149,13 +151,14 @@ public class ItemAPI {
 
     public static void name(ItemStack itemStack, String name) {
         ItemMeta im = itemStack.getItemMeta();
-        im.setDisplayName(name.replace("&", "§"));
+        im.displayName(ColorAPI.colorize(name));
         itemStack.setItemMeta(im);
     }
 
-    public static void lore(ItemStack itemStack, List<String> lore) {
+    public static void lore(ItemStack itemStack, List<String> lores) {
         ItemMeta im = itemStack.getItemMeta();
-        im.setLore(lore);
+        List<Component> lores_ = lores.stream().map(ColorAPI::colorize).collect(Collectors.toList());
+        im.lore(lores_);
         itemStack.setItemMeta(im);
     }
 

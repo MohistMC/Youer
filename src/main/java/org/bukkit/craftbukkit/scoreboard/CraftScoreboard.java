@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.mohistmc.youer.api.ColorAPI;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.ScoreHolder;
 import net.minecraft.world.scores.Scoreboard;
@@ -80,7 +81,7 @@ public final class CraftScoreboard implements org.bukkit.scoreboard.Scoreboard {
 
     @Override
     public CraftObjective registerNewObjective(String name, Criteria criteria, String displayName, RenderType renderType) {
-        return this.registerNewObjective(name, criteria, net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(displayName), renderType); // Paper - Adventure
+        return this.registerNewObjective(name, criteria, ColorAPI.colorize(displayName), renderType); // Paper - Adventure
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.mohistmc.youer.api.gui;
 
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.Objects;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -46,7 +47,7 @@ public class GUI {
         if (this.type == GUIType.CANCEL) {
             throw new NullPointerException("Canceled or non-existent GUI");
         }
-        inv = Bukkit.createInventory(null, this.items.length, this.tempName);
+        inv = Bukkit.createInventory(null, this.items.length, ColorAPI.colorize(this.tempName));
         for (int index = 0; index < this.items.length; index++) {
             if (items[index] == null) {
                 inv.setItem(index, new ItemStack(Material.AIR));

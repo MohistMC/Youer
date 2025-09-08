@@ -1,5 +1,6 @@
 package org.bukkit.event.player;
 
+import com.mohistmc.youer.api.ColorAPI;
 import java.net.InetAddress;
 import java.util.UUID;
 import org.bukkit.Warning;
@@ -116,7 +117,7 @@ public class PlayerPreLoginEvent extends Event {
      */
     @Deprecated // Paper
     public void setKickMessage(@NotNull final String message) {
-        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // Paper
+        this.message = ColorAPI.colorize(message); // Paper
     }
 
     /**
@@ -137,7 +138,7 @@ public class PlayerPreLoginEvent extends Event {
     @Deprecated // Paper
     public void disallow(@NotNull final Result result, @NotNull final String message) {
         this.result = result;
-        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // Paper
+        this.message = ColorAPI.colorize(message); // Paper
     }
 
     /**

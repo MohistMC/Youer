@@ -1,5 +1,6 @@
 package org.bukkit.event.player;
 
+import com.mohistmc.youer.api.ColorAPI;
 import java.net.InetAddress;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -66,7 +67,7 @@ public class PlayerLoginEvent extends PlayerEvent {
     public PlayerLoginEvent(@NotNull final Player player, @NotNull String hostname, @NotNull final InetAddress address, @NotNull final Result result, @NotNull final String message, @NotNull final InetAddress realAddress) {
         this(player, hostname, address, realAddress);
         this.result = result;
-        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // Paper
+        this.message = ColorAPI.colorize(message); // Paper
     }
 
     // Paper start
@@ -147,7 +148,7 @@ public class PlayerLoginEvent extends PlayerEvent {
      */
     @Deprecated // Paper
     public void setKickMessage(@NotNull final String message) {
-        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // Paper
+        this.message = ColorAPI.colorize(message); // Paper
     }
 
     /**
@@ -179,7 +180,7 @@ public class PlayerLoginEvent extends PlayerEvent {
     @Deprecated // Paper start
     public void disallow(@NotNull final Result result, @NotNull final String message) {
         this.result = result;
-        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message);
+        this.message = ColorAPI.colorize(message);
     }
     /**
      * Disallows the player from logging in, with the given reason

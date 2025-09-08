@@ -1,0 +1,232 @@
+package com.mohistmc.youer.api;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public final class ColorAPI {
+
+    private static final Pattern GRADIENT_PATTERN = Pattern.compile("<gradient:[:#]?([0-9A-Fa-f]{6}):[:#]?([0-9A-Fa-f]{6})>(.*?)</gradient>", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SOLID_COLOR_PATTERN = Pattern.compile("<(#?[0-9A-Fa-f]{6}|[a-zA-Z_]+)>(.*?)</\\1>", Pattern.CASE_INSENSITIVE);
+    private static final Pattern HEX_PATTERN = Pattern.compile("&#([0-9A-Fa-f]{6})");
+    private static final Pattern LEGACY_PATTERN = Pattern.compile("&([0-9a-fk-orA-FK-OR])");
+
+    private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
+
+    /**
+     * Main color processing method
+     */
+    public static Component colorize(String text) {
+        if (text == null || text.isEmpty()) {
+            return Component.empty();
+        }
+
+        String processed = text;
+        processed = processGradients(processed);
+        processed = processSolidColors(processed);
+        processed = processHexColors(processed);
+        processed = processLegacyCodes(processed);
+
+        return LEGACY_SERIALIZER.deserialize(processed);
+    }
+
+    /**
+     * Main color processing method - returns string
+     */
+    public static String colorizeString(String text) {
+        Component component = colorize(text);
+        return LEGACY_SERIALIZER.serialize(component);
+    }
+
+    /**
+     * Process gradient colors - completely rewritten
+     */
+    private static String processGradients(String text) {
+        Matcher matcher = GRADIENT_PATTERN.matcher(text);
+        StringBuilder buffer = new StringBuilder();
+
+        while (matcher.find()) {
+            String startHex = matcher.group(1).replace("#", "");
+            String endHex = matcher.group(2).replace("#", "");
+            String content = matcher.group(3);
+
+            // Create real gradient text
+            String gradientText = createRealGradient(content, startHex, endHex);
+            matcher.appendReplacement(buffer, Matcher.quoteReplacement(gradientText));
+        }
+        matcher.appendTail(buffer);
+
+        return buffer.toString();
+    }
+
+    /**
+     * Create real gradient effect
+     */
+    private static String createRealGradient(String text, String startHex, String endHex) {
+        if (text.isEmpty()) return "";
+
+        try {
+            TextColor startColor = TextColor.fromHexString("#" + startHex);
+            TextColor endColor = TextColor.fromHexString("#" + endHex);
+
+            if (startColor == null || endColor == null) {
+                return "§x" + convertToHexFormat(startHex) + text;
+            }
+
+            // Create gradient color for each character
+            StringBuilder gradientBuilder = new StringBuilder();
+            int length = text.length();
+
+            for (int i = 0; i < length; i++) {
+                char c = text.charAt(i);
+                double ratio = length > 1 ? (double) i / (length - 1) : 0.5;
+
+                // Calculate intermediate color
+                TextColor intermediateColor = interpolateColor(startColor, endColor, ratio);
+                String hexColor = String.format("%06X", intermediateColor.value() & 0xFFFFFF);
+
+                gradientBuilder.append("§x").append(convertToHexFormat(hexColor)).append(c);
+            }
+
+            return gradientBuilder.toString();
+        } catch (Exception e) {
+            return "§x" + convertToHexFormat(startHex) + text;
+        }
+    }
+
+    /**
+     * Color interpolation calculation
+     */
+    private static TextColor interpolateColor(TextColor start, TextColor end, double ratio) {
+        int startRed = (start.value() >> 16) & 0xFF;
+        int startGreen = (start.value() >> 8) & 0xFF;
+        int startBlue = start.value() & 0xFF;
+
+        int endRed = (end.value() >> 16) & 0xFF;
+        int endGreen = (end.value() >> 8) & 0xFF;
+        int endBlue = end.value() & 0xFF;
+
+        int red = (int) (startRed + (endRed - startRed) * ratio);
+        int green = (int) (startGreen + (endGreen - startGreen) * ratio);
+        int blue = (int) (startBlue + (endBlue - startBlue) * ratio);
+
+        // Ensure color values are within valid range
+        red = Math.max(0, Math.min(255, red));
+        green = Math.max(0, Math.min(255, green));
+        blue = Math.max(0, Math.min(255, blue));
+
+        return TextColor.color(red, green, blue);
+    }
+
+    /**
+     * Process solid colors
+     */
+    private static String processSolidColors(String text) {
+        Matcher matcher = SOLID_COLOR_PATTERN.matcher(text);
+        StringBuilder buffer = new StringBuilder();
+
+        while (matcher.find()) {
+            String color = matcher.group(1);
+            String content = matcher.group(2);
+
+            String coloredText;
+            if (color.startsWith("#")) {
+                String hex = color.substring(1);
+                coloredText = "§x" + convertToHexFormat(hex) + content;
+            } else if (color.matches("[0-9A-Fa-f]{6}")) {
+                coloredText = "§x" + convertToHexFormat(color) + content;
+            } else {
+                String legacyCode = colorNameToLegacy(color);
+                coloredText = legacyCode + content;
+            }
+
+            matcher.appendReplacement(buffer, Matcher.quoteReplacement(coloredText));
+        }
+        matcher.appendTail(buffer);
+
+        return buffer.toString();
+    }
+
+    /**
+     * Process hexadecimal color codes
+     */
+    private static String processHexColors(String text) {
+        Matcher matcher = HEX_PATTERN.matcher(text);
+        StringBuilder buffer = new StringBuilder();
+
+        while (matcher.find()) {
+            String hex = matcher.group(1);
+            String replacement = "§x" + convertToHexFormat(hex);
+            matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(buffer);
+
+        return buffer.toString();
+    }
+
+    /**
+     * Process legacy color codes
+     */
+    private static String processLegacyCodes(String text) {
+        Matcher matcher = LEGACY_PATTERN.matcher(text);
+        StringBuilder buffer = new StringBuilder();
+
+        while (matcher.find()) {
+            String code = matcher.group(1);
+            // Special handling for reset code
+            if (code.equalsIgnoreCase("r")) {
+                matcher.appendReplacement(buffer, "§r");
+            } else {
+                matcher.appendReplacement(buffer, "§" + code);
+            }
+        }
+        matcher.appendTail(buffer);
+
+        return buffer.toString();
+    }
+
+    /**
+     * Convert hexadecimal format to Minecraft format
+     */
+    private static String convertToHexFormat(String hex) {
+        StringBuilder builder = new StringBuilder();
+        for (char c : hex.toCharArray()) {
+            builder.append('§').append(Character.toLowerCase(c));
+        }
+        return builder.toString();
+    }
+
+    /**
+     * Convert color name to legacy color code
+     */
+    private static String colorNameToLegacy(String colorName) {
+        return switch (colorName.toLowerCase()) {
+            case "black" -> "§0";
+            case "dark_blue", "darkblue" -> "§1";
+            case "dark_green", "darkgreen" -> "§2";
+            case "dark_aqua", "darkaqua" -> "§3";
+            case "dark_red", "darkred" -> "§4";
+            case "dark_purple", "darkpurple" -> "§5";
+            case "gold", "orange" -> "§6";
+            case "gray", "grey" -> "§7";
+            case "dark_gray", "darkgray", "dark_grey", "darkgrey" -> "§8";
+            case "blue" -> "§9";
+            case "green" -> "§a";
+            case "aqua", "cyan" -> "§b";
+            case "red" -> "§c";
+            case "light_purple", "lightpurple", "pink", "magenta" -> "§d";
+            case "yellow" -> "§e";
+            case "white" -> "§f";
+            case "bold" -> "§l";
+            case "italic" -> "§o";
+            case "underlined", "underline" -> "§n";
+            case "strikethrough", "strike" -> "§m";
+            case "obfuscated", "obfuscate" -> "§k";
+            case "reset" -> "§r";
+            default -> "";
+        };
+    }
+}

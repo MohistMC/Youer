@@ -1,6 +1,7 @@
 package io.papermc.paper.adventure;
 
 import com.mohistmc.youer.ai.deepseek.DeepSeek;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.feature.GlobalVariableSystem;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AbstractChatEvent;
@@ -131,7 +132,7 @@ public final class ChatProcessor {
 
     private Component modernMessage(final String legacyMessage) {
         if (this.flags.get(MESSAGE_CHANGED)) {
-            return legacySection().deserialize(legacyMessage);
+            return ColorAPI.colorize(legacyMessage);
         } else {
             return this.paper$originalMessage;
         }
@@ -352,7 +353,7 @@ public final class ChatProcessor {
         if (DEFAULT_LEGACY_FORMAT.equals(format)) {
             return defaultRenderer();
         }
-        return ChatRenderer.viewerUnaware((player, sourceDisplayName, message) -> legacySection().deserialize(legacyFormat(format, player, legacySection().serialize(message))));
+        return ChatRenderer.viewerUnaware((player, sourceDisplayName, message) -> ColorAPI.colorize(legacyFormat(format, player, legacySection().serialize(message))));
     }
 
     static String legacyFormat(final String format, Player player, String message) {

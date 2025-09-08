@@ -1,8 +1,11 @@
 package com.mohistmc.youer.api.gui;
 
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.feature.GlobalVariableSystem;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -34,13 +37,17 @@ public class ItemStackFactory {
         this.item = new ItemStack(type, amount);
     }
 
+    public ItemStackFactory(ItemStack item) {
+        this.item = item.clone();
+    }
+
     public ItemStack toItemStack() {
         return this.item;
     }
 
     public ItemStackFactory setDisplayName(String name) {
         ItemMeta im = this.item.getItemMeta();
-        im.setDisplayName(name.replaceAll("&", "§"));
+        im.displayName(ColorAPI.colorize(name));
         this.item.setItemMeta(im);
         return this;
     }
@@ -65,25 +72,20 @@ public class ItemStackFactory {
 
     public ItemStackFactory setLore(List<String> lores) {
         ItemMeta im = this.item.getItemMeta();
-        List<String> lores_ = new ArrayList<>();
-        for (String lore : lores) {
-            lores_.add(hook(lore.replaceAll("&", "§")));
-        }
-        im.setLore(lores_);
+        List<Component> lores_ = lores.stream().map(lore -> ColorAPI.colorize(hook(lore))).collect(Collectors.toList());
+        im.lore(lores_);
         this.item.setItemMeta(im);
         return this;
     }
 
     public ItemStackFactory addLore(String lore) {
         ItemMeta im = this.item.getItemMeta();
-        List<String> lores;
-        if (im.hasLore()) {
-            lores = im.getLore();
-        } else {
+        List<Component> lores = im.lore();
+        if (lores == null) {
             lores = new ArrayList<>();
         }
-        lores.add(hook(lore.replaceAll("&", "§")));
-        im.setLore(lores);
+        lores.add(ColorAPI.colorize(hook(lore)));
+        im.lore(lores);
         this.item.setItemMeta(im);
         return this;
     }

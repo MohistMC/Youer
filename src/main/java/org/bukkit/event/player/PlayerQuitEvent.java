@@ -1,5 +1,6 @@
 package org.bukkit.event.player;
 
+import com.mohistmc.youer.api.ColorAPI;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
@@ -21,7 +22,7 @@ public class PlayerQuitEvent extends PlayerEvent {
     @Deprecated // Paper
     public PlayerQuitEvent(@NotNull final Player who, @Nullable final String quitMessage, @Nullable QuitReason quitReason) {
         super(who);
-        this.quitMessage = quitMessage != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(quitMessage) : null; // Paper
+        this.quitMessage = quitMessage != null ? ColorAPI.colorize(quitMessage) : null; // Paper
         this.reason = quitReason == null ? QuitReason.DISCONNECTED : quitReason;
     }
     // Paper start
@@ -74,7 +75,7 @@ public class PlayerQuitEvent extends PlayerEvent {
      */
     @Deprecated // Paper
     public void setQuitMessage(@Nullable String quitMessage) {
-        this.quitMessage = quitMessage != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(quitMessage) : null; // Paper
+        this.quitMessage = quitMessage != null ? ColorAPI.colorize(quitMessage) : null; // Paper
     }
 
     @NotNull

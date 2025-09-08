@@ -1,8 +1,9 @@
 --- a/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
-@@ -1,5 +_,6 @@
+@@ -1,5 +_,7 @@
  package net.minecraft.server.network;
  
++import com.mohistmc.youer.api.ColorAPI;
 +import io.papermc.paper.network.PaperNetworkClient;
  import net.minecraft.SharedConstants;
  import net.minecraft.network.Connection;
@@ -94,10 +95,10 @@
 -                component = Component.translatable("multiplayer.disconnect.outdated_client", SharedConstants.getCurrentVersion().getName());
 +            net.kyori.adventure.text.Component adventureComponent; // Paper - Fix hex colors not working in some kick messages
 +            if (p_320524_.protocolVersion() < SharedConstants.getCurrentVersion().getProtocolVersion()) { // Spigot - SPIGOT-7546: Handle version check correctly for outdated client message
-+                adventureComponent = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(java.text.MessageFormat.format(org.spigotmc.SpigotConfig.outdatedClientMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().getName())); // Spigot // Paper - Fix hex colors not working in some kick messages
++                adventureComponent = ColorAPI.colorize(java.text.MessageFormat.format(org.spigotmc.SpigotConfig.outdatedClientMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().getName())); // Spigot // Paper - Fix hex colors not working in some kick messages
              } else {
 -                component = Component.translatable("multiplayer.disconnect.incompatible", SharedConstants.getCurrentVersion().getName());
-+                adventureComponent = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(java.text.MessageFormat.format(org.spigotmc.SpigotConfig.outdatedServerMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().getName())); // Spigot // Paper - Fix hex colors not working in some kick messages
++                adventureComponent = ColorAPI.colorize(java.text.MessageFormat.format(org.spigotmc.SpigotConfig.outdatedServerMessage.replaceAll("'", "''"), SharedConstants.getCurrentVersion().getName())); // Spigot // Paper - Fix hex colors not working in some kick messages
              }
 -
 -            this.connection.send(new ClientboundLoginDisconnectPacket(component));

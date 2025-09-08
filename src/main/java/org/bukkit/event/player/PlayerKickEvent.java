@@ -1,5 +1,6 @@
 package org.bukkit.event.player;
 
+import com.mohistmc.youer.api.ColorAPI;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
@@ -18,8 +19,8 @@ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
     @Deprecated // Paper
     public PlayerKickEvent(@NotNull final Player playerKicked, @NotNull final String kickReason, @NotNull final String leaveMessage) {
         super(playerKicked);
-        this.kickReason = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(kickReason); // Paper
-        this.leaveMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(leaveMessage); // Paper
+        this.kickReason = ColorAPI.colorize(kickReason); // Paper
+        this.leaveMessage = ColorAPI.colorize(leaveMessage); // Paper
         this.cause  = Cause.UNKNOWN; // Paper
         this.cancel = false;
     }
@@ -121,7 +122,7 @@ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
      */
     @Deprecated // Paper
     public void setReason(@NotNull String kickReason) {
-        this.kickReason = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(kickReason); // Paper
+        this.kickReason = ColorAPI.colorize(kickReason); // Paper
     }
 
     /**
@@ -132,7 +133,7 @@ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
      */
     @Deprecated // Paper
     public void setLeaveMessage(@NotNull String leaveMessage) {
-        this.leaveMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(leaveMessage); // Paper
+        this.leaveMessage = ColorAPI.colorize(leaveMessage); // Paper
     }
 
     @NotNull

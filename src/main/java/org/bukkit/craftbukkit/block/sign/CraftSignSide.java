@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.block.sign;
 
+import com.mohistmc.youer.api.ColorAPI;
 import net.minecraft.world.level.block.entity.SignText;
 import org.bukkit.DyeColor;
 import org.bukkit.block.sign.SignSide;
@@ -71,7 +72,7 @@ public class CraftSignSide implements SignSide {
     public void setLine(int index, @NotNull String line) throws IndexOutOfBoundsException {
         // Paper start
         this.loadLines();
-        this.lines.set(index, line != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line) : net.kyori.adventure.text.Component.empty());
+        this.lines.set(index, line != null ? ColorAPI.colorize(line) : net.kyori.adventure.text.Component.empty());
         // Paper end
     }
 
