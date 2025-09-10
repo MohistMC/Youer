@@ -1,5 +1,6 @@
 package com.mohistmc.youer.bukkit.pluginfix;
 
+import com.mohistmc.youer.Youer;
 import java.util.function.Consumer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -52,23 +53,23 @@ public class PluginFixManager {
             case "net.Zrips.CMILib.RawMessages.RawMessageManager" ->
                     node -> helloWorld(node, "net.minecraft.server.network.PlayerConnection", "net.minecraft.server.network.ServerGamePacketListenerImpl");
             case "com.sk89q.worldedit.bukkit.BukkitConfiguration" -> node -> {
-                helloWorld(node, "I accept that I will receive no support with this flag enabled.", "youer");
-                helloWorld(node, "allow-editing-on-unsupported-versions", "youer");
-                helloWorld(node, "false", "youer");
+                helloWorld(node, "I accept that I will receive no support with this flag enabled.", Youer.modid);
+                helloWorld(node, "allow-editing-on-unsupported-versions", Youer.modid);
+                helloWorld(node, "false", Youer.modid);
             };
             case "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter",
                  "com.sk89q.worldedit.bukkit.adapter.ext.fawe.v1_21_R1.PaperweightAdapter" ->
-                    node -> helloWorld(node, "org.spigotmc.WatchdogThread", "youer");
+                    node -> helloWorld(node, "org.spigotmc.WatchdogThread", Youer.modid);
             case "cn.lunadeer.dominion.utils.Misc" ->
-                    node -> helloWorld(node, "io.papermc.paper.threadedregions.scheduler.ScheduledTask", "youer");
+                    node -> helloWorld(node, "io.papermc.paper.threadedregions.scheduler.ScheduledTask", Youer.modid);
             case "com.sk89q.worldedit.bukkit.paperlib.PaperLib" -> node -> {
-                helloWorld(node, "com.destroystokyo.paper.PaperConfig", "youer");
-                helloWorld(node, "io.papermc.paper.configuration.Configuration", "youer");
+                removePaper0(node);
                 String adapter = System.getProperty("paperlib.shown-benefits");
                 if (adapter == null) {
                     System.setProperty("paperlib.shown-benefits", "1");
                 }
             };
+            case "org.mvplugins.multiverse.external.paperlib.PaperLib", "com.plotsquared.bukkit.paperlib.PaperLib" -> PluginFixManager::removePaper0;
             default -> null;
         };
 
@@ -84,6 +85,11 @@ public class PluginFixManager {
                 methodNode.instructions = toInject;
             }
         }
+    }
+
+    private static void removePaper0(ClassNode node) {
+        helloWorld(node, "com.destroystokyo.paper.PaperConfig", Youer.modid);
+        helloWorld(node, "io.papermc.paper.configuration.Configuration", Youer.modid);
     }
 
     public static boolean hasPaperAsyncSupport() {
