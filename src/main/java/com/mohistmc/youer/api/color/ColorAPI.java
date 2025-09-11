@@ -1,4 +1,4 @@
-package com.mohistmc.youer.api;
+package com.mohistmc.youer.api.color;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
@@ -11,11 +11,11 @@ import java.util.List;
 
 public final class ColorAPI {
 
-    private static final Pattern GRADIENT_PATTERN = Pattern.compile("<gradient(?:[:]#?[0-9A-Fa-f]{6})+>(.*?)</gradient>", Pattern.CASE_INSENSITIVE);
+    private static final Pattern GRADIENT_PATTERN = Pattern.compile("<gradient(?:[:]#?[0-9A-Fa-f]{6}|[:][\\w\\u4e00-\\u9fa5]+)+>(.*?)</gradient>", Pattern.CASE_INSENSITIVE);
+    private static final Pattern GRADIENT_COLORS = Pattern.compile("[:]([^:>]+)");
 
-    private static final Pattern GRADIENT_COLORS = Pattern.compile("#([0-9A-Fa-f]{6})");
+    private static final Pattern SOLID_COLOR_PATTERN = Pattern.compile("<(#?[0-9A-Fa-f]{6}|[a-zA-Z_\\u4e00-\\u9fa5]+)>(.*?)</\\1>", Pattern.CASE_INSENSITIVE);
 
-    private static final Pattern SOLID_COLOR_PATTERN = Pattern.compile("<(#?[0-9A-Fa-f]{6}|[a-zA-Z_]+)>(.*?)</\\1>", Pattern.CASE_INSENSITIVE);
     private static final Pattern HEX_PATTERN = Pattern.compile("&#([0-9A-Fa-f]{6})");
     private static final Pattern LEGACY_PATTERN = Pattern.compile("&([0-9a-fk-orA-FK-OR])");
 
@@ -60,14 +60,19 @@ public final class ColorAPI {
             List<String> colors = new ArrayList<>();
             Matcher colorMatcher = GRADIENT_COLORS.matcher(fullTag);
             while (colorMatcher.find()) {
-                colors.add(colorMatcher.group(1));
+                String color = colorMatcher.group(1);
+                if (color.startsWith("#")) {
+                    color = color.substring(1);
+                }
+                colors.add(color);
             }
 
             String gradientText;
             if (colors.size() >= 2) {
                 gradientText = createMultiGradient(content, colors);
             } else if (colors.size() == 1) {
-                gradientText = "§x" + convertToHexFormat(colors.getFirst()) + content;
+                String hex = resolveColorHex(colors.get(0));
+                gradientText = "§x" + convertToHexFormat(hex) + content;
             } else {
                 gradientText = content;
             }
@@ -82,15 +87,16 @@ public final class ColorAPI {
     /**
      * Create multi-color gradient
      */
-    private static String createMultiGradient(String text, List<String> hexColors) {
-        if (text.isEmpty() || hexColors.size() < 2) return text;
+    private static String createMultiGradient(String text, List<String> colorNames) {
+        if (text.isEmpty() || colorNames.size() < 2) return text;
 
         try {
             List<TextColor> colors = new ArrayList<>();
-            for (String hex : hexColors) {
+            for (String colorName : colorNames) {
+                String hex = resolveColorHex(colorName);
                 TextColor color = TextColor.fromHexString("#" + hex);
                 if (color == null) {
-                    return "§x" + convertToHexFormat(hexColors.getFirst()) + text;
+                    return "§x" + convertToHexFormat(resolveColorHex(colorNames.get(0))) + text;
                 }
                 colors.add(color);
             }
@@ -132,7 +138,7 @@ public final class ColorAPI {
 
             return gradientBuilder.toString();
         } catch (Exception e) {
-            return "§x" + convertToHexFormat(hexColors.get(0)) + text;
+            return "§x" + convertToHexFormat(resolveColorHex(colorNames.get(0))) + text;
         }
     }
 
@@ -178,8 +184,13 @@ public final class ColorAPI {
             } else if (color.matches("[0-9A-Fa-f]{6}")) {
                 coloredText = "§x" + convertToHexFormat(color) + content;
             } else {
-                String legacyCode = colorNameToLegacy(color);
-                coloredText = legacyCode + content;
+                String hex = resolveColorHex(color);
+                if (!hex.equals(color)) {
+                    coloredText = "§x" + convertToHexFormat(hex) + content;
+                } else {
+                    String legacyCode = colorNameToLegacy(color);
+                    coloredText = legacyCode + content;
+                }
             }
 
             matcher.appendReplacement(buffer, Matcher.quoteReplacement(coloredText));
@@ -267,5 +278,20 @@ public final class ColorAPI {
             case "reset" -> "§r";
             default -> "";
         };
+    }
+
+    /**
+     * Resolve color hex code from color name or hex string
+     */
+    private static String resolveColorHex(String color) {
+        if (color.matches("[0-9A-Fa-f]{6}")) {
+            return color;
+        }
+
+        ChineseColors chineseColor = ChineseColors.getByName(color);
+        if (chineseColor != null) {
+            return chineseColor.getHexCode().substring(1); // 移除#
+        }
+        return color;
     }
 }

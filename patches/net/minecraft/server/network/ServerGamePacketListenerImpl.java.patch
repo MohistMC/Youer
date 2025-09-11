@@ -1,15 +1,17 @@
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -2,12 +_,16 @@
+@@ -2,12 +_,18 @@
  
  import com.google.common.collect.Lists;
  import com.google.common.primitives.Floats;
 +import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
 +import com.mohistmc.youer.plugins.ban.bans.BanItem;
++import com.mohistmc.youer.util.LambdaFix;
  import com.mojang.authlib.GameProfile;
  import com.mojang.brigadier.CommandDispatcher;
  import com.mojang.brigadier.ParseResults;
  import com.mojang.brigadier.StringReader;
++import com.mojang.brigadier.exceptions.CommandSyntaxException;
  import com.mojang.brigadier.suggestion.Suggestions;
  import com.mojang.logging.LogUtils;
 +import io.papermc.paper.adventure.ChatProcessor;
@@ -17,7 +19,7 @@
  import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
  import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-@@ -22,8 +_,12 @@
+@@ -22,8 +_,13 @@
  import java.util.Set;
  import java.util.concurrent.CancellationException;
  import java.util.concurrent.CompletableFuture;
@@ -27,6 +29,7 @@
  import java.util.function.BiFunction;
  import java.util.function.Consumer;
 +import java.util.function.Function;
++import java.util.function.Predicate;
  import java.util.stream.Collectors;
  import java.util.stream.Stream;
  import javax.annotation.Nullable;
@@ -388,7 +391,7 @@
          this.player.getRecipeBook().setBookSetting(p_9895_.getBookType(), p_9895_.isOpen(), p_9895_.isFiltering());
      }
  
-@@ -520,25 +_,108 @@
+@@ -520,26 +_,117 @@
          }
      }
  
@@ -440,7 +443,7 @@
 +            }
 +
 +            // This needs to be on main
-+            this.server.scheduleOnMain(() -> this.sendServerSuggestions(packet, stringreader));
++            LambdaFix.lambda$handleCustomCommandSuggestions0$2(this, packet, stringreader);
 +        } else if (!completions.isEmpty()) {
 +            final com.mojang.brigadier.suggestion.SuggestionsBuilder builder0 = new com.mojang.brigadier.suggestion.SuggestionsBuilder(packet.getCommand(), stringreader.getTotalLength());
 +            final com.mojang.brigadier.suggestion.SuggestionsBuilder builder = builder0.createOffset(builder0.getInput().lastIndexOf(' ') + 1);
@@ -468,12 +471,17 @@
 +    }
 +    // Paper end - brig API
 +
-+    private void sendServerSuggestions(final ServerboundCommandSuggestionPacket packet, final StringReader stringreader) {
++    public void sendServerSuggestions(final ServerboundCommandSuggestionPacket packet, final StringReader stringreader) {
 +        // Paper end - AsyncTabCompleteEvent
          ParseResults<CommandSourceStack> parseresults = this.server.getCommands().getDispatcher().parse(stringreader, this.player.createCommandSourceStack());
 +        // Paper start - Handle non-recoverable exceptions
 +        if (!parseresults.getExceptions().isEmpty()
-+                && parseresults.getExceptions().values().stream().anyMatch(e -> e instanceof io.papermc.paper.brigadier.TagParseCommandSyntaxException)) {
++                && parseresults.getExceptions().values().stream().anyMatch(new Predicate<CommandSyntaxException>() {
++            @Override
++            public boolean test(CommandSyntaxException e) {
++                return e instanceof io.papermc.paper.brigadier.TagParseCommandSyntaxException;
++            }
++        })) {
 +            this.disconnect(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
 +            return;
 +        }
@@ -488,22 +496,27 @@
 -                        ? p_333513_
 -                        : new Suggestions(p_333513_.getRange(), p_333513_.getList().subList(0, 1000));
 -                    this.send(new ClientboundCommandSuggestionsPacket(p_9847_.getId(), suggestions));
-+                    suggestions -> {
-+                    // Paper start - Don't tab-complete namespaced commands if send-namespaced is false
-+                    if (!org.spigotmc.SpigotConfig.sendNamespaced && suggestions.getRange().getStart() <= 1) {
-+                        suggestions.getList().removeIf(suggestion -> suggestion.getText().contains(":"));
+-                }
++                    new Consumer<Suggestions>() {
++                        @Override
++                        public void accept(Suggestions suggestions) {
++                            // Paper start - Don't tab-complete namespaced commands if send-namespaced is false
++                            if (!org.spigotmc.SpigotConfig.sendNamespaced && suggestions.getRange().getStart() <= 1) {
++                                suggestions.getList().removeIf(suggestion -> suggestion.getText().contains(":"));
++                            }
++                            // Paper end - Don't tab-complete namespaced commands if send-namespaced is false
++                            // Paper start - Brigadier API
++                            io.papermc.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent suggestEvent = new io.papermc.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent(ServerGamePacketListenerImpl.this.getCraftPlayer(), suggestions, packet.getCommand());
++                            suggestEvent.setCancelled(suggestions.isEmpty());
++                            if (suggestEvent.callEvent()) {
++                                ServerGamePacketListenerImpl.this.send(new ClientboundCommandSuggestionsPacket(packet.getId(), limitTo(suggestEvent.getSuggestions(), ServerGamePacketListenerImpl.MAX_COMMAND_SUGGESTIONS)));
++                            }
++                            // Paper end - Brigadier API
++                        }
 +                    }
-+                    // Paper end - Don't tab-complete namespaced commands if send-namespaced is false
-+                    // Paper start - Brigadier API
-+                    io.papermc.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent suggestEvent = new io.papermc.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent(this.getCraftPlayer(), suggestions, packet.getCommand());
-+                    suggestEvent.setCancelled(suggestions.isEmpty());
-+                    if (suggestEvent.callEvent()) {
-+                        this.send(new ClientboundCommandSuggestionsPacket(packet.getId(), limitTo(suggestEvent.getSuggestions(), ServerGamePacketListenerImpl.MAX_COMMAND_SUGGESTIONS)));
-+                    }
-+                    // Paper end - Brigadier API
-                 }
              );
      }
+ 
 @@ -548,7 +_,7 @@
          PacketUtils.ensureRunningOnSameThread(p_9911_, this, this.player.serverLevel());
          if (!this.server.isCommandBlockEnabled()) {
@@ -1256,19 +1269,19 @@
          Optional<LastSeenMessages> optional = this.unpackAndApplyLastSeen(p_9841_.lastSeenMessages());
          if (!optional.isEmpty()) {
              this.tryHandleChat(p_9841_.message(), () -> {
-@@ -1230,25 +_,44 @@
+@@ -1230,25 +_,45 @@
                      return;
                  }
  
 -                CompletableFuture<FilteredText> completablefuture = this.filterTextPacket(playerchatmessage.signedContent());
 -                Component component = this.server.getChatDecorator().decorate(this.player, playerchatmessage.decoratedContent());
--                this.chatMessageChain.append(completablefuture, p_300785_ -> {
--                    PlayerChatMessage playerchatmessage1 = playerchatmessage.withUnsignedContent(component).filter(p_300785_.mask());
 +                CompletableFuture<FilteredText> completablefuture = this.filterTextPacket(playerchatmessage.signedContent()).thenApplyAsync(Function.identity(), this.server.chatExecutor); // CraftBukkit - async chat
 +                CompletableFuture<Component> componentFuture = net.neoforged.neoforge.common.CommonHooks.getServerChatSubmittedDecorator().decorate(this.player, playerchatmessage.decoratedContent()); // Paper - Adventure
-+                this.chatMessageChain.append(CompletableFuture.allOf(completablefuture, componentFuture), p_300785_ -> {
-+                    if (componentFuture.join() == null) return; // Forge: ServerChatEvent was canceled if this is null.
-+                    PlayerChatMessage playerchatmessage1 = playerchatmessage.withUnsignedContent(componentFuture.join()).filter(completablefuture.join().mask());
++                Component component = componentFuture.join();
+                 this.chatMessageChain.append(completablefuture, p_300785_ -> {
+-                    PlayerChatMessage playerchatmessage1 = playerchatmessage.withUnsignedContent(component).filter(p_300785_.mask());
++                    if (component == null) return; // Forge: ServerChatEvent was canceled if this is null.
++                    PlayerChatMessage playerchatmessage1 = playerchatmessage.withUnsignedContent(component).filter(completablefuture.join().mask());
                      this.broadcastChatMessage(playerchatmessage1);
                  });
 -            });
@@ -1587,7 +1600,7 @@
              }
          }
      }
-@@ -1413,17 +_,75 @@
+@@ -1413,17 +_,78 @@
      @Override
      public void handleAnimate(ServerboundSwingPacket p_9926_) {
          PacketUtils.ensureRunningOnSameThread(p_9926_, this, this.player.serverLevel());
@@ -1603,9 +1616,12 @@
 +        double d3 = Math.max(player.blockInteractionRange(), player.entityInteractionRange());
 +        // SPIGOT-5607: Only call interact event if no block or entity is being clicked. Use bukkit ray trace method, because it handles blocks and entities at the same time
 +        // SPIGOT-7429: Make sure to call PlayerInteractEvent for spectators and non-pickable entities
-+        org.bukkit.util.RayTraceResult result = this.player.level().getWorld().rayTrace(origin, origin.getDirection(), d3, org.bukkit.FluidCollisionMode.NEVER, false, 0.0, entity -> { // Paper - Call interact event; change raySize from 0.1 to 0.0
-+            Entity handle = ((CraftEntity) entity).getHandle();
-+            return entity != this.player.getBukkitEntity() && this.player.getBukkitEntity().canSee(entity) && !handle.isSpectator() && handle.isPickable() && !handle.isPassengerOfSameVehicle(player);
++        org.bukkit.util.RayTraceResult result = this.player.level().getWorld().rayTrace(origin, origin.getDirection(), d3, org.bukkit.FluidCollisionMode.NEVER, false, 0.0, new Predicate<org.bukkit.entity.Entity>() {
++            @Override
++            public boolean test(org.bukkit.entity.Entity entity) { // Paper - Call interact event; change raySize from 0.1 to 0.0
++                Entity handle = ((CraftEntity) entity).getHandle();
++                return entity != ServerGamePacketListenerImpl.this.player.getBukkitEntity() && ServerGamePacketListenerImpl.this.player.getBukkitEntity().canSee(entity) && !handle.isSpectator() && handle.isPickable() && !handle.isPassengerOfSameVehicle(player);
++            }
 +        });
 +        if (result == null) {
 +            CraftEventFactory.callPlayerInteractEvent(this.player, org.bukkit.event.block.Action.LEFT_CLICK_AIR, this.player.getInventory().getSelected(), InteractionHand.MAIN_HAND);

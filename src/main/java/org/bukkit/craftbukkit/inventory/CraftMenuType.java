@@ -2,7 +2,7 @@ package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
-import com.mohistmc.youer.api.ColorAPI;
+import com.mohistmc.youer.api.color.ColorAPI;
 import java.util.function.Supplier;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;

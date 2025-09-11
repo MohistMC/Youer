@@ -1,12 +1,22 @@
 package com.mohistmc.youer.api;
 
+import com.mohistmc.mjson.Json;
+import com.mohistmc.tools.Base64Utils;
 import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.api.color.ColorAPI;
 import com.mohistmc.youer.plugins.ban.BanConfig;
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
@@ -25,6 +35,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.SpawnEggItem;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
@@ -32,8 +43,12 @@ import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemRarity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.profile.PlayerProfile;
+import org.bukkit.profile.PlayerTextures;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
 
@@ -152,6 +167,12 @@ public class ItemAPI {
     public static void name(ItemStack itemStack, String name) {
         ItemMeta im = itemStack.getItemMeta();
         im.displayName(ColorAPI.colorize(name));
+        itemStack.setItemMeta(im);
+    }
+
+    public static void rarity(ItemStack itemStack, ItemRarity rarity) {
+        ItemMeta im = itemStack.getItemMeta();
+        im.setRarity(rarity);
         itemStack.setItemMeta(im);
     }
 
@@ -282,5 +303,27 @@ public class ItemAPI {
         meta.removeAttributeModifier(attribute);
         itemStack.setItemMeta(meta);
         return true;
+    }
+
+    /**
+     * Set the head texture, support Base64, URL, or texture hash
+     *
+     * @param meta meta for head items
+     * @param textureData (can be Base64 encoded, URL, or texture hash)
+     */
+    public static void setSkullTexture(SkullMeta meta, String textureData) {
+        if (textureData == null || textureData.isEmpty()) {
+            return;
+        }
+        try {
+            String textureValue = Base64Utils.decodeBase64(textureData);
+            if (textureValue != null) {
+                Json json = Json.read(textureValue).at("textures").at("SKIN");
+                var playerProfile = Bukkit.createPlayerProfile(UUID.randomUUID());
+                playerProfile.getTextures().setSkin(URI.create(json.asString("url")).toURL());
+                meta.setOwnerProfile(playerProfile);
+            }
+        } catch (Exception ignored) {
+        }
     }
 }

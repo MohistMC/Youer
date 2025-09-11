@@ -23,7 +23,7 @@ public class DataParser {
 
     public static void parseLaunchArgs() {
         OSUtil.OS os = OSUtil.getOS();
-        String osName = (os != null && os.equals(OSUtil.OS.WINDOWS)) ? "win" : "unix";
+        String osName = os.isWindows() ? "win" : "unix";
         launchArgs.addAll(FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "data/" + osName + "_args.txt"));
     }
 }

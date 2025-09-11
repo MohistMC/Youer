@@ -1,6 +1,6 @@
 package org.bukkit.event.player;
 
-import com.mohistmc.youer.api.ColorAPI;
+import com.mohistmc.youer.api.color.ColorAPI;
 import java.net.InetAddress;
 import java.util.UUID;
 import org.bukkit.event.Event;

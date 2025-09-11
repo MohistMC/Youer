@@ -1,8 +1,7 @@
 package io.papermc.paper.adventure;
 
 import com.mohistmc.youer.ai.deepseek.DeepSeek;
-import com.mohistmc.youer.api.ColorAPI;
-import com.mohistmc.youer.feature.GlobalVariableSystem;
+import com.mohistmc.youer.api.color.ColorAPI;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AbstractChatEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;

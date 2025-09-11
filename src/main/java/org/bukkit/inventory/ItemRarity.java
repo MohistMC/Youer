@@ -37,4 +37,13 @@ public enum ItemRarity {
         return this.color;
     }
     // Paper end
+
+    public static ItemRarity byName(String name) {
+        for (ItemRarity rarity : values()) {
+            if (rarity.name().equalsIgnoreCase(name)) {
+                return rarity;
+            }
+        }
+        return COMMON;
+    }
 }

@@ -23,7 +23,7 @@
 
 package io.papermc.paper.event.profile;
 
-import com.mohistmc.youer.api.ColorAPI;
+import com.mohistmc.youer.api.color.ColorAPI;
 import io.papermc.paper.profile.PlayerProfile;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;

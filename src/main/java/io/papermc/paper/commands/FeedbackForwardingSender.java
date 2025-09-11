@@ -1,12 +1,11 @@
 package io.papermc.paper.commands;
 
-import com.mohistmc.youer.api.ColorAPI;
+import com.mohistmc.youer.api.color.ColorAPI;
 import io.papermc.paper.adventure.PaperAdventure;
 import java.util.function.Consumer;
 import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.level.ServerLevel;

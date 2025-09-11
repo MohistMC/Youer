@@ -1,11 +1,10 @@
 package io.papermc.paper.console;
 
-import com.mohistmc.youer.api.ColorAPI;
+import com.mohistmc.youer.api.color.ColorAPI;
 import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.bukkit.craftbukkit.command.CraftConsoleCommandSender;
 

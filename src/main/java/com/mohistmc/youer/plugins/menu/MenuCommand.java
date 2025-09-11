@@ -163,7 +163,7 @@ public class MenuCommand extends Command {
                 icon.setHideTooltip(config.getBoolean(key + ".HIDE-TOOLTIP", false));
                 icon.setItemFlags(config.getStringList(key + ".ITEMFLAG").stream()
                         .map(ItemFlag::valueOf).collect(Collectors.toList()));
-
+                icon.setBase64(config.getString(key + ".BASE64"));
                 icons.put(key, icon);
             }
         }

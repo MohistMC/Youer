@@ -2,6 +2,7 @@ package com.mohistmc.youer.commands;
 
 import com.mohistmc.tools.NumberUtil;
 import com.mohistmc.tools.OSUtil;
+import com.mohistmc.tools.StringUtil;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.PlayerAPI;
@@ -19,7 +20,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import org.bukkit.Bukkit;
@@ -126,10 +126,31 @@ public class YouerCommand extends Command {
                 return true;
             }
             case "debug" -> {
-                var registry = ServerAPI.getNMSServer().registryAccess().registryOrThrow(Registries.WORLD_PRESET);
-                for (var dd : registry) {
-                    sender.sendMessage("Youer: " + registry.getKey(dd));
-                }
+                Player player = Bukkit.getPlayer(args[1]);
+                // 1. 渐变格式（支持带#和不带#）
+                sender.sendMessage("<gradient:#FF0000:#0000FF>渐变文本</gradient>");
+                sender.sendMessage("<gradient:FF0000:0000FF>渐变文本</gradient>");
+                Bukkit.broadcastMessage("<gradient:#00FF00:#0000FF>这是一条绿到蓝渐变的公告</gradient>");
+                player.setDisplayName("<#FF0000>玩家名称</#FF0000>");
+                // 2. 固定颜色格式
+                sender.sendMessage("<#FF0000>红色文本</#FF0000>");
+                sender.sendMessage("<FF0000>红色文本</FF0000>");
+                sender.sendMessage("<red>红色文本</red>");
+                sender.sendMessage("<bold>粗体文本</bold>");
+
+                // 3. 十六进制格式
+                sender.sendMessage("&#FF0000红色文本\n<gradient:#00FF00:#0000FF>绿到蓝渐变</gradient>");
+
+                // 4. 传统格式
+                sender.sendMessage("&a绿色 &c红色 &l粗体");
+
+                // 5. 混合格式
+                sender.sendMessage(
+                        "<gradient:#FF0000:#00FF00>渐变文本</gradient> " +
+                                "<#0000FF>蓝色文本</#0000FF> " +
+                                "&#FF0000红色文本 " +
+                                "&a绿色文本"
+                );
                 return true;
             }
             case "packetstats" -> {
@@ -162,9 +183,9 @@ public class YouerCommand extends Command {
 
                         PacketStatistics.stopCollecting();
                         sender.sendMessage(ChatColor.GOLD + I18n.as("packetstats.report.title"));
-                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.total.bytes", formatBytes(PacketStatistics.getTotalBytesSent())));
+                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.total.bytes", StringUtil.formatBytes(PacketStatistics.getTotalBytesSent())));
                         sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.total.packets", String.valueOf(PacketStatistics.getTotalPacketsSent())));
-                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.transfer.rate", formatBytes(PacketStatistics.getBytesPerSecond())));
+                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.transfer.rate", StringUtil.formatBytes(PacketStatistics.getBytesPerSecond())));
                         sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.packets.per.second", String.valueOf(PacketStatistics.getPacketsPerSecond())));
                         sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.duration", durationString));
 
@@ -195,10 +216,10 @@ public class YouerCommand extends Command {
 
                                 sender.sendMessage(rankColor + String.format("%2d", i + 1) + ". " +
                                         ChatColor.GREEN + packetType + ChatColor.GRAY + ": " +
-                                        ChatColor.AQUA + formatBytes(bytes) +
+                                        ChatColor.AQUA + StringUtil.formatBytes(bytes) +
                                         ChatColor.GRAY + " (" + ChatColor.YELLOW + packets + ChatColor.DARK_GRAY + "p" + ChatColor.GRAY + ") " +
                                         ChatColor.DARK_AQUA + "| " +
-                                        ChatColor.AQUA + formatBytes(bytesPerSecond) + "/s " +
+                                        ChatColor.AQUA + StringUtil.formatBytes(bytesPerSecond) + "/s " +
                                         ChatColor.GRAY + "(" + ChatColor.YELLOW + packetsPerSecond + ChatColor.DARK_GRAY + "p" + ChatColor.GRAY + "/s)");
                             }
 
@@ -222,7 +243,7 @@ public class YouerCommand extends Command {
                         if (PacketStatistics.isCollecting()) {
                             sender.sendMessage(ChatColor.GREEN + I18n.as("packetstats.status.running"));
                             sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.status.collected",
-                                    formatBytes(PacketStatistics.getTotalBytesSent()) + ChatColor.AQUA + " / " +
+                                    StringUtil.formatBytes(PacketStatistics.getTotalBytesSent()) + ChatColor.AQUA + " / " +
                                             ChatColor.YELLOW + PacketStatistics.getTotalPacketsSent() + ChatColor.DARK_GRAY + "p"));
                         } else {
                             sender.sendMessage(ChatColor.RED + I18n.as("packetstats.status.not.running"));
@@ -326,7 +347,7 @@ public class YouerCommand extends Command {
                 }
             }
             case "memoryfix" -> {
-                if (OSUtil.getOS() != OSUtil.OS.WINDOWS) { // 如果不是Windows系统
+                if (!OSUtil.getOS().isWindows()) { // 如果不是Windows系统
                     sender.sendMessage(ChatColor.RED + I18n.as("youercmd.memoryfix.not.windows"));
                     return true;
                 }
@@ -359,18 +380,5 @@ public class YouerCommand extends Command {
         sender.sendMessage(ChatColor.GREEN + "/youer channels_outgo" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.channels_outgo"));
         sender.sendMessage(ChatColor.GREEN + "/youer printthreadcost" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.printthreadcost"));
         sender.sendMessage(ChatColor.GREEN + "/youer help" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.help"));
-    }
-
-
-    private String formatBytes(long bytes) {
-        if (bytes < 1024) {
-            return bytes + " B";
-        } else if (bytes < 1024 * 1024) {
-            return String.format("%.2f KB", bytes / 1024.0);
-        } else if (bytes < 1024 * 1024 * 1024) {
-            return String.format("%.2f MB", bytes / (1024.0 * 1024));
-        } else {
-            return String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024));
-        }
     }
 }

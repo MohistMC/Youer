@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -41,17 +42,18 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.inventory.ItemRarity;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 public class ItemsCommand extends Command {
 
-    private final List<String> params = Arrays.asList("name", "save", "remove", "list", "get", "modeldata", "lore", "attribute", "unattribute");
+    private final List<String> params = Arrays.asList("name", "save", "remove", "list", "get", "modeldata", "lore", "attribute", "unattribute", "rarity");
 
     public ItemsCommand(String name) {
         super(name);
         this.description = I18n.as("itemscmd.description");
-        this.usageMessage = "/items [name|save|list|get|remove|lore|attribute|unattribute]";
+        this.usageMessage = "/items [name|save|list|get|remove|lore|attribute|unattribute|rarity|modeldata]";
         this.setPermission("youer.command.items");
     }
 
@@ -63,27 +65,35 @@ public class ItemsCommand extends Command {
 
         List<String> list = new ArrayList<>();
         if (args.length == 1) {
-            if (args[0].equals("get") || args[0].equals("remove")) {
-                return ItemsConfig.INSTANCE.getItemStrings();
-            }
             for (String param : params) {
                 if (param.toLowerCase().startsWith(args[0].toLowerCase())) {
                     list.add(param);
                 }
             }
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("lore")) {
-            return Arrays.asList("add", "set", "remove");
-        } else if (args.length == 2 && (args[0].equalsIgnoreCase("attribute") || args[0].equalsIgnoreCase("unattribute"))) {
-            String partialAttribute = args[1].toLowerCase();
-            for (org.bukkit.attribute.Attribute attr : org.bukkit.attribute.Attribute.values()) {
-                String name = attr.name().toLowerCase();
-                if (name.startsWith(partialAttribute)) {
-                    list.add(name.replace("generic_", ""));
+        } else if (args.length == 2) {
+            switch (args[0]) {
+                case "get", "remove" -> {
+                    return ItemsConfig.INSTANCE.getItemStrings();
+                }
+                case "rarity" -> {
+                    return Arrays.stream(ItemRarity.values()).map(rarity -> rarity.name().toLowerCase(Locale.ROOT)).collect(Collectors.toList());
+                }
+                case "lore" -> {
+                    return Arrays.asList("add", "set", "remove");
+                }
+                case "attribute", "unattribute" -> {
+                    String partialAttribute = args[1].toLowerCase();
+                    for (org.bukkit.attribute.Attribute attr : org.bukkit.attribute.Attribute.values()) {
+                        String name = attr.name().toLowerCase();
+                        if (name.startsWith(partialAttribute)) {
+                            list.add(name.replace("generic_", ""));
+                        }
+                    }
                 }
             }
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("attribute")) {
+        } else if (args.length == 3 && args[0].equals("attribute")) {
             list.addAll(Arrays.asList("1.0", "2.0", "5.0", "10.0", "-1.0"));
-        } else if (args.length == 4 && args[0].equalsIgnoreCase("attribute")) {
+        } else if (args.length == 4 && args[0].equals("attribute")) {
             String partialSlot = args[3].toLowerCase();
             List<String> slots = new ArrayList<>();
             slots.add("ANY");
@@ -95,8 +105,8 @@ public class ItemsCommand extends Command {
                     list.add(slot);
                 }
             }
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("lore") &&
-                (args[1].equalsIgnoreCase("set") || args[1].equalsIgnoreCase("remove")) &&
+        } else if (args.length == 3 && args[0].equals("lore") &&
+                (args[1].equals("set") || args[1].equals("remove")) &&
                 sender instanceof Player player) {
             ItemStack itemStack = player.getInventory().getItemInMainHand();
             if (itemStack != null && itemStack.hasItemMeta() && itemStack.getItemMeta().hasLore()) {
@@ -107,8 +117,8 @@ public class ItemsCommand extends Command {
                     }
                 }
             }
-        } else if (args.length == 4 && args[0].equalsIgnoreCase("lore") &&
-                args[1].equalsIgnoreCase("set") && sender instanceof Player player) {
+        } else if (args.length == 4 && args[0].equals("lore") &&
+                args[1].equals("set") && sender instanceof Player player) {
             try {
                 int line = Integer.parseInt(args[2]);
                 ItemStack itemStack = player.getInventory().getItemInMainHand();
@@ -155,6 +165,19 @@ public class ItemsCommand extends Command {
                 }
                 ItemAPI.name(player.getInventory().getItemInMainHand(), args[1]);
                 sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.completeSet"));
+                return true;
+            }
+            case "rarity" -> {
+                if (itemStack == null || itemStack.getType().isAir()) {
+                    player.sendMessage(ChatColor.RED + I18n.as("itemscmd.mainhandEmpty"));
+                    return false;
+                }
+                if (args.length != 2) {
+                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items rarity <rarity>"));
+                    return false;
+                }
+                ItemAPI.rarity(player.getInventory().getItemInMainHand(), ItemRarity.byName(args[1]));
+                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.completeRarity"));
                 return true;
             }
             case "save" -> {

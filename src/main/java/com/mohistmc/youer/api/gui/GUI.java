@@ -1,6 +1,5 @@
 package com.mohistmc.youer.api.gui;
 
-import com.mohistmc.youer.api.ColorAPI;
 import java.util.Objects;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;

@@ -56,6 +56,10 @@ public class MenuGUI {
                 itemFactory.hideTooltip();
             }
 
+            if (itemFactory.isSkull()) {
+                itemFactory.head(icon.getBase64());
+            }
+
             if (icon.getEnchantments() != null && !icon.getEnchantments().isEmpty()) {
                 for (String enchantment : icon.getEnchantments()) {
                     try {

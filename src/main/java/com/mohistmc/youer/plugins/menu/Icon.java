@@ -22,4 +22,5 @@ public class Icon {
     private boolean hideTooltip;
     private Integer customModelData;
     private List<ItemFlag> itemFlags;
+    private String base64;
 }

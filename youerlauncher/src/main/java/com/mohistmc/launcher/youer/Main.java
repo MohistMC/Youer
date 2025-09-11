@@ -28,6 +28,7 @@ import com.mohistmc.launcher.youer.feature.YouerProxySelector;
 import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.YouerModuleManager;
 import com.mohistmc.tools.JarTool;
+import com.mohistmc.tools.Logo;
 import com.mohistmc.tools.MojangEulaUtil;
 import cpw.mods.bootstraplauncher.BootstrapLauncher;
 import java.lang.management.ManagementFactory;
@@ -57,18 +58,9 @@ public class Main {
         YouerConfigUtil.i18n();
         jarTool = new JarTool(Main.class);
         if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.aBoolean("youer.show_logo", true)) {
-            String test = """
-                    
-                     ██╗   ██╗ ██████╗ ██╗   ██╗███████╗██████╗
-                     ╚██╗ ██╔╝██╔═══██╗██║   ██║██╔════╝██╔══██╗
-                      ╚████╔╝ ██║   ██║██║   ██║█████╗  ██████╔╝
-                       ╚██╔╝  ██║   ██║██║   ██║██╔══╝  ██╔══██╗
-                        ██║   ╚██████╔╝╚██████╔╝███████╗██║  ██║
-                        ╚═╝    ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝
-                    
-                    %s-%s Java(%s) %s PID: %s
-                    """;
-            System.out.printf(test + "%n", i18n.as("youer.launch.welcomemessage"),
+            System.out.printf("%n%s%n%s - %s, Java(%s) %s PID: %s%n",
+                    Logo.asYouer(),
+                    i18n.as("youer.launch.welcomemessage"),
                     getVersion(),
                     System.getProperty("java.class.version"),
                     System.getProperty("java.version"),
