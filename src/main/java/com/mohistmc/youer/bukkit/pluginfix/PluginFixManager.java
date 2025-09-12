@@ -37,6 +37,9 @@ public class PluginFixManager {
             case "com.bgsoftware.superiorskyblock.external.ProvidersManagerImpl" -> {
                 return patch(clazz, PluginFixManager::removePaper);
             }
+            case "net.playavalon.mythicdungeons.player.MythicPlayer" -> {
+                return patch(clazz, MythicDungeonsFix::fix;);
+            }
             case "com.onarandombox.MultiverseCore.utils.WorldManager" -> {
                 return patch(clazz, MultiverseCore::fix);
             }
