@@ -13,12 +13,13 @@ public class CraftSound {
     public static Sound minecraftToBukkit(SoundEvent minecraft) {
         Preconditions.checkArgument(minecraft != null);
 
-        net.minecraft.core.Registry<SoundEvent> registry = CraftRegistry.getMinecraftRegistry(Registries.SOUND_EVENT);
-        var resourceLocation = registry.getResourceKey(minecraft).orElseThrow().location();
-        Sound bukkit = Registry.SOUNDS.get(CraftNamespacedKey.fromMinecraft(resourceLocation));
-        if (bukkit == null) {
-            bukkit = Sound.lookForModSounds(resourceLocation);
+        if (Sound.MODD_SOUNDS.containsKey(minecraft)) {
+            return Sound.MODD_SOUNDS.get(minecraft);
         }
+
+        net.minecraft.core.Registry<SoundEvent> registry = CraftRegistry.getMinecraftRegistry(Registries.SOUND_EVENT);
+        Sound bukkit = Registry.SOUNDS.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location()));
+
         Preconditions.checkArgument(bukkit != null);
 
         return bukkit;
@@ -26,7 +27,9 @@ public class CraftSound {
 
     public static SoundEvent bukkitToMinecraft(Sound bukkit) {
         Preconditions.checkArgument(bukkit != null);
-
+        if (Sound.MODD_SOUNDS.containsValue(bukkit)) {
+            return Sound.MODD_SOUNDS.inverse().get(bukkit);
+        }
         return CraftRegistry.getMinecraftRegistry(Registries.SOUND_EVENT)
                 .getOptional(CraftNamespacedKey.toMinecraft(bukkit.getKey())).orElseThrow();
     }
