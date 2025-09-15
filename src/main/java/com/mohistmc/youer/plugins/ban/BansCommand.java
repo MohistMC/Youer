@@ -144,7 +144,7 @@ public class BansCommand extends Command {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.item"));
                         List<String> old = BanConfig.ITEM.getItem();
                         for (String s : BanConfig.ITEM.getItem()) {
-                            Material material = ItemAPI.getMaterial(s);
+                            Material material = Material.matchMaterial(s);
                             if (!material.isAir()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
@@ -169,7 +169,7 @@ public class BansCommand extends Command {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.item-moshou"));
                         List<String> old = BanConfig.MOSHOU.getMoShouList();
                         for (String s : BanConfig.MOSHOU.getMoShouList()) {
-                            Material material = ItemAPI.getMaterial(s);
+                            Material material = Material.matchMaterial(s);
                             if (!material.isAir()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)

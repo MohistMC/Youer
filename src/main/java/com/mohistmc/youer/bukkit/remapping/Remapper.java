@@ -48,7 +48,6 @@ public class Remapper {
         put("com/mohistmc/net/kyori/option/", "net/kyori/option/");
         put("com/destroystokyo/paper/", "io/papermc/paper/");
         put("org/apache/commons/math3/", "com/mohistmc/org/apache/commons/math3/");
-        put("net/neoforged/art/internal/", "com/mohistmc/net/neoforged/art/internal/");
         this.toBukkitMapping = new JarMapping();
         this.toNmsMapping.loadMappings(
                 new BufferedReader(new InputStreamReader(Remapper.class.getClassLoader().getResourceAsStream("mappings/spigot2srg.srg"))),

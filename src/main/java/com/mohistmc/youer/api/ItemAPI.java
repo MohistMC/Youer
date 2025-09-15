@@ -229,14 +229,6 @@ public class ItemAPI {
         }
     }
 
-    public static Material getMaterial(String type) {
-        try {
-            return Material.valueOf(type);
-        } catch (Exception e) {
-            return Material.AIR;
-        }
-    }
-
     public static Enchantment getEnchantmentByName(String name) {
         try {
             return Enchantment.getByName(name);
