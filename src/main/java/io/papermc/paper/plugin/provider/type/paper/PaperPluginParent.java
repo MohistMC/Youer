@@ -13,7 +13,7 @@ import io.papermc.paper.plugin.provider.configuration.type.DependencyConfigurati
 import io.papermc.paper.plugin.provider.entrypoint.DependencyContext;
 import io.papermc.paper.plugin.provider.type.PluginTypeFactory;
 import io.papermc.paper.plugin.provider.util.ProviderUtil;
-import io.papermc.paper.util.SneakyThrow;
+import com.destroystokyo.paper.util.SneakyThrow;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;

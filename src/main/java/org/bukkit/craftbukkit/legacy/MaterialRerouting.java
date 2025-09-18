@@ -639,7 +639,7 @@ public class MaterialRerouting {
 
     // Method added pre-1.13, needs legacy rerouting (https://github.com/PaperMC/Paper/commit/3438e96192)
     public static Set<Material> getTypes(
-            final io.papermc.paper.event.player.PlayerArmorChangeEvent.SlotType slotType,
+            final com.destroystokyo.paper.event.player.PlayerArmorChangeEvent.SlotType slotType,
             @InjectPluginVersion final ApiVersion apiVersion
     ) {
         if (apiVersion.isNewerThanOrSameAs(ApiVersion.FLATTENING)) return slotType.getTypes();
@@ -648,29 +648,29 @@ public class MaterialRerouting {
 
     // Method added pre-1.13, needs legacy rerouting (https://github.com/PaperMC/Paper/commit/3438e96192)
     @RerouteStatic("com/destroystokyo/paper/event/player/PlayerArmorChangeEvent$SlotType")
-    public static io.papermc.paper.event.player.PlayerArmorChangeEvent.SlotType getByMaterial(
+    public static com.destroystokyo.paper.event.player.PlayerArmorChangeEvent.SlotType getByMaterial(
             final Material material
     ) {
-        return io.papermc.paper.event.player.PlayerArmorChangeEvent.SlotType.getByMaterial(MaterialRerouting.transformToItemType(material));
+        return com.destroystokyo.paper.event.player.PlayerArmorChangeEvent.SlotType.getByMaterial(MaterialRerouting.transformToItemType(material));
     }
 
     // Method added pre-1.13, needs legacy rerouting (https://github.com/PaperMC/Paper/commit/3438e96192)
     @RerouteStatic("com/destroystokyo/paper/event/player/PlayerArmorChangeEvent$SlotType")
     public static boolean isEquipable(final Material material) {
-        return io.papermc.paper.event.player.PlayerArmorChangeEvent.SlotType.isEquipable(MaterialRerouting.transformToItemType(material));
+        return com.destroystokyo.paper.event.player.PlayerArmorChangeEvent.SlotType.isEquipable(MaterialRerouting.transformToItemType(material));
     }
 
     // Method added post 1.13, no-op (https://github.com/PaperMC/Paper/pull/1244)
-    public static Material getMaterial(final io.papermc.paper.event.block.AnvilDamagedEvent.DamageState damageState) {
+    public static Material getMaterial(final com.destroystokyo.paper.event.block.AnvilDamagedEvent.DamageState damageState) {
         return damageState.getMaterial();
     }
 
     // Method added post 1.13, no-op (https://github.com/PaperMC/Paper/pull/1244)
     @RerouteStatic("com/destroystokyo/paper/event/block/AnvilDamagedEvent$DamageState")
-    public static io.papermc.paper.event.block.AnvilDamagedEvent.DamageState getState(
+    public static com.destroystokyo.paper.event.block.AnvilDamagedEvent.DamageState getState(
             final Material material
     ) {
-        return io.papermc.paper.event.block.AnvilDamagedEvent.DamageState.getState(material);
+        return com.destroystokyo.paper.event.block.AnvilDamagedEvent.DamageState.getState(material);
     }
 
     // Method added post 1.13, no-op (https://github.com/PaperMC/Paper/pull/10290)

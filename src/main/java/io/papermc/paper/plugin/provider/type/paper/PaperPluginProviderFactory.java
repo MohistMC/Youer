@@ -9,7 +9,7 @@ import io.papermc.paper.plugin.loader.PluginLoader;
 import io.papermc.paper.plugin.provider.configuration.PaperPluginMeta;
 import io.papermc.paper.plugin.provider.type.PluginTypeFactory;
 import io.papermc.paper.plugin.provider.util.ProviderUtil;
-import io.papermc.paper.utils.PaperPluginLogger;
+import com.destroystokyo.paper.utils.PaperPluginLogger;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;

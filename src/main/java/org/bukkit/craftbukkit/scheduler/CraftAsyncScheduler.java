@@ -24,7 +24,7 @@
 package org.bukkit.craftbukkit.scheduler;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import io.papermc.paper.ServerSchedulerReportingWrapper;
+import com.destroystokyo.paper.ServerSchedulerReportingWrapper;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;

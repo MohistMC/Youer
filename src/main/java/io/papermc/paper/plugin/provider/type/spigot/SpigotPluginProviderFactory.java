@@ -10,7 +10,7 @@ import io.papermc.paper.plugin.provider.configuration.serializer.constraints.Plu
 import io.papermc.paper.plugin.provider.type.PluginTypeFactory;
 import io.papermc.paper.plugin.provider.util.ProviderUtil;
 import io.papermc.paper.util.MappingEnvironment;
-import io.papermc.paper.utils.PaperPluginLogger;
+import com.destroystokyo.paper.utils.PaperPluginLogger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;

@@ -4,7 +4,7 @@ import io.papermc.paper.plugin.entrypoint.Entrypoint;
 import io.papermc.paper.plugin.entrypoint.EntrypointHandler;
 import io.papermc.paper.plugin.provider.PluginProvider;
 import io.papermc.paper.plugin.storage.ProviderStorage;
-import io.papermc.paper.util.SneakyThrow;
+import com.destroystokyo.paper.util.SneakyThrow;
 import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;

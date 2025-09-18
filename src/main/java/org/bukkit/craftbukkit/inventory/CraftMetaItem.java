@@ -1039,7 +1039,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
     // Paper end
     @Override
     public final void setDisplayName(String name) {
-        this.displayName = name == null ? null : io.papermc.paper.adventure.PaperAdventure.asVanilla(ColorAPI.colorize(name));
+        this.displayName = CraftChatMessage.fromStringOrNull(ColorAPI.colorizeString(name));
     }
 
     // Paper start
@@ -1060,7 +1060,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
 
     @Override
     public final void setItemName(String name) {
-        this.itemName = name == null ? null : io.papermc.paper.adventure.PaperAdventure.asVanilla(ColorAPI.colorize(name));
+        this.itemName = CraftChatMessage.fromStringOrNull(ColorAPI.colorizeString(name));
     }
 
     @Override
@@ -2045,7 +2045,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
                     addTo.add(Component.empty());
                 } else {
                     String entry = object.toString();
-                    Component component = (possiblyJsonInput) ? CraftChatMessage.fromJSONOrString(entry) : (entry == null ? null : io.papermc.paper.adventure.PaperAdventure.asVanilla(ColorAPI.colorize(entry)));
+                    Component component = (possiblyJsonInput) ? CraftChatMessage.fromJSONOrString(entry) : (entry == null ? null : CraftChatMessage.fromStringOrNull(ColorAPI.colorizeString(entry)));
 
                     if (component != null) {
                         addTo.add(component);
@@ -2203,50 +2203,50 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
     }
 
     @Override
-    public Set<io.papermc.paper.Namespaced> getDestroyableKeys() {
+    public Set<com.destroystokyo.paper.Namespaced> getDestroyableKeys() {
         return !this.hasDestroyableKeys() ? Collections.emptySet() : convertToLegacyNamespaced(this.canBreakPredicates);
     }
 
     @Override
-    public void setDestroyableKeys(final Collection<io.papermc.paper.Namespaced> canDestroy) {
+    public void setDestroyableKeys(final Collection<com.destroystokyo.paper.Namespaced> canDestroy) {
         Preconditions.checkArgument(canDestroy != null, "Cannot replace with null collection!");
         Preconditions.checkArgument(ofAcceptableType(canDestroy), "Can only use NamespacedKey or NamespacedTag objects!");
         this.canBreakPredicates = convertFromLegacyNamespaced(canDestroy);
     }
 
     @Override
-    public Set<io.papermc.paper.Namespaced> getPlaceableKeys() {
+    public Set<com.destroystokyo.paper.Namespaced> getPlaceableKeys() {
         return !this.hasPlaceableKeys() ? Collections.emptySet() : convertToLegacyNamespaced(this.canPlaceOnPredicates);
     }
 
     @Override
-    public void setPlaceableKeys(final Collection<io.papermc.paper.Namespaced> canPlaceOn) {
+    public void setPlaceableKeys(final Collection<com.destroystokyo.paper.Namespaced> canPlaceOn) {
         Preconditions.checkArgument(canPlaceOn != null, "Cannot replace with null collection!");
         Preconditions.checkArgument(ofAcceptableType(canPlaceOn), "Can only use NamespacedKey or NamespacedTag objects!");
         this.canPlaceOnPredicates = convertFromLegacyNamespaced(canPlaceOn);
     }
 
-    private static List<net.minecraft.advancements.critereon.BlockPredicate> convertFromLegacyNamespaced(final Collection<io.papermc.paper.Namespaced> namespaceds) {
+    private static List<net.minecraft.advancements.critereon.BlockPredicate> convertFromLegacyNamespaced(final Collection<com.destroystokyo.paper.Namespaced> namespaceds) {
         final List<net.minecraft.advancements.critereon.BlockPredicate> predicates = new ArrayList<>();
-        for (final io.papermc.paper.Namespaced namespaced : namespaceds) {
+        for (final com.destroystokyo.paper.Namespaced namespaced : namespaceds) {
             if (namespaced instanceof final org.bukkit.NamespacedKey key) {
                 predicates.add(net.minecraft.advancements.critereon.BlockPredicate.Builder.block().of(CraftBlockType.bukkitToMinecraft(Objects.requireNonNull(org.bukkit.Registry.MATERIAL.get(key)))).build());
-            } else if (namespaced instanceof final io.papermc.paper.NamespacedTag tag) {
+            } else if (namespaced instanceof final com.destroystokyo.paper.NamespacedTag tag) {
                 predicates.add(net.minecraft.advancements.critereon.BlockPredicate.Builder.block().of(net.minecraft.tags.TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(tag.getNamespace(), tag.getKey()))).build());
             }
         }
         return predicates;
     }
 
-    private static Set<io.papermc.paper.Namespaced> convertToLegacyNamespaced(final Collection<net.minecraft.advancements.critereon.BlockPredicate> predicates) {
-        final Set<io.papermc.paper.Namespaced> namespaceds = Sets.newHashSet();
+    private static Set<com.destroystokyo.paper.Namespaced> convertToLegacyNamespaced(final Collection<net.minecraft.advancements.critereon.BlockPredicate> predicates) {
+        final Set<com.destroystokyo.paper.Namespaced> namespaceds = Sets.newHashSet();
         for (final net.minecraft.advancements.critereon.BlockPredicate predicate : predicates) {
             if (predicate.blocks().isEmpty()) {
                 continue;
             }
             final net.minecraft.core.HolderSet<net.minecraft.world.level.block.Block> holders = predicate.blocks().get();
             if (holders instanceof final net.minecraft.core.HolderSet.Named<net.minecraft.world.level.block.Block> named) {
-                namespaceds.add(new io.papermc.paper.NamespacedTag(named.key().location().getNamespace(), named.key().location().getPath()));
+                namespaceds.add(new com.destroystokyo.paper.NamespacedTag(named.key().location().getNamespace(), named.key().location().getPath()));
             } else {
                 holders.forEach(h -> {
                     h.unwrapKey().ifPresent(key -> {
@@ -2269,9 +2269,9 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
     }
 
     // not a fan of this
-    private static boolean ofAcceptableType(final Collection<io.papermc.paper.Namespaced> namespacedResources) {
-        for (io.papermc.paper.Namespaced resource : namespacedResources) {
-            if (!(resource instanceof org.bukkit.NamespacedKey || resource instanceof io.papermc.paper.NamespacedTag)) {
+    private static boolean ofAcceptableType(final Collection<com.destroystokyo.paper.Namespaced> namespacedResources) {
+        for (com.destroystokyo.paper.Namespaced resource : namespacedResources) {
+            if (!(resource instanceof org.bukkit.NamespacedKey || resource instanceof com.destroystokyo.paper.NamespacedTag)) {
                 return false;
             }
         }

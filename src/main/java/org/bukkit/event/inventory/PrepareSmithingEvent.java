@@ -1,6 +1,6 @@
 package org.bukkit.event.inventory;
 
-import io.papermc.paper.event.inventory.PrepareResultEvent;
+import com.destroystokyo.paper.event.inventory.PrepareResultEvent;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.SmithingInventory;

@@ -1,6 +1,6 @@
 package io.papermc.paper.event.server;
 
-import io.papermc.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.PlayerProfile;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.event.Cancellable;

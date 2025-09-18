@@ -12,11 +12,11 @@
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.DataResult;
  import com.mojang.serialization.Dynamic;
-+import io.papermc.paper.event.entity.EntityJumpEvent;
++import com.destroystokyo.paper.event.entity.EntityJumpEvent;
 +import io.papermc.paper.event.entity.EntityKnockbackEvent;
 +import io.papermc.paper.event.entity.EntityMoveEvent;
-+import io.papermc.paper.event.player.PlayerArmorChangeEvent;
-+import io.papermc.paper.event.player.PlayerAttackEntityCooldownResetEvent;
++import com.destroystokyo.paper.event.player.PlayerArmorChangeEvent;
++import com.destroystokyo.paper.event.player.PlayerAttackEntityCooldownResetEvent;
 +import io.papermc.paper.event.player.PlayerStopUsingItemEvent;
  import it.unimi.dsi.fastutil.doubles.DoubleDoubleImmutablePair;
  import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
@@ -1252,7 +1252,7 @@
      }
  
      protected SoundEvent getDrinkingSound(ItemStack p_21174_) {
-@@ -1511,6 +_,28 @@
+@@ -1511,25 +_,54 @@
          return p_21202_.getEatingSound();
      }
  
@@ -1281,7 +1281,23 @@
      public Optional<BlockPos> getLastClimbablePos() {
          return this.lastClimbablePos;
      }
-@@ -1521,15 +_,9 @@
+ 
++    // Pufferfish start
++    private boolean cachedOnClimable = false;
++    private BlockPos lastClimbingPosition = null;
++
++    public boolean onClimableCached() {
++        if (!this.blockPosition().equals(this.lastClimbingPosition)) {
++            this.cachedOnClimable = this.onClimbable();
++            this.lastClimbingPosition = this.blockPosition();
++        }
++        return this.cachedOnClimable;
++    }
++    // Pufferfish end
++
+     public boolean onClimbable() {
+         if (this.isSpectator()) {
+             return false;
          } else {
              BlockPos blockpos = this.blockPosition();
              BlockState blockstate = this.getInBlockState();
@@ -1305,7 +1321,7 @@
      @Override
      public boolean isAlive() {
 -        return !this.isRemoved() && this.getHealth() > 0.0F;
-+        return !this.isRemoved() && this.getHealth() > 0.0F && !this.dead; // Paper - Check this.dead
++        return !this.isRemoved() && (this.entityData != null && this.getHealth() > 0.0F) && !this.dead; // Paper - Check this.dead
      }
  
      @Override
@@ -1777,6 +1793,15 @@
                  if (map == null) {
                      map = Maps.newEnumMap(EquipmentSlot.class);
                  }
+@@ -2543,7 +_,7 @@
+                     this.lastBodyItemStack = itemstack;
+             }
+         });
+-        ((ServerLevel)this.level()).getChunkSource().broadcast(this, new ClientboundSetEquipmentPacket(this.getId(), list));
++        ((ServerLevel)this.level()).getChunkSource().broadcast(this, new ClientboundSetEquipmentPacket(this.getId(), list, true)); // Paper - data sanitization
+     }
+ 
+     private ItemStack getLastArmorItem(EquipmentSlot p_21199_) {
 @@ -2637,6 +_,9 @@
          this.level().getProfiler().push("jump");
          if (this.jumping && this.isAffectedByFluids()) {

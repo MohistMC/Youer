@@ -6,7 +6,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.authlib.yggdrasil.ProfileResult;
-import io.papermc.paper.profile.SharedPlayerProfile;
+import com.destroystokyo.paper.profile.SharedPlayerProfile;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -32,7 +32,7 @@ import org.bukkit.profile.PlayerTextures;
 import org.jetbrains.annotations.ApiStatus;
 
 @SerializableAs("PlayerProfile")
-public final class CraftPlayerProfile implements PlayerProfile, SharedPlayerProfile, io.papermc.paper.profile.PlayerProfile { // Paper
+public final class CraftPlayerProfile implements PlayerProfile, SharedPlayerProfile, com.destroystokyo.paper.profile.PlayerProfile { // Paper
 
     @Nonnull
     public static GameProfile validateSkullProfile(@Nonnull GameProfile gameProfile) {
@@ -310,66 +310,66 @@ public final class CraftPlayerProfile implements PlayerProfile, SharedPlayerProf
     // The methods don't actually have to be implemented, because the profile should immediately be cast to SharedPlayerProfile
     @Override
     public String setName(final String name) {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 
     @Override
     public UUID getId() {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 
     @Override
     public UUID setId(final UUID uuid) {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 
     @Override
-    public java.util.Set<io.papermc.paper.profile.ProfileProperty> getProperties() {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    public java.util.Set<com.destroystokyo.paper.profile.ProfileProperty> getProperties() {
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 
     @Override
     public boolean hasProperty(final String property) {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 
     @Override
-    public void setProperty(final io.papermc.paper.profile.ProfileProperty property) {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    public void setProperty(final com.destroystokyo.paper.profile.ProfileProperty property) {
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 
     @Override
-    public void setProperties(final java.util.Collection<io.papermc.paper.profile.ProfileProperty> properties) {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+    public void setProperties(final java.util.Collection<com.destroystokyo.paper.profile.ProfileProperty> properties) {
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 
     @Override
     public void clearProperties() {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 
     @Override
     public boolean completeFromCache() {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 
     @Override
     public boolean completeFromCache(final boolean onlineMode) {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 
     @Override
     public boolean completeFromCache(final boolean lookupUUID, final boolean onlineMode) {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 
     @Override
     public boolean complete(final boolean textures) {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 
     @Override
     public boolean complete(final boolean textures, final boolean onlineMode) {
-        throw new UnsupportedOperationException("Do not cast to io.papermc.paper.profile.PlayerProfile");
+        throw new UnsupportedOperationException("Do not cast to com.destroystokyo.paper.profile.PlayerProfile");
     }
 }

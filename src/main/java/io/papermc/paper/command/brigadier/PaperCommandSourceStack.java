@@ -1,6 +1,6 @@
 package io.papermc.paper.command.brigadier;
 
-import io.papermc.paper.brigadier.BukkitBrigadierCommandSource;
+import com.destroystokyo.paper.brigadier.BukkitBrigadierCommandSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;

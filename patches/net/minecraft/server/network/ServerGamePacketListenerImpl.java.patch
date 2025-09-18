@@ -98,9 +98,12 @@
      private int dropSpamTickCount;
      private double firstGoodX;
      private double firstGoodY;
-@@ -235,6 +_,21 @@
+@@ -233,8 +_,23 @@
+     private SignedMessageChain.Decoder signedMessageDecoder;
+     private final LastSeenMessagesValidator lastSeenMessages = new LastSeenMessagesValidator(20);
      private final MessageSignatureCache messageSignatureCache = MessageSignatureCache.createDefault();
-     private final FutureChain chatMessageChain;
+-    private final FutureChain chatMessageChain;
++    public final FutureChain chatMessageChain;
      private boolean waitingForSwitchToConfig;
 +    // CraftBukkit start - add fields and methods
 +    private int lastTick = MinecraftServer.currentTick;
@@ -199,6 +202,15 @@
          }
      }
  
+@@ -359,7 +_,7 @@
+         });
+     }
+ 
+-    private CompletableFuture<FilteredText> filterTextPacket(String p_243213_) {
++    public CompletableFuture<FilteredText> filterTextPacket(String p_243213_) {
+         return this.filterTextPacket(p_243213_, TextFilter::processStreamMessage);
+     }
+ 
 @@ -389,11 +_,23 @@
      public void handleMoveVehicle(ServerboundMoveVehiclePacket p_9876_) {
          PacketUtils.ensureRunningOnSameThread(p_9876_, this, this.player.serverLevel());
@@ -215,11 +227,11 @@
              if (entity != this.player && entity.getControllingPassenger() == this.player && entity == this.lastVehicle) {
                  ServerLevel serverlevel = this.player.serverLevel();
 +                // CraftBukkit - store current player position
-+                prevX = player.getX();
-+                prevY = player.getY();
-+                prevZ = player.getZ();
-+                prevYaw = player.getYRot();
-+                prevPitch = player.getXRot();
++                double prevX = this.player.getX();
++                double prevY = this.player.getY();
++                double prevZ = this.player.getZ();
++                float prevYaw = this.player.getYRot();
++                float prevPitch = this.player.getXRot();
 +                // CraftBukkit end
                  double d0 = entity.getX();
                  double d1 = entity.getY();
@@ -433,9 +445,9 @@
              stringreader.skip();
          }
  
-+        final io.papermc.paper.event.server.AsyncTabCompleteEvent event = new io.papermc.paper.event.server.AsyncTabCompleteEvent(this.getCraftPlayer(), packet.getCommand(), true, null);
++        final com.destroystokyo.paper.event.server.AsyncTabCompleteEvent event = new com.destroystokyo.paper.event.server.AsyncTabCompleteEvent(this.getCraftPlayer(), packet.getCommand(), true, null);
 +        event.callEvent();
-+        final List<io.papermc.paper.event.server.AsyncTabCompleteEvent.Completion> completions = event.isCancelled() ? com.google.common.collect.ImmutableList.of() : event.completions();
++        final List<com.destroystokyo.paper.event.server.AsyncTabCompleteEvent.Completion> completions = event.isCancelled() ? com.google.common.collect.ImmutableList.of() : event.completions();
 +        // If the event isn't handled, we can assume that we have no completions, and so we'll ask the server
 +        if (!event.isHandled()) {
 +            if (event.isCancelled()) {
@@ -447,7 +459,7 @@
 +        } else if (!completions.isEmpty()) {
 +            final com.mojang.brigadier.suggestion.SuggestionsBuilder builder0 = new com.mojang.brigadier.suggestion.SuggestionsBuilder(packet.getCommand(), stringreader.getTotalLength());
 +            final com.mojang.brigadier.suggestion.SuggestionsBuilder builder = builder0.createOffset(builder0.getInput().lastIndexOf(' ') + 1);
-+            for (final io.papermc.paper.event.server.AsyncTabCompleteEvent.Completion completion : completions) {
++            for (final com.destroystokyo.paper.event.server.AsyncTabCompleteEvent.Completion completion : completions) {
 +                final Integer intSuggestion = com.google.common.primitives.Ints.tryParse(completion.suggestion());
 +                if (intSuggestion != null) {
 +                    builder.suggest(intSuggestion, PaperAdventure.asVanilla(completion.tooltip()));
@@ -457,7 +469,7 @@
 +            }
 +            // Paper start - Brigadier API
 +            com.mojang.brigadier.suggestion.Suggestions suggestions = builder.buildFuture().join();
-+            io.papermc.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent suggestEvent = new io.papermc.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent(this.getCraftPlayer(), suggestions, packet.getCommand());
++            com.destroystokyo.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent suggestEvent = new com.destroystokyo.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent(this.getCraftPlayer(), suggestions, packet.getCommand());
 +            suggestEvent.setCancelled(suggestions.isEmpty());
 +            if (suggestEvent.callEvent()) {
 +                this.connection.send(new ClientboundCommandSuggestionsPacket(packet.getId(), limitTo(suggestEvent.getSuggestions(), ServerGamePacketListenerImpl.MAX_COMMAND_SUGGESTIONS)));
@@ -506,7 +518,7 @@
 +                            }
 +                            // Paper end - Don't tab-complete namespaced commands if send-namespaced is false
 +                            // Paper start - Brigadier API
-+                            io.papermc.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent suggestEvent = new io.papermc.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent(ServerGamePacketListenerImpl.this.getCraftPlayer(), suggestions, packet.getCommand());
++                            com.destroystokyo.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent suggestEvent = new com.destroystokyo.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent(ServerGamePacketListenerImpl.this.getCraftPlayer(), suggestions, packet.getCommand());
 +                            suggestEvent.setCancelled(suggestions.isEmpty());
 +                            if (suggestEvent.callEvent()) {
 +                                ServerGamePacketListenerImpl.this.send(new ClientboundCommandSuggestionsPacket(packet.getId(), limitTo(suggestEvent.getSuggestions(), ServerGamePacketListenerImpl.MAX_COMMAND_SUGGESTIONS)));
@@ -613,17 +625,7 @@
          }
      }
  
-@@ -833,28 +_,42 @@
-         }
-     }
- 
-+    double prevX;
-+    double prevY;
-+    double prevZ;
-+    float prevYaw;
-+    float prevPitch;
-+
-     @Override
+@@ -837,24 +_,32 @@
      public void handleMovePlayer(ServerboundMovePlayerPacket p_9874_) {
          PacketUtils.ensureRunningOnSameThread(p_9874_, this, this.player.serverLevel());
          if (containsInvalidValues(p_9874_.getX(0.0), p_9874_.getY(0.0), p_9874_.getZ(0.0), p_9874_.getYRot(0.0F), p_9874_.getXRot(0.0F))) {
@@ -654,15 +656,33 @@
 +                        this.allowedPlayerTicks = 20; // CraftBukkit
                      } else {
 +                        // CraftBukkit - Make sure the move is valid but then reset it for plugins to modify
-+                        prevX = player.getX();
-+                        prevY = player.getY();
-+                        prevZ = player.getZ();
-+                        prevYaw = player.getYRot();
-+                        prevPitch = player.getXRot();
++                        double prevX = this.player.getX();
++                        double prevY = this.player.getY();
++                        double prevZ = this.player.getZ();
++                        float prevYaw = this.player.getYRot();
++                        float prevPitch = this.player.getXRot();
 +                        // CraftBukkit end
                          double d3 = this.player.getX();
                          double d4 = this.player.getY();
                          double d5 = this.player.getZ();
+@@ -862,7 +_,16 @@
+                         double d7 = d1 - this.firstGoodY;
+                         double d8 = d2 - this.firstGoodZ;
+                         double d9 = this.player.getDeltaMovement().lengthSqr();
+-                        double d10 = d6 * d6 + d7 * d7 + d8 * d8;
++                        // Paper start - fix large move vectors killing the server
++                        double currDeltaX = toX - prevX;
++                        double currDeltaY = toY - prevY;
++                        double currDeltaZ = toZ - prevZ;
++                        double d10 = Math.max(d6 * d6 + d7 * d7 + d8 * d8, (currDeltaX * currDeltaX + currDeltaY * currDeltaY + currDeltaZ * currDeltaZ) - 1);
++                        double otherFieldX = d0 - this.lastGoodX;
++                        double otherFieldY = d1 - this.lastGoodY;
++                        double otherFieldZ = d2 - this.lastGoodZ;
++                        d10 = Math.max(d10, (otherFieldX * otherFieldX + otherFieldY * otherFieldY + otherFieldZ * otherFieldZ) - 1);
++                        // Paper end - fix large move vectors killing the server
+                         if (this.player.isSleeping()) {
+                             if (d10 > 1.0) {
+                                 this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), f, f1);
 @@ -872,18 +_,55 @@
                              if (serverlevel.tickRateManager().runsNormally()) {
                                  this.receivedMovePacketCount++;
@@ -747,7 +767,7 @@
 +                                    to.setPitch(p_9874_.xRot);
 +                                }
 +
-+                                io.papermc.paper.event.player.PlayerJumpEvent event = new io.papermc.paper.event.player.PlayerJumpEvent(player, from, to);
++                                com.destroystokyo.paper.event.player.PlayerJumpEvent event = new com.destroystokyo.paper.event.player.PlayerJumpEvent(player, from, to);
 +
 +                                if (event.callEvent()) {
 +                                    this.player.jumpFromGround();
@@ -1250,7 +1270,7 @@
              if (this.player.getInventory().selected != p_9909_.getSlot() && this.player.getUsedItemHand() == InteractionHand.MAIN_HAND) {
                  this.player.stopUsingItem();
              }
-@@ -1214,11 +_,18 @@
+@@ -1214,13 +_,24 @@
              this.player.resetLastActionTime();
          } else {
              LOGGER.warn("{} tried to set an invalid carried item", this.player.getName().getString());
@@ -1268,7 +1288,13 @@
 +        // CraftBukkit end
          Optional<LastSeenMessages> optional = this.unpackAndApplyLastSeen(p_9841_.lastSeenMessages());
          if (!optional.isEmpty()) {
++            if (Boolean.parseBoolean("true")) {
++                LambdaFix.handleChat(this, p_9841_, optional);
++                return;
++            }
              this.tryHandleChat(p_9841_.message(), () -> {
+                 PlayerChatMessage playerchatmessage;
+                 try {
 @@ -1230,25 +_,44 @@
                      return;
                  }
@@ -1319,7 +1345,7 @@
          ParseResults<CommandSourceStack> parseresults = this.parseCommand(p_338482_);
          if (this.server.enforceSecureProfile() && SignableCommand.hasSignableArguments(parseresults)) {
              LOGGER.error(
-@@ -1265,26 +_,53 @@
+@@ -1265,29 +_,56 @@
          Optional<LastSeenMessages> optional = this.unpackAndApplyLastSeen(p_338604_.lastSeenMessages());
          if (!optional.isEmpty()) {
              this.tryHandleChat(p_338604_.command(), () -> {
@@ -1375,13 +1401,17 @@
 +        this.server.getCommands().performCommand(parseresults, command); // CraftBukkit
      }
  
-     private void handleMessageDecodeFailure(SignedMessageChain.DecodeException p_252068_) {
+-    private void handleMessageDecodeFailure(SignedMessageChain.DecodeException p_252068_) {
++    public void handleMessageDecodeFailure(SignedMessageChain.DecodeException p_252068_) {
+         LOGGER.warn("Failed to update secure chat state for {}: '{}'", this.player.getGameProfile().getName(), p_252068_.getComponent().getString());
+         this.player.sendSystemMessage(p_252068_.getComponent().copy().withStyle(ChatFormatting.RED));
+     }
 @@ -1348,14 +_,20 @@
          return commanddispatcher.parse(p_242938_, this.player.createCommandSourceStack());
      }
  
 -    private void tryHandleChat(String p_338775_, Runnable p_338235_) {
-+    private void tryHandleChat(String p_338775_, Runnable p_338235_, boolean sync) { // CraftBukkit
++    public void tryHandleChat(String p_338775_, Runnable p_338235_, boolean sync) { // CraftBukkit
          if (isChatMessageIllegal(p_338775_)) {
 -            this.disconnect(Component.translatable("multiplayer.disconnect.illegal_characters"));
 -        } else if (this.player.getChatVisibility() == ChatVisiblity.HIDDEN) {
@@ -1422,6 +1452,7 @@
          return false;
      }
  
+-    private PlayerChatMessage getSignedMessage(ServerboundChatPacket p_251061_, LastSeenMessages p_250566_) throws SignedMessageChain.DecodeException {
 +    // CraftBukkit start - add method
 +    public void chat(String s, PlayerChatMessage original, boolean async) {
 +        if (s.isEmpty() || this.player.getChatVisibility() == ChatVisiblity.HIDDEN) {
@@ -1532,14 +1563,15 @@
 +    }
 +    // CraftBukkit end
 +
-     private PlayerChatMessage getSignedMessage(ServerboundChatPacket p_251061_, LastSeenMessages p_250566_) throws SignedMessageChain.DecodeException {
++    public PlayerChatMessage getSignedMessage(ServerboundChatPacket p_251061_, LastSeenMessages p_250566_) throws SignedMessageChain.DecodeException {
          SignedMessageBody signedmessagebody = new SignedMessageBody(p_251061_.message(), p_251061_.timeStamp(), p_251061_.salt(), p_250566_);
          return this.signedMessageDecoder.unpack(p_251061_.signature(), signedmessagebody);
      }
  
-     private void broadcastChatMessage(PlayerChatMessage p_243277_) {
+-    private void broadcastChatMessage(PlayerChatMessage p_243277_) {
 -        this.server.getPlayerList().broadcastChatMessage(p_243277_, this.player, ChatType.bind(ChatType.CHAT, this.player));
 -        this.detectRateSpam();
++    public void broadcastChatMessage(PlayerChatMessage p_243277_) {
 +        // CraftBukkit start
 +        String s = p_243277_.signedContent();
 +        if (s.isEmpty()) {
@@ -1780,7 +1812,7 @@
 +                                    entity.refreshEntityData(player);
 +                                    // SPIGOT-7136 - Allays
 +                                    if (entity instanceof net.minecraft.world.entity.animal.allay.Allay) {
-+                                        send(new net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket(entity.getId(), java.util.Arrays.stream(net.minecraft.world.entity.EquipmentSlot.values()).map((slot) -> com.mojang.datafixers.util.Pair.of(slot, ((net.minecraft.world.entity.LivingEntity) entity).getItemBySlot(slot).copy())).collect(Collectors.toList())));
++                                        send(new net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket(entity.getId(), java.util.Arrays.stream(net.minecraft.world.entity.EquipmentSlot.values()).map((slot) -> com.mojang.datafixers.util.Pair.of(slot, ((net.minecraft.world.entity.LivingEntity) entity).getItemBySlot(slot).copy())).collect(Collectors.toList()), true)); // Paper - sanitize
 +                                        player.containerMenu.sendAllDataToRemote();
 +                                    }
 +                                }
@@ -2251,7 +2283,7 @@
 +                // Paper start - Add PlayerRecipeBookClickEvent
 +                ResourceLocation recipeName = p_9882_.getRecipe();
 +                boolean makeAll = p_9882_.isShiftDown();
-+                io.papermc.paper.event.player.PlayerRecipeBookClickEvent paperEvent = new io.papermc.paper.event.player.PlayerRecipeBookClickEvent(
++                com.destroystokyo.paper.event.player.PlayerRecipeBookClickEvent paperEvent = new com.destroystokyo.paper.event.player.PlayerRecipeBookClickEvent(
 +                        this.player.getBukkitEntity(), org.bukkit.craftbukkit.util.CraftNamespacedKey.fromMinecraft(recipeName), makeAll
 +                );
 +                if (!paperEvent.callEvent()) {

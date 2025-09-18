@@ -216,7 +216,7 @@ public class Commodore {
 
         ClassVisitor visitor = cw;
 
-        // visitor = io.papermc.paper.pluginremap.reflect.ReflectionRemapper.visitor(visitor); // Paper // Youer TODO
+        visitor = io.papermc.paper.pluginremap.reflect.ReflectionRemapper.visitor(visitor); // Paper
         cr.accept(new ClassRemapper(new ClassVisitor(Opcodes.ASM9, visitor) {
             final Set<RerouteMethodData> rerouteMethodData = new HashSet<>();
             String className;
@@ -446,7 +446,7 @@ public class Commodore {
 
                         // Paper start - Rewrite plugins
                         if ((owner.equals("org/bukkit/OfflinePlayer") || owner.equals("org/bukkit/entity/Player")) && name.equals("getPlayerProfile") && desc.equals("()Lorg/bukkit/profile/PlayerProfile;")) {
-                            super.visitMethodInsn(opcode, owner, name, "()Lio/papermc/paper/profile/PlayerProfile;", itf);
+                            super.visitMethodInsn(opcode, owner, name, "()Lcom/destroystokyo/paper/profile/PlayerProfile;", itf);
                             return;
                         }
                         if (owner.equals("org/bukkit/advancement/Advancement") && name.equals("getDisplay") && desc.endsWith(")Lorg/bukkit/advancement/AdvancementDisplay;")) {

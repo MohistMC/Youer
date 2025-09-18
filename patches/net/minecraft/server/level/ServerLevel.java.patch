@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,10 +_,18 @@
+@@ -1,12 +_,21 @@
  package net.minecraft.server.level;
  
 +import com.mohistmc.youer.YouerConfig;
@@ -14,11 +14,14 @@
  import com.mojang.datafixers.DataFixer;
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
-+import io.papermc.paper.event.entity.EntityAddToWorldEvent;
-+import io.papermc.paper.event.entity.EntityRemoveFromWorldEvent;
++import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
++import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
++import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
  import it.unimi.dsi.fastutil.longs.LongSet;
+ import it.unimi.dsi.fastutil.longs.LongSets;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 @@ -14,6 +_,7 @@
  import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
  import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -55,12 +58,13 @@
  import net.minecraft.world.DifficultyInstance;
  import net.minecraft.world.RandomSequences;
  import net.minecraft.world.TickRateManager;
-@@ -98,9 +_,9 @@
+@@ -98,9 +_,10 @@
  import net.minecraft.world.entity.animal.Animal;
  import net.minecraft.world.entity.animal.WaterAnimal;
  import net.minecraft.world.entity.animal.horse.SkeletonHorse;
 -import net.minecraft.world.entity.boss.EnderDragonPart;
  import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
++import net.minecraft.world.entity.item.ItemEntity;
  import net.minecraft.world.entity.npc.Npc;
 +import net.minecraft.world.entity.npc.Villager;
  import net.minecraft.world.entity.player.Player;
@@ -111,7 +115,7 @@
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
-@@ -164,7 +_,23 @@
+@@ -164,7 +_,22 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
@@ -122,7 +126,6 @@
 +import org.bukkit.craftbukkit.generator.CustomChunkGenerator;
 +import org.bukkit.craftbukkit.generator.CustomWorldChunkManager;
 +import org.bukkit.craftbukkit.util.WorldUUID;
-+import org.bukkit.entity.HumanEntity;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.server.MapInitializeEvent;
 +import org.bukkit.event.weather.LightningStrikeEvent;
@@ -144,7 +147,7 @@
      private final MinecraftServer server;
      public final ServerLevelData serverLevelData;
      private int lastSpawnChunkRadius;
-@@ -199,12 +_,83 @@
+@@ -199,12 +_,84 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -171,6 +174,7 @@
 +    public CraftWorld getWorld() {
 +        return this.world;
 +    }
++
 +
 +    // Paper start
 +    public final boolean areChunksLoadedForMove(AABB axisalignedbb) {
@@ -422,11 +426,10 @@
          if (flag1) {
              this.resetEmptyTime();
          }
-@@ -392,7 +_,7 @@
-                 this.dragonFight.tick();
+@@ -393,6 +_,7 @@
                  profilerfiller.pop();
              }
--
+ 
 +            org.spigotmc.ActivationRange.activateEntities(this); // Spigot
              this.entityTickList.forEach(p_308566_ -> {
                  if (!p_308566_.isRemoved()) {
@@ -611,20 +614,11 @@
          }
      }
  
-@@ -753,12 +_,27 @@
+@@ -753,12 +_,22 @@
      }
  
      public void tickNonPassenger(Entity p_8648_) {
-+        // Spigot start
-+        if (!org.spigotmc.ActivationRange.checkIfActive(p_8648_)) {
-+            p_8648_.tickCount++;
-+            if (!net.neoforged.neoforge.event.EventHooks.fireEntityTickPre(p_8648_).isCanceled()) { // Youer
-+                p_8648_.inactiveTick();
-+                net.neoforged.neoforge.event.EventHooks.fireEntityTickPost(p_8648_);
-+            }
-+            return;
-+        }
-+        // Spigot end
++        final boolean isActive = org.spigotmc.ActivationRange.checkIfActive(p_8648_);
          p_8648_.setOldPosAndRot();
          ProfilerFiller profilerfiller = this.getProfiler();
          p_8648_.tickCount++;
@@ -633,13 +627,44 @@
 -        p_8648_.tick();
 +        // Neo: Permit cancellation of Entity#tick via EntityTickEvent.Pre
 +        if (!net.neoforged.neoforge.event.EventHooks.fireEntityTickPre(p_8648_).isCanceled()) {
-+            p_8648_.tick();
-+            p_8648_.postTick(); // CraftBukkit
++            if (isActive) { // Paper - EAR 2
++                p_8648_.tick();
++                p_8648_.postTick(); // CraftBukkit
++            } else {
++                p_8648_.inactiveTick();
++            } // Paper - EAR 2
 +            net.neoforged.neoforge.event.EventHooks.fireEntityTickPost(p_8648_);
 +        }
          this.getProfiler().pop();
  
          for (Entity entity : p_8648_.getPassengers()) {
+@@ -770,14 +_,24 @@
+         if (p_8664_.isRemoved() || p_8664_.getVehicle() != p_8663_) {
+             p_8664_.stopRiding();
+         } else if (p_8664_ instanceof Player || this.entityTickList.contains(p_8664_)) {
++            final boolean isActive = org.spigotmc.ActivationRange.checkIfActive(p_8664_);
++
+             p_8664_.setOldPosAndRot();
+             p_8664_.tickCount++;
+             ProfilerFiller profilerfiller = this.getProfiler();
+             profilerfiller.push(() -> BuiltInRegistries.ENTITY_TYPE.getKey(p_8664_.getType()).toString());
+             profilerfiller.incrementCounter("tickPassenger");
+-            p_8664_.rideTick();
++            // Paper start - EAR 2
++            if (isActive) {
++                p_8664_.rideTick();
++                p_8664_.postTick(); // CraftBukkit
++            } else {
++                p_8664_.setDeltaMovement(Vec3.ZERO);
++                p_8664_.inactiveTick();
++                // copied from inside of if (isPassenger()) of passengerTick, but that ifPassenger is unnecessary
++                p_8663_.positionRider(p_8664_);
++            }
+             profilerfiller.pop();
+-
+             for (Entity entity : p_8664_.getPassengers()) {
+                 this.tickPassenger(p_8664_, entity);
+             }
 @@ -792,6 +_,7 @@
      public void save(@Nullable ProgressListener p_8644_, boolean p_8645_, boolean p_8646_) {
          ServerChunkCache serverchunkcache = this.getChunkSource();
@@ -1062,7 +1087,7 @@
      }
  
      @Nullable
-@@ -1688,11 +_,18 @@
+@@ -1688,22 +_,29 @@
          }
  
          public void onTickingStart(Entity p_143363_) {
@@ -1081,7 +1106,11 @@
          }
  
          public void onTrackingStart(Entity p_143371_) {
-@@ -1703,7 +_,7 @@
+-            ServerLevel.this.getChunkSource().addEntity(p_143371_);
++            // ServerLevel.this.getChunkSource().addEntity(p_143371_); // Paper - ignore and warn about illegal addEntity calls instead of crashing server; moved down below valid=true
+             if (p_143371_ instanceof ServerPlayer serverplayer) {
+                 ServerLevel.this.players.add(serverplayer);
+                 ServerLevel.this.updateSleepingPlayerList();
              }
  
              if (p_143371_ instanceof Mob mob) {
@@ -1090,7 +1119,7 @@
                      String s = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -1713,16 +_,63 @@
+@@ -1713,16 +_,64 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -1105,6 +1134,7 @@
              p_143371_.updateDynamicGameEventListener(DynamicGameEventListener::add);
 +            p_143371_.inWorld = true; // CraftBukkit - Mark entity as in world
 +            p_143371_.valid = true; // CraftBukkit
++            ServerLevel.this.getChunkSource().addEntity(p_143371_); // Paper - ignore and warn about illegal addEntity calls instead of crashing server
 +            // Paper start - Entity origin API
 +            if (p_143371_.getOriginVector() == null) {
 +                p_143371_.setOrigin(p_143371_.getBukkitEntity().getLocation());
@@ -1156,7 +1186,7 @@
              ServerLevel.this.getChunkSource().removeEntity(p_143375_);
              if (p_143375_ instanceof ServerPlayer serverplayer) {
                  ServerLevel.this.players.remove(serverplayer);
-@@ -1730,27 +_,124 @@
+@@ -1730,27 +_,123 @@
              }
  
              if (p_143375_ instanceof Mob mob) {
@@ -1181,7 +1211,6 @@
              }
  
              p_143375_.updateDynamicGameEventListener(DynamicGameEventListener::remove);
-+
 +            // CraftBukkit start
 +            p_143375_.valid = false;
 +            if (!(p_143375_ instanceof ServerPlayer)) {

@@ -1,6 +1,6 @@
 package io.papermc.paper.plugin.provider.util;
 
-import io.papermc.paper.util.SneakyThrow;
+import com.destroystokyo.paper.util.SneakyThrow;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;

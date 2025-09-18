@@ -12,8 +12,8 @@
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Dynamic;
 +import io.papermc.paper.adventure.PaperAdventure;
-+import io.papermc.paper.event.player.PlayerSetSpawnEvent;
-+import io.papermc.paper.event.player.PlayerTeleportEndGatewayEvent;
++import com.destroystokyo.paper.event.player.PlayerSetSpawnEvent;
++import com.destroystokyo.paper.event.player.PlayerTeleportEndGatewayEvent;
  import java.net.InetSocketAddress;
 +import java.util.ArrayList;
  import java.util.Collection;
@@ -236,7 +236,7 @@
 +    public long loginTime; // Paper - Replace OfflinePlayer#getLastPlayed
 +    public @Nullable String clientBrandName = null; // Paper - Brand support
 +    public org.bukkit.event.player.PlayerQuitEvent.QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
-+    public io.papermc.paper.event.entity.PlayerNaturallySpawnCreaturesEvent playerNaturallySpawnedEvent; // Paper - PlayerNaturallySpawnCreaturesEvent
++    public com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent playerNaturallySpawnedEvent; // Paper - PlayerNaturallySpawnCreaturesEvent
 +    public boolean purpurClient = false; // Purpur
 +    private boolean tpsBar = false; // Purpur
 +    private boolean compassBar = false; // Purpur
@@ -1291,16 +1291,16 @@
      }
  
 +    // Paper start - Client option API
-+    private java.util.Map<io.papermc.paper.ClientOption<?>, ?> getClientOptionMap(String locale, int viewDistance, io.papermc.paper.ClientOption.ChatVisibility chatVisibility, boolean chatColors, io.papermc.paper.PaperSkinParts skinParts, org.bukkit.inventory.MainHand mainHand, boolean allowsServerListing, boolean textFilteringEnabled) {
-+        java.util.Map<io.papermc.paper.ClientOption<?>, Object> map = new java.util.HashMap<>();
-+        map.put(io.papermc.paper.ClientOption.LOCALE, locale);
-+        map.put(io.papermc.paper.ClientOption.VIEW_DISTANCE, viewDistance);
-+        map.put(io.papermc.paper.ClientOption.CHAT_VISIBILITY, chatVisibility);
-+        map.put(io.papermc.paper.ClientOption.CHAT_COLORS_ENABLED, chatColors);
-+        map.put(io.papermc.paper.ClientOption.SKIN_PARTS, skinParts);
-+        map.put(io.papermc.paper.ClientOption.MAIN_HAND, mainHand);
-+        map.put(io.papermc.paper.ClientOption.ALLOW_SERVER_LISTINGS, allowsServerListing);
-+        map.put(io.papermc.paper.ClientOption.TEXT_FILTERING_ENABLED, textFilteringEnabled);
++    private java.util.Map<com.destroystokyo.paper.ClientOption<?>, ?> getClientOptionMap(String locale, int viewDistance, com.destroystokyo.paper.ClientOption.ChatVisibility chatVisibility, boolean chatColors, com.destroystokyo.paper.PaperSkinParts skinParts, org.bukkit.inventory.MainHand mainHand, boolean allowsServerListing, boolean textFilteringEnabled) {
++        java.util.Map<com.destroystokyo.paper.ClientOption<?>, Object> map = new java.util.HashMap<>();
++        map.put(com.destroystokyo.paper.ClientOption.LOCALE, locale);
++        map.put(com.destroystokyo.paper.ClientOption.VIEW_DISTANCE, viewDistance);
++        map.put(com.destroystokyo.paper.ClientOption.CHAT_VISIBILITY, chatVisibility);
++        map.put(com.destroystokyo.paper.ClientOption.CHAT_COLORS_ENABLED, chatColors);
++        map.put(com.destroystokyo.paper.ClientOption.SKIN_PARTS, skinParts);
++        map.put(com.destroystokyo.paper.ClientOption.MAIN_HAND, mainHand);
++        map.put(com.destroystokyo.paper.ClientOption.ALLOW_SERVER_LISTINGS, allowsServerListing);
++        map.put(com.destroystokyo.paper.ClientOption.TEXT_FILTERING_ENABLED, textFilteringEnabled);
 +        return map;
 +    }
 +    // Paper end
@@ -1315,7 +1315,7 @@
 -        this.getEntityData().set(DATA_PLAYER_MODE_CUSTOMISATION, (byte)p_301998_.modelCustomisation());
 -        this.getEntityData().set(DATA_PLAYER_MAIN_HAND, (byte)p_301998_.mainHand().getId());
 -    }
-+        new io.papermc.paper.event.player.PlayerClientOptionsChangeEvent(getBukkitEntity(), getClientOptionMap(p_301998_.language(), p_301998_.viewDistance(), io.papermc.paper.ClientOption.ChatVisibility.valueOf(p_301998_.chatVisibility().name()), p_301998_.chatColors(), new io.papermc.paper.PaperSkinParts(p_301998_.modelCustomisation()), p_301998_.mainHand() == HumanoidArm.LEFT ? MainHand.LEFT : MainHand.RIGHT, p_301998_.allowsListing(), p_301998_.textFilteringEnabled())).callEvent(); // Paper - settings event
++        new com.destroystokyo.paper.event.player.PlayerClientOptionsChangeEvent(getBukkitEntity(), getClientOptionMap(p_301998_.language(), p_301998_.viewDistance(), com.destroystokyo.paper.ClientOption.ChatVisibility.valueOf(p_301998_.chatVisibility().name()), p_301998_.chatColors(), new com.destroystokyo.paper.PaperSkinParts(p_301998_.modelCustomisation()), p_301998_.mainHand() == HumanoidArm.LEFT ? MainHand.LEFT : MainHand.RIGHT, p_301998_.allowsListing(), p_301998_.textFilteringEnabled())).callEvent(); // Paper - settings event
 +        // CraftBukkit start
 +        if (getMainArm() != p_301998_.mainHand()) {
 +            PlayerChangedMainHandEvent event = new PlayerChangedMainHandEvent(getBukkitEntity(), getMainArm() == HumanoidArm.LEFT ? MainHand.LEFT : MainHand.RIGHT);
@@ -1430,13 +1430,13 @@
          if (entity != this.camera) {
 +            // Paper start - Add PlayerStartSpectatingEntityEvent and PlayerStopSpectatingEntity
 +            if (this.camera == this) {
-+                io.papermc.paper.event.player.PlayerStopSpectatingEntityEvent playerStopSpectatingEntityEvent = new io.papermc.paper.event.player.PlayerStopSpectatingEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity());
++                com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent playerStopSpectatingEntityEvent = new com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity());
 +                if (!playerStopSpectatingEntityEvent.callEvent()) {
 +                    this.camera = entity; // rollback camera entity again
 +                    return;
 +                }
 +            } else {
-+                io.papermc.paper.event.player.PlayerStartSpectatingEntityEvent playerStartSpectatingEntityEvent = new io.papermc.paper.event.player.PlayerStartSpectatingEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity(), p_9214_.getBukkitEntity());
++                com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent playerStartSpectatingEntityEvent = new com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity(), p_9214_.getBukkitEntity());
 +                if (!playerStartSpectatingEntityEvent.callEvent()) {
 +                    this.camera = entity; // rollback camera entity again
 +                    return;
@@ -1504,10 +1504,10 @@
 +        }
 +        PlayerSetSpawnEvent.Cause cause = setRespawnPosition$setSpawnCause.getAndSet(PlayerSetSpawnEvent.Cause.UNKNOWN);
 +        PlayerSpawnChangeEvent dumbEvent = new PlayerSpawnChangeEvent(this.getBukkitEntity(), spawnLoc, p_9162_,
-+                cause == io.papermc.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN ? PlayerSpawnChangeEvent.Cause.RESET : PlayerSpawnChangeEvent.Cause.valueOf(cause.name()));
++                cause == com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN ? PlayerSpawnChangeEvent.Cause.RESET : PlayerSpawnChangeEvent.Cause.valueOf(cause.name()));
 +        dumbEvent.callEvent();
 +
-+        io.papermc.paper.event.player.PlayerSetSpawnEvent event = new io.papermc.paper.event.player.PlayerSetSpawnEvent(this.getBukkitEntity(), cause, dumbEvent.getNewSpawn(), dumbEvent.isForced(), willNotify, willNotify ? net.kyori.adventure.text.Component.translatable("block.minecraft.set_spawn") : null);
++        com.destroystokyo.paper.event.player.PlayerSetSpawnEvent event = new com.destroystokyo.paper.event.player.PlayerSetSpawnEvent(this.getBukkitEntity(), cause, dumbEvent.getNewSpawn(), dumbEvent.isForced(), willNotify, willNotify ? net.kyori.adventure.text.Component.translatable("block.minecraft.set_spawn") : null);
 +        event.setCancelled(dumbEvent.isCancelled());
 +        if (!event.callEvent()) {
 +            setRespawnPosition$canCancel.set(false);
@@ -1531,12 +1531,12 @@
      }
 +    public boolean setRespawnPosition(ResourceKey<Level> p_9159_, @Nullable BlockPos p_9160_, float p_9161_, boolean p_9162_, boolean p_9163_, PlayerSpawnChangeEvent.Cause cause) {
 +        setRespawnPosition$setSpawnCause(cause == PlayerSpawnChangeEvent.Cause.RESET ?
-+                io.papermc.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN : io.papermc.paper.event.player.PlayerSetSpawnEvent.Cause.valueOf(cause.name()));
++                com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN : com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.valueOf(cause.name()));
 +        setRespawnPosition(p_9159_, p_9160_, p_9161_, p_9162_, p_9163_);
 +        return setRespawnPosition$canCancel.getAndSet(true);
 +    }
 +
-+    public boolean setRespawnPosition(ResourceKey<Level> dimension, @Nullable BlockPos pos, float angle, boolean forced, boolean sendMessage, io.papermc.paper.event.player.PlayerSetSpawnEvent.Cause cause) {
++    public boolean setRespawnPosition(ResourceKey<Level> dimension, @Nullable BlockPos pos, float angle, boolean forced, boolean sendMessage, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause cause) {
 +        setRespawnPosition$setSpawnCause.set( cause);
 +        setRespawnPosition(dimension, pos, angle, forced, sendMessage);
 +        return setRespawnPosition$canCancel.getAndSet(true);

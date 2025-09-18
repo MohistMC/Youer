@@ -767,7 +767,7 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
      */
     @NotNull
     @Deprecated(forRemoval = true, since = "1.18.2")
-    io.papermc.paper.block.BlockSoundGroup getSoundGroup();
+    com.destroystokyo.paper.block.BlockSoundGroup getSoundGroup();
 
     /**
      * Gets the {@link org.bukkit.SoundGroup} for this block.

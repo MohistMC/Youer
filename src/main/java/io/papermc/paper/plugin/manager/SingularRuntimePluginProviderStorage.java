@@ -6,7 +6,7 @@ import io.papermc.paper.plugin.entrypoint.dependency.MetaDependencyTree;
 import io.papermc.paper.plugin.provider.PluginProvider;
 import io.papermc.paper.plugin.provider.type.paper.PaperPluginParent;
 import io.papermc.paper.plugin.storage.ServerPluginProviderStorage;
-import io.papermc.paper.util.SneakyThrow;
+import com.destroystokyo.paper.util.SneakyThrow;
 import java.util.Optional;
 import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.java.JavaPlugin;

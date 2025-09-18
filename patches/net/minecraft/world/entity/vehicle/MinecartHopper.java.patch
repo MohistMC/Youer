@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/entity/vehicle/MinecartHopper.java
++++ b/net/minecraft/world/entity/vehicle/MinecartHopper.java
+@@ -52,6 +_,7 @@
+         if (flag != this.isEnabled()) {
+             this.setEnabled(flag);
+         }
++        this.immunize();  // Paper
+     }
+ 
+     public boolean isEnabled() {
+@@ -92,11 +_,13 @@
+ 
+     public boolean suckInItems() {
+         if (HopperBlockEntity.suckInItems(this.level(), this)) {
++            this.immunize();  // Paper
+             return true;
+         } else {
+             for (ItemEntity itementity : this.level()
+                 .getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(0.25, 0.0, 0.25), EntitySelector.ENTITY_STILL_ALIVE)) {
+                 if (HopperBlockEntity.addItem(this, itementity)) {
++                    this.immunize();  // Paper
+                     return true;
+                 }
+             }
+@@ -126,4 +_,10 @@
+     public AbstractContainerMenu createMenu(int p_38601_, Inventory p_38602_) {
+         return new HopperMenu(p_38601_, p_38602_, this);
+     }
++
++    // Paper start
++    public void immunize() {
++        this.activatedImmunityTick = Math.max(this.activatedImmunityTick, net.minecraft.server.MinecraftServer.currentTick + 20);
++    }
++    // Paper end
+ }

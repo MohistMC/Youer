@@ -9,9 +9,9 @@
  import com.mojang.authlib.GameProfile;
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Dynamic;
-+import io.papermc.paper.console.TerminalConsoleCommandSender;
-+import io.papermc.paper.event.player.PlayerSetSpawnEvent;
-+import io.papermc.paper.event.server.WhitelistToggleEvent;
++import com.destroystokyo.paper.console.TerminalConsoleCommandSender;
++import com.destroystokyo.paper.event.player.PlayerSetSpawnEvent;
++import com.destroystokyo.paper.event.server.WhitelistToggleEvent;
  import java.io.File;
 +import java.net.InetAddress;
 +import java.net.InetSocketAddress;
@@ -866,7 +866,7 @@
 +        // CraftBukkit end
 +        if (dimensiontransition.missingRespawnBlock()) {
 +            entityplayer1.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.NO_RESPAWN_BLOCK_AVAILABLE, 0.0F));
-+            entityplayer1.setRespawnPosition(null, null, 0f, false, false, io.papermc.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN); // CraftBukkit - SPIGOT-5988: Clear respawn location when obstructed // Paper - PlayerSetSpawnEvent
++            entityplayer1.setRespawnPosition(null, null, 0f, false, false, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN); // CraftBukkit - SPIGOT-5988: Clear respawn location when obstructed // Paper - PlayerSetSpawnEvent
 +        }
 +
 +        int i = flag ? 1 : 0;
@@ -927,7 +927,7 @@
 +
 +        // Paper start - Add PlayerPostRespawnEvent
 +        if (isRespawn) {
-+            cserver.getPluginManager().callEvent(new io.papermc.paper.event.player.PlayerPostRespawnEvent(entityplayer.getBukkitEntity(), location, isBedSpawn));
++            cserver.getPluginManager().callEvent(new com.destroystokyo.paper.event.player.PlayerPostRespawnEvent(entityplayer.getBukkitEntity(), location, isBedSpawn));
 +        }
 +        // Paper end - Add PlayerPostRespawnEvent
 +
@@ -1072,10 +1072,10 @@
 +    public boolean isWhiteListed(GameProfile gameprofile, @Nullable org.bukkit.event.player.PlayerLoginEvent loginEvent) {
 +        boolean isOp = this.ops.contains(gameprofile);
 +        boolean isWhitelisted = !this.doWhiteList || isOp || this.whitelist.contains(gameprofile);
-+        final io.papermc.paper.event.profile.ProfileWhitelistVerifyEvent event;
++        final com.destroystokyo.paper.event.profile.ProfileWhitelistVerifyEvent event;
 +
 +        final net.kyori.adventure.text.Component configuredMessage = ColorAPI.colorize(org.spigotmc.SpigotConfig.whitelistMessage);
-+        event = new io.papermc.paper.event.profile.ProfileWhitelistVerifyEvent(io.papermc.paper.profile.CraftPlayerProfile.asBukkitMirror(gameprofile), this.doWhiteList, isWhitelisted, isOp, configuredMessage);
++        event = new com.destroystokyo.paper.event.profile.ProfileWhitelistVerifyEvent(com.destroystokyo.paper.profile.CraftPlayerProfile.asBukkitMirror(gameprofile), this.doWhiteList, isWhitelisted, isOp, configuredMessage);
 +        event.callEvent();
 +        if (!event.isWhitelisted()) {
 +            if (loginEvent != null) {

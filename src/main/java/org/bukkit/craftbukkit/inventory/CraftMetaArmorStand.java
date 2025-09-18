@@ -11,7 +11,7 @@ import org.bukkit.Material;
 import org.bukkit.configuration.serialization.DelegateDeserialization;
 
 @DelegateDeserialization(SerializableMeta.class)
-public class CraftMetaArmorStand extends CraftMetaItem implements io.papermc.paper.inventory.meta.ArmorStandMeta { // Paper
+public class CraftMetaArmorStand extends CraftMetaItem implements com.destroystokyo.paper.inventory.meta.ArmorStandMeta { // Paper
 
     static final ItemMetaKeyType<CustomData> ENTITY_TAG = new ItemMetaKeyType<>(DataComponents.ENTITY_DATA, "entity-tag");
     // Paper start

@@ -391,7 +391,7 @@ public final class CraftServer implements Server {
     static {
         ConfigurationSerialization.registerClass(CraftOfflinePlayer.class);
         ConfigurationSerialization.registerClass(CraftPlayerProfile.class);
-        ConfigurationSerialization.registerClass(io.papermc.paper.profile.CraftPlayerProfile.class); // Paper
+        ConfigurationSerialization.registerClass(com.destroystokyo.paper.profile.CraftPlayerProfile.class); // Paper
         CraftItemFactory.instance();
         CraftEntityFactory.instance();
     }
@@ -1065,13 +1065,13 @@ public final class CraftServer implements Server {
         try {
             commands.performCommandCB(results, commandLine, commandLine, true);
         } catch (CommandException ex) {
-            this.pluginManager.callEvent(new io.papermc.paper.event.server.ServerExceptionEvent(new io.papermc.paper.exception.ServerCommandException(ex, target, sender, args))); // Paper
+            this.pluginManager.callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerCommandException(ex, target, sender, args))); // Paper
             //target.timings.stopTiming(); // Spigot // Paper
             throw ex;
         } catch (Throwable ex) {
             //target.timings.stopTiming(); // Spigot // Paper
             String msg = "Unhandled exception executing '" + commandLine + "' in " + target;
-            this.pluginManager.callEvent(new io.papermc.paper.event.server.ServerExceptionEvent(new io.papermc.paper.exception.ServerCommandException(ex, target, sender, args))); // Paper
+            this.pluginManager.callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerCommandException(ex, target, sender, args))); // Paper
             throw new CommandException(msg, ex);
         }
         // Paper end
@@ -2526,35 +2526,35 @@ public final class CraftServer implements Server {
     }
 
     @Override
-    public io.papermc.paper.profile.PlayerProfile createProfile(@Nonnull UUID uuid) {
+    public com.destroystokyo.paper.profile.PlayerProfile createProfile(@Nonnull UUID uuid) {
         return createProfile(uuid, null);
     }
 
     @Override
-    public io.papermc.paper.profile.PlayerProfile createProfile(@Nonnull String name) {
+    public com.destroystokyo.paper.profile.PlayerProfile createProfile(@Nonnull String name) {
         return createProfile(null, name);
     }
 
     @Override
-    public io.papermc.paper.profile.PlayerProfile createProfile(@Nullable UUID uuid, @Nullable String name) {
+    public com.destroystokyo.paper.profile.PlayerProfile createProfile(@Nullable UUID uuid, @Nullable String name) {
         Player player = uuid != null ? Bukkit.getPlayer(uuid) : (name != null ? Bukkit.getPlayerExact(name) : null);
-        if (player != null) return new io.papermc.paper.profile.CraftPlayerProfile((CraftPlayer) player);
+        if (player != null) return new com.destroystokyo.paper.profile.CraftPlayerProfile((CraftPlayer) player);
 
-        return new io.papermc.paper.profile.CraftPlayerProfile(uuid, name);
+        return new com.destroystokyo.paper.profile.CraftPlayerProfile(uuid, name);
     }
 
     @Override
-    public io.papermc.paper.profile.PlayerProfile createProfileExact(@Nullable UUID uuid, @Nullable String name) {
+    public com.destroystokyo.paper.profile.PlayerProfile createProfileExact(@Nullable UUID uuid, @Nullable String name) {
         Player player = uuid != null ? Bukkit.getPlayer(uuid) : (name != null ? Bukkit.getPlayerExact(name) : null);
         if (player == null) {
-            return new io.papermc.paper.profile.CraftPlayerProfile(uuid, name);
+            return new com.destroystokyo.paper.profile.CraftPlayerProfile(uuid, name);
         }
 
         if (java.util.Objects.equals(uuid, player.getUniqueId()) && java.util.Objects.equals(name, player.getName())) {
-            return new io.papermc.paper.profile.CraftPlayerProfile((CraftPlayer) player);
+            return new com.destroystokyo.paper.profile.CraftPlayerProfile((CraftPlayer) player);
         }
 
-        final io.papermc.paper.profile.CraftPlayerProfile profile = new io.papermc.paper.profile.CraftPlayerProfile(uuid, name);
+        final com.destroystokyo.paper.profile.CraftPlayerProfile profile = new com.destroystokyo.paper.profile.CraftPlayerProfile(uuid, name);
         profile.getGameProfile().getProperties().putAll(((CraftPlayer) player).getHandle().getGameProfile().getProperties());
         return profile;
     }
@@ -3048,6 +3048,7 @@ public final class CraftServer implements Server {
     @Override
     public double[] getTPS() {
         return new double[] {
+                net.minecraft.server.MinecraftServer.getServer().tps5s.getAverage(), // Purpur
                 net.minecraft.server.MinecraftServer.getServer().tps1.getAverage(),
                 net.minecraft.server.MinecraftServer.getServer().tps5.getAverage(),
                 net.minecraft.server.MinecraftServer.getServer().tps15.getAverage()
@@ -3178,9 +3179,9 @@ public final class CraftServer implements Server {
         return net.minecraft.server.MinecraftServer.getServer().hasStopped();
     }
 
-    private io.papermc.paper.entity.ai.MobGoals mobGoals = new io.papermc.paper.entity.ai.PaperMobGoals();
+    private com.destroystokyo.paper.entity.ai.MobGoals mobGoals = new com.destroystokyo.paper.entity.ai.PaperMobGoals();
     @Override
-    public io.papermc.paper.entity.ai.MobGoals getMobGoals() {
+    public com.destroystokyo.paper.entity.ai.MobGoals getMobGoals() {
         return mobGoals;
     }
 

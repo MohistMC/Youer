@@ -5,7 +5,7 @@ import com.google.common.base.Preconditions;
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
-import io.papermc.paper.utils.PaperPluginLogger;
+import com.destroystokyo.paper.utils.PaperPluginLogger;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;

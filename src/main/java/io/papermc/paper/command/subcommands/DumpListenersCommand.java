@@ -1,7 +1,7 @@
 package io.papermc.paper.command.subcommands;
 
 import io.papermc.paper.command.PaperSubcommand;
-import io.papermc.paper.util.SneakyThrow;
+import com.destroystokyo.paper.util.SneakyThrow;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;

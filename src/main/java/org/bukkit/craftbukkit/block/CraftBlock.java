@@ -693,8 +693,8 @@ public class CraftBlock implements Block {
     
     // Paper start
     @Override
-    public io.papermc.paper.block.BlockSoundGroup getSoundGroup() {
-        return new io.papermc.paper.block.CraftBlockSoundGroup(getNMS().getBlock().defaultBlockState().getSoundType());
+    public com.destroystokyo.paper.block.BlockSoundGroup getSoundGroup() {
+        return new com.destroystokyo.paper.block.CraftBlockSoundGroup(getNMS().getBlock().defaultBlockState().getSoundType());
     }
 
     @Override

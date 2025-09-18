@@ -1,7 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
-import io.papermc.paper.entity.CraftRangedEntity;
+import com.destroystokyo.paper.entity.CraftRangedEntity;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;

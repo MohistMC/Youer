@@ -296,8 +296,8 @@ public interface UnsafeValues {
     /**
      * Called once by the version command on first use, then cached.
      */
-    default io.papermc.paper.util.VersionFetcher getVersionFetcher() {
-        return new io.papermc.paper.util.VersionFetcher.DummyVersionFetcher();
+    default com.destroystokyo.paper.util.VersionFetcher getVersionFetcher() {
+        return new com.destroystokyo.paper.util.VersionFetcher.DummyVersionFetcher();
     }
 
 }

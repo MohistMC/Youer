@@ -6,7 +6,7 @@ import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.suggestion.Suggestion;
 import io.papermc.paper.adventure.PaperAdventure;
-import io.papermc.paper.event.server.AsyncTabCompleteEvent.Completion;
+import com.destroystokyo.paper.event.server.AsyncTabCompleteEvent.Completion;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
@@ -20,7 +20,7 @@ import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
 
-import static io.papermc.paper.event.server.AsyncTabCompleteEvent.Completion.completion;
+import static com.destroystokyo.paper.event.server.AsyncTabCompleteEvent.Completion.completion;
 
 public final class BrigadierCommandCompleter {
     private final Supplier<CommandSourceStack> commandSourceStack;

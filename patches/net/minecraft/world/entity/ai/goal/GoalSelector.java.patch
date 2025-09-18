@@ -1,14 +1,36 @@
 --- a/net/minecraft/world/entity/ai/goal/GoalSelector.java
 +++ b/net/minecraft/world/entity/ai/goal/GoalSelector.java
-@@ -27,6 +_,8 @@
+@@ -27,6 +_,9 @@
      private final Set<WrappedGoal> availableGoals = new ObjectLinkedOpenHashSet<>();
      private final Supplier<ProfilerFiller> profiler;
      private final EnumSet<Goal.Flag> disabledFlags = EnumSet.noneOf(Goal.Flag.class);
 +    private static final Goal.Flag[] GOAL_FLAG_VALUES = Goal.Flag.values(); // Paper - remove streams from pathfindergoalselector
 +    private final ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<net.minecraft.world.entity.ai.goal.Goal.Flag> goalTypes = new ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<>(Goal.Flag.class); // Paper - remove streams from pathfindergoalselector
++    private int curRate;
  
      public GoalSelector(Supplier<ProfilerFiller> p_25351_) {
          this.profiler = p_25351_;
+@@ -41,6 +_,20 @@
+         this.availableGoals.removeIf(p_262564_ -> p_262575_.test(p_262564_.getGoal()));
+     }
+ 
++    // Paper start
++    public boolean inactiveTick() {
++        this.curRate++;
++        return this.curRate % 3 == 0; // TODO newGoalRate was already unused in 1.20.4, check if this is correct
++    }
++    public boolean hasTasks() {
++        for (WrappedGoal task : this.availableGoals) {
++            if (task.isRunning()) {
++                return true;
++            }
++        }
++        return false;
++    }
++    // Paper end
+     public void removeGoal(Goal p_25364_) {
+         for (WrappedGoal wrappedgoal : this.availableGoals) {
+             if (wrappedgoal.getGoal() == p_25364_ && wrappedgoal.isRunning()) {
 @@ -51,18 +_,17 @@
          this.availableGoals.removeIf(p_25378_ -> p_25378_.getGoal() == p_25364_);
      }

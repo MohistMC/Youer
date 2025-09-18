@@ -1,6 +1,6 @@
 package org.bukkit.craftbukkit.block;
 
-import io.papermc.paper.loottable.PaperLootableBlockInventory;
+import com.destroystokyo.paper.loottable.PaperLootableBlockInventory;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import org.bukkit.Location;
 import org.bukkit.Nameable;

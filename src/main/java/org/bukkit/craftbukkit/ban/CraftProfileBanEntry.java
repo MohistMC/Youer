@@ -7,7 +7,7 @@ import net.minecraft.server.players.UserBanList;
 import net.minecraft.server.players.UserBanListEntry;
 import org.bukkit.BanEntry;
 
-public final class CraftProfileBanEntry implements BanEntry<io.papermc.paper.profile.PlayerProfile> {
+public final class CraftProfileBanEntry implements BanEntry<com.destroystokyo.paper.profile.PlayerProfile> {
     private static final Date minorDate = Date.from(Instant.parse("1899-12-31T04:00:00Z"));
     private final UserBanList list;
     private final GameProfile profile;
@@ -31,8 +31,8 @@ public final class CraftProfileBanEntry implements BanEntry<io.papermc.paper.pro
     }
 
     @Override
-    public io.papermc.paper.profile.PlayerProfile getBanTarget() {
-        return new io.papermc.paper.profile.CraftPlayerProfile(this.profile); // Paper
+    public com.destroystokyo.paper.profile.PlayerProfile getBanTarget() {
+        return new com.destroystokyo.paper.profile.CraftPlayerProfile(this.profile); // Paper
     }
 
     @Override

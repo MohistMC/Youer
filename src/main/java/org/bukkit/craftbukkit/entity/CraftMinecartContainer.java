@@ -1,6 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
-import io.papermc.paper.loottable.PaperLootableEntityInventory;
+import com.destroystokyo.paper.loottable.PaperLootableEntityInventory;
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
 import net.minecraft.world.entity.vehicle.AbstractMinecartContainer;
 import org.bukkit.craftbukkit.CraftServer;

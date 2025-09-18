@@ -1,8 +1,8 @@
 package org.bukkit.craftbukkit.scheduler;
 
 import com.google.common.base.Preconditions;
-import io.papermc.paper.event.server.ServerExceptionEvent;
-import io.papermc.paper.exception.ServerSchedulerException;
+import com.destroystokyo.paper.event.server.ServerExceptionEvent;
+import com.destroystokyo.paper.exception.ServerSchedulerException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;

@@ -1,6 +1,6 @@
 package org.bukkit.entity;
 
-import io.papermc.paper.entity.RangedEntity;
+import com.destroystokyo.paper.entity.RangedEntity;
 import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.inventory.InventoryHolder;

@@ -5,7 +5,6 @@ import com.mohistmc.youer.api.gui.GuiListener;
 import com.mohistmc.youer.feature.GlobalVariableSystem;
 import com.mohistmc.youer.plugins.back.BackCommands;
 import com.mohistmc.youer.plugins.back.BackConfig;
-import com.mohistmc.youer.plugins.ban.BanConfig;
 import com.mohistmc.youer.plugins.ban.BanListener;
 import com.mohistmc.youer.plugins.item.ItemsConfig;
 import com.mohistmc.youer.plugins.tpa.TpaComamands;

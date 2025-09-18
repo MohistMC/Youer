@@ -97,7 +97,7 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
     @Deprecated(forRemoval = true, since = "1.19.3")
     @Nullable
     public default Block getTargetBlock(int maxDistance) {
-        return getTargetBlock(maxDistance, io.papermc.paper.block.TargetBlockInfo.FluidMode.NEVER);
+        return getTargetBlock(maxDistance, com.destroystokyo.paper.block.TargetBlockInfo.FluidMode.NEVER);
     }
 
     /**
@@ -111,7 +111,7 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     @Deprecated(forRemoval = true, since = "1.19.3")
     @Nullable
-    public Block getTargetBlock(int maxDistance, @NotNull io.papermc.paper.block.TargetBlockInfo.FluidMode fluidMode);
+    public Block getTargetBlock(int maxDistance, @NotNull com.destroystokyo.paper.block.TargetBlockInfo.FluidMode fluidMode);
 
     /**
      * Gets the blockface of that block that the living entity has targeted, ignoring fluids
@@ -136,7 +136,7 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     @Deprecated(forRemoval = true, since = "1.19.3")
     @Nullable
-    public org.bukkit.block.BlockFace getTargetBlockFace(int maxDistance, @NotNull io.papermc.paper.block.TargetBlockInfo.FluidMode fluidMode);
+    public org.bukkit.block.BlockFace getTargetBlockFace(int maxDistance, @NotNull com.destroystokyo.paper.block.TargetBlockInfo.FluidMode fluidMode);
 
     /**
      * Gets the blockface of that block that the living entity has targeted
@@ -159,8 +159,8 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     @Deprecated(forRemoval = true, since = "1.19.3")
     @Nullable
-    public default io.papermc.paper.block.TargetBlockInfo getTargetBlockInfo(int maxDistance) {
-        return getTargetBlockInfo(maxDistance, io.papermc.paper.block.TargetBlockInfo.FluidMode.NEVER);
+    public default com.destroystokyo.paper.block.TargetBlockInfo getTargetBlockInfo(int maxDistance) {
+        return getTargetBlockInfo(maxDistance, com.destroystokyo.paper.block.TargetBlockInfo.FluidMode.NEVER);
     }
 
     /**
@@ -174,7 +174,7 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     @Deprecated(forRemoval = true, since = "1.19.3")
     @Nullable
-    public io.papermc.paper.block.TargetBlockInfo getTargetBlockInfo(int maxDistance, @NotNull io.papermc.paper.block.TargetBlockInfo.FluidMode fluidMode);
+    public com.destroystokyo.paper.block.TargetBlockInfo getTargetBlockInfo(int maxDistance, @NotNull com.destroystokyo.paper.block.TargetBlockInfo.FluidMode fluidMode);
 
     /**
      * Gets information about the entity being targeted
@@ -207,7 +207,7 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     @Deprecated(forRemoval = true, since = "1.19.3")
     @Nullable
-    public default io.papermc.paper.entity.TargetEntityInfo getTargetEntityInfo(int maxDistance) {
+    public default com.destroystokyo.paper.entity.TargetEntityInfo getTargetEntityInfo(int maxDistance) {
         return getTargetEntityInfo(maxDistance, false);
     }
 
@@ -234,7 +234,7 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     @Deprecated(forRemoval = true, since = "1.19.3")
     @Nullable
-    public io.papermc.paper.entity.TargetEntityInfo getTargetEntityInfo(int maxDistance, boolean ignoreBlocks);
+    public com.destroystokyo.paper.entity.TargetEntityInfo getTargetEntityInfo(int maxDistance, boolean ignoreBlocks);
 
     /**
      * Gets information about the entity being targeted

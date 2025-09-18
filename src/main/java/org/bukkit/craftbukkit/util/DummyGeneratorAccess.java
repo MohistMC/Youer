@@ -253,6 +253,7 @@ public class DummyGeneratorAccess implements WorldGenLevel {
     public void scheduleTick(BlockPos pos, Fluid fluid, int delay, net.minecraft.world.ticks.TickPriority priority) {}
     // Paper end - add more methods
 
+    // Paper start - if loaded util
     @javax.annotation.Nullable
     @Override
     public ChunkAccess getChunkIfLoadedImmediately(int x, int z) {
@@ -263,4 +264,5 @@ public class DummyGeneratorAccess implements WorldGenLevel {
     public BlockState getBlockStateIfLoaded(BlockPos blockposition) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
+    // Paper end
 }

@@ -158,7 +158,7 @@ public final class PaperReflection extends AbstractDefaultRulesReflectionProxy i
             return name;
         }
         if (name.startsWith(LEGACY_CB_PACKAGE_PREFIX)) {
-            return CB_PACKAGE_PREFIX + name.substring(LEGACY_CB_PACKAGE_PREFIX.length());
+           // return CB_PACKAGE_PREFIX + name.substring(LEGACY_CB_PACKAGE_PREFIX.length());
         }
         return name;
     }

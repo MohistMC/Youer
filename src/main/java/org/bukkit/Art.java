@@ -96,9 +96,9 @@ public enum Art implements Keyed {
      * Get the ID of this painting.
      *
      * @return The ID of this painting
-     * @deprecated Magic value
+     * @apiNote Internal Use Only
      */
-    @Deprecated
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper
     public int getId() {
         return id;
     }
@@ -114,9 +114,9 @@ public enum Art implements Keyed {
      *
      * @param id The ID
      * @return The painting
-     * @deprecated Magic value
+     * @apiNote Internal Use Only
      */
-    @Deprecated
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper
     @Nullable
     public static Art getById(int id) {
         return BY_ID.get(id);

@@ -17,7 +17,7 @@ public class StructureTemplateMixinFix {
 
     static ServerLevelAccessor wrappedAccess;
     static CraftStructureTransformer structureTransformer = null;
-    static AtomicReference<BlockState> blockStateAtomicReference = new AtomicReference<>();
+    public static AtomicReference<BlockState> blockStateAtomicReference = new AtomicReference<>();
 
     public static ServerLevelAccessor init(ServerLevelAccessor p_230329_){
         // CraftBukkit start
@@ -44,15 +44,19 @@ public class StructureTemplateMixinFix {
             }
             craftBlockState = structureTransformer.transformCraftState(craftBlockState);
             blockstate = craftBlockState.getHandle();
+            blockStateAtomicReference.set(blockstate);
             info = new StructureTemplate.StructureBlockInfo(blockpos, blockstate, (craftBlockState instanceof CraftBlockEntityState<?> craftBlockEntityState ? craftBlockEntityState.getSnapshotNBT() : null));
         }
-        blockStateAtomicReference.set(blockstate);
         return info;
         // CraftBukkit end
     }
 
     public static boolean structureTransformer() {
         return structureTransformer == null;
+    }
+
+    public static boolean hasBlockStateAtomicReference() {
+        return blockStateAtomicReference.get() != null;
     }
 
     public static BlockState getBlockStateAtomicReference() {

@@ -74,11 +74,13 @@ public class WorldAPI {
             for (int i = 0; i < 16; i++) {
                 for (int j = 0; j < 16; j++) {
                     for (int layer = 0; layer < DEFAULT_FLAT_LAYERS.length; layer++) {
-                        chunkData.setBlock(i, layer, j, DEFAULT_FLAT_LAYERS[layer]);
+                        chunkData.setBlock(i, -64 + layer, j, DEFAULT_FLAT_LAYERS[layer]);
                     }
                     // 其余部分为空气
-                    for (int y = DEFAULT_FLAT_LAYERS.length; y < world.getMaxHeight(); y++) {
-                        chunkData.setBlock(i, y, j, Material.AIR);
+                    for (int y = -64 + DEFAULT_FLAT_LAYERS.length; y < world.getMaxHeight(); y++) {
+                        if (y < -64 || y >= DEFAULT_FLAT_LAYERS.length - 64) {
+                            chunkData.setBlock(i, y, j, Material.AIR);
+                        }
                     }
                 }
             }

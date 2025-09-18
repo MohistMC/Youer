@@ -1,6 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
-import io.papermc.paper.entity.CraftRangedEntity;
+import com.destroystokyo.paper.entity.CraftRangedEntity;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Illusioner;
 

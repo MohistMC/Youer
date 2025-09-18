@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Stores data for pigs being zapped
  */
-public class PigZapEvent extends io.papermc.paper.event.entity.EntityZapEvent implements Cancellable { // Paper
+public class PigZapEvent extends com.destroystokyo.paper.event.entity.EntityZapEvent implements Cancellable { // Paper
     // private static final HandlerList handlers = new HandlerList(); // Paper - moved in the super class
     private boolean canceled;
     private final PigZombie pigzombie;

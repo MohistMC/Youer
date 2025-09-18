@@ -4,7 +4,6 @@ import com.mohistmc.youer.plugins.config.YouerPluginConfig;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import org.bukkit.ChatColor;
 
 public class BanConfig extends YouerPluginConfig {
 

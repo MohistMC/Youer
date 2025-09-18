@@ -196,13 +196,13 @@ public enum Particle implements Keyed {
 
     // Paper start - Particle API expansion
     /**
-     * Creates a {@link io.papermc.paper.ParticleBuilder}
+     * Creates a {@link com.destroystokyo.paper.ParticleBuilder}
      *
-     * @return a {@link io.papermc.paper.ParticleBuilder} for the particle
+     * @return a {@link com.destroystokyo.paper.ParticleBuilder} for the particle
      */
     @NotNull
-    public io.papermc.paper.ParticleBuilder builder() {
-        return new io.papermc.paper.ParticleBuilder(this);
+    public com.destroystokyo.paper.ParticleBuilder builder() {
+        return new com.destroystokyo.paper.ParticleBuilder(this);
     }
     // Paper end
 

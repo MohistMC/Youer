@@ -707,8 +707,8 @@ public final class CraftMagicNumbers implements UnsafeValues {
     // Paper end - proxy ItemStack
 
     @Override
-    public io.papermc.paper.util.VersionFetcher getVersionFetcher() {
-        return new io.papermc.paper.PaperVersionFetcher();
+    public com.destroystokyo.paper.util.VersionFetcher getVersionFetcher() {
+        return new com.destroystokyo.paper.PaperVersionFetcher();
     }
     // Paper end
 

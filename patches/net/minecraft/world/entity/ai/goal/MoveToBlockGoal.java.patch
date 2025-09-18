@@ -1,0 +1,26 @@
+--- a/net/minecraft/world/entity/ai/goal/MoveToBlockGoal.java
++++ b/net/minecraft/world/entity/ai/goal/MoveToBlockGoal.java
+@@ -24,6 +_,15 @@
+         this(p_25609_, p_25610_, p_25611_, 1);
+     }
+ 
++    // Paper start - activation range improvements
++    @Override
++    public void stop() {
++        super.stop();
++        this.blockPos = BlockPos.ZERO;
++        this.mob.movingTarget = null;
++    }
++    // Paper end
++
+     public MoveToBlockGoal(PathfinderMob p_25613_, double p_25614_, int p_25615_, int p_25616_) {
+         this.mob = p_25613_;
+         this.speedModifier = p_25614_;
+@@ -115,6 +_,7 @@
+                         blockpos$mutableblockpos.setWithOffset(blockpos, i1, k - 1, j1);
+                         if (this.mob.isWithinRestriction(blockpos$mutableblockpos) && this.isValidTarget(this.mob.level(), blockpos$mutableblockpos)) {
+                             this.blockPos = blockpos$mutableblockpos;
++                            this.mob.movingTarget = blockpos$mutableblockpos == BlockPos.ZERO ? null : blockpos$mutableblockpos.immutable(); // Paper
+                             return true;
+                         }
+                     }

@@ -46,7 +46,6 @@ public class Remapper {
         put("org/spongepowered/configurate/", "com/mohistmc/org/spongepowered/configurate/");
         put("io/leangen/geantyref/", "com/mohistmc/io/leangen/geantyref/");
         put("com/mohistmc/net/kyori/option/", "net/kyori/option/");
-        put("com/destroystokyo/paper/", "io/papermc/paper/");
         put("org/apache/commons/math3/", "com/mohistmc/org/apache/commons/math3/");
         this.toBukkitMapping = new JarMapping();
         this.toNmsMapping.loadMappings(

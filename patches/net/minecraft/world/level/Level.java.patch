@@ -42,7 +42,11 @@
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.alchemy.PotionBrewing;
-@@ -59,6 +_,7 @@
+@@ -56,9 +_,11 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.border.WorldBorder;
+ import net.minecraft.world.level.chunk.ChunkAccess;
++import net.minecraft.world.level.chunk.ChunkSource;
  import net.minecraft.world.level.chunk.LevelChunk;
  import net.minecraft.world.level.chunk.status.ChunkStatus;
  import net.minecraft.world.level.dimension.DimensionType;
@@ -50,9 +54,11 @@
  import net.minecraft.world.level.entity.EntityTypeTest;
  import net.minecraft.world.level.entity.LevelEntityGetter;
  import net.minecraft.world.level.gameevent.GameEvent;
-@@ -75,8 +_,29 @@
+@@ -74,9 +_,31 @@
+ import net.minecraft.world.level.storage.WritableLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
++import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.scores.Scoreboard;
 +import net.neoforged.neoforge.attachment.AttachmentHolder;
 +import net.neoforged.neoforge.common.extensions.ILevelExtension;
@@ -90,7 +96,7 @@
      protected final NeighborUpdater neighborUpdater;
      private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
      private boolean tickingBlockEntities;
-@@ -114,6 +_,109 @@
+@@ -114,6 +_,115 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -118,6 +124,12 @@
 +    public SpigotWorldConfig spigotConfig; // Spigot
 +    public String name;
 +    public static BlockPos lastPhysicsProblem; // Spigot
++    // Paper start
++    public int wakeupInactiveRemainingAnimals;
++    public int wakeupInactiveRemainingFlying;
++    public int wakeupInactiveRemainingMonsters;
++    public int wakeupInactiveRemainingVillagers;
++    // Paper end
 +    // Paper start - add paper world config
 +    public io.papermc.paper.configuration.WorldConfiguration paperConfig;
 +    public io.papermc.paper.configuration.WorldConfiguration paperConfig() {
@@ -307,15 +319,15 @@
          return this.setBlock(p_46601_, p_46602_, p_46603_, 512);
      }
  
++    AtomicBoolean captured = new AtomicBoolean(false);
      @Override
      public boolean setBlock(BlockPos p_46605_, BlockState p_46606_, int p_46607_, int p_46608_) {
++        this.captured.set(false);
 +        {
 +            if (SetBlockEvent.getHandlerList().getRegisteredListeners().length > 0 && this.getWorld() != null) {
 +                SetBlockEvent event = new SetBlockEvent(new Location(this.getWorld(), p_46605_.getX(), p_46605_.getY(), p_46605_.getZ()));
 +                Bukkit.getPluginManager().callEvent(event);
 +                if (event.isCancelled()) {
-+                    org.bukkit.block.Block block = event.getLocation().getBlock();
-+                    block.getState().update();
 +                    return false;
 +                }
 +            }
@@ -336,7 +348,7 @@
          if (this.isOutsideBuildHeight(p_46605_)) {
              return false;
          } else if (!this.isClientSide && this.isDebug()) {
-@@ -216,11 +_,61 @@
+@@ -216,11 +_,60 @@
          } else {
              LevelChunk levelchunk = this.getChunkAt(p_46605_);
              Block block = p_46606_.getBlock();
@@ -349,12 +361,11 @@
 +            }
 +
 +            // CraftBukkit start - capture blockstates
-+            boolean captured = false;
 +            if (this.captureBlockStates && !this.capturedBlockStates.containsKey(p_46605_)) {
 +                CraftBlockState blockstate = (CraftBlockState) world.getBlockAt(p_46605_.getX(), p_46605_.getY(), p_46605_.getZ()).getState(); // Paper - use CB getState to get a suitable snapshot
 +                blockstate.setFlag(p_46607_); // Paper - set flag
 +                this.capturedBlockStates.put(p_46605_.immutable(), blockstate);
-+                captured = true;
++                this.captured.set(true);
 +            }
 +            // CraftBukkit end
 +
@@ -366,7 +377,7 @@
              if (blockstate == null) {
 +                if (blockSnapshot != null) this.capturedBlockSnapshots.remove(blockSnapshot);
 +                // CraftBukkit start - remove blockstate if failed (or the same)
-+                if (this.captureBlockStates && captured) {
++                if (this.captureBlockStates && this.captured.getAndSet(false)) {
 +                    this.capturedBlockStates.remove(p_46605_);
 +                }
 +                // CraftBukkit end
@@ -477,8 +488,8 @@
 +            boolean playEffect = true;
 +            BlockState effectType = blockstate;
 +            int xp = blockstate.getBlock().getExpDrop(blockstate, (ServerLevel) this, p_46626_, ItemStack.EMPTY, true);
-+            if (io.papermc.paper.event.block.BlockDestroyEvent.getHandlerList().getRegisteredListeners().length > 0) {
-+                io.papermc.paper.event.block.BlockDestroyEvent event = new io.papermc.paper.event.block.BlockDestroyEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this, p_46626_), fluidstate.createLegacyBlock().createCraftBlockData(), effectType.createCraftBlockData(), xp, p_46627_);
++            if (com.destroystokyo.paper.event.block.BlockDestroyEvent.getHandlerList().getRegisteredListeners().length > 0) {
++                com.destroystokyo.paper.event.block.BlockDestroyEvent event = new com.destroystokyo.paper.event.block.BlockDestroyEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this, p_46626_), fluidstate.createLegacyBlock().createCraftBlockData(), effectType.createCraftBlockData(), xp, p_46627_);
 +                if (!event.callEvent()) {
 +                    return false;
 +                }
@@ -585,7 +596,7 @@
 +            // Paper start - Prevent block entity and entity crashes
 +            final String msg = String.format("Entity threw exception at %s:%s,%s,%s", p_46655_.level().getWorld().getName(), p_46655_.getX(), p_46655_.getY(), p_46655_.getZ());
 +            MinecraftServer.LOGGER.error(msg, throwable);
-+            getCraftServer().getPluginManager().callEvent(new io.papermc.paper.event.server.ServerExceptionEvent(new io.papermc.paper.exception.ServerInternalException(msg, throwable))); // Paper - ServerExceptionEvent
++            getCraftServer().getPluginManager().callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerInternalException(msg, throwable))); // Paper - ServerExceptionEvent
 +            p_46655_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
          }
      }
@@ -703,20 +714,27 @@
      }
  
      public boolean isLoaded(BlockPos p_46750_) {
-@@ -803,6 +_,7 @@
+@@ -799,18 +_,24 @@
+         this.getProfiler().incrementCounter("getEntities");
+         List<Entity> list = Lists.newArrayList();
+         this.getEntities().get(p_46537_, p_151522_ -> {
+-            if (p_151522_ != p_46536_ && p_46538_.test(p_151522_)) {
++            if (p_151522_ != p_46536_ && p_46538_ != null && p_46538_.test(p_151522_)) {
                  list.add(p_151522_);
              }
  
 +            if (false)
              if (p_151522_ instanceof EnderDragon) {
                  for (EnderDragonPart enderdragonpart : ((EnderDragon)p_151522_).getSubEntities()) {
-                     if (p_151522_ != p_46536_ && p_46538_.test(enderdragonpart)) {
-@@ -811,6 +_,11 @@
+-                    if (p_151522_ != p_46536_ && p_46538_.test(enderdragonpart)) {
++                    if (p_151522_ != p_46536_ && p_46538_ != null && p_46538_.test(enderdragonpart)) {
+                         list.add(enderdragonpart);
+                     }
                  }
              }
          });
 +        for (PartEntity<?> p : this.getPartEntities()) {
-+            if (p != p_46536_ && p.getBoundingBox().intersects(p_46537_) && p_46538_.test(p)) {
++            if (p != p_46536_ && p.getBoundingBox().intersects(p_46537_) && p_46538_ != null && p_46538_.test(p)) {
 +                list.add(p);
 +            }
 +        }
@@ -769,6 +787,14 @@
                          this.neighborChanged(blockstate, blockpos, p_46719_, p_46718_, false);
                      }
                  }
+@@ -1066,6 +_,7 @@
+     }
+ 
+     public ProfilerFiller getProfiler() {
++        if (gg.pufferfish.pufferfish.PufferfishConfig.disableMethodProfiler) return net.minecraft.util.profiling.InactiveProfiler.INSTANCE; // Pufferfish
+         return this.profiler.get();
+     }
+ 
 @@ -1078,6 +_,18 @@
          return this.biomeManager;
      }

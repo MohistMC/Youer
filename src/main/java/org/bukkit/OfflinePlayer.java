@@ -75,7 +75,7 @@ public interface OfflinePlayer extends ServerOperator, AnimalTamer, Configuratio
      * @return the player's profile
      */
     @NotNull
-    io.papermc.paper.profile.PlayerProfile getPlayerProfile(); // Paper
+    com.destroystokyo.paper.profile.PlayerProfile getPlayerProfile(); // Paper
 
     /**
      * Checks if this player has had their profile banned.
@@ -164,7 +164,7 @@ public interface OfflinePlayer extends ServerOperator, AnimalTamer, Configuratio
      *     (updated) previous ban
      */
     @Nullable
-    public <E extends BanEntry<? super io.papermc.paper.profile.PlayerProfile>> E ban(@Nullable String reason, @Nullable Date expires, @Nullable String source); // Paper - fix ban list API
+    public <E extends BanEntry<? super com.destroystokyo.paper.profile.PlayerProfile>> E ban(@Nullable String reason, @Nullable Date expires, @Nullable String source); // Paper - fix ban list API
 
     /**
      * Adds this user to the {@link ProfileBanList}. If a previous ban exists, this will
@@ -178,7 +178,7 @@ public interface OfflinePlayer extends ServerOperator, AnimalTamer, Configuratio
      *     (updated) previous ban
      */
     @Nullable
-    public <E extends BanEntry<? super io.papermc.paper.profile.PlayerProfile>> E ban(@Nullable String reason, @Nullable Instant expires, @Nullable String source); // Paper - fix ban list API
+    public <E extends BanEntry<? super com.destroystokyo.paper.profile.PlayerProfile>> E ban(@Nullable String reason, @Nullable Instant expires, @Nullable String source); // Paper - fix ban list API
 
     /**
      * Adds this user to the {@link ProfileBanList}. If a previous ban exists, this will
@@ -192,7 +192,7 @@ public interface OfflinePlayer extends ServerOperator, AnimalTamer, Configuratio
      *     (updated) previous ban
      */
     @Nullable
-    public <E extends BanEntry<? super io.papermc.paper.profile.PlayerProfile>> E ban(@Nullable String reason, @Nullable Duration duration, @Nullable String source); // Paper - fix ban list API
+    public <E extends BanEntry<? super com.destroystokyo.paper.profile.PlayerProfile>> E ban(@Nullable String reason, @Nullable Duration duration, @Nullable String source); // Paper - fix ban list API
 
     /**
      * Checks if this player is whitelisted or not

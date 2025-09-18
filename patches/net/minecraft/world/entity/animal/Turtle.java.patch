@@ -89,7 +89,7 @@
                  return this.turtle.getRandom().nextInt(reducedTickDelay(700)) != 0
                      ? false
 -                    : !this.turtle.getHomePos().closerToCenterThan(this.turtle.position(), 64.0);
-+                    : !this.turtle.getHomePos().closerToCenterThan(this.turtle.position(), 64.0) && new io.papermc.paper.event.entity.TurtleGoHomeEvent((org.bukkit.entity.Turtle) this.turtle.getBukkitEntity()).callEvent(); // Paper - Turtle API;
++                    : !this.turtle.getHomePos().closerToCenterThan(this.turtle.position(), 64.0) && new com.destroystokyo.paper.event.entity.TurtleGoHomeEvent((org.bukkit.entity.Turtle) this.turtle.getBukkitEntity()).callEvent(); // Paper - Turtle API;
              }
          }
  
@@ -98,7 +98,7 @@
              if (!this.turtle.isInWater() && this.isReachedTarget()) {
                  if (this.turtle.layEggCounter < 1) {
 -                    this.turtle.setLayingEgg(true);
-+                    this.turtle.setLayingEgg(new io.papermc.paper.event.entity.TurtleStartDiggingEvent((org.bukkit.entity.Turtle) this.turtle.getBukkitEntity(), io.papermc.paper.util.MCUtil.toLocation(this.turtle.level(), this.blockPos)).callEvent()); // Paper - Turtle API
++                    this.turtle.setLayingEgg(new com.destroystokyo.paper.event.entity.TurtleStartDiggingEvent((org.bukkit.entity.Turtle) this.turtle.getBukkitEntity(), io.papermc.paper.util.MCUtil.toLocation(this.turtle.level(), this.blockPos)).callEvent()); // Paper - Turtle API
                  } else if (this.turtle.layEggCounter > this.adjustedTickDelay(200)) {
                      Level level = this.turtle.level();
 -                    level.playSound(null, blockpos, SoundEvents.TURTLE_LAY_EGG, SoundSource.BLOCKS, 0.3F, 0.9F + level.random.nextFloat() * 0.2F);
@@ -110,7 +110,7 @@
 -                    level.gameEvent(GameEvent.BLOCK_PLACE, blockpos1, GameEvent.Context.of(this.turtle, blockstate));
 +                    // Paper start - Turtle API
 +                    int eggCount = this.turtle.random.nextInt(4) + 1;
-+                    io.papermc.paper.event.entity.TurtleLayEggEvent layEggEvent = new io.papermc.paper.event.entity.TurtleLayEggEvent((org.bukkit.entity.Turtle) this.turtle.getBukkitEntity(), io.papermc.paper.util.MCUtil.toLocation(this.turtle.level(), this.blockPos.above()), eggCount);
++                    com.destroystokyo.paper.event.entity.TurtleLayEggEvent layEggEvent = new com.destroystokyo.paper.event.entity.TurtleLayEggEvent((org.bukkit.entity.Turtle) this.turtle.getBukkitEntity(), io.papermc.paper.util.MCUtil.toLocation(this.turtle.level(), this.blockPos.above()), eggCount);
 +                    if (layEggEvent.callEvent() && org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.turtle, this.blockPos.above(), Blocks.TURTLE_EGG.defaultBlockState().setValue(TurtleEggBlock.EGGS, layEggEvent.getEggCount()))) {
 +                        level.playSound(null, blockpos, SoundEvents.TURTLE_LAY_EGG, SoundSource.BLOCKS, 0.3F, 0.9F + level.random.nextFloat() * 0.2F);
 +                        BlockPos blockpos1 = this.blockPos.above();

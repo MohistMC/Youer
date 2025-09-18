@@ -61,7 +61,9 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      */
     @org.jetbrains.annotations.Contract(value = "_, _ -> new", pure = true)
     public static @NotNull ItemStack of(final @NotNull Material type, final int amount) {
-        Preconditions.checkArgument(type.asItemType() != null, type + " isn't an item");
+        if (type.asItemType() == null) {
+            return ItemStack.empty();
+        }
         Preconditions.checkArgument(amount > 0, "amount must be greater than 0");
         return java.util.Objects.requireNonNull(type.asItemType(), type + " is not an item").createItemStack(amount); // Paper - delegate
     }

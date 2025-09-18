@@ -1,6 +1,29 @@
 --- a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
-@@ -34,7 +_,7 @@
+@@ -14,7 +_,7 @@
+ import net.minecraft.util.ExceptionCollector;
+ import net.minecraft.world.level.ChunkPos;
+ 
+-public final class RegionFileStorage implements AutoCloseable {
++public class RegionFileStorage implements AutoCloseable {
+     public static final String ANVIL_EXTENSION = ".mca";
+     private static final int MAX_CACHE_SIZE = 256;
+     public final Long2ObjectLinkedOpenHashMap<RegionFile> regionCache = new Long2ObjectLinkedOpenHashMap<>();
+@@ -22,19 +_,19 @@
+     private final Path folder;
+     private final boolean sync;
+ 
+-    RegionFileStorage(RegionStorageInfo p_326161_, Path p_196954_, boolean p_196955_) {
++    public RegionFileStorage(RegionStorageInfo p_326161_, Path p_196954_, boolean p_196955_) {
+         this.folder = p_196954_;
+         this.sync = p_196955_;
+         this.info = p_326161_;
+     }
+ 
+-    private RegionFile getRegionFile(ChunkPos p_63712_) throws IOException {
++    public RegionFile getRegionFile(ChunkPos p_63712_) throws IOException {
+         long i = ChunkPos.asLong(p_63712_.getRegionX(), p_63712_.getRegionZ());
+         RegionFile regionfile = this.regionCache.getAndMoveToFirst(i);
          if (regionfile != null) {
              return regionfile;
          } else {
@@ -9,3 +32,12 @@
                  this.regionCache.removeLast().close();
              }
  
+@@ -72,7 +_,7 @@
+         }
+     }
+ 
+-    protected void write(ChunkPos p_63709_, @Nullable CompoundTag p_63710_) throws IOException {
++    public void write(ChunkPos p_63709_, @Nullable CompoundTag p_63710_) throws IOException {
+         RegionFile regionfile = this.getRegionFile(p_63709_);
+         if (p_63710_ == null) {
+             regionfile.clear(p_63709_);

@@ -1,7 +1,7 @@
 package org.bukkit.block;
 
 
-import io.papermc.paper.loottable.LootableBlockInventory;
+import com.destroystokyo.paper.loottable.LootableBlockInventory;
 
 /**
  * Represents a captured state of a hopper.

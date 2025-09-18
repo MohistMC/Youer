@@ -16,7 +16,7 @@
  import net.minecraft.util.Mth;
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.EquipmentSlot;
-@@ -62,13 +_,21 @@
+@@ -62,13 +_,26 @@
      private Vec3 lastSentMovement;
      private int tickCount;
      private int teleportDelay;
@@ -32,6 +32,11 @@
 +    public ServerEntity seenBy(Set<ServerPlayerConnection> trackedPlayers) {
 +        this.trackedPlayers = trackedPlayers;
 +        return this;
++    }
++
++    public ServerEntity(ServerLevel p_8528_, Entity p_8529_, int p_8530_, boolean p_8531_, Consumer<Packet<?>> p_8532_, Set<ServerPlayerConnection> trackedPlayers) {
++        this(p_8528_, p_8529_, p_8530_, p_8531_, p_8532_);
++        this.trackedPlayers = trackedPlayers;
 +    }
  
      public ServerEntity(ServerLevel p_8528_, Entity p_8529_, int p_8530_, boolean p_8531_, Consumer<Packet<?>> p_8532_) {
@@ -138,7 +143,7 @@
 -            LOGGER.warn("Fetching packet for removed entity {}", this.entity);
 +            // CraftBukkit start - Remove useless error spam, just return
 +            // LOGGER.warn("Fetching packet for removed entity {}", this.entity);
-+            // return;
++            return;
 +            // CraftBukkit end
          }
  
@@ -162,11 +167,14 @@
              if (!collection.isEmpty()) {
                  p_289563_.accept(new ClientboundUpdateAttributesPacket(this.entity.getId(), collection));
              }
-@@ -282,6 +_,7 @@
-             if (!list.isEmpty()) {
-                 p_289563_.accept(new ClientboundSetEquipmentPacket(this.entity.getId(), list));
+@@ -280,8 +_,9 @@
              }
-+            ((LivingEntity) this.entity).detectEquipmentUpdates(); // CraftBukkit - SPIGOT-3789: sync again immediately after sending
+ 
+             if (!list.isEmpty()) {
+-                p_289563_.accept(new ClientboundSetEquipmentPacket(this.entity.getId(), list));
++                p_289563_.accept(new ClientboundSetEquipmentPacket(this.entity.getId(), list, true)); // Paper - data sanitization
+             }
++            ((LivingEntity) this.entity).detectEquipmentUpdatesPublic(); // CraftBukkit - SPIGOT-3789: sync again immediately after sending
          }
  
          if (!this.entity.getPassengers().isEmpty()) {

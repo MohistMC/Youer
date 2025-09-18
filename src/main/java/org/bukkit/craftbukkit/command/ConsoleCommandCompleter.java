@@ -1,6 +1,6 @@
 package org.bukkit.craftbukkit.command;
 
-import io.papermc.paper.event.server.AsyncTabCompleteEvent;
+import com.destroystokyo.paper.event.server.AsyncTabCompleteEvent;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;

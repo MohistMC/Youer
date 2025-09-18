@@ -2,7 +2,7 @@ package org.bukkit.entity;
 
 
 // Paper start
-import io.papermc.paper.entity.RangedEntity;
+import com.destroystokyo.paper.entity.RangedEntity;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 // Paper end

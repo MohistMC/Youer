@@ -4,7 +4,7 @@ import com.mohistmc.org.spongepowered.configurate.serialize.ScalarSerializer;
 import com.mohistmc.org.spongepowered.configurate.serialize.SerializationException;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import io.papermc.paper.util.SneakyThrow;
+import com.destroystokyo.paper.util.SneakyThrow;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;

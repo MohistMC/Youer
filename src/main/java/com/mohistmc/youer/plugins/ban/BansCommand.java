@@ -3,7 +3,6 @@ package com.mohistmc.youer.plugins.ban;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.EntityAPI;
 import com.mohistmc.youer.api.ItemAPI;
-import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;

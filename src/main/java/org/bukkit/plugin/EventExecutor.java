@@ -1,10 +1,10 @@
 package org.bukkit.plugin;
 
 import com.google.common.base.Preconditions;
-import io.papermc.paper.event.executor.MethodHandleEventExecutor;
-import io.papermc.paper.event.executor.StaticMethodHandleEventExecutor;
-import io.papermc.paper.event.executor.asm.ASMEventExecutorGenerator;
-import io.papermc.paper.event.executor.asm.ClassDefiner;
+import com.destroystokyo.paper.event.executor.MethodHandleEventExecutor;
+import com.destroystokyo.paper.event.executor.StaticMethodHandleEventExecutor;
+import com.destroystokyo.paper.event.executor.asm.ASMEventExecutorGenerator;
+import com.destroystokyo.paper.event.executor.asm.ClassDefiner;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.concurrent.ConcurrentHashMap;

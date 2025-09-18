@@ -150,14 +150,14 @@ class CraftMetaSkull extends CraftMetaItem implements SkullMeta {
 
     // Paper start
     @Override
-    public void setPlayerProfile(@org.jetbrains.annotations.Nullable io.papermc.paper.profile.PlayerProfile profile) {
-        setProfile((profile == null) ? null : io.papermc.paper.profile.CraftPlayerProfile.asResolvableProfileCopy(profile));
+    public void setPlayerProfile(@org.jetbrains.annotations.Nullable com.destroystokyo.paper.profile.PlayerProfile profile) {
+        setProfile((profile == null) ? null : com.destroystokyo.paper.profile.CraftPlayerProfile.asResolvableProfileCopy(profile));
     }
 
     @org.jetbrains.annotations.Nullable
     @Override
-    public io.papermc.paper.profile.PlayerProfile getPlayerProfile() {
-        return profile != null ? new io.papermc.paper.profile.CraftPlayerProfile(profile) : null;
+    public com.destroystokyo.paper.profile.PlayerProfile getPlayerProfile() {
+        return profile != null ? new com.destroystokyo.paper.profile.CraftPlayerProfile(profile) : null;
     }
     // Paper end
 
@@ -221,7 +221,7 @@ class CraftMetaSkull extends CraftMetaItem implements SkullMeta {
 
     @Override
     public void setOwnerProfile(PlayerProfile profile) {
-        if (profile instanceof final io.papermc.paper.profile.SharedPlayerProfile sharedProfile) {
+        if (profile instanceof final com.destroystokyo.paper.profile.SharedPlayerProfile sharedProfile) {
             this.setProfile(CraftPlayerProfile.validateSkullProfile(sharedProfile.buildResolvableProfile())); // Paper
         } else {
             this.setProfile(null);
@@ -275,7 +275,7 @@ class CraftMetaSkull extends CraftMetaItem implements SkullMeta {
     Builder<String, Object> serialize(Builder<String, Object> builder) {
         super.serialize(builder);
         if (this.hasOwner()) {
-            builder.put(CraftMetaSkull.SKULL_OWNER.BUKKIT, new io.papermc.paper.profile.CraftPlayerProfile(this.profile)); // Paper
+            builder.put(CraftMetaSkull.SKULL_OWNER.BUKKIT, new com.destroystokyo.paper.profile.CraftPlayerProfile(this.profile)); // Paper
         }
 
         NamespacedKey namespacedKeyNB = this.getNoteBlockSound();

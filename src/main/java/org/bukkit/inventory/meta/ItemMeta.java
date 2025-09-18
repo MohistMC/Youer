@@ -846,40 +846,40 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
     /**
      * Gets the collection of namespaced keys that the item can destroy in {@link org.bukkit.GameMode#ADVENTURE}
      *
-     * @return Set of {@link io.papermc.paper.Namespaced}
+     * @return Set of {@link com.destroystokyo.paper.Namespaced}
      * @deprecated this API is unsupported and will be replaced, its usage may result in data loss related to place/destroy predicates.
      */
     @Deprecated(forRemoval = true, since = "1.20.6")
     @NotNull
-    Set<io.papermc.paper.Namespaced> getDestroyableKeys();
+    Set<com.destroystokyo.paper.Namespaced> getDestroyableKeys();
 
     /**
      * Sets the collection of namespaced keys that the item can destroy in {@link org.bukkit.GameMode#ADVENTURE}
      *
-     * @param canDestroy Collection of {@link io.papermc.paper.Namespaced}
+     * @param canDestroy Collection of {@link com.destroystokyo.paper.Namespaced}
      * @deprecated this API is unsupported and will be replaced, its usage may result in data loss related to place/destroy predicates.
      */
     @Deprecated(forRemoval = true, since = "1.20.6")
-    void setDestroyableKeys(@NotNull Collection<io.papermc.paper.Namespaced> canDestroy);
+    void setDestroyableKeys(@NotNull Collection<com.destroystokyo.paper.Namespaced> canDestroy);
 
     /**
      * Gets the collection of namespaced keys that the item can be placed on in {@link org.bukkit.GameMode#ADVENTURE}
      *
-     * @return Set of {@link io.papermc.paper.Namespaced}
+     * @return Set of {@link com.destroystokyo.paper.Namespaced}
      * @deprecated this API is unsupported and will be replaced, its usage may result in data loss related to place/destroy predicates.
      */
     @NotNull
     @Deprecated(forRemoval = true, since = "1.20.6")
-    Set<io.papermc.paper.Namespaced> getPlaceableKeys();
+    Set<com.destroystokyo.paper.Namespaced> getPlaceableKeys();
 
     /**
      * Sets the set of namespaced keys that the item can be placed on in {@link org.bukkit.GameMode#ADVENTURE}
      *
-     * @param canPlaceOn Collection of {@link io.papermc.paper.Namespaced}
+     * @param canPlaceOn Collection of {@link com.destroystokyo.paper.Namespaced}
      * @deprecated this API is unsupported and will be replaced, its usage may result in data loss related to place/destroy predicates.
      */
     @Deprecated(forRemoval = true, since = "1.20.6")
-    void setPlaceableKeys(@NotNull Collection<io.papermc.paper.Namespaced> canPlaceOn);
+    void setPlaceableKeys(@NotNull Collection<com.destroystokyo.paper.Namespaced> canPlaceOn);
 
     /**
      * Checks for the existence of any keys that the item can be placed on

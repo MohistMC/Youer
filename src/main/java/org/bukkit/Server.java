@@ -2289,7 +2289,7 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
      * @return A PlayerProfile object
      */
     @NotNull
-    io.papermc.paper.profile.PlayerProfile createProfile(@NotNull UUID uuid);
+    com.destroystokyo.paper.profile.PlayerProfile createProfile(@NotNull UUID uuid);
 
     /**
      * Creates a PlayerProfile for the specified name, with UUID as null.
@@ -2308,7 +2308,7 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
      * @throws IllegalArgumentException if the name contains invalid characters
      */
     @NotNull
-    io.papermc.paper.profile.PlayerProfile createProfile(@NotNull String name);
+    com.destroystokyo.paper.profile.PlayerProfile createProfile(@NotNull String name);
 
     /**
      * Creates a PlayerProfile for the specified name/uuid
@@ -2332,7 +2332,7 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
      * @throws IllegalArgumentException if the name contains invalid characters
      */
     @NotNull
-    io.papermc.paper.profile.PlayerProfile createProfile(@Nullable UUID uuid, @Nullable String name);
+    com.destroystokyo.paper.profile.PlayerProfile createProfile(@Nullable UUID uuid, @Nullable String name);
 
     /**
      * Creates an exact PlayerProfile for the specified name/uuid
@@ -2352,7 +2352,7 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
      * @throws IllegalArgumentException if the name contains invalid characters
      */
     @NotNull
-    io.papermc.paper.profile.PlayerProfile createProfileExact(@Nullable UUID uuid, @Nullable String name);
+    com.destroystokyo.paper.profile.PlayerProfile createProfileExact(@Nullable UUID uuid, @Nullable String name);
 
 
     /**
@@ -2370,12 +2370,12 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
     boolean isStopping();
 
     /**
-     * Returns the {@link io.papermc.paper.entity.ai.MobGoals} manager
+     * Returns the {@link com.destroystokyo.paper.entity.ai.MobGoals} manager
      *
      * @return the mob goals manager
      */
     @NotNull
-    io.papermc.paper.entity.ai.MobGoals getMobGoals();
+    com.destroystokyo.paper.entity.ai.MobGoals getMobGoals();
 
     /**
      * @return the datapack manager

@@ -5301,6 +5301,7 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
      * @return true if this material is an item
      */
     public boolean isItem() {
+        if (isModItem) return true;
         return asItemType() != null;
     }
 

@@ -19,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
  * underscores, hyphens, and forward slashes.
  *
  */
-public final class NamespacedKey implements net.kyori.adventure.key.Key, io.papermc.paper.Namespaced { // Paper - implement Key and Namespaced
+public final class NamespacedKey implements net.kyori.adventure.key.Key, com.destroystokyo.paper.Namespaced { // Paper - implement Key and Namespaced
 
     /**
      * The namespace representing all inbuilt keys.

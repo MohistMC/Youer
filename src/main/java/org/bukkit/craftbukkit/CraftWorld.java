@@ -2401,11 +2401,11 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
         java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
 
-            net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
-                net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
-                if (chunk != null) this.addTicket(x, z); // Paper
-                ret.complete(chunk == null ? null : new CraftChunk(chunk));
-            });
+        net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
+            net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
+            if (chunk != null) this.addTicket(x, z); // Paper
+            ret.complete(chunk == null ? null : new CraftChunk(chunk));
+        });
 
         return ret;
     }
@@ -2423,12 +2423,12 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         if (simulationDistance < 2 || simulationDistance > 32) {
             throw new IllegalArgumentException("Simulation distance " + simulationDistance + " is out of range of [2, 32]");
         }
-        this.getHandle().chunkSource.setSimulationDistance(simulationDistance); // Paper - rewrite chunk system
+        this.getHandle().chunkSource.setSimulationDistance(simulationDistance);
     }
 
     @Override
     public int getSendViewDistance() {
-        return 10; // Paper - rewrite chunk system
+        return 10;
     }
 
     @Override

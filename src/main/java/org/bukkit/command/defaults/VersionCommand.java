@@ -2,7 +2,7 @@ package org.bukkit.command.defaults;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import io.papermc.paper.util.VersionFetcher;
+import com.destroystokyo.paper.util.VersionFetcher;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;

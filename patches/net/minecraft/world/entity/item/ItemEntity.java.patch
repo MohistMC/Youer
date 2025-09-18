@@ -76,14 +76,14 @@
      }
  
      @Override
-@@ -120,18 +_,24 @@
+@@ -120,18 +_,25 @@
  
      @Override
      public void tick() {
 +        if (getItem().onEntityItemUpdate(this)) return;
          if (this.getItem().isEmpty()) {
--            this.discard();
-+            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          } else {
              super.tick();
 +            // Paper start - remove anti tick skipping measures / wall time - revert to vanilla
@@ -131,7 +131,7 @@
  
              this.hasImpulse = this.hasImpulse | this.updateInWaterStateAndDoFluidPushing();
              if (!this.level().isClientSide) {
-@@ -185,11 +_,49 @@
+@@ -185,11 +_,50 @@
                  }
              }
  
@@ -147,7 +147,8 @@
 +                        return;
 +                    }
 +                    // CraftBukkit end
-+                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                    this.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                    this.discard();
 +                }
 +            }
 +            if (item.isEmpty() && !this.isRemoved()) {
@@ -221,7 +222,7 @@
                  merge(this, itemstack, p_32016_, itemstack1);
              } else {
                  merge(p_32016_, itemstack1, this, itemstack);
-@@ -254,11 +_,16 @@
+@@ -254,10 +_,16 @@
      }
  
      private static void merge(ItemEntity p_32018_, ItemStack p_32019_, ItemEntity p_32020_, ItemStack p_32021_) {
@@ -234,11 +235,10 @@
          p_32018_.pickupDelay = Math.max(p_32018_.pickupDelay, p_32020_.pickupDelay);
          p_32018_.age = Math.min(p_32018_.age, p_32020_.age);
          if (p_32021_.isEmpty()) {
--            p_32020_.discard();
-+            p_32020_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.MERGE); // CraftBukkit - add Bukkit remove cause);
++            p_32020_.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.MERGE); // CraftBukkit - add Bukkit remove cause
+             p_32020_.discard();
          }
      }
- 
 @@ -269,7 +_,16 @@
  
      @Override
@@ -302,7 +302,7 @@
  
          if (p_32034_.hasUUID("Owner")) {
              this.target = p_32034_.getUUID("Owner");
-@@ -332,8 +_,19 @@
+@@ -332,6 +_,17 @@
              this.setItem(ItemStack.EMPTY);
          }
  
@@ -318,11 +318,8 @@
 +        // Paper end - Friction API
 +
          if (this.getItem().isEmpty()) {
--            this.discard();
-+            this.discard(null); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          }
-     }
- 
 @@ -341,12 +_,84 @@
      public void playerTouch(Player p_32040_) {
          if (!this.level().isClientSide) {

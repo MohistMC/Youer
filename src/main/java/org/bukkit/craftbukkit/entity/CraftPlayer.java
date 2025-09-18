@@ -8,7 +8,7 @@ import com.mohistmc.youer.api.color.ColorAPI;
 import com.mohistmc.youer.feature.GlobalVariableSystem;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
-import io.papermc.paper.profile.CraftPlayerProfile;
+import com.destroystokyo.paper.profile.CraftPlayerProfile;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.shorts.ShortArraySet;
 import it.unimi.dsi.fastutil.shorts.ShortSet;
@@ -508,7 +508,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     @Override
-    public void sendTitle(io.papermc.paper.Title title) {
+    public void sendTitle(com.destroystokyo.paper.Title title) {
         Preconditions.checkNotNull(title, "Title is null");
         setTitleTimes(title.getFadeIn(), title.getStay(), title.getFadeOut());
         setSubtitle(title.getSubtitle() == null ? new BaseComponent[0] : title.getSubtitle());
@@ -516,7 +516,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     @Override
-    public void updateTitle(io.papermc.paper.Title title) {
+    public void updateTitle(com.destroystokyo.paper.Title title) {
         Preconditions.checkNotNull(title, "Title is null");
         setTitleTimes(title.getFadeIn(), title.getStay(), title.getFadeOut());
         if (title.getSubtitle() != null) {
@@ -678,22 +678,22 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     @Override
-    public <T> T getClientOption(io.papermc.paper.ClientOption<T> type) {
-        if (io.papermc.paper.ClientOption.SKIN_PARTS == type) {
-            return type.getType().cast(new io.papermc.paper.PaperSkinParts(getHandle().getEntityData().get(net.minecraft.world.entity.player.Player.DATA_PLAYER_MODE_CUSTOMISATION)));
-        } else if (io.papermc.paper.ClientOption.CHAT_COLORS_ENABLED == type) {
+    public <T> T getClientOption(com.destroystokyo.paper.ClientOption<T> type) {
+        if (com.destroystokyo.paper.ClientOption.SKIN_PARTS == type) {
+            return type.getType().cast(new com.destroystokyo.paper.PaperSkinParts(getHandle().getEntityData().get(net.minecraft.world.entity.player.Player.DATA_PLAYER_MODE_CUSTOMISATION)));
+        } else if (com.destroystokyo.paper.ClientOption.CHAT_COLORS_ENABLED == type) {
             return type.getType().cast(getHandle().canChatInColor());
-        } else if (io.papermc.paper.ClientOption.CHAT_VISIBILITY == type) {
-            return type.getType().cast(getHandle().getChatVisibility() == null ? io.papermc.paper.ClientOption.ChatVisibility.UNKNOWN : io.papermc.paper.ClientOption.ChatVisibility.valueOf(getHandle().getChatVisibility().name()));
-        } else if (io.papermc.paper.ClientOption.LOCALE == type) {
+        } else if (com.destroystokyo.paper.ClientOption.CHAT_VISIBILITY == type) {
+            return type.getType().cast(getHandle().getChatVisibility() == null ? com.destroystokyo.paper.ClientOption.ChatVisibility.UNKNOWN : com.destroystokyo.paper.ClientOption.ChatVisibility.valueOf(getHandle().getChatVisibility().name()));
+        } else if (com.destroystokyo.paper.ClientOption.LOCALE == type) {
             return type.getType().cast(getLocale());
-        } else if (io.papermc.paper.ClientOption.MAIN_HAND == type) {
+        } else if (com.destroystokyo.paper.ClientOption.MAIN_HAND == type) {
             return type.getType().cast(getMainHand());
-        } else if (io.papermc.paper.ClientOption.VIEW_DISTANCE == type) {
+        } else if (com.destroystokyo.paper.ClientOption.VIEW_DISTANCE == type) {
             return type.getType().cast(getClientViewDistance());
-        } else if (io.papermc.paper.ClientOption.ALLOW_SERVER_LISTINGS == type) {
+        } else if (com.destroystokyo.paper.ClientOption.ALLOW_SERVER_LISTINGS == type) {
             return type.getType().cast(getHandle().allowsListing());
-        } else if (io.papermc.paper.ClientOption.TEXT_FILTERING_ENABLED == type) {
+        } else if (com.destroystokyo.paper.ClientOption.TEXT_FILTERING_ENABLED == type) {
             return type.getType().cast(getHandle().isTextFilteringEnabled());
         }
         throw new RuntimeException("Unknown settings type");
@@ -1597,9 +1597,9 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     @Override
     public void setRespawnLocation(Location location, boolean override) {
         if (location == null) {
-            this.getHandle().setRespawnPosition(null, null, 0.0F, override, false, io.papermc.paper.event.player.PlayerSetSpawnEvent.Cause.PLUGIN); // Paper - Add PlayerSetSpawnEvent
+            this.getHandle().setRespawnPosition(null, null, 0.0F, override, false, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.PLUGIN); // Paper - Add PlayerSetSpawnEvent
         } else {
-            this.getHandle().setRespawnPosition(((CraftWorld) location.getWorld()).getHandle().dimension(), CraftLocation.toBlockPosition(location), location.getYaw(), override, false, io.papermc.paper.event.player.PlayerSetSpawnEvent.Cause.PLUGIN); // Paper - Add PlayerSetSpawnEvent
+            this.getHandle().setRespawnPosition(((CraftWorld) location.getWorld()).getHandle().dimension(), CraftLocation.toBlockPosition(location), location.getYaw(), override, false, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.PLUGIN); // Paper - Add PlayerSetSpawnEvent
         }
     }
 
@@ -1771,23 +1771,23 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     @Override
-    public BanEntry<io.papermc.paper.profile.PlayerProfile> ban(String reason, Date expires, String source) { // Paper - fix ban list API
+    public BanEntry<com.destroystokyo.paper.profile.PlayerProfile> ban(String reason, Date expires, String source) { // Paper - fix ban list API
         return this.ban(reason, expires, source, true);
     }
 
     @Override
-    public BanEntry<io.papermc.paper.profile.PlayerProfile> ban(String reason, Instant expires, String source) { // Paper - fix ban list API
+    public BanEntry<com.destroystokyo.paper.profile.PlayerProfile> ban(String reason, Instant expires, String source) { // Paper - fix ban list API
         return this.ban(reason, expires != null ? Date.from(expires) : null, source);
     }
 
     @Override
-    public BanEntry<io.papermc.paper.profile.PlayerProfile> ban(String reason, Duration duration, String source) { // Paper - fix ban list API
+    public BanEntry<com.destroystokyo.paper.profile.PlayerProfile> ban(String reason, Duration duration, String source) { // Paper - fix ban list API
         return this.ban(reason, duration != null ? Instant.now().plus(duration) : null, source);
     }
 
     @Override
-    public BanEntry<io.papermc.paper.profile.PlayerProfile> ban(String reason, Date expires, String source, boolean kickPlayer) { // Paper - fix ban list API
-        BanEntry<io.papermc.paper.profile.PlayerProfile> banEntry = ((ProfileBanList) this.server.getBanList(BanList.Type.PROFILE)).addBan(this.getPlayerProfile(), reason, expires, source); // Paper - fix ban list API
+    public BanEntry<com.destroystokyo.paper.profile.PlayerProfile> ban(String reason, Date expires, String source, boolean kickPlayer) { // Paper - fix ban list API
+        BanEntry<com.destroystokyo.paper.profile.PlayerProfile> banEntry = ((ProfileBanList) this.server.getBanList(BanList.Type.PROFILE)).addBan(this.getPlayerProfile(), reason, expires, source); // Paper - fix ban list API
         if (kickPlayer) {
             this.kickPlayer(reason);
         }
@@ -1795,12 +1795,12 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     @Override
-    public BanEntry<io.papermc.paper.profile.PlayerProfile> ban(String reason, Instant instant, String source, boolean kickPlayer) { // Paper - fix ban list API
+    public BanEntry<com.destroystokyo.paper.profile.PlayerProfile> ban(String reason, Instant instant, String source, boolean kickPlayer) { // Paper - fix ban list API
         return this.ban(reason, instant != null ? Date.from(instant) : null, source, kickPlayer);
     }
 
     @Override
-    public BanEntry<io.papermc.paper.profile.PlayerProfile> ban(String reason, Duration duration, String source, boolean kickPlayer) { // Paper - fix ban list API
+    public BanEntry<com.destroystokyo.paper.profile.PlayerProfile> ban(String reason, Duration duration, String source, boolean kickPlayer) { // Paper - fix ban list API
         return this.ban(reason, duration != null ? Instant.now().plus(duration) : null, source, kickPlayer);
     }
 
@@ -2092,7 +2092,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     // Paper start
-    public io.papermc.paper.profile.PlayerProfile getPlayerProfile() {
+    public com.destroystokyo.paper.profile.PlayerProfile getPlayerProfile() {
         return new CraftPlayerProfile(this).clone();
     }
 
@@ -2202,7 +2202,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     // Paper start
     @Override
-    public void setPlayerProfile(io.papermc.paper.profile.PlayerProfile profile) {
+    public void setPlayerProfile(com.destroystokyo.paper.profile.PlayerProfile profile) {
         ServerPlayer self = this.getHandle();
         GameProfile gameProfile = CraftPlayerProfile.asAuthlibCopy(profile);
         if (!self.sentListPacket) {

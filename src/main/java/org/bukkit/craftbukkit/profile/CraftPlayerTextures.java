@@ -5,7 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import com.mojang.authlib.properties.Property;
-import io.papermc.paper.profile.SharedPlayerProfile;
+import com.destroystokyo.paper.profile.SharedPlayerProfile;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Locale;

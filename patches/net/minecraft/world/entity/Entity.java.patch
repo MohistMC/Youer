@@ -1,16 +1,21 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -4,6 +_,9 @@
+@@ -4,22 +_,31 @@
  import com.google.common.collect.Lists;
  import com.google.common.collect.Sets;
  import com.google.common.collect.ImmutableList.Builder;
 +import com.mohistmc.youer.YouerConfig;
++import com.mohistmc.youer.neoforge.collisions.FluidPushCalculation;
 +import com.mohistmc.youer.plugins.ban.bans.BanEntity;
 +import com.mohistmc.youer.util.LambdaFix;
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.floats.FloatArraySet;
  import it.unimi.dsi.fastutil.floats.FloatArrays;
-@@ -13,13 +_,16 @@
+ import it.unimi.dsi.fastutil.floats.FloatSet;
+ import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap;
+ import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
++import it.unimi.dsi.fastutil.objects.Reference2ReferenceArrayMap;
++import it.unimi.dsi.fastutil.objects.Reference2ReferenceMap;
  import java.util.ArrayList;
  import java.util.Arrays;
  import java.util.HashSet;
@@ -58,10 +63,11 @@
  import net.minecraft.world.level.entity.EntityAccess;
  import net.minecraft.world.level.entity.EntityInLevelCallback;
  import net.minecraft.world.level.gameevent.DynamicGameEventListener;
-@@ -126,9 +_,31 @@
+@@ -126,9 +_,32 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreHolder;
  import net.minecraft.world.scores.Team;
++import net.neoforged.neoforge.fluids.FluidType;
 +import org.bukkit.Bukkit;
 +import org.bukkit.Location;
 +import org.bukkit.command.CommandSender;
@@ -119,7 +125,7 @@
      private float eyeHeight;
      public boolean isInPowderSnow;
      public boolean wasInPowderSnow;
-@@ -243,6 +_,159 @@
+@@ -243,6 +_,162 @@
      public boolean hasVisualFire;
      @Nullable
      private BlockState inBlockState = null;
@@ -203,7 +209,8 @@
 +    public void inactiveTick() { }
 +    // Spigot end
 +    public boolean fromNetherPortal; // Paper - Add option to nerf pigmen from nether portals
-+
++    public long activatedImmunityTick = Integer.MIN_VALUE; // Paper - EAR
++    public boolean isTemporarilyActive; // Paper - EAR
 +    // Paper start - Entity origin API
 +    @javax.annotation.Nullable
 +    private org.bukkit.util.Vector origin;
@@ -211,6 +218,8 @@
 +    private UUID originWorld;
 +    public boolean freezeLocked = false; // Paper - Freeze Tick Lock API
 +    public boolean fixedPose = false; // Paper - Expand Pose API
++    public boolean activatedPriorityReset = false; // Pufferfish - DAB
++    public int activatedPriority = gg.pufferfish.pufferfish.PufferfishConfig.maximumActivationPrio; // Pufferfish - DAB (golf score)
 +    public @Nullable Boolean immuneToFire = null; // Purpur - Fire immune API
 +
 +    public void setOrigin(@javax.annotation.Nonnull Location location) {
@@ -467,7 +476,26 @@
          this.setYRot(p_19916_ % 360.0F);
          this.setXRot(p_19917_ % 360.0F);
      }
-@@ -419,8 +_,21 @@
+@@ -389,8 +_,7 @@
+     }
+ 
+     public void setPos(double p_20210_, double p_20211_, double p_20212_) {
+-        this.setPosRaw(p_20210_, p_20211_, p_20212_);
+-        this.setBoundingBox(this.makeBoundingBox());
++        this.setPosRaw(p_20210_, p_20211_, p_20212_, true); // Paper - Block invalid positions and bounding box; force update
+     }
+ 
+     protected AABB makeBoundingBox() {
+@@ -416,11 +_,30 @@
+     }
+ 
+     public void tick() {
++        // Pufferfish start - entity TTL
++        if (type != EntityType.PLAYER && type.ttl >= 0 && this.tickCount >= type.ttl) {
++            discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD); // Purpur
++            return;
++        }
++        // Pufferfish end - entity TTL
          this.baseTick();
      }
  
@@ -592,7 +620,7 @@
      }
  
      public boolean isFree(double p_20230_, double p_20231_, double p_20232_) {
-@@ -599,6 +_,7 @@
+@@ -599,11 +_,14 @@
      }
  
      public void move(MoverType p_19973_, Vec3 p_19974_) {
@@ -600,6 +628,27 @@
          if (this.noPhysics) {
              this.setPos(this.getX() + p_19974_.x, this.getY() + p_19974_.y, this.getZ() + p_19974_.z);
          } else {
+             this.wasOnFire = this.isOnFire();
+             if (p_19973_ == MoverType.PISTON) {
++                this.activatedTick = Math.max(this.activatedTick, MinecraftServer.currentTick + 20); // Paper
++                this.activatedImmunityTick = Math.max(this.activatedImmunityTick, MinecraftServer.currentTick + 20);   // Paper
+                 p_19974_ = this.limitPistonMovement(p_19974_);
+                 if (p_19974_.equals(Vec3.ZERO)) {
+                     return;
+@@ -616,6 +_,13 @@
+                 this.stuckSpeedMultiplier = Vec3.ZERO;
+                 this.setDeltaMovement(Vec3.ZERO);
+             }
++            // Paper start - ignore movement changes while inactive.
++            if (isTemporarilyActive && !(this instanceof ItemEntity) && p_19974_ == getDeltaMovement() && p_19973_ == MoverType.SELF) {
++                setDeltaMovement(Vec3.ZERO);
++                this.level.getProfiler().pop();
++                return;
++            }
++            // Paper end
+ 
+             p_19974_ = this.maybeBackOffFromEdge(p_19974_, p_19973_);
+             Vec3 vec3 = this.collide(p_19974_);
 @@ -664,6 +_,28 @@
                      block.updateEntityAfterFallOn(this.level(), this);
                  }
@@ -1615,6 +1664,26 @@
  
      public float rotate(Rotation p_20004_) {
          float f = Mth.wrapDegrees(this.getYRot());
+@@ -2966,16 +_,19 @@
+     }
+ 
+     private Stream<Entity> getIndirectPassengersStream() {
++        if (this.passengers.isEmpty()) { return Stream.of(); } // Paper - Optimize indirect passenger iteration
+         return this.passengers.stream().flatMap(Entity::getSelfAndPassengers);
+     }
+ 
+     @Override
+     public Stream<Entity> getSelfAndPassengers() {
++        if (this.passengers.isEmpty()) { return Stream.of(this); } // Paper - Optimize indirect passenger iteration
+         return Stream.concat(Stream.of(this), this.getIndirectPassengersStream());
+     }
+ 
+     @Override
+     public Stream<Entity> getPassengersAndSelf() {
++        if (this.passengers.isEmpty()) { return Stream.of(this); } // Paper - Optimize indirect passenger iteration
+         return Stream.concat(this.passengers.stream().flatMap(Entity::getPassengersAndSelf), Stream.of(this));
+     }
+ 
 @@ -3110,9 +_,17 @@
          return Mth.lerp(p_352259_, this.yRotO, this.yRot);
      }
@@ -1730,10 +1799,56 @@
          return this.fluidHeight.getDouble(p_204037_);
      }
  
-@@ -3323,6 +_,7 @@
+@@ -3307,7 +_,39 @@
+         return this.getZ((2.0 * this.random.nextDouble() - 1.0) * p_20263_);
+     }
+ 
++    // Paper start - Block invalid positions and bounding box
++    public static boolean checkPosition(Entity entity, double newX, double newY, double newZ) {
++        if (Double.isFinite(newX) && Double.isFinite(newY) && Double.isFinite(newZ)) {
++            return true;
++        }
++
++        String entityInfo;
++        try {
++            entityInfo = entity.toString();
++        } catch (Exception ex) {
++            entityInfo = "[Entity info unavailable] ";
++        }
++        LOGGER.error("New entity position is invalid! Tried to set invalid position ({},{},{}) for entity {} located at {}, entity info: {}", newX, newY, newZ, entity.getClass().getName(), entity.position, entityInfo, new Throwable());
++        return false;
++    }
+     public final void setPosRaw(double p_20344_, double p_20345_, double p_20346_) {
++        this.setPosRaw(p_20344_, p_20345_, p_20346_, false);
++    }
++    public final void setPosRaw(double p_20344_, double p_20345_, double p_20346_, boolean forceBoundingBoxUpdate) {
++        if (!checkPosition(this, p_20344_, p_20345_, p_20346_)) {
++            return;
++        }
++        // Paper end - Block invalid positions and bounding box
++        // Paper start - Fix MC-4
++        if (this instanceof ItemEntity) {
++            if (io.papermc.paper.configuration.GlobalConfiguration.get().misc.fixEntityPositionDesync) {
++                // encode/decode from ClientboundMoveEntityPacket
++                p_20344_ = Mth.lfloor(p_20344_ * 4096.0) * (1 / 4096.0);
++                p_20345_ = Mth.lfloor(p_20345_ * 4096.0) * (1 / 4096.0);
++                p_20346_ = Mth.lfloor(p_20346_ * 4096.0) * (1 / 4096.0);
++            }
++        }
++        // Paper end - Fix MC-4
+         if (this.position.x != p_20344_ || this.position.y != p_20345_ || this.position.z != p_20346_) {
+             this.position = new Vec3(p_20344_, p_20345_, p_20346_);
+             int i = Mth.floor(p_20344_);
+@@ -3323,6 +_,13 @@
  
              this.levelCallback.onMove();
          }
++        // Paper start - Block invalid positions and bounding box; don't allow desync of pos and AABB
++        // hanging has its own special logic
++        if (!(this instanceof net.minecraft.world.entity.decoration.HangingEntity) && (forceBoundingBoxUpdate || this.position.x != p_20344_ || this.position.y != p_20345_ || this.position.z != p_20346_)) {
++            this.setBoundingBox(this.makeBoundingBox());
++        }
++        // Paper end - Block invalid positions and bounding box
 +        if (this.isAddedToLevel() && !this.level.isClientSide && !this.isRemoved()) this.level.getChunk((int) Math.floor(p_20344_) >> 4, (int) Math.floor(p_20346_) >> 4); // Forge - ensure target chunk is loaded.
      }
  

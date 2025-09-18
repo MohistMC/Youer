@@ -83,7 +83,7 @@
  import net.minecraft.world.entity.ai.village.VillageSiege;
  import net.minecraft.world.entity.npc.CatSpawner;
  import net.minecraft.world.entity.npc.WanderingTraderSpawner;
-@@ -161,14 +_,40 @@
+@@ -161,14 +_,41 @@
  import net.minecraft.world.level.storage.LevelResource;
  import net.minecraft.world.level.storage.LevelStorageSource;
  import net.minecraft.world.level.storage.PlayerDataStorage;
@@ -93,6 +93,7 @@
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
 +import net.minecraft.world.scores.PlayerTeam;
++import net.neoforged.fml.util.thread.SidedThreadGroups;
 +import net.neoforged.neoforge.common.CommonHooks;
 +import net.neoforged.neoforge.common.NeoForge;
 +import net.neoforged.neoforge.common.world.chunk.ForcedChunkManager;
@@ -189,7 +190,7 @@
 +    public static final int TICK_TIME = 1000000000 / TPS;
 +    private static final int SAMPLE_INTERVAL = 20; // Paper - improve server tick loop
 +    @Deprecated(forRemoval = true) // Paper
-+    public final double[] recentTps = new double[ 3 ];
++    public final double[] recentTps = new double[ 4 ];
 +    // Spigot end
 +    public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
 +    public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
@@ -675,7 +676,7 @@
      }
  
      public String getLocalIp() {
-@@ -650,26 +_,104 @@
+@@ -650,26 +_,105 @@
      }
  
      public void halt(boolean p_129884_) {
@@ -713,6 +714,7 @@
 +    private static final long MAX_CATCHUP_BUFFER = TICK_TIME * TPS * 60L;
 +    private long lastTick = 0;
 +    private long catchupTime = 0;
++    public final RollingAverage tps5s = new RollingAverage(5); // Purpur
 +    public final RollingAverage tps1 = new RollingAverage(60);
 +    public final RollingAverage tps5 = new RollingAverage(60 * 5);
 +    public final RollingAverage tps15 = new RollingAverage(60 * 15);
@@ -785,7 +787,7 @@
              while (this.running) {
                  long i;
                  if (!this.isPaused() && this.tickRateManager.isSprinting() && this.tickRateManager.checkShouldSprintThisTick()) {
-@@ -682,18 +_,40 @@
+@@ -682,18 +_,39 @@
                      if (k > OVERLOADED_THRESHOLD_NANOS + 20L * i
                          && this.nextTickTimeNanos - this.lastOverloadWarningNanos >= OVERLOADED_WARNING_INTERVAL_NANOS + 100L * i) {
                          long j = k / i;
@@ -803,26 +805,29 @@
 +                if (++MinecraftServer.currentTick % MinecraftServer.SAMPLE_INTERVAL == 0) {
 +                    final long diff = currentTime - tickSection;
 +                    final java.math.BigDecimal currentTps = TPS_BASE.divide(new java.math.BigDecimal(diff), 30, java.math.RoundingMode.HALF_UP);
++                    tps5s.add(currentTps, diff); // Purpur
 +                    tps1.add(currentTps, diff);
 +                    tps5.add(currentTps, diff);
 +                    tps15.add(currentTps, diff);
 +
 +                    // Backwards compat with bad plugins
-+                    this.recentTps[0] = tps1.getAverage();
-+                    this.recentTps[1] = tps5.getAverage();
-+                    this.recentTps[2] = tps15.getAverage();
++                    // Purpur start
++                    this.recentTps[0] = tps5s.getAverage();
++                    this.recentTps[1] = tps1.getAverage();
++                    this.recentTps[2] = tps5.getAverage();
++                    this.recentTps[3] = tps15.getAverage();
++                    // Purpur end
 +                    lagging = recentTps[0] < org.purpurmc.purpur.PurpurConfig.laggingThreshold; // Purpur
 +                    tickSection = currentTime;
 +                }
 +                // Spigot end
 +
                  boolean flag = i == 0L;
-                 if (this.debugCommandProfilerDelayStart) {
-                     this.debugCommandProfilerDelayStart = false;
+-                if (this.debugCommandProfilerDelayStart) {
+-                    this.debugCommandProfilerDelayStart = false;
 -                    this.debugCommandProfiler = new MinecraftServer.TimeProfiler(Util.getNanos(), this.tickCount);
-+                    this.debugCommandProfiler = new TimeProfiler(Util.getNanos(), this.tickCount);
-                 }
- 
+-                }
+-
 +                // MinecraftServer.currentTick = (int) (System.currentTimeMillis() / 50); // CraftBukkit // Paper - don't overwrite current tick time
 +                lastTick = currentTime;
                  this.nextTickTimeNanos += i;
@@ -942,6 +947,25 @@
          return new TickTask(this.tickCount, p_129852_);
      }
  
+@@ -844,15 +_,16 @@
+         if (super.pollTask()) {
+             return true;
+         } else {
++            boolean ret = false; // Paper - force execution of all worlds, do not just bias the first
+             if (this.tickRateManager.isSprinting() || this.haveTime()) {
+                 for (ServerLevel serverlevel : this.getAllLevels()) {
+                     if (serverlevel.getChunkSource().pollTask()) {
+-                        return true;
++                        ret = true; // Paper - force execution of all worlds, do not just bias the first
+                     }
+                 }
+             }
+ 
+-            return false;
++            return ret; // Paper - force execution of all worlds, do not just bias the first
+         }
+     }
+ 
 @@ -900,12 +_,26 @@
  
      public void tickServer(BooleanSupplier p_129871_) {
@@ -956,7 +980,7 @@
 +        });
 +        isOversleep = false;
 +        // Paper end
-+        new io.papermc.paper.event.server.ServerTickStartEvent(this.tickCount+1).callEvent(); // Paper - Server Tick Events
++        new com.destroystokyo.paper.event.server.ServerTickStartEvent(this.tickCount+1).callEvent(); // Paper - Server Tick Events
 +
          this.tickCount++;
 +        EventHooks.fireServerTickPre(p_129871_, this);
@@ -977,7 +1001,7 @@
 +        // Paper start - Server Tick Events
 +        long endTime = System.nanoTime();
 +        long remaining = (TICK_TIME - (endTime - lastTick)) - catchupTime;
-+        new io.papermc.paper.event.server.ServerTickEndEvent(this.tickCount, ((double)(endTime - lastTick) / 1000000D), remaining).callEvent();
++        new com.destroystokyo.paper.event.server.ServerTickEndEvent(this.tickCount, ((double)(endTime - lastTick) / 1000000D), remaining).callEvent();
 +        // Paper end - Server Tick Events
          this.profiler.push("tallying");
          long j = Util.getNanos() - i;

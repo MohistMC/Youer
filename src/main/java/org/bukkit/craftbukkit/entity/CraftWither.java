@@ -1,7 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
-import io.papermc.paper.entity.CraftRangedEntity;
+import com.destroystokyo.paper.entity.CraftRangedEntity;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import org.bukkit.boss.BossBar;

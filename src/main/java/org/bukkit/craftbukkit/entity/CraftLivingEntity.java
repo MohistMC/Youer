@@ -2,7 +2,7 @@ package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
-import io.papermc.paper.entity.TargetEntityInfo;
+import com.destroystokyo.paper.entity.TargetEntityInfo;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -211,12 +211,12 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     // Paper start
     @Override
-    public Block getTargetBlock(int maxDistance, io.papermc.paper.block.TargetBlockInfo.FluidMode fluidMode) {
+    public Block getTargetBlock(int maxDistance, com.destroystokyo.paper.block.TargetBlockInfo.FluidMode fluidMode) {
         return this.getTargetBlockExact(maxDistance, fluidMode.bukkit);
     }
 
     @Override
-    public org.bukkit.block.BlockFace getTargetBlockFace(int maxDistance, io.papermc.paper.block.TargetBlockInfo.FluidMode fluidMode) {
+    public org.bukkit.block.BlockFace getTargetBlockFace(int maxDistance, com.destroystokyo.paper.block.TargetBlockInfo.FluidMode fluidMode) {
         return this.getTargetBlockFace(maxDistance, fluidMode.bukkit);
     }
 
@@ -227,10 +227,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     }
 
     @Override
-    public io.papermc.paper.block.TargetBlockInfo getTargetBlockInfo(int maxDistance, io.papermc.paper.block.TargetBlockInfo.FluidMode fluidMode) {
+    public com.destroystokyo.paper.block.TargetBlockInfo getTargetBlockInfo(int maxDistance, com.destroystokyo.paper.block.TargetBlockInfo.FluidMode fluidMode) {
         RayTraceResult result = this.rayTraceBlocks(maxDistance, fluidMode.bukkit);
         if (result != null && result.getHitBlock() != null && result.getHitBlockFace() != null) {
-            return new io.papermc.paper.block.TargetBlockInfo(result.getHitBlock(), result.getHitBlockFace());
+            return new com.destroystokyo.paper.block.TargetBlockInfo(result.getHitBlock(), result.getHitBlockFace());
         }
         return null;
     }

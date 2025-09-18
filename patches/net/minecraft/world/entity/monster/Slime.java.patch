@@ -200,7 +200,7 @@
 +            if (!this.slime.canAttack(livingentity)) {
 +                return false;
 +            }
-+            return this.slime.getMoveControl() instanceof Slime.SlimeMoveControl && this.slime.canWander && new io.papermc.paper.event.entity.SlimeTargetLivingEntityEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity(), (org.bukkit.entity.LivingEntity) livingentity.getBukkitEntity()).callEvent();
++            return this.slime.getMoveControl() instanceof Slime.SlimeMoveControl && this.slime.canWander && new com.destroystokyo.paper.event.entity.SlimeTargetLivingEntityEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity(), (org.bukkit.entity.LivingEntity) livingentity.getBukkitEntity()).callEvent();
 +            // Paper end - Slime pathfinder events
          }
  
@@ -221,7 +221,7 @@
 +            if (!this.slime.canAttack(livingentity)) {
 +                return false;
 +            }
-+            return --this.growTiredTimer > 0 && this.slime.canWander && new io.papermc.paper.event.entity.SlimeTargetLivingEntityEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity(), (org.bukkit.entity.LivingEntity) livingentity.getBukkitEntity()).callEvent();
++            return --this.growTiredTimer > 0 && this.slime.canWander && new com.destroystokyo.paper.event.entity.SlimeTargetLivingEntityEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity(), (org.bukkit.entity.LivingEntity) livingentity.getBukkitEntity()).callEvent();
 +            // Paper end - Slime pathfinder events
          }
  
@@ -245,7 +245,7 @@
          @Override
          public boolean canUse() {
 -            return (this.slime.isInWater() || this.slime.isInLava()) && this.slime.getMoveControl() instanceof Slime.SlimeMoveControl;
-+            return (this.slime.isInWater() || this.slime.isInLava()) && this.slime.getMoveControl() instanceof Slime.SlimeMoveControl && this.slime.canWander && new io.papermc.paper.event.entity.SlimeSwimEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity()).callEvent(); // Paper - Slime pathfinder events
++            return (this.slime.isInWater() || this.slime.isInLava()) && this.slime.getMoveControl() instanceof Slime.SlimeMoveControl && this.slime.canWander && new com.destroystokyo.paper.event.entity.SlimeSwimEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity()).callEvent(); // Paper - Slime pathfinder events
          }
  
          @Override
@@ -254,7 +254,7 @@
          @Override
          public boolean canUse() {
 -            return !this.slime.isPassenger();
-+            return !this.slime.isPassenger() && this.slime.canWander && new io.papermc.paper.event.entity.SlimeWanderEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity()).callEvent(); // Paper - Slime pathfinder events
++            return !this.slime.isPassenger() && this.slime.canWander && new com.destroystokyo.paper.event.entity.SlimeWanderEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity()).callEvent(); // Paper - Slime pathfinder events
          }
  
          @Override
@@ -272,7 +272,7 @@
                  this.nextRandomizeTime = this.adjustedTickDelay(40 + this.slime.getRandom().nextInt(60));
                  this.chosenDegrees = (float)this.slime.getRandom().nextInt(360);
 +                // Paper start - Slime pathfinder events
-+                io.papermc.paper.event.entity.SlimeChangeDirectionEvent event = new io.papermc.paper.event.entity.SlimeChangeDirectionEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity(), this.chosenDegrees);
++                com.destroystokyo.paper.event.entity.SlimeChangeDirectionEvent event = new com.destroystokyo.paper.event.entity.SlimeChangeDirectionEvent((org.bukkit.entity.Slime) this.slime.getBukkitEntity(), this.chosenDegrees);
 +                if (!this.slime.canWander || !event.callEvent()) return;
 +                this.chosenDegrees = event.getNewYaw();
 +                // Paper end - Slime pathfinder events

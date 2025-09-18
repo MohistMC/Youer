@@ -34,11 +34,13 @@ public class WorldsGUI {
         for (World w : Bukkit.getWorlds()) {
             List<String> infoLore = new ArrayList<>();
             FileConfiguration config = ConfigByWorlds.config;
+            boolean flat = false;
             if (ConfigByWorlds.f.exists() && config.getConfigurationSection("worlds.") != null) {
                 String worldtype = w.getEnvironment() == null ? "null" : w.getEnvironment().name();
                 String infos = "§7-/-";
                 String name1 = w.getName();
                 String difficulty = w.getDifficulty().name();
+
                 if (config.get("worlds." + w.getName() + ".info") != null) {
                     infos = config.getString("worlds." + w.getName() + ".info", "§7-/-");
                     worldtype = config.getString("worlds." + w.getName() + ".environment");
@@ -60,10 +62,12 @@ public class WorldsGUI {
                     infoLore.add("§bVoid §8>> §7" + config.getBoolean("worlds." + w.getName() + ".void"));
                 }
                 if (config.get("worlds." + w.getName() + ".flat") != null) {
-                    infoLore.add("§bFlat §8>> §7" + config.getBoolean("worlds." + w.getName() + ".flat"));
+                    flat = config.getBoolean("worlds." + w.getName() + ".flat");
+                    infoLore.add("§bFlat §8>> §7" + flat);
                 }
             }
-            wh.addItem(new GUIItem(new ItemStackFactory(getMaterial(w))
+            Material material = flat ? Material.GREEN_CARPET :getMaterial(w);
+            wh.addItem(new GUIItem(new ItemStackFactory(material)
                                .setDisplayName("§7>> §6" + w.getName())
                                .setLore(infoLore)
                                .toItemStack()) {

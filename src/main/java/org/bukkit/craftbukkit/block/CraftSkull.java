@@ -100,15 +100,15 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
 
     // Paper start
     @Override
-    public void setPlayerProfile(io.papermc.paper.profile.PlayerProfile profile) {
+    public void setPlayerProfile(com.destroystokyo.paper.profile.PlayerProfile profile) {
         Preconditions.checkNotNull(profile, "profile");
-        this.profile = io.papermc.paper.profile.CraftPlayerProfile.asResolvableProfileCopy(profile);
+        this.profile = com.destroystokyo.paper.profile.CraftPlayerProfile.asResolvableProfileCopy(profile);
     }
 
     @javax.annotation.Nullable
     @Override
-    public io.papermc.paper.profile.PlayerProfile getPlayerProfile() {
-        return profile != null ? new io.papermc.paper.profile.CraftPlayerProfile(profile) : null;
+    public com.destroystokyo.paper.profile.PlayerProfile getPlayerProfile() {
+        return profile != null ? new com.destroystokyo.paper.profile.CraftPlayerProfile(profile) : null;
     }
     // Paper end
 
@@ -126,7 +126,7 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
         if (profile == null) {
             this.profile = null;
         } else {
-            this.profile = CraftPlayerProfile.validateSkullProfile(((io.papermc.paper.profile.SharedPlayerProfile) profile).buildResolvableProfile()); // Paper
+            this.profile = CraftPlayerProfile.validateSkullProfile(((com.destroystokyo.paper.profile.SharedPlayerProfile) profile).buildResolvableProfile()); // Paper
         }
     }
 

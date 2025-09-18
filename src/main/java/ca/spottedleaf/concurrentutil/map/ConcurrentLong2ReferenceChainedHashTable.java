@@ -7,10 +7,14 @@ import ca.spottedleaf.concurrentutil.util.IntegerUtil;
 import ca.spottedleaf.concurrentutil.util.ThrowUtil;
 import ca.spottedleaf.concurrentutil.util.Validate;
 import java.lang.invoke.VarHandle;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.PrimitiveIterator;
+import java.util.Set;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -82,6 +86,9 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> implements Iterable<Con
     protected final int compareExchangeThresholdVolatile(final int expect, final int update) {
         return (int)THRESHOLD_HANDLE.compareAndExchange(this, expect, update);
     }
+
+    protected Values<V> values;
+    protected EntrySet<V> entrySet;
 
     public ConcurrentLong2ReferenceChainedHashTable() {
         this(DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR);
@@ -1322,6 +1329,22 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> implements Iterable<Con
         return new ValueIterator<>(this);
     }
 
+    public Collection<V> values() {
+        final Values<V> values = this.values;
+        if (values != null) {
+            return values;
+        }
+        return this.values = new Values<>(this);
+    }
+
+    public Set<TableEntry<V>> entrySet() {
+        final EntrySet<V> entrySet = this.entrySet;
+        if (entrySet != null) {
+            return entrySet;
+        }
+        return this.entrySet = new EntrySet<>(this);
+    }
+
     protected static final class EntryIterator<V> extends BaseIteratorImpl<V, TableEntry<V>> {
 
         public EntryIterator(final ConcurrentLong2ReferenceChainedHashTable<V> map) {
@@ -1615,6 +1638,136 @@ public class ConcurrentLong2ReferenceChainedHashTable<V> implements Iterable<Con
                 this.prev = prev;
                 this.next = next;
             }
+        }
+    }
+
+    protected static abstract class BaseCollection<V, E> implements Collection<E> {
+
+        protected final ConcurrentLong2ReferenceChainedHashTable<V> map;
+
+        protected BaseCollection(final ConcurrentLong2ReferenceChainedHashTable<V> map) {
+            this.map = map;
+        }
+
+        @Override
+        public int size() {
+            return this.map.size();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return this.map.isEmpty();
+        }
+
+        @Override
+        public void forEach(final Consumer<? super E> action) {
+            this.iterator().forEachRemaining(action);
+        }
+
+        private List<E> asList() {
+            final List<E> ret = new ArrayList<>(this.map.size());
+
+            for (final E element : this) {
+                ret.add(element);
+            }
+
+            return ret;
+        }
+
+        @Override
+        public Object[] toArray() {
+            return this.asList().toArray();
+        }
+
+        @Override
+        public <T> T[] toArray(final T[] a) {
+            return this.asList().toArray(a);
+        }
+
+        @Override
+        public boolean containsAll(final Collection<?> collection) {
+            for (final Object value : collection) {
+                if (!this.contains(value)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        @Override
+        public boolean add(final E value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean remove(final Object value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean addAll(final Collection<? extends E> collection) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean removeAll(final Collection<?> collection) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean removeIf(final Predicate<? super E> filter) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean retainAll(final Collection<?> collection) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void clear() {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    protected static class Values<V> extends BaseCollection<V, V> {
+
+        public Values(final ConcurrentLong2ReferenceChainedHashTable<V> map) {
+            super(map);
+        }
+
+        @Override
+        public boolean contains(final Object value) {
+            return this.map.containsValue((V)value);
+        }
+
+        @Override
+        public Iterator<V> iterator() {
+            return this.map.valueIterator();
+        }
+    }
+
+    protected static class EntrySet<V> extends BaseCollection<V, TableEntry<V>> implements Set<TableEntry<V>> {
+
+        protected EntrySet(final ConcurrentLong2ReferenceChainedHashTable<V> map) {
+            super(map);
+        }
+
+        @Override
+        public boolean contains(final Object value) {
+            if (!(value instanceof ConcurrentLong2ReferenceChainedHashTable.TableEntry<?> entry)) {
+                return false;
+            }
+
+            final V mapped = this.map.get(entry.getKey());
+
+            return mapped != null && mapped == value;
+        }
+
+        @Override
+        public Iterator<TableEntry<V>> iterator() {
+            return this.map.entryIterator();
         }
     }
 

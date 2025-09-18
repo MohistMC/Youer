@@ -209,7 +209,7 @@ public class ShowsCommand extends Command {
                     BlockState block = serverLevel.getBlockState(pos);
                     net.minecraft.world.item.ItemStack itemStack = block.getBlock().asItem().getDefaultInstance();
                     Material material = itemStack.getBukkitStack().getType();
-                    if (material.isAir()) continue;
+                    if (material.isAir() || material.asItemType() == null) continue;
                     collect.merge(material, 1, Integer::sum);
 
                     long chunkX = pos.getX() >> 4;

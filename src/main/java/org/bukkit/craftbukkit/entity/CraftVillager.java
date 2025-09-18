@@ -1,7 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
-import io.papermc.paper.entity.villager.Reputation;
+import com.destroystokyo.paper.entity.villager.Reputation;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -335,7 +335,7 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
     public Reputation getReputation(UUID uniqueId) {
         net.minecraft.world.entity.ai.gossip.GossipContainer.EntityGossips rep = getHandle().getGossips().gossips.get(uniqueId);
         if (rep == null) {
-            return new Reputation(new java.util.EnumMap<>(io.papermc.paper.entity.villager.ReputationType.class));
+            return new Reputation(new java.util.EnumMap<>(com.destroystokyo.paper.entity.villager.ReputationType.class));
         }
 
         return rep.getPaperReputation();

@@ -6,7 +6,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import com.mojang.datafixers.util.Either;
-import io.papermc.paper.event.entity.ProjectileCollideEvent;
+import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
@@ -768,7 +768,7 @@ public class CraftEventFactory {
                     for (Entity e : entities) {
                         if (e instanceof net.minecraft.world.entity.ExperienceOrb loopItem) {
                             // Paper start
-                            if (!loopItem.isRemoved() && xp.count == loopItem.count && (mergeUnconditionally || loopItem.value < maxValue) && new io.papermc.paper.event.entity.ExperienceOrbMergeEvent((org.bukkit.entity.ExperienceOrb) entity.getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) loopItem.getBukkitEntity()).callEvent()) { // Paper - ExperienceOrbMergeEvent
+                            if (!loopItem.isRemoved() && xp.count == loopItem.count && (mergeUnconditionally || loopItem.value < maxValue) && new com.destroystokyo.paper.event.entity.ExperienceOrbMergeEvent((org.bukkit.entity.ExperienceOrb) entity.getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) loopItem.getBukkitEntity()).callEvent()) { // Paper - ExperienceOrbMergeEvent
                                 long newTotal = (long)xp.value + (long)loopItem.value;
                                 if ((int) newTotal < 0) continue; // Overflow
                                 if (!mergeUnconditionally && newTotal > maxValue) {
@@ -1322,8 +1322,8 @@ public class CraftEventFactory {
     }
 
     // Paper start
-    public static io.papermc.paper.event.entity.EntityZapEvent callEntityZapEvent(Entity entity, Entity lightning, Entity changedEntity) {
-        io.papermc.paper.event.entity.EntityZapEvent event = new io.papermc.paper.event.entity.EntityZapEvent(entity.getBukkitEntity(), (LightningStrike) lightning.getBukkitEntity(), changedEntity.getBukkitEntity());
+    public static com.destroystokyo.paper.event.entity.EntityZapEvent callEntityZapEvent(Entity entity, Entity lightning, Entity changedEntity) {
+        com.destroystokyo.paper.event.entity.EntityZapEvent event = new com.destroystokyo.paper.event.entity.EntityZapEvent(entity.getBukkitEntity(), (LightningStrike) lightning.getBukkitEntity(), changedEntity.getBukkitEntity());
         entity.getBukkitEntity().getServer().getPluginManager().callEvent(event);
         return event;
     }
@@ -1768,7 +1768,7 @@ public class CraftEventFactory {
 
     // Paper start - Add PrepareResultEvent
     public static void callPrepareResultEvent(AbstractContainerMenu container, int resultSlot) {
-        final io.papermc.paper.event.inventory.PrepareResultEvent event;
+        final com.destroystokyo.paper.event.inventory.PrepareResultEvent event;
         InventoryView view = container.getBukkitView();
         org.bukkit.inventory.ItemStack origItem = view.getTopInventory().getItem(resultSlot);
         CraftItemStack result = origItem != null ? CraftItemStack.asCraftCopy(origItem) : null;
@@ -1779,7 +1779,7 @@ public class CraftEventFactory {
         } else if (view.getTopInventory() instanceof org.bukkit.inventory.SmithingInventory) {
             event = new PrepareSmithingEvent(view, result);
         } else {
-            event = new io.papermc.paper.event.inventory.PrepareResultEvent(view, result);
+            event = new com.destroystokyo.paper.event.inventory.PrepareResultEvent(view, result);
         }
         event.callEvent();
         event.getInventory().setItem(resultSlot, event.getResult());
@@ -2125,7 +2125,7 @@ public class CraftEventFactory {
         final io.papermc.paper.event.entity.EntityKnockbackEvent event;
         apiKnockback = legacyEvent.getFinalKnockback().subtract(currentVelocity);
         if (attacker != null) {
-            event = new io.papermc.paper.event.entity.EntityKnockbackByEntityEvent(entity, attacker.getBukkitEntity(), cause, (float) force, apiKnockback);
+            event = new com.destroystokyo.paper.event.entity.EntityKnockbackByEntityEvent(entity, attacker.getBukkitEntity(), cause, (float) force, apiKnockback);
         } else {
             event = new io.papermc.paper.event.entity.EntityKnockbackEvent(entity, cause, apiKnockback);
         }
@@ -2153,7 +2153,7 @@ public class CraftEventFactory {
 
     // Paper start - PlayerUseUnknownEntityEvent
     public static void callPlayerUseUnknownEntityEvent(net.minecraft.world.entity.player.Player player, net.minecraft.network.protocol.game.ServerboundInteractPacket packet, InteractionHand hand, @Nullable net.minecraft.world.phys.Vec3 vector) {
-        new io.papermc.paper.event.player.PlayerUseUnknownEntityEvent(
+        new com.destroystokyo.paper.event.player.PlayerUseUnknownEntityEvent(
                 (Player) player.getBukkitEntity(), packet.getEntityId(), packet.isAttack(),
                 CraftEquipmentSlot.getHand(hand),
                 vector != null ? CraftVector.toBukkit(vector) : null
@@ -2163,7 +2163,7 @@ public class CraftEventFactory {
 
     // Paper start - WitchReadyPotionEvent
     public static ItemStack handleWitchReadyPotionEvent(net.minecraft.world.entity.monster.Witch witch, @Nullable ItemStack potion) {
-        io.papermc.paper.event.entity.WitchReadyPotionEvent event = new io.papermc.paper.event.entity.WitchReadyPotionEvent((org.bukkit.entity.Witch) witch.getBukkitEntity(), CraftItemStack.asCraftMirror(potion));
+        com.destroystokyo.paper.event.entity.WitchReadyPotionEvent event = new com.destroystokyo.paper.event.entity.WitchReadyPotionEvent((org.bukkit.entity.Witch) witch.getBukkitEntity(), CraftItemStack.asCraftMirror(potion));
         if (!event.callEvent() || event.getPotion() == null) {
             return ItemStack.EMPTY;
         }

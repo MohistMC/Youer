@@ -1,6 +1,6 @@
 package org.bukkit.entity;
 
-import io.papermc.paper.entity.RangedEntity;
+import com.destroystokyo.paper.entity.RangedEntity;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 

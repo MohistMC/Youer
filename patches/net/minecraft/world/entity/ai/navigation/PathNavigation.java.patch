@@ -1,7 +1,37 @@
 --- a/net/minecraft/world/entity/ai/navigation/PathNavigation.java
 +++ b/net/minecraft/world/entity/ai/navigation/PathNavigation.java
-@@ -167,7 +_,7 @@
-         return path != null && this.moveTo(path, p_26533_);
+@@ -158,16 +_,36 @@
+         return this.moveTo(this.createPath(p_26520_, p_26521_, p_26522_, 1), p_26523_);
+     }
+ 
++    // Paper start - Perf: Optimise pathfinding
++    private int lastFailure = 0;
++    private int pathfindFailures = 0;
++    // Paper end - Perf: Optimise pathfinding
++
+     public boolean moveTo(double p_334082_, double p_333723_, double p_333873_, int p_333757_, double p_333795_) {
+         return this.moveTo(this.createPath(p_334082_, p_333723_, p_333873_, p_333757_), p_333795_);
+     }
+ 
+     public boolean moveTo(Entity p_26532_, double p_26533_) {
++        // Paper start - Perf: Optimise pathfinding
++        if (this.pathfindFailures > 10 && this.path == null && net.minecraft.server.MinecraftServer.currentTick < this.lastFailure + 40) {
++            return false;
++        }
++        // Paper end - Perf: Optimise pathfinding
+         Path path = this.createPath(p_26532_, 1);
+-        return path != null && this.moveTo(path, p_26533_);
++        // Paper start - Perf: Optimise pathfinding
++        if (path != null && this.moveTo(path, p_26533_)) {
++            this.lastFailure = 0;
++            this.pathfindFailures = 0;
++            return true;
++        } else {
++            this.pathfindFailures++;
++            this.lastFailure = net.minecraft.server.MinecraftServer.currentTick;
++            return false;
++        }
++        // Paper end - Perf: Optimise pathfinding
      }
  
 -    public boolean moveTo(@Nullable Path p_26537_, double p_26538_) {
