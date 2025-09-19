@@ -71,6 +71,7 @@ import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.Statistic.Type;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -1019,7 +1020,11 @@ public class CraftEventFactory {
         event.setReviveHealth(event.getEntity().getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH).getValue());
         event.setShouldPlayDeathSound(!victim.silentDeath && !victim.isSilent());
         net.minecraft.sounds.SoundEvent soundEffect = victim.getDeathSound();
-        event.setDeathSound(soundEffect != null ? org.bukkit.craftbukkit.CraftSound.minecraftToBukkit(soundEffect) : null);
+        Sound bukkit = org.bukkit.craftbukkit.CraftSound.minecraftToBukkit(soundEffect);
+        if (bukkit == null) {
+            return;
+        }
+        event.setDeathSound(soundEffect != null ? bukkit : null);
         event.setDeathSoundCategory(org.bukkit.SoundCategory.valueOf(victim.getSoundSource().name()));
         event.setDeathSoundVolume(victim.getSoundVolume());
         event.setDeathSoundPitch(victim.getVoicePitch());
