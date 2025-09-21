@@ -459,6 +459,40 @@ public class NeoDevPlugin implements Plugin<Project> {
             }
         });
 
+        var youerJar0 = tasks.register("youerJar0", Jar.class, task -> {
+            task.from(createUnixServerArgsFile.flatMap(CreateArgsFile::getArgsFile), spec -> {
+                spec.into("data");
+                spec.rename(s -> "unix_args.txt");
+            });
+            task.from(createWindowsServerArgsFile.flatMap(CreateArgsFile::getArgsFile), spec -> {
+                spec.into("data");
+                spec.rename(s -> "win_args.txt");
+            });
+            task.from(binaryPatchOutputs.binaryPatchesForServer(), spec -> {
+                spec.into("data");
+                spec.rename(s -> "server.lzma");
+            });
+
+            var mavenPath = neoForgeVersion.map(v -> "net/neoforged/neoforge/" + v);
+            task.getInputs().property("mavenPath", mavenPath);
+            task.from(project.getRootProject().files("server_files"), spec -> {
+                spec.into("data");
+                spec.exclude("args.txt");
+                spec.filter(s -> {
+                    return s.replaceAll("@MAVEN_PATH@", mavenPath.get());
+                });
+            });
+
+            // This is true by default (see gradle.properties), and needs to be disabled explicitly when building (see release.yml).
+            String installerDebugProperty = "neogradle.runtime.platform.installer.debug";
+            if (project.getProperties().containsKey(installerDebugProperty) && Boolean.parseBoolean(project.getProperties().get(installerDebugProperty).toString())) {
+                task.from(universalJar.flatMap(AbstractArchiveTask::getArchiveFile), spec -> {
+                    spec.into("data");
+                    spec.rename(name -> String.format("neoforge-%s-universal.jar", neoForgeVersion.get()));
+                });
+            }
+        });
+
         var userdevJar = tasks.register("userdevJar", Jar.class, task -> {
             task.setGroup(INTERNAL_GROUP);
             task.getArchiveClassifier().set("userdev");

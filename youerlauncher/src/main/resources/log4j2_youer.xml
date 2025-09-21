@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" shutdownHook="disable">
+    <Appenders>
+        <TerminalConsole name="TerminalConsole">
+            <PatternLayout>
+                <LoggerNamePatternSelector defaultPattern="[%highlightTime{%d{HH:mm:ss}} %highlightLevel{%level}]: %highlightMsg{%msg%n%xEx{full}}">
+                    <!-- Log root, Minecraft, Mojang and Bukkit loggers without prefix -->
+                    <!-- Disable prefix for various plugins that bypass the plugin logger -->
+                    <PatternMatch key=",net.minecraft.,Minecraft,com.mojang.,com.sk89q.,ru.tehkode.,Minecraft.AWE"
+                                  pattern="%highlightError{[%d{HH:mm:ss} %level]: %msg%n%xEx{full}}" />
+                </LoggerNamePatternSelector>
+            </PatternLayout>
+        </TerminalConsole>
+        <RollingRandomAccessFile name="File" fileName="logs/latest.log" filePattern="logs/%d{yyyy-MM-dd}-%i.log.zip">
+            <PatternLayout>
+                <LoggerNamePatternSelector defaultPattern="[%d{HH:mm:ss}] [%t/%level] [%logger]: %replace{%msg}{(?i)\u00A7[0-9A-FK-OR]}{}%n%xEx{full}">
+                    <!-- Log root, Minecraft, Mojang and Bukkit loggers without prefix -->
+                    <!-- Disable prefix for various plugins that bypass the plugin logger -->
+                    <PatternMatch key=",net.minecraft.,Minecraft,com.mojang.,com.sk89q.,ru.tehkode.,Minecraft.AWE"
+                                  pattern="[%d{HH:mm:ss}] [%t/%level]: %replace{%msg}{(?i)\u00A7[0-9A-FK-OR]}{}%n%xEx{full}" />
+                </LoggerNamePatternSelector>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <OnStartupTriggeringPolicy/>
+            </Policies>
+            <DefaultRolloverStrategy max="1000"/>
+        </RollingRandomAccessFile>
+        <RollingRandomAccessFile name="DebugFile" fileName="logs/debug.log" filePattern="logs/debug-%i.log.zip">
+            <PatternLayout>
+                <LoggerNamePatternSelector defaultPattern="[%d{HH:mm:ss}] [%t/%level] [%logger]: %replace{%msg}{(?i)\u00A7[0-9A-FK-OR]}{}%n%xEx{full}">
+                    <!-- Log root, Minecraft, Mojang and Bukkit loggers without prefix -->
+                    <!-- Disable prefix for various plugins that bypass the plugin logger -->
+                    <PatternMatch key=",net.minecraft.,Minecraft,com.mojang.,com.sk89q.,ru.tehkode.,Minecraft.AWE"
+                                  pattern="[%d{HH:mm:ss}] [%t/%level]: %replace{%msg}{(?i)\u00A7[0-9A-FK-OR]}{}%n%xEx{full}" />
+                </LoggerNamePatternSelector>
+            </PatternLayout>
+            <Policies>
+                <OnStartupTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="200MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5"/>
+        </RollingRandomAccessFile>
+        <Async name="Async">
+            <AppenderRef ref="File"/>
+            <AppenderRef ref="TerminalConsole" level="info"/>
+        </Async>
+    </Appenders>
+    <Loggers>
+        <Root level="info">
+            <filters>
+                <MarkerFilter marker="NETWORK_PACKETS" onMatch="DENY" onMismatch="NEUTRAL" />
+            </filters>
+            <AppenderRef ref="Async"/>
+        </Root>
+    </Loggers>
+</Configuration>
