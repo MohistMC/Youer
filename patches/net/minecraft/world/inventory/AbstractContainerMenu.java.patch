@@ -48,7 +48,7 @@
  import org.slf4j.Logger;
  
  public abstract class AbstractContainerMenu {
-@@ -45,22 +_,74 @@
+@@ -45,22 +_,93 @@
      public static final int CARRIED_SLOT_SIZE = Integer.MAX_VALUE;
      public NonNullList<ItemStack> lastSlots = NonNullList.create();
      public NonNullList<Slot> slots = NonNullList.create();
@@ -89,8 +89,27 @@
 +        return bukkitView;
 +    }
 +
++    public InventoryView getBukkitView(AbstractContainerMenu other){
++        if (other.bukkitView == null && other.containerOwner != null) {
++            org.bukkit.inventory.Inventory view = new CraftInventory(new YouerModsInventory(other, containerOwner));
++            view.getType().setMods(true);
++            return new CraftInventoryView<>(other.containerOwner.getBukkitEntity(), view, other);
++        }
++        return other.bukkitView;
++    }
++
 +    public void transferTo(AbstractContainerMenu other, CraftHumanEntity player) {
++        other.containerOwner = player.getHandle();
++        this.containerOwner = player.getHandle();
 +        InventoryView source = this.getBukkitView(), destination = other.getBukkitView();
++        if (destination == null) {
++            destination = this.getBukkitView(other);
++        }
++        if (source == null) {
++            org.bukkit.inventory.Inventory view = new CraftInventory(new YouerModsInventory(this, containerOwner));
++            view.getType().setMods(true);
++            source = new CraftInventoryView<>(containerOwner.getBukkitEntity(), view, this);
++        }
 +        ((CraftInventory) source.getTopInventory()).getInventory().onClose(player);
 +        ((CraftInventory) source.getBottomInventory()).getInventory().onClose(player);
 +        ((CraftInventory) destination.getTopInventory()).getInventory().onOpen(player);
