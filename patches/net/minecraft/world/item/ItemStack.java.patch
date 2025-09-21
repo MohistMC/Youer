@@ -1,0 +1,241 @@
+--- a/net/minecraft/world/item/ItemStack.java
++++ b/net/minecraft/world/item/ItemStack.java
+@@ -249,6 +_,10 @@
+         return !this.isEmpty() && this.components.hasNonDefault(p_389426_);
+     }
+ 
++    public boolean isComponentsPatchEmpty() {
++        return this.isEmpty() || this.components.isPatchEmpty();
++    }
++
+     public ItemStack(ItemLike p_41599_) {
+         this(p_41599_, 1);
+     }
+@@ -344,7 +_,7 @@
+     }
+ 
+     public boolean is(Holder<Item> p_220166_) {
+-        return this.getItem().builtInRegistryHolder() == p_220166_;
++        return is(p_220166_.value()); // Neo: Fix comparing for custom holders such as DeferredHolders
+     }
+ 
+     public boolean is(HolderSet<Item> p_298683_) {
+@@ -356,13 +_,27 @@
+     }
+ 
+     public InteractionResult useOn(UseOnContext p_41662_) {
++        var e = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent(p_41662_, net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent.UsePhase.ITEM_AFTER_BLOCK));
++        if (e.isCanceled()) return e.getCancellationResult();
++        if (!p_41662_.getLevel().isClientSide()) return net.neoforged.neoforge.common.CommonHooks.onPlaceItemIntoWorld(p_41662_);
++        return onItemUse(p_41662_, (c) -> getItem().useOn(p_41662_));
++    }
++
++    @Override
++    public InteractionResult onItemUseFirst(UseOnContext p_41662_) {
++        var e = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent(p_41662_, net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent.UsePhase.ITEM_BEFORE_BLOCK));
++        if (e.isCanceled()) return e.getCancellationResult();
++        return onItemUse(p_41662_, (c) -> getItem().onItemUseFirst(this, p_41662_));
++    }
++
++    private InteractionResult onItemUse(UseOnContext p_41662_, java.util.function.Function<UseOnContext, InteractionResult> callback) {
+         Player player = p_41662_.getPlayer();
+         BlockPos blockpos = p_41662_.getClickedPos();
+         if (player != null && !player.getAbilities().mayBuild && !this.canPlaceOnBlockInAdventureMode(new BlockInWorld(p_41662_.getLevel(), blockpos, false))) {
+             return InteractionResult.PASS;
+         } else {
+             Item item = this.getItem();
+-            InteractionResult interactionresult = item.useOn(p_41662_);
++            InteractionResult interactionresult = callback.apply(p_41662_);
+             if (player != null
+                 && interactionresult instanceof InteractionResult.Success interactionresult$success
+                 && interactionresult$success.wasItemInteraction()) {
+@@ -413,7 +_,7 @@
+     }
+ 
+     public int getMaxStackSize() {
+-        return this.getOrDefault(DataComponents.MAX_STACK_SIZE, 1);
++        return this.getItem().getMaxStackSize(this);
+     }
+ 
+     public boolean isStackable() {
+@@ -425,19 +_,19 @@
+     }
+ 
+     public boolean isDamaged() {
+-        return this.isDamageableItem() && this.getDamageValue() > 0;
++        return this.isDamageableItem() && getItem().isDamaged(this);
+     }
+ 
+     public int getDamageValue() {
+-        return Mth.clamp(this.getOrDefault(DataComponents.DAMAGE, 0), 0, this.getMaxDamage());
++        return this.getItem().getDamage(this);
+     }
+ 
+     public void setDamageValue(int p_41722_) {
+-        this.set(DataComponents.DAMAGE, Mth.clamp(p_41722_, 0, this.getMaxDamage()));
++        this.getItem().setDamage(this, p_41722_);
+     }
+ 
+     public int getMaxDamage() {
+-        return this.getOrDefault(DataComponents.MAX_DAMAGE, 0);
++        return this.getItem().getMaxDamage(this);
+     }
+ 
+     public boolean isBroken() {
+@@ -449,6 +_,11 @@
+     }
+ 
+     public void hurtAndBreak(int p_220158_, ServerLevel p_346256_, @Nullable ServerPlayer p_220160_, Consumer<Item> p_348596_) {
++        this.hurtAndBreak(p_220158_, p_346256_, (LivingEntity) p_220160_, p_348596_);
++    }
++
++    public void hurtAndBreak(int p_220158_, ServerLevel p_346256_, @Nullable LivingEntity p_220160_, Consumer<Item> p_348596_) {
++        p_220158_ = getItem().damageItem(this, p_220158_, p_220160_, p_348596_);
+         int i = this.processDurabilityChange(p_220158_, p_346256_, p_220160_);
+         if (i != 0) {
+             this.applyDamage(this.getDamageValue() + i, p_220160_, p_348596_);
+@@ -456,6 +_,10 @@
+     }
+ 
+     private int processDurabilityChange(int p_361290_, ServerLevel p_361409_, @Nullable ServerPlayer p_364940_) {
++        return processDurabilityChange(p_361290_, p_361409_, (LivingEntity) p_364940_);
++    }
++
++    private int processDurabilityChange(int p_361290_, ServerLevel p_361409_, @Nullable LivingEntity p_364940_) {
+         if (!this.isDamageableItem()) {
+             return 0;
+         } else if (p_364940_ != null && p_364940_.hasInfiniteMaterials()) {
+@@ -466,8 +_,12 @@
+     }
+ 
+     private void applyDamage(int p_361754_, @Nullable ServerPlayer p_364853_, Consumer<Item> p_360895_) {
+-        if (p_364853_ != null) {
+-            CriteriaTriggers.ITEM_DURABILITY_CHANGED.trigger(p_364853_, this, p_361754_);
++        applyDamage(p_361754_, (LivingEntity) p_364853_, p_360895_);
++    }
++
++    private void applyDamage(int p_361754_, @Nullable LivingEntity p_364853_, Consumer<Item> p_360895_) {
++        if (p_364853_ instanceof ServerPlayer serverPlayer) {
++            CriteriaTriggers.ITEM_DURABILITY_CHANGED.trigger(serverPlayer, this, p_361754_);
+         }
+ 
+         this.setDamageValue(p_361754_);
+@@ -499,7 +_,7 @@
+             this.hurtAndBreak(
+                 p_41623_,
+                 serverlevel,
+-                p_41624_ instanceof ServerPlayer serverplayer ? serverplayer : null,
++                p_41624_,
+                 p_348383_ -> p_41624_.onEquippedItemBroken(p_348383_, p_319898_)
+             );
+         }
+@@ -798,7 +_,7 @@
+     }
+ 
+     public Component getStyledHoverName() {
+-        MutableComponent mutablecomponent = Component.empty().append(this.getHoverName()).withStyle(this.getRarity().color());
++        MutableComponent mutablecomponent = Component.empty().append(this.getHoverName()).withStyle(this.getRarity().getStyleModifier());
+         if (this.has(DataComponents.CUSTOM_NAME)) {
+             mutablecomponent.withStyle(ChatFormatting.ITALIC);
+         }
+@@ -824,6 +_,7 @@
+             List<Component> list = Lists.newArrayList();
+             list.add(this.getStyledHoverName());
+             this.addDetailsToTooltip(p_339637_, tooltipdisplay, p_41652_, p_41653_, list::add);
++            net.neoforged.neoforge.event.EventHooks.onItemTooltip(this, p_41652_, list, p_41653_, p_339637_);
+             return list;
+         }
+     }
+@@ -852,7 +_,8 @@
+         this.addToTooltip(DataComponents.DYED_COLOR, p_400057_, p_400252_, p_399603_, p_400174_);
+         this.addToTooltip(DataComponents.PROFILE, p_400057_, p_400252_, p_399603_, p_400174_);
+         this.addToTooltip(DataComponents.LORE, p_400057_, p_400252_, p_399603_, p_400174_);
+-        this.addAttributeTooltips(p_399603_, p_400252_, p_399628_);
++        // Neo: Replace attribute tooltips with custom handling
++        net.neoforged.neoforge.common.util.AttributeUtil.addAttributeTooltips(this, p_399603_, p_400252_, net.neoforged.neoforge.common.util.AttributeTooltipContext.of(p_399628_, p_400057_, p_400252_, p_400174_));
+         if (this.has(DataComponents.UNBREAKABLE) && p_400252_.shows(DataComponents.UNBREAKABLE)) {
+             p_399603_.accept(UNBREAKABLE_TOOLTIP);
+         }
+@@ -901,7 +_,10 @@
+             OP_NBT_WARNING.forEach(p_399603_);
+         }
+     }
+-
++    /**
++     * @deprecated Neo: Use {@link net.neoforged.neoforge.common.util.AttributeUtil#addAttributeTooltips}
++     */
++    @Deprecated
+     private void addAttributeTooltips(Consumer<Component> p_330796_, TooltipDisplay p_400175_, @Nullable Player p_330530_) {
+         if (p_400175_.shows(DataComponents.ATTRIBUTE_MODIFIERS)) {
+             for (EquipmentSlotGroup equipmentslotgroup : EquipmentSlotGroup.values()) {
+@@ -956,6 +_,17 @@
+         return !this.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).isEmpty();
+     }
+ 
++    /**
++     * Gets all enchantments from NBT. Use {@link ItemStack#getAllEnchantments} for gameplay logic.
++     */
++    public ItemEnchantments getTagEnchantments() {
++        return getEnchantments();
++    }
++
++    /**
++     * @deprecated Neo: Use {@link #getTagEnchantments()} for NBT enchantments, or {@link #getAllEnchantments} for gameplay.
++     */
++    @Deprecated
+     public ItemEnchantments getEnchantments() {
+         return this.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
+     }
+@@ -981,16 +_,28 @@
+     }
+ 
+     public void forEachModifier(EquipmentSlotGroup p_348610_, TriConsumer<Holder<Attribute>, AttributeModifier, ItemAttributeModifiers.Display> p_415655_) {
++        // Neo: Reflect real attribute modifiers when doing iteration
++        this.getAttributeModifiers().forEach(p_348610_, p_415655_);
++        if (false) {
++        // Start disabled vanilla code
+         ItemAttributeModifiers itemattributemodifiers = this.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
+         itemattributemodifiers.forEach(p_348610_, p_415655_);
++        // end disabled vanilla code
++        }
+         EnchantmentHelper.forEachModifier(
+             this, p_348610_, (p_415406_, p_415407_) -> p_415655_.accept(p_415406_, p_415407_, ItemAttributeModifiers.Display.attributeModifiers())
+         );
+     }
+ 
+     public void forEachModifier(EquipmentSlot p_332001_, BiConsumer<Holder<Attribute>, AttributeModifier> p_330882_) {
++        // Neo: Reflect real attribute modifiers when doing iteration
++        this.getAttributeModifiers().forEach(p_332001_, p_330882_);
++        if (false) {
++        // Start disabled vanilla code
+         ItemAttributeModifiers itemattributemodifiers = this.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
+         itemattributemodifiers.forEach(p_332001_, p_330882_);
++        // end disabled vanilla code
++        }
+         EnchantmentHelper.forEachModifier(this, p_332001_, p_330882_);
+     }
+ 
+@@ -1002,7 +_,7 @@
+ 
+         MutableComponent mutablecomponent1 = ComponentUtils.wrapInSquareBrackets(mutablecomponent);
+         if (!this.isEmpty()) {
+-            mutablecomponent1.withStyle(this.getRarity().color()).withStyle(p_393272_ -> p_393272_.withHoverEvent(new HoverEvent.ShowItem(this)));
++            mutablecomponent1.withStyle(this.getRarity().getStyleModifier()).withStyle(p_393272_ -> p_393272_.withHoverEvent(new HoverEvent.ShowItem(this)));
+         }
+ 
+         return mutablecomponent1;
+@@ -1069,11 +_,14 @@
+         this.getItem().onUseTick(p_41732_, p_41733_, this, p_41734_);
+     }
+ 
++    /** @deprecated Forge: Use {@linkplain net.neoforged.neoforge.common.extensions.IItemStackExtension#onDestroyed(ItemEntity, net.minecraft.world.damagesource.DamageSource) damage source sensitive version} */
++    @Deprecated
+     public void onDestroyed(ItemEntity p_150925_) {
+         this.getItem().onDestroyed(p_150925_);
+     }
+ 
+     public boolean canBeHurtBy(DamageSource p_335431_) {
++        if (!getItem().canBeHurtBy(this, p_335431_)) return false;
+         DamageResistant damageresistant = this.get(DataComponents.DAMAGE_RESISTANT);
+         return damageresistant == null || !damageresistant.isResistantTo(p_335431_);
+     }

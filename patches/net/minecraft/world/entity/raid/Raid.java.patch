@@ -1,0 +1,47 @@
+--- a/net/minecraft/world/entity/raid/Raid.java
++++ b/net/minecraft/world/entity/raid/Raid.java
+@@ -525,7 +_,7 @@
+             int k = 0;
+ 
+             for (int l = 0; l < j; l++) {
+-                Raider raider = raid$raidertype.entityType.create(p_401196_, EntitySpawnReason.EVENT);
++                Raider raider = raid$raidertype.entityTypeSupplier.get().create(p_401196_, EntitySpawnReason.EVENT);
+                 if (raider == null) {
+                     break;
+                 }
+@@ -537,7 +_,7 @@
+                 }
+ 
+                 this.joinRaid(p_401196_, i, raider, p_37756_, false);
+-                if (raid$raidertype.entityType == EntityType.RAVAGER) {
++                if (raid$raidertype.entityTypeSupplier.get() == EntityType.RAVAGER) {
+                     Raider raider1 = null;
+                     if (i == this.getNumGroups(Difficulty.NORMAL)) {
+                         raider1 = EntityType.PILLAGER.create(p_401196_, EntitySpawnReason.EVENT);
+@@ -830,12 +_,26 @@
+         RAVAGER(EntityType.RAVAGER, new int[]{0, 0, 0, 1, 0, 1, 0, 2});
+ 
+         static final Raid.RaiderType[] VALUES = values();
++        @Deprecated // Neo: null for custom types, use the supplier instead
+         final EntityType<? extends Raider> entityType;
+         final int[] spawnsPerWaveBeforeBonus;
++        final java.util.function.Supplier<EntityType<? extends Raider>> entityTypeSupplier;
+ 
++        @net.neoforged.fml.common.asm.enumextension.ReservedConstructor
+         private RaiderType(EntityType<? extends Raider> p_37821_, int[] p_37822_) {
+             this.entityType = p_37821_;
+             this.spawnsPerWaveBeforeBonus = p_37822_;
++            this.entityTypeSupplier = () -> p_37821_;
++        }
++
++        private RaiderType(java.util.function.Supplier<EntityType<? extends Raider>> entityTypeSupplier, int[] spawnsPerWave) {
++            this.entityType = null;
++            this.spawnsPerWaveBeforeBonus = spawnsPerWave;
++            this.entityTypeSupplier = entityTypeSupplier;
++        }
++
++        public static net.neoforged.fml.common.asm.enumextension.ExtensionInfo getExtensionInfo() {
++            return net.neoforged.fml.common.asm.enumextension.ExtensionInfo.nonExtended(Raid.RaiderType.class);
+         }
+     }
+ }

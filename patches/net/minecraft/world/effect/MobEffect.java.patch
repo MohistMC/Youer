@@ -1,0 +1,56 @@
+--- a/net/minecraft/world/effect/MobEffect.java
++++ b/net/minecraft/world/effect/MobEffect.java
+@@ -67,6 +_,16 @@
+         this.particleFactory = p_333515_ -> p_333716_;
+     }
+ 
++    /**
++     * Neo: Constructor that can take in the particle factory as a function of the {@link MobEffectInstance}.
++     * This should be used if the desired {@link ParticleOptions} depends on the presence of other registry entries.
++     */
++    protected MobEffect(MobEffectCategory category, int color, Function<MobEffectInstance, ParticleOptions> particleFactory) {
++        this.category = category;
++        this.color = color;
++        this.particleFactory = particleFactory;
++    }
++
+     public int getBlendInDurationTicks() {
+         return this.blendInDurationTicks;
+     }
+@@ -143,6 +_,18 @@
+         return this;
+     }
+ 
++    /**
++     * Neo: attribute template with custom level curve, for mob effects providing non-linear attribute modifiers.
++     * @param attribute The attribute of the modifier
++     * @param id ID of the modifier
++     * @param operation Operation of the modifier
++     * @param curve A function mapping effect instance amplifier to modifier amount
++     */
++    public MobEffect addAttributeModifier(Holder<Attribute> attribute, ResourceLocation id, AttributeModifier.Operation operation, it.unimi.dsi.fastutil.ints.Int2DoubleFunction curve) {
++        this.attributeModifiers.put(attribute, new MobEffect.AttributeTemplate(id, curve.apply(0), operation, curve));
++        return this;
++    }
++
+     public MobEffect setBlendDuration(int p_316265_) {
+         return this.setBlendDuration(p_316265_, p_316265_, p_316265_);
+     }
+@@ -200,8 +_,16 @@
+         return this.requiredFeatures;
+     }
+ 
+-    public record AttributeTemplate(ResourceLocation id, double amount, AttributeModifier.Operation operation) {
++    public record AttributeTemplate(ResourceLocation id, double amount, AttributeModifier.Operation operation, @Nullable it.unimi.dsi.fastutil.ints.Int2DoubleFunction curve) {
++
++        public AttributeTemplate(ResourceLocation id, double amount, AttributeModifier.Operation operation) {
++            this(id, amount, operation, null);
++        }
++
+         public AttributeModifier create(int p_316614_) {
++            if (curve != null) { // Neo: Use the custom attribute value curve if one is present
++                return new AttributeModifier(this.id, this.curve.apply(p_316614_), this.operation);
++            }
+             return new AttributeModifier(this.id, this.amount * (p_316614_ + 1), this.operation);
+         }
+     }

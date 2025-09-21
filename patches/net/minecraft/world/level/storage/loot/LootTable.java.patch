@@ -1,0 +1,163 @@
+--- a/net/minecraft/world/level/storage/loot/LootTable.java
++++ b/net/minecraft/world/level/storage/loot/LootTable.java
+@@ -41,12 +_,14 @@
+             p_380905_ -> p_380905_.group(
+                     LootContextParamSets.CODEC.lenientOptionalFieldOf("type", DEFAULT_PARAM_SET).forGetter(p_380906_ -> p_380906_.paramSet),
+                     ResourceLocation.CODEC.optionalFieldOf("random_sequence").forGetter(p_297998_ -> p_297998_.randomSequence),
+-                    LootPool.CODEC.listOf().optionalFieldOf("pools", List.of()).forGetter(p_298002_ -> p_298002_.pools),
+-                    LootItemFunctions.ROOT_CODEC.listOf().optionalFieldOf("functions", List.of()).forGetter(p_298000_ -> p_298000_.functions)
++                    net.neoforged.neoforge.common.CommonHooks.lootPoolsCodec(LootPool::setName).optionalFieldOf("pools", List.of()).forGetter(p_298002_ -> p_298002_.pools),
++                    net.neoforged.neoforge.common.conditions.ConditionalOps.decodeListWithElementConditions(LootItemFunctions.ROOT_CODEC).optionalFieldOf("functions", List.of()).forGetter(p_298000_ -> p_298000_.functions)
+                 )
+                 .apply(p_380905_, LootTable::new)
+         )
+     );
++    public static final Codec<Optional<net.neoforged.neoforge.common.conditions.WithConditions<LootTable>>> CONDITIONAL_DIRECT_CODEC =
++            net.neoforged.neoforge.common.conditions.ConditionalOps.createConditionalCodecWithConditions(DIRECT_CODEC);
+     public static final Codec<Holder<LootTable>> CODEC = RegistryFileCodec.create(Registries.LOOT_TABLE, DIRECT_CODEC);
+     public static final LootTable EMPTY = new LootTable(LootContextParamSets.EMPTY, Optional.empty(), List.of(), List.of());
+     private final ContextKeySet paramSet;
+@@ -58,7 +_,7 @@
+     LootTable(ContextKeySet p_380952_, Optional<ResourceLocation> p_299055_, List<LootPool> p_298390_, List<LootItemFunction> p_298775_) {
+         this.paramSet = p_380952_;
+         this.randomSequence = p_299055_;
+-        this.pools = p_298390_;
++        this.pools = Lists.newArrayList(p_298390_);
+         this.functions = p_298775_;
+         this.compositeFunction = LootItemFunctions.compose(p_298775_);
+     }
+@@ -81,10 +_,12 @@
+         };
+     }
+ 
++    @Deprecated // Use a non-'Raw' version of 'getRandomItems', so that the Forge Global Loot Modifiers will be applied
+     public void getRandomItemsRaw(LootParams p_287669_, Consumer<ItemStack> p_287781_) {
+         this.getRandomItemsRaw(new LootContext.Builder(p_287669_).create(this.randomSequence), p_287781_);
+     }
+ 
++    @Deprecated // Use a non-'Raw' version of 'getRandomItems', so that the Forge Global Loot Modifiers will be applied
+     public void getRandomItemsRaw(LootContext p_79132_, Consumer<ItemStack> p_79133_) {
+         LootContext.VisitedEntry<?> visitedentry = LootContext.createVisitedEntry(this);
+         if (p_79132_.pushVisitedElement(visitedentry)) {
+@@ -101,18 +_,15 @@
+     }
+ 
+     public void getRandomItems(LootParams p_287748_, long p_287729_, Consumer<ItemStack> p_287583_) {
+-        this.getRandomItemsRaw(
+-            new LootContext.Builder(p_287748_).withOptionalRandomSeed(p_287729_).create(this.randomSequence),
+-            createStackSplitter(p_287748_.getLevel(), p_287583_)
+-        );
++        this.getRandomItems((new LootContext.Builder(p_287748_)).withOptionalRandomSeed(p_287729_).create(this.randomSequence)).forEach(p_287583_);
+     }
+ 
+     public void getRandomItems(LootParams p_287704_, Consumer<ItemStack> p_287617_) {
+-        this.getRandomItemsRaw(p_287704_, createStackSplitter(p_287704_.getLevel(), p_287617_));
++        this.getRandomItems(p_287704_).forEach(p_287617_);
+     }
+ 
+     public void getRandomItems(LootContext p_79149_, Consumer<ItemStack> p_79150_) {
+-        this.getRandomItemsRaw(p_79149_, createStackSplitter(p_79149_.getLevel(), p_79150_));
++        this.getRandomItems(p_79149_).forEach(p_79150_);
+     }
+ 
+     public ObjectArrayList<ItemStack> getRandomItems(LootParams p_347545_, RandomSource p_347680_) {
+@@ -129,7 +_,8 @@
+ 
+     private ObjectArrayList<ItemStack> getRandomItems(LootContext p_230923_) {
+         ObjectArrayList<ItemStack> objectarraylist = new ObjectArrayList<>();
+-        this.getRandomItems(p_230923_, objectarraylist::add);
++        this.getRandomItemsRaw(p_230923_, createStackSplitter(p_230923_.getLevel(), objectarraylist::add));
++        objectarraylist = net.neoforged.neoforge.common.CommonHooks.modifyLoot(this.getLootTableId(), objectarraylist, p_230923_);
+         return objectarraylist;
+     }
+ 
+@@ -220,11 +_,68 @@
+         return new LootTable.Builder();
+     }
+ 
++    // Neo: Implement LootTable freezing to prevent manipulation outside of Neo APIs
++    private boolean isFrozen = false;
++
++    public void freeze() {
++        this.isFrozen = true;
++        this.pools.forEach(LootPool::freeze);
++    }
++
++    public boolean isFrozen() {
++        return this.isFrozen;
++    }
++
++    private void checkFrozen() {
++        if (this.isFrozen())
++            throw new RuntimeException("Attempted to modify LootTable after being finalized!");
++    }
++
++    // Neo: Linking the LootTable to its ID for easier retrieval
++    private ResourceLocation lootTableId;
++
++    public void setLootTableId(final ResourceLocation id) {
++        if (this.lootTableId != null) throw new IllegalStateException("Attempted to rename loot table from '" + this.lootTableId + "' to '" + id + "': this is not supported");
++        this.lootTableId = java.util.Objects.requireNonNull(id);
++    }
++
++    public ResourceLocation getLootTableId() {
++        return this.lootTableId;
++    }
++
++    // Neo: Retrieve LootPools by name
++    @org.jetbrains.annotations.Nullable
++    public LootPool getPool(String name) {
++        return pools.stream().filter(e -> name.equals(e.getName())).findFirst().orElse(null);
++    }
++
++    // Neo: Remove LootPools by name
++    @org.jetbrains.annotations.Nullable
++    public LootPool removePool(String name) {
++        checkFrozen();
++        for (LootPool pool : this.pools) {
++            if (name.equals(pool.getName())) {
++                this.pools.remove(pool);
++                return pool;
++            }
++        }
++        return null;
++    }
++
++    // Neo: Allow adding new pools to LootTable
++    public void addPool(LootPool pool) {
++        checkFrozen();
++        if (pools.stream().anyMatch(e -> e == pool || e.getName() != null && e.getName().equals(pool.getName())))
++            throw new RuntimeException("Attempted to add a duplicate pool to loot table: " + pool.getName());
++        this.pools.add(pool);
++    }
++
+     public static class Builder implements FunctionUserBuilder<LootTable.Builder> {
+         private final ImmutableList.Builder<LootPool> pools = ImmutableList.builder();
+         private final ImmutableList.Builder<LootItemFunction> functions = ImmutableList.builder();
+         private ContextKeySet paramSet = LootTable.DEFAULT_PARAM_SET;
+         private Optional<ResourceLocation> randomSequence = Optional.empty();
++        private final List<net.neoforged.neoforge.common.conditions.ICondition> conditions = new java.util.ArrayList<>();
+ 
+         public LootTable.Builder withPool(LootPool.Builder p_79162_) {
+             this.pools.add(p_79162_.build());
+@@ -252,6 +_,20 @@
+ 
+         public LootTable build() {
+             return new LootTable(this.paramSet, this.randomSequence, this.pools.build(), this.functions.build());
++        }
++
++        public LootTable.Builder withCondition(net.neoforged.neoforge.common.conditions.ICondition condition) {
++            this.conditions.add(condition);
++            return this;
++        }
++
++        public LootTable.Builder withConditions(List<net.neoforged.neoforge.common.conditions.ICondition> conditions) {
++            this.conditions.addAll(conditions);
++            return this;
++        }
++
++        public List<net.neoforged.neoforge.common.conditions.ICondition> buildConditions() {
++            return List.copyOf(this.conditions);
+         }
+     }
+ }

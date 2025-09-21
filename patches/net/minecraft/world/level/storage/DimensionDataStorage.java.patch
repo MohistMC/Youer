@@ -1,0 +1,46 @@
+--- a/net/minecraft/world/level/storage/DimensionDataStorage.java
++++ b/net/minecraft/world/level/storage/DimensionDataStorage.java
+@@ -105,7 +_,7 @@
+         p_164857_.setDirty();
+     }
+ 
+-    public CompoundTag readTagFromDisk(String p_78159_, DataFixTypes p_295038_, int p_78160_) throws IOException {
++    public CompoundTag readTagFromDisk(String p_78159_, @Nullable DataFixTypes p_295038_, int p_78160_) throws IOException {
+         CompoundTag compoundtag1;
+         try (
+             InputStream inputstream = Files.newInputStream(this.getDataFile(p_78159_));
+@@ -120,9 +_,19 @@
+                 }
+             }
+ 
+-            int i = NbtUtils.getDataVersion(compoundtag, 1343);
+-            compoundtag1 = p_295038_.update(this.fixerUpper, compoundtag, i, p_78160_);
++            if (p_295038_ != null) {
++                int i = NbtUtils.getDataVersion(compoundtag, 1343);
++                compoundtag1 = p_295038_.update(this.fixerUpper, compoundtag, i, p_78160_);
++            } else {
++                compoundtag1 = compoundtag;
++            }
+         }
++
++        // Neo: delete any temporary files so that we don't inflate disk space unnecessarily.
++        this.pendingWriteFuture = this.pendingWriteFuture.thenRunAsync(
++                () -> net.neoforged.neoforge.common.IOUtilities.tryCleanupTempFiles(this.dataFolder, p_78159_),
++                Util.ioPool()
++        );
+ 
+         return compoundtag1;
+     }
+@@ -205,7 +_,11 @@
+         Path path = this.getDataFile(p_401021_.id());
+ 
+         try {
+-            NbtIo.writeCompressed(p_390657_, path);
++            // Neo: ensure parent directories exist if the SavedData's path contains slashes
++            if (!Files.exists(path)) {
++                Files.createDirectories(path.getParent());
++            }
++            net.neoforged.neoforge.common.IOUtilities.writeNbtCompressed(p_390657_, path);
+         } catch (IOException ioexception) {
+             LOGGER.error("Could not save data to {}", path.getFileName(), ioexception);
+         }

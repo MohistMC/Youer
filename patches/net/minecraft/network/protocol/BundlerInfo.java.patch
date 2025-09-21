@@ -1,0 +1,54 @@
+--- a/net/minecraft/network/protocol/BundlerInfo.java
++++ b/net/minecraft/network/protocol/BundlerInfo.java
+@@ -26,6 +_,26 @@
+                 }
+             }
+ 
++            @Override
++            public void unbundlePacket(Packet<?> bundlePacket, Consumer<Packet<?>> packetSender, io.netty.channel.ChannelHandlerContext context) {
++                if (bundlePacket.type() == p_320816_) {
++                    P p = (P)bundlePacket;
++                    java.util.List<Packet<?>> packets = net.neoforged.neoforge.network.registration.NetworkRegistry.filterGameBundlePackets(context, p.subPackets());
++                    if (packets.isEmpty()) {
++                        return;
++                    }
++                    if (packets.size() == 1) {
++                        packetSender.accept(packets.get(0));
++                        return;
++                    }
++                    packetSender.accept(p_265373_);
++                    packets.forEach(packetSender);
++                    packetSender.accept(p_265373_);
++                } else {
++                    packetSender.accept(bundlePacket);
++                }
++            }
++
+             @Nullable
+             @Override
+             public BundlerInfo.Bundler startPacketBundling(Packet<?> p_265749_) {
+@@ -49,7 +_,24 @@
+         };
+     }
+ 
++    /**
++     * @deprecated Use {@link #unbundlePacket(Packet, Consumer, io.netty.channel.ChannelHandlerContext)} instead, as it supports packet filtering and is more efficient.
++     */
++    @Deprecated
+     void unbundlePacket(Packet<?> p_265095_, Consumer<Packet<?>> p_265715_);
++
++    /**
++     * Unwrap and flattens a bundle packet.
++     * Then sends the packets contained in the bundle, bracketing them in delimiter packets if need be.
++     *
++     * @param bundlePacket The bundle packet to write.
++     * @param packetSender The packet sender.
++     * @param context The network context.
++     * @implNote This implementation should filter out packets which are not sendable on the current context, however to preserve compatibility the default implementation does not do this.
++     */
++    default void unbundlePacket(Packet<?> bundlePacket, Consumer<Packet<?>> packetSender, io.netty.channel.ChannelHandlerContext context) {
++        unbundlePacket(bundlePacket, packetSender);
++    }
+ 
+     @Nullable
+     BundlerInfo.Bundler startPacketBundling(Packet<?> p_265162_);

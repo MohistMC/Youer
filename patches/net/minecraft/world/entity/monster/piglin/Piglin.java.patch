@@ -1,0 +1,38 @@
+--- a/net/minecraft/world/entity/monster/piglin/Piglin.java
++++ b/net/minecraft/world/entity/monster/piglin/Piglin.java
+@@ -349,7 +_,7 @@
+         } else if (this.isChargingCrossbow()) {
+             return PiglinArmPose.CROSSBOW_CHARGE;
+         } else {
+-            return this.isHolding(Items.CROSSBOW) && CrossbowItem.isCharged(this.getWeaponItem()) ? PiglinArmPose.CROSSBOW_HOLD : PiglinArmPose.DEFAULT;
++            return this.isHolding(is -> is.getItem() instanceof net.minecraft.world.item.CrossbowItem) && CrossbowItem.isCharged(this.getWeaponItem()) ? PiglinArmPose.CROSSBOW_HOLD : PiglinArmPose.DEFAULT;
+         }
+     }
+ 
+@@ -378,7 +_,7 @@
+ 
+     @Override
+     public boolean canFireProjectileWeapon(ProjectileWeaponItem p_34715_) {
+-        return p_34715_ == Items.CROSSBOW;
++        return p_34715_.builtInRegistryHolder().is(net.neoforged.neoforge.common.Tags.Items.PIGLIN_USABLE_CROSSBOWS);
+     }
+ 
+     protected void holdInMainHand(ItemStack p_34784_) {
+@@ -386,7 +_,7 @@
+     }
+ 
+     protected void holdInOffHand(ItemStack p_34786_) {
+-        if (p_34786_.is(PiglinAi.BARTERING_ITEM)) {
++        if (p_34786_.isPiglinCurrency()) {
+             this.setItemSlot(EquipmentSlot.OFFHAND, p_34786_);
+             this.setGuaranteedDrop(EquipmentSlot.OFFHAND);
+         } else {
+@@ -396,7 +_,7 @@
+ 
+     @Override
+     public boolean wantsToPickUp(ServerLevel p_376232_, ItemStack p_34777_) {
+-        return p_376232_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, p_34777_);
++        return net.neoforged.neoforge.event.EventHooks.canEntityGrief(p_376232_, this) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, p_34777_);
+     }
+ 
+     protected boolean canReplaceCurrentItem(ItemStack p_34788_) {

@@ -1,0 +1,68 @@
+project.plugins.apply('dev.lukebemish.immaculate')
+
+final generatePackageInfos = tasks.register('generatePackageInfos', GeneratePackageInfos) {
+    it.files.from fileTree("src/main/java")
+    if (file("src/client/java").exists()) {
+        it.files.from fileTree("src/client/java")
+    }
+}
+
+immaculate {
+    workflows.register('java') {
+        java()
+        trailingNewline()
+        noTabs()
+        googleFixImports()
+        toggleOff = 'spotless:off'
+        toggleOn = 'spotless:on'
+        eclipse {
+            version project.jdt_core_version
+            config = rootProject.file('codeformat/formatter-config.xml')
+        }
+
+
+        // courtesy of diffplug/spotless#240
+        // https://github.com/diffplug/spotless/issues/240#issuecomment-385206606
+        custom 'noWildcardImports', { String fileContents ->
+            if (fileContents.contains('*;\n')) {
+                throw new GradleException('No wildcard imports are allowed!')
+            }
+        }
+
+        custom 'noNotNull', { String fileContents ->
+            if (fileContents.contains('@NotNull') || fileContents.contains('@Nonnull')) {
+                throw new GradleException('@NotNull and @Nonnull are disallowed.')
+            }
+        }
+
+        custom 'jetbrainsNullable', { String fileContents ->
+            fileContents.replace('javax.annotation.Nullable', 'org.jetbrains.annotations.Nullable')
+        }
+    }
+}
+
+tasks.named('licenseFormat').configure {
+    mustRunAfter generatePackageInfos
+}
+tasks.named('immaculateApply').configure {
+    mustRunAfter generatePackageInfos
+    mustRunAfter tasks.named('licenseFormat')
+}
+
+tasks.register('applyAllFormatting', Task) {
+    dependsOn generatePackageInfos
+    dependsOn tasks.named('licenseFormat')
+    dependsOn tasks.named('immaculateApply')
+    group = 'verification'
+}
+
+tasks.register('checkFormatting', Task) {
+    dependsOn 'licenseCheck'
+    dependsOn 'immaculateCheck'
+    group = 'verification'
+}
+
+tasks.register('runUnitTests', Task) {
+    group = 'verification'
+    tasks.withType(Test).each { tsk -> it.dependsOn(tsk) }
+}

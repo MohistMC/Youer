@@ -1,0 +1,54 @@
+--- a/net/minecraft/world/item/ItemDisplayContext.java
++++ b/net/minecraft/world/item/ItemDisplayContext.java
+@@ -5,6 +_,9 @@
+ import net.minecraft.util.ByIdMap;
+ import net.minecraft.util.StringRepresentable;
+ 
++@net.neoforged.fml.common.asm.enumextension.IndexedEnum
++@net.neoforged.fml.common.asm.enumextension.NamedEnum(1)
++@net.neoforged.fml.common.asm.enumextension.NetworkedEnum(net.neoforged.fml.common.asm.enumextension.NetworkedEnum.NetworkCheck.CLIENTBOUND)
+ public enum ItemDisplayContext implements StringRepresentable, net.neoforged.fml.common.asm.enumextension.IExtensibleEnum {
+     NONE(0, "none"),
+     THIRD_PERSON_LEFT_HAND(1, "thirdperson_lefthand"),
+@@ -21,10 +_,22 @@
+     public static final IntFunction<ItemDisplayContext> BY_ID = ByIdMap.continuous(ItemDisplayContext::getId, values(), ByIdMap.OutOfBoundsStrategy.ZERO);
+     private final byte id;
+     private final String name;
++    private final boolean isModded;
++    private final java.util.function.Supplier<ItemDisplayContext> fallback;
+ 
++    @net.neoforged.fml.common.asm.enumextension.ReservedConstructor
+     private ItemDisplayContext(int p_270624_, String p_270851_) {
+         this.name = p_270851_;
+         this.id = (byte)p_270624_;
++        this.isModded = false;
++        this.fallback = () -> null;
++    }
++
++    private ItemDisplayContext(int id, String name, @org.jetbrains.annotations.Nullable String fallbackName) {
++        this.id = (byte)id;
++        this.name = name;
++        this.isModded = true;
++        this.fallback = fallbackName == null ? () -> null : com.google.common.base.Suppliers.memoize(() -> ItemDisplayContext.valueOf(fallbackName));
+     }
+ 
+     @Override
+@@ -42,5 +_,18 @@
+ 
+     public boolean leftHand() {
+         return this == FIRST_PERSON_LEFT_HAND || this == THIRD_PERSON_LEFT_HAND;
++    }
++
++    public boolean isModded() {
++        return isModded;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    public ItemDisplayContext fallback() {
++        return fallback.get();
++    }
++
++    public static net.neoforged.fml.common.asm.enumextension.ExtensionInfo getExtensionInfo() {
++        return net.neoforged.fml.common.asm.enumextension.ExtensionInfo.nonExtended(ItemDisplayContext.class);
+     }
+ }

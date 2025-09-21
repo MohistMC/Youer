@@ -1,0 +1,61 @@
+import java.util.regex.Matcher
+import java.util.regex.Pattern
+import net.neoforged.neodev.CheckSplitSources
+
+plugins {
+    id 'net.neoforged.gradleutils' version '4.0.1'
+    id 'net.neoforged.licenser' version '0.7.5'
+    id 'neoforge.versioning'
+}
+
+ext.isPreReleaseVersion = project.minecraft_version.contains('w') || project.minecraft_version.contains('-')
+
+if (isPreReleaseVersion) {
+    project.version = "${project.neoforge_snapshot_next_stable}.0-alpha.${project.minecraft_version}.${(new Date()).format('yyyyMMdd.HHmmss', TimeZone.getTimeZone('UTC'))}"
+} else {
+    project.version = gradleutils.version.toString()
+}
+
+// Print version, generally useful to know - also appears on CI
+System.out.println("NeoForge version ${project.version}")
+
+allprojects {
+    version = rootProject.version
+    group = 'net.neoforged'
+
+    apply plugin: 'java'
+
+    java.toolchain.languageVersion.set(JavaLanguageVersion.of(project.java_version))
+}
+
+// Remove src/ sources from the root project. They are used in the neoforge subproject.
+sourceSets {
+    main {
+        java {
+            srcDirs = []
+        }
+        resources {
+            srcDirs = []
+        }
+    }
+}
+
+// Put licenser here otherwise it tries to license all source sets including decompiled MC sources
+license {
+    header = file('codeformat/HEADER.txt')
+    skipExistingHeaders = true
+    tasks {
+        neoforge {
+            // Add all NeoForge sources
+            files.from rootProject.fileTree("src", {
+                include "**/*.java"
+            })
+        }
+    }
+}
+
+final task = tasks.register('checkSourcesAreSplit', CheckSplitSources) {
+    serverClientFolder = project.provider { project.layout.projectDirectory.dir('src/main/java/net/neoforged/neoforge/client') }
+            .map { it.asFile.exists() ? it : null }
+    clientClientFolder = project.layout.projectDirectory.dir('src/client/java/net/neoforged/neoforge/client')
+}

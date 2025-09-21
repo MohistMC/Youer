@@ -1,0 +1,23 @@
+--- a/net/minecraft/commands/synchronization/ArgumentTypeInfos.java
++++ b/net/minecraft/commands/synchronization/ArgumentTypeInfos.java
+@@ -67,6 +_,20 @@
+ public class ArgumentTypeInfos {
+     private static final Map<Class<?>, ArgumentTypeInfo<?, ?>> BY_CLASS = Maps.newHashMap();
+ 
++    /**
++     * Forge: Use this in conjunction with a
++     * {@link net.neoforged.neoforge.registries.DeferredRegister#register(String, java.util.function.Supplier) DeferredRegister#register(String, Supplier)}
++     * call to both populate the {@code BY_CLASS} map and register the argument type info so it can be used in commands.
++     *
++     * @param infoClass the class type of the argument type info
++     * @param argumentTypeInfo the argument type info instance
++     * @return the provided argument type info instance for chaining
++     */
++    public static synchronized <A extends ArgumentType<?>, T extends ArgumentTypeInfo.Template<A>, I extends ArgumentTypeInfo<A, T>> I registerByClass(Class<A> infoClass, I argumentTypeInfo) {
++        BY_CLASS.put(infoClass, argumentTypeInfo);
++        return argumentTypeInfo;
++    }
++
+     private static <A extends ArgumentType<?>, T extends ArgumentTypeInfo.Template<A>> ArgumentTypeInfo<A, T> register(
+         Registry<ArgumentTypeInfo<?, ?>> p_235387_, String p_235388_, Class<? extends A> p_235389_, ArgumentTypeInfo<A, T> p_235390_
+     ) {

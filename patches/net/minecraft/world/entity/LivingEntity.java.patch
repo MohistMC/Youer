@@ -1,0 +1,722 @@
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -190,13 +_,19 @@
+     protected static final EntityDimensions SLEEPING_DIMENSIONS = EntityDimensions.fixed(0.2F, 0.2F).withEyeHeight(0.2F);
+     public static final float EXTRA_RENDER_CULLING_SIZE_WITH_BIG_HAT = 0.5F;
+     public static final float DEFAULT_BABY_SCALE = 0.5F;
+-    public static final Predicate<LivingEntity> PLAYER_NOT_WEARING_DISGUISE_ITEM = p_401735_ -> {
++    // Neo: Support IItemExtension#isGazeDisguise
++    public static final java.util.function.BiPredicate<LivingEntity, @org.jetbrains.annotations.Nullable LivingEntity> PLAYER_NOT_WEARING_DISGUISE_ITEM_FOR_TARGET = (p_401735_, target) -> {
+         if (p_401735_ instanceof Player player) {
+             ItemStack itemstack = player.getItemBySlot(EquipmentSlot.HEAD);
+-            return !itemstack.is(ItemTags.GAZE_DISGUISE_EQUIPMENT);
++            return !itemstack.isGazeDisguise(player, target);
+         } else {
+             return true;
+         }
++    };
++    /** @deprecated Neo: use {@link #PLAYER_NOT_WEARING_DISGUISE_ITEM_FOR_TARGET} with target info instead */
++    @Deprecated
++    public static final Predicate<LivingEntity> PLAYER_NOT_WEARING_DISGUISE_ITEM = p_401735_ -> {
++        return PLAYER_NOT_WEARING_DISGUISE_ITEM_FOR_TARGET.test(p_401735_, null);
+     };
+     private static final Dynamic<?> EMPTY_BRAIN = new Dynamic<>(JavaOps.INSTANCE, Map.of("memories", Map.of()));
+     private final AttributeMap attributes;
+@@ -266,6 +_,14 @@
+     );
+     protected final EntityEquipment equipment;
+     private Waypoint.Icon locatorBarIcon = new Waypoint.Icon();
++    /**
++     * This field stores information about damage dealt to this entity.
++     * a new {@link net.neoforged.neoforge.common.damagesource.DamageContainer} is instantiated
++     * via {@link #hurt(DamageSource, float)} after invulnerability checks, and is removed from
++     * the stack before the method's return.
++     **/
++    @Nullable
++    protected java.util.Stack<net.neoforged.neoforge.common.damagesource.DamageContainer> damageContainers = new java.util.Stack<>();
+ 
+     protected LivingEntity(EntityType<? extends LivingEntity> p_20966_, Level p_20967_) {
+         super(p_20966_, p_20967_);
+@@ -345,7 +_,9 @@
+             .add(Attributes.MOVEMENT_EFFICIENCY)
+             .add(Attributes.ATTACK_KNOCKBACK)
+             .add(Attributes.CAMERA_DISTANCE)
+-            .add(Attributes.WAYPOINT_TRANSMIT_RANGE);
++            .add(Attributes.WAYPOINT_TRANSMIT_RANGE)
++            .add(net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED)
++            .add(net.neoforged.neoforge.common.NeoForgeMod.NAMETAG_DISTANCE);
+     }
+ 
+     @Override
+@@ -372,7 +_,8 @@
+ 
+                 double d7 = Math.min(0.2F + d6 / 15.0, 2.5);
+                 int i = (int)(150.0 * d7);
+-                serverlevel.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, p_20992_), d0, d1, d2, i, 0.0, 0.0, 0.0, 0.15F);
++                if (!p_20992_.addLandingEffects(serverlevel, p_20993_, p_20992_, this, i))
++                serverlevel.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, p_20992_, p_20993_), d0, d1, d2, i, 0.0, 0.0, 0.0, 0.15F);
+             }
+         }
+ 
+@@ -382,6 +_,7 @@
+         }
+     }
+ 
++    @Deprecated //FORGE: Use canDrownInFluidType instead
+     public boolean canBreatheUnderwater() {
+         return this.getType().is(EntityTypeTags.CAN_BREATHE_UNDER_WATER);
+     }
+@@ -422,6 +_,9 @@
+                 }
+             }
+ 
++            int airSupply = this.getAirSupply();
++            net.neoforged.neoforge.common.CommonHooks.onLivingBreathe(this, airSupply - decreaseAirSupply(airSupply), increaseAirSupply(airSupply) - airSupply);
++            if (false) // Forge: Handled in ForgeHooks#onLivingBreathe(LivingEntity, int, int)
+             if (this.isEyeInFluid(FluidTags.WATER)
+                 && !serverlevel1.getBlockState(BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())).is(Blocks.BUBBLE_COLUMN)) {
+                 boolean flag1 = !this.canBreatheUnderwater()
+@@ -774,7 +_,11 @@
+         } else {
+             ItemEntity itementity = this.createItemStackToDrop(p_401947_, p_401861_, p_401913_);
+             if (itementity != null) {
+-                this.level().addFreshEntity(itementity);
++                if (captureDrops() != null) {
++                    captureDrops().add(itementity);
++                } else {
++                    this.level().addFreshEntity(itementity);
++                }
+             }
+ 
+             return itementity;
+@@ -833,8 +_,10 @@
+                     Holder<MobEffect> holder = iterator.next();
+                     MobEffectInstance mobeffectinstance = this.activeEffects.get(holder);
+                     if (!mobeffectinstance.tickServer(serverlevel, this, () -> this.onEffectUpdated(mobeffectinstance, true, null))) {
++                        if (!net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.living.MobEffectEvent.Expired(this, mobeffectinstance)).isCanceled()) {
+                         iterator.remove();
+                         this.onEffectsRemoved(List.of(mobeffectinstance));
++                        }
+                     } else if (mobeffectinstance.getDuration() % 600 == 0) {
+                         this.onEffectUpdated(mobeffectinstance, false, null);
+                     }
+@@ -878,8 +_,9 @@
+         List<ParticleOptions> list = this.activeEffects
+             .values()
+             .stream()
+-            .filter(MobEffectInstance::isVisible)
+-            .map(MobEffectInstance::getParticleOptions)
++            .map(effect -> net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.living.EffectParticleModificationEvent(this, effect)))
++            .filter(net.neoforged.neoforge.event.entity.living.EffectParticleModificationEvent::isVisible)
++            .map(net.neoforged.neoforge.event.entity.living.EffectParticleModificationEvent::getParticleOptions)
+             .toList();
+         this.entityData.set(DATA_EFFECT_PARTICLES, list);
+         this.entityData.set(DATA_EFFECT_AMBIENCE_ID, areAllEffectsAmbient(this.activeEffects.values()));
+@@ -919,6 +_,7 @@
+             }
+         }
+ 
++        d0 = net.neoforged.neoforge.common.CommonHooks.getEntityVisibilityMultiplier(this, p_20969_, d0);
+         return d0;
+     }
+ 
+@@ -954,8 +_,13 @@
+         } else if (this.activeEffects.isEmpty()) {
+             return false;
+         } else {
+-            Map<Holder<MobEffect>, MobEffectInstance> map = Maps.newHashMap(this.activeEffects);
+-            this.activeEffects.clear();
++            Map<Holder<MobEffect>, MobEffectInstance> map = new java.util.HashMap<>(this.activeEffects.size());
++            for (Map.Entry<Holder<MobEffect>, MobEffectInstance> entry : this.activeEffects.entrySet()) {
++                if (!net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, entry.getValue())) {
++                    map.put(entry.getKey(), entry.getValue());
++                }
++            }
++            map.keySet().forEach(this.activeEffects::remove);
+             this.onEffectsRemoved(map.values());
+             return true;
+         }
+@@ -988,11 +_,12 @@
+     }
+ 
+     public boolean addEffect(MobEffectInstance p_147208_, @Nullable Entity p_147209_) {
+-        if (!this.canBeAffected(p_147208_)) {
++        if (!net.neoforged.neoforge.common.CommonHooks.canMobEffectBeApplied(this, p_147208_, p_147209_)) {
+             return false;
+         } else {
+             MobEffectInstance mobeffectinstance = this.activeEffects.get(p_147208_.getEffect());
+             boolean flag = false;
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.living.MobEffectEvent.Added(this, mobeffectinstance, p_147208_, p_147209_));
+             if (mobeffectinstance == null) {
+                 this.activeEffects.put(p_147208_.getEffect(), p_147208_);
+                 this.onEffectAdded(p_147208_, p_147209_);
+@@ -1008,6 +_,14 @@
+         }
+     }
+ 
++    /**
++     * Neo: Override-Only. Call via {@link net.neoforged.neoforge.common.CommonHooks#canMobEffectBeApplied(LivingEntity, MobEffectInstance, Entity)}
++     *
++     * @param p_21197_ A mob effect instance
++     * @return If the mob effect instance can be applied to this entity
++     */
++    @Deprecated
++    @org.jetbrains.annotations.ApiStatus.OverrideOnly
+     public boolean canBeAffected(MobEffectInstance p_21197_) {
+         if (this.getType().is(EntityTypeTags.IMMUNE_TO_INFESTED)) {
+             return !p_21197_.is(MobEffects.INFESTED);
+@@ -1021,7 +_,7 @@
+     }
+ 
+     public void forceAddEffect(MobEffectInstance p_147216_, @Nullable Entity p_147217_) {
+-        if (this.canBeAffected(p_147216_)) {
++        if (net.neoforged.neoforge.common.CommonHooks.canMobEffectBeApplied(this, p_147216_, p_147217_)) {
+             MobEffectInstance mobeffectinstance = this.activeEffects.put(p_147216_.getEffect(), p_147216_);
+             if (mobeffectinstance == null) {
+                 this.onEffectAdded(p_147216_, p_147217_);
+@@ -1042,6 +_,7 @@
+     }
+ 
+     public boolean removeEffect(Holder<MobEffect> p_316570_) {
++        if (net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, p_316570_)) return false;
+         MobEffectInstance mobeffectinstance = this.removeEffectNoUpdate(p_316570_);
+         if (mobeffectinstance != null) {
+             this.onEffectsRemoved(List.of(mobeffectinstance));
+@@ -1133,6 +_,8 @@
+     }
+ 
+     public void heal(float p_21116_) {
++        p_21116_ = net.neoforged.neoforge.event.EventHooks.onLivingHeal(this, p_21116_);
++        if (p_21116_ <= 0) return;
+         float f = this.getHealth();
+         if (f > 0.0F) {
+             this.setHealth(f + p_21116_);
+@@ -1160,11 +_,14 @@
+         } else if (p_376460_.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE)) {
+             return false;
+         } else {
++            this.damageContainers.push(new net.neoforged.neoforge.common.damagesource.DamageContainer(p_376460_, p_376610_));
++            if (net.neoforged.neoforge.common.CommonHooks.onEntityIncomingDamage(this, this.damageContainers.peek())) return false;
+             if (this.isSleeping()) {
+                 this.stopSleeping();
+             }
+ 
+             this.noActionTime = 0;
++            p_376610_ = this.damageContainers.peek().getNewDamage(); //Neo: enforce damage container as source of truth for damage amount
+             if (p_376610_ < 0.0F) {
+                 p_376610_ = 0.0F;
+             }
+@@ -1185,24 +_,28 @@
+             if (Float.isNaN(p_376610_) || Float.isInfinite(p_376610_)) {
+                 p_376610_ = Float.MAX_VALUE;
+             }
++            this.damageContainers.peek().setNewDamage(p_376610_); //update container with vanilla changes
+ 
+             boolean flag1 = true;
+             if (this.invulnerableTime > 10.0F && !p_376460_.is(DamageTypeTags.BYPASSES_COOLDOWN)) {
+                 if (p_376610_ <= this.lastHurt) {
++                    this.damageContainers.pop();
+                     return false;
+                 }
+ 
++                this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.INVULNERABILITY, this.lastHurt);
+                 this.actuallyHurt(p_376221_, p_376460_, p_376610_ - this.lastHurt);
+                 this.lastHurt = p_376610_;
+                 flag1 = false;
+             } else {
+                 this.lastHurt = p_376610_;
+-                this.invulnerableTime = 20;
++                this.invulnerableTime = this.damageContainers.peek().getPostAttackInvulnerabilityTicks();
+                 this.actuallyHurt(p_376221_, p_376460_, p_376610_);
+                 this.hurtDuration = 10;
+                 this.hurtTime = this.hurtDuration;
+             }
+ 
++            p_376610_ = this.damageContainers.peek().getNewDamage(); //update local with container value
+             this.resolveMobResponsibleForDamage(p_376460_);
+             this.resolvePlayerResponsibleForDamage(p_376460_);
+             if (flag1) {
+@@ -1271,6 +_,7 @@
+                 CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(serverplayer1, this, p_376460_, p_376610_, p_376610_, flag);
+             }
+ 
++            this.damageContainers.pop();
+             return flag2;
+         }
+     }
+@@ -1284,7 +_,7 @@
+                 return 0.0F;
+             } else {
+                 BlocksAttacks blocksattacks = itemstack.get(DataComponents.BLOCKS_ATTACKS);
+-                if (blocksattacks != null && !blocksattacks.bypassedBy().map(p_401067_::is).orElse(false)) {
++                if (blocksattacks != null) {
+                     if (p_401067_.getDirectEntity() instanceof AbstractArrow abstractarrow && abstractarrow.getPierceLevel() > 0) {
+                         return 0.0F;
+                     } else {
+@@ -1300,7 +_,14 @@
+                         }
+ 
+                         float f = blocksattacks.resolveBlockedDamage(p_401067_, p_401377_, d0);
+-                        blocksattacks.hurtBlockingItem(this.level(), itemstack, this, this.getUsedItemHand(), f);
++
++                        var ev = net.neoforged.neoforge.common.CommonHooks.onDamageBlock(this, this.damageContainers.peek(), f, !blocksattacks.bypassedBy().map(p_401067_::is).orElse(false));
++                        if (!ev.getBlocked()) return 0.0F;
++
++                        f = ev.getBlockedDamage();
++                        this.damageContainers.peek().setBlockedDamage(ev);
++
++                        blocksattacks.hurtBlockingItem(this.level(), itemstack, this, this.getUsedItemHand(), f, ev.shieldDamage());
+                         if (f > 0.0F && !p_401067_.is(DamageTypeTags.IS_PROJECTILE) && p_401067_.getDirectEntity() instanceof LivingEntity livingentity) {
+                             this.blockUsingItem(p_401171_, livingentity);
+                         }
+@@ -1334,9 +_,9 @@
+         Entity entity = p_388609_.getEntity();
+         if (entity instanceof Player player) {
+             this.setLastHurtByPlayer(player, 100);
+-        } else if (entity instanceof Wolf wolf && wolf.isTame()) {
+-            if (wolf.getOwnerReference() != null) {
+-                this.setLastHurtByPlayer(wolf.getOwnerReference().getUUID(), 100);
++        } else if (entity instanceof TamableAnimal tamableAnimal && tamableAnimal.isTame()) {
++            if (tamableAnimal.getOwnerReference() != null) {
++                this.setLastHurtByPlayer(tamableAnimal.getOwnerReference().getUUID(), 100);
+             } else {
+                 this.lastHurtByPlayer = null;
+                 this.lastHurtByPlayerMemoryTime = 0;
+@@ -1364,7 +_,7 @@
+             for (InteractionHand interactionhand : InteractionHand.values()) {
+                 ItemStack itemstack1 = this.getItemInHand(interactionhand);
+                 deathprotection = itemstack1.get(DataComponents.DEATH_PROTECTION);
+-                if (deathprotection != null) {
++                if (deathprotection != null && net.neoforged.neoforge.common.CommonHooks.onLivingUseTotem(this, p_21263_, itemstack1, interactionhand)) {
+                     itemstack = itemstack1.copy();
+                     itemstack1.shrink(1);
+                     break;
+@@ -1428,6 +_,7 @@
+     }
+ 
+     public void die(DamageSource p_21014_) {
++        if (net.neoforged.neoforge.common.CommonHooks.onLivingDeath(this, p_21014_)) return;
+         if (!this.isRemoved() && !this.dead) {
+             Entity entity = p_21014_.getEntity();
+             LivingEntity livingentity = this.getKillCredit();
+@@ -1463,7 +_,7 @@
+         if (this.level() instanceof ServerLevel serverlevel) {
+             boolean flag = false;
+             if (p_21269_ instanceof WitherBoss) {
+-                if (serverlevel.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
++                if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverlevel, p_21269_)) {
+                     BlockPos blockpos = this.blockPosition();
+                     BlockState blockstate = Blocks.WITHER_ROSE.defaultBlockState();
+                     if (this.level().getBlockState(blockpos).isAir() && blockstate.canSurvive(this.level(), blockpos)) {
+@@ -1481,6 +_,7 @@
+     }
+ 
+     protected void dropAllDeathLoot(ServerLevel p_348524_, DamageSource p_21192_) {
++        this.captureDrops(new java.util.ArrayList<>());
+         boolean flag = this.lastHurtByPlayerMemoryTime > 0;
+         if (this.shouldDropLoot(p_348524_)) {
+             this.dropFromLootTable(p_348524_, p_21192_, flag);
+@@ -1489,6 +_,10 @@
+ 
+         this.dropEquipment(p_348524_);
+         this.dropExperience(p_348524_, p_21192_.getEntity());
++
++        Collection<ItemEntity> drops = captureDrops(null);
++        if (!net.neoforged.neoforge.common.CommonHooks.onLivingDrops(this, p_21192_, drops, lastHurtByPlayerMemoryTime > 0))
++            drops.forEach(e -> level().addFreshEntity(e));
+     }
+ 
+     protected void dropEquipment(ServerLevel p_376330_) {
+@@ -1500,7 +_,8 @@
+                 this.isAlwaysExperienceDropper()
+                     || this.lastHurtByPlayerMemoryTime > 0 && this.shouldDropExperience() && p_376909_.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)
+             )) {
+-            ExperienceOrb.award(p_376909_, this.position(), this.getExperienceReward(p_376909_, p_345346_));
++            int reward = net.neoforged.neoforge.event.EventHooks.getExperienceDrop(this, this.getLastHurtByPlayer(), this.getExperienceReward(p_376909_, p_345346_));
++            ExperienceOrb.award((ServerLevel) this.level(), this.position(), reward);
+         }
+     }
+ 
+@@ -1605,6 +_,11 @@
+     }
+ 
+     public void knockback(double p_147241_, double p_147242_, double p_147243_) {
++        net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent event = net.neoforged.neoforge.common.CommonHooks.onLivingKnockBack(this, (float) p_147241_, p_147242_, p_147243_);
++        if(event.isCanceled()) return;
++        p_147241_ = event.getStrength();
++        p_147242_ = event.getRatioX();
++        p_147243_ = event.getRatioZ();
+         p_147241_ *= 1.0 - this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
+         if (!(p_147241_ <= 0.0)) {
+             this.hasImpulse = true;
+@@ -1678,15 +_,9 @@
+         } else {
+             BlockPos blockpos = this.blockPosition();
+             BlockState blockstate = this.getInBlockState();
+-            if (blockstate.is(BlockTags.CLIMBABLE)) {
+-                this.lastClimbablePos = Optional.of(blockpos);
+-                return true;
+-            } else if (blockstate.getBlock() instanceof TrapDoorBlock && this.trapdoorUsableAsLadder(blockpos, blockstate)) {
+-                this.lastClimbablePos = Optional.of(blockpos);
+-                return true;
+-            } else {
+-                return false;
+-            }
++            Optional<BlockPos> ladderPos = net.neoforged.neoforge.common.CommonHooks.isLivingOnLadder(blockstate, level(), blockpos, this);
++            if (ladderPos.isPresent()) this.lastClimbablePos = ladderPos;
++            return ladderPos.isPresent();
+         }
+     }
+ 
+@@ -1732,6 +_,11 @@
+ 
+     @Override
+     public boolean causeFallDamage(double p_397597_, float p_147187_, DamageSource p_147189_) {
++        var event = net.neoforged.neoforge.common.CommonHooks.onLivingFall(this, p_397597_, p_147187_);
++        if (event.isCanceled()) return false;
++        p_397597_ = event.getDistance();
++        p_147187_ = event.getDamageMultiplier();
++
+         boolean flag = super.causeFallDamage(p_397597_, p_147187_, p_147189_);
+         int i = this.calculateFallDamage(p_397597_, p_147187_);
+         if (i > 0) {
+@@ -1762,10 +_,10 @@
+             int i = Mth.floor(this.getX());
+             int j = Mth.floor(this.getY() - 0.2F);
+             int k = Mth.floor(this.getZ());
+-            BlockState blockstate = this.level().getBlockState(new BlockPos(i, j, k));
++            BlockPos pos = new BlockPos(i, j, k);
++            BlockState blockstate = this.level().getBlockState(pos);
+             if (!blockstate.isAir()) {
+-                SoundType soundtype = blockstate.getSoundType();
+-                this.playSound(soundtype.getFallSound(), soundtype.getVolume() * 0.5F, soundtype.getPitch() * 0.75F);
++                blockstate.playFallSound(this.level(), pos, this);
+             }
+         }
+     }
+@@ -1790,6 +_,8 @@
+         if (!(p_330394_ <= 0.0F)) {
+             int i = (int)Math.max(1.0F, p_330394_ / 4.0F);
+ 
++            net.neoforged.neoforge.common.CommonHooks.onArmorHurt(p_330843_, p_331314_, i, this);
++            if (true) return; //Neo: Invalidates the loop. Armor damage happens in common hook.
+             for (EquipmentSlot equipmentslot : p_331314_) {
+                 ItemStack itemstack = this.getItemBySlot(equipmentslot);
+                 Equippable equippable = itemstack.get(DataComponents.EQUIPPABLE);
+@@ -1823,6 +_,7 @@
+                 p_21194_ = Math.max(f / 25.0F, 0.0F);
+                 float f2 = f1 - p_21194_;
+                 if (f2 > 0.0F && f2 < 3.4028235E37F) {
++                    this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.MOB_EFFECTS, f2);
+                     if (this instanceof ServerPlayer) {
+                         ((ServerPlayer)this).awardStat(Stats.DAMAGE_RESISTED, Math.round(f2 * 10.0F));
+                     } else if (p_21193_.getEntity() instanceof ServerPlayer) {
+@@ -1845,6 +_,7 @@
+ 
+                 if (f3 > 0.0F) {
+                     p_21194_ = CombatRules.getDamageAfterMagicAbsorb(p_21194_, f3);
++                    this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ENCHANTMENTS,this.damageContainers.peek().getNewDamage() - p_21194_);
+                 }
+ 
+                 return p_21194_;
+@@ -1854,11 +_,14 @@
+ 
+     protected void actuallyHurt(ServerLevel p_376745_, DamageSource p_21240_, float p_21241_) {
+         if (!this.isInvulnerableTo(p_376745_, p_21240_)) {
+-            p_21241_ = this.getDamageAfterArmorAbsorb(p_21240_, p_21241_);
+-            p_21241_ = this.getDamageAfterMagicAbsorb(p_21240_, p_21241_);
+-            float f1 = Math.max(p_21241_ - this.getAbsorptionAmount(), 0.0F);
+-            this.setAbsorptionAmount(this.getAbsorptionAmount() - (p_21241_ - f1));
+-            float f = p_21241_ - f1;
++            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ARMOR, this.damageContainers.peek().getNewDamage() - this.getDamageAfterArmorAbsorb(p_21240_, this.damageContainers.peek().getNewDamage()));
++            this.getDamageAfterMagicAbsorb(p_21240_, this.damageContainers.peek().getNewDamage());
++            float damage = net.neoforged.neoforge.common.CommonHooks.onLivingDamagePre(this, this.damageContainers.peek());
++            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ABSORPTION, Math.min(this.getAbsorptionAmount(), damage));
++            float absorbed = Math.min(damage, this.damageContainers.peek().getReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ABSORPTION));
++            this.setAbsorptionAmount(Math.max(0, this.getAbsorptionAmount() - absorbed));
++            float f1 = this.damageContainers.peek().getNewDamage();
++            float f = absorbed;
+             if (f > 0.0F && f < 3.4028235E37F && p_21240_.getEntity() instanceof ServerPlayer serverplayer) {
+                 serverplayer.awardStat(Stats.DAMAGE_DEALT_ABSORBED, Math.round(f * 10.0F));
+             }
+@@ -1866,9 +_,10 @@
+             if (f1 != 0.0F) {
+                 this.getCombatTracker().recordDamage(p_21240_, f1);
+                 this.setHealth(this.getHealth() - f1);
+-                this.setAbsorptionAmount(this.getAbsorptionAmount() - f1);
+                 this.gameEvent(GameEvent.ENTITY_DAMAGE);
++                this.onDamageTaken(this.damageContainers.peek());
+             }
++            net.neoforged.neoforge.common.CommonHooks.onLivingDamagePost(this, this.damageContainers.peek());
+         }
+     }
+ 
+@@ -1922,6 +_,8 @@
+     }
+ 
+     public void swing(InteractionHand p_21012_, boolean p_21013_) {
++        ItemStack stack = this.getItemInHand(p_21012_);
++        if (!stack.isEmpty() && stack.onEntitySwing(this, p_21012_)) return;
+         if (!this.swinging || this.swingTime >= this.getCurrentSwingDuration() / 2 || this.swingTime < 0) {
+             this.swingTime = -1;
+             this.swinging = true;
+@@ -2046,8 +_,10 @@
+ 
+     private void swapHandItems() {
+         ItemStack itemstack = this.getItemBySlot(EquipmentSlot.OFFHAND);
+-        this.setItemSlot(EquipmentSlot.OFFHAND, this.getItemBySlot(EquipmentSlot.MAINHAND));
+-        this.setItemSlot(EquipmentSlot.MAINHAND, itemstack);
++        var event = net.neoforged.neoforge.common.CommonHooks.onLivingSwapHandItems(this);
++        if (event.isCanceled()) return;
++        this.setItemSlot(EquipmentSlot.OFFHAND, event.getItemSwappedToOffHand());
++        this.setItemSlot(EquipmentSlot.MAINHAND, event.getItemSwappedToMainHand());
+     }
+ 
+     @Override
+@@ -2253,15 +_,18 @@
+             }
+ 
+             this.hasImpulse = true;
++            net.neoforged.neoforge.common.CommonHooks.onLivingJump(this);
+         }
+     }
+ 
++    @Deprecated // FORGE: use sinkInFluid instead
+     protected void goDownInWater() {
+-        this.setDeltaMovement(this.getDeltaMovement().add(0.0, -0.04F, 0.0));
++        this.sinkInFluid(net.neoforged.neoforge.common.NeoForgeMod.WATER_TYPE.value());
+     }
+ 
++    @Deprecated // FORGE: use jumpInFluid instead
+     protected void jumpInLiquid(TagKey<Fluid> p_204043_) {
+-        this.setDeltaMovement(this.getDeltaMovement().add(0.0, 0.04F, 0.0));
++        this.setDeltaMovement(this.getDeltaMovement().add(0.0D, (double)0.04F * this.getAttributeValue(net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED), 0.0D));
+     }
+ 
+     protected float getWaterSlowDown() {
+@@ -2284,7 +_,8 @@
+ 
+     public void travel(Vec3 p_21280_) {
+         FluidState fluidstate = this.level().getFluidState(this.blockPosition());
+-        if ((this.isInWater() || this.isInLava()) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
++        // Neo: Call (patched-in overload of) #travelInFluid for custom fluid types
++        if ((this.isInWater() || this.isInLava() || this.isInFluidType(fluidstate)) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
+             this.travelInFluid(p_21280_);
+         } else if (this.isFallFlying()) {
+             this.travelFallFlying(p_21280_);
+@@ -2315,7 +_,7 @@
+ 
+     private void travelInAir(Vec3 p_362457_) {
+         BlockPos blockpos = this.getBlockPosBelowThatAffectsMyMovement();
+-        float f = this.onGround() ? this.level().getBlockState(blockpos).getBlock().getFriction() : 1.0F;
++        float f = this.onGround() ? this.level().getBlockState(blockpos).getFriction(this.level(), blockpos, this) : 1.0F;
+         float f1 = f * 0.91F;
+         Vec3 vec3 = this.handleRelativeFrictionAndCalculateMovement(p_362457_, f);
+         double d0 = vec3.y;
+@@ -2338,11 +_,20 @@
+         }
+     }
+ 
++    /**
++     * @deprecated Neo: use {@link #travelInFluid(Vec3, FluidState)} instead
++     */
++    @Deprecated
+     private void travelInFluid(Vec3 p_365480_) {
++        travelInFluid(p_365480_, net.minecraft.world.level.material.Fluids.EMPTY.defaultFluidState());
++    }
++
++    private void travelInFluid(Vec3 p_365480_, FluidState fluidState) {
+         boolean flag = this.getDeltaMovement().y <= 0.0;
+         double d0 = this.getY();
+         double d1 = this.getEffectiveGravity();
+-        if (this.isInWater()) {
++        // Neo: patched in to use the fluid the eye is in because fluidState is always EMPTY fluid.
++        if (this.isInWater() || (this.isInFluidType(this.getEyeInFluidType()) && !this.moveInFluid(this.level().getFluidState(BlockPos.containing(this.getEyePosition())), p_365480_, d1))) {
+             float f = this.isSprinting() ? 0.9F : this.getWaterSlowDown();
+             float f1 = 0.02F;
+             float f2 = (float)this.getAttributeValue(Attributes.WATER_MOVEMENT_EFFICIENCY);
+@@ -2359,6 +_,7 @@
+                 f = 0.96F;
+             }
+ 
++            f1 *= (float)this.getAttributeValue(net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED);
+             this.moveRelative(f1, p_365480_);
+             this.move(MoverType.SELF, this.getDeltaMovement());
+             Vec3 vec3 = this.getDeltaMovement();
+@@ -2517,7 +_,7 @@
+             double d0 = Mth.clamp(p_21298_.x, -0.15F, 0.15F);
+             double d1 = Mth.clamp(p_21298_.z, -0.15F, 0.15F);
+             double d2 = Math.max(p_21298_.y, -0.15F);
+-            if (d2 < 0.0 && !this.getInBlockState().is(Blocks.SCAFFOLDING) && this.isSuppressingSlidingDownLadder() && this instanceof Player) {
++            if (d2 < 0.0D && !this.getInBlockState().isScaffolding(this) && this.isSuppressingSlidingDownLadder() && this instanceof Player) {
+                 d2 = 0.0;
+             }
+ 
+@@ -2681,6 +_,7 @@
+             ItemStack itemstack = this.lastEquipmentItems.get(equipmentslot);
+             ItemStack itemstack1 = this.getItemBySlot(equipmentslot);
+             if (this.equipmentHasChanged(itemstack, itemstack1)) {
++                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent(this, equipmentslot, itemstack, itemstack1));
+                 if (map == null) {
+                     map = Maps.newEnumMap(EquipmentSlot.class);
+                 }
+@@ -2816,6 +_,9 @@
+         profilerfiller.push("jump");
+         if (this.jumping && this.isAffectedByFluids()) {
+             double d3;
++            net.neoforged.neoforge.fluids.FluidType fluidType = this.getMaxHeightFluidType();
++            if (!fluidType.isAir()) d3 = this.getFluidTypeHeight(fluidType);
++            else
+             if (this.isInLava()) {
+                 d3 = this.getFluidHeight(FluidTags.LAVA);
+             } else {
+@@ -2826,15 +_,17 @@
+             double d4 = this.getFluidJumpThreshold();
+             if (!flag || this.onGround() && !(d3 > d4)) {
+                 if (!this.isInLava() || this.onGround() && !(d3 > d4)) {
++                    if (fluidType.isAir() || this.onGround() && !(d3 > d4)) {
+                     if ((this.onGround() || flag && d3 <= d4) && this.noJumpDelay == 0) {
+                         this.jumpFromGround();
+                         this.noJumpDelay = 10;
+                     }
++                    } else this.jumpInFluid(fluidType);
+                 } else {
+-                    this.jumpInLiquid(FluidTags.LAVA);
++                    this.jumpInFluid(net.neoforged.neoforge.common.NeoForgeMod.LAVA_TYPE.value());
+                 }
+             } else {
+-                this.jumpInLiquid(FluidTags.WATER);
++                this.jumpInFluid(net.neoforged.neoforge.common.NeoForgeMod.WATER_TYPE.value());
+             }
+         } else {
+             this.noJumpDelay = 0;
+@@ -3155,8 +_,11 @@
+ 
+     private void updatingUsingItem() {
+         if (this.isUsingItem()) {
+-            if (ItemStack.isSameItem(this.getItemInHand(this.getUsedItemHand()), this.useItem)) {
+-                this.useItem = this.getItemInHand(this.getUsedItemHand());
++            ItemStack itemStack = this.getItemInHand(this.getUsedItemHand());
++            if (net.neoforged.neoforge.common.CommonHooks.canContinueUsing(this.useItem, itemStack)) {
++                this.useItem = itemStack;
++            }
++            if (itemStack == this.useItem) {
+                 this.updateUsingItem(this.useItem);
+             } else {
+                 this.stopUsingItem();
+@@ -3200,8 +_,11 @@
+     }
+ 
+     protected void updateUsingItem(ItemStack p_147201_) {
++        if (!p_147201_.isEmpty())
++            this.useItemRemaining = net.neoforged.neoforge.event.EventHooks.onItemUseTick(this, p_147201_, this.getUseItemRemainingTicks());
++        if (this.getUseItemRemainingTicks() > 0)
+         p_147201_.onUseTick(this.level(), this, this.getUseItemRemainingTicks());
+-        if (--this.useItemRemaining == 0 && !this.level().isClientSide() && !p_147201_.useOnRelease()) {
++        if (--this.useItemRemaining <= 0 && !this.level().isClientSide() && !p_147201_.useOnRelease()) {
+             this.completeUsingItem();
+         }
+     }
+@@ -3229,8 +_,10 @@
+     public void startUsingItem(InteractionHand p_21159_) {
+         ItemStack itemstack = this.getItemInHand(p_21159_);
+         if (!itemstack.isEmpty() && !this.isUsingItem()) {
++            int duration = net.neoforged.neoforge.event.EventHooks.onItemUseStart(this, itemstack, p_21159_, itemstack.getUseDuration(this));
++            if (duration < 0) return; // Neo: Early return for negative values, as that indicates event cancellation.
+             this.useItem = itemstack;
+-            this.useItemRemaining = itemstack.getUseDuration(this);
++            this.useItemRemaining = duration;
+             if (!this.level().isClientSide()) {
+                 this.setLivingEntityFlag(1, true);
+                 this.setLivingEntityFlag(2, p_21159_ == InteractionHand.OFF_HAND);
+@@ -3293,7 +_,8 @@
+                 this.releaseUsingItem();
+             } else {
+                 if (!this.useItem.isEmpty() && this.isUsingItem()) {
+-                    ItemStack itemstack = this.useItem.finishUsingItem(this.level(), this);
++                    ItemStack copy = this.useItem.copy();
++                    ItemStack itemstack = net.neoforged.neoforge.event.EventHooks.onItemUseFinish(this, copy, getUseItemRemainingTicks(), this.useItem.finishUsingItem(this.level(), this));
+                     if (itemstack != this.useItem) {
+                         this.setItemInHand(interactionhand, itemstack);
+                     }
+@@ -3323,7 +_,11 @@
+         ItemStack itemstack = this.getItemInHand(this.getUsedItemHand());
+         if (!this.useItem.isEmpty() && ItemStack.isSameItem(itemstack, this.useItem)) {
+             this.useItem = itemstack;
++            if (!net.neoforged.neoforge.event.EventHooks.onUseItemStop(this, useItem, this.getUseItemRemainingTicks())) {
++            ItemStack copy = this instanceof Player ? useItem.copy() : null;
+             this.useItem.releaseUsing(this.level(), this, this.getUseItemRemainingTicks());
++            if (copy != null && useItem.isEmpty()) net.neoforged.neoforge.event.EventHooks.onPlayerDestroyItem((Player)this, copy, getUsedItemHand());
++            }
+             if (this.useItem.useOnRelease()) {
+                 this.updatingUsingItem();
+             }
+@@ -3333,6 +_,7 @@
+     }
+ 
+     public void stopUsingItem() {
++        if (this.isUsingItem() && !this.useItem.isEmpty()) this.useItem.onStopUsing(this, useItemRemaining);
+         if (!this.level().isClientSide()) {
+             boolean flag = this.isUsingItem();
+             this.setLivingEntityFlag(1, false);
+@@ -3501,8 +_,8 @@
+         }
+ 
+         BlockState blockstate = this.level().getBlockState(p_21141_);
+-        if (blockstate.getBlock() instanceof BedBlock) {
+-            this.level().setBlock(p_21141_, blockstate.setValue(BedBlock.OCCUPIED, true), 3);
++        if (blockstate.isBed(level(), p_21141_, this)) {
++            blockstate.setBedOccupied(level(), p_21141_, this, true);
+         }
+ 
+         this.setPose(Pose.SLEEPING);
+@@ -3517,15 +_,17 @@
+     }
+ 
+     private boolean checkBedExists() {
+-        return this.getSleepingPos().map(p_423228_ -> this.level().getBlockState(p_423228_).getBlock() instanceof BedBlock).orElse(false);
++        // Neo: Overwrite the vanilla instanceof BedBlock check with isBed and fire the CanContinueSleepingEvent.
++        boolean hasBed = this.getSleepingPos().map(pos -> this.level().getBlockState(pos).isBed(this.level(), pos, this)).orElse(false);
++        return net.neoforged.neoforge.event.EventHooks.canEntityContinueSleeping(this, hasBed ? null : Player.BedSleepingProblem.NOT_POSSIBLE_HERE);
+     }
+ 
+     public void stopSleeping() {
+         this.getSleepingPos().filter(this.level()::hasChunkAt).ifPresent(p_261435_ -> {
+             BlockState blockstate = this.level().getBlockState(p_261435_);
+-            if (blockstate.getBlock() instanceof BedBlock) {
++            if (blockstate.isBed(level(), p_261435_, this)) {
+                 Direction direction = blockstate.getValue(BedBlock.FACING);
+-                this.level().setBlock(p_261435_, blockstate.setValue(BedBlock.OCCUPIED, false), 3);
++                blockstate.setBedOccupied(level(), p_261435_, this, false);
+                 Vec3 vec31 = BedBlock.findStandUpPosition(this.getType(), this.level(), p_261435_, direction, this.getYRot()).orElseGet(() -> {
+                     BlockPos blockpos = p_261435_.above();
+                     return new Vec3(blockpos.getX() + 0.5, blockpos.getY() + 0.1, blockpos.getZ() + 0.5);
+@@ -3546,7 +_,9 @@
+     @Nullable
+     public Direction getBedOrientation() {
+         BlockPos blockpos = this.getSleepingPos().orElse(null);
+-        return blockpos != null ? BedBlock.getBedOrientation(this.level(), blockpos) : null;
++        if (blockpos == null) return null;
++        BlockState state = this.level().getBlockState(blockpos);
++        return !state.isBed(level(), blockpos, this) ? null : state.getBedDirection(level(), blockpos);
+     }
+ 
+     @Override
+@@ -3555,7 +_,7 @@
+     }
+ 
+     public ItemStack getProjectile(ItemStack p_21272_) {
+-        return ItemStack.EMPTY;
++        return net.neoforged.neoforge.common.CommonHooks.getProjectile(this, p_21272_, ItemStack.EMPTY);
+     }
+ 
+     private static byte entityEventForEquipmentBreak(EquipmentSlot p_21267_) {
+@@ -3607,6 +_,8 @@
+     }
+ 
+     public final EquipmentSlot getEquipmentSlotForItem(ItemStack p_147234_) {
++        final EquipmentSlot slot = p_147234_.getEquipmentSlot();
++        if (slot != null) return slot; // FORGE: Allow modders to set a non-default equipment slot for a stack; e.g. a non-armor chestplate-slot item
+         Equippable equippable = p_147234_.get(DataComponents.EQUIPPABLE);
+         return equippable != null && this.canUseSlot(equippable.slot()) ? equippable.slot() : EquipmentSlot.MAINHAND;
+     }

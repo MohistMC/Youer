@@ -1,0 +1,80 @@
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -93,6 +_,13 @@
+                 optionparser.printHelpOn(System.err);
+                 return;
+             }
++            Path path2 = Paths.get("eula.txt");
++            Eula eula = new Eula(path2);
++
++            if (!eula.hasAgreedToEULA()) {
++                LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
++                return;
++            }
+ 
+             Path path = optionset.valueOf(optionspec14);
+             if (path != null) {
+@@ -108,24 +_,22 @@
+             Bootstrap.validate();
+             Util.startTimerHackThread();
+             Path path1 = Paths.get("server.properties");
++            if (!optionset.has(optionspec1)) net.neoforged.neoforge.server.loading.ServerModLoader.load(); // Load mods before we load almost anything else anymore. Single spot now. Only loads if they haven't passed the initserver param
+             DedicatedServerSettings dedicatedserversettings = new DedicatedServerSettings(path1);
+             dedicatedserversettings.forceSave();
+             RegionFileVersion.configure(dedicatedserversettings.getProperties().regionFileComression);
+-            Path path2 = Paths.get("eula.txt");
+-            Eula eula = new Eula(path2);
+             if (optionset.has(optionspec1)) {
+                 LOGGER.info("Initialized '{}' and '{}'", path1.toAbsolutePath(), path2.toAbsolutePath());
+                 return;
+             }
+ 
+-            if (!eula.hasAgreedToEULA()) {
+-                LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
+-                return;
+-            }
+-
+             File file1 = new File(optionset.valueOf(optionspec9));
+             Services services = Services.create(new YggdrasilAuthenticationService(Proxy.NO_PROXY), file1);
+             String s = Optional.ofNullable(optionset.valueOf(optionspec10)).orElse(dedicatedserversettings.getProperties().levelName);
++            if (s == null || s.isEmpty() || new File(file1, s).getAbsolutePath().equals(new File(s).getAbsolutePath())) {
++                LOGGER.error("Invalid world directory specified, must not be null, empty or the same directory as your universe! " + s);
++                return;
++            }
+             LevelStorageSource levelstoragesource = LevelStorageSource.createDefault(file1.toPath());
+             LevelStorageSource.LevelStorageAccess levelstoragesource$levelstorageaccess = levelstoragesource.validateAndCreateAccess(s);
+             Dynamic<?> dynamic;
+@@ -134,6 +_,7 @@
+                 try {
+                     dynamic = levelstoragesource$levelstorageaccess.getDataTag();
+                     levelsummary = levelstoragesource$levelstorageaccess.getSummary(dynamic);
++                    levelstoragesource$levelstorageaccess.readAdditionalLevelSaveData(false);
+                 } catch (NbtException | ReportedNbtException | IOException ioexception1) {
+                     LevelStorageSource.LevelDirectory levelstoragesource$leveldirectory = levelstoragesource$levelstorageaccess.getLevelDirectory();
+                     LOGGER.warn("Failed to load world data from {}", levelstoragesource$leveldirectory.dataFile(), ioexception1);
+@@ -142,6 +_,7 @@
+                     try {
+                         dynamic = levelstoragesource$levelstorageaccess.getDataTagFallback();
+                         levelsummary = levelstoragesource$levelstorageaccess.getSummary(dynamic);
++                        levelstoragesource$levelstorageaccess.readAdditionalLevelSaveData(true);
+                     } catch (NbtException | ReportedNbtException | IOException ioexception) {
+                         LOGGER.error("Failed to load world data from {}", levelstoragesource$leveldirectory.oldDataFile(), ioexception);
+                         LOGGER.error(
+@@ -254,6 +_,7 @@
+                 @Override
+                 public void run() {
+                     dedicatedserver.halt(true);
++                    org.apache.logging.log4j.LogManager.shutdown(); // we're manually managing the logging shutdown on the server. Make sure we do it here at the end.
+                 }
+             };
+             thread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
+@@ -288,6 +_,9 @@
+             worlddimensions = dedicatedserverproperties.createDimensions(p_443153_.datapackWorldgen());
+         }
+ 
++        // Neo: Do a write-read-cycle to inject modded dimensions on first start of a dedicated server into its generated world dimensions list.
++        var registryOps = net.minecraft.resources.RegistryOps.create(net.minecraft.nbt.NbtOps.INSTANCE, p_443153_.datapackWorldgen());
++        worlddimensions = WorldDimensions.CODEC.encoder().encodeStart(registryOps, worlddimensions).flatMap((writtenPayloadWithModdedDimensions) -> WorldDimensions.CODEC.decoder().parse(registryOps, writtenPayloadWithModdedDimensions)).resultOrPartial(LOGGER::error).orElse(worlddimensions);
+         WorldDimensions.Complete worlddimensions$complete = worlddimensions.bake(p_443610_);
+         Lifecycle lifecycle = worlddimensions$complete.lifecycle().add(p_443153_.datapackWorldgen().allRegistriesLifecycle());
+         return new WorldLoader.DataLoadOutput<>(

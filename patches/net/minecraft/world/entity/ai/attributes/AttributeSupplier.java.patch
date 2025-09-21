@@ -1,0 +1,38 @@
+--- a/net/minecraft/world/entity/ai/attributes/AttributeSupplier.java
++++ b/net/minecraft/world/entity/ai/attributes/AttributeSupplier.java
+@@ -66,8 +_,24 @@
+     }
+ 
+     public static class Builder {
+-        private final ImmutableMap.Builder<Holder<Attribute>, AttributeInstance> builder = ImmutableMap.builder();
++        private final Map<Holder<Attribute>, AttributeInstance> builder = new java.util.HashMap<>();
+         private boolean instanceFrozen;
++        private final java.util.List<AttributeSupplier.Builder> others = new java.util.ArrayList<>();
++
++        public Builder() { }
++
++        public Builder(AttributeSupplier attributeMap) {
++            this.builder.putAll(attributeMap.instances);
++        }
++
++        public void combine(Builder other) {
++            this.builder.putAll(other.builder);
++            others.add(other);
++        }
++
++        public boolean hasAttribute(Holder<Attribute> attribute) {
++            return this.builder.containsKey(attribute);
++        }
+ 
+         private AttributeInstance create(Holder<Attribute> p_316369_) {
+             AttributeInstance attributeinstance = new AttributeInstance(p_316369_, p_315942_ -> {
+@@ -92,7 +_,8 @@
+ 
+         public AttributeSupplier build() {
+             this.instanceFrozen = true;
+-            return new AttributeSupplier(this.builder.buildKeepingLast());
++            others.forEach(b -> b.instanceFrozen = true);
++            return new AttributeSupplier(ImmutableMap.copyOf(this.builder));
+         }
+     }
+ }

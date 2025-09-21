@@ -1,0 +1,57 @@
+--- a/net/minecraft/world/item/DyeColor.java
++++ b/net/minecraft/world/item/DyeColor.java
+@@ -51,6 +_,8 @@
+     private final MapColor mapColor;
+     private final int textureDiffuseColor;
+     private final int fireworkColor;
++    private final net.minecraft.tags.TagKey<Item> dyesTag;
++    private final net.minecraft.tags.TagKey<Item> dyedTag;
+     private final int textColor;
+ 
+     private DyeColor(int p_41046_, String p_41047_, int p_41048_, MapColor p_285297_, int p_41050_, int p_41051_) {
+@@ -58,6 +_,8 @@
+         this.name = p_41047_;
+         this.mapColor = p_285297_;
+         this.textColor = ARGB.opaque(p_41051_);
++        this.dyesTag = net.minecraft.tags.ItemTags.create(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("c", "dyes/" + p_41047_));
++        this.dyedTag = net.minecraft.tags.ItemTags.create(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("c", "dyed/" + p_41047_));
+         this.textureDiffuseColor = ARGB.opaque(p_41048_);
+         this.fireworkColor = p_41050_;
+     }
+@@ -110,6 +_,36 @@
+     @Override
+     public String getSerializedName() {
+         return this.name;
++    }
++
++    /**
++     * Gets the tag key representing the set of items which provide this dye color.
++     * @return A {@link net.minecraft.tags.TagKey<Item>} representing the set of items which provide this dye color.
++     */
++    public net.minecraft.tags.TagKey<Item> getTag() {
++        return dyesTag;
++    }
++
++    /**
++     * Gets the tag key representing the set of items which are dyed with this color.
++     * @return A {@link net.minecraft.tags.TagKey<Item>} representing the set of items which are dyed with this color.
++     */
++    public net.minecraft.tags.TagKey<Item> getDyedTag() {
++        return dyedTag;
++    }
++
++    @Nullable
++    public static DyeColor getColor(ItemStack stack) {
++        if (stack.getItem() instanceof DyeItem)
++            return ((DyeItem)stack.getItem()).getDyeColor();
++
++        for (int x = 0; x < BLACK.getId(); x++) {
++            DyeColor color = byId(x);
++            if (stack.is(color.getTag()))
++                return color;
++        }
++
++        return null;
+     }
+ 
+     public static DyeColor getMixedColor(ServerLevel p_386897_, DyeColor p_388832_, DyeColor p_386710_) {

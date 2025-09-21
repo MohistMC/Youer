@@ -1,0 +1,115 @@
+--- a/net/minecraft/world/level/chunk/ChunkAccess.java
++++ b/net/minecraft/world/level/chunk/ChunkAccess.java
+@@ -328,10 +_,14 @@
+ 
+     @Override
+     public final void findBlockLightSources(BiConsumer<BlockPos, BlockState> p_285269_) {
+-        this.findBlocks(p_360197_ -> p_360197_.getLightEmission() != 0, p_285269_);
++        this.findBlocks(p_284897_ -> p_284897_.hasDynamicLightEmission() || p_284897_.getLightEmission(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO) != 0, (p_284897_, pos) -> p_284897_.getLightEmission(this, pos) != 0, p_285269_);
+     }
+ 
+     public void findBlocks(Predicate<BlockState> p_285343_, BiConsumer<BlockPos, BlockState> p_285030_) {
++        findBlocks(p_285343_, (state, pos) -> p_285343_.test(state), p_285030_);
++    }
++
++    public void findBlocks(Predicate<BlockState> p_285343_, java.util.function.BiPredicate<BlockState, BlockPos> fineFilter, BiConsumer<BlockPos, BlockState> p_285030_) {
+         BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
+ 
+         for (int i = this.getMinSectionY(); i <= this.getMaxSectionY(); i++) {
+@@ -343,8 +_,9 @@
+                     for (int k = 0; k < 16; k++) {
+                         for (int l = 0; l < 16; l++) {
+                             BlockState blockstate = levelchunksection.getBlockState(l, j, k);
+-                            if (p_285343_.test(blockstate)) {
+-                                p_285030_.accept(blockpos$mutableblockpos.setWithOffset(blockpos, l, j, k), blockstate);
++                            blockpos$mutableblockpos.setWithOffset(blockpos, l, j, k);
++                            if (fineFilter.test(blockstate, blockpos$mutableblockpos)) {
++                                p_285030_.accept(blockpos$mutableblockpos, blockstate);
+                             }
+                         }
+                     }
+@@ -486,6 +_,84 @@
+     public ChunkSkyLightSources getSkyLightSources() {
+         return this.skyLightSources;
+     }
++
++    // Neo: Hook in AttachmentHolder to chunks for data storage and retrieval
++    private final net.neoforged.neoforge.attachment.AttachmentHolder.AsField attachmentHolder = new net.neoforged.neoforge.attachment.AttachmentHolder.AsField(this);
++
++    @Override
++    public boolean hasAttachments() {
++        return getAttachmentHolder().hasAttachments();
++    }
++
++    @Override
++    public boolean hasData(net.neoforged.neoforge.attachment.AttachmentType<?> type) {
++        return getAttachmentHolder().hasData(type);
++    }
++
++    @Override
++    public <T> T getData(net.neoforged.neoforge.attachment.AttachmentType<T> type) {
++        return getAttachmentHolder().getData(type);
++    }
++
++    @Override
++    @Nullable
++    public <T> T getExistingDataOrNull(net.neoforged.neoforge.attachment.AttachmentType<T> type) {
++        return getAttachmentHolder().getExistingDataOrNull(type);
++    }
++
++    @Override
++    @Nullable
++    public <T> T setData(net.neoforged.neoforge.attachment.AttachmentType<T> type, T data) {
++        markUnsaved();
++        return getAttachmentHolder().setData(type, data);
++    }
++
++    @Override
++    @Nullable
++    public <T> T removeData(net.neoforged.neoforge.attachment.AttachmentType<T> type) {
++        markUnsaved();
++        return getAttachmentHolder().removeData(type);
++    }
++
++    /**
++     * <strong>FOR INTERNAL USE ONLY</strong>
++     * <p>
++     * Only public for use in {@link net.minecraft.world.level.chunk.storage.SerializableChunkData}.
++     */
++    @org.jetbrains.annotations.ApiStatus.Internal
++    @Nullable
++    public final CompoundTag writeAttachmentsToNBT(HolderLookup.Provider provider) {
++        ProblemReporter.Collector reporter = new ProblemReporter.Collector();
++        var tag = net.minecraft.world.level.storage.TagValueOutput.createWithContext(reporter, provider);
++        getAttachmentHolder().serializeAttachments(tag);
++        if (!reporter.isEmpty()) throw new IllegalArgumentException("Attachments failed to serialise: " + reporter.getReport());
++        return tag.isEmpty() ? null : tag.buildResult();
++    }
++
++    /**
++     * <strong>FOR INTERNAL USE ONLY</strong>
++     * <p>
++     * Only public for use in {@link net.minecraft.world.level.chunk.storage.SerializableChunkData}.
++     *
++     */
++    @org.jetbrains.annotations.ApiStatus.Internal
++    public final void readAttachmentsFromNBT(HolderLookup.Provider provider, CompoundTag tag) {
++        ProblemReporter.Collector reporter = new ProblemReporter.Collector();
++        var input = net.minecraft.world.level.storage.TagValueInput.create(reporter, provider, tag);
++        getAttachmentHolder().deserializeInternal(provider, input);
++        if (!reporter.isEmpty()) {
++            throw new IllegalArgumentException("Attachments failed to deserialise: " + reporter.getReport());
++        }
++    }
++
++    @org.jetbrains.annotations.ApiStatus.Internal
++    public net.neoforged.neoforge.attachment.AttachmentHolder.AsField getAttachmentHolder() {
++        return attachmentHolder;
++    }
++
++    // Neo: Allow for exposing the Level a chunk is tied to if available
++    @Nullable
++    public net.minecraft.world.level.Level getLevel() { return null; }
+ 
+     public static ProblemReporter.PathElement problemPath(ChunkPos p_421990_) {
+         return new ChunkAccess.ChunkPathElement(p_421990_);

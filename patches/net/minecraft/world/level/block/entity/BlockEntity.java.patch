@@ -1,0 +1,101 @@
+--- a/net/minecraft/world/level/block/entity/BlockEntity.java
++++ b/net/minecraft/world/level/block/entity/BlockEntity.java
+@@ -36,9 +_,10 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import org.slf4j.Logger;
+ 
+-public abstract class BlockEntity implements DebugValueSource, net.neoforged.neoforge.common.extensions.IBlockEntityExtension {
++public abstract class BlockEntity extends net.neoforged.neoforge.attachment.AttachmentHolder implements DebugValueSource, net.neoforged.neoforge.common.extensions.IBlockEntityExtension {
+     private static final Codec<BlockEntityType<?>> TYPE_CODEC = BuiltInRegistries.BLOCK_ENTITY_TYPE.byNameCodec();
+     private static final Logger LOGGER = LogUtils.getLogger();
++    @Deprecated // Neo: always use getType()
+     private final BlockEntityType<?> type;
+     @Nullable
+     protected Level level;
+@@ -46,6 +_,8 @@
+     protected boolean remove;
+     private BlockState blockState;
+     private DataComponentMap components = DataComponentMap.EMPTY;
++    @Nullable
++    private CompoundTag customPersistentData;
+ 
+     public BlockEntity(BlockEntityType<?> p_155228_, BlockPos p_155229_, BlockState p_155230_) {
+         this.type = p_155228_;
+@@ -61,7 +_,7 @@
+     }
+ 
+     public boolean isValidBlockState(BlockState p_353131_) {
+-        return this.type.isValid(p_353131_);
++        return this.getType().isValid(p_353131_); // Neo: use getter so correct type is checked for modded subclasses
+     }
+ 
+     public static BlockPos getPosFromTag(ChunkPos p_412201_, CompoundTag p_187473_) {
+@@ -93,6 +_,8 @@
+     }
+ 
+     protected void loadAdditional(ValueInput p_422607_) {
++        p_422607_.read("NeoForgeData", CompoundTag.CODEC).ifPresent(neoData -> this.customPersistentData = neoData);
++        p_422607_.child(ATTACHMENTS_NBT_KEY).ifPresent(attachments -> this.deserializeAttachments(attachments));
+     }
+ 
+     public final void loadWithComponents(ValueInput p_422624_) {
+@@ -105,6 +_,11 @@
+     }
+ 
+     protected void saveAdditional(ValueOutput p_422639_) {
++        if (this.customPersistentData != null) p_422639_.store("NeoForgeData", CompoundTag.CODEC, this.customPersistentData.copy());
++        HolderLookup.Provider registries = this.level != null ? this.level.registryAccess() : net.minecraft.core.RegistryAccess.EMPTY;
++        var attachments = p_422639_.child(ATTACHMENTS_NBT_KEY);
++        serializeAttachments(attachments);
++        if (attachments.isEmpty()) p_422639_.discard(ATTACHMENTS_NBT_KEY);
+     }
+ 
+     public final CompoundTag saveWithFullMetadata(HolderLookup.Provider p_323767_) {
+@@ -240,10 +_,14 @@
+ 
+     public void setRemoved() {
+         this.remove = true;
++        this.invalidateCapabilities();
++        requestModelDataUpdate();
+     }
+ 
+     public void clearRemoved() {
+         this.remove = false;
++        // Neo: invalidate capabilities on block entity placement
++        invalidateCapabilities();
+     }
+ 
+     public void preRemoveSideEffects(BlockPos p_394577_, BlockState p_394161_) {
+@@ -273,6 +_,32 @@
+ 
+     public BlockEntityType<?> getType() {
+         return this.type;
++    }
++
++    @Override
++    public CompoundTag getPersistentData() {
++        if (this.customPersistentData == null)
++            this.customPersistentData = new CompoundTag();
++        return this.customPersistentData;
++    }
++
++    @Override
++    @Nullable
++    public final <T> T setData(net.neoforged.neoforge.attachment.AttachmentType<T> type, T data) {
++        setChanged();
++        return super.setData(type, data);
++    }
++
++    @Override
++    @Nullable
++    public final <T> T removeData(net.neoforged.neoforge.attachment.AttachmentType<T> type) {
++        setChanged();
++        return super.removeData(type);
++    }
++
++    @Override
++    public final void syncData(net.neoforged.neoforge.attachment.AttachmentType<?> type) {
++        net.neoforged.neoforge.attachment.AttachmentSync.syncBlockEntityUpdate(this, type);
+     }
+ 
+     @Deprecated

@@ -1,0 +1,141 @@
+--- a/net/minecraft/server/level/ChunkMap.java
++++ b/net/minecraft/server/level/ChunkMap.java
+@@ -400,6 +_,7 @@
+                 this.modified = true;
+             }
+ 
++            net.neoforged.neoforge.event.EventHooks.fireChunkTicketLevelUpdated(this.level, p_140177_, p_140180_, p_140178_, p_140179_);
+             return p_140179_;
+         }
+     }
+@@ -529,12 +_,15 @@
+             } else {
+                 ChunkAccess chunkaccess = p_140183_.getLatestChunk();
+                 if (this.pendingUnloads.remove(p_140182_, p_140183_) && chunkaccess != null) {
++                    net.neoforged.neoforge.common.CommonHooks.onChunkUnload(this.poiManager, chunkaccess); // Neo: Must be called for all chunk unloading. Not just LevelChunks.
++                    this.chunkTypeCache.remove(chunkaccess.getPos().toLong()); // Neo: Prevent chunk type cache from permanently retaining data for unloaded chunks
+                     if (chunkaccess instanceof LevelChunk levelchunk) {
+                         levelchunk.setLoaded(false);
+                     }
+ 
+                     this.save(chunkaccess);
+                     if (chunkaccess instanceof LevelChunk levelchunk1) {
++                        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkEvent.Unload(levelchunk1));
+                         this.level.unload(levelchunk1);
+                     }
+ 
+@@ -578,6 +_,7 @@
+                 Profiler.get().incrementCounter("chunkLoad");
+                 if (p_432462_.isPresent()) {
+                     ChunkAccess chunkaccess = p_432462_.get().read(this.level, this.poiManager, this.storageInfo(), p_140418_);
++                    net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkDataEvent.Load(chunkaccess, p_432462_.get()));
+                     this.markPosition(p_140418_, chunkaccess.getPersistedStatus().getChunkType());
+                     return chunkaccess;
+                 } else {
+@@ -771,6 +_,7 @@
+                 Profiler.get().incrementCounter("chunkSave");
+                 this.activeChunkWrites.incrementAndGet();
+                 SerializableChunkData serializablechunkdata = SerializableChunkData.copyOf(this.level, p_140259_);
++                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkDataEvent.Save(p_140259_, this.level, serializablechunkdata));
+                 CompletableFuture<CompoundTag> completablefuture = CompletableFuture.supplyAsync(serializablechunkdata::write, Util.backgroundExecutor());
+                 this.write(chunkpos, completablefuture::join).handle((p_432454_, p_432455_) -> {
+                     if (p_432455_ != null) {
+@@ -837,9 +_,11 @@
+ 
+     private static void markChunkPendingToSend(ServerPlayer p_295834_, LevelChunk p_296281_) {
+         p_295834_.connection.chunkSender.markChunkPendingToSend(p_296281_);
++        net.neoforged.neoforge.event.EventHooks.fireChunkWatch(p_295834_, p_296281_, p_295834_.level());
+     }
+ 
+     private static void dropChunk(ServerPlayer p_294215_, ChunkPos p_294758_) {
++        net.neoforged.neoforge.event.EventHooks.fireChunkUnWatch(p_294215_, p_294758_, p_294215_.level());
+         p_294215_.connection.chunkSender.dropChunk(p_294215_, p_294758_);
+     }
+ 
+@@ -936,7 +_,7 @@
+             ChunkHolder chunkholder = this.visibleChunkMap.get(longiterator.nextLong());
+             if (chunkholder != null) {
+                 LevelChunk levelchunk = chunkholder.getTickingChunk();
+-                if (levelchunk != null && this.anyPlayerCloseEnoughForSpawningInternal(chunkholder.getPos())) {
++                if (levelchunk != null && (this.anyPlayerCloseEnoughForSpawningInternal(chunkholder.getPos()) || ticketStorage.shouldForceNaturalSpawning(chunkholder.getPos()))) {// Neo: Force natural spawning in other chunks
+                     p_401784_.add(levelchunk);
+                 }
+             }
+@@ -960,6 +_,18 @@
+         return tristate == TriState.DEFAULT ? this.anyPlayerCloseEnoughForSpawningInternal(p_183880_) : tristate.toBoolean(true);
+     }
+ 
++    void collectForceTickingChunks(List<LevelChunk> list) {
++        for (long l : distanceManager.ticketStorage.getForceLoadedChunks()) {
++            ChunkHolder holder = this.visibleChunkMap.get(l);
++            if (holder != null) {
++                var chunk = holder.getTickingChunk();
++                if (chunk != null) {
++                    list.add(chunk);
++                }
++            }
++        }
++    }
++
+     private boolean anyPlayerCloseEnoughForSpawningInternal(ChunkPos p_363995_) {
+         for (ServerPlayer serverplayer : this.playerMap.getAllPlayers()) {
+             if (this.playerIsCloseEnoughForSpawning(serverplayer, p_363995_)) {
+@@ -1068,6 +_,7 @@
+                 this.playerMap.unIgnorePlayer(p_140185_);
+             }
+ 
++            //PATCH 1.20.2: Figure out the firing of the watch and unwatch events when chunk tracking updates.
+             this.updateChunkTracking(p_140185_);
+         }
+     }
+@@ -1119,7 +_,7 @@
+     }
+ 
+     protected void addEntity(Entity p_140200_) {
+-        if (!(p_140200_ instanceof EnderDragonPart)) {
++        if (!(p_140200_ instanceof net.neoforged.neoforge.entity.PartEntity)) {
+             EntityType<?> entitytype = p_140200_.getType();
+             int i = entitytype.clientTrackingRange() * 16;
+             if (i != 0) {
+@@ -1278,6 +_,20 @@
+         }
+     }
+ 
++    // Neo: Getter for players watching an entity.
++    public List<ServerPlayer> getPlayersWatching(Entity entity) {
++        var trackedEntity = entityMap.get(entity.getId());
++        if (trackedEntity != null) {
++            var ret = new java.util.ArrayList<ServerPlayer>(trackedEntity.seenBy.size());
++            for (var connection : trackedEntity.seenBy) {
++                ret.add(connection.getPlayer());
++            }
++            return java.util.Collections.unmodifiableList(ret);
++        } else {
++            return List.of();
++        }
++    }
++
+     class DistanceManager extends net.minecraft.server.level.DistanceManager {
+         protected DistanceManager(TicketStorage p_394597_, Executor p_140459_, Executor p_140460_) {
+             super(p_394597_, p_140459_, p_140460_);
+@@ -1411,5 +_,20 @@
+                 this.updatePlayer(serverplayer);
+             }
+         }
++    }
++
++    /**
++     * Neo: PR #937
++     * This is for mainly pre-generation usage such as Neoforge's generate command.
++     * Use this to schedule chunk load tasks into ChunkTaskPriorityQueueSorter so a chunk is fully finished all of their tasks before scheduling more chunks to load.
++     * Reason for this is when scheduling a huge ton of Full Status chunk tasks to the server (to load chunks),
++     * you could cause the server to only process those loading tasks and never reach the two chunk tasks that are
++     * automatically scheduled to run after the chunk is loaded to Full. As a result of flooding the system with Full Status chunk tasks,
++     * the queue for the two kind of successor chunk tasks will grow and become a memory leak of lambdas and chunk references.
++     * Use this method to schedule tasks for loading chunks in your whenCompleteAsync method call so the tasks gets processed properly over time and not leak.
++     * See {@link net.neoforged.neoforge.server.command.generation.GenerationTask#enqueueChunks} as an example usage of this method.
++     */
++    public void scheduleOnMainThreadMailbox(Runnable runnable) {
++        mainThreadExecutor.schedule(runnable);
+     }
+ }

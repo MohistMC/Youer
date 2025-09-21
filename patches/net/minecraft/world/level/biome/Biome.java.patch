@@ -1,0 +1,84 @@
+--- a/net/minecraft/world/level/biome/Biome.java
++++ b/net/minecraft/world/level/biome/Biome.java
+@@ -37,8 +_,8 @@
+ public final class Biome {
+     public static final Codec<Biome> DIRECT_CODEC = RecordCodecBuilder.create(
+         p_220544_ -> p_220544_.group(
+-                Biome.ClimateSettings.CODEC.forGetter(p_151717_ -> p_151717_.climateSettings),
+-                BiomeSpecialEffects.CODEC.fieldOf("effects").forGetter(p_220550_ -> p_220550_.specialEffects),
++                Biome.ClimateSettings.CODEC.forGetter(p_151717_ -> p_151717_.modifiableBiomeInfo().getOriginalBiomeInfo().climateSettings()), // FORGE: Patch codec to ignore field redirect coremods.
++                BiomeSpecialEffects.CODEC.fieldOf("effects").forGetter(p_220550_ -> p_220550_.modifiableBiomeInfo().getOriginalBiomeInfo().effects()), // FORGE: Patch codec to ignore field redirect coremods.
+                 BiomeGenerationSettings.CODEC.forGetter(p_220548_ -> p_220548_.generationSettings),
+                 MobSpawnSettings.CODEC.forGetter(p_220546_ -> p_220546_.mobSettings)
+             )
+@@ -62,9 +_,11 @@
+     )
+     public static final PerlinSimplexNoise BIOME_INFO_NOISE = new PerlinSimplexNoise(new WorldgenRandom(new LegacyRandomSource(2345L)), ImmutableList.of(0));
+     private static final int TEMPERATURE_CACHE_SIZE = 1024;
++    /** Neo: Field accesses are redirected to {@link #getModifiedClimateSettings()} with a coremod. */
+     private final Biome.ClimateSettings climateSettings;
+     private final BiomeGenerationSettings generationSettings;
+     private final MobSpawnSettings mobSettings;
++    /** Neo: Field accesses are redirected to {@link #getModifiedSpecialEffects()} with a coremod. */
+     private final BiomeSpecialEffects specialEffects;
+     private final ThreadLocal<Long2FloatLinkedOpenHashMap> temperatureCache = ThreadLocal.withInitial(() -> Util.make(() -> {
+         Long2FloatLinkedOpenHashMap long2floatlinkedopenhashmap = new Long2FloatLinkedOpenHashMap(1024, 0.25F) {
+@@ -81,6 +_,7 @@
+         this.generationSettings = p_220532_;
+         this.mobSettings = p_220533_;
+         this.specialEffects = p_220531_;
++        this.modifiableBiomeInfo = new net.neoforged.neoforge.common.world.ModifiableBiomeInfo(new net.neoforged.neoforge.common.world.ModifiableBiomeInfo.BiomeInfo(p_220530_, p_220531_, p_220532_, p_220533_)); // FORGE: cache original biome info on construction so we can bypass our field read coremods where necessary
+     }
+ 
+     public int getSkyColor() {
+@@ -88,7 +_,7 @@
+     }
+ 
+     public MobSpawnSettings getMobSettings() {
+-        return this.mobSettings;
++        return this.modifiableBiomeInfo().get().mobSpawnSettings();
+     }
+ 
+     public boolean hasPrecipitation() {
+@@ -190,7 +_,7 @@
+     }
+ 
+     public BiomeGenerationSettings getGenerationSettings() {
+-        return this.generationSettings;
++        return this.modifiableBiomeInfo().get().generationSettings();
+     }
+ 
+     public int getFogColor() {
+@@ -432,5 +_,32 @@
+         public String getSerializedName() {
+             return this.name;
+         }
++    }
++
++    // Neo: Grant ability to modify Biomes in specific ways such as adding new features or change temperature
++    private final net.neoforged.neoforge.common.world.ModifiableBiomeInfo modifiableBiomeInfo;
++
++    /**
++     * {@return Cache of original biome data and biome data modified by biome modifiers}
++     * Modified biome data is set by server after datapacks and serverconfigs load.
++     * Climate and effects field reads are coremodded to redirect to this.
++     **/
++    public net.neoforged.neoforge.common.world.ModifiableBiomeInfo modifiableBiomeInfo()
++    {
++         return this.modifiableBiomeInfo;
++    }
++
++    /**
++     * {@return The biome's climate settings, with modifications if called after modifiers are applied in server init.}
++     */
++    public ClimateSettings getModifiedClimateSettings() {
++        return this.modifiableBiomeInfo().get().climateSettings();
++    }
++
++    /**
++     * {@return The biome's client effects, with modifications if called after modifiers are applied in server init.}
++     */
++    public BiomeSpecialEffects getModifiedSpecialEffects() {
++        return this.modifiableBiomeInfo().get().effects();
+     }
+ }

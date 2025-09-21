@@ -1,0 +1,140 @@
+--- a/net/minecraft/world/entity/item/ItemEntity.java
++++ b/net/minecraft/world/entity/item/ItemEntity.java
+@@ -53,6 +_,10 @@
+     @Nullable
+     private UUID target;
+     public final float bobOffs = this.random.nextFloat() * (float) Math.PI * 2.0F;
++    /**
++     * The maximum age of this EntityItem. The item is expired once this is reached.
++     */
++    public int lifespan = ItemEntity.LIFETIME;
+ 
+     public ItemEntity(EntityType<? extends ItemEntity> p_31991_, Level p_31992_) {
+         super(p_31991_, p_31992_);
+@@ -70,6 +_,7 @@
+         this.setPos(p_149664_, p_149665_, p_149666_);
+         this.setDeltaMovement(p_149668_, p_149669_, p_149670_);
+         this.setItem(p_149667_);
++        this.lifespan = (p_149667_.getItem() == null ? ItemEntity.LIFETIME : p_149667_.getEntityLifespan(p_149663_));
+     }
+ 
+     @Override
+@@ -108,6 +_,7 @@
+ 
+     @Override
+     public void tick() {
++        if (getItem().onEntityItemUpdate(this)) return;
+         if (this.getItem().isEmpty()) {
+             this.discard();
+         } else {
+@@ -120,6 +_,9 @@
+             this.yo = this.getY();
+             this.zo = this.getZ();
+             Vec3 vec3 = this.getDeltaMovement();
++            net.neoforged.neoforge.fluids.FluidType fluidType = this.getMaxHeightFluidType();
++            if (!fluidType.isAir() && !fluidType.isVanilla() && this.getFluidTypeHeight(fluidType) > 0.1F) fluidType.setItemMovement(this);
++            else
+             if (this.isInWater() && this.getFluidHeight(FluidTags.WATER) > 0.1F) {
+                 this.setUnderwaterMovement();
+             } else if (this.isInLava() && this.getFluidHeight(FluidTags.LAVA) > 0.1F) {
+@@ -142,7 +_,8 @@
+                 this.applyEffectsFromBlocks();
+                 float f = 0.98F;
+                 if (this.onGround()) {
+-                    f = this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getBlock().getFriction() * 0.98F;
++                    BlockPos groundPos = getBlockPosBelowThatAffectsMyMovement();
++                    f = this.level().getBlockState(groundPos).getFriction(level(), groundPos, this) * 0.98F;
+                 }
+ 
+                 this.setDeltaMovement(this.getDeltaMovement().multiply(f, 0.98, f));
+@@ -174,7 +_,15 @@
+                 }
+             }
+ 
+-            if (!this.level().isClientSide() && this.age >= 6000) {
++            ItemStack item = this.getItem();
++            if (!this.level().isClientSide() && this.age >= lifespan) {
++            	  // Clamping to MAX_VALUE -1 as age is a Short and going above that would produce an infinite lifespan implicitly (accidentally)
++                this.lifespan = Mth.clamp(lifespan + net.neoforged.neoforge.event.EventHooks.onItemExpire(this), 0, Short.MAX_VALUE - 1);
++                if (this.age >= lifespan) {
++                    this.discard();
++                }
++            }
++            if (item.isEmpty() && !this.isRemoved()) {
+                 this.discard();
+             }
+         }
+@@ -282,7 +_,7 @@
+             this.health = (int)(this.health - p_376562_);
+             this.gameEvent(GameEvent.ENTITY_DAMAGE, p_376452_.getEntity());
+             if (this.health <= 0) {
+-                this.getItem().onDestroyed(this);
++                this.getItem().onDestroyed(this, p_376452_);
+                 this.discard();
+             }
+ 
+@@ -300,6 +_,7 @@
+         p_421930_.putShort("Health", (short)this.health);
+         p_421930_.putShort("Age", (short)this.age);
+         p_421930_.putShort("PickupDelay", (short)this.pickupDelay);
++        p_421930_.putInt("Lifespan", this.lifespan);
+         EntityReference.store(this.thrower, p_421930_, "Thrower");
+         p_421930_.storeNullable("Owner", UUIDUtil.CODEC, this.target);
+         if (!this.getItem().isEmpty()) {
+@@ -312,6 +_,7 @@
+         this.health = p_421942_.getShortOr("Health", (short)5);
+         this.age = p_421942_.getShortOr("Age", (short)0);
+         this.pickupDelay = p_421942_.getShortOr("PickupDelay", (short)0);
++        this.lifespan = p_421942_.getIntOr("Lifespan", ItemEntity.LIFETIME);
+         this.target = p_421942_.read("Owner", UUIDUtil.CODEC).orElse(null);
+         this.thrower = EntityReference.read(p_421942_, "Thrower");
+         this.setItem(p_421942_.read("Item", ItemStack.CODEC).orElse(ItemStack.EMPTY));
+@@ -326,7 +_,22 @@
+             ItemStack itemstack = this.getItem();
+             Item item = itemstack.getItem();
+             int i = itemstack.getCount();
+-            if (this.pickupDelay == 0 && (this.target == null || this.target.equals(p_32040_.getUUID())) && p_32040_.getInventory().add(itemstack)) {
++
++            // Neo: Fire item pickup pre/post and adjust handling logic to adhere to the event result.
++            var result = net.neoforged.neoforge.event.EventHooks.fireItemPickupPre(this, p_32040_).canPickup();
++            if (result.isFalse()) {
++                return;
++            }
++
++            // Make a copy of the original stack for use in ItemEntityPickupEvent.Post
++            ItemStack originalCopy = itemstack.copy();
++            // Subvert the vanilla conditions (pickup delay and target check) if the result is true.
++            if ((result.isTrue() || this.pickupDelay == 0 && (this.target == null || this.target.equals(p_32040_.getUUID()))) && p_32040_.getInventory().add(itemstack)) {
++                // Fire ItemEntityPickupEvent.Post
++                net.neoforged.neoforge.event.EventHooks.fireItemPickupPost(this, p_32040_, originalCopy);
++                // Update `i` to reflect the actual pickup amount. Vanilla is wrong here and always reports the whole stack.
++                i = originalCopy.getCount() - itemstack.getCount();
++
+                 p_32040_.take(this, i);
+                 if (itemstack.isEmpty()) {
+                     this.discard();
+@@ -381,6 +_,15 @@
+         this.target = p_266724_;
+     }
+ 
++    /**
++     * Neo: Add getter for ItemEntity's {@link ItemEntity#target target}.
++     * @return The {@link ItemEntity#target target} that can pick up this item entity (if {@code null}, anyone can pick it up)
++     */
++    @Nullable
++    public UUID getTarget() {
++        return this.target;
++    }
++
+     public void setThrower(Entity p_306324_) {
+         this.thrower = EntityReference.of(p_306324_);
+     }
+@@ -419,7 +_,7 @@
+ 
+     public void makeFakeItem() {
+         this.setNeverPickUp();
+-        this.age = 5999;
++        this.age = getItem().getEntityLifespan(this.level()) - 1;
+     }
+ 
+     public static float getSpin(float p_32009_, float p_361295_) {
