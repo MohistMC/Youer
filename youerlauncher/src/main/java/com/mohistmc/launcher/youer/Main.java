@@ -51,6 +51,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
+        System.setProperty("org.jline.terminal.disableDeprecatedProviderWarning", "true");
         mainArgs.addAll(List.of(args));
         DataParser.parseVersions();
         DataParser.parseLaunchArgs();
@@ -83,7 +84,7 @@ public class Main {
             System.setProperty("log4j.configurationFile", "log4j2_youer.xml");
         }
         if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_UPDATE()) {
-            UpdateUtils.versionCheck();
+            // UpdateUtils.versionCheck(); // TODO
         }
         if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_LIBRARIES()) {
             DefaultLibraries.run();
