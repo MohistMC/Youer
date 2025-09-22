@@ -23,16 +23,16 @@ public class DemoGUI {
         for (int i = 36; i < 46; i++) {
             this.gui.setItem(i, new GUIItem(new ItemStackFactory(Material.GLASS_PANE)
                     .hideTooltip()
-                    .toItemStack()));
+                    .build()));
         }
 
         this.gui.setItem(new GUIItem(new ItemStackFactory(Material.GLASS_PANE)
                 .hideTooltip()
-                .toItemStack()), 47, 48, 49, 50);
+                .build()), 47, 48, 49, 50);
 
         this.gui.setItem(46, new GUIItem(new ItemStackFactory(Material.REDSTONE)
                 .setDisplayName(I18n.as("demogui.close"))
-                .toItemStack()) {
+                .build()) {
             @Override
             public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                 u.closeInventory();
@@ -115,11 +115,11 @@ public class DemoGUI {
         if (this.pageChoose == 0) {
             gui.setItem(51, new GUIItem(new ItemStackFactory(Material.ACACIA_FENCE)
                     .setDisplayName(I18n.as("demogui.homepage"))
-                    .toItemStack()));
+                    .build()));
         } else {
             gui.setItem(51, new GUIItem(new ItemStackFactory(Material.ACACIA_FENCE)
                     .setDisplayName(I18n.as("demogui.ppage"))
-                    .toItemStack()) {
+                    .build()) {
                 @Override
                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                     DemoGUI.this.pageChoose--;
@@ -130,12 +130,12 @@ public class DemoGUI {
 
         gui.setItem(52, new GUIItem(new ItemStackFactory(Material.PAPER, pageChoose + 1)
                 .setDisplayName(I18n.as("demogui.nowpage", (pageChoose + 1)))
-                .toItemStack()));
+                .build()));
 
         if (this.pageChoose < page - 1) {
             gui.setItem(53, new GUIItem(new ItemStackFactory(Material.ACACIA_FENCE)
                     .setDisplayName(I18n.as("demogui.npage"))
-                    .toItemStack()) {
+                    .build()) {
                 @Override
                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                     DemoGUI.this.pageChoose++;
@@ -145,7 +145,7 @@ public class DemoGUI {
         } else {
             gui.setItem(53, new GUIItem(new ItemStackFactory(Material.ACACIA_FENCE)
                     .setDisplayName(I18n.as("demogui.lastpage"))
-                    .toItemStack()));
+                    .build()));
         }
 
         return this.gui;

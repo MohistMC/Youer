@@ -1,6 +1,6 @@
 package org.bukkit.event.command;
 
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.command.CommandSender;

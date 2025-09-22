@@ -3,7 +3,6 @@ package com.mohistmc.youer.api;
 import com.mohistmc.mjson.Json;
 import com.mohistmc.tools.Base64Utils;
 import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.api.color.ColorAPI;
 import com.mohistmc.youer.plugins.ban.BanConfig;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

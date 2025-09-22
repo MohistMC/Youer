@@ -89,7 +89,7 @@ public class ShowsCommand extends Command {
 
                 wh.setItem(47, new GUIItem(new ItemStackFactory(Material.REDSTONE)
                         .setDisplayName(I18n.as("shows.sound.stopall"))
-                        .toItemStack()) {
+                        .build()) {
                     @Override
                     public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                         u.stopAllSounds();
@@ -101,7 +101,7 @@ public class ShowsCommand extends Command {
 
                     wh.addItem(new GUIItem(new ItemStackFactory(Material.CHEST)
                             .setDisplayName("§b" + namespace + " §7(" + sounds.size() + ")")
-                            .toItemStack()) {
+                            .build()) {
                         @Override
                         public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                             openSoundCategoryGUI(u, namespace, sounds);
@@ -174,7 +174,7 @@ public class ShowsCommand extends Command {
                                                I18n.as("shows.entitys.item.click"),
                                                "§7===================="
                                        ))
-                                       .toItemStack()) {
+                                       .build()) {
                                    @Override
                                    public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                        if (!finalTopChunk.isEmpty()) {
@@ -260,7 +260,7 @@ public class ShowsCommand extends Command {
                                     I18n.as("shows.entitys.item.click"),
                                     "§7===================="
                             ))
-                            .toItemStack()) {
+                            .build()) {
                                    @Override
                                    public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                        if (!finalTopChunk.isEmpty()) {
@@ -297,7 +297,7 @@ public class ShowsCommand extends Command {
 
         categoryGUI.setItem(47, new GUIItem(new ItemStackFactory(Material.ARROW)
                 .setDisplayName("§cBack")
-                .toItemStack()) {
+                .build()) {
             @Override
             public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                 execute(u, "shows", new String[]{"sound"});
@@ -307,7 +307,7 @@ public class ShowsCommand extends Command {
         for (Sound s : sounds) {
             categoryGUI.addItem(new GUIItem(new ItemStackFactory(Material.NOTE_BLOCK)
                     .setDisplayName(s.name())
-                    .toItemStack()) {
+                    .build()) {
                 @Override
                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                     player.playSound(player.getLocation(), s, 1f, 1.0f);

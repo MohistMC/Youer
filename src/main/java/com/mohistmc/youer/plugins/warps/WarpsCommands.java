@@ -74,7 +74,7 @@ public class WarpsCommands extends Command {
                     wh.addItem(new GUIItem(new ItemStackFactory(Material.BAMBOO_SIGN)
                             .setDisplayName(w)
                             .setLore(List.of(I18n.as("warpscommands.gui.click"), "§f" + WarpsConfig.INSTANCE.get(w).asString()))
-                            .toItemStack()) {
+                            .build()) {
                         @Override
                         public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                             u.teleport(WarpsConfig.INSTANCE.get(w));

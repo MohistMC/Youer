@@ -2,7 +2,7 @@ package org.bukkit.map;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.Locale;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;

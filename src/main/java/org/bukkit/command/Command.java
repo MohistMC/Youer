@@ -2,7 +2,7 @@ package org.bukkit.command;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

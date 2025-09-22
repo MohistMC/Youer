@@ -1,7 +1,7 @@
 package org.bukkit;
 
 import com.google.common.collect.ImmutableList;
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.util.I18n;
 import java.awt.image.BufferedImage;
 import java.io.File;

@@ -1,6 +1,6 @@
 package org.bukkit.event.block;
 
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import org.bukkit.block.Block;
 import org.bukkit.block.sign.Side;
 import org.bukkit.entity.Player;

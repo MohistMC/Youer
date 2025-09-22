@@ -1,7 +1,7 @@
 package org.bukkit.craftbukkit.block;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.world.level.block.AbstractBannerBlock;

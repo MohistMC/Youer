@@ -1,7 +1,7 @@
 package org.bukkit.event.server;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import java.net.InetAddress;
 import java.util.Iterator;
 import java.util.NoSuchElementException;

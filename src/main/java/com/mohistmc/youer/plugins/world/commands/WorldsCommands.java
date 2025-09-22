@@ -81,7 +81,7 @@ public class WorldsCommands extends Command {
                                         I18n.as("worldmanage.environment." + environment.toLowerCase(Locale.ENGLISH)),
                                         I18n.as("worldmanage.gui.select")
                                 ))
-                                .toItemStack()) {
+                                .build()) {
                                        @Override
                                        public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                            WorldsGUI.createWorld(worldName, itemStack, u);
@@ -91,7 +91,7 @@ public class WorldsCommands extends Command {
                     }
                     wh.setItem(49, new GUIItem(new ItemStackFactory(Material.BRUSH)
                             .setDisplayName(I18n.as("worldmanage.gui.selectenvironment"))
-                            .toItemStack()));
+                            .build()));
                     wh.openGUI(player);
                     return true;
                 } else {

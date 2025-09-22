@@ -13,7 +13,7 @@ import com.mohistmc.org.yaml.snakeyaml.Yaml;
 import com.mohistmc.org.yaml.snakeyaml.constructor.SafeConstructor;
 import com.mohistmc.org.yaml.snakeyaml.error.MarkedYAMLException;
 import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;

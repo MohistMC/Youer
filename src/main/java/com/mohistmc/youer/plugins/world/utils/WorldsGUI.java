@@ -70,7 +70,7 @@ public class WorldsGUI {
             wh.addItem(new GUIItem(new ItemStackFactory(material)
                                .setDisplayName("§7>> §6" + w.getName())
                                .setLore(infoLore)
-                               .toItemStack()) {
+                               .build()) {
                            @Override
                            public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                ItemMeta itemMeta = itemStack.getItemMeta();

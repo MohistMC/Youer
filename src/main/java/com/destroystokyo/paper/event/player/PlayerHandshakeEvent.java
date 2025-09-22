@@ -1,7 +1,7 @@
 package com.destroystokyo.paper.event.player;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;

@@ -148,7 +148,7 @@ public class BansCommand extends Command {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
-                                        .toItemStack()) {
+                                        .build()) {
                                     @Override
                                     public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                         if (type.isRightClick()) {
@@ -173,7 +173,7 @@ public class BansCommand extends Command {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
-                                        .toItemStack()) {
+                                        .build()) {
                                     @Override
                                     public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                         if (type.isRightClick()) {
@@ -196,7 +196,7 @@ public class BansCommand extends Command {
                             wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(EntityAPI.getType(s)))
                                     .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))
-                                    .toItemStack()) {
+                                    .build()) {
                                 @Override
                                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                     if (type.isRightClick()) {
@@ -219,7 +219,7 @@ public class BansCommand extends Command {
                                     .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))
                                     .setEnchantment(ItemAPI.getEnchantmentByKey(s))
-                                    .toItemStack()) {
+                                    .build()) {
                                 @Override
                                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                     if (type.isRightClick()) {
@@ -242,7 +242,7 @@ public class BansCommand extends Command {
                                     .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))
                                     .setEnchantment(ItemAPI.getEnchantmentByKey(s))
-                                    .toItemStack()) {
+                                    .build()) {
                                 @Override
                                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                     if (type.isRightClick()) {

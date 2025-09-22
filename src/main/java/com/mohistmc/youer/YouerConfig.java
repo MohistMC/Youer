@@ -3,7 +3,6 @@ package com.mohistmc.youer;
 import com.google.common.base.Throwables;
 import com.mohistmc.youer.commands.BackupWorldCommand;
 import com.mohistmc.youer.commands.DumpCommand;
-import com.mohistmc.youer.commands.GetPluginListCommand;
 import com.mohistmc.youer.commands.InfoCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
 import com.mohistmc.youer.commands.PermissionCommand;
@@ -72,7 +71,6 @@ public class YouerConfig {
 
         commands = new HashMap<>();
         commands.put("youer", new YouerCommand("youer"));
-        commands.put("getpluginlist", new GetPluginListCommand("getpluginlist"));
         commands.put("dump", new DumpCommand("dump"));
         commands.put("backupworld", new BackupWorldCommand("backupworld"));
         commands.put("items", new ItemsCommand("items"));

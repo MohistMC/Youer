@@ -18,9 +18,7 @@
 
 package com.mohistmc.youer.commands;
 
-import com.mohistmc.tools.HasteUtils;
 import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.api.ChatComponentAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.util.I18n;
 import java.io.File;
@@ -44,7 +42,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 import org.jetbrains.annotations.NotNull;
@@ -94,26 +91,25 @@ public class DumpCommand extends Command {
             sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
             return false;
         }
-        if (args.length == 2) {
-            String mode = args[0];
-            switch (args[1].toLowerCase(Locale.ENGLISH)) {
-                case "potions" -> dumpPotions(sender, mode);
-                case "effect" -> dumpEffect(sender, mode);
-                case "particle" -> dumpParticle(sender, mode);
-                case "enchants" -> dumpEnchant(sender, mode);
-                case "cbcmds" -> dumpCBCommands(sender, mode);
-                case "modscmds" -> dumpModsCommands(sender, mode);
-                case "entitytypes" -> dumpEntityTypes(sender, mode);
-                case "biomes" -> dumpBiomes(sender, mode);
-                case "pattern" -> dumpPattern(sender, mode);
+        if (args.length == 1) {
+            switch (args[0].toLowerCase(Locale.ENGLISH)) {
+                case "potions" -> dumpPotions(sender);
+                case "effect" -> dumpEffect(sender);
+                case "particle" -> dumpParticle(sender);
+                case "enchants" -> dumpEnchant(sender);
+                case "cbcmds" -> dumpCBCommands(sender);
+                case "modscmds" -> dumpModsCommands(sender);
+                case "entitytypes" -> dumpEntityTypes(sender);
+                case "biomes" -> dumpBiomes(sender);
+                case "pattern" -> dumpPattern(sender);
 
                 /*case "worldgen":
-                    dumpWorldGen(sender, mode);
+                    dumpWorldGen(sender);
                     break;*/
-                case "worldtype" -> dumpWorldType(sender, mode);
-                case "material" -> dumpMaterial(sender, mode);
-                case "channels" -> dumpChannels(sender, mode);
-                case "advancements" -> dumpAdvancements(sender, mode);
+                case "worldtype" -> dumpWorldType(sender);
+                case "material" -> dumpMaterial(sender);
+                case "channels" -> dumpChannels(sender);
+                case "advancements" -> dumpAdvancements(sender);
                 default -> {
                     sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
                     return false;
@@ -123,51 +119,51 @@ public class DumpCommand extends Command {
         return false;
     }
 
-    private void dumpEffect(CommandSender sender, String mode) {
+    private void dumpEffect(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (PotionEffectType pet : PotionEffectType.values()) {
             sb.append(pet).append("\n");
         }
-        dump(sender, "effect", sb, mode);
+        dump(sender, "effect", sb);
     }
 
-    private void dumpPotions(CommandSender sender, String mode) {
+    private void dumpPotions(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (PotionType pet : PotionType.values()) {
             if (pet != null) {
                 sb.append(pet).append("\n");
             }
         }
-        dump(sender, "potions", sb, mode);
+        dump(sender, "potions", sb);
     }
 
-    private void dumpParticle(CommandSender sender, String mode) {
+    private void dumpParticle(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (Particle pet : Particle.values()) {
             if (pet != null) {
                 sb.append(pet).append("\n");
             }
         }
-        dump(sender, "particle", sb, mode);
+        dump(sender, "particle", sb);
     }
 
-    private void dumpEnchant(CommandSender sender, String mode) {
+    private void dumpEnchant(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (Enchantment ench : Enchantment.values()) {
             sb.append(ench).append("\n");
         }
-        dump(sender, "enchants", sb, mode);
+        dump(sender, "enchants", sb);
     }
 
-    private void dumpEntityTypes(CommandSender sender, String mode) {
+    private void dumpEntityTypes(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (EntityType ent : EntityType.values()) {
             sb.append(ent.toString()).append("\n");
         }
-        dump(sender, "entitytypes", sb, mode);
+        dump(sender, "entitytypes", sb);
     }
 
-    private void dumpCBCommands(CommandSender sender, String mode) {
+    private void dumpCBCommands(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (Command per : MinecraftServer.getServer().server.getCommandMap().getCommands()) {
             // Do not print if there is no permission
@@ -176,56 +172,56 @@ public class DumpCommand extends Command {
             }
             sb.append(per.getName()).append(": ").append(per.getPermission()).append("\n");
         }
-        dump(sender, "cbcommands", sb, mode);
+        dump(sender, "cbcommands", sb);
     }
 
-    private void dumpModsCommands(CommandSender sender, String mode) {
+    private void dumpModsCommands(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> m : ServerAPI.forgecmdper.entrySet()) {
             sb.append(m.getKey()).append(": ").append(m.getValue()).append("\n");
         }
-        dump(sender, "modscommands", sb, mode);
+        dump(sender, "modscommands", sb);
     }
 
-    private void dumpBiomes(CommandSender sender, String mode) {
+    private void dumpBiomes(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (Biome biome : Biome.values()) {
             sb.append(biome.toString()).append(": ").append(biome.getKey()).append("\n");
         }
-        dump(sender, "biomes", sb, mode);
+        dump(sender, "biomes", sb);
     }
 
-    private void dumpPattern(CommandSender sender, String mode) {
+    private void dumpPattern(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (PatternType patternType : PatternType.values()) {
             String key = patternType.getIdentifier();
             sb.append(key).append("_").append(PatternType.getByIdentifier(key)).append("\n");
         }
-        dump(sender, "pattern", sb, mode);
+        dump(sender, "pattern", sb);
     }
 
     /*
-    private void dumpWorldGen(CommandSender sender, String mode){
+    private void dumpWorldGen(CommandSender sender){
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : GameRegistry..worldGenMap.entrySet()) {
                 String key = entry.getKey();
                 String value = entry.getValue();
                 sb.append("worldgen-").append(value).append("-").append(key).append("\n");
         }
-        dump(sender, "worldgen", sb, mode);
+        dump(sender, "worldgen", sb);
     }
      */
 
-    private void dumpWorldType(CommandSender sender, String mode) {
+    private void dumpWorldType(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (WorldType type : WorldType.values()) {
             String key = type.getName();
             sb.append(type).append("-").append(key).append("\n");
         }
-        dump(sender, "worldtype", sb, mode);
+        dump(sender, "worldtype", sb);
     }
 
-    private void dumpMaterial(CommandSender sender, String mode) {
+    private void dumpMaterial(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (Material material : Material.values()) {
             if (!material.isLegacy()) {
@@ -233,10 +229,10 @@ public class DumpCommand extends Command {
                 sb.append(material).append("-").append(key).append("\n");
             }
         }
-        dump(sender, "material", sb, mode);
+        dump(sender, "material", sb);
     }
 
-    private void dumpChannels(CommandSender sender, String mode) {
+    private void dumpChannels(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (String channel : ServerAPI.channels_Outgoing()) {
             sb.append(channel).append("\n");
@@ -244,38 +240,23 @@ public class DumpCommand extends Command {
         for (String channel : ServerAPI.channels_Incoming()) {
             sb.append(channel).append("\n");
         }
-        dump(sender, "channels", sb, mode);
+        dump(sender, "channels", sb);
     }
 
-    private void dumpAdvancements(CommandSender sender, String mode) {
+    private void dumpAdvancements(CommandSender sender) {
         StringBuilder sb = new StringBuilder();
         for (AdvancementHolder channel : ServerAPI.getNMSServer().getAdvancements().getAllAdvancements()) {
             sb.append(channel.id()).append("\n");
         }
-        dump(sender, "advancements", sb, mode);
+        dump(sender, "advancements", sb);
     }
 
     private void dumpmsg(CommandSender sender, String path, String type) {
         sender.sendMessage(ChatColor.GREEN + "Successfully dump " + type + ", output path: " + path);
     }
 
-    private void dump(CommandSender sender, String type, StringBuilder sb, String mode) {
-        switch (mode) {
-            case "file" -> saveToF(type, sb, sender);
-            case "web" -> {
-                try {
-                    String url = HasteUtils.pasteMohist(sb.toString());
-                    if (sender instanceof Player p) {
-                        ChatComponentAPI.sendClickOpenURLChat(p, ChatColor.GREEN + "Successfully dump " + type + ", output path: " + ChatColor.DARK_GRAY + url, url, url);
-                    } else {
-                        dumpmsg(sender, url, type);
-                    }
-                } catch (IOException e) {
-                    sender.sendMessage(ChatColor.RED + "Failed to upload to hastebin.");
-                    saveToF(type, sb, sender);
-                }
-            }
-        }
+    private void dump(CommandSender sender, String type, StringBuilder sb) {
+        saveToF(type, sb, sender);
     }
 
     private void saveToF(String type, StringBuilder sb, CommandSender sender) {

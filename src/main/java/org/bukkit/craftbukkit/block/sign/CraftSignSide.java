@@ -1,6 +1,6 @@
 package org.bukkit.craftbukkit.block.sign;
 
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import net.minecraft.world.level.block.entity.SignText;
 import org.bukkit.DyeColor;
 import org.bukkit.block.sign.SignSide;

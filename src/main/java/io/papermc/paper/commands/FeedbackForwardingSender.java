@@ -1,6 +1,6 @@
 package io.papermc.paper.commands;
 
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import io.papermc.paper.adventure.PaperAdventure;
 import java.util.function.Consumer;
 import net.kyori.adventure.audience.MessageType;

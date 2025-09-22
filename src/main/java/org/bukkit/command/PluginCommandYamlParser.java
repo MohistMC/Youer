@@ -1,6 +1,6 @@
 package org.bukkit.command;
 
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

@@ -84,7 +84,7 @@ public class MenuGUI {
                 }
             }
 
-            ItemStack itemStack = itemFactory.toItemStack();
+            ItemStack itemStack = itemFactory.build();
 
             int slot = (icon.getPositionY() - 1) * 9 + (icon.getPositionX() - 1);
             gui.setItem(slot, new GUIItem(itemStack) {

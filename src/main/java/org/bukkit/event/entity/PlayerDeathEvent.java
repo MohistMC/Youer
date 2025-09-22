@@ -1,6 +1,6 @@
 package org.bukkit.event.entity;
 
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.List;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.entity.Player;

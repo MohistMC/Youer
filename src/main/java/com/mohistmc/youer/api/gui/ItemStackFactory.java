@@ -42,7 +42,7 @@ public class ItemStackFactory {
         this.item = item.clone();
     }
 
-    public ItemStack toItemStack() {
+    public ItemStack build() {
         return this.item;
     }
 

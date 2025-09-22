@@ -1,5 +1,6 @@
-package com.mohistmc.youer.api.color;
+package com.mohistmc.youer.api;
 
+import com.mohistmc.tools.ChineseColors;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -8,6 +9,10 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
+/**
+ * ColorAPI
+ * Only use internally, because where it needs to be used externally, we've hardhooked it in the underlying code
+ */
 public final class ColorAPI {
 
     private static final Pattern GRADIENT_PATTERN = Pattern.compile("<gradient(?:[:]#?[0-9A-Fa-f]{6}|[:][\\w\\u4e00-\\u9fa5]+)+>(.*?)</gradient>", Pattern.CASE_INSENSITIVE);

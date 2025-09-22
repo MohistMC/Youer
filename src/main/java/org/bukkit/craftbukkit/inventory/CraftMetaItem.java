@@ -10,7 +10,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mojang.serialization.DynamicOps;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

@@ -1,6 +1,6 @@
 package org.bukkit.event.server;
 
-import com.mohistmc.youer.api.color.ColorAPI;
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.Set;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.Cancellable;
