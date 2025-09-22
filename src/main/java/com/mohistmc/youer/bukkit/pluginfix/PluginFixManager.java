@@ -69,7 +69,7 @@ public class PluginFixManager {
                     System.setProperty("paperlib.shown-benefits", "1");
                 }
             };
-            case "org.mvplugins.multiverse.external.paperlib.PaperLib", "com.plotsquared.bukkit.paperlib.PaperLib" -> PluginFixManager::removePaper0;
+            case "org.mvplugins.multiverse.external.paperlib.PaperLib", "me.SuperRonanCraft.BetterRTP.lib.paperlib.PaperLib", "com.plotsquared.bukkit.paperlib.PaperLib" -> PluginFixManager::removePaper0;
             default -> null;
         };
 
