@@ -1,5 +1,6 @@
 package com.mohistmc.launcher.youer.feature;
 
+import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.util.I18n;
 import com.mohistmc.tools.FileUtils;
 import java.io.File;
@@ -73,6 +74,7 @@ public class AutoDeleteMods {
      * Scan and remove incompatible mods
      */
     public static void deleteIncompatibleMods() {
+        if (!YouerConfigUtil.AutoDeleteMods()) return;
         System.out.println(I18n.as("update.mods"));
         MOD_BLACKLIST.forEach((className, reason) -> {
             try {

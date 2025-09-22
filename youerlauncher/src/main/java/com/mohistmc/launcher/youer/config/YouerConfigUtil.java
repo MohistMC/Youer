@@ -107,4 +107,13 @@ public class YouerConfigUtil {
         }
         return yml.getString(key, Locale.getDefault().toString());
     }
+
+    public static boolean AutoDeleteMods() {
+        String key = "youer.auto_delete_mods";
+        if (yml.get(key) == null) {
+            yml.set(key, true);
+            save();
+        }
+        return yml.getBoolean(key, true);
+    }
 }
