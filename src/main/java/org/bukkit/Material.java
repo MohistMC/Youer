@@ -4621,6 +4621,7 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     private final int id;
     private final Constructor<? extends MaterialData> ctor;
     private static final Map<String, Material> BY_NAME = Maps.newHashMap();
+    private static final Map<String, Material> BY_KEY = Maps.newHashMap();
     private final int maxStack;
     private final short durability;
     public final Class<?> data;
@@ -4989,6 +4990,10 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     @Nullable
     public static Material matchMaterial(@NotNull final String name, boolean legacyName) {
         Preconditions.checkArgument(name != null, "Name cannot be null");
+
+        if (!name.startsWith(NamespacedKey.MINECRAFT + ":") && BY_KEY.containsKey(name)) {
+            return BY_KEY.get(name);
+        }
 
         String filtered = name;
         if (filtered.startsWith(NamespacedKey.MINECRAFT + ":")) {
@@ -5643,19 +5648,21 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     public static Material addMaterial(String materialName, int id, int stack, boolean isBlock, boolean isItem, ResourceLocation resourceLocation) {
         if (isBlock) {
             Material material = BY_NAME.get(materialName);
-            if (material != null){
+            if (material != null) {
                 material.isModBlock = true;
-            }else {
+            } else {
                 material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
             }
             BY_NAME.put(materialName, material);
             material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
+            BY_KEY.put(resourceLocation.toString(), material);
             return material;
         } else { // Forge Items
             Material material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
             BY_NAME.put(materialName, material);
             material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
             material.isModItem = true;
+            BY_KEY.put(resourceLocation.toString(), material);
             return material;
         }
     }
