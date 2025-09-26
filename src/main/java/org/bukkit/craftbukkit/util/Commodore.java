@@ -226,9 +226,11 @@ public class Commodore {
             public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
                 className = name;
                 isInterface = (access & Opcodes.ACC_INTERFACE) != 0;
-                String craftbukkitClass = CLASS_TO_INTERFACE.get(superName);
-                if (craftbukkitClass != null) {
-                    superName = craftbukkitClass;
+                if (superName != null) {
+                    String craftbukkitClass = CLASS_TO_INTERFACE.get(superName);
+                    if (craftbukkitClass != null) {
+                        superName = craftbukkitClass;
+                    }
                 }
                 super.visit(version, access, name, signature, superName, interfaces);
             }
