@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/item/BlockItem.java
 +++ b/net/minecraft/world/item/BlockItem.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.item;
+ 
++import com.mohistmc.youer.util.MixinFix;
+ import java.util.List;
+ import java.util.Map;
+ import javax.annotation.Nullable;
 @@ -9,6 +_,7 @@
  import net.minecraft.nbt.CompoundTag;
  import net.minecraft.network.chat.Component;
@@ -44,21 +51,13 @@
                  if (blockstate == null) {
                      return InteractionResult.FAIL;
                  } else if (!this.placeBlock(blockplacecontext, blockstate)) {
-@@ -77,16 +_,29 @@
+@@ -77,16 +_,21 @@
                          this.updateCustomBlockEntityTag(blockpos, level, player, itemstack, blockstate1);
                          updateBlockEntityComponents(level, blockpos, itemstack);
                          blockstate1.getBlock().setPlacedBy(level, blockpos, blockstate1, player, itemstack);
 +                        // CraftBukkit start
-+                        if (place$blockstateCB != null) {
-+                            BlockPlaceEvent placeEvent = CraftEventFactory.callBlockPlaceEvent((ServerLevel) level, player, blockplacecontext.getHand(), place$blockstateCB, blockpos.getX(), blockpos.getY(), blockpos.getZ());
-+                            if (placeEvent != null && (placeEvent.isCancelled() || !placeEvent.canBuild())) {
-+                                place$blockstateCB.update(true, false);
-+
-+                                if (this instanceof SolidBucketItem) {
-+                                    ((ServerPlayer) player).getBukkitEntity().updateInventory(); // SPIGOT-4541
-+                                }
-+                                return InteractionResult.FAIL;
-+                            }
++                        if (place$blockstateCB != null && MixinFix.fixPlace(this, (ServerLevel) level, (ServerPlayer) player, blockplacecontext, blockpos, place$blockstateCB)) {
++                            return InteractionResult.FAIL;
 +                        }
 +                        // CraftBukkit end
                          if (player instanceof ServerPlayer) {
