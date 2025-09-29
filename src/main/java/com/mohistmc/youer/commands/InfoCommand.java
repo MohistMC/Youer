@@ -25,9 +25,9 @@ public class InfoCommand extends Command {
 
     public InfoCommand(String name) {
         super(name);
-        this.description = "Youer info commands";
-        this.usageMessage = "/info [item|block|entity|cmd]";
-        this.setPermission("youer.command.info");
+        this.description = "Youer infos commands";
+        this.usageMessage = "/infos [item|block|entity|cmd]";
+        this.setPermission("youer.command.infos");
     }
 
     private final List<String> params = List.of("item", "block", "entity", "cmd");

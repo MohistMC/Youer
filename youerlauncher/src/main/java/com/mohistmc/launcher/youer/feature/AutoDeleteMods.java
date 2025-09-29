@@ -6,7 +6,9 @@ import com.mohistmc.tools.FileUtils;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -76,9 +78,11 @@ public class AutoDeleteMods {
     public static void deleteIncompatibleMods() {
         if (!YouerConfigUtil.AutoDeleteMods()) return;
         System.out.println(I18n.as("update.mods"));
-        MOD_BLACKLIST.forEach((className, reason) -> {
+
+        List<String> identifiers = new ArrayList<>(MOD_BLACKLIST.keySet());
+        identifiers.parallelStream().forEach(identifier -> {
             try {
-                checkModFile(className);
+                checkModFile(identifier);
             } catch (Exception e) {
                 e.printStackTrace();
             }

@@ -77,7 +77,7 @@ public class YouerConfig {
         commands.put("permission", new PermissionCommand("permission"));
         commands.put("bans", new BansCommand("bans"));
         commands.put("shows", new ShowsCommand("shows"));
-        commands.put("info", new InfoCommand("info"));
+        commands.put("infos", new InfoCommand("infos"));
         commands.put("menus", new MenuCommand("menus"));
 
         MohistPlugin.registerCommands(commands);

@@ -4620,8 +4620,8 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
 
     private final int id;
     private final Constructor<? extends MaterialData> ctor;
-    private static final Map<String, Material> BY_NAME = Maps.newHashMap();
-    private static final Map<String, Material> BY_KEY = Maps.newHashMap();
+    public static final Map<String, Material> BY_NAME = Maps.newHashMap();
+    public static final Map<String, Material> BY_KEY = Maps.newHashMap();
     private final int maxStack;
     private final short durability;
     public final Class<?> data;
@@ -4777,7 +4777,6 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
      */
     @Deprecated
     public int getId() {
-        Preconditions.checkArgument(legacy, "Cannot get ID of Modern Material");
         return id;
     }
 
