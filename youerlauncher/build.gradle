@@ -19,7 +19,10 @@ dependencies {
     implementation 'com.mohistmc:tools:0.6.1'
     implementation 'me.tongfei:progressbar:0.10.1'
     implementation 'org.jline:jline:3.25.1'
-    compileOnly "cpw.mods:bootstraplauncher:2.0.2"
+    compileOnly ("net.neoforged.fancymodloader:loader:${project.fancy_mod_loader_version}") {
+        exclude group: 'org.slf4j'
+        exclude group: 'net.fabricmc'
+    }
 }
 
 tasks.named('jar', Jar).configure {
@@ -46,6 +49,7 @@ shadowJar {
         include(dependency('me.tongfei:progressbar'))
         include(dependency('org.jline:jline'))
     }
+    //relocate("org.jline", "com.mohistmc.org.jline")
 }
 
 jar.dependsOn(shadowJar)

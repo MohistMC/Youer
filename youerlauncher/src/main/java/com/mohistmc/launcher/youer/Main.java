@@ -23,14 +23,12 @@ import com.mohistmc.launcher.youer.action.Action;
 import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.feature.AutoDeleteMods;
 import com.mohistmc.launcher.youer.feature.DefaultLibraries;
-import com.mohistmc.launcher.youer.feature.UpdateUtils;
 import com.mohistmc.launcher.youer.feature.YouerProxySelector;
 import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.YouerModuleManager;
 import com.mohistmc.tools.JarTool;
 import com.mohistmc.tools.Logo;
 import com.mohistmc.tools.MojangEulaUtil;
-import cpw.mods.bootstraplauncher.BootstrapLauncher;
 import java.lang.management.ManagementFactory;
 import java.net.ProxySelector;
 import java.text.SimpleDateFormat;
@@ -88,8 +86,9 @@ public class Main {
         if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_LIBRARIES()) {
             DefaultLibraries.run();
         }
+        Action action = new Action();
         if (YouerConfigUtil.INSTALLATIONFINISHED()) {
-            new Action();
+            action.install();
         }
         AutoDeleteMods.deleteIncompatibleMods();
 
@@ -98,7 +97,6 @@ public class Main {
                         s.startsWith("--launchTarget")
                                 || s.startsWith("--fml.neoForgeVersion")
                                 || s.startsWith("--fml.mcVersion")
-                                || s.startsWith("--fml.fmlVersion")
                                 || s.startsWith("--fml.neoFormVersion"))
                 .toList()) {
             forgeArgs.add(arg.split(" ")[0]);
@@ -112,7 +110,7 @@ public class Main {
             }
             MojangEulaUtil.writeInfos(i18n.as("eula.text", "https://account.mojang.com/documents/minecraft_eula") + "\n" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\neula=true");
         }
-        BootstrapLauncher.main(forgeArgs.toArray(String[]::new));
+        net.neoforged.fml.startup.Server.main(forgeArgs.toArray(String[]::new));
         ProxySelector.setDefault(new YouerProxySelector(ProxySelector.getDefault()));
     }
 }

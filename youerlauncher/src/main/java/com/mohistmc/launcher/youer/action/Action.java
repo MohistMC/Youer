@@ -112,10 +112,14 @@ public class Action {
         this.PATCHED = new File(forgeStart + "-server.jar");
         this.PAPER_REMAP_0 = new File(libPath + "com/mohistmc/installation/data/paper-remap-0.jar");
         this.PAPER_REMAP = new File(libPath + "com/mohistmc/installation/data/paper-remap.jar");
+        YouerModuleManager.universalJar = universalJar;
+        YouerModuleManager.PATCHED = PATCHED;
+        YouerModuleManager.MC_SRG = MC_SRG;
+        YouerModuleManager.MC_EXTRA = MC_EXTRA;
         install();
     }
 
-    private void install() throws Exception {
+    public void install() throws Exception {
 
         launchArgs.add(new File(URLDecoder.decode(YouerModuleManager.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath(), StandardCharsets.UTF_8)).getAbsolutePath());
         launchArgs.addAll(Main.mainArgs);

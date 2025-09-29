@@ -102,9 +102,7 @@ dependencies {
         endorseStrictVersions()
     }
 
-    moduleLibraries "net.neoforged.fancymodloader:securejarhandler:${project.fancy_mod_loader_version}"
-    moduleLibraries "net.neoforged.fancymodloader:bootstraplauncher:${project.fancy_mod_loader_version}"
-    moduleLibraries "net.neoforged:JarJarFileSystems:${project.jarjar_version}"
+    minecraftDependencies("net.neoforged:minecraft-dependencies:${project.minecraft_version}")
 
     for (var asmModule : ["org.ow2.asm:asm", "org.ow2.asm:asm-commons", "org.ow2.asm:asm-tree", "org.ow2.asm:asm-util", "org.ow2.asm:asm-analysis"]) {
         libraries(asmModule) {
@@ -124,6 +122,7 @@ dependencies {
         exclude group: 'org.slf4j'
         exclude group: 'net.fabricmc'
     }
+    libraries "net.neoforged.fancymodloader:securejarhandler:${project.fancy_mod_loader_version}"
     libraries "net.neoforged:accesstransformers:${project.accesstransformers_version}"
     libraries "net.neoforged:bus:${project.eventbus_version}"
     libraries "net.neoforged:mergetool:${project.mergetool_version}:api"
@@ -161,6 +160,9 @@ dependencies {
     libraries "org.jline:jline-reader:3.21.0"   // Dep of TerminalConsoleAppender
     libraries "org.jline:jline-terminal:3.21.0" // Dep of TerminalConsoleAppender
     libraries "org.jline:jline-terminal-jansi:3.21.0" // Dep of TerminalConsoleAppender
+    libraries 'org.checkerframework:checker-qual:3.43.0'
+    libraries 'com.google.errorprone:error_prone_annotations:2.28.0'
+    libraries 'com.google.j2objc:j2objc-annotations:3.0.0'
 }
 
 // Select runtimeElements rather than universalJar from the main source set
@@ -195,7 +197,7 @@ neoDev {
             // We perform client and server datagen in a single clientData run to avoid
             // having to juggle two generated resources folders and two runs for no additional benefit.
             clientData()
-            sourceSet = sourceSets.main
+            sourceSet = sourceSets.client
             loadedMods = [joinedMod, neoDev.mods."neoforge-coremods"]
             programArguments.addAll '--mod', 'neoforge', '--flat', '--all', '--validate',
                     '--existing', rootProject.file("src/main/resources").absolutePath,
@@ -288,7 +290,7 @@ generateAccessTransformers {
     )
 }
 
-tasks.register("generateFinalizeSpawnTargets", GenerateFinalizeSpawnTargets.class) {
+tasks.register('generateFinalizeSpawnTargets', GenerateFinalizeSpawnTargets.class) {
     group generateAccessTransformers.group
     description "Generate the targets for the finalizeSpawn MethodRedirector coremod"
     input = generateAccessTransformers.input
@@ -308,6 +310,26 @@ tasks.withType(Javadoc.class).configureEach {
     ]
     options.addStringOption('Xdoclint:all,-missing', '-public')
 }
+
+// Generates the neoforge.mods.toml so it contains a fully realized version number
+final generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    group = 'build'
+    from(rootProject.file('src/main/neoforge.mods.toml')) {
+        rename '(.*)', 'META-INF/$1'
+    }
+    into 'build/generated/modMetadata'
+
+    // Exposed project properties
+    Map<String, String> projectProperties = [
+            'version',
+    ].collectEntries { [it, project[it]] }
+
+    // Ensure the resources get re-evaluate when the version changes
+    inputs.properties projectProperties
+    expand projectProperties
+}
+sourceSets.main.resources.srcDir generateModMetadata
+net.neoforged.moddevgradle.internal.NeoDevFacade.runTaskOnProjectSync(project, generateModMetadata)
 
 AdhocComponentWithVariants javaComponent = (AdhocComponentWithVariants) project.components.findByName("java")
 // Ensure the two default variants are not published, since they
@@ -384,7 +406,7 @@ configurations {
     modDevApiElements {
         canBeDeclared = false
         canBeResolved = false
-        extendsFrom libraries, moduleLibraries, userdevCompileOnly, neoFormDependencies
+        extendsFrom libraries, userdevCompileOnly, neoFormDependencies
         attributes {
             attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category, Category.LIBRARY))
             attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EXTERNAL))
@@ -398,7 +420,7 @@ configurations {
     modDevRuntimeElements {
         canBeDeclared = false
         canBeResolved = false
-        extendsFrom libraries, moduleLibraries, neoFormDependencies
+        extendsFrom libraries, neoFormDependencies
         attributes {
             attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category, Category.LIBRARY))
             attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EXTERNAL))
@@ -409,10 +431,10 @@ configurations {
         }
         javaComponent.addVariantsFromConfiguration(it) {}
     }
+    // Deprecated, but we'll keep it empty for backwards compatibility
     modDevModulePath {
         canBeDeclared = false
         canBeResolved = false
-        extendsFrom moduleLibraries
         attributes {
             attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category, Category.LIBRARY))
             attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EXTERNAL))
@@ -474,7 +496,7 @@ artifacts {
 
 task downloadMultipleFiles(type: Download) {
     src([
-            'https://maven.mohistmc.com/libraries/1.21.9/youer/libraries.zip'
+            ' http://localhost:3000/libraries.zip'
     ])
     dest layout.buildDirectory.dir("libraries")
 }
@@ -493,6 +515,7 @@ def installerDeps = {
     installer "net.neoforged.installertools:cli-utils:${project.installertools_version}"
     installer "net.neoforged:AutoRenamingTool:${project.art_version}:all"
     installer "de.siegmar:fastcsv:2.0.0"
+    installer "net.neoforged:srgutils:1.0.0"
 }
 
 dependencies installerDeps
@@ -546,15 +569,6 @@ task youerJar(type: Jar, dependsOn: [youerJar0, downloadMultipleFiles, project('
         def moduleVersion = it.moduleVersion
         from(it.file) {
             into("META-INF/libraries/${moduleVersion.id.group.replace('.', '/')}/${moduleVersion.id.name}/${moduleVersion.id.version}/")
-        }
-    }
-
-    configurations.moduleLibraries.resolvedConfiguration.resolvedArtifacts.collect {
-        def moduleVersion = it.moduleVersion
-        if (moduleVersion.id.name != "JarJarFileSystems" && moduleVersion.id.name != "securejarhandler") {
-            from(it.file) {
-                into("META-INF/libraries/${moduleVersion.id.group.replace('.', '/')}/${moduleVersion.id.name}/${moduleVersion.id.version}/")
-            }
         }
     }
 
