@@ -1,11 +1,14 @@
 package com.mohistmc.launcher.youer.feature;
 
+import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.util.I18n;
 import com.mohistmc.tools.FileUtils;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -16,24 +19,6 @@ import java.util.concurrent.TimeUnit;
  * Automatically remove mods that are not compatible with Mohist servers
  */
 public class AutoDeleteMods {
-
-    public enum DeletionReason {
-        CORE_CONFLICT("core_conflict"),
-        DUPLICATE_FEATURE("duplicate_feature"),
-        CLIENT_ONLY("client_only"),
-        FABRIC_ONLY("fabric_only"),
-        UNKNOWN("unknown");
-
-        private final String i18nKey;
-
-        DeletionReason(String i18nKey) {
-            this.i18nKey = i18nKey;
-        }
-
-        public String getDisplayText() {
-            return I18n.as("update.deleting.reason." + i18nKey);
-        }
-    }
 
     /**
      * MOD blacklist mapping table
@@ -47,25 +32,25 @@ public class AutoDeleteMods {
         put("dev.tr7zw.skinlayers.SkinLayersMod", DeletionReason.CLIENT_ONLY);
         put("com.biel.mod.mixin.VelocityMixin", DeletionReason.DUPLICATE_FEATURE);
         put("optifine.Differ", DeletionReason.CLIENT_ONLY);
-        put("org.embeddedt.modernfix.ModernFix", DeletionReason.DUPLICATE_FEATURE);
-        put("ca.spottedleaf.moonrise.neoforge.MoonriseNeoForge", DeletionReason.DUPLICATE_FEATURE);
-        put("me.steinborn.krypton.mod.server.KryptonServerInitializer", DeletionReason.DUPLICATE_FEATURE);
-        put("me.steinborn.krypton.mod.KryptonBootstrap", DeletionReason.DUPLICATE_FEATURE);
-        put("org.thinkingstudio.krypton_foxified.KryptonFoxified", DeletionReason.DUPLICATE_FEATURE);
-        put("net.caffeinemc.mods.lithium.neoforge.LithiumNeoForgeMod", DeletionReason.DUPLICATE_FEATURE);
-        put("me.jellysquid.mods.lithium.common.LithiumMod", DeletionReason.DUPLICATE_FEATURE);
+        //put("org.embeddedt.modernfix.ModernFix", DeletionReason.DUPLICATE_FEATURE);
+        //put("ca.spottedleaf.moonrise.neoforge.MoonriseNeoForge", DeletionReason.DUPLICATE_FEATURE);
+        //put("me.steinborn.krypton.mod.server.KryptonServerInitializer", DeletionReason.DUPLICATE_FEATURE);
+        //put("me.steinborn.krypton.mod.KryptonBootstrap", DeletionReason.DUPLICATE_FEATURE);
+        //put("org.thinkingstudio.krypton_foxified.KryptonFoxified", DeletionReason.DUPLICATE_FEATURE);
+        //put("net.caffeinemc.mods.lithium.neoforge.LithiumNeoForgeMod", DeletionReason.DUPLICATE_FEATURE);
+        //put("me.jellysquid.mods.lithium.common.LithiumMod", DeletionReason.DUPLICATE_FEATURE);
         //put("com.bawnorton.neruina.Neruina", DeletionReason.DUPLICATE_FEATURE);
-        put("ca.spottedleaf.starlight.common.ScalableLuxEntrypoint", DeletionReason.DUPLICATE_FEATURE);
+        //put("ca.spottedleaf.starlight.common.ScalableLuxEntrypoint", DeletionReason.DUPLICATE_FEATURE);
         //put("me.drex.antixray.neoforge.AntiXrayMod", DeletionReason.DUPLICATE_FEATURE);
-        put("dev.uncandango.alltheleaks.AllTheLeaks", DeletionReason.DUPLICATE_FEATURE);
-        put("com.yshs.searchonmcmod.SearchOnMcmod", DeletionReason.CLIENT_ONLY);
-        put("eu.midnightdust.cullleaves.neoforge.CullLeavesClientForge", DeletionReason.CLIENT_ONLY);
-        put("net.xolt.freecam.forge.FreecamForge", DeletionReason.CLIENT_ONLY);
-        put("com.buuz135.smithingtemplateviewer.SmithingTemplateViewer", DeletionReason.CLIENT_ONLY);
-        put("com.leclowndu93150.particular.Main", DeletionReason.CLIENT_ONLY);
-        put("dev.imb11.sounds.loaders.neoforge.SoundsNeoForge", DeletionReason.CLIENT_ONLY);
-        put("me.drex.crashexploitfixer.neoforge.CrashExploitFixerNeoforge", DeletionReason.DUPLICATE_FEATURE);
-        put("fabric-carpet-refmap", DeletionReason.FABRIC_ONLY);
+        //put("dev.uncandango.alltheleaks.AllTheLeaks", DeletionReason.DUPLICATE_FEATURE);
+        //put("com.yshs.searchonmcmod.SearchOnMcmod", DeletionReason.CLIENT_ONLY);
+        //put("eu.midnightdust.cullleaves.neoforge.CullLeavesClientForge", DeletionReason.CLIENT_ONLY);
+        //put("net.xolt.freecam.forge.FreecamForge", DeletionReason.CLIENT_ONLY);
+        //put("com.buuz135.smithingtemplateviewer.SmithingTemplateViewer", DeletionReason.CLIENT_ONLY);
+        //put("com.leclowndu93150.particular.Main", DeletionReason.CLIENT_ONLY);
+        //put("dev.imb11.sounds.loaders.neoforge.SoundsNeoForge", DeletionReason.CLIENT_ONLY);
+        //put("me.drex.crashexploitfixer.neoforge.CrashExploitFixerNeoforge", DeletionReason.DUPLICATE_FEATURE);
+        //put("fabric-carpet-refmap", DeletionReason.FABRIC_ONLY);
         //put("carpet.CarpetServer", DeletionReason.DUPLICATE_FEATURE);
     }};
 
@@ -73,10 +58,13 @@ public class AutoDeleteMods {
      * Scan and remove incompatible mods
      */
     public static void deleteIncompatibleMods() {
+        if (!YouerConfigUtil.AutoDeleteMods()) return;
         System.out.println(I18n.as("update.mods"));
-        MOD_BLACKLIST.forEach((className, reason) -> {
+
+        List<String> identifiers = new ArrayList<>(MOD_BLACKLIST.keySet());
+        identifiers.parallelStream().forEach(identifier -> {
             try {
-                checkModFile(className);
+                checkModFile(identifier);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -112,8 +100,7 @@ public class AutoDeleteMods {
                             if (FileUtils.fileExists(jarFile, classPath)) {
                                 backupAndDelete(jarFile, identifier);
                             }
-                        }
-                        else {
+                        } else {
                             String jsonPath = identifier + ".json";
                             if (FileUtils.fileExists(jarFile, jsonPath) ||
                                     FileUtils.fileExists(jarFile, "META-INF/" + jsonPath) ||
@@ -131,7 +118,6 @@ public class AutoDeleteMods {
             latch.await(30, TimeUnit.SECONDS);
         }
     }
-
 
     /**
      * Backup and delete MOD files
@@ -160,6 +146,25 @@ public class AutoDeleteMods {
 
             Files.copy(modFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             modFile.delete();
+        }
+    }
+
+
+    public enum DeletionReason {
+        CORE_CONFLICT("core_conflict"),
+        DUPLICATE_FEATURE("duplicate_feature"),
+        CLIENT_ONLY("client_only"),
+        FABRIC_ONLY("fabric_only"),
+        UNKNOWN("unknown");
+
+        private final String i18nKey;
+
+        DeletionReason(String i18nKey) {
+            this.i18nKey = i18nKey;
+        }
+
+        public String getDisplayText() {
+            return I18n.as("update.deleting.reason." + i18nKey);
         }
     }
 }

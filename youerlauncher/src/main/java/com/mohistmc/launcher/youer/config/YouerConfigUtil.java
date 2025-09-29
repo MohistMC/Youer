@@ -94,7 +94,6 @@ public class YouerConfigUtil {
         return YOUERLANG().contains("CN");
     }
 
-
     public static String YOUERLANG() {
         String key = "youer.lang";
         if (yml.get(key) == null) {
@@ -102,5 +101,14 @@ public class YouerConfigUtil {
             save();
         }
         return yml.getString(key, Locale.getDefault().toString());
+    }
+
+    public static boolean AutoDeleteMods() {
+        String key = "youer.auto_delete_mods";
+        if (yml.get(key) == null) {
+            yml.set(key, true);
+            save();
+        }
+        return yml.getBoolean(key, true);
     }
 }

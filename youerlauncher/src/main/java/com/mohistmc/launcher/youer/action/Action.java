@@ -25,9 +25,9 @@ import com.mohistmc.launcher.youer.feature.YouerProxySelector;
 import com.mohistmc.launcher.youer.libraries.Libraries;
 import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.I18n;
-import com.mohistmc.launcher.youer.util.JarMerger;
 import com.mohistmc.launcher.youer.util.LaunchArgsParser;
 import com.mohistmc.tools.FileUtils;
+import com.mohistmc.tools.JarMerger;
 import com.mohistmc.tools.JarTool;
 import com.mohistmc.tools.MojangEulaUtil;
 import com.mohistmc.tools.SHA256;
@@ -128,7 +128,7 @@ public class Action {
         copyFileFromJar(BINPATCH, "data/server.lzma", true);
         copyFileFromJar(universalJar, "data/neoforge-" + neoforgeVer + "-universal.jar", false);
 
-        if (!needsInstall()){
+        if (!needsInstall()) {
             start();
             return;
         }
@@ -313,6 +313,31 @@ public class Action {
         return true;
     }
 
+    public void start() throws IOException {
+        AutoDeleteMods.deleteIncompatibleMods();
+
+        List<String> forgeArgs = new ArrayList<>();
+        for (String arg : DataParser.launchArgs.stream().filter(s ->
+                        s.startsWith("--launchTarget")
+                                || s.startsWith("--fml.neoForgeVersion")
+                                || s.startsWith("--fml.mcVersion")
+                                || s.startsWith("--fml.neoFormVersion"))
+                .toList()) {
+            forgeArgs.add(arg.split(" ")[0]);
+            forgeArgs.add(arg.split(" ")[1]);
+        }
+        LaunchArgsParser.init(DataParser.launchArgs);
+
+        if (!MojangEulaUtil.hasAcceptedEULA()) {
+            System.out.println(Main.i18n.as("eula"));
+            while (!"true".equals(new Scanner(System.in).next())) {
+            }
+            MojangEulaUtil.writeInfos(Main.i18n.as("eula.text", "https://account.mojang.com/documents/minecraft_eula") + "\n" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\neula=true");
+        }
+        net.neoforged.fml.startup.Server.main(forgeArgs.toArray(String[]::new));
+        ProxySelector.setDefault(new YouerProxySelector(ProxySelector.getDefault()));
+    }
+
     private interface InstallationTask {
         void execute(ProgressBar pb) throws Exception;
     }
@@ -425,32 +450,6 @@ public class Action {
 
             pb.step();
         }
-    }
-
-
-    public void start() throws IOException {
-        AutoDeleteMods.deleteIncompatibleMods();
-
-        List<String> forgeArgs = new ArrayList<>();
-        for (String arg : DataParser.launchArgs.stream().filter(s ->
-                        s.startsWith("--launchTarget")
-                                || s.startsWith("--fml.neoForgeVersion")
-                                || s.startsWith("--fml.mcVersion")
-                                || s.startsWith("--fml.neoFormVersion"))
-                .toList()) {
-            forgeArgs.add(arg.split(" ")[0]);
-            forgeArgs.add(arg.split(" ")[1]);
-        }
-        LaunchArgsParser.init(DataParser.launchArgs);
-
-        if (!MojangEulaUtil.hasAcceptedEULA()) {
-            System.out.println(Main.i18n.as("eula"));
-            while (!"true".equals(new Scanner(System.in).next())) {
-            }
-            MojangEulaUtil.writeInfos(Main.i18n.as("eula.text", "https://account.mojang.com/documents/minecraft_eula") + "\n" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\neula=true");
-        }
-        net.neoforged.fml.startup.Server.main(forgeArgs.toArray(String[]::new));
-        ProxySelector.setDefault(new YouerProxySelector(ProxySelector.getDefault()));
     }
 
 }

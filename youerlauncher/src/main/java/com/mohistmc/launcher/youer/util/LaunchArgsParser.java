@@ -16,15 +16,13 @@ import lombok.SneakyThrows;
  * @date 2025/9/29 18:27
  */
 public class LaunchArgsParser {
-    public static LaunchArgsParser INSTANCE = new LaunchArgsParser();
 
+    public static final sun.misc.Unsafe unsafe;
+    private static final MethodHandles.Lookup IMPL_LOOKUP;
     public static File universalJar;
     public static File PATCHED;
     public static File MC_SRG;
     public static File MC_EXTRA;
-
-    public static final sun.misc.Unsafe unsafe;
-    private static final MethodHandles.Lookup IMPL_LOOKUP;
 
     static {
         try {
