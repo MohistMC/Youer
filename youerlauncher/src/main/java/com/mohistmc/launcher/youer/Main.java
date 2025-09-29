@@ -21,21 +21,13 @@ package com.mohistmc.launcher.youer;
 import com.mohistmc.i18n.i18n;
 import com.mohistmc.launcher.youer.action.Action;
 import com.mohistmc.launcher.youer.config.YouerConfigUtil;
-import com.mohistmc.launcher.youer.feature.AutoDeleteMods;
 import com.mohistmc.launcher.youer.feature.DefaultLibraries;
-import com.mohistmc.launcher.youer.feature.YouerProxySelector;
 import com.mohistmc.launcher.youer.util.DataParser;
-import com.mohistmc.launcher.youer.util.YouerModuleManager;
 import com.mohistmc.tools.JarTool;
 import com.mohistmc.tools.Logo;
-import com.mohistmc.tools.MojangEulaUtil;
 import java.lang.management.ManagementFactory;
-import java.net.ProxySelector;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Scanner;
 
 public class Main {
     public static final boolean DEBUG = Boolean.getBoolean("youer.debug");
@@ -55,7 +47,7 @@ public class Main {
         YouerConfigUtil.init();
         YouerConfigUtil.i18n();
         jarTool = new JarTool(Main.class);
-        if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.aBoolean("youer.show_logo", true)) {
+        if (YouerConfigUtil.aBoolean("youer.show_logo", true)) {
             System.out.printf("%n%s%n%s - %s, Java(%s) %s PID: %s%n",
                     Logo.asYouer(),
                     i18n.as("youer.launch.welcomemessage"),
@@ -80,37 +72,12 @@ public class Main {
         if (System.getProperty("log4j.configurationFile") == null) {
             System.setProperty("log4j.configurationFile", "log4j2_youer.xml");
         }
-        if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_UPDATE()) {
+        if (YouerConfigUtil.CHECK_UPDATE()) {
             //UpdateUtils.versionCheck();
         }
-        if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_LIBRARIES()) {
+        if (YouerConfigUtil.CHECK_LIBRARIES()) {
             DefaultLibraries.run();
         }
-        Action action = new Action();
-        if (YouerConfigUtil.INSTALLATIONFINISHED()) {
-            action.install();
-        }
-        AutoDeleteMods.deleteIncompatibleMods();
-
-        List<String> forgeArgs = new ArrayList<>();
-        for (String arg : DataParser.launchArgs.stream().filter(s ->
-                        s.startsWith("--launchTarget")
-                                || s.startsWith("--fml.neoForgeVersion")
-                                || s.startsWith("--fml.mcVersion")
-                                || s.startsWith("--fml.neoFormVersion"))
-                .toList()) {
-            forgeArgs.add(arg.split(" ")[0]);
-            forgeArgs.add(arg.split(" ")[1]);
-        }
-        YouerModuleManager.INSTANCE.init(DataParser.launchArgs);
-
-        if (!MojangEulaUtil.hasAcceptedEULA()) {
-            System.out.println(i18n.as("eula"));
-            while (!"true".equals(new Scanner(System.in).next())) {
-            }
-            MojangEulaUtil.writeInfos(i18n.as("eula.text", "https://account.mojang.com/documents/minecraft_eula") + "\n" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\neula=true");
-        }
-        net.neoforged.fml.startup.Server.main(forgeArgs.toArray(String[]::new));
-        ProxySelector.setDefault(new YouerProxySelector(ProxySelector.getDefault()));
+        new Action();
     }
 }

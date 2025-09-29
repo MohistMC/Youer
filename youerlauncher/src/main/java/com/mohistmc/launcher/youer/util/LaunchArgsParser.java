@@ -1,24 +1,5 @@
-/*
- * Mohist - MohistMC
- * Copyright (C) 2018-2025.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
- */
-
 package com.mohistmc.launcher.youer.util;
 
-import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -31,13 +12,11 @@ import java.util.List;
 import lombok.SneakyThrows;
 
 /**
- * @author Shawiiz_z
- * @version 0.1
- * @date 04/05/2022 22:57
+ * @author Mgazul
+ * @date 2025/9/29 18:27
  */
-public class YouerModuleManager {
-
-    public static YouerModuleManager INSTANCE = new YouerModuleManager();
+public class LaunchArgsParser {
+    public static LaunchArgsParser INSTANCE = new LaunchArgsParser();
 
     public static File universalJar;
     public static File PATCHED;
@@ -60,12 +39,6 @@ public class YouerModuleManager {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public void init(List<String> args){
-        applyLaunchArgs(args);
-        YouerConfigUtil.yml.set("youer.installation-finished", false);
-        YouerConfigUtil.save();
     }
 
     private static void addExports(List<String> exports) throws Throwable {
@@ -121,10 +94,8 @@ public class YouerModuleManager {
     }
 
     @SneakyThrows
-    public static void applyLaunchArgs(List<String> args) {
+    public static void init(List<String> args) {
         List<String> opens = new ArrayList<>();
-        opens.add("java.base/java.util=ALL-UNNAMED");
-        opens.add("java.base/java.lang=ALL-UNNAMED");
         List<String> exports = new ArrayList<>();
 
         String classpath = null;
@@ -149,6 +120,7 @@ public class YouerModuleManager {
         }
 
         if (classpath != null) {
+            System.setProperty("java.class.path", classpath); // TODO Seems to be repeated
             loadModules(classpath);
         }
 
@@ -157,16 +129,12 @@ public class YouerModuleManager {
     }
 
     public static void loadModules(String modulePath) {
+
         Arrays.stream(modulePath.split(File.pathSeparator))
                 .map(Paths::get)
                 .forEach(JarLoader::loadJar);
-        JarLoader.loadJar(universalJar.toPath());
-        JarLoader.loadJar(PATCHED.toPath());
-        JarLoader.loadJar(MC_SRG.toPath());
-        JarLoader.loadJar(MC_EXTRA.toPath());
     }
 
     private record ParserData(String module, String packages, String target) {
     }
 }
-

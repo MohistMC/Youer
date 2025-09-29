@@ -19,15 +19,17 @@
 package com.mohistmc.launcher.youer.action;
 
 import com.mohistmc.launcher.youer.Main;
-import com.mohistmc.launcher.youer.config.YouerConfigUtil;
+import com.mohistmc.launcher.youer.feature.AutoDeleteMods;
 import com.mohistmc.launcher.youer.feature.DefaultLibraries;
+import com.mohistmc.launcher.youer.feature.YouerProxySelector;
 import com.mohistmc.launcher.youer.libraries.Libraries;
 import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.I18n;
 import com.mohistmc.launcher.youer.util.JarMerger;
-import com.mohistmc.launcher.youer.util.YouerModuleManager;
+import com.mohistmc.launcher.youer.util.LaunchArgsParser;
 import com.mohistmc.tools.FileUtils;
 import com.mohistmc.tools.JarTool;
+import com.mohistmc.tools.MojangEulaUtil;
 import com.mohistmc.tools.SHA256;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -38,15 +40,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.net.ProxySelector;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.Scanner;
 import lombok.SneakyThrows;
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
@@ -55,7 +58,6 @@ import me.tongfei.progressbar.ProgressBarStyle;
 public class Action {
 
     private static final PrintStream origin = System.out;
-    public static ArrayList<String> launchArgs = new ArrayList<>(Arrays.asList("java", "-jar"));
     public final String mohistVer;
     public final String neoforgeVer;
     public final String mcpVer;
@@ -112,22 +114,24 @@ public class Action {
         this.PATCHED = new File(forgeStart + "-server.jar");
         this.PAPER_REMAP_0 = new File(libPath + "com/mohistmc/installation/data/paper-remap-0.jar");
         this.PAPER_REMAP = new File(libPath + "com/mohistmc/installation/data/paper-remap.jar");
-        YouerModuleManager.universalJar = universalJar;
-        YouerModuleManager.PATCHED = PATCHED;
-        YouerModuleManager.MC_SRG = MC_SRG;
-        YouerModuleManager.MC_EXTRA = MC_EXTRA;
+        // TODO Write -classpath at build time
+        LaunchArgsParser.universalJar = universalJar;
+        LaunchArgsParser.PATCHED = PATCHED;
+        LaunchArgsParser.MC_SRG = MC_SRG;
+        LaunchArgsParser.MC_EXTRA = MC_EXTRA;
         install();
     }
 
     public void install() throws Exception {
 
-        launchArgs.add(new File(URLDecoder.decode(YouerModuleManager.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath(), StandardCharsets.UTF_8)).getAbsolutePath());
-        launchArgs.addAll(Main.mainArgs);
         List<InstallationTask> tasks = new ArrayList<>();
         copyFileFromJar(BINPATCH, "data/server.lzma", true);
         copyFileFromJar(universalJar, "data/neoforge-" + neoforgeVer + "-universal.jar", false);
 
-        if (!needsInstall()) return;
+        if (!needsInstall()){
+            start();
+            return;
+        }
         System.out.println(I18n.as("installation.start"));
         System.out.println(I18n.as("libraries.global.percentage"));
         tasks.add(new FileCopyTask(universalJar, "data/neoforge-" + neoforgeVer + "-universal.jar", true));
@@ -224,10 +228,7 @@ public class Action {
             }
             unmute();
         }
-        System.out.println(I18n.as("installation.finished"));
-        YouerConfigUtil.yml.set("youer.installation-finished", true);
-        YouerConfigUtil.save();
-        JarTool.restartServer(launchArgs, true);
+        start();
     }
 
     protected void run(String mainClass, String... args) throws Exception {
@@ -348,7 +349,7 @@ public class Action {
         }
 
         @Override
-        public void execute(ProgressBar pb) throws Exception {
+        public void execute(ProgressBar pb) {
             copyFileFromJar(file, pathInJar, clearOld);
             pb.step();
         }
@@ -426,5 +427,30 @@ public class Action {
         }
     }
 
+
+    public void start() throws IOException {
+        AutoDeleteMods.deleteIncompatibleMods();
+
+        List<String> forgeArgs = new ArrayList<>();
+        for (String arg : DataParser.launchArgs.stream().filter(s ->
+                        s.startsWith("--launchTarget")
+                                || s.startsWith("--fml.neoForgeVersion")
+                                || s.startsWith("--fml.mcVersion")
+                                || s.startsWith("--fml.neoFormVersion"))
+                .toList()) {
+            forgeArgs.add(arg.split(" ")[0]);
+            forgeArgs.add(arg.split(" ")[1]);
+        }
+        LaunchArgsParser.init(DataParser.launchArgs);
+
+        if (!MojangEulaUtil.hasAcceptedEULA()) {
+            System.out.println(Main.i18n.as("eula"));
+            while (!"true".equals(new Scanner(System.in).next())) {
+            }
+            MojangEulaUtil.writeInfos(Main.i18n.as("eula.text", "https://account.mojang.com/documents/minecraft_eula") + "\n" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\neula=true");
+        }
+        net.neoforged.fml.startup.Server.main(forgeArgs.toArray(String[]::new));
+        ProxySelector.setDefault(new YouerProxySelector(ProxySelector.getDefault()));
+    }
 
 }

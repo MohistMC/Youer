@@ -39,10 +39,6 @@ public class YouerConfigUtil {
         }
     }
 
-    public static boolean INSTALLATIONFINISHED() {
-        return !yml.getBoolean("youer.installation-finished", false);
-    }
-
     public static boolean NETWORKMANAGER_DEBUG() {
         String key = "networkmanager.debug";
         if (yml.get(key) == null) {
