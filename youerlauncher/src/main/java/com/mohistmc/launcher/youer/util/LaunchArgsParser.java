@@ -39,14 +39,16 @@ public class LaunchArgsParser {
         }
     }
 
-    private static void addExports(List<String> exports) throws Throwable {
+    @SneakyThrows
+    private static void addExports(List<String> exports) {
         MethodHandle implAddExportsMH = IMPL_LOOKUP.findVirtual(Module.class, "implAddExports", MethodType.methodType(void.class, String.class, Module.class));
         MethodHandle implAddExportsToAllUnnamedMH = IMPL_LOOKUP.findVirtual(Module.class, "implAddExportsToAllUnnamed", MethodType.methodType(void.class, String.class));
 
         addExtra(exports, implAddExportsMH, implAddExportsToAllUnnamedMH);
     }
 
-    private static void addOpens(List<String> opens) throws Throwable {
+    @SneakyThrows
+    private static void addOpens(List<String> opens) {
         MethodHandle implAddOpensMH = IMPL_LOOKUP.findVirtual(Module.class, "implAddOpens", MethodType.methodType(void.class, String.class, Module.class));
         MethodHandle implAddOpensToAllUnnamedMH = IMPL_LOOKUP.findVirtual(Module.class, "implAddOpensToAllUnnamed", MethodType.methodType(void.class, String.class));
 
