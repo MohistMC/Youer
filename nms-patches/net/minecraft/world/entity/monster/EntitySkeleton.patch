@@ -1,0 +1,22 @@
+--- a/net/minecraft/world/entity/monster/EntitySkeleton.java
++++ b/net/minecraft/world/entity/monster/EntitySkeleton.java
+@@ -96,12 +96,17 @@
+     }
+ 
+     protected void doFreezeConversion() {
+-        this.convertTo(EntityTypes.STRAY, ConversionParams.single(this, true, true), (entityskeletonstray) -> {
++        net.minecraft.world.entity.monster.EntitySkeletonStray converted = this.convertTo(EntityTypes.STRAY, ConversionParams.single(this, true, true), (entityskeletonstray) -> { // CraftBukkit
+             if (!this.isSilent()) {
+                 this.level().levelEvent((Entity) null, 1048, this.blockPosition(), 0);
+             }
+ 
+-        });
++        // CraftBukkit start
++        }, org.bukkit.event.entity.EntityTransformEvent.TransformReason.FROZEN, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.FROZEN);
++        if (converted == null) {
++            ((org.bukkit.entity.Skeleton) getBukkitEntity()).setConversionTime(-1); // CraftBukkit - SPIGOT-7997: End conversion to stop event spam
++        }
++        // CraftBukkit end
+     }
+ 
+     @Override

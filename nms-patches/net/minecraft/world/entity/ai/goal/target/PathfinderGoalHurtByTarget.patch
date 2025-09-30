@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/entity/ai/goal/target/PathfinderGoalHurtByTarget.java
++++ b/net/minecraft/world/entity/ai/goal/target/PathfinderGoalHurtByTarget.java
+@@ -62,7 +62,7 @@
+ 
+     @Override
+     public void start() {
+-        this.mob.setTarget(this.mob.getLastHurtByMob());
++        this.mob.setTarget(this.mob.getLastHurtByMob(), org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_ENTITY, true); // CraftBukkit - reason
+         this.targetMob = this.mob.getTarget();
+         this.timestamp = this.mob.getLastHurtByMobTimestamp();
+         this.unseenMemoryTicks = 300;
+@@ -76,7 +76,7 @@
+     protected void alertOthers() {
+         double d0 = this.getFollowDistance();
+         AxisAlignedBB axisalignedbb = AxisAlignedBB.unitCubeFromLowerCorner(this.mob.position()).inflate(d0, 10.0D, d0);
+-        List<? extends EntityInsentient> list = this.mob.level().<EntityInsentient>getEntitiesOfClass(this.mob.getClass(), axisalignedbb, IEntitySelector.NO_SPECTATORS);
++        List<? extends EntityInsentient> list = this.mob.level().getEntitiesOfClass(this.mob.getClass(), axisalignedbb, IEntitySelector.NO_SPECTATORS); // CraftBukkit - decompile error
+         Iterator iterator = list.iterator();
+ 
+         while (true) {
+@@ -113,6 +113,6 @@
+     }
+ 
+     protected void alertOther(EntityInsentient entityinsentient, EntityLiving entityliving) {
+-        entityinsentient.setTarget(entityliving);
++        entityinsentient.setTarget(entityliving, org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_NEARBY_ENTITY, true); // CraftBukkit - reason
+     }
+ }

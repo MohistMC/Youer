@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/level/block/BlockRedstoneComparator.java
++++ b/net/minecraft/world/level/block/BlockRedstoneComparator.java
+@@ -28,6 +28,8 @@
+ import net.minecraft.world.phys.MovingObjectPositionBlock;
+ import net.minecraft.world.ticks.TickListPriority;
+ 
++import org.bukkit.craftbukkit.event.CraftEventFactory; // CraftBukkit
++
+ public class BlockRedstoneComparator extends BlockDiodeAbstract implements ITileEntity {
+ 
+     public static final MapCodec<BlockRedstoneComparator> CODEC = simpleCodec(BlockRedstoneComparator::new);
+@@ -163,8 +165,18 @@
+             boolean flag1 = (Boolean) iblockdata.getValue(BlockRedstoneComparator.POWERED);
+ 
+             if (flag1 && !flag) {
++                // CraftBukkit start
++                if (CraftEventFactory.callRedstoneChange(world, blockposition, 15, 0).getNewCurrent() != 0) {
++                    return;
++                }
++                // CraftBukkit end
+                 world.setBlock(blockposition, (IBlockData) iblockdata.setValue(BlockRedstoneComparator.POWERED, false), 2);
+             } else if (!flag1 && flag) {
++                // CraftBukkit start
++                if (CraftEventFactory.callRedstoneChange(world, blockposition, 0, 15).getNewCurrent() != 15) {
++                    return;
++                }
++                // CraftBukkit end
+                 world.setBlock(blockposition, (IBlockData) iblockdata.setValue(BlockRedstoneComparator.POWERED, true), 2);
+             }
+ 

@@ -929,13 +929,13 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * a certain location. This will not actually change the world in any way.
      * This method will use a sign at the location's block or a faked sign
      * sent via
-     * {@link #sendBlockChange(Location, BlockData)}.
+     * {@link #sendBlockChange(org.bukkit.Location, org.bukkit.block.data.BlockData)}.
      * <p>
      * If the client does not have a sign at the given location it will
      * display an error message to the user.
      * <p>
      * To change all attributes of a sign, including the back Side, use
-     * {@link #sendBlockUpdate(Location, TileState)}.
+     * {@link #sendBlockUpdate(org.bukkit.Location, org.bukkit.block.TileState)}.
      *
      * @param loc the location of the sign
      * @param lines the new text on the sign or null to clear it
@@ -949,13 +949,13 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * a certain location. This will not actually change the world in any way.
      * This method will use a sign at the location's block or a faked sign
      * sent via
-     * {@link #sendBlockChange(Location, BlockData)}.
+     * {@link #sendBlockChange(org.bukkit.Location, org.bukkit.block.data.BlockData)}.
      * <p>
      * If the client does not have a sign at the given location it will
      * display an error message to the user.
      * <p>
      * To change all attributes of a sign, including the back Side, use
-     * {@link #sendBlockUpdate(Location, TileState)}.
+     * {@link #sendBlockUpdate(org.bukkit.Location, org.bukkit.block.TileState)}.
      *
      * @param loc the location of the sign
      * @param lines the new text on the sign or null to clear it
@@ -971,13 +971,13 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * a certain location. This will not actually change the world in any way.
      * This method will use a sign at the location's block or a faked sign
      * sent via
-     * {@link #sendBlockChange(Location, BlockData)}.
+     * {@link #sendBlockChange(org.bukkit.Location, org.bukkit.block.data.BlockData)}.
      * <p>
      * If the client does not have a sign at the given location it will
      * display an error message to the user.
      * <p>
      * To change all attributes of a sign, including the back Side, use
-     * {@link #sendBlockUpdate(Location, TileState)}.
+     * {@link #sendBlockUpdate(org.bukkit.Location, org.bukkit.block.TileState)}.
      *
      * @param loc the location of the sign
      * @param lines the new text on the sign or null to clear it
@@ -994,7 +994,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * the given location. This will not actually change the world in any way.
      * This method will use a TileState at the location's block or a faked TileState
      * sent via
-     * {@link #sendBlockChange(Location, BlockData)}.
+     * {@link #sendBlockChange(org.bukkit.Location, org.bukkit.block.data.BlockData)}.
      * <p>
      * If the client does not have an appropriate tile at the given location it
      * may display an error message to the user.
@@ -2303,4 +2303,101 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      */
     @ApiStatus.Experimental
     public void showDialog(@NotNull NamespacedKey dialog);
+
+    /**
+     * Show a dialog to the player.
+     *
+     * @param dialog the dialog to show
+     */
+    @ApiStatus.Experimental
+    public void showDialog(@NotNull net.md_5.bungee.api.dialog.Dialog dialog);
+
+    // Spigot start
+    public class Spigot extends Entity.Spigot {
+
+        /**
+         * Gets the connection address of this player, regardless of whether it
+         * has been spoofed or not.
+         *
+         * @return the player's connection address
+         */
+        @NotNull
+        public InetSocketAddress getRawAddress() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        /**
+         * Respawns the player if dead.
+         */
+        public void respawn() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        /**
+         * Gets all players hidden with {@link #hidePlayer(org.bukkit.entity.Player)}.
+         *
+         * @return a Set with all hidden players
+         */
+        @NotNull
+        public java.util.Set<Player> getHiddenPlayers() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void sendMessage(@NotNull net.md_5.bungee.api.chat.BaseComponent component) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void sendMessage(@NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        /**
+         * Sends the component to the specified screen position of this player
+         *
+         * @param position the screen position
+         * @param component the components to send
+         */
+        public void sendMessage(@NotNull net.md_5.bungee.api.ChatMessageType position, @NotNull net.md_5.bungee.api.chat.BaseComponent component) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        /**
+         * Sends an array of components as a single message to the specified screen position of this player
+         *
+         * @param position the screen position
+         * @param components the components to send
+         */
+        public void sendMessage(@NotNull net.md_5.bungee.api.ChatMessageType position, @NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        /**
+         * Sends the component to the specified screen position of this player
+         *
+         * @param position the screen position
+         * @param sender the sender of the message
+         * @param component the components to send
+         */
+        public void sendMessage(@NotNull net.md_5.bungee.api.ChatMessageType position, @Nullable java.util.UUID sender, @NotNull net.md_5.bungee.api.chat.BaseComponent component) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        /**
+         * Sends an array of components as a single message to the specified screen position of this player
+         *
+         * @param position the screen position
+         * @param sender the sender of the message
+         * @param components the components to send
+         */
+        public void sendMessage(@NotNull net.md_5.bungee.api.ChatMessageType position, @Nullable java.util.UUID sender, @NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+    }
+
+    @NotNull
+    @Override
+    Spigot spigot();
+    // Spigot end
 }

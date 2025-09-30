@@ -14,7 +14,7 @@ public interface Wither extends Monster, Boss {
      * This method will set the target of the {@link Head#CENTER center head} of
      * the wither.
      *
-     * @see #setTarget(Head, LivingEntity)
+     * @see #setTarget(org.bukkit.entity.Wither.Head, org.bukkit.entity.LivingEntity)
      */
     @Override
     void setTarget(@Nullable LivingEntity target);

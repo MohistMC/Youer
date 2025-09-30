@@ -1,0 +1,54 @@
+--- a/net/minecraft/world/entity/npc/EntityVillagerTrader.java
++++ b/net/minecraft/world/entity/npc/EntityVillagerTrader.java
+@@ -46,6 +46,14 @@
+ import net.minecraft.world.phys.Vec3D;
+ import org.apache.commons.lang3.tuple.Pair;
+ 
++// CraftBukkit start
++import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.inventory.CraftMerchantRecipe;
++import org.bukkit.entity.AbstractVillager;
++import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.entity.VillagerAcquireTradeEvent;
++// CraftBukkit end
++
+ public class EntityVillagerTrader extends EntityVillagerAbstract implements Consumable.b {
+ 
+     private static final int DEFAULT_DESPAWN_DELAY = 0;
+@@ -55,15 +63,16 @@
+ 
+     public EntityVillagerTrader(EntityTypes<? extends EntityVillagerTrader> entitytypes, World world) {
+         super(entitytypes, world);
++        this.setDespawnDelay(48000); // CraftBukkit - set default from MobSpawnerTrader
+     }
+ 
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(0, new PathfinderGoalFloat(this));
+-        this.goalSelector.addGoal(0, new PathfinderGoalUseItem(this, PotionContents.createItemStack(Items.POTION, Potions.INVISIBILITY), SoundEffects.WANDERING_TRADER_DISAPPEARED, (entityvillagertrader) -> {
++        this.goalSelector.addGoal(0, new PathfinderGoalUseItem<>(this, PotionContents.createItemStack(Items.POTION, Potions.INVISIBILITY), SoundEffects.WANDERING_TRADER_DISAPPEARED, (entityvillagertrader) -> { // CraftBukkit - decompile error
+             return this.level().isDarkOutside() && !entityvillagertrader.isInvisible();
+         }));
+-        this.goalSelector.addGoal(0, new PathfinderGoalUseItem(this, new ItemStack(Items.MILK_BUCKET), SoundEffects.WANDERING_TRADER_REAPPEARED, (entityvillagertrader) -> {
++        this.goalSelector.addGoal(0, new PathfinderGoalUseItem<>(this, new ItemStack(Items.MILK_BUCKET), SoundEffects.WANDERING_TRADER_REAPPEARED, (entityvillagertrader) -> { // CraftBukkit - decompile error
+             return this.level().isBrightOutside() && entityvillagertrader.isInvisible();
+         }));
+         this.goalSelector.addGoal(1, new PathfinderGoalTradeWithPlayer(this));
+@@ -141,7 +150,7 @@
+     protected void readAdditionalSaveData(ValueInput valueinput) {
+         super.readAdditionalSaveData(valueinput);
+         this.despawnDelay = valueinput.getIntOr("DespawnDelay", 0);
+-        this.wanderTarget = (BlockPosition) valueinput.read("wander_target", BlockPosition.CODEC).orElse((Object) null);
++        this.wanderTarget = (BlockPosition) valueinput.read("wander_target", BlockPosition.CODEC).orElse(null); // CraftBukkit - decompile error
+         this.setAge(Math.max(0, this.getAge()));
+     }
+ 
+@@ -209,7 +218,7 @@
+ 
+     private void maybeDespawn() {
+         if (this.despawnDelay > 0 && !this.isTrading() && --this.despawnDelay == 0) {
+-            this.discard();
++            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         }
+ 
+     }

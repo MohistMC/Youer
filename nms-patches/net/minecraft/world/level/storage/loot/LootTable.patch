@@ -1,0 +1,55 @@
+--- a/net/minecraft/world/level/storage/loot/LootTable.java
++++ b/net/minecraft/world/level/storage/loot/LootTable.java
+@@ -32,6 +32,13 @@
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParameterSets;
+ import org.slf4j.Logger;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.CraftLootTable;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.event.world.LootGenerateEvent;
++// CraftBukkit end
++
+ public class LootTable {
+ 
+     private static final Logger LOGGER = LogUtils.getLogger();
+@@ -51,13 +58,14 @@
+             })).apply(instance, LootTable::new);
+         });
+     });
+-    public static final Codec<Holder<LootTable>> CODEC = RegistryFileCodec.<Holder<LootTable>>create(Registries.LOOT_TABLE, LootTable.DIRECT_CODEC);
++    public static final Codec<Holder<LootTable>> CODEC = RegistryFileCodec.<LootTable>create(Registries.LOOT_TABLE, LootTable.DIRECT_CODEC); // CraftBukkit - decompile error
+     public static final LootTable EMPTY = new LootTable(LootContextParameterSets.EMPTY, Optional.empty(), List.of(), List.of());
+     private final ContextKeySet paramSet;
+     private final Optional<MinecraftKey> randomSequence;
+     private final List<LootSelector> pools;
+     private final List<LootItemFunction> functions;
+     private final BiFunction<ItemStack, LootTableInfo, ItemStack> compositeFunction;
++    public CraftLootTable craftLootTable; // CraftBukkit
+ 
+     LootTable(ContextKeySet contextkeyset, Optional<MinecraftKey> optional, List<LootSelector> list, List<LootItemFunction> list1) {
+         this.paramSet = contextkeyset;
+@@ -156,9 +164,22 @@
+     }
+ 
+     public void fill(IInventory iinventory, LootParams lootparams, long i) {
++        // CraftBukkit start
++        this.fillInventory(iinventory, lootparams, i, false);
++    }
++
++    public void fillInventory(IInventory iinventory, LootParams lootparams, long i, boolean plugin) {
++        // CraftBukkit end
+         LootTableInfo loottableinfo = (new LootTableInfo.Builder(lootparams)).withOptionalRandomSeed(i).create(this.randomSequence);
+         ObjectArrayList<ItemStack> objectarraylist = this.getRandomItems(loottableinfo);
+         RandomSource randomsource = loottableinfo.getRandom();
++        // CraftBukkit start
++        LootGenerateEvent event = CraftEventFactory.callLootGenerateEvent(iinventory, this, loottableinfo, objectarraylist, plugin);
++        if (event.isCancelled()) {
++            return;
++        }
++        objectarraylist = event.getLoot().stream().map(CraftItemStack::asNMSCopy).collect(ObjectArrayList.toList());
++        // CraftBukkit end
+         List<Integer> list = this.getAvailableSlots(iinventory, randomsource);
+ 
+         this.shuffleAndSplitItems(objectarraylist, list.size(), randomsource);

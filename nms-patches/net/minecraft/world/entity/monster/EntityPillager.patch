@@ -1,0 +1,22 @@
+--- a/net/minecraft/world/entity/monster/EntityPillager.java
++++ b/net/minecraft/world/entity/monster/EntityPillager.java
+@@ -54,6 +54,10 @@
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public class EntityPillager extends EntityIllagerAbstract implements ICrossbow, InventoryCarrier {
+ 
+     private static final DataWatcherObject<Boolean> IS_CHARGING_CROSSBOW = DataWatcher.<Boolean>defineId(EntityPillager.class, DataWatcherRegistry.BOOLEAN);
+@@ -207,7 +211,7 @@
+             ItemStack itemstack1 = this.inventory.addItem(itemstack);
+ 
+             if (itemstack1.isEmpty()) {
+-                entityitem.discard();
++                entityitem.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             } else {
+                 itemstack.setCount(itemstack1.getCount());
+             }

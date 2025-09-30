@@ -1,0 +1,40 @@
+--- a/net/minecraft/server/bossevents/BossBattleCustom.java
++++ b/net/minecraft/server/bossevents/BossBattleCustom.java
+@@ -18,6 +18,11 @@
+ import net.minecraft.util.MathHelper;
+ import net.minecraft.world.BossBattle;
+ 
++// CraftBukkit start
++import org.bukkit.boss.KeyedBossBar;
++import org.bukkit.craftbukkit.boss.CraftKeyedBossbar;
++// CraftBukkit end
++
+ public class BossBattleCustom extends BossBattleServer {
+ 
+     private static final int DEFAULT_MAX = 100;
+@@ -25,6 +30,16 @@
+     private final Set<UUID> players = Sets.newHashSet();
+     private int value;
+     private int max = 100;
++    // CraftBukkit start
++    private KeyedBossBar bossBar;
++
++    public KeyedBossBar getBukkitEntity() {
++        if (bossBar == null) {
++            bossBar = new CraftKeyedBossbar(this);
++        }
++        return bossBar;
++    }
++    // CraftBukkit end
+ 
+     public BossBattleCustom(MinecraftKey minecraftkey, IChatBaseComponent ichatbasecomponent) {
+         super(ichatbasecomponent, BossBattle.BarColor.WHITE, BossBattle.BarStyle.PROGRESS);
+@@ -145,7 +160,7 @@
+         bossbattlecustom.setDarkenScreen(bossbattlecustom_a.darkenScreen);
+         bossbattlecustom.setPlayBossMusic(bossbattlecustom_a.playBossMusic);
+         bossbattlecustom.setCreateWorldFog(bossbattlecustom_a.createWorldFog);
+-        Set set = bossbattlecustom_a.players;
++        Set<UUID> set = bossbattlecustom_a.players; // CraftBukkit - decompile error
+ 
+         Objects.requireNonNull(bossbattlecustom);
+         set.forEach(bossbattlecustom::addOfflinePlayer);

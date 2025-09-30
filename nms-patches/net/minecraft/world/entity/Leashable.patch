@@ -1,0 +1,135 @@
+--- a/net/minecraft/world/entity/Leashable.java
++++ b/net/minecraft/world/entity/Leashable.java
+@@ -27,6 +27,11 @@
+ import net.minecraft.world.phys.AxisAlignedBB;
+ import net.minecraft.world.phys.Vec3D;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityUnleashEvent;
++import org.bukkit.event.entity.EntityUnleashEvent.UnleashReason;
++// CraftBukkit end
++
+ public interface Leashable {
+ 
+     String LEASH_TAG = "leash";
+@@ -68,11 +73,11 @@
+ 
+     default void setDelayedLeashHolderId(int i) {
+         this.setLeashData(new Leashable.a(i));
+-        dropLeash((Entity) this, false, false);
++        dropLeash((Entity & Leashable) this, false, false); // CraftBukkit - decompile error
+     }
+ 
+     default void readLeashData(ValueInput valueinput) {
+-        Leashable.a leashable_a = (Leashable.a) valueinput.read("leash", Leashable.a.CODEC).orElse((Object) null);
++        Leashable.a leashable_a = (Leashable.a) valueinput.read("leash", Leashable.a.CODEC).orElse(null); // CraftBukkit - decompile error
+ 
+         if (this.getLeashData() != null && leashable_a == null) {
+             this.removeLeash();
+@@ -82,6 +87,14 @@
+     }
+ 
+     default void writeLeashData(ValueOutput valueoutput, @Nullable Leashable.a leashable_a) {
++        // CraftBukkit start - SPIGOT-7487: Don't save (and possible drop) leash, when the holder was removed by a plugin
++        if (leashable_a != null) {
++            Entity entity = leashable_a.leashHolder;
++            if (entity != null && entity.pluginRemoved) {
++                return;
++            }
++        }
++        // CraftBukkit end
+         valueoutput.storeNullable("leash", Leashable.a.CODEC, leashable_a);
+     }
+ 
+@@ -107,7 +120,9 @@
+                 }
+ 
+                 if (e0.tickCount > 100) {
++                    e0.forceDrops = true; // CraftBukkit
+                     e0.spawnAtLocation(worldserver, (IMaterial) Items.LEAD);
++                    e0.forceDrops = false; // CraftBukkit
+                     ((Leashable) e0).setLeashData((Leashable.a) null);
+                 }
+             }
+@@ -116,11 +131,11 @@
+     }
+ 
+     default void dropLeash() {
+-        dropLeash((Entity) this, true, true);
++        dropLeash((Entity & Leashable) this, true, true); // CraftBukkit - decompile error
+     }
+ 
+     default void removeLeash() {
+-        dropLeash((Entity) this, true, false);
++        dropLeash((Entity & Leashable) this, true, false); // CraftBukkit - decompile error
+     }
+ 
+     default void onLeashRemoved() {}
+@@ -137,7 +152,9 @@
+                 WorldServer worldserver = (WorldServer) world;
+ 
+                 if (flag1) {
++                    e0.forceDrops = true; // CraftBukkit
+                     e0.spawnAtLocation(worldserver, (IMaterial) Items.LEAD);
++                    e0.forceDrops = false; // CraftBukkit
+                 }
+ 
+                 if (flag) {
+@@ -159,7 +176,8 @@
+ 
+         if (leashable_a != null && leashable_a.leashHolder != null) {
+             if (!e0.canInteractWithLevel() || !leashable_a.leashHolder.canInteractWithLevel()) {
+-                if (worldserver.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
++                worldserver.getCraftServer().getPluginManager().callEvent(new EntityUnleashEvent(e0.getBukkitEntity(), (!e0.isAlive()) ? UnleashReason.PLAYER_UNLEASH : UnleashReason.HOLDER_GONE)); // CraftBukkit
++                if (worldserver.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS) && !e0.pluginRemoved) { // CraftBukkit - SPIGOT-7487: Don't drop leash, when the holder was removed by a plugin
+                     ((Leashable) e0).dropLeash();
+                 } else {
+                     ((Leashable) e0).removeLeash();
+@@ -211,6 +229,11 @@
+     }
+ 
+     default void leashTooFarBehaviour() {
++        // CraftBukkit start
++        if (this instanceof Entity entity) {
++            entity.level().getCraftServer().getPluginManager().callEvent(new EntityUnleashEvent(entity.getBukkitEntity(), EntityUnleashEvent.UnleashReason.DISTANCE));
++        }
++        // CraftBukkit end
+         this.dropLeash();
+     }
+ 
+@@ -218,7 +241,7 @@
+ 
+     default boolean checkElasticInteractions(Entity entity, Leashable.a leashable_a) {
+         boolean flag = entity.supportQuadLeashAsHolder() && this.supportQuadLeash();
+-        List<Leashable.b> list = computeElasticInteraction((Entity) this, entity, flag ? Leashable.SHARED_QUAD_ATTACHMENT_POINTS : Leashable.ENTITY_ATTACHMENT_POINT, flag ? Leashable.SHARED_QUAD_ATTACHMENT_POINTS : Leashable.LEASHER_ATTACHMENT_POINT);
++        List<Leashable.b> list = computeElasticInteraction((Entity & Leashable) this, entity, flag ? Leashable.SHARED_QUAD_ATTACHMENT_POINTS : Leashable.ENTITY_ATTACHMENT_POINT, flag ? Leashable.SHARED_QUAD_ATTACHMENT_POINTS : Leashable.LEASHER_ATTACHMENT_POINT); // CraftBukkit - decompile error
+ 
+         if (list.isEmpty()) {
+             return false;
+@@ -257,7 +280,7 @@
+             Vec3D vec3d4 = e0.position().add(vec3d3);
+             Vec3D vec3d5 = ((Vec3D) list1.get(i)).multiply(vec3d2).yRot(-f1);
+             Vec3D vec3d6 = entity.position().add(vec3d5);
+-            Optional optional = computeDampenedSpringInteraction(vec3d6, vec3d4, d0, vec3d, vec3d3);
++            Optional<Leashable.b> optional = computeDampenedSpringInteraction(vec3d6, vec3d4, d0, vec3d, vec3d3); // CraftBukkit - decompile error
+ 
+             Objects.requireNonNull(list2);
+             optional.ifPresent(list2::add);
+@@ -314,7 +337,7 @@
+ 
+     default void setLeashedTo(Entity entity, boolean flag) {
+         if (this != entity) {
+-            setLeashedTo((Entity) this, entity, flag);
++            setLeashedTo((Entity & Leashable) this, entity, flag); // CraftBukkit - decompile error
+         }
+     }
+ 
+@@ -351,7 +374,7 @@
+ 
+     @Nullable
+     default Entity getLeashHolder() {
+-        return getLeashHolder((Entity) this);
++        return getLeashHolder((Entity & Leashable) this); // CraftBukkit - decompile error
+     }
+ 
+     @Nullable

@@ -1,0 +1,20 @@
+--- a/net/minecraft/network/PacketDataSerializer.java
++++ b/net/minecraft/network/PacketDataSerializer.java
+@@ -173,7 +173,7 @@
+ 
+     public void writeIntIdList(IntList intlist) {
+         this.writeVarInt(intlist.size());
+-        intlist.forEach(this::writeVarInt);
++        intlist.forEach((java.util.function.IntConsumer) this::writeVarInt); // CraftBukkit - decompile error
+     }
+ 
+     public <K, V, M extends Map<K, V>> M readMap(IntFunction<M> intfunction, StreamDecoder<? super PacketDataSerializer, K> streamdecoder, StreamDecoder<? super PacketDataSerializer, V> streamdecoder1) {
+@@ -579,7 +579,7 @@
+ 
+         try {
+             NBTCompressedStreamTools.writeAnyTag(nbtbase, new ByteBufOutputStream(bytebuf));
+-        } catch (IOException ioexception) {
++        } catch (Exception ioexception) { // CraftBukkit - IOException -> Exception
+             throw new EncoderException(ioexception);
+         }
+     }

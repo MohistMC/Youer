@@ -177,7 +177,7 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * @return {@code List<Entity>} List of entities nearby
      */
     @NotNull
-    public List<Entity> getNearbyEntities(double x, double y, double z);
+    public List<org.bukkit.entity.Entity> getNearbyEntities(double x, double y, double z);
 
     /**
      * Returns a unique id for this entity
@@ -331,7 +331,7 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * @param passenger The new passenger.
      * @return false if it could not be done for whatever reason
      * @deprecated entities may have multiple passengers, use
-     * {@link #addPassenger(Entity)}
+     * {@link #addPassenger(org.bukkit.entity.Entity)}
      */
     @Deprecated(since = "1.11.2")
     public boolean setPassenger(@NotNull Entity passenger);
@@ -532,7 +532,7 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * Sets whether or not this entity is visible by default.
      *
      * If this entity is not visible by default, then
-     * {@link Player#showEntity(org.bukkit.plugin.Plugin, Entity)}
+     * {@link Player#showEntity(org.bukkit.plugin.Plugin, org.bukkit.entity.Entity)}
      * will need to be called before the entity is visible to a given player.
      *
      * @param visible default visibility status
@@ -543,7 +543,7 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      * Gets whether or not this entity is visible by default.
      *
      * If this entity is not visible by default, then
-     * {@link Player#showEntity(org.bukkit.plugin.Plugin, Entity)}
+     * {@link Player#showEntity(org.bukkit.plugin.Plugin, org.bukkit.entity.Entity)}
      * will need to be called before the entity is visible to a given player.
      *
      * @return default visibility status
@@ -766,4 +766,14 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
     @NotNull
     @ApiStatus.Experimental
     Entity copy(@NotNull Location to);
+
+    // Spigot start
+    public class Spigot extends CommandSender.Spigot {
+
+    }
+
+    @NotNull
+    @Override
+    Spigot spigot();
+    // Spigot end
 }

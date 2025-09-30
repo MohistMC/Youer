@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/entity/animal/EntityPig.java
++++ b/net/minecraft/world/entity/animal/EntityPig.java
+@@ -59,6 +59,11 @@
+ import net.minecraft.world.phys.AxisAlignedBB;
+ import net.minecraft.world.phys.Vec3D;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public class EntityPig extends EntityAnimal implements ISteerable {
+ 
+     private static final DataWatcherObject<Integer> DATA_BOOST_TIME = DataWatcher.<Integer>defineId(EntityPig.class, DataWatcherRegistry.INT);
+@@ -239,7 +244,14 @@
+                 }
+ 
+                 entitypigzombie1.setPersistenceRequired();
+-            });
++            // CraftBukkit start
++            }, null, null);
++            if (CraftEventFactory.callPigZapEvent(this, entitylightning, entitypigzombie).isCancelled()) {
++                return;
++            }
++            worldserver.addFreshEntity(entitypigzombie, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING);
++            this.discard(EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
++            // CraftBukkit end
+ 
+             if (entitypigzombie == null) {
+                 super.thunderHit(worldserver, entitylightning);

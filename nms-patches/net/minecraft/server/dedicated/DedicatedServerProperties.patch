@@ -1,0 +1,85 @@
+--- a/net/minecraft/server/dedicated/DedicatedServerProperties.java
++++ b/net/minecraft/server/dedicated/DedicatedServerProperties.java
+@@ -46,6 +46,10 @@
+ import net.minecraft.world.level.levelgen.presets.WorldPresets;
+ import org.slf4j.Logger;
+ 
++// CraftBukkit start
++import joptsimple.OptionSet;
++// CraftBukkit end
++
+ public class DedicatedServerProperties extends PropertyManager<DedicatedServerProperties> {
+ 
+     static final Logger LOGGER = LogUtils.getLogger();
+@@ -54,6 +58,7 @@
+     public static final String MANAGEMENT_SERVER_TLS_ENABLED_KEY = "management-server-tls-enabled";
+     public static final String MANAGEMENT_SERVER_TLS_KEYSTORE_KEY = "management-server-tls-keystore";
+     public static final String MANAGEMENT_SERVER_TLS_KEYSTORE_PASSWORD_KEY = "management-server-tls-keystore-password";
++    public final boolean debug = this.get("debug", false); // CraftBukkit
+     public final boolean onlineMode = this.get("online-mode", true);
+     public final boolean preventProxyConnections = this.get("prevent-proxy-connections", false);
+     public final String serverIp = this.get("server-ip", "");
+@@ -116,8 +121,10 @@
+     public final WorldOptions worldOptions;
+     public PropertyManager<DedicatedServerProperties>.EditableProperty<Boolean> acceptsTransfers;
+ 
+-    public DedicatedServerProperties(Properties properties) {
+-        super(properties);
++    // CraftBukkit start
++    public DedicatedServerProperties(Properties properties, OptionSet optionset) {
++        super(properties, optionset);
++        // CraftBukkit end
+         this.difficulty = this.<EnumDifficulty>getMutable("difficulty", dispatchNumberOrString(EnumDifficulty::byId, EnumDifficulty::byName), EnumDifficulty::getKey, EnumDifficulty.EASY);
+         this.gameMode = this.<EnumGamemode>getMutable("gamemode", dispatchNumberOrString(EnumGamemode::byId, EnumGamemode::byName), EnumGamemode::getName, EnumGamemode.SURVIVAL);
+         this.levelName = this.get("level-name", "world");
+@@ -183,13 +190,15 @@
+         this.initialDataPackConfiguration = getDatapackConfig(this.get("initial-enabled-packs", String.join(",", WorldDataConfiguration.DEFAULT.dataPacks().getEnabled())), this.get("initial-disabled-packs", String.join(",", WorldDataConfiguration.DEFAULT.dataPacks().getDisabled())));
+     }
+ 
+-    public static DedicatedServerProperties fromFile(Path path) {
+-        return new DedicatedServerProperties(loadFromFile(path));
++    // CraftBukkit start
++    public static DedicatedServerProperties fromFile(Path path, OptionSet optionset) {
++        return new DedicatedServerProperties(loadFromFile(path), optionset);
+     }
+ 
+     @Override
+-    protected DedicatedServerProperties reload(IRegistryCustom iregistrycustom, Properties properties) {
+-        return new DedicatedServerProperties(properties);
++    protected DedicatedServerProperties reload(IRegistryCustom iregistrycustom, Properties properties, OptionSet optionset) {
++        return new DedicatedServerProperties(properties, optionset);
++        // CraftBukkit end
+     }
+ 
+     @Nullable
+@@ -200,7 +209,7 @@
+ 
+                 return (IChatBaseComponent) ComponentSerialization.CODEC.parse(IRegistryCustom.EMPTY.createSerializationContext(JsonOps.INSTANCE), jsonelement).resultOrPartial((s1) -> {
+                     DedicatedServerProperties.LOGGER.warn("Failed to parse resource pack prompt '{}': {}", s, s1);
+-                }).orElse((Object) null);
++                }).orElse(null); // CraftBukkit - decompile error
+             } catch (Exception exception) {
+                 DedicatedServerProperties.LOGGER.warn("Failed to parse resource pack prompt '{}'", s, exception);
+             }
+@@ -274,10 +283,10 @@
+             }).orElseThrow(() -> {
+                 return new IllegalStateException("Invalid datapack contents: can't find default preset");
+             });
+-            Optional optional = Optional.ofNullable(MinecraftKey.tryParse(this.levelType)).map((minecraftkey) -> {
++            Optional<ResourceKey<WorldPreset>> optional = Optional.ofNullable(MinecraftKey.tryParse(this.levelType)).map((minecraftkey) -> { // CraftBukkit - decompile error
+                 return ResourceKey.create(Registries.WORLD_PRESET, minecraftkey);
+             }).or(() -> {
+-                return Optional.ofNullable((ResourceKey) DedicatedServerProperties.WorldDimensionData.LEGACY_PRESET_NAMES.get(this.levelType));
++                return Optional.ofNullable(DedicatedServerProperties.WorldDimensionData.LEGACY_PRESET_NAMES.get(this.levelType)); // CraftBukkit - decompile error
+             });
+ 
+             Objects.requireNonNull(holderlookup);
+@@ -289,7 +298,7 @@
+ 
+             if (holder.is(WorldPresets.FLAT)) {
+                 RegistryOps<JsonElement> registryops = holderlookup_a.<JsonElement>createSerializationContext(JsonOps.INSTANCE);
+-                DataResult dataresult = GeneratorSettingsFlat.CODEC.parse(new Dynamic(registryops, this.generatorSettings()));
++                DataResult<GeneratorSettingsFlat> dataresult = GeneratorSettingsFlat.CODEC.parse(new Dynamic(registryops, this.generatorSettings())); // CraftBukkit - decompile error
+                 Logger logger = DedicatedServerProperties.LOGGER;
+ 
+                 Objects.requireNonNull(logger);

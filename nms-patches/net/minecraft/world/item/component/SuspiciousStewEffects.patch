@@ -1,0 +1,18 @@
+--- a/net/minecraft/world/item/component/SuspiciousStewEffects.java
++++ b/net/minecraft/world/item/component/SuspiciousStewEffects.java
+@@ -40,6 +40,15 @@
+ 
+     }
+ 
++    // CraftBukkit start
++    @Override
++    public void cancelUsingItem(net.minecraft.server.level.EntityPlayer entityplayer, ItemStack itemstack) {
++        for (SuspiciousStewEffects.a suspicioussteweffects_a : this.effects) {
++            entityplayer.connection.send(new net.minecraft.network.protocol.game.PacketPlayOutRemoveEntityEffect(entityplayer.getId(), suspicioussteweffects_a.effect()));
++        }
++    }
++    // CraftBukkit end
++
+     @Override
+     public void addToTooltip(Item.b item_b, Consumer<IChatBaseComponent> consumer, TooltipFlag tooltipflag, DataComponentGetter datacomponentgetter) {
+         if (tooltipflag.isCreative()) {

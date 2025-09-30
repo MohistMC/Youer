@@ -1,0 +1,92 @@
+--- a/net/minecraft/world/level/block/entity/BrushableBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/BrushableBlockEntity.java
+@@ -34,6 +34,13 @@
+ import net.minecraft.world.phys.Vec3D;
+ import org.slf4j.Logger;
+ 
++// CraftBukkit start
++import java.util.Arrays;
++import org.bukkit.craftbukkit.block.CraftBlock;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.block.BlockBrushEvent;
++// CraftBukkit end
++
+ public class BrushableBlockEntity extends TileEntity {
+ 
+     private static final Logger LOGGER = LogUtils.getLogger();
+@@ -83,7 +90,12 @@
+                     IBlockData iblockdata = this.getBlockState();
+                     IBlockData iblockdata1 = (IBlockData) iblockdata.setValue(BlockProperties.DUSTED, k);
+ 
+-                    worldserver.setBlock(this.getBlockPos(), iblockdata1, 3);
++                    // CraftBukkit start
++                    BlockBrushEvent event = CraftEventFactory.callBlockBrushEvent(worldserver, this.getBlockPos(), iblockdata1, 3, (EntityPlayer) entityliving);
++                    if (!event.isCancelled()) {
++                        event.getNewState().update(true);
++                    }
++                    // CraftBukkit end
+                 }
+ 
+                 return false;
+@@ -124,10 +136,10 @@
+     }
+ 
+     private void brushingCompleted(WorldServer worldserver, EntityLiving entityliving, ItemStack itemstack) {
+-        this.dropContent(worldserver, entityliving, itemstack);
++        // this.dropContent(worldserver, entityliving, itemstack); // CraftBukkit - moved down
+         IBlockData iblockdata = this.getBlockState();
+ 
+-        worldserver.levelEvent(3008, this.getBlockPos(), Block.getId(iblockdata));
++        // worldserver.levelEvent(3008, this.getBlockPos(), Block.getId(iblockdata)); // CraftBukkit - moved down
+         Block block = this.getBlockState().getBlock();
+         Block block1;
+ 
+@@ -137,7 +149,15 @@
+             block1 = Blocks.AIR;
+         }
+ 
+-        worldserver.setBlock(this.worldPosition, block1.defaultBlockState(), 3);
++        // CraftBukkit start
++        BlockBrushEvent event = CraftEventFactory.callBlockBrushEvent(worldserver, this.worldPosition, block1.defaultBlockState(), 3, (EntityPlayer) entityliving);
++        if (!event.isCancelled()) {
++            this.dropContent(worldserver, entityliving, itemstack); // CraftBukkit - from above
++            worldserver.levelEvent(3008, this.getBlockPos(), Block.getId(iblockdata)); // CraftBukkit - from above
++
++            event.getNewState().update(true);
++        }
++        // CraftBukkit end
+     }
+ 
+     private void dropContent(WorldServer worldserver, EntityLiving entityliving, ItemStack itemstack) {
+@@ -154,7 +174,12 @@
+             EntityItem entityitem = new EntityItem(worldserver, d3, d4, d5, this.item.split(worldserver.random.nextInt(21) + 10));
+ 
+             entityitem.setDeltaMovement(Vec3D.ZERO);
+-            worldserver.addFreshEntity(entityitem);
++            // CraftBukkit start
++            if (entityliving instanceof EntityPlayer entityplayer) {
++                org.bukkit.block.Block bblock = CraftBlock.at(this.level, this.worldPosition);
++                CraftEventFactory.handleBlockDropItemEvent(bblock, bblock.getState(), entityplayer, Arrays.asList(entityitem));
++            }
++            // CraftBukkit end
+             this.item = ItemStack.EMPTY;
+         }
+ 
+@@ -187,7 +212,7 @@
+     }
+ 
+     private boolean tryLoadLootTable(ValueInput valueinput) {
+-        this.lootTable = (ResourceKey) valueinput.read("LootTable", LootTable.KEY_CODEC).orElse((Object) null);
++        this.lootTable = (ResourceKey) valueinput.read("LootTable", LootTable.KEY_CODEC).orElse(null); // CraftBukkit - decompile error
+         this.lootTableSeed = valueinput.getLongOr("LootTableSeed", 0L);
+         return this.lootTable != null;
+     }
+@@ -233,7 +258,7 @@
+             this.item = ItemStack.EMPTY;
+         }
+ 
+-        this.hitDirection = (EnumDirection) valueinput.read("hit_direction", EnumDirection.LEGACY_ID_CODEC).orElse((Object) null);
++        this.hitDirection = (EnumDirection) valueinput.read("hit_direction", EnumDirection.LEGACY_ID_CODEC).orElse(null); // CraftBukkit - decompile error
+     }
+ 
+     @Override

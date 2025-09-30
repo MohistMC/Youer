@@ -58,7 +58,7 @@ public final class LootContext {
      * {@link #getKiller()} entity has on their equipped item.
      *
      * This value is only set via
-     * {@link Builder#lootingModifier(int)}. If not set, the
+     * {@link LootContext.Builder#lootingModifier(int)}. If not set, the
      * {@link #getKiller()} entity's looting level will be used instead.
      *
      * @return the looting level
@@ -155,7 +155,7 @@ public final class LootContext {
         }
 
         /**
-         * Set the {@link HumanEntity} that killed
+         * Set the {@link org.bukkit.entity.HumanEntity} that killed
          * {@link #getLootedEntity()}. This entity will be used to get the
          * looting level if {@link #lootingModifier(int)} is not set.
          *

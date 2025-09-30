@@ -1,0 +1,81 @@
+--- a/net/minecraft/world/entity/ConversionType.java
++++ b/net/minecraft/world/entity/ConversionType.java
+@@ -13,6 +13,11 @@
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.scores.Scoreboard;
+ 
++// CraftBukkit start
++import net.minecraft.core.BlockPosition;
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public enum ConversionType {
+ 
+     SINGLE(true) {
+@@ -28,7 +33,7 @@
+ 
+                 for (Entity entity1 : entityinsentient1.getPassengers()) {
+                     entity1.stopRiding();
+-                    entity1.remove(Entity.RemovalReason.DISCARDED);
++                    entity1.remove(Entity.RemovalReason.DISCARDED, EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
+                 }
+ 
+                 entity.startRiding(entityinsentient1);
+@@ -46,7 +51,7 @@
+                     ItemStack itemstack = entityinsentient.getItemBySlot(enumitemslot);
+ 
+                     if (!itemstack.isEmpty()) {
+-                        entityinsentient1.setItemSlot(enumitemslot, itemstack.copyAndClear());
++                        entityinsentient1.setItemSlot(enumitemslot, itemstack.copy()); // CraftBukkit - SPIGOT-7996: don't clear yet
+                         entityinsentient1.setDropChance(enumitemslot, entityinsentient.getDropChances().byEquipment(enumitemslot));
+                     }
+                 }
+@@ -58,7 +63,7 @@
+             entityinsentient1.hurtTime = entityinsentient.hurtTime;
+             entityinsentient1.yBodyRot = entityinsentient.yBodyRot;
+             entityinsentient1.setOnGround(entityinsentient.onGround());
+-            Optional optional = entityinsentient.getSleepingPos();
++            Optional<BlockPosition> optional = entityinsentient.getSleepingPos(); // CraftBukkit - decompile error
+ 
+             Objects.requireNonNull(entityinsentient1);
+             optional.ifPresent(entityinsentient1::setSleepingPos);
+@@ -70,6 +75,21 @@
+ 
+             this.convertCommon(entityinsentient, entityinsentient1, conversionparams);
+         }
++
++        // CraftBukkit start
++        @Override
++        void postConvert(EntityInsentient entityinsentient, EntityInsentient entityinsentient1, ConversionParams conversionparams) {
++            if (conversionparams.keepEquipment()) {
++                for (EnumItemSlot enumitemslot : EnumItemSlot.VALUES) {
++                    ItemStack itemstack = entityinsentient.getItemBySlot(enumitemslot);
++
++                    if (!itemstack.isEmpty()) {
++                        itemstack.setCount(0); // SPIGOT-7996: clear after conversion
++                    }
++                }
++            }
++        }
++        // CraftBukkit end
+     },
+     SPLIT_ON_DEATH(false) {
+         @Override
+@@ -103,6 +123,8 @@
+ 
+     abstract void convert(EntityInsentient entityinsentient, EntityInsentient entityinsentient1, ConversionParams conversionparams);
+ 
++    void postConvert(EntityInsentient entityinsentient, EntityInsentient entityinsentient1, ConversionParams conversionparams) {} // CraftBukkit
++
+     void convertCommon(EntityInsentient entityinsentient, EntityInsentient entityinsentient1, ConversionParams conversionparams) {
+         entityinsentient1.setAbsorptionAmount(entityinsentient.getAbsorptionAmount());
+ 
+@@ -145,7 +167,7 @@
+         entityinsentient1.setNoGravity(entityinsentient.isNoGravity());
+         entityinsentient1.setPortalCooldown(entityinsentient.getPortalCooldown());
+         entityinsentient1.setSilent(entityinsentient.isSilent());
+-        Set set = entityinsentient.getTags();
++        Set<String> set = entityinsentient.getTags(); // CraftBukkit - decompile error
+ 
+         Objects.requireNonNull(entityinsentient1);
+         set.forEach(entityinsentient1::addTag);

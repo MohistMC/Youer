@@ -1,0 +1,99 @@
+--- a/net/minecraft/world/entity/EntityAreaEffectCloud.java
++++ b/net/minecraft/world/entity/EntityAreaEffectCloud.java
+@@ -28,6 +28,12 @@
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.entity.CraftLivingEntity;
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public class EntityAreaEffectCloud extends Entity implements TraceableEntity {
+ 
+     private static final int TIME_BETWEEN_APPLICATIONS = 5;
+@@ -214,7 +220,7 @@
+ 
+     private void serverTick(WorldServer worldserver) {
+         if (this.duration != -1 && this.tickCount - this.waitTime >= this.duration) {
+-            this.discard();
++            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         } else {
+             boolean flag = this.isWaiting();
+             boolean flag1 = this.tickCount < this.waitTime;
+@@ -229,7 +235,7 @@
+                 if (this.radiusPerTick != 0.0F) {
+                     f += this.radiusPerTick;
+                     if (f < 0.5F) {
+-                        this.discard();
++                        this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                         return;
+                     }
+ 
+@@ -251,9 +257,10 @@
+                         List<EntityLiving> list1 = this.level().<EntityLiving>getEntitiesOfClass(EntityLiving.class, this.getBoundingBox());
+ 
+                         if (!list1.isEmpty()) {
++                            List<LivingEntity> entities = new java.util.ArrayList<LivingEntity>(); // CraftBukkit
+                             for (EntityLiving entityliving : list1) {
+                                 if (!this.victims.containsKey(entityliving) && entityliving.isAffectedByPotions()) {
+-                                    Stream stream = list.stream();
++                                    Stream<MobEffect> stream = list.stream(); // CraftBukkit - decompile error
+ 
+                                     Objects.requireNonNull(entityliving);
+                                     if (!stream.noneMatch(entityliving::canBeAffected)) {
+@@ -262,20 +269,33 @@
+                                         double d2 = d0 * d0 + d1 * d1;
+ 
+                                         if (d2 <= (double) (f * f)) {
++                                            // CraftBukkit start
++                                            entities.add((LivingEntity) entityliving.getBukkitEntity());
++                                        }
++                                    }
++                                }
++                            }
++                            {
++                                org.bukkit.event.entity.AreaEffectCloudApplyEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callAreaEffectCloudApplyEvent(this, entities);
++                                if (!event.isCancelled()) {
++                                    for (LivingEntity entity : event.getAffectedEntities()) {
++                                        if (entity instanceof CraftLivingEntity) {
++                                            EntityLiving entityliving = ((CraftLivingEntity) entity).getHandle();
++                                            // CraftBukkit end
+                                             this.victims.put(entityliving, this.tickCount + this.reapplicationDelay);
+ 
+                                             for (MobEffect mobeffect : list) {
+                                                 if (((MobEffectList) mobeffect.getEffect().value()).isInstantenous()) {
+                                                     ((MobEffectList) mobeffect.getEffect().value()).applyInstantenousEffect(worldserver, this, this.getOwner(), entityliving, mobeffect.getAmplifier(), 0.5D);
+                                                 } else {
+-                                                    entityliving.addEffect(new MobEffect(mobeffect), this);
++                                                    entityliving.addEffect(new MobEffect(mobeffect), this, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.AREA_EFFECT_CLOUD); // CraftBukkit
+                                                 }
+                                             }
+ 
+                                             if (this.radiusOnUse != 0.0F) {
+                                                 f += this.radiusOnUse;
+                                                 if (f < 0.5F) {
+-                                                    this.discard();
++                                                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                                                     return;
+                                                 }
+ 
+@@ -285,7 +305,7 @@
+                                             if (this.durationOnUse != 0 && this.duration != -1) {
+                                                 this.duration += this.durationOnUse;
+                                                 if (this.duration <= 0) {
+-                                                    this.discard();
++                                                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                                                     return;
+                                                 }
+                                             }
+@@ -354,7 +374,7 @@
+         this.radiusPerTick = valueinput.getFloatOr("RadiusPerTick", 0.0F);
+         this.setRadius(valueinput.getFloatOr("Radius", 3.0F));
+         this.owner = EntityReference.<EntityLiving>read(valueinput, "Owner");
+-        this.setCustomParticle((ParticleParam) valueinput.read("custom_particle", Particles.CODEC).orElse((Object) null));
++        this.setCustomParticle((ParticleParam) valueinput.read("custom_particle", Particles.CODEC).orElse(null)); // CraftBukkit - decompile error
+         this.setPotionContents((PotionContents) valueinput.read("potion_contents", PotionContents.CODEC).orElse(PotionContents.EMPTY));
+         this.potionDurationScale = valueinput.getFloatOr("potion_duration_scale", 1.0F);
+     }

@@ -18,7 +18,7 @@ public interface BlockDataMeta extends ItemMeta {
      * one if one doesn't exist.
      *
      * The state is a copy, it must be set back (or to another item) with
-     * {@link #setBlockData(BlockData)}
+     * {@link #setBlockData(org.bukkit.block.data.BlockData)}
      *
      * @param material the material we wish to get this data in the context of
      * @return the attached data or new data

@@ -1,0 +1,119 @@
+--- a/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
++++ b/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
+@@ -72,7 +72,12 @@
+ import net.minecraft.world.ticks.TickListChunk;
+ import org.slf4j.Logger;
+ 
+-public record SerializableChunkData(PalettedContainerFactory containerFactory, ChunkCoordIntPair chunkPos, int minSectionY, long lastUpdateTime, long inhabitedTime, ChunkStatus chunkStatus, @Nullable BlendingData.d blendingData, @Nullable BelowZeroRetrogen belowZeroRetrogen, ChunkConverter upgradeData, @Nullable long[] carvingMask, Map<HeightMap.Type, long[]> heightmaps, IChunkAccess.b packedTicks, ShortList[] postProcessingSections, boolean lightCorrect, List<SerializableChunkData.b> sectionData, List<NBTTagCompound> entities, List<NBTTagCompound> blockEntities, NBTTagCompound structureData) {
++// CraftBukkit start
++import net.minecraft.nbt.NBTBase;
++// CraftBukkit end
++
++// CraftBukkit - persistentDataContainer
++public record SerializableChunkData(PalettedContainerFactory containerFactory, ChunkCoordIntPair chunkPos, int minSectionY, long lastUpdateTime, long inhabitedTime, ChunkStatus chunkStatus, @Nullable BlendingData.d blendingData, @Nullable BelowZeroRetrogen belowZeroRetrogen, ChunkConverter upgradeData, @Nullable long[] carvingMask, Map<HeightMap.Type, long[]> heightmaps, IChunkAccess.b packedTicks, ShortList[] postProcessingSections, boolean lightCorrect, List<SerializableChunkData.b> sectionData, List<NBTTagCompound> entities, List<NBTTagCompound> blockEntities, NBTTagCompound structureData, @Nullable NBTBase persistentDataContainer) {
+ 
+     private static final Codec<List<TickListChunk<Block>>> BLOCK_TICKS_CODEC = TickListChunk.codec(BuiltInRegistries.BLOCK.byNameCodec()).listOf();
+     private static final Codec<List<TickListChunk<FluidType>>> FLUID_TICKS_CODEC = TickListChunk.codec(BuiltInRegistries.FLUID.byNameCodec()).listOf();
+@@ -101,9 +106,9 @@
+                 return new ChunkConverter(nbttagcompound1, levelheightaccessor);
+             }).orElse(ChunkConverter.EMPTY);
+             boolean flag = nbttagcompound.getBooleanOr("isLightOn", false);
+-            BlendingData.d blendingdata_d = (BlendingData.d) nbttagcompound.read("blending_data", BlendingData.d.CODEC).orElse((Object) null);
+-            BelowZeroRetrogen belowzeroretrogen = (BelowZeroRetrogen) nbttagcompound.read("below_zero_retrogen", BelowZeroRetrogen.CODEC).orElse((Object) null);
+-            long[] along = (long[]) nbttagcompound.getLongArray("carving_mask").orElse((Object) null);
++            BlendingData.d blendingdata_d = (BlendingData.d) nbttagcompound.read("blending_data", BlendingData.d.CODEC).orElse(null); // CraftBukkit - decompile error
++            BelowZeroRetrogen belowzeroretrogen = (BelowZeroRetrogen) nbttagcompound.read("below_zero_retrogen", BelowZeroRetrogen.CODEC).orElse(null); // CraftBukkit - decompile error
++            long[] along = (long[]) nbttagcompound.getLongArray("carving_mask").orElse(null); // CraftBukkit - decompile error
+             Map<HeightMap.Type, long[]> map = new EnumMap(HeightMap.Type.class);
+ 
+             nbttagcompound.getCompound("Heightmaps").ifPresent((nbttagcompound1) -> {
+@@ -136,7 +141,7 @@
+             NBTTagCompound nbttagcompound1 = nbttagcompound.getCompoundOrEmpty("structures");
+             NBTTagList nbttaglist2 = nbttagcompound.getListOrEmpty("sections");
+             List<SerializableChunkData.b> list4 = new ArrayList(nbttaglist2.size());
+-            Codec<PalettedContainerRO<Holder<BiomeBase>>> codec = palettedcontainerfactory.biomeContainerCodec();
++            Codec<DataPaletteBlock<Holder<BiomeBase>>> codec = palettedcontainerfactory.biomeContainerCodecRW(); // CraftBukkit - read/write
+             Codec<DataPaletteBlock<IBlockData>> codec1 = palettedcontainerfactory.blockStatesContainerCodec();
+ 
+             for (int i1 = 0; i1 < nbttaglist2.size(); ++i1) {
+@@ -163,21 +168,22 @@
+                             }).getOrThrow(SerializableChunkData.a::new);
+                         });
+                         Objects.requireNonNull(palettedcontainerfactory);
+-                        PalettedContainerRO<Holder<BiomeBase>> palettedcontainerro = (PalettedContainerRO) optional1.orElseGet(palettedcontainerfactory::createForBiomes);
++                        DataPaletteBlock<Holder<BiomeBase>> palettedcontainerro = (DataPaletteBlock) optional1.orElseGet(palettedcontainerfactory::createForBiomes); // CraftBukkit - read/write
+ 
+                         chunksection = new ChunkSection(datapaletteblock, palettedcontainerro);
+                     } else {
+                         chunksection = null;
+                     }
+ 
+-                    NibbleArray nibblearray = (NibbleArray) nbttagcompound2.getByteArray("BlockLight").map(NibbleArray::new).orElse((Object) null);
+-                    NibbleArray nibblearray1 = (NibbleArray) nbttagcompound2.getByteArray("SkyLight").map(NibbleArray::new).orElse((Object) null);
++                    NibbleArray nibblearray = (NibbleArray) nbttagcompound2.getByteArray("BlockLight").map(NibbleArray::new).orElse(null); // CraftBukkit - decompile error
++                    NibbleArray nibblearray1 = (NibbleArray) nbttagcompound2.getByteArray("SkyLight").map(NibbleArray::new).orElse(null); // CraftBukkit - decompile error
+ 
+                     list4.add(new SerializableChunkData.b(j1, chunksection, nibblearray, nibblearray1));
+                 }
+             }
+ 
+-            return new SerializableChunkData(palettedcontainerfactory, chunkcoordintpair, levelheightaccessor.getMinSectionY(), i, j, chunkstatus, blendingdata_d, belowzeroretrogen, chunkconverter, along, map, ichunkaccess_b, ashortlist, flag, list4, list2, list3, nbttagcompound1);
++            // CraftBukkit - ChunkBukkitValues
++            return new SerializableChunkData(palettedcontainerfactory, chunkcoordintpair, levelheightaccessor.getMinSectionY(), i, j, chunkstatus, blendingdata_d, belowzeroretrogen, chunkconverter, along, map, ichunkaccess_b, ashortlist, flag, list4, list2, list3, nbttagcompound1, nbttagcompound.get("ChunkBukkitValues"));
+         }
+     }
+ 
+@@ -247,6 +253,12 @@
+             }
+         }
+ 
++        // CraftBukkit start - load chunk persistent data from nbt - SPIGOT-6814: Already load PDC here to account for 1.17 to 1.18 chunk upgrading.
++        if (persistentDataContainer instanceof NBTTagCompound) {
++            ichunkaccess.persistentDataContainer.putAll((NBTTagCompound) persistentDataContainer);
++        }
++        // CraftBukkit end
++
+         ichunkaccess.setLightCorrect(this.lightCorrect);
+         EnumSet<HeightMap.Type> enumset = EnumSet.noneOf(HeightMap.Type.class);
+ 
+@@ -359,7 +371,14 @@
+             });
+             NBTTagCompound nbttagcompound1 = packStructureData(StructurePieceSerializationContext.fromLevel(worldserver), chunkcoordintpair, ichunkaccess.getAllStarts(), ichunkaccess.getAllReferences());
+ 
+-            return new SerializableChunkData(worldserver.palettedContainerFactory(), chunkcoordintpair, ichunkaccess.getMinSectionY(), worldserver.getGameTime(), ichunkaccess.getInhabitedTime(), ichunkaccess.getPersistedStatus(), (BlendingData.d) Optionull.map(ichunkaccess.getBlendingData(), BlendingData::pack), ichunkaccess.getBelowZeroRetrogen(), ichunkaccess.getUpgradeData().copy(), along, map, ichunkaccess_b, ashortlist, ichunkaccess.isLightCorrect(), list, list2, list1, nbttagcompound1);
++            // CraftBukkit start - store chunk persistent data in nbt
++            NBTTagCompound persistentDataContainer = null;
++            if (!ichunkaccess.persistentDataContainer.isEmpty()) { // SPIGOT-6814: Always save PDC to account for 1.17 to 1.18 chunk upgrading.
++                persistentDataContainer = ichunkaccess.persistentDataContainer.toTagCompound();
++            }
++
++            return new SerializableChunkData(worldserver.palettedContainerFactory(), chunkcoordintpair, ichunkaccess.getMinSectionY(), worldserver.getGameTime(), ichunkaccess.getInhabitedTime(), ichunkaccess.getPersistedStatus(), (BlendingData.d) Optionull.map(ichunkaccess.getBlendingData(), BlendingData::pack), ichunkaccess.getBelowZeroRetrogen(), ichunkaccess.getUpgradeData().copy(), along, map, ichunkaccess_b, ashortlist, ichunkaccess.isLightCorrect(), list, list2, list1, nbttagcompound1, persistentDataContainer);
++            // CraftBukkit end
+         }
+     }
+ 
+@@ -433,6 +452,11 @@
+         });
+         nbttagcompound.put("Heightmaps", nbttagcompound2);
+         nbttagcompound.put("structures", this.structureData);
++        // CraftBukkit start - store chunk persistent data in nbt
++        if (persistentDataContainer != null) { // SPIGOT-6814: Always save PDC to account for 1.17 to 1.18 chunk upgrading.
++            nbttagcompound.put("ChunkBukkitValues", persistentDataContainer);
++        }
++        // CraftBukkit end
+         return nbttagcompound;
+     }
+ 
+@@ -513,6 +537,12 @@
+                 StructureStart structurestart = StructureStart.loadStaticStart(structurepieceserializationcontext, nbttagcompound1.getCompoundOrEmpty(s), i);
+ 
+                 if (structurestart != null) {
++                    // CraftBukkit start - load persistent data for structure start
++                    net.minecraft.nbt.NBTBase persistentBase = nbttagcompound1.getCompoundOrEmpty(s).get("StructureBukkitValues");
++                    if (persistentBase instanceof NBTTagCompound) {
++                        structurestart.persistentDataContainer.putAll((NBTTagCompound) persistentBase);
++                    }
++                    // CraftBukkit end
+                     map.put(structure, structurestart);
+                 }
+             }

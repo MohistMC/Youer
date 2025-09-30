@@ -1,0 +1,56 @@
+--- a/net/minecraft/world/inventory/ContainerShulkerBox.java
++++ b/net/minecraft/world/inventory/ContainerShulkerBox.java
+@@ -6,10 +6,35 @@
+ import net.minecraft.world.entity.player.PlayerInventory;
+ import net.minecraft.world.item.ItemStack;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.inventory.CraftInventory;
++import org.bukkit.craftbukkit.inventory.CraftInventoryView;
++// CraftBukkit end
++
+ public class ContainerShulkerBox extends Container {
+ 
+     private static final int CONTAINER_SIZE = 27;
+     private final IInventory container;
++    // CraftBukkit start
++    private CraftInventoryView bukkitEntity;
++    private PlayerInventory player;
++
++    @Override
++    public CraftInventoryView getBukkitView() {
++        if (bukkitEntity != null) {
++            return bukkitEntity;
++        }
++
++        bukkitEntity = new CraftInventoryView(this.player.player.getBukkitEntity(), new CraftInventory(this.container), this);
++        return bukkitEntity;
++    }
++
++    @Override
++    public void startOpen() {
++        super.startOpen();
++        container.startOpen(player.player);
++    }
++    // CraftBukkit end
+ 
+     public ContainerShulkerBox(int i, PlayerInventory playerinventory) {
+         this(i, playerinventory, new InventorySubcontainer(27));
+@@ -19,7 +44,8 @@
+         super(Containers.SHULKER_BOX, i);
+         checkContainerSize(iinventory, 27);
+         this.container = iinventory;
+-        iinventory.startOpen(playerinventory.player);
++        this.player = playerinventory; // CraftBukkit - save player
++        // iinventory.startOpen(playerinventory.player); // CraftBukkit - don't startOpen until menu actually opens
+         int j = 3;
+         int k = 9;
+ 
+@@ -34,6 +60,7 @@
+ 
+     @Override
+     public boolean stillValid(EntityHuman entityhuman) {
++        if (!this.checkReachable) return true; // CraftBukkit
+         return this.container.stillValid(entityhuman);
+     }
+ 

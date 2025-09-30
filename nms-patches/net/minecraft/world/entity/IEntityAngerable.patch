@@ -1,0 +1,47 @@
+--- a/net/minecraft/world/entity/IEntityAngerable.java
++++ b/net/minecraft/world/entity/IEntityAngerable.java
+@@ -11,6 +11,10 @@
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityTargetEvent;
++// CraftBukkit end
++
+ public interface IEntityAngerable {
+ 
+     String TAG_ANGER_TIME = "AngerTime";
+@@ -35,13 +39,13 @@
+     default void readPersistentAngerSaveData(World world, ValueInput valueinput) {
+         this.setRemainingPersistentAngerTime(valueinput.getIntOr("AngerTime", 0));
+         if (world instanceof WorldServer worldserver) {
+-            UUID uuid = (UUID) valueinput.read("AngryAt", UUIDUtil.CODEC).orElse((Object) null);
++            UUID uuid = (UUID) valueinput.read("AngryAt", UUIDUtil.CODEC).orElse(null); // CraftBukkit - decompile error
+ 
+             this.setPersistentAngerTarget(uuid);
+             Entity entity = uuid != null ? worldserver.getEntity(uuid) : null;
+ 
+             if (entity instanceof EntityLiving entityliving) {
+-                this.setTarget(entityliving);
++                this.setTarget(entityliving, EntityTargetEvent.TargetReason.UNKNOWN, false); // CraftBukkit
+             }
+ 
+         }
+@@ -97,7 +101,7 @@
+     default void stopBeingAngry() {
+         this.setLastHurtByMob((EntityLiving) null);
+         this.setPersistentAngerTarget((UUID) null);
+-        this.setTarget((EntityLiving) null);
++        this.setTarget((EntityLiving) null, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET, true); // CraftBukkit
+         this.setRemainingPersistentAngerTime(0);
+     }
+ 
+@@ -108,6 +112,8 @@
+ 
+     void setTarget(@Nullable EntityLiving entityliving);
+ 
++    boolean setTarget(@Nullable EntityLiving entityliving, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent); // CraftBukkit
++
+     boolean canAttack(EntityLiving entityliving);
+ 
+     @Nullable

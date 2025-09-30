@@ -1,0 +1,92 @@
+--- a/net/minecraft/world/entity/animal/wolf/EntityWolf.java
++++ b/net/minecraft/world/entity/animal/wolf/EntityWolf.java
+@@ -88,6 +88,13 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.phys.Vec3D;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityDamageEvent;
++import org.bukkit.event.entity.EntityRegainHealthEvent;
++import org.bukkit.event.entity.EntityTargetEvent;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++// CraftBukkit end
++
+ public class EntityWolf extends EntityTameableAnimal implements IEntityAngerable {
+ 
+     private static final DataWatcherObject<Boolean> DATA_INTERESTED_ID = DataWatcher.<Boolean>defineId(EntityWolf.class, DataWatcherRegistry.BOOLEAN);
+@@ -385,16 +392,27 @@
+         if (this.isInvulnerableTo(worldserver, damagesource)) {
+             return false;
+         } else {
++            // CraftBukkit start
++            boolean result = super.hurtServer(worldserver, damagesource, f);
++            if (!result) {
++                return result;
++            }
++            // CraftBukkit end
+             this.setOrderedToSit(false);
+-            return super.hurtServer(worldserver, damagesource, f);
++            return result; // CraftBukkit
+         }
+     }
+ 
+     @Override
+-    protected void actuallyHurt(WorldServer worldserver, DamageSource damagesource, float f) {
++    public boolean actuallyHurt(WorldServer worldserver, DamageSource damagesource, float f, EntityDamageEvent event) { // CraftBukkit - void -> boolean
+         if (!this.canArmorAbsorb(damagesource)) {
+-            super.actuallyHurt(worldserver, damagesource, f);
++            return super.actuallyHurt(worldserver, damagesource, f, event); // CraftBukkit
+         } else {
++            // CraftBukkit start - SPIGOT-7815: if the damage was cancelled, no need to run the wolf armor behaviour
++            if (event.isCancelled()) {
++                return false;
++            }
++            // CraftBukkit end
+             ItemStack itemstack = this.getBodyArmorItem();
+             int i = itemstack.getDamageValue();
+             int j = itemstack.getMaxDamage();
+@@ -406,6 +424,7 @@
+             }
+ 
+         }
++        return false; // CraftBukkit
+     }
+ 
+     private boolean canArmorAbsorb(DamageSource damagesource) {
+@@ -416,7 +435,7 @@
+     protected void applyTamingSideEffects() {
+         if (this.isTame()) {
+             this.getAttribute(GenericAttributes.MAX_HEALTH).setBaseValue(40.0D);
+-            this.setHealth(40.0F);
++            this.setHealth(this.getMaxHealth()); // CraftBukkit - 40.0 -> getMaxHealth()
+         } else {
+             this.getAttribute(GenericAttributes.MAX_HEALTH).setBaseValue(8.0D);
+         }
+@@ -444,7 +463,7 @@
+                 FoodInfo foodinfo = (FoodInfo) itemstack.get(DataComponents.FOOD);
+                 float f = foodinfo != null ? (float) foodinfo.nutrition() : 1.0F;
+ 
+-                this.heal(2.0F * f);
++                this.heal(2.0F * f, EntityRegainHealthEvent.RegainReason.EATING); // CraftBukkit
+                 return EnumInteractionResult.SUCCESS;
+             } else {
+                 if (item instanceof ItemDye) {
+@@ -482,7 +501,7 @@
+                         this.setOrderedToSit(!this.isOrderedToSit());
+                         this.jumping = false;
+                         this.navigation.stop();
+-                        this.setTarget((EntityLiving) null);
++                        this.setTarget((EntityLiving) null, EntityTargetEvent.TargetReason.FORGOT_TARGET, true); // CraftBukkit - reason
+                         return EnumInteractionResult.SUCCESS.withoutItem();
+                     } else {
+                         return enuminteractionresult;
+@@ -499,7 +518,8 @@
+     }
+ 
+     private void tryToTame(EntityHuman entityhuman) {
+-        if (this.random.nextInt(3) == 0) {
++        // CraftBukkit - added event call and isCancelled check.
++        if (this.random.nextInt(3) == 0 && !CraftEventFactory.callEntityTameEvent(this, entityhuman).isCancelled()) {
+             this.tame(entityhuman);
+             this.navigation.stop();
+             this.setTarget((EntityLiving) null);

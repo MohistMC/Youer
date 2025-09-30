@@ -33,7 +33,7 @@ public interface SkullMeta extends ItemMeta {
      *
      * @param owner the new owner of the skull
      * @return true if the owner was successfully set
-     * @deprecated see {@link #setOwningPlayer(OfflinePlayer)}.
+     * @deprecated see {@link #setOwningPlayer(org.bukkit.OfflinePlayer)}.
      */
     @Deprecated(since = "1.12.1")
     boolean setOwner(@Nullable String owner);

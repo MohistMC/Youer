@@ -1,0 +1,56 @@
+--- a/net/minecraft/world/level/dimension/end/EnumDragonRespawn.java
++++ b/net/minecraft/world/level/dimension/end/EnumDragonRespawn.java
+@@ -12,6 +12,10 @@
+ import net.minecraft.world.level.levelgen.feature.WorldGenerator;
+ import net.minecraft.world.level.levelgen.feature.configurations.WorldGenFeatureEndSpikeConfiguration;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public enum EnumDragonRespawn {
+ 
+     START {
+@@ -23,7 +27,7 @@
+                 entityendercrystal.setBeamTarget(blockposition1);
+             }
+ 
+-            enderdragonbattle.setRespawnStage(null.PREPARING_TO_SUMMON_PILLARS);
++            enderdragonbattle.setRespawnStage(PREPARING_TO_SUMMON_PILLARS); // CraftBukkit - decompile error
+         }
+     },
+     PREPARING_TO_SUMMON_PILLARS {
+@@ -34,7 +38,7 @@
+                     worldserver.levelEvent(3001, new BlockPosition(0, 128, 0), 0);
+                 }
+             } else {
+-                enderdragonbattle.setRespawnStage(null.SUMMONING_PILLARS);
++                enderdragonbattle.setRespawnStage(SUMMONING_PILLARS); // CraftBukkit - decompile error
+             }
+ 
+         }
+@@ -70,7 +74,7 @@
+                         WorldGenerator.END_SPIKE.place(worldgenfeatureendspikeconfiguration, worldserver, worldserver.getChunkSource().getGenerator(), RandomSource.create(), new BlockPosition(worldgenender_spike.getCenterX(), 45, worldgenender_spike.getCenterZ()));
+                     }
+                 } else if (flag) {
+-                    enderdragonbattle.setRespawnStage(null.SUMMONING_DRAGON);
++                    enderdragonbattle.setRespawnStage(SUMMONING_DRAGON); // CraftBukkit - decompile error
+                 }
+             }
+ 
+@@ -80,13 +84,13 @@
+         @Override
+         public void tick(WorldServer worldserver, EnderDragonBattle enderdragonbattle, List<EntityEnderCrystal> list, int i, BlockPosition blockposition) {
+             if (i >= 100) {
+-                enderdragonbattle.setRespawnStage(null.END);
++                enderdragonbattle.setRespawnStage(END); // CraftBukkit - decompile error
+                 enderdragonbattle.resetSpikeCrystals();
+ 
+                 for (EntityEnderCrystal entityendercrystal : list) {
+                     entityendercrystal.setBeamTarget((BlockPosition) null);
+                     worldserver.explode(entityendercrystal, entityendercrystal.getX(), entityendercrystal.getY(), entityendercrystal.getZ(), 6.0F, World.a.NONE);
+-                    entityendercrystal.discard();
++                    entityendercrystal.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
+                 }
+             } else if (i >= 80) {
+                 worldserver.levelEvent(3001, new BlockPosition(0, 128, 0), 0);

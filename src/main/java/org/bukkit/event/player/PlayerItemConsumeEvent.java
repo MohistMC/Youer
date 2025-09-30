@@ -50,7 +50,7 @@ public class PlayerItemConsumeEvent extends PlayerEvent implements Cancellable {
     /**
      * Gets the item that is being consumed. Modifying the returned item will
      * have no effect, you must use {@link
-     * #setItem(ItemStack)} instead.
+     * #setItem(org.bukkit.inventory.ItemStack)} instead.
      *
      * @return an ItemStack for the item being consumed
      */

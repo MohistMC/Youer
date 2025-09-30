@@ -276,7 +276,7 @@ public abstract class ChunkGenerator {
      * This method should <b>never</b> modify a ChunkData after it has
      * been returned.
      * <p>
-     * This method <b>must</b> return a ChunkData returned by {@link ChunkGenerator#createChunkData(World)}
+     * This method <b>must</b> return a ChunkData returned by {@link ChunkGenerator#createChunkData(org.bukkit.World)}
      *
      * @param world The world this chunk will be used for
      * @param random The random generator to use

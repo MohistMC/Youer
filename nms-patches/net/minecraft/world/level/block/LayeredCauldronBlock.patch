@@ -1,0 +1,106 @@
+--- a/net/minecraft/world/level/block/LayeredCauldronBlock.java
++++ b/net/minecraft/world/level/block/LayeredCauldronBlock.java
+@@ -24,6 +24,12 @@
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ import net.minecraft.world.phys.shapes.VoxelShapes;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.block.CraftBlockState;
++import org.bukkit.craftbukkit.block.CraftBlockStates;
++import org.bukkit.event.block.CauldronLevelChangeEvent;
++// CraftBukkit end
++
+ public class LayeredCauldronBlock extends AbstractCauldronBlock {
+ 
+     public static final MapCodec<LayeredCauldronBlock> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
+@@ -87,39 +93,67 @@
+ 
+             insideblockeffectapplier.runBefore(InsideBlockEffectType.EXTINGUISH, (entity1) -> {
+                 if (entity1.isOnFire() && entity1.mayInteract(worldserver, blockposition1)) {
+-                    this.handleEntityOnFireInside(iblockdata, world, blockposition1);
++                    // CraftBukkit start
++                    if (this.handleEntityOnFireInside(iblockdata, world, blockposition1, entity)) {
++                        insideblockeffectapplier.apply(InsideBlockEffectType.EXTINGUISH);
++                    }
++                    // CraftBukkit end
+                 }
+ 
+             });
+         }
+ 
+-        insideblockeffectapplier.apply(InsideBlockEffectType.EXTINGUISH);
++        // insideblockeffectapplier.apply(InsideBlockEffectType.EXTINGUISH); // CraftBukkit start - moved up
+     }
+ 
+-    private void handleEntityOnFireInside(IBlockData iblockdata, World world, BlockPosition blockposition) {
++    // CraftBukkit start
++    private boolean handleEntityOnFireInside(IBlockData iblockdata, World world, BlockPosition blockposition, Entity entity) {
+         if (this.precipitationType == BiomeBase.Precipitation.SNOW) {
+-            lowerFillLevel((IBlockData) Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, (Integer) iblockdata.getValue(LayeredCauldronBlock.LEVEL)), world, blockposition);
++            return lowerFillLevel((IBlockData) Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, (Integer) iblockdata.getValue(LayeredCauldronBlock.LEVEL)), world, blockposition, entity, CauldronLevelChangeEvent.ChangeReason.EXTINGUISH);
+         } else {
+-            lowerFillLevel(iblockdata, world, blockposition);
++            return lowerFillLevel(iblockdata, world, blockposition, entity, CauldronLevelChangeEvent.ChangeReason.EXTINGUISH);
++            // CraftBukkit end
+         }
+ 
+     }
+ 
+     public static void lowerFillLevel(IBlockData iblockdata, World world, BlockPosition blockposition) {
++        // CraftBukkit start
++        lowerFillLevel(iblockdata, world, blockposition, null, CauldronLevelChangeEvent.ChangeReason.UNKNOWN);
++    }
++
++    public static boolean lowerFillLevel(IBlockData iblockdata, World world, BlockPosition blockposition, Entity entity, CauldronLevelChangeEvent.ChangeReason reason) {
+         int i = (Integer) iblockdata.getValue(LayeredCauldronBlock.LEVEL) - 1;
+         IBlockData iblockdata1 = i == 0 ? Blocks.CAULDRON.defaultBlockState() : (IBlockData) iblockdata.setValue(LayeredCauldronBlock.LEVEL, i);
+ 
+-        world.setBlockAndUpdate(blockposition, iblockdata1);
+-        world.gameEvent(GameEvent.BLOCK_CHANGE, blockposition, GameEvent.a.of(iblockdata1));
++        return changeLevel(iblockdata, world, blockposition, iblockdata1, entity, reason);
+     }
+ 
++    // CraftBukkit start
++    public static boolean changeLevel(IBlockData iblockdata, World world, BlockPosition blockposition, IBlockData newBlock, Entity entity, CauldronLevelChangeEvent.ChangeReason reason) {
++        CraftBlockState newState = CraftBlockStates.getBlockState(world, blockposition);
++        newState.setData(newBlock);
++
++        CauldronLevelChangeEvent event = new CauldronLevelChangeEvent(
++                world.getWorld().getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ()),
++                (entity == null) ? null : entity.getBukkitEntity(), reason, newState
++        );
++        world.getCraftServer().getPluginManager().callEvent(event);
++        if (event.isCancelled()) {
++            return false;
++        }
++        newState.update(true);
++        world.gameEvent(GameEvent.BLOCK_CHANGE, blockposition, GameEvent.a.of(newBlock));
++        return true;
++    }
++    // CraftBukkit end
++
+     @Override
+     public void handlePrecipitation(IBlockData iblockdata, World world, BlockPosition blockposition, BiomeBase.Precipitation biomebase_precipitation) {
+         if (BlockCauldron.shouldHandlePrecipitation(world, biomebase_precipitation) && (Integer) iblockdata.getValue(LayeredCauldronBlock.LEVEL) != 3 && biomebase_precipitation == this.precipitationType) {
+             IBlockData iblockdata1 = (IBlockData) iblockdata.cycle(LayeredCauldronBlock.LEVEL);
+ 
+-            world.setBlockAndUpdate(blockposition, iblockdata1);
+-            world.gameEvent(GameEvent.BLOCK_CHANGE, blockposition, GameEvent.a.of(iblockdata1));
++            changeLevel(iblockdata, world, blockposition, iblockdata1, null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL); // CraftBukkit
+         }
+     }
+ 
+@@ -138,8 +172,11 @@
+         if (!this.isFull(iblockdata)) {
+             IBlockData iblockdata1 = (IBlockData) iblockdata.setValue(LayeredCauldronBlock.LEVEL, (Integer) iblockdata.getValue(LayeredCauldronBlock.LEVEL) + 1);
+ 
+-            world.setBlockAndUpdate(blockposition, iblockdata1);
+-            world.gameEvent(GameEvent.BLOCK_CHANGE, blockposition, GameEvent.a.of(iblockdata1));
++            // CraftBukkit start
++            if (!changeLevel(iblockdata, world, blockposition, iblockdata1, null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL)) {
++                return;
++            }
++            // CraftBukkit end
+             world.levelEvent(1047, blockposition, 0);
+         }
+     }

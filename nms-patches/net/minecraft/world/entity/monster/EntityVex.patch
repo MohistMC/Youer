@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/entity/monster/EntityVex.java
++++ b/net/minecraft/world/entity/monster/EntityVex.java
+@@ -110,7 +110,7 @@
+     @Override
+     protected void readAdditionalSaveData(ValueInput valueinput) {
+         super.readAdditionalSaveData(valueinput);
+-        this.boundOrigin = (BlockPosition) valueinput.read("bound_pos", BlockPosition.CODEC).orElse((Object) null);
++        this.boundOrigin = (BlockPosition) valueinput.read("bound_pos", BlockPosition.CODEC).orElse(null); // CraftBukkit - decompile error
+         valueinput.getInt("life_ticks").ifPresentOrElse(this::setLimitedLife, () -> {
+             this.hasLimitedLife = false;
+         });
+@@ -380,7 +380,7 @@
+         public void start() {
+             EntityInsentient entityinsentient = EntityVex.this.getOwner();
+ 
+-            EntityVex.this.setTarget(entityinsentient != null ? entityinsentient.getTarget() : null);
++            EntityVex.this.setTarget(entityinsentient != null ? entityinsentient.getTarget() : null, org.bukkit.event.entity.EntityTargetEvent.TargetReason.OWNER_ATTACKED_TARGET, true); // CraftBukkit
+             super.start();
+         }
+     }

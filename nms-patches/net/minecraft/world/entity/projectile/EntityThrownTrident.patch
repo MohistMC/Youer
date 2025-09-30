@@ -1,0 +1,26 @@
+--- a/net/minecraft/world/entity/projectile/EntityThrownTrident.java
++++ b/net/minecraft/world/entity/projectile/EntityThrownTrident.java
+@@ -25,6 +25,10 @@
+ import net.minecraft.world.phys.MovingObjectPositionEntity;
+ import net.minecraft.world.phys.Vec3D;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public class EntityThrownTrident extends EntityArrow {
+ 
+     private static final DataWatcherObject<Byte> ID_LOYALTY = DataWatcher.<Byte>defineId(EntityThrownTrident.class, DataWatcherRegistry.BYTE);
+@@ -78,10 +82,10 @@
+                     }
+                 }
+ 
+-                this.discard();
++                this.discard(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
+             } else {
+                 if (!(entity instanceof EntityHuman) && this.position().distanceTo(entity.getEyePosition()) < (double) entity.getBbWidth() + 1.0D) {
+-                    this.discard();
++                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                     return;
+                 }
+ 

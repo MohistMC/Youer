@@ -1,0 +1,51 @@
+--- a/net/minecraft/world/entity/animal/EntityCat.java
++++ b/net/minecraft/world/entity/animal/EntityCat.java
+@@ -461,7 +461,7 @@
+     }
+ 
+     private void tryToTame(EntityHuman entityhuman) {
+-        if (this.random.nextInt(3) == 0) {
++        if (this.random.nextInt(3) == 0 && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, entityhuman).isCancelled()) { // CraftBukkit
+             this.tame(entityhuman);
+             this.setOrderedToSit(true);
+             this.level().broadcastEntityEvent(this, (byte) 7);
+@@ -481,10 +481,10 @@
+         private final EntityCat cat;
+ 
+         public a(EntityCat entitycat, Class<T> oclass, float f, double d0, double d1) {
+-            Predicate predicate = IEntitySelector.NO_CREATIVE_OR_SPECTATOR;
++            // Predicate predicate = IEntitySelector.NO_CREATIVE_OR_SPECTATOR; // CraftBukkit - decompile error
+ 
+-            Objects.requireNonNull(predicate);
+-            super(entitycat, oclass, f, d0, d1, predicate::test);
++            // Objects.requireNonNull(predicate); // CraftBukkit - decompile error
++            super(entitycat, oclass, f, d0, d1, IEntitySelector.NO_CREATIVE_OR_SPECTATOR::test); // CraftBukkit - decompile error
+             this.cat = entitycat;
+         }
+ 
+@@ -502,7 +502,7 @@
+     private static class PathfinderGoalTemptChance extends PathfinderGoalTempt {
+ 
+         @Nullable
+-        private EntityHuman selectedPlayer;
++        private EntityLiving selectedPlayer; // CraftBukkit
+         private final EntityCat cat;
+ 
+         public PathfinderGoalTemptChance(EntityCat entitycat, double d0, Predicate<ItemStack> predicate, boolean flag) {
+@@ -629,7 +629,15 @@
+             this.cat.randomTeleport((double) (blockposition_mutableblockposition.getX() + randomsource.nextInt(11) - 5), (double) (blockposition_mutableblockposition.getY() + randomsource.nextInt(5) - 2), (double) (blockposition_mutableblockposition.getZ() + randomsource.nextInt(11) - 5), false);
+             blockposition_mutableblockposition.set(this.cat.blockPosition());
+             this.cat.dropFromGiftLootTable(getServerLevel((Entity) this.cat), LootTables.CAT_MORNING_GIFT, (worldserver, itemstack) -> {
+-                worldserver.addFreshEntity(new EntityItem(worldserver, (double) blockposition_mutableblockposition.getX() - (double) MathHelper.sin(this.cat.yBodyRot * ((float) Math.PI / 180F)), (double) blockposition_mutableblockposition.getY(), (double) blockposition_mutableblockposition.getZ() + (double) MathHelper.cos(this.cat.yBodyRot * ((float) Math.PI / 180F)), itemstack));
++                // CraftBukkit start
++                EntityItem entityitem = new EntityItem(worldserver, (double) blockposition_mutableblockposition.getX() - (double) MathHelper.sin(this.cat.yBodyRot * ((float) Math.PI / 180F)), (double) blockposition_mutableblockposition.getY(), (double) blockposition_mutableblockposition.getZ() + (double) MathHelper.cos(this.cat.yBodyRot * ((float) Math.PI / 180F)), itemstack);
++                org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.cat.getBukkitEntity(), (org.bukkit.entity.Item) entityitem.getBukkitEntity());
++                entityitem.level().getCraftServer().getPluginManager().callEvent(event);
++                if (event.isCancelled()) {
++                    return;
++                }
++                worldserver.addFreshEntity(entityitem);
++                // CraftBukkit end
+             });
+         }
+ 

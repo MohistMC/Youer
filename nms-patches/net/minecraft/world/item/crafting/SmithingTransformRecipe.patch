@@ -1,0 +1,34 @@
+--- a/net/minecraft/world/item/crafting/SmithingTransformRecipe.java
++++ b/net/minecraft/world/item/crafting/SmithingTransformRecipe.java
+@@ -14,6 +14,13 @@
+ import net.minecraft.world.item.crafting.display.SlotDisplay;
+ import net.minecraft.world.item.crafting.display.SmithingRecipeDisplay;
+ 
++// CraftBukkit start
++import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.inventory.CraftRecipe;
++import org.bukkit.craftbukkit.inventory.CraftSmithingTransformRecipe;
++import org.bukkit.inventory.Recipe;
++// CraftBukkit end
++
+ public class SmithingTransformRecipe implements SmithingRecipe {
+ 
+     final Optional<RecipeItemStack> template;
+@@ -68,6 +75,17 @@
+         return List.of(new SmithingRecipeDisplay(RecipeItemStack.optionalIngredientToDisplay(this.template), this.base.display(), RecipeItemStack.optionalIngredientToDisplay(this.addition), this.result.display(), new SlotDisplay.d(Items.SMITHING_TABLE)));
+     }
+ 
++    // CraftBukkit start
++    @Override
++    public Recipe toBukkitRecipe(NamespacedKey id) {
++        org.bukkit.inventory.ItemStack result = CraftRecipe.toBukkit(this.result);
++
++        CraftSmithingTransformRecipe recipe = new CraftSmithingTransformRecipe(id, result, CraftRecipe.toBukkit(this.template), CraftRecipe.toBukkit(this.base), CraftRecipe.toBukkit(this.addition));
++
++        return recipe;
++    }
++    // CraftBukkit end
++
+     public static class a implements RecipeSerializer<SmithingTransformRecipe> {
+ 
+         private static final MapCodec<SmithingTransformRecipe> CODEC = RecordCodecBuilder.mapCodec((instance) -> {

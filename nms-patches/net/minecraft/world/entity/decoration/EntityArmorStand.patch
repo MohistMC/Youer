@@ -1,0 +1,172 @@
+--- a/net/minecraft/world/entity/decoration/EntityArmorStand.java
++++ b/net/minecraft/world/entity/decoration/EntityArmorStand.java
+@@ -47,6 +47,16 @@
+ import net.minecraft.world.phys.AxisAlignedBB;
+ import net.minecraft.world.phys.Vec3D;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.inventory.EquipmentSlot;
++import org.bukkit.craftbukkit.CraftEquipmentSlot;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.entity.ArmorStand;
++import org.bukkit.entity.Player;
++import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
++// CraftBukkit end
++
+ public class EntityArmorStand extends EntityLiving {
+ 
+     public static final int WOBBLE_TIME = 5;
+@@ -114,6 +124,13 @@
+         return createLivingAttributes().add(GenericAttributes.STEP_HEIGHT, 0.0D);
+     }
+ 
++    // CraftBukkit start - SPIGOT-3607, SPIGOT-3637
++    @Override
++    public float getBukkitYaw() {
++        return this.getYRot();
++    }
++    // CraftBukkit end
++
+     @Override
+     public void refreshDimensions() {
+         double d0 = this.getX();
+@@ -268,7 +285,25 @@
+             return false;
+         } else if (itemstack1.isEmpty() && (this.disabledSlots & 1 << enumitemslot.getFilterBit(16)) != 0) {
+             return false;
+-        } else if (entityhuman.hasInfiniteMaterials() && itemstack1.isEmpty() && !itemstack.isEmpty()) {
++            // CraftBukkit start
++        } else {
++            org.bukkit.inventory.ItemStack armorStandItem = CraftItemStack.asCraftMirror(itemstack1);
++            org.bukkit.inventory.ItemStack playerHeldItem = CraftItemStack.asCraftMirror(itemstack);
++
++            Player player = (Player) entityhuman.getBukkitEntity();
++            ArmorStand self = (ArmorStand) this.getBukkitEntity();
++
++            EquipmentSlot slot = CraftEquipmentSlot.getSlot(enumitemslot);
++            EquipmentSlot hand = CraftEquipmentSlot.getHand(enumhand);
++            PlayerArmorStandManipulateEvent armorStandManipulateEvent = new PlayerArmorStandManipulateEvent(player, self, playerHeldItem, armorStandItem, slot, hand);
++            this.level().getCraftServer().getPluginManager().callEvent(armorStandManipulateEvent);
++
++            if (armorStandManipulateEvent.isCancelled()) {
++                return true;
++            }
++
++        if (entityhuman.hasInfiniteMaterials() && itemstack1.isEmpty() && !itemstack.isEmpty()) {
++            // CraftBukkit end
+             this.setItemSlot(enumitemslot, itemstack.copyWithCount(1));
+             return true;
+         } else if (!itemstack.isEmpty() && itemstack.getCount() > 1) {
+@@ -283,6 +318,7 @@
+             entityhuman.setItemInHand(enumhand, itemstack1);
+             return true;
+         }
++        } // CraftBukkit
+     }
+ 
+     @Override
+@@ -292,12 +328,22 @@
+         } else if (!worldserver.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) && damagesource.getEntity() instanceof EntityInsentient) {
+             return false;
+         } else if (damagesource.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+-            this.kill(worldserver);
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, damagesource, f)) {
++                return false;
++            }
++            this.kill(worldserver, damagesource); // CraftBukkit
++            // CraftBukkit end
+             return false;
+-        } else if (!this.isInvulnerableTo(worldserver, damagesource) && !this.invisible && !this.isMarker()) {
++        } else if (!this.isInvulnerableTo(worldserver, damagesource) && (true || !this.invisible) && !this.isMarker()) { // CraftBukkit
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, damagesource, f, true, this.invisible)) {
++                return false;
++            }
++            // CraftBukkit end
+             if (damagesource.is(DamageTypeTags.IS_EXPLOSION)) {
+                 this.brokenByAnything(worldserver, damagesource);
+-                this.kill(worldserver);
++                this.kill(worldserver, damagesource); // CraftBukkit
+                 return false;
+             } else if (damagesource.is(DamageTypeTags.IGNITES_ARMOR_STANDS)) {
+                 if (this.isOnFire()) {
+@@ -330,7 +376,7 @@
+                     if (damagesource.isCreativePlayer()) {
+                         this.playBrokenSound();
+                         this.showBreakingParticles();
+-                        this.kill(worldserver);
++                        this.kill(worldserver, damagesource); // CraftBukkit
+                         return true;
+                     } else {
+                         long i = worldserver.getGameTime();
+@@ -342,7 +388,7 @@
+                         } else {
+                             this.brokenByPlayer(worldserver, damagesource);
+                             this.showBreakingParticles();
+-                            this.kill(worldserver);
++                            this.discard(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - SPIGOT-4890: remain as this.discard() since above damagesource method will call death event
+                         }
+ 
+                         return true;
+@@ -392,7 +438,7 @@
+         f1 -= f;
+         if (f1 <= 0.5F) {
+             this.brokenByAnything(worldserver, damagesource);
+-            this.kill(worldserver);
++            this.kill(worldserver, damagesource); // CraftBukkit
+         } else {
+             this.setHealth(f1);
+             this.gameEvent(GameEvent.ENTITY_DAMAGE, damagesource.getEntity());
+@@ -404,21 +450,22 @@
+         ItemStack itemstack = new ItemStack(Items.ARMOR_STAND);
+ 
+         itemstack.set(DataComponents.CUSTOM_NAME, this.getCustomName());
+-        Block.popResource(this.level(), this.blockPosition(), itemstack);
++        drops.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemstack)); // CraftBukkit - add to drops
+         this.brokenByAnything(worldserver, damagesource);
+     }
+ 
+     private void brokenByAnything(WorldServer worldserver, DamageSource damagesource) {
+         this.playBrokenSound();
+-        this.dropAllDeathLoot(worldserver, damagesource);
++        // this.dropAllDeathLoot(worldserver, damagesource); // CraftBukkit - moved down
+ 
+         for (EnumItemSlot enumitemslot : EnumItemSlot.VALUES) {
+             ItemStack itemstack = this.equipment.set(enumitemslot, ItemStack.EMPTY);
+ 
+             if (!itemstack.isEmpty()) {
+-                Block.popResource(this.level(), this.blockPosition().above(), itemstack);
++                drops.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemstack)); // CraftBukkit - add to drops
+             }
+         }
++        this.dropAllDeathLoot(worldserver, damagesource); // CraftBukkit - moved from above
+ 
+     }
+ 
+@@ -467,9 +514,23 @@
+         return this.isSmall();
+     }
+ 
++    // CraftBukkit start
++    @Override
++    public boolean shouldDropExperience() {
++        return true; // MC-157395, SPIGOT-5193 even baby (small) armor stands should drop
++    }
++    // CraftBukkit end
++
+     @Override
+     public void kill(WorldServer worldserver) {
+-        this.remove(Entity.RemovalReason.KILLED);
++        // CraftBukkit start - pass DamageSource for kill
++        this.kill(worldserver, null);
++    }
++
++    public void kill(WorldServer worldserver, DamageSource damageSource) {
++        org.bukkit.craftbukkit.event.CraftEventFactory.callEntityDeathEvent(this, (damageSource == null ? this.damageSources().genericKill() : damageSource), drops); // CraftBukkit - call event
++        this.remove(Entity.RemovalReason.KILLED, EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
++        // CraftBukkit end
+         this.gameEvent(GameEvent.ENTITY_DIE);
+     }
+ 

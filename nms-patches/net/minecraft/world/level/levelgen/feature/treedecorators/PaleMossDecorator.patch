@@ -1,0 +1,22 @@
+--- a/net/minecraft/world/level/levelgen/feature/treedecorators/PaleMossDecorator.java
++++ b/net/minecraft/world/level/levelgen/feature/treedecorators/PaleMossDecorator.java
+@@ -17,6 +17,10 @@
+ import org.apache.commons.lang3.mutable.Mutable;
+ import org.apache.commons.lang3.mutable.MutableObject;
+ 
++// CraftBukkit start
++import net.minecraft.server.level.ChunkProviderServer;
++// CraftBukkit end
++
+ public class PaleMossDecorator extends WorldGenFeatureTree {
+ 
+     public static final MapCodec<PaleMossDecorator> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
+@@ -64,7 +68,7 @@
+                 generatoraccessseed.registryAccess().lookup(Registries.CONFIGURED_FEATURE).flatMap((iregistry) -> {
+                     return iregistry.get(VegetationFeatures.PALE_MOSS_PATCH);
+                 }).ifPresent((holder_c) -> {
+-                    ((WorldGenFeatureConfigured) holder_c.value()).place(generatoraccessseed, generatoraccessseed.getLevel().getChunkSource().getGenerator(), randomsource, blockposition.above());
++                    ((WorldGenFeatureConfigured) holder_c.value()).place(generatoraccessseed, ((ChunkProviderServer) generatoraccessseed.getChunkSource()).getGenerator(), randomsource, blockposition.above()); // CraftBukkit - don't use level from DummyGeneratorAccess
+                 });
+             }
+ 

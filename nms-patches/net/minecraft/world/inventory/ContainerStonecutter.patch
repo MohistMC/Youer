@@ -1,0 +1,68 @@
+--- a/net/minecraft/world/inventory/ContainerStonecutter.java
++++ b/net/minecraft/world/inventory/ContainerStonecutter.java
+@@ -18,6 +18,13 @@
+ import net.minecraft.world.level.World;
+ import net.minecraft.world.level.block.Blocks;
+ 
++// CraftBukkit start
++import org.bukkit.Location;
++import org.bukkit.craftbukkit.inventory.CraftInventoryStonecutter;
++import org.bukkit.craftbukkit.inventory.view.CraftStonecutterView;
++import org.bukkit.entity.Player;
++// CraftBukkit end
++
+ public class ContainerStonecutter extends Container {
+ 
+     public static final int INPUT_SLOT = 0;
+@@ -37,6 +44,21 @@
+     Runnable slotUpdateListener;
+     public final IInventory container;
+     final InventoryCraftResult resultContainer;
++    // CraftBukkit start
++    private CraftStonecutterView bukkitEntity = null;
++    private Player player;
++
++    @Override
++    public CraftStonecutterView getBukkitView() {
++        if (bukkitEntity != null) {
++            return bukkitEntity;
++        }
++
++        CraftInventoryStonecutter inventory = new CraftInventoryStonecutter(this.container, this.resultContainer);
++        bukkitEntity = new CraftStonecutterView(this.player, inventory, this);
++        return bukkitEntity;
++    }
++    // CraftBukkit end
+ 
+     public ContainerStonecutter(int i, PlayerInventory playerinventory) {
+         this(i, playerinventory, ContainerAccess.NULL);
+@@ -56,6 +78,13 @@
+                 ContainerStonecutter.this.slotsChanged(this);
+                 ContainerStonecutter.this.slotUpdateListener.run();
+             }
++
++            // CraftBukkit start
++            @Override
++            public Location getLocation() {
++                return containeraccess.getLocation();
++            }
++            // CraftBukkit end
+         };
+         this.resultContainer = new InventoryCraftResult();
+         this.access = containeraccess;
+@@ -95,6 +124,7 @@
+         });
+         this.addStandardInventorySlots(playerinventory, 8, 84);
+         this.addDataSlot(this.selectedRecipeIndex);
++        player = (Player) playerinventory.player.getBukkitEntity(); // CraftBukkit
+     }
+ 
+     public int getSelectedRecipeIndex() {
+@@ -115,6 +145,7 @@
+ 
+     @Override
+     public boolean stillValid(EntityHuman entityhuman) {
++        if (!this.checkReachable) return true; // CraftBukkit
+         return stillValid(this.access, entityhuman, Blocks.STONECUTTER);
+     }
+ 

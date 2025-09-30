@@ -31,7 +31,7 @@ public interface CustomItemTagContainer {
      * @throws NullPointerException if the key is null
      * @throws NullPointerException if the type is null
      * @throws NullPointerException if the value is null. Removing a custom tag
-     * should be done using {@link #removeCustomTag(NamespacedKey)}
+     * should be done using {@link #removeCustomTag(org.bukkit.NamespacedKey)}
      * @throws IllegalArgumentException if no suitable adapter will be found for
      * the {@link ItemTagType#getPrimitiveType()}
      */

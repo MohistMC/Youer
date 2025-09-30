@@ -1,0 +1,53 @@
+--- a/net/minecraft/world/item/ItemBoat.java
++++ b/net/minecraft/world/item/ItemBoat.java
+@@ -20,6 +20,10 @@
+ import net.minecraft.world.phys.MovingObjectPosition;
+ import net.minecraft.world.phys.Vec3D;
+ 
++// CraftBukkit start
++import net.minecraft.world.phys.MovingObjectPositionBlock;
++// CraftBukkit end
++
+ public class ItemBoat extends Item {
+ 
+     private final EntityTypes<? extends AbstractBoat> entityType;
+@@ -32,7 +36,7 @@
+     @Override
+     public EnumInteractionResult use(World world, EntityHuman entityhuman, EnumHand enumhand) {
+         ItemStack itemstack = entityhuman.getItemInHand(enumhand);
+-        MovingObjectPosition movingobjectposition = getPlayerPOVHitResult(world, entityhuman, RayTrace.FluidCollisionOption.ANY);
++        MovingObjectPositionBlock movingobjectposition = getPlayerPOVHitResult(world, entityhuman, RayTrace.FluidCollisionOption.ANY); // CraftBukkit
+ 
+         if (movingobjectposition.getType() == MovingObjectPosition.EnumMovingObjectType.MISS) {
+             return EnumInteractionResult.PASS;
+@@ -54,6 +58,13 @@
+             }
+ 
+             if (movingobjectposition.getType() == MovingObjectPosition.EnumMovingObjectType.BLOCK) {
++                // CraftBukkit start - Boat placement
++                org.bukkit.event.player.PlayerInteractEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(entityhuman, org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK, movingobjectposition.getBlockPos(), movingobjectposition.getDirection(), itemstack, false, enumhand, movingobjectposition.getLocation());
++
++                if (event.isCancelled()) {
++                    return EnumInteractionResult.PASS;
++                }
++                // CraftBukkit end
+                 AbstractBoat abstractboat = this.getBoat(world, movingobjectposition, itemstack, entityhuman);
+ 
+                 if (abstractboat == null) {
+@@ -64,7 +75,15 @@
+                         return EnumInteractionResult.FAIL;
+                     } else {
+                         if (!world.isClientSide()) {
+-                            world.addFreshEntity(abstractboat);
++                            // CraftBukkit start
++                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPlaceEvent(world, movingobjectposition.getBlockPos(), movingobjectposition.getDirection(), entityhuman, abstractboat, enumhand).isCancelled()) {
++                                return EnumInteractionResult.FAIL;
++                            }
++
++                            if (!world.addFreshEntity(abstractboat)) {
++                                return EnumInteractionResult.PASS;
++                            }
++                            // CraftBukkit end
+                             world.gameEvent(entityhuman, (Holder) GameEvent.ENTITY_PLACE, movingobjectposition.getLocation());
+                             itemstack.consume(1, entityhuman);
+                         }

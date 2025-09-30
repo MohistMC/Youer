@@ -26,7 +26,7 @@ public interface ArmorStand extends LivingEntity {
      * @param item the item to hold
      * @see #getEquipment()
      * @deprecated prefer
-     * {@link EntityEquipment#setItemInHand(ItemStack)}
+     * {@link EntityEquipment#setItemInHand(org.bukkit.inventory.ItemStack)}
      */
     @Deprecated(since = "1.15.2")
     void setItemInHand(@Nullable ItemStack item);
@@ -48,7 +48,7 @@ public interface ArmorStand extends LivingEntity {
      * @param item the item to wear
      * @see #getEquipment()
      * @deprecated prefer
-     * {@link EntityEquipment#setBoots(ItemStack)}
+     * {@link EntityEquipment#setBoots(org.bukkit.inventory.ItemStack)}
      */
     @Deprecated(since = "1.15.2")
     void setBoots(@Nullable ItemStack item);
@@ -70,7 +70,7 @@ public interface ArmorStand extends LivingEntity {
      * @param item the item to wear
      * @see #getEquipment()
      * @deprecated prefer
-     * {@link EntityEquipment#setLeggings(ItemStack)}
+     * {@link EntityEquipment#setLeggings(org.bukkit.inventory.ItemStack)}
      */
     @Deprecated(since = "1.15.2")
     void setLeggings(@Nullable ItemStack item);
@@ -92,7 +92,7 @@ public interface ArmorStand extends LivingEntity {
      * @param item the item to wear
      * @see #getEquipment()
      * @deprecated prefer
-     * {@link EntityEquipment#setChestplate(ItemStack)}
+     * {@link EntityEquipment#setChestplate(org.bukkit.inventory.ItemStack)}
      */
     @Deprecated(since = "1.15.2")
     void setChestplate(@Nullable ItemStack item);
@@ -114,14 +114,14 @@ public interface ArmorStand extends LivingEntity {
      * @param item the item to wear
      * @see #getEquipment()
      * @deprecated prefer
-     * {@link EntityEquipment#setHelmet(ItemStack)}
+     * {@link EntityEquipment#setHelmet(org.bukkit.inventory.ItemStack)}
      */
     @Deprecated(since = "1.15.2")
     void setHelmet(@Nullable ItemStack item);
 
     /**
      * Returns the armor stand's body's current pose as a
-     * {@link EulerAngle}.
+     * {@link org.bukkit.util.EulerAngle}.
      *
      * @return the current pose
      */
@@ -130,7 +130,7 @@ public interface ArmorStand extends LivingEntity {
 
     /**
      * Sets the armor stand's body's current pose as a
-     * {@link EulerAngle}.
+     * {@link org.bukkit.util.EulerAngle}.
      *
      * @param pose the current pose
      */
@@ -138,7 +138,7 @@ public interface ArmorStand extends LivingEntity {
 
     /**
      * Returns the armor stand's left arm's current pose as a
-     * {@link EulerAngle}.
+     * {@link org.bukkit.util.EulerAngle}.
      *
      * @return the current pose
      */
@@ -147,7 +147,7 @@ public interface ArmorStand extends LivingEntity {
 
     /**
      * Sets the armor stand's left arm's current pose as a
-     * {@link EulerAngle}.
+     * {@link org.bukkit.util.EulerAngle}.
      *
      * @param pose the current pose
      */
@@ -155,7 +155,7 @@ public interface ArmorStand extends LivingEntity {
 
     /**
      * Returns the armor stand's right arm's current pose as a
-     * {@link EulerAngle}.
+     * {@link org.bukkit.util.EulerAngle}.
      *
      * @return the current pose
      */
@@ -164,7 +164,7 @@ public interface ArmorStand extends LivingEntity {
 
     /**
      * Sets the armor stand's right arm's current pose as a
-     * {@link EulerAngle}.
+     * {@link org.bukkit.util.EulerAngle}.
      *
      * @param pose the current pose
      */
@@ -172,7 +172,7 @@ public interface ArmorStand extends LivingEntity {
 
     /**
      * Returns the armor stand's left leg's current pose as a
-     * {@link EulerAngle}.
+     * {@link org.bukkit.util.EulerAngle}.
      *
      * @return the current pose
      */
@@ -181,7 +181,7 @@ public interface ArmorStand extends LivingEntity {
 
     /**
      * Sets the armor stand's left leg's current pose as a
-     * {@link EulerAngle}.
+     * {@link org.bukkit.util.EulerAngle}.
      *
      * @param pose the current pose
      */
@@ -189,7 +189,7 @@ public interface ArmorStand extends LivingEntity {
 
     /**
      * Returns the armor stand's right leg's current pose as a
-     * {@link EulerAngle}.
+     * {@link org.bukkit.util.EulerAngle}.
      *
      * @return the current pose
      */
@@ -198,7 +198,7 @@ public interface ArmorStand extends LivingEntity {
 
     /**
      * Sets the armor stand's right leg's current pose as a
-     * {@link EulerAngle}.
+     * {@link org.bukkit.util.EulerAngle}.
      *
      * @param pose the current pose
      */
@@ -206,7 +206,7 @@ public interface ArmorStand extends LivingEntity {
 
     /**
      * Returns the armor stand's head's current pose as a
-     * {@link EulerAngle}.
+     * {@link org.bukkit.util.EulerAngle}.
      *
      * @return the current pose
      */
@@ -215,7 +215,7 @@ public interface ArmorStand extends LivingEntity {
 
     /**
      * Sets the armor stand's head's current pose as a
-     * {@link EulerAngle}.
+     * {@link org.bukkit.util.EulerAngle}.
      *
      * @param pose the current pose
      */

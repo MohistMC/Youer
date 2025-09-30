@@ -27,7 +27,7 @@ public interface AbstractArrow extends Projectile {
      * Sets the knockback strength for an arrow.
      *
      * @param knockbackStrength the knockback strength value
-     * @see #setWeapon(ItemStack)
+     * @see #setWeapon(org.bukkit.inventory.ItemStack)
      * @deprecated a function of the firing weapon
      */
     @Deprecated(since = "1.21")
@@ -129,7 +129,7 @@ public interface AbstractArrow extends Projectile {
      * Sets if this arrow was shot from a crossbow.
      *
      * @param shotFromCrossbow if shot from a crossbow
-     * @see #setWeapon(ItemStack)
+     * @see #setWeapon(org.bukkit.inventory.ItemStack)
      * @deprecated a function of the firing weapon instead
      */
     @Deprecated(since = "1.21")

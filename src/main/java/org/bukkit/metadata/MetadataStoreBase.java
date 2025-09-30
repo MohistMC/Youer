@@ -92,7 +92,7 @@ public abstract class MetadataStoreBase<T> {
      * @param owningPlugin the plugin attempting to remove a metadata item.
      * @throws IllegalArgumentException If plugin is null
      * @see MetadataStore#removeMetadata(Object, String,
-     *     Plugin)
+     *     org.bukkit.plugin.Plugin)
      */
     public synchronized void removeMetadata(@NotNull T subject, @NotNull String metadataKey, @NotNull Plugin owningPlugin) {
         Preconditions.checkArgument(owningPlugin != null, "Plugin cannot be null");
@@ -115,7 +115,7 @@ public abstract class MetadataStoreBase<T> {
      *
      * @param owningPlugin the plugin requesting the invalidation.
      * @throws IllegalArgumentException If plugin is null
-     * @see MetadataStore#invalidateAll(Plugin)
+     * @see MetadataStore#invalidateAll(org.bukkit.plugin.Plugin)
      */
     public synchronized void invalidateAll(@NotNull Plugin owningPlugin) {
         Preconditions.checkArgument(owningPlugin != null, "Plugin cannot be null");

@@ -114,7 +114,7 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      *
      * @param maxDistance the maximum distance to scan
      * @return block that the living entity has targeted
-     * @see #getTargetBlockExact(int, FluidCollisionMode)
+     * @see #getTargetBlockExact(int, org.bukkit.FluidCollisionMode)
      */
     @Nullable
     public Block getTargetBlockExact(int maxDistance);

@@ -1,0 +1,83 @@
+--- a/net/minecraft/server/network/config/PrepareSpawnTask.java
++++ b/net/minecraft/server/network/config/PrepareSpawnTask.java
+@@ -28,18 +28,23 @@
+ import net.minecraft.world.phys.Vec3D;
+ import org.slf4j.Logger;
+ 
++// CraftBukkit start
++import net.minecraft.resources.ResourceKey;
++import net.minecraft.world.level.World;
++// CraftBukkit end
++
+ public class PrepareSpawnTask implements ConfigurationTask {
+ 
+     static final Logger LOGGER = LogUtils.getLogger();
+     public static final ConfigurationTask.a TYPE = new ConfigurationTask.a("prepare_spawn");
+     public static final int PREPARE_CHUNK_RADIUS = 3;
+     final MinecraftServer server;
+-    final NameAndId nameAndId;
++    final EntityPlayer nameAndId;
+     final LevelLoadListener loadListener;
+     @Nullable
+     private PrepareSpawnTask.c state;
+ 
+-    public PrepareSpawnTask(MinecraftServer minecraftserver, NameAndId nameandid) {
++    public PrepareSpawnTask(MinecraftServer minecraftserver, EntityPlayer nameandid) { // CraftBukkit
+         this.server = minecraftserver;
+         this.nameAndId = nameandid;
+         this.loadListener = minecraftserver.getLevelLoadListener();
+@@ -54,8 +59,8 @@
+             EntityPlayer.c entityplayer_c = (EntityPlayer.c) optional.flatMap((valueinput) -> {
+                 return valueinput.read(EntityPlayer.c.MAP_CODEC);
+             }).orElse(EntityPlayer.c.EMPTY);
+-            WorldData.a worlddata_a = this.server.getWorldData().overworldData().getRespawnData();
+-            Optional optional1 = entityplayer_c.dimension();
++            WorldData.a worlddata_a = this.nameAndId.level().getRespawnData(); // CraftBukkit - SPIGOT-7507: If no dimension, fall back to existing dimension loaded from "WorldUUID", which in turn defaults to World.OVERWORLD
++            Optional<ResourceKey<World>> optional1 = entityplayer_c.dimension(); // CraftBukkit - decompile error
+             MinecraftServer minecraftserver = this.server;
+ 
+             Objects.requireNonNull(this.server);
+@@ -83,11 +88,9 @@
+         //$FF: b0->value
+         //0->net/minecraft/server/network/config/PrepareSpawnTask$a
+         //1->net/minecraft/server/network/config/PrepareSpawnTask$b
+-        switch (preparespawntask_c.typeSwitch<invokedynamic>(preparespawntask_c, b0)) {
+-            case -1:
+-                flag = false;
+-                break;
+-            case 0:
++        // CraftBukkit start - decompile error
++        {
++            if (preparespawntask_c instanceof PrepareSpawnTask.a) {
+                 PrepareSpawnTask.a preparespawntask_a = (PrepareSpawnTask.a)preparespawntask_c;
+                 PrepareSpawnTask.b preparespawntask_b = preparespawntask_a.tick();
+ 
+@@ -97,14 +100,14 @@
+                 } else {
+                     flag = false;
+                 }
+-                break;
+-            case 1:
++            } else if (preparespawntask_c instanceof PrepareSpawnTask.b) {
+                 PrepareSpawnTask.b preparespawntask_b1 = (PrepareSpawnTask.b)preparespawntask_c;
+ 
+                 flag = true;
+-                break;
+-            default:
+-                throw new MatchException((String)null, (Throwable)null);
++            } else {
++                flag = false;
++            }
++            // CraftBukkit
+         }
+ 
+         return flag;
+@@ -211,7 +214,7 @@
+             ChunkCoordIntPair chunkcoordintpair = new ChunkCoordIntPair(BlockPosition.containing(this.spawnPosition));
+ 
+             this.spawnLevel.waitForEntities(chunkcoordintpair, 3);
+-            EntityPlayer entityplayer = new EntityPlayer(PrepareSpawnTask.this.server, this.spawnLevel, commonlistenercookie.gameProfile(), commonlistenercookie.clientInformation());
++            EntityPlayer entityplayer = nameAndId; // CraftBukkit
+ 
+             try (ProblemReporter.j problemreporter_j = new ProblemReporter.j(entityplayer.problemPath(), PrepareSpawnTask.LOGGER)) {
+                 Optional<ValueInput> optional = PrepareSpawnTask.this.server.getPlayerList().loadPlayerData(PrepareSpawnTask.this.nameAndId).map((nbttagcompound) -> {

@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/entity/projectile/EntityFireball.java
++++ b/net/minecraft/world/entity/projectile/EntityFireball.java
+@@ -16,11 +16,17 @@
+ import net.minecraft.world.phys.MovingObjectPosition;
+ import net.minecraft.world.phys.Vec3D;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public abstract class EntityFireball extends IProjectile {
+ 
+     public static final double INITAL_ACCELERATION_POWER = 0.1D;
+     public static final double DEFLECTION_SCALE = 0.5D;
+     public double accelerationPower;
++    public float bukkitYield = 1; // CraftBukkit
++    public boolean isIncendiary = true; // CraftBukkit
+ 
+     protected EntityFireball(EntityTypes<? extends EntityFireball> entitytypes, World world) {
+         super(entitytypes, world);
+@@ -88,12 +94,12 @@
+             }
+ 
+             if (movingobjectposition.getType() != MovingObjectPosition.EnumMovingObjectType.MISS && this.isAlive()) {
+-                this.hitTargetOrDeflectSelf(movingobjectposition);
++                this.preHitTargetOrDeflectSelf(movingobjectposition); // CraftBukkit - projectile hit event
+             }
+ 
+             this.createParticleTrail();
+         } else {
+-            this.discard();
++            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 

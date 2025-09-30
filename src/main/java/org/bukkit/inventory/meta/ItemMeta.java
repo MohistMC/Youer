@@ -214,9 +214,9 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      *
      * @param data the data to set, or null to clear
      * @deprecated more complex custom model data can be specified with
-     * {@link #setCustomModelDataComponent(CustomModelDataComponent)}.
+     * {@link #setCustomModelDataComponent(org.bukkit.inventory.meta.components.CustomModelDataComponent)}.
      * Integers from the old custom model data are equivalent to a single float
-     * in the {@link CustomModelDataComponent#setFloats(List)} list.
+     * in the {@link CustomModelDataComponent#setFloats(java.util.List)} list.
      */
     @Deprecated(since = "1.21.5")
     void setCustomModelData(@Nullable Integer data);
@@ -489,7 +489,7 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * or lava.
      *
      * @param fireResistant fire_resistant
-     * @deprecated use {@link #setDamageResistant(Tag)} and
+     * @deprecated use {@link #setDamageResistant(org.bukkit.Tag)} and
      * {@link DamageTypeTags#IS_FIRE}
      */
     @Deprecated(since = "1.21.2")

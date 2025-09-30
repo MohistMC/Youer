@@ -1,0 +1,88 @@
+--- a/net/minecraft/world/entity/animal/coppergolem/CopperGolem.java
++++ b/net/minecraft/world/entity/animal/coppergolem/CopperGolem.java
+@@ -57,6 +57,12 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.phys.Vec3D;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityDamageEvent;
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public class CopperGolem extends EntityGolem implements ContainerUser, IShearable {
+ 
+     private static final long IGNORE_WEATHERING_TICK = -2L;
+@@ -156,7 +162,7 @@
+ 
+     @Override
+     public BehaviorController<CopperGolem> getBrain() {
+-        return super.getBrain();
++        return (BehaviorController<CopperGolem>) super.getBrain(); // CraftBukkit - decompile error
+     }
+ 
+     @Override
+@@ -226,6 +232,11 @@
+             if (world instanceof WorldServer) {
+                 WorldServer worldserver = (WorldServer) world;
+ 
++                // CraftBukkit start
++                if (!CraftEventFactory.handlePlayerShearEntityEvent(entityhuman, this, itemstack, enumhand)) {
++                    return EnumInteractionResult.PASS;
++                }
++                // CraftBukkit end
+                 this.shear(worldserver, SoundCategory.PLAYERS, itemstack);
+                 this.gameEvent(GameEvent.SHEAR, entityhuman);
+                 itemstack.hurtAndBreak(1, entityhuman, enumhand);
+@@ -294,13 +305,21 @@
+     private void turnToStatue(WorldServer worldserver) {
+         BlockPosition blockposition = this.blockPosition();
+ 
+-        worldserver.setBlock(blockposition, (IBlockData) ((IBlockData) Blocks.OXIDIZED_COPPER_GOLEM_STATUE.defaultBlockState().setValue(CopperGolemStatueBlock.POSE, CopperGolemStatueBlock.a.values()[this.random.nextInt(0, CopperGolemStatueBlock.a.values().length)])).setValue(CopperGolemStatueBlock.FACING, EnumDirection.fromYRot((double) this.getYRot())), 3);
++        // CraftBukkit start
++        IBlockData blockState = (IBlockData) ((IBlockData) Blocks.OXIDIZED_COPPER_GOLEM_STATUE.defaultBlockState().setValue(CopperGolemStatueBlock.POSE, CopperGolemStatueBlock.a.values()[this.random.nextInt(0, CopperGolemStatueBlock.a.values().length)])).setValue(CopperGolemStatueBlock.FACING, EnumDirection.fromYRot((double) this.getYRot()));
++        if (!CraftEventFactory.callEntityChangeBlockEvent(this, blockposition, blockState)) {
++            return;
++        }
++        worldserver.setBlock(blockposition, blockState, 3);
++        // CraftBukkit end
+         TileEntity tileentity = worldserver.getBlockEntity(blockposition);
+ 
+         if (tileentity instanceof CopperGolemStatueBlockEntity coppergolemstatueblockentity) {
+             coppergolemstatueblockentity.createStatue(this);
++            this.forceDrops = true; // CraftBukkit
+             this.dropPreservedEquipment(worldserver);
+-            this.discard();
++            this.forceDrops = false; // CraftBukkkit
++            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.playSound(SoundEffects.COPPER_GOLEM_BECOME_STATUE);
+             if (this.isLeashed()) {
+                 if (worldserver.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+@@ -435,7 +454,9 @@
+         ItemStack itemstack1 = this.getItemBySlot(CopperGolem.EQUIPMENT_SLOT_ANTENNA);
+ 
+         this.setItemSlot(CopperGolem.EQUIPMENT_SLOT_ANTENNA, ItemStack.EMPTY);
++        this.forceDrops = true; // CraftBukkit
+         this.spawnAtLocation(worldserver, itemstack1, 1.5F);
++        this.forceDrops = false; // CraftBukkit
+     }
+ 
+     @Override
+@@ -450,9 +471,15 @@
+     }
+ 
+     @Override
+-    protected void actuallyHurt(WorldServer worldserver, DamageSource damagesource, float f) {
+-        super.actuallyHurt(worldserver, damagesource, f);
++    // CraftBukkit start - void -> boolean
++    public boolean actuallyHurt(WorldServer worldserver, DamageSource damagesource, float f, EntityDamageEvent event) {
++        boolean damageResult = super.actuallyHurt(worldserver, damagesource, f, event);
++        if (!damageResult) {
++            return false;
++        }
++        // CraftBukkit end
+         this.setState(CopperGolemState.IDLE);
++        return true; // CraftBukkit
+     }
+ 
+     @Override

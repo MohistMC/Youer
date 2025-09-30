@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/level/chunk/PalettedContainerFactory.java
++++ b/net/minecraft/world/level/chunk/PalettedContainerFactory.java
+@@ -11,7 +11,8 @@
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.IBlockData;
+ 
+-public record PalettedContainerFactory(Strategy<IBlockData> blockStatesStrategy, IBlockData defaultBlockState, Codec<DataPaletteBlock<IBlockData>> blockStatesContainerCodec, Strategy<Holder<BiomeBase>> biomeStrategy, Holder<BiomeBase> defaultBiome, Codec<PalettedContainerRO<Holder<BiomeBase>>> biomeContainerCodec) {
++// CraftBukkit - read/write
++public record PalettedContainerFactory(Strategy<IBlockData> blockStatesStrategy, IBlockData defaultBlockState, Codec<DataPaletteBlock<IBlockData>> blockStatesContainerCodec, Strategy<Holder<BiomeBase>> biomeStrategy, Holder<BiomeBase> defaultBiome, Codec<PalettedContainerRO<Holder<BiomeBase>>> biomeContainerCodec, Codec<DataPaletteBlock<Holder<BiomeBase>>> biomeContainerCodecRW) {
+ 
+     public static PalettedContainerFactory create(IRegistryCustom iregistrycustom) {
+         Strategy<IBlockData> strategy = Strategy.<IBlockData>createForBlockStates(Block.BLOCK_STATE_REGISTRY);
+@@ -20,7 +21,7 @@
+         Strategy<Holder<BiomeBase>> strategy1 = Strategy.<Holder<BiomeBase>>createForBiomes(iregistry.asHolderIdMap());
+         Holder.c<BiomeBase> holder_c = iregistry.getOrThrow(Biomes.PLAINS);
+ 
+-        return new PalettedContainerFactory(strategy, iblockdata, DataPaletteBlock.codecRW(IBlockData.CODEC, strategy, iblockdata), strategy1, holder_c, DataPaletteBlock.codecRO(iregistry.holderByNameCodec(), strategy1, holder_c));
++        return new PalettedContainerFactory(strategy, iblockdata, DataPaletteBlock.codecRW(IBlockData.CODEC, strategy, iblockdata), strategy1, holder_c, DataPaletteBlock.codecRO(iregistry.holderByNameCodec(), strategy1, holder_c), DataPaletteBlock.codecRW(iregistry.holderByNameCodec(), strategy1, holder_c)); // CraftBukkit - read/write
+     }
+ 
+     public DataPaletteBlock<IBlockData> createForBlockStates() {

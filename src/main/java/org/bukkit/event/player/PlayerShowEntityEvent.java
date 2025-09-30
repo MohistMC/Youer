@@ -14,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
  * This event is called regardless of whether the entity was within tracking
  * range.
  *
- * @see Player#showEntity(org.bukkit.plugin.Plugin, Entity)
+ * @see Player#showEntity(org.bukkit.plugin.Plugin, org.bukkit.entity.Entity)
  */
 public class PlayerShowEntityEvent extends PlayerEvent {
 

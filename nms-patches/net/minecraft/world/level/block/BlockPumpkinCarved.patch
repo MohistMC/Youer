@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/level/block/BlockPumpkinCarved.java
++++ b/net/minecraft/world/level/block/BlockPumpkinCarved.java
+@@ -29,6 +29,10 @@
+ import net.minecraft.world.level.block.state.predicate.BlockStatePredicate;
+ import net.minecraft.world.level.block.state.properties.BlockStateEnum;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
++// CraftBukkit end
++
+ public class BlockPumpkinCarved extends BlockFacingHorizontal {
+ 
+     public static final MapCodec<BlockPumpkinCarved> CODEC = simpleCodec(BlockPumpkinCarved::new);
+@@ -124,9 +128,14 @@
+     }
+ 
+     private static void spawnGolemInWorld(World world, ShapeDetector.ShapeDetectorCollection shapedetector_shapedetectorcollection, Entity entity, BlockPosition blockposition) {
+-        clearPatternBlocks(world, shapedetector_shapedetectorcollection);
++        // clearPatternBlocks(world, shapedetector_shapedetectorcollection); // CraftBukkit - moved down
+         entity.snapTo((double) blockposition.getX() + 0.5D, (double) blockposition.getY() + 0.05D, (double) blockposition.getZ() + 0.5D, 0.0F, 0.0F);
+-        world.addFreshEntity(entity);
++        // CraftBukkit start
++        if (!world.addFreshEntity(entity, (entity.getType() == EntityTypes.SNOW_GOLEM) ? SpawnReason.BUILD_SNOWMAN : ((entity.getType() == EntityTypes.IRON_GOLEM) ? SpawnReason.BUILD_IRONGOLEM : SpawnReason.BUILD_COPPERGOLEM))) {
++            return;
++        }
++        clearPatternBlocks(world, shapedetector_shapedetectorcollection); // CraftBukkit - from above
++        // CraftBukkit end
+ 
+         for (EntityPlayer entityplayer : world.getEntitiesOfClass(EntityPlayer.class, entity.getBoundingBox().inflate(5.0D))) {
+             CriterionTriggers.SUMMONED_ENTITY.trigger(entityplayer, entity);

@@ -1,0 +1,69 @@
+--- a/net/minecraft/world/entity/projectile/EntityPotion.java
++++ b/net/minecraft/world/entity/projectile/EntityPotion.java
+@@ -26,6 +26,18 @@
+ import net.minecraft.world.phys.MovingObjectPosition;
+ import net.minecraft.world.phys.MovingObjectPositionBlock;
+ 
++// CraftBukkit start
++import java.util.HashMap;
++import java.util.Map;
++import net.minecraft.server.level.EntityPlayer;
++import net.minecraft.world.effect.MobEffects;
++import net.minecraft.world.level.block.Blocks;
++import org.bukkit.craftbukkit.entity.CraftLivingEntity;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public abstract class EntityPotion extends EntityProjectileThrowable {
+ 
+     public static final double SPLASH_RANGE = 4.0D;
+@@ -84,14 +96,14 @@
+ 
+             if (potioncontents.is(Potions.WATER)) {
+                 this.onHitAsWater(worldserver);
+-            } else if (potioncontents.hasEffects()) {
++            } else if (true || potioncontents.hasEffects()) { // CraftBukkit - Call event even if no effects to apply
+                 this.onHitAsPotion(worldserver, itemstack, movingobjectposition);
+             }
+ 
+             int i = potioncontents.potion().isPresent() && ((PotionRegistry) ((Holder) potioncontents.potion().get()).value()).hasInstantEffects() ? 2007 : 2002;
+ 
+             worldserver.levelEvent(i, this.blockPosition(), potioncontents.getColor());
+-            this.discard();
++            this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 
+@@ -124,13 +136,25 @@
+         IBlockData iblockdata = this.level().getBlockState(blockposition);
+ 
+         if (iblockdata.is(TagsBlock.FIRE)) {
+-            this.level().destroyBlock(blockposition, false, this);
++            // CraftBukkit start
++            if (CraftEventFactory.callEntityChangeBlockEvent(this, blockposition, Blocks.AIR.defaultBlockState())) {
++                this.level().destroyBlock(blockposition, false, this);
++            }
++            // CraftBukkit end
+         } else if (AbstractCandleBlock.isLit(iblockdata)) {
+-            AbstractCandleBlock.extinguish((EntityHuman) null, iblockdata, this.level(), blockposition);
++            // CraftBukkit start
++            if (CraftEventFactory.callEntityChangeBlockEvent(this, blockposition, iblockdata.setValue(AbstractCandleBlock.LIT, false))) {
++                AbstractCandleBlock.extinguish((EntityHuman) null, iblockdata, this.level(), blockposition);
++            }
++            // CraftBukkit end
+         } else if (BlockCampfire.isLitCampfire(iblockdata)) {
+-            this.level().levelEvent((Entity) null, 1009, blockposition, 0);
+-            BlockCampfire.dowse(this.getOwner(), this.level(), blockposition, iblockdata);
+-            this.level().setBlockAndUpdate(blockposition, (IBlockData) iblockdata.setValue(BlockCampfire.LIT, false));
++            // CraftBukkit start
++            if (CraftEventFactory.callEntityChangeBlockEvent(this, blockposition, iblockdata.setValue(BlockCampfire.LIT, false))) {
++                this.level().levelEvent((Entity) null, 1009, blockposition, 0);
++                BlockCampfire.dowse(this.getOwner(), this.level(), blockposition, iblockdata);
++                this.level().setBlockAndUpdate(blockposition, (IBlockData) iblockdata.setValue(BlockCampfire.LIT, false));
++            }
++            // CraftBukkit end
+         }
+ 
+     }

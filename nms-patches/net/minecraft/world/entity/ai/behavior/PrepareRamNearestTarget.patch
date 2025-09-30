@@ -1,0 +1,39 @@
+--- a/net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.java
++++ b/net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.java
+@@ -29,6 +29,13 @@
+ import net.minecraft.world.level.pathfinder.PathfinderNormal;
+ import net.minecraft.world.phys.Vec3D;
+ 
++// CraftBukkit start
++import net.minecraft.server.level.EntityPlayer;
++import org.bukkit.craftbukkit.entity.CraftLivingEntity;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityTargetEvent;
++// CraftBukkit end
++
+ public class PrepareRamNearestTarget<E extends EntityCreature> extends Behavior<E> {
+ 
+     public static final int TIME_OUT_DURATION = 160;
+@@ -61,6 +68,13 @@
+                 return this.ramTargeting.test(worldserver, entitycreature, entityliving);
+             });
+         }).ifPresent((entityliving) -> {
++            // CraftBukkit start
++            EntityTargetEvent event = CraftEventFactory.callEntityTargetLivingEvent(entitycreature, entityliving, (entityliving instanceof EntityPlayer) ? EntityTargetEvent.TargetReason.CLOSEST_PLAYER : EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
++            if (event.isCancelled() || event.getTarget() == null) {
++                return;
++            }
++            entityliving = ((CraftLivingEntity) event.getTarget()).getHandle();
++            // CraftBukkit end
+             this.chooseRamPosition(entitycreature, entityliving);
+         });
+     }
+@@ -142,7 +156,7 @@
+             }
+ 
+             NavigationAbstract navigationabstract = entitycreature.getNavigation();
+-            Stream stream = list.stream();
++            Stream<BlockPosition> stream = list.stream(); // CraftBukkit - decompile error
+             BlockPosition blockposition1 = entitycreature.blockPosition();
+ 
+             Objects.requireNonNull(blockposition1);

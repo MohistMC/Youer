@@ -276,7 +276,7 @@ public interface HumanEntity extends LivingEntity, AnimalTamer, InventoryHolder 
      * @param material the material to set the cooldown for
      * @param ticks the amount of ticks to set or 0 to remove
      * @throws IllegalArgumentException if the material is not an item
-     * @see UseCooldownComponent
+     * @see org.bukkit.inventory.meta.components.UseCooldownComponent
      */
     public void setCooldown(@NotNull Material material, int ticks);
 

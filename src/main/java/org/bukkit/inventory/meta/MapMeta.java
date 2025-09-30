@@ -47,7 +47,7 @@ public interface MapMeta extends ItemMeta {
      * Sets the map ID. This is used to determine what map is displayed.
      *
      * @param id the map id to set
-     * @see #setMapView(MapView)
+     * @see #setMapView(org.bukkit.map.MapView)
      * @deprecated These methods are poor API: They rely on the caller to pass
      * in an only an integer property, and have poorly defined implementation
      * behavior if that integer is not a valid map (the current implementation

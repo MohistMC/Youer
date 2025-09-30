@@ -99,7 +99,7 @@ public class Mushroom extends MaterialData {
      * @see MushroomBlockTexture#ALL_STEM
      *
      * @deprecated Use
-     * {@link #setBlockTexture(MushroomBlockTexture)}
+     * {@link #setBlockTexture(org.bukkit.material.types.MushroomBlockTexture)}
      * with {@link MushroomBlockTexture#STEM_SIDES } or
      * {@link MushroomBlockTexture#ALL_STEM}
      */

@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/level/block/BlockFlowerPot.java
++++ b/net/minecraft/world/level/block/BlockFlowerPot.java
+@@ -136,11 +136,14 @@
+             boolean flag1 = CreakingHeartBlock.isNaturalNight(worldserver);
+ 
+             if (flag != flag1) {
+-                worldserver.setBlock(blockposition, this.opposite(iblockdata), 3);
+-                EyeblossomBlock.a eyeblossomblock_a = EyeblossomBlock.a.fromBoolean(flag).transform();
++                // CraftBukkit start - BlockFormEvent
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(worldserver, blockposition, this.opposite(iblockdata), 3)) {
++                    EyeblossomBlock.a eyeblossomblock_a = EyeblossomBlock.a.fromBoolean(flag).transform();
+ 
+-                eyeblossomblock_a.spawnTransformParticle(worldserver, blockposition, randomsource);
+-                worldserver.playSound((Entity) null, blockposition, eyeblossomblock_a.longSwitchSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
++                    eyeblossomblock_a.spawnTransformParticle(worldserver, blockposition, randomsource);
++                    worldserver.playSound((Entity) null, blockposition, eyeblossomblock_a.longSwitchSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
++                }
++                // CraftBukkit end
+             }
+         }
+ 

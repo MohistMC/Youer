@@ -1,0 +1,118 @@
+--- a/net/minecraft/world/level/block/entity/TileEntity.java
++++ b/net/minecraft/world/level/block/entity/TileEntity.java
+@@ -37,8 +37,18 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import org.slf4j.Logger;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer;
++import org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry;
++import org.bukkit.inventory.InventoryHolder;
++// CraftBukkit end
++
+ public abstract class TileEntity implements DebugValueSource {
+ 
++    // CraftBukkit start - data containers
++    private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
++    public CraftPersistentDataContainer persistentDataContainer;
++    // CraftBukkit end
+     private static final Codec<TileEntityTypes<?>> TYPE_CODEC = BuiltInRegistries.BLOCK_ENTITY_TYPE.byNameCodec();
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final TileEntityTypes<?> type;
+@@ -76,7 +86,7 @@
+         int l = SectionPosition.blockToSectionCoord(i);
+         int i1 = SectionPosition.blockToSectionCoord(k);
+ 
+-        if (l != chunkcoordintpair.x || i1 != chunkcoordintpair.z) {
++        if (chunkcoordintpair != null && (l != chunkcoordintpair.x || i1 != chunkcoordintpair.z)) { // CraftBukkit - allow null
+             TileEntity.LOGGER.warn("Block entity {} found in a wrong chunk, expected position from chunk {}", nbttagcompound, chunkcoordintpair);
+             i = chunkcoordintpair.getBlockX(SectionPosition.sectionRelative(i));
+             k = chunkcoordintpair.getBlockZ(SectionPosition.sectionRelative(k));
+@@ -98,7 +108,15 @@
+         return this.level != null;
+     }
+ 
+-    protected void loadAdditional(ValueInput valueinput) {}
++    // CraftBukkit start - read container
++    protected void loadAdditional(ValueInput valueinput) {
++        this.persistentDataContainer = new CraftPersistentDataContainer(DATA_TYPE_REGISTRY);
++
++        valueinput.child("PublicBukkitValues").ifPresent((persistentDataTag) -> {
++            this.persistentDataContainer.putAll(persistentDataTag);
++        });
++    }
++    // CraftBukkit end
+ 
+     public final void loadWithComponents(ValueInput valueinput) {
+         this.loadAdditional(valueinput);
+@@ -142,6 +160,11 @@
+     public void saveWithoutMetadata(ValueOutput valueoutput) {
+         this.saveAdditional(valueoutput);
+         valueoutput.store("components", DataComponentMap.CODEC, this.components);
++        // CraftBukkit start - store container
++        if (this.persistentDataContainer != null && !this.persistentDataContainer.isEmpty()) {
++            this.persistentDataContainer.store(valueoutput.child("PublicBukkitValues"));
++        }
++        // CraftBukkit end
+     }
+ 
+     public final NBTTagCompound saveCustomOnly(HolderLookup.a holderlookup_a) {
+@@ -174,7 +197,7 @@
+ 
+     @Nullable
+     public static TileEntity loadStatic(BlockPosition blockposition, IBlockData iblockdata, NBTTagCompound nbttagcompound, HolderLookup.a holderlookup_a) {
+-        TileEntityTypes<?> tileentitytypes = (TileEntityTypes) nbttagcompound.read("id", TileEntity.TYPE_CODEC).orElse((Object) null);
++        TileEntityTypes<?> tileentitytypes = (TileEntityTypes) nbttagcompound.read("id", TileEntity.TYPE_CODEC).orElse(null); // CraftBukkit - decompile error
+ 
+         if (tileentitytypes == null) {
+             TileEntity.LOGGER.error("Skipping block entity with invalid type: {}", nbttagcompound.get("id"));
+@@ -299,6 +322,12 @@
+     }
+ 
+     public final void applyComponents(DataComponentMap datacomponentmap, DataComponentPatch datacomponentpatch) {
++        // CraftBukkit start
++        this.applyComponentsSet(datacomponentmap, datacomponentpatch);
++    }
++
++    public final Set<DataComponentType<?>> applyComponentsSet(DataComponentMap datacomponentmap, DataComponentPatch datacomponentpatch) {
++        // CraftBukkit end
+         final Set<DataComponentType<?>> set = new HashSet();
+ 
+         set.add(DataComponents.BLOCK_ENTITY_DATA);
+@@ -323,6 +352,11 @@
+         DataComponentPatch datacomponentpatch1 = datacomponentpatch.forget(set::contains);
+ 
+         this.components = datacomponentpatch1.split().added();
++        // CraftBukkit start
++        set.remove(DataComponents.BLOCK_ENTITY_DATA); // Remove as never actually added by applyImplicitComponents
++        set.remove(DataComponents.BLOCK_STATE); // Remove as never actually added by applyImplicitComponents
++        return set;
++        // CraftBukkit end
+     }
+ 
+     protected void collectImplicitComponents(DataComponentMap.a datacomponentmap_a) {}
+@@ -349,7 +383,7 @@
+ 
+     @Nullable
+     public static IChatBaseComponent parseCustomNameSafe(ValueInput valueinput, String s) {
+-        return (IChatBaseComponent) valueinput.read(s, ComponentSerialization.CODEC).orElse((Object) null);
++        return (IChatBaseComponent) valueinput.read(s, ComponentSerialization.CODEC).orElse(null); // CraftBukkit - decompile error
+     }
+ 
+     public ProblemReporter.f problemPath() {
+@@ -359,6 +393,15 @@
+     @Override
+     public void registerDebugValues(WorldServer worldserver, DebugValueSource.a debugvaluesource_a) {}
+ 
++    // CraftBukkit start - add method
++    public InventoryHolder getOwner() {
++        if (level == null) return null;
++        org.bukkit.block.BlockState state = level.getWorld().getBlockAt(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ()).getState();
++        if (state instanceof InventoryHolder) return (InventoryHolder) state;
++        return null;
++    }
++    // CraftBukkit end
++
+     private static record a(TileEntity blockEntity) implements ProblemReporter.f {
+ 
+         @Override

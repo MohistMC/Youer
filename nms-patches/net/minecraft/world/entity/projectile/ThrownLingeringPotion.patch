@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/entity/projectile/ThrownLingeringPotion.java
++++ b/net/minecraft/world/entity/projectile/ThrownLingeringPotion.java
+@@ -11,6 +11,10 @@
+ import net.minecraft.world.level.World;
+ import net.minecraft.world.phys.MovingObjectPosition;
+ 
++// CraftBukkit start
++import net.minecraft.world.phys.MovingObjectPosition;
++// CraftBukkit end
++
+ public class ThrownLingeringPotion extends EntityPotion {
+ 
+     public ThrownLingeringPotion(EntityTypes<? extends ThrownLingeringPotion> entitytypes, World world) {
+@@ -45,6 +49,13 @@
+         entityareaeffectcloud.setWaitTime(10);
+         entityareaeffectcloud.setRadiusPerTick(-entityareaeffectcloud.getRadius() / (float) entityareaeffectcloud.getDuration());
+         entityareaeffectcloud.applyComponentsFromItemStack(itemstack);
+-        worldserver.addFreshEntity(entityareaeffectcloud);
++        // CraftBukkit start
++        org.bukkit.event.entity.LingeringPotionSplashEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callLingeringPotionSplashEvent(this, movingobjectposition, entityareaeffectcloud);
++        if (!(event.isCancelled() || entityareaeffectcloud.isRemoved())) {
++            this.level().addFreshEntity(entityareaeffectcloud);
++        } else {
++            entityareaeffectcloud.discard(null); // CraftBukkit - add Bukkit remove cause
++        }
++        // CraftBukkit end
+     }
+ }

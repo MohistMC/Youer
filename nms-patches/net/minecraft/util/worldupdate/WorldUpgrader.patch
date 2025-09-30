@@ -1,0 +1,23 @@
+--- a/net/minecraft/util/worldupdate/WorldUpgrader.java
++++ b/net/minecraft/util/worldupdate/WorldUpgrader.java
+@@ -82,7 +82,7 @@
+ 
+     public WorldUpgrader(Convertable.ConversionSession convertable_conversionsession, DataFixer datafixer, SaveData savedata, IRegistryCustom iregistrycustom, boolean flag, boolean flag1) {
+         this.dimensions = iregistrycustom.lookupOrThrow(Registries.LEVEL_STEM);
+-        this.levels = (Set) this.dimensions.registryKeySet().stream().map(Registries::levelStemToLevel).collect(Collectors.toUnmodifiableSet());
++        this.levels = (Set) java.util.stream.Stream.of(convertable_conversionsession.dimensionType).map(Registries::levelStemToLevel).collect(Collectors.toUnmodifiableSet()); // CraftBukkit
+         this.eraseCache = flag;
+         this.dataFixer = datafixer;
+         this.levelStorage = convertable_conversionsession;
+@@ -446,9 +446,9 @@
+             if (nbttagcompound != null) {
+                 int i = IChunkLoader.getVersion(nbttagcompound);
+                 ChunkGenerator chunkgenerator = ((WorldDimension) WorldUpgrader.this.dimensions.getValueOrThrow(Registries.levelToLevelStem(resourcekey))).generator();
+-                NBTTagCompound nbttagcompound1 = ichunkloader.upgradeChunkTag(resourcekey, () -> {
++                NBTTagCompound nbttagcompound1 = ichunkloader.upgradeChunkTag(Registries.levelToLevelStem(resourcekey), () -> { // CraftBukkit
+                     return WorldUpgrader.this.overworldDataStorage;
+-                }, nbttagcompound, chunkgenerator.getTypeNameForDataFixer());
++                }, nbttagcompound, chunkgenerator.getTypeNameForDataFixer(), chunkcoordintpair, null); // CraftBukkit
+                 ChunkCoordIntPair chunkcoordintpair1 = new ChunkCoordIntPair(nbttagcompound1.getIntOr("xPos", 0), nbttagcompound1.getIntOr("zPos", 0));
+ 
+                 if (!chunkcoordintpair1.equals(chunkcoordintpair)) {

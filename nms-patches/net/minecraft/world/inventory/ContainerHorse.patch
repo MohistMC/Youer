@@ -1,0 +1,38 @@
+--- a/net/minecraft/world/inventory/ContainerHorse.java
++++ b/net/minecraft/world/inventory/ContainerHorse.java
+@@ -11,6 +11,11 @@
+ import net.minecraft.world.entity.player.PlayerInventory;
+ import net.minecraft.world.item.ItemStack;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.inventory.CraftInventoryView;
++import org.bukkit.inventory.InventoryView;
++// CraftBukkit end
++
+ public class ContainerHorse extends Container {
+ 
+     private static final MinecraftKey SADDLE_SLOT_SPRITE = MinecraftKey.withDefaultNamespace("container/slot/saddle");
+@@ -22,8 +27,23 @@
+     private static final int SLOT_BODY_ARMOR = 1;
+     private static final int SLOT_HORSE_INVENTORY_START = 2;
+ 
++    // CraftBukkit start
++    org.bukkit.craftbukkit.inventory.CraftInventoryView bukkitEntity;
++    PlayerInventory player;
++
++    @Override
++    public InventoryView getBukkitView() {
++        if (bukkitEntity != null) {
++            return bukkitEntity;
++        }
++
++        return bukkitEntity = new CraftInventoryView(player.player.getBukkitEntity(), horseContainer.getOwner().getInventory(), this);
++    }
++
+     public ContainerHorse(int i, PlayerInventory playerinventory, IInventory iinventory, final EntityHorseAbstract entityhorseabstract, int j) {
+         super((Containers) null, i);
++        player = playerinventory;
++        // CraftBukkit end
+         this.horseContainer = iinventory;
+         this.horse = entityhorseabstract;
+         iinventory.startOpen(playerinventory.player);

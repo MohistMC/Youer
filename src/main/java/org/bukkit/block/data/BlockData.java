@@ -28,7 +28,7 @@ public interface BlockData extends Cloneable {
 
     /**
      * Gets a string, which when passed into a method such as
-     * {@link Server#createBlockData(String)} will unambiguously
+     * {@link Server#createBlockData(java.lang.String)} will unambiguously
      * recreate this instance.
      *
      * @return serialized data string for this block
@@ -38,7 +38,7 @@ public interface BlockData extends Cloneable {
 
     /**
      * Gets a string, which when passed into a method such as
-     * {@link Server#createBlockData(String)} will recreate this or a
+     * {@link Server#createBlockData(java.lang.String)} will recreate this or a
      * similar instance where unspecified states (if any) may be optionally
      * omitted. If this instance was parsed and states are omitted, this exact
      * instance will be creatable when parsed again, else their equality cannot
@@ -69,7 +69,7 @@ public interface BlockData extends Cloneable {
      * Merges all explicitly set states from the given data with this BlockData.
      * <br>
      * Note that the given data MUST have been created from one of the String
-     * parse methods, e.g. {@link Server#createBlockData(String)} and
+     * parse methods, e.g. {@link Server#createBlockData(java.lang.String)} and
      * not have been subsequently modified.
      * <br>
      * Note also that the block types must match identically.
@@ -85,8 +85,8 @@ public interface BlockData extends Cloneable {
      * <br>
      * The semantics of this method are such that for manually created or
      * modified BlockData it has the same effect as
-     * {@link Object#equals(Object)}, whilst for parsed data (that to
-     * which {@link #merge(BlockData)} applies, it will
+     * {@link Object#equals(java.lang.Object)}, whilst for parsed data (that to
+     * which {@link #merge(org.bukkit.block.data.BlockData)} applies, it will
      * return true when the type and all explicitly set states match.
      * <br>
      * <b>Note that these semantics mean that a.matches(b) may not be the same

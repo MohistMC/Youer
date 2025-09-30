@@ -25,7 +25,7 @@ public interface CreakingHeart extends Orientable {
      * Sets the value of the 'active' property.
      *
      * @param active the new 'active' value
-     * @deprecated use {@link #setCreakingHeartState(State)}
+     * @deprecated use {@link #setCreakingHeartState(org.bukkit.block.data.type.CreakingHeart.State)}
      */
     @Deprecated(since = "1.21.5")
     void setActive(boolean active);

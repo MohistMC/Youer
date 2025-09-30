@@ -1,0 +1,68 @@
+--- a/net/minecraft/world/level/block/entity/TileEntityConduit.java
++++ b/net/minecraft/world/level/block/entity/TileEntityConduit.java
+@@ -32,6 +32,10 @@
+ import net.minecraft.world.phys.AxisAlignedBB;
+ import net.minecraft.world.phys.Vec3D;
+ 
++// CraftBukkit start
++import net.minecraft.server.level.WorldServer;
++// CraftBukkit end
++
+ public class TileEntityConduit extends TileEntity {
+ 
+     private static final int BLOCK_REFRESH_RATE = 2;
+@@ -174,8 +178,20 @@
+     }
+ 
+     private static void applyEffects(World world, BlockPosition blockposition, List<BlockPosition> list) {
++        // CraftBukkit start
++        applyEffects(world, blockposition, getRange(list));
++    }
++
++    public static int getRange(List<BlockPosition> list) {
++        // CraftBukkit end
+         int i = list.size();
+         int j = i / 7 * 16;
++        // CraftBukkit start
++        return j;
++    }
++
++    private static void applyEffects(World world, BlockPosition blockposition, int j) { // j = effect range in blocks
++        // CraftBukkit end
+         int k = blockposition.getX();
+         int l = blockposition.getY();
+         int i1 = blockposition.getZ();
+@@ -185,7 +201,7 @@
+         if (!list1.isEmpty()) {
+             for (EntityHuman entityhuman : list1) {
+                 if (blockposition.closerThan(entityhuman.blockPosition(), (double) j) && entityhuman.isInWaterOrRain()) {
+-                    entityhuman.addEffect(new MobEffect(MobEffects.CONDUIT_POWER, 260, 0, true, true));
++                    entityhuman.addEffect(new MobEffect(MobEffects.CONDUIT_POWER, 260, 0, true, true), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONDUIT); // CraftBukkit
+                 }
+             }
+ 
+@@ -193,12 +209,21 @@
+     }
+ 
+     private static void updateAndAttackTarget(WorldServer worldserver, BlockPosition blockposition, IBlockData iblockdata, TileEntityConduit tileentityconduit, boolean flag) {
++        // CraftBukkit start - add "damageTarget" boolean
++        updateAndAttackTarget(worldserver, blockposition, iblockdata, tileentityconduit, flag, true);
++    }
++
++    public static void updateAndAttackTarget(WorldServer worldserver, BlockPosition blockposition, IBlockData iblockdata, TileEntityConduit tileentityconduit, boolean flag, boolean damageTarget) {
++        // CraftBukkit end
+         EntityReference<EntityLiving> entityreference = updateDestroyTarget(tileentityconduit.destroyTarget, worldserver, blockposition, flag);
+         EntityLiving entityliving = EntityReference.getLivingEntity(entityreference, worldserver);
+ 
+-        if (entityliving != null) {
+-            worldserver.playSound((Entity) null, entityliving.getX(), entityliving.getY(), entityliving.getZ(), SoundEffects.CONDUIT_ATTACK_TARGET, SoundCategory.BLOCKS, 1.0F, 1.0F);
+-            entityliving.hurtServer(worldserver, worldserver.damageSources().magic(), 4.0F);
++        // CraftBukkit start
++        if (damageTarget && entityliving != null) {
++            if (entityliving.hurtServer(worldserver, worldserver.damageSources().magic().directBlock(worldserver, blockposition), 4.0F)) {
++                worldserver.playSound((Entity) null, entityliving.getX(), entityliving.getY(), entityliving.getZ(), SoundEffects.CONDUIT_ATTACK_TARGET, SoundCategory.BLOCKS, 1.0F, 1.0F);
++            }
++            // CraftBukkit end
+         }
+ 
+         if (!Objects.equals(entityreference, tileentityconduit.destroyTarget)) {

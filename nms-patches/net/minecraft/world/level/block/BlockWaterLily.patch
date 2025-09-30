@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/level/block/BlockWaterLily.java
++++ b/net/minecraft/world/level/block/BlockWaterLily.java
+@@ -15,6 +15,10 @@
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ import net.minecraft.world.phys.shapes.VoxelShapeCollision;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++// CraftBukkit end
++
+ public class BlockWaterLily extends VegetationBlock {
+ 
+     public static final MapCodec<BlockWaterLily> CODEC = simpleCodec(BlockWaterLily::new);
+@@ -33,6 +37,11 @@
+     protected void entityInside(IBlockData iblockdata, World world, BlockPosition blockposition, Entity entity, InsideBlockEffectApplier insideblockeffectapplier) {
+         super.entityInside(iblockdata, world, blockposition, entity, insideblockeffectapplier);
+         if (world instanceof WorldServer && entity instanceof AbstractBoat) {
++            // CraftBukkit start
++            if (!CraftEventFactory.callEntityChangeBlockEvent(entity, blockposition, Blocks.AIR.defaultBlockState())) {
++                return;
++            }
++            // CraftBukkit end
+             world.destroyBlock(new BlockPosition(blockposition), true, entity);
+         }
+ 

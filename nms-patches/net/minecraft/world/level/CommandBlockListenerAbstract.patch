@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/level/CommandBlockListenerAbstract.java
++++ b/net/minecraft/world/level/CommandBlockListenerAbstract.java
+@@ -36,6 +36,9 @@
+     private String command = "";
+     @Nullable
+     private IChatBaseComponent customName;
++    // CraftBukkit start
++    public abstract org.bukkit.command.CommandSender getBukkitSender(CommandListenerWrapper wrapper);
++    // CraftBukkit end
+ 
+     public CommandBlockListenerAbstract() {}
+ 
+@@ -119,7 +122,7 @@
+ 
+                             });
+ 
+-                            minecraftserver.getCommands().performPrefixedCommand(commandlistenerwrapper, this.command);
++                            minecraftserver.getCommands().dispatchServerCommand(commandlistenerwrapper, this.command); // CraftBukkit
+                         }
+                     } catch (Throwable throwable) {
+                         CrashReport crashreport = CrashReport.forThrowable(throwable, "Executing command block");
+@@ -205,6 +208,13 @@
+ 
+         protected CloseableCommandBlockSource() {}
+ 
++        // CraftBukkit start
++        @Override
++        public org.bukkit.command.CommandSender getBukkitSender(CommandListenerWrapper wrapper) {
++            return CommandBlockListenerAbstract.this.getBukkitSender(wrapper);
++        }
++        // CraftBukkit end
++
+         @Override
+         public boolean acceptsSuccess() {
+             return !this.closed && CommandBlockListenerAbstract.this.getLevel().getGameRules().getBoolean(GameRules.RULE_SENDCOMMANDFEEDBACK);

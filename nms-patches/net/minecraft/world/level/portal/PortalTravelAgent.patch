@@ -1,0 +1,98 @@
+--- a/net/minecraft/world/level/portal/PortalTravelAgent.java
++++ b/net/minecraft/world/level/portal/PortalTravelAgent.java
+@@ -42,23 +42,35 @@
+     }
+ 
+     public Optional<BlockPosition> findClosestPortalPosition(BlockPosition blockposition, boolean flag, WorldBorder worldborder) {
++        // CraftBukkit start
++        return findClosestPortalPosition(blockposition, worldborder, flag ? 16 : 128); // Search Radius
++    }
++
++    public Optional<BlockPosition> findClosestPortalPosition(BlockPosition blockposition, WorldBorder worldborder, int i) {
+         VillagePlace villageplace = this.level.getPoiManager();
+-        int i = flag ? 16 : 128;
++        // int i = flag ? 16 : 128;
++        // CraftBukkit end
+ 
+         villageplace.ensureLoadedAndValid(this.level, blockposition, i);
+-        Stream stream = villageplace.getInSquare((holder) -> {
++        Stream<BlockPosition> stream = villageplace.getInSquare((holder) -> { // CraftBukkit - decompile error
+             return holder.is(PoiTypes.NETHER_PORTAL);
+         }, blockposition, i, VillagePlace.Occupancy.ANY).map(VillagePlaceRecord::getPos);
+ 
+         Objects.requireNonNull(worldborder);
+         return stream.filter(worldborder::isWithinBounds).filter((blockposition1) -> {
+             return this.level.getBlockState(blockposition1).hasProperty(BlockProperties.HORIZONTAL_AXIS);
+-        }).min(Comparator.comparingDouble((blockposition1) -> {
++        }).min(Comparator.comparingDouble((BlockPosition blockposition1) -> { // CraftBukkit - decompile error
+             return blockposition1.distSqr(blockposition);
+         }).thenComparingInt(BaseBlockPosition::getY));
+     }
+ 
+     public Optional<BlockUtil.Rectangle> createPortal(BlockPosition blockposition, EnumDirection.EnumAxis enumdirection_enumaxis) {
++        // CraftBukkit start
++        return this.createPortal(blockposition, enumdirection_enumaxis, null, 16);
++    }
++
++    public Optional<BlockUtil.Rectangle> createPortal(BlockPosition blockposition, EnumDirection.EnumAxis enumdirection_enumaxis, net.minecraft.world.entity.Entity entity, int createRadius) {
++        // CraftBukkit end
+         EnumDirection enumdirection = EnumDirection.get(EnumDirection.EnumAxisDirection.POSITIVE, enumdirection_enumaxis);
+         double d0 = -1.0D;
+         BlockPosition blockposition1 = null;
+@@ -69,7 +81,7 @@
+         int j = 1;
+         BlockPosition.MutableBlockPosition blockposition_mutableblockposition = blockposition.mutable();
+ 
+-        for (BlockPosition.MutableBlockPosition blockposition_mutableblockposition1 : BlockPosition.spiralAround(blockposition, 16, EnumDirection.EAST, EnumDirection.SOUTH)) {
++        for (BlockPosition.MutableBlockPosition blockposition_mutableblockposition1 : BlockPosition.spiralAround(blockposition, createRadius, EnumDirection.EAST, EnumDirection.SOUTH)) { // CraftBukkit
+             int k = Math.min(i, this.level.getHeight(HeightMap.Type.MOTION_BLOCKING, blockposition_mutableblockposition1.getX(), blockposition_mutableblockposition1.getZ()));
+ 
+             if (worldborder.isWithinBounds((BlockPosition) blockposition_mutableblockposition1) && worldborder.isWithinBounds((BlockPosition) blockposition_mutableblockposition1.move(enumdirection, 1))) {
+@@ -114,6 +126,7 @@
+             d0 = d1;
+         }
+ 
++        org.bukkit.craftbukkit.util.BlockStateListPopulator blockList = new org.bukkit.craftbukkit.util.BlockStateListPopulator(this.level); // CraftBukkit - Use BlockStateListPopulator
+         if (d0 == -1.0D) {
+             int k1 = Math.max(this.level.getMinY() - -1, 70);
+             int l1 = i - 9;
+@@ -132,7 +145,7 @@
+                         IBlockData iblockdata = k2 < 0 ? Blocks.OBSIDIAN.defaultBlockState() : Blocks.AIR.defaultBlockState();
+ 
+                         blockposition_mutableblockposition.setWithOffset(blockposition1, j2 * enumdirection.getStepX() + i2 * enumdirection1.getStepX(), k2, j2 * enumdirection.getStepZ() + i2 * enumdirection1.getStepZ());
+-                        this.level.setBlockAndUpdate(blockposition_mutableblockposition, iblockdata);
++                        blockList.setBlock(blockposition_mutableblockposition, iblockdata, 3); // CraftBukkit
+                     }
+                 }
+             }
+@@ -142,7 +155,7 @@
+             for (int i3 = -1; i3 < 4; ++i3) {
+                 if (l2 == -1 || l2 == 2 || i3 == -1 || i3 == 3) {
+                     blockposition_mutableblockposition.setWithOffset(blockposition1, l2 * enumdirection.getStepX(), i3, l2 * enumdirection.getStepZ());
+-                    this.level.setBlock(blockposition_mutableblockposition, Blocks.OBSIDIAN.defaultBlockState(), 3);
++                    blockList.setBlock(blockposition_mutableblockposition, Blocks.OBSIDIAN.defaultBlockState(), 3); // CraftBukkit
+                 }
+             }
+         }
+@@ -152,10 +165,20 @@
+         for (int j3 = 0; j3 < 2; ++j3) {
+             for (int k3 = 0; k3 < 3; ++k3) {
+                 blockposition_mutableblockposition.setWithOffset(blockposition1, j3 * enumdirection.getStepX(), k3, j3 * enumdirection.getStepZ());
+-                this.level.setBlock(blockposition_mutableblockposition, iblockdata1, 18);
++                blockList.setBlock(blockposition_mutableblockposition, iblockdata1, 18); // CraftBukkit
+             }
+         }
+ 
++        // CraftBukkit start
++        org.bukkit.World bworld = this.level.getWorld();
++        org.bukkit.event.world.PortalCreateEvent event = new org.bukkit.event.world.PortalCreateEvent((java.util.List<org.bukkit.block.BlockState>) (java.util.List) blockList.getList(), bworld, (entity == null) ? null : entity.getBukkitEntity(), org.bukkit.event.world.PortalCreateEvent.CreateReason.NETHER_PAIR);
++
++        this.level.getCraftServer().getPluginManager().callEvent(event);
++        if (event.isCancelled()) {
++            return Optional.empty();
++        }
++        blockList.updateList();
++        // CraftBukkit end
+         return Optional.of(new BlockUtil.Rectangle(blockposition1.immutable(), 2, 3));
+     }
+ 
