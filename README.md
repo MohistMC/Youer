@@ -1,6 +1,6 @@
 <div align="center">
   <h1 align="center">Youer 1.21.9</h1>
-  <h3 align="center">Minecraft NeoForge Hybrid server implementing the Bukkit/Spigot/Paper API</h3>
+  <h3 align="center">Minecraft NeoForge Hybrid server implementing the Paper API</h3>
 
   <p align="center">
     <a href="https://github.com/MohistMC/Youer/stargazers">
@@ -12,8 +12,8 @@
     <a href="https://www.azul.com/downloads/?version=java-21-lts#zulu">
       <img alt="JDK" src="https://img.shields.io/badge/JDK-21.0.8-007396?logo=java&logoColor=white&style=flat-square">
     </a>
-    <a href="https://docs.gradle.org/8.13/release-notes.html">
-      <img alt="Gradle" src="https://img.shields.io/badge/Gradle-8.13-02303A?logo=gradle&logoColor=white&style=flat-square">
+    <a href="https://docs.gradle.org/9.1.0/release-notes.html">
+      <img alt="Gradle" src="https://img.shields.io/badge/Gradle-9.1.0-02303A?logo=gradle&logoColor=white&style=flat-square">
     </a>
     <a href="https://discord.gg/mohistmc">
       <img alt="Discord" src="https://img.shields.io/discord/311256119005937665?color=5865F2&logo=discord&logoColor=white&style=flat-square">
@@ -37,14 +37,14 @@
 
 ✅ **In Progress**
 - [x] Paper ([3cb8529bd](https://github.com/PaperMC/Paper-archive/commit/3cb8529bd))
-  - [ ] api (16)
-  - [ ] server (225)
+  - [ ] api
+  - [ ] server
     - [ ] chunk_system
     - [ ] chunk_tick_iteration
     - [ ] starlight
 - [ ] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))
   - [ ] api
-  - [ ] server (276)
+  - [ ] server
 
 🔄 **Compatible Progress**
 

@@ -40,7 +40,7 @@ public class Main {
         return (Main.class.getPackage().getImplementationVersion() != null) ? Main.class.getPackage().getImplementationVersion() : MCVERSION;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         mainArgs.addAll(List.of(args));
         DataParser.parseVersions();
         DataParser.parseLaunchArgs();

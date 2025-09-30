@@ -22,6 +22,7 @@ import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.I18n;
 import com.mohistmc.mjson.Json;
+import java.net.URI;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -37,7 +38,7 @@ public class UpdateUtils {
 
         try {
             String api = YouerConfigUtil.isCN() ? API_CN : API;
-            Json json = Json.read(new URL(api + "/project/youer/1.21.1/builds/latest"));
+            Json json = Json.read(URI.create(api + "/project/youer/1.21.1/builds/latest").toURL());
             String localCommitHash = DataParser.versionMap.get("youer");
             String remoteCommitHash = json.at("commit").asString("hash");
             String remoteCommitHashShort = remoteCommitHash.substring(0, Math.min(8, remoteCommitHash.length()));
