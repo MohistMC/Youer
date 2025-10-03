@@ -612,7 +612,6 @@ public class NeoForgeMod {
     public void loadComplete(FMLLoadCompleteEvent event) {}
 
     public void serverStopping(ServerStoppingEvent evt) {
-        WorldWorkerManager.clear();
 
         // Reset WORLD type config caches
         ModConfigs.getFileMap().values().forEach(config -> {
