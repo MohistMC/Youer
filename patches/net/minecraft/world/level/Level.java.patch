@@ -42,11 +42,7 @@
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.alchemy.PotionBrewing;
-@@ -56,9 +_,11 @@
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.level.border.WorldBorder;
- import net.minecraft.world.level.chunk.ChunkAccess;
-+import net.minecraft.world.level.chunk.ChunkSource;
+@@ -59,6 +_,7 @@
  import net.minecraft.world.level.chunk.LevelChunk;
  import net.minecraft.world.level.chunk.status.ChunkStatus;
  import net.minecraft.world.level.dimension.DimensionType;
@@ -54,11 +50,9 @@
  import net.minecraft.world.level.entity.EntityTypeTest;
  import net.minecraft.world.level.entity.LevelEntityGetter;
  import net.minecraft.world.level.gameevent.GameEvent;
-@@ -74,9 +_,31 @@
- import net.minecraft.world.level.storage.WritableLevelData;
+@@ -75,8 +_,29 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
-+import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.scores.Scoreboard;
 +import net.neoforged.neoforge.attachment.AttachmentHolder;
 +import net.neoforged.neoforge.common.extensions.ILevelExtension;
@@ -193,8 +187,8 @@
 +    // Paper start - Use getChunkIfLoadedImmediately
 +    @Override
 +    public boolean hasChunk(int chunkX, int chunkZ) {
-+        if (this instanceof ServerLevel) {
-+            return this.getChunkIfLoaded(chunkX, chunkZ) != null;
++        if (this instanceof ServerLevel serverLevel) {
++            return serverLevel.getChunkIfLoaded(chunkX, chunkZ) != null;
 +        }
 +        return getChunkSource().hasChunk(chunkX, chunkZ);
 +    }
@@ -254,12 +248,15 @@
      public boolean isInWorldBounds(BlockPos p_46740_) {
          return !this.isOutsideBuildHeight(p_46740_) && isInWorldBoundsHorizontal(p_46740_);
      }
-@@ -193,6 +_,48 @@
+@@ -193,6 +_,44 @@
  
      @Nullable
      @Override
 +    public final ChunkAccess getChunkIfLoadedImmediately(int x, int z) {
-+        return ((ServerLevel)this).chunkSource.getChunkAtIfLoadedImmediately(x, z);
++        if (this instanceof ServerLevel serverLevel) {
++            return serverLevel.chunkSource.getChunkAtIfLoadedImmediately(x, z);
++        }
++        return null;
 +    }
 +
 +    @Override
@@ -284,13 +281,6 @@
 +
 +    public final boolean isLoadedAndInBounds(BlockPos blockposition) { // Paper - final for inline
 +        return getWorldBorder().isWithinBounds(blockposition) && getChunkIfLoadedImmediately(blockposition.getX() >> 4, blockposition.getZ() >> 4) != null;
-+    }
-+
-+    public @Nullable LevelChunk getChunkIfLoaded(int x, int z) { // Overridden in WorldServer for ABI compat which has final
-+        return ((ServerLevel) this).getChunkSource().getChunkAtIfLoadedImmediately(x, z);
-+    }
-+    public final @Nullable LevelChunk getChunkIfLoaded(BlockPos blockposition) {
-+        return ((ServerLevel) this).getChunkSource().getChunkAtIfLoadedImmediately(blockposition.getX() >> 4, blockposition.getZ() >> 4);
 +    }
 +
 +    //  reduces need to do isLoaded before getType
@@ -409,7 +399,7 @@
                  if (blockstate1 == p_46606_) {
                      if (blockstate != blockstate1) {
                          this.setBlocksDirty(p_46605_, blockstate, blockstate1);
-@@ -247,12 +_,60 @@
+@@ -247,12 +_,63 @@
                      }
  
                      this.onBlockStateChange(p_46605_, blockstate, blockstate1);
@@ -451,15 +441,18 @@
 +
 +                // CraftBukkit start
 +                iblockdata1.updateIndirectNeighbourShapes(this, blockposition, k, j - 1); // Don't call an event for the old block to limit event spam
-+                CraftWorld world = ((ServerLevel) this).getWorld();
-+                if (world != null && ((ServerLevel)this).hasPhysicsEvent) { // Paper - BlockPhysicsEvent
-+                    BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ()), CraftBlockData.fromData(iblockdata));
-+                    this.getCraftServer().getPluginManager().callEvent(event);
++                if (this instanceof ServerLevel serverLevel) {
++                    CraftWorld world = serverLevel.getWorld();
++                    if (world != null && serverLevel.hasPhysicsEvent) { // Paper - BlockPhysicsEvent
++                        BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ()), CraftBlockData.fromData(iblockdata));
++                        this.getCraftServer().getPluginManager().callEvent(event);
 +
-+                    if (event.isCancelled()) {
-+                        return;
++                        if (event.isCancelled()) {
++                            return;
++                        }
 +                    }
 +                }
++
 +                // CraftBukkit end
 +                iblockdata.updateNeighbourShapes(this, blockposition, k, j - 1);
 +                iblockdata.updateIndirectNeighbourShapes(this, blockposition, k, j - 1);
@@ -476,34 +469,46 @@
  
      public void onBlockStateChange(BlockPos p_46609_, BlockState p_46610_, BlockState p_46611_) {
      }
-@@ -270,8 +_,25 @@
+@@ -270,13 +_,37 @@
              return false;
          } else {
              FluidState fluidstate = this.getFluidState(p_46626_);
 -            if (!(blockstate.getBlock() instanceof BaseFireBlock)) {
 -                this.levelEvent(2001, p_46626_, Block.getId(blockstate));
-+            // Paper start - BlockDestroyEvent; while the above setAir method is named same and looks very similar
-+            // they are NOT used with same intent and the above should not fire this event. The above method is more of a BlockSetToAirEvent,
-+            // it doesn't imply destruction of a block that plays a sound effect / drops an item.
-+            boolean playEffect = true;
-+            BlockState effectType = blockstate;
-+            int xp = blockstate.getBlock().getExpDrop(blockstate, (ServerLevel) this, p_46626_, ItemStack.EMPTY, true);
-+            if (com.destroystokyo.paper.event.block.BlockDestroyEvent.getHandlerList().getRegisteredListeners().length > 0) {
-+                com.destroystokyo.paper.event.block.BlockDestroyEvent event = new com.destroystokyo.paper.event.block.BlockDestroyEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this, p_46626_), fluidstate.createLegacyBlock().createCraftBlockData(), effectType.createCraftBlockData(), xp, p_46627_);
-+                if (!event.callEvent()) {
-+                    return false;
++            if (this instanceof ServerLevel serverLevel) {
++                // Paper start - BlockDestroyEvent; while the above setAir method is named same and looks very similar
++                // they are NOT used with same intent and the above should not fire this event. The above method is more of a BlockSetToAirEvent,
++                // it doesn't imply destruction of a block that plays a sound effect / drops an item.
++                boolean playEffect = true;
++                BlockState effectType = blockstate;
++                int xp = blockstate.getBlock().getExpDrop(blockstate, serverLevel, p_46626_, ItemStack.EMPTY, true);
++                if (com.destroystokyo.paper.event.block.BlockDestroyEvent.getHandlerList().getRegisteredListeners().length > 0) {
++                    com.destroystokyo.paper.event.block.BlockDestroyEvent event = new com.destroystokyo.paper.event.block.BlockDestroyEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this, p_46626_), fluidstate.createLegacyBlock().createCraftBlockData(), effectType.createCraftBlockData(), xp, p_46627_);
++                    if (!event.callEvent()) {
++                        return false;
++                    }
++                    effectType = ((CraftBlockData) event.getEffectBlock()).getState();
++                    playEffect = event.playEffect();
++                    p_46627_ = event.willDrop();
++                    xp = event.getExpToDrop();
 +                }
-+                effectType = ((CraftBlockData) event.getEffectBlock()).getState();
-+                playEffect = event.playEffect();
-+                p_46627_ = event.willDrop();
-+                xp = event.getExpToDrop();
-+            }
-+            // Paper end - BlockDestroyEvent
-+            if (playEffect && !(effectType.getBlock() instanceof BaseFireBlock)) { // Paper - BlockDestroyEvent
-+                this.levelEvent(2001, p_46626_, Block.getId(effectType)); // Paper - BlockDestroyEvent
++                // Paper end - BlockDestroyEvent
++                if (playEffect && !(effectType.getBlock() instanceof BaseFireBlock)) { // Paper - BlockDestroyEvent
++                    this.levelEvent(2001, p_46626_, Block.getId(effectType)); // Paper - BlockDestroyEvent
++                }
++            } else {
++                if (!(blockstate.getBlock() instanceof BaseFireBlock)) {
++                    this.levelEvent(2001, p_46626_, Block.getId(blockstate));
++                }
              }
  
              if (p_46627_) {
+                 BlockEntity blockentity = blockstate.hasBlockEntity() ? this.getBlockEntity(p_46626_) : null;
+                 Block.dropResources(blockstate, this, p_46626_, blockentity, p_46628_, ItemStack.EMPTY);
++                // blockstate.getBlock().popExperience((ServerLevel) this, p_46626_, xp); // Paper - Properly handle xp dropping; custom amount // Youer TODO
+             }
+ 
+             boolean flag = this.setBlock(p_46626_, fluidstate.createLegacyBlock(), 3, p_46629_);
 @@ -291,9 +_,20 @@
      public void addDestroyBlockEffect(BlockPos p_151531_, BlockState p_151532_) {
      }
