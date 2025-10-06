@@ -2,6 +2,7 @@ package org.purpurmc.purpur.task;
 
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BeehiveBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -50,7 +51,9 @@ public class BeehiveTask implements PluginMessageListener {
 
         // targeted block info max range specified in client at net.minecraft.client.gui.hud.DebugHud#render
         if (!payload.pos().getCenter().closerThan(serverPlayer.position(), 20)) return; // Targeted Block info max range is 20
-        if (serverPlayer.level().getChunkIfLoaded(payload.pos()) == null) return;
+        if (serverPlayer.level() instanceof ServerLevel serverLevel) {
+            if (serverLevel.getChunkIfLoaded(payload.pos()) == null) return;
+        }
 
         BlockEntity blockEntity = serverPlayer.level().getBlockEntity(payload.pos());
         if (!(blockEntity instanceof BeehiveBlockEntity beehive)) {
