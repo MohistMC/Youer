@@ -27,9 +27,9 @@ public final class BossBarImplementationImpl implements BossBar.Listener, BossBa
     public void playerShow(final CraftPlayer player) {
         if (this.vanilla == null) {
             this.vanilla = new ServerBossEvent(
-                PaperAdventure.asVanilla(this.bar.name()),
-                PaperAdventure.asVanilla(this.bar.color()),
-                PaperAdventure.asVanilla(this.bar.overlay())
+                    PaperAdventure.asVanilla(this.bar.name()),
+                    PaperAdventure.asVanilla(this.bar.color()),
+                    PaperAdventure.asVanilla(this.bar.overlay())
             );
             this.vanilla.adventure = this.bar;
             this.bar.addListener(this);

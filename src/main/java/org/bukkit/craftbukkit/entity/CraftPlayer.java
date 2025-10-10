@@ -9,6 +9,7 @@ import com.mohistmc.youer.feature.GlobalVariableSystem;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import com.destroystokyo.paper.profile.CraftPlayerProfile;
+import io.papermc.paper.adventure.BossBarImplementationImpl;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.shorts.ShortArraySet;
 import it.unimi.dsi.fastutil.shorts.ShortSet;
@@ -3243,6 +3244,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     // resetTitle implemented above
 
     private @Nullable Set<net.kyori.adventure.bossbar.BossBar> activeBossBars;
+    private Map<net.kyori.adventure.bossbar.BossBar, BossBarImplementationImpl> bossBarImplementation = new HashMap<>(); // Youer TODO
 
     @Override
     public @NotNull Iterable<? extends net.kyori.adventure.bossbar.BossBar> activeBossBars() {
@@ -3254,7 +3256,12 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void showBossBar(final net.kyori.adventure.bossbar.BossBar bar) {
-        net.kyori.adventure.bossbar.BossBarImplementation.get(bar, io.papermc.paper.adventure.BossBarImplementationImpl.class).playerShow(this);
+        if (bossBarImplementation.containsKey(bar)) {
+            bossBarImplementation.get(bar).playerShow(this);
+        } else {
+            bossBarImplementation.put(bar, new BossBarImplementationImpl(bar));
+            bossBarImplementation.get(bar).playerShow(this);
+        }
         if (this.activeBossBars == null) {
             this.activeBossBars = new HashSet<>();
         }
@@ -3263,7 +3270,9 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void hideBossBar(final net.kyori.adventure.bossbar.BossBar bar) {
-        net.kyori.adventure.bossbar.BossBarImplementation.get(bar, io.papermc.paper.adventure.BossBarImplementationImpl.class).playerHide(this);
+        if (bossBarImplementation.containsKey(bar)) {
+            bossBarImplementation.get(bar).playerHide(this);
+        }
         if (this.activeBossBars != null) {
             this.activeBossBars.remove(bar);
             if (this.activeBossBars.isEmpty()) {
