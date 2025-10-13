@@ -15,6 +15,8 @@
 -            this.level().levelEvent(2002, this.blockPosition(), PotionContents.getColor(Potions.WATER));
 +            // CraftBukkit - moved to after event
              int i = 3 + this.level().random.nextInt(5) + this.level().random.nextInt(5);
+-            ExperienceOrb.award((ServerLevel)this.level(), this.position(), i);
+-            this.discard();
 +
 +            // CraftBukkit start
 +            org.bukkit.event.entity.ExpBottleEvent event = CraftEventFactory.callExpBottleEvent(this, p_37521_, i);
@@ -24,8 +26,7 @@
 +            }
 +            // CraftBukkit end
 +
-             ExperienceOrb.award((ServerLevel)this.level(), this.position(), i);
--            this.discard();
++            ExperienceOrb.award((ServerLevel)this.level(), this.position(), i, org.bukkit.entity.ExperienceOrb.SpawnReason.EXP_BOTTLE, this.getOwner(), this); // Paper
 +            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
          }
      }

@@ -195,7 +195,8 @@ public class NeoDevPlugin implements Plugin<Project> {
                     })));
                     legacyClassPath.extendsFrom(configurations.libraries, configurations.moduleLibraries, configurations.userdevCompileOnly);
                 },
-                downloadAssets.flatMap(DownloadAssets::getAssetPropertiesFile)
+                downloadAssets.flatMap(DownloadAssets::getAssetPropertiesFile),
+                mcAndNeoFormVersion
         );
         // TODO: Gradle run tasks should be moved to gradle group GROUP
 
@@ -652,10 +653,10 @@ public class NeoDevPlugin implements Plugin<Project> {
     }
 
     private void setupProductionClientTest(Project project,
-                                      NeoDevConfigurations configurations,
-                                      TaskProvider<? extends DownloadAssets> downloadAssets,
-                                      TaskProvider<? extends AbstractArchiveTask> installer,
-                                      Provider<String> minecraftVersion,
+                                           NeoDevConfigurations configurations,
+                                           TaskProvider<? extends DownloadAssets> downloadAssets,
+                                           TaskProvider<? extends AbstractArchiveTask> installer,
+                                           Provider<String> minecraftVersion,
                                            Provider<String> neoForgeVersion,
                                            Provider<RegularFile> originalClientJar
     ) {
