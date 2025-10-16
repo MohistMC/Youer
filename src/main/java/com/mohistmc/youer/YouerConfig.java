@@ -84,8 +84,6 @@ public class YouerConfig {
 
         version = getInt("config-version", 1);
         set("config-version", 1);
-        set("keepinventory.world.inventory", false);
-        set("keepinventory.world.exp", false);
         readConfig();
 
         try {
@@ -314,6 +312,9 @@ public class YouerConfig {
         custom_raid_no_emerald = getBoolean("custom.raid_no_emerald", false);
         custom_lava_speed_normal = getInt("custom.lava_speed.normal", 30);
         custom_lava_speed_nether = getInt("custom.lava_speed.nether", 10);
+
+        getBoolean("keepinventory.world.inventory", false);
+        getBoolean("keepinventory.world.exp", false);
     }
 
     public static boolean isCN() {

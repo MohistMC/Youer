@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -71,7 +72,7 @@ public class Metrics {
             throw new IllegalArgumentException("Data cannot be null!");
         }
 
-        HttpsURLConnection connection = (HttpsURLConnection) new URL("https://bStats.org/submitData/server-implementation").openConnection();
+        HttpsURLConnection connection = (HttpsURLConnection) URI.create("https://bStats.org/submitData/server-implementation").toURL().openConnection();
         byte[] compressedData = compress(data.toString());
 
         connection.setRequestMethod("POST");
