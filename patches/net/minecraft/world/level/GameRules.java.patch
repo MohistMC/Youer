@@ -73,7 +73,7 @@
 -                serverplayer.connection.send(new ClientboundEntityEventPacket(serverplayer, b0));
 -            }
 -        })
-+                for (ServerPlayer serverplayer : p_294061_.getPlayerList().getPlayers()) {
++                for (ServerPlayer serverplayer : p_294061_.players()) {
 +                    serverplayer.connection.send(new ClientboundEntityEventPacket(serverplayer, b0));
 +                }
 +            })
@@ -105,7 +105,7 @@
 -            }
 -        })
 +            "doLimitedCrafting", GameRules.Category.PLAYER, GameRules.BooleanValue.create(false, (p_301943_, p_301944_) -> {
-+                for (ServerPlayer serverplayer : p_301943_.getPlayerList().getPlayers()) {
++                for (ServerPlayer serverplayer : p_301943_.players()) {
 +                    serverplayer.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.LIMITED_CRAFTING, p_301944_.get() ? 1.0F : 0.0F));
 +                }
 +            })
@@ -141,7 +141,7 @@
 -            }
 -        })
 +            "doImmediateRespawn", GameRules.Category.PLAYER, GameRules.BooleanValue.create(false, (p_294059_, p_294060_) -> {
-+                for (ServerPlayer serverplayer : p_294059_.getPlayerList().getPlayers()) {
++                for (ServerPlayer serverplayer : p_294059_.players()) {
 +                    serverplayer.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.IMMEDIATE_RESPAWN, p_294060_.get() ? 1.0F : 0.0F));
 +                }
 +            })
@@ -236,7 +236,7 @@
 -            serverlevel.setDefaultSpawnPos(serverlevel.getSharedSpawnPos(), serverlevel.getSharedSpawnAngle());
 -        })
 +            "spawnChunkRadius", GameRules.Category.MISC, GameRules.IntegerValue.create(2, 0, 32, (p_340787_, p_340788_) -> {
-+                ServerLevel serverlevel = p_340787_.overworld();
++                ServerLevel serverlevel = p_340787_;
 +                serverlevel.setDefaultSpawnPos(serverlevel.getSharedSpawnPos(), serverlevel.getSharedSpawnAngle());
 +            })
      );
@@ -247,7 +247,7 @@
          GameRules.Key<T> key = new GameRules.Key<>(p_46190_, p_46191_);
          GameRules.Type<?> type = GAME_RULE_TYPES.put(key, p_46192_);
          if (type != null) {
-@@ -250,7 +_,7 @@
+@@ -250,17 +_,17 @@
      }
  
      private static <T extends GameRules.Value<T>> void callVisitorCap(
@@ -256,12 +256,24 @@
      ) {
          p_46167_.visit((GameRules.Key<T>)p_46168_, (GameRules.Type<T>)p_46169_);
          ((GameRules.Type<T>)p_46169_).callVisitor(p_46167_, (GameRules.Key<T>)p_46168_);
+     }
+ 
+-    public void assignFrom(GameRules p_46177_, @Nullable MinecraftServer p_46178_) {
++    public void assignFrom(GameRules p_46177_, @Nullable ServerLevel p_46178_) {
+         p_46177_.rules.keySet().forEach(p_46182_ -> this.assignCap((GameRules.Key<?>)p_46182_, p_46177_, p_46178_));
+     }
+ 
+-    private <T extends GameRules.Value<T>> void assignCap(GameRules.Key<T> p_46173_, GameRules p_46174_, @Nullable MinecraftServer p_46175_) {
++    private <T extends GameRules.Value<T>> void assignCap(GameRules.Key<T> p_46173_, GameRules p_46174_, @Nullable ServerLevel p_46175_) {
+         T t = p_46174_.getRule(p_46173_);
+         this.<T>getRule(p_46173_).setFrom(t, p_46175_);
+     }
 @@ -276,13 +_,13 @@
      public static class BooleanValue extends GameRules.Value<GameRules.BooleanValue> {
          private boolean value;
  
 -        public static GameRules.Type<GameRules.BooleanValue> create(boolean p_46253_, BiConsumer<MinecraftServer, GameRules.BooleanValue> p_46254_) {
-+        static GameRules.Type<GameRules.BooleanValue> create(boolean p_46253_, BiConsumer<MinecraftServer, GameRules.BooleanValue> p_46254_) {
++        static GameRules.Type<GameRules.BooleanValue> create(boolean p_46253_, BiConsumer<ServerLevel, GameRules.BooleanValue> p_46254_) {
              return new GameRules.Type<>(
 -                BoolArgumentType::bool, p_46242_ -> new GameRules.BooleanValue(p_46242_, p_46253_), p_46254_, GameRules.GameRuleTypeVisitor::visitBoolean
 +                    BoolArgumentType::bool, p_46242_ -> new GameRules.BooleanValue(p_46242_, p_46253_), p_46254_, GameRules.GameRuleTypeVisitor::visitBoolean
@@ -273,12 +285,43 @@
              return create(p_46251_, (p_46236_, p_46237_) -> {
              });
          }
+@@ -293,15 +_,18 @@
+         }
+ 
+         @Override
+-        protected void updateFromArgument(CommandContext<CommandSourceStack> p_46231_, String p_46232_) {
+-            this.value = BoolArgumentType.getBool(p_46231_, p_46232_);
++        protected void updateFromArgument(CommandContext<CommandSourceStack> p_46231_, String p_46232_, GameRules.Key<BooleanValue> gameRuleKey) { // Paper start - Add WorldGameRuleChangeEvent
++            io.papermc.paper.event.world.WorldGameRuleChangeEvent event = new io.papermc.paper.event.world.WorldGameRuleChangeEvent(p_46231_.getSource().getBukkitWorld(), p_46231_.getSource().getBukkitSender(), (org.bukkit.GameRule<Boolean>) org.bukkit.GameRule.getByName(gameRuleKey.toString()), String.valueOf(BoolArgumentType.getBool(p_46231_, p_46232_)));
++            if (!event.callEvent()) return;
++            this.value = Boolean.parseBoolean(event.getValue());
++            // Paper end - Add WorldGameRuleChangeEvent
+         }
+ 
+         public boolean get() {
+             return this.value;
+         }
+ 
+-        public void set(boolean p_46247_, @Nullable MinecraftServer p_46248_) {
++        public void set(boolean p_46247_, @Nullable ServerLevel p_46248_) {
+             this.value = p_46247_;
+             this.onChanged(p_46248_);
+         }
+@@ -329,7 +_,7 @@
+             return new GameRules.BooleanValue(this.type, this.value);
+         }
+ 
+-        public void setFrom(GameRules.BooleanValue p_46225_, @Nullable MinecraftServer p_46226_) {
++        public void setFrom(GameRules.BooleanValue p_46225_, @Nullable ServerLevel p_46226_) {
+             this.value = p_46225_.value;
+             this.onChanged(p_46226_);
+         }
 @@ -369,24 +_,24 @@
      public static class IntegerValue extends GameRules.Value<GameRules.IntegerValue> {
          private int value;
  
 -        public static GameRules.Type<GameRules.IntegerValue> create(int p_46295_, BiConsumer<MinecraftServer, GameRules.IntegerValue> p_46296_) {
-+        private static GameRules.Type<GameRules.IntegerValue> create(int p_46295_, BiConsumer<MinecraftServer, GameRules.IntegerValue> p_46296_) {
++        private static GameRules.Type<GameRules.IntegerValue> create(int p_46295_, BiConsumer<ServerLevel, GameRules.IntegerValue> p_46296_) {
              return new GameRules.Type<>(
 -                IntegerArgumentType::integer, p_46293_ -> new GameRules.IntegerValue(p_46293_, p_46295_), p_46296_, GameRules.GameRuleTypeVisitor::visitInteger
 +                    IntegerArgumentType::integer, p_46293_ -> new GameRules.IntegerValue(p_46293_, p_46295_), p_46296_, GameRules.GameRuleTypeVisitor::visitInteger
@@ -287,7 +330,7 @@
  
          static GameRules.Type<GameRules.IntegerValue> create(
 -            int p_320826_, int p_320897_, int p_320198_, BiConsumer<MinecraftServer, GameRules.IntegerValue> p_320846_
-+                int p_320826_, int p_320897_, int p_320198_, BiConsumer<MinecraftServer, GameRules.IntegerValue> p_320846_
++                int p_320826_, int p_320897_, int p_320198_, BiConsumer<ServerLevel, GameRules.IntegerValue> p_320846_
          ) {
              return new GameRules.Type<>(
 -                () -> IntegerArgumentType.integer(p_320897_, p_320198_),
@@ -306,7 +349,43 @@
              return create(p_46313_, (p_46309_, p_46310_) -> {
              });
          }
-@@ -505,10 +_,10 @@
+@@ -397,15 +_,18 @@
+         }
+ 
+         @Override
+-        protected void updateFromArgument(CommandContext<CommandSourceStack> p_46304_, String p_46305_) {
+-            this.value = IntegerArgumentType.getInteger(p_46304_, p_46305_);
++        protected void updateFromArgument(CommandContext<CommandSourceStack> p_46304_, String p_46305_, GameRules.Key<IntegerValue> gameRuleKey) { // Paper start - Add WorldGameRuleChangeEvent
++            io.papermc.paper.event.world.WorldGameRuleChangeEvent event = new io.papermc.paper.event.world.WorldGameRuleChangeEvent(p_46304_.getSource().getBukkitWorld(), p_46304_.getSource().getBukkitSender(), (org.bukkit.GameRule<Integer>) org.bukkit.GameRule.getByName(gameRuleKey.toString()), String.valueOf(IntegerArgumentType.getInteger(p_46304_, p_46305_)));
++            if (!event.callEvent()) return;
++            this.value = Integer.parseInt(event.getValue());
++            // Paper end - Add WorldGameRuleChangeEvent
+         }
+ 
+         public int get() {
+             return this.value;
+         }
+ 
+-        public void set(int p_151490_, @Nullable MinecraftServer p_151491_) {
++        public void set(int p_151490_, @Nullable ServerLevel p_151491_) {
+             this.value = p_151490_;
+             this.onChanged(p_151491_);
+         }
+@@ -455,7 +_,7 @@
+             return new GameRules.IntegerValue(this.type, this.value);
+         }
+ 
+-        public void setFrom(GameRules.IntegerValue p_46298_, @Nullable MinecraftServer p_46299_) {
++        public void setFrom(GameRules.IntegerValue p_46298_, @Nullable ServerLevel p_46299_) {
+             this.value = p_46298_.value;
+             this.onChanged(p_46299_);
+         }
+@@ -501,14 +_,14 @@
+     public static class Type<T extends GameRules.Value<T>> {
+         final Supplier<ArgumentType<?>> argument;
+         private final Function<GameRules.Type<T>, T> constructor;
+-        final BiConsumer<MinecraftServer, T> callback;
++        final BiConsumer<ServerLevel, T> callback;
          private final GameRules.VisitorCaller<T> visitorCaller;
  
          Type(
@@ -316,8 +395,37 @@
 -            GameRules.VisitorCaller<T> p_46345_
 +                Supplier<ArgumentType<?>> p_46342_,
 +                Function<GameRules.Type<T>, T> p_46343_,
-+                BiConsumer<MinecraftServer, T> p_46344_,
++                BiConsumer<ServerLevel, T> p_46344_,
 +                GameRules.VisitorCaller<T> p_46345_
          ) {
              this.argument = p_46342_;
              this.constructor = p_46343_;
+@@ -536,14 +_,14 @@
+             this.type = p_46362_;
+         }
+ 
+-        protected abstract void updateFromArgument(CommandContext<CommandSourceStack> p_46365_, String p_46366_);
++        protected abstract void updateFromArgument(CommandContext<CommandSourceStack> p_46365_, String p_46366_, GameRules.Key<T> gameRuleKey); // Paper - Add WorldGameRuleChangeEvent
+ 
+-        public void setFromArgument(CommandContext<CommandSourceStack> p_46371_, String p_46372_) {
+-            this.updateFromArgument(p_46371_, p_46372_);
+-            this.onChanged(p_46371_.getSource().getServer());
++        public void setFromArgument(CommandContext<CommandSourceStack> p_46371_, String p_46372_, GameRules.Key<T> gameRuleKey) { // Paper - Add WorldGameRuleChangeEvent
++            this.updateFromArgument(p_46371_, p_46372_, gameRuleKey); // Paper - Add WorldGameRuleChangeEvent
++            this.onChanged(p_46371_.getSource().getLevel());
+         }
+ 
+-        public void onChanged(@Nullable MinecraftServer p_46369_) {
++        public void onChanged(@Nullable ServerLevel p_46369_) {
+             if (p_46369_ != null) {
+                 this.type.callback.accept(p_46369_, this.getSelf());
+             }
+@@ -564,7 +_,7 @@
+ 
+         protected abstract T copy();
+ 
+-        public abstract void setFrom(T p_46363_, @Nullable MinecraftServer p_46364_);
++        public abstract void setFrom(T p_46363_, @Nullable ServerLevel p_46364_);
+     }
+ 
+     interface VisitorCaller<T extends GameRules.Value<T>> {

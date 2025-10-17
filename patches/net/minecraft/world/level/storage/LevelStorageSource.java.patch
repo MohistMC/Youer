@@ -54,16 +54,12 @@
      public static record LevelCandidates(List<LevelStorageSource.LevelDirectory> levels) implements Iterable<LevelStorageSource.LevelDirectory> {
          public boolean isEmpty() {
              return this.levels.isEmpty();
-@@ -410,12 +_,30 @@
+@@ -410,8 +_,19 @@
          public final LevelStorageSource.LevelDirectory levelDirectory;
          private final String levelId;
          private final Map<LevelResource, Path> resources = Maps.newHashMap();
 -
 -        LevelStorageAccess(String p_289967_, Path p_289988_) throws IOException {
--            this.levelId = p_289967_;
--            this.levelDirectory = new LevelStorageSource.LevelDirectory(p_289988_);
--            this.lock = DirectoryLock.create(p_289988_);
--        }
 +        // CraftBukkit start
 +        public ResourceKey<LevelStem> dimensionType;
 +
@@ -77,20 +73,9 @@
 +        public LevelStorageAccess(String p_289967_, Path p_289988_, final ResourceKey<LevelStem> dimensionType) throws IOException {
 +            this.dimensionType = dimensionType;
 +            // CraftBukkit end
-+            this.levelId = p_289967_;
-+            this.levelDirectory = new LevelStorageSource.LevelDirectory(p_289988_);
-+            this.lock = DirectoryLock.create(p_289988_);
-+        }
-+
-+        // Youer start
-+        public LevelStorageAccess setTypeKey(ResourceKey<LevelStem> dimensionType) {
-+            this.dimensionType = dimensionType;
-+            return this;
-+        }
-+        // Youer end
- 
-         public long estimateDiskSpace() {
-             try {
+             this.levelId = p_289967_;
+             this.levelDirectory = new LevelStorageSource.LevelDirectory(p_289988_);
+             this.lock = DirectoryLock.create(p_289988_);
 @@ -454,7 +_,7 @@
          }
  
@@ -120,7 +105,7 @@
          public PlayerDataStorage createPlayerStorage() {
              this.checkLock();
              return new PlayerDataStorage(this, LevelStorageSource.this.fixerUpper);
-@@ -496,6 +_,7 @@
+@@ -496,12 +_,12 @@
              CompoundTag compoundtag = p_78292_.createTag(p_78291_, p_78293_);
              CompoundTag compoundtag1 = new CompoundTag();
              compoundtag1.put("Data", compoundtag);
@@ -128,6 +113,12 @@
              this.saveLevelData(compoundtag1);
          }
  
+         private void saveLevelData(CompoundTag p_307262_) {
+             Path path = this.levelDirectory.path();
+-
+             try {
+                 Path path1 = Files.createTempFile(path, "level", ".dat");
+                 NbtIo.writeCompressed(p_307262_, path1);
 @@ -515,6 +_,10 @@
  
          public Optional<Path> getIconFile() {

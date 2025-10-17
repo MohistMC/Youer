@@ -11,6 +11,7 @@ import net.neoforged.fml.ModList;
 import net.neoforged.neoforgespi.language.IModInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
+import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
@@ -25,6 +26,7 @@ public class ServerAPI {
     public static List<Command> forgecmd = new ArrayList<>();
     public static Map<net.minecraft.world.entity.EntityType<?>, String> entityTypeMap = new ConcurrentHashMap<>();
     public static Map<net.minecraft.world.entity.EntityType<?>, EntityType> entityTypeMap0 = new ConcurrentHashMap<>();
+    public static Map<Integer, EnderDragon.Phase> phasetypeMap = new ConcurrentHashMap<>();
 
     public static boolean yes_steve_model() {
         return modlists_All.contains("yes_steve_model");

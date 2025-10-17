@@ -83,13 +83,14 @@
  import net.minecraft.world.entity.ai.village.VillageSiege;
  import net.minecraft.world.entity.npc.CatSpawner;
  import net.minecraft.world.entity.npc.WanderingTraderSpawner;
-@@ -161,14 +_,40 @@
+@@ -161,14 +_,41 @@
  import net.minecraft.world.level.storage.LevelResource;
  import net.minecraft.world.level.storage.LevelStorageSource;
  import net.minecraft.world.level.storage.PlayerDataStorage;
 +import net.minecraft.world.level.storage.PrimaryLevelData;
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.level.storage.WorldData;
++import net.minecraft.world.level.validation.ContentValidationException;
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
 +import net.minecraft.world.scores.PlayerTeam;
@@ -356,7 +357,7 @@
  
                  try {
                      serverlevel.fillReportDetails(crashreport);
-@@ -405,6 +_,18 @@
+@@ -405,10 +_,28 @@
              if (resourcekey != LevelStem.OVERWORLD) {
                  ResourceKey<Level> resourcekey1 = ResourceKey.create(Registries.DIMENSION, resourcekey.location());
                  DerivedLevelData derivedleveldata = new DerivedLevelData(this.worldData, serverleveldata);
@@ -372,9 +373,20 @@
 +                }
 +                NeoForgeInjectBukkit.addEnumEnvironment(this.registryAccess().registryOrThrow(Registries.LEVEL_STEM));
 +                Level.craftWorldData(NeoForgeInjectBukkit.environment.get(resourcekey), this.server.getGenerator(name), this.server.getBiomeProvider(name));
++                LevelStorageSource.LevelStorageAccess worldSession;
++                try {
++                    worldSession = LevelStorageSource.createDefault(this.server.getWorldContainer().toPath()).validateAndCreateAccess(name, resourcekey);
++                } catch (IOException | ContentValidationException ex) {
++                    worldSession = this.storageSource;
++                }
                  ServerLevel serverlevel1 = new ServerLevel(
                      this,
                      this.executor,
+-                    this.storageSource,
++                    worldSession,
+                     derivedleveldata,
+                     resourcekey1,
+                     entry.getValue(),
 @@ -419,12 +_,43 @@
                      false,
                      randomsequences
@@ -544,7 +556,7 @@
              }
  
              serverlevel.save(null, p_129887_, serverlevel.noSave && !p_129888_);
-@@ -550,15 +_,24 @@
+@@ -550,15 +_,15 @@
  
          ServerLevel serverlevel2 = this.overworld();
          ServerLevelData serverleveldata = this.worldData.overworldData();
@@ -552,15 +564,6 @@
 +        if (serverlevel2 != null) serverleveldata.setWorldBorder(serverlevel2.getWorldBorder().createSettings());
          this.worldData.setCustomBossEvents(this.getCustomBossEvents().save(this.registryAccess()));
          this.storageSource.saveDataTag(this.registryAccess(), this.worldData, this.getPlayerList().getSingleplayerData());
-+        // CraftBukkit start
-+        for (ServerLevel world : this.getAllLevels()) {
-+            if (!world.getWorld().isBukkit() && world.convertable != this.storageSource) {
-+                world.K.setWorldBorder(world.getWorldBorder().createSettings());
-+                world.K.setCustomBossEvents(this.getCustomBossEvents().save(this.registryAccess()));
-+                world.convertable.saveDataTag(this.registryAccess(), world.K, this.getPlayerList().getSingleplayerData());
-+            }
-+        }
-+        // CraftBukkit end
          if (p_129887_) {
              for (ServerLevel serverlevel1 : this.getAllLevels()) {
 -                LOGGER.info("ThreadedAnvilChunkStorage ({}): All chunks are saved", serverlevel1.getChunkSource().chunkMap.getStorageName());

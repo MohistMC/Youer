@@ -176,7 +176,7 @@
                      if (!this.hasPassenger(entity) && entity.isPushable() && entity instanceof AbstractMinecart) {
                          entity.push(this);
                      }
-@@ -332,23 +_,34 @@
+@@ -332,25 +_,46 @@
      }
  
      protected double getMaxSpeed() {
@@ -200,10 +200,10 @@
 +        }
 +
 +        if (getMaxSpeedAirVertical() > 0 && getDeltaMovement().y > getMaxSpeedAirVertical()) {
-+             if(Math.abs(getDeltaMovement().x) < 0.3f && Math.abs(getDeltaMovement().z) < 0.3f)
-+                  setDeltaMovement(new Vec3(getDeltaMovement().x, 0.15f, getDeltaMovement().z));
-+             else
-+                  setDeltaMovement(new Vec3(getDeltaMovement().x, getMaxSpeedAirVertical(), getDeltaMovement().z));
++            if(Math.abs(getDeltaMovement().x) < 0.3f && Math.abs(getDeltaMovement().z) < 0.3f)
++                setDeltaMovement(new Vec3(getDeltaMovement().x, 0.15f, getDeltaMovement().z));
++            else
++                setDeltaMovement(new Vec3(getDeltaMovement().x, getMaxSpeedAirVertical(), getDeltaMovement().z));
          }
  
          this.move(MoverType.SELF, this.getDeltaMovement());
@@ -214,7 +214,19 @@
 +            // CraftBukkit end
          }
      }
++
++    // CraftBukkit start
++    @Override
++    public Vec3 getKnownMovement() {
++        double d0 = this.getMaxSpeed();
++        Vec3 vec3d = super.getKnownMovement();
++
++        return new Vec3(Mth.clamp(vec3d.x, -d0, d0), vec3d.y, Mth.clamp(vec3d.z, -d0, d0));
++    }
++    // CraftBukkit end
  
+     protected void moveAlongTrack(BlockPos p_38156_, BlockState p_38157_) {
+         this.resetFallDistance();
 @@ -361,18 +_,19 @@
          d1 = (double)p_38156_.getY();
          boolean flag = false;
@@ -337,7 +349,7 @@
                                  p_38165_.setDeltaMovement(vec33.multiply(0.2, 1.0, 0.2));
                                  p_38165_.push(vec32.x + d0, 0.0, vec32.z + d1);
                                  this.setDeltaMovement(vec32.multiply(0.95, 1.0, 0.95));
-@@ -791,6 +_,93 @@
+@@ -791,6 +_,94 @@
          this.getEntityData().set(DATA_ID_CUSTOM_DISPLAY, p_38139_);
      }
  
@@ -416,6 +428,7 @@
 +    @Override
 +    public void setDragAir(double value) {
 +        dragAir = value;
++        setFlyingVelocityMod(value); // Youer
 +    }
 +
 +    // Neo: Applies the movement speed to the Minecart
@@ -431,7 +444,7 @@
      @Override
      public ItemStack getPickResult() {
          return new ItemStack(switch (this.getMinecartType()) {
-@@ -812,4 +_,26 @@
+@@ -812,4 +_,34 @@
          HOPPER,
          COMMAND_BLOCK;
      }
@@ -446,6 +459,14 @@
 +        flyingY = flying.getY();
 +        flyingZ = flying.getZ();
 +    }
++
++    // Youer start
++    public void setFlyingVelocityMod(double flying) {
++        flyingX = flying;
++        flyingY = flying;
++        flyingZ = flying;
++    }
++    // Youer end
 +
 +    public Vector getDerailedVelocityMod() {
 +        return new Vector(derailedX, derailedY, derailedZ);

@@ -261,7 +261,7 @@
              this.debugSampleSubscriptionTracker = new DebugSampleSubscriptionTracker(this.getPlayerList());
              this.tickTimeLogger = new RemoteSampleLogger(
                  TpsDebugDimensions.values().length, this.debugSampleSubscriptionTracker, RemoteDebugSampleType.TICK_TIME
-@@ -185,11 +_,13 @@
+@@ -185,13 +_,15 @@
              long i = Util.getNanos();
              SkullBlockEntity.setup(this.services, this);
              GameProfileCache.setUsesAuthentication(this.usesAuthentication());
@@ -274,8 +274,11 @@
 +            LOGGER.info(I18n.as("minecraftserver.startdone", s));
 +            this.nextTickTimeNanos = Util.getNanos(); // Neo: Update server time to prevent watchdog/spaming during long load.
              if (dedicatedserverproperties.announcePlayerAchievements != null) {
-                 this.getGameRules().getRule(GameRules.RULE_ANNOUNCE_ADVANCEMENTS).set(dedicatedserverproperties.announcePlayerAchievements, this);
+-                this.getGameRules().getRule(GameRules.RULE_ANNOUNCE_ADVANCEMENTS).set(dedicatedserverproperties.announcePlayerAchievements, this);
++                this.getGameRules().getRule(GameRules.RULE_ANNOUNCE_ADVANCEMENTS).set(dedicatedserverproperties.announcePlayerAchievements, this.overworld()); // CraftBukkit - per-world
              }
+ 
+             if (dedicatedserverproperties.enableQuery) {
 @@ -204,7 +_,7 @@
                  this.rconThread = RconThread.create(this);
              }
