@@ -178,7 +178,7 @@ public class BansCommand extends Command {
                                     public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                         if (type.isRightClick()) {
                                             old.remove(s);
-                                            BanUtils.saveToYaml(u, com.mohistmc.youer.plugins.ban.ClickType.REMOVE, old, BanType.ITEM_MOSHOU);
+                                            BanConfig.MOSHOU.setBaMoShou(old);
                                             wh.removeItem(this);
                                             wh.openGUI(player);
                                         }

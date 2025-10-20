@@ -244,7 +244,7 @@
  
      public ServerPlayer(MinecraftServer p_254143_, ServerLevel p_254435_, GameProfile p_253651_, ClientInformation p_301997_) {
          super(p_254435_, p_254435_.getSharedSpawnPos(), p_254435_.getSharedSpawnAngle(), p_253651_);
-@@ -284,10 +_,92 @@
+@@ -284,16 +_,98 @@
          this.server = p_254143_;
          this.stats = p_254143_.getPlayerList().getPlayerStats(this);
          this.advancements = p_254143_.getPlayerList().getPlayerAdvancements(this);
@@ -281,7 +281,7 @@
 +    public final BlockPos getSpawnPoint(ServerLevel worldserver) {
 +        BlockPos blockposition = worldserver.getSharedSpawnPos();
 +
-+        if (worldserver.dimensionType().hasSkyLight() && worldserver.serverLevelData.getGameType() != GameType.ADVENTURE) {
++        if (worldserver.dimensionType().hasSkyLight() && worldserver.K.getGameType() != GameType.ADVENTURE) {
 +            int i = Math.max(0, this.server.getSpawnRadius(worldserver));
 +            int j = Mth.floor(worldserver.getWorldBorder().getDistanceToBorder((double) blockposition.getX(), (double) blockposition.getZ()));
 +
@@ -340,6 +340,13 @@
  
      @Override
      public BlockPos adjustSpawnLocation(ServerLevel p_352206_, BlockPos p_352202_) {
+         AABB aabb = this.getDimensions(Pose.STANDING).makeBoundingBox(Vec3.ZERO);
+         BlockPos blockpos = p_352202_;
+-        if (p_352206_.dimensionType().hasSkyLight() && p_352206_.getServer().getWorldData().getGameType() != GameType.ADVENTURE) {
++        if (p_352206_.dimensionType().hasSkyLight() && p_352206_.serverLevelData.getGameType() != GameType.ADVENTURE) {
+             int i = Math.max(0, this.server.getSpawnRadius(p_352206_));
+             int j = Mth.floor(p_352206_.getWorldBorder().getDistanceToBorder((double)p_352202_.getX(), (double)p_352202_.getZ()));
+             if (j < i) {
 @@ -357,11 +_,20 @@
          if (p_9131_.contains("recipeBook", 10)) {
              this.recipeBook.fromNbt(p_9131_.getCompound("recipeBook"), this.server.getRecipeManager());
@@ -1135,7 +1142,7 @@
          if (!this.useItem.isEmpty() && this.isUsingItem()) {
              this.connection.send(new ClientboundEntityEventPacket(this, (byte)9));
              super.completeUsingItem();
-@@ -1334,19 +_,23 @@
+@@ -1334,12 +_,16 @@
      }
  
      public void restoreFrom(ServerPlayer p_9016_, boolean p_9017_) {
@@ -1153,14 +1160,6 @@
          if (p_9017_) {
              this.getInventory().replaceWith(p_9016_.getInventory());
              this.setHealth(p_9016_.getHealth());
-             this.foodData = p_9016_.foodData;
- 
-             for (MobEffectInstance mobeffectinstance : p_9016_.getActiveEffects()) {
--                this.addEffect(new MobEffectInstance(mobeffectinstance));
-+               this.addEffect(new MobEffectInstance(mobeffectinstance));
-             }
- 
-             this.experienceLevel = p_9016_.experienceLevel;
 @@ -1354,11 +_,13 @@
              this.experienceProgress = p_9016_.experienceProgress;
              this.setScore(p_9016_.getScore());

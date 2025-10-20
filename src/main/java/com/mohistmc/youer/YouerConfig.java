@@ -89,6 +89,7 @@ public class YouerConfig {
         try {
             Class.forName("org.sqlite.JDBC");
             Class.forName("com.mysql.cj.jdbc.Driver");
+            Class.forName("org.mariadb.jdbc.Driver");
         } catch (Throwable t) {
             throw new RuntimeException("Error initializing Youer", t);
         }

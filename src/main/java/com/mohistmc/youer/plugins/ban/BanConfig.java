@@ -61,6 +61,11 @@ public class BanConfig extends YouerPluginConfig {
         return (!has(name)) ? "" : BAN_MESSAGE.yaml.getString(name, "");
     }
 
+    public void setBaMoShou(List<String> v) {
+        MOSHOU.yaml.set("ITEMS", v);
+        save();
+    }
+
     public void setBanMessage(String key, Object v) {
         BAN_MESSAGE.yaml.set(key, v);
         save();

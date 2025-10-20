@@ -2318,7 +2318,7 @@ public final class CraftServer implements Server {
 
     @Override
     public GameMode getDefaultGameMode() {
-        return GameMode.getByValue(this.console.getLevel(net.minecraft.world.level.Level.OVERWORLD).serverLevelData.getGameType().getId());
+        return GameMode.getByValue(this.console.getLevel(net.minecraft.world.level.Level.OVERWORLD).K.getGameType().getId());
     }
 
     @Override
@@ -2326,7 +2326,7 @@ public final class CraftServer implements Server {
         Preconditions.checkArgument(mode != null, "GameMode cannot be null");
 
         for (World world : this.getWorlds()) {
-            ((CraftWorld) world).getHandle().serverLevelData.setGameType(GameType.byId(mode.getValue()));
+            ((CraftWorld) world).getHandle().K.setGameType(GameType.byId(mode.getValue()));
         }
     }
 

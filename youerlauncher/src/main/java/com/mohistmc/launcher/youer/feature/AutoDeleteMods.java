@@ -55,6 +55,7 @@ public class AutoDeleteMods {
         put("me.steinborn.krypton.mod.server.KryptonServerInitializer", DeletionReason.DUPLICATE_FEATURE);
         put("me.steinborn.krypton.mod.KryptonBootstrap", DeletionReason.DUPLICATE_FEATURE);
         put("org.thinkingstudio.krypton_foxified.KryptonFoxified", DeletionReason.DUPLICATE_FEATURE);
+        put("one.pkg.mod.krypton_fnp.NeoModBootstrap", DeletionReason.DUPLICATE_FEATURE);
         put("net.caffeinemc.mods.lithium.neoforge.LithiumNeoForgeMod", DeletionReason.DUPLICATE_FEATURE);
         put("me.jellysquid.mods.lithium.common.LithiumMod", DeletionReason.DUPLICATE_FEATURE);
         //put("com.bawnorton.neruina.Neruina", DeletionReason.DUPLICATE_FEATURE);
@@ -69,6 +70,9 @@ public class AutoDeleteMods {
         put("dev.imb11.sounds.loaders.neoforge.SoundsNeoForge", DeletionReason.CLIENT_ONLY);
         put("me.drex.crashexploitfixer.neoforge.CrashExploitFixerNeoforge", DeletionReason.DUPLICATE_FEATURE);
         put("fabric-carpet-refmap", DeletionReason.FABRIC_ONLY);
+        put("com.ishland.c2me.C2MEMod", DeletionReason.CLIENT_ONLY);
+        put("me.pepperbell.continuity.client.ContinuityClient", DeletionReason.CLIENT_ONLY);
+        put("link.e4mc.neoforge.E4mcClientNeoForge", DeletionReason.DUPLICATE_FEATURE);
         //put("carpet.CarpetServer", DeletionReason.DUPLICATE_FEATURE);
     }};
 
@@ -118,8 +122,7 @@ public class AutoDeleteMods {
                             if (FileUtils.fileExists(jarFile, classPath)) {
                                 backupAndDelete(jarFile, identifier);
                             }
-                        }
-                        else {
+                        } else {
                             String jsonPath = identifier + ".json";
                             if (FileUtils.fileExists(jarFile, jsonPath) ||
                                     FileUtils.fileExists(jarFile, "META-INF/" + jsonPath) ||
@@ -146,13 +149,6 @@ public class AutoDeleteMods {
      */
     private static void backupAndDelete(File modFile, String className) throws Exception {
         DeletionReason reason = MOD_BLACKLIST.getOrDefault(className, DeletionReason.UNKNOWN);
-        System.out.println(I18n.as("update.deleting",
-                modFile.getName(),
-                reason.getDisplayText()
-        ));
-
-        System.gc();
-        Thread.sleep(100);
 
         File backupDir = new File("delete/mods");
         File backupFile = new File("delete", modFile.getPath());
@@ -165,7 +161,14 @@ public class AutoDeleteMods {
             }
 
             Files.copy(modFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            modFile.delete();
+            if (!modFile.delete()) {
+                System.err.println("Failed to delete file: " + modFile.getName());
+            } else {
+                System.out.println(I18n.as("update.deleting",
+                        modFile.getName(),
+                        reason.getDisplayText()
+                ));
+            }
         }
     }
 }
