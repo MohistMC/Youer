@@ -12,6 +12,7 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameRules.BooleanValue;
 
@@ -54,10 +55,10 @@ class TimeSpeedCommand {
     private static int setSpeed(CommandSourceStack source, float speed) {
         final BooleanValue rule = source.getLevel().getGameRules().getRule(GameRules.RULE_DAYLIGHT);
         if (!rule.get() && speed > 0) {
-            rule.set(true, null);
+            rule.set(true, (ServerLevel) null);
             source.sendSuccess(() -> CommandUtils.makeTranslatableWithFallback("commands.gamerule.set", GameRules.RULE_DAYLIGHT.getId(), rule.toString()), true);
         } else if (rule.get() && speed == 0) {
-            rule.set(false, null);
+            rule.set(false, (ServerLevel) null);
             source.sendSuccess(() -> CommandUtils.makeTranslatableWithFallback("commands.gamerule.set", GameRules.RULE_DAYLIGHT.getId(), rule.toString()), true);
             return Command.SINGLE_SUCCESS;
         }

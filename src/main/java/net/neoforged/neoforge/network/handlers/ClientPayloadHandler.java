@@ -21,6 +21,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
@@ -157,7 +158,7 @@ public final class ClientPayloadHandler {
         final ClientLevel level = Minecraft.getInstance().level;
         level.setGameTime(payload.gameTime());
         level.setDayTime(payload.dayTime());
-        level.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(payload.gameRule(), null);
+        level.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(payload.gameRule(), (ServerLevel) null);
         level.setDayTimeFraction(payload.dayTimeFraction());
         level.setDayTimePerTick(payload.dayTimePerTick());
     }
