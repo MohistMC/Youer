@@ -1,6 +1,11 @@
 --- a/net/minecraft/server/level/DistanceManager.java
 +++ b/net/minecraft/server/level/DistanceManager.java
-@@ -27,12 +_,14 @@
+@@ -23,16 +_,19 @@
+ import java.io.FileOutputStream;
+ import java.io.IOException;
+ import java.nio.charset.StandardCharsets;
++import java.util.Collections;
+ import java.util.Iterator;
  import java.util.Set;
  import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.Executor;
@@ -15,6 +20,15 @@
  import org.slf4j.Logger;
  
  public abstract class DistanceManager {
+@@ -45,7 +_,7 @@
+     private final DistanceManager.FixedPlayerDistanceChunkTracker naturalSpawnChunkCounter = new DistanceManager.FixedPlayerDistanceChunkTracker(8);
+     private final TickingTracker tickingTicketsTracker = new TickingTracker();
+     private final DistanceManager.PlayerTicketTracker playerTicketManager = new DistanceManager.PlayerTicketTracker(32);
+-    final Set<ChunkHolder> chunksToUpdateFutures = Sets.newHashSet();
++    final Set<ChunkHolder> chunksToUpdateFutures = Collections.synchronizedSet(Sets.newHashSet());
+     final ChunkTaskPriorityQueueSorter ticketThrottler;
+     final ProcessorHandle<ChunkTaskPriorityQueueSorter.Message<Runnable>> ticketThrottlerInput;
+     final ProcessorHandle<ChunkTaskPriorityQueueSorter.Release> ticketThrottlerReleaser;
 @@ -54,6 +_,8 @@
      private long ticketTickCounter;
      public int simulationDistance = 10;
