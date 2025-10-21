@@ -357,7 +357,7 @@
  
                  try {
                      serverlevel.fillReportDetails(crashreport);
-@@ -405,10 +_,28 @@
+@@ -405,6 +_,18 @@
              if (resourcekey != LevelStem.OVERWORLD) {
                  ResourceKey<Level> resourcekey1 = ResourceKey.create(Registries.DIMENSION, resourcekey.location());
                  DerivedLevelData derivedleveldata = new DerivedLevelData(this.worldData, serverleveldata);
@@ -373,20 +373,9 @@
 +                }
 +                NeoForgeInjectBukkit.addEnumEnvironment(this.registryAccess().registryOrThrow(Registries.LEVEL_STEM));
 +                Level.craftWorldData(NeoForgeInjectBukkit.environment.get(resourcekey), this.server.getGenerator(name), this.server.getBiomeProvider(name));
-+                LevelStorageSource.LevelStorageAccess worldSession;
-+                try {
-+                    worldSession = LevelStorageSource.createDefault(this.storageSource.getLevelDirectory().path()).validateAndCreateAccess(name, resourcekey);
-+                } catch (IOException | ContentValidationException ex) {
-+                    worldSession = this.storageSource;
-+                }
                  ServerLevel serverlevel1 = new ServerLevel(
                      this,
                      this.executor,
--                    this.storageSource,
-+                    worldSession,
-                     derivedleveldata,
-                     resourcekey1,
-                     entry.getValue(),
 @@ -419,12 +_,43 @@
                      false,
                      randomsequences
