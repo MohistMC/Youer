@@ -95,25 +95,7 @@
                  loadElementFromResource(p_321557_, p_321820_, registryops, resourcekey, resource, registrationinfo);
              } catch (Exception exception) {
                  p_321649_.put(
-@@ -248,7 +_,8 @@
-         RegistryOps.RegistryInfoLookup p_321801_,
-         WritableRegistry<E> p_321671_,
-         Decoder<E> p_321718_,
--        Map<ResourceKey<?>, Exception> p_321625_
-+        Map<ResourceKey<?>, Exception> p_321625_,
-+        io.papermc.paper.registry.data.util.Conversions conversions // Paper - pass conversions
-     ) {
-         List<RegistrySynchronization.PackedRegistryEntry> list = p_321633_.get(p_321671_.key());
-         if (list != null) {
-@@ -276,6 +_,7 @@
- 
-                     try {
-                         Resource resource = p_326020_.getResourceOrThrow(resourcelocation);
-+                        loadElementFromResource$conversions = conversions; // Paper - pass conversions
-                         loadElementFromResource(p_321671_, p_321718_, registryops1, resourcekey, resource, NETWORK_REGISTRATION_INFO);
-                     } catch (Exception exception1) {
-                         p_321625_.put(resourcekey, new IllegalStateException("Failed to parse local data", exception1));
-@@ -287,30 +_,39 @@
+@@ -287,30 +_,40 @@
  
      static record Loader<T>(RegistryDataLoader.RegistryData<T> data, WritableRegistry<T> registry, Map<ResourceKey<?>, Exception> loadingErrors) {
          public void loadFromResources(ResourceManager p_321702_, RegistryOps.RegistryInfoLookup p_321840_) {
@@ -129,7 +111,8 @@
 +            io.papermc.paper.registry.data.util.Conversions conversions // Paper
          ) {
 -            RegistryDataLoader.loadContentsFromNetwork(p_321562_, p_326419_, p_321617_, this.registry, this.data.elementCodec, this.loadingErrors);
-+            RegistryDataLoader.loadContentsFromNetwork(p_321562_, p_326419_, p_321617_, this.registry, this.data.elementCodec, this.loadingErrors, conversions); // Paper - pass conversions
++            loadElementFromResource$conversions = conversions; // Paper - pass conversions
++            RegistryDataLoader.loadContentsFromNetwork(p_321562_, p_326419_, p_321617_, this.registry, this.data.elementCodec, this.loadingErrors); // Paper - pass conversions
          }
      }
  
