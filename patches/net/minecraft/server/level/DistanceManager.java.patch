@@ -1,10 +1,11 @@
 --- a/net/minecraft/server/level/DistanceManager.java
 +++ b/net/minecraft/server/level/DistanceManager.java
-@@ -23,16 +_,19 @@
+@@ -23,16 +_,20 @@
  import java.io.FileOutputStream;
  import java.io.IOException;
  import java.nio.charset.StandardCharsets;
 +import java.util.Collections;
++import java.util.HashSet;
  import java.util.Iterator;
  import java.util.Set;
  import java.util.concurrent.CompletableFuture;
@@ -25,7 +26,7 @@
      private final TickingTracker tickingTicketsTracker = new TickingTracker();
      private final DistanceManager.PlayerTicketTracker playerTicketManager = new DistanceManager.PlayerTicketTracker(32);
 -    final Set<ChunkHolder> chunksToUpdateFutures = Sets.newHashSet();
-+    final Set<ChunkHolder> chunksToUpdateFutures = Collections.synchronizedSet(Sets.newHashSet());
++    final Set<ChunkHolder> chunksToUpdateFutures = Sets.newConcurrentHashSet();
      final ChunkTaskPriorityQueueSorter ticketThrottler;
      final ProcessorHandle<ChunkTaskPriorityQueueSorter.Message<Runnable>> ticketThrottlerInput;
      final ProcessorHandle<ChunkTaskPriorityQueueSorter.Release> ticketThrottlerReleaser;
@@ -43,7 +44,7 @@
  
          if (!this.chunksToUpdateFutures.isEmpty()) {
 +            // CraftBukkit start - SPIGOT-7780: Call chunk unload events before updateHighestAllowedStatus
-+            this.chunksToUpdateFutures.forEach((playerchunk) -> playerchunk.callEventIfUnloading(p_140806_));
++            new HashSet<>(this.chunksToUpdateFutures).forEach((playerchunk) -> playerchunk.callEventIfUnloading(p_140806_));
 +            // CraftBukkit end
              this.chunksToUpdateFutures.forEach(p_347062_ -> p_347062_.updateHighestAllowedStatus(p_140806_));
              this.chunksToUpdateFutures.forEach(p_183908_ -> p_183908_.updateFutures(p_140806_, this.mainThreadExecutor));
