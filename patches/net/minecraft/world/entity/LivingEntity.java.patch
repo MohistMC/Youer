@@ -263,12 +263,13 @@
              this.extinguishFire();
          }
  
-@@ -542,7 +_,7 @@
+@@ -542,7 +_,8 @@
          this.deathTime++;
          if (this.deathTime >= 20 && !this.level().isClientSide() && !this.isRemoved()) {
              this.level().broadcastEntityEvent(this, (byte)60);
 -            this.remove(Entity.RemovalReason.KILLED);
-+            this.remove(RemovalReason.KILLED, EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
++            this.setRemoved$cause(EntityRemoveEvent.Cause.DEATH);
++            this.remove(RemovalReason.KILLED); // CraftBukkit - add Bukkit remove cause
          }
      }
  
@@ -326,13 +327,13 @@
 +    }
 +
 +    @Override
-+    public void remove(RemovalReason p_276115_, EntityRemoveEvent.Cause cause) {
++    public void removeCB(RemovalReason p_276115_, EntityRemoveEvent.Cause cause) {
 +        // CraftBukkit end
 +        if (p_276115_ == RemovalReason.KILLED || p_276115_ == RemovalReason.DISCARDED) {
 +            this.triggerOnDeathMobEffects(p_276115_);
 +        }
 +
-+        super.remove(p_276115_, cause); // CraftBukkit
++        super.removeCB(p_276115_, cause); // CraftBukkit
 +        this.brain.clearMemories();
 +    }
 +

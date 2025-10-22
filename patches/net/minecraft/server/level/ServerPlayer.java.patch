@@ -619,7 +619,7 @@
              }
          }
      }
-@@ -783,30 +_,68 @@
+@@ -783,27 +_,65 @@
      }
  
      private boolean isPvpAllowed() {
@@ -695,33 +695,28 @@
 +        // CraftBukkit end
      }
  
--    public static Optional<ServerPlayer.RespawnPosAngle> findRespawnAndUseSpawnBlock(
-+    public static Optional<RespawnPosAngle> findRespawnAndUseSpawnBlock(
-         ServerLevel p_348505_, BlockPos p_348607_, float p_348481_, boolean p_348513_, boolean p_348600_
-     ) {
-         BlockState blockstate = p_348505_.getBlockState(p_348607_);
-@@ -821,20 +_,20 @@
+     public static Optional<ServerPlayer.RespawnPosAngle> findRespawnAndUseSpawnBlock(
+@@ -821,12 +_,12 @@
                  );
              }
  
 -            return optional.map(p_348139_ -> ServerPlayer.RespawnPosAngle.of(p_348139_, p_348607_));
-+            return optional.map(p_348139_ -> RespawnPosAngle.of(p_348139_, p_348607_, false, true)); // CraftBukkit
++            return optional.map(p_348139_ -> ServerPlayer.RespawnPosAngle.of(p_348139_, p_348607_, false, true)); // CraftBukkit
          } else if (block instanceof BedBlock && BedBlock.canSetSpawn(p_348505_)) {
              return BedBlock.findStandUpPosition(EntityType.PLAYER, p_348505_, p_348607_, blockstate.getValue(BedBlock.FACING), p_348481_)
 -                .map(p_348148_ -> ServerPlayer.RespawnPosAngle.of(p_348148_, p_348607_));
-+                .map(p_348148_ -> RespawnPosAngle.of(p_348148_, p_348607_, true, false));
++                .map(p_348148_ -> ServerPlayer.RespawnPosAngle.of(p_348148_, p_348607_, true, false));
          } else if (!p_348513_) {
 -            return Optional.empty();
 +            return blockstate.getRespawnPosition(EntityType.PLAYER, p_348505_, p_348607_, p_348481_);
          } else {
              boolean flag = block.isPossibleToRespawnInThis(blockstate);
              BlockState blockstate1 = p_348505_.getBlockState(p_348607_.above());
-             boolean flag1 = blockstate1.getBlock().isPossibleToRespawnInThis(blockstate1);
+@@ -834,7 +_,7 @@
              return flag && flag1
                  ? Optional.of(
--                    new ServerPlayer.RespawnPosAngle(
+                     new ServerPlayer.RespawnPosAngle(
 -                        new Vec3((double)p_348607_.getX() + 0.5, (double)p_348607_.getY() + 0.1, (double)p_348607_.getZ() + 0.5), p_348481_
-+                    new RespawnPosAngle(
 +                        new Vec3((double)p_348607_.getX() + 0.5, (double)p_348607_.getY() + 0.1, (double)p_348607_.getZ() + 0.5), p_348481_, false, false // CraftBukkit
                      )
                  )
