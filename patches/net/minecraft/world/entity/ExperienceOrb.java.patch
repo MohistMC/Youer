@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/ExperienceOrb.java
 +++ b/net/minecraft/world/entity/ExperienceOrb.java
+@@ -2,6 +_,7 @@
+ 
+ import java.util.List;
+ import java.util.Optional;
++import java.util.concurrent.atomic.AtomicReference;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.network.protocol.Packet;
 @@ -23,6 +_,8 @@
  import net.minecraft.world.level.entity.EntityTypeTest;
  import net.minecraft.world.phys.AABB;
@@ -135,23 +143,44 @@
          }
  
          if (this.level() instanceof ServerLevel) {
-@@ -145,11 +_,19 @@
+@@ -144,12 +_,36 @@
+         }
      }
  
++    private static AtomicReference<org.bukkit.entity.ExperienceOrb.SpawnReason> award$reason = new AtomicReference<>(null);
++    private static AtomicReference<Entity> award$triggerId = new AtomicReference<>(null);
++    private static AtomicReference<Entity> award$sourceId = new AtomicReference<>(null);
++
++    public static void awardPaper(org.bukkit.entity.ExperienceOrb.SpawnReason reason, Entity triggerId, Entity sourceId) {
++        award$reason.set(reason);
++        award$triggerId.set(triggerId);
++        award$sourceId.set(sourceId);
++    }
++
      public static void award(ServerLevel p_147083_, Vec3 p_147084_, int p_147085_) {
-+        // Paper start - add reasons for orbs
-+        award(p_147083_, p_147084_, p_147085_, null, null, null);
+-        while (p_147085_ > 0) {
+-            int i = getExperienceValue(p_147085_);
+-            p_147085_ -= i;
+-            if (!tryMergeToExisting(p_147083_, p_147084_, i)) {
+-                p_147083_.addFreshEntity(new ExperienceOrb(p_147083_, p_147084_.x(), p_147084_.y(), p_147084_.z(), i));
++        // Paper end - add reasons for orbs
++        while (p_147085_ > 0) {
++            int i = getExperienceValue(p_147085_);
++            p_147085_ -= i;
++            if (!tryMergeToExisting(p_147083_, p_147084_, i)) {
++                p_147083_.addFreshEntity(new ExperienceOrb(p_147083_, p_147084_.x(), p_147084_.y(), p_147084_.z(), i, award$reason.getAndSet(null), award$triggerId.getAndSet(null), award$sourceId.getAndSet(null))); // Paper - add reason
++            }
++        }
 +    }
 +    public static void award(ServerLevel world, Vec3 pos, int amount, org.bukkit.entity.ExperienceOrb.SpawnReason reason, Entity triggerId) {
 +        award(world, pos, amount, reason, triggerId, null);
 +    }
 +    public static void award(ServerLevel p_147083_, Vec3 p_147084_, int p_147085_, org.bukkit.entity.ExperienceOrb.SpawnReason reason, Entity triggerId, Entity sourceId) {
 +        // Paper end - add reasons for orbs
-         while (p_147085_ > 0) {
-             int i = getExperienceValue(p_147085_);
-             p_147085_ -= i;
-             if (!tryMergeToExisting(p_147083_, p_147084_, i)) {
--                p_147083_.addFreshEntity(new ExperienceOrb(p_147083_, p_147084_.x(), p_147084_.y(), p_147084_.z(), i));
++        while (p_147085_ > 0) {
++            int i = getExperienceValue(p_147085_);
++            p_147085_ -= i;
++            if (!tryMergeToExisting(p_147083_, p_147084_, i)) {
 +                p_147083_.addFreshEntity(new ExperienceOrb(p_147083_, p_147084_.x(), p_147084_.y(), p_147084_.z(), i, reason, triggerId, sourceId)); // Paper - add reason
              }
          }

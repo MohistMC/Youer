@@ -23,7 +23,6 @@ import com.mohistmc.launcher.youer.action.Action;
 import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.feature.AutoDeleteMods;
 import com.mohistmc.launcher.youer.feature.DefaultLibraries;
-import com.mohistmc.launcher.youer.feature.UpdateUtils;
 import com.mohistmc.launcher.youer.feature.YouerProxySelector;
 import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.YouerModuleManager;
@@ -89,10 +88,10 @@ public class Main {
         if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_LIBRARIES()) {
             DefaultLibraries.run();
         }
+        AutoDeleteMods.deleteIncompatibleMods();
         if (YouerConfigUtil.INSTALLATIONFINISHED()) {
             new Action();
         }
-        AutoDeleteMods.deleteIncompatibleMods();
 
         List<String> forgeArgs = new ArrayList<>();
         for (String arg : DataParser.launchArgs.stream().filter(s ->
