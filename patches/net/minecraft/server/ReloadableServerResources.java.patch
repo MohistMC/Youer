@@ -37,7 +37,7 @@
      public static CompletableFuture<ReloadableServerResources> loadResources(
          ResourceManager p_248588_,
          LayeredRegistryAccess<RegistryLayer> p_335667_,
-@@ -90,14 +_,35 @@
+@@ -90,14 +_,38 @@
                      ReloadableServerResources reloadableserverresources = new ReloadableServerResources(
                          p_335211_.compositeAccess(), p_250212_, p_249301_, p_251126_
                      );
@@ -48,12 +48,15 @@
 +                    });
 +                    // Paper start - call commands event for bootstraps
 +                    //noinspection ConstantValue
-+                    io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(
-+                            io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS,
-+                            io.papermc.paper.command.brigadier.PaperCommands.INSTANCE,
-+                            io.papermc.paper.plugin.bootstrap.BootstrapContext.class,
-+                            MinecraftServer.getServer() == null ? io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL : io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD);
-+                    // Paper end - call commands event
++                    try {
++                        io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(
++                                io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS,
++                                io.papermc.paper.command.brigadier.PaperCommands.INSTANCE,
++                                io.papermc.paper.plugin.bootstrap.BootstrapContext.class,
++                                MinecraftServer.getServer() == null ? io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL : io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD);
++                        // Paper end - call commands event
++                    } catch (Exception ignored) {
++                    }
                      return SimpleReloadInstance.create(
 -                            p_248588_, reloadableserverresources.listeners(), p_249136_, p_249601_, DATA_RELOAD_INITIAL_TASK, LOGGER.isDebugEnabled()
 +                            p_248588_, listeners, p_249136_, p_249601_, DATA_RELOAD_INITIAL_TASK, LOGGER.isDebugEnabled()
