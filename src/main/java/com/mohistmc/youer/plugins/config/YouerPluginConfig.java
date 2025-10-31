@@ -7,8 +7,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 public class YouerPluginConfig {
 
-    private final File config;
     public final FileConfiguration yaml;
+    private final File config;
 
     public YouerPluginConfig(File file) {
         config = file;

@@ -14,6 +14,26 @@ import org.bukkit.event.player.PlayerPreLoginEvent.Result;
 
 public class LoginHandler {
 
+    public static void disconnect(ServerLoginPacketListenerImpl serverGamePacketListener, String pTextComponent) {
+        Waitable<Object> waitable = new Waitable<>() {
+            @Override
+            protected Object evaluate() {
+                serverGamePacketListener.disconnect(Component.literal(pTextComponent));
+                return null;
+            }
+        };
+
+        serverGamePacketListener.server.processQueue.add(waitable);
+
+        try {
+            waitable.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void fireEvents(ServerLoginPacketListenerImpl serverLoginPacketListener, GameProfile gameprofile) throws Exception {
         // Paper start - Velocity support
         if (serverLoginPacketListener.velocityLoginMessageId == -1 && GlobalConfiguration.get().proxies.velocity.enabled) {
@@ -55,25 +75,5 @@ public class LoginHandler {
         }
         ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
         // CraftBukkit end
-    }
-
-    public static void disconnect(ServerLoginPacketListenerImpl serverGamePacketListener, String pTextComponent) {
-        Waitable<Object> waitable = new Waitable<>() {
-            @Override
-            protected Object evaluate() {
-                serverGamePacketListener.disconnect(Component.literal(pTextComponent));
-                return null;
-            }
-        };
-
-        serverGamePacketListener.server.processQueue.add(waitable);
-
-        try {
-            waitable.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

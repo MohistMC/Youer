@@ -1,4 +1,3 @@
-
 package com.mohistmc.youer.feature;
 
 import java.util.Map;
@@ -15,12 +14,6 @@ public class PacketStatistics {
     // Per-second traffic statistics (sliding window)
     private static final AtomicLong currentSecondBytes = new AtomicLong(0);
     private static final AtomicLong currentSecondPackets = new AtomicLong(0);
-    private static volatile long lastSecond = System.currentTimeMillis() / 1000;
-    @Getter
-    private static volatile long bytesPerSecond = 0;
-    @Getter
-    private static volatile long packetsPerSecond = 0;
-
     // Traffic statistics by packet type
     private static final Map<String, AtomicLong> bytesByPacketType = new ConcurrentHashMap<>();
     private static final Map<String, AtomicLong> packetsByPacketType = new ConcurrentHashMap<>();
@@ -28,13 +21,20 @@ public class PacketStatistics {
     private static final Map<String, AtomicLong> currentSecondPacketsByPacketType = new ConcurrentHashMap<>();
     private static final Map<String, Long> bytesPerSecondByPacketType = new ConcurrentHashMap<>();
     private static final Map<String, Long> packetsPerSecondByPacketType = new ConcurrentHashMap<>();
-
+    private static volatile long lastSecond = System.currentTimeMillis() / 1000;
+    @Getter
+    private static volatile long bytesPerSecond = 0;
+    @Getter
+    private static volatile long packetsPerSecond = 0;
     // Statistics update thread
     private static Thread updaterThread;
     private static volatile boolean running = false;
     // Check if data is being collected
     @Getter
     private static volatile boolean collecting = false; // Whether data is being collected
+    // Add method to get start time
+    @Getter
+    private static volatile long startTime = 0;
 
     public static void startStatisticsUpdater() {
         if (running) return;
@@ -62,10 +62,6 @@ public class PacketStatistics {
             updaterThread.interrupt();
         }
     }
-
-    // Add method to get start time
-    @Getter
-    private static volatile long startTime = 0;
 
     public static void startCollecting() {
         collecting = true;

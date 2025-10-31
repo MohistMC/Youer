@@ -20,10 +20,10 @@ import org.apache.logging.log4j.Logger;
 @OnlyIn(Dist.DEDICATED_SERVER)
 public class Youer {
     public static final String NAME = "Youer";
+    public static final String modid = "youer";
     public static Logger LOGGER = LogManager.getLogger();
     public static i18n i18n;
     public static String version = "1.21.1";
-    public static final String modid = "youer";
     public static VersionInfo versionInfo;
 
     public Youer(IEventBus modEventBus, Dist dist, ModContainer container) {

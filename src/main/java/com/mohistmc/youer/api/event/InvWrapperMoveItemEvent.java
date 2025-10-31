@@ -15,15 +15,19 @@ import org.jetbrains.annotations.NotNull;
 public class InvWrapperMoveItemEvent extends Event implements Cancellable {
 
     private static final HandlerList handlers = new HandlerList();
-    private boolean cancelled;
-
     private final Inventory inventory;
     private final ItemStack itemStack;
+    private boolean cancelled;
 
     public InvWrapperMoveItemEvent(@NotNull final Inventory inventory, @NotNull final ItemStack itemStack) {
         Preconditions.checkArgument(itemStack != null, "ItemStack cannot be null");
         this.inventory = inventory;
         this.itemStack = itemStack;
+    }
+
+    @NotNull
+    public static HandlerList getHandlerList() {
+        return handlers;
     }
 
     @NotNull
@@ -35,7 +39,6 @@ public class InvWrapperMoveItemEvent extends Event implements Cancellable {
     public ItemStack getItem() {
         return itemStack.clone();
     }
-
 
     @Override
     public boolean isCancelled() {
@@ -53,12 +56,6 @@ public class InvWrapperMoveItemEvent extends Event implements Cancellable {
         return handlers;
     }
 
-    @NotNull
-    public static HandlerList getHandlerList() {
-        return handlers;
-    }
-
-
     public static class Extract extends InvWrapperMoveItemEvent implements Cancellable {
 
         private static final HandlerList handlers = new HandlerList();
@@ -66,6 +63,11 @@ public class InvWrapperMoveItemEvent extends Event implements Cancellable {
 
         public Extract(@NotNull Inventory inventory, @NotNull ItemStack itemStack) {
             super(inventory, itemStack);
+        }
+
+        @NotNull
+        public static HandlerList getHandlerList() {
+            return handlers;
         }
 
         @Override
@@ -81,11 +83,6 @@ public class InvWrapperMoveItemEvent extends Event implements Cancellable {
         @NotNull
         @Override
         public HandlerList getHandlers() {
-            return handlers;
-        }
-
-        @NotNull
-        public static HandlerList getHandlerList() {
             return handlers;
         }
     }
@@ -99,6 +96,11 @@ public class InvWrapperMoveItemEvent extends Event implements Cancellable {
             super(inventory, itemStack);
         }
 
+        @NotNull
+        public static HandlerList getHandlerList() {
+            return handlers;
+        }
+
         @Override
         public boolean isCancelled() {
             return cancelled;
@@ -112,11 +114,6 @@ public class InvWrapperMoveItemEvent extends Event implements Cancellable {
         @NotNull
         @Override
         public HandlerList getHandlers() {
-            return handlers;
-        }
-
-        @NotNull
-        public static HandlerList getHandlerList() {
             return handlers;
         }
     }

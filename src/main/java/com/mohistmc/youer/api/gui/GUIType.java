@@ -25,6 +25,7 @@ public enum GUIType {
 
     /**
      * Obtain the corresponding GUIType based on the number of rows
+     *
      * @param rows count
      * @return The corresponding GUIType, if it cannot be found, returns UNKNOWN
      */

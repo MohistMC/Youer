@@ -51,6 +51,51 @@ public class ItemsCommand extends Command {
         this.setPermission("youer.command.items");
     }
 
+    public static void info(Player player) {
+        ItemStack itemStack = player.getInventory().getItemInMainHand();
+        net.minecraft.world.item.ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
+
+        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.type") + " ", itemStack.getType().name());
+        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.key") + " ", itemStack.getType().getKey().asString());
+        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.name") + " ", nmsItem.getHoverName().getString());
+        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.moditem") + " %s".formatted(itemStack.getType().isModItem));
+        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.modblock") + " %s".formatted(itemStack.getType().isModBlock));
+        if (itemStack.hasCustomModelData()) {
+            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.custommodeldata") + " %s".formatted(itemStack.getCustomModelData()));
+        }
+        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.itemflags") + " %s".formatted(itemStack.getItemFlags()));
+
+        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.amount") + " %s".formatted(itemStack.getAmount()));
+        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.maxstacksize") + " %s".formatted(itemStack.getMaxStackSize()));
+
+        if (itemStack.hasItemMeta()) {
+            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.hasitemmeta") + " %s".formatted(true));
+
+            if (itemStack.getItemMeta().hasDisplayName()) {
+                PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.displayname") + " ", itemStack.getItemMeta().getDisplayName());
+            }
+
+            if (itemStack.getItemMeta().hasLore()) {
+                player.sendMessage(ChatColor.GRAY + I18n.as("items.info.lore") + ":");
+                itemStack.getItemMeta().getLore().forEach(lore -> player.sendMessage("  " + lore));
+            }
+
+            if (itemStack.getItemMeta().hasEnchants()) {
+                player.sendMessage(ChatColor.GRAY + I18n.as("items.info.enchants") + ":");
+                itemStack.getItemMeta().getEnchants().forEach((enchant, level) ->
+                        player.sendMessage("  " + enchant.getKey().toString() + " - " + level));
+            }
+        } else {
+            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.hasitemmeta") + " %s".formatted(false));
+        }
+
+        if (itemStack.getType().getMaxDurability() > 0) {
+            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.durability") + " %s/%s".formatted(
+                    itemStack.getType().getMaxDurability() - itemStack.getDurability(),
+                    itemStack.getType().getMaxDurability()));
+        }
+    }
+
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
         if (!sender.isOp() && !testPermission(sender)) {
@@ -453,51 +498,6 @@ public class ItemsCommand extends Command {
                 sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", usageMessage));
                 return false;
             }
-        }
-    }
-
-    public static void info(Player player) {
-        ItemStack itemStack = player.getInventory().getItemInMainHand();
-        net.minecraft.world.item.ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
-
-        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.type") + " ", itemStack.getType().name());
-        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.key") + " ", itemStack.getType().getKey().asString());
-        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.name") + " ", nmsItem.getHoverName().getString());
-        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.moditem") + " %s".formatted(itemStack.getType().isModItem));
-        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.modblock") + " %s".formatted(itemStack.getType().isModBlock));
-        if (itemStack.hasCustomModelData()) {
-            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.custommodeldata") + " %s".formatted(itemStack.getCustomModelData()));
-        }
-        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.itemflags") + " %s".formatted(itemStack.getItemFlags()));
-
-        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.amount") + " %s".formatted(itemStack.getAmount()));
-        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.maxstacksize") + " %s".formatted(itemStack.getMaxStackSize()));
-
-        if (itemStack.hasItemMeta()) {
-            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.hasitemmeta") + " %s".formatted(true));
-
-            if (itemStack.getItemMeta().hasDisplayName()) {
-                PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.displayname") + " ", itemStack.getItemMeta().getDisplayName());
-            }
-
-            if (itemStack.getItemMeta().hasLore()) {
-                player.sendMessage(ChatColor.GRAY + I18n.as("items.info.lore") + ":");
-                itemStack.getItemMeta().getLore().forEach(lore -> player.sendMessage("  " + lore));
-            }
-
-            if (itemStack.getItemMeta().hasEnchants()) {
-                player.sendMessage(ChatColor.GRAY + I18n.as("items.info.enchants") + ":");
-                itemStack.getItemMeta().getEnchants().forEach((enchant, level) ->
-                        player.sendMessage("  " + enchant.getKey().toString() + " - " + level));
-            }
-        } else {
-            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.hasitemmeta") + " %s".formatted(false));
-        }
-
-        if (itemStack.getType().getMaxDurability() > 0) {
-            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.durability") + " %s/%s".formatted(
-                    itemStack.getType().getMaxDurability() - itemStack.getDurability(),
-                    itemStack.getType().getMaxDurability()));
         }
     }
 

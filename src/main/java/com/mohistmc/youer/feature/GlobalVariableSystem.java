@@ -14,17 +14,27 @@ import org.bukkit.entity.Player;
 
 public class GlobalVariableSystem {
     public static final GlobalVariableSystem instance = new GlobalVariableSystem();
-
+    private static final int MAX_CACHE_SIZE = 2000;
+    private static final Pattern VARIABLE_PATTERN = Pattern.compile("%([^%]+)%");
+    private static final ExecutorService executorService = Executors.newCachedThreadPool();
     private final Map<String, Function<Player, String>> variableProviders = new ConcurrentHashMap<>();
     private final Map<String, String> globalVariables = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, String>> playerVariables = new ConcurrentHashMap<>();
     private final Map<String, String> parsedCache = new ConcurrentHashMap<>();
-    private static final int MAX_CACHE_SIZE = 2000;
-    private static final Pattern VARIABLE_PATTERN = Pattern.compile("%([^%]+)%");
-    private static final ExecutorService executorService = Executors.newCachedThreadPool();
 
     public static void register() {
         instance.registerDefaultPlayerVariables();
+    }
+
+    public static String as(Player player, String input) {
+        return instance.parse(player, input);
+    }
+
+    /**
+     * Shutdown the executor service
+     */
+    public static void shutdown() {
+        executorService.shutdown();
     }
 
     /**
@@ -102,10 +112,6 @@ public class GlobalVariableSystem {
         clearCache();
     }
 
-    public static String as(Player player, String input) {
-        return instance.parse(player,  input);
-    }
-
     /**
      * Parse variables in string (requires player context)
      *
@@ -157,8 +163,8 @@ public class GlobalVariableSystem {
     /**
      * Resolve variable value
      *
-     * @param player   Player context
-     * @param varName  Variable name
+     * @param player  Player context
+     * @param varName Variable name
      * @return Resolved variable value
      */
     private String resolveVariable(Player player, String varName) {
@@ -200,12 +206,5 @@ public class GlobalVariableSystem {
         globalVariables.clear();
         initializeGlobalVariables();
         clearCache();
-    }
-
-    /**
-     * Shutdown the executor service
-     */
-    public static void shutdown() {
-        executorService.shutdown();
     }
 }

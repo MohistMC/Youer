@@ -36,14 +36,14 @@ import org.jetbrains.annotations.NotNull;
  */
 public class ShowsCommand extends Command {
 
+    private final List<String> params = List.of("sound", "entitys", "blockentitys");
+
     public ShowsCommand(String name) {
         super(name);
         this.description = "Youer shows commands";
         this.usageMessage = "/shows [sound|entitys|blockentitys]";
         this.setPermission("youer.command.shows");
     }
-
-    private final List<String> params = List.of("sound", "entitys", "blockentitys");
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
@@ -251,16 +251,16 @@ public class ShowsCommand extends Command {
                     int finalMaxCount = maxCount;
 
                     wh.addItem(new GUIItem(new ItemStackFactory(s.getKey())
-                            .setLore(List.of(
-                                    "§7====================",
-                                    I18n.as("shows.entitys.item.name", s.getValue()),
-                                    I18n.as("shows.blockentitys.item.entity", s.getKey()),
-                                    I18n.as("shows.entitys.item.chunk", finalTopChunk, finalMaxCount),
-                                    "",
-                                    I18n.as("shows.entitys.item.click"),
-                                    "§7===================="
-                            ))
-                            .build()) {
+                                       .setLore(List.of(
+                                               "§7====================",
+                                               I18n.as("shows.entitys.item.name", s.getValue()),
+                                               I18n.as("shows.blockentitys.item.entity", s.getKey()),
+                                               I18n.as("shows.entitys.item.chunk", finalTopChunk, finalMaxCount),
+                                               "",
+                                               I18n.as("shows.entitys.item.click"),
+                                               "§7===================="
+                                       ))
+                                       .build()) {
                                    @Override
                                    public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                        if (!finalTopChunk.isEmpty()) {

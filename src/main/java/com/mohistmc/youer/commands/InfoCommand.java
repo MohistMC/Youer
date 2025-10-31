@@ -23,14 +23,14 @@ import org.jetbrains.annotations.NotNull;
  */
 public class InfoCommand extends Command {
 
+    private final List<String> params = List.of("item", "block", "entity", "cmd");
+
     public InfoCommand(String name) {
         super(name);
         this.description = "Youer infos commands";
         this.usageMessage = "/infos [item|block|entity|cmd]";
         this.setPermission("youer.command.infos");
     }
-
-    private final List<String> params = List.of("item", "block", "entity", "cmd");
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {

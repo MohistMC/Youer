@@ -1,5 +1,6 @@
 package com.mohistmc.youer.api.event.block;
 
+import lombok.Getter;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.Cancellable;
@@ -10,9 +11,11 @@ import org.jetbrains.annotations.NotNull;
 public class ModsEntityDestroyBlockEvent extends BlockEvent implements Cancellable {
 
     private static final HandlerList handlers = new HandlerList();
-    private boolean cancel;
+    @Getter
     private final Location location;
+    @Getter
     private final Entity entity;
+    private boolean cancel;
 
     public ModsEntityDestroyBlockEvent(Location location, Entity entity) {
         super(location.getBlock());
@@ -39,11 +42,4 @@ public class ModsEntityDestroyBlockEvent extends BlockEvent implements Cancellab
         return handlers;
     }
 
-    public Location getLocation() {
-        return location;
-    }
-
-    public Entity getEntity() {
-        return entity;
-    }
 }

@@ -344,7 +344,7 @@ public class Action {
         }
 
         @Override
-        public void execute(ProgressBar pb) throws Exception {
+        public void execute(ProgressBar pb) {
             copyFileFromJar(file, pathInJar, clearOld);
             pb.step();
         }

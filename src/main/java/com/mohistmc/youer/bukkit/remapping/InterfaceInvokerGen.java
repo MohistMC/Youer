@@ -26,11 +26,6 @@ public class InterfaceInvokerGen implements PluginTransformer {
     public static final InterfaceInvokerGen INSTANCE = new InterfaceInvokerGen();
     private static final String PREFIX = "net/minecraft/";
 
-    @Override
-    public void handleClass(ClassNode node, ClassLoaderRemapper remapper) {
-        generate(node, remapper, GlobalClassRepo.inheritanceProvider());
-    }
-
     private static void generate(ClassNode classNode, ClassLoaderRemapper remapper, InheritanceProvider inheritanceProvider) {
         if (shouldGenerate(classNode.name, inheritanceProvider)) {
             HashSet<Map.Entry<String, String>> set = new HashSet<>();
@@ -96,5 +91,10 @@ public class InterfaceInvokerGen implements PluginTransformer {
         for (MethodNode methodNode : classNode.methods) {
             set.add(Maps.immutableEntry(methodNode.name, methodNode.desc));
         }
+    }
+
+    @Override
+    public void handleClass(ClassNode node, ClassLoaderRemapper remapper) {
+        generate(node, remapper, GlobalClassRepo.inheritanceProvider());
     }
 }

@@ -15,11 +15,11 @@ import org.bukkit.craftbukkit.util.TransformerGeneratorAccess;
 
 public class StructureTemplateMixinFix {
 
+    public static AtomicReference<BlockState> blockStateAtomicReference = new AtomicReference<>();
     static ServerLevelAccessor wrappedAccess;
     static CraftStructureTransformer structureTransformer = null;
-    public static AtomicReference<BlockState> blockStateAtomicReference = new AtomicReference<>();
 
-    public static ServerLevelAccessor init(ServerLevelAccessor p_230329_){
+    public static ServerLevelAccessor init(ServerLevelAccessor p_230329_) {
         // CraftBukkit start
         if (wrappedAccess instanceof TransformerGeneratorAccess transformerAccess) {
             p_230329_ = transformerAccess.getHandle();
@@ -60,6 +60,6 @@ public class StructureTemplateMixinFix {
     }
 
     public static BlockState getBlockStateAtomicReference() {
-        return blockStateAtomicReference.getAndSet( null);
+        return blockStateAtomicReference.getAndSet(null);
     }
 }

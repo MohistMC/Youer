@@ -49,10 +49,9 @@ import lombok.SneakyThrows;
  */
 public class YouerModuleManager {
 
-    public static YouerModuleManager INSTANCE = new YouerModuleManager();
-
     public static final sun.misc.Unsafe unsafe;
     private static final MethodHandles.Lookup IMPL_LOOKUP;
+    public static YouerModuleManager INSTANCE = new YouerModuleManager();
 
     static {
         try {
@@ -67,12 +66,6 @@ public class YouerModuleManager {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public void init(List<String> args){
-        applyLaunchArgs(args);
-        YouerConfigUtil.yml.set("youer.installation-finished", false);
-        YouerConfigUtil.save();
     }
 
     private static void addExports(List<String> exports) throws Throwable {
@@ -220,6 +213,12 @@ public class YouerModuleManager {
                 throw new RuntimeException(throwable);
             }
         }))));
+    }
+
+    public void init(List<String> args) {
+        applyLaunchArgs(args);
+        YouerConfigUtil.yml.set("youer.installation-finished", false);
+        YouerConfigUtil.save();
     }
 
     private record ParserData(String module, String packages, String target) {

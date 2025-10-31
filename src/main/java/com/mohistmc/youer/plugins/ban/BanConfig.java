@@ -7,13 +7,13 @@ import java.util.List;
 
 public class BanConfig extends YouerPluginConfig {
 
+    public static final String PARENT = "youer-config/bans";
     public static BanConfig MOSHOU;
     public static BanConfig ITEM;
     public static BanConfig ENTITY;
     public static BanConfig ENCHANTMENT;
     public static BanConfig BAN_MESSAGE;
     public static BanConfig RECIPE;
-    public static final String PARENT = "youer-config/bans";
 
     public BanConfig(File file) {
         super(file);

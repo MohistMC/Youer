@@ -245,8 +245,8 @@ public class ItemAPI {
      *
      * @param itemStack items
      * @param attribute type
-     * @param value attribute value
-     * @param slot Equipment Slot
+     * @param value     attribute value
+     * @param slot      Equipment Slot
      */
     public static void attribute(ItemStack itemStack, Attribute attribute, double value, EquipmentSlot slot) {
         ItemMeta meta = itemStack.getItemMeta();
@@ -291,7 +291,7 @@ public class ItemAPI {
     /**
      * Set the head texture, support Base64, URL, or texture hash
      *
-     * @param meta meta for head items
+     * @param meta        meta for head items
      * @param textureData (can be Base64 encoded, URL, or texture hash)
      */
     public static void setSkullTexture(SkullMeta meta, String textureData) {

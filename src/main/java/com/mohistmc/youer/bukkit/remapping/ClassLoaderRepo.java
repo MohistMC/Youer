@@ -18,6 +18,16 @@ import org.objectweb.asm.tree.ClassNode;
  */
 public record ClassLoaderRepo(ClassLoader classLoader) implements ClassRepo {
 
+    private static final MethodHandle H_FIND_RESOURCE;
+
+    static {
+        try {
+            H_FIND_RESOURCE = Unsafe.lookup().findVirtual(ClassLoader.class, "findResource", MethodType.methodType(URL.class, String.class));
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public ClassNode findClass(String internalName) {
         return findClass(internalName, ClassReader.SKIP_CODE);
@@ -39,15 +49,5 @@ public record ClassLoaderRepo(ClassLoader classLoader) implements ClassRepo {
         } catch (Throwable ignored) {
         }
         return null;
-    }
-
-    private static final MethodHandle H_FIND_RESOURCE;
-
-    static {
-        try {
-            H_FIND_RESOURCE = Unsafe.lookup().findVirtual(ClassLoader.class, "findResource", MethodType.methodType(URL.class, String.class));
-        } catch (NoSuchMethodException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

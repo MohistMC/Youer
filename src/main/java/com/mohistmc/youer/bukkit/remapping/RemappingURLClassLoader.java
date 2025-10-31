@@ -26,6 +26,8 @@ public class RemappingURLClassLoader extends URLClassLoader implements Remapping
         ClassLoader.registerAsParallelCapable();
     }
 
+    private ClassLoaderRemapper remapper;
+
     public RemappingURLClassLoader(URL[] urls, ClassLoader parent) {
         super(urls, RemappingClassLoader.asTransforming(parent));
     }
@@ -100,8 +102,6 @@ public class RemappingURLClassLoader extends URLClassLoader implements Remapping
         }
         return result;
     }
-
-    private ClassLoaderRemapper remapper;
 
     @Override
     public ClassLoaderRemapper getRemapper() {

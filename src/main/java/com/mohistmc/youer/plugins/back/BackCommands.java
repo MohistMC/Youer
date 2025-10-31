@@ -19,6 +19,15 @@ public class BackCommands extends Command {
         }
     }
 
+    public static void hookTeleport(PlayerTeleportEvent event) {
+        if (event.isCancelled()) return;
+        BackConfig.INSTANCE.saveLocation(event.getPlayer(), event.getFrom(), BackType.TELEPORT);
+    }
+
+    public static void hooktDeath(PlayerDeathEvent event) {
+        BackConfig.INSTANCE.saveLocation(event.getEntity(), event.getEntity().getLocation(), BackType.DEATH);
+    }
+
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
         if (sender instanceof Player player) {
@@ -31,14 +40,5 @@ public class BackCommands extends Command {
             }
         }
         return false;
-    }
-
-    public static void hookTeleport(PlayerTeleportEvent event) {
-        if (event.isCancelled()) return;
-        BackConfig.INSTANCE.saveLocation(event.getPlayer(), event.getFrom(), BackType.TELEPORT);
-    }
-
-    public static void hooktDeath(PlayerDeathEvent event) {
-        BackConfig.INSTANCE.saveLocation(event.getEntity(), event.getEntity().getLocation(), BackType.DEATH);
     }
 }

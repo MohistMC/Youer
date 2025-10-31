@@ -23,6 +23,8 @@ import org.jetbrains.annotations.NotNull;
  */
 public class WarpsCommands extends Command {
 
+    private final List<String> params = Arrays.asList("set", "del", "tp", "gui");
+
     public WarpsCommands(String name) {
         super(name);
         this.description = "Warps Manager.";
@@ -104,8 +106,6 @@ public class WarpsCommands extends Command {
         }
         return false;
     }
-
-    private final List<String> params = Arrays.asList("set", "del", "tp", "gui");
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) throws IllegalArgumentException {

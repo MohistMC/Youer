@@ -17,12 +17,12 @@ public class MohistBlockSnapshot extends CraftBlock {
         this.blockState = current ? blockSnapshot.getCurrentState() : blockSnapshot.getState();
     }
 
+    public static MohistBlockSnapshot fromBlockSnapshot(BlockSnapshot blockSnapshot, boolean current) {
+        return new MohistBlockSnapshot(blockSnapshot, current);
+    }
+
     @Override
     public BlockState getNMS() {
         return blockState;
-    }
-
-    public static MohistBlockSnapshot fromBlockSnapshot(BlockSnapshot blockSnapshot, boolean current) {
-        return new MohistBlockSnapshot(blockSnapshot, current);
     }
 }

@@ -26,7 +26,6 @@ import com.mohistmc.launcher.youer.feature.DefaultLibraries;
 import com.mohistmc.launcher.youer.feature.YouerProxySelector;
 import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.YouerModuleManager;
-import com.mohistmc.tools.JarTool;
 import com.mohistmc.tools.Logo;
 import com.mohistmc.tools.MojangEulaUtil;
 import cpw.mods.bootstraplauncher.BootstrapLauncher;
@@ -43,7 +42,6 @@ public class Main {
     public static final List<String> mainArgs = new ArrayList<>();
     public static String MCVERSION;
     public static i18n i18n;
-    public static JarTool jarTool;
 
     public static String getVersion() {
         return (Main.class.getPackage().getImplementationVersion() != null) ? Main.class.getPackage().getImplementationVersion() : MCVERSION;
@@ -56,7 +54,6 @@ public class Main {
         DataParser.parseLaunchArgs();
         YouerConfigUtil.init();
         YouerConfigUtil.i18n();
-        jarTool = new JarTool(Main.class);
         if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.aBoolean("youer.show_logo", true)) {
             System.out.printf("%n%s%n%s - %s, Java(%s) %s PID: %s%n",
                     Logo.asYouer(),

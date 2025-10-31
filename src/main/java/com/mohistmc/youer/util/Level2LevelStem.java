@@ -13,9 +13,9 @@ import org.bukkit.World;
  */
 public class Level2LevelStem {
 
+    public static final Map<String, World> plugin_worlds = new LinkedHashMap<>();
     public static AtomicBoolean initPluginWorld = new AtomicBoolean(false); // Youer
     public static Path worldPath_cache; // Youer
-    public static final Map<String, World> plugin_worlds = new LinkedHashMap<>();
     public static File bukkit;
     public static String bukkit_name;
 

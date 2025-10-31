@@ -50,11 +50,75 @@ public class YouerConfig {
             """.split("\\n"));
     /*========================================================================*/
     public static YamlConfiguration config;
+    public static File youeryml = new File("youer-config", "youer.yml");
+    public static YamlConfiguration yml = YamlConfiguration.loadConfiguration(youeryml);
+    public static boolean show_logo;
+    public static String youer_lang;
+    public static boolean check_update;
+    public static int maximumRepairCost;
+    public static boolean enchantment_fix;
+    public static int max_enchantment_level;
+    public static int maxBees;
+    public static boolean bookAnimationTick;
+    public static boolean networkmanager_debug;
+    public static List<String> networkmanager_intercept;
+    public static boolean keepinventory_global;
+    public static boolean keepinventory_inventory;
+    public static boolean keepinventory_permission_enable;
+    public static String keepinventory_inventory_permission;
+    public static boolean keepinventory_exp;
+    public static String keepinventory_exp_permission;
+    // Thread Priority
+    public static int server_thread;
+    public static boolean clear_item;
+    public static List<String> clear_item_whitelist;
+    public static String clear_item_msg;
+    public static int clear_item_time;
+    public static boolean clear_monster;
+    public static List<String> clear_monster_whitelist;
+    public static String clear_monster_msg;
+    public static int clear_monster_time;
+    // Ban
+    public static boolean ban_item_enable;
+    public static boolean ban_entity_enable;
+    public static boolean no_vanilla_entity_enable;
+    public static List<String> no_vanilla_entity_whitelist;
+    public static boolean ban_enchantment_enable;
+    public static boolean ban_recipe_enable;
+    public static String pingCommandOutput;
+    // Ban events
+    public static boolean doFireTick;
+    public static boolean explosion;
+    public static boolean worldmanage;
+    public static boolean bukkitpermissionshandler;
+    public static boolean recipe_warn;
+    public static boolean tpa_enable;
+    public static boolean tpa_permissions_enable;
+    public static boolean back_enable;
+    public static boolean back_permissions_enable;
+    public static boolean permissions_debug_console;
+    public static boolean permissions_send_player;
+    public static boolean watchdog_spigot;
+    public static boolean watchdog_mohist;
+    public static boolean pluginchannel_debug;
+    public static boolean deepseek_enable;
+    public static String deepseek_baseUrl;
+    public static String deepseek_apikey;
+    public static String deepseek_model;
+    public static String deepseek_system;
+    public static String deepseek_command;
+    public static String deepseek_all_command;
+    public static String deepseek_chatformat;
+    public static boolean warps_enable;
+    public static boolean custom_no_villager;
+    public static boolean custom_entity_tp_end;
+    public static boolean custom_entity_tp_nether;
+    public static boolean custom_raid_no_emerald;
+    public static int custom_lava_speed_normal;
+    public static int custom_lava_speed_nether;
     static int version;
     static Map<String, Command> commands;
     private static File CONFIG_FILE;
-    public static File youeryml = new File("youer-config", "youer.yml");
-    public static YamlConfiguration yml = YamlConfiguration.loadConfiguration(youeryml);
 
     public static void init(File configFile) {
         CONFIG_FILE = configFile;
@@ -160,86 +224,6 @@ public class YouerConfig {
     public static String youer_lang() {
         return yml.getString("youer.lang", Locale.getDefault().toString());
     }
-
-    public static boolean show_logo;
-    public static String youer_lang;
-    public static boolean check_update;
-    public static int maximumRepairCost;
-    public static boolean enchantment_fix;
-    public static int max_enchantment_level;
-
-    public static int maxBees;
-    public static boolean bookAnimationTick;
-    public static boolean networkmanager_debug;
-    public static List<String> networkmanager_intercept;
-    public static boolean keepinventory_global;
-    public static boolean keepinventory_inventory;
-    public static boolean keepinventory_permission_enable;
-    public static String keepinventory_inventory_permission;
-    public static boolean keepinventory_exp;
-    public static String keepinventory_exp_permission;
-
-    // Thread Priority
-    public static int server_thread;
-
-    public static boolean clear_item;
-    public static List<String> clear_item_whitelist;
-    public static String clear_item_msg;
-    public static int clear_item_time;
-
-    public static boolean clear_monster;
-    public static List<String> clear_monster_whitelist;
-    public static String clear_monster_msg;
-    public static int clear_monster_time;
-
-    // Ban
-    public static boolean ban_item_enable;
-    public static boolean ban_entity_enable;
-    public static boolean no_vanilla_entity_enable;
-    public static List<String> no_vanilla_entity_whitelist;
-    public static boolean ban_enchantment_enable;
-    public static boolean ban_recipe_enable;
-
-    public static String pingCommandOutput;
-
-    // Ban events
-    public static boolean doFireTick;
-    public static boolean explosion;
-
-    public static boolean worldmanage;
-
-    public static boolean bukkitpermissionshandler;
-
-    public static boolean recipe_warn;
-
-    public static boolean tpa_enable;
-    public static boolean tpa_permissions_enable;
-    public static boolean back_enable;
-    public static boolean back_permissions_enable;
-    public static boolean permissions_debug_console;
-    public static boolean permissions_send_player;
-
-    public static boolean watchdog_spigot;
-    public static boolean watchdog_mohist;
-    public static boolean pluginchannel_debug;
-
-    public static boolean deepseek_enable;
-    public static String deepseek_baseUrl;
-    public static String deepseek_apikey;
-    public static String deepseek_model;
-    public static String deepseek_system;
-    public static String deepseek_command;
-    public static String deepseek_all_command;
-    public static String deepseek_chatformat;
-
-    public static boolean warps_enable;
-
-    public static boolean custom_no_villager;
-    public static boolean custom_entity_tp_end;
-    public static boolean custom_entity_tp_nether;
-    public static boolean custom_raid_no_emerald;
-    public static int custom_lava_speed_normal;
-    public static int custom_lava_speed_nether;
 
     private static void mohist() {
         show_logo = getBoolean("youer.show_logo", true);

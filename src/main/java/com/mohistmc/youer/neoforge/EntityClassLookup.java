@@ -352,6 +352,8 @@ public class EntityClassLookup {
 
     private static final MethodHandle H_HANGING;
     private static final MethodHandle H_DIRECTION;
+    private static final Map<Class<?>, CraftEntityTypes.EntityTypeData<?, ?>> nmsClassMap = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, EntityClass<?>> NMS_TO_BUKKIT = new HashMap<>();
 
     static {
         try {
@@ -368,132 +370,6 @@ public class EntityClassLookup {
             }
         } catch (Throwable t) {
             throw new RuntimeException(t);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <R extends HangingEntity> Function<CraftEntityTypes.SpawnData, R> createHanging(Class<org.bukkit.entity.Entity> clazz, BiFunction<CraftEntityTypes.SpawnData, Direction, R> spawnFunction) {
-        BiFunction<CraftEntityTypes.SpawnData, ?, R> callback = (spawnData, o) -> {
-            try {
-                var direction = (Direction) H_DIRECTION.invoke(o);
-                return spawnFunction.apply(spawnData, direction);
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
-            }
-        };
-        try {
-            return (Function<CraftEntityTypes.SpawnData, R>) H_HANGING.invoke(clazz, callback);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static void init() {
-        var allEntityClasses = new HashSet<Class<?>>();
-        for (var bukkitType : org.bukkit.entity.EntityType.values()) {
-            if (bukkitType != null) {
-                Class<? extends org.bukkit.entity.Entity> entityClass = bukkitType.getEntityClass();
-                if (entityClass != null && !allEntityClasses.contains(entityClass)) {
-                    var next = new LinkedList<Class<?>>();
-                    next.add(entityClass);
-                    while (!next.isEmpty()) {
-                        Class<?> cl = next.pollFirst();
-                        if (!allEntityClasses.contains(cl)) {
-                            allEntityClasses.add(cl);
-                            for (Class<?> intf : cl.getInterfaces()) {
-                                if (org.bukkit.entity.Entity.class.isAssignableFrom(intf)) {
-                                    next.addLast(intf);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Set<Class<?>> ignored = Set.of(
-                org.bukkit.entity.Explosive.class,
-                org.bukkit.entity.Damageable.class,
-                org.bukkit.entity.NPC.class,
-                org.bukkit.entity.Boss.class,
-                org.bukkit.entity.Breedable.class,
-                org.bukkit.entity.Steerable.class,
-                org.bukkit.entity.Enemy.class,
-                org.bukkit.entity.ComplexLivingEntity.class,
-                com.destroystokyo.paper.entity.RangedEntity.class,
-                io.papermc.paper.entity.Leashable.class,
-                io.papermc.paper.entity.Bucketable.class,
-                io.papermc.paper.entity.Shearable.class,
-                io.papermc.paper.entity.CollarColorable.class
-        );
-        boolean error = false;
-        for (Class<?> entityClass : allEntityClasses) {
-            if (ignored.contains(entityClass)) continue;
-            var optional = NMS_TO_BUKKIT.values().stream().filter(c -> c.bukkitClass == entityClass).findAny();
-            if (optional.isEmpty()) {
-                error = true;
-            }
-        }
-        if (error) {
-            throw new RuntimeException("Missing valid entity class mapping");
-        }
-    }
-
-    private static final Map<Class<?>, CraftEntityTypes.EntityTypeData<?, ?>> nmsClassMap = new ConcurrentHashMap<>();
-
-    @SuppressWarnings("unchecked")
-    public static <T extends Entity> CraftEntityTypes.EntityTypeData<?, T> getEntityTypeData(T entity) {
-        return (CraftEntityTypes.EntityTypeData<?, T>) nmsClassMap.computeIfAbsent(entity.getClass(), k -> getEntityTypeData(k, entity.getType()));
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T extends Entity> CraftEntityTypes.EntityTypeData<?, T> getEntityTypeData(Class<?> type, EntityType<T> entityType) {
-        EntityClass<?> entityClass = null;
-        for (Class<?> c = type; entityClass == null; c = c.getSuperclass()) {
-            entityClass = NMS_TO_BUKKIT.get(c);
-        }
-        var bukkitType = CraftEntityType.minecraftToBukkit(entityType);
-        EntityClass<T> finalEntityClass = (EntityClass<T>) entityClass;
-        return new CraftEntityTypes.EntityTypeData<>(
-                bukkitType, (Class<org.bukkit.entity.Entity>) entityClass.bukkitClass,
-                finalEntityClass.convert,
-                spawnData -> spawnDynamic(finalEntityClass, bukkitType, spawnData)
-        );
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T extends Entity> T spawnDynamic(EntityClass<T> entityClass, org.bukkit.entity.EntityType bukkitType, CraftEntityTypes.SpawnData spawnData) {
-        var entity = bukkitType.getFactory().apply(spawnData.location());
-        if (entity == null) {
-            return null;
-        }
-        if (entity instanceof AbstractHurtingProjectile) {
-            Vector direction = spawnData.location().getDirection();
-            ((AbstractHurtingProjectile) entity).assignDirectionalMovement(new Vec3(direction.getX(), direction.getY(), direction.getZ()), 1.0);
-        }
-        if (entity instanceof HangingEntity) {
-            createHanging((Class<org.bukkit.entity.Entity>) entityClass.bukkitClass, (a, direction) -> {
-                ((HangingEntity) entity).setDirection(direction);
-                return (HangingEntity) entity;
-            }).apply(spawnData);
-        }
-        return (T) entity;
-    }
-
-    private record EntityClass<T extends Entity>(Class<? extends org.bukkit.entity.Entity> bukkitClass,
-                                                 Class<? extends CraftEntity> implClass,
-                                                 BiFunction<CraftServer, T, org.bukkit.entity.Entity> convert) {
-        private EntityClass {
-            if (!bukkitClass.isAssignableFrom(implClass)) {
-                throw new IllegalArgumentException(bukkitClass + " " + implClass);
-            }
-        }
-    }
-
-    private static final Map<Class<?>, EntityClass<?>> NMS_TO_BUKKIT = new HashMap<>();
-
-    private static <U extends V, V extends Entity> void add(Class<? super U> cl, EntityClass<? super V> entityClass) {
-        if (NMS_TO_BUKKIT.put(cl, entityClass) != null) {
-            throw new IllegalStateException("Duplicate " + cl + " mapping");
         }
     }
 
@@ -666,5 +542,127 @@ public class EntityClassLookup {
         add(OminousItemSpawner.class, new EntityClass<>(org.bukkit.entity.OminousItemSpawner.class, CraftOminousItemSpawner.class, CraftOminousItemSpawner::new));
         add(Armadillo.class, new EntityClass<>(org.bukkit.entity.Armadillo.class, CraftArmadillo.class, CraftArmadillo::new));
         add(BreezeWindCharge.class, new EntityClass<>(org.bukkit.entity.BreezeWindCharge.class, CraftBreezeWindCharge.class, CraftBreezeWindCharge::new));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <R extends HangingEntity> Function<CraftEntityTypes.SpawnData, R> createHanging(Class<org.bukkit.entity.Entity> clazz, BiFunction<CraftEntityTypes.SpawnData, Direction, R> spawnFunction) {
+        BiFunction<CraftEntityTypes.SpawnData, ?, R> callback = (spawnData, o) -> {
+            try {
+                var direction = (Direction) H_DIRECTION.invoke(o);
+                return spawnFunction.apply(spawnData, direction);
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        };
+        try {
+            return (Function<CraftEntityTypes.SpawnData, R>) H_HANGING.invoke(clazz, callback);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void init() {
+        var allEntityClasses = new HashSet<Class<?>>();
+        for (var bukkitType : org.bukkit.entity.EntityType.values()) {
+            if (bukkitType != null) {
+                Class<? extends org.bukkit.entity.Entity> entityClass = bukkitType.getEntityClass();
+                if (entityClass != null && !allEntityClasses.contains(entityClass)) {
+                    var next = new LinkedList<Class<?>>();
+                    next.add(entityClass);
+                    while (!next.isEmpty()) {
+                        Class<?> cl = next.pollFirst();
+                        if (!allEntityClasses.contains(cl)) {
+                            allEntityClasses.add(cl);
+                            for (Class<?> intf : cl.getInterfaces()) {
+                                if (org.bukkit.entity.Entity.class.isAssignableFrom(intf)) {
+                                    next.addLast(intf);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Set<Class<?>> ignored = Set.of(
+                org.bukkit.entity.Explosive.class,
+                org.bukkit.entity.Damageable.class,
+                org.bukkit.entity.NPC.class,
+                org.bukkit.entity.Boss.class,
+                org.bukkit.entity.Breedable.class,
+                org.bukkit.entity.Steerable.class,
+                org.bukkit.entity.Enemy.class,
+                org.bukkit.entity.ComplexLivingEntity.class,
+                com.destroystokyo.paper.entity.RangedEntity.class,
+                io.papermc.paper.entity.Leashable.class,
+                io.papermc.paper.entity.Bucketable.class,
+                io.papermc.paper.entity.Shearable.class,
+                io.papermc.paper.entity.CollarColorable.class
+        );
+        boolean error = false;
+        for (Class<?> entityClass : allEntityClasses) {
+            if (ignored.contains(entityClass)) continue;
+            var optional = NMS_TO_BUKKIT.values().stream().filter(c -> c.bukkitClass == entityClass).findAny();
+            if (optional.isEmpty()) {
+                error = true;
+            }
+        }
+        if (error) {
+            throw new RuntimeException("Missing valid entity class mapping");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends Entity> CraftEntityTypes.EntityTypeData<?, T> getEntityTypeData(T entity) {
+        return (CraftEntityTypes.EntityTypeData<?, T>) nmsClassMap.computeIfAbsent(entity.getClass(), k -> getEntityTypeData(k, entity.getType()));
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends Entity> CraftEntityTypes.EntityTypeData<?, T> getEntityTypeData(Class<?> type, EntityType<T> entityType) {
+        EntityClass<?> entityClass = null;
+        for (Class<?> c = type; entityClass == null; c = c.getSuperclass()) {
+            entityClass = NMS_TO_BUKKIT.get(c);
+        }
+        var bukkitType = CraftEntityType.minecraftToBukkit(entityType);
+        EntityClass<T> finalEntityClass = (EntityClass<T>) entityClass;
+        return new CraftEntityTypes.EntityTypeData<>(
+                bukkitType, (Class<org.bukkit.entity.Entity>) entityClass.bukkitClass,
+                finalEntityClass.convert,
+                spawnData -> spawnDynamic(finalEntityClass, bukkitType, spawnData)
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Entity> T spawnDynamic(EntityClass<T> entityClass, org.bukkit.entity.EntityType bukkitType, CraftEntityTypes.SpawnData spawnData) {
+        var entity = bukkitType.getFactory().apply(spawnData.location());
+        if (entity == null) {
+            return null;
+        }
+        if (entity instanceof AbstractHurtingProjectile) {
+            Vector direction = spawnData.location().getDirection();
+            ((AbstractHurtingProjectile) entity).assignDirectionalMovement(new Vec3(direction.getX(), direction.getY(), direction.getZ()), 1.0);
+        }
+        if (entity instanceof HangingEntity) {
+            createHanging((Class<org.bukkit.entity.Entity>) entityClass.bukkitClass, (a, direction) -> {
+                ((HangingEntity) entity).setDirection(direction);
+                return (HangingEntity) entity;
+            }).apply(spawnData);
+        }
+        return (T) entity;
+    }
+
+    private static <U extends V, V extends Entity> void add(Class<? super U> cl, EntityClass<? super V> entityClass) {
+        if (NMS_TO_BUKKIT.put(cl, entityClass) != null) {
+            throw new IllegalStateException("Duplicate " + cl + " mapping");
+        }
+    }
+
+    private record EntityClass<T extends Entity>(Class<? extends org.bukkit.entity.Entity> bukkitClass,
+                                                 Class<? extends CraftEntity> implClass,
+                                                 BiFunction<CraftServer, T, org.bukkit.entity.Entity> convert) {
+        private EntityClass {
+            if (!bukkitClass.isAssignableFrom(implClass)) {
+                throw new IllegalArgumentException(bukkitClass + " " + implClass);
+            }
+        }
     }
 }

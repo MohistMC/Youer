@@ -120,8 +120,8 @@ public class MenuGUI {
             String message = action.substring(5).trim();
             player.sendMessage(message);
         } else if (action.equals("player:")) {
-          String cmd = action.substring(7).trim();
-          player.performCommand(cmd);
+            String cmd = action.substring(7).trim();
+            player.performCommand(cmd);
         } else if (action.equals("console:")) {
             String cmd = action.substring(8).trim();
             Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), cmd);

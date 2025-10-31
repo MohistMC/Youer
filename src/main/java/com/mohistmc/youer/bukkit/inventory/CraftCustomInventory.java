@@ -45,16 +45,16 @@ public class CraftCustomInventory implements InventoryHolder {
         this.container = new CraftInventoryPlayer(playerInventory);
     }
 
-    @Override
-    public @NotNull Inventory getInventory() {
-        return this.container;
-    }
-
     public static List<HumanEntity> getViewers(Container inventory) {
         try {
             return inventory.getViewers();
         } catch (AbstractMethodError e) {
             return new java.util.ArrayList<>();
         }
+    }
+
+    @Override
+    public @NotNull Inventory getInventory() {
+        return this.container;
     }
 }

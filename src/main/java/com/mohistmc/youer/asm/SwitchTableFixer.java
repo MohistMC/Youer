@@ -32,6 +32,39 @@ public class SwitchTableFixer implements Implementer, Function<byte[], byte[]> {
     private static final Marker MARKER = MarkerManager.getMarker("SWITCH_TABLE");
     private static final Set<String> ENUMS = EnumDefinalizer.ENUM;
 
+    @SuppressWarnings("unused")
+    public static int[] fillSwitchTable1(int[] arr, Class<? extends Enum<?>> cl) {
+        Implementer.LOGGER.debug(MARKER, "Filling switch table for {}", cl);
+        Enum<?>[] enums = cl.getEnumConstants();
+        if (arr.length < enums.length) {
+            int[] ints = new int[enums.length];
+            System.arraycopy(arr, 0, ints, 0, arr.length);
+            arr = ints;
+        }
+        int i = -1;
+        for (int j : arr) {
+            if (j > i) i = j;
+        }
+        if (i != -1) {
+            for (int k = i; k < enums.length; k++) {
+                arr[k] = enums[k].ordinal();
+            }
+        }
+        return arr;
+    }
+
+    @SuppressWarnings("unused")
+    public static int[] fillSwitchTable2(int[] arr, Class<? extends Enum<?>> cl) {
+        Implementer.LOGGER.debug(MARKER, "Filling switch table for {}", cl);
+        Enum<?>[] enums = cl.getEnumConstants();
+        if (arr.length < enums.length) {
+            int[] ints = new int[enums.length];
+            System.arraycopy(arr, 0, ints, 0, arr.length);
+            arr = ints;
+        }
+        return arr;
+    }
+
     @Override
     public byte[] apply(byte[] bytes) {
         ClassNode node = new ClassNode();
@@ -114,27 +147,6 @@ public class SwitchTableFixer implements Implementer, Function<byte[], byte[]> {
         return false;
     }
 
-    @SuppressWarnings("unused")
-    public static int[] fillSwitchTable1(int[] arr, Class<? extends Enum<?>> cl) {
-        Implementer.LOGGER.debug(MARKER, "Filling switch table for {}", cl);
-        Enum<?>[] enums = cl.getEnumConstants();
-        if (arr.length < enums.length) {
-            int[] ints = new int[enums.length];
-            System.arraycopy(arr, 0, ints, 0, arr.length);
-            arr = ints;
-        }
-        int i = -1;
-        for (int j : arr) {
-            if (j > i) i = j;
-        }
-        if (i != -1) {
-            for (int k = i; k < enums.length; k++) {
-                arr[k] = enums[k].ordinal();
-            }
-        }
-        return arr;
-    }
-
     private boolean inject2(ClassNode node, MethodNode method) {
         if ((node.access & Opcodes.ACC_SYNTHETIC) != 0) {
             if (node.methods.size() == 1 && Modifier.isStatic(method.access) && method.name.equals("<clinit>")) {
@@ -190,17 +202,5 @@ public class SwitchTableFixer implements Implementer, Function<byte[], byte[]> {
             }
         }
         return false;
-    }
-
-    @SuppressWarnings("unused")
-    public static int[] fillSwitchTable2(int[] arr, Class<? extends Enum<?>> cl) {
-        Implementer.LOGGER.debug(MARKER, "Filling switch table for {}", cl);
-        Enum<?>[] enums = cl.getEnumConstants();
-        if (arr.length < enums.length) {
-            int[] ints = new int[enums.length];
-            System.arraycopy(arr, 0, ints, 0, arr.length);
-            arr = ints;
-        }
-        return arr;
     }
 }

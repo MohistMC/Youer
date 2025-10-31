@@ -11,32 +11,6 @@ import net.minecraft.resources.ResourceLocation;
 
 public interface PluginsPayload extends CustomPacketPayload {
 
-    ByteBuf getData();
-
-    void setData(ByteBuf data);
-
-    default byte[] readBytes() {
-        final var buf = getData();
-        byte[] allocate = new byte[buf.readableBytes()];
-        buf.readBytes(allocate);
-        ReferenceCountUtil.release(buf);
-        setData(null);
-        return allocate;
-    }
-
-    default ByteBuf getSlicedData() {
-        return getData().slice();
-    }
-
-    default byte[] leak() {
-        final var buf = getData();
-        byte[] allocate = new byte[buf.readableBytes()];
-        buf.readBytes(allocate);
-        ReferenceCountUtil.release(buf);
-        setData(null);
-        return allocate;
-    }
-
     static <B extends FriendlyByteBuf> StreamCodec<B, PluginsDiscardedPayload> codec(Type<PluginsDiscardedPayload> type, int max) {
         return StreamCodec.composite(
                 StreamCodec.of(FriendlyByteBuf::writeBytes, buf -> {
@@ -69,5 +43,31 @@ public interface PluginsPayload extends CustomPacketPayload {
                 }
             }
         };
+    }
+
+    ByteBuf getData();
+
+    void setData(ByteBuf data);
+
+    default byte[] readBytes() {
+        final var buf = getData();
+        byte[] allocate = new byte[buf.readableBytes()];
+        buf.readBytes(allocate);
+        ReferenceCountUtil.release(buf);
+        setData(null);
+        return allocate;
+    }
+
+    default ByteBuf getSlicedData() {
+        return getData().slice();
+    }
+
+    default byte[] leak() {
+        final var buf = getData();
+        byte[] allocate = new byte[buf.readableBytes()];
+        buf.readBytes(allocate);
+        ReferenceCountUtil.release(buf);
+        setData(null);
+        return allocate;
     }
 }

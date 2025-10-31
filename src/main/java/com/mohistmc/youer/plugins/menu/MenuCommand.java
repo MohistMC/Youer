@@ -2,7 +2,6 @@ package com.mohistmc.youer.plugins.menu;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class MenuCommand extends Command {
 
-    private final List<String> params = Arrays.asList("open");
+    private final List<String> params = List.of("open");
 
     public MenuCommand(String name) {
         super(name);

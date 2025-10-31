@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.Getter;
 import net.md_5.specialsource.JarMapping;
 import net.md_5.specialsource.JarRemapper;
 import net.md_5.specialsource.RemappingClassAdapter;
@@ -49,14 +50,21 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
     private static final Logger LOGGER = LogManager.getLogger("Youer");
     private static final String PREFIX = "net/minecraft/";
     private static final String REPLACED_NAME = Type.getInternalName(ReflectionHandler.class);
-
+    private static final AtomicInteger COUNTER = new AtomicInteger();
     private final JarMapping toBukkitMapping;
     private final JarRemapper toBukkitRemapper;
+    @Getter
     private final ClassLoader classLoader;
+    @Getter
     private final String generatedHandler;
+    @Getter
     private final Class<?> generatedHandlerClass;
     private final GeneratedHandlerAdapter generatedHandlerAdapter;
     private final Map<String, Boolean> secureJarInfo = new ConcurrentHashMap<>();
+    // BiMap: srg -> bukkit
+    private final Map<String, BiMap<Field, String>> cacheFields = new ConcurrentHashMap<>();
+    private final Map<String, Map.Entry<Map<Method, String>, Map<WrappedMethod, Method>>> cacheMethods = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> cacheRemap = new ConcurrentHashMap<>();
 
     public ClassLoaderRemapper(JarMapping jarMapping, JarMapping toBukkitMapping, ClassLoader classLoader) {
         super(jarMapping);
@@ -71,10 +79,6 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
         GlobalClassRepo.INSTANCE.addRepo(new ClassLoaderRepo(this.classLoader));
     }
 
-    public ClassLoader getClassLoader() {
-        return classLoader;
-    }
-
     public JarMapping toBukkitMapping() {
         return toBukkitMapping;
     }
@@ -86,19 +90,6 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
     public JarRemapper toBukkitRemapper() {
         return toBukkitRemapper;
     }
-
-    public String getGeneratedHandler() {
-        return generatedHandler;
-    }
-
-    public Class<?> getGeneratedHandlerClass() {
-        return generatedHandlerClass;
-    }
-
-    // BiMap: srg -> bukkit
-    private final Map<String, BiMap<Field, String>> cacheFields = new ConcurrentHashMap<>();
-    private final Map<String, Map.Entry<Map<Method, String>, Map<WrappedMethod, Method>>> cacheMethods = new ConcurrentHashMap<>();
-    private final Map<String, Boolean> cacheRemap = new ConcurrentHashMap<>();
 
     private Map.Entry<Map<Method, String>, Map<WrappedMethod, Method>> getMethods(Class<?> cl, String internalName) {
         return cacheMethods.computeIfAbsent(internalName, k -> this.tryGetMethods(cl));
@@ -304,8 +295,6 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
 
         return wr.toByteArray();
     }
-
-    private static final AtomicInteger COUNTER = new AtomicInteger();
 
     private Class<?> generateReflectionHandler() {
         try {

@@ -25,7 +25,7 @@ public class LambdaFix {
         ServerAPI.getNMSServer().scheduleOnMain(() -> packetListener.sendServerSuggestions(packet, stringreader));
     }
 
-    public static void handleChat(ServerGamePacketListenerImpl packetListener, ServerboundChatPacket p_9841_, Optional<LastSeenMessages> optional){
+    public static void handleChat(ServerGamePacketListenerImpl packetListener, ServerboundChatPacket p_9841_, Optional<LastSeenMessages> optional) {
         packetListener.tryHandleChat(p_9841_.message(), () -> {
             PlayerChatMessage playerchatmessage;
             try {

@@ -11,33 +11,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Automatically remove mods that are not compatible with Mohist servers
  */
 public class AutoDeleteMods {
-
-    public enum DeletionReason {
-        CORE_CONFLICT("core_conflict"),
-        DUPLICATE_FEATURE("duplicate_feature"),
-        CLIENT_ONLY("client_only"),
-        FABRIC_ONLY("fabric_only"),
-        UNKNOWN("unknown");
-
-        private final String i18nKey;
-
-        DeletionReason(String i18nKey) {
-            this.i18nKey = i18nKey;
-        }
-
-        public String getDisplayText() {
-            return I18n.as("update.deleting.reason." + i18nKey);
-        }
-    }
 
     /**
      * MOD blacklist mapping table
@@ -109,7 +87,7 @@ public class AutoDeleteMods {
         }
 
         File[] jarFiles = modsDir.listFiles((dir, name) -> name.endsWith(".jar"));
-        if (jarFiles == null || jarFiles.length == 0) return;
+        if (jarFiles == null) return;
 
         for (File jarFile : jarFiles) {
             try {
@@ -123,7 +101,6 @@ public class AutoDeleteMods {
             }
         }
     }
-
 
     /**
      * Backup and delete MOD files
@@ -153,6 +130,25 @@ public class AutoDeleteMods {
             ));
         } catch (IOException e) {
             System.err.println("Failed to delete file: " + modFile.getName() + " - " + e.getMessage());
+        }
+    }
+
+
+    public enum DeletionReason {
+        CORE_CONFLICT("core_conflict"),
+        DUPLICATE_FEATURE("duplicate_feature"),
+        CLIENT_ONLY("client_only"),
+        FABRIC_ONLY("fabric_only"),
+        UNKNOWN("unknown");
+
+        private final String i18nKey;
+
+        DeletionReason(String i18nKey) {
+            this.i18nKey = i18nKey;
+        }
+
+        public String getDisplayText() {
+            return I18n.as("update.deleting.reason." + i18nKey);
         }
     }
 }

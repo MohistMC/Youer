@@ -10,8 +10,6 @@ import cpw.mods.modlauncher.TransformingClassLoader;
  */
 public interface RemappingClassLoader {
 
-    ClassLoaderRemapper getRemapper();
-
     static ClassLoader asTransforming(ClassLoader classLoader) {
         boolean found = false;
         while (classLoader != null) {
@@ -24,4 +22,6 @@ public interface RemappingClassLoader {
         }
         return found ? classLoader : RemappingClassLoader.class.getClassLoader();
     }
+
+    ClassLoaderRemapper getRemapper();
 }

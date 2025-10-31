@@ -14,9 +14,9 @@ import org.jetbrains.annotations.NotNull;
 public class SetBlockEvent extends BlockEvent implements Cancellable {
 
     private static final HandlerList handlers = new HandlerList();
-    private boolean cancel;
     @Getter
     private final Location location;
+    private boolean cancel;
 
     public SetBlockEvent(Location location) {
         super(location.getBlock());

@@ -66,7 +66,7 @@ public class WorldsGUI {
                     infoLore.add("§bFlat §8>> §7" + flat);
                 }
             }
-            Material material = flat ? Material.GREEN_CARPET :getMaterial(w);
+            Material material = flat ? Material.GREEN_CARPET : getMaterial(w);
             wh.addItem(new GUIItem(new ItemStackFactory(material)
                                .setDisplayName("§7>> §6" + w.getName())
                                .setLore(infoLore)

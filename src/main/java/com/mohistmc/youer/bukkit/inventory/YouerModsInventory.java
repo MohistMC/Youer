@@ -2,6 +2,7 @@ package com.mohistmc.youer.bukkit.inventory;
 
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -18,6 +19,7 @@ import org.bukkit.inventory.InventoryHolder;
  */
 public class YouerModsInventory implements Container {
 
+    @Getter
     private final AbstractContainerMenu container;
     private final InventoryHolder owner;
     private final List<HumanEntity> viewers = new ArrayList<>();
@@ -25,10 +27,6 @@ public class YouerModsInventory implements Container {
     public YouerModsInventory(AbstractContainerMenu container, Player owner) {
         this.container = container;
         this.owner = owner.getBukkitEntity();
-    }
-
-    public AbstractContainerMenu getContainer() {
-        return container;
     }
 
     @Override
@@ -48,6 +46,10 @@ public class YouerModsInventory implements Container {
         if (getContainerSize() <= 0)
             return 0;
         return container.getSlot(0).getMaxStackSize();
+    }
+
+    @Override
+    public void setMaxStackSize(int size) {
     }
 
     @Override
@@ -121,10 +123,6 @@ public class YouerModsInventory implements Container {
     @Override
     public InventoryHolder getOwner() {
         return owner;
-    }
-
-    @Override
-    public void setMaxStackSize(int size) {
     }
 
     @Override

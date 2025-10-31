@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
 import net.md_5.specialsource.JarMapping;
 import net.md_5.specialsource.JarRemapper;
 import net.md_5.specialsource.provider.ClassLoaderProvider;
@@ -19,6 +20,7 @@ import net.md_5.specialsource.provider.JointProvider;
 public class Remapper {
 
     public static final Remapper INSTANCE;
+    private static long pkgOffset, clOffset, mdOffset, fdOffset, mapOffset;
 
     static {
         try {
@@ -28,15 +30,24 @@ public class Remapper {
         }
     }
 
+    static {
+        try {
+            pkgOffset = Unsafe.objectFieldOffset(JarMapping.class.getField("packages"));
+            clOffset = Unsafe.objectFieldOffset(JarMapping.class.getField("classes"));
+            mdOffset = Unsafe.objectFieldOffset(JarMapping.class.getField("methods"));
+            fdOffset = Unsafe.objectFieldOffset(JarMapping.class.getField("fields"));
+            mapOffset = Unsafe.objectFieldOffset(JarMapping.class.getDeclaredField("inheritanceMap"));
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
+    }
+
     public final JarMapping toNmsMapping;
     private final JarMapping toBukkitMapping;
+    @Getter
     private final List<PluginTransformer> transformerList = new ArrayList<>();
     private final JarRemapper toBukkitRemapper;
     private final JarRemapper toNmsRemapper;
-
-    public List<PluginTransformer> getTransformerList() {
-        return transformerList;
-    }
 
     public Remapper() throws Exception {
         this.toNmsMapping = new JarMapping();
@@ -81,18 +92,13 @@ public class Remapper {
         return INSTANCE.toNmsRemapper;
     }
 
-    private static long pkgOffset, clOffset, mdOffset, fdOffset, mapOffset;
-
-    static {
-        try {
-            pkgOffset = Unsafe.objectFieldOffset(JarMapping.class.getField("packages"));
-            clOffset = Unsafe.objectFieldOffset(JarMapping.class.getField("classes"));
-            mdOffset = Unsafe.objectFieldOffset(JarMapping.class.getField("methods"));
-            fdOffset = Unsafe.objectFieldOffset(JarMapping.class.getField("fields"));
-            mapOffset = Unsafe.objectFieldOffset(JarMapping.class.getDeclaredField("inheritanceMap"));
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();
+    public static boolean isExcludedPackage(String packageName) {
+        for (String s : ArrayUtil.stringSet) {
+            if (packageName.startsWith(s.replace('/', '.'))) {
+                return true;
+            }
         }
+        return false;
     }
 
     private JarMapping copyOf(JarMapping mapping) {
@@ -103,15 +109,6 @@ public class Remapper {
         Unsafe.putObject(jarMapping, fdOffset, Unsafe.getObject(mapping, fdOffset));
         Unsafe.putObject(jarMapping, mapOffset, Unsafe.getObject(mapping, mapOffset));
         return jarMapping;
-    }
-
-    public static boolean isExcludedPackage(String packageName) {
-        for (String s : ArrayUtil.stringSet) {
-            if (packageName.startsWith(s.replace('/', '.'))) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public void put(String key, String value) {

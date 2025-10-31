@@ -22,7 +22,7 @@ public class GuiListener {
             event.setCancelled(true);
             if (event.getInventory() == gui.inv) {
                 int index = event.getRawSlot();
-                if(index < gui.items.length) {
+                if (index < gui.items.length) {
                     if (gui.items[index] != null) {
                         gui.items[index].ClickAction(event.getClick(), p, gui.items[index].display);
                     }

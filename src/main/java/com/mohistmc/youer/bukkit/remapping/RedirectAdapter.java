@@ -166,11 +166,6 @@ public class RedirectAdapter implements PluginTransformer {
         }
     }
 
-    @Override
-    public void handleClass(ClassNode node, ClassLoaderRemapper remapper) {
-        redirect(node, remapper);
-    }
-
     private static void redirect(ClassNode classNode, ClassLoaderRemapper remapper) {
         for (MethodNode methodNode : classNode.methods) {
             for (AbstractInsnNode insnNode : methodNode.instructions) {
@@ -426,6 +421,11 @@ public class RedirectAdapter implements PluginTransformer {
         } else {
             return new LdcInsnNode(i);
         }
+    }
+
+    @Override
+    public void handleClass(ClassNode node, ClassLoaderRemapper remapper) {
+        redirect(node, remapper);
     }
 
     private record ModifyHandler(String handlerName,

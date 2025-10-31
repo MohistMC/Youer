@@ -75,7 +75,7 @@ public final class ColorAPI {
             if (colors.size() >= 2) {
                 gradientText = createMultiGradient(content, colors);
             } else if (colors.size() == 1) {
-                String hex = resolveColorHex(colors.get(0));
+                String hex = resolveColorHex(colors.getFirst());
                 gradientText = "§x" + convertToHexFormat(hex) + content;
             } else {
                 gradientText = content;
@@ -100,7 +100,7 @@ public final class ColorAPI {
                 String hex = resolveColorHex(colorName);
                 TextColor color = TextColor.fromHexString("#" + hex);
                 if (color == null) {
-                    return "§x" + convertToHexFormat(resolveColorHex(colorNames.get(0))) + text;
+                    return "§x" + convertToHexFormat(resolveColorHex(colorNames.getFirst())) + text;
                 }
                 colors.add(color);
             }
@@ -142,7 +142,7 @@ public final class ColorAPI {
 
             return gradientBuilder.toString();
         } catch (Exception e) {
-            return "§x" + convertToHexFormat(resolveColorHex(colorNames.get(0))) + text;
+            return "§x" + convertToHexFormat(resolveColorHex(colorNames.getFirst())) + text;
         }
     }
 

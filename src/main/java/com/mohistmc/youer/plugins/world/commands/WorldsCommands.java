@@ -32,6 +32,8 @@ import org.jetbrains.annotations.NotNull;
 
 public class WorldsCommands extends Command {
 
+    private final List<String> params = Arrays.asList("create", "delete", "tp", "import", "unload", "info", "addinfo", "setname", "setspawn", "gui", "difficulty", "cleardropitem", "gamemode");
+
     public WorldsCommands(String name) {
         super(name);
         this.description = "World Manager.";
@@ -76,12 +78,12 @@ public class WorldsCommands extends Command {
 
                     for (var environment : environments) {
                         wh.addItem(new GUIItem(new ItemStackFactory(WorldsGUI.getMaterial(environment))
-                                .setDisplayName(environment)
-                                .setLore(List.of(
-                                        I18n.as("worldmanage.environment." + environment.toLowerCase(Locale.ENGLISH)),
-                                        I18n.as("worldmanage.gui.select")
-                                ))
-                                .build()) {
+                                           .setDisplayName(environment)
+                                           .setLore(List.of(
+                                                   I18n.as("worldmanage.environment." + environment.toLowerCase(Locale.ENGLISH)),
+                                                   I18n.as("worldmanage.gui.select")
+                                           ))
+                                           .build()) {
                                        @Override
                                        public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                            WorldsGUI.createWorld(worldName, itemStack, u);
@@ -332,9 +334,6 @@ public class WorldsCommands extends Command {
 
         return list;
     }
-
-    private final List<String> params = Arrays.asList("create", "delete", "tp", "import", "unload", "info", "addinfo", "setname", "setspawn", "gui", "difficulty", "cleardropitem", "gamemode");
-
 
     private void sendHelp(CommandSender player) {
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds create <Name> " + I18n.as("worldmanage.command.create"));
