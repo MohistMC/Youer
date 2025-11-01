@@ -1,9 +1,10 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -1,16 +_,29 @@
+@@ -1,16 +_,30 @@
  package net.minecraft.server.level;
  
 +import com.mohistmc.youer.api.ColorAPI;
++import com.mohistmc.youer.api.event.ClientboundOpenScreenEvent;
 +import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
 +import com.mohistmc.youer.plugins.KeepInventory;
  import com.google.common.net.InetAddresses;
@@ -902,7 +903,7 @@
              if (abstractcontainermenu == null) {
                  if (this.isSpectator()) {
                      this.displayClientMessage(Component.translatable("container.spectatorCantOpen").withStyle(ChatFormatting.RED), true);
-@@ -1090,10 +_,61 @@
+@@ -1090,10 +_,68 @@
  
                  return OptionalInt.empty();
              } else {
@@ -920,6 +921,13 @@
 +                        registryAccess()
 +                );
 +                if (extraData.length != 0) {
++                    if (ClientboundOpenScreenEvent.getHandlerList().getRegisteredListeners().length > 0) {
++                        ClientboundOpenScreenEvent clientboundOpenScreenEvent = new ClientboundOpenScreenEvent(this.getBukkitEntity(), abstractcontainermenu);
++                        Bukkit.getPluginManager().callEvent(clientboundOpenScreenEvent);
++                        if (clientboundOpenScreenEvent.isCancelled()) {
++                            return OptionalInt.empty();
++                        }
++                    }
 +                    this.connection.send(
 +                        new AdvancedOpenScreenPayload(
 +                                abstractcontainermenu.containerId,
