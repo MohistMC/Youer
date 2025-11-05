@@ -20,6 +20,7 @@ public class BanUtils {
             case ENCHANTMENT -> BanConfig.ENCHANTMENT.put(banType.key, list);
             case ITEM_MOSHOU -> BanConfig.MOSHOU.put(banType.key, list);
             case RECIPE -> BanConfig.RECIPE.put(banType.key, list);
+            case BLOCK -> BanConfig.BLOCK.put(banType.key, list);
         }
         if (clickType == ClickType.ADD) {
             player.sendMessage(I18n.as(banType.i18n_key_add));

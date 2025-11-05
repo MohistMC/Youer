@@ -70,6 +70,15 @@ public class BanListener {
                         }
                     }
                 }
+                if (openInventory.getBanType() == BanType.BLOCK) {
+                    List<String> old = BanConfig.BLOCK.getBlock();
+                    for (org.bukkit.inventory.ItemStack itemStack : event.getInventory().getContents()) {
+                        if (itemStack != null && !itemStack.isEmpty()) {
+                            ListUtils.isDuplicate(old, itemStack.getType().getKey().asString());
+                        }
+                    }
+                    BanUtils.saveToYaml(player, ClickType.ADD, old, BanType.BLOCK);
+                }
                 openInventory = null;
             }
         } catch (Exception e) {

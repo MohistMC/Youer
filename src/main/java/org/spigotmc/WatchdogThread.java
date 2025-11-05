@@ -37,7 +37,6 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
 
     public static void doStart(int timeoutTime, boolean restart)
     {
-        if (true) return;
         if ( WatchdogThread.instance == null )
         {
             if (timeoutTime <= 0) timeoutTime = 300; // Paper
@@ -52,13 +51,11 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
 
     public static void tick()
     {
-        if (true) return;
         WatchdogThread.instance.lastTick = WatchdogThread.monotonicMillis();
     }
 
     public static void doStop()
     {
-        if (true) return;
         if ( WatchdogThread.instance != null )
         {
             WatchdogThread.instance.stopping = true;

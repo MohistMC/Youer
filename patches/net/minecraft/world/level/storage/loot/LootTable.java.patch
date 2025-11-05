@@ -35,7 +35,7 @@
                  )
                  .apply(p_338123_, LootTable::new)
      );
-@@ -49,11 +_,12 @@
+@@ -49,19 +_,21 @@
      private final List<LootPool> pools;
      private final List<LootItemFunction> functions;
      private final BiFunction<ItemStack, LootContext, ItemStack> compositeFunction;
@@ -49,6 +49,16 @@
          this.functions = p_298775_;
          this.compositeFunction = LootItemFunctions.compose(p_298775_);
      }
+ 
+     public static Consumer<ItemStack> createStackSplitter(ServerLevel p_287765_, Consumer<ItemStack> p_251308_) {
++        boolean skipSplitter = p_287765_ != null && !p_287765_.paperConfig().fixes.splitOverstackedLoot; // Paper - preserve overstacked items
+         return p_287570_ -> {
+             if (p_287570_.isItemEnabled(p_287765_.enabledFeatures())) {
+-                if (p_287570_.getCount() < p_287570_.getMaxStackSize()) {
++                if (skipSplitter || p_287570_.getCount() < p_287570_.getMaxStackSize()) {
+                     p_251308_.accept(p_287570_);
+                 } else {
+                     int i = p_287570_.getCount();
 @@ -76,10 +_,12 @@
          };
      }

@@ -233,7 +233,7 @@ public class ShowsCommand extends Command {
                     allSize.addAndGet(entity.getValue());
                 }
 
-                DemoGUI wh = new DemoGUI(I18n.as("shows.entitys.title", allSize.getAndSet(0)));
+                DemoGUI wh = new DemoGUI(I18n.as("shows.blockentitys.title", allSize.getAndSet(0)));
                 for (Map.Entry<Material, Integer> s : newMap.entrySet()) {
 
                     String topChunk = "";

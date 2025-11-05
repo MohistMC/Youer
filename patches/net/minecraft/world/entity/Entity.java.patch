@@ -125,12 +125,13 @@
      private float eyeHeight;
      public boolean isInPowderSnow;
      public boolean wasInPowderSnow;
-@@ -243,6 +_,162 @@
+@@ -243,6 +_,164 @@
      public boolean hasVisualFire;
      @Nullable
      private BlockState inBlockState = null;
 +    // CraftBukkit start
 +    private static final int CURRENT_LEVEL = 2;
++    public boolean preserveMotion = true; // Paper - Fix Entity Teleportation and cancel velocity if teleported; keep initial motion on first setPositionRotation
 +    static boolean isLevelAtLeast(CompoundTag tag, int level) {
 +        return tag.contains("Bukkit.updateLevel") && tag.getInt("Bukkit.updateLevel") >= level;
 +    }
@@ -208,6 +209,7 @@
 +    public long activatedTick = Integer.MIN_VALUE;
 +    public void inactiveTick() { }
 +    // Spigot end
++    protected int numCollisions = 0; // Paper - Cap entity collisions
 +    public boolean fromNetherPortal; // Paper - Add option to nerf pigmen from nether portals
 +    public long activatedImmunityTick = Integer.MIN_VALUE; // Paper - EAR
 +    public boolean isTemporarilyActive; // Paper - EAR
@@ -868,7 +870,7 @@
      }
  
      public void moveTo(Vec3 p_20220_) {
-@@ -1421,7 +_,9 @@
+@@ -1421,16 +_,26 @@
          this.moveTo(p_20036_.getBottomCenter(), p_20037_, p_20038_);
      }
  
@@ -878,7 +880,16 @@
          this.moveTo(p_352318_.x, p_352318_.y, p_352318_.z, p_352438_, p_352125_);
      }
  
-@@ -1431,6 +_,7 @@
+     public void moveTo(double p_20108_, double p_20109_, double p_20110_, float p_20111_, float p_20112_) {
++        // Paper start - Fix Entity Teleportation and cancel velocity if teleported
++        if (!preserveMotion) {
++            this.deltaMovement = Vec3.ZERO;
++        } else {
++            this.preserveMotion = false;
++        }
++        // Paper end - Fix Entity Teleportation and cancel velocity if teleported
+         this.setPosRaw(p_20108_, p_20109_, p_20110_);
+         this.setYRot(p_20111_);
          this.setXRot(p_20112_);
          this.setOldPosAndRot();
          this.reapplyPosition();

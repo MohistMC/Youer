@@ -14,6 +14,7 @@ public class BanConfig extends YouerPluginConfig {
     public static BanConfig ENCHANTMENT;
     public static BanConfig BAN_MESSAGE;
     public static BanConfig RECIPE;
+    public static BanConfig BLOCK;
 
     public BanConfig(File file) {
         super(file);
@@ -26,6 +27,7 @@ public class BanConfig extends YouerPluginConfig {
         ENCHANTMENT = new BanConfig(new File(PARENT, "enchantment.yml"));
         BAN_MESSAGE = new BanConfig(new File(PARENT, "item-message.yml"));
         RECIPE = new BanConfig(new File(PARENT, "recipe.yml"));
+        BLOCK = new BanConfig(new File(PARENT, "block.yml"));
     }
 
     public void addMoShou(String name) {
@@ -55,6 +57,10 @@ public class BanConfig extends YouerPluginConfig {
 
     public List<String> getRecipe() {
         return (!has("RECIPES")) ? new ArrayList<>() : RECIPE.yaml.getStringList("RECIPES");
+    }
+
+    public List<String> getBlock() {
+        return (!has("BLOCKS")) ? new ArrayList<>() : BLOCK.yaml.getStringList("BLOCKS");
     }
 
     public String getMessage(String name) {

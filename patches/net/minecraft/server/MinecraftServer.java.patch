@@ -83,14 +83,13 @@
  import net.minecraft.world.entity.ai.village.VillageSiege;
  import net.minecraft.world.entity.npc.CatSpawner;
  import net.minecraft.world.entity.npc.WanderingTraderSpawner;
-@@ -161,14 +_,41 @@
+@@ -161,14 +_,40 @@
  import net.minecraft.world.level.storage.LevelResource;
  import net.minecraft.world.level.storage.LevelStorageSource;
  import net.minecraft.world.level.storage.PlayerDataStorage;
 +import net.minecraft.world.level.storage.PrimaryLevelData;
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.level.storage.WorldData;
-+import net.minecraft.world.level.validation.ContentValidationException;
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
 +import net.minecraft.world.scores.PlayerTeam;
@@ -159,7 +158,7 @@
      @Nullable
      private KeyPair keyPair;
      @Nullable
-@@ -254,18 +_,45 @@
+@@ -254,18 +_,46 @@
      public final Executor executor;
      @Nullable
      private String serverId;
@@ -181,7 +180,8 @@
 +    public static final long startTimeMillis = System.currentTimeMillis();
 +    public Queue<Runnable> processQueue = new ConcurrentLinkedQueue<Runnable>();
 +    public int autosavePeriod;
-+    public boolean forceTicks;
++    // Paper - don't store the vanilla dispatcher
++    public boolean forceTicks; // Paper - Improved watchdog support
 +    // CraftBukkit end
 +    private long nextTickTime = 0; // Youer Add fake tickField worldedit need this
 +
@@ -251,7 +251,7 @@
          }
      }
  
-@@ -325,6 +_,81 @@
+@@ -325,6 +_,78 @@
  
      protected abstract boolean initServer() throws IOException;
  
@@ -290,9 +290,6 @@
 +
 +    private void executeModerately() {
 +        this.runAllTasks();
-+        while (!processQueue.isEmpty()) {
-+            processQueue.remove().run();
-+        }
 +        LockSupport.parkNanos("executing tasks", 1000L);
 +        // CraftBukkit end
 +    }
@@ -667,7 +664,7 @@
      }
  
      public String getLocalIp() {
-@@ -650,26 +_,105 @@
+@@ -650,26 +_,107 @@
      }
  
      public void halt(boolean p_129884_) {
@@ -767,6 +764,8 @@
 +            resetStatusCache(status);
  
 +            // Spigot start
++            // Paper start - Improved Watchdog Support
++            LOGGER.info("Running delayed init tasks");
 +            this.server.getScheduler().mainThreadHeartbeat(this.tickCount); // run all 1 tick delay tasks during init,
 +            org.spigotmc.WatchdogThread.tick();
 +            org.spigotmc.WatchdogThread.hasStarted = true; // Paper
@@ -778,7 +777,7 @@
              while (this.running) {
                  long i;
                  if (!this.isPaused() && this.tickRateManager.isSprinting() && this.tickRateManager.checkShouldSprintThisTick()) {
-@@ -682,18 +_,39 @@
+@@ -682,25 +_,52 @@
                      if (k > OVERLOADED_THRESHOLD_NANOS + 20L * i
                          && this.nextTickTimeNanos - this.lastOverloadWarningNanos >= OVERLOADED_WARNING_INTERVAL_NANOS + 100L * i) {
                          long j = k / i;
@@ -822,9 +821,10 @@
 +                // MinecraftServer.currentTick = (int) (System.currentTimeMillis() / 50); // CraftBukkit // Paper - don't overwrite current tick time
 +                lastTick = currentTime;
                  this.nextTickTimeNanos += i;
-                 this.startMetricsRecordingTick();
+-                this.startMetricsRecordingTick();
++                //this.startMetricsRecordingTick();
                  this.profiler.push("tick");
-@@ -701,6 +_,12 @@
+                 this.tickServer(flag ? () -> false : this::haveTime);
                  this.profiler.popPush("nextTickWait");
                  this.mayHaveDelayedTasks = true;
                  this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + i, this.nextTickTimeNanos);
@@ -837,7 +837,12 @@
                  this.startMeasuringTaskExecutionTime();
                  this.waitUntilNextTick();
                  this.finishMeasuringTaskExecutionTime();
-@@ -714,30 +_,37 @@
+@@ -710,34 +_,41 @@
+ 
+                 this.profiler.pop();
+                 this.logFullTickTime();
+-                this.endMetricsRecordingTick();
++                // this.endMetricsRecordingTick(); // Purpur
                  this.isReady = true;
                  JvmProfiler.INSTANCE.onServerTick(this.smoothedTickTimeMillis);
              }
@@ -881,7 +886,7 @@
              }
          }
      }
-@@ -782,15 +_,27 @@
+@@ -782,15 +_,26 @@
                  crashreport.addCategory("Wrapped in").setDetailError("Wrapping exception", p_206569_);
              }
          } else {
@@ -895,7 +900,6 @@
      private boolean haveTime() {
 -        return this.runningTask() || Util.getNanos() < (this.mayHaveDelayedTasks ? this.delayedTasksMaxNextTickTimeNanos : this.nextTickTimeNanos);
 -    }
-+        if (isOversleep) return canOversleep(); // Paper - because of our changes, this logic is broken
 +        return this.forceTicks || this.runningTask() || Util.getNanos() < (this.mayHaveDelayedTasks ? this.delayedTasksMaxNextTickTimeNanos : this.nextTickTimeNanos);
 +    }
 +
@@ -912,15 +916,6 @@
  
      public static boolean throwIfFatalException() {
          RuntimeException runtimeexception = fatalException.get();
-@@ -812,7 +_,7 @@
- 
-     protected void waitUntilNextTick() {
-         this.runAllTasks();
--        this.managedBlock(() -> !this.haveTime());
-+        this.managedBlock(() -> !this.canSleepForTickNoOversleep()); // Paper - move oversleep into full server tick
-     }
- 
-     @Override
 @@ -826,6 +_,16 @@
      }
  
@@ -957,20 +952,10 @@
          }
      }
  
-@@ -900,12 +_,26 @@
+@@ -900,12 +_,16 @@
  
      public void tickServer(BooleanSupplier p_129871_) {
          long i = Util.getNanos();
-+        // Paper start - move oversleep into full server tick
-+        isOversleep = true;
-+        this.managedBlock(new BooleanSupplier() {
-+            @Override
-+            public boolean getAsBoolean() {
-+                return !MinecraftServer.this.canOversleep();
-+            }
-+        });
-+        isOversleep = false;
-+        // Paper end
 +        new com.destroystokyo.paper.event.server.ServerTickStartEvent(this.tickCount+1).callEvent(); // Paper - Server Tick Events
 +
          this.tickCount++;
@@ -997,7 +982,7 @@
          this.profiler.push("tallying");
          long j = Util.getNanos() - i;
          int k = this.tickCount % 100;
-@@ -925,8 +_,14 @@
+@@ -925,8 +_,15 @@
          this.aggregatedTickTimesNanos += j;
          this.tickTimesNanos[k] = j;
          this.smoothedTickTimeMillis = this.smoothedTickTimeMillis * 0.8F + (float)j / (float)TimeUtil.NANOSECONDS_PER_MILLISECOND * 0.19999999F;
@@ -1008,6 +993,7 @@
 +        // Paper end - Add tick times API and /mspt command
          this.logTickMethodTime(i);
          this.profiler.pop();
++        org.spigotmc.WatchdogThread.tick(); // Spigot
 +        EventHooks.fireServerTickPost(p_129871_, this);
      }
  

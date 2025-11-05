@@ -1955,6 +1955,22 @@
                  if (i > 0 && list.size() > i - 1 && this.random.nextInt(4) == 0) {
                      int j = 0;
  
+@@ -2766,9 +_,13 @@
+                         this.hurt(this.damageSources().cramming(), 6.0F);
+                     }
+                 }
+-
++                this.numCollisions = Math.max(0, this.numCollisions - this.level().paperConfig().collisions.maxEntityCollisions); // Paper - Cap entity collisions
+                 for (Entity entity1 : list) {
+-                    this.doPush(entity1);
++                    if (this.numCollisions < this.level().paperConfig().collisions.maxEntityCollisions) {
++                        entity1.numCollisions++; // Paper - Cap entity collisions
++                        this.numCollisions++; // Paper - Cap entity collisions
++                        this.doPush(entity1);
++                    }
+                 }
+             }
+         }
 @@ -2812,7 +_,7 @@
      public void stopRiding() {
          Entity entity = this.getVehicle();
@@ -1964,6 +1980,15 @@
              this.dismountVehicle(entity);
          }
      }
+@@ -2881,7 +_,7 @@
+         if (!p_21030_.isRemoved()
+             && !this.level().isClientSide
+             && (p_21030_ instanceof ItemEntity || p_21030_ instanceof AbstractArrow || p_21030_ instanceof ExperienceOrb)) {
+-            ((ServerLevel)this.level()).getChunkSource().broadcast(p_21030_, new ClientboundTakeItemEntityPacket(p_21030_.getId(), this.getId(), p_21031_));
++            ((ServerLevel)this.level()).getChunkSource().broadcastAndSend(p_21030_, new ClientboundTakeItemEntityPacket(p_21030_.getId(), this.getId(), p_21031_)); // Paper - broadcast with collector as source
+         }
+     }
+ 
 @@ -2891,7 +_,7 @@
          } else {
              Vec3 vec3 = new Vec3(this.getX(), this.getEyeY(), this.getZ());

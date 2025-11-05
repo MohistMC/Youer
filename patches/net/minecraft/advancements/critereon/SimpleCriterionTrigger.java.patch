@@ -1,0 +1,19 @@
+--- a/net/minecraft/advancements/critereon/SimpleCriterionTrigger.java
++++ b/net/minecraft/advancements/critereon/SimpleCriterionTrigger.java
+@@ -42,14 +_,14 @@
+         PlayerAdvancements playeradvancements = p_66235_.getAdvancements();
+         Set<CriterionTrigger.Listener<T>> set = this.players.get(playeradvancements);
+         if (set != null && !set.isEmpty()) {
+-            LootContext lootcontext = EntityPredicate.createContext(p_66235_, p_66235_);
++            LootContext lootcontext = null; // EntityPredicate.createContext(player, player); // Paper - Perf: lazily create LootContext for criterions
+             List<CriterionTrigger.Listener<T>> list = null;
+ 
+             for (CriterionTrigger.Listener<T> listener : set) {
+                 T t = listener.trigger();
+                 if (p_66236_.test(t)) {
+                     Optional<ContextAwarePredicate> optional = t.player();
+-                    if (optional.isEmpty() || optional.get().matches(lootcontext)) {
++                    if (optional.isEmpty() || optional.get().matches(lootcontext = (lootcontext == null ? EntityPredicate.createContext(p_66235_, p_66235_) : lootcontext))) { // Paper - Perf: lazily create LootContext for criterions
+                         if (list == null) {
+                             list = Lists.newArrayList();
+                         }

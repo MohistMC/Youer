@@ -378,7 +378,7 @@
      private boolean noBlocksAround(Entity p_9794_) {
          return p_9794_.level()
              .getBlockStates(p_9794_.getBoundingBox().inflate(0.0625).expandTowards(0.0, -0.55, 0.0))
-@@ -473,7 +_,7 @@
+@@ -473,18 +_,18 @@
          PacketUtils.ensureRunningOnSameThread(p_9835_, this, this.player.serverLevel());
          if (p_9835_.getId() == this.awaitingTeleport) {
              if (this.awaitingPositionFromClient == null) {
@@ -387,6 +387,19 @@
                  return;
              }
  
+             this.player
+-                .absMoveTo(
++                .moveTo(
+                     this.awaitingPositionFromClient.x,
+                     this.awaitingPositionFromClient.y,
+                     this.awaitingPositionFromClient.z,
+                     this.player.getYRot(),
+                     this.player.getXRot()
+-                );
++                ); // Paper - Fix Entity Teleportation and cancel velocity if teleported
+             this.lastGoodX = this.awaitingPositionFromClient.x;
+             this.lastGoodY = this.awaitingPositionFromClient.y;
+             this.lastGoodZ = this.awaitingPositionFromClient.z;
 @@ -493,6 +_,7 @@
              }
  
@@ -987,7 +1000,7 @@
          double d0 = p_9786_.contains(RelativeMovement.X) ? this.player.getX() : 0.0;
          double d1 = p_9786_.contains(RelativeMovement.Y) ? this.player.getY() : 0.0;
          double d2 = p_9786_.contains(RelativeMovement.Z) ? this.player.getZ() : 0.0;
-@@ -1014,6 +_,14 @@
+@@ -1014,8 +_,16 @@
              this.awaitingTeleport = 0;
          }
  
@@ -1000,8 +1013,11 @@
 +        // CraftBukkit end
 +
          this.awaitingTeleportTime = this.tickCount;
-         this.player.absMoveTo(p_9781_, p_9782_, p_9783_, p_9784_, p_9785_);
+-        this.player.absMoveTo(p_9781_, p_9782_, p_9783_, p_9784_, p_9785_);
++        this.player.moveTo(p_9781_, p_9782_, p_9783_, p_9784_, p_9785_); // Paper - Fix Entity Teleportation and cancel velocity if teleported
          this.player
+             .connection
+             .send(new ClientboundPlayerPositionPacket(p_9781_ - d0, p_9782_ - d1, p_9783_ - d2, p_9784_ - f, p_9785_ - f1, p_9786_, this.awaitingTeleport));
 @@ -1024,6 +_,7 @@
      @Override
      public void handlePlayerAction(ServerboundPlayerActionPacket p_9889_) {
@@ -1949,7 +1965,7 @@
                  this.player.containerMenu.sendAllDataToRemote();
              } else if (!this.player.containerMenu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, this.player.containerMenu);
-@@ -1643,7 +_,305 @@
+@@ -1643,7 +_,311 @@
                  } else {
                      boolean flag = p_9856_.getStateId() != this.player.containerMenu.getStateId();
                      this.player.containerMenu.suppressRemoteUpdates();
@@ -2048,6 +2064,12 @@
 +                            break;
 +                        case SWAP:
 +                            if ((p_9856_.getButtonNum() >= 0 && p_9856_.getButtonNum() < 9) || p_9856_.getButtonNum() == 40) {
++                                // Paper start - Add slot sanity checks to container clicks
++                                if (p_9856_.getSlotNum() < 0) {
++                                    action = InventoryAction.NOTHING;
++                                    break;
++                                }
++                                // Paper end - Add slot sanity checks to container clicks
 +                                click = (p_9856_.getButtonNum() == 40) ? org.bukkit.event.inventory.ClickType.SWAP_OFFHAND : org.bukkit.event.inventory.ClickType.NUMBER_KEY;
 +                                net.minecraft.world.inventory.Slot clickedSlot = this.player.containerMenu.getSlot(p_9856_.getSlotNum());
 +                                if (clickedSlot.mayPickup(player)) {

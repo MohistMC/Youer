@@ -49,6 +49,15 @@
      }
  
      static ResourceKey<GameEvent> getResonanceEventByFrequency(int p_282105_) {
+@@ -125,7 +_,7 @@
+         public static Codec<VibrationSystem.Data> CODEC = RecordCodecBuilder.create(
+             p_338090_ -> p_338090_.group(
+                         VibrationInfo.CODEC.lenientOptionalFieldOf("event").forGetter(p_281665_ -> Optional.ofNullable(p_281665_.currentVibration)),
+-                        VibrationSelector.CODEC.fieldOf("selector").forGetter(VibrationSystem.Data::getSelectionStrategy),
++                        VibrationSelector.CODEC.optionalFieldOf("selector").xmap(o -> o.orElseGet(VibrationSelector::new), Optional::of).forGetter(VibrationSystem.Data::getSelectionStrategy),
+                         ExtraCodecs.NON_NEGATIVE_INT.fieldOf("event_delay").orElse(0).forGetter(VibrationSystem.Data::getTravelTimeInTicks)
+                     )
+                     .apply(p_338090_, (p_281934_, p_282381_, p_282931_) -> new VibrationSystem.Data(p_281934_.orElse(null), p_282381_, p_282931_, true))
 @@ -213,7 +_,14 @@
                      return false;
                  } else {

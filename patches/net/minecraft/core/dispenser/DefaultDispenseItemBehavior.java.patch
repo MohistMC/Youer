@@ -1,6 +1,6 @@
 --- a/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
-@@ -6,10 +_,24 @@
+@@ -6,27 +_,90 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.DispenserBlock;
@@ -11,7 +11,7 @@
  
  public class DefaultDispenseItemBehavior implements DispenseItemBehavior {
      private static final int DEFAULT_ACCURACY = 6;
- 
++    private Direction enumdirection; // Paper - cache facing direction
 +    // CraftBukkit start
 +    private boolean dropper;
 +
@@ -21,17 +21,24 @@
 +    // CraftBukkit end
 +
 +    public DefaultDispenseItemBehavior() {} // Youer fix decompile
-+
+ 
      @Override
      public final ItemStack dispense(BlockSource p_302432_, ItemStack p_123392_) {
++        enumdirection = p_302432_.state().getValue(DispenserBlock.FACING); // Paper - cache facing direction
          ItemStack itemstack = this.execute(p_302432_, p_123392_);
-@@ -22,11 +_,61 @@
-         Direction direction = p_302420_.state().getValue(DispenserBlock.FACING);
-         Position position = DispenserBlock.getDispensePosition(p_302420_);
+         this.playSound(p_302432_);
+-        this.playAnimation(p_302432_, p_302432_.state().getValue(DispenserBlock.FACING));
++        this.playAnimation(p_302432_, enumdirection); // Paper - cache facing direction
+         return itemstack;
+     }
+ 
+     protected ItemStack execute(BlockSource p_302420_, ItemStack p_123386_) {
+-        Direction direction = p_302420_.state().getValue(DispenserBlock.FACING);
+-        Position position = DispenserBlock.getDispensePosition(p_302420_);
          ItemStack itemstack = p_123386_.split(1);
 -        spawnItem(p_302420_.level(), itemstack, 6, direction, position);
 +        // CraftBukkit start
-+        if (!DefaultDispenseItemBehavior.spawnItem(p_302420_.level(), itemstack, 6, direction, p_302420_, this.dropper)) {
++        if (!DefaultDispenseItemBehavior.spawnItem(p_302420_.level(), itemstack, 6, enumdirection, p_302420_, this.dropper)) {
 +            p_123386_.grow(1);
 +        }
 +        // CraftBukkit end

@@ -15,10 +15,24 @@
          p_156563_.put("Position", new IntArrayTag(new int[]{p_156564_.x, p_156564_.z}));
      }
  
-@@ -94,8 +_,12 @@
+@@ -92,10 +_,26 @@
+             }
+         } else {
              ListTag listtag = new ListTag();
++            final java.util.Map<net.minecraft.world.entity.EntityType<?>, Integer> savedEntityCounts = new java.util.HashMap<>(); // Paper - Entity load/save limit per chunk
              p_156559_.getEntities().forEach(p_156567_ -> {
++                // Paper start - Entity load/save limit per chunk
++                final EntityType<?> entityType = p_156567_.getType();
++                final int saveLimit = this.level.paperConfig().chunks.entityPerChunkSaveLimit.getOrDefault(entityType, -1);
++                if (saveLimit > -1) {
++                    if (savedEntityCounts.getOrDefault(entityType, 0) >= saveLimit) {
++                        return;
++                    }
++                    savedEntityCounts.merge(entityType, 1, Integer::sum);
++                }
++                // Paper end - Entity load/save limit per chunk
                  CompoundTag compoundtag1 = new CompoundTag();
++                if (!p_156567_.canSaveToDisk()) return; // Purpur
 +                try {
                  if (p_156567_.save(compoundtag1)) {
                      listtag.add(compoundtag1);

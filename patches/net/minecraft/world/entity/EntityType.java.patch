@@ -262,6 +262,29 @@
          );
      }
  
+@@ -1114,10 +_,21 @@
+     public static Stream<Entity> loadEntitiesRecursive(final List<? extends Tag> p_147046_, final Level p_147047_) {
+         final Spliterator<? extends Tag> spliterator = p_147046_.spliterator();
+         return StreamSupport.stream(new Spliterator<Entity>() {
++            final java.util.Map<EntityType<?>, Integer> loadedEntityCounts = new java.util.HashMap<>(); // Paper - Entity load/save limit per chunk
+             @Override
+             public boolean tryAdvance(Consumer<? super Entity> p_147066_) {
+                 return spliterator.tryAdvance(p_147059_ -> EntityType.loadEntityRecursive((CompoundTag)p_147059_, p_147047_, p_147062_ -> {
+-                        p_147066_.accept(p_147062_);
++                    // Paper start - Entity load/save limit per chunk
++                    final EntityType<?> entityType = p_147062_.getType();
++                    final int saveLimit = p_147047_.paperConfig().chunks.entityPerChunkSaveLimit.getOrDefault(entityType, -1);
++                    if (saveLimit > -1) {
++                        if (this.loadedEntityCounts.getOrDefault(entityType, 0) >= saveLimit) {
++                            return null;
++                        }
++                        this.loadedEntityCounts.merge(entityType, 1, Integer::sum);
++                    }
++                    // Paper end - Entity load/save limit per chunk
++                    p_147066_.accept(p_147062_);
+                         return p_147062_;
+                     }));
+             }
 @@ -1149,14 +_,23 @@
      }
  

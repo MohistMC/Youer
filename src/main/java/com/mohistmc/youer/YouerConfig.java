@@ -80,6 +80,7 @@ public class YouerConfig {
     public static int clear_monster_time;
     // Ban
     public static boolean ban_item_enable;
+    public static boolean ban_block_enable;
     public static boolean ban_entity_enable;
     public static boolean no_vanilla_entity_enable;
     public static List<String> no_vanilla_entity_whitelist;
@@ -257,6 +258,7 @@ public class YouerConfig {
         clear_monster_time = getInt("entity.clear.monster.time", 1800);
 
         ban_item_enable = getBoolean("bans.item", false);
+        ban_block_enable = getBoolean("bans.block", false);
         ban_entity_enable = getBoolean("bans.entity.enable", false);
         no_vanilla_entity_enable = getBoolean("bans.entity.vanilla_entity.enable", false);
         no_vanilla_entity_whitelist = getStringList("bans.entity.vanilla_entity.whitelist", new ArrayList<>());
@@ -305,5 +307,4 @@ public class YouerConfig {
     public static boolean isCN() {
         return yml.getString("youer.lang", Locale.getDefault().toString()).contains("CN");
     }
-
 }

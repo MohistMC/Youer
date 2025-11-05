@@ -34,12 +34,12 @@ import org.jetbrains.annotations.NotNull;
 public class BansCommand extends Command {
 
     private final List<String> params = Arrays.asList("add", "show", "setmessage");
-    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe");
+    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block");
 
     public BansCommand(String name) {
         super(name);
         this.description = I18n.as("banscmd.description");
-        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment|recipe]";
+        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment|recipe|block]";
         this.setPermission("youer.command.bans");
     }
 
@@ -122,6 +122,17 @@ public class BansCommand extends Command {
                             return false;
                         }
                         BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ENCHANTMENT, "§4Add bans enchantment");
+                        Inventory inventory = banSaveInventory.getInventory();
+                        player.openInventory(inventory);
+                        BanListener.openInventory = banSaveInventory;
+                        return true;
+                    }
+                    case "block" -> {
+                        if (!YouerConfig.ban_block_enable) {
+                            sender.sendMessage(ChatColor.RED + check);
+                            return false;
+                        }
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.BLOCK, "§4Add bans block");
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
                         BanListener.openInventory = banSaveInventory;
@@ -253,6 +264,31 @@ public class BansCommand extends Command {
                                     }
                                 }
                             });
+                        }
+                        wh.openGUI(player);
+                        return true;
+                    }
+                    case "block" -> {
+                        DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.block"));
+                        List<String> old = BanConfig.BLOCK.getBlock();
+                        for (String s : BanConfig.BLOCK.getBlock()) {
+                            Material material = Material.matchMaterial(s);
+                            if (material != null && !material.isAir()) {
+                                wh.addItem(new GUIItem(new ItemStackFactory(material)
+                                        .setDisplayName(s)
+                                        .addLore("§e" + I18n.as("banscmd.show.lore"))
+                                        .build()) {
+                                    @Override
+                                    public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                                        if (type.isRightClick()) {
+                                            old.remove(s);
+                                            BanUtils.saveToYaml(u, com.mohistmc.youer.plugins.ban.ClickType.REMOVE, old, BanType.BLOCK);
+                                            wh.removeItem(this);
+                                            wh.openGUI(player);
+                                        }
+                                    }
+                                });
+                            }
                         }
                         wh.openGUI(player);
                         return true;
