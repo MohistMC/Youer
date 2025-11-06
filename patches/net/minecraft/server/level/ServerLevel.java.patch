@@ -1,9 +1,10 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,12 +_,21 @@
+@@ -1,10 +_,19 @@
  package net.minecraft.server.level;
  
 +import com.mohistmc.youer.YouerConfig;
++import com.mohistmc.youer.api.event.block.PlayerMayInteractBlockEvent;
 +import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 +import com.mohistmc.youer.plugins.ban.bans.BanEntity;
 +import com.mohistmc.youer.plugins.world.utils.ConfigByWorlds;
@@ -18,10 +19,7 @@
 +import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
  import it.unimi.dsi.fastutil.longs.LongSet;
- import it.unimi.dsi.fastutil.longs.LongSets;
- import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 @@ -14,6 +_,7 @@
  import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
  import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -58,13 +56,12 @@
  import net.minecraft.world.DifficultyInstance;
  import net.minecraft.world.RandomSequences;
  import net.minecraft.world.TickRateManager;
-@@ -98,9 +_,10 @@
+@@ -98,9 +_,9 @@
  import net.minecraft.world.entity.animal.Animal;
  import net.minecraft.world.entity.animal.WaterAnimal;
  import net.minecraft.world.entity.animal.horse.SkeletonHorse;
 -import net.minecraft.world.entity.boss.EnderDragonPart;
  import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
-+import net.minecraft.world.entity.item.ItemEntity;
  import net.minecraft.world.entity.npc.Npc;
 +import net.minecraft.world.entity.npc.Villager;
  import net.minecraft.world.entity.player.Player;
@@ -115,16 +112,18 @@
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
-@@ -164,7 +_,22 @@
+@@ -164,7 +_,24 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
 +import org.bukkit.Bukkit;
++import org.bukkit.Location;
 +import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.generator.CraftWorldInfo;
 +import org.bukkit.craftbukkit.generator.CustomChunkGenerator;
 +import org.bukkit.craftbukkit.generator.CustomWorldChunkManager;
++import org.bukkit.craftbukkit.util.CraftLocation;
 +import org.bukkit.craftbukkit.util.WorldUUID;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.server.MapInitializeEvent;
@@ -669,7 +668,20 @@
              for (Entity entity : p_8664_.getPassengers()) {
                  this.tickPassenger(p_8664_, entity);
              }
-@@ -792,6 +_,7 @@
+@@ -786,12 +_,20 @@
+ 
+     @Override
+     public boolean mayInteract(Player p_8696_, BlockPos p_8697_) {
++        if (PlayerMayInteractBlockEvent.getHandlerList().getRegisteredListeners().length > 0) {
++            Location location = CraftLocation.toBukkit(p_8697_, world);
++            PlayerMayInteractBlockEvent event = new PlayerMayInteractBlockEvent((org.bukkit.entity.Player) p_8696_.getBukkitEntity(), location);
++            if (!event.callEvent()) {
++                return false;
++            }
++        }
+         return !this.server.isUnderSpawnProtection(this, p_8697_, p_8696_) && this.getWorldBorder().isWithinBounds(p_8697_);
+     }
+ 
      public void save(@Nullable ProgressListener p_8644_, boolean p_8645_, boolean p_8646_) {
          ServerChunkCache serverchunkcache = this.getChunkSource();
          if (!p_8646_) {

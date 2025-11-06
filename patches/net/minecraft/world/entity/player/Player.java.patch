@@ -1,19 +1,19 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -1,16 +_,21 @@
+@@ -1,8 +_,12 @@
  package net.minecraft.world.entity.player;
  
++import com.mohistmc.youer.api.event.block.PlayerMayUseItemAtEvent;
 +import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
 +import com.mohistmc.youer.plugins.KeepInventory;
  import com.google.common.collect.ImmutableList;
  import com.google.common.collect.ImmutableMap;
  import com.google.common.collect.Lists;
++import com.mohistmc.youer.plugins.ban.bans.BanItem;
  import com.mojang.authlib.GameProfile;
  import com.mojang.datafixers.util.Either;
  import com.mojang.logging.LogUtils;
-+import io.papermc.paper.event.entity.EntityKnockbackEvent;
- import java.util.Collection;
- import java.util.List;
+@@ -11,6 +_,8 @@
  import java.util.Map;
  import java.util.Optional;
  import java.util.OptionalInt;
@@ -55,15 +55,16 @@
  import net.minecraft.world.item.crafting.RecipeHolder;
  import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
  import net.minecraft.world.item.enchantment.EnchantmentHelper;
-@@ -110,10 +_,16 @@
+@@ -110,10 +_,17 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Scoreboard;
 -import net.minecraft.world.scores.Team;
++import org.bukkit.Location;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.util.CraftLocation;
 +import org.bukkit.craftbukkit.util.CraftVector;
-+import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.entity.EntityExhaustionEvent;
 +import org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason;
  import org.slf4j.Logger;
@@ -1009,6 +1010,23 @@
  
      public Optional<WardenSpawnTracker> getWardenSpawnTracker() {
          return Optional.empty();
+@@ -1690,6 +_,16 @@
+     }
+ 
+     public boolean mayUseItemAt(BlockPos p_36205_, Direction p_36206_, ItemStack p_36207_) {
++        if (BanItem.check(this, p_36207_)) {
++            return false;
++        }
++        if (PlayerMayUseItemAtEvent.getHandlerList().getRegisteredListeners().length > 0) {
++            Location location = CraftLocation.toBukkit(p_36205_, level());
++            PlayerMayUseItemAtEvent event = new PlayerMayUseItemAtEvent((org.bukkit.entity.Player) this.getBukkitEntity(), location, p_36207_.getBukkitStack());
++            if (!event.callEvent()) {
++                return false;
++            }
++        }
+         if (this.abilities.mayBuild) {
+             return true;
+         } else {
 @@ -1701,6 +_,7 @@
  
      @Override

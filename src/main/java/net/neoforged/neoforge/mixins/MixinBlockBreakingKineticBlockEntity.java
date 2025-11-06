@@ -25,12 +25,14 @@ public class MixinBlockBreakingKineticBlockEntity {
         if (world == null) {
             return;
         }
-        Location sourceLocation = CraftLocation.toBukkit(pos, world);
-        Location location = CraftLocation.toBukkit(breakingPos, world);
+        if (BlockSetBlockEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            Location sourceLocation = CraftLocation.toBukkit(pos, world);
+            Location location = CraftLocation.toBukkit(breakingPos, world);
 
-        BlockSetBlockEvent event = new BlockSetBlockEvent(sourceLocation, location);
-        if (!event.callEvent()) {
-            ci.cancel();
+            BlockSetBlockEvent event = new BlockSetBlockEvent(sourceLocation, location);
+            if (!event.callEvent()) {
+                ci.cancel();
+            }
         }
     }
 }
