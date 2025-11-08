@@ -48,6 +48,7 @@ import net.minecraft.world.entity.projectile.FireworkRocketEntity;
 import net.minecraft.world.entity.raid.Raid;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.world.inventory.ItemCombinerMenu;
 import net.minecraft.world.inventory.MerchantMenu;
 import net.minecraft.world.inventory.RecipeBookType;
 import net.minecraft.world.item.ItemStack;
@@ -1785,6 +1786,9 @@ public class CraftEventFactory {
             event = new PrepareSmithingEvent(view, result);
         } else {
             event = new com.destroystokyo.paper.event.inventory.PrepareResultEvent(view, result);
+        }
+        if (event.getInventory().getType().isMods()) {
+            return;
         }
         event.callEvent();
         event.getInventory().setItem(resultSlot, event.getResult());

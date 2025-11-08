@@ -3,6 +3,7 @@ package com.mohistmc.youer.neoforge;
 import com.mohistmc.youer.bukkit.entity.YouerModsAbstractHorse;
 import com.mohistmc.youer.bukkit.entity.YouerModsChestHorse;
 import com.mohistmc.youer.bukkit.entity.YouerModsEntity;
+import com.mohistmc.youer.bukkit.entity.YouerModsFireballEntity;
 import com.mohistmc.youer.bukkit.entity.YouerModsMinecart;
 import com.mohistmc.youer.bukkit.entity.YouerModsMinecartContainer;
 import com.mohistmc.youer.bukkit.entity.YouerModsMob;
@@ -599,15 +600,17 @@ public class EntityClassLookup {
                 io.papermc.paper.entity.CollarColorable.class
         );
         boolean error = false;
+        var adadasd = new HashSet<>(allEntityClasses);
         for (Class<?> entityClass : allEntityClasses) {
             if (ignored.contains(entityClass)) continue;
             var optional = NMS_TO_BUKKIT.values().stream().filter(c -> c.bukkitClass == entityClass).findAny();
             if (optional.isEmpty()) {
+                adadasd.remove(entityClass);
                 error = true;
             }
         }
         if (error) {
-            throw new RuntimeException("Missing valid entity class mapping");
+            throw new RuntimeException("Missing valid entity class mapping: " + adadasd);
         }
     }
 

@@ -7,6 +7,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.bukkit.entity.YouerModsFireballEntity;
 import com.mohistmc.youer.neoforge.EntityClassLookup;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.boss.EnderDragonPart;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.Fireball;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.phys.AABB;
@@ -130,7 +132,13 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         EntityTypeData<?, T> entityTypeData = CraftEntityTypes.getEntityTypeData(CraftEntityType.minecraftToBukkit(entity.getType()));
 
         if (entityTypeData != null) {
-            return (CraftEntity) entityTypeData.convertFunction().apply(server, entity);
+            try {
+                return (CraftEntity) entityTypeData.convertFunction().apply(server, entity);
+            } catch (ClassCastException e) {
+                if (entity instanceof Fireball && entity.getType() == net.minecraft.world.entity.EntityType.SMALL_FIREBALL) {
+                    return new YouerModsFireballEntity(server, (Fireball) entity);
+                }
+            }
         }
 
         return (CraftEntity) EntityClassLookup.getEntityTypeData(entity).convertFunction().apply(server, entity);
