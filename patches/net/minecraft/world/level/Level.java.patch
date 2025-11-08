@@ -249,7 +249,7 @@
      public boolean isInWorldBounds(BlockPos p_46740_) {
          return !this.isOutsideBuildHeight(p_46740_) && isInWorldBoundsHorizontal(p_46740_);
      }
-@@ -193,6 +_,44 @@
+@@ -193,6 +_,57 @@
  
      @Nullable
      @Override
@@ -282,6 +282,19 @@
 +
 +    public final boolean isLoadedAndInBounds(BlockPos blockposition) { // Paper - final for inline
 +        return getWorldBorder().isWithinBounds(blockposition) && getChunkIfLoadedImmediately(blockposition.getX() >> 4, blockposition.getZ() >> 4) != null;
++    }
++
++    public @Nullable LevelChunk getChunkIfLoaded(int x, int z) { // Overridden in WorldServer for ABI compat which has final
++        if (this instanceof ServerLevel serverLevel) {
++            return serverLevel.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
++        }
++        return null;
++    }
++    public final @Nullable LevelChunk getChunkIfLoaded(BlockPos blockposition) {
++        if (this instanceof ServerLevel serverLevel) {
++            return serverLevel.getChunkSource().getChunkAtIfLoadedImmediately(blockposition.getX() >> 4, blockposition.getZ() >> 4);
++        }
++        return null;
 +    }
 +
 +    //  reduces need to do isLoaded before getType
