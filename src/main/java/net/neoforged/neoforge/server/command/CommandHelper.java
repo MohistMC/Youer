@@ -14,6 +14,8 @@ import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -40,7 +42,8 @@ public final class CommandHelper {
     public static <S, T> void mergeCommandNode(CommandNode<S> sourceNode, CommandNode<T> resultNode, Map<CommandNode<S>, CommandNode<T>> sourceToResult,
             S canUse, Command<T> execute, Function<SuggestionProvider<S>, SuggestionProvider<T>> sourceToResultSuggestion) {
         sourceToResult.put(sourceNode, resultNode);
-        for (CommandNode<S> sourceChild : sourceNode.getChildren()) {
+        List<CommandNode<S>> children = new ArrayList<>(sourceNode.getChildren());
+        for (CommandNode<S> sourceChild : children) {
             if (sourceChild.canUse(canUse)) {
                 resultNode.addChild(toResult(sourceChild, sourceToResult, canUse, execute, sourceToResultSuggestion));
             }

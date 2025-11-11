@@ -104,7 +104,7 @@
  
          return p_277359_;
      }
-@@ -210,7 +_,17 @@
+@@ -210,7 +_,18 @@
              Style style = component.getStyle();
              ClickEvent clickevent = style.getClickEvent();
              if (clickevent != null && clickevent.getAction() == ClickEvent.Action.RUN_COMMAND) {
@@ -118,16 +118,16 @@
 +                if (!event.callEvent()) {
 +                    return false;
 +                }
-+                p_279304_.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(((org.bukkit.craftbukkit.entity.CraftPlayer) event.getPlayer()).getHandle(), p_279201_, p_278282_), event.getMessage());
++                Player player = ((org.bukkit.craftbukkit.entity.CraftPlayer) event.getPlayer()).getHandle();
++                p_279304_.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(player, p_279201_, p_278282_).withSource(commandSource(player, p_279201_)), event.getMessage());
 +                // Paper end - Fix commands from signs not firing command events
                  flag = true;
              }
          }
-@@ -218,11 +_,52 @@
+@@ -218,6 +_,48 @@
          return flag;
      }
  
--    private static CommandSourceStack createCommandSourceStack(@Nullable Player p_279428_, Level p_279359_, BlockPos p_279430_) {
 +    // CraftBukkit start
 +    @Override
 +    public void sendSystemMessage(Component ichatbasecomponent) {}
@@ -152,12 +152,9 @@
 +        return false;
 +    }
 +
-+    private CommandSourceStack createCommandSourceStack(@Nullable Player p_279428_, Level p_279359_, BlockPos p_279430_) {
-         String s = p_279428_ == null ? "Sign" : p_279428_.getName().getString();
-         Component component = (Component)(p_279428_ == null ? Component.literal("Sign") : p_279428_.getDisplayName());
-+
++    public CommandSource commandSource(@Nullable Player p_279428_, Level p_279359_){
 +        // Paper start - Fix commands from signs not firing command events
-+        CommandSource commandSource = p_279359_.paperConfig().misc.showSignClickCommandFailureMsgsToPlayer ? new io.papermc.paper.commands.DelegatingCommandSource(SignBlockEntity.this) {
++        return p_279359_.paperConfig().misc.showSignClickCommandFailureMsgsToPlayer ? new io.papermc.paper.commands.DelegatingCommandSource(SignBlockEntity.this) {
 +            @Override
 +            public void sendSystemMessage(Component message) {
 +                if (p_279428_ != null) {
@@ -171,13 +168,11 @@
 +            }
 +        } : this;
 +        // Paper end - Fix commands from signs not firing command events
++    }
 +
-         return new CommandSourceStack(
--            CommandSource.NULL, Vec3.atCenterOf(p_279430_), Vec2.ZERO, (ServerLevel)p_279359_, 2, s, component, p_279359_.getServer(), p_279428_
-+                commandSource, Vec3.atCenterOf(p_279430_), Vec2.ZERO, (ServerLevel)p_279359_, 2, s, component, p_279359_.getServer(), p_279428_
-         );
-     }
- 
+     private static CommandSourceStack createCommandSourceStack(@Nullable Player p_279428_, Level p_279359_, BlockPos p_279430_) {
+         String s = p_279428_ == null ? "Sign" : p_279428_.getName().getString();
+         Component component = (Component)(p_279428_ == null ? Component.literal("Sign") : p_279428_.getDisplayName());
 @@ -246,12 +_,17 @@
  
      @Nullable
