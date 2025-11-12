@@ -250,7 +250,7 @@
              }
  
 +            int airSupply = this.getAirSupply();
-+            CommonHooks.onLivingBreathe(this, airSupply - decreaseAirSupply(airSupply), increaseAirSupply(airSupply) - airSupply);
++            net.neoforged.neoforge.common.CommonHooks.onLivingBreathe(this, airSupply - decreaseAirSupply(airSupply), increaseAirSupply(airSupply) - airSupply);
 +            if (false) // Forge: Handled in ForgeHooks#onLivingBreathe(LivingEntity, int, int)
              if (this.isEyeInFluid(FluidTags.WATER)
                  && !this.level().getBlockState(BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())).is(Blocks.BUBBLE_COLUMN)) {
@@ -264,16 +264,14 @@
              this.extinguishFire();
          }
  
-@@ -542,7 +_,8 @@
+@@ -542,6 +_,7 @@
          this.deathTime++;
          if (this.deathTime >= 20 && !this.level().isClientSide() && !this.isRemoved()) {
              this.level().broadcastEntityEvent(this, (byte)60);
--            this.remove(Entity.RemovalReason.KILLED);
 +            this.setRemoved$cause(EntityRemoveEvent.Cause.DEATH);
-+            this.remove(RemovalReason.KILLED); // CraftBukkit - add Bukkit remove cause
+             this.remove(Entity.RemovalReason.KILLED);
          }
      }
- 
 @@ -634,7 +_,7 @@
      }
  
@@ -283,21 +281,10 @@
      }
  
      public void setDiscardFriction(boolean p_147245_) {
-@@ -664,26 +_,62 @@
+@@ -664,6 +_,25 @@
          }
      }
  
--    @Override
--    public void remove(Entity.RemovalReason p_276115_) {
--        if (p_276115_ == Entity.RemovalReason.KILLED || p_276115_ == Entity.RemovalReason.DISCARDED) {
--            this.triggerOnDeathMobEffects(p_276115_);
--        }
--
--        super.remove(p_276115_);
--        this.brain.clearMemories();
--    }
--
--    protected void triggerOnDeathMobEffects(Entity.RemovalReason p_350496_) {
 +    public void onEquipItem(EquipmentSlot p_238393_, ItemStack p_238394_, ItemStack p_238395_, boolean silent) {
 +        boolean flag = p_238395_.isEmpty() && p_238394_.isEmpty();
 +        if (!flag && !ItemStack.isSameItemSameComponents(p_238394_, p_238395_) && !this.firstTick) {
@@ -317,16 +304,14 @@
 +        }
 +    }
 +
-+    @Override
-+    public void remove(RemovalReason p_276115_) {
-+        if (p_276115_ == RemovalReason.KILLED || p_276115_ == RemovalReason.DISCARDED) {
-+            this.triggerOnDeathMobEffects(p_276115_);
-+        }
-+
-+        super.remove(p_276115_); // CraftBukkit
-+        this.brain.clearMemories();
-+    }
-+
+     @Override
+     public void remove(Entity.RemovalReason p_276115_) {
+         if (p_276115_ == Entity.RemovalReason.KILLED || p_276115_ == Entity.RemovalReason.DISCARDED) {
+@@ -674,16 +_,33 @@
+         this.brain.clearMemories();
+     }
+ 
+-    protected void triggerOnDeathMobEffects(Entity.RemovalReason p_350496_) {
 +    @Override
 +    public void removeCB(RemovalReason p_276115_, EntityRemoveEvent.Cause cause) {
 +        // CraftBukkit end
@@ -491,9 +476,9 @@
              .stream()
 -            .filter(MobEffectInstance::isVisible)
 -            .map(MobEffectInstance::getParticleOptions)
-+            .map(effect -> NeoForge.EVENT_BUS.post(new EffectParticleModificationEvent(this, effect)))
-+            .filter(EffectParticleModificationEvent::isVisible)
-+            .map(EffectParticleModificationEvent::getParticleOptions)
++            .map(effect -> net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.living.EffectParticleModificationEvent(this, effect)))
++            .filter(net.neoforged.neoforge.event.entity.living.EffectParticleModificationEvent::isVisible)
++            .map(net.neoforged.neoforge.event.entity.living.EffectParticleModificationEvent::getParticleOptions)
              .toList();
          this.entityData.set(DATA_EFFECT_PARTICLES, list);
          this.entityData.set(DATA_EFFECT_AMBIENCE_ID, areAllEffectsAmbient(this.activeEffects.values()));
@@ -501,7 +486,7 @@
              }
          }
  
-+        d0 = CommonHooks.getEntityVisibilityMultiplier(this, p_20969_, d0);
++        d0 = net.neoforged.neoforge.common.CommonHooks.getEntityVisibilityMultiplier(this, p_20969_, d0);
          return d0;
      }
  
@@ -626,13 +611,13 @@
 +    // Youer end
 +
 +    /**
-+     * Neo: Override-Only. Call via {@link CommonHooks#canMobEffectBeApplied(LivingEntity, MobEffectInstance,Entity)}
++     * Neo: Override-Only. Call via {@link net.neoforged.neoforge.common.CommonHooks#canMobEffectBeApplied(LivingEntity, MobEffectInstance,Entity)}
 +     *
 +     * @param p_21197_ A mob effect instance
 +     * @return If the mob effect instance can be applied to this entity
 +     */
 +    @Deprecated
-+    @ApiStatus.OverrideOnly
++    @org.jetbrains.annotations.ApiStatus.OverrideOnly
      public boolean canBeAffected(MobEffectInstance p_21197_) {
          if (this.getType().is(EntityTypeTags.IMMUNE_TO_INFESTED)) {
              return !p_21197_.is(MobEffects.INFESTED);
@@ -641,7 +626,7 @@
  
      public void forceAddEffect(MobEffectInstance p_147216_, @Nullable Entity p_147217_) {
 -        if (this.canBeAffected(p_147216_)) {
-+        if (CommonHooks.canMobEffectBeApplied(this, p_147216_, p_147217_)) {
++        if (net.neoforged.neoforge.common.CommonHooks.canMobEffectBeApplied(this, p_147216_, p_147217_)) {
              MobEffectInstance mobeffectinstance = this.activeEffects.put(p_147216_.getEffect(), p_147216_);
              if (mobeffectinstance == null) {
                  this.onEffectAdded(p_147216_, p_147217_);
@@ -1181,7 +1166,7 @@
          }
      }
  
-@@ -1439,7 +_,14 @@
+@@ -1439,10 +_,17 @@
          loottable.getRandomItems(lootparams, this.getLootTableSeed(), this::spawnAtLocation);
      }
  
@@ -1195,7 +1180,11 @@
 +        p_147243_ = event.getRatioZ();
          p_147241_ *= 1.0 - this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
          if (!(p_147241_ <= 0.0)) {
-             this.hasImpulse = true;
+-            this.hasImpulse = true;
++            //this.hasImpulse = true; // CraftBukkit - Move down
+             Vec3 vec3 = this.getDeltaMovement();
+ 
+             while (p_147242_ * p_147242_ + p_147243_ * p_147243_ < 1.0E-5F) {
 @@ -1451,8 +_,24 @@
              }
  
@@ -1231,17 +1220,6 @@
          return SoundEvents.GENERIC_DEATH;
      }
  
-@@ -1499,8 +_,8 @@
-         return this.activeLocationDependentEnchantments;
-     }
- 
--    public LivingEntity.Fallsounds getFallSounds() {
--        return new LivingEntity.Fallsounds(SoundEvents.GENERIC_SMALL_FALL, SoundEvents.GENERIC_BIG_FALL);
-+    public Fallsounds getFallSounds() {
-+        return new Fallsounds(SoundEvents.GENERIC_SMALL_FALL, SoundEvents.GENERIC_BIG_FALL);
-     }
- 
-     protected SoundEvent getDrinkingSound(ItemStack p_21174_) {
 @@ -1511,25 +_,54 @@
          return p_21202_.getEatingSound();
      }
@@ -1300,7 +1278,7 @@
 -            } else {
 -                return false;
 -            }
-+            Optional<BlockPos> ladderPos = CommonHooks.isLivingOnLadder(blockstate, level(), blockpos, this);
++            Optional<BlockPos> ladderPos = net.neoforged.neoforge.common.CommonHooks.isLivingOnLadder(blockstate, level(), blockpos, this);
 +            if (ladderPos.isPresent()) this.lastClimbablePos = ladderPos;
 +            return ladderPos.isPresent();
          }
@@ -1319,7 +1297,7 @@
  
      @Override
      public boolean causeFallDamage(float p_147187_, float p_147188_, DamageSource p_147189_) {
-+        float[] ret = CommonHooks.onLivingFall(this, p_147187_, p_147188_);
++        float[] ret = net.neoforged.neoforge.common.CommonHooks.onLivingFall(this, p_147187_, p_147188_);
 +        if (ret == null) return false;
 +        p_147187_ = ret[0];
 +        p_147188_ = ret[1];
@@ -1394,7 +1372,7 @@
  
                  if (f3 > 0.0F) {
                      p_21194_ = CombatRules.getDamageAfterMagicAbsorb(p_21194_, f3);
-+                    this.damageContainers.peek().setReduction(DamageContainer.Reduction.ENCHANTMENTS,this.damageContainers.peek().getNewDamage() - p_21194_);
++                    this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ENCHANTMENTS,this.damageContainers.peek().getNewDamage() - p_21194_);
                  }
  
                  return p_21194_;
@@ -1537,20 +1515,20 @@
              }
  
              this.hasImpulse = true;
-+            CommonHooks.onLivingJump(this);
++            net.neoforged.neoforge.common.CommonHooks.onLivingJump(this);
          }
      }
  
 +    @Deprecated // FORGE: use sinkInFluid instead
      protected void goDownInWater() {
 -        this.setDeltaMovement(this.getDeltaMovement().add(0.0, -0.04F, 0.0));
-+        this.sinkInFluid(NeoForgeMod.WATER_TYPE.value());
++        this.sinkInFluid(net.neoforged.neoforge.common.NeoForgeMod.WATER_TYPE.value());
      }
  
 +    @Deprecated // FORGE: use jumpInFluid instead
      protected void jumpInLiquid(TagKey<Fluid> p_204043_) {
 -        this.setDeltaMovement(this.getDeltaMovement().add(0.0, 0.04F, 0.0));
-+        this.setDeltaMovement(this.getDeltaMovement().add(0.0D, (double)0.04F * this.getAttributeValue(NeoForgeMod.SWIM_SPEED), 0.0D));
++        this.setDeltaMovement(this.getDeltaMovement().add(0.0D, (double)0.04F * this.getAttributeValue(net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED), 0.0D));
      }
  
      protected float getWaterSlowDown() {
@@ -1559,7 +1537,7 @@
  
              FluidState fluidstate = this.level().getFluidState(this.blockPosition());
 -            if (this.isInWater() && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
-+            if ((this.isInWater() || (this.isInFluidType(fluidstate) && fluidstate.getFluidType() != NeoForgeMod.LAVA_TYPE.value())) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
++            if ((this.isInWater() || (this.isInFluidType(fluidstate) && fluidstate.getFluidType() != net.neoforged.neoforge.common.NeoForgeMod.LAVA_TYPE.value())) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
 +                if (this.isInWater() || (this.isInFluidType(fluidstate) && !this.moveInFluid(fluidstate, p_21280_, d0))) {
                  double d9 = this.getY();
                  float f4 = this.isSprinting() ? 0.9F : this.getWaterSlowDown();
@@ -1568,7 +1546,7 @@
                      f4 = 0.96F;
                  }
  
-+                f5 *= (float)this.getAttributeValue(NeoForgeMod.SWIM_SPEED);
++                f5 *= (float)this.getAttributeValue(net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED);
                  this.moveRelative(f5, p_21280_);
                  this.move(MoverType.SELF, this.getDeltaMovement());
                  Vec3 vec36 = this.getDeltaMovement();
@@ -1642,7 +1620,7 @@
          this.level().getProfiler().push("jump");
          if (this.jumping && this.isAffectedByFluids()) {
              double d3;
-+            FluidType fluidType = this.getMaxHeightFluidType();
++            net.neoforged.neoforge.fluids.FluidType fluidType = this.getMaxHeightFluidType();
 +            if (!fluidType.isAir()) d3 = this.getFluidTypeHeight(fluidType);
 +            else
              if (this.isInLava()) {
@@ -1664,11 +1642,11 @@
 +                    } else this.jumpInFluid(fluidType);
                  } else {
 -                    this.jumpInLiquid(FluidTags.LAVA);
-+                    this.jumpInFluid(NeoForgeMod.LAVA_TYPE.value());
++                    this.jumpInFluid(net.neoforged.neoforge.common.NeoForgeMod.LAVA_TYPE.value());
                  }
              } else {
 -                this.jumpInLiquid(FluidTags.WATER);
-+                this.jumpInFluid(NeoForgeMod.WATER_TYPE.value());
++                this.jumpInFluid(net.neoforged.neoforge.common.NeoForgeMod.WATER_TYPE.value());
              }
          } else {
              this.noJumpDelay = 0;
@@ -1884,7 +1862,7 @@
 -            if (ItemStack.isSameItem(this.getItemInHand(this.getUsedItemHand()), this.useItem)) {
 -                this.useItem = this.getItemInHand(this.getUsedItemHand());
 +            ItemStack itemStack = this.getItemInHand(this.getUsedItemHand());
-+            if (CommonHooks.canContinueUsing(this.useItem, itemStack)) {
++            if (net.neoforged.neoforge.common.CommonHooks.canContinueUsing(this.useItem, itemStack)) {
 +                this.useItem = itemStack;
 +            }
 +            if (itemStack == this.useItem) {
@@ -1895,11 +1873,10 @@
      }
  
      protected void updateUsingItem(ItemStack p_147201_) {
--        p_147201_.onUseTick(this.level(), this, this.getUseItemRemainingTicks());
 +        if (!p_147201_.isEmpty())
-+            this.useItemRemaining = EventHooks.onItemUseTick(this, p_147201_, this.getUseItemRemainingTicks());
++            this.useItemRemaining = net.neoforged.neoforge.event.EventHooks.onItemUseTick(this, p_147201_, this.getUseItemRemainingTicks());
 +        if (this.getUseItemRemainingTicks() > 0)
-+            p_147201_.onUseTick(this.level(), this, this.getUseItemRemainingTicks());
+         p_147201_.onUseTick(this.level(), this, this.getUseItemRemainingTicks());
          if (this.shouldTriggerItemUseEffects()) {
              this.triggerItemUseEffects(p_147201_, 5);
          }
@@ -2195,7 +2172,7 @@
 -        return this.getSleepingPos().map(p_352707_ -> this.level().getBlockState(p_352707_).getBlock() instanceof BedBlock).orElse(false);
 +        // Neo: Overwrite the vanilla instanceof BedBlock check with isBed and fire the CanContinueSleepingEvent.
 +        boolean hasBed = this.getSleepingPos().map(pos -> this.level().getBlockState(pos).isBed(this.level(), pos, this)).orElse(false);
-+        return EventHooks.canEntityContinueSleeping(this, hasBed ? null : Player.BedSleepingProblem.NOT_POSSIBLE_HERE);
++        return net.neoforged.neoforge.event.EventHooks.canEntityContinueSleeping(this, hasBed ? null : Player.BedSleepingProblem.NOT_POSSIBLE_HERE);
      }
  
      public void stopSleeping() {
@@ -2225,7 +2202,7 @@
  
      public ItemStack getProjectile(ItemStack p_21272_) {
 -        return ItemStack.EMPTY;
-+        return CommonHooks.getProjectile(this, p_21272_, ItemStack.EMPTY);
++        return net.neoforged.neoforge.common.CommonHooks.getProjectile(this, p_21272_, ItemStack.EMPTY);
      }
  
      public final ItemStack eat(Level p_21067_, ItemStack p_21068_) {
@@ -2255,17 +2232,17 @@
      }
  
 +    /**
-+     * Neo: Removes all potion effects that have the given {@link EffectCure} in their set of cures
++     * Neo: Removes all potion effects that have the given {@link net.neoforged.neoforge.common.EffectCure} in their set of cures
 +     * @param cure the EffectCure being used
 +     */
-+    public boolean removeEffectsCuredBy(EffectCure cure) {
++    public boolean removeEffectsCuredBy(net.neoforged.neoforge.common.EffectCure cure) {
 +        if (this.level().isClientSide)
 +            return false;
 +        boolean ret = false;
 +        Iterator<MobEffectInstance> itr = this.activeEffects.values().iterator();
 +        while (itr.hasNext()) {
 +            MobEffectInstance effect = itr.next();
-+            if (effect.getCures().contains(cure) && !EventHooks.onEffectRemoved(this, effect, cure)) {
++            if (effect.getCures().contains(cure) && !net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, effect, cure)) {
 +                this.onEffectRemoved(effect);
 +                itr.remove();
 +                ret = true;
@@ -2283,7 +2260,7 @@
 +     * @return If the player should orient the same direction as this entity.
 +     */
 +    public boolean shouldRiderFaceForward(Player player) {
-+        return this instanceof Pig;
++        return this instanceof net.minecraft.world.entity.animal.Pig;
 +    }
 +
      @Override

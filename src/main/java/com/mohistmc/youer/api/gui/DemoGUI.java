@@ -6,6 +6,7 @@ import java.util.List;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.ItemStack;
 
 /**
@@ -35,7 +36,9 @@ public class DemoGUI {
                 .build()) {
             @Override
             public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
-                u.closeInventory();
+                if (!type.isShiftClick() && type.isLeftClick()) {
+                    u.closeInventory(InventoryCloseEvent.Reason.PLUGIN);
+                }
             }
         });
     }
