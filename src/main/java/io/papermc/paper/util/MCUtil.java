@@ -90,9 +90,6 @@ public final class MCUtil {
      */
     public static void ensureMain(String reason, Runnable run) {
         if (!isMainThread()) {
-            if (reason != null) {
-                MinecraftServer.LOGGER.warn("Asynchronous " + reason + "!", new IllegalStateException());
-            }
             MinecraftServer.getServer().processQueue.add(run);
             return;
         }
@@ -108,9 +105,6 @@ public final class MCUtil {
      */
     public static <T> T ensureMain(String reason, Supplier<T> run) {
         if (!isMainThread()) {
-            if (reason != null) {
-                MinecraftServer.LOGGER.warn("Asynchronous " + reason + "! Blocking thread until it returns ", new IllegalStateException());
-            }
             Waitable<T> wait = new Waitable<>() {
                 @Override
                 protected T evaluate() {

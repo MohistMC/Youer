@@ -5035,8 +5035,14 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
      * @return True if this material is an air block.
      */
     public boolean isAir() {
-        BlockType type = asBlockType();
-        return type != null && type.isAir();
+        return isAirSafe();
+    }
+
+    public boolean isAirSafe() {
+        return switch (this) {
+            case AIR, CAVE_AIR, VOID_AIR, LEGACY_AIR -> true;
+            default -> false;
+        };
     }
 
     /**

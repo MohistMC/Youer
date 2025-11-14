@@ -155,7 +155,7 @@ public class BansCommand extends Command {
                         List<String> old = BanConfig.ITEM.getItem();
                         for (String s : BanConfig.ITEM.getItem()) {
                             Material material = Material.matchMaterial(s);
-                            if (material != null && !material.isAir()) {
+                            if (material != null && !material.isAirSafe()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
@@ -180,7 +180,7 @@ public class BansCommand extends Command {
                         List<String> old = BanConfig.MOSHOU.getMoShouList();
                         for (String s : BanConfig.MOSHOU.getMoShouList()) {
                             Material material = Material.matchMaterial(s);
-                            if (material != null && !material.isAir()) {
+                            if (material != null && !material.isAirSafe()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
@@ -273,7 +273,7 @@ public class BansCommand extends Command {
                         List<String> old = BanConfig.BLOCK.getBlock();
                         for (String s : BanConfig.BLOCK.getBlock()) {
                             Material material = Material.matchMaterial(s);
-                            if (material != null && !material.isAir()) {
+                            if (material != null && !material.isAirSafe()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
