@@ -330,11 +330,7 @@
      protected void loadLevel() {
          if (!JvmProfiler.INSTANCE.isRunning()) {
          }
-@@ -367,11 +_,14 @@
-         ServerLevel serverlevel = new ServerLevel(
-             this, this.executor, this.storageSource, serverleveldata, Level.OVERWORLD, levelstem, p_129816_, flag, j, list, true, null
-         );
-+        this.initWorld(serverlevel, serverleveldata, worldData, worldoptions); // CraftBukkit
+@@ -370,8 +_,16 @@
          this.levels.put(Level.OVERWORLD, serverlevel);
          DimensionDataStorage dimensiondatastorage = serverlevel.getDataStorage();
          this.readScoreboard(dimensiondatastorage);
@@ -342,6 +338,12 @@
          this.commandStorage = new CommandStorage(dimensiondatastorage);
          WorldBorder worldborder = serverlevel.getWorldBorder();
 +        NeoForge.EVENT_BUS.post(new LevelEvent.Load(levels.get(Level.OVERWORLD)));
++        // CraftBukkit start
++        if (serverlevel.generator != null) {
++            serverlevel.getWorld().getPopulators().addAll(serverlevel.generator.getDefaultPopulators(serverlevel.getWorld()));
++        }
++        this.server.getPluginManager().callEvent(new org.bukkit.event.world.WorldInitEvent(serverlevel.getWorld())); // CraftBukkit - SPIGOT-5569: Call WorldInitEvent before any chunks are generated
++
          if (!serverleveldata.isInitialized()) {
              try {
                  setInitialSpawn(serverlevel, serverleveldata, worldoptions.generateBonusChest(), flag);
@@ -373,13 +375,11 @@
                  ServerLevel serverlevel1 = new ServerLevel(
                      this,
                      this.executor,
-@@ -419,12 +_,43 @@
-                     false,
-                     randomsequences
+@@ -421,10 +_,41 @@
                  );
-+                this.initWorld(serverlevel1, derivedleveldata, worldData, worldoptions); // CraftBukkit
                  worldborder.addListener(new BorderChangeListener.DelegateBorderChangeListener(serverlevel1.getWorldBorder()));
                  this.levels.put(resourcekey1, serverlevel1);
++                this.initWorld(serverlevel1, derivedleveldata, worldData, worldoptions); // CraftBukkit
 +                NeoForge.EVENT_BUS.post(new LevelEvent.Load(levels.get(resourcekey)));
              }
          }
