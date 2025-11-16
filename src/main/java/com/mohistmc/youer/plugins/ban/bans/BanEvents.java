@@ -11,4 +11,12 @@ public class BanEvents {
     public static boolean banFireTick() {
         return YouerConfig.doFireTick;
     }
+
+    public static boolean banExplosion() {
+        return YouerConfig.explosion;
+    }
+
+    public static boolean banFarmlandTrample() {
+        return YouerConfig.farmlandTrample;
+    }
 }

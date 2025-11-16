@@ -92,6 +92,7 @@ public class YouerConfig {
     // Ban events
     public static boolean doFireTick;
     public static boolean explosion;
+    public static boolean farmlandTrample;
     public static boolean worldmanage;
     public static boolean bukkitpermissionshandler;
     public static boolean recipe_warn;
@@ -273,6 +274,7 @@ public class YouerConfig {
 
         doFireTick = getBoolean("events.fire_tick", false);
         explosion = getBoolean("events.explosion", false);
+        farmlandTrample = getBoolean("events.farmlandTrample", false);
         bukkitpermissionshandler = getBoolean("neoforge.bukkitpermissionshandler", true);
         worldmanage = getBoolean("worldmanage", true);
 
