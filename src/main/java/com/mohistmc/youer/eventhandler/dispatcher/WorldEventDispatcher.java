@@ -24,7 +24,6 @@ import net.neoforged.neoforge.event.level.LevelEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.CraftWorld;
-import org.bukkit.event.world.WorldInitEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 
 public class WorldEventDispatcher {
@@ -35,7 +34,6 @@ public class WorldEventDispatcher {
         if (event.getLevel() instanceof ServerLevel handle) {
             CraftWorld craftWorld = handle.getWorld();
             Bukkit.getPluginManager().callEvent(new WorldLoadEvent(craftWorld));
-            Bukkit.getPluginManager().callEvent(new WorldInitEvent(craftWorld));
         }
     }
 

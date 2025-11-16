@@ -83,7 +83,7 @@
  import net.minecraft.world.entity.ai.village.VillageSiege;
  import net.minecraft.world.entity.npc.CatSpawner;
  import net.minecraft.world.entity.npc.WanderingTraderSpawner;
-@@ -161,14 +_,40 @@
+@@ -161,14 +_,41 @@
  import net.minecraft.world.level.storage.LevelResource;
  import net.minecraft.world.level.storage.LevelStorageSource;
  import net.minecraft.world.level.storage.PlayerDataStorage;
@@ -112,6 +112,7 @@
 +import org.bukkit.craftbukkit.block.data.CraftBlockData;
 +import org.bukkit.craftbukkit.util.ServerShutdownThread;
 +import org.bukkit.event.server.ServerLoadEvent;
++import org.bukkit.event.world.WorldInitEvent;
 +import org.bukkit.event.world.WorldLoadEvent;
 +import org.bukkit.plugin.PluginLoadOrder;
  import org.slf4j.Logger;
@@ -251,7 +252,7 @@
          }
      }
  
-@@ -325,6 +_,78 @@
+@@ -325,6 +_,79 @@
  
      protected abstract boolean initServer() throws IOException;
  
@@ -264,6 +265,7 @@
 +        }
 +        WorldBorder worldborder = serverlevel.getWorldBorder();
 +        worldborder.applySettings(serverleveldata.getWorldBorder()); // CraftBukkit - move up so that WorldBorder is set during WorldInitEvent
++        Bukkit.getPluginManager().callEvent(new WorldInitEvent(serverlevel.getWorld()));
 +
 +        if (!serverleveldata.isInitialized()) {
 +            try {
@@ -330,7 +332,7 @@
      protected void loadLevel() {
          if (!JvmProfiler.INSTANCE.isRunning()) {
          }
-@@ -370,8 +_,15 @@
+@@ -370,8 +_,16 @@
          this.levels.put(Level.OVERWORLD, serverlevel);
          DimensionDataStorage dimensiondatastorage = serverlevel.getDataStorage();
          this.readScoreboard(dimensiondatastorage);
@@ -342,6 +344,7 @@
 +        if (serverlevel.generator != null) {
 +            serverlevel.getWorld().getPopulators().addAll(serverlevel.generator.getDefaultPopulators(serverlevel.getWorld()));
 +        }
++        Bukkit.getPluginManager().callEvent(new WorldInitEvent(serverlevel.getWorld()));
 +
          if (!serverleveldata.isInitialized()) {
              try {
