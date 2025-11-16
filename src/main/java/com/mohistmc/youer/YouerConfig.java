@@ -3,6 +3,8 @@ package com.mohistmc.youer;
 import com.google.common.base.Throwables;
 import com.mohistmc.youer.commands.BackupWorldCommand;
 import com.mohistmc.youer.commands.DumpCommand;
+import com.mohistmc.youer.commands.HideAllCommand;
+import com.mohistmc.youer.commands.HideCommand;
 import com.mohistmc.youer.commands.InfoCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
 import com.mohistmc.youer.commands.PermissionCommand;
@@ -144,6 +146,8 @@ public class YouerConfig {
         commands.put("shows", new ShowsCommand("shows"));
         commands.put("infos", new InfoCommand("infos"));
         commands.put("menus", new MenuCommand("menus"));
+        commands.put("hideall", new HideAllCommand("hideall"));
+        commands.put("hide", new HideCommand("hide"));
 
         MohistPlugin.registerCommands(commands);
 
