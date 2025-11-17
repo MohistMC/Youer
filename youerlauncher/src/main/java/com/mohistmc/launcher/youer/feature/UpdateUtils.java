@@ -37,7 +37,7 @@ public class UpdateUtils {
 
         try {
             String api = YouerConfigUtil.isCN() ? API_CN : API;
-            Json json = Json.read(new URL(api + "/project/youer/1.21.1/builds/latest"));
+            Json json = Json.read(new URL(api + "/project/youer/1.21.10/builds/latest"));
             String localCommitHash = DataParser.versionMap.get("youer");
             String remoteCommitHash = json.at("commit").asString("hash");
             String remoteCommitHashShort = remoteCommitHash.substring(0, Math.min(8, remoteCommitHash.length()));
