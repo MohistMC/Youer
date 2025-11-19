@@ -85,37 +85,19 @@
      @Override
      public GameEventListenerRegistry getListenerRegistry(int p_251193_) {
          return this.level instanceof ServerLevel serverlevel
-@@ -215,22 +_,26 @@
+@@ -220,7 +_,7 @@
+             if (i >= 0 && i < this.sections.length) {
+                 LevelChunkSection levelchunksection = this.sections[i];
+                 if (!levelchunksection.hasOnlyAir()) {
+-                    return levelchunksection.getFluidState(p_62815_ & 15, p_62816_ & 15, p_62817_ & 15);
++                    return levelchunksection.states.get((p_62816_ & 15) << 8 | (p_62817_ & 15) << 4 | p_62815_ & 15).getFluidState();
+                 }
+             }
+ 
+@@ -233,6 +_,15 @@
+         }
      }
  
-     public FluidState getFluidState(int p_62815_, int p_62816_, int p_62817_) {
--        try {
--            int i = this.getSectionIndex(p_62816_);
--            if (i >= 0 && i < this.sections.length) {
--                LevelChunkSection levelchunksection = this.sections[i];
--                if (!levelchunksection.hasOnlyAir()) {
--                    return levelchunksection.getFluidState(p_62815_ & 15, p_62816_ & 15, p_62817_ & 15);
--                }
-+        int index = this.getSectionIndex(p_62816_);
-+        if (index >= 0 && index < this.sections.length) {
-+            LevelChunkSection chunksection = this.sections[index];
-+
-+            if (!chunksection.hasOnlyAir()) {
-+                return chunksection.states.get((p_62816_ & 15) << 8 | (p_62817_ & 15) << 4 | p_62815_ & 15).getFluidState();
-+                // Paper end - Perf: Optimise Chunk#getFluid
-             }
--
--            return Fluids.EMPTY.defaultFluidState();
--        } catch (Throwable throwable) {
--            CrashReport crashreport = CrashReport.forThrowable(throwable, "Getting fluid state");
--            CrashReportCategory crashreportcategory = crashreport.addCategory("Block being got");
--            crashreportcategory.setDetail("Location", () -> CrashReportCategory.formatLocation(this, p_62815_, p_62816_, p_62817_));
--            throw new ReportedException(crashreport);
-         }
-+
-+        return Fluids.EMPTY.defaultFluidState();
-+    }
-+
 +    public boolean setBlockState$doPlace = true;
 +
 +    // CraftBukkit start - ChunkMap#setBlockState() -> ChunkMap#setBlockState(BlockPos, IBlockData, boolean, boolean)
@@ -123,9 +105,11 @@
 +    public BlockState setBlockStateCB(BlockPos p_62865_, BlockState p_62866_, boolean p_62867_, boolean doPlace) {
 +        setBlockState$doPlace = doPlace;
 +        return setBlockState(p_62865_, p_62866_, p_62867_);
-     }
- 
++    }
++
      @Nullable
+     @Override
+     public BlockState setBlockState(BlockPos p_62865_, BlockState p_62866_, boolean p_62867_) {
 @@ -278,7 +_,8 @@
                  if (!levelchunksection.getBlockState(j, k, l).is(block)) {
                      return null;
