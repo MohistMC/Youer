@@ -94,6 +94,7 @@ public class ItemsCommand extends Command {
                     itemStack.getType().getMaxDurability() - itemStack.getDurability(),
                     itemStack.getType().getMaxDurability()));
         }
+        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY  + "Base64 - ", ItemAPI.getBase64byBukkit(itemStack));
     }
 
     @Override

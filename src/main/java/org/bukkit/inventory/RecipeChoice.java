@@ -88,8 +88,8 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
             Preconditions.checkArgument(!choices.isEmpty(), "Must have at least one choice");
 
             this.choices = new ArrayList<>(choices.size());
-
             for (Material choice : choices) {
+                if (choice == null) continue;
                 Preconditions.checkArgument(choice != null, "Cannot have null choice");
 
                 if (choice.isLegacy()) {

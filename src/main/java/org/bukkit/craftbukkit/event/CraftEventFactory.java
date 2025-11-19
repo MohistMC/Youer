@@ -1286,7 +1286,12 @@ public class CraftEventFactory {
 
     public static boolean handleBlockGrowEvent(Level world, BlockPos pos, net.minecraft.world.level.block.state.BlockState newData, int flag) {
         Block block = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
-        CraftBlockState state = (CraftBlockState) block.getState();
+        CraftBlockState  state;
+        try {
+            state = (CraftBlockState) block.getState();
+        } catch (IllegalStateException e) {
+            state = CraftBlockStates.getBlockState(world, pos);
+        }
         state.setData(newData);
 
         BlockGrowEvent event = new BlockGrowEvent(block, state);

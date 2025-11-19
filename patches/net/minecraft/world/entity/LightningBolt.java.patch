@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/LightningBolt.java
 +++ b/net/minecraft/world/entity/LightningBolt.java
+@@ -1,6 +_,7 @@
+ package net.minecraft.world.entity;
+ 
+ import com.google.common.collect.Sets;
++import com.mohistmc.youer.plugins.ban.bans.BanEvents;
+ import java.util.List;
+ import java.util.Optional;
+ import java.util.Set;
 @@ -25,6 +_,7 @@
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.phys.AABB;
@@ -64,7 +72,12 @@
                      entity.thunderHit((ServerLevel)this.level(), this);
                  }
  
-@@ -172,16 +_,24 @@
+@@ -168,20 +_,29 @@
+     }
+ 
+     private void spawnFire(int p_20871_) {
++        if (BanEvents.banFireTick()) return;
+         if (!this.visualOnly && !this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
              BlockPos blockpos = this.blockPosition();
              BlockState blockstate = BaseFireBlock.getState(this.level(), blockpos);
              if (this.level().getBlockState(blockpos).isAir() && blockstate.canSurvive(this.level(), blockpos)) {

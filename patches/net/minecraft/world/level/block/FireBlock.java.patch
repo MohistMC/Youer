@@ -1,6 +1,11 @@
 --- a/net/minecraft/world/level/block/FireBlock.java
 +++ b/net/minecraft/world/level/block/FireBlock.java
-@@ -5,7 +_,7 @@
+@@ -1,11 +_,12 @@
+ package net.minecraft.world.level.block;
+ 
+ import com.google.common.collect.ImmutableMap;
++import com.mohistmc.youer.plugins.ban.bans.BanEvents;
+ import com.mojang.serialization.MapCodec;
  import it.unimi.dsi.fastutil.objects.Object2IntMap;
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  import java.util.Map;
@@ -65,13 +70,14 @@
                  }
              }
  
-@@ -154,19 +_,20 @@
+@@ -154,19 +_,21 @@
          return p_53455_.getBlockState(blockpos).isFaceSturdy(p_53455_, blockpos, Direction.UP) || this.isValidFireLocation(p_53455_, p_53456_);
      }
  
 +    private AtomicReference<BlockPos> sourceposition = new AtomicReference(BlockPos.ZERO);
      @Override
      protected void tick(BlockState p_221160_, ServerLevel p_221161_, BlockPos p_221162_, RandomSource p_221163_) {
++        if (BanEvents.banFireTick()) return;
          p_221161_.scheduleTick(p_221162_, this, getFireTickDelay(p_221161_.random));
          if (p_221161_.getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
              if (!p_221160_.canSurvive(p_221161_, p_221162_)) {

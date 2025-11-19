@@ -332,19 +332,21 @@
      protected void loadLevel() {
          if (!JvmProfiler.INSTANCE.isRunning()) {
          }
-@@ -370,8 +_,16 @@
+@@ -368,10 +_,18 @@
+             this, this.executor, this.storageSource, serverleveldata, Level.OVERWORLD, levelstem, p_129816_, flag, j, list, true, null
+         );
          this.levels.put(Level.OVERWORLD, serverlevel);
++        // CraftBukkit start
++        if (serverlevel.generator != null) {
++            serverlevel.getWorld().getPopulators().addAll(serverlevel.generator.getDefaultPopulators(serverlevel.getWorld()));
++        }
++        Bukkit.getPluginManager().callEvent(new WorldInitEvent(serverlevel.getWorld()));
          DimensionDataStorage dimensiondatastorage = serverlevel.getDataStorage();
          this.readScoreboard(dimensiondatastorage);
 +        this.server.scoreboardManager = new CraftScoreboardManager(this, serverlevel.getScoreboard());
          this.commandStorage = new CommandStorage(dimensiondatastorage);
          WorldBorder worldborder = serverlevel.getWorldBorder();
 +        NeoForge.EVENT_BUS.post(new LevelEvent.Load(levels.get(Level.OVERWORLD)));
-+        // CraftBukkit start
-+        if (serverlevel.generator != null) {
-+            serverlevel.getWorld().getPopulators().addAll(serverlevel.generator.getDefaultPopulators(serverlevel.getWorld()));
-+        }
-+        Bukkit.getPluginManager().callEvent(new WorldInitEvent(serverlevel.getWorld()));
 +
          if (!serverleveldata.isInitialized()) {
              try {

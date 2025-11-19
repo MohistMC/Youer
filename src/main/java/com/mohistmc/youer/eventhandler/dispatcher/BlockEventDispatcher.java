@@ -83,7 +83,12 @@ public class BlockEventDispatcher {
     @SubscribeEvent(receiveCanceled = true)
     public void onBlockDrops(BlockDropsEvent event) {
         org.bukkit.block.Block block = CraftBlock.at(event.getLevel(), event.getPos());
-        org.bukkit.block.BlockState state = block.getState();
+        org.bukkit.block.BlockState state;
+        try {
+            state = block.getState();
+        } catch (IllegalStateException e) {
+            state = CraftBlockStates.getBlockState(event.getLevel(), event.getPos());
+        }
         Entity entity = event.getBreaker();
         if (entity != null) {
             org.bukkit.entity.Player player = entity instanceof ServerPlayer serverPlayer ? serverPlayer.getBukkitEntity() : null;

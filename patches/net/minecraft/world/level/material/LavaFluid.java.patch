@@ -1,9 +1,10 @@
 --- a/net/minecraft/world/level/material/LavaFluid.java
 +++ b/net/minecraft/world/level/material/LavaFluid.java
-@@ -1,5 +_,6 @@
+@@ -1,5 +_,7 @@
  package net.minecraft.world.level.material;
  
 +import com.mohistmc.youer.YouerConfig;
++import com.mohistmc.youer.plugins.ban.bans.BanEvents;
  import java.util.Optional;
  import javax.annotation.Nullable;
  import net.minecraft.core.BlockPos;
@@ -15,6 +16,14 @@
  
  public abstract class LavaFluid extends FlowingFluid {
      public static final float MIN_LEVEL_CUTOFF = 0.44444445F;
+@@ -73,6 +_,7 @@
+ 
+     @Override
+     public void randomTick(Level p_230572_, BlockPos p_230573_, FluidState p_230574_, RandomSource p_230575_) {
++        if (BanEvents.banFireTick()) return;
+         if (p_230572_.getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
+             int i = p_230575_.nextInt(3);
+             if (i > 0) {
 @@ -87,7 +_,14 @@
                      BlockState blockstate = p_230572_.getBlockState(blockpos);
                      if (blockstate.isAir()) {

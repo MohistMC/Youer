@@ -88,35 +88,54 @@ public class NeoForgeInjectBukkit {
         addModSound();
     }
 
+    private static String getMaterialName(ResourceLocation resourceLocation, boolean isMod) {
+        return isMod ?
+                MohistDynamEnum.normalizeName(resourceLocation.toString()) :
+                MohistDynamEnum.normalizeName(resourceLocation.getPath());
+    }
 
     public static void addEnumMaterialInItems() {
         var registry = BuiltInRegistries.ITEM;
         for (Item item : registry) {
             ResourceLocation resourceLocation = registry.getKey(item);
-            if (isMods(resourceLocation)) {
-                // inject item materials into Bukkit for FML
-                String materialName = MohistDynamEnum.normalizeName(resourceLocation.toString());
-                int id = Item.getId(item);
-                Material material = Material.addMaterial(materialName, id, item.getMaxStackSize(new ItemStack(item)), false, true, resourceLocation);
+            boolean isMod = isMods(resourceLocation);
+            String materialName = isMod ?
+                    MohistDynamEnum.normalizeName(resourceLocation.toString()) :
+                    MohistDynamEnum.normalizeName(resourceLocation.getPath());
 
-                CraftMagicNumbers.ITEM_MATERIAL.put(item, material);
-                CraftMagicNumbers.MATERIAL_ITEM.put(material, item);
-                Youer.LOGGER.debug("Save-ITEM: {} - {}", material.name(), material.key);
+            Material existingMat = Material.getMaterial(materialName);
+            if (isMod || existingMat == null || existingMat.isModBlock) {
+                int id = Item.getId(item);
+                int maxStackSize = item.getMaxStackSize(new ItemStack(item));
+
+                Material material = Material.addMaterial(materialName, id, maxStackSize, false, true, resourceLocation);
+
+                if (material != null) {
+                    CraftMagicNumbers.ITEM_MATERIAL.put(item, material);
+                    CraftMagicNumbers.MATERIAL_ITEM.put(material, item);
+                    Youer.LOGGER.debug("Save-ITEM: {} - {}", material.name(), material.key);
+                }
             }
         }
     }
-
 
     public static void addEnumMaterialsInBlocks() {
         var registry = BuiltInRegistries.BLOCK;
         for (Block block : registry) {
             ResourceLocation resourceLocation = registry.getKey(block);
-            if (isMods(resourceLocation)) {
-                // inject block materials into Bukkit for FML
-                String materialName = MohistDynamEnum.normalizeName(resourceLocation.toString());
+            boolean isMod = isMods(resourceLocation);
+            String materialName = isMod ?
+                    MohistDynamEnum.normalizeName(resourceLocation.toString()) :
+                    MohistDynamEnum.normalizeName(resourceLocation.getPath());
+
+            // 检查是否需要添加材料
+            Material existingMat = Material.getMaterial(materialName);
+            if (isMod || existingMat == null || existingMat.isModItem) {
                 int id = Item.getId(block.asItem());
                 Item item = Item.byId(id);
-                Material material = Material.addMaterial(materialName, id, item.getMaxStackSize(new ItemStack(item)), true, false, resourceLocation);
+                int maxStackSize = item.getMaxStackSize(new ItemStack(item));
+
+                Material material = Material.addMaterial(materialName, id, maxStackSize, true, false, resourceLocation);
                 if (material != null) {
                     CraftMagicNumbers.BLOCK_MATERIAL.put(block, material);
                     CraftMagicNumbers.MATERIAL_BLOCK.put(material, block);
@@ -211,17 +230,20 @@ public class NeoForgeInjectBukkit {
         var registry = BuiltInRegistries.ENTITY_TYPE;
         for (net.minecraft.world.entity.EntityType<?> entity : registry) {
             ResourceLocation resourceLocation = registry.getKey(entity);
-            if (resourceLocation != null) {
-                String entityType = MohistDynamEnum.normalizeName(resourceLocation.toString());
-                if (isMods(resourceLocation)) {
-                    int typeId = entityType.hashCode();
-                    EntityType bukkitType = MohistDynamEnum.addEnum(EntityType.class, entityType, List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE), List.of(entityType.toLowerCase(), Entity.class, typeId, false));
-                    if (bukkitType != null) {
-                        bukkitType.hookForgeEntity(resourceLocation, entity);
-                    }
-                } else {
-                    ServerAPI.entityTypeMap.put(entity, MohistDynamEnum.normalizeName(resourceLocation.getPath()));
+            if (resourceLocation == null) continue;
+
+            String entityType = MohistDynamEnum.normalizeName(resourceLocation.toString());
+            if (isMods(resourceLocation)) {
+                int typeId = entityType.hashCode();
+                EntityType bukkitType = MohistDynamEnum.addEnum(EntityType.class, entityType,
+                        List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
+                        List.of(entityType.toLowerCase(), Entity.class, typeId, false));
+
+                if (bukkitType != null) {
+                    bukkitType.hookForgeEntity(resourceLocation, entity);
                 }
+            } else {
+                ServerAPI.entityTypeMap.put(entity, MohistDynamEnum.normalizeName(resourceLocation.getPath()));
             }
         }
         EntityClassLookup.init();

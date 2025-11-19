@@ -1,12 +1,15 @@
 --- a/net/minecraft/world/level/Explosion.java
 +++ b/net/minecraft/world/level/Explosion.java
-@@ -1,5 +_,6 @@
+@@ -1,7 +_,9 @@
  package net.minecraft.world.level;
  
 +import com.mohistmc.youer.YouerConfig;
  import com.google.common.collect.Maps;
  import com.google.common.collect.Sets;
++import com.mohistmc.youer.plugins.ban.bans.BanEvents;
  import com.mojang.datafixers.util.Pair;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import java.util.ArrayList;
 @@ -38,6 +_,9 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.HitResult;
@@ -22,7 +25,7 @@
      private final ObjectArrayList<BlockPos> toBlow = new ObjectArrayList<>();
      private final Map<Player, Vec3> hitPlayers = Maps.newHashMap();
 +    // CraftBukkit - add field
-+    public boolean wasCanceled = YouerConfig.explosion; // CraftBukkit - add field
++    public boolean wasCanceled = BanEvents.banExplosion(); // CraftBukkit - add field
 +    public float yield;
 +    // CraftBukkit end
  
@@ -133,7 +136,7 @@
                                  this.hitPlayers.put(player, vec31);
                              }
                          }
-@@ -314,6 +_,12 @@
+@@ -314,7 +_,14 @@
          }
      }
  
@@ -144,8 +147,10 @@
 +    List<org.bukkit.block.Block> bukkitBlocks;
 +
      public void finalizeExplosion(boolean p_46076_) {
++        if (BanEvents.banExplosion()) return;
          if (this.level.isClientSide) {
              this.level
+                 .playLocalSound(
 @@ -344,9 +_,61 @@
          if (flag) {
              this.level.getProfiler().push("explosion_blocks");

@@ -1,6 +1,12 @@
 --- a/net/minecraft/world/level/block/FarmBlock.java
 +++ b/net/minecraft/world/level/block/FarmBlock.java
-@@ -6,14 +_,11 @@
+@@ -1,19 +_,17 @@
+ package net.minecraft.world.level.block;
+ 
++import com.mohistmc.youer.plugins.ban.bans.BanEvents;
+ import com.mojang.serialization.MapCodec;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.tags.BlockTags;
@@ -23,7 +29,7 @@
  
  public class FarmBlock extends Block {
      public static final MapCodec<FarmBlock> CODEC = simpleCodec(FarmBlock::new);
-@@ -86,31 +_,61 @@
+@@ -86,31 +_,62 @@
      @Override
      protected void randomTick(BlockState p_221139_, ServerLevel p_221140_, BlockPos p_221141_, RandomSource p_221142_) {
          int i = p_221139_.getValue(MOISTURE);
@@ -49,6 +55,7 @@
  
      @Override
      public void fallOn(Level p_153227_, BlockState p_153228_, BlockPos p_153229_, Entity p_153230_, float p_153231_) {
++        if (BanEvents.banFarmlandTrample()) return;
 +        // CraftBukkit start - moved here as game rules / events shouldn't affect fall damage
 +        super.fallOn(p_153227_, p_153228_, p_153229_, p_153230_, p_153231_);
 +
