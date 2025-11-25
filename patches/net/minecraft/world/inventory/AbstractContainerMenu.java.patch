@@ -355,15 +355,18 @@
              }
          }
      }
-@@ -592,6 +_,14 @@
+@@ -591,7 +_,17 @@
+ 
      public abstract boolean stillValid(Player p_38874_);
  
-     protected boolean moveItemStackTo(ItemStack p_38904_, int p_38905_, int p_38906_, boolean p_38907_) {
-+        // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
-+        return this.moveItemStackTo(p_38904_, p_38905_, p_38906_, p_38907_, false);
-+    }
++    boolean moveItemStackTo$isCheck = false;
++
 +    protected boolean moveItemStackTo(ItemStack p_38904_, int p_38905_, int p_38906_, boolean p_38907_, boolean isCheck) {
-+        if (isCheck) {
++        moveItemStackTo$isCheck = isCheck;
++        return moveItemStackTo(p_38904_, p_38905_, p_38906_, p_38907_);
++    }
+     protected boolean moveItemStackTo(ItemStack p_38904_, int p_38905_, int p_38906_, boolean p_38907_) {
++        if (moveItemStackTo$isCheck) {
 +            p_38904_ = p_38904_.copy();
 +        }
 +        // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
@@ -375,7 +378,7 @@
                  Slot slot = this.slots.get(i);
                  ItemStack itemstack = slot.getItem();
 +                // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent; clone if only a check
-+                if (isCheck) {
++                if (moveItemStackTo$isCheck) {
 +                    itemstack = itemstack.copy();
 +                }
 +                // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
@@ -386,7 +389,7 @@
                          p_38904_.setCount(0);
                          itemstack.setCount(j);
 -                        slot.setChanged();
-+                        if (!isCheck) { // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
++                        if (!moveItemStackTo$isCheck) { // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
 +                            slot.setChanged();
 +                        } // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
                          flag = true;
@@ -394,7 +397,7 @@
                          p_38904_.shrink(k - itemstack.getCount());
                          itemstack.setCount(k);
 -                        slot.setChanged();
-+                        if (!isCheck) { // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
++                        if (!moveItemStackTo$isCheck) { // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
 +                            slot.setChanged();
 +                        } // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
                          flag = true;
@@ -405,7 +408,7 @@
                  Slot slot1 = this.slots.get(i);
                  ItemStack itemstack1 = slot1.getItem();
 +                // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
-+                if (isCheck) {
++                if (moveItemStackTo$isCheck) {
 +                    itemstack1 = itemstack1.copy();
 +                }
 +                // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
@@ -414,7 +417,7 @@
 -                    slot1.setByPlayer(p_38904_.split(Math.min(p_38904_.getCount(), l)));
 -                    slot1.setChanged();
 +                    // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
-+                    if (isCheck) {
++                    if (moveItemStackTo$isCheck) {
 +                        p_38904_.shrink(Math.min(p_38904_.getCount(), l));
 +                    } else {
 +                        // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
@@ -424,6 +427,15 @@
                      flag = true;
                      break;
                  }
+@@ -651,7 +_,7 @@
+                 }
+             }
+         }
+-
++        moveItemStackTo$isCheck = false;
+         return flag;
+     }
+ 
 @@ -675,7 +_,7 @@
          }
      }
