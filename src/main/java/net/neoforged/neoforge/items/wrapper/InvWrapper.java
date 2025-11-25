@@ -11,7 +11,6 @@ import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.inventory.CraftItemStack;
 
 public class InvWrapper implements IItemHandlerModifiable {
     private final Container inv;

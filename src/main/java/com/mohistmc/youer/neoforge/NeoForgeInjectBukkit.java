@@ -7,11 +7,13 @@ import com.mohistmc.dynamicenum.MohistDynamEnum;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.ServerAPI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -228,22 +230,40 @@ public class NeoForgeInjectBukkit {
 
     public static void addEnumEntity() {
         var registry = BuiltInRegistries.ENTITY_TYPE;
+        List<String> entityTypeNames = Arrays.stream(EntityType.values())
+                .map(Enum::name)
+                .toList();
         for (net.minecraft.world.entity.EntityType<?> entity : registry) {
             ResourceLocation resourceLocation = registry.getKey(entity);
             if (resourceLocation == null) continue;
-
-            String entityType = MohistDynamEnum.normalizeName(resourceLocation.toString());
-            if (isMods(resourceLocation)) {
-                int typeId = entityType.hashCode();
-                EntityType bukkitType = MohistDynamEnum.addEnum(EntityType.class, entityType,
+            boolean isMod = isMods(resourceLocation);
+            String entityName = isMod ?
+                    MohistDynamEnum.normalizeName(resourceLocation.toString()) :
+                    MohistDynamEnum.normalizeName(resourceLocation.getPath());
+            if (isMod) {
+                int typeId = entityName.hashCode();
+                EntityType bukkitType = MohistDynamEnum.addEnum(EntityType.class, entityName,
                         List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
-                        List.of(entityType.toLowerCase(), Entity.class, typeId, false));
+                        List.of(entityName.toLowerCase(), Entity.class, typeId, false));
 
                 if (bukkitType != null) {
                     bukkitType.hookForgeEntity(resourceLocation, entity);
                 }
+                Youer.LOGGER.debug("Registered forge EntityType as {}", bukkitType);
             } else {
-                ServerAPI.entityTypeMap.put(entity, MohistDynamEnum.normalizeName(resourceLocation.getPath()));
+                if (!entityTypeNames.contains(entityName)) {
+                    int typeId = entityName.hashCode();
+                    EntityType bukkitType = MohistDynamEnum.addEnum(EntityType.class, entityName,
+                            List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
+                            List.of(entityName.toLowerCase(), Entity.class, typeId, false));
+
+                    if (bukkitType != null) {
+                        bukkitType.hookForgeEntity(resourceLocation, entity);
+                    }
+                    Youer.LOGGER.debug("Registered mods minecraft key EntityType as {}", bukkitType);
+                } else {
+                    ServerAPI.entityTypeMap.put(entity, MohistDynamEnum.normalizeName(resourceLocation.getPath()));
+                }
             }
         }
         EntityClassLookup.init();

@@ -48,12 +48,11 @@ import org.jetbrains.annotations.NotNull;
 
 public class DumpCommand extends Command {
     private final List<String> tab_cmd = Arrays.asList("potions", "effect", "particle", "enchants", "cbcmds", "modscmds", "entitytypes", "biomes", "pattern", "worldgen", "worldtype", "material", "channels", "advancements");
-    private final List<String> tab_mode = Arrays.asList("file", "web");
 
     public DumpCommand(String name) {
         super(name);
         this.description = I18n.as("dumpcmd.description");
-        this.usageMessage = "/dump <file|web> [potions|enchants|cbcmds|modscmds|entitytypes|biomes|pattern|worldgen|worldtype|material|channels|advancements]";
+        this.usageMessage = "/dump [potions|enchants|cbcmds|modscmds|entitytypes|biomes|pattern|worldgen|worldtype|material|channels|advancements]";
         this.setPermission("youer.command.dump");
     }
 
@@ -61,19 +60,10 @@ public class DumpCommand extends Command {
     public @NotNull List<String> tabComplete(CommandSender sender, @NotNull String alias, String[] args) {
         List<String> list = new ArrayList<>();
         if ((sender.isOp() || testPermission(sender))) {
-            switch (args.length) {
-                case 2 -> {
-                    for (String param : tab_cmd) {
-                        if (param.toLowerCase().startsWith(args[1].toLowerCase())) {
-                            list.add(param);
-                        }
-                    }
-                }
-                case 1 -> {
-                    for (String param : tab_mode) {
-                        if (param.toLowerCase().startsWith(args[0].toLowerCase())) {
-                            list.add(param);
-                        }
+            if (args.length == 1) {
+                for (String param : tab_cmd) {
+                    if (param.toLowerCase().startsWith(args[0].toLowerCase())) {
+                        list.add(param);
                     }
                 }
             }
