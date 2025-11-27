@@ -58,11 +58,15 @@ public class CraftBlockType<B extends BlockData> implements BlockType.Typed<B>, 
 
     private static boolean hasMethod(Class<?> clazz, Class<?>... params) {
         boolean hasMethod = false;
-        for (Method method : clazz.getDeclaredMethods()) {
-            if (Arrays.equals(method.getParameterTypes(), params)) {
-                // Preconditions.checkArgument(!hasMethod, "More than one matching method for %s, args %s", clazz, Arrays.toString(params));
-               return true;
+        try {
+            for (Method method : clazz.getDeclaredMethods()) {
+                if (Arrays.equals(method.getParameterTypes(), params)) {
+                    // Preconditions.checkArgument(!hasMethod, "More than one matching method for %s, args %s", clazz, Arrays.toString(params));
+                    return true;
+                }
             }
+        } catch (NoClassDefFoundError | Exception ignored) {
+            return true;
         }
 
         return hasMethod;
