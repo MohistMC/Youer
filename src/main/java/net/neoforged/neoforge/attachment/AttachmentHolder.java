@@ -148,7 +148,7 @@ public abstract class AttachmentHolder implements IAttachmentHolder {
      *
      * <p>This does not trigger {@link IAttachmentHolder#syncData syncing} of the deserialized attachments.
      */
-    protected final void deserializeAttachments(HolderLookup.Provider provider, CompoundTag tag) {
+    public final void deserializeAttachments(HolderLookup.Provider provider, CompoundTag tag) {
         for (var key : tag.getAllKeys()) {
             // Use tryParse to not discard valid attachment type keys, even if there is a malformed key.
             ResourceLocation keyLocation = ResourceLocation.tryParse(key);
