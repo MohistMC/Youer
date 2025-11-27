@@ -26,9 +26,9 @@ public final class ColorAPI {
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
 
     /**
-     * Main color processing method
+     * Main color processing method - returns net.kyori.adventure.text.Component
      */
-    public static Component colorize(String text) {
+    public static Component adventure(String text) {
         if (text == null || text.isEmpty()) {
             return Component.empty();
         }
@@ -45,9 +45,16 @@ public final class ColorAPI {
     /**
      * Main color processing method - returns string
      */
-    public static String colorizeString(String text) {
-        Component component = colorize(text);
+    public static String string(String text) {
+        Component component = adventure(text);
         return LEGACY_SERIALIZER.serialize(component);
+    }
+
+    /**
+     * Main color processing method - returns net.minecraft.network.chat.Component
+     */
+    public static net.minecraft.network.chat.Component vanilla(String text) {
+        return net.minecraft.network.chat.Component.literal(string(text));
     }
 
     /**

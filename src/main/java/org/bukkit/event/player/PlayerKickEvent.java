@@ -19,8 +19,8 @@ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
     @Deprecated // Paper
     public PlayerKickEvent(@NotNull final Player playerKicked, @NotNull final String kickReason, @NotNull final String leaveMessage) {
         super(playerKicked);
-        this.kickReason = ColorAPI.colorize(kickReason); // Paper
-        this.leaveMessage = ColorAPI.colorize(leaveMessage); // Paper
+        this.kickReason = ColorAPI.adventure(kickReason); // Paper
+        this.leaveMessage = ColorAPI.adventure(leaveMessage); // Paper
         this.cause  = Cause.UNKNOWN; // Paper
         this.cancel = false;
     }
@@ -122,7 +122,7 @@ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
      */
     @Deprecated // Paper
     public void setReason(@NotNull String kickReason) {
-        this.kickReason = ColorAPI.colorize(kickReason); // Paper
+        this.kickReason = ColorAPI.adventure(kickReason); // Paper
     }
 
     /**
@@ -133,7 +133,7 @@ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
      */
     @Deprecated // Paper
     public void setLeaveMessage(@NotNull String leaveMessage) {
-        this.leaveMessage = ColorAPI.colorize(leaveMessage); // Paper
+        this.leaveMessage = ColorAPI.adventure(leaveMessage); // Paper
     }
 
     @NotNull

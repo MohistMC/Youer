@@ -1848,7 +1848,7 @@ public final class CraftServer implements Server {
     @Override
     public net.kyori.adventure.text.Component shutdownMessage() {
         String msg = getShutdownMessage();
-        return msg != null ? ColorAPI.colorize(msg) : null;
+        return msg != null ? ColorAPI.adventure(msg) : null;
     }
     // Paper end
     @Override
@@ -2059,7 +2059,7 @@ public final class CraftServer implements Server {
     @Deprecated // Paper
     public int broadcast(String message, String permission) {
         // Paper start - Adventure
-        return this.broadcast(ColorAPI.colorize(message), permission);
+        return this.broadcast(ColorAPI.adventure(message), permission);
     }
 
     @Override

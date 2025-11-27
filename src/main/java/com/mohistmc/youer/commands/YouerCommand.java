@@ -2,6 +2,7 @@ package com.mohistmc.youer.commands;
 
 import com.mohistmc.tools.NumberUtil;
 import com.mohistmc.tools.OSUtil;
+import com.mohistmc.tools.StatsUtils;
 import com.mohistmc.tools.StringUtil;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
@@ -13,6 +14,7 @@ import com.mohistmc.youer.util.MemoryUtils;
 import com.mohistmc.youer.util.TimeUtils;
 import com.mohistmc.youer.util.YouerThreadCost;
 import java.io.File;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -25,6 +27,8 @@ import net.minecraft.server.level.ServerLevel;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.CraftServer;
@@ -36,12 +40,18 @@ import org.spigotmc.SpigotConfig;
 
 public class YouerCommand extends Command {
 
-    private final List<String> params = Arrays.asList("mods", "playermods", "reload", "version", "channels_incom", "channels_outgo", "speed", "printthreadcost", "packetstats", "heal", "help", "cleardropitem", "memoryfix");
+    private static final String[] COMMAND_LIST = {
+            "windows", "mods", "playermods", "reload", "version",
+            "channels_incom", "channels_outgo", "speed", "printthreadcost",
+            "packetstats", "heal", "help", "cleardropitem", "memoryfix", "showp"
+    };
+
+    private final List<String> params = Arrays.asList(COMMAND_LIST);
 
     public YouerCommand(String name) {
         super(name);
         this.description = "Youer related commands";
-        this.usageMessage = "/youer [mods|playermods|reload|version|channels_incom|channels_outgo|speed|debug|packetstats|heal|help|cleardropitem|memoryfix]";
+        this.usageMessage = "/youer [" + String.join("|", COMMAND_LIST) + "]";
         this.setPermission("youer.command.youer");
     }
 
@@ -61,7 +71,7 @@ public class YouerCommand extends Command {
                 return Stream.of("start", "stop", "status")
                         .filter(param -> param.toLowerCase().startsWith(args[1].toLowerCase()))
                         .toList();
-            } else if (args.length == 2 && args[0].equalsIgnoreCase("heal")) {
+            } else if (args.length == 2 && (args[0].equalsIgnoreCase("heal") || args[0].equalsIgnoreCase("showp"))) {
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
             } else if (args.length == 2 && args[0].equalsIgnoreCase("cleardropitem")) {
                 return Bukkit.getWorldsByName().stream().toList();
@@ -123,34 +133,6 @@ public class YouerCommand extends Command {
                 sender.sendMessage("Bukkit: " + Youer.versionInfo.bukkit());
                 sender.sendMessage("CraftBukkit: " + Youer.versionInfo.craftbukkit());
                 sender.sendMessage("Spigot: " + Youer.versionInfo.spigot());
-                return true;
-            }
-            case "debug" -> {
-                Player player = Bukkit.getPlayer(args[1]);
-                // 1. 渐变格式（支持带#和不带#）
-                sender.sendMessage("<gradient:#FF0000:#0000FF>渐变文本</gradient>");
-                sender.sendMessage("<gradient:FF0000:0000FF>渐变文本</gradient>");
-                Bukkit.broadcastMessage("<gradient:#00FF00:#0000FF>这是一条绿到蓝渐变的公告</gradient>");
-                player.setDisplayName("<#FF0000>玩家名称</#FF0000>");
-                // 2. 固定颜色格式
-                sender.sendMessage("<#FF0000>红色文本</#FF0000>");
-                sender.sendMessage("<FF0000>红色文本</FF0000>");
-                sender.sendMessage("<red>红色文本</red>");
-                sender.sendMessage("<bold>粗体文本</bold>");
-
-                // 3. 十六进制格式
-                sender.sendMessage("&#FF0000红色文本\n<gradient:#00FF00:#0000FF>绿到蓝渐变</gradient>");
-
-                // 4. 传统格式
-                sender.sendMessage("&a绿色 &c红色 &l粗体");
-
-                // 5. 混合格式
-                sender.sendMessage(
-                        "<gradient:#FF0000:#00FF00>渐变文本</gradient> " +
-                                "<#0000FF>蓝色文本</#0000FF> " +
-                                "&#FF0000红色文本 " +
-                                "&a绿色文本"
-                );
                 return true;
             }
             case "packetstats" -> {
@@ -355,13 +337,128 @@ public class YouerCommand extends Command {
                 sender.sendMessage(ChatColor.GREEN + result);
                 return true;
             }
+            case "windows" -> {
+                int playerAmount = Bukkit.getOnlinePlayers().size();
+                int maxplayerAmount = Bukkit.getOfflinePlayers().length;
+                boolean onlineMode = Bukkit.getOnlineMode();
+                String bukkitVersion = Bukkit.getVersion();
+                bukkitVersion = bukkitVersion.substring(bukkitVersion.indexOf("MC: ") + 4, bukkitVersion.length() - 1);
+                String javaVersion = System.getProperty("java.version");
+                String osName = System.getProperty("os.name");
+                String osArch = System.getProperty("os.arch");
+                String osVersion = System.getProperty("os.version");
+
+                sender.sendMessage(ChatColor.GOLD + I18n.as("youercmd.windows.title"));
+
+                sender.sendMessage(I18n.as("youercmd.windows.version") + bukkitVersion);
+                sender.sendMessage(I18n.as("youercmd.windows.players") + playerAmount + "/" + maxplayerAmount);
+                sender.sendMessage(I18n.as("youercmd.windows.onlineMode") + (onlineMode ? I18n.as("youercmd.windows.enabled") : I18n.as("youercmd.windows.disabled")));
+                sender.sendMessage(I18n.as("youercmd.windows.javaVersion") + javaVersion);
+                sender.sendMessage(I18n.as("youercmd.windows.jvmUptime") + getJVMUpTime());
+
+                sender.sendMessage(I18n.as("youercmd.windows.memory") +
+                        StatsUtils.BytesToMegaBytes(StatsUtils.freeMemory()) + "/" +
+                        StatsUtils.BytesToMegaBytes(StatsUtils.totalMemory()) + "/" +
+                        StatsUtils.BytesToMegaBytes(StatsUtils.maxMemory()) + " MB (" +
+                        I18n.as("youercmd.windows.disk.free") + "/" +
+                        I18n.as("youercmd.windows.disk.usable") + "/" +
+                        I18n.as("youercmd.windows.disk.total") + ")");
+
+                try {
+                    sender.sendMessage(I18n.as("youercmd.windows.cpu") +
+                            StatsUtils.LoadAverange() + "% " + I18n.as("youercmd.windows.cpu.loadavg") + ", " +
+                            StatsUtils.getProcessCpuLoad() + "% " + I18n.as("youercmd.windows.cpu.process"));
+                } catch (final Exception ignored) {
+                    sender.sendMessage(I18n.as("youercmd.windows.cpu") + I18n.as("youercmd.windows.cpu.unavailable"));
+                }
+
+                sender.sendMessage(I18n.as("youercmd.windows.disk") +
+                        StatsUtils.BytesToGigaBytes(StatsUtils.freeDisk()) + "/" +
+                        StatsUtils.BytesToGigaBytes(StatsUtils.usableDisk()) + "/" +
+                        StatsUtils.BytesToGigaBytes(StatsUtils.totalDisk()) + " GB (" +
+                        I18n.as("youercmd.windows.disk.free") + "/" +
+                        I18n.as("youercmd.windows.disk.usable") + "/" +
+                        I18n.as("youercmd.windows.disk.total") + ")");
+
+                sender.sendMessage(I18n.as("youercmd.windows.system") + osName + " " + osVersion + " (" + osArch + ")");
+
+                sender.sendMessage(ChatColor.GOLD + I18n.as("youercmd.windows.separator"));
+            }
+
+            case "showp" -> {
+                if (args.length == 2) {
+                    if (Bukkit.getPlayer(args[1]) != null) {
+                        Player p2 = Bukkit.getPlayer(args[1]);
+                        AttributeInstance MaxHealth = p2.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+                        double getMaxHealth = MaxHealth.getBaseValue();
+
+                        sender.sendMessage(ChatColor.GOLD + I18n.as("youercmd.showp.title", p2.getName()));
+
+                        sender.sendMessage(I18n.as("youercmd.showp.displayName") + p2.getDisplayName());
+                        if (sender instanceof Player p1) {
+                            PlayerAPI.sendMessageByCopy(p1, I18n.as("youercmd.showp.uuid"), String.valueOf(p2.getUniqueId()));
+                            PlayerAPI.sendMessageByCopy(p1, I18n.as("youercmd.showp.ip"), p2.getAddress().getAddress().getHostAddress());
+                        } else {
+                            sender.sendMessage(I18n.as("youercmd.showp.uuid") + p2.getUniqueId());
+                            sender.sendMessage(I18n.as("youercmd.showp.ip") + p2.getAddress().getAddress().getHostAddress());
+                        }
+
+                        sender.sendMessage(I18n.as("youercmd.showp.health") + p2.getHealth() + "/" + getMaxHealth);
+                        sender.sendMessage(I18n.as("youercmd.showp.food") + p2.getFoodLevel());
+                        sender.sendMessage(I18n.as("youercmd.showp.exp") + p2.getLevel());
+
+                        org.bukkit.Location loc = p2.getLocation();
+                        sender.sendMessage(I18n.as("youercmd.showp.location",
+                                p2.getWorld().getName(),
+                                String.valueOf(loc.getBlockX()),
+                                String.valueOf(loc.getBlockY()),
+                                String.valueOf(loc.getBlockZ())));
+
+                        org.bukkit.OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(p2.getUniqueId());
+                        if (offlinePlayer.getLastPlayed() > 0 && offlinePlayer.hasPlayedBefore()) {
+                            org.bukkit.Location lastPlayedLocation = offlinePlayer.getLocation();
+                            if (lastPlayedLocation != null) {
+                                sender.sendMessage(I18n.as("youercmd.showp.lastLocation",
+                                        lastPlayedLocation.getWorld().getName(),
+                                        String.valueOf(lastPlayedLocation.getBlockX()),
+                                        String.valueOf(lastPlayedLocation.getBlockY()),
+                                        String.valueOf(lastPlayedLocation.getBlockZ())));
+                            }
+                        }
+
+                        sender.sendMessage(I18n.as("youercmd.showp.gamemode") + p2.getGameMode());
+                        sender.sendMessage(I18n.as("youercmd.showp.flySpeed") + p2.getFlySpeed());
+                        sender.sendMessage(I18n.as("youercmd.showp.walkSpeed") + p2.getWalkSpeed());
+                        sender.sendMessage(I18n.as("youercmd.showp.allowFlight") + p2.getAllowFlight());
+                        sender.sendMessage(I18n.as("youercmd.showp.isFlying") + p2.isFlying());
+                        sender.sendMessage(I18n.as("youercmd.showp.op") + p2.isOp());
+                    } else {
+                        sender.sendMessage(ChatColor.RED + I18n.as("youercmd.showp.offline"));
+                    }
+                }
+            }
+
             default -> {
-                sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
-                return false;
+                showHelp(sender);
+                return true;
             }
         }
 
         return true;
+    }
+
+    public static String getJVMUpTime() {
+        long uptime = ManagementFactory.getRuntimeMXBean().getUptime();
+        long seconds = uptime / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+        long days = hours / 24;
+
+        return String.format("%d %s %d %s %d %s %d %s",
+                days, I18n.as("youercmd.time.days"),
+                hours % 24, I18n.as("youercmd.time.hours"),
+                minutes % 60, I18n.as("youercmd.time.minutes"),
+                seconds % 60, I18n.as("youercmd.time.seconds"));
     }
 
     private void showHelp(CommandSender sender) {

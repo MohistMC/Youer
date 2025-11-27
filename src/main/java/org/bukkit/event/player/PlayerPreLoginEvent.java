@@ -117,7 +117,7 @@ public class PlayerPreLoginEvent extends Event {
      */
     @Deprecated // Paper
     public void setKickMessage(@NotNull final String message) {
-        this.message = ColorAPI.colorize(message); // Paper
+        this.message = ColorAPI.adventure(message); // Paper
     }
 
     /**
@@ -138,7 +138,7 @@ public class PlayerPreLoginEvent extends Event {
     @Deprecated // Paper
     public void disallow(@NotNull final Result result, @NotNull final String message) {
         this.result = result;
-        this.message = ColorAPI.colorize(message); // Paper
+        this.message = ColorAPI.adventure(message); // Paper
     }
 
     /**

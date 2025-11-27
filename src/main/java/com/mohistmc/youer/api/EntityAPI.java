@@ -1,6 +1,6 @@
 package com.mohistmc.youer.api;
 
-import com.mohistmc.youer.plugins.ban.BanConfig;
+import com.mohistmc.youer.feature.ban.BanConfig;
 import java.util.Objects;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;

@@ -484,7 +484,7 @@ public final class Bukkit {
      */
     @Deprecated // Paper
     public static int broadcastMessage(@NotNull String message) {
-        return server.broadcast(ColorAPI.colorize(message));
+        return server.broadcast(ColorAPI.adventure(message));
     }
 
     // Paper start

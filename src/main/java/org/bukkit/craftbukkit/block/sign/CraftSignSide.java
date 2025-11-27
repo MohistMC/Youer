@@ -72,7 +72,7 @@ public class CraftSignSide implements SignSide {
     public void setLine(int index, @NotNull String line) throws IndexOutOfBoundsException {
         // Paper start
         this.loadLines();
-        this.lines.set(index, line != null ? ColorAPI.colorize(line) : net.kyori.adventure.text.Component.empty());
+        this.lines.set(index, line != null ? ColorAPI.adventure(line) : net.kyori.adventure.text.Component.empty());
         // Paper end
     }
 

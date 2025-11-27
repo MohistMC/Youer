@@ -81,7 +81,7 @@ public final class CraftScoreboard implements org.bukkit.scoreboard.Scoreboard {
 
     @Override
     public CraftObjective registerNewObjective(String name, Criteria criteria, String displayName, RenderType renderType) {
-        return this.registerNewObjective(name, criteria, ColorAPI.colorize(displayName), renderType); // Paper - Adventure
+        return this.registerNewObjective(name, criteria, ColorAPI.adventure(displayName), renderType); // Paper - Adventure
     }
 
     @Override

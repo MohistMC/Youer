@@ -3,6 +3,7 @@ package com.mohistmc.youer.api;
 import com.mohistmc.youer.util.I18n;
 import java.net.SocketAddress;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,8 +19,7 @@ import org.bukkit.entity.Player;
 
 public class PlayerAPI {
 
-    public static Map<SocketAddress, Integer> mods = new ConcurrentHashMap<>();
-    public static Map<SocketAddress, List<String>> modlist = new ConcurrentHashMap<>();
+    public static Map<SocketAddress, LinkedHashSet<String>> modlist = new ConcurrentHashMap<>();
 
     /**
      * Get Player ping
@@ -41,12 +41,22 @@ public class PlayerAPI {
     // Don't count the default number of mods
     public static int getModSize(Player player) {
         SocketAddress socketAddress = getRemoteAddress(player);
-        return mods.get(socketAddress) == null ? 0 : mods.get(socketAddress) - 2;
+        return !modlist.containsKey(socketAddress) ? 0 : modlist.get(socketAddress).size() - 1;
     }
 
-    public static List<String> getModlist(Player player) {
+    public static LinkedHashSet<String> getModlist(Player player) {
         SocketAddress socketAddress = getRemoteAddress(player);
-        return modlist.get(socketAddress) == null ? Collections.emptyList() : modlist.get(socketAddress);
+        return modlist.getOrDefault(socketAddress, new LinkedHashSet<>());
+    }
+
+    /**
+     * Add mod IDs to the player's mod list
+     *
+     * @param player object
+     * @param modId The mod ID to be added
+     */
+    public static void addMod(SocketAddress player, String modId) {
+        modlist.computeIfAbsent(player, k -> new LinkedHashSet<>()).add(modId);
     }
 
     public static boolean hasMod(Player player, String modid) {

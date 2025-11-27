@@ -192,7 +192,7 @@ public class CraftMetaBook extends CraftMetaItem implements BookMeta, WritableBo
     @Override
     public net.kyori.adventure.text.Component page(final int page) {
         Preconditions.checkArgument(this.isValidPage(page), "Invalid page number (%s/%s)", page, this.getPageCount());
-        return ColorAPI.colorize(this.pages.get(page - 1));
+        return ColorAPI.adventure(this.pages.get(page - 1));
     }
 
     @Override

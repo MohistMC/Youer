@@ -31,7 +31,7 @@ public final class FeedbackForwardingSender extends ServerCommandSender {
 
     @Override
     public void sendMessage(final String message) {
-        this.sendMessage(ColorAPI.colorize(message));
+        this.sendMessage(ColorAPI.adventure(message));
     }
 
     @Override

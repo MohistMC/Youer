@@ -442,7 +442,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
 
         //String title = container.getBukkitView().getTitle(); // Paper - comment
         net.kyori.adventure.text.Component adventure$title = container.getBukkitView().title(); // Paper
-        if (adventure$title == null) adventure$title = ColorAPI.colorize(container.getBukkitView().getTitle()); // Paper
+        if (adventure$title == null) adventure$title = ColorAPI.adventure(container.getBukkitView().getTitle()); // Paper
         if (result.getFirst() != null) adventure$title = result.getFirst(); // Paper - Add titleOverride to InventoryOpenEvent
 
         if (!player.isImmobile()) player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, io.papermc.paper.adventure.PaperAdventure.asVanilla(adventure$title))); // Paper
@@ -531,7 +531,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
         MenuType<?> windowType = CraftContainer.getNotchInventoryType(inventory.getTopInventory());
         //String title = inventory.getTitle(); // Paper - comment
         net.kyori.adventure.text.Component adventure$title = inventory.title(); // Paper
-        if (adventure$title == null) adventure$title = ColorAPI.colorize(inventory.getTitle()); // Paper
+        if (adventure$title == null) adventure$title = ColorAPI.adventure(inventory.getTitle()); // Paper
         if (result.getFirst() != null) adventure$title = result.getFirst(); // Paper - Add titleOverride to InventoryOpenEvent
         //player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, CraftChatMessage.fromString(title)[0])); // Paper - comment
         if (!player.isImmobile()) player.connection.send(new ClientboundOpenScreenPacket(container.containerId, windowType, io.papermc.paper.adventure.PaperAdventure.asVanilla(adventure$title))); // Paper

@@ -1,6 +1,6 @@
 package com.mohistmc.youer.api;
 
-import com.mohistmc.youer.plugins.world.utils.ConfigByWorlds;
+import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;

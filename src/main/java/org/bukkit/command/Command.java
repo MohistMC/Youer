@@ -394,7 +394,7 @@ public abstract class Command {
     @Deprecated
     @NotNull
     public Command setPermissionMessage(@Nullable String permissionMessage) {
-        this.permissionMessage = ColorAPI.colorize(permissionMessage); // Paper
+        this.permissionMessage = ColorAPI.adventure(permissionMessage); // Paper
         return this;
     }
 
@@ -449,7 +449,7 @@ public abstract class Command {
 
     public static void broadcastCommandMessage(@NotNull CommandSender source, @NotNull String message, boolean sendToSource) {
         // Paper start
-        broadcastCommandMessage(source, ColorAPI.colorize(message), sendToSource);
+        broadcastCommandMessage(source, ColorAPI.adventure(message), sendToSource);
     }
 
     public static void broadcastCommandMessage(@NotNull CommandSender source, net.kyori.adventure.text.@NotNull Component message) {

@@ -47,7 +47,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
         // Paper start
         this.adventure$lines = new java.util.ArrayList<>();
         for (String theLine : theLines) {
-            this.adventure$lines.add(ColorAPI.colorize(theLine));
+            this.adventure$lines.add(ColorAPI.adventure(theLine));
         }
         // Paper end
         this.side = side;
@@ -138,7 +138,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
      */
     @Deprecated // Paper
     public void setLine(int index, @Nullable String line) throws IndexOutOfBoundsException {
-        adventure$lines.set(index, line != null ? ColorAPI.colorize(line) : null); // Paper
+        adventure$lines.set(index, line != null ? ColorAPI.adventure(line) : null); // Paper
     }
 
     /**

@@ -136,7 +136,7 @@ public class CraftBanner extends CraftBlockEntityState<BannerBlockEntity> implem
 
     @Override
     public void setCustomName(String name) {
-        this.customName(ColorAPI.colorize(name));
+        this.customName(ColorAPI.adventure(name));
     }
     // Paper end
 }

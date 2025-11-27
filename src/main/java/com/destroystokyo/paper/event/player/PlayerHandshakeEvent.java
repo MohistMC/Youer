@@ -244,7 +244,7 @@ public class PlayerHandshakeEvent extends Event implements Cancellable {
     @Deprecated
     public void setFailMessage(final String failMessage) {
         Preconditions.checkArgument(failMessage != null && !failMessage.isEmpty(), "fail message cannot be null or empty");
-        this.failMessage(ColorAPI.colorize(failMessage));
+        this.failMessage(ColorAPI.adventure(failMessage));
     }
 
     @Override

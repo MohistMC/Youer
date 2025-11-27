@@ -85,11 +85,11 @@ public class Main {
         if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_LIBRARIES()) {
             DefaultLibraries.run();
         }
-        AutoDeleteMods.deleteIncompatibleMods();
+
         if (YouerConfigUtil.INSTALLATIONFINISHED()) {
             new Action();
         }
-
+        AutoDeleteMods.deleteIncompatibleMods();
         List<String> forgeArgs = new ArrayList<>();
         for (String arg : DataParser.launchArgs.stream().filter(s ->
                         s.startsWith("--launchTarget")

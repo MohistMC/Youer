@@ -3,16 +3,19 @@ package com.mohistmc.youer;
 import com.google.common.base.Throwables;
 import com.mohistmc.youer.commands.BackupWorldCommand;
 import com.mohistmc.youer.commands.DumpCommand;
+import com.mohistmc.youer.commands.HatCommand;
 import com.mohistmc.youer.commands.HideAllCommand;
 import com.mohistmc.youer.commands.HideCommand;
 import com.mohistmc.youer.commands.InfoCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
+import com.mohistmc.youer.commands.OpenInvCommand;
 import com.mohistmc.youer.commands.PermissionCommand;
 import com.mohistmc.youer.commands.ShowsCommand;
+import com.mohistmc.youer.commands.VanishCommand;
 import com.mohistmc.youer.commands.YouerCommand;
-import com.mohistmc.youer.plugins.MohistPlugin;
-import com.mohistmc.youer.plugins.ban.BansCommand;
-import com.mohistmc.youer.plugins.menu.MenuCommand;
+import com.mohistmc.youer.feature.MohistPlugin;
+import com.mohistmc.youer.feature.ban.BansCommand;
+import com.mohistmc.youer.feature.menu.MenuCommand;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;
 import java.io.IOException;
@@ -93,13 +96,8 @@ public class YouerConfig {
     public static boolean doFireTick;
     public static boolean explosion;
     public static boolean farmlandTrample;
-    public static boolean worldmanage;
     public static boolean bukkitpermissionshandler;
     public static boolean recipe_warn;
-    public static boolean tpa_enable;
-    public static boolean tpa_permissions_enable;
-    public static boolean back_enable;
-    public static boolean back_permissions_enable;
     public static boolean permissions_debug_console;
     public static boolean permissions_send_player;
     public static boolean watchdog_spigot;
@@ -113,13 +111,17 @@ public class YouerConfig {
     public static String deepseek_command;
     public static String deepseek_all_command;
     public static String deepseek_chatformat;
-    public static boolean warps_enable;
     public static boolean custom_no_villager;
     public static boolean custom_entity_tp_end;
     public static boolean custom_entity_tp_nether;
     public static boolean custom_raid_no_emerald;
     public static int custom_lava_speed_normal;
     public static int custom_lava_speed_nether;
+    public static boolean player_modlist_blacklist_enable;
+    public static boolean player_modlist_blacklist_use_real_feedback;
+    public static String player_modlist_blacklist_failurereasons;
+    public static List<String> player_modlist_blacklist;
+
     static int version;
     static Map<String, Command> commands;
     private static File CONFIG_FILE;
@@ -146,9 +148,6 @@ public class YouerConfig {
         commands.put("bans", new BansCommand("bans"));
         commands.put("shows", new ShowsCommand("shows"));
         commands.put("infos", new InfoCommand("infos"));
-        commands.put("menus", new MenuCommand("menus"));
-        commands.put("hideall", new HideAllCommand("hideall"));
-        commands.put("hide", new HideCommand("hide"));
 
         MohistPlugin.registerCommands(commands);
 
@@ -276,13 +275,8 @@ public class YouerConfig {
         explosion = getBoolean("events.explosion", false);
         farmlandTrample = getBoolean("events.farmlandTrample", false);
         bukkitpermissionshandler = getBoolean("neoforge.bukkitpermissionshandler", true);
-        worldmanage = getBoolean("worldmanage", true);
 
         recipe_warn = getBoolean("recipe.warn", false);
-        tpa_enable = getBoolean("tpa.enable", false);
-        tpa_permissions_enable = getBoolean("tpa.permissions", true);
-        back_enable = getBoolean("back.enable", false);
-        back_permissions_enable = getBoolean("back.permissions", true);
 
         permissions_debug_console = getBoolean("permissions.debug.console", false);
         permissions_send_player = getBoolean("permissions.debug.player", false);
@@ -297,14 +291,17 @@ public class YouerConfig {
         deepseek_all_command = getString("deepseek.all_command", "ai-all");
         deepseek_chatformat = getString("deepseek.chatformat", "<小小墨> %s");
 
-        warps_enable = getBoolean("warps.enable", false);
-
         custom_no_villager = getBoolean("custom.no_villager", false);
         custom_entity_tp_end = getBoolean("custom.entity_tp_end", true);
         custom_entity_tp_nether = getBoolean("custom.entity_tp_nether", true);
         custom_raid_no_emerald = getBoolean("custom.raid_no_emerald", false);
         custom_lava_speed_normal = getInt("custom.lava_speed.normal", 30);
         custom_lava_speed_nether = getInt("custom.lava_speed.nether", 10);
+
+        player_modlist_blacklist_enable = getBoolean("player_modlist_blacklist.enable", false);
+        player_modlist_blacklist_use_real_feedback = getBoolean("player_modlist_blacklist.use_real_feedback", false);
+        player_modlist_blacklist_failurereasons = getString("player_modlist_blacklist.failurereasons", "<gradient:#00FF00:#0000FF>Do not install mods privately</gradient>");
+        player_modlist_blacklist = getStringList("player_modlist_blacklist.list", new ArrayList<>());
 
         getBoolean("keepinventory.world.inventory", false);
         getBoolean("keepinventory.world.exp", false);

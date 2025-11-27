@@ -38,7 +38,7 @@ public class CraftMenuType<V extends InventoryView> implements MenuType.Typed<V>
     @Override
     public V create(final HumanEntity player, final String title) {
     // Paper start - adventure
-        return create(player, ColorAPI.colorize(title));
+        return create(player, ColorAPI.adventure(title));
     }
     @Override
     public V create(final HumanEntity player, final net.kyori.adventure.text.Component title) {

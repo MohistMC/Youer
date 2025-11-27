@@ -152,7 +152,7 @@ public class AsyncPlayerPreLoginEvent extends Event {
      * @param message New kick message
      */
     public void setKickMessage(@NotNull final String message) {
-        this.message = ColorAPI.colorize(message); // Paper
+        this.message = ColorAPI.adventure(message); // Paper
     }
 
     /**
@@ -173,7 +173,7 @@ public class AsyncPlayerPreLoginEvent extends Event {
     @Deprecated // Paper
     public void disallow(@NotNull final Result result, @NotNull final String message) {
         this.result = result;
-        this.message = ColorAPI.colorize(message); // Paper
+        this.message = ColorAPI.adventure(message); // Paper
     }
 
     /**
@@ -188,7 +188,7 @@ public class AsyncPlayerPreLoginEvent extends Event {
     @Deprecated
     public void disallow(@NotNull final PlayerPreLoginEvent.Result result, @NotNull final String message) {
         this.result = result == null ? null : Result.valueOf(result.name());
-        this.message = ColorAPI.colorize(message); // Paper
+        this.message = ColorAPI.adventure(message); // Paper
     }
 
     /**

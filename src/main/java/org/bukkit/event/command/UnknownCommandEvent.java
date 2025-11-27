@@ -70,7 +70,7 @@ public class UnknownCommandEvent extends Event {
      */
     @Deprecated
     public void setMessage(@Nullable String message) {
-        this.message(message == null ? null : ColorAPI.colorize(message));
+        this.message(message == null ? null : ColorAPI.adventure(message));
     }
 
     /**

@@ -3,7 +3,7 @@ package com.mohistmc.youer.api;
 import com.mohistmc.mjson.Json;
 import com.mohistmc.tools.Base64Utils;
 import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.plugins.ban.BanConfig;
+import com.mohistmc.youer.feature.ban.BanConfig;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -157,7 +157,7 @@ public class ItemAPI {
 
     public static void name(ItemStack itemStack, String name) {
         ItemMeta im = itemStack.getItemMeta();
-        im.displayName(ColorAPI.colorize(name));
+        im.displayName(ColorAPI.adventure(name));
         itemStack.setItemMeta(im);
     }
 
@@ -169,7 +169,7 @@ public class ItemAPI {
 
     public static void lore(ItemStack itemStack, List<String> lores) {
         ItemMeta im = itemStack.getItemMeta();
-        List<Component> lores_ = lores.stream().map(ColorAPI::colorize).collect(Collectors.toList());
+        List<Component> lores_ = lores.stream().map(ColorAPI::adventure).collect(Collectors.toList());
         im.lore(lores_);
         itemStack.setItemMeta(im);
     }

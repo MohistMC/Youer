@@ -98,15 +98,16 @@ public class NeoForgeInjectBukkit {
 
     public static void addEnumMaterialInItems() {
         var registry = BuiltInRegistries.ITEM;
+        List<String> materials = Arrays.stream(Material.values())
+                .filter(Material::isItem)
+                .map(Enum::name)
+                .toList();
         for (Item item : registry) {
             ResourceLocation resourceLocation = registry.getKey(item);
             boolean isMod = isMods(resourceLocation);
-            String materialName = isMod ?
-                    MohistDynamEnum.normalizeName(resourceLocation.toString()) :
-                    MohistDynamEnum.normalizeName(resourceLocation.getPath());
+            String materialName = getMaterialName(resourceLocation, isMod);
 
-            Material existingMat = Material.getMaterial(materialName);
-            if (isMod || existingMat == null || existingMat.isModBlock) {
+            if (isMod || !materials.contains(materialName)) {
                 int id = Item.getId(item);
                 int maxStackSize = item.getMaxStackSize(new ItemStack(item));
 
@@ -123,16 +124,17 @@ public class NeoForgeInjectBukkit {
 
     public static void addEnumMaterialsInBlocks() {
         var registry = BuiltInRegistries.BLOCK;
+        List<String> materials = Arrays.stream(Material.values())
+                .filter(Material::isBlock)
+                .map(Enum::name)
+                .toList();
         for (Block block : registry) {
             ResourceLocation resourceLocation = registry.getKey(block);
             boolean isMod = isMods(resourceLocation);
-            String materialName = isMod ?
-                    MohistDynamEnum.normalizeName(resourceLocation.toString()) :
-                    MohistDynamEnum.normalizeName(resourceLocation.getPath());
+            String materialName = getMaterialName(resourceLocation, isMod);
 
             // 检查是否需要添加材料
-            Material existingMat = Material.getMaterial(materialName);
-            if (isMod || existingMat == null || existingMat.isModItem) {
+            if (isMod || !materials.contains(materialName)) {
                 int id = Item.getId(block.asItem());
                 Item item = Item.byId(id);
                 int maxStackSize = item.getMaxStackSize(new ItemStack(item));
@@ -237,9 +239,7 @@ public class NeoForgeInjectBukkit {
             ResourceLocation resourceLocation = registry.getKey(entity);
             if (resourceLocation == null) continue;
             boolean isMod = isMods(resourceLocation);
-            String entityName = isMod ?
-                    MohistDynamEnum.normalizeName(resourceLocation.toString()) :
-                    MohistDynamEnum.normalizeName(resourceLocation.getPath());
+            String entityName = getMaterialName(resourceLocation, isMod);
             if (isMod) {
                 int typeId = entityName.hashCode();
                 EntityType bukkitType = MohistDynamEnum.addEnum(EntityType.class, entityName,

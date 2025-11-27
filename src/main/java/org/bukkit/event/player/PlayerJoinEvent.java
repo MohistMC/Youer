@@ -21,7 +21,7 @@ public class PlayerJoinEvent extends PlayerEvent {
     @Deprecated // Paper end
     public PlayerJoinEvent(@NotNull final Player playerJoined, @Nullable final String joinMessage) {
         super(playerJoined);
-        this.joinMessage = joinMessage != null ? ColorAPI.colorize(joinMessage) : null; // Paper end
+        this.joinMessage = joinMessage != null ? ColorAPI.adventure(joinMessage) : null; // Paper end
     }
 
     // Paper start
@@ -64,7 +64,7 @@ public class PlayerJoinEvent extends PlayerEvent {
      */
     @Deprecated // Paper
     public void setJoinMessage(@Nullable String joinMessage) {
-        this.joinMessage = joinMessage != null ? ColorAPI.colorize(joinMessage) : null; // Paper
+        this.joinMessage = joinMessage != null ? ColorAPI.adventure(joinMessage) : null; // Paper
     }
 
     @NotNull

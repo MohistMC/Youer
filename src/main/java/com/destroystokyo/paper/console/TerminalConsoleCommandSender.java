@@ -13,7 +13,7 @@ public class TerminalConsoleCommandSender extends CraftConsoleCommandSender {
     private static final ComponentLogger LOGGER = ComponentLogger.logger(LogManager.getRootLogger().getName());
     @Override
     public void sendRawMessage(String message) {
-        final Component msg = ColorAPI.colorize(message);
+        final Component msg = ColorAPI.adventure(message);
         this.sendMessage(Identity.nil(), msg, MessageType.SYSTEM);
     }
 

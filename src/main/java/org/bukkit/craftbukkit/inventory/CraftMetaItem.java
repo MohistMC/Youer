@@ -1039,7 +1039,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
     // Paper end
     @Override
     public final void setDisplayName(String name) {
-        this.displayName = CraftChatMessage.fromStringOrNull(ColorAPI.colorizeString(name));
+        this.displayName = CraftChatMessage.fromStringOrNull(ColorAPI.string(name));
     }
 
     // Paper start
@@ -1060,7 +1060,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
 
     @Override
     public final void setItemName(String name) {
-        this.itemName = CraftChatMessage.fromStringOrNull(ColorAPI.colorizeString(name));
+        this.itemName = CraftChatMessage.fromStringOrNull(ColorAPI.string(name));
     }
 
     @Override
@@ -2045,7 +2045,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
                     addTo.add(Component.empty());
                 } else {
                     String entry = object.toString();
-                    Component component = (possiblyJsonInput) ? CraftChatMessage.fromJSONOrString(entry) : (entry == null ? null : CraftChatMessage.fromStringOrNull(ColorAPI.colorizeString(entry)));
+                    Component component = (possiblyJsonInput) ? CraftChatMessage.fromJSONOrString(entry) : (entry == null ? null : CraftChatMessage.fromStringOrNull(ColorAPI.string(entry)));
 
                     if (component != null) {
                         addTo.add(component);

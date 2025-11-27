@@ -278,7 +278,7 @@ public interface InventoryView {
      */
     @NotNull
     default net.kyori.adventure.text.Component title() {
-        return ColorAPI.colorize(this.getTitle());
+        return ColorAPI.adventure(this.getTitle());
     }
     // Paper end
 

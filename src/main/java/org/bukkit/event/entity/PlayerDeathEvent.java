@@ -70,7 +70,7 @@ public class PlayerDeathEvent extends EntityDeathEvent {
         this.newExp = newExp;
         this.newTotalExp = newTotalExp;
         this.newLevel = newLevel;
-        this.deathMessage = ColorAPI.colorize(deathMessage); // Paper
+        this.deathMessage = ColorAPI.adventure(deathMessage); // Paper
         this.doExpDrop = doExpDrop; // Paper - shouldDropExperience API
     }
 
@@ -172,7 +172,7 @@ public class PlayerDeathEvent extends EntityDeathEvent {
      */
     @Deprecated // Paper
     public void setDeathMessage(@Nullable String deathMessage) {
-        this.deathMessage = ColorAPI.colorize(deathMessage); // Paper
+        this.deathMessage = ColorAPI.adventure(deathMessage); // Paper
     }
 
     /**

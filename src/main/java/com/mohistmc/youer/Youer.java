@@ -2,7 +2,7 @@ package com.mohistmc.youer;
 
 import com.mohistmc.i18n.i18n;
 import com.mohistmc.youer.eventhandler.EventDispatcherRegistry;
-import com.mohistmc.youer.plugins.ban.BanConfig;
+import com.mohistmc.youer.feature.ban.BanConfig;
 import com.mohistmc.youer.util.VersionInfo;
 import java.util.HashMap;
 import java.util.Locale;

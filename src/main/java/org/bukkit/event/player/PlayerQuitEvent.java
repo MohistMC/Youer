@@ -22,7 +22,7 @@ public class PlayerQuitEvent extends PlayerEvent {
     @Deprecated // Paper
     public PlayerQuitEvent(@NotNull final Player who, @Nullable final String quitMessage, @Nullable QuitReason quitReason) {
         super(who);
-        this.quitMessage = quitMessage != null ? ColorAPI.colorize(quitMessage) : null; // Paper
+        this.quitMessage = quitMessage != null ? ColorAPI.adventure(quitMessage) : null; // Paper
         this.reason = quitReason == null ? QuitReason.DISCONNECTED : quitReason;
     }
     // Paper start
@@ -75,7 +75,7 @@ public class PlayerQuitEvent extends PlayerEvent {
      */
     @Deprecated // Paper
     public void setQuitMessage(@Nullable String quitMessage) {
-        this.quitMessage = quitMessage != null ? ColorAPI.colorize(quitMessage) : null; // Paper
+        this.quitMessage = quitMessage != null ? ColorAPI.adventure(quitMessage) : null; // Paper
     }
 
     @NotNull

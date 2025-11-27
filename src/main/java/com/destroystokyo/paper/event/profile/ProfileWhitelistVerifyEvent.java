@@ -54,7 +54,7 @@ public class ProfileWhitelistVerifyEvent extends Event {
     @Deprecated
     @ApiStatus.Internal
     public ProfileWhitelistVerifyEvent(final PlayerProfile profile, final boolean whitelistEnabled, final boolean whitelisted, final boolean isOp, final @Nullable String kickMessage) {
-        this(profile, whitelistEnabled, whitelisted, isOp, kickMessage == null ? null : ColorAPI.colorize(kickMessage));
+        this(profile, whitelistEnabled, whitelisted, isOp, kickMessage == null ? null : ColorAPI.adventure(kickMessage));
     }
 
     @ApiStatus.Internal
@@ -81,7 +81,7 @@ public class ProfileWhitelistVerifyEvent extends Event {
      */
     @Deprecated
     public void setKickMessage(final @Nullable String kickMessage) {
-        this.kickMessage(kickMessage == null ? null : ColorAPI.colorize(kickMessage));
+        this.kickMessage(kickMessage == null ? null : ColorAPI.adventure(kickMessage));
     }
 
     /**

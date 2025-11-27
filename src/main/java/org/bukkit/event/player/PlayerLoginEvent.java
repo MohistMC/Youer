@@ -67,7 +67,7 @@ public class PlayerLoginEvent extends PlayerEvent {
     public PlayerLoginEvent(@NotNull final Player player, @NotNull String hostname, @NotNull final InetAddress address, @NotNull final Result result, @NotNull final String message, @NotNull final InetAddress realAddress) {
         this(player, hostname, address, realAddress);
         this.result = result;
-        this.message = ColorAPI.colorize(message); // Paper
+        this.message = ColorAPI.adventure(message); // Paper
     }
 
     // Paper start
@@ -148,7 +148,7 @@ public class PlayerLoginEvent extends PlayerEvent {
      */
     @Deprecated // Paper
     public void setKickMessage(@NotNull final String message) {
-        this.message = ColorAPI.colorize(message); // Paper
+        this.message = ColorAPI.adventure(message); // Paper
     }
 
     /**
@@ -180,7 +180,7 @@ public class PlayerLoginEvent extends PlayerEvent {
     @Deprecated // Paper start
     public void disallow(@NotNull final Result result, @NotNull final String message) {
         this.result = result;
-        this.message = ColorAPI.colorize(message);
+        this.message = ColorAPI.adventure(message);
     }
     /**
      * Disallows the player from logging in, with the given reason

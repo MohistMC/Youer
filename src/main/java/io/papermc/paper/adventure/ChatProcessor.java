@@ -131,7 +131,7 @@ public final class ChatProcessor {
 
     private Component modernMessage(final String legacyMessage) {
         if (this.flags.get(MESSAGE_CHANGED)) {
-            return ColorAPI.colorize(legacyMessage);
+            return ColorAPI.adventure(legacyMessage);
         } else {
             return this.paper$originalMessage;
         }
@@ -352,7 +352,7 @@ public final class ChatProcessor {
         if (DEFAULT_LEGACY_FORMAT.equals(format)) {
             return defaultRenderer();
         }
-        return ChatRenderer.viewerUnaware((player, sourceDisplayName, message) -> ColorAPI.colorize(legacyFormat(format, player, legacySection().serialize(message))));
+        return ChatRenderer.viewerUnaware((player, sourceDisplayName, message) -> ColorAPI.adventure(legacyFormat(format, player, legacySection().serialize(message))));
     }
 
     static String legacyFormat(final String format, Player player, String message) {

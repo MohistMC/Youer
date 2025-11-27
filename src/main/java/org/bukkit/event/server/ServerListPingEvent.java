@@ -33,7 +33,7 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
         Preconditions.checkArgument(numPlayers >= 0, "Cannot have negative number of players online", numPlayers);
         this.hostname = hostname;
         this.address = address;
-        this.motd = ColorAPI.colorize(motd); // Paper
+        this.motd = ColorAPI.adventure(motd); // Paper
         this.numPlayers = numPlayers;
         this.maxPlayers = maxPlayers;
     }
@@ -55,7 +55,7 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
         this.numPlayers = MAGIC_PLAYER_COUNT;
         this.hostname = hostname;
         this.address = address;
-        this.motd = ColorAPI.colorize(motd); // Paper
+        this.motd = ColorAPI.adventure(motd); // Paper
         this.maxPlayers = maxPlayers;
     }
     // Paper start
@@ -163,7 +163,7 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
      */
     @Deprecated // Paper
     public void setMotd(@NotNull String motd) {
-        this.motd = ColorAPI.colorize(motd); // Paper
+        this.motd = ColorAPI.adventure(motd); // Paper
     }
 
     /**

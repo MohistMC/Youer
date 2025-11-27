@@ -68,7 +68,7 @@ public class PluginCommandYamlParser {
             }
 
             if (permissionMessage != null) {
-                newCmd.permissionMessage(ColorAPI.colorize(permissionMessage.toString())); // Paper
+                newCmd.permissionMessage(ColorAPI.adventure(permissionMessage.toString())); // Paper
             }
 
             pluginCmds.add(newCmd);

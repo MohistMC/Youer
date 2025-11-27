@@ -31,7 +31,7 @@ public class BroadcastMessageEvent extends ServerEvent implements Cancellable {
     public BroadcastMessageEvent(boolean isAsync, @NotNull String message, @NotNull Set<CommandSender> recipients) {
         // Paper start
         super(isAsync);
-        this.message = ColorAPI.colorize(message);
+        this.message = ColorAPI.adventure(message);
         this.recipients = recipients;
     }
 
@@ -86,7 +86,7 @@ public class BroadcastMessageEvent extends ServerEvent implements Cancellable {
      */
     @Deprecated // Paper
     public void setMessage(@NotNull String message) {
-        this.message = ColorAPI.colorize(message); // Paper
+        this.message = ColorAPI.adventure(message); // Paper
     }
 
     /**

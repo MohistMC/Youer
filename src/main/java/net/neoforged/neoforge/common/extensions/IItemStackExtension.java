@@ -5,7 +5,7 @@
 
 package net.neoforged.neoforge.common.extensions;
 
-import com.mohistmc.youer.plugins.ban.bans.BanItem;
+import com.mohistmc.youer.feature.ban.bans.BanItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup.RegistryLookup;
