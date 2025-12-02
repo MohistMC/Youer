@@ -8,16 +8,19 @@
  import java.util.Set;
  import java.util.function.Predicate;
  import net.minecraft.core.BlockPos;
-@@ -8,6 +_,8 @@
+@@ -8,6 +_,11 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.entity.BlockEntity;
 +import org.bukkit.Location;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.craftbukkit.inventory.CraftInventory;
++import org.bukkit.inventory.Inventory;
++import org.bukkit.inventory.InventoryHolder;
  
  public interface Container extends Clearable {
      float DEFAULT_DISTANCE_BUFFER = 4.0F;
-@@ -91,4 +_,38 @@
+@@ -91,4 +_,47 @@
              return level.getBlockEntity(blockpos) != p_272877_ ? false : p_272670_.canInteractWithBlock(blockpos, (double)p_320837_);
          }
      }
@@ -50,6 +53,15 @@
 +            return new Location(entity.getLevel().getWorld(), blockPos.getX(), blockPos.getY(), blockPos.getZ());
 +        } else {
 +            return null;
++        }
++    }
++
++    default Inventory getOwnerInventory() {
++        InventoryHolder owner = this.getOwner();
++        if (owner != null) {
++            return owner.getInventory();
++        } else {
++            return new CraftInventory(this);
 +        }
 +    }
 +

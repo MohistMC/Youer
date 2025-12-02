@@ -32,9 +32,11 @@ import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import net.neoforged.neoforge.items.wrapper.PlayerArmorInvWrapper;
 import net.neoforged.neoforge.items.wrapper.PlayerInvWrapper;
 import net.neoforged.neoforge.items.wrapper.PlayerMainInvWrapper;
+import net.neoforged.neoforge.items.wrapper.RangedWrapper;
 import net.neoforged.neoforge.items.wrapper.SidedInvWrapper;
 import org.bukkit.craftbukkit.block.CraftBlock;
 import org.bukkit.craftbukkit.block.CraftBlockEntityState;
+import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 
@@ -126,10 +128,38 @@ public class InventoryOwner {
         return null;
     }
 
+    public static Container getContainer(IItemHandler handler) {
+        return switch (handler) {
+            case InvWrapper inv -> inv.getInv();
+            case SidedInvWrapper sidedInv -> sidedInv.inv;
+            case SlotItemHandler slotInv -> slotInv.container;
+            case RangedWrapper ranged -> {
+                handler = ranged.compose;
+                yield getContainer(handler);
+            }
+            case PlayerInvWrapper player -> {
+                handler = player.getHandlerFromIndex(0);
+                yield getContainer(handler);
+            }
+            case null, default -> null;
+        };
+    }
+
     @Nullable
     public static Inventory inventoryFromForge(IItemHandler handler) {
         InventoryHolder holder = get(handler);
         return holder != null ? holder.getInventory() : null;
+    }
+
+    public static Inventory getOwnerInventory(Object nmsOwner, IItemHandler handler) {
+        Container nms = getContainer(handler);
+        if (nms != null) {
+            final var inventory = nms.getOwnerInventory();
+            if (inventory != null) {
+                return inventory;
+            }
+        }
+        return new CraftInventory(new YouerIItemHandlerInventory(handler, nmsOwner));
     }
 
 }

@@ -10,6 +10,8 @@ import com.mohistmc.youer.feature.back.BackCommands;
 import com.mohistmc.youer.feature.back.BackConfig;
 import com.mohistmc.youer.feature.ban.BanListener;
 import com.mohistmc.youer.feature.commands.CommandsConfig;
+import com.mohistmc.youer.feature.entitylimits.EntityLimitsCommands;
+import com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig;
 import com.mohistmc.youer.feature.item.ItemsConfig;
 import com.mohistmc.youer.feature.menu.MenuCommand;
 import com.mohistmc.youer.feature.tpa.TpaComamands;
@@ -34,7 +36,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
  * @author Mgazul by MohistMC
  * @date 2023/6/14 14:46:34
  */
-public class MohistPlugin {
+public class YouerPlugin {
 
     public static Logger LOGGER = LogManager.getLogger("MohistPlugin");
 
@@ -47,6 +49,7 @@ public class MohistPlugin {
         WarpsConfig.init();
         EntityClear.start();
         GlobalVariableSystem.register();
+        EntityLimitsConfig.init();
     }
 
     public static void registerCommands(Map<String, Command> commands) {
@@ -82,6 +85,9 @@ public class MohistPlugin {
         }
         if (CommandsConfig.INSTANCE.enable("openinv.enable")) {
             commands.put("openinv", new OpenInvCommand("openinv"));
+        }
+        if (CommandsConfig.INSTANCE.enable("entitylimits.enable")) {
+            commands.put("entitylimits", new EntityLimitsCommands("entitylimits"));
         }
     }
 

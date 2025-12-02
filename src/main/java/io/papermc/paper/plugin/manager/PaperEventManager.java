@@ -1,7 +1,7 @@
 package io.papermc.paper.plugin.manager;
 
 import com.google.common.collect.Sets;
-import com.mohistmc.youer.feature.MohistPlugin;
+import com.mohistmc.youer.feature.YouerPlugin;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -33,7 +33,7 @@ class PaperEventManager {
 
     // SimplePluginManager
     public void callEvent(@NotNull Event event) {
-        MohistPlugin.registerListener(event);
+        YouerPlugin.registerListener(event);
         if (event.isAsynchronous() && this.server.isPrimaryThread()) {
             throw new IllegalStateException(event.getEventName() + " may only be triggered asynchronously.");
         } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {

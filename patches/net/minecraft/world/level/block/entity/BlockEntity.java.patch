@@ -24,7 +24,7 @@
      private final BlockEntityType<?> type;
      @Nullable
      public Level level;
-@@ -36,12 +_,20 @@
+@@ -36,12 +_,21 @@
      protected boolean remove;
      private BlockState blockState;
      private DataComponentMap components = DataComponentMap.EMPTY;
@@ -35,6 +35,7 @@
 +    private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
 +    public CraftPersistentDataContainer persistentDataContainer;
 +    // CraftBukkit end
++    static boolean ignoreTileUpdates; // Paper - Perf: Optimize Hoppers
  
      public BlockEntity(BlockEntityType<?> p_155228_, BlockPos p_155229_, BlockState p_155230_) {
          this.type = p_155228_;
@@ -113,6 +114,14 @@
          ResourceLocation resourcelocation = BlockEntityType.getKey(this.getType());
          if (resourcelocation == null) {
              throw new RuntimeException(this.getClass() + " is missing a mapping! This is a bug!");
+@@ -182,6 +_,7 @@
+ 
+     public void setChanged() {
+         if (this.level != null) {
++            if (ignoreTileUpdates) return; // Paper - Perf: Optimize Hoppers
+             setChanged(this.level, this.worldPosition, this.blockState);
+         }
+     }
 @@ -216,10 +_,14 @@
  
      public void setRemoved() {

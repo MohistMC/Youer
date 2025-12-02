@@ -5,12 +5,14 @@
 
 package net.neoforged.neoforge.items;
 
+import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.FrontAndTop;
+import net.minecraft.world.Container;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.item.ItemStack;
@@ -28,6 +30,11 @@ import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.Nullable;
 
 public class VanillaInventoryCodeHooks {
@@ -41,10 +48,29 @@ public class VanillaInventoryCodeHooks {
         return getSourceItemHandler(level, dest)
                 .map(itemHandlerResult -> {
                     IItemHandler handler = itemHandlerResult.getKey();
-
+                    Object destination = itemHandlerResult.getValue();
+                    BlockPos blockpos = BlockPos.containing(dest.getLevelX(), dest.getLevelY() + 1.0, dest.getLevelZ());
+                    BlockState blockstate = level.getBlockState(blockpos);
+                    Container container = HopperBlockEntity.getSourceContainer(level, dest, blockpos, blockstate);
                     for (int i = 0; i < handler.getSlots(); i++) {
-                        ItemStack extractItem = handler.extractItem(i, 1, true);
+                        ItemStack extractItem = handler.extractItem(i, level.spigotConfig.hopperAmount, true);
                         if (!extractItem.isEmpty()) {
+                            CraftItemStack oitemstack = CraftItemStack.asCraftMirror(extractItem);
+
+                            if (container != null) {
+                                Inventory sourceInventory = container.getOwnerInventory();
+                                Inventory destinationInventory = InventoryOwner.getOwnerInventory(destination, handler);
+                                if (destinationInventory != null && sourceInventory != null) {
+                                    InventoryMoveItemEvent event;
+                                    event = new InventoryMoveItemEvent(sourceInventory, oitemstack.clone(), destinationInventory, true);
+                                    Bukkit.getPluginManager().callEvent(event);
+                                    if (event.isCancelled()) {
+                                        return false;
+                                    } else {
+                                        extractItem = CraftItemStack.asNMSCopy(event.getItem());
+                                    }
+                                }
+                            }
                             for (int j = 0; j < dest.getContainerSize(); j++) {
                                 ItemStack destStack = dest.getItem(j);
                                 if (dest.canPlaceItem(j, extractItem) && (destStack.isEmpty() || destStack.getCount() < destStack.getMaxStackSize() && destStack.getCount() < dest.getMaxStackSize() && ItemStack.isSameItemSameComponents(extractItem, destStack))) {
@@ -77,6 +103,18 @@ public class VanillaInventoryCodeHooks {
                     IItemHandler itemHandler = destinationResult.getKey();
                     Object destination = destinationResult.getValue();
                     ItemStack dispensedStack = stack.copy().split(1);
+                    if (!dispensedStack.isEmpty()) {
+                        // CraftBukkit start - Fire event when pushing items into other inventories
+                        CraftItemStack oitemstack = CraftItemStack.asCraftMirror(dispensedStack);
+                        Inventory destinationInventory = InventoryOwner.getOwnerInventory(destination, itemHandler);
+                        InventoryMoveItemEvent event = new InventoryMoveItemEvent(dropper.getOwner().getInventory(), oitemstack.clone(), destinationInventory, true);
+                        Bukkit.getPluginManager().callEvent(event);
+                        if (event.isCancelled()) {
+                            return true;
+                        }
+                        dispensedStack = CraftItemStack.asNMSCopy(event.getItem());
+                        // CraftBukkit end
+                    }
                     ItemStack remainder = putStackInInventoryAllSlots(dropper, destination, itemHandler, dispensedStack);
 
                     if (remainder.isEmpty()) {
@@ -107,7 +145,21 @@ public class VanillaInventoryCodeHooks {
                         for (int i = 0; i < hopper.getContainerSize(); ++i) {
                             if (!hopper.getItem(i).isEmpty()) {
                                 ItemStack originalSlotContents = hopper.getItem(i).copy();
-                                ItemStack insertStack = hopper.removeItem(i, 1);
+
+                                ItemStack insertStack = hopper.removeItem(i, hopper.getLevel().spigotConfig.hopperAmount);
+                                if (!insertStack.isEmpty()) {
+                                    // CraftBukkit start - Fire event when pushing items into other inventories
+                                    CraftItemStack oitemstack = CraftItemStack.asCraftMirror(insertStack);
+                                    Inventory destinationInventory = InventoryOwner.getOwnerInventory(destination, itemHandler);
+                                    InventoryMoveItemEvent event = new InventoryMoveItemEvent(hopper.getOwnerInventory(), oitemstack.clone(), destinationInventory, true);
+                                    Bukkit.getPluginManager().callEvent(event);
+                                    if (event.isCancelled()) {
+                                        hopper.setItem(i, originalSlotContents);
+                                        hopper.setCooldown(hopper.getLevel().spigotConfig.hopperTransfer);
+                                        return false;
+                                    }
+                                    insertStack = CraftItemStack.asNMSCopy(event.getItem());
+                                }
                                 ItemStack remainder = putStackInInventoryAllSlots(hopper, destination, itemHandler, insertStack);
 
                                 if (remainder.isEmpty()) {
@@ -133,7 +185,20 @@ public class VanillaInventoryCodeHooks {
                 .map(destinationResult -> {
                     IItemHandler itemHandler = destinationResult.getKey();
                     Object destination = destinationResult.getValue();
-                    ItemStack remainder = putStackInInventoryAllSlots(crafterBlockEntity, destination, itemHandler, stack);
+                    ItemStack stackfinal = stack.copy();
+                    if (!stackfinal.isEmpty()) {
+                        // CraftBukkit start - Fire event when pushing items into other inventories
+                        CraftItemStack oitemstack = CraftItemStack.asCraftMirror(stackfinal);
+                        Inventory destinationInventory = InventoryOwner.getOwnerInventory(destination, itemHandler);
+                        InventoryMoveItemEvent event = new InventoryMoveItemEvent(crafterBlockEntity.getOwnerInventory(), oitemstack.clone(), destinationInventory, true);
+                        Bukkit.getPluginManager().callEvent(event);
+                        if (event.isCancelled()) {
+                            return stack;
+                        }
+                        stackfinal = CraftItemStack.asNMSCopy(event.getItem());
+                        // CraftBukkit end
+                    }
+                    ItemStack remainder = putStackInInventoryAllSlots(crafterBlockEntity, destination, itemHandler, stackfinal);
                     return remainder;
                 })
                 .orElse(stack);

@@ -3,19 +3,13 @@ package com.mohistmc.youer;
 import com.google.common.base.Throwables;
 import com.mohistmc.youer.commands.BackupWorldCommand;
 import com.mohistmc.youer.commands.DumpCommand;
-import com.mohistmc.youer.commands.HatCommand;
-import com.mohistmc.youer.commands.HideAllCommand;
-import com.mohistmc.youer.commands.HideCommand;
 import com.mohistmc.youer.commands.InfoCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
-import com.mohistmc.youer.commands.OpenInvCommand;
 import com.mohistmc.youer.commands.PermissionCommand;
 import com.mohistmc.youer.commands.ShowsCommand;
-import com.mohistmc.youer.commands.VanishCommand;
 import com.mohistmc.youer.commands.YouerCommand;
-import com.mohistmc.youer.feature.MohistPlugin;
+import com.mohistmc.youer.feature.YouerPlugin;
 import com.mohistmc.youer.feature.ban.BansCommand;
-import com.mohistmc.youer.feature.menu.MenuCommand;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;
 import java.io.IOException;
@@ -149,7 +143,7 @@ public class YouerConfig {
         commands.put("shows", new ShowsCommand("shows"));
         commands.put("infos", new InfoCommand("infos"));
 
-        MohistPlugin.registerCommands(commands);
+        YouerPlugin.registerCommands(commands);
 
         version = getInt("config-version", 1);
         set("config-version", 1);
