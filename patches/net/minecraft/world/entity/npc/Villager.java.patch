@@ -85,7 +85,7 @@
      @Override
      public Brain<Villager> getBrain() {
          return (Brain<Villager>)super.getBrain();
-@@ -269,9 +_,34 @@
+@@ -269,9 +_,32 @@
      }
  
      @Override
@@ -99,7 +99,9 @@
 +            if (this.level().spigotConfig.tickInactiveVillagers) {
 +                this.customServerAiStep();
 +            } else {
-+                this.customServerAiStep(true);
++                customServerAiStep$inactive = true;
++                this.customServerAiStep();
++                customServerAiStep$inactive = false;
 +            }
 +        }
 +        maybeDecayGossip();
@@ -108,16 +110,12 @@
 +        super.inactiveTick();
 +    }
 +    // Spigot End
-+
++    boolean customServerAiStep$inactive = false;
 +    @Override
      protected void customServerAiStep() {
-+        // Paper start
-+        this.customServerAiStep(false);
-+    }
-+    protected void customServerAiStep(final boolean inactive) {
          this.level().getProfiler().push("villagerBrain");
 -        this.getBrain().tick((ServerLevel)this.level(), this);
-+        if (!inactive) this.getBrain().tick((ServerLevel)this.level(), this); // Paper
++        if (!customServerAiStep$inactive) this.getBrain().tick((ServerLevel)this.level(), this); // Paper
          this.level().getProfiler().pop();
          if (this.assignProfessionWhenSpawned) {
              this.assignProfessionWhenSpawned = false;
@@ -135,7 +133,7 @@
          }
  
 -        if (!this.isNoAi() && this.random.nextInt(100) == 0) {
-+        if (!inactive && !this.isNoAi() && this.random.nextInt(100) == 0) { // Paper
++        if (!customServerAiStep$inactive && !this.isNoAi() && this.random.nextInt(100) == 0) { // Paper
              Raid raid = ((ServerLevel)this.level()).getRaidAt(this.blockPosition());
              if (raid != null && raid.isActive() && !raid.isOver()) {
                  this.level().broadcastEntityEvent(this, (byte)42);
@@ -143,7 +141,7 @@
          if (this.getVillagerData().getProfession() == VillagerProfession.NONE && this.isTrading()) {
              this.stopTrading();
          }
-+        if (inactive) return; // Paper
++        if (customServerAiStep$inactive) return; // Paper
  
          super.customServerAiStep();
      }

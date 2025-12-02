@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
+@@ -6,6 +_,8 @@
+ import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
+ import java.util.List;
+ import java.util.Map;
++import java.util.concurrent.atomic.AtomicInteger;
++import java.util.concurrent.atomic.AtomicReference;
+ import javax.annotation.Nullable;
+ import net.minecraft.SharedConstants;
+ import net.minecraft.Util;
 @@ -45,6 +_,16 @@
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.state.BlockState;
@@ -316,26 +325,34 @@
          }
      }
  
-@@ -453,8 +_,8 @@
+@@ -453,7 +_,8 @@
      public void awardUsedRecipes(Player p_58396_, List<ItemStack> p_282202_) {
      }
  
 -    public void awardUsedRecipesAndPopExperience(ServerPlayer p_155004_) {
--        List<RecipeHolder<?>> list = this.getRecipesToAwardAndPopExperience(p_155004_.serverLevel(), p_155004_.position());
-+    public void awardUsedRecipesAndPopExperience(ServerPlayer p_155004_, ItemStack itemstack, int amount) { // CraftBukkit
-+        List<RecipeHolder<?>> list = this.getRecipesToAwardAndPopExperience(p_155004_.serverLevel(), p_155004_.position(), this.worldPosition, p_155004_, itemstack, amount);
++    public void awardUsedRecipesAndPopExperience(ServerPlayer p_155004_) { // CraftBukkit
++        getRecipesToAwardAndPopExperience$entityplayer.set(p_155004_);
+         List<RecipeHolder<?>> list = this.getRecipesToAwardAndPopExperience(p_155004_.serverLevel(), p_155004_.position());
          p_155004_.awardRecipes(list);
  
-         for (RecipeHolder<?> recipeholder : list) {
-@@ -467,32 +_,103 @@
+@@ -466,33 +_,123 @@
+         this.recipesUsed.clear();
      }
  
-     public List<RecipeHolder<?>> getRecipesToAwardAndPopExperience(ServerLevel p_154996_, Vec3 p_154997_) {
-+        // CraftBukkit start
-+        return this.getRecipesToAwardAndPopExperience(p_154996_, p_154997_, this.worldPosition, null, null, 0);
++    public void awardUsedRecipesAndPopExperienceCB(ServerPlayer p_155004_, ItemStack itemstack, int amount) { // CraftBukkit
++        getRecipesToAwardAndPopExperience$blockposition.set(this.worldPosition);
++        getRecipesToAwardAndPopExperience$entityplayer.set(p_155004_);
++        getRecipesToAwardAndPopExperience$itemstack.set(itemstack);
++        getRecipesToAwardAndPopExperience$amount.set(amount);
++        awardUsedRecipesAndPopExperience(p_155004_);
 +    }
 +
-+    public List<RecipeHolder<?>> getRecipesToAwardAndPopExperience(ServerLevel p_154996_, Vec3 p_154997_, BlockPos blockposition, ServerPlayer entityplayer, ItemStack itemstack, int amount) {
++    AtomicReference<BlockPos> getRecipesToAwardAndPopExperience$blockposition = new AtomicReference<>(this.worldPosition);
++    AtomicReference<ServerPlayer> getRecipesToAwardAndPopExperience$entityplayer = new AtomicReference<>(null);
++    public AtomicReference<ItemStack> getRecipesToAwardAndPopExperience$itemstack = new AtomicReference<>(null);
++    public AtomicInteger getRecipesToAwardAndPopExperience$amount = new AtomicInteger(0);
++
+     public List<RecipeHolder<?>> getRecipesToAwardAndPopExperience(ServerLevel p_154996_, Vec3 p_154997_) {
 +        // CraftBukkit end
          List<RecipeHolder<?>> list = Lists.newArrayList();
  
@@ -344,7 +361,12 @@
 +                if (!(p_300839_.value() instanceof AbstractCookingRecipe)) return; // Paper - don't process non-cooking recipes
                  list.add((RecipeHolder<?>)p_300839_);
 -                createExperience(p_154996_, p_154997_, entry.getIntValue(), ((AbstractCookingRecipe)p_300839_.value()).getExperience());
-+                createExperience(p_154996_, p_154997_, entry.getIntValue(), ((AbstractCookingRecipe)p_300839_.value()).getExperience(), blockposition, entityplayer, itemstack, amount); // CraftBukkit
++                createExperience(p_154996_, p_154997_, entry.getIntValue(), ((AbstractCookingRecipe)p_300839_.value()).getExperience(),
++                        getRecipesToAwardAndPopExperience$blockposition.getAndSet(this.worldPosition),
++                        getRecipesToAwardAndPopExperience$entityplayer.getAndSet(null),
++                        getRecipesToAwardAndPopExperience$itemstack.getAndSet(null),
++                        getRecipesToAwardAndPopExperience$amount.getAndSet(0)
++                ); // CraftBukkit
              });
          }
  
@@ -352,7 +374,13 @@
      }
  
 -    private static void createExperience(ServerLevel p_154999_, Vec3 p_155000_, int p_155001_, float p_155002_) {
-+
++    public List<RecipeHolder<?>> getRecipesToAwardAndPopExperience(ServerLevel p_154996_, Vec3 p_154997_, BlockPos blockposition, ServerPlayer entityplayer, ItemStack itemstack, int amount) {
++        getRecipesToAwardAndPopExperience$blockposition.set(blockposition);
++        getRecipesToAwardAndPopExperience$entityplayer.set(entityplayer);
++        getRecipesToAwardAndPopExperience$itemstack.set(itemstack);
++        getRecipesToAwardAndPopExperience$amount.set(amount);
++        return getRecipesToAwardAndPopExperience(p_154996_, p_154997_);
++    }
 +
 +    private static void createExperience(ServerLevel p_154999_, Vec3 p_155000_, int p_155001_, float p_155002_, BlockPos blockposition, Player entityhuman, ItemStack itemstack, int amount) {
          int i = Mth.floor((float)p_155001_ * p_155002_);

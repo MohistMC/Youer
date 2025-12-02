@@ -1,0 +1,32 @@
+--- a/net/minecraft/world/level/levelgen/structure/StructureCheck.java
++++ b/net/minecraft/world/level/levelgen/structure/StructureCheck.java
+@@ -74,6 +_,20 @@
+         this.fixerUpper = p_226721_;
+     }
+ 
++    // Paper start - add missing structure salt configs
++    @Nullable
++    private Integer getSaltOverride(Structure type) {
++        if (this.heightAccessor instanceof net.minecraft.server.level.ServerLevel serverLevel) {
++            if (type instanceof net.minecraft.world.level.levelgen.structure.structures.MineshaftStructure) {
++                return serverLevel.spigotConfig.mineshaftSeed;
++            } else if (type instanceof net.minecraft.world.level.levelgen.structure.structures.BuriedTreasureStructure) {
++                return serverLevel.spigotConfig.buriedTreasureSeed;
++            }
++        }
++        return null;
++    }
++    // Paper end - add missing structure seed configs
++
+     public StructureCheckResult checkStart(ChunkPos p_226730_, Structure p_226731_, StructurePlacement p_321610_, boolean p_226732_) {
+         long i = p_226730_.toLong();
+         Object2IntMap<Structure> object2intmap = this.loadedChunks.get(i);
+@@ -83,7 +_,7 @@
+             StructureCheckResult structurecheckresult = this.tryLoadFromStorage(p_226730_, p_226731_, p_226732_, i);
+             if (structurecheckresult != null) {
+                 return structurecheckresult;
+-            } else if (!p_321610_.applyAdditionalChunkRestrictions(p_226730_.x, p_226730_.z, this.seed)) {
++            } else if (!p_321610_.applyAdditionalChunkRestrictions(p_226730_.x, p_226730_.z, this.seed, this.getSaltOverride(p_226731_))) { // Paper - add missing structure seed configs
+                 return StructureCheckResult.START_NOT_PRESENT;
+             } else {
+                 boolean flag = this.featureChecks

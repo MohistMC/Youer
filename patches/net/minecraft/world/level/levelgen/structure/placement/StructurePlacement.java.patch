@@ -1,0 +1,91 @@
+--- a/net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.java
++++ b/net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.java
+@@ -79,14 +_,27 @@
+         return this.exclusionZone;
+     }
+ 
++    public @org.jetbrains.annotations.Nullable net.minecraft.resources.ResourceKey<StructureSet> structureSetKey;
++    // Paper - Add missing structure set seed configs
+     public boolean isStructureChunk(ChunkGeneratorStructureState p_256635_, int p_255959_, int p_256065_) {
++        Integer saltOverride = null;
++        if (structureSetKey != null) {
++            if (structureSetKey == net.minecraft.world.level.levelgen.structure.BuiltinStructureSets.MINESHAFTS) {
++                saltOverride = p_256635_.conf.mineshaftSeed;
++            } else if (structureSetKey == net.minecraft.world.level.levelgen.structure.BuiltinStructureSets.BURIED_TREASURES) {
++                saltOverride = p_256635_.conf.buriedTreasureSeed;
++            }
++            structureSetKey = null;
++        }
++        // Paper end - Add missing structure set seed configs
+         return this.isPlacementChunk(p_256635_, p_255959_, p_256065_)
+-            && this.applyAdditionalChunkRestrictions(p_255959_, p_256065_, p_256635_.getLevelSeed())
++            && this.applyAdditionalChunkRestrictions(p_255959_, p_256065_, p_256635_.getLevelSeed(), saltOverride) // Paper - Add missing structure set seed configs
+             && this.applyInteractionsWithOtherStructures(p_256635_, p_255959_, p_256065_);
+     }
+ 
+-    public boolean applyAdditionalChunkRestrictions(int p_321784_, int p_321723_, long p_321834_) {
+-        return !(this.frequency < 1.0F) || this.frequencyReductionMethod.shouldGenerate(p_321834_, this.salt, p_321784_, p_321723_, this.frequency);
++    public boolean applyAdditionalChunkRestrictions(int p_321784_, int p_321723_, long p_321834_, @org.jetbrains.annotations.Nullable Integer saltOverride) {
++        return !(this.frequency < 1.0F) || this.frequencyReductionMethod.shouldGenerate(p_321834_, this.salt, p_321784_, p_321723_, this.frequency, saltOverride);
++        // Paper end - Add missing structure set seed configs
+     }
+ 
+     public boolean applyInteractionsWithOtherStructures(ChunkGeneratorStructureState p_321651_, int p_321696_, int p_321521_) {
+@@ -101,25 +_,31 @@
+ 
+     public abstract StructurePlacementType<?> type();
+ 
+-    private static boolean probabilityReducer(long p_227034_, int p_227035_, int p_227036_, int p_227037_, float p_227038_) {
++    private static boolean probabilityReducer(long p_227034_, int p_227035_, int p_227036_, int p_227037_, float p_227038_, @org.jetbrains.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs
+         WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
+         worldgenrandom.setLargeFeatureWithSalt(p_227034_, p_227035_, p_227036_, p_227037_);
+         return worldgenrandom.nextFloat() < p_227038_;
+     }
+ 
+-    private static boolean legacyProbabilityReducerWithDouble(long p_227049_, int p_227050_, int p_227051_, int p_227052_, float p_227053_) {
++    private static boolean legacyProbabilityReducerWithDouble(long p_227049_, int p_227050_, int p_227051_, int p_227052_, float p_227053_, @org.jetbrains.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs
+         WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
+-        worldgenrandom.setLargeFeatureSeed(p_227049_, p_227051_, p_227052_);
++        if (saltOverride == null) { // Paper - Add missing structure set seed configs
++            worldgenrandom.setLargeFeatureSeed(p_227049_, p_227051_, p_227052_);
++            // Paper start - Add missing structure set seed configs
++        } else {
++            worldgenrandom.setLargeFeatureWithSalt(p_227049_, p_227051_, p_227052_, saltOverride);
++        }
++        // Paper end - Add missing structure set seed configs
+         return worldgenrandom.nextDouble() < (double)p_227053_;
+     }
+ 
+-    private static boolean legacyArbitrarySaltProbabilityReducer(long p_227061_, int p_227062_, int p_227063_, int p_227064_, float p_227065_) {
++    private static boolean legacyArbitrarySaltProbabilityReducer(long p_227061_, int p_227062_, int p_227063_, int p_227064_, float p_227065_, @org.jetbrains.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs
+         WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
+-        worldgenrandom.setLargeFeatureWithSalt(p_227061_, p_227063_, p_227064_, 10387320);
++        worldgenrandom.setLargeFeatureWithSalt(p_227061_, p_227063_, p_227064_, saltOverride != null ? saltOverride : HIGHLY_ARBITRARY_RANDOM_SALT); // Paper - Add missing structure set seed configs
+         return worldgenrandom.nextFloat() < p_227065_;
+     }
+ 
+-    private static boolean legacyPillagerOutpostReducer(long p_227067_, int p_227068_, int p_227069_, int p_227070_, float p_227071_) {
++    private static boolean legacyPillagerOutpostReducer(long p_227067_, int p_227068_, int p_227069_, int p_227070_, float p_227071_, @org.jetbrains.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs
+         int i = p_227069_ >> 4;
+         int j = p_227070_ >> 4;
+         WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
+@@ -147,7 +_,7 @@
+ 
+     @FunctionalInterface
+     public interface FrequencyReducer {
+-        boolean shouldGenerate(long p_227099_, int p_227100_, int p_227101_, int p_227102_, float p_227103_);
++        boolean shouldGenerate(long p_227099_, int p_227100_, int p_227101_, int p_227102_, float p_227103_, @org.jetbrains.annotations.Nullable Integer saltOverride); // Paper - Add missing structure set seed configs
+     }
+ 
+     public static enum FrequencyReductionMethod implements StringRepresentable {
+@@ -167,8 +_,8 @@
+             this.reducer = p_227117_;
+         }
+ 
+-        public boolean shouldGenerate(long p_227120_, int p_227121_, int p_227122_, int p_227123_, float p_227124_) {
+-            return this.reducer.shouldGenerate(p_227120_, p_227121_, p_227122_, p_227123_, p_227124_);
++        public boolean shouldGenerate(long p_227120_, int p_227121_, int p_227122_, int p_227123_, float p_227124_, @org.jetbrains.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs
++            return this.reducer.shouldGenerate(p_227120_, p_227121_, p_227122_, p_227123_, p_227124_, saltOverride); // Paper - Add missing structure set seed configs
+         }
+ 
+         @Override

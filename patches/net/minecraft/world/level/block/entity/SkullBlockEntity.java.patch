@@ -9,18 +9,20 @@
      public static final Executor CHECKED_MAIN_THREAD_EXECUTOR = p_294078_ -> {
          Executor executor = mainThreadExecutor;
          if (executor != null) {
-@@ -75,8 +_,8 @@
+@@ -75,9 +_,9 @@
          profileCacheById = CacheBuilder.newBuilder()
              .expireAfterAccess(Duration.ofMinutes(10L))
              .maximumSize(256L)
 -            .build(new CacheLoader<UUID, CompletableFuture<Optional<GameProfile>>>() {
 -                public CompletableFuture<Optional<GameProfile>> load(UUID p_339657_) {
+-                    return SkullBlockEntity.fetchProfileById(p_339657_, p_222886_, booleansupplier);
 +            .build(new CacheLoader<>() {
 +                public CompletableFuture<Optional<GameProfile>> load(com.mojang.datafixers.util.Pair<java.util.UUID, @org.jetbrains.annotations.Nullable GameProfile> p_339657_) {
-                     return SkullBlockEntity.fetchProfileById(p_339657_, p_222886_, booleansupplier);
++                    return SkullBlockEntity.fetchProfileByIdPaper(p_339657_, p_222886_, booleansupplier);
                  }
              });
-@@ -87,23 +_,29 @@
+     }
+@@ -87,9 +_,9 @@
              .getAsync(p_339683_)
              .thenCompose(
                  p_339545_ -> {
@@ -32,15 +34,30 @@
                          : CompletableFuture.completedFuture(Optional.empty());
                  }
              );
-     }
- 
--    static CompletableFuture<Optional<GameProfile>> fetchProfileById(UUID p_339663_, Services p_339676_, BooleanSupplier p_339631_) {
-+    static CompletableFuture<Optional<GameProfile>> fetchProfileById(com.mojang.datafixers.util.Pair<java.util.UUID, @org.jetbrains.annotations.Nullable GameProfile> pair, Services p_339676_, BooleanSupplier p_339631_) {
-         return CompletableFuture.supplyAsync(() -> {
+@@ -100,10 +_,33 @@
              if (p_339631_.getAsBoolean()) {
                  return Optional.empty();
              } else {
--                ProfileResult profileresult = p_339676_.sessionService().fetchProfile(p_339663_, true);
++                // Paper start - fill player profile events
++                if (p_339676_.sessionService() instanceof com.destroystokyo.paper.profile.PaperMinecraftSessionService paperService) {
++                    final GameProfile profile = new com.mojang.authlib.GameProfile(p_339663_, "");
++                    return Optional.ofNullable(paperService.fetchProfile(profile, true)).map(ProfileResult::profile);
++                }
+                 ProfileResult profileresult = p_339676_.sessionService().fetchProfile(p_339663_, true);
+-                return Optional.ofNullable(profileresult).map(ProfileResult::profile);
+-            }
+-        }, Util.backgroundExecutor());
++                // Paper end - fill player profile events
++                return Optional.ofNullable(profileresult).map(ProfileResult::profile);
++            }
++        }, Util.PROFILE_EXECUTOR); // Paper - don't submit BLOCKING PROFILE LOOKUPS to the world gen thread
++    }
++
++    static CompletableFuture<Optional<GameProfile>> fetchProfileByIdPaper(com.mojang.datafixers.util.Pair<java.util.UUID, @org.jetbrains.annotations.Nullable GameProfile> pair, Services p_339676_, BooleanSupplier p_339631_) {
++        return CompletableFuture.supplyAsync(() -> {
++            if (p_339631_.getAsBoolean()) {
++                return Optional.empty();
++            } else {
 +                // Paper start - fill player profile events
 +                if (p_339676_.sessionService() instanceof com.destroystokyo.paper.profile.PaperMinecraftSessionService paperService) {
 +                    final GameProfile profile = pair.getSecond() != null ? pair.getSecond() : new com.mojang.authlib.GameProfile(pair.getFirst(), "");
@@ -48,9 +65,8 @@
 +                }
 +                ProfileResult profileresult = p_339676_.sessionService().fetchProfile(pair.getFirst(), true);
 +                // Paper end - fill player profile events
-                 return Optional.ofNullable(profileresult).map(ProfileResult::profile);
-             }
--        }, Util.backgroundExecutor());
++                return Optional.ofNullable(profileresult).map(ProfileResult::profile);
++            }
 +        }, Util.PROFILE_EXECUTOR); // Paper - don't submit BLOCKING PROFILE LOOKUPS to the world gen thread
      }
  

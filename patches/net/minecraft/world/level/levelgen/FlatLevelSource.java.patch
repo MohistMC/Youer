@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/levelgen/FlatLevelSource.java
 +++ b/net/minecraft/world/level/levelgen/FlatLevelSource.java
-@@ -34,17 +_,23 @@
+@@ -34,17 +_,32 @@
      private final FlatLevelGeneratorSettings settings;
  
      public FlatLevelSource(FlatLevelGeneratorSettings p_256337_) {
@@ -17,12 +17,21 @@
  
      @Override
 -    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256602_, RandomState p_255830_, long p_256355_) {
-+    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256602_, RandomState p_255830_, long p_256355_, org.spigotmc.SpigotWorldConfig conf) { // Spigot
++    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256602_, RandomState p_255830_, long p_256355_) { // Spigot
          Stream<Holder<StructureSet>> stream = this.settings
              .structureOverrides()
              .map(HolderSet::stream)
              .orElseGet(() -> p_256602_.listElements().map(p_255579_ -> (Holder<StructureSet>)p_255579_));
 -        return ChunkGeneratorStructureState.createForFlat(p_255830_, p_256355_, this.biomeSource, stream);
++        return ChunkGeneratorStructureState.createForFlat(p_255830_, p_256355_, this.biomeSource, stream, null); // Spigot
++    }
++
++    @Override
++    public ChunkGeneratorStructureState createStatePaper(HolderLookup<StructureSet> p_256602_, RandomState p_255830_, long p_256355_, org.spigotmc.SpigotWorldConfig conf) { // Spigot
++        Stream<Holder<StructureSet>> stream = this.settings
++                .structureOverrides()
++                .map(HolderSet::stream)
++                .orElseGet(() -> p_256602_.listElements().map(p_255579_ -> (Holder<StructureSet>)p_255579_));
 +        return ChunkGeneratorStructureState.createForFlat(p_255830_, p_256355_, this.biomeSource, stream, conf); // Spigot
      }
  

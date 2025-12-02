@@ -7,7 +7,15 @@
  import com.mojang.datafixers.util.Pair;
  import com.mojang.serialization.Codec;
  import com.mojang.serialization.MapCodec;
-@@ -76,12 +_,16 @@
+@@ -18,6 +_,7 @@
+ import java.util.Set;
+ import java.util.Map.Entry;
+ import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.Function;
+ import java.util.function.Predicate;
+ import java.util.function.Supplier;
+@@ -76,12 +_,17 @@
  import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
  import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
  import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -15,6 +23,7 @@
 +import org.bukkit.craftbukkit.util.RandomSourceWrapper;
 +import org.bukkit.craftbukkit.generator.structure.CraftStructure;
 +import org.bukkit.generator.BlockPopulator;import org.spigotmc.AsyncCatcher;
++import org.spigotmc.SpigotWorldConfig;
  
  public abstract class ChunkGenerator {
      public static final Codec<ChunkGenerator> CODEC = BuiltInRegistries.CHUNK_GENERATOR
@@ -25,7 +34,7 @@
      private final Supplier<List<FeatureSorter.StepFeatureData>> featuresPerStep;
      public final Function<Holder<Biome>, BiomeGenerationSettings> generationSettingsGetter;
  
-@@ -92,19 +_,24 @@
+@@ -92,19 +_,29 @@
      public ChunkGenerator(BiomeSource p_255838_, Function<Holder<Biome>, BiomeGenerationSettings> p_256216_) {
          this.biomeSource = p_255838_;
          this.generationSettingsGetter = p_256216_;
@@ -45,22 +54,32 @@
      }
  
      protected abstract MapCodec<? extends ChunkGenerator> codec();
++    public AtomicReference<SpigotWorldConfig> createState$conf = new AtomicReference<>();
++    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256405_, RandomState p_256101_, long p_256018_) { // Spigot
++        return ChunkGeneratorStructureState.createForNormal(p_256101_, p_256018_, this.biomeSource, p_256405_, createState$conf.getAndSet(null)); // Spigot
++    }
  
 -    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256405_, RandomState p_256101_, long p_256018_) {
 -        return ChunkGeneratorStructureState.createForNormal(p_256101_, p_256018_, this.biomeSource, p_256405_);
-+    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256405_, RandomState p_256101_, long p_256018_, org.spigotmc.SpigotWorldConfig conf) { // Spigot
-+        return ChunkGeneratorStructureState.createForNormal(p_256101_, p_256018_, this.biomeSource, p_256405_, conf); // Spigot
++    public ChunkGeneratorStructureState createStatePaper(HolderLookup<StructureSet> p_256405_, RandomState p_256101_, long p_256018_, org.spigotmc.SpigotWorldConfig conf) { // Spigot
++        createState$conf.set(conf);
++        return createState(p_256405_, p_256101_, p_256018_);
      }
  
      public Optional<ResourceKey<MapCodec<? extends ChunkGenerator>>> getTypeNameForDataFixer() {
-@@ -132,6 +_,24 @@
+@@ -132,6 +_,34 @@
      public Pair<BlockPos, Holder<Structure>> findNearestMapStructure(
          ServerLevel p_223038_, HolderSet<Structure> p_223039_, BlockPos p_223040_, int p_223041_, boolean p_223042_
      ) {
 +        // Paper start - StructuresLocateEvent
 +        final org.bukkit.World bukkitWorld = p_223038_.getWorld();
 +        final org.bukkit.Location origin = io.papermc.paper.util.MCUtil.toLocation(p_223038_, p_223040_);
-+        final List<org.bukkit.generator.structure.Structure> apiStructures = p_223039_.stream().map(Holder::value).map(nms -> org.bukkit.craftbukkit.generator.structure.CraftStructure.minecraftToBukkit(nms)).toList();
++        final List<org.bukkit.generator.structure.Structure> apiStructures = p_223039_.stream().map(Holder::value).map(new Function<Structure, org.bukkit.generator.structure.Structure>() {
++            @Override
++            public org.bukkit.generator.structure.Structure apply(Structure nms) {
++                return CraftStructure.minecraftToBukkit(nms);
++            }
++        }).toList();
 +        if (!apiStructures.isEmpty()) {
 +            final io.papermc.paper.event.world.StructuresLocateEvent event = new io.papermc.paper.event.world.StructuresLocateEvent(bukkitWorld, origin, apiStructures, p_223041_, p_223042_);
 +            if (!event.callEvent()) {
@@ -72,7 +91,12 @@
 +            p_223040_ = io.papermc.paper.util.MCUtil.toBlockPosition(event.getOrigin());
 +            p_223041_ = event.getRadius();
 +            p_223042_ = event.shouldFindUnexplored();
-+            p_223039_ = HolderSet.direct(api -> p_223038_.registryAccess().registryOrThrow(Registries.STRUCTURE).wrapAsHolder(org.bukkit.craftbukkit.generator.structure.CraftStructure.bukkitToMinecraft(api)), event.getStructures());
++            p_223039_ = HolderSet.direct(new Function<org.bukkit.generator.structure.Structure, Holder<Structure>>() {
++                @Override
++                public Holder<Structure> apply(org.bukkit.generator.structure.Structure api) {
++                    return p_223038_.registryAccess().registryOrThrow(Registries.STRUCTURE).wrapAsHolder(CraftStructure.bukkitToMinecraft(api));
++                }
++            }, event.getStructures());
 +        }
 +        // Paper end
          ChunkGeneratorStructureState chunkgeneratorstructurestate = p_223038_.getChunkSource().getGeneratorState();
@@ -146,6 +170,16 @@
      public abstract int getGenDepth();
  
      public WeightedRandomList<MobSpawnSettings.SpawnerData> getMobsAt(
+@@ -479,7 +_,8 @@
+                         }
+                     }
+ 
+-                    if (structureplacement.isStructureChunk(p_256505_, chunkpos.x, chunkpos.z)) {
++                    structureplacement.structureSetKey = structureplacement instanceof net.minecraft.world.level.chunk.ChunkGeneratorStructureState.KeyedRandomSpreadStructurePlacement keyed ? keyed.key : null;
++                    if (structureplacement.isStructureChunk(p_256505_, chunkpos.x, chunkpos.z)) { // Paper - Add missing structure set seed configs
+                         if (list.size() == 1) {
+                             this.tryGenerateStructure(
+                                 list.get(0), p_255934_, p_255835_, randomstate, p_255832_, p_256505_.getLevelSeed(), p_255767_, chunkpos, sectionpos
 @@ -551,6 +_,22 @@
              p_223107_, this, this.biomeSource, p_223108_, p_223109_, p_223110_, p_223112_, i, p_223111_, predicate
          );
