@@ -98,10 +98,9 @@ public class NeoForgeInjectBukkit {
 
     public static void addEnumMaterialInItems() {
         var registry = BuiltInRegistries.ITEM;
-        List<String> materials = Arrays.stream(Material.values())
-                .filter(Material::isItem)
+        List<String> materials = new ArrayList<>(Arrays.stream(Material.values())
                 .map(Enum::name)
-                .toList();
+                .toList());
         for (Item item : registry) {
             ResourceLocation resourceLocation = registry.getKey(item);
             boolean isMod = isMods(resourceLocation);
@@ -120,14 +119,14 @@ public class NeoForgeInjectBukkit {
                 }
             }
         }
+        materials.clear();
     }
 
     public static void addEnumMaterialsInBlocks() {
         var registry = BuiltInRegistries.BLOCK;
-        List<String> materials = Arrays.stream(Material.values())
-                .filter(Material::isBlock)
+        List<String> materials = new ArrayList<>(Arrays.stream(Material.values())
                 .map(Enum::name)
-                .toList();
+                .toList());
         for (Block block : registry) {
             ResourceLocation resourceLocation = registry.getKey(block);
             boolean isMod = isMods(resourceLocation);
@@ -147,6 +146,7 @@ public class NeoForgeInjectBukkit {
                 }
             }
         }
+        materials.clear();
     }
 
     public static void addEnumMaterialsInBlockEntityType() {
