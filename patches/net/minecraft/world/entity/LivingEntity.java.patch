@@ -303,7 +303,6 @@
          this.brain.clearMemories();
      }
  
--    protected void triggerOnDeathMobEffects(Entity.RemovalReason p_350496_) {
 +    @Override
 +    public void removeCB(RemovalReason p_276115_, EntityRemoveEvent.Cause cause) {
 +        // CraftBukkit end
@@ -315,7 +314,7 @@
 +        this.brain.clearMemories();
 +    }
 +
-+    protected void triggerOnDeathMobEffects(RemovalReason p_350496_) {
+     protected void triggerOnDeathMobEffects(Entity.RemovalReason p_350496_) {
          for (MobEffectInstance mobeffectinstance : this.getActiveEffects()) {
              mobeffectinstance.onMobRemoved(this, p_350496_);
          }
@@ -1368,7 +1367,7 @@
                  }
  
                  return p_21194_;
-@@ -1679,11 +_,16 @@
+@@ -1679,11 +_,20 @@
  
      protected void actuallyHurt(DamageSource p_21240_, float p_21241_) {
          if (!this.isInvulnerableTo(p_21240_)) {
@@ -1378,7 +1377,11 @@
 -            this.setAbsorptionAmount(this.getAbsorptionAmount() - (p_21241_ - f1));
 -            float f = p_21241_ - f1;
 +            float armorAbsorb = this.getDamageAfterArmorAbsorb(p_21240_, this.damageContainers.peek().getNewDamage());
-+            armorAbsorb += event.getDamage(EntityDamageEvent.DamageModifier.ARMOR);
++            if (event != null && event.isApplicable(EntityDamageEvent.DamageModifier.ARMOR) && event.isStillOriginal(EntityDamageEvent.DamageModifier.ARMOR, event.getDamage(), armorAbsorb)) {
++                armorAbsorb = (float) (event.getDamage() + event.getDamage(EntityDamageEvent.DamageModifier.ARMOR));
++            } else {
++                armorAbsorb = (float) (event.getDamage() + (float) (armorAbsorb - event.getDamage()));
++            }
 +            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ARMOR, this.damageContainers.peek().getNewDamage() - armorAbsorb);
 +            this.getDamageAfterMagicAbsorb(p_21240_, this.damageContainers.peek().getNewDamage());
 +            float damage = net.neoforged.neoforge.common.CommonHooks.onLivingDamagePre(this, this.damageContainers.peek());

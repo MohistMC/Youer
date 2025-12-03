@@ -50,7 +50,6 @@ public class YouerPlugin {
         WarpsConfig.init();
         EntityClear.start();
         GlobalVariableSystem.register();
-
     }
 
     public static void registerCommands(Map<String, Command> commands) {

@@ -530,15 +530,13 @@
                      if (j < Math.min(i, 8)) {
                          BlockState blockstate1 = blockstate.setValue(SnowLayerBlock.LAYERS, Integer.valueOf(j + 1));
                          Block.pushEntitiesUp(blockstate, blockstate1, this, blockpos);
--                        this.setBlockAndUpdate(blockpos, blockstate1);
 +                        this.callEvent(true);
-+                        this.setBlockAndUpdate(blockpos1, blockstate1);
+                         this.setBlockAndUpdate(blockpos, blockstate1);
 +                        CraftEventFactory.handleBlockFormEvent(this, blockpos, this.mohist$defaultBlockState, null); // CraftBukkit
                      }
                  } else {
--                    this.setBlockAndUpdate(blockpos, Blocks.SNOW.defaultBlockState());
 +                    this.callEvent(true);
-+                    this.setBlockAndUpdate(blockpos1, Blocks.SNOW.defaultBlockState());
+                     this.setBlockAndUpdate(blockpos, Blocks.SNOW.defaultBlockState());
 +                    CraftEventFactory.handleBlockFormEvent(this, blockpos, this.mohist$defaultBlockState, null); // CraftBukkit
                  }
              }
@@ -962,7 +960,7 @@
          VoxelShape voxelshape1 = p_8756_.getCollisionShape(this, p_8755_);
          VoxelShape voxelshape = p_8757_.getCollisionShape(this, p_8755_);
          if (Shapes.joinIsNotEmpty(voxelshape1, voxelshape, BooleanOp.NOT_SAME)) {
-@@ -1053,15 +_,22 @@
+@@ -1053,15 +_,21 @@
                  this.isUpdatingNavigations = false;
              }
          }
@@ -971,7 +969,6 @@
  
      @Override
      public void updateNeighborsAt(BlockPos p_215045_, Block p_215046_) {
-+        if (captureBlockStates) { return; } // Paper - Cancel all physics during placement
 +        net.neoforged.neoforge.event.EventHooks.onNeighborNotify(this, p_215045_, this.getBlockState(p_215045_), java.util.EnumSet.allOf(Direction.class), false).isCanceled();
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(p_215045_, p_215046_, null);
      }

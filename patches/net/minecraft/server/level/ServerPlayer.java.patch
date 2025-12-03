@@ -172,8 +172,8 @@
          }
  
          private void broadcastDataValue(AbstractContainerMenu p_143455_, int p_143456_, int p_143457_) {
-+            if (ServerPlayer.this.connection.hasChannel(AdvancedContainerSetDataPayload.TYPE)) {
-+                ServerPlayer.this.connection.send(new AdvancedContainerSetDataPayload((byte) p_143455_.containerId, (short) p_143456_, p_143457_));
++            if (ServerPlayer.this.connection.hasChannel(net.neoforged.neoforge.network.payload.AdvancedContainerSetDataPayload.TYPE)) {
++                ServerPlayer.this.connection.send(new net.neoforged.neoforge.network.payload.AdvancedContainerSetDataPayload((byte) p_143455_.containerId, (short) p_143456_, p_143457_));
 +                return;
 +            }
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(p_143455_.containerId, p_143456_, p_143457_));
@@ -792,7 +792,7 @@
      @Override
      public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos p_9115_) {
 +        // Neo: Encapsulate the vanilla check logic to supply to the CanPlayerSleepEvent
-+        var vanillaResult = ((Supplier<Either<Player.BedSleepingProblem, Unit>>) () -> {
++        var vanillaResult = ((java.util.function.Supplier<Either<BedSleepingProblem, Unit>>) () -> {
 +        // Guard against modded beds that may not have the FACING property.
 +        // We just return success (Unit) here. Modders will need to implement conditions in the CanPlayerSleepEvent
 +        if (!this.level().getBlockState(p_9115_).hasProperty(HorizontalDirectionalBlock.FACING)) {
@@ -803,12 +803,11 @@
          Direction direction = this.level().getBlockState(p_9115_).getValue(HorizontalDirectionalBlock.FACING);
          if (this.isSleeping() || !this.isAlive()) {
              return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
-@@ -962,8 +_,22 @@
+@@ -962,7 +_,21 @@
                          return Either.left(Player.BedSleepingProblem.NOT_SAFE);
                      }
                  }
 -
--                Either<Player.BedSleepingProblem, Unit> either = super.startSleepInBed(p_9115_).ifRight(p_9029_ -> {
 +        // End vanilla code
 +            }
 +        }
@@ -816,7 +815,7 @@
 +        }).get();
 +
 +        // Fire the event. Return the error if one exists after the event, otherwise use the vanilla logic to start sleeping.
-+        vanillaResult = EventHooks.canPlayerStartSleeping(this, p_9115_, vanillaResult);
++        vanillaResult = net.neoforged.neoforge.event.EventHooks.canPlayerStartSleeping(this, p_9115_, vanillaResult);
 +        if (vanillaResult.left().isPresent()) {
 +            return vanillaResult;
 +        }
@@ -824,10 +823,9 @@
 +        {
 +            {
 +                // Start vanilla code
-+                Either<BedSleepingProblem, Unit> either = super.startSleepInBed(p_9115_).ifRight(p_9029_ -> {
+                 Either<Player.BedSleepingProblem, Unit> either = super.startSleepInBed(p_9115_).ifRight(p_9029_ -> {
                      this.awardStat(Stats.SLEEP_IN_BED);
                      CriteriaTriggers.SLEPT_IN_BED.trigger(this);
-                 });
 @@ -984,6 +_,7 @@
      }
  
@@ -879,11 +877,11 @@
 +
      @Override
      public OptionalInt openMenu(@Nullable MenuProvider p_9033_) {
-+        return openMenu(p_9033_, (Consumer<RegistryFriendlyByteBuf>) null);
++        return openMenu(p_9033_, (java.util.function.Consumer<net.minecraft.network.RegistryFriendlyByteBuf>) null);
 +    }
 +
 +    @Override
-+    public OptionalInt openMenu(@Nullable MenuProvider p_9033_, @Nullable Consumer<RegistryFriendlyByteBuf> extraDataWriter) {
++    public OptionalInt openMenu(@Nullable MenuProvider p_9033_, @Nullable java.util.function.Consumer<net.minecraft.network.RegistryFriendlyByteBuf> extraDataWriter) {
          if (p_9033_ == null) {
              return OptionalInt.empty();
          } else {
