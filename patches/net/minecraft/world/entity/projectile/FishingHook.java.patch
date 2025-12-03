@@ -85,7 +85,7 @@
                      return;
                  }
              } else {
-@@ -240,23 +_,23 @@
+@@ -240,23 +_,24 @@
      private boolean shouldStopFishing(Player p_37137_) {
          ItemStack itemstack = p_37137_.getMainHandItem();
          ItemStack itemstack1 = p_37137_.getOffhandItem();
@@ -97,7 +97,8 @@
              return false;
          } else {
 -            this.discard();
-+            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN);
++            this.discard(); // CraftBukkit - add Bukkit remove cause
              return true;
          }
      }
@@ -153,7 +154,7 @@
                  this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
                  double d3 = this.getY() + 0.5;
                  serverlevel.sendParticles(
-@@ -371,16 +_,35 @@
+@@ -371,16 +_,36 @@
              }
  
              if (this.timeUntilLured <= 0) {
@@ -177,7 +178,8 @@
 -            this.timeUntilLured = Mth.nextInt(this.random, 100, 600);
 -            this.timeUntilLured = this.timeUntilLured - this.lureSpeed;
 +            // CraftBukkit start - logic to modify fishing wait time
-+            this.resetTimeUntilLured(); // Paper - more projectile api - extract time until lured reset logic
++            this.timeUntilLured = Mth.nextInt(this.random, this.minWaitTime, this.maxWaitTime);
++            this.timeUntilLured -= (this.applyLure) ? (this.lureSpeed >= this.maxWaitTime ? this.timeUntilLured - 1 : this.lureSpeed ) : 0; // Paper - Fix Lure infinite loop
 +            // CraftBukkit end
          }
      }
