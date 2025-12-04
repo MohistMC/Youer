@@ -2,9 +2,7 @@ package com.mohistmc.youer.api;
 
 import com.mohistmc.youer.util.I18n;
 import java.net.SocketAddress;
-import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.md_5.bungee.api.chat.ClickEvent;

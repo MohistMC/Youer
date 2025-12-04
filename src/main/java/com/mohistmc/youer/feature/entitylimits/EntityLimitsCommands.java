@@ -1,8 +1,6 @@
 package com.mohistmc.youer.feature.entitylimits;
 
-import com.mohistmc.youer.api.EntityAPI;
 import com.mohistmc.youer.api.ItemAPI;
-import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;

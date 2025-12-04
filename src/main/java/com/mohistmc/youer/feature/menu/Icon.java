@@ -17,8 +17,8 @@ public class Icon {
     private Integer amount;
     private List<String> requiredItems;
     private boolean keepOpen;
-    private String permission;
-    private String permissionMessage;
+    private String use_permission;
+    private String display_permission;
     private boolean hideTooltip;
     private Integer customModelData;
     private List<ItemFlag> itemFlags;

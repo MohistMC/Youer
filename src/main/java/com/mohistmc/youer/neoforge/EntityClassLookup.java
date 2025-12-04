@@ -3,7 +3,6 @@ package com.mohistmc.youer.neoforge;
 import com.mohistmc.youer.bukkit.entity.YouerModsAbstractHorse;
 import com.mohistmc.youer.bukkit.entity.YouerModsChestHorse;
 import com.mohistmc.youer.bukkit.entity.YouerModsEntity;
-import com.mohistmc.youer.bukkit.entity.YouerModsFireballEntity;
 import com.mohistmc.youer.bukkit.entity.YouerModsMinecart;
 import com.mohistmc.youer.bukkit.entity.YouerModsMinecartContainer;
 import com.mohistmc.youer.bukkit.entity.YouerModsMob;

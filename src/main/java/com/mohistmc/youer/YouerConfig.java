@@ -10,6 +10,7 @@ import com.mohistmc.youer.commands.ShowsCommand;
 import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.feature.YouerPlugin;
 import com.mohistmc.youer.feature.ban.BansCommand;
+import com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;
 import java.io.IOException;
@@ -142,7 +143,7 @@ public class YouerConfig {
         commands.put("bans", new BansCommand("bans"));
         commands.put("shows", new ShowsCommand("shows"));
         commands.put("infos", new InfoCommand("infos"));
-
+        EntityLimitsConfig.init();
         YouerPlugin.registerCommands(commands);
 
         version = getInt("config-version", 1);

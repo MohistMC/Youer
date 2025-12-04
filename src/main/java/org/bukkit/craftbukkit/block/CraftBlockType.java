@@ -66,7 +66,7 @@ public class CraftBlockType<B extends BlockData> implements BlockType.Typed<B>, 
                 }
             }
         } catch (NoClassDefFoundError | Exception ignored) {
-            return true;
+            return false;
         }
 
         return hasMethod;

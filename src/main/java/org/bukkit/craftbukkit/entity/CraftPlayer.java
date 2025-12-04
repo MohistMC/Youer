@@ -385,7 +385,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         if (message == null) message = "";
         if (this.getHandle().connection == null) return;
 
-        for (Component component : CraftChatMessage.fromString(GlobalVariableSystem.as(this, message))) {
+        for (Component component : CraftChatMessage.fromString(ColorAPI.string(GlobalVariableSystem.as(this, message)))) {
             this.getHandle().sendSystemMessage(component);
         }
     }
@@ -393,7 +393,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     @Override
     public void sendMessage(String message) {
         if (!this.conversationTracker.isConversingModaly()) {
-            this.sendMessage(ColorAPI.adventure(message));
+            this.sendRawMessage(message);
         }
     }
 
@@ -431,7 +431,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     @Deprecated
     public void sendActionBar(String message) {
         if (getHandle().connection == null || message == null || message.isEmpty()) return;
-        getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket(CraftChatMessage.fromStringOrNull(message)));
+        getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket(CraftChatMessage.fromStringOrNull(GlobalVariableSystem.as(this, ColorAPI.string(message)))));
     }
 
     @Override

@@ -155,8 +155,8 @@ public class MenuCommand extends Command {
                         config.getInt(key + ".AMOUNT") : null);
                 icon.setRequiredItems(config.getStringList(key + ".REQUIRED-ITEMS"));
                 icon.setKeepOpen(config.getBoolean(key + ".KEEP-OPEN", false));
-                icon.setPermission(config.getString(key + ".PERMISSION"));
-                icon.setPermissionMessage(config.getString(key + ".PERMISSION-MESSAGE"));
+                icon.setDisplay_permission(config.getString(key + ".DISPLAY-PERMISSION"));
+                icon.setUse_permission(config.getString(key + ".USE-PERMISSION"));
                 icon.setCustomModelData(config.contains(key + ".CUSTOMMODELDATA") ?
                         config.getInt(key + ".CUSTOMMODELDATA") : null);
                 icon.setHideTooltip(config.getBoolean(key + ".HIDE-TOOLTIP", false));

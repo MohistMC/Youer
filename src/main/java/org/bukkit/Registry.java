@@ -3,6 +3,7 @@ package org.bukkit;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
@@ -538,16 +539,27 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
         return (namespacedKey != null) ? get(namespacedKey) : null;
     }
 
+    default void reload() {
+
+    }
+
     static final class SimpleRegistry<T extends Enum<T> & Keyed> implements Registry<T> {
 
         private final Class<T> type;
-        private final Map<NamespacedKey, T> map;
+        private Map<NamespacedKey, T> map;
+        private final Runnable reloadCallback;
 
         protected SimpleRegistry(@NotNull Class<T> type) {
             this(type, Predicates.<T>alwaysTrue());
         }
 
         protected SimpleRegistry(@NotNull Class<T> type, @NotNull Predicate<T> predicate) {
+            this.map = buildMap(type, predicate);
+            this.type = type;
+            this.reloadCallback = () -> this.map = buildMap(type, predicate);
+        }
+
+        private ImmutableMap<NamespacedKey, T> buildMap(@NotNull Class<T> type, @NotNull Predicate<T> predicate) {
             ImmutableMap.Builder<NamespacedKey, T> builder = ImmutableMap.builder();
 
             for (T entry : type.getEnumConstants()) {
@@ -556,8 +568,12 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
                 }
             }
 
-            map = builder.build();
-            this.type = type;
+            return builder.build();
+        }
+
+        @Override
+        public void reload() {
+            this.reloadCallback.run();
         }
 
         @Nullable

@@ -41,7 +41,6 @@ public class YouerPlugin {
     public static Logger LOGGER = LogManager.getLogger("MohistPlugin");
 
     public static void init() {
-        EntityLimitsConfig.init();
         if (CommandsConfig.INSTANCE.enable("worlds.enable")) {
             WorldManage.onEnable();
         }

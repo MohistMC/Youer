@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableMap;
 import com.mohistmc.dynamicenum.MohistDynamEnum;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.ServerAPI;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -13,7 +14,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -88,6 +88,7 @@ public class NeoForgeInjectBukkit {
         loadSpawnCategory();
         addPose();
         addModSound();
+        reloadBukkitRegistries();
     }
 
     private static String getMaterialName(ResourceLocation resourceLocation, boolean isMod) {
@@ -366,5 +367,16 @@ public class NeoForgeInjectBukkit {
 
     public static boolean isMods(ResourceLocation resourceLocation) {
         return resourceLocation != null && !resourceLocation.getNamespace().equals(NamespacedKey.MINECRAFT);
+    }
+
+    public static void reloadBukkitRegistries() {
+        try {
+            for (var field : org.bukkit.Registry.class.getFields()) {
+                if (Modifier.isStatic(field.getModifiers()) && field.get(null) instanceof org.bukkit.Registry.SimpleRegistry<?> registry) {
+                    registry.reload();
+                }
+            }
+        } catch (Throwable ignored) {
+        }
     }
 }

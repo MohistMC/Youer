@@ -5,6 +5,7 @@ import com.mohistmc.youer.api.gui.DefaultGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.GUIType;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
+import com.mohistmc.youer.feature.GlobalVariableSystem;
 import java.util.List;
 import java.util.Map;
 import org.bukkit.Bukkit;
@@ -87,16 +88,20 @@ public class MenuGUI {
             ItemStack itemStack = itemFactory.build();
 
             int slot = (icon.getPositionY() - 1) * 9 + (icon.getPositionX() - 1);
-            gui.setItem(slot, new GUIItem(itemStack) {
-                @Override
-                public void ClickAction(ClickType type, Player p, ItemStack clickedItem) {
-                    handleIconClick(p, icon);
+            if (player.hasPermission(icon.getDisplay_permission())) {
+                gui.setItem(slot, new GUIItem(itemStack) {
+                    @Override
+                    public void ClickAction(ClickType type, Player p, ItemStack clickedItem) {
+                        if (p.hasPermission(icon.getUse_permission())) {
+                            handleIconClick(p, icon);
 
-                    if (!icon.isKeepOpen()) {
-                        p.closeInventory();
+                            if (!icon.isKeepOpen()) {
+                                p.closeInventory();
+                            }
+                        }
                     }
-                }
-            });
+                });
+            }
         }
 
         gui.openGUI(player);
@@ -118,21 +123,21 @@ public class MenuGUI {
     private static void processAction(Player player, String action) {
         if (action.startsWith("tell:")) {
             String message = action.substring(5).trim();
-            player.sendMessage(message);
-        } else if (action.equals("player:")) {
+            player.sendMessage(GlobalVariableSystem.as(player, message));
+        } else if (action.startsWith("player:")) {
             String cmd = action.substring(7).trim();
-            player.performCommand(cmd);
-        } else if (action.equals("console:")) {
+            player.performCommand(GlobalVariableSystem.as(player, cmd));
+        } else if (action.startsWith("console:")) {
             String cmd = action.substring(8).trim();
-            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), cmd);
-        } else if (action.equals("op:")) {
+            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), GlobalVariableSystem.as(player, cmd));
+        } else if (action.startsWith("op:")) {
             String cmd = action.substring(3).trim();
             boolean op = player.isOp();
             try {
                 if (!op) {
                     player.setOp(true);
                 }
-                player.performCommand(cmd);
+                player.performCommand(GlobalVariableSystem.as(player, cmd));
             } finally {
                 player.setOp(op);
             }

@@ -1,10 +1,10 @@
 package com.mohistmc.youer.commands;
 
-import org.bukkit.command.defaults.BukkitCommand;
+import java.util.ArrayList;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;
-import java.util.ArrayList;
 import org.jetbrains.annotations.NotNull;
 
 /**

@@ -270,10 +270,6 @@ public class YouerCommand extends Command {
 
                 return true;
             }
-            case "help" -> {
-                showHelp(sender);
-                return true;
-            }
 
             case "channels_incom" -> sender.sendMessage(ServerAPI.channels_Incoming().toString());
             case "printthreadcost" -> YouerThreadCost.dumpThreadCpuTime(sender);
