@@ -13,7 +13,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  * ColorAPI
  * Only use internally, because where it needs to be used externally, we've hardhooked it in the underlying code
  */
-public final class ColorAPI {
+public class ColorAPI {
 
     private static final Pattern GRADIENT_PATTERN = Pattern.compile("<gradient(?:[:]#?[0-9A-Fa-f]{6}|[:][\\w\\u4e00-\\u9fa5]+)+>(.*?)</gradient>", Pattern.CASE_INSENSITIVE);
     private static final Pattern GRADIENT_COLORS = Pattern.compile("[:]([^:>]+)");
@@ -25,12 +25,9 @@ public final class ColorAPI {
 
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
 
-    /**
-     * Main color processing method - returns net.kyori.adventure.text.Component
-     */
-    public static Component adventure(String text) {
+    private static String processText(String text) {
         if (text == null || text.isEmpty()) {
-            return Component.empty();
+            return text == null ? "" : text;
         }
 
         String processed = text;
@@ -38,16 +35,21 @@ public final class ColorAPI {
         processed = processSolidColors(processed);
         processed = processHexColors(processed);
         processed = processLegacyCodes(processed);
+        return processed;
+    }
 
-        return LEGACY_SERIALIZER.deserialize(processed);
+    /**
+     * Main color processing method - returns net.kyori.adventure.text.Component
+     */
+    public static Component adventure(String text) {
+        return LEGACY_SERIALIZER.deserialize(processText(text));
     }
 
     /**
      * Main color processing method - returns string
      */
     public static String string(String text) {
-        Component component = adventure(text);
-        return LEGACY_SERIALIZER.serialize(component);
+        return processText(text);
     }
 
     /**
@@ -58,11 +60,11 @@ public final class ColorAPI {
     }
 
     /**
-     * Process all gradient types (both two-color and multi-color)
+     * Process all gradient types (both two-color and multicolor)
      */
     private static String processGradients(String text) {
         Matcher matcher = GRADIENT_PATTERN.matcher(text);
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
 
         while (matcher.find()) {
             String fullTag = matcher.group(0);
@@ -301,7 +303,7 @@ public final class ColorAPI {
 
         ChineseColors chineseColor = ChineseColors.getByName(color);
         if (chineseColor != null) {
-            return chineseColor.getHexCode().substring(1); // 移除#
+            return chineseColor.getHexCode().substring(1);
         }
         return color;
     }
