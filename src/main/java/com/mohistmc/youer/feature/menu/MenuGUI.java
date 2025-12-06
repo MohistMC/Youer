@@ -88,20 +88,17 @@ public class MenuGUI {
             ItemStack itemStack = itemFactory.build();
 
             int slot = (icon.getPositionY() - 1) * 9 + (icon.getPositionX() - 1);
-            if (player.hasPermission(icon.getDisplay_permission())) {
-                gui.setItem(slot, new GUIItem(itemStack) {
-                    @Override
-                    public void ClickAction(ClickType type, Player p, ItemStack clickedItem) {
-                        if (p.hasPermission(icon.getUse_permission())) {
-                            handleIconClick(p, icon);
-
-                            if (!icon.isKeepOpen()) {
-                                p.closeInventory();
-                            }
-                        }
+            if (icon.hasDisplayPermission() && !player.hasPermission(icon.getDisplay_permission())) return;
+            gui.setItem(slot, new GUIItem(itemStack) {
+                @Override
+                public void ClickAction(ClickType type, Player p, ItemStack clickedItem) {
+                    if (icon.hasUsePermission() && !p.hasPermission(icon.getUse_permission())) return;
+                    handleIconClick(p, icon);
+                    if (!icon.isKeepOpen()) {
+                        p.closeInventory();
                     }
-                });
-            }
+                }
+            });
         }
 
         gui.openGUI(player);

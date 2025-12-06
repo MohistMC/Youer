@@ -23,4 +23,12 @@ public class Icon {
     private Integer customModelData;
     private List<ItemFlag> itemFlags;
     private String base64;
+
+    public boolean hasDisplayPermission() {
+        return display_permission != null;
+    }
+
+    public boolean hasUsePermission() {
+        return use_permission != null;
+    }
 }

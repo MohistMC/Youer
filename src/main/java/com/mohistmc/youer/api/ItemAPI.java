@@ -195,7 +195,7 @@ public class ItemAPI {
     }
 
     public static boolean isBan(ItemStack itemStack) {
-        if (itemStack == null) return false;
+        if (itemStack == null || BanConfig.ITEM.getItem().isEmpty()) return false;
         return BanConfig.ITEM.getItem().contains(itemStack.getType().getKey().asString());
     }
 
