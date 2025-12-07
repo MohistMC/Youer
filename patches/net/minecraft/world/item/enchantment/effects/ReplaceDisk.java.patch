@@ -16,12 +16,15 @@
  
  public record ReplaceDisk(
      LevelBasedValue radius,
-@@ -48,7 +_,7 @@
+@@ -46,9 +_,10 @@
+         int j = (int)this.height.calculate(p_353076_);
+ 
          for (BlockPos blockpos1 : BlockPos.betweenClosed(blockpos.offset(-i, 0, -i), blockpos.offset(i, Math.min(j - 1, 0), i))) {
++            p_353045_.callEvent(true);
              if (blockpos1.distToCenterSqr(p_353044_.x(), (double)blockpos1.getY() + 0.5, p_353044_.z()) < (double)Mth.square(i)
                  && this.predicate.map(p_353051_ -> p_353051_.test(p_353045_, blockpos1)).orElse(true)
 -                && p_353045_.setBlockAndUpdate(blockpos1, this.blockState.getState(randomsource, blockpos1))) {
-+                && CraftEventFactory.handleBlockFormEvent(p_353045_, blockpos1, this.blockState.getState(randomsource, blockpos1), p_353038_)) {
++                && (p_353045_.setBlockAndUpdate(blockpos1, this.blockState.getState(randomsource, blockpos1)) || CraftEventFactory.handleBlockFormEvent(p_353045_, blockpos1, p_353045_.youer$defaultBlockState))) {
                  this.triggerGameEvent.ifPresent(p_353037_ -> p_353045_.gameEvent(p_353038_, (Holder<GameEvent>)p_353037_, blockpos1));
              }
          }
