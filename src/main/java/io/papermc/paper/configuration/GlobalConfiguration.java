@@ -234,7 +234,7 @@ public class GlobalConfiguration extends ConfigurationPart {
 
     public class PacketLimiter extends ConfigurationPart {
         public Component kickMessage = Component.translatable("disconnect.exceeded_packet_rate", NamedTextColor.RED);
-        public PacketLimit allPackets = new PacketLimit(7.0, 500.0, PacketLimit.ViolateAction.KICK);
+        public PacketLimit allPackets = new PacketLimit(7.0, 8192.0, PacketLimit.ViolateAction.KICK);
         public Map<Class<? extends Packet<?>>, PacketLimit> overrides = Map.of(ServerboundPlaceRecipePacket.class, new PacketLimit(4.0, 5.0, PacketLimit.ViolateAction.DROP));
 
         @ConfigSerializable

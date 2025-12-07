@@ -44,6 +44,12 @@ public final class CommandHelper {
         sourceToResult.put(sourceNode, resultNode);
         List<CommandNode<S>> children = new ArrayList<>(sourceNode.getChildren());
         for (CommandNode<S> sourceChild : children) {
+            // Paper start - Brigadier API
+            if (sourceChild.clientNode != null) {
+                sourceChild = (CommandNode<S>) sourceChild.clientNode;
+            }
+            // Paper end - Brigadier API
+            if ( !org.spigotmc.SpigotConfig.sendNamespaced && sourceChild.getName().contains( ":" ) ) continue; // Spigot
             if (sourceChild.canUse(canUse)) {
                 resultNode.addChild(toResult(sourceChild, sourceToResult, canUse, execute, sourceToResultSuggestion));
             }

@@ -1367,7 +1367,7 @@
                  }
  
                  return p_21194_;
-@@ -1679,11 +_,20 @@
+@@ -1679,11 +_,21 @@
  
      protected void actuallyHurt(DamageSource p_21240_, float p_21241_) {
          if (!this.isInvulnerableTo(p_21240_)) {
@@ -1377,10 +1377,11 @@
 -            this.setAbsorptionAmount(this.getAbsorptionAmount() - (p_21241_ - f1));
 -            float f = p_21241_ - f1;
 +            float armorAbsorb = this.getDamageAfterArmorAbsorb(p_21240_, this.damageContainers.peek().getNewDamage());
++            // TODO Youer DamageModifier hook DamageContainers
 +            if (event != null && event.isApplicable(EntityDamageEvent.DamageModifier.ARMOR) && event.isStillOriginal(EntityDamageEvent.DamageModifier.ARMOR, event.getDamage(), armorAbsorb)) {
-+                armorAbsorb = (float) (event.getDamage() + event.getDamage(EntityDamageEvent.DamageModifier.ARMOR));
++                //armorAbsorb = (float) (event.getDamage() + event.getDamage(EntityDamageEvent.DamageModifier.ARMOR));
 +            } else {
-+                armorAbsorb = (float) (event.getDamage() + (float) (armorAbsorb - event.getDamage()));
++                //armorAbsorb = (float) (event.getDamage() + (float) (armorAbsorb - event.getDamage()));
 +            }
 +            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ARMOR, this.damageContainers.peek().getNewDamage() - armorAbsorb);
 +            this.getDamageAfterMagicAbsorb(p_21240_, this.damageContainers.peek().getNewDamage());
