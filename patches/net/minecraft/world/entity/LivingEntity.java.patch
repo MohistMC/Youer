@@ -1110,13 +1110,6 @@
  
          this.dropEquipment();
 -        this.dropExperience(p_21192_.getEntity());
-+        if (this instanceof ServerPlayer) {
-+            if (shouldDropExperience.getAndSet(true)) {
-+                this.dropExperience(p_21192_.getEntity());
-+            }
-+        } else {
-+            this.dropExperience(p_21192_.getEntity());
-+        }
 +
 +        Collection<ItemEntity> drops = captureDrops(null);
 +        EmeraldClose.init(this, drops); // Mohist
@@ -1135,6 +1128,13 @@
 +        }
 +        if (!CommonHooks.onLivingDrops(this, p_21192_, drops, lastHurtByPlayerTime > 0))
 +            drops.forEach(e -> level().addFreshEntity(e));
++        if (this instanceof ServerPlayer) {
++            if (shouldDropExperience.getAndSet(true)) {
++                this.dropExperience(p_21192_.getEntity());
++            }
++        } else {
++            this.dropExperience(p_21192_.getEntity());
++        }
      }
  
      protected void dropEquipment() {
@@ -1151,7 +1151,7 @@
                      || this.lastHurtByPlayerTime > 0 && this.shouldDropExperience() && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)
              )) {
 -            ExperienceOrb.award(serverlevel, this.position(), this.getExperienceReward(serverlevel, p_345346_));
-+            int reward = EventHooks.getExperienceDrop(this, this.lastHurtByPlayer, this.getExperienceReward(serverlevel, p_345346_));
++            int reward = EventHooks.getExperienceDrop(this, this.lastHurtByPlayer, expToDrop);
 +            ExperienceOrb.awardPaper(this instanceof ServerPlayer ? org.bukkit.entity.ExperienceOrb.SpawnReason.PLAYER_DEATH : org.bukkit.entity.ExperienceOrb.SpawnReason.ENTITY_DEATH, p_345346_, this); // Paper
 +            ExperienceOrb.award((ServerLevel) this.level(), this.position(), reward);
          }
@@ -1330,15 +1330,19 @@
              for (EquipmentSlot equipmentslot : p_331314_) {
                  ItemStack itemstack = this.getItemBySlot(equipmentslot);
                  if (itemstack.getItem() instanceof ArmorItem && itemstack.canBeHurtBy(p_330843_)) {
-@@ -1625,7 +_,7 @@
+@@ -1625,9 +_,10 @@
          }
      }
  
 -    protected float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) {
++    public AtomicBoolean calDamageEvent = new AtomicBoolean(false);
 +    public float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) {
          if (!p_21162_.is(DamageTypeTags.BYPASSES_ARMOR)) {
-             this.hurtArmor(p_21162_, p_21163_);
+-            this.hurtArmor(p_21162_, p_21163_);
++            if (calDamageEvent.getAndSet(false)) this.hurtArmor(p_21162_, p_21163_);
              p_21163_ = CombatRules.getDamageAfterAbsorb(
+                 this, p_21163_, p_21162_, (float)this.getArmorValue(), (float)this.getAttributeValue(Attributes.ARMOR_TOUGHNESS)
+             );
 @@ -1636,7 +_,10 @@
          return p_21163_;
      }

@@ -30,7 +30,10 @@ public class BukkitDamageHooks {
         Function<Double, Double> blocking = f6 -> -((livingEntity.isDamageSourceBlocked(damagesource)) ? f6 : 0.0);
         float blockingModifier = blocking.apply((double) f).floatValue();
         f += blockingModifier;
-        Function<Double, Double> armor = f7 -> -(f7 - livingEntity.getDamageAfterArmorAbsorb(damagesource, f7.floatValue()));
+        Function<Double, Double> armor = f7 -> {
+            livingEntity.calDamageEvent.set(true);
+            return -(f7 - livingEntity.getDamageAfterArmorAbsorb(damagesource, f7.floatValue()));
+        };
         float armorModifier = armor.apply((double) f).floatValue();
         f += armorModifier;
         Function<Double, Double> resistance = f8 -> {
