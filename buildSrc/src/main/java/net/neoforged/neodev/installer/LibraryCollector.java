@@ -1,12 +1,7 @@
 package net.neoforged.neodev.installer;
 
-import net.neoforged.neodev.utils.MavenIdentifier;
-import org.gradle.api.logging.Logger;
-import org.gradle.api.logging.Logging;
-
 import java.io.File;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -23,9 +18,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
+import net.neoforged.neodev.utils.MavenIdentifier;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
 
 /**
  * For each file in a collection, finds the repository that the file came from.
@@ -56,12 +53,10 @@ class LibraryCollector {
     private static final List<String> HOST_WHITELIST = List.of(
             "minecraft.net",
             "neoforged.net",
-            "mojang.com"
-    );
+            "mojang.com");
 
     private static final URI MOJANG_MAVEN = URI.create("https://libraries.minecraft.net");
     private static final URI NEOFORGED_MAVEN = URI.create("https://maven.neoforged.net/releases");
-    private static final URI MOHISTMC_MAVEN = URI.create("https://maven.mohistmc.com");
 
     private final List<URI> repositoryUrls;
 
@@ -87,10 +82,8 @@ class LibraryCollector {
         // Always try Mojang Maven first, then our installer Maven
         repositoryUrls.removeIf(it -> it.getHost().equals(MOJANG_MAVEN.getHost()));
         repositoryUrls.removeIf(it -> it.getHost().equals(NEOFORGED_MAVEN.getHost()) && it.getPath().startsWith(NEOFORGED_MAVEN.getPath()));
-        repositoryUrls.removeIf(it -> it.getHost().equals(MOHISTMC_MAVEN.getHost()) && it.getPath().startsWith(MOHISTMC_MAVEN.getPath()));
-        repositoryUrls.addFirst(NEOFORGED_MAVEN);
-        repositoryUrls.addFirst(MOJANG_MAVEN);
-        repositoryUrls.addFirst(MOHISTMC_MAVEN);
+        repositoryUrls.add(0, NEOFORGED_MAVEN);
+        repositoryUrls.add(0, MOJANG_MAVEN);
 
         LOGGER.info("Collecting libraries from:");
         for (var repo : repositoryUrls) {
@@ -162,8 +155,7 @@ class LibraryCollector {
         try (var in = Files.newInputStream(path);
                 var din = new DigestInputStream(in, digest)) {
             byte[] buffer = new byte[8192];
-            while (din.read(buffer) != -1) {
-            }
+            while (din.read(buffer) != -1) {}
         }
 
         return HexFormat.of().formatHex(digest.digest());

@@ -19,7 +19,7 @@ import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.ResourceHandlerUtil;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
 import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 @ApiStatus.Internal
 public class VanillaInventoryCodeHooks {
@@ -34,7 +34,7 @@ public class VanillaInventoryCodeHooks {
         for (int index = 0; index < size; index++) {
             var itemResource = handler.getResource(index);
             if (itemResource.isEmpty()) continue;
-            try (var tx = Transaction.open(null)) {
+            try (var tx = Transaction.openRoot()) {
                 int extracted = handler.extract(index, itemResource, 1, tx);
                 if (extracted == 0) {
                     continue;
@@ -71,7 +71,7 @@ public class VanillaInventoryCodeHooks {
         if (ResourceHandlerUtil.isFull(itemHandler)) {
             return false;
         }
-        try (var tx = Transaction.open(null)) {
+        try (var tx = Transaction.openRoot()) {
             int size = hopper.getContainerSize();
             for (int i = 0; i < size; ++i) {
                 var hopperItem = hopper.getItem(i);

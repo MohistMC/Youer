@@ -1,0 +1,58 @@
+--- a/net/minecraft/client/renderer/chunk/SectionRenderDispatcher.java
++++ b/net/minecraft/client/renderer/chunk/SectionRenderDispatcher.java
+@@ -346,9 +_,10 @@
+ 
+         public SectionRenderDispatcher.RenderSection.CompileTask createCompileTask(RenderRegionCache p_295324_) {
+             this.cancelTasks();
++            var additionalRenderers = net.neoforged.neoforge.client.ClientHooks.gatherAdditionalRenderers(this.renderOrigin, SectionRenderDispatcher.this.level);
+             RenderSectionRegion rendersectionregion = p_295324_.createRegion(SectionRenderDispatcher.this.level, this.sectionNode);
+             boolean flag = this.sectionMesh.get() != CompiledSectionMesh.UNCOMPILED;
+-            this.lastRebuildTask = new SectionRenderDispatcher.RenderSection.RebuildTask(rendersectionregion, flag);
++            this.lastRebuildTask = new SectionRenderDispatcher.RenderSection.RebuildTask(rendersectionregion, flag, additionalRenderers);
+             return this.lastRebuildTask;
+         }
+ 
+@@ -375,6 +_,15 @@
+             );
+         }
+ 
++        // Neo: start
++
++        @Override
++        public boolean isEmpty() {
++            return !getSectionMesh().hasRenderableLayers();
++        }
++
++        // Neo: end
++
+         @OnlyIn(Dist.CLIENT)
+         public abstract class CompileTask {
+             protected final AtomicBoolean isCancelled = new AtomicBoolean(false);
+@@ -403,10 +_,18 @@
+         @OnlyIn(Dist.CLIENT)
+         class RebuildTask extends SectionRenderDispatcher.RenderSection.CompileTask {
+             protected final RenderSectionRegion region;
++            private final java.util.List<net.neoforged.neoforge.client.event.AddSectionGeometryEvent.AdditionalSectionRenderer> additionalRenderers;
+ 
++            /** @deprecated Neo: use {@link #RebuildTask(RenderSectionRegion, boolean, java.util.List)} instead */
++            @Deprecated
+             public RebuildTask(RenderSectionRegion p_427384_, boolean p_295207_) {
++                this(p_427384_, p_295207_, java.util.List.of());
++            }
++
++            public RebuildTask(RenderSectionRegion p_427384_, boolean p_295207_, java.util.List<net.neoforged.neoforge.client.event.AddSectionGeometryEvent.AdditionalSectionRenderer> additionalRenderers) {
+                 super(p_295207_);
+                 this.region = p_427384_;
++                this.additionalRenderers = additionalRenderers;
+             }
+ 
+             @Override
+@@ -427,7 +_,7 @@
+                         SectionCompiler.Results sectioncompiler$results;
+                         try (Zone zone = Profiler.get().zone("Compile Section")) {
+                             sectioncompiler$results = SectionRenderDispatcher.this.sectionCompiler
+-                                .compile(sectionpos, this.region, RenderSection.this.createVertexSorting(sectionpos), p_296138_);
++                                .compile(sectionpos, this.region, RenderSection.this.createVertexSorting(sectionpos), p_296138_, this.additionalRenderers);
+                         }
+ 
+                         TranslucencyPointOfView translucencypointofview = TranslucencyPointOfView.of(SectionRenderDispatcher.this.cameraPosition, i);

@@ -11,12 +11,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -80,7 +80,7 @@ public abstract class SoundDefinitionsProvider implements DataProvider {
      * @param name The name of the sound to create.
      * @param type The type of sound to create.
      */
-    protected static SoundDefinition.Sound sound(final ResourceLocation name, final SoundDefinition.SoundType type) {
+    protected static SoundDefinition.Sound sound(final Identifier name, final SoundDefinition.SoundType type) {
         return SoundDefinition.Sound.sound(name, type);
     }
 
@@ -90,7 +90,7 @@ public abstract class SoundDefinitionsProvider implements DataProvider {
      *
      * @param name The name of the sound to create.
      */
-    protected static SoundDefinition.Sound sound(final ResourceLocation name) {
+    protected static SoundDefinition.Sound sound(final Identifier name) {
         return sound(name, SoundDefinition.SoundType.SOUND);
     }
 
@@ -101,7 +101,7 @@ public abstract class SoundDefinitionsProvider implements DataProvider {
      * @param type The type of sound to create.
      */
     protected static SoundDefinition.Sound sound(final String name, final SoundDefinition.SoundType type) {
-        return sound(ResourceLocation.parse(name), type);
+        return sound(Identifier.parse(name), type);
     }
 
     /**
@@ -111,7 +111,7 @@ public abstract class SoundDefinitionsProvider implements DataProvider {
      * @param name The name of the sound to create.
      */
     protected static SoundDefinition.Sound sound(final String name) {
-        return sound(ResourceLocation.parse(name));
+        return sound(Identifier.parse(name));
     }
 
     // Addition methods
@@ -119,14 +119,13 @@ public abstract class SoundDefinitionsProvider implements DataProvider {
      * Adds the entry name associated with the supplied {@link SoundEvent} with the given
      * {@link SoundDefinition} to the list.
      *
-     * <p>This method should be preferred when dealing with a {@code RegistryObject} or
-     * {@code RegistryDelegate}.</p>
+     * <p>This method should be preferred when dealing with a {@code DeferredHolder}.</p>
      *
-     * @param soundEvent A {@code Supplier} for the given {@link SoundEvent}.
+     * @param soundEvent A {@code Holder} for the given {@link SoundEvent}.
      * @param definition A {@link SoundDefinition} that defines the given sound.
      */
-    protected void add(final Supplier<SoundEvent> soundEvent, final SoundDefinition definition) {
-        this.add(soundEvent.get(), definition);
+    protected void add(final Holder<SoundEvent> soundEvent, final SoundDefinition definition) {
+        this.add(soundEvent.value(), definition);
     }
 
     /**
@@ -134,8 +133,8 @@ public abstract class SoundDefinitionsProvider implements DataProvider {
      * {@link SoundDefinition} to the list.
      *
      * <p>This method should be preferred when a {@code SoundEvent} is already
-     * available in the method context. If you already have a {@code Supplier} for
-     * it, refer to {@link #add(Supplier, SoundDefinition)}.</p>
+     * available in the method context. If you already have a {@code Holder} for
+     * it, refer to {@link #add(Holder, SoundDefinition)}.</p>
      *
      * @param soundEvent A {@link SoundEvent}.
      * @param definition The {@link SoundDefinition} that defines the given event.
@@ -145,13 +144,13 @@ public abstract class SoundDefinitionsProvider implements DataProvider {
     }
 
     /**
-     * Adds the {@link SoundEvent} referenced by the given {@link ResourceLocation} with the
+     * Adds the {@link SoundEvent} referenced by the given {@link Identifier} with the
      * {@link SoundDefinition} to the list.
      *
-     * @param soundEvent The {@link ResourceLocation} that identifies the event.
+     * @param soundEvent The {@link Identifier} that identifies the event.
      * @param definition The {@link SoundDefinition} that defines the given event.
      */
-    protected void add(final ResourceLocation soundEvent, final SoundDefinition definition) {
+    protected void add(final Identifier soundEvent, final SoundDefinition definition) {
         this.addSounds(soundEvent.getPath(), definition);
     }
 
@@ -168,7 +167,7 @@ public abstract class SoundDefinitionsProvider implements DataProvider {
      * @param definition The {@link SoundDefinition} that defines the given event.
      */
     protected void add(final String soundEvent, final SoundDefinition definition) {
-        this.add(ResourceLocation.parse(soundEvent), definition);
+        this.add(Identifier.parse(soundEvent), definition);
     }
 
     private void addSounds(final String soundEvent, final SoundDefinition definition) {

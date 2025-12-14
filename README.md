@@ -1,5 +1,5 @@
 <div align="center">
-  <h1 align="center">Youer 1.21.10</h1>
+  <h1 align="center">Youer 1.21.11</h1>
   <h3 align="center">Minecraft NeoForge Hybrid server implementing the Paper API</h3>
 
   <p align="center">
@@ -7,7 +7,7 @@
       <img alt="GitHub Stars" src="https://img.shields.io/github/stars/MohistMC/Youer?logo=github&color=181717&style=flat-square">
     </a>
     <a href="https://neoforged.net/">
-      <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-21.9.16-FF8B00?style=flat-square">
+      <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-21.11.6-beta-FF8B00?style=flat-square">
     </a>
     <a href="https://www.azul.com/downloads/?version=java-21-lts#zulu">
       <img alt="JDK" src="https://img.shields.io/badge/JDK-21.0.8-007396?logo=java&logoColor=white&style=flat-square">
@@ -30,7 +30,7 @@
 ## 📊 Progress Status
 
 ✅ **Core Integration**
-- [x] NeoForge ([d978d97e4](https://github.com/neoforged/NeoForge/commit/d978d97e4))
+- [x] NeoForge ([aeedd7409](https://github.com/neoforged/NeoForge/commit/aeedd7409))
 - [ ] Paper ([27f926e7e](https://github.com/PaperMC/Paper/commit/27f926e7e))
   - [ ] api
   - [ ] server

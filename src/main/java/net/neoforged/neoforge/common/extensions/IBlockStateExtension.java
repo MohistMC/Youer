@@ -46,7 +46,7 @@ import net.neoforged.neoforge.common.ItemAbility;
 import net.neoforged.neoforge.common.enums.BubbleColumnDirection;
 import net.neoforged.neoforge.common.world.AuxiliaryLightManager;
 import net.neoforged.neoforge.event.EventHooks;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public interface IBlockStateExtension {
     private BlockState self() {
@@ -136,14 +136,15 @@ public interface IBlockStateExtension {
      * This function is called on both the logical client and logical server.
      *
      * @param level       The current level
-     * @param player      The player damaging the block, may be null
      * @param pos         Block position in level
+     * @param player      The player damaging the block, may be null
+     * @param toolStack   The players main-hand prior to destroying the block and applying damage to the tool.
      * @param willHarvest The result of {@link #canHarvestBlock}, if called on the server by a non-creative player, otherwise always false.
      * @param fluid       The current fluid and block state for the position in the level.
      * @return True if the block is actually destroyed.
      */
-    default boolean onDestroyedByPlayer(Level level, BlockPos pos, Player player, boolean willHarvest, FluidState fluid) {
-        return self().getBlock().onDestroyedByPlayer(self(), level, pos, player, willHarvest, fluid);
+    default boolean onDestroyedByPlayer(Level level, BlockPos pos, Player player, ItemStack toolStack, boolean willHarvest, FluidState fluid) {
+        return self().getBlock().onDestroyedByPlayer(self(), level, pos, player, toolStack, willHarvest, fluid);
     }
 
     /**

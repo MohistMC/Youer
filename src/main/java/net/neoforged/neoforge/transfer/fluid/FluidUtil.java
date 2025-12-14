@@ -36,7 +36,7 @@ import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.ResourceHandlerUtil;
 import net.neoforged.neoforge.transfer.access.ItemAccess;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 /**
@@ -180,7 +180,7 @@ public final class FluidUtil {
                 return FluidStack.EMPTY;
             }
             // Try to insert it into the destination
-            try (var tx = Transaction.open(null)) {
+            try (var tx = Transaction.openRoot()) {
                 var resource = FluidResource.of(fluid);
                 int inserted = destination.insert(resource, FluidType.BUCKET_VOLUME, tx);
                 if (inserted != FluidType.BUCKET_VOLUME) {
@@ -197,7 +197,7 @@ public final class FluidUtil {
                     if (!pickedUpStack.isEmpty()) {
                         // Be loud since we are going to void the stack
                         LOGGER.warn("Picked up stack is not a bucket. Fluid {} at {} in {} picked up as {}.",
-                                BuiltInRegistries.FLUID.getKey(fluid), pos, level.dimension().location(), pickedUpStack);
+                                BuiltInRegistries.FLUID.getKey(fluid), pos, level.dimension().identifier(), pickedUpStack);
                     }
                     return FluidStack.EMPTY;
                 }
@@ -205,7 +205,7 @@ public final class FluidUtil {
                 if (!resource.matches(extracted)) {
                     // Be loud if something went wrong
                     LOGGER.warn("Fluid removed without successfully being picked up. Fluid {} at {} in {} matched requested type, but after performing pickup was {}.",
-                            BuiltInRegistries.FLUID.getKey(fluid), pos, level.dimension().location(), BuiltInRegistries.FLUID.getKey(bucket.content));
+                            BuiltInRegistries.FLUID.getKey(fluid), pos, level.dimension().identifier(), BuiltInRegistries.FLUID.getKey(bucket.content));
                     return FluidStack.EMPTY;
                 }
                 tx.commit();
@@ -248,7 +248,7 @@ public final class FluidUtil {
             if (resource.isEmpty()) {
                 continue;
             }
-            try (var tx = Transaction.open(null)) {
+            try (var tx = Transaction.openRoot()) {
                 int amount = source.extract(index, resource, FluidType.BUCKET_VOLUME, tx);
                 if (amount != FluidType.BUCKET_VOLUME) {
                     continue;

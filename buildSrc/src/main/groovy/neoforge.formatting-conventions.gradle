@@ -1,9 +1,40 @@
+import java.util.regex.Matcher
+
 project.plugins.apply('dev.lukebemish.immaculate')
 
+abstract class GeneratePackageInfos extends DefaultTask {
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract ConfigurableFileCollection getFiles();
+
+    @TaskAction
+    void generatePackageInfos() {
+        getFiles().each { javaFile ->
+            def packageInfoFile = new File(javaFile.parent, 'package-info.java')
+            if (!packageInfoFile.exists()) {
+                def pkgName = javaFile.toString().replaceAll(Matcher.quoteReplacement(File.separator), '/')
+                pkgName = pkgName.substring(pkgName.indexOf('net/neoforged/'), pkgName.lastIndexOf('/'))
+                pkgName = pkgName.replaceAll('/', '.')
+
+                def pkgInfoText = """
+                    |@NullMarked
+                    |package $pkgName;
+                    |
+                    |import org.jspecify.annotations.NullMarked;
+                """.stripMargin().trim()
+
+                packageInfoFile.text = pkgInfoText
+            }
+        }
+    }
+}
 final generatePackageInfos = tasks.register('generatePackageInfos', GeneratePackageInfos) {
     it.files.from fileTree("src/main/java")
     if (file("src/client/java").exists()) {
         it.files.from fileTree("src/client/java")
+    }
+    if (file("src/junit/java").exists()) {
+        it.files.from fileTree("src/junit/java")
     }
 }
 
@@ -30,13 +61,14 @@ immaculate {
         }
 
         custom 'noNotNull', { String fileContents ->
-            if (fileContents.contains('@NotNull') || fileContents.contains('@Nonnull')) {
-                throw new GradleException('@NotNull and @Nonnull are disallowed.')
+            if (fileContents.contains('@NotNull') || fileContents.contains('@Nonnull') || fileContents.contains('@NonNull')) {
+                throw new GradleException('Non-nullability annotations are disallowed.')
             }
         }
 
-        custom 'jetbrainsNullable', { String fileContents ->
-            fileContents.replace('javax.annotation.Nullable', 'org.jetbrains.annotations.Nullable')
+        custom 'jspecifyNullable', { String fileContents ->
+            fileContents.replace('javax.annotation.Nullable', 'org.jspecify.annotations.Nullable')
+            fileContents.replace('org.jetbrains.annotations.Nullable', 'org.jspecify.annotations.Nullable')
         }
     }
 }

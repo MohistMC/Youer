@@ -1,0 +1,308 @@
+/*
+ * Copyright (c) Forge Development LLC and contributors
+ * SPDX-License-Identifier: LGPL-2.1-only
+ */
+
+package net.neoforged.neoforge.client.gui;
+
+import com.google.common.collect.Lists;
+import com.mojang.logging.LogUtils;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ActiveTextCollector;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.TextAlignment;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.components.MultiLineLabel;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentUtils;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.Util;
+import net.neoforged.fml.ModList;
+import net.neoforged.fml.i18n.FMLTranslations;
+import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.client.gui.widget.ScrollPanel;
+import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.commons.lang3.tuple.Pair;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+
+public class ModMismatchDisconnectedScreen extends Screen {
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private final Component reason;
+    private MultiLineLabel message = MultiLineLabel.EMPTY;
+    private MismatchInfoPanel scrollList;
+    private final Screen parent;
+    private int textHeight;
+    private final Path modsDir;
+    private final Path logFile;
+    private final int listHeight = 140;
+    private final Map<Identifier, Component> mismatchedChannelData;
+    // TODO 1.21: DisconnectionDetails
+
+    public ModMismatchDisconnectedScreen(Screen parentScreen, Component reason, Map<Identifier, Component> mismatchedChannelData) {
+        super(Component.translatable("disconnect.lost"));
+        this.reason = reason;
+        this.parent = parentScreen;
+        this.modsDir = FMLPaths.MODSDIR.get();
+        this.logFile = FMLPaths.GAMEDIR.get().resolve(Paths.get("logs", "latest.log"));
+        this.mismatchedChannelData = mismatchedChannelData;
+        this.mismatchedChannelData.replaceAll((id, r) -> { //Enhance the reason components provided by the server with the info of which mod likely owns the given channel (based on the channel's namespace), if such a mod can be found on the client
+            Optional<String> modDisplayName = ModList.get().getModContainerById(id.getNamespace()).map(mod -> mod.getModInfo().getDisplayName());
+            return modDisplayName.isPresent() && !(r.getContents() instanceof TranslatableContents c && c.getKey().equals("neoforge.network.negotiation.failure.mod")) ? Component.translatable("neoforge.network.negotiation.failure.mod", modDisplayName.get(), r) : r;
+        });
+        this.mismatchedChannelData.forEach((id, r) -> LOGGER.warn("Channel [{}] failed to connect: {}", id, r.getString()));
+    }
+
+    @Override
+    protected void init() {
+        int listLeft = Math.max(8, this.width / 2 - 220);
+        int listWidth = Math.min(440, this.width - 16);
+
+        this.message = MultiLineLabel.create(this.font, this.reason, this.width - 50);
+        this.textHeight = this.message.getLineCount() * 9;
+
+        int upperButtonHeight = Math.min((this.height + this.listHeight) / 2 + 25, this.height - 50);
+        int lowerButtonHeight = Math.min((this.height + this.listHeight) / 2 + 50, this.height - 25);
+        this.addRenderableWidget(this.scrollList = new MismatchInfoPanel(minecraft, listWidth, listHeight, (this.height - this.listHeight) / 2, listLeft));
+
+        int buttonWidth = Math.min(210, this.width / 2 - 20);
+        this.addRenderableWidget(CycleButton.onOffBuilder(true)
+                .create(Math.max(this.width / 4 - buttonWidth / 2, listLeft), upperButtonHeight, buttonWidth, 20, Component.translatable("fml.modmismatchscreen.simplifiedview"), (b, v) -> scrollList.toggleSimplifiedView()));
+        this.addRenderableWidget(Button.builder(Component.literal(FMLTranslations.parseMessage("fml.button.open.file", logFile.getFileName())), button -> Util.getPlatform().openFile(logFile.toFile()))
+                .bounds(Math.min(this.width * 3 / 4 - buttonWidth / 2, listLeft + listWidth - buttonWidth), upperButtonHeight, buttonWidth, 20)
+                .build());
+        this.addRenderableWidget(Button.builder(Component.literal(FMLTranslations.parseMessage("fml.button.open.mods.folder")), button -> Util.getPlatform().openFile(modsDir.toFile()))
+                .bounds(Math.max(this.width / 4 - buttonWidth / 2, listLeft), lowerButtonHeight, buttonWidth, 20)
+                .build());
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.toMenu"), button -> this.minecraft.setScreen(this.parent))
+                .bounds(Math.min(this.width * 3 / 4 - buttonWidth / 2, listLeft + listWidth - buttonWidth), lowerButtonHeight, buttonWidth, 20)
+                .build());
+    }
+
+    @Override
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        super.render(guiGraphics, mouseX, mouseY, partialTicks);
+        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, (this.height - this.listHeight) / 2 - this.textHeight - 9 * 4, 0xFFAAAAAA);
+        this.message.visitLines(TextAlignment.CENTER, this.width / 2, (this.height - this.listHeight) / 2 - this.textHeight - 9 * 2, font.lineHeight, guiGraphics.textRenderer());
+    }
+
+    class MismatchInfoPanel extends ScrollPanel {
+        static final int ROW_HEIGHT = 12;
+        private final int nameIndent = 10;
+        private final int tableWidth = width - border * 2 - 6 - nameIndent;
+        private final int nameWidth = tableWidth / 2;
+        private final int versionWidth = tableWidth - nameWidth;
+        private List<Pair<FormattedCharSequence, FormattedCharSequence>> lineTable;
+        private int contentSize;
+        private boolean oneChannelPerEntry = true;
+
+        public MismatchInfoPanel(Minecraft client, int width, int height, int top, int left) {
+            super(client, width, height, top, left);
+            updateListContent();
+        }
+
+        private void updateListContent() {
+            Map<List<Identifier>, Component> mergedChannelData = sortAndMergeChannelData(mismatchedChannelData);
+            record Row(MutableComponent name, MutableComponent reason) {}
+            //The raw list of the strings in a table row, the components may still be too long for the final table and will be split up later. The first row element may have a style assigned to it that will be used for the whole content row.
+            List<Row> rows = new ArrayList<>();
+            if (!mergedChannelData.isEmpty()) {
+                //Each table row contains the channel id(s) and the reason for the corresponding channel mismatch.
+                rows.add(new Row(Component.translatable("fml.modmismatchscreen.table.channelname"), Component.translatable("fml.modmismatchscreen.table.reason")));
+                int i = 0;
+                for (Map.Entry<List<Identifier>, Component> channelData : mergedChannelData.entrySet()) {
+                    rows.add(new Row(toChannelComponent(channelData.getKey(), i % 2 == 0 ? ChatFormatting.GOLD : ChatFormatting.YELLOW), channelData.getValue().copy()));
+                    if (++i == 30 && mergedChannelData.size() > 30) {
+                        //If too many mismatched channel entries are present, append a line referencing how to see the full list and stop rendering any more entries
+                        rows.add(new Row(Component.literal(""), Component.translatable("fml.modmismatchscreen.additional", mergedChannelData.size() - i).withStyle(ChatFormatting.ITALIC)));
+                        break;
+                    }
+                }
+                rows.add(new Row(Component.literal(""), Component.literal(""))); //Add one line of padding.
+            }
+
+            this.lineTable = rows.stream().flatMap(p -> splitLineToWidth(p.name(), p.reason()).stream()).collect(Collectors.toList());
+            this.contentSize = lineTable.size();
+            this.scrollDistance = 0;
+        }
+
+        /**
+         * Iterates over the raw channel mismatch data and merges entries with the same reason component into one channel mismatch entry each.
+         * Due to the reason component always containing the display name of the mod that likely owns the associated channel, this step effectively groups channels by their most likely owning mod candidate,
+         * so users can see more easily which mods might be the culprits of the negotiation failure that caused this screen to appear.
+         *
+         * @param mismatchedChannelData The raw mismatched channel data received from the server, which might contain entries with duplicate channel mismatch reasons
+         * @return A map containing channel mismatch entries with unique reasons. Each channel mismatch entry contains the list of all channels that share the same reason component,
+         *         mapped to that reason component.
+         */
+        private Map<List<Identifier>, Component> sortAndMergeChannelData(Map<Identifier, Component> mismatchedChannelData) {
+            Map<Component, List<Identifier>> channelsByReason = new LinkedHashMap<>();
+            List<Identifier> sortedChannels = mismatchedChannelData.keySet().stream().sorted(Comparator.comparing(Identifier::toString)).toList();
+            for (Identifier channel : sortedChannels) {
+                Component channelMismatchReason = mismatchedChannelData.get(channel);
+                if (channelsByReason.containsKey(channelMismatchReason))
+                    channelsByReason.get(channelMismatchReason).add(channel);
+                else
+                    channelsByReason.put(channelMismatchReason, Lists.newArrayList(channel));
+            }
+
+            Map<List<Identifier>, Component> channelMismatchEntries = new LinkedHashMap<>();
+            List<Component> sortedChannelEntries = channelsByReason.entrySet().stream().sorted(Comparator.comparing(entry -> entry.getValue().get(0).toString())).map(Map.Entry::getKey).toList();
+            for (Component mismatchReason : sortedChannelEntries) {
+                channelMismatchEntries.put(channelsByReason.get(mismatchReason), mismatchReason);
+            }
+
+            return channelMismatchEntries;
+        }
+
+        /**
+         * Splits the raw channel namespace and mismatch reason strings, making them use multiple lines if needed, to fit within the table dimensions.
+         * The style assigned to the name element is then applied to the entire content row.
+         *
+         * @param name   The first element of the content row, usually representing a table section header or a channel name entry
+         * @param reason The second element of the content row, usually representing the reason why the channel is mismatched
+         * @return A list of table rows consisting of 2 elements each which consist of the same content as was given by the parameters, but split up to fit within the table dimensions.
+         */
+        private List<Pair<FormattedCharSequence, FormattedCharSequence>> splitLineToWidth(MutableComponent name, MutableComponent reason) {
+            Style style = name.getStyle();
+            List<FormattedCharSequence> nameLines = font.split(name, nameWidth - 4);
+            List<FormattedCharSequence> reasonLines = font.split(reason.setStyle(style), versionWidth - 4);
+            List<Pair<FormattedCharSequence, FormattedCharSequence>> splitLines = new ArrayList<>();
+
+            int rowsOccupied = Math.max(nameLines.size(), reasonLines.size());
+            for (int i = 0; i < rowsOccupied; i++) {
+                splitLines.add(Pair.of(i < nameLines.size() ? nameLines.get(i) : FormattedCharSequence.EMPTY, i < reasonLines.size() ? reasonLines.get(i) : FormattedCharSequence.EMPTY));
+            }
+            return splitLines;
+        }
+
+        /**
+         * Formats the given list of channel ids to a component which, depending on the current display mode of the list, will list either the first or all channel ids.
+         * If only one channel id is shown, the amount of channels that have the same reason component will also be displayed next to the channel id.
+         * The component is colored in the given color, which will be used for the whole content row.
+         *
+         * @param ids   The list of channel ids to be formatted to the component. Depending on the current list mode, either the full list or the first entry will be used for the component text.
+         * @param color Defines the color of the returned component.
+         * @return A component with one or all entries of the channel id list as the main text component, and an assigned color which will be used for the whole content row.
+         */
+        private MutableComponent toChannelComponent(List<Identifier> ids, ChatFormatting color) {
+            MutableComponent namespaceComponent;
+            if (oneChannelPerEntry) {
+                namespaceComponent = Component.literal(ids.get(0).toString()).withStyle(color);
+
+                if (ids.size() > 1)
+                    namespaceComponent.append(Component.literal("\n[+%s more]".formatted(ids.size() - 1)).withStyle(ChatFormatting.DARK_GRAY));
+            } else
+                namespaceComponent = ComponentUtils.formatList(ids, ComponentUtils.DEFAULT_SEPARATOR, r -> Component.literal(r.toString())).withStyle(color);
+
+            return namespaceComponent;
+        }
+
+        public void toggleSimplifiedView() {
+            this.oneChannelPerEntry = !this.oneChannelPerEntry;
+            updateListContent();
+        }
+
+        @Override
+        protected int getContentHeight() {
+            int height = contentSize * (font.lineHeight + 3);
+
+            if (height < bottom - top - 4)
+                height = bottom - top - 4;
+
+            return height;
+        }
+
+        @Override
+        protected void drawPanel(GuiGraphics guiGraphics, int entryRight, int relativeY, int mouseX, int mouseY) {
+            int i = 0;
+
+            for (Pair<FormattedCharSequence, FormattedCharSequence> line : lineTable) {
+                FormattedCharSequence name = line.getLeft();
+                FormattedCharSequence reasons = line.getRight();
+                // TODO 1.21.11: Confirm if it's actually still true or not that draw ignores component coloring, if so, we could use another drawing function that doesn't
+                //Since font#draw does not respect the color of the given component, we have to read it out here and then use it as the last parameter
+                MutableObject<Style> firstStyle = new MutableObject<>(Style.EMPTY);
+                name.accept((ch, style, p_13748_) -> {
+                    firstStyle.setValue(style);
+                    return false;
+                });
+                var styleColor = firstStyle.get().getColor();
+                int color = styleColor != null ? styleColor.getValue() : 0xFFFFFFFF;
+                //Only indent the given name if a version string is present. This makes it easier to distinguish table section headers and mod entries
+                int nameLeft = left + border + (reasons == null ? 0 : nameIndent);
+                guiGraphics.drawString(font, name, nameLeft, relativeY + i * ROW_HEIGHT, color, false);
+                if (reasons != null) {
+                    guiGraphics.drawString(font, reasons, left + border + nameIndent + nameWidth, relativeY + i * ROW_HEIGHT, color, false);
+                }
+
+                i++;
+            }
+        }
+
+        @Override
+        public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+            super.render(guiGraphics, mouseX, mouseY, partialTicks);
+            Style style = getComponentStyleAt(mouseX, mouseY);
+            if (style != null && style.getHoverEvent() != null) {
+                guiGraphics.renderComponentHoverEffect(font, style, mouseX, mouseY);
+            }
+        }
+
+        @Nullable
+        public Style getComponentStyleAt(double x, double y) {
+            if (this.isMouseOver(x, y)) {
+                double relativeY = y - this.top + this.scrollDistance - border;
+                int slotIndex = (int) (relativeY + (border / 2)) / ROW_HEIGHT;
+                if (slotIndex < contentSize) {
+                    //The relative x needs to take the potentially missing indent of the row into account. It does that by checking if the line has a version associated to it
+                    double relativeX = x - left - border - (lineTable.get(slotIndex).getRight() == null ? 0 : nameIndent);
+                    var slotRelativeY = (int) (relativeY - slotIndex * ROW_HEIGHT);
+                    if (relativeX >= 0) {
+                        var collector = new ActiveTextCollector.ClickableStyleFinder(font, (int) relativeX, slotRelativeY);
+                        collector.accept(TextAlignment.LEFT, 0, 0, lineTable.get(slotIndex).getLeft());
+                        return collector.result();
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        @Override
+        public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+            Style style = getComponentStyleAt(event.x(), event.y());
+            if (style != null && style.getClickEvent() != null) {
+                defaultHandleClickEvent(style.getClickEvent(), minecraft, ModMismatchDisconnectedScreen.this);
+                return true;
+            }
+            return super.mouseClicked(event, doubleClick);
+        }
+
+        @Override
+        public NarrationPriority narrationPriority() {
+            return NarrationPriority.NONE;
+        }
+
+        @Override
+        public void updateNarration(NarrationElementOutput output) {}
+    }
+}

@@ -1,0 +1,127 @@
+--- a/net/minecraft/client/MouseHandler.java
++++ b/net/minecraft/client/MouseHandler.java
+@@ -87,6 +_,8 @@
+                 this.activeButton = null;
+             }
+ 
++            if (net.neoforged.neoforge.client.ClientHooks.onMouseButtonPre(p_445718_, p_447323_)) return;
++            boolean screenHandled = false;
+             if (this.minecraft.getOverlay() == null) {
+                 if (this.minecraft.screen == null) {
+                     if (!this.mouseGrabbed && flag) {
+@@ -106,10 +_,14 @@
+                                 && i - this.lastClick.time() < 250L
+                                 && this.lastClick.screen() == screen
+                                 && this.lastClickButton == mousebuttonevent.button();
+-                            if (screen.mouseClicked(mousebuttonevent, flag1)) {
++                            screenHandled = net.neoforged.neoforge.client.ClientHooks.onScreenMouseClickedPre(screen, mousebuttonevent, flag1);
++                            if (!screenHandled) {
++                                screenHandled = screen.mouseClicked(mousebuttonevent, flag1);
++                                screenHandled = net.neoforged.neoforge.client.ClientHooks.onScreenMouseClickedPost(screen, mousebuttonevent, flag1, screenHandled);
++                            }
++                            if (screenHandled) {
+                                 this.lastClick = new MouseHandler.LastClick(i, screen);
+                                 this.lastClickButton = mousebuttoninfo.button();
+-                                return;
+                             }
+                         } catch (Throwable throwable1) {
+                             CrashReport crashreport = CrashReport.forThrowable(throwable1, "mouseClicked event handler");
+@@ -121,8 +_,10 @@
+                         }
+                     } else {
+                         try {
+-                            if (screen.mouseReleased(mousebuttonevent)) {
+-                                return;
++                            screenHandled = net.neoforged.neoforge.client.ClientHooks.onScreenMouseReleasedPre(screen, mousebuttonevent);
++                            if (!screenHandled) {
++                                screenHandled = screen.mouseReleased(mousebuttonevent);
++                                screenHandled = net.neoforged.neoforge.client.ClientHooks.onScreenMouseReleasedPost(screen, mousebuttonevent, screenHandled);
+                             }
+                         } catch (Throwable throwable) {
+                             CrashReport crashreport1 = CrashReport.forThrowable(throwable, "mouseReleased event handler");
+@@ -136,6 +_,10 @@
+                 }
+             }
+ 
++            // Neo: we patch out the returns in the screen handler code to fire the mouse button post event
++            // therefore we add a boolean to check whether the screen handled the click and if not we let
++            // vanilla's fallback handle it
++            if (!screenHandled) {
+             if (this.minecraft.screen == null && this.minecraft.getOverlay() == null) {
+                 if (mousebuttoninfo.button() == 0) {
+                     this.isLeftPressed = flag;
+@@ -151,6 +_,8 @@
+                     KeyMapping.click(inputconstants$key);
+                 }
+             }
++            }
++            net.neoforged.neoforge.client.ClientHooks.onMouseButtonPost(p_445718_, p_447323_);
+         }
+     }
+ 
+@@ -207,7 +_,11 @@
+                 if (this.minecraft.screen != null) {
+                     double d3 = this.getScaledXPos(this.minecraft.getWindow());
+                     double d4 = this.getScaledYPos(this.minecraft.getWindow());
+-                    this.minecraft.screen.mouseScrolled(d3, d4, d1, d2);
++                    if (!net.neoforged.neoforge.client.ClientHooks.onScreenMouseScrollPre(this, this.minecraft.screen, d1, d2)) {
++                        if (!this.minecraft.screen.mouseScrolled(d3, d4, d1, d2)) {
++                            net.neoforged.neoforge.client.ClientHooks.onScreenMouseScrollPost(this, this.minecraft.screen, d1, d2);
++                        }
++                    }
+                     this.minecraft.screen.afterMouseAction();
+                 } else if (this.minecraft.player != null) {
+                     Vector2i vector2i = this.scrollWheelHandler.onMouseScroll(d1, d2);
+@@ -216,6 +_,7 @@
+                     }
+ 
+                     int i = vector2i.y == 0 ? -vector2i.x : vector2i.y;
++                    if (net.neoforged.neoforge.client.ClientHooks.onMouseScroll(this, d1, d2)) return;
+                     if (this.minecraft.player.isSpectator()) {
+                         if (this.minecraft.gui.getSpectatorGui().isMenuActive()) {
+                             this.minecraft.gui.getSpectatorGui().onMouseScrolled(-i);
+@@ -324,7 +_,12 @@
+                     double d5 = getScaledYPos(window, this.accumulatedDY);
+ 
+                     try {
+-                        screen.mouseDragged(new MouseButtonEvent(d2, d3, this.activeButton), d4, d5);
++                        MouseButtonEvent mouseButtonEvent = new MouseButtonEvent(d2, d3, this.activeButton);
++                        if (!net.neoforged.neoforge.client.ClientHooks.onScreenMouseDragPre(screen, mouseButtonEvent, d4, d5)) {
++                            if (!screen.mouseDragged(mouseButtonEvent, d4, d5)) {
++                                net.neoforged.neoforge.client.ClientHooks.onScreenMouseDragPost(screen, mouseButtonEvent, d4, d5);
++                            }
++                        }
+                     } catch (Throwable throwable) {
+                         CrashReport crashreport1 = CrashReport.forThrowable(throwable, "mouseDragged event handler");
+                         screen.fillCrashDetails(crashreport1);
+@@ -363,12 +_,13 @@
+     }
+ 
+     private void turnPlayer(double p_316356_) {
+-        double d2 = this.minecraft.options.sensitivity().get() * 0.6F + 0.2F;
++        var event = net.neoforged.neoforge.client.ClientHooks.getTurnPlayerValues(this.minecraft.options.sensitivity().get(), this.minecraft.options.smoothCamera);
++        double d2 = event.getMouseSensitivity() * 0.6F + 0.2F;
+         double d3 = d2 * d2 * d2;
+         double d4 = d3 * 8.0;
+         double d0;
+         double d1;
+-        if (this.minecraft.options.smoothCamera) {
++        if (event.getCinematicCameraEnabled()) {
+             double d5 = this.smoothTurnX.getNewDeltaValue(this.accumulatedDX * d4, p_316356_ * d4);
+             double d6 = this.smoothTurnY.getNewDeltaValue(this.accumulatedDY * d4, p_316356_ * d4);
+             d0 = d5;
+@@ -409,6 +_,14 @@
+ 
+     public double ypos() {
+         return this.ypos;
++    }
++
++    public double getXVelocity() {
++        return this.accumulatedDX;
++    }
++
++    public double getYVelocity() {
++        return this.accumulatedDY;
+     }
+ 
+     public void setIgnoreFirstMove() {
