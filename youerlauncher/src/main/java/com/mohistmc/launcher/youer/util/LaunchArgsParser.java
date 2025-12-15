@@ -19,10 +19,6 @@ public class LaunchArgsParser {
 
     public static final sun.misc.Unsafe unsafe;
     private static final MethodHandles.Lookup IMPL_LOOKUP;
-    public static File universalJar;
-    public static File PATCHED;
-    public static File MC_SRG;
-    public static File MC_EXTRA;
 
     static {
         try {

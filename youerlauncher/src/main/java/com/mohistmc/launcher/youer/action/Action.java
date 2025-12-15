@@ -27,15 +27,12 @@ import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.I18n;
 import com.mohistmc.launcher.youer.util.LaunchArgsParser;
 import com.mohistmc.tools.FileUtils;
-import com.mohistmc.tools.JarMerger;
-import com.mohistmc.tools.JarTool;
 import com.mohistmc.tools.MojangEulaUtil;
 import com.mohistmc.tools.SHA256;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -63,24 +60,15 @@ public class Action {
     public final String mcpVer;
     public final String mcVer;
     public final String libPath;
-    public final String forgeStart;
+
     public final File universalJar;
-    public final File BINPATCH;
-    public final File installInfo;
-    public final String otherStart;
-    public final File MC_UNPACKED;
-    public final File MC_SLIM;
-    public final File MC_SRG;
-    public final File MC_EXTRA;
-    public final String mcpStart;
-    public final File mcpZip;
-    public final File MAPPINGS;
+
     public final File MINECRAFT_JAR;
-    public final File mojmap;
-    public final File MERGED_MAPPINGS;
+    public final File MOJMAPS;
     public final File PATCHED;
-    public final File PAPER_REMAP_0;
-    public final File PAPER_REMAP;
+    public final File NEOFORM;
+    public final File BINPATCH;
+
     public List<URL> installerTourls = new ArrayList<>();
 
     @SneakyThrows
@@ -92,134 +80,49 @@ public class Action {
         this.mcVer = DataParser.versionMap.get("minecraft");
         this.libPath = new File("libraries").getAbsolutePath() + "/";
 
-        this.forgeStart = libPath + "net/neoforged/neoforge/" + neoforgeVer + "/neoforge-" + neoforgeVer;
-        this.universalJar = new File(forgeStart + "-universal.jar");
+        this.universalJar = new File(libPath + "net/neoforged/neoforge/21.11.6-beta/neoforge-21.11.6-beta-universal.jar");
 
-        this.BINPATCH = new File(libPath + "com/mohistmc/installation/data/server.lzma");
-        this.installInfo = new File(libPath + "com/mohistmc/installation/installInfo");
-        this.otherStart = libPath + "net/minecraft/server/" + mcpVer + "/server-" + mcpVer;
+        this.BINPATCH = new File(libPath + "com/mohistmc/installation/data/client.lzma");
+        this.MOJMAPS = new File(libPath + "net/minecraft/server/1.21.11/server-1.21.11-mappings.txt");
+        this.NEOFORM = new File(libPath + "net/neoforged/neoform/1.21.11-20251209.172050/neoform-1.21.11-20251209.172050-mappings.tsrg.lzma");
+        this.MINECRAFT_JAR = new File(libPath + "net/minecraft/server/1.21.11/server-1.21.11.jar");
+        this.PATCHED = new File(libPath + "net/neoforged/minecraft-server-patched/21.11.6-beta/minecraft-server-patched-21.11.6-beta.jar");
 
-        this.MC_UNPACKED = new File(otherStart + "-unpacked.jar");
-        this.MC_SLIM = new File(otherStart + "-slim.jar");
-        this.MC_SRG = new File(otherStart + "-srg.jar");
-        this.MC_EXTRA = new File(otherStart + "-extra.jar");
-
-        this.mojmap = new File(otherStart + "-mappings.txt");
-
-        this.mcpStart = libPath + "net/neoforged/neoform/" + mcpVer + "/neoform-" + mcpVer;
-        this.mcpZip = new File(mcpStart + ".zip");
-        this.MAPPINGS = new File(mcpStart + "-mappings.txt");
-        this.MERGED_MAPPINGS = new File(mcpStart + "-mappings-merged.txt");
-        this.MINECRAFT_JAR = new File(libPath + "net/minecraft/server/" + mcVer + "/server-" + mcVer + ".jar");
-        this.PATCHED = new File(forgeStart + "-server.jar");
-        this.PAPER_REMAP_0 = new File(libPath + "com/mohistmc/installation/data/paper-remap-0.jar");
-        this.PAPER_REMAP = new File(libPath + "com/mohistmc/installation/data/paper-remap.jar");
-        // TODO Write -classpath at build time
-        LaunchArgsParser.universalJar = universalJar;
-        LaunchArgsParser.PATCHED = PATCHED;
-        LaunchArgsParser.MC_SRG = MC_SRG;
-        LaunchArgsParser.MC_EXTRA = MC_EXTRA;
         install();
     }
 
     public void install() throws Exception {
 
         List<InstallationTask> tasks = new ArrayList<>();
-        copyFileFromJar(BINPATCH, "data/server.lzma", true);
-        copyFileFromJar(universalJar, "data/neoforge-" + neoforgeVer + "-universal.jar", false);
+        copyFileFromJar(BINPATCH, "data/client.lzma", true);
+        copyFileFromJar(universalJar, "data/neoforge-21.11.6-beta-universal.jar", false);
+        copyFileFromJar(NEOFORM, "META-INF/libraries/net/neoforged/neoform/1.21.11-20251209.172050/neoform-1.21.11-20251209.172050-mappings.tsrg.lzma", true);
 
-        if (!needsInstall()) {
-            start();
-            return;
-        }
         System.out.println(I18n.as("installation.start"));
         System.out.println(I18n.as("libraries.global.percentage"));
-        tasks.add(new FileCopyTask(universalJar, "data/neoforge-" + neoforgeVer + "-universal.jar", true));
 
         if (mohistVer == null || mcpVer == null) {
             System.out.println("[Youer] There is an error with the installation, the forge / mcp version is not set.");
             System.exit(0);
         }
 
-        if (MINECRAFT_JAR.exists()) {
-            tasks.add(new ConsoleToolTask(
-                    "net.neoforged.installertools.ConsoleTool",
-                    "--task", "BUNDLER_EXTRACT",
-                    "--input", MINECRAFT_JAR.getAbsolutePath(),
-                    "--output", libPath,
-                    "--libraries"
-            ));
-            if (!MC_UNPACKED.exists()) {
-                tasks.add(new ConsoleToolTask(
-                        "net.neoforged.installertools.ConsoleTool",
-                        "--task", "BUNDLER_EXTRACT",
-                        "--input", MINECRAFT_JAR.getAbsolutePath(),
-                        "--output", MC_UNPACKED.getAbsolutePath(),
-                        "--jar-only"
-                ));
-            }
-        } else {
-            System.out.println(I18n.as("installation.minecraftserver") + MINECRAFT_JAR.getAbsolutePath());
-            System.exit(0);
-        }
-
-        if (mcpZip.exists()) {
-            if (!MAPPINGS.exists()) {
-                tasks.add(new ConsoleToolTask(
-                        "net.neoforged.installertools.ConsoleTool",
-                        "--task", "MCP_DATA",
-                        "--input", mcpZip.getAbsolutePath(),
-                        "--output", MAPPINGS.getAbsolutePath(),
-                        "--key", "mappings"
-                ));
-            }
-        } else {
-            System.out.println(I18n.as("installation.mcpfilemissing"));
-            System.exit(0);
-        }
-
-        tasks.add(new FileCheckTask(MC_UNPACKED));
-        tasks.add(new FileCheckTask(MC_SRG));
-
-        if (!MC_SLIM.exists()) {
-            tasks.add(new ConsoleToolTask("net.neoforged.jarsplitter.ConsoleTool",
-                    "--input",
-                    MC_UNPACKED.getAbsolutePath(),
-                    "--slim",
-                    MC_SLIM.getAbsolutePath(),
-                    "--extra",
-                    MC_EXTRA.getAbsolutePath(),
-                    "--srg",
-                    MERGED_MAPPINGS.getAbsolutePath()));
-        }
-
-        if (!MC_SRG.exists()) {
-            tasks.add(new ConsoleToolTask("net.neoforged.art.Main",
-                    "--input", MC_SLIM.getAbsolutePath(),
-                    "--output", MC_SRG.getAbsolutePath(),
-                    "--names", MERGED_MAPPINGS.getAbsolutePath(),
-                    "--ann-fix",
-                    "--ids-fix",
-                    "--src-fix",
-                    "--record-fix"));
-        }
-
-        tasks.add(new PatchValidationTask(
-                installInfo,
-                PATCHED,
-                BINPATCH,
-                universalJar,
-                MC_SRG
+        tasks.add(new ConsoleToolTask(
+                "net.neoforged.installertools.ConsoleTool",
+                "--task", "PROCESS_MINECRAFT_JAR",
+                "--input", MINECRAFT_JAR.getAbsolutePath(),
+                "--input-mappings", MOJMAPS.getAbsolutePath(),
+                "--output", PATCHED.getAbsolutePath(),
+                "--extract-libraries-to", "libraries",
+                "--neoform-data", NEOFORM.getAbsolutePath(),
+                "--apply-patches", BINPATCH.getAbsolutePath()
         ));
 
-        tasks.add(new JarMergeTask(PATCHED, universalJar, PAPER_REMAP_0));
-        tasks.add(new JarMergeTask(PAPER_REMAP_0, MC_SRG, PAPER_REMAP));
-        tasks.add(new FileCheckTask(PAPER_REMAP_0));
+
         try (ProgressBar pb = new ProgressBarBuilder()
                 .setTaskName("")
                 .setInitialMax(tasks.size())
                 .setStyle(ProgressBarStyle.ASCII)
-                .setUpdateIntervalMillis(100)
+                .setUpdateIntervalMillis(10)
                 .build()) {
 
             mute();
@@ -241,7 +144,6 @@ public class Action {
     }
 
     protected void mute() throws Exception {
-        if (Main.DEBUG) return;
         File out = new File(libPath + "com/mohistmc/installation", "installationLogs.txt");
         if (!out.exists()) {
             out.getParentFile().mkdirs();
@@ -251,7 +153,6 @@ public class Action {
     }
 
     protected void unmute() {
-        if (Main.DEBUG) return;
         System.setOut(origin);
     }
 
@@ -282,7 +183,7 @@ public class Action {
                 } catch (IOException ignored) {
                 }
             } else {
-                System.out.println("[Youer] The file " + file.getName() + " doesn't exists in the Youer jar !");
+                System.out.println("[Youer] The file " + pathInJar + " doesn't exists in the Youer jar !");
                 System.exit(0);
             }
         }
@@ -300,17 +201,6 @@ public class Action {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-
-    public boolean needsInstall() throws IOException {
-        if (installInfo.exists()) {
-            String lzmaMD5 = SHA256.as(BINPATCH);
-            List<String> lines = Files.readAllLines(installInfo.toPath());
-
-            return lines.size() < 3 || !lzmaMD5.equals(lines.get(1)) || !SHA256.as(universalJar).equals(lines.get(2));
-        }
-        return true;
     }
 
     public void start() throws IOException {
@@ -342,44 +232,6 @@ public class Action {
         void execute(ProgressBar pb) throws Exception;
     }
 
-    private record JarMergeTask(File input1, File input2, File output) implements InstallationTask {
-
-        @Override
-        public void execute(ProgressBar pb) throws Exception {
-            JarMerger.mergeJars(input1, input2, output);
-            pb.step();
-        }
-    }
-
-    private record FileCheckTask(File file) implements InstallationTask {
-
-        @Override
-        public void execute(ProgressBar pb) {
-            if (JarTool.isCorrupted(file)) {
-                file.delete();
-            }
-            pb.step();
-        }
-    }
-
-    private class FileCopyTask implements InstallationTask {
-        private final File file;
-        private final String pathInJar;
-        private final boolean clearOld;
-
-        public FileCopyTask(File file, String pathInJar, boolean clearOld) {
-            this.file = file;
-            this.pathInJar = pathInJar;
-            this.clearOld = clearOld;
-        }
-
-        @Override
-        public void execute(ProgressBar pb) {
-            copyFileFromJar(file, pathInJar, clearOld);
-            pb.step();
-        }
-    }
-
     private class ConsoleToolTask implements InstallationTask {
         private final String mainClass;
         private final String[] args;
@@ -395,61 +247,4 @@ public class Action {
             pb.step();
         }
     }
-
-    private class PatchValidationTask implements InstallationTask {
-        private final File installInfo;
-        private final File patchedFile;
-        private final File binPatch;
-        private final File universalJar;
-        private final File mcSrg;
-
-        public PatchValidationTask(File installInfo, File patchedFile, File binPatch,
-                                   File universalJar, File mcSrg) {
-            this.installInfo = installInfo;
-            this.patchedFile = patchedFile;
-            this.binPatch = binPatch;
-            this.universalJar = universalJar;
-            this.mcSrg = mcSrg;
-        }
-
-        @Override
-        public void execute(ProgressBar pb) throws Exception {
-            String storedServerMD5 = null;
-            String storedLzmaMD5 = null;
-            String storedUniversalJarMD5 = SHA256.as(universalJar);
-            String serverMD5 = SHA256.as(patchedFile);
-            String lzmaMD5 = SHA256.as(binPatch);
-
-            if (installInfo.exists()) {
-                List<String> infoLines = Files.readAllLines(installInfo.toPath());
-                if (!infoLines.isEmpty()) {
-                    storedServerMD5 = infoLines.getFirst();
-                }
-                if (infoLines.size() > 1) {
-                    storedLzmaMD5 = infoLines.get(1);
-                }
-            }
-
-            if (!patchedFile.exists() || storedServerMD5 == null ||
-                    storedLzmaMD5 == null || !storedServerMD5.equals(serverMD5) ||
-                    !storedLzmaMD5.equals(lzmaMD5)) {
-
-                run("net.neoforged.binarypatcher.ConsoleTool",
-                        "--clean", mcSrg.getAbsolutePath(),
-                        "--output", patchedFile.getAbsolutePath(),
-                        "--apply", binPatch.getAbsolutePath());
-
-                serverMD5 = SHA256.as(patchedFile);
-            }
-
-            try (FileWriter fw = new FileWriter(installInfo)) {
-                fw.write(serverMD5 + "\n");
-                fw.write(lzmaMD5 + "\n");
-                fw.write(storedUniversalJarMD5);
-            }
-
-            pb.step();
-        }
-    }
-
 }

@@ -23,7 +23,6 @@ import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.I18n;
 import com.mohistmc.mjson.Json;
 import java.net.URI;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 

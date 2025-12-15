@@ -441,7 +441,10 @@ public class NeoDevPlugin implements Plugin<Project> {
                 spec.into("data");
                 spec.rename(s -> "win_args.txt");
             });
-
+            task.from(binaryPatchOutputs, spec -> {
+                spec.into("data");
+                spec.rename(s -> "client.lzma");
+            });
             var mavenPath = neoForgeVersion.map(v -> "net/neoforged/neoforge/" + v);
             task.getInputs().property("mavenPath", mavenPath);
             task.from(project.getRootProject().files("server_files"), spec -> {
