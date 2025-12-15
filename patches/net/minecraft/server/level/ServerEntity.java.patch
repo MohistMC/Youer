@@ -44,7 +44,18 @@
          this.level = p_8528_;
          this.broadcast = p_8532_;
          this.entity = p_8529_;
-@@ -86,7 +_,7 @@
+@@ -83,10 +_,18 @@
+         this.trackedDataValues = p_8529_.getEntityData().getNonDefaultValues();
+     }
+ 
++    // Paper start - fix desync when a player is added to the tracker
++    private boolean forceStateResync;
++    public void onPlayerAdd() {
++        this.forceStateResync = true;
++    }
++    // Paper end - fix desync when a player is added to the tracker
++
++
      public void sendChanges() {
          List<Entity> list = this.entity.getPassengers();
          if (!list.equals(this.lastPassengers)) {
@@ -53,7 +64,7 @@
              removedPassengers(list, this.lastPassengers)
                  .forEach(
                      p_352697_ -> {
-@@ -99,23 +_,26 @@
+@@ -99,26 +_,29 @@
              this.lastPassengers = list;
          }
  
@@ -85,15 +96,48 @@
                          }
                      }
                  }
--            }
- 
--            this.sendDirtyEntityData();
++
 +                this.sendDirtyEntityData();
-+            }
+             }
+-
+-            this.sendDirtyEntityData();
          }
  
-         if (this.tickCount % this.updateInterval == 0 || this.entity.hasImpulse || this.entity.getEntityData().isDirty()) {
-@@ -221,6 +_,27 @@
+-        if (this.tickCount % this.updateInterval == 0 || this.entity.hasImpulse || this.entity.getEntityData().isDirty()) {
++        if (this.forceStateResync || this.tickCount % this.updateInterval == 0 || this.entity.hasImpulse || this.entity.getEntityData().isDirty()) { // Paper - fix desync when a player is added to the tracker
+             if (this.entity.isPassenger()) {
+                 int i1 = Mth.floor(this.entity.getYRot() * 256.0F / 360.0F);
+                 int l1 = Mth.floor(this.entity.getXRot() * 256.0F / 360.0F);
+@@ -137,7 +_,13 @@
+                 int l = Mth.floor(this.entity.getYRot() * 256.0F / 360.0F);
+                 int k1 = Mth.floor(this.entity.getXRot() * 256.0F / 360.0F);
+                 Vec3 vec31 = this.entity.trackingPosition();
+-                boolean flag4 = this.positionCodec.delta(vec31).lengthSqr() >= 7.6293945E-6F;
++                // Paper start - reduce allocation of Vec3D here
++                Vec3 base = this.positionCodec.base;
++                double vec3d_dx = vec31.x - base.x;
++                double vec3d_dy = vec31.y - base.y;
++                double vec3d_dz = vec31.z - base.z;
++                boolean flag4 = (vec3d_dx * vec3d_dx + vec3d_dy * vec3d_dy + vec3d_dz * vec3d_dz) >= 7.6293945E-6F;
++                // Paper end - reduce allocation of Vec3D here
+                 Packet<?> packet1 = null;
+                 boolean flag5 = flag4 || this.tickCount % 60 == 0;
+                 boolean flag6 = Math.abs(l - this.lastSentYRot) >= 1 || Math.abs(k1 - this.lastSentXRot) >= 1;
+@@ -147,7 +_,7 @@
+                 long j = this.positionCodec.encodeY(vec31);
+                 long k = this.positionCodec.encodeZ(vec31);
+                 boolean flag2 = i < -32768L || i > 32767L || j < -32768L || j > 32767L || k < -32768L || k > 32767L;
+-                if (flag2 || this.teleportDelay > 400 || this.wasRiding || this.wasOnGround != this.entity.onGround()) {
++                if (this.forceStateResync || flag2 || this.teleportDelay > 400 || this.wasRiding || this.wasOnGround != this.entity.onGround()) {
+                     this.wasOnGround = this.entity.onGround();
+                     this.teleportDelay = 0;
+                     packet1 = new ClientboundTeleportEntityPacket(this.entity);
+@@ -217,10 +_,32 @@
+             }
+ 
+             this.entity.hasImpulse = false;
++            this.forceStateResync = false; // Paper - fix desync when a player is added to the tracker
+         }
  
          this.tickCount++;
          if (this.entity.hurtMarked) {

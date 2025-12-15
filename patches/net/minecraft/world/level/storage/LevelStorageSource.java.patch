@@ -9,13 +9,22 @@
          return new LevelDataAndDimensions(primaryleveldata, worlddimensions$complete);
      }
  
+@@ -343,7 +_,7 @@
+ 
+     public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String p_289980_) throws IOException, ContentValidationException {
+         Path path = this.getLevelPath(p_289980_);
+-        List<ForbiddenSymlinkInfo> list = this.worldDirValidator.validateDirectory(path, true);
++        List<ForbiddenSymlinkInfo> list = Boolean.getBoolean("paper.disableWorldSymlinkValidation") ? List.of() : this.worldDirValidator.validateDirectory(path, true);
+         if (!list.isEmpty()) {
+             throw new ContentValidationException(path, list);
+         } else {
 @@ -351,15 +_,44 @@
          }
      }
  
 +    public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String p_289980_, ResourceKey<LevelStem> dimensionType) throws IOException, ContentValidationException {
 +        Path path = this.getLevelPath(p_289980_);
-+        List<ForbiddenSymlinkInfo> list = this.worldDirValidator.validateDirectory(path, true);
++        List<ForbiddenSymlinkInfo> list = Boolean.getBoolean("paper.disableWorldSymlinkValidation") ? List.of() : this.worldDirValidator.validateDirectory(path, true);
 +        if (!list.isEmpty()) {
 +            throw new ContentValidationException(path, list);
 +        } else {
