@@ -1,6 +1,7 @@
 package com.mohistmc.launcher.youer.libraries;
 
 import com.mohistmc.launcher.youer.Main;
+import com.mohistmc.launcher.youer.action.Action;
 import com.mohistmc.tools.SHA256;
 import java.io.File;
 import java.io.IOException;
@@ -22,6 +23,8 @@ import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
 import me.tongfei.progressbar.ProgressBarStyle;
 
+import static com.mohistmc.launcher.youer.Main.DEBUG;
+
 @ToString
 public class LibrariesDownloadQueue {
 
@@ -32,9 +35,8 @@ public class LibrariesDownloadQueue {
     @ToString.Exclude
     public Set<Libraries> need_download = new LinkedHashSet<>();
 
-    public String parentDirectory = "libraries";
     public String systemProperty = null;
-    public boolean debug = false;
+    public boolean debug = DEBUG;
 
 
     public static LibrariesDownloadQueue create() {
@@ -43,18 +45,7 @@ public class LibrariesDownloadQueue {
 
     private static boolean isTargetFile(JarEntry entry) {
         String name = entry.getName().toLowerCase();
-        return name.endsWith(".jar") || name.endsWith(".zip") || name.endsWith(".txt");
-    }
-
-    /**
-     * Set the file download directory
-     *
-     * @param parentDirectory The path to which the file is downloaded
-     * @return Returns the current real column
-     */
-    public LibrariesDownloadQueue parentDirectory(String parentDirectory) {
-        this.parentDirectory = parentDirectory;
-        return this;
+        return name.endsWith(".jar") || name.endsWith(".zip") || name.endsWith(".txt") || name.endsWith(".lzma");
     }
 
     /**
@@ -80,7 +71,7 @@ public class LibrariesDownloadQueue {
                     .setInitialMax(need_download.size());
             try (ProgressBar pb = builder.build()) {
                 for (Libraries lib : need_download) {
-                    File file = new File(parentDirectory, lib.path);
+                    File file = new File(Action.LIBRARIES, lib.path);
                     file.getParentFile().mkdirs();
                     String url = "META-INF/" + file.getPath();
                     if (copyFileFromJar(file, url.replaceAll("\\\\", "/"), lib)) {
@@ -121,7 +112,7 @@ public class LibrariesDownloadQueue {
 
     public boolean needDownload() {
         for (Libraries libraries : allLibraries) {
-            File lib = new File(parentDirectory, libraries.path);
+            File lib = new File(Action.LIBRARIES, libraries.path);
             if (lib.exists() && Objects.equals(SHA256.as(lib), libraries.getSha256())) {
                 continue;
             }
@@ -131,7 +122,7 @@ public class LibrariesDownloadQueue {
     }
 
     public void scanFromJar() throws IOException {
-        Enumeration<URL> resources = LibrariesDownloadQueue.class.getClassLoader().getResources("META-INF/libraries");
+        Enumeration<URL> resources = LibrariesDownloadQueue.class.getClassLoader().getResources(Action.META_INF);
         while (resources.hasMoreElements()) {
             URL url = resources.nextElement();
             if ("jar".equals(url.getProtocol())) {

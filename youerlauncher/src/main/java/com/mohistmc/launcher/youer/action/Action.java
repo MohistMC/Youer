@@ -55,38 +55,39 @@ import me.tongfei.progressbar.ProgressBarStyle;
 public class Action {
 
     private static final PrintStream origin = System.out;
-    public final String mohistVer;
+    public static String LIBRARIES = "libraries";
+    public static String META_INF = "META-INF/" + LIBRARIES;
+    public final String youerVer;
     public final String neoforgeVer;
-    public final String mcpVer;
+    public final String neoformVer;
     public final String mcVer;
     public final String libPath;
-
     public final File universalJar;
-
     public final File MINECRAFT_JAR;
     public final File MOJMAPS;
     public final File PATCHED;
     public final File NEOFORM;
     public final File BINPATCH;
-
+    public final String neoform_path;
     public List<URL> installerTourls = new ArrayList<>();
 
     @SneakyThrows
     public Action() {
         init();
-        this.mohistVer = DataParser.versionMap.get("youer");
-        this.neoforgeVer = DataParser.versionMap.get("neoforge");
-        this.mcpVer = DataParser.versionMap.get("mcp");
-        this.mcVer = DataParser.versionMap.get("minecraft");
-        this.libPath = new File("libraries").getAbsolutePath() + "/";
+        this.youerVer = DataParser.getVersion("youer");
+        this.neoforgeVer = DataParser.getVersion("neoforge");
+        this.neoformVer = DataParser.getVersion("neoform");
+        this.mcVer = DataParser.getVersion("minecraft");
+        this.libPath = new File(LIBRARIES).getAbsolutePath() + "/";
 
-        this.universalJar = new File(libPath + "net/neoforged/neoforge/21.11.6-beta/neoforge-21.11.6-beta-universal.jar");
+        this.universalJar = new File(libPath + "net/neoforged/neoforge/%s/neoforge-%s-universal.jar".formatted(neoforgeVer, neoforgeVer));
+        this.neoform_path = "net/neoforged/neoform/%s/neoform-%s-mappings.tsrg.lzma".formatted(neoformVer, neoformVer);
 
         this.BINPATCH = new File(libPath + "com/mohistmc/installation/data/client.lzma");
-        this.MOJMAPS = new File(libPath + "net/minecraft/server/1.21.11/server-1.21.11-mappings.txt");
-        this.NEOFORM = new File(libPath + "net/neoforged/neoform/1.21.11-20251209.172050/neoform-1.21.11-20251209.172050-mappings.tsrg.lzma");
-        this.MINECRAFT_JAR = new File(libPath + "net/minecraft/server/1.21.11/server-1.21.11.jar");
-        this.PATCHED = new File(libPath + "net/neoforged/minecraft-server-patched/21.11.6-beta/minecraft-server-patched-21.11.6-beta.jar");
+        this.MOJMAPS = new File(libPath + "net/minecraft/server/%s/server-%s-mappings.txt".formatted(mcVer, mcVer));
+        this.NEOFORM = new File(libPath + neoform_path);
+        this.MINECRAFT_JAR = new File(libPath + "net/minecraft/server/%s/server-%s.jar".formatted(mcVer, mcVer));
+        this.PATCHED = new File(libPath + "net/neoforged/minecraft-server-patched/%s/minecraft-server-patched-%s.jar".formatted(neoforgeVer, neoforgeVer));
 
         install();
     }
@@ -95,14 +96,14 @@ public class Action {
 
         List<InstallationTask> tasks = new ArrayList<>();
         copyFileFromJar(BINPATCH, "data/client.lzma", true);
-        copyFileFromJar(universalJar, "data/neoforge-21.11.6-beta-universal.jar", false);
-        copyFileFromJar(NEOFORM, "META-INF/libraries/net/neoforged/neoform/1.21.11-20251209.172050/neoform-1.21.11-20251209.172050-mappings.tsrg.lzma", true);
+        copyFileFromJar(universalJar, "data/neoforge-%s-universal.jar".formatted(neoforgeVer), false);
+        copyFileFromJar(NEOFORM, META_INF + "/" + neoform_path, true);
 
         System.out.println(I18n.as("installation.start"));
         System.out.println(I18n.as("libraries.global.percentage"));
 
-        if (mohistVer == null || mcpVer == null) {
-            System.out.println("[Youer] There is an error with the installation, the forge / mcp version is not set.");
+        if (youerVer == null || neoformVer == null) {
+            System.out.println("[Youer] There is an error with the installation, the neoforge / neoform version is not set.");
             System.exit(0);
         }
 
@@ -112,7 +113,7 @@ public class Action {
                 "--input", MINECRAFT_JAR.getAbsolutePath(),
                 "--input-mappings", MOJMAPS.getAbsolutePath(),
                 "--output", PATCHED.getAbsolutePath(),
-                "--extract-libraries-to", "libraries",
+                "--extract-libraries-to", LIBRARIES,
                 "--neoform-data", NEOFORM.getAbsolutePath(),
                 "--apply-patches", BINPATCH.getAbsolutePath()
         ));
@@ -194,7 +195,7 @@ public class Action {
             BufferedReader b = new BufferedReader(new InputStreamReader(DefaultLibraries.class.getClassLoader().getResourceAsStream("installer.txt")));
             for (String line = b.readLine(); line != null; line = b.readLine()) {
                 Libraries libraries = Libraries.from(line);
-                File file = new File("libraries", libraries.getPath());
+                File file = new File(LIBRARIES, libraries.getPath());
                 URL url = file.toURI().toURL();
                 installerTourls.add(url);
             }
@@ -219,10 +220,12 @@ public class Action {
         LaunchArgsParser.init(DataParser.launchArgs);
 
         if (!MojangEulaUtil.hasAcceptedEULA()) {
-            System.out.println(Main.i18n.as("eula"));
-            while (!"true".equals(new Scanner(System.in).next())) {
+            if (System.console() != null) {
+                System.out.println(Main.i18n.as("eula"));
+                while (!"true".equals(new Scanner(System.in).next())) {
+                }
+                MojangEulaUtil.writeInfos(Main.i18n.as("eula.text", "https://account.mojang.com/documents/minecraft_eula") + "\n" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\neula=true");
             }
-            MojangEulaUtil.writeInfos(Main.i18n.as("eula.text", "https://account.mojang.com/documents/minecraft_eula") + "\n" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\neula=true");
         }
         net.neoforged.fml.startup.Server.main(forgeArgs.toArray(String[]::new));
         ProxySelector.setDefault(new YouerProxySelector(ProxySelector.getDefault()));

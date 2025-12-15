@@ -4,16 +4,13 @@ import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.util.I18n;
 import com.mohistmc.tools.FileUtils;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Automatically remove mods that are not compatible with Mohist servers
@@ -76,7 +73,7 @@ public class AutoDeleteMods {
      *
      * @param identifier of the class or file to be checked (can be a full class name or a file identifier)
      */
-    private static void checkModFile(String identifier) throws Exception {
+    private static void checkModFile(String identifier) {
         File modsDir = new File("mods");
 
         if (!modsDir.exists()) {
@@ -85,37 +82,18 @@ public class AutoDeleteMods {
         }
 
         File[] jarFiles = modsDir.listFiles((dir, name) -> name.endsWith(".jar"));
-        if (jarFiles == null || jarFiles.length == 0) return;
+        if (jarFiles == null) return;
 
-        int threadCount = Math.min(jarFiles.length, Runtime.getRuntime().availableProcessors() * 2);
-
-        try (ExecutorService executor = Executors.newFixedThreadPool(threadCount)) {
-            CountDownLatch latch = new CountDownLatch(jarFiles.length);
-
-            for (File jarFile : jarFiles) {
-                executor.submit(() -> {
-                    try {
-                        if (identifier.contains(".")) {
-                            String classPath = identifier.replaceAll("\\.", "/") + ".class";
-                            if (FileUtils.fileExists(jarFile, classPath)) {
-                                backupAndDelete(jarFile, identifier);
-                            }
-                        } else {
-                            String jsonPath = identifier + ".json";
-                            if (FileUtils.fileExists(jarFile, jsonPath) ||
-                                    FileUtils.fileExists(jarFile, "META-INF/" + jsonPath) ||
-                                    FileUtils.fileExists(jarFile, "assets/" + identifier + "/" + jsonPath)) {
-                                backupAndDelete(jarFile, identifier);
-                            }
-                        }
-                    } catch (Exception ignored) {
-                    } finally {
-                        latch.countDown();
+        for (File jarFile : jarFiles) {
+            try {
+                if (identifier.contains(".")) {
+                    String classPath = identifier.replaceAll("\\.", "/") + ".class";
+                    if (FileUtils.fileExists(jarFile, classPath)) {
+                        backupAndDelete(jarFile, identifier);
                     }
-                });
+                }
+            } catch (Exception ignored) {
             }
-
-            latch.await(30, TimeUnit.SECONDS);
         }
     }
 
@@ -126,26 +104,27 @@ public class AutoDeleteMods {
      */
     private static void backupAndDelete(File modFile, String className) throws Exception {
         DeletionReason reason = MOD_BLACKLIST.getOrDefault(className, DeletionReason.UNKNOWN);
-        System.out.println(I18n.as("update.deleting",
-                modFile.getName(),
-                reason.getDisplayText()
-        ));
-
-        System.gc();
-        Thread.sleep(100);
 
         File backupDir = new File("delete/mods");
         File backupFile = new File("delete", modFile.getPath());
 
-        synchronized (AutoDeleteMods.class) {
-            if (!backupDir.exists()) {
-                backupDir.mkdirs();
-            } else if (backupFile.exists()) {
-                backupFile.delete();
-            }
+        System.gc();
+        Thread.sleep(100);
+        if (!backupDir.exists()) {
+            backupDir.mkdirs();
+        } else if (backupFile.exists()) {
+            backupFile.delete();
+        }
 
-            Files.copy(modFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            modFile.delete();
+        Files.copy(modFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        try {
+            Files.deleteIfExists(modFile.toPath());
+            System.out.println(I18n.as("update.deleting",
+                    modFile.getName(),
+                    reason.getDisplayText()
+            ));
+        } catch (IOException e) {
+            System.err.println("Failed to delete file: " + modFile.getName() + " - " + e.getMessage());
         }
     }
 

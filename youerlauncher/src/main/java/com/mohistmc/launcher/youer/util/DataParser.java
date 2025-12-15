@@ -9,16 +9,20 @@ import java.util.List;
 
 public class DataParser {
 
-    public static final HashMap<String, String> versionMap = new HashMap<>();
     public static final List<String> launchArgs = new ArrayList<>();
+    private static final HashMap<String, String> versionMap = new HashMap<>();
 
     public static void parseVersions() {
         versionMap.put("neoforge", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/neoforge.txt").getFirst());
         versionMap.put("minecraft", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/minecraft.txt").getFirst());
         versionMap.put("youer", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/youer.txt").getFirst());
-        versionMap.put("mcp", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/mcp.txt").getFirst());
+        versionMap.put("neoform", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/neoform.txt").getFirst());
 
         Main.MCVERSION = versionMap.get("minecraft");
+    }
+
+    public static String getVersion(String key) {
+        return DataParser.versionMap.get(key);
     }
 
     public static void parseLaunchArgs() {
