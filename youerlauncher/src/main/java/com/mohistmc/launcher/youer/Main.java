@@ -23,7 +23,6 @@ import com.mohistmc.launcher.youer.action.Action;
 import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.feature.DefaultLibraries;
 import com.mohistmc.launcher.youer.util.DataParser;
-import com.mohistmc.tools.JarTool;
 import com.mohistmc.tools.Logo;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
@@ -34,7 +33,6 @@ public class Main {
     public static final List<String> mainArgs = new ArrayList<>();
     public static String MCVERSION;
     public static i18n i18n;
-    public static JarTool jarTool;
 
     public static String getVersion() {
         return (Main.class.getPackage().getImplementationVersion() != null) ? Main.class.getPackage().getImplementationVersion() : MCVERSION;
@@ -46,7 +44,6 @@ public class Main {
         DataParser.parseLaunchArgs();
         YouerConfigUtil.init();
         YouerConfigUtil.i18n();
-        jarTool = new JarTool(Main.class);
         if (YouerConfigUtil.aBoolean("youer.show_logo", true)) {
             System.out.printf("%n%s%n%s - %s, Java(%s) %s PID: %s%n",
                     Logo.asYouer(),

@@ -54,8 +54,8 @@ import me.tongfei.progressbar.ProgressBarStyle;
 
 public class Action {
 
+    public static final String LIBRARIES = "libraries";
     private static final PrintStream origin = System.out;
-    public static String LIBRARIES = "libraries";
     public static String META_INF = "META-INF/" + LIBRARIES;
     public final String youerVer;
     public final String neoforgeVer;
@@ -69,7 +69,7 @@ public class Action {
     public final File NEOFORM;
     public final File BINPATCH;
     public final String neoform_path;
-    public List<URL> installerTourls = new ArrayList<>();
+    public final List<URL> installerTourls = new ArrayList<>();
 
     @SneakyThrows
     public Action() {
