@@ -16,7 +16,6 @@ public class DataParser {
         versionMap.put("neoforge", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/neoforge.txt").getFirst());
         versionMap.put("minecraft", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/minecraft.txt").getFirst());
         versionMap.put("youer", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/youer.txt").getFirst());
-        versionMap.put("neoform", FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "versions/neoform.txt").getFirst());
 
         Main.MCVERSION = versionMap.get("minecraft");
     }

@@ -512,18 +512,6 @@ javadoc {
     source += sourceSets.client.allSource
 }
 
-processResources {
-    inputs.property("version", project.version)
-    final version = project.version
-    filesMatching("META-INF/neoforge.mods.toml") {
-        expand([
-                "global": [
-                        "neoForgeVersion": version
-                ]
-        ])
-    }
-}
-
 artifacts {
     modDevBundle(userdevJar) {
         setClassifier("userdev") // Legacy
@@ -586,6 +574,7 @@ task youerJar(type: Jar, dependsOn: [youerJar0, downloadMultipleFiles, project('
     from(zipTree(project(':youerlauncher').tasks.jar.outputs.getFiles().asPath.replace(".jar", "-all.jar"))) {
         into ""
     }
+
     from(zipTree(youerJar0.outputs.getFiles().asPath)) {
         into ""
     }
@@ -619,12 +608,9 @@ task youerJar(type: Jar, dependsOn: [youerJar0, downloadMultipleFiles, project('
         filter(ReplaceTokens, tokens: [VERSION: neoforge_version])
         rename { 'versions/neoforge.txt' }
     }
-    from(rootProject.file('server_files/version.txt')) {
-        filter(ReplaceTokens, tokens: [VERSION: minecraft_version + '-' + neoform_version])
-        rename { 'versions/neoform.txt' }
-    }
 }
 
-tasks.withType(JavaCompile.class).configureEach(task -> {
-    Collections.addAll(task.getOptions().getCompilerArgs(), "-Xmaxerrs", "9999");
-});
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.warnings = false
+}

@@ -59,16 +59,12 @@ public class Action {
     public static String META_INF = "META-INF/" + LIBRARIES;
     public final String youerVer;
     public final String neoforgeVer;
-    public final String neoformVer;
     public final String mcVer;
     public final String libPath;
     public final File universalJar;
     public final File MINECRAFT_JAR;
-    public final File MOJMAPS;
     public final File PATCHED;
-    public final File NEOFORM;
     public final File BINPATCH;
-    public final String neoform_path;
     public final List<URL> installerTourls = new ArrayList<>();
 
     @SneakyThrows
@@ -76,16 +72,12 @@ public class Action {
         init();
         this.youerVer = DataParser.getVersion("youer");
         this.neoforgeVer = DataParser.getVersion("neoforge");
-        this.neoformVer = DataParser.getVersion("neoform");
         this.mcVer = DataParser.getVersion("minecraft");
         this.libPath = new File(LIBRARIES).getAbsolutePath() + "/";
 
         this.universalJar = new File(libPath + "net/neoforged/neoforge/%s/neoforge-%s-universal.jar".formatted(neoforgeVer, neoforgeVer));
-        this.neoform_path = "net/neoforged/neoform/%s/neoform-%s-mappings.tsrg.lzma".formatted(neoformVer, neoformVer);
 
         this.BINPATCH = new File(libPath + "com/mohistmc/installation/data/client.lzma");
-        this.MOJMAPS = new File(libPath + "net/minecraft/server/%s/server-%s-mappings.txt".formatted(mcVer, mcVer));
-        this.NEOFORM = new File(libPath + neoform_path);
         this.MINECRAFT_JAR = new File(libPath + "net/minecraft/server/%s/server-%s.jar".formatted(mcVer, mcVer));
         this.PATCHED = new File(libPath + "net/neoforged/minecraft-server-patched/%s/minecraft-server-patched-%s.jar".formatted(neoforgeVer, neoforgeVer));
 
@@ -97,12 +89,11 @@ public class Action {
         List<InstallationTask> tasks = new ArrayList<>();
         copyFileFromJar(BINPATCH, "data/client.lzma", true);
         copyFileFromJar(universalJar, "data/neoforge-%s-universal.jar".formatted(neoforgeVer), false);
-        copyFileFromJar(NEOFORM, META_INF + "/" + neoform_path, true);
 
         System.out.println(I18n.as("installation.start"));
         System.out.println(I18n.as("libraries.global.percentage"));
 
-        if (youerVer == null || neoformVer == null) {
+        if (youerVer == null) {
             System.out.println("[Youer] There is an error with the installation, the neoforge / neoform version is not set.");
             System.exit(0);
         }
@@ -111,10 +102,8 @@ public class Action {
                 "net.neoforged.installertools.ConsoleTool",
                 "--task", "PROCESS_MINECRAFT_JAR",
                 "--input", MINECRAFT_JAR.getAbsolutePath(),
-                "--input-mappings", MOJMAPS.getAbsolutePath(),
                 "--output", PATCHED.getAbsolutePath(),
                 "--extract-libraries-to", LIBRARIES,
-                "--neoform-data", NEOFORM.getAbsolutePath(),
                 "--apply-patches", BINPATCH.getAbsolutePath()
         ));
 
@@ -132,6 +121,7 @@ public class Action {
             }
             unmute();
         }
+        System.out.println(I18n.as("installation.finished"));
         start();
     }
 

@@ -38,7 +38,7 @@ public class Main {
         return (Main.class.getPackage().getImplementationVersion() != null) ? Main.class.getPackage().getImplementationVersion() : MCVERSION;
     }
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         mainArgs.addAll(List.of(args));
         DataParser.parseVersions();
         DataParser.parseLaunchArgs();
@@ -56,7 +56,6 @@ public class Main {
             if (YouerConfigUtil.isCN()) {
                 System.out.println("+------------------------------------------------------+");
                 System.out.println("|                                                      |");
-                System.out.println("| 官方交流QQ群: 570870451                              |");
                 System.out.println("| 官网推出一键开服功能　　　　　　　　　　　　　　　　 |");
                 System.out.println("| 官网(中国): https://www.mohistmc.cn/                 |");
                 System.out.println("| 爱发电: https://ifdian.net/a/MohistMC                |");
