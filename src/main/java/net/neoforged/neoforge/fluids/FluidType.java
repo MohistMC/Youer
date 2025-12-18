@@ -841,7 +841,7 @@ public class FluidType {
      */
     public void onVaporize(@Nullable LivingEntity entity, Level level, BlockPos pos, FluidStack stack) {
         SoundEvent sound = this.getSound(entity, level, pos, SoundActions.FLUID_VAPORIZE);
-        level.playSound(entity, pos, sound != null ? sound : SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.5F, 2.6F + (level.random.nextFloat() - level.random.nextFloat()) * 0.8F);
+        level.playSound(entity, pos, sound != null ? sound : SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.5F, 2.6F + (level.getRandom().nextFloat() - level.getRandom().nextFloat()) * 0.8F);
 
         for (int l = 0; l < 8; ++l)
             level.addAlwaysVisibleParticle(ParticleTypes.LARGE_SMOKE, (double) pos.getX() + Math.random(), (double) pos.getY() + Math.random(), (double) pos.getZ() + Math.random(), 0.0D, 0.0D, 0.0D);

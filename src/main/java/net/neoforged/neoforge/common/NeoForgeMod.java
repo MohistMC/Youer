@@ -591,7 +591,6 @@ public class NeoForgeMod {
         NeoForgeRegistriesSetup.setup(modEventBus);
         StartupNotificationManager.addModMessage("NeoForge version " + NeoForgeVersion.getVersion());
 
-        NeoForge.EVENT_BUS.addListener(VillagerTradingManager::loadTrades);
         NeoForge.EVENT_BUS.register(new NeoForgeEventHandler());
         NeoForge.EVENT_BUS.addListener(this::registerPermissionNodes);
 
@@ -664,8 +663,8 @@ public class NeoForgeMod {
         if (!event.getRegistryKey().equals(Registries.LOOT_CONDITION_TYPE))
             return;
 
-        event.register(Registries.LOOT_CONDITION_TYPE, Identifier.fromNamespaceAndPath("neoforge", "loot_table_id"), () -> LootTableIdCondition.LOOT_TABLE_ID);
-        event.register(Registries.LOOT_CONDITION_TYPE, Identifier.fromNamespaceAndPath("neoforge", "can_item_perform_ability"), () -> CanItemPerformAbility.LOOT_CONDITION_TYPE);
+        event.register(Registries.LOOT_CONDITION_TYPE, Identifier.fromNamespaceAndPath("neoforge", "loot_table_id"), () -> LootTableIdCondition.CODEC);
+        event.register(Registries.LOOT_CONDITION_TYPE, Identifier.fromNamespaceAndPath("neoforge", "can_item_perform_ability"), () -> CanItemPerformAbility.CODEC);
     }
 
     private static void onConfigLoad(final ModConfigEvent.Loading configEvent) {

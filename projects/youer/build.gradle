@@ -95,11 +95,6 @@ dependencies {
         }
         endorseStrictVersions()
     }
-    neoFormMappings("net.neoforged:neoform:${project.minecraft_version}-${project.neoform_version}") {
-        capabilities {
-            requireCapability 'net.neoforged:neoform-parameter-mappings'
-        }
-    }
     neoFormDependencies("net.neoforged:neoform:${project.minecraft_version}-${project.neoform_version}") {
         capabilities {
             requireCapability 'net.neoforged:neoform-dependencies'
@@ -254,7 +249,8 @@ neoDev {
     }
 }
 
-generateAccessTransformers {// Make all render pipeline snippet fields public
+generateAccessTransformers {
+    // Make all render pipeline snippet fields public
     fieldGroup(
             'render pipeline snippets', PUBLIC,
             named('net/minecraft/client/renderer/RenderPipelines'),
@@ -306,17 +302,6 @@ generateAccessTransformers {// Make all render pipeline snippet fields public
             'creative tabs', PUBLIC,
             named('net/minecraft/world/item/CreativeModeTabs'),
             fieldsOfType(named('net/minecraft/resources/ResourceKey'))
-    )
-
-    // Make all villager item listings classes and constructors public for use in custom trades
-    classGroup(
-            'villager item listings', PUBLIC,
-            classesWithSuperclass('net/minecraft/world/entity/npc/villager/VillagerTrades$ItemListing')
-    )
-    methodGroup(
-            'villager item listing constructors', PUBLIC,
-            classesWithSuperclass('net/minecraft/world/entity/npc/villager/VillagerTrades$ItemListing'),
-            named('<init>')
     )
 
     // Make all DebugScreenEntry groups public
@@ -639,3 +624,7 @@ task youerJar(type: Jar, dependsOn: [youerJar0, downloadMultipleFiles, project('
         rename { 'versions/neoform.txt' }
     }
 }
+
+tasks.withType(JavaCompile.class).configureEach(task -> {
+    Collections.addAll(task.getOptions().getCompilerArgs(), "-Xmaxerrs", "9999");
+});

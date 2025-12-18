@@ -29,37 +29,34 @@
 @@ -35,6 +_,17 @@
      );
  
-     public ItemTransform getTransform(ItemDisplayContext p_270619_) {
-+        if (p_270619_.isModded()) {
-+            ItemTransform moddedTransform = moddedTransforms.get(p_270619_);
+     public ItemTransform getTransform(ItemDisplayContext type) {
++        if (type.isModded()) {
++            ItemTransform moddedTransform = moddedTransforms.get(type);
 +            if (moddedTransform != null) {
 +                return moddedTransform;
 +            }
-+            ItemDisplayContext moddedFallback = p_270619_.fallback();
++            ItemDisplayContext moddedFallback = type.fallback();
 +            if (moddedFallback == null) {
 +                return ItemTransform.NO_TRANSFORM;
 +            }
-+            p_270619_ = moddedFallback;
++            type = moddedFallback;
 +        }
-         return switch (p_270619_) {
+         return switch (type) {
              case THIRD_PERSON_LEFT_HAND -> this.thirdPersonLeftHand;
              case THIRD_PERSON_RIGHT_HAND -> this.thirdPersonRightHand;
-@@ -70,9 +_,23 @@
-             ItemTransform itemtransform6 = this.getTransform(p_111822_, jsonobject, ItemDisplayContext.GROUND);
-             ItemTransform itemtransform7 = this.getTransform(p_111822_, jsonobject, ItemDisplayContext.FIXED);
-             ItemTransform itemtransform8 = this.getTransform(p_111822_, jsonobject, ItemDisplayContext.ON_SHELF);
--            return new ItemTransforms(
--                itemtransform1, itemtransform, itemtransform3, itemtransform2, itemtransform4, itemtransform5, itemtransform6, itemtransform7, itemtransform8
--            );
+@@ -70,8 +_,24 @@
+             ItemTransform ground = this.getTransform(context, object, ItemDisplayContext.GROUND);
+             ItemTransform fixed = this.getTransform(context, object, ItemDisplayContext.FIXED);
+             ItemTransform fixedFromBottom = this.getTransform(context, object, ItemDisplayContext.ON_SHELF);
 +
 +            var builder = com.google.common.collect.ImmutableMap.<ItemDisplayContext, ItemTransform>builder();
 +            for (ItemDisplayContext type : ItemDisplayContext.values()) {
 +                if (type.isModded()) {
-+                    var transform = this.getTransform(p_111822_, jsonobject, type);
++                    var transform = this.getTransform(context, object, type);
 +                    var fallbackType = type;
 +                    while (transform == ItemTransform.NO_TRANSFORM && fallbackType.fallback() != null) {
 +                        fallbackType = fallbackType.fallback();
-+                        transform = this.getTransform(p_111822_, jsonobject, fallbackType);
++                        transform = this.getTransform(context, object, fallbackType);
 +                    }
 +                    if (transform != ItemTransform.NO_TRANSFORM){
 +                        builder.put(type, transform);
@@ -67,7 +64,9 @@
 +                }
 +            }
 +
-+            return new ItemTransforms(itemtransform1, itemtransform, itemtransform3, itemtransform2, itemtransform4, itemtransform5, itemtransform6, itemtransform7, itemtransform8, builder.build());
+             return new ItemTransforms(
+-                thirdPersonLeftHand, thirdPersonRightHand, firstPersonLeftHand, firstPersonRightHand, head, gui, ground, fixed, fixedFromBottom
++                thirdPersonLeftHand, thirdPersonRightHand, firstPersonLeftHand, firstPersonRightHand, head, gui, ground, fixed, fixedFromBottom, builder.build()
+             );
          }
  
-         private ItemTransform getTransform(JsonDeserializationContext p_270385_, JsonObject p_270436_, ItemDisplayContext p_270100_) {

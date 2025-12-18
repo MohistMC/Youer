@@ -27,6 +27,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderLookup.RegistryLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
@@ -364,7 +365,7 @@ public class EventHooks {
      */
     public static PlayerSpawnPhantomsEvent firePlayerSpawnPhantoms(ServerPlayer player, ServerLevel level, BlockPos pos) {
         Difficulty difficulty = level.getCurrentDifficultyAt(pos).getDifficulty();
-        var event = new PlayerSpawnPhantomsEvent(player, 1 + level.random.nextInt(difficulty.getId() + 1));
+        var event = new PlayerSpawnPhantomsEvent(player, 1 + level.getRandom().nextInt(difficulty.getId() + 1));
         NeoForge.EVENT_BUS.post(event);
         return event;
     }
@@ -1069,14 +1070,15 @@ public class EventHooks {
      * Fires the {@link BuildCreativeModeTabContentsEvent}.
      *
      * @param tab               The tab that contents are being collected for.
-     * @param tabKey            The resource key of the tab.
      * @param originalGenerator The display items generator that populates vanilla entries.
      * @param params            Display parameters, controlling if certain items are hidden.
      * @param output            The output acceptor.
      * @apiNote Call via {@link CreativeModeTab#buildContents(CreativeModeTab.ItemDisplayParameters)}
      */
     @ApiStatus.Internal
-    public static void onCreativeModeTabBuildContents(CreativeModeTab tab, ResourceKey<CreativeModeTab> tabKey, CreativeModeTab.DisplayItemsGenerator originalGenerator, CreativeModeTab.ItemDisplayParameters params, CreativeModeTab.Output output) {
+    public static void onCreativeModeTabBuildContents(CreativeModeTab tab, CreativeModeTab.DisplayItemsGenerator originalGenerator, CreativeModeTab.ItemDisplayParameters params, CreativeModeTab.Output output) {
+        var tabKey = BuiltInRegistries.CREATIVE_MODE_TAB.getResourceKey(tab).orElseThrow();
+
         final var parentEntries = new InsertableLinkedOpenCustomHashSet<ItemStack>(ItemStackLinkedSet.TYPE_AND_TAG);
         final var searchEntries = new InsertableLinkedOpenCustomHashSet<ItemStack>(ItemStackLinkedSet.TYPE_AND_TAG);
 

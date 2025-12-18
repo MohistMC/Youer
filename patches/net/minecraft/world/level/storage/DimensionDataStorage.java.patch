@@ -13,83 +13,83 @@
  
 +    // Neo: Use the version that has a level
 +    @Deprecated
-     public DimensionDataStorage(Path p_362421_, DataFixer p_78150_, HolderLookup.Provider p_324180_) {
-+        this(null, p_362421_, p_78150_, p_324180_);
+     public DimensionDataStorage(Path dataFolder, DataFixer fixerUpper, HolderLookup.Provider registries) {
++        this(null, dataFolder, fixerUpper, registries);
 +    }
 +
-+    public DimensionDataStorage(net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerLevel level, Path p_362421_, DataFixer p_78150_, HolderLookup.Provider p_324180_) {
++    public DimensionDataStorage(net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerLevel level, Path dataFolder, DataFixer fixerUpper, HolderLookup.Provider registries) {
 +        this.level = level;
-         this.fixerUpper = p_78150_;
-         this.dataFolder = p_362421_;
-         this.registries = p_324180_;
+         this.fixerUpper = fixerUpper;
+         this.dataFolder = dataFolder;
+         this.registries = registries;
 @@ -59,7 +_,7 @@
-         if (t != null) {
-             return t;
+         if (data != null) {
+             return data;
          } else {
--            T t1 = (T)p_401394_.constructor().get();
-+            T t1 = (T)p_401394_.factory().create(this.level);
-             this.set(p_401394_, t1);
-             return t1;
+-            T newData = (T)type.constructor().get();
++            T newData = (T)type.factory().create(this.level);
+             this.set(type, newData);
+             return newData;
          }
-@@ -83,7 +_,7 @@
-                     p_401056_.id(), p_401056_.dataFixType(), SharedConstants.getCurrentVersion().dataVersion().version()
-                 );
-                 RegistryOps<Tag> registryops = this.registries.createSerializationContext(NbtOps.INSTANCE);
--                return p_401056_.codec()
-+                return p_401056_.codecFactory().create(this.level)
-                     .parse(registryops, compoundtag.get("data"))
-                     .resultOrPartial(p_400985_ -> LOGGER.error("Failed to parse saved data for '{}': {}", p_401056_, p_400985_))
+@@ -81,7 +_,7 @@
+             if (Files.exists(file)) {
+                 CompoundTag tag = this.readTagFromDisk(type.id(), type.dataFixType(), SharedConstants.getCurrentVersion().dataVersion().version());
+                 RegistryOps<Tag> ops = this.registries.createSerializationContext(NbtOps.INSTANCE);
+-                return type.codec()
++                return type.codecFactory().create(this.level)
+                     .parse(ops, tag.get("data"))
+                     .resultOrPartial(error -> LOGGER.error("Failed to parse saved data for '{}': {}", type, error))
                      .orElse(null);
-@@ -100,7 +_,7 @@
-         p_164857_.setDirty();
+@@ -98,7 +_,7 @@
+         data.setDirty();
      }
  
--    public CompoundTag readTagFromDisk(String p_78159_, DataFixTypes p_295038_, int p_78160_) throws IOException {
-+    public CompoundTag readTagFromDisk(String p_78159_, @Nullable DataFixTypes p_295038_, int p_78160_) throws IOException {
-         CompoundTag compoundtag1;
+-    public CompoundTag readTagFromDisk(String id, DataFixTypes type, int newVersion) throws IOException {
++    public CompoundTag readTagFromDisk(String id, @Nullable DataFixTypes type, int newVersion) throws IOException {
+         CompoundTag var8;
          try (
-             InputStream inputstream = Files.newInputStream(this.getDataFile(p_78159_));
-@@ -115,9 +_,19 @@
+             InputStream in = Files.newInputStream(this.getDataFile(id));
+@@ -113,9 +_,19 @@
                  }
              }
  
--            int i = NbtUtils.getDataVersion(compoundtag, 1343);
--            compoundtag1 = p_295038_.update(this.fixerUpper, compoundtag, i, p_78160_);
-+            if (p_295038_ != null) {
-+                int i = NbtUtils.getDataVersion(compoundtag, 1343);
-+                compoundtag1 = p_295038_.update(this.fixerUpper, compoundtag, i, p_78160_);
+-            int version = NbtUtils.getDataVersion(tag, 1343);
+-            var8 = type.update(this.fixerUpper, tag, version, newVersion);
++            if (type != null) {
++                int version = NbtUtils.getDataVersion(tag, 1343);
++                var8 = type.update(this.fixerUpper, tag, version, newVersion);
 +            } else {
-+                compoundtag1 = compoundtag;
++                var8 = tag;
 +            }
          }
 +
 +        // Neo: delete any temporary files so that we don't inflate disk space unnecessarily.
 +        this.pendingWriteFuture = this.pendingWriteFuture.thenRunAsync(
-+                () -> net.neoforged.neoforge.common.IOUtilities.tryCleanupTempFiles(this.dataFolder, p_78159_),
++                () -> net.neoforged.neoforge.common.IOUtilities.tryCleanupTempFiles(this.dataFolder, id),
 +                Util.ioPool()
 +        );
  
-         return compoundtag1;
+         return var8;
      }
-@@ -189,7 +_,7 @@
+@@ -187,7 +_,7 @@
      }
  
-     private <T extends SavedData> CompoundTag encodeUnchecked(SavedDataType<T> p_401078_, SavedData p_401244_, RegistryOps<Tag> p_401357_) {
--        Codec<T> codec = p_401078_.codec();
-+        Codec<T> codec = p_401078_.codecFactory().create(this.level);
-         CompoundTag compoundtag = new CompoundTag();
-         compoundtag.put("data", codec.encodeStart(p_401357_, (T)p_401244_).getOrThrow());
-         NbtUtils.addCurrentDataVersion(compoundtag);
-@@ -200,7 +_,11 @@
-         Path path = this.getDataFile(p_401021_.id());
+     private <T extends SavedData> CompoundTag encodeUnchecked(SavedDataType<T> type, SavedData data, RegistryOps<Tag> ops) {
+-        Codec<T> codec = type.codec();
++        Codec<T> codec = type.codecFactory().create(this.level);
+         CompoundTag tag = new CompoundTag();
+         tag.put("data", codec.encodeStart(ops, (T)data).getOrThrow());
+         NbtUtils.addCurrentDataVersion(tag);
+@@ -198,7 +_,11 @@
+         Path path = this.getDataFile(type.id());
  
          try {
--            NbtIo.writeCompressed(p_390657_, path);
+-            NbtIo.writeCompressed(tag, path);
 +            // Neo: ensure parent directories exist if the SavedData's path contains slashes
 +            if (!Files.exists(path)) {
 +                Files.createDirectories(path.getParent());
 +            }
-+            net.neoforged.neoforge.common.IOUtilities.writeNbtCompressed(p_390657_, path);
-         } catch (IOException ioexception) {
-             LOGGER.error("Could not save data to {}", path.getFileName(), ioexception);
++            net.neoforged.neoforge.common.IOUtilities.writeNbtCompressed(tag, path);
+         } catch (IOException var5) {
+             LOGGER.error("Could not save data to {}", path.getFileName(), var5);
          }

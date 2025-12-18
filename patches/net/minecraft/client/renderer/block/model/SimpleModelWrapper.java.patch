@@ -13,34 +13,34 @@
 +        this(quads, useAmbientOcclusion, particleIcon, null);
 +    }
 +
-     public static BlockModelPart bake(ModelBaker p_405335_, Identifier p_468685_, ModelState p_405869_) {
-         ResolvedModel resolvedmodel = p_405335_.getModel(p_468685_);
-+        return bake(p_405335_, resolvedmodel, p_405869_);
+     public static BlockModelPart bake(ModelBaker modelBakery, Identifier location, ModelState state) {
+         ResolvedModel model = modelBakery.getModel(location);
++        return bake(modelBakery, model, state);
 +    }
 +
 +    // Neo: split off to allow baking an existing ResolvedModel into a BlockModelPart
-+    public static BlockModelPart bake(ModelBaker p_405335_, ResolvedModel resolvedmodel, ModelState p_405869_) {
-         TextureSlots textureslots = resolvedmodel.getTopTextureSlots();
-         boolean flag = resolvedmodel.getTopAmbientOcclusion();
-         TextureAtlasSprite textureatlassprite = resolvedmodel.resolveParticleSprite(textureslots, p_405335_);
++    public static BlockModelPart bake(ModelBaker modelBakery, ResolvedModel model, ModelState state) {
+         TextureSlots textureSlots = model.getTopTextureSlots();
+         boolean hasAmbientOcclusion = model.getTopAmbientOcclusion();
+         TextureAtlasSprite particleSprite = model.resolveParticleSprite(textureSlots, modelBakery);
 @@ -41,15 +_,22 @@
          }
  
-         if (multimap != null) {
--            LOGGER.warn("Rejecting block model {}, since it contains sprites from outside of supported atlas: {}", p_468685_, multimap);
-+            LOGGER.warn("Rejecting block model {}, since it contains sprites from outside of supported atlas: {}", resolvedmodel.debugName(), multimap);
-             return p_405335_.missingBlockModelPart();
+         if (forbiddenSprites != null) {
+-            LOGGER.warn("Rejecting block model {}, since it contains sprites from outside of supported atlas: {}", location, forbiddenSprites);
++            LOGGER.warn("Rejecting block model {}, since it contains sprites from outside of supported atlas: {}", model.debugName(), forbiddenSprites);
+             return modelBakery.missingBlockModelPart();
          } else {
--            return new SimpleModelWrapper(quadcollection, flag, textureatlassprite);
-+            var renderTypeGroup = resolvedmodel.getTopAdditionalProperties().getOptional(net.neoforged.neoforge.client.model.NeoForgeModelProperties.RENDER_TYPE);
+-            return new SimpleModelWrapper(geometry, hasAmbientOcclusion, particleSprite);
++            var renderTypeGroup = model.getTopAdditionalProperties().getOptional(net.neoforged.neoforge.client.model.NeoForgeModelProperties.RENDER_TYPE);
 +            var renderTypes = renderTypeGroup == null || renderTypeGroup.isEmpty() ? null : renderTypeGroup.block();
-+            return new SimpleModelWrapper(quadcollection, flag, textureatlassprite, renderTypes);
++            return new SimpleModelWrapper(geometry, hasAmbientOcclusion, particleSprite, renderTypes);
          }
      }
  
      @Override
-     public List<BakedQuad> getQuads(@Nullable Direction p_405263_) {
-         return this.quads.getQuads(p_405263_);
+     public List<BakedQuad> getQuads(@Nullable Direction direction) {
+         return this.quads.getQuads(direction);
 +    }
 +
 +    @Override

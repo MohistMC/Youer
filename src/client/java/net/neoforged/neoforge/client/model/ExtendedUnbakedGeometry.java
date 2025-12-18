@@ -21,8 +21,8 @@ import net.neoforged.neoforge.client.extensions.UnbakedModelExtension;
 @FunctionalInterface
 public interface ExtendedUnbakedGeometry extends UnbakedGeometry {
     @Override
-    default QuadCollection bake(TextureSlots p_405831_, ModelBaker p_405026_, ModelState p_405122_, ModelDebugName p_405635_) {
-        return bake(p_405831_, p_405026_, p_405122_, p_405635_, ContextMap.EMPTY);
+    default QuadCollection bake(TextureSlots textureSlots, ModelBaker modelBaker, ModelState modelState, ModelDebugName name) {
+        return bake(textureSlots, modelBaker, modelState, name, ContextMap.EMPTY);
     }
 
     // Re-abstract the extended version

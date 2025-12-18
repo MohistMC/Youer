@@ -29,7 +29,7 @@ public final class NeoForgeBlockTagsProvider extends BlockTagsProvider {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void addTags(HolderLookup.Provider p_256380_) {
+    public void addTags(HolderLookup.Provider registries) {
         tag(Tags.Blocks.BARRELS).addTag(Tags.Blocks.BARRELS_WOODEN);
         tag(Tags.Blocks.BARRELS_WOODEN).add(Blocks.BARREL);
         tag(Tags.Blocks.BOOKSHELVES).add(Blocks.BOOKSHELF);

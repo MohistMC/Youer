@@ -11,38 +11,38 @@
 @@ -35,10 +_,15 @@
      private boolean showNotification = true;
  
-     private ShapedRecipeBuilder(HolderGetter<Item> p_365072_, RecipeCategory p_249996_, ItemLike p_251475_, int p_248948_) {
-+        this(p_365072_, p_249996_, new ItemStack(p_251475_, p_248948_));
+     private ShapedRecipeBuilder(HolderGetter<Item> items, RecipeCategory category, ItemLike result, int count) {
++        this(items, category, new ItemStack(result, count));
 +    }
 +
-+    private ShapedRecipeBuilder(HolderGetter<Item> p_365072_, RecipeCategory p_249996_, ItemStack result) {
-         this.items = p_365072_;
-         this.category = p_249996_;
--        this.result = p_251475_.asItem();
--        this.count = p_248948_;
++    private ShapedRecipeBuilder(HolderGetter<Item> items, RecipeCategory category, ItemStack result) {
+         this.items = items;
+         this.category = category;
+-        this.result = result.asItem();
+-        this.count = count;
 +        this.result = result.getItem();
 +        this.count = result.getCount();
 +        this.resultStack = result;
      }
  
-     public static ShapedRecipeBuilder shaped(HolderGetter<Item> p_364036_, RecipeCategory p_250853_, ItemLike p_249747_) {
+     public static ShapedRecipeBuilder shaped(HolderGetter<Item> items, RecipeCategory category, ItemLike item) {
 @@ -49,6 +_,10 @@
-         return new ShapedRecipeBuilder(p_365019_, p_251325_, p_250636_, p_249081_);
+         return new ShapedRecipeBuilder(items, category, item, count);
      }
  
-+    public static ShapedRecipeBuilder shaped(HolderGetter<Item> p_365019_, RecipeCategory p_251325_, ItemStack result) {
-+        return new ShapedRecipeBuilder(p_365019_, p_251325_, result);
++    public static ShapedRecipeBuilder shaped(HolderGetter<Item> items, RecipeCategory category, ItemStack result) {
++        return new ShapedRecipeBuilder(items, category, result);
 +    }
 +
-     public ShapedRecipeBuilder define(Character p_206417_, TagKey<Item> p_206418_) {
-         return this.define(p_206417_, Ingredient.of(this.items.getOrThrow(p_206418_)));
+     public ShapedRecipeBuilder define(Character symbol, TagKey<Item> tag) {
+         return this.define(symbol, Ingredient.of(this.items.getOrThrow(tag)));
      }
 @@ -109,7 +_,7 @@
              Objects.requireNonNullElse(this.group, ""),
              RecipeBuilder.determineBookCategory(this.category),
-             shapedrecipepattern,
+             pattern,
 -            new ItemStack(this.result, this.count),
 +            this.resultStack,
              this.showNotification
          );
-         p_301098_.accept(
+         output.accept(id, recipe, advancement.build(id.identifier().withPrefix("recipes/" + this.category.getFolderName() + "/")));

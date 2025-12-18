@@ -1,24 +1,24 @@
 --- a/net/minecraft/client/renderer/blockentity/ChestRenderer.java
 +++ b/net/minecraft/client/renderer/blockentity/ChestRenderer.java
 @@ -77,6 +_,8 @@
-         if (p_445744_.type != ChestType.SINGLE) {
-             p_445744_.lightCoords = neighborcombineresult.apply(new BrightnessCombiner<>()).applyAsInt(p_445744_.lightCoords);
+         if (state.type != ChestType.SINGLE) {
+             state.lightCoords = combineResult.apply(new BrightnessCombiner<>()).applyAsInt(state.lightCoords);
          }
 +
-+        p_445744_.customMaterial = getCustomMaterial(p_446382_, p_445744_);
++        state.customMaterial = getCustomMaterial(blockEntity, state);
      }
  
-     public void submit(ChestRenderState p_446740_, PoseStack p_445661_, SubmitNodeCollector p_445570_, CameraRenderState p_451060_) {
+     public void submit(ChestRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
 @@ -87,7 +_,7 @@
-         float f = p_446740_.open;
-         f = 1.0F - f;
-         f = 1.0F - f * f * f;
--        Material material = Sheets.chooseMaterial(p_446740_.material, p_446740_.type);
-+        Material material = p_446740_.customMaterial != null ? p_446740_.customMaterial : Sheets.chooseMaterial(p_446740_.material, p_446740_.type);
-         RenderType rendertype = material.renderType(RenderTypes::entityCutout);
-         TextureAtlasSprite textureatlassprite = this.materials.get(material);
-         if (p_446740_.type != ChestType.SINGLE) {
-@@ -153,5 +_,20 @@
+         float open = state.open;
+         open = 1.0F - open;
+         open = 1.0F - open * open * open;
+-        Material material = Sheets.chooseMaterial(state.material, state.type);
++        Material material = state.customMaterial != null ? state.customMaterial : Sheets.chooseMaterial(state.material, state.type);
+         RenderType renderType = material.renderType(RenderTypes::entityCutout);
+         TextureAtlasSprite sprite = this.materials.get(material);
+         if (state.type != ChestType.SINGLE) {
+@@ -126,5 +_,20 @@
          } else {
              return ChestRenderState.ChestMaterialType.REGULAR;
          }

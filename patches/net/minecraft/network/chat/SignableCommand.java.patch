@@ -1,12 +1,12 @@
 --- a/net/minecraft/network/chat/SignableCommand.java
 +++ b/net/minecraft/network/chat/SignableCommand.java
-@@ -23,7 +_,8 @@
+@@ -22,7 +_,8 @@
+         List<SignableCommand.Argument<S>> arguments = collectArguments(commandString, rootContext);
  
-         CommandContextBuilder<S> commandcontextbuilder2;
-         while (
--            (commandcontextbuilder2 = commandcontextbuilder1.getChild()) != null && commandcontextbuilder2.getRootNode() != commandcontextbuilder.getRootNode()
-+            // Neo: Check if the command node is a RootCommandNode, instead of simply being the original root node; fixes #186
-+            (commandcontextbuilder2 = commandcontextbuilder1.getChild()) != null && !(commandcontextbuilder2.getRootNode() instanceof com.mojang.brigadier.tree.RootCommandNode)
-         ) {
-             list.addAll(collectArguments(s, commandcontextbuilder2));
-             commandcontextbuilder1 = commandcontextbuilder2;
+         CommandContextBuilder<S> child;
+-        while ((child = context.getChild()) != null && child.getRootNode() != rootContext.getRootNode()) {
++        // Neo: Check if the command node is a RootCommandNode, instead of simply being the original root node; fixes #186
++        while ((child = context.getChild()) != null && !(child.getRootNode() instanceof com.mojang.brigadier.tree.RootCommandNode)) {
+             arguments.addAll(collectArguments(commandString, child));
+             context = child;
+         }

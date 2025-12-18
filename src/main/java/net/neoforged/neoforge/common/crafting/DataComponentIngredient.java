@@ -63,7 +63,7 @@ public class DataComponentIngredient implements ICustomIngredient {
             }
             return false;
         } else {
-            return this.items.contains(stack.getItemHolder()) && this.components.test(stack);
+            return this.items.contains(stack.typeHolder()) && this.components.test(stack);
         }
     }
 

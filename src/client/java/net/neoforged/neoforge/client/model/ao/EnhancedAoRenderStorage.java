@@ -6,11 +6,11 @@
 package net.neoforged.neoforge.client.model.ao;
 
 import com.mojang.logging.LogUtils;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.block.ModelBlockRenderer;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
@@ -265,7 +265,7 @@ public class EnhancedAoRenderStorage extends ModelBlockRenderer.AmbientOcclusion
      * Interpolates lightmap from the 4 corners of a face.
      */
     private static int interpolateLightmap(AoCalculatedFace in, float[] weights) {
-        return blend(in.lightmap0, in.lightmap1, in.lightmap2, in.lightmap3, weights[0], weights[1], weights[2], weights[3]);
+        return LightCoordsUtil.smoothWeightedBlend(in.lightmap0, in.lightmap1, in.lightmap2, in.lightmap3, weights[0], weights[1], weights[2], weights[3]);
     }
 
     /**
@@ -273,20 +273,20 @@ public class EnhancedAoRenderStorage extends ModelBlockRenderer.AmbientOcclusion
      */
     private static int lerpLightmap(int lightmap1, float w1, int lightmap2, float w2) {
         // Interpolate the two components separately
-        int block1 = LightTexture.blockWithFraction(lightmap1);
-        int block2 = LightTexture.blockWithFraction(lightmap2);
+        int block1 = LightCoordsUtil.smoothBlock(lightmap1);
+        int block2 = LightCoordsUtil.smoothBlock(lightmap2);
         int block = 0xFF & Math.round(block1 * w1 + block2 * w2);
 
-        int sky1 = LightTexture.skyWithFraction(lightmap1);
-        int sky2 = LightTexture.skyWithFraction(lightmap2);
+        int sky1 = LightCoordsUtil.smoothSky(lightmap1);
+        int sky2 = LightCoordsUtil.smoothSky(lightmap2);
         int sky = 0xFF & Math.round(sky1 * w1 + sky2 * w2);
 
-        return LightTexture.packWithFraction(block, sky);
+        return LightCoordsUtil.smoothPack(block, sky);
     }
 
     static int maxLightmap(int lightmap1, int lightmap2) {
-        return LightTexture.packWithFraction(
-                Math.max(LightTexture.blockWithFraction(lightmap1), LightTexture.blockWithFraction(lightmap2)),
-                Math.max(LightTexture.skyWithFraction(lightmap1), LightTexture.skyWithFraction(lightmap2)));
+        return LightCoordsUtil.smoothPack(
+                Math.max(LightCoordsUtil.smoothBlock(lightmap1), LightCoordsUtil.smoothBlock(lightmap2)),
+                Math.max(LightCoordsUtil.smoothSky(lightmap1), LightCoordsUtil.smoothSky(lightmap2)));
     }
 }

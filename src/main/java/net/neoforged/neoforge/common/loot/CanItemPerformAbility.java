@@ -14,7 +14,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 import net.neoforged.neoforge.common.ItemAbility;
 
 /**
@@ -27,16 +26,15 @@ public class CanItemPerformAbility implements LootItemCondition {
                             ItemAbility.CODEC.fieldOf("ability").forGetter(action -> action.ability))
                     .apply(builder, CanItemPerformAbility::new));
 
-    public static final LootItemConditionType LOOT_CONDITION_TYPE = new LootItemConditionType(CODEC);
-
     final ItemAbility ability;
 
     public CanItemPerformAbility(ItemAbility ability) {
         this.ability = ability;
     }
 
-    public LootItemConditionType getType() {
-        return LOOT_CONDITION_TYPE;
+    @Override
+    public MapCodec<? extends LootItemCondition> codec() {
+        return CODEC;
     }
 
     public Set<ContextKey<?>> getReferencedContextParams() {

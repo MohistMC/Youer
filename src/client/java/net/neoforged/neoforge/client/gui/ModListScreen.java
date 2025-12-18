@@ -251,7 +251,7 @@ public class ModListScreen extends Screen {
         }
 
         @Override
-        public void updateNarration(NarrationElementOutput p_169152_) {}
+        public void updateNarration(NarrationElementOutput output) {}
     }
 
     @Override

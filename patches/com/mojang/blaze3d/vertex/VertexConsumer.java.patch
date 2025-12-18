@@ -1,15 +1,15 @@
 --- a/com/mojang/blaze3d/vertex/VertexConsumer.java
 +++ b/com/mojang/blaze3d/vertex/VertexConsumer.java
-@@ -101,10 +_,12 @@
-             long k = p_85989_.packedUV(j);
-             float f = p_331397_[j];
-             int l = ARGB.colorFromFloat(p_331416_, f * p_85990_, f * p_85991_, f * p_85992_);
-+            l = ARGB.multiply(l, ARGB.toABGR(p_85989_.bakedColors().color(j))); // Neo: apply baked color from the quad
-             int i1 = LightTexture.lightCoordsWithEmission(p_331378_[j], i);
-             Vector3f vector3f1 = matrix4f.transformPosition(vector3fc1, new Vector3f());
-             float f1 = UVPair.unpackU(k);
-             float f2 = UVPair.unpackV(k);
-+            applyBakedNormals(vector3f, p_85989_.bakedNormals(), j, p_85988_.normal()); // Neo: apply baked normals from the quad
-             this.addVertex(vector3f1.x(), vector3f1.y(), vector3f1.z(), l, f1, f2, p_85993_, i1, vector3f.x(), vector3f.y(), vector3f.z());
+@@ -71,10 +_,12 @@
+             long packedUv = quad.packedUV(vertex);
+             float brightnessForVertex = brightness[vertex];
+             int color = ARGB.colorFromFloat(a, brightnessForVertex * r, brightnessForVertex * g, brightnessForVertex * b);
++            color = ARGB.multiply(color, ARGB.toABGR(quad.bakedColors().color(vertex))); // Neo: apply baked color from the quad
+             int light = LightCoordsUtil.lightCoordsWithEmission(lightmapCoord[vertex], lightEmission);
+             Vector3f pos = matrix.transformPosition(position, new Vector3f());
+             float u = UVPair.unpackU(packedUv);
+             float v = UVPair.unpackV(packedUv);
++            applyBakedNormals(normal, quad.bakedNormals(), vertex, pose.normal()); // Neo: apply baked normals from the quad
+             this.addVertex(pos.x(), pos.y(), pos.z(), color, u, v, overlayCoords, light, normal.x(), normal.y(), normal.z());
          }
      }

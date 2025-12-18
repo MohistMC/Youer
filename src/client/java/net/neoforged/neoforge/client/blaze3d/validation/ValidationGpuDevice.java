@@ -194,4 +194,25 @@ public class ValidationGpuDevice implements GpuDevice {
     public GpuDeviceFeatures enabledFeatures() {
         return realDevice.enabledFeatures();
     }
+
+    @Override
+    public CompiledRenderPipeline precompilePipeline(RenderPipeline pipeline) {
+        validator.validatePipeline(pipeline);
+        return realDevice.precompilePipeline(pipeline);
+    }
+
+    @Override
+    public void setVsync(boolean enabled) {
+        realDevice.setVsync(enabled);
+    }
+
+    @Override
+    public void presentFrame() {
+        realDevice.presentFrame();
+    }
+
+    @Override
+    public boolean isZZeroToOne() {
+        return realDevice.isZZeroToOne();
+    }
 }

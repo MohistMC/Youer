@@ -4,12 +4,12 @@
  @OnlyIn(Dist.CLIENT)
  public record SimpleUnbakedGeometry(List<BlockElement> elements) implements UnbakedGeometry, net.neoforged.neoforge.client.model.ExtendedUnbakedGeometry {
      @Override
--    public QuadCollection bake(TextureSlots p_405009_, ModelBaker p_404737_, ModelState p_404670_, ModelDebugName p_404742_) {
-+    public QuadCollection bake(TextureSlots p_405009_, ModelBaker p_404737_, ModelState p_404670_, ModelDebugName p_404742_, net.minecraft.util.context.ContextMap additionalProperties) {
+-    public QuadCollection bake(TextureSlots textures, ModelBaker modelBaker, ModelState modelState, ModelDebugName name) {
++    public QuadCollection bake(TextureSlots textures, ModelBaker modelBaker, ModelState modelState, ModelDebugName name, net.minecraft.util.context.ContextMap additionalProperties) {
 +        var transform = additionalProperties.getOptional(net.neoforged.neoforge.client.model.NeoForgeModelProperties.TRANSFORM);
 +        if (transform != null) {
-+            p_404670_ = net.neoforged.neoforge.client.model.UnbakedElementsHelper.composeRootTransformIntoModelState(p_404670_, transform);
++            modelState = net.neoforged.neoforge.client.model.UnbakedElementsHelper.composeRootTransformIntoModelState(modelState, transform);
 +        }
-         return bake(this.elements, p_405009_, p_404737_, p_404670_, p_404742_);
+         return bake(this.elements, textures, modelBaker, modelState, name);
      }
  

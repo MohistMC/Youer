@@ -144,9 +144,9 @@ public abstract class ScrollPanel extends AbstractContainerEventHandler implemen
     }
 
     @Override
-    public boolean mouseScrolled(double p_94686_, double p_94687_, double p_94688_, double p_294830_) {
-        if (p_294830_ != 0) {
-            this.scrollDistance += (float) (-p_294830_ * getScrollAmount());
+    public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
+        if (scrollY != 0) {
+            this.scrollDistance += (float) (-scrollY * getScrollAmount());
             applyScrollLimits();
             return true;
         }

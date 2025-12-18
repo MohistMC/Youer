@@ -147,7 +147,7 @@ public final class ItemResource implements DataComponentHolderResource<Item> {
 
     @Override
     public Holder<Item> getHolder() {
-        return innerStack.getItemHolder();
+        return innerStack.typeHolder();
     }
 
     @Override

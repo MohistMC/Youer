@@ -241,7 +241,7 @@ public class ModMismatchDisconnectedScreen extends Screen {
                 // TODO 1.21.11: Confirm if it's actually still true or not that draw ignores component coloring, if so, we could use another drawing function that doesn't
                 //Since font#draw does not respect the color of the given component, we have to read it out here and then use it as the last parameter
                 MutableObject<Style> firstStyle = new MutableObject<>(Style.EMPTY);
-                name.accept((ch, style, p_13748_) -> {
+                name.accept((ch, style, codepoint) -> {
                     firstStyle.setValue(style);
                     return false;
                 });
