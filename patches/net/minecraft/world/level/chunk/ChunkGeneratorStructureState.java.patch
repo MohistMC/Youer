@@ -11,7 +11,7 @@
  
  public class ChunkGeneratorStructureState {
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -41,22 +_,78 @@
+@@ -41,22 +_,80 @@
      private final Map<ConcentricRingsStructurePlacement, CompletableFuture<List<ChunkPos>>> ringPositions = new Object2ObjectArrayMap<>();
      private boolean hasGeneratedPositions;
      private final List<Holder<StructureSet>> possibleStructureSets;
@@ -60,28 +60,30 @@
 +            if (structureset.placement() instanceof RandomSpreadStructurePlacement randomConfig && holder.unwrapKey().orElseThrow().location().getNamespace().equals(net.minecraft.resources.ResourceLocation.DEFAULT_NAMESPACE)) { // Paper - Add missing structure set seed configs; check namespace cause datapacks could add structure sets with the same path
 +                String name = holder.unwrapKey().orElseThrow().location().getPath();
 +                int seed = randomConfig.salt;
-+                seed = switch (name) {
-+                    case "desert_pyramids" -> conf.desertSeed;
-+                    case "end_cities" -> conf.endCitySeed;
-+                    case "nether_complexes" -> conf.netherSeed;
-+                    case "igloos" -> conf.iglooSeed;
-+                    case "jungle_temples" -> conf.jungleSeed;
-+                    case "woodland_mansions" -> conf.mansionSeed;
-+                    case "ocean_monuments" -> conf.monumentSeed;
-+                    case "nether_fossils" -> conf.fossilSeed;
-+                    case "ocean_ruins" -> conf.oceanSeed;
-+                    case "pillager_outposts" -> conf.outpostSeed;
-+                    case "ruined_portals" -> conf.portalSeed;
-+                    case "shipwrecks" -> conf.shipwreckSeed;
-+                    case "swamp_huts" -> conf.swampSeed;
-+                    case "villages" -> conf.villageSeed;
-+                    // Paper start - Add missing structure set seed configs
-+                    case "ancient_cities" -> conf.ancientCitySeed;
-+                    case "trail_ruins" -> conf.trailRuinsSeed;
-+                    case "trial_chambers" -> conf.trialChambersSeed;
-+                    // Paper end - Add missing structure set seed configs
-+                    default -> seed;
-+                };
++                if (conf != null) {
++                    seed = switch (name) {
++                        case "desert_pyramids" -> conf.desertSeed;
++                        case "end_cities" -> conf.endCitySeed;
++                        case "nether_complexes" -> conf.netherSeed;
++                        case "igloos" -> conf.iglooSeed;
++                        case "jungle_temples" -> conf.jungleSeed;
++                        case "woodland_mansions" -> conf.mansionSeed;
++                        case "ocean_monuments" -> conf.monumentSeed;
++                        case "nether_fossils" -> conf.fossilSeed;
++                        case "ocean_ruins" -> conf.oceanSeed;
++                        case "pillager_outposts" -> conf.outpostSeed;
++                        case "ruined_portals" -> conf.portalSeed;
++                        case "shipwrecks" -> conf.shipwreckSeed;
++                        case "swamp_huts" -> conf.swampSeed;
++                        case "villages" -> conf.villageSeed;
++                        // Paper start - Add missing structure set seed configs
++                        case "ancient_cities" -> conf.ancientCitySeed;
++                        case "trail_ruins" -> conf.trailRuinsSeed;
++                        case "trial_chambers" -> conf.trialChambersSeed;
++                        // Paper end - Add missing structure set seed configs
++                        default -> seed;
++                    };
++                }
 +                // Paper start - Add missing structure set seed configs
 +                structureset = new StructureSet(structureset.structures(), new KeyedRandomSpreadStructurePlacement(holder.unwrapKey().orElseThrow(), randomConfig.locateOffset, randomConfig.frequencyReductionMethod, randomConfig.frequency, seed, randomConfig.exclusionZone, randomConfig.spacing(), randomConfig.separation(), randomConfig.spreadType()));
 +                newHolder = Holder.direct(structureset); // I really wish we didn't have to do this here
