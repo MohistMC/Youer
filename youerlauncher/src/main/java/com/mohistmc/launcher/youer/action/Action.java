@@ -101,6 +101,7 @@ public class Action {
         tasks.add(new ConsoleToolTask(
                 "net.neoforged.installertools.ConsoleTool",
                 "--task", "PROCESS_MINECRAFT_JAR",
+                "--no-mod-manifest",
                 "--input", MINECRAFT_JAR.getAbsolutePath(),
                 "--output", PATCHED.getAbsolutePath(),
                 "--extract-libraries-to", LIBRARIES,

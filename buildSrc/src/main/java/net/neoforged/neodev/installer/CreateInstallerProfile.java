@@ -131,6 +131,7 @@ public abstract class CreateInstallerProfile extends DefaultTask {
                 List.of(
                         "--task",
                         "PROCESS_MINECRAFT_JAR",
+                        "--no-mod-manifest",
                         "--input",
                         "{MINECRAFT_JAR}",
                         "--output",

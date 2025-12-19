@@ -31,6 +31,7 @@ abstract class GenerateBaseJar extends JavaExec {
         }
         args("--output", getOutput().get().getAsFile().getAbsolutePath());
         args("--no-dist-annotation");
+        args("--no-mod-manifest");
         super.exec();
     }
 }

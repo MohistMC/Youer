@@ -214,11 +214,11 @@ public class NeoDevPlugin implements Plugin<Project> {
          */
 
         var generateAdditionalMinecraftJarResources = tasks.register("generateMinecraftModsToml", ProcessResources.class, task -> {
-            task.getInputs().property("minecraft_version", minecraftVersion);
+            task.getInputs().property("minecraft_version", minecraftVersion.get());
             task.setGroup(INTERNAL_GROUP);
             task.from(new File(project.getRootDir(), "src/main/templates/minecraft.neoforge.mods.toml"), spec -> {
                 spec.rename("(.*)", "META-INF/neoforge.mods.toml");
-                spec.expand(Map.of("minecraft_version", minecraftVersion));
+                spec.expand(Map.of("minecraft_version", minecraftVersion.get()));
             });
             task.into(neoDevBuildDir.map(d -> d.dir("additional-minecraft-resources")).get());
         });
