@@ -244,7 +244,7 @@ public class YouerConfig {
         keepinventory_inventory_permission = getString("keepinventory.permission.inventory", "youer.keepinventory.inventory");
         keepinventory_exp = getBoolean("keepinventory.global.exp", true);
         keepinventory_exp_permission = getString("keepinventory.permission.exp", "youer.keepinventory.exp");
-        server_thread = getInt("threadpriority.server_thread", 8);
+        server_thread = getInt("threadpriority.server_thread", 5);
 
         clear_item = getBoolean("entity.clear.item.enable", false);
         clear_item_whitelist = getStringList("entity.clear.item.whitelist", new ArrayList<>());
