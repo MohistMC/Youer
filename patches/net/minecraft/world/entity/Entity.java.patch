@@ -1785,7 +1785,7 @@
          return this.fluidHeight.getDouble(p_204037_);
      }
  
-@@ -3307,7 +_,39 @@
+@@ -3307,7 +_,37 @@
          return this.getZ((2.0 * this.random.nextDouble() - 1.0) * p_20263_);
      }
  
@@ -1804,10 +1804,8 @@
 +        LOGGER.error("New entity position is invalid! Tried to set invalid position ({},{},{}) for entity {} located at {}, entity info: {}", newX, newY, newZ, entity.getClass().getName(), entity.position, entityInfo, new Throwable());
 +        return false;
 +    }
++    public AtomicBoolean setPosRaw$forceBoundingBoxUpdate = new AtomicBoolean(false);
      public final void setPosRaw(double p_20344_, double p_20345_, double p_20346_) {
-+        this.setPosRaw(p_20344_, p_20345_, p_20346_, false);
-+    }
-+    public final void setPosRaw(double p_20344_, double p_20345_, double p_20346_, boolean forceBoundingBoxUpdate) {
 +        if (!checkPosition(this, p_20344_, p_20345_, p_20346_)) {
 +            return;
 +        }
@@ -1825,17 +1823,22 @@
          if (this.position.x != p_20344_ || this.position.y != p_20345_ || this.position.z != p_20346_) {
              this.position = new Vec3(p_20344_, p_20345_, p_20346_);
              int i = Mth.floor(p_20344_);
-@@ -3323,6 +_,13 @@
+@@ -3323,6 +_,18 @@
  
              this.levelCallback.onMove();
          }
 +        // Paper start - Block invalid positions and bounding box; don't allow desync of pos and AABB
 +        // hanging has its own special logic
-+        if (!(this instanceof net.minecraft.world.entity.decoration.HangingEntity) && (forceBoundingBoxUpdate || this.position.x != p_20344_ || this.position.y != p_20345_ || this.position.z != p_20346_)) {
++        if (!(this instanceof net.minecraft.world.entity.decoration.HangingEntity) && (setPosRaw$forceBoundingBoxUpdate.getAndSet(false) || this.position.x != p_20344_ || this.position.y != p_20345_ || this.position.z != p_20346_)) {
 +            this.setBoundingBox(this.makeBoundingBox());
 +        }
 +        // Paper end - Block invalid positions and bounding box
 +        if (this.isAddedToLevel() && !this.level.isClientSide && !this.isRemoved()) this.level.getChunk((int) Math.floor(p_20344_) >> 4, (int) Math.floor(p_20346_) >> 4); // Forge - ensure target chunk is loaded.
++    }
++
++    public final void setPosRaw(double p_20344_, double p_20345_, double p_20346_, boolean forceBoundingBoxUpdate) {
++        setPosRaw$forceBoundingBoxUpdate.set(forceBoundingBoxUpdate);
++        setPosRaw(p_20344_, p_20345_, p_20346_);
      }
  
      public void checkDespawn() {
