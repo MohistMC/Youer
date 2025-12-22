@@ -1435,12 +1435,14 @@
      public RegistryAccess.Frozen registryAccess() {
          return this.registries.compositeAccess();
      }
-@@ -1939,8 +_,17 @@
+@@ -1939,8 +_,19 @@
          }
      }
  
-+    public final ExecutorService chatExecutor = Executors.newCachedThreadPool(
-+            new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Chat Thread - #%d").setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER)).build()); // Paper
++    public final ExecutorService chatExecutor = Executors.newThreadPerTaskExecutor(Thread.ofVirtual()
++            .name("Async Chat Thread - #", 0)
++            .uncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER))
++            .factory());
 +
 +    public final ChatDecorator improvedChatDecorator = new io.papermc.paper.adventure.ImprovedChatDecorator(this); // Paper - adventure
 +

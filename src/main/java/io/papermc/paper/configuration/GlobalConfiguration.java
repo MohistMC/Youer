@@ -281,28 +281,6 @@ public class GlobalConfiguration extends ConfigurationPart {
 
     public class Misc extends ConfigurationPart {
 
-        @SuppressWarnings("unused") // used in postProcess
-        public ChatThreads chatThreads;
-        public class ChatThreads extends ConfigurationPart {
-            private int chatExecutorCoreSize = -1;
-            private int chatExecutorMaxSize = -1;
-
-            @PostProcess
-            private void postProcess() {
-                //noinspection ConstantConditions
-                if (net.minecraft.server.MinecraftServer.getServer() == null) return; // In testing env, this will be null here
-                int _chatExecutorMaxSize = (this.chatExecutorMaxSize <= 0) ? Integer.MAX_VALUE : this.chatExecutorMaxSize; // This is somewhat dumb, but, this is the default, do we cap this?;
-                int _chatExecutorCoreSize = Math.max(this.chatExecutorCoreSize, 0);
-
-                if (_chatExecutorMaxSize < _chatExecutorCoreSize) {
-                    _chatExecutorMaxSize = _chatExecutorCoreSize;
-                }
-
-                java.util.concurrent.ThreadPoolExecutor executor = (java.util.concurrent.ThreadPoolExecutor) net.minecraft.server.MinecraftServer.getServer().chatExecutor;
-                executor.setCorePoolSize(_chatExecutorCoreSize);
-                executor.setMaximumPoolSize(_chatExecutorMaxSize);
-            }
-        }
         public int maxJoinsPerTick = 5;
         public boolean fixEntityPositionDesync = true;
         public boolean loadPermissionsYmlBeforePlugins = true;

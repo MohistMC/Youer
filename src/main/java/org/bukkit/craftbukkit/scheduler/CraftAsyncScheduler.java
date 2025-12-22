@@ -37,17 +37,18 @@ import org.bukkit.plugin.Plugin;
 
 public class CraftAsyncScheduler extends CraftScheduler {
 
-    private final ThreadPoolExecutor executor = new ThreadPoolExecutor(
-            4, Integer.MAX_VALUE,30L, TimeUnit.SECONDS, new SynchronousQueue<>(),
-            new ThreadFactoryBuilder().setNameFormat("Craft Scheduler Thread - %1$d").build());
+    private final Executor executor = Executors.newThreadPerTaskExecutor(
+            Thread.ofVirtual()
+                    .name("Craft Scheduler Thread - ", 0)
+                    .uncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER))
+                    .factory()
+    );
     private final Executor management = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
             .setNameFormat("Craft Async Scheduler Management Thread").build());
     private final List<CraftTask> temp = new ArrayList<>();
 
     CraftAsyncScheduler() {
         super(true);
-        executor.allowCoreThreadTimeOut(true);
-        executor.prestartAllCoreThreads();
     }
 
     @Override

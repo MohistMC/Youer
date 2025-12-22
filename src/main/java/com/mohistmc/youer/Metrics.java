@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +55,10 @@ import org.spigotmc.SpigotConfig;
  */
 public class Metrics {
 
-    public static final ScheduledExecutorService METRICS = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory("Metrics"));
+    public static final ScheduledExecutorService METRICS = Executors.newScheduledThreadPool(1,
+            Thread.ofVirtual()
+                    .name("Metrics", 0)
+                    .factory());
     private final String name;
     private final String serverUUID;
     private final List<CustomChart> charts = new ArrayList<>();

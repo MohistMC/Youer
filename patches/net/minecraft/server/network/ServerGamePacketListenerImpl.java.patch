@@ -416,13 +416,16 @@
          this.player.getRecipeBook().setBookSetting(p_9895_.getBookType(), p_9895_.isOpen(), p_9895_.isFiltering());
      }
  
-@@ -520,26 +_,117 @@
+@@ -520,26 +_,120 @@
          }
      }
  
 +    // Paper start - AsyncTabCompleteEvent
-+    private static final java.util.concurrent.ExecutorService TAB_COMPLETE_EXECUTOR = java.util.concurrent.Executors.newFixedThreadPool(4,
-+            new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Tab Complete Thread - #%d").setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER)).build());
++    private static final java.util.concurrent.ExecutorService TAB_COMPLETE_EXECUTOR = java.util.concurrent.Executors.newThreadPerTaskExecutor(
++            Thread.ofVirtual()
++                    .name("Async Tab Complete Thread - ", 0)
++                    .uncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER))
++                    .factory());
 +    // Paper end - AsyncTabCompleteEvent
      @Override
      public void handleCustomCommandSuggestions(ServerboundCommandSuggestionPacket p_9847_) {

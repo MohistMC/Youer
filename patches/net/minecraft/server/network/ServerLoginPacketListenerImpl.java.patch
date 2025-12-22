@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-@@ -1,31 +_,44 @@
+@@ -1,31 +_,46 @@
  package net.minecraft.server.network;
  
 +import com.mohistmc.youer.api.ColorAPI;
@@ -23,6 +23,8 @@
  import java.security.PrivateKey;
 +import java.util.Map;
  import java.util.Objects;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
  import java.util.concurrent.atomic.AtomicInteger;
  import javax.annotation.Nullable;
 -import javax.crypto.Cipher;
@@ -89,7 +91,7 @@
      private static final AtomicInteger UNIQUE_THREAD_ID = new AtomicInteger(0);
 -    static final Logger LOGGER = LogUtils.getLogger();
 +    public static final Logger LOGGER = LogUtils.getLogger();
-+    private static final java.util.concurrent.ExecutorService authenticatorPool = java.util.concurrent.Executors.newCachedThreadPool(new com.google.common.util.concurrent.ThreadFactoryBuilder().setNameFormat("User Authenticator #%d").setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER)).build()); // Paper - Cache authenticator threads
++    private static final ExecutorService authenticatorPool = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("User Authenticator #", 0).uncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER)).factory());
      private static final int MAX_TICKS_BEFORE_LOGIN = 600;
      private final byte[] challenge;
 -    final MinecraftServer server;
