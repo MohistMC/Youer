@@ -65,20 +65,24 @@
                  this.dragonUUID = null;
              }
          }
-@@ -370,12 +_,22 @@
+@@ -370,12 +_,28 @@
              this.dragonEvent.setVisible(false);
              this.spawnExitPortal(true);
              this.spawnNewGateway();
 -            if (!this.previouslyKilled) {
 -                this.level
--                    .setBlockAndUpdate(
--                        this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin)),
--                        Blocks.DRAGON_EGG.defaultBlockState()
--                    );
 +            // Paper start - Add DragonEggFormEvent
 +            BlockPos eggPosition = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin));
++            this.level.callEvent(true);
++            this.level
+                     .setBlockAndUpdate(
+-                        this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin)),
+-                        Blocks.DRAGON_EGG.defaultBlockState()
++                            eggPosition,
++                            Blocks.DRAGON_EGG.defaultBlockState()
+                     );
 +            org.bukkit.craftbukkit.block.CraftBlockState eggState = org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(this.level, eggPosition);
-+            eggState.setData(Blocks.DRAGON_EGG.defaultBlockState());
++            eggState.setData(this.level.youer$defaultBlockState);
 +            io.papermc.paper.event.block.DragonEggFormEvent eggEvent = new io.papermc.paper.event.block.DragonEggFormEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this.level, eggPosition), eggState,
 +                    new org.bukkit.craftbukkit.boss.CraftDragonBattle(this));
 +            // Paper end - Add DragonEggFormEvent

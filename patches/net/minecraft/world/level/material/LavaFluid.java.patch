@@ -100,13 +100,15 @@
      }
  
      @Override
-@@ -196,7 +_,11 @@
+@@ -196,7 +_,13 @@
              FluidState fluidstate = p_76220_.getFluidState(p_76221_);
              if (this.is(FluidTags.LAVA) && fluidstate.is(FluidTags.WATER)) {
                  if (p_76222_.getBlock() instanceof LiquidBlock) {
 -                    p_76220_.setBlock(p_76221_, Blocks.STONE.defaultBlockState(), 3);
 +                    // CraftBukkit start
-+                    if (!CraftEventFactory.handleBlockFormEvent(p_76220_.getMinecraftWorld(), p_76221_, net.neoforged.neoforge.event.EventHooks.fireFluidPlaceBlockEvent(p_76220_, p_76221_, p_76221_, Blocks.STONE.defaultBlockState()), 3)) {
++                    ((Level)p_76220_).fake$setBlock = true;
++                    p_76220_.setBlock(p_76221_, net.neoforged.neoforge.event.EventHooks.fireFluidPlaceBlockEvent(p_76220_, p_76221_, p_76221_, Blocks.STONE.defaultBlockState()), 3);
++                    if (!CraftEventFactory.handleBlockFormEvent(p_76220_.getMinecraftWorld(), p_76221_, ((Level)p_76220_).fake$setBlockBlockState, 3)) {
 +                        return;
 +                    }
 +                    // CraftBukkit end

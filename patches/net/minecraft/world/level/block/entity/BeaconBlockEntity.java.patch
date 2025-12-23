@@ -33,12 +33,12 @@
                  if (p_155111_.checkingBeamSections.size() <= 1) {
                      beaconblockentity$beaconbeamsection = new BeaconBlockEntity.BeaconBeamSection(j1);
                      p_155111_.checkingBeamSections.add(beaconblockentity$beaconbeamsection);
-@@ -173,11 +_,19 @@
+@@ -173,11 +_,20 @@
              }
  
              if (p_155111_.levels > 0 && !p_155111_.beamSections.isEmpty()) {
--                applyEffects(p_155108_, p_155109_, p_155111_.levels, p_155111_.primaryPower, p_155111_.secondaryPower);
-+                applyEffects(p_155108_, p_155109_, p_155111_.levels, p_155111_.primaryPower, p_155111_.secondaryPower, p_155111_);
++                applyEffects$blockEntity = p_155111_;
+                 applyEffects(p_155108_, p_155109_, p_155111_.levels, p_155111_.primaryPower, p_155111_.secondaryPower);
                  playSound(p_155108_, p_155109_, SoundEvents.BEACON_AMBIENT);
              }
          }
@@ -55,7 +55,7 @@
          if (p_155111_.lastCheckY >= l) {
              p_155111_.lastCheckY = p_155108_.getMinBuildHeight() - 1;
              boolean flag = k1 > 0;
-@@ -229,13 +_,26 @@
+@@ -229,10 +_,19 @@
  
      @Override
      public void setRemoved() {
@@ -72,26 +72,33 @@
          super.setRemoved();
      }
  
++    private static @Nullable BeaconBlockEntity applyEffects$blockEntity = null;
      private static void applyEffects(
          Level p_155098_, BlockPos p_155099_, int p_155100_, @Nullable Holder<MobEffect> p_316599_, @Nullable Holder<MobEffect> p_316343_
      ) {
-+        // Paper start - Custom beacon ranges
-+        applyEffects(p_155098_, p_155099_, p_155100_, p_316599_, p_316343_, null);
-+    }
-+    private static void applyEffects(Level p_155098_, BlockPos p_155099_, int p_155100_, @Nullable Holder<MobEffect> p_316599_, @Nullable Holder<MobEffect> p_316343_, @Nullable BeaconBlockEntity blockEntity) {
-+        // Paper end - Custom beacon ranges
-         if (!p_155098_.isClientSide && p_316599_ != null) {
-             double d0 = (double)(p_155100_ * 10 + 10);
-             int i = 0;
-@@ -245,7 +_,7 @@
+@@ -245,8 +_,8 @@
  
              int j = (9 + p_155100_ * 2) * 20;
              AABB aabb = new AABB(p_155099_).inflate(d0).expandTowards(0.0, (double)p_155098_.getHeight(), 0.0);
 -            List<Player> list = p_155098_.getEntitiesOfClass(Player.class, aabb);
-+            List<Player> list = getHumansInRange(p_155098_, p_155099_, p_155100_, blockEntity); // Paper - Custom beacon ranges
- 
+-
++            List<Player> list = getHumansInRange(p_155098_, p_155099_, p_155100_, applyEffects$blockEntity); // Paper - Custom beacon ranges
++            applyEffects$blockEntity = null;
              for (Player player : list) {
                  player.addEffect(new MobEffectInstance(p_316599_, j, i, true, true));
+             }
+@@ -258,6 +_,11 @@
+             }
+         }
+     }
++    private static void applyEffectsPaper(Level p_155098_, BlockPos p_155099_, int p_155100_, @Nullable Holder<MobEffect> p_316599_, @Nullable Holder<MobEffect> p_316343_, @Nullable BeaconBlockEntity blockEntity) {
++        applyEffects$blockEntity = blockEntity;
++        applyEffects(p_155098_, p_155099_, p_155100_, p_316599_, p_316343_);
++        // Paper end - Custom beacon ranges
++    }
+ 
+     public static void playSound(Level p_155104_, BlockPos p_155105_, SoundEvent p_155106_) {
+         p_155104_.playSound(null, p_155105_, p_155106_, SoundSource.BLOCKS, 1.0F, 1.0F);
 @@ -286,7 +_,7 @@
      private static Holder<MobEffect> loadEffect(CompoundTag p_298570_, String p_299310_) {
          if (p_298570_.contains(p_299310_, 8)) {
@@ -174,7 +181,7 @@
 +    }
 +    public static List getHumansInRange(Level world, BlockPos blockposition, int i, @Nullable BeaconBlockEntity blockEntity) {
 +        // Paper end - Custom beacon ranges
-+        double d0 = (double) (i * 10 + 10);
++        double d0 = blockEntity != null ? blockEntity.getEffectRange() : (i * 10 + 10); // Paper - Custom beacon ranges
 +        AABB axisalignedbb = (new AABB(blockposition)).inflate(d0).expandTowards(0.0D, (double) world.getHeight(), 0.0D);
 +        // Paper start - Perf: optimize player lookup for beacons
 +        List<Player> list;
