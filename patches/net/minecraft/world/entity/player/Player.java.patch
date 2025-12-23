@@ -42,11 +42,12 @@
  import net.minecraft.world.entity.decoration.ArmorStand;
  import net.minecraft.world.entity.item.ItemEntity;
  import net.minecraft.world.entity.monster.warden.WardenSpawnTracker;
-@@ -85,12 +_,10 @@
+@@ -85,12 +_,11 @@
  import net.minecraft.world.inventory.ClickAction;
  import net.minecraft.world.inventory.InventoryMenu;
  import net.minecraft.world.inventory.PlayerEnderChestContainer;
 -import net.minecraft.world.item.ElytraItem;
++import net.minecraft.world.item.Item;
  import net.minecraft.world.item.ItemCooldowns;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.Items;
@@ -770,7 +771,7 @@
              }
          }
      }
-@@ -1324,12 +_,27 @@
+@@ -1324,12 +_,28 @@
          this.attack(p_36355_);
      }
  
@@ -778,12 +779,13 @@
      public void disableShield() {
 -        this.getCooldowns().addCooldown(Items.SHIELD, 100);
 +        final org.bukkit.entity.Entity finalAttacker = disableShield$attacker != null ? disableShield$attacker.getBukkitEntity() : null;
++        Item SHIELD = this.getUseItem().getItem();
 +        if (finalAttacker != null) {
 +            final io.papermc.paper.event.player.PlayerShieldDisableEvent shieldDisableEvent = new io.papermc.paper.event.player.PlayerShieldDisableEvent((org.bukkit.entity.Player) getBukkitEntity(), finalAttacker, 100);
 +            if (!shieldDisableEvent.callEvent()) return;
-+            this.getCooldowns().addCooldown(Items.SHIELD, shieldDisableEvent.getCooldown());
++            this.getCooldowns().addCooldown(SHIELD, shieldDisableEvent.getCooldown());
 +        } else {
-+            this.getCooldowns().addCooldown(Items.SHIELD, 100);
++            this.getCooldowns().addCooldown(SHIELD, 100);
 +        }
 +        // Paper end - Add PlayerShieldDisableEvent
          this.stopUsingItem();
