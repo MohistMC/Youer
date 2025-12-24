@@ -9,3 +9,19 @@
      private static final Object2ObjectMap<String, RegionFileVersion> VERSIONS_BY_NAME = new Object2ObjectOpenHashMap<>();
      public static final RegionFileVersion VERSION_GZIP = register(
          new RegionFileVersion(
+@@ -61,6 +_,15 @@
+     private final RegionFileVersion.StreamWrapper<InputStream> inputWrapper;
+     private final RegionFileVersion.StreamWrapper<OutputStream> outputWrapper;
+ 
++    // Paper start - Configurable region compression format
++    public static RegionFileVersion getCompressionFormat() {
++        return switch (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.compressionFormat) {
++            case GZIP -> VERSION_GZIP;
++            case ZLIB -> VERSION_DEFLATE;
++            case NONE -> VERSION_NONE;
++        };
++    }
++    // Paper end - Configurable region compression format
+     private RegionFileVersion(
+         int p_63752_, @Nullable String p_321638_, RegionFileVersion.StreamWrapper<InputStream> p_63753_, RegionFileVersion.StreamWrapper<OutputStream> p_63754_
+     ) {

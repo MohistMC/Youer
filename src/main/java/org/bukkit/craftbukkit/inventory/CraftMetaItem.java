@@ -328,7 +328,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
         this.maxDamage = meta.maxDamage;
         this.unhandledTags.copy(meta.unhandledTags.build());
         this.removedTags.addAll(meta.removedTags);
-        this.persistentDataContainer.putAll(meta.persistentDataContainer.getRaw());
+        this.persistentDataContainer.putAll(meta.persistentDataContainer.getTagsCloned()); // Paper - deep clone NBT tags
 
         this.customTag = meta.customTag;
 
@@ -1782,7 +1782,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
                 clone.customTag = this.customTag.copy();
             }
             clone.removedTags = Sets.newHashSet(this.removedTags);
-            clone.persistentDataContainer = new CraftPersistentDataContainer(this.persistentDataContainer.getRaw(), CraftMetaItem.DATA_TYPE_REGISTRY);
+            clone.persistentDataContainer = new CraftPersistentDataContainer(this.persistentDataContainer.getTagsCloned(), CraftMetaItem.DATA_TYPE_REGISTRY); // Paper - deep clone NBT tags
             clone.hideFlag = this.hideFlag;
             clone.hideTooltip = this.hideTooltip;
             clone.unbreakable = this.unbreakable;

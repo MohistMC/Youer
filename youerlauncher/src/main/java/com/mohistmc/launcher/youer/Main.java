@@ -75,8 +75,8 @@ public class Main {
         }
 
 
-        if (System.getProperty("log4j.configurationFile") == null) {
-            System.setProperty("log4j.configurationFile", "log4j2_youer.xml");
+        if (System.getProperty("log4j2.configurationFile") == null) {
+            System.setProperty("log4j2.configurationFile", "log4j2_youer.xml");
         }
         if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_UPDATE()) {
             // UpdateUtils.versionCheck(); // TODO
@@ -105,8 +105,11 @@ public class Main {
         if (!MojangEulaUtil.hasAcceptedEULA()) {
             if (System.console() != null){
                 System.out.println(i18n.as("eula"));
-                while (!"true".equals(new Scanner(System.in).next())) {
-                }
+                Scanner scanner = new Scanner(System.in);
+                String input;
+                do {
+                    input = scanner.next();
+                } while (!"true".equals(input));
                 MojangEulaUtil.writeInfos(i18n.as("eula.text", "https://account.mojang.com/documents/minecraft_eula") + "\n" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\neula=true");
             }
         }
