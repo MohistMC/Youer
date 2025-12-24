@@ -22,16 +22,16 @@ public class DemoGUI {
         this.gui = new GUI(GUIType.SIXBYNINE, name);
 
         for (int i = 36; i < 46; i++) {
-            this.gui.setItem(i, new GUIItem(new ItemStackFactory(Material.GLASS_PANE)
+            this.gui.setItem(i, new GUIItem(new ItemStackFactory(Material.GRAY_STAINED_GLASS_PANE)
                     .hideTooltip()
                     .build()));
         }
 
-        this.gui.setItem(new GUIItem(new ItemStackFactory(Material.GLASS_PANE)
+        this.gui.setItem(new GUIItem(new ItemStackFactory(Material.GRAY_STAINED_GLASS_PANE)
                 .hideTooltip()
                 .build()), 47, 48, 49, 50);
 
-        this.gui.setItem(46, new GUIItem(new ItemStackFactory(Material.REDSTONE)
+        this.gui.setItem(46, new GUIItem(new ItemStackFactory(Material.BARRIER)
                 .setDisplayName(I18n.as("demogui.close"))
                 .build()) {
             @Override
@@ -116,11 +116,11 @@ public class DemoGUI {
         }
 
         if (this.pageChoose == 0) {
-            gui.setItem(51, new GUIItem(new ItemStackFactory(Material.ACACIA_FENCE)
+            gui.setItem(51, new GUIItem(new ItemStackFactory(Material.RED_STAINED_GLASS_PANE)
                     .setDisplayName(I18n.as("demogui.homepage"))
                     .build()));
         } else {
-            gui.setItem(51, new GUIItem(new ItemStackFactory(Material.ACACIA_FENCE)
+            gui.setItem(51, new GUIItem(new ItemStackFactory(Material.RED_STAINED_GLASS_PANE)
                     .setDisplayName(I18n.as("demogui.ppage"))
                     .build()) {
                 @Override
@@ -136,7 +136,7 @@ public class DemoGUI {
                 .build()));
 
         if (this.pageChoose < page - 1) {
-            gui.setItem(53, new GUIItem(new ItemStackFactory(Material.ACACIA_FENCE)
+            gui.setItem(53, new GUIItem(new ItemStackFactory(Material.LIME_STAINED_GLASS_PANE)
                     .setDisplayName(I18n.as("demogui.npage"))
                     .build()) {
                 @Override
@@ -146,7 +146,7 @@ public class DemoGUI {
                 }
             });
         } else {
-            gui.setItem(53, new GUIItem(new ItemStackFactory(Material.ACACIA_FENCE)
+            gui.setItem(53, new GUIItem(new ItemStackFactory(Material.LIME_STAINED_GLASS_PANE)
                     .setDisplayName(I18n.as("demogui.lastpage"))
                     .build()));
         }

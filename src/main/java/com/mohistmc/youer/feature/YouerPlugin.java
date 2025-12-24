@@ -11,7 +11,6 @@ import com.mohistmc.youer.feature.back.BackConfig;
 import com.mohistmc.youer.feature.ban.BanListener;
 import com.mohistmc.youer.feature.commands.CommandsConfig;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsCommands;
-import com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig;
 import com.mohistmc.youer.feature.item.ItemsConfig;
 import com.mohistmc.youer.feature.menu.MenuCommand;
 import com.mohistmc.youer.feature.tpa.TpaComamands;

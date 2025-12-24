@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 public class DefaultGUI {
 
     GUI gui;
-    int pageChoose = 0;
 
     public DefaultGUI(GUIType type, String name) {
         this.gui = new GUI(type, name);
