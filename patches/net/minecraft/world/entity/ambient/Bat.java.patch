@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/ambient/Bat.java
 +++ b/net/minecraft/world/entity/ambient/Bat.java
-@@ -21,6 +_,7 @@
+@@ -21,10 +_,12 @@
  import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
  import net.minecraft.world.entity.ai.attributes.Attributes;
  import net.minecraft.world.entity.ai.targeting.TargetingConditions;
@@ -8,6 +8,11 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.LevelAccessor;
  import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
+ 
+ public class Bat extends AmbientCreature {
+     public static final float FLAP_LENGTH_SECONDS = 0.5F;
 @@ -39,11 +_,58 @@
  
      public Bat(EntityType<? extends Bat> p_27412_, Level p_27413_) {
@@ -109,3 +114,37 @@
          super.customServerAiStep();
          BlockPos blockpos = this.blockPosition();
          BlockPos blockpos1 = blockpos.above();
+@@ -136,13 +_,13 @@
+                     this.yHeadRot = (float)this.random.nextInt(360);
+                 }
+ 
+-                if (this.level().getNearestPlayer(BAT_RESTING_TARGETING, this) != null) {
++                if (this.level().getNearestPlayer(BAT_RESTING_TARGETING, this) != null && CraftEventFactory.handleBatToggleSleepEvent(this, true)) { // CraftBukkit - Call BatToggleSleepEvent
+                     this.setResting(false);
+                     if (!flag) {
+                         this.level().levelEvent(null, 1025, blockpos, 0);
+                     }
+                 }
+-            } else {
++            } else if (CraftEventFactory.handleBatToggleSleepEvent(this, true)) { // CraftBukkit - Call BatToggleSleepEvent
+                 this.setResting(false);
+                 if (!flag) {
+                     this.level().levelEvent(null, 1025, blockpos, 0);
+@@ -172,7 +_,7 @@
+             float f1 = Mth.wrapDegrees(f - this.getYRot());
+             this.zza = 0.5F;
+             this.setYRot(this.getYRot() + f1);
+-            if (this.random.nextInt(100) == 0 && this.level().getBlockState(blockpos1).isRedstoneConductor(this.level(), blockpos1)) {
++            if (this.random.nextInt(100) == 0 && this.level().getBlockState(blockpos1).isRedstoneConductor(this.level(), blockpos1) && CraftEventFactory.handleBatToggleSleepEvent(this, false)) { // CraftBukkit - Call BatToggleSleepEvent
+                 this.setResting(true);
+             }
+         }
+@@ -197,7 +_,7 @@
+         if (this.isInvulnerableTo(p_27424_)) {
+             return false;
+         } else {
+-            if (!this.level().isClientSide && this.isResting()) {
++            if (!this.level().isClientSide && this.isResting() && CraftEventFactory.handleBatToggleSleepEvent(this, true)) { // CraftBukkit - Call BatToggleSleepEvent
+                 this.setResting(false);
+             }
+ 

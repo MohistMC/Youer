@@ -8,11 +8,13 @@
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import java.util.Optional;
  import java.util.UUID;
-@@ -42,6 +_,8 @@
+@@ -42,6 +_,10 @@
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.CollisionContext;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.event.block.BlockDispenseLootEvent;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
  
  public final class TrialSpawner implements net.neoforged.neoforge.common.extensions.IOwnedSpawner {
@@ -44,6 +46,21 @@
                                  return Optional.empty();
                              } else {
                                  TrialSpawner.FlameParticle trialspawner$flameparticle = this.isOminous
+@@ -260,6 +_,14 @@
+         LootParams lootparams = new LootParams.Builder(p_312892_).create(LootContextParamSets.EMPTY);
+         ObjectArrayList<ItemStack> objectarraylist = loottable.getRandomItems(lootparams);
+         if (!objectarraylist.isEmpty()) {
++            // CraftBukkit start
++            BlockDispenseLootEvent spawnerDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(p_312892_, p_312668_, null, objectarraylist);
++            if (spawnerDispenseLootEvent.isCancelled()) {
++                return;
++            }
++
++            objectarraylist = new ObjectArrayList<>(spawnerDispenseLootEvent.getDispensedLoot().stream().map(CraftItemStack::asNMSCopy).toList());
++            // CraftBukkit end
+             for (ItemStack itemstack : objectarraylist) {
+                 DefaultDispenseItemBehavior.spawnItem(p_312892_, itemstack, 2, Direction.UP, Vec3.atBottomCenterOf(p_312668_).relative(Direction.UP, 1.2));
+             }
 @@ -405,5 +_,14 @@
          TrialSpawnerState getState();
  
