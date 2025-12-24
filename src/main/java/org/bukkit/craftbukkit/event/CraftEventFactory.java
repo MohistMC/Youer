@@ -308,26 +308,15 @@ public class CraftEventFactory {
      * PlayerBedEnterEvent
      */
     public static Either<net.minecraft.world.entity.player.Player.BedSleepingProblem, Unit> callPlayerBedEnterEvent(net.minecraft.world.entity.player.Player player, BlockPos bed, Either<net.minecraft.world.entity.player.Player.BedSleepingProblem, Unit> nmsBedResult) {
-        BedEnterResult bedEnterResult = nmsBedResult.mapBoth(new Function<net.minecraft.world.entity.player.Player.BedSleepingProblem, BedEnterResult>() {
-            @Override
-            public BedEnterResult apply(net.minecraft.world.entity.player.Player.BedSleepingProblem t) {
-                switch (t) {
-                    case NOT_POSSIBLE_HERE:
-                        return BedEnterResult.NOT_POSSIBLE_HERE;
-                    case NOT_POSSIBLE_NOW:
-                        return BedEnterResult.NOT_POSSIBLE_NOW;
-                    case TOO_FAR_AWAY:
-                        return BedEnterResult.TOO_FAR_AWAY;
-                    case NOT_SAFE:
-                        return BedEnterResult.NOT_SAFE;
-                    // Paper start
-                    case OBSTRUCTED:
-                        return BedEnterResult.OBSTRUCTED;
-                    // Paper end
-                    default:
-                        return BedEnterResult.OTHER_PROBLEM;
-                }
-            }
+        BedEnterResult bedEnterResult = nmsBedResult.mapBoth((Function<net.minecraft.world.entity.player.Player.BedSleepingProblem, BedEnterResult>) t -> switch (t) {
+            case NOT_POSSIBLE_HERE -> BedEnterResult.NOT_POSSIBLE_HERE;
+            case NOT_POSSIBLE_NOW -> BedEnterResult.NOT_POSSIBLE_NOW;
+            case TOO_FAR_AWAY -> BedEnterResult.TOO_FAR_AWAY;
+            case NOT_SAFE -> BedEnterResult.NOT_SAFE;
+            // Paper start
+            case OBSTRUCTED -> BedEnterResult.OBSTRUCTED;
+            // Paper end
+            default -> BedEnterResult.OTHER_PROBLEM;
         }, t -> BedEnterResult.OK).map(java.util.function.Function.identity(), java.util.function.Function.identity());
 
         PlayerBedEnterEvent event = new PlayerBedEnterEvent((Player) player.getBukkitEntity(), CraftBlock.at(player.level(), bed), bedEnterResult);

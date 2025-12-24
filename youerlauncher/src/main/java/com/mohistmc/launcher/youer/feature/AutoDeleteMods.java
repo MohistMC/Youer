@@ -53,7 +53,7 @@ public class AutoDeleteMods {
         put("me.pepperbell.continuity.client.ContinuityClient", DeletionReason.CLIENT_ONLY);
         put("link.e4mc.neoforge.E4mcClientNeoForge", DeletionReason.DUPLICATE_FEATURE);
         put("org.adde0109.pcf.PCFNeo", DeletionReason.DUPLICATE_FEATURE);
-        put("com.leclowndu93150.threadtweak.SmoothBoot", DeletionReason.DUPLICATE_FEATURE);
+        put("com.leclowndu93150.threadtweak.ThreadTweak", DeletionReason.DUPLICATE_FEATURE);
         //put("carpet.CarpetServer", DeletionReason.DUPLICATE_FEATURE);
     }};
 

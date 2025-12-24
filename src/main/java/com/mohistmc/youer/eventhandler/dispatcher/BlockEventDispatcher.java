@@ -21,6 +21,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.util.BlockSnapshot;
 import net.neoforged.neoforge.common.util.FakePlayer;
@@ -194,11 +195,11 @@ public class BlockEventDispatcher {
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onPlayerBedEnter(CanPlayerSleepEvent event) {
-        if (event.getProblem() != null) {
+        var problem = event.getProblem();
+        if (problem != null) {
             var player = event.getEntity();
-            var problem = event.getProblem();
             var level = event.getLevel();
             var blockposition = event.getPos();
             var blockstate = event.getState();
