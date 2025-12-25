@@ -305,4 +305,10 @@ public class YouerConfig {
     public static boolean isCN() {
         return yml.getString("youer.lang", Locale.getDefault().toString()).contains("CN");
     }
+
+    public static int getThreadPriority() {
+        int priority = YouerConfig.yml.getInt("threadpriority.server_thread", 5);
+        priority = Math.max(Thread.MIN_PRIORITY, Math.min(Thread.MAX_PRIORITY, priority));
+        return priority;
+    }
 }
