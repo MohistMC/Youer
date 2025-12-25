@@ -206,7 +206,6 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     private double healthScale = 20;
     private CraftWorldBorder clientWorldBorder = null;
     private BorderChangeListener clientWorldBorderListener = this.createWorldBorderListener();
-    protected net.kyori.adventure.pointer.Pointers adventure$pointers; // Paper - implement pointers
     public org.bukkit.event.player.PlayerResourcePackStatusEvent.Status resourcePackStatus; // Paper - more resource pack API
     private static final boolean DISABLE_CHANNEL_LIMIT = System.getProperty("paper.disableChannelLimit") != null; // Paper - add a flag to disable the channel limit
     private long lastSaveTime; // Paper - getLastPlayed replacement API
@@ -1574,7 +1573,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
             Optional<ServerPlayer.RespawnPosAngle> spawnLoc = ServerPlayer.findRespawnAndUseSpawnBlock(world, bed, this.getHandle().getRespawnAngle(), this.getHandle().isRespawnForced(), true);
             if (spawnLoc.isPresent()) {
                 ServerPlayer.RespawnPosAngle vec = spawnLoc.get();
-                return CraftLocation.toBukkit(vec.position(), world.getWorld(), this.getHandle().getRespawnAngle(), 0);
+                return CraftLocation.toBukkit(vec.position(), world.getWorld(), vec.yaw(), 0);
             }
         }
         return null;
@@ -1871,6 +1870,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         if (!itemstack.isEmpty() && itemstack.getItem().components().has(net.minecraft.core.component.DataComponents.MAX_DAMAGE)) {
             net.minecraft.world.entity.ExperienceOrb orb = net.minecraft.world.entity.EntityType.EXPERIENCE_ORB.create(handle.level());
             orb.value = amount;
+            orb.spawnReason = org.bukkit.entity.ExperienceOrb.SpawnReason.CUSTOM;
             orb.setPosRaw(handle.getX(), handle.getY(), handle.getZ());
 
             final int possibleDurabilityFromXp = net.minecraft.world.item.enchantment.EnchantmentHelper.modifyDurabilityToRepairFromXp(
@@ -3432,6 +3432,14 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
             CraftPlayer.this.getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundSystemChatPacket(components, position == net.md_5.bungee.api.ChatMessageType.ACTION_BAR));
         }
+
+        // Paper start
+        @Override
+        public int getPing()
+        {
+            return CraftPlayer.this.getPing();
+        }
+        // Paper end
     };
 
     public Player.Spigot spigot()

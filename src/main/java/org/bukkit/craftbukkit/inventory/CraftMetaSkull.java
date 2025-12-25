@@ -280,7 +280,7 @@ class CraftMetaSkull extends CraftMetaItem implements SkullMeta {
 
         NamespacedKey namespacedKeyNB = this.getNoteBlockSound();
         if (namespacedKeyNB != null) {
-            return builder.put(CraftMetaSkull.NOTE_BLOCK_SOUND.BUKKIT, namespacedKeyNB.toString());
+            builder.put(CraftMetaSkull.NOTE_BLOCK_SOUND.BUKKIT, namespacedKeyNB.toString());
         }
         return builder;
     }

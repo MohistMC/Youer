@@ -690,7 +690,12 @@ public class CraftBlock implements Block {
 
         return iblockdata.canSurvive(world, this.position);
     }
-    
+
+    @Override
+    public String getTranslationKey() {
+        return this.getNMS().getBlock().getDescriptionId();
+    }
+
     // Paper start
     @Override
     public com.destroystokyo.paper.block.BlockSoundGroup getSoundGroup() {
@@ -700,11 +705,6 @@ public class CraftBlock implements Block {
     @Override
     public org.bukkit.SoundGroup getBlockSoundGroup() {
         return org.bukkit.craftbukkit.CraftSoundGroup.getSoundGroup(this.getNMS().getSoundType());
-    }
-
-    @Override
-    public String getTranslationKey() {
-        return this.getNMS().getBlock().getDescriptionId();
     }
 
     @Override
@@ -721,6 +721,7 @@ public class CraftBlock implements Block {
         final ServerLevel level = this.world.getMinecraftWorld();
         this.getNMS().tick(level, this.position, level.random);
     }
+
 
     @Override
     public void fluidTick() {

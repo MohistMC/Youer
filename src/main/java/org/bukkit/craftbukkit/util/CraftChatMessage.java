@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.gson.JsonParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -82,7 +83,7 @@ public final class CraftChatMessage {
                 }
                 switch (groupId) {
                 case 1:
-                    char c = match.toLowerCase(java.util.Locale.ENGLISH).charAt(1);
+                    char c = match.toLowerCase(Locale.ROOT).charAt(1);
                     ChatFormatting format = CraftChatMessage.formatMap.get(c);
 
                     if (c == 'x') {
@@ -91,7 +92,7 @@ public final class CraftChatMessage {
                         this.hex.append(c);
 
                         if (this.hex.length() == 7) {
-                            this.modifier = StringMessage.RESET.withColor(TextColor.parseColor(this.hex.toString()).result().get());
+                            this.modifier = StringMessage.RESET.withColor(TextColor.parseColor(this.hex.toString()).result().orElse(null)); // Paper
                             this.hex = null;
                         }
                     } else if (format.isFormat() && format != ChatFormatting.RESET) {
@@ -285,6 +286,7 @@ public final class CraftChatMessage {
 
     public static String fromComponent(Component component) {
         if (component == null) return "";
+        if (component instanceof io.papermc.paper.adventure.AdventureComponent) component = ((io.papermc.paper.adventure.AdventureComponent) component).deepConverted();
         StringBuilder out = new StringBuilder();
 
         boolean hadFormat = false;

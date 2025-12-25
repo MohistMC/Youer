@@ -46,6 +46,7 @@ import org.bukkit.craftbukkit.inventory.CraftEntityEquipment;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.potion.CraftPotionEffectType;
 import org.bukkit.entity.AbstractArrow;
+import org.bukkit.entity.AbstractWindCharge;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.BreezeWindCharge;
 import org.bukkit.entity.DragonFireball;
@@ -635,7 +636,7 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
                 launch = new net.minecraft.world.entity.projectile.WitherSkull(world, this.getHandle(), vec);
             } else if (DragonFireball.class.isAssignableFrom(projectile)) {
                 launch = new net.minecraft.world.entity.projectile.DragonFireball(world, this.getHandle(), vec);
-            } else if (WindCharge.class.isAssignableFrom(projectile)) {
+            } else if (AbstractWindCharge.class.isAssignableFrom(projectile)) {
                 if (BreezeWindCharge.class.isAssignableFrom(projectile)) {
                     launch = net.minecraft.world.entity.EntityType.BREEZE_WIND_CHARGE.create(world);
                 } else {

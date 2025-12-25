@@ -1182,7 +1182,7 @@ public class CraftEventFactory {
             modifiers.put(DamageModifier.FREEZING, freezingModifier);
             modifierFunctions.put(DamageModifier.FREEZING, freezing);
         }
-        if (source.is(DamageTypes.FALLING_BLOCK) || source.is(DamageTypes.FALLING_ANVIL)) {
+        if (source.is(DamageTypeTags.DAMAGES_HELMET)) { // Paper
             modifiers.put(DamageModifier.HARD_HAT, hardHatModifier);
             modifierFunctions.put(DamageModifier.HARD_HAT, hardHat);
         }
@@ -1378,7 +1378,7 @@ public class CraftEventFactory {
         // Paper end - Add titleOverride to InventoryOpenEvent
     }
 
-    @Deprecated // Paper - use method that acknowledges title overrides
+    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - use method that acknowledges title overrides
     public static AbstractContainerMenu callInventoryOpenEvent(ServerPlayer player, AbstractContainerMenu container, boolean cancelled) {
         // Paper start - Add titleOverride to InventoryOpenEvent
         return callInventoryOpenEventWithTitle(player, container, cancelled).getSecond();

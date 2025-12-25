@@ -86,7 +86,7 @@ public class CraftMerchantCustom implements CraftMerchant {
                     merchantRecipe.increaseUses();
                 }
                 if (event == null || event.isRewardingExp()) {
-                    this.tradingPlayer.level().addFreshEntity(new net.minecraft.world.entity.ExperienceOrb(this.tradingPlayer.level(), this.tradingPlayer.getX(), this.tradingPlayer.getY(), this.tradingPlayer.getZ(), merchantRecipe.getXp()));
+                    this.tradingPlayer.level().addFreshEntity(new net.minecraft.world.entity.ExperienceOrb(this.tradingPlayer.level(), this.tradingPlayer.getX(), this.tradingPlayer.getY(), this.tradingPlayer.getZ(), merchantRecipe.getXp(), org.bukkit.entity.ExperienceOrb.SpawnReason.VILLAGER_TRADE, this.tradingPlayer, null));
                 }
             }
             this.notifyTrade(merchantRecipe);

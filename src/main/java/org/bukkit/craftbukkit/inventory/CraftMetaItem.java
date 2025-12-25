@@ -1631,6 +1631,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
 
     @Override
     public void setDamage(int damage) {
+        Preconditions.checkArgument(damage >= 0, "Damage cannot be negative"); // Paper
         Preconditions.checkArgument(!this.hasMaxDamage() || damage <= this.maxDamage, "Damage cannot exceed max damage"); // Paper
         this.damage = damage;
     }

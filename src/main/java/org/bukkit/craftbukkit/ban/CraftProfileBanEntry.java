@@ -31,7 +31,7 @@ public final class CraftProfileBanEntry implements BanEntry<com.destroystokyo.pa
     }
 
     @Override
-    public com.destroystokyo.paper.profile.PlayerProfile getBanTarget() {
+    public com.destroystokyo.paper.profile.PlayerProfile getBanTarget() { // Paper
         return new com.destroystokyo.paper.profile.CraftPlayerProfile(this.profile); // Paper
     }
 

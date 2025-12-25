@@ -23,7 +23,7 @@ public class PrepareItemEnchantEvent extends InventoryEvent implements Cancellab
     private boolean cancelled;
     private final Player enchanter;
 
-    public PrepareItemEnchantEvent(@NotNull final Player enchanter, @NotNull EnchantmentView view, @NotNull final Block table, @NotNull final ItemStack item, @NotNull final EnchantmentOffer[] offers, final int bonus) {
+    public PrepareItemEnchantEvent(@NotNull final Player enchanter, @NotNull EnchantmentView view, @NotNull final Block table, @NotNull final ItemStack item, @org.jetbrains.annotations.Nullable final EnchantmentOffer @NotNull [] offers, final int bonus) { // Paper - offers can contain null values
         super(view);
         this.enchanter = enchanter;
         this.table = table;
@@ -81,13 +81,12 @@ public class PrepareItemEnchantEvent extends InventoryEvent implements Cancellab
     /**
      * Get a list of available {@link EnchantmentOffer} for the player. You can
      * modify the values to change the available offers for the player. An offer
-     * may be null, if there isn't a enchantment offer at a specific slot. There
+     * may be null, if there isn't an enchantment offer at a specific slot. There
      * are 3 slots in the enchantment table available to modify.
      *
      * @return list of available enchantment offers
      */
-    @NotNull
-    public EnchantmentOffer[] getOffers() {
+    public @org.jetbrains.annotations.Nullable EnchantmentOffer @NotNull [] getOffers() { // Paper offers can contain null values
         return offers;
     }
 

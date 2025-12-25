@@ -94,6 +94,7 @@ public class CraftDragonBattle implements DragonBattle {
             });
 
             this.handle.respawnDragon(list.stream().map(enderCrystal -> ((CraftEnderCrystal) enderCrystal).getHandle()).collect(Collectors.toList()));
+            return this.handle.respawnDragonBoolean();
         }
         return false;
     }

@@ -246,7 +246,7 @@ public class CraftChunk implements Chunk {
     @Override
     public boolean isSlimeChunk() {
         // 987234911L is deterimined in EntitySlime when seeing if a slime can spawn in a chunk
-        return this.worldServer.paperConfig().entities.spawning.allChunksAreSlimeChunks || WorldgenRandom.seedSlimeChunk(this.getX(), this.getZ(), this.getWorld().getSeed(), this.worldServer.spigotConfig.slimeSeed).nextInt(10) == 0;
+        return this.worldServer.paperConfig().entities.spawning.allChunksAreSlimeChunks || WorldgenRandom.seedSlimeChunk(this.getX(), this.getZ(), this.getWorld().getSeed(), worldServer.spigotConfig.slimeSeed).nextInt(10) == 0; // Paper
     }
 
     @Override

@@ -218,7 +218,7 @@ public final class CraftEntityTypes {
     private static final BiConsumer<SpawnData, net.minecraft.world.entity.Entity> MOVE = (spawnData, entity) -> entity.moveTo(spawnData.x(), spawnData.y(), spawnData.z(), spawnData.yaw(), spawnData.pitch());
     private static final BiConsumer<SpawnData, net.minecraft.world.entity.Entity> MOVE_EMPTY_ROT = (spawnData, entity) -> entity.moveTo(spawnData.x(), spawnData.y(), spawnData.z(), 0, 0);
     private static final BiConsumer<SpawnData, AbstractHurtingProjectile> DIRECTION = (spawnData, entity) -> {
-        Vector direction = spawnData.location().getDirection().multiply(10);
+        Vector direction = spawnData.location().getDirection();
         entity.assignDirectionalMovement(new Vec3(direction.getX(), direction.getY(), direction.getZ()), 1.0);
     };
     private static final BiConsumer<SpawnData, net.minecraft.world.entity.Entity> ROT = (spawnData, entity) -> entity.setRot(spawnData.yaw(), spawnData.pitch()); // Paper
@@ -467,6 +467,7 @@ public final class CraftEntityTypes {
                     AABB bb = (ItemFrame.class.isAssignableFrom(clazz))
                             ? net.minecraft.world.entity.decoration.ItemFrame.calculateBoundingBoxStatic(pos, CraftBlock.blockFaceToNotch(dir).getOpposite())
                             : net.minecraft.world.entity.decoration.Painting.calculateBoundingBoxStatic(pos, CraftBlock.blockFaceToNotch(dir).getOpposite(), width, height);
+                    if (!spawnData.world.noCollision(bb)) continue; // Paper - add collision check
                     List<net.minecraft.world.entity.Entity> list = spawnData.world().getEntities(null, bb);
                     for (Iterator<net.minecraft.world.entity.Entity> it = list.iterator(); !taken && it.hasNext(); ) {
                         net.minecraft.world.entity.Entity e = it.next();

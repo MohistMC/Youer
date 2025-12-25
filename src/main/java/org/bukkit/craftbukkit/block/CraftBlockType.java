@@ -13,7 +13,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.FallingBlock;
+import net.minecraft.world.level.block.Fallable;
 import net.minecraft.world.level.block.FireBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
@@ -199,7 +199,7 @@ public class CraftBlockType<B extends BlockData> implements BlockType.Typed<B>, 
 
     @Override
     public boolean hasGravity() {
-        return block instanceof FallingBlock;
+        return block instanceof Fallable;
     }
 
     @Override

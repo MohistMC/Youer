@@ -1008,7 +1008,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public void addEntityWithPassengers(net.minecraft.world.entity.Entity entity, SpawnReason reason) {
-        this.getHandle().tryAddFreshEntityWithPassengers(entity /* TODO , reason */);
+        this.getHandle().tryAddFreshEntityWithPassengers(entity, reason);
     }
 
     @Override
@@ -1270,7 +1270,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public void setStorm(boolean hasStorm) {
-        this.world.levelData.setRaining(hasStorm);
+        this.world.K.setRaining(hasStorm);
         this.setWeatherDuration(0); // Reset weather duration (legacy behaviour)
         this.setClearWeatherDuration(0); // Reset clear weather duration (reset "/weather clear" commands)
     }
@@ -1292,7 +1292,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public void setThundering(boolean thundering) {
-        this.world.serverLevelData.setThundering(thundering);
+        this.world.K.setThundering(thundering);
         this.setThunderDuration(0); // Reset weather duration (legacy behaviour)
         this.setClearWeatherDuration(0); // Reset clear weather duration (reset "/weather clear" commands)
     }

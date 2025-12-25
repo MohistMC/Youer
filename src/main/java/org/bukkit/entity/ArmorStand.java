@@ -362,6 +362,9 @@ public interface ArmorStand extends LivingEntity {
      */
     void setCanMove(boolean move);
 
+    @Override
+    org.bukkit.inventory.@NotNull EntityEquipment getEquipment();
+
     /**
      * Tests if this armor stand can tick.
      *

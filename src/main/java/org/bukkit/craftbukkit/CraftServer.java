@@ -463,7 +463,7 @@ public final class CraftServer implements Server {
         this.saveCommandsConfig();
         this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
         this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
-        this.pluginManager.useTimings(this.configuration.getBoolean("settings.plugin-profiling"));
+        //this.pluginManager.useTimings(this.configuration.getBoolean("settings.plugin-profiling")); // Paper - we already moved this
         this.overrideSpawnLimits();
         console.autosavePeriod = this.configuration.getInt("ticks-per.autosave");
         this.warningState = WarningState.value(this.configuration.getString("settings.deprecated-verbose"));
@@ -1348,7 +1348,7 @@ public final class CraftServer implements Server {
             net.minecraft.server.Main.forceUpgrade(worldSession, DataFixers.getDataFixer(), this.console.options.has("eraseCache"), () -> true, iregistrycustom_dimension, this.console.options.has("recreateRegionFiles"));
         }
 
-        long j = BiomeManager.obfuscateSeed(worlddata.worldGenOptions().seed());
+        long j = BiomeManager.obfuscateSeed(worlddata.worldGenOptions().seed()); // Paper - use world seed
         List<CustomSpawner> list = ImmutableList.of(new PhantomSpawner(), new PatrolSpawner(), new CatSpawner(), new VillageSiege(), new WanderingTraderSpawner(worlddata));
         LevelStem worlddimension = iregistry.get(actualDimension);
 

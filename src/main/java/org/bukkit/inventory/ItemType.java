@@ -1028,8 +1028,8 @@ public interface ItemType extends Keyed, Translatable, net.kyori.adventure.trans
      * ItemMeta: {@link ColorableArmorMeta}
      */
     ItemType.Typed<ColorableArmorMeta> WOLF_ARMOR = getItemType("wolf_armor");
-    ItemType.Typed<ItemMeta> BOWL = getItemType("bowl");
     ItemType.Typed<ItemMeta> FLINT_AND_STEEL = getItemType("flint_and_steel");
+    ItemType.Typed<ItemMeta> BOWL = getItemType("bowl");
     ItemType.Typed<ItemMeta> APPLE = getItemType("apple");
     ItemType.Typed<ItemMeta> BOW = getItemType("bow");
     ItemType.Typed<ItemMeta> ARROW = getItemType("arrow");
