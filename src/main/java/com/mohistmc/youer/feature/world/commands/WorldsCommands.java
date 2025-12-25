@@ -118,7 +118,7 @@ public class WorldsCommands extends Command {
             }
             if (args.length == 2 && args[0].equalsIgnoreCase("delete")) {
                 String worldName = args[1];
-                if (!args[1].equalsIgnoreCase("world")) {
+                if (!args[1].equalsIgnoreCase(Bukkit.getUnsafe().getMainLevelName())) {
                     World w = Bukkit.getWorld(worldName);
                     if (w != null) {
                         for (Player all : w.getPlayers()) {
@@ -174,7 +174,7 @@ public class WorldsCommands extends Command {
                     return false;
                 }
                 for (Player all2 : world.getPlayers()) {
-                    all2.teleport(Bukkit.getWorld("world").getSpawnLocation());
+                    all2.teleport(Bukkit.getWorld(Bukkit.getUnsafe().getMainLevelName()).getSpawnLocation());
                 }
                 Bukkit.unloadWorld(world, true);
                 ConfigByWorlds.removeWorld(worldName);

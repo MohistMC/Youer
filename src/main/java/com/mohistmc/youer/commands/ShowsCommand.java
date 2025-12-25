@@ -206,6 +206,7 @@ public class ShowsCommand extends Command {
                 Map<Material, Integer> collect = new HashMap<>();
                 for (TickingBlockEntity blockEntityTicker : serverLevel.blockEntityTickers) {
                     BlockPos pos = blockEntityTicker.getPos();
+                    if (pos == null) continue;
                     BlockState block = serverLevel.getBlockState(pos);
                     net.minecraft.world.item.ItemStack itemStack = block.getBlock().asItem().getDefaultInstance();
                     Material material = itemStack.getBukkitStack().getType();

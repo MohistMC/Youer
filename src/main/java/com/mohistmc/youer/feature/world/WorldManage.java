@@ -16,7 +16,7 @@ public class WorldManage {
     public static void onEnable() {
         ConfigByWorlds.init();
         ConfigByWorlds.loadWorlds();
-        ConfigByWorlds.addWorld(ServerAPI.getNMSServer().server.getServer().getProperties().levelName, false);
+        ConfigByWorlds.addWorld(Bukkit.getUnsafe().getMainLevelName(), false);
     }
 
     public static void deleteDir(File path) {
