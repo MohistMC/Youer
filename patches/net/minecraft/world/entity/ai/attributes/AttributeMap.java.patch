@@ -1,9 +1,10 @@
 --- a/net/minecraft/world/entity/ai/attributes/AttributeMap.java
 +++ b/net/minecraft/world/entity/ai/attributes/AttributeMap.java
-@@ -23,14 +_,21 @@
+@@ -23,14 +_,23 @@
      private final Set<AttributeInstance> attributesToSync = new ObjectOpenHashSet<>();
      private final Set<AttributeInstance> attributesToUpdate = new ObjectOpenHashSet<>();
      private final AttributeSupplier supplier;
++    private final java.util.function.Function<Holder<Attribute>, AttributeInstance> createInstance; // Pufferfish
 +    private final net.minecraft.world.entity.LivingEntity entity; // Purpur
  
      public AttributeMap(AttributeSupplier p_22144_) {
@@ -14,6 +15,7 @@
 +        this.entity = entity;
 +        // Purpur end
          this.supplier = p_22144_;
++        this.createInstance = attributex -> this.supplier.createInstance(this::onAttributeModified, attributex); // Pufferfish
      }
  
      private void onAttributeModified(AttributeInstance p_22158_) {
@@ -23,7 +25,7 @@
              this.attributesToSync.add(p_22158_);
          }
      }
-@@ -44,7 +_,7 @@
+@@ -44,12 +_,12 @@
      }
  
      public Collection<AttributeInstance> getSyncableAttributes() {
@@ -32,6 +34,12 @@
      }
  
      @Nullable
+     public AttributeInstance getInstance(Holder<Attribute> p_250010_) {
+-        return this.attributes.computeIfAbsent(p_250010_, p_315936_ -> this.supplier.createInstance(this::onAttributeModified, (Holder<Attribute>)p_315936_));
++        return this.attributes.computeIfAbsent(p_250010_, createInstance);
+     }
+ 
+     public boolean hasAttribute(Holder<Attribute> p_248893_) {
 @@ -140,4 +_,11 @@
              }
          }

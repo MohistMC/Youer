@@ -66,7 +66,24 @@
                  this.setTarget(null);
                  this.teleport();
              }
-@@ -301,8 +_,10 @@
+@@ -292,17 +_,24 @@
+ 
+     public boolean teleport(double p_32544_, double p_32545_, double p_32546_) {
+         BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos(p_32544_, p_32545_, p_32546_);
+-
+-        while (blockpos$mutableblockpos.getY() > this.level().getMinBuildHeight() && !this.level().getBlockState(blockpos$mutableblockpos).blocksMotion()) {
++        // Pufferfish start - single chunk lookup
++        net.minecraft.world.level.chunk.LevelChunk chunk = this.level().getChunkIfLoaded(blockpos$mutableblockpos);
++        if (chunk == null) {
++            return false;
++        }
++        // Pufferfish end
++        while (blockpos$mutableblockpos.getY() > this.level().getMinBuildHeight() && !chunk.getBlockState(blockpos$mutableblockpos).blocksMotion()) { // Pufferfish
+             blockpos$mutableblockpos.move(Direction.DOWN);
+         }
+ 
+-        BlockState blockstate = this.level().getBlockState(blockpos$mutableblockpos);
++        BlockState blockstate = chunk.getBlockState(blockpos$mutableblockpos); // Pufferfish
          boolean flag = blockstate.blocksMotion();
          boolean flag1 = blockstate.getFluidState().is(FluidTags.WATER);
          if (flag && !flag1) {

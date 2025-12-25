@@ -25,13 +25,12 @@
      private long lastRestockCheckDayTime;
      private boolean assignProfessionWhenSpawned;
      private static final ImmutableList<MemoryModuleType<?>> MEMORY_TYPES = ImmutableList.of(
-@@ -184,6 +_,10 @@
+@@ -184,6 +_,9 @@
          (p_219616_, p_219617_) -> p_219617_.is(PoiTypes.MEETING)
      );
  
 +    private boolean isLobotomized = false; public boolean isLobotomized() { return this.isLobotomized; } // Purpur
 +    private int notLobotomizedCount = 0; // Purpur
-+    public long nextGolemPanic = -1; // Pufferfish
 +
      public Villager(EntityType<? extends Villager> p_35381_, Level p_35382_) {
          this(p_35381_, p_35382_, VillagerType.PLAINS);
@@ -85,7 +84,7 @@
      @Override
      public Brain<Villager> getBrain() {
          return (Brain<Villager>)super.getBrain();
-@@ -269,9 +_,32 @@
+@@ -269,9 +_,38 @@
      }
  
      @Override
@@ -111,11 +110,17 @@
 +    }
 +    // Spigot End
 +    boolean customServerAiStep$inactive = false;
++    public long nextGolemPanic = -1; // Pufferfish
++    private int behaviorTick = 0; // Pufferfish
 +    @Override
      protected void customServerAiStep() {
          this.level().getProfiler().push("villagerBrain");
 -        this.getBrain().tick((ServerLevel)this.level(), this);
-+        if (!customServerAiStep$inactive) this.getBrain().tick((ServerLevel)this.level(), this); // Paper
++        // Pufferfish start
++        if (!customServerAiStep$inactive && this.behaviorTick++ % this.activatedPriority == 0) {
++            this.getBrain().tick((ServerLevel)this.level(), this); // Paper
++        }
++        // Pufferfish end
          this.level().getProfiler().pop();
          if (this.assignProfessionWhenSpawned) {
              this.assignProfessionWhenSpawned = false;

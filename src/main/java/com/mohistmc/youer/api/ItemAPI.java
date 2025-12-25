@@ -64,6 +64,16 @@ public class ItemAPI {
         return compoundTag == null ? "null" : compoundTag.getAsString();
     }
 
+    public static String getNbtAsString(ItemStack itemStack) {
+        var item = CraftItemStack.asNMSCopy(itemStack);
+        try {
+            net.minecraft.nbt.CompoundTag nbt = (net.minecraft.nbt.CompoundTag) item.save(net.minecraft.core.RegistryAccess.EMPTY);
+            return getNbtAsString(nbt);
+        } catch (Exception e) {
+           return "null";
+        }
+    }
+
     /**
      * Parse Base64 into {@link org.bukkit.inventory.ItemStack}
      * it should be noted that this method is only used for ItemStack without any NBT

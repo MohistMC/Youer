@@ -17,7 +17,7 @@ public class AsyncExecutor implements Runnable {
 	private volatile boolean killswitch = false;
 	
 	public AsyncExecutor(String threadName) {
-		this.thread = new Thread(this, threadName);
+		this.thread = Thread.ofVirtual().name(threadName).unstarted(this);
 	}
 	
 	public void start() {

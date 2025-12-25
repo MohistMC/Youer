@@ -64,8 +64,11 @@ public class ItemsCommand extends Command {
             player.sendMessage(ChatColor.GRAY + I18n.as("items.info.custommodeldata") + " %s".formatted(itemStack.getCustomModelData()));
         }
         player.sendMessage(ChatColor.GRAY + I18n.as("items.info.itemflags") + " %s".formatted(itemStack.getItemFlags()));
-        net.minecraft.nbt.CompoundTag nbt = (net.minecraft.nbt.CompoundTag) nmsItem.save(net.minecraft.core.RegistryAccess.EMPTY);
-        player.sendMessage(ChatColor.GREEN + I18n.as("items.info.itemnbt") + " %s".formatted(nbt));
+        try{
+            net.minecraft.nbt.CompoundTag nbt = (net.minecraft.nbt.CompoundTag) nmsItem.save(PlayerAPI.getNMSPlayer(player).registryAccess());
+            player.sendMessage(ChatColor.GREEN + I18n.as("items.info.itemnbt") + " %s".formatted(nbt));
+        } catch (Exception ignored) {
+        }
 
         player.sendMessage(ChatColor.GRAY + I18n.as("items.info.amount") + " %s".formatted(itemStack.getAmount()));
         player.sendMessage(ChatColor.GRAY + I18n.as("items.info.maxstacksize") + " %s".formatted(itemStack.getMaxStackSize()));
@@ -133,15 +136,28 @@ public class ItemsCommand extends Command {
                     }
                 }
                 case "give" -> {
-                    if (args[1].isEmpty()) {
-                        return org.bukkit.Bukkit.getOnlinePlayers().stream()
-                                .map(org.bukkit.entity.Player::getName)
-                                .collect(Collectors.toList());
-                    } else {
-                        return org.bukkit.Bukkit.getOnlinePlayers().stream()
-                                .map(org.bukkit.entity.Player::getName)
-                                .filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase()))
-                                .collect(Collectors.toList());
+                    if (args.length == 2) {
+                        if (args[1].isEmpty()) {
+                            return org.bukkit.Bukkit.getOnlinePlayers().stream()
+                                    .map(org.bukkit.entity.Player::getName)
+                                    .collect(Collectors.toList());
+                        } else {
+                            return org.bukkit.Bukkit.getOnlinePlayers().stream()
+                                    .map(org.bukkit.entity.Player::getName)
+                                    .filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase()))
+                                    .collect(Collectors.toList());
+                        }
+                    } else if (args.length == 3) {
+                        return ItemsConfig.INSTANCE.getItemStrings();
+                    } else if (args.length == 4) {
+                        List<String> amounts = new ArrayList<>();
+                        amounts.add("1");
+                        amounts.add("5");
+                        amounts.add("10");
+                        amounts.add("16");
+                        amounts.add("32");
+                        amounts.add("64");
+                        return amounts;
                     }
                 }
             }
@@ -419,27 +435,51 @@ public class ItemsCommand extends Command {
                 return true;
             }
             case "give" -> {
-                if (args.length != 3) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items give <player> <name>"));
+                if (args.length < 3 || args.length > 4) {
+                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items give <player> <name> [amount]"));
                     return false;
                 }
 
                 Player targetPlayer = org.bukkit.Bukkit.getPlayerExact(args[1]);
                 if (targetPlayer == null) {
+                    sender.sendMessage(ChatColor.RED + I18n.as("youercmd.heal.playernotfound", args[1]));
                     return false;
                 }
 
                 ItemStack itemToGive = ItemsConfig.INSTANCE.get(args[2]);
                 if (itemToGive.getType().isAir()) {
+                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.itemNotFound"));
                     return false;
                 }
 
+                int amount = 1;
+                if (args.length == 4) {
+                    try {
+                        amount = Integer.parseInt(args[3]);
+                        if (amount <= 0) {
+                            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.amountMustBePositive"));
+                            return false;
+                        }
+                        if (amount > itemToGive.getMaxStackSize()) {
+                            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.amountTooLarge", itemToGive.getMaxStackSize()));
+                            return false;
+                        }
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.invalidAmount"));
+                        return false;
+                    }
+                }
+
+                ItemStack itemWithAmount = itemToGive.clone();
+                itemWithAmount.setAmount(amount);
+
                 if (targetPlayer.getInventory().firstEmpty() != -1) {
-                    targetPlayer.getInventory().addItem(itemToGive.clone());
+                    targetPlayer.getInventory().addItem(itemWithAmount);
                 } else {
                     targetPlayer.sendMessage(ChatColor.RED + I18n.as("itemscmd.inventoryFull"));
                     return false;
                 }
+                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.giveSuccess", amount, args[2], args[1]));
                 return true;
             }
             case "remove" -> {

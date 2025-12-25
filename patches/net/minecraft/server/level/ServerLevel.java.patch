@@ -425,14 +425,16 @@
          if (flag1) {
              this.resetEmptyTime();
          }
-@@ -393,6 +_,7 @@
+@@ -393,7 +_,9 @@
                  profilerfiller.pop();
              }
  
 +            org.spigotmc.ActivationRange.activateEntities(this); // Spigot
              this.entityTickList.forEach(p_308566_ -> {
++                p_308566_.activatedPriorityReset = false; // Pufferfish - DAB
                  if (!p_308566_.isRemoved()) {
                      if (this.shouldDiscardEntity(p_308566_)) {
+                         p_308566_.discard();
 @@ -412,7 +_,9 @@
                              }
  
@@ -466,7 +468,7 @@
          ProfilerFiller profilerfiller = this.getProfiler();
          profilerfiller.push("thunder");
 -        if (flag && this.isThundering() && this.random.nextInt(100000) == 0) {
-+        if (!this.paperConfig().environment.disableThunder && flag && this.isThundering() && this.spigotConfig.thunderChance > 0 && this.random.nextInt(this.spigotConfig.thunderChance) == 0) { // Spigot // Paper - Option to disable thunder
++        if (!this.paperConfig().environment.disableThunder && flag && this.isThundering() && this.spigotConfig.thunderChance > 0 && p_8715_.shouldDoLightning(this.random)) { // Spigot // Paper - Option to disable thunder
              BlockPos blockpos = this.findLightningTargetAround(this.getBlockRandomPos(i, 0, j, 15));
              if (this.isRainingAt(blockpos)) {
                  DifficultyInstance difficultyinstance = this.getCurrentDifficultyAt(blockpos);

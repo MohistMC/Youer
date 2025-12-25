@@ -325,7 +325,7 @@ public class YouerCommand extends Command {
                 }
             }
             case "memoryfix" -> {
-                if (!OSUtil.getOS().isWindows()) { // 如果不是Windows系统
+                if (!OSUtil.getOS().isWindows()) {
                     sender.sendMessage(ChatColor.RED + I18n.as("youercmd.memoryfix.not.windows"));
                     return true;
                 }

@@ -34,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
 public class BansCommand extends Command {
 
     private final List<String> params = Arrays.asList("add", "show", "setmessage");
-    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block");
+    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt");
 
     public BansCommand(String name) {
         super(name);
@@ -77,10 +77,6 @@ public class BansCommand extends Command {
                     }
                     BanRecipe.addBan(player, name);
                     return true;
-                }
-                if (args.length != 2) {
-                    sender.sendMessage(ChatColor.RED + usageMessage);
-                    return false;
                 }
                 switch (args[1]) {
                     case "item" -> {
@@ -138,6 +134,28 @@ public class BansCommand extends Command {
                         BanListener.openInventory = banSaveInventory;
                         return true;
                     }
+                    case "nbt" -> {
+                        if (!YouerConfig.ban_item_enable) {
+                            sender.sendMessage(ChatColor.RED + check);
+                            return false;
+                        }
+
+                        ItemStack itemStack = player.getInventory().getItemInMainHand();
+                        if (itemStack.isEmpty()) {
+                            sender.sendMessage(ChatColor.RED + "Please hold the item in hand.");
+                            return false;
+                        }
+
+                        if (args.length < 3) {
+                            sender.sendMessage(ChatColor.RED + "Usage: /bans add nbt <nbt>");
+                            return false;
+                        }
+
+                        String nbt = args[2];
+                        BanConfig.NBT.addNbt(itemStack.getType().key().asString(), nbt);
+                        sender.sendMessage(ChatColor.GREEN + "Successfully banned items with NBT: " + nbt);
+                        return true;
+                    }
                     default -> {
                         sender.sendMessage(ChatColor.RED + usageMessage);
                         return false;
@@ -189,7 +207,7 @@ public class BansCommand extends Command {
                                     public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                         if (type.isRightClick()) {
                                             old.remove(s);
-                                            BanConfig.MOSHOU.setBaMoShou(old);
+                                            BanUtils.saveToYaml(u, com.mohistmc.youer.feature.ban.ClickType.REMOVE, old, BanType.ITEM_MOSHOU);
                                             wh.removeItem(this);
                                             wh.openGUI(player);
                                         }
@@ -284,6 +302,29 @@ public class BansCommand extends Command {
                                             old.remove(s);
                                             BanUtils.saveToYaml(u, com.mohistmc.youer.feature.ban.ClickType.REMOVE, old, BanType.BLOCK);
                                             wh.removeItem(this);
+                                            wh.openGUI(player);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                        wh.openGUI(player);
+                        return true;
+                    }
+                    case "nbt" -> {
+                        DemoGUI wh = new DemoGUI("§2Show bans nbt");
+                        for (String s : BanConfig.NBT.getAllNbtKeys()) {
+                            Material material = Material.matchMaterial(s);
+                            if (material != null && !material.isAirSafe()) {
+                                wh.addItem(new GUIItem(new ItemStackFactory(material)
+                                        .setDisplayName(s)
+                                        .addLore("§eClick here to view the NBT list")
+                                        .build()) {
+                                    @Override
+                                    public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                                        if (type.isRightClick()) {
+                                            wh.removeItem(this);
+                                            BanConfig.NBT.clearNbt(s);
                                             wh.openGUI(player);
                                         }
                                     }

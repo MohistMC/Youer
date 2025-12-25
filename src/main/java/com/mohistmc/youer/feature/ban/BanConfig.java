@@ -4,6 +4,7 @@ import com.mohistmc.youer.feature.config.YouerPluginConfig;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class BanConfig extends YouerPluginConfig {
 
@@ -15,6 +16,7 @@ public class BanConfig extends YouerPluginConfig {
     public static BanConfig BAN_MESSAGE;
     public static BanConfig RECIPE;
     public static BanConfig BLOCK;
+    public static BanConfig NBT;
 
     public BanConfig(File file) {
         super(file);
@@ -28,15 +30,7 @@ public class BanConfig extends YouerPluginConfig {
         BAN_MESSAGE = new BanConfig(new File(PARENT, "item-message.yml"));
         RECIPE = new BanConfig(new File(PARENT, "recipe.yml"));
         BLOCK = new BanConfig(new File(PARENT, "block.yml"));
-    }
-
-    public void addMoShou(String name) {
-        if (!has("ITEMS")) {
-            put("ITEMS", List.of());
-        }
-        List<String> list = MOSHOU.yaml.getStringList("ITEMS");
-        list.add(name);
-        put("ITEMS", list);
+        NBT = new BanConfig(new File(PARENT, "nbt.yml"));
     }
 
     public List<String> getMoShouList() {
@@ -67,13 +61,43 @@ public class BanConfig extends YouerPluginConfig {
         return (!has(name)) ? "" : BAN_MESSAGE.yaml.getString(name, "");
     }
 
-    public void setBaMoShou(List<String> v) {
-        MOSHOU.yaml.set("ITEMS", v);
-        save();
-    }
-
     public void setBanMessage(String key, Object v) {
         BAN_MESSAGE.yaml.set(key, v);
         save();
+    }
+
+    public Set<String> getAllNbtKeys() {
+        return NBT.yaml.getKeys(false);
+    }
+
+    public List<String> getNbtList(String key) {
+        return (!NBT.has(key)) ? new ArrayList<>() : NBT.yaml.getStringList(key);
+    }
+
+    public void addNbt(String key, String v) {
+        var list = NBT.yaml.getStringList(key);
+        list.add(v);
+        NBT.yaml.set(key, list);
+        save();
+    }
+
+    public void removeNbt(String key, String nbt) {
+        if (!NBT.has(key)) return;
+
+        var list = NBT.yaml.getStringList(key);
+        list.remove(nbt);
+        if (list.isEmpty()) {
+            NBT.yaml.set(key, null);
+        } else {
+            NBT.yaml.set(key, list);
+        }
+        NBT.save();
+    }
+
+    public void clearNbt(String key) {
+        if (NBT.has(key)) {
+            NBT.yaml.set(key, null);
+            NBT.save();
+        }
     }
 }

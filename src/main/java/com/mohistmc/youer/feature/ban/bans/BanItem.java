@@ -87,7 +87,7 @@ public class BanItem {
 
     public static boolean check(org.bukkit.inventory.ItemStack itemStack) {
         if (!YouerConfig.ban_item_enable) return false;
-        return ItemAPI.isBan(itemStack);
+        return ItemAPI.isBan(itemStack) || BanNbt.check(itemStack);
     }
 
     public static boolean checkMoShou(org.bukkit.inventory.ItemStack itemStack) {

@@ -229,7 +229,7 @@ public class PufferfishConfig {
     public static int activationDistanceMod;
 
     private static void dynamicActivationOfBrains() throws IOException {
-        dearEnabled = getBoolean("dab.enabled", "activation-range.enabled", false); // Purpur
+        dearEnabled = getBoolean("dab.enabled", "activation-range.enabled", true); // Purpur // Youer
         startDistance = getInt("dab.start-distance", "activation-range.start-distance", 12,
                 "This value determines how far away an entity has to be",
                 "from the player to start being effected by DEAR.");
@@ -249,7 +249,7 @@ public class PufferfishConfig {
         getStringList("dab.blacklisted-entities", "activation-range.blacklisted-entities", Collections.emptyList(), "A list of entities to ignore for activation")
                 .forEach(name -> EntityType.byString(name).ifPresentOrElse(entityType -> {
                     entityType.dabEnabled = false;
-                }, () -> MinecraftServer.LOGGER.warn("Unknown entity \"" + name + "\"")));
+                }, () -> MinecraftServer.LOGGER.warn("Unknown entity \"{}\"", name)));
 
         setComment("dab", "Optimizes entity brains when", "they're far away from the player");
     }

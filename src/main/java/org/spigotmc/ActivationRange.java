@@ -255,6 +255,7 @@ public class ActivationRange
 
     /**
      * Checks for the activation state of all entities in this chunk.
+     *
      */
     private static void activateEntity(Entity entity)
     {

@@ -148,3 +148,31 @@
                  this.setResting(false);
              }
  
+@@ -235,12 +_,23 @@
+         }
+     }
+ 
++    // Pufferfish start - only check for spooky season once an hour
++    private static boolean isSpookySeason = false;
++    private static final int ONE_HOUR = 20 * 60 * 60;
++    private static int lastSpookyCheck = -ONE_HOUR;
++    public static boolean isHalloweenSeason(Level level) { return level.purpurConfig.forceHalloweenSeason || isHalloween(); } // Purpur
+     private static boolean isHalloween() {
+-        LocalDate localdate = LocalDate.now();
+-        int i = localdate.get(ChronoField.DAY_OF_MONTH);
+-        int j = localdate.get(ChronoField.MONTH_OF_YEAR);
+-        return j == 10 && i >= 20 || j == 11 && i <= 3;
++        if (net.minecraft.server.MinecraftServer.currentTick - lastSpookyCheck > ONE_HOUR) {
++            LocalDate localdate = LocalDate.now();
++            int i = localdate.get(ChronoField.DAY_OF_MONTH);
++            int j = localdate.get(ChronoField.MONTH_OF_YEAR);
++
++            isSpookySeason = j == 10 && i >= 20 || j == 11 && i <= 3;
++            lastSpookyCheck = net.minecraft.server.MinecraftServer.currentTick;
++        }
++        return isSpookySeason;
+     }
++    // Pufferfish end
+ 
+     private void setupAnimationStates() {
+         if (this.isResting()) {

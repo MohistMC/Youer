@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/crafting/ShapelessRecipe.java
 +++ b/net/minecraft/world/item/crafting/ShapelessRecipe.java
-@@ -4,27 +_,48 @@
+@@ -4,27 +_,53 @@
  import com.mojang.serialization.DataResult;
  import com.mojang.serialization.MapCodec;
  import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -24,8 +24,13 @@
      final ItemStack result;
      final NonNullList<Ingredient> ingredients;
 +    private final boolean isSimple;
++    private final boolean isBukkit; // Pufferfish
  
      public ShapelessRecipe(String p_249640_, CraftingBookCategory p_249390_, ItemStack p_252071_, NonNullList<Ingredient> p_250689_) {
++        this(p_249640_, p_249390_, p_252071_, p_250689_, false);
++    }
++    public ShapelessRecipe(String p_249640_, CraftingBookCategory p_249390_, ItemStack p_252071_, NonNullList<Ingredient> p_250689_, boolean isBukkit) {
++        this.isBukkit = isBukkit; // Pufferfish end
          this.group = p_249640_;
          this.category = p_249390_;
          this.result = p_252071_;
@@ -53,7 +58,7 @@
  
      @Override
      public RecipeSerializer<?> getSerializer() {
-@@ -54,10 +_,22 @@
+@@ -54,10 +_,43 @@
      public boolean matches(CraftingInput p_346123_, Level p_44263_) {
          if (p_346123_.ingredientCount() != this.ingredients.size()) {
              return false;
@@ -67,6 +72,27 @@
 -            return p_346123_.size() == 1 && this.ingredients.size() == 1
 -                ? this.ingredients.getFirst().test(p_346123_.getItem(0))
 -                : p_346123_.stackedContents().canCraft(this, null);
++            // Pufferfish start
++            if (!this.isBukkit) {
++                java.util.List<Ingredient> ingredients = com.google.common.collect.Lists.newArrayList(this.ingredients.toArray(new Ingredient[0]));
++
++                inventory: for (int index = 0; index < p_346123_.size(); index++) {
++                    ItemStack itemStack = p_346123_.getItem(index);
++
++                    if (!itemStack.isEmpty()) {
++                        for (int i = 0; i < ingredients.size(); i++) {
++                            if (ingredients.get(i).test(itemStack)) {
++                                ingredients.remove(i);
++                                continue inventory;
++                            }
++                        }
++                        return false;
++                    }
++                }
++
++                return ingredients.isEmpty();
++            }
++            // Pufferfish end
 +            // Paper start - unwrap ternary & better exact choice recipes
 +            if (p_346123_.size() == 1 && this.ingredients.size() == 1) {
 +                return this.ingredients.getFirst().test(p_346123_.getItem(0));

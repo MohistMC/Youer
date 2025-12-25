@@ -340,10 +340,10 @@ public final class JavaPluginLoader implements PluginLoader {
                 gg.pufferfish.pufferfish.sentry.SentryContext.setPluginContext(plugin); // Pufferfish
                 Youer.LOGGER.error(I18n.as("mohist.i18n.21", plugin.getDescription().getFullName()), ex);
                 gg.pufferfish.pufferfish.sentry.SentryContext.removePluginContext(); // Pufferfish
-                // Mohist start - Disable plugins that fail to load
+                // Paper start - Disable plugins that fail to load
                 this.server.getPluginManager().disablePlugin(jPlugin);
                 return;
-                // Mohist end
+                // Paper end
             }
 
             // Perhaps abort here, rather than continue going, but as it stands,
