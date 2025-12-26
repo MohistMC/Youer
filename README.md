@@ -9,8 +9,8 @@
     <a href="https://neoforged.net/">
       <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-26.1.0.0-FF8B00?style=flat-square">
     </a>
-    <a href="https://www.azul.com/downloads/?version=java-21-lts#zulu">
-      <img alt="JDK" src="https://img.shields.io/badge/JDK-21.0.8-007396?logo=java&logoColor=white&style=flat-square">
+    <a href="https://www.azul.com/downloads/?version=java-25-lts#zulu">
+      <img alt="JDK" src="https://img.shields.io/badge/JDK-25.0.1-007396?logo=java&logoColor=white&style=flat-square">
     </a>
     <a href="https://docs.gradle.org/9.1.0/release-notes.html">
       <img alt="Gradle" src="https://img.shields.io/badge/Gradle-9.1.0-02303A?logo=gradle&logoColor=white&style=flat-square">
@@ -30,7 +30,7 @@
 ## 📊 Progress Status
 
 ✅ **Core Integration**
-- [x] NeoForge ([08ddebc12](https://github.com/neoforged/NeoForge/commit/08ddebc12))
+- [x] NeoForge ([525bb6ffe](https://github.com/neoforged/NeoForge/commit/525bb6ffe))
 - [ ] Paper ([27f926e7e](https://github.com/PaperMC/Paper/commit/27f926e7e))
   - [ ] api
   - [ ] server

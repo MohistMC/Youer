@@ -294,14 +294,24 @@
      public void dumpServerProperties(Path path) throws IOException {
      }
  
-@@ -2012,6 +_,10 @@
- 
-     public WorldData getWorldData() {
+@@ -2014,6 +_,10 @@
          return this.worldData;
-+    }
-+
-+    public MinecraftServer.ReloadableResources getServerResources() {
-+         return resources;
      }
  
++    public MinecraftServer.ReloadableResources getServerResources() {
++         return resources;
++    }
++
      public RegistryAccess.Frozen registryAccess() {
+         return this.registries.compositeAccess();
+     }
+@@ -2142,6 +_,9 @@
+         } else if (rule == GameRules.SPAWN_MONSTERS) {
+             this.updateMobSpawningFlags();
+         }
++
++        // Neo: Allow mods to react to game rule state changes
++        net.neoforged.neoforge.event.EventHooks.onGameRuleChanged(this, rule, value);
+     }
+ 
+     public boolean acceptsTransfers() {
