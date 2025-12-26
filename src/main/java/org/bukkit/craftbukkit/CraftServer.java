@@ -1242,9 +1242,7 @@ public final class CraftServer implements Server {
         Level2LevelStem.initPluginWorld.set(true); // Youer
         String name = creator.name();
         ChunkGenerator generator = creator.generator();
-        if (creator.type() == WorldType.FLAT) {
-            generator = new WorldAPI.FlatGenerator();
-        }
+
         BiomeProvider biomeProvider = creator.biomeProvider();
         File folder = new File(this.getWorldContainer(), name);
         World world = this.getWorld(name);
