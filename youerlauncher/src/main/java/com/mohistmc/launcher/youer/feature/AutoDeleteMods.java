@@ -2,6 +2,7 @@ package com.mohistmc.launcher.youer.feature;
 
 import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.util.I18n;
+import com.mohistmc.launcher.youer.util.JarModifier;
 import com.mohistmc.tools.FileUtils;
 import java.io.File;
 import java.io.IOException;
@@ -58,16 +59,33 @@ public class AutoDeleteMods {
     }};
 
     /**
+     * Mapping tables for classes to directories
+     * Key: Detected class (e.g. "org.example.ModClass")
+     * Value: The directory path that needs to be removed from the JAR
+     */
+    private static final Map<String, String> CLASS_TO_DIRECTORY_MAPPING = new HashMap<>() {{
+        put("de.bluecolored.bluemap.forge.ForgeMod", "META-INF/services");
+    }};
+
+    /**
      * Scan and remove incompatible mods
      */
     public static void deleteIncompatibleMods() {
+        List<String> services = new ArrayList<>(CLASS_TO_DIRECTORY_MAPPING.keySet());
+        for (String identifier : services) {
+            try {
+                checkModFile(identifier, true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         if (!YouerConfigUtil.AutoDeleteMods()) return;
         System.out.println(I18n.as("update.mods"));
 
         List<String> identifiers = new ArrayList<>(MOD_BLACKLIST.keySet());
         for (String identifier : identifiers) {
             try {
-                checkModFile(identifier);
+                checkModFile(identifier, false);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -79,7 +97,7 @@ public class AutoDeleteMods {
      *
      * @param identifier of the class or file to be checked (can be a full class name or a file identifier)
      */
-    private static void checkModFile(String identifier) {
+    private static void checkModFile(String identifier, boolean isFile) {
         File modsDir = new File("mods");
 
         if (!modsDir.exists()) {
@@ -95,7 +113,7 @@ public class AutoDeleteMods {
                 if (identifier.contains(".")) {
                     String classPath = identifier.replaceAll("\\.", "/") + ".class";
                     if (FileUtils.fileExists(jarFile, classPath)) {
-                        backupAndDelete(jarFile, identifier);
+                        backupAndDelete(jarFile, identifier, isFile);
                     }
                 }
             } catch (Exception ignored) {
@@ -108,8 +126,18 @@ public class AutoDeleteMods {
      *
      * @param modFile to process MOD files
      */
-    private static void backupAndDelete(File modFile, String className) throws Exception {
+    private static void backupAndDelete(File modFile, String className, boolean isFile) throws Exception {
         DeletionReason reason = MOD_BLACKLIST.getOrDefault(className, DeletionReason.UNKNOWN);
+
+        String directoryToRemove = CLASS_TO_DIRECTORY_MAPPING.get(className);
+        if (isFile && directoryToRemove != null && !directoryToRemove.isEmpty()) {
+            try {
+                JarModifier.removeDirectoryFromJar(modFile.getAbsolutePath(), directoryToRemove);
+                return;
+            } catch (IOException e) {
+                System.err.println("Failed to remove directory from JAR: " + modFile.getName() + " - " + e.getMessage());
+            }
+        }
 
         File backupDir = new File("delete/mods");
         File backupFile = new File("delete", modFile.getPath());
