@@ -183,6 +183,8 @@ public class GlobalConfiguration extends ConfigurationPart {
         public enum CompressionFormat {
             GZIP,
             ZLIB,
+            LZ4,
+            ZSTD,
             NONE
         }
     }

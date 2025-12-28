@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/chunk/storage/RegionFileVersion.java
 +++ b/net/minecraft/world/level/chunk/storage/RegionFileVersion.java
+@@ -1,5 +_,7 @@
+ package net.minecraft.world.level.chunk.storage;
+ 
++import com.github.luben.zstd.ZstdInputStream;
++import com.github.luben.zstd.ZstdOutputStream;
+ import com.mojang.logging.LogUtils;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 @@ -21,7 +_,7 @@
  
  public class RegionFileVersion {
@@ -9,7 +17,22 @@
      private static final Object2ObjectMap<String, RegionFileVersion> VERSIONS_BY_NAME = new Object2ObjectOpenHashMap<>();
      public static final RegionFileVersion VERSION_GZIP = register(
          new RegionFileVersion(
-@@ -61,6 +_,15 @@
+@@ -48,6 +_,14 @@
+             p_321471_ -> new BufferedOutputStream(new LZ4BlockOutputStream(p_321471_))
+         )
+     );
++    public static final RegionFileVersion VERSION_ZSTD = register(
++            new RegionFileVersion(
++                    5,
++                    "zstd",
++                    stream -> new FastBufferedInputStream(new ZstdInputStream(stream)),
++                    stream -> new BufferedOutputStream(new ZstdOutputStream(stream))
++            )
++    );
+     public static final RegionFileVersion VERSION_CUSTOM = register(new RegionFileVersion(127, null, p_323443_ -> {
+         throw new UnsupportedOperationException();
+     }, p_323444_ -> {
+@@ -61,6 +_,17 @@
      private final RegionFileVersion.StreamWrapper<InputStream> inputWrapper;
      private final RegionFileVersion.StreamWrapper<OutputStream> outputWrapper;
  
@@ -18,6 +41,8 @@
 +        return switch (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.compressionFormat) {
 +            case GZIP -> VERSION_GZIP;
 +            case ZLIB -> VERSION_DEFLATE;
++            case LZ4 -> VERSION_LZ4;
++            case ZSTD -> VERSION_ZSTD;
 +            case NONE -> VERSION_NONE;
 +        };
 +    }
