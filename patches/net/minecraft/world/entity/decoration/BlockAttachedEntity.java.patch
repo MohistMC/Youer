@@ -5,16 +5,24 @@
  public abstract class BlockAttachedEntity extends Entity {
      private static final Logger LOGGER = LogUtils.getLogger();
 -    private int checkInterval;
-+    private int checkInterval; { this.checkInterval = this.getId() % this.level().spigotConfig.hangingTickFrequency; } // Paper - Perf: offset item frame ticking
++    private int checkInterval; { this.checkInterval = this.getId() % getHangingTickFrequency(); } // Paper - Perf: offset item frame ticking
      protected BlockPos pos;
  
      protected BlockAttachedEntity(EntityType<? extends BlockAttachedEntity> p_345070_, Level p_345079_) {
-@@ -35,9 +_,28 @@
+@@ -31,13 +_,36 @@
+ 
+     protected abstract void recalculateBoundingBox();
+ 
++    public int getHangingTickFrequency() {
++        return (this.level() instanceof ServerLevel || this.level().spigotConfig != null) ? this.level().spigotConfig.hangingTickFrequency : 100;
++    }
++
+     @Override
      public void tick() {
          if (!this.level().isClientSide) {
              this.checkBelowWorld();
 -            if (this.checkInterval++ == 100) {
-+            if (this.checkInterval++ == this.level().spigotConfig.hangingTickFrequency) { // Spigot
++            if (this.checkInterval++ == getHangingTickFrequency()) { // Spigot
                  this.checkInterval = 0;
                  if (!this.isRemoved() && !this.survives()) {
 +                    // CraftBukkit start - fire break events
