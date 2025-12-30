@@ -84,7 +84,7 @@
      @Override
      public Brain<Villager> getBrain() {
          return (Brain<Villager>)super.getBrain();
-@@ -269,9 +_,38 @@
+@@ -269,9 +_,47 @@
      }
  
      @Override
@@ -116,10 +116,19 @@
      protected void customServerAiStep() {
          this.level().getProfiler().push("villagerBrain");
 -        this.getBrain().tick((ServerLevel)this.level(), this);
-+        // Pufferfish start
-+        if (!customServerAiStep$inactive && this.behaviorTick++ % this.activatedPriority == 0) {
-+            this.getBrain().tick((ServerLevel)this.level(), this); // Paper
++        // Purpur start
++        if (this.level().purpurConfig.villagerLobotomizeEnabled) {
++            // treat as inactive if lobotomized
++            customServerAiStep$inactive = customServerAiStep$inactive || checkLobotomized();
++        } else {
++            this.isLobotomized = false;
 +        }
++        // Purpur end
++        // Pufferfish start
++        if (!customServerAiStep$inactive && (getRider() == null || !this.isControllable()) && this.behaviorTick++ % this.activatedPriority == 0) { // Purpur - only use brain if no rider
++            this.getBrain().tick((ServerLevel) this.level(), this); // Paper
++        }
++        else if (this.isLobotomized && shouldRestock()) restock(); // Purpur
 +        // Pufferfish end
          this.level().getProfiler().pop();
          if (this.assignProfessionWhenSpawned) {

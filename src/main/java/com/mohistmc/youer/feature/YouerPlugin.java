@@ -37,7 +37,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
  */
 public class YouerPlugin {
 
-    public static Logger LOGGER = LogManager.getLogger("MohistPlugin");
+    public static Logger LOGGER = LogManager.getLogger("YouerPlugin");
 
     public static void init() {
         if (CommandsConfig.INSTANCE.enable("worlds.enable")) {
