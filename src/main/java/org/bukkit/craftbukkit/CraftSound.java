@@ -1,20 +1,12 @@
 package org.bukkit.craftbukkit;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.dynamicenum.MohistDynamEnum;
-import com.mohistmc.youer.Youer;
-import java.util.List;
-import java.util.Locale;
 import net.minecraft.core.Holder;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
-
-import static com.mohistmc.youer.neoforge.NeoForgeInjectBukkit.isMods;
 
 public class CraftSound {
 
