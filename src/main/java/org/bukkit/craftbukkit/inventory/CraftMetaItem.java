@@ -412,11 +412,11 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
         CraftMetaItem.getOrEmpty(tag, CraftMetaItem.FOOD).ifPresent((foodInfo) -> {
             this.food = new CraftFoodComponent(foodInfo);
         });
-        getOrEmpty(tag, TOOL).ifPresent((toolInfo) -> {
-            tool = new CraftToolComponent(toolInfo);
+        CraftMetaItem.getOrEmpty(tag, CraftMetaItem.TOOL).ifPresent((toolInfo) -> {
+            this.tool = new CraftToolComponent(toolInfo);
         });
-        getOrEmpty(tag, JUKEBOX_PLAYABLE).ifPresent((jukeboxPlayable) -> {
-            jukebox = new CraftJukeboxComponent(jukeboxPlayable);
+        CraftMetaItem.getOrEmpty(tag, CraftMetaItem.JUKEBOX_PLAYABLE).ifPresent((jukeboxPlayable) -> {
+            this.jukebox = new CraftJukeboxComponent(jukeboxPlayable);
         });
         CraftMetaItem.getOrEmpty(tag, CraftMetaItem.DAMAGE).ifPresent((i) -> {
             this.damage = i;
@@ -432,14 +432,14 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
                 for (String key : keys) {
                     this.persistentDataContainer.put(key, compound.get(key).copy());
                 }
-                customTag.remove(BUKKIT_CUSTOM_TAG.NBT);
+
+                this.customTag.remove(CraftMetaItem.BUKKIT_CUSTOM_TAG.NBT);
             }
 
-            if (customTag.isEmpty()) {
-                customTag = null;
+            if (this.customTag.isEmpty()) {
+                this.customTag = null;
             }
         });
-
         // Paper start - fix ItemFlags
         CraftMetaItem.getOrEmpty(tag, CraftMetaItem.CAN_PLACE_ON).ifPresent(data -> {
             this.canPlaceOnPredicates = List.copyOf(data.predicates);
@@ -626,14 +626,14 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
             this.setFood(food);
         }
 
-        CraftToolComponent tool = SerializableMeta.getObject(CraftToolComponent.class, map, TOOL.BUKKIT, true);
+        CraftToolComponent tool = SerializableMeta.getObject(CraftToolComponent.class, map, CraftMetaItem.TOOL.BUKKIT, true);
         if (tool != null) {
-            setTool(tool);
+            this.setTool(tool);
         }
 
-        CraftJukeboxComponent jukeboxPlayable = SerializableMeta.getObject(CraftJukeboxComponent.class, map, JUKEBOX_PLAYABLE.BUKKIT, true);
+        CraftJukeboxComponent jukeboxPlayable = SerializableMeta.getObject(CraftJukeboxComponent.class, map, CraftMetaItem.JUKEBOX_PLAYABLE.BUKKIT, true);
         if (jukeboxPlayable != null) {
-            setJukeboxPlayable(jukeboxPlayable);
+            this.setJukeboxPlayable(jukeboxPlayable);
         }
 
         Integer damage = SerializableMeta.getObject(Integer.class, map, CraftMetaItem.DAMAGE.BUKKIT, true);

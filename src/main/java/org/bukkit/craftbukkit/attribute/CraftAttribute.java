@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.attribute;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import java.util.Locale;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -18,9 +19,12 @@ public class CraftAttribute {
         Preconditions.checkArgument(minecraft != null);
 
         net.minecraft.core.Registry<net.minecraft.world.entity.ai.attributes.Attribute> registry = CraftRegistry.getMinecraftRegistry(Registries.ATTRIBUTE);
-        Attribute bukkit = Registry.ATTRIBUTE.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location()));
-
-        Preconditions.checkArgument(bukkit != null);
+        var registryKey = registry.getResourceKey(minecraft).orElseThrow().location();
+        Attribute bukkit = Registry.ATTRIBUTE.get(CraftNamespacedKey.fromMinecraft(registryKey));
+        if (!NeoForgeInjectBukkit.attributemap.isEmpty() && NeoForgeInjectBukkit.attributemap.containsKey(registryKey)) {
+            bukkit = NeoForgeInjectBukkit.attributemap.get(registryKey);
+        }
+        Preconditions.checkArgument(bukkit != null, "Bukkit attribute not found for registry key: " + registryKey);
 
         return bukkit;
     }

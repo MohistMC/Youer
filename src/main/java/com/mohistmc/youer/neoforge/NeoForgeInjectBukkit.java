@@ -67,7 +67,7 @@ public class NeoForgeInjectBukkit {
                     .build());
 
     public static Map<Villager.Profession, ResourceLocation> profession = new HashMap<>();
-    public static Map<org.bukkit.attribute.Attribute, ResourceLocation> attributemap = new HashMap<>();
+    public static Map<ResourceLocation, org.bukkit.attribute.Attribute> attributemap = new HashMap<>();
     public static Map<StatType<?>, Statistic> statisticMap = new HashMap<>();
     public static Map<net.minecraft.world.level.biome.Biome, Biome> biomeBiomeMap = new HashMap<>();
     public static Map<MobCategory, SpawnCategory> spawnCategoryMap = new HashMap<>();
@@ -88,6 +88,7 @@ public class NeoForgeInjectBukkit {
         loadSpawnCategory();
         addPose();
         addModSound();
+        addEnumAttribute();
         reloadBukkitRegistries();
     }
 
@@ -277,7 +278,7 @@ public class NeoForgeInjectBukkit {
             if (isMods(resourceLocation)) {
                 String name = MohistDynamEnum.normalizeName(resourceLocation.getPath());
                 org.bukkit.attribute.Attribute ab = MohistDynamEnum.addEnum(org.bukkit.attribute.Attribute.class, name, List.of(String.class), List.of());
-                attributemap.put(ab, resourceLocation);
+                attributemap.put(resourceLocation, ab);
                 Youer.LOGGER.debug("Registered forge Attribute as Attribute(Bukkit) {}", ab.name());
             }
         }
