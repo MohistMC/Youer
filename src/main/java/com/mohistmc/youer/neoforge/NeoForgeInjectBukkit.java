@@ -277,9 +277,11 @@ public class NeoForgeInjectBukkit {
             ResourceLocation resourceLocation = registry.getKey(attribute);
             if (isMods(resourceLocation)) {
                 String name = MohistDynamEnum.normalizeName(resourceLocation.getPath());
-                org.bukkit.attribute.Attribute ab = MohistDynamEnum.addEnum(org.bukkit.attribute.Attribute.class, name, List.of(String.class), List.of());
-                attributemap.put(resourceLocation, ab);
-                Youer.LOGGER.debug("Registered forge Attribute as Attribute(Bukkit) {}", ab.name());
+                org.bukkit.attribute.Attribute ab = MohistDynamEnum.addEnum(org.bukkit.attribute.Attribute.class, name, List.of(String.class), List.of(resourceLocation.toString()));
+                if (ab != null) {
+                    attributemap.put(resourceLocation, ab);
+                    Youer.LOGGER.debug("Registered forge Attribute as Attribute(Bukkit) {}", ab.name());
+                }
             }
         }
     }
