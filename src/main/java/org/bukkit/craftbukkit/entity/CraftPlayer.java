@@ -2668,7 +2668,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public boolean getAllowFlight() {
-        return this.getHandle().getAbilities().mayfly;
+        return this.getHandle().mayFly();
     }
 
     @Override
