@@ -349,6 +349,7 @@ public class NeoForgeInjectBukkit {
                 Art art = MohistDynamEnum.addEnum(Art.class, name, List.of(Integer.TYPE, Integer.TYPE, Integer.TYPE), List.of(id, width, height));
                 Art.BY_NAME.put(lookupName, art);
                 Art.BY_ID.put(id, art);
+                art.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
                 Youer.LOGGER.debug("Registered forge PaintingType as Art {}", art);
                 i++;
             }

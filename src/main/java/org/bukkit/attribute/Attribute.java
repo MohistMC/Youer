@@ -139,7 +139,7 @@ public enum Attribute implements Keyed, Translatable, net.kyori.adventure.transl
     private final NamespacedKey key;
 
     private Attribute(String key) {
-        this.key = NamespacedKey.minecraft(key);
+        this.key = NamespacedKey.fromString(key);
     }
 
     @NotNull

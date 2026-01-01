@@ -63,7 +63,7 @@ public enum Art implements Keyed {
     TIDES(49, 3, 3);
 
     private final int id, width, height;
-    private final NamespacedKey key;
+    public NamespacedKey key;
     public static final HashMap<String, Art> BY_NAME = Maps.newHashMap();
     public static final HashMap<Integer, Art> BY_ID = Maps.newHashMap();
 
