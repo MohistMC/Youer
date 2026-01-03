@@ -132,15 +132,14 @@
          this.level().getProfiler().pop();
          if (this.assignProfessionWhenSpawned) {
              this.assignProfessionWhenSpawned = false;
-@@ -285,7 +_,7 @@
+@@ -285,6 +_,7 @@
                      this.increaseProfessionLevelOnUpdate = false;
                  }
  
--                this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0));
-+                this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.VILLAGER_TRADE); // CraftBukkit
++                this.addEffectCause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.VILLAGER_TRADE); // CraftBukkit
+                 this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0));
              }
          }
- 
 @@ -295,7 +_,7 @@
              this.lastTradedPlayer = null;
          }
@@ -269,17 +268,17 @@
                  witch.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
                  witch.finalizeSpawn(p_35409_, p_35409_.getCurrentDifficultyAt(witch.blockPosition()), MobSpawnType.CONVERSION, null);
                  witch.setNoAi(this.isNoAi());
-@@ -812,7 +_,13 @@
+@@ -812,7 +_,14 @@
                  }
  
                  witch.setPersistenceRequired();
--                p_35409_.addFreshEntityWithPassengers(witch);
 +                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, witch);
 +                // CraftBukkit start
 +                if (CraftEventFactory.callEntityTransformEvent(this, witch, org.bukkit.event.entity.EntityTransformEvent.TransformReason.LIGHTNING).isCancelled()) {
 +                    return;
 +                }
-+                p_35409_.addFreshEntityWithPassengers(witch, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING);
++                witch.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING);
+                 p_35409_.addFreshEntityWithPassengers(witch);
 +                // CraftBukkit end
                  this.releaseAllPois();
                  this.discard();
