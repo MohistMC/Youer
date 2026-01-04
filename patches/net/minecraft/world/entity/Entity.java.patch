@@ -101,7 +101,7 @@
      private float eyeHeight;
      public boolean isInPowderSnow;
      public boolean wasInPowderSnow;
-@@ -243,6 +_,164 @@
+@@ -243,6 +_,168 @@
      public boolean hasVisualFire;
      @Nullable
      private BlockState inBlockState = null;
@@ -167,8 +167,12 @@
 +
 +    // Paper end - Share random for entities to make them more random
 +    public CreatureSpawnEvent.SpawnReason spawnReason;  // Paper - Entity#getEntitySpawnReason
++    public EntityRemoveEvent.Cause removeReason;  // Youer - EntityRemoveEvent
 +    public void spawnReason(CreatureSpawnEvent.SpawnReason spawnReason) {
-+        this.spawnReason =  spawnReason;
++        this.spawnReason = spawnReason;
++    }
++    public void removeReason(EntityRemoveEvent.Cause removeReason) {
++        this.removeReason = removeReason;
 +    }
 +    public float getBukkitYaw() {
 +        return this.yRot;
@@ -1842,21 +1846,16 @@
      }
  
      public void checkDespawn() {
-@@ -3410,8 +_,19 @@
+@@ -3410,8 +_,14 @@
          return this.removalReason;
      }
  
 +    // Youer start
-+    private final AtomicReference<EntityRemoveEvent.Cause> setRemoved$cause = new AtomicReference<>();
-+
-+    public void setRemoved$cause(EntityRemoveEvent.Cause cause) {
-+        this.setRemoved$cause.set(cause);
-+    }
-+
      @Override
      public final void setRemoved(Entity.RemovalReason p_146876_) {
 +        if (!AsyncCatcher.catchAsync()) {
-+            CraftEventFactory.callEntityRemoveEvent(this, setRemoved$cause.getAndSet(null));
++            CraftEventFactory.callEntityRemoveEvent(this, removeReason);
++            this.removeReason = null;
 +        }
 +        final boolean alreadyRemoved = this.removalReason != null; // Paper - Folia schedulers
          if (this.removalReason == null) {
@@ -1882,7 +1881,7 @@
 +
 +    @Override
 +    public final void setRemovedCB(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
-+        this.setRemoved$cause.set(cause);
++        this.removeReason = cause;
 +        this.setRemoved(entity_removalreason);
 +    }
 +    // Youer end

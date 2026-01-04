@@ -255,7 +255,7 @@
      public void checkDespawn() {
 +        if (net.neoforged.neoforge.event.EventHooks.checkMobDespawn(this)) return;
          if (this.level().getDifficulty() == Difficulty.PEACEFUL && this.shouldDespawnInPeaceful()) {
-+            this.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
              this.discard();
          } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {
 -            Entity entity = this.level().getNearestPlayer(this, -1.0);
@@ -291,12 +291,12 @@
 +                final double distanceSquared = dxSqr + dzSqr + dySqr;
 +                // Despawn if hard/soft limit is exceeded
 +                if (despawnRangePair.hard().shouldDespawn(shape, dxSqr, dySqr, dzSqr, dy) && this.removeWhenFarAway(distanceSquared)) {
-+                    this.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                    this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
 +                    this.discard();
 +                }
 +                if (despawnRangePair.soft().shouldDespawn(shape, dxSqr, dySqr, dzSqr, dy)) {
 +                    if (this.noActionTime > 600 && this.random.nextInt(800) == 0 && this.removeWhenFarAway(distanceSquared)) {
-+                        this.setRemoved$cause(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                        this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
 +                        this.discard();
 +                    }
 +                } else {
