@@ -1,8 +1,10 @@
 package io.papermc.paper.adventure;
 
+import com.google.gson.JsonElement;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.JavaOps;
+import com.mojang.serialization.JsonOps;
 import io.netty.util.AttributeKey;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
+import net.kyori.adventure.text.serializer.gson.GsonDataComponentValue;
 import net.kyori.adventure.text.serializer.plain.PlainComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.translation.GlobalTranslator;
@@ -429,11 +432,16 @@ public final class PaperAdventure {
         return builder.build();
     }
 
-    public record DataComponentValueImpl<T>(com.mojang.serialization.Codec<T> codec, T value) implements DataComponentValue.TagSerializable {
+    public record DataComponentValueImpl<T>(com.mojang.serialization.Codec<T> codec, T value) implements DataComponentValue.TagSerializable, GsonDataComponentValue {
 
         @Override
         public @NotNull BinaryTagHolder asBinaryTag() {
             return BinaryTagHolder.encode(this.codec.encodeStart(CraftRegistry.getMinecraftRegistry().createSerializationContext(NbtOps.INSTANCE), this.value).getOrThrow(IllegalArgumentException::new), NBT_CODEC);
+        }
+
+        @Override
+        public @NotNull JsonElement element() {
+            return this.codec.encodeStart(CraftRegistry.getMinecraftRegistry().createSerializationContext(JsonOps.INSTANCE), this.value).getOrThrow(IllegalArgumentException::new);
         }
     }
 
