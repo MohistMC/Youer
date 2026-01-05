@@ -5,6 +5,7 @@
 
 package net.neoforged.neoforge.fluids;
 
+import com.google.common.collect.Lists;
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -12,14 +13,17 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.EncoderException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.TypedInstance;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.PatchedDataComponentMap;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -28,10 +32,15 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.common.MutableDataComponentHolder;
+import net.neoforged.neoforge.event.EventHooks;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
@@ -55,10 +64,10 @@ public final class FluidStack implements MutableDataComponentHolder, TypedInstan
             "FluidStack",
             c -> RecordCodecBuilder.mapCodec(
                     instance -> instance.group(
-                            FLUID_NON_EMPTY_CODEC.fieldOf("id").forGetter(FluidStack::typeHolder),
-                            ExtraCodecs.POSITIVE_INT.fieldOf("amount").forGetter(FluidStack::getAmount), // note: no .orElse(1) compared to ItemStack
-                            DataComponentPatch.CODEC.optionalFieldOf("components", DataComponentPatch.EMPTY)
-                                    .forGetter(stack -> stack.components.asPatch()))
+                                    FLUID_NON_EMPTY_CODEC.fieldOf("id").forGetter(FluidStack::typeHolder),
+                                    ExtraCodecs.POSITIVE_INT.fieldOf("amount").forGetter(FluidStack::getAmount), // note: no .orElse(1) compared to ItemStack
+                                    DataComponentPatch.CODEC.optionalFieldOf("components", DataComponentPatch.EMPTY)
+                                            .forGetter(stack -> stack.components.asPatch()))
                             .apply(instance, FluidStack::new)));
     /**
      * A standard codec for fluid stacks that does not accept empty stacks.
@@ -75,9 +84,9 @@ public final class FluidStack implements MutableDataComponentHolder, TypedInstan
         return Codec.lazyInitialized(
                 () -> RecordCodecBuilder.create(
                         instance -> instance.group(
-                                FLUID_NON_EMPTY_CODEC.fieldOf("id").forGetter(FluidStack::typeHolder),
-                                DataComponentPatch.CODEC.optionalFieldOf("components", DataComponentPatch.EMPTY)
-                                        .forGetter(stack -> stack.components.asPatch()))
+                                        FLUID_NON_EMPTY_CODEC.fieldOf("id").forGetter(FluidStack::typeHolder),
+                                        DataComponentPatch.CODEC.optionalFieldOf("components", DataComponentPatch.EMPTY)
+                                                .forGetter(stack -> stack.components.asPatch()))
                                 .apply(instance, (holder, patch) -> new FluidStack(holder, amount, patch))));
     }
 
@@ -320,6 +329,52 @@ public final class FluidStack implements MutableDataComponentHolder, TypedInstan
     @Override
     public String toString() {
         return this.getAmount() + " " + this.getFluid();
+    }
+
+    /**
+     * Builds the tooltip lines for this fluid stack, intended for use by mods
+     * rendering fluids in GUIs.
+     *
+     * <p>This mirrors the behavior of
+     * {@link ItemStack#getTooltipLines(Item.TooltipContext, Player, TooltipFlag)}
+     * as closely as possible for fluids.</p>
+     *
+     * <p>The tooltip consists of:
+     * <ul>
+     * <li>The styled hover name</li>
+     * <li>Additional lines provided by the fluid itself</li>
+     * <li>Lines added by {@link EventHooks#onFluidTooltip}</li>
+     * <li>The registry name when advanced tooltips are enabled</li>
+     * </ul>
+     * </p>
+     *
+     * <p>If tooltips are hidden via {@link TooltipDisplay} and the tooltip is not
+     * being rendered in creative mode, an empty list is returned.</p>
+     *
+     * @param context the tooltip context
+     * @param player  the player viewing the tooltip, or {@code null}
+     * @param flag    controls tooltip verbosity and advanced information
+     * @return a list of tooltip components, possibly empty
+     */
+    public List<Component> getTooltipLines(Item.TooltipContext context, @Nullable Player player, TooltipFlag flag) {
+        TooltipDisplay tooltipDisplay = this.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
+        if (!flag.isCreative() && tooltipDisplay.hideTooltip()) {
+            return List.of();
+        } else {
+            Fluid fluid = getFluid();
+            List<Component> list = Lists.newArrayList();
+            list.add(this.getHoverName());
+            fluid.appendHoverText(this, context, tooltipDisplay, list::add, flag);
+            EventHooks.onFluidTooltip(this, player, list, flag, context);
+            if (flag.isAdvanced()) {
+                list.add(Component.literal(BuiltInRegistries.FLUID.getKey(fluid).toString()).withStyle(ChatFormatting.DARK_GRAY));
+                int componentCount = this.components.size();
+                if (componentCount > 0) {
+                    list.add(Component.translatable("item.components", componentCount).withStyle(ChatFormatting.DARK_GRAY));
+                }
+            }
+            return list;
+        }
     }
 
     /**
