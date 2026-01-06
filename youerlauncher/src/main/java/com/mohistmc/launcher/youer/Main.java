@@ -78,9 +78,7 @@ public class Main {
         if (System.getProperty("log4j2.configurationFile") == null) {
             System.setProperty("log4j2.configurationFile", "log4j2_youer.xml");
         }
-        if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_UPDATE()) {
-            // UpdateUtils.versionCheck(); // TODO
-        }
+
         if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_LIBRARIES()) {
             DefaultLibraries.run();
         }

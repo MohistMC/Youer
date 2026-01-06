@@ -70,15 +70,6 @@ public class YouerConfigUtil {
         return yml.getBoolean(key, true);
     }
 
-    public static boolean CHECK_UPDATE() {
-        String key = "youer.check_update";
-        if (yml.get(key) == null) {
-            yml.set(key, true);
-            save();
-        }
-        return yml.getBoolean(key, true);
-    }
-
     public static boolean aBoolean(String key, boolean defaultReturn) {
         return yml.getBoolean(key, defaultReturn);
     }
