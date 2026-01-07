@@ -645,7 +645,7 @@
          UUID uuid = p_295670_.getId();
          Set<ServerPlayer> set = Sets.newIdentityHashSet();
  
-@@ -434,72 +_,273 @@
+@@ -434,72 +_,277 @@
          }
  
          return !set.isEmpty();
@@ -889,9 +889,13 @@
 +            this.playersByName.put(entityplayer1.getScoreboardName().toLowerCase(java.util.Locale.ROOT), entityplayer1); // Spigot
 +            this.playersByUUID.put(entityplayer1.getUUID(), entityplayer1);
 +        }
-+        // entityplayer1.initInventoryMenu();
++        entityplayer1.initInventoryMenu();
 +        entityplayer1.setHealth(entityplayer1.getHealth());
 +        net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(entityplayer1);
++        net.neoforged.neoforge.event.EventHooks.firePlayerRespawnEvent(entityplayer1, flag);
++        if (fromWorld != worldserver) {
++            net.neoforged.neoforge.event.EventHooks.firePlayerChangedDimensionEvent(entityplayer1, fromWorld.dimension(), worldserver.dimension());
++        }
 +        if (!flag) {
 +            BlockPos blockposition = BlockPos.containing(dimensiontransition.pos());
 +            BlockState iblockdata = worldserver.getBlockState(blockposition);
