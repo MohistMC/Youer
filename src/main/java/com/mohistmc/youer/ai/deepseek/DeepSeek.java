@@ -26,17 +26,24 @@ public class DeepSeek {
     @Getter
     private static final Map<UUID, List<ChatRequest.Message>> conversationHistory = new HashMap<>();
 
-    public static void init(Player player, String msg) {
+    public static boolean init(Player player, String msg) {
         if (YouerConfig.deepseek_enable && player.hasPermission("youer.ai.deepseek")) {
             String cmd = YouerConfig.deepseek_command + " ";
             String all_cmd = YouerConfig.deepseek_all_command + " ";
-            msg = ColorAPI.stripColors(msg);
-            if (msg.startsWith(cmd)) {
-                handleCommand(player, msg.substring(cmd.length()), false);
-            } else if (msg.startsWith(all_cmd)) {
-                handleCommand(player, msg.substring(all_cmd.length()), true);
+            String strippedMsg = ColorAPI.stripColors(msg);
+            if (strippedMsg.startsWith(cmd)) {
+                String chatMsg = strippedMsg.substring(cmd.length());
+                player.sendMessage("<" + player.getName() + "> " + msg);
+                handleCommand(player, chatMsg, false);
+                return true;
+            } else if (strippedMsg.startsWith(all_cmd)) {
+                String chatMsg = strippedMsg.substring(all_cmd.length());
+                Bukkit.broadcastMessage("<" + player.getName() + "> " + msg);
+                handleCommand(player, chatMsg, true);
+                return true;
             }
         }
+        return false;
     }
 
     private static void handleCommand(Player player, String message, boolean isBroadcast) {
@@ -54,7 +61,15 @@ public class DeepSeek {
                 })
                 .exceptionally(throwable -> {
                     player.sendMessage(YouerConfig.deepseek_chatformat.formatted(Youer.i18n.as("deepseek.error.throwable")));
-                    LOGGER.error("DeepSeek chat failed", throwable);
+                    Throwable cause = throwable;
+                    while (cause.getCause() != null && cause != cause.getCause()) {
+                        cause = cause.getCause();
+                    }
+                    String errorMsg = cause.getMessage();
+                    if (errorMsg == null || errorMsg.isEmpty()) {
+                        errorMsg = cause.toString();
+                    }
+                    LOGGER.error(errorMsg);
                     return null;
                 });
     }
@@ -124,7 +139,19 @@ public class DeepSeek {
                 .asString();
 
         if (!response.isSuccess()) {
-            throw new RuntimeException(I18n.as("deepseek.error.request_failed", response.getStatus(), response.getBody()));
+            String errorBody = response.getBody();
+            if (errorBody == null || errorBody.trim().isEmpty()) {
+                errorBody = "No error message returned from API";
+            } else {
+                try {
+                    Json errorJson = Json.read(errorBody);
+                    if (errorJson != null && errorJson.has("error") && errorJson.at("error").has("message")) {
+                        errorBody = errorJson.at("error").at("message").asString();
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+            throw new RuntimeException(I18n.as("deepseek.error.request_failed", response.getStatus(), errorBody));
         }
         Json json = Json.read(response.getBody());
         if (json == null || json.isNull()) {
