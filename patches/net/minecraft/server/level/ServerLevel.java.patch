@@ -313,17 +313,19 @@
              flag,
              p_215005_,
              this.entityManager::updateChunkStatus,
-@@ -286,8 +_,8 @@
+@@ -286,9 +_,9 @@
              i,
              datafixer
          );
 -        this.structureManager = new StructureManager(this, p_214999_.getWorldData().worldGenOptions(), this.structureCheck);
 -        if (this.dimension() == Level.END && this.dimensionTypeRegistration().is(BuiltinDimensionTypes.END)) {
+-            this.dragonFight = new EndDragonFight(this, i, p_214999_.getWorldData().endDragonFightData());
 +        this.structureManager = new StructureManager(this, this.K.worldGenOptions(), this.structureCheck); // CraftBukkit
 +        if (this.dimension() == Level.END && this.dimensionTypeRegistration().is(BuiltinDimensionTypes.END) || environment == org.bukkit.World.Environment.THE_END) { // CraftBukkit - Allow to create EnderDragonBattle in default and custom END
-             this.dragonFight = new EndDragonFight(this, i, p_214999_.getWorldData().endDragonFightData());
++            this.dragonFight = new EndDragonFight(this, this.K.worldGenOptions().seed(), this.K.endDragonFightData());
          } else {
              this.dragonFight = null;
+         }
 @@ -298,6 +_,52 @@
          this.randomSequences = Objects.requireNonNullElseGet(
              p_288977_, () -> this.getDataStorage().computeIfAbsent(RandomSequences.factory(i), "random_sequences")
@@ -377,6 +379,23 @@
      }
  
      @Deprecated
+@@ -307,11 +_,11 @@
+     }
+ 
+     public void setWeatherParameters(int p_8607_, int p_8608_, boolean p_8609_, boolean p_8610_) {
+-        this.serverLevelData.setClearWeatherTime(p_8607_);
+-        this.serverLevelData.setRainTime(p_8608_);
+-        this.serverLevelData.setThunderTime(p_8608_);
+-        this.serverLevelData.setRaining(p_8609_);
+-        this.serverLevelData.setThundering(p_8610_);
++        this.K.setClearWeatherTime(p_8607_);
++        this.K.setRainTime(p_8608_);
++        this.K.setThunderTime(p_8608_);
++        this.K.setRaining(p_8609_);
++        this.K.setThundering(p_8610_);
+     }
+ 
+     @Override
 @@ -340,12 +_,21 @@
  
          int i = this.getGameRules().getInt(GameRules.RULE_PLAYERS_SLEEPING_PERCENTAGE);
@@ -454,15 +473,27 @@
          }
  
          profilerfiller.push("entityManagement");
-@@ -438,7 +_,7 @@
-             this.serverLevelData.setGameTime(i);
-             this.serverLevelData.getScheduledEvents().tick(this.server, i);
+@@ -435,16 +_,16 @@
+     protected void tickTime() {
+         if (this.tickTime) {
+             long i = this.levelData.getGameTime() + 1L;
+-            this.serverLevelData.setGameTime(i);
+-            this.serverLevelData.getScheduledEvents().tick(this.server, i);
++            this.K.setGameTime(i);
++            this.K.getScheduledEvents().tick(this.server, i);
              if (this.levelData.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)) {
 -                this.setDayTime(this.levelData.getDayTime() + 1L);
 +                this.setDayTime(this.levelData.getDayTime() + advanceDaytime());
              }
          }
      }
+ 
+     public void setDayTime(long p_8616_) {
+-        this.serverLevelData.setDayTime(p_8616_);
++        this.K.setDayTime(p_8616_);
+     }
+ 
+     public void tickCustomSpawners(boolean p_8800_, boolean p_8801_) {
 @@ -471,19 +_,20 @@
          int j = chunkpos.getMinBlockZ();
          ProfilerFiller profilerfiller = this.getProfiler();
@@ -589,7 +620,37 @@
  
      public boolean isHandlingTick() {
          return this.handlingTick;
-@@ -714,15 +_,19 @@
+@@ -644,9 +_,9 @@
+         boolean flag = this.isRaining();
+         if (this.dimensionType().hasSkyLight()) {
+             if (this.getGameRules().getBoolean(GameRules.RULE_WEATHER_CYCLE)) {
+-                int i = this.serverLevelData.getClearWeatherTime();
+-                int j = this.serverLevelData.getThunderTime();
+-                int k = this.serverLevelData.getRainTime();
++                int i = this.K.getClearWeatherTime();
++                int j = this.K.getThunderTime();
++                int k = this.K.getRainTime();
+                 boolean flag1 = this.levelData.isThundering();
+                 boolean flag2 = this.levelData.isRaining();
+                 if (i > 0) {
+@@ -677,11 +_,11 @@
+                     }
+                 }
+ 
+-                this.serverLevelData.setThunderTime(j);
+-                this.serverLevelData.setRainTime(k);
+-                this.serverLevelData.setClearWeatherTime(i);
+-                this.serverLevelData.setThundering(flag1);
+-                this.serverLevelData.setRaining(flag2);
++                this.K.setThunderTime(j);
++                this.K.setRainTime(k);
++                this.K.setClearWeatherTime(i);
++                this.K.setThundering(flag1);
++                this.K.setRaining(flag2);
+             }
+ 
+             this.oThunderLevel = this.thunderLevel;
+@@ -714,24 +_,28 @@
                  .broadcastAll(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, this.thunderLevel), this.dimension());
          }
  
@@ -613,6 +674,19 @@
          }
      }
  
+     @VisibleForTesting
+     public void resetWeatherCycle() {
+-        this.serverLevelData.setRainTime(0);
+-        this.serverLevelData.setRaining(false);
+-        this.serverLevelData.setThunderTime(0);
+-        this.serverLevelData.setThundering(false);
++        this.K.setRainTime(0);
++        this.K.setRaining(false);
++        this.K.setThunderTime(0);
++        this.K.setThundering(false);
+     }
+ 
+     public void resetEmptyTime() {
 @@ -753,12 +_,22 @@
      }
  
@@ -1092,7 +1166,12 @@
              this.updateNeighborsAt(p_8743_, p_8744_);
          }
      }
-@@ -1544,12 +_,12 @@
+@@ -1540,16 +_,16 @@
+ 
+     @Override
+     public String toString() {
+-        return "ServerLevel[" + this.serverLevelData.getLevelName() + "]";
++        return "ServerLevel[" + this.K.getLevelName() + "]";
      }
  
      public boolean isFlat() {
@@ -1293,12 +1372,12 @@
 +
 +    @org.jetbrains.annotations.ApiStatus.Internal
 +    public void setDayTimeFraction(float dayTimeFraction) {
-+        serverLevelData.setDayTimeFraction(dayTimeFraction);
++        K.setDayTimeFraction(dayTimeFraction);
 +    }
 +
 +    @org.jetbrains.annotations.ApiStatus.Internal
 +    public float getDayTimeFraction() {
-+        return serverLevelData.getDayTimeFraction();
++        return K.getDayTimeFraction();
 +    }
 +
 +    /**
@@ -1306,7 +1385,7 @@
 +     * speed has been set and those two are coupled 1:1 (i.e. vanilla mode).
 +     */
 +    public float getDayTimePerTick() {
-+        return serverLevelData.getDayTimePerTick();
++        return K.getDayTimePerTick();
 +    }
 +
 +    /**
@@ -1328,7 +1407,7 @@
 +    @Override
 +    public void setDayTimePerTick(float dayTimePerTick) {
 +        if (dayTimePerTick != getDayTimePerTick() && dayTimePerTick != 0f) {
-+            serverLevelData.setDayTimePerTick(dayTimePerTick);
++            K.setDayTimePerTick(dayTimePerTick);
 +            server.forceTimeSynchronization();
 +        }
 +    }

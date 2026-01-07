@@ -1277,12 +1277,12 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public int getWeatherDuration() {
-        return this.world.serverLevelData.getRainTime();
+        return this.world.K.getRainTime();
     }
 
     @Override
     public void setWeatherDuration(int duration) {
-        this.world.serverLevelData.setRainTime(duration);
+        this.world.K.setRainTime(duration);
     }
 
     @Override
@@ -1299,12 +1299,12 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public int getThunderDuration() {
-        return this.world.serverLevelData.getThunderTime();
+        return this.world.K.getThunderTime();
     }
 
     @Override
     public void setThunderDuration(int duration) {
-        this.world.serverLevelData.setThunderTime(duration);
+        this.world.K.setThunderTime(duration);
     }
 
     @Override
@@ -1314,12 +1314,12 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public void setClearWeatherDuration(int duration) {
-        this.world.serverLevelData.setClearWeatherTime(duration);
+        this.world.K.setClearWeatherTime(duration);
     }
 
     @Override
     public int getClearWeatherDuration() {
-        return this.world.serverLevelData.getClearWeatherTime();
+        return this.world.K.getClearWeatherTime();
     }
 
     @Override
