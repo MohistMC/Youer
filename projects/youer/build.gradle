@@ -555,9 +555,9 @@ artifacts {
 
 task downloadMultipleFiles(type: Download) {
     src([
-            'https://mohistmc.github.io/maven/libraries/' + minecraft_version + '/youer/libraries.zip'
+            'https://piston-data.mojang.com/v1/objects/165c30e5076a13848404f41692ff1e0126d0a6f3/server.jar'
     ])
-    dest layout.buildDirectory.dir("libraries")
+    dest layout.buildDirectory.file("libraries/server-26.1-snapshot-2.jar")
 }
 
 configurations {
@@ -605,8 +605,8 @@ task youerJar(type: Jar, dependsOn: [youerJar0, downloadMultipleFiles, project('
         into ""
     }
 
-    from(zipTree(downloadMultipleFiles.outputs.getFiles().asPath)) {
-        into 'META-INF/libraries'
+    from(downloadMultipleFiles.outputs.getFiles()) {
+        into "META-INF/libraries/net/minecraft/server/${project.minecraft_version}"
     }
 
     configurations.libraries.resolvedConfiguration.resolvedArtifacts.collect {
