@@ -1,5 +1,6 @@
 package com.destroystokyo.paper.console;
 
+import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.ColorAPI;
 import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.identity.Identity;
@@ -13,8 +14,7 @@ public class TerminalConsoleCommandSender extends CraftConsoleCommandSender {
     private static final ComponentLogger LOGGER = ComponentLogger.logger(LogManager.getRootLogger().getName());
     @Override
     public void sendRawMessage(String message) {
-        final Component msg = ColorAPI.adventure(message);
-        this.sendMessage(Identity.nil(), msg, MessageType.SYSTEM);
+        Youer.LOGGER.info(ColorAPI.string(message));
     }
 
     @Override

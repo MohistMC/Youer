@@ -4,7 +4,6 @@ import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.feature.GlobalVariableSystem;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;

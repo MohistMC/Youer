@@ -307,4 +307,22 @@ public class ColorAPI {
         }
         return color;
     }
+
+    /**
+     * Remove all color codes and return to plain text
+     */
+    public static String stripColors(String text) {
+        if (text == null || text.isEmpty()) {
+            return text == null ? "" : text;
+        }
+
+        return text
+                .replaceAll("<gradient(?:[:]#?[0-9A-Fa-f]{6}|[:][\\w\\u4e00-\\u9fa5]+)+>(.*?)</gradient>", "$2")
+                .replaceAll("<(#?[0-9A-Fa-f]{6}|[a-zA-Z_\\u4e00-\\u9fa5]+)>(.*?)</\\1>", "$2")
+                .replaceAll("&#([0-9A-Fa-f]{6})", "")
+                .replaceAll("&([0-9a-fk-orA-FK-OR])", "")
+                .replaceAll("§[0-9a-fk-orA-FK-ORx]", "")
+                .replaceAll("§x§[0-9a-fA-F]{6}", "");
+    }
+
 }

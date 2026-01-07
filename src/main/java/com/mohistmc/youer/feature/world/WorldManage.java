@@ -1,7 +1,6 @@
 package com.mohistmc.youer.feature.world;
 
 import com.mohistmc.youer.api.PlayerAPI;
-import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
 import java.io.File;
 import java.util.Objects;

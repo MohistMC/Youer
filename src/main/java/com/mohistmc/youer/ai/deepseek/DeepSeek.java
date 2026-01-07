@@ -3,6 +3,7 @@ package com.mohistmc.youer.ai.deepseek;
 import com.mohistmc.mjson.Json;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,7 +14,6 @@ import java.util.concurrent.CompletableFuture;
 import kong.unirest.core.HttpResponse;
 import kong.unirest.core.Unirest;
 import lombok.Getter;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.Bukkit;
@@ -30,7 +30,7 @@ public class DeepSeek {
         if (YouerConfig.deepseek_enable && player.hasPermission("youer.ai.deepseek")) {
             String cmd = YouerConfig.deepseek_command + " ";
             String all_cmd = YouerConfig.deepseek_all_command + " ";
-
+            msg = ColorAPI.stripColors(msg);
             if (msg.startsWith(cmd)) {
                 handleCommand(player, msg.substring(cmd.length()), false);
             } else if (msg.startsWith(all_cmd)) {
