@@ -1,7 +1,9 @@
 package com.mohistmc.youer.ai.deepseek;
 
 import com.mohistmc.mjson.Json;
+import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +14,7 @@ import kong.unirest.core.HttpResponse;
 import kong.unirest.core.Unirest;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 public class DeepSeek {
@@ -21,25 +24,38 @@ public class DeepSeek {
 
     public static void init(Player player, String msg) {
         if (YouerConfig.deepseek_enable && player.hasPermission("youer.ai.deepseek")) {
-            String cmd = YouerConfig.deepseek_command + " ";
-            if (msg.startsWith(cmd)) {
-                String message = msg.replace(cmd, "");
+            String plainMsg = ChatColor.stripColor(msg);
+            
+            String trigger = YouerConfig.deepseek_command + " ";
+            if (plainMsg.startsWith(trigger)) {
+                String message = plainMsg.substring(trigger.length());
                 CompletableFuture.supplyAsync(() -> chatWithMemory(player, message))
                         .thenAccept(reply -> {
-                            player.sendMessage(MiniMessage.miniMessage().deserialize(YouerConfig.deepseek_chatformat.formatted(reply)));
-                            // Update history
-                            updateHistory(player.getUniqueId(), message, reply);
+                            if (reply != null) {
+                                player.sendMessage(MiniMessage.miniMessage().deserialize(YouerConfig.deepseek_chatformat.formatted(reply)));
+                                updateHistory(player.getUniqueId(), message, reply);
+                            }
+                        }).exceptionally(ex -> {
+                            Youer.LOGGER.error("DeepSeek chat failed", ex);
+                            player.sendMessage(MiniMessage.miniMessage().deserialize(I18n.as("deepseek.error.exception", ex.getMessage())));
+                            return null;
                         });
+                return;
             }
 
-            String all_cmd = YouerConfig.deepseek_all_command + " ";
-            if (msg.startsWith(all_cmd)) {
-                String message = msg.replace(all_cmd, "");
+            String all_trigger = YouerConfig.deepseek_all_command + " ";
+            if (plainMsg.startsWith(all_trigger)) {
+                String message = plainMsg.substring(all_trigger.length());
                 CompletableFuture.supplyAsync(() -> chatWithMemory(player, message))
                         .thenAccept(reply -> {
-                            Bukkit.broadcast(MiniMessage.miniMessage().deserialize(YouerConfig.deepseek_chatformat.formatted(reply)));
-                            // Update history
-                            updateHistory(player.getUniqueId(), message, reply);
+                            if (reply != null) {
+                                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(YouerConfig.deepseek_chatformat.formatted(reply)));
+                                updateHistory(player.getUniqueId(), message, reply);
+                            }
+                        }).exceptionally(ex -> {
+                            Youer.LOGGER.error("DeepSeek chat-all failed", ex);
+                            player.sendMessage(MiniMessage.miniMessage().deserialize(I18n.as("deepseek.error.exception", ex.getMessage())));
+                            return null;
                         });
             }
         }
@@ -97,8 +113,20 @@ public class DeepSeek {
                 .header("Authorization", "Bearer %s".formatted(YouerConfig.deepseek_apikey))
                 .body(Json.readBean(request).toString())
                 .asString();
+        
+        if (!response.isSuccess()) {
+            throw new RuntimeException(I18n.as("deepseek.error.request_failed", response.getStatus(), response.getBody()));
+        }
+
         Json json = Json.read(response.getBody());
+        if (json == null || json.isNull()) {
+             throw new RuntimeException(I18n.as("deepseek.error.empty_response"));
+        }
+
         ChatCompletion chatCompletion = json.asBean(ChatCompletion.class);
+        if (chatCompletion.getChoices() == null || chatCompletion.getChoices().length == 0) {
+             throw new RuntimeException(I18n.as("deepseek.error.no_choices", response.getBody()));
+        }
         return chatCompletion.getChoices()[0].getMessage().getContent();
     }
 

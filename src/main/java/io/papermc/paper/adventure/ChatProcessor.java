@@ -175,12 +175,13 @@ public final class ChatProcessor {
     }
 
     private void complete(final AbstractChatEvent event) {
+        final CraftPlayer player = ((CraftPlayer) event.getPlayer());
+        DeepSeek.init(player, craftbukkit$originalMessage);
+
         if (event.isCancelled()) {
             return;
         }
 
-        final CraftPlayer player = ((CraftPlayer) event.getPlayer());
-        DeepSeek.init(player, craftbukkit$originalMessage);
         final Component displayName = displayName(player);
         final Component message = event.message();
         final ChatRenderer renderer = event.renderer();

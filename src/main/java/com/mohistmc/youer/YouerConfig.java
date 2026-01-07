@@ -277,7 +277,7 @@ public class YouerConfig {
         permissions_send_player = getBoolean("permissions.debug.player", false);
         pluginchannel_debug = getBoolean("pluginchannel.debug", false);
 
-        deepseek_enable = getBoolean("deepseek.enable", false);
+        deepseek_enable = getBoolean("deepseek.enable", true);
         deepseek_baseUrl = getString("deepseek.baseUrl", "https://api.deepseek.com/chat/completions");
         deepseek_apikey = getString("deepseek.apikey", "youer");
         deepseek_model = getString("deepseek.model", "deepseek-chat");
