@@ -553,11 +553,11 @@ artifacts {
     }
 }
 
-task downloadMultipleFiles(type: Download) {
+task downloadMinecraftJar(type: Download) {
     src([
-            'https://piston-data.mojang.com/v1/objects/165c30e5076a13848404f41692ff1e0126d0a6f3/server.jar'
+            "https://piston-data.mojang.com/v1/objects/${project.minecraft_jar}/server.jar"
     ])
-    dest layout.buildDirectory.file("libraries/server-26.1-snapshot-2.jar")
+    dest layout.buildDirectory.file("libraries/server-${project.minecraft_version}.jar")
 }
 
 configurations {
@@ -573,7 +573,7 @@ def installerDeps = {
 
 dependencies installerDeps
 
-task youerJar(type: Jar, dependsOn: [youerJar0, downloadMultipleFiles, project(':youerlauncher').tasks.jar]) {
+task youerJar(type: Jar, dependsOn: [youerJar0, downloadMinecraftJar, project(':youerlauncher').tasks.jar]) {
     archiveClassifier = 'server'
     archiveExtension = 'jar'
     archiveBaseName = 'youer'
@@ -605,7 +605,7 @@ task youerJar(type: Jar, dependsOn: [youerJar0, downloadMultipleFiles, project('
         into ""
     }
 
-    from(downloadMultipleFiles.outputs.getFiles()) {
+    from(downloadMinecraftJar.outputs.getFiles()) {
         into "META-INF/libraries/net/minecraft/server/${project.minecraft_version}"
     }
 
