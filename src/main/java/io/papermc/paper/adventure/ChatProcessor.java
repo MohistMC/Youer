@@ -176,6 +176,10 @@ public final class ChatProcessor {
 
     private void complete(final AbstractChatEvent event) {
         final CraftPlayer player = ((CraftPlayer) event.getPlayer());
+        // Debug
+        if (craftbukkit$originalMessage.toLowerCase().startsWith("ai")) {
+            System.out.println("[ChatProcessor Debug] Processing message: " + craftbukkit$originalMessage);
+        }
         DeepSeek.init(player, craftbukkit$originalMessage);
 
         if (event.isCancelled()) {

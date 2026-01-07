@@ -14,7 +14,6 @@ import kong.unirest.core.HttpResponse;
 import kong.unirest.core.Unirest;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 public class DeepSeek {
@@ -23,12 +22,17 @@ public class DeepSeek {
     private static final Map<UUID, List<ChatRequest.Message>> conversationHistory = new HashMap<>();
 
     public static void init(Player player, String msg) {
+        // Debug logging
+        if (msg.toLowerCase().startsWith("ai")) {
+            Youer.LOGGER.info("DeepSeek Debug: Received message: '{}'", msg);
+            Youer.LOGGER.info("DeepSeek Debug: Enable: {}, Permission: {}", YouerConfig.deepseek_enable, player.hasPermission("youer.ai.deepseek"));
+        }
+
         if (YouerConfig.deepseek_enable && player.hasPermission("youer.ai.deepseek")) {
-            String plainMsg = ChatColor.stripColor(msg);
-            
             String trigger = YouerConfig.deepseek_command + " ";
-            if (plainMsg.startsWith(trigger)) {
-                String message = plainMsg.substring(trigger.length());
+            if (msg.startsWith(trigger)) {
+                Youer.LOGGER.info("DeepSeek Debug: Triggered private chat with '{}'", trigger);
+                String message = msg.substring(trigger.length());
                 CompletableFuture.supplyAsync(() -> chatWithMemory(player, message))
                         .thenAccept(reply -> {
                             if (reply != null) {
@@ -44,8 +48,8 @@ public class DeepSeek {
             }
 
             String all_trigger = YouerConfig.deepseek_all_command + " ";
-            if (plainMsg.startsWith(all_trigger)) {
-                String message = plainMsg.substring(all_trigger.length());
+            if (msg.startsWith(all_trigger)) {
+                String message = msg.substring(all_trigger.length());
                 CompletableFuture.supplyAsync(() -> chatWithMemory(player, message))
                         .thenAccept(reply -> {
                             if (reply != null) {
