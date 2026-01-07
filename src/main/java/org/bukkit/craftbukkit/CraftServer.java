@@ -13,6 +13,7 @@ import com.mohistmc.org.yaml.snakeyaml.Yaml;
 import com.mohistmc.org.yaml.snakeyaml.constructor.SafeConstructor;
 import com.mohistmc.org.yaml.snakeyaml.error.MarkedYAMLException;
 import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.WorldAPI;
@@ -1242,7 +1243,9 @@ public final class CraftServer implements Server {
         Level2LevelStem.initPluginWorld.set(true); // Youer
         String name = creator.name();
         ChunkGenerator generator = creator.generator();
-
+        if (YouerConfig.custom_fix_flat && creator.type() == WorldType.FLAT) {
+            generator = new WorldAPI.FlatGenerator();
+        }
         BiomeProvider biomeProvider = creator.biomeProvider();
         File folder = new File(this.getWorldContainer(), name);
         World world = this.getWorld(name);
