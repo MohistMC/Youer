@@ -39,7 +39,7 @@
      }
  
      public void setTooltipForNextFrame(Font font, List<Component> texts, Optional<TooltipComponent> optionalImage, int xo, int yo) {
-@@ -903,10 +_,7 @@
+@@ -903,11 +_,7 @@
      }
  
      public void setTooltipForNextFrame(Font font, List<Component> texts, Optional<TooltipComponent> optionalImage, int xo, int yo, @Nullable Identifier style) {
@@ -47,10 +47,19 @@
 -            .map(Component::getVisualOrderText)
 -            .map(ClientTooltipComponent::create)
 -            .collect(Util.toMutableList());
+-        optionalImage.ifPresent(image -> components.add(components.isEmpty() ? 0 : 1, ClientTooltipComponent.create(image)));
 +        List<ClientTooltipComponent> components = net.neoforged.neoforge.client.ClientHooks.gatherTooltipComponents(this.tooltipStack, texts, optionalImage, xo, guiWidth(), guiHeight(), font);
-         optionalImage.ifPresent(image -> components.add(components.isEmpty() ? 0 : 1, ClientTooltipComponent.create(image)));
          this.setTooltipForNextFrameInternal(font, components, xo, yo, DefaultTooltipPositioner.INSTANCE, style, false);
      }
+ 
+@@ -922,7 +_,6 @@
+         @Nullable Identifier style
+     ) {
+         List<ClientTooltipComponent> components = tooltip.stream().map(ClientTooltipComponent::create).collect(Collectors.toList());
+-        component.ifPresent(tooltipComponent -> components.add(components.isEmpty() ? 0 : 1, ClientTooltipComponent.create(tooltipComponent)));
+         this.setTooltipForNextFrameInternal(font, components, xo, yo, positioner, style, replaceExisting);
+     }
+ 
 @@ -935,13 +_,14 @@
      }
  

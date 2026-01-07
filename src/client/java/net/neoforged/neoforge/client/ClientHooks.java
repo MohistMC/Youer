@@ -128,7 +128,6 @@ import net.minecraft.server.packs.resources.ReloadInstance;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.minecraft.sounds.Music;
 import net.minecraft.util.ARGB;
-import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.InteractionHand;
@@ -473,6 +472,11 @@ public class ClientHooks {
         return new Material(TextureAtlas.LOCATION_BLOCKS, loc);
     }
 
+    @SuppressWarnings("deprecation")
+    public static Material getItemMaterial(Identifier loc) {
+        return new Material(TextureAtlas.LOCATION_ITEMS, loc);
+    }
+
     public static boolean loadEntityShader(@Nullable Entity entity, GameRenderer gameRenderer) {
         if (entity != null) {
             Identifier shader = EntitySpectatorShaderManager.get(entity.getType());
@@ -735,7 +739,7 @@ public class ClientHooks {
         List<Either<FormattedText, TooltipComponent>> elements = textElements.stream()
                 .map((Function<FormattedText, Either<FormattedText, TooltipComponent>>) Either::left)
                 .collect(Collectors.toCollection(ArrayList::new));
-        itemComponent.ifPresent(c -> elements.add(1, Either.right(c)));
+        itemComponent.ifPresent(c -> elements.add(elements.isEmpty() ? 0 : 1, Either.right(c)));
         return gatherTooltipComponentsFromElements(stack, elements, mouseX, screenWidth, screenHeight, fallbackFont);
     }
 

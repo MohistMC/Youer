@@ -9,6 +9,14 @@
              submitNodeCollector.submitNameTag(
                  poseStack, state.nameTagAttachment, 0, state.nameTag, !state.isDiscrete, state.lightCoords, state.distanceToCameraSq, camera
              );
+@@ -146,6 +_,7 @@
+         S state = this.createRenderState();
+         this.extractRenderState(entity, state, partialTicks);
+         this.finalizeRenderState(entity, state);
++        net.neoforged.neoforge.client.renderstate.RenderStateExtensions.onUpdateEntityRenderState(this, entity, state);
+         return state;
+     }
+ 
 @@ -155,6 +_,7 @@
          state.y = Mth.lerp((double)partialTicks, entity.yOld, entity.getY());
          state.z = Mth.lerp((double)partialTicks, entity.zOld, entity.getZ());
@@ -17,12 +25,13 @@
          state.ageInTicks = entity.tickCount + partialTicks;
          state.boundingBoxWidth = entity.getBbWidth();
          state.boundingBoxHeight = entity.getBbHeight();
-@@ -173,9 +_,10 @@
+@@ -173,9 +_,11 @@
  
          if (this.entityRenderDispatcher.camera != null) {
              state.distanceToCameraSq = this.entityRenderDispatcher.distanceToSqr(entity);
 -            boolean shouldShowName = state.distanceToCameraSq < 4096.0 && this.shouldShowName(entity, state.distanceToCameraSq);
 +            var event = new net.neoforged.neoforge.client.event.RenderNameTagEvent.CanRender(entity, state, this.getNameTag(entity), this, partialTicks);
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event);
 +            boolean shouldShowName = event.canRender().isTrue() || (event.canRender().isDefault() && state.distanceToCameraSq < 4096.0 && this.shouldShowName(entity, state.distanceToCameraSq));
              if (shouldShowName) {
 -                state.nameTag = this.getNameTag(entity);
