@@ -380,9 +380,7 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
      *
      * @param message the message
      * @return the number of players
-     * @deprecated use {@link #broadcast(net.kyori.adventure.text.Component)}
      */
-    @Deprecated // Paper
     public int broadcastMessage(@NotNull String message);
 
     // Paper start

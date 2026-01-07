@@ -1,6 +1,7 @@
 package com.mohistmc.youer.feature;
 
 import com.mohistmc.youer.api.gui.GuiListener;
+import com.mohistmc.youer.commands.DeepseekCommand;
 import com.mohistmc.youer.commands.HatCommand;
 import com.mohistmc.youer.commands.HideAllCommand;
 import com.mohistmc.youer.commands.HideCommand;
@@ -86,6 +87,9 @@ public class YouerPlugin {
         }
         if (CommandsConfig.INSTANCE.enable("entitylimits.enable")) {
             commands.put("entitylimits", new EntityLimitsCommands("entitylimits"));
+        }
+        if (CommandsConfig.INSTANCE.enable("deepseek.enable")) {
+            commands.put("deepseek", new DeepseekCommand("deepseek"));
         }
     }
 

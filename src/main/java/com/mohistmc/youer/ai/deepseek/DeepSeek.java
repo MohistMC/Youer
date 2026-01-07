@@ -1,7 +1,9 @@
 package com.mohistmc.youer.ai.deepseek;
 
 import com.mohistmc.mjson.Json;
+import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,49 +12,72 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kong.unirest.core.HttpResponse;
 import kong.unirest.core.Unirest;
+import lombok.Getter;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 public class DeepSeek {
 
+    public static Logger LOGGER = LogManager.getLogger(DeepSeek.class);
     // Store conversation history for each player
+    @Getter
     private static final Map<UUID, List<ChatRequest.Message>> conversationHistory = new HashMap<>();
 
     public static void init(Player player, String msg) {
         if (YouerConfig.deepseek_enable && player.hasPermission("youer.ai.deepseek")) {
             String cmd = YouerConfig.deepseek_command + " ";
-            if (msg.startsWith(cmd)) {
-                String message = msg.replace(cmd, "");
-                CompletableFuture.supplyAsync(() -> chatWithMemory(player, message))
-                        .thenAccept(reply -> {
-                            player.sendMessage(MiniMessage.miniMessage().deserialize(YouerConfig.deepseek_chatformat.formatted(reply)));
-                            // Update history
-                            updateHistory(player.getUniqueId(), message, reply);
-                        });
-            }
-
             String all_cmd = YouerConfig.deepseek_all_command + " ";
-            if (msg.startsWith(all_cmd)) {
-                String message = msg.replace(all_cmd, "");
-                CompletableFuture.supplyAsync(() -> chatWithMemory(player, message))
-                        .thenAccept(reply -> {
-                            Bukkit.broadcast(MiniMessage.miniMessage().deserialize(YouerConfig.deepseek_chatformat.formatted(reply)));
-                            // Update history
-                            updateHistory(player.getUniqueId(), message, reply);
-                        });
+
+            if (msg.startsWith(cmd)) {
+                handleCommand(player, msg.substring(cmd.length()), false);
+            } else if (msg.startsWith(all_cmd)) {
+                handleCommand(player, msg.substring(all_cmd.length()), true);
             }
         }
+    }
+
+    private static void handleCommand(Player player, String message, boolean isBroadcast) {
+        CompletableFuture.supplyAsync(() -> chatWithMemory(player, message))
+                .thenAccept(reply -> {
+                    if (reply != null) {
+                        if (isBroadcast) {
+                            Bukkit.broadcastMessage(YouerConfig.deepseek_chatformat.formatted(reply));
+                        } else {
+                            player.sendMessage(YouerConfig.deepseek_chatformat.formatted(reply));
+                        }
+                        // Update history
+                        updateHistory(player.getUniqueId(), message, reply);
+                    }
+                })
+                .exceptionally(throwable -> {
+                    player.sendMessage(YouerConfig.deepseek_chatformat.formatted(Youer.i18n.as("deepseek.error.throwable")));
+                    LOGGER.error("DeepSeek chat failed", throwable);
+                    return null;
+                });
+    }
+
+    /**
+     * Verify that the model name is legitimate
+     * <a href="https://api-docs.deepseek.com/zh-cn/api/list-models">...</a>
+     */
+    private static boolean isValidModel(String model) {
+        return "deepseek-chat".equals(model) || "deepseek-reasoner".equals(model);
     }
 
     /**
      * Chat method with memory
      */
     public static String chatWithMemory(Player player, String msg) {
+        if (!isValidModel(YouerConfig.deepseek_model)) {
+            throw new RuntimeException(I18n.as("deepseek.error.invalid_model", YouerConfig.deepseek_model));
+        }
         ChatRequest request = new ChatRequest();
         request.setModel(YouerConfig.deepseek_model);
         request.setFrequency_penalty(0);
-        request.setMax_tokens(2048);
+        request.setMax_tokens(YouerConfig.deepseek_max_tokens);
         request.setPresence_penalty(0);
         ChatRequest.ResponseFormat responseFormat = new ChatRequest.ResponseFormat();
         responseFormat.setType("text");
@@ -97,15 +122,32 @@ public class DeepSeek {
                 .header("Authorization", "Bearer %s".formatted(YouerConfig.deepseek_apikey))
                 .body(Json.readBean(request).toString())
                 .asString();
+
+        if (!response.isSuccess()) {
+            throw new RuntimeException(I18n.as("deepseek.error.request_failed", response.getStatus(), response.getBody()));
+        }
         Json json = Json.read(response.getBody());
+        if (json == null || json.isNull()) {
+            throw new RuntimeException(I18n.as("deepseek.error.empty_response"));
+        }
         ChatCompletion chatCompletion = json.asBean(ChatCompletion.class);
-        return chatCompletion.getChoices()[0].getMessage().getContent();
+        if (chatCompletion.getChoices() == null || chatCompletion.getChoices().length == 0) {
+            throw new RuntimeException(I18n.as("deepseek.error.no_choices", response.getBody()));
+        }
+        ChatCompletion.Choice choice = chatCompletion.getChoices()[0];
+        if (choice.getMessage() == null || choice.getMessage().getContent() == null) {
+            throw new RuntimeException(I18n.as("deepseek.error.no_content", response.getBody()));
+        }
+        return choice.getMessage().getContent();
     }
 
     /**
      * Update conversation history
      */
     private static void updateHistory(UUID playerId, String userMessage, String aiResponse) {
+        if (playerId == null || userMessage == null || aiResponse == null) {
+            return;
+        }
         List<ChatRequest.Message> history = conversationHistory.computeIfAbsent(playerId, k -> new ArrayList<>());
 
         // Add user message
@@ -133,5 +175,22 @@ public class DeepSeek {
      */
     public static void clearAllHistory() {
         conversationHistory.clear();
+    }
+
+    /**
+     * Get the number of conversation history for a specific player
+     */
+    public static int getHistorySize(UUID playerId) {
+        List<ChatRequest.Message> history = conversationHistory.get(playerId);
+        return history != null ? history.size() : 0;
+    }
+
+    /**
+     * Get the number of conversation history for all players
+     */
+    public static int getAllHistorySize() {
+        return conversationHistory.values().stream()
+                .mapToInt(List::size)
+                .sum();
     }
 }

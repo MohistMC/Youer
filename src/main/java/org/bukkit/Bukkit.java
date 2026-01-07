@@ -480,9 +480,7 @@ public final class Bukkit {
      *
      * @param message the message
      * @return the number of players
-     * @deprecated in favour of {@link Server#broadcast(net.kyori.adventure.text.Component)}
      */
-    @Deprecated // Paper
     public static int broadcastMessage(@NotNull String message) {
         return server.broadcast(ColorAPI.adventure(message));
     }

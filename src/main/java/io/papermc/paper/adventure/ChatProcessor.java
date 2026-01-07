@@ -76,10 +76,11 @@ public final class ChatProcessor {
 
     @SuppressWarnings("deprecated")
     public void process() {
+        final CraftPlayer player = this.player.getBukkitEntity();
+        DeepSeek.init(player, craftbukkit$originalMessage);
         final boolean listenersOnAsyncEvent = canYouHearMe(AsyncPlayerChatEvent.getHandlerList());
         final boolean listenersOnSyncEvent = canYouHearMe(PlayerChatEvent.getHandlerList());
         if (listenersOnAsyncEvent || listenersOnSyncEvent) {
-            final CraftPlayer player = this.player.getBukkitEntity();
             final AsyncPlayerChatEvent ae = new AsyncPlayerChatEvent(this.async, player, this.craftbukkit$originalMessage, new LazyPlayerSet(this.server));
             this.post(ae);
             if (listenersOnSyncEvent) {
@@ -180,7 +181,6 @@ public final class ChatProcessor {
         }
 
         final CraftPlayer player = ((CraftPlayer) event.getPlayer());
-        DeepSeek.init(player, craftbukkit$originalMessage);
         final Component displayName = displayName(player);
         final Component message = event.message();
         final ChatRenderer renderer = event.renderer();

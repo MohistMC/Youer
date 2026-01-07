@@ -4,6 +4,7 @@ import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.feature.GlobalVariableSystem;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -137,12 +138,27 @@ public class ItemStackFactory {
     public ItemStackFactory head(String base64) {
         SkullMeta meta = (SkullMeta) this.item.getItemMeta();
         if (player != null) {
-            meta.setDisplayName(player.getName());
+            meta.displayName(player.name());
             ItemAPI.setSkullTexture(meta, base64);
             this.item.setItemMeta(meta);
         }
 
         return this;
+    }
+
+    public ItemStack buildHead() {
+        if (isSkull() && player != null) {
+            SkullMeta meta = (SkullMeta) this.item.getItemMeta();
+            meta.displayName(player.name());
+            meta.setOwningPlayer(player);
+            this.item.setItemMeta(meta);
+        } else {
+            this.item = item.withType(Material.PLAYER_HEAD);
+            SkullMeta meta = (SkullMeta) this.item.getItemMeta();
+            this.item.setItemMeta(meta);
+        }
+
+        return item;
     }
 
     public boolean isSkull() {
