@@ -254,7 +254,7 @@
          }
      }
  
-@@ -325,6 +_,79 @@
+@@ -325,6 +_,66 @@
  
      protected abstract boolean initServer() throws IOException;
  
@@ -297,19 +297,6 @@
 +        LockSupport.parkNanos("executing tasks", 1000L);
 +        // CraftBukkit end
 +    }
-+
-+    // CraftBukkit start
-+    public void addLevel(ServerLevel level) {
-+        this.levels.put(level.dimension(), level); // Mohist
-+        markWorldsDirty();
-+    }
-+
-+    public void removeLevel(ServerLevel level) {
-+        this.levels.remove(level.dimension()); // Mohist
-+        markWorldsDirty();
-+        ((CraftServer)Bukkit.getServer()).removeWorld(level);
-+    }
-+    // CraftBukkit end
 +
 +    // Paper start - rewrite chunk system
 +    @Override
@@ -1165,6 +1152,26 @@
      }
  
      public void forceTimeSynchronization() {
+@@ -1093,6 +_,19 @@
+         return this.levels.keySet();
+     }
+ 
++    // CraftBukkit start
++    public void addLevel(ServerLevel level) {
++        this.levels.put(level.dimension(), level); // Mohist
++        markWorldsDirty();
++    }
++
++    public void removeLevel(ServerLevel level) {
++        this.levels.remove(level.dimension()); // Mohist
++        markWorldsDirty();
++        ((CraftServer)Bukkit.getServer()).removeWorld(level);
++    }
++    // CraftBukkit end
++
+     public Iterable<ServerLevel> getAllLevels() {
+         return this.levels.values();
+     }
 @@ -1118,7 +_,7 @@
  
      @DontObfuscate

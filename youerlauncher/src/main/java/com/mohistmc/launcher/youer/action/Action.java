@@ -242,11 +242,20 @@ public class Action {
             out.getParentFile().mkdirs();
             out.createNewFile();
         }
-        System.setOut(new PrintStream(new BufferedOutputStream(new FileOutputStream(out))));
+        System.setOut(new PrintStream(new BufferedOutputStream(new FileOutputStream(out)) {
+            @Override
+            public void close() throws IOException {
+                flush();
+                super.close();
+            }
+        }));
     }
 
     protected void unmute() {
         if (Main.DEBUG) return;
+        if (System.out instanceof PrintStream) {
+            System.out.flush();
+        }
         System.setOut(origin);
     }
 
