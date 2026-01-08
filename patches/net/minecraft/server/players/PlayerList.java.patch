@@ -645,7 +645,7 @@
          UUID uuid = p_295670_.getId();
          Set<ServerPlayer> set = Sets.newIdentityHashSet();
  
-@@ -434,72 +_,285 @@
+@@ -434,72 +_,272 @@
          }
  
          return !set.isEmpty();
@@ -661,10 +661,9 @@
 +        this.playersByName.remove(p_11237_.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot
          p_11237_.serverLevel().removePlayerImmediately(p_11237_, p_348558_);
 -        DimensionTransition dimensiontransition = p_11237_.findRespawnPositionAndUseSpawnBlock(p_11238_, DimensionTransition.DO_NOTHING);
-+        p_11237_.reason = p_11237_.respawn$reason;
 +        DimensionTransition dimensiontransition;
 +        if (p_11237_.respawn$location == null) {
-+            dimensiontransition = p_11237_.findRespawnPositionAndUseSpawnBlock(p_11238_, DimensionTransition.DO_NOTHING, p_11237_.respawn$reason);
++            dimensiontransition = p_11237_.findRespawnPositionAndUseSpawnBlock(p_11238_, DimensionTransition.DO_NOTHING);
 +
 +            if (!p_11238_) p_11237_.reset(); // SPIGOT-4785
 +        } else {
@@ -811,11 +810,7 @@
 +        this.players.remove(entityplayer);
 +        this.playersByName.remove(entityplayer.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot
 +        entityplayer.serverLevel().removePlayerImmediately(entityplayer, entity_removalreason);
-+        /* CraftBukkit start
-+        DimensionTransition dimensiontransition = entityplayer.findRespawnPositionAndUseSpawnBlock(flag, DimensionTransition.DO_NOTHING);
-+        WorldServer worldserver = dimensiontransition.newLevel();
-+        EntityPlayer entityplayer1 = new EntityPlayer(this.server, worldserver, entityplayer.getGameProfile(), entityplayer.clientInformation());
-+        // */
++
 +        ServerPlayer entityplayer1 = entityplayer;
 +        Level fromWorld = entityplayer.level();
 +        entityplayer.wonGame = false;
@@ -825,14 +820,6 @@
 +        entityplayer1.restoreFrom(entityplayer, flag);
 +        entityplayer1.setId(entityplayer.getId());
 +        entityplayer1.setMainArm(entityplayer.getMainArm());
-+
-+        // CraftBukkit - not required, just copies old location into reused entity
-+        /*
-+        if (!dimensiontransition.missingRespawnBlock()) {
-+            entityplayer1.copyRespawnPosition(entityplayer);
-+        }
-+         */
-+        // CraftBukkit end
 +
 +        for (String s : entityplayer.getTags()) {
 +            entityplayer1.addTag(s);

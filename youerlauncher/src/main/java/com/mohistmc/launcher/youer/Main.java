@@ -28,6 +28,7 @@ import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.YouerModuleManager;
 import com.mohistmc.tools.Logo;
 import com.mohistmc.tools.MojangEulaUtil;
+import com.mohistmc.tools.OSUtil;
 import cpw.mods.bootstraplauncher.BootstrapLauncher;
 import java.lang.management.ManagementFactory;
 import java.net.ProxySelector;
@@ -100,7 +101,7 @@ public class Main {
         }
         YouerModuleManager.INSTANCE.init(DataParser.launchArgs);
 
-        if (!MojangEulaUtil.hasAcceptedEULA()) {
+        if (!MojangEulaUtil.hasAcceptedEULA() && OSUtil.getOS().isWindows()) {
             if (System.console() != null){
                 System.out.println(i18n.as("eula"));
                 Scanner scanner = new Scanner(System.in);

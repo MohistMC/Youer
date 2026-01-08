@@ -635,9 +635,8 @@
 +        return this.level().pvpMode;
 +    }
 +
-+    public PlayerRespawnEvent.RespawnReason reason = null;
 +    public DimensionTransition findRespawnPositionAndUseSpawnBlock(boolean p_348590_, DimensionTransition.PostDimensionTransition p_352261_, PlayerRespawnEvent.RespawnReason reason) {
-+        this.reason = reason;
++        this.respawn$reason = reason;
 +        return this.findRespawnPositionAndUseSpawnBlock(p_348590_, p_352261_);
 +    }
 +
@@ -676,7 +675,7 @@
 +        }
 +
 +        // CraftBukkit start
-+        if (reason == null) {
++        if (respawn$reason == null) {
 +            return dimensionTransition;
 +        }
 +
@@ -684,10 +683,10 @@
 +        Location location = CraftLocation.toBukkit(dimensionTransition.pos(), dimensionTransition.newLevel().getWorld(), dimensionTransition.yRot(), dimensionTransition.xRot());
 +        // Paper start - respawn flags
 +        com.google.common.collect.ImmutableSet.Builder<org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag> builder = com.google.common.collect.ImmutableSet.builder();
-+        if (reason == org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.END_PORTAL) {
++        if (respawn$reason == org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.END_PORTAL) {
 +            builder.add(org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag.END_PORTAL);
 +        }
-+        PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(respawnPlayer, location, isBedSpawn, isAnchorSpawn, reason, builder);
++        PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(respawnPlayer, location, isBedSpawn, isAnchorSpawn, respawn$reason, builder);
 +        // Paper end - respawn flags
 +        this.level().getCraftServer().getPluginManager().callEvent(respawnEvent);
 +        // Spigot Start
@@ -696,6 +695,7 @@
 +        }
 +        // Spigot End
 +        location = respawnEvent.getRespawnLocation();
++        respawn$reason = null;
 +        return new DimensionTransition(((CraftWorld) location.getWorld()).getHandle(), CraftLocation.toVec3D(location), dimensionTransition.speed(), location.getYaw(), location.getPitch(), dimensionTransition.missingRespawnBlock(), dimensionTransition.postDimensionTransition(), dimensionTransition.cause());
 +        // CraftBukkit end
      }
