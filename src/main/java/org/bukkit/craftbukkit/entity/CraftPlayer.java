@@ -3370,9 +3370,8 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         @Override
         public void respawn()
         {
-            if ( CraftPlayer.this.getHealth() <= 0 && CraftPlayer.this.isOnline() )
-            {
-                CraftPlayer.this.server.getServer().getPlayerList().respawn( CraftPlayer.this.getHandle(), false, Entity.RemovalReason.KILLED, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.PLUGIN );
+            if ( CraftPlayer.this.getHealth() <= 0 && CraftPlayer.this.isOnline() ) {
+                CraftPlayer.this.server.getServer().getPlayerList().respawn(CraftPlayer.this.getHandle(), false, Entity.RemovalReason.KILLED, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.PLUGIN);
             }
         }
 

@@ -645,7 +645,7 @@
          UUID uuid = p_295670_.getId();
          Set<ServerPlayer> set = Sets.newIdentityHashSet();
  
-@@ -434,72 +_,273 @@
+@@ -434,72 +_,285 @@
          }
  
          return !set.isEmpty();
@@ -655,22 +655,20 @@
      }
  
 +    // CraftBukkit start
-+    org.bukkit.event.player.PlayerRespawnEvent.RespawnReason reason = null;
-+    org.bukkit.Location location = null;
      public ServerPlayer respawn(ServerPlayer p_11237_, boolean p_11238_, Entity.RemovalReason p_348558_) {
 +        p_11237_.stopRiding();
          this.players.remove(p_11237_);
 +        this.playersByName.remove(p_11237_.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot
          p_11237_.serverLevel().removePlayerImmediately(p_11237_, p_348558_);
 -        DimensionTransition dimensiontransition = p_11237_.findRespawnPositionAndUseSpawnBlock(p_11238_, DimensionTransition.DO_NOTHING);
-+        p_11237_.reason = reason;
++        p_11237_.reason = p_11237_.respawn$reason;
 +        DimensionTransition dimensiontransition;
-+        if (location == null) {
-+            dimensiontransition = p_11237_.findRespawnPositionAndUseSpawnBlock(p_11238_, DimensionTransition.DO_NOTHING, reason);
++        if (p_11237_.respawn$location == null) {
++            dimensiontransition = p_11237_.findRespawnPositionAndUseSpawnBlock(p_11238_, DimensionTransition.DO_NOTHING, p_11237_.respawn$reason);
 +
 +            if (!p_11238_) p_11237_.reset(); // SPIGOT-4785
 +        } else {
-+            dimensiontransition = new DimensionTransition(((CraftWorld) location.getWorld()).getHandle(), CraftLocation.toVec3D(location), Vec3.ZERO, location.getYaw(), location.getPitch(), DimensionTransition.DO_NOTHING);
++            dimensiontransition = new DimensionTransition(((CraftWorld) p_11237_.respawn$location.getWorld()).getHandle(), CraftLocation.toVec3D(p_11237_.respawn$location), Vec3.ZERO, p_11237_.respawn$location.getYaw(), p_11237_.respawn$location.getPitch(), DimensionTransition.DO_NOTHING);
 +        }
 +        // Neo: Allow changing the respawn position of players. The local dimension transition is updated with the new target.
 +        var event = net.neoforged.neoforge.event.EventHooks.firePlayerRespawnPositionEvent(p_11237_, dimensiontransition, p_11238_);
@@ -736,6 +734,9 @@
          serverplayer.setHealth(serverplayer.getHealth());
 +        net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(serverplayer);
 +        net.neoforged.neoforge.event.EventHooks.firePlayerRespawnEvent(serverplayer, p_11238_);
++        // Paper start - Add PlayerPostRespawnEvent
++        boolean isBedSpawn = false;
++        // Paper end - Add PlayerPostRespawnEvent
          if (!p_11238_) {
              BlockPos blockpos = BlockPos.containing(dimensiontransition.pos());
              BlockState blockstate = serverlevel.getBlockState(blockpos);
@@ -753,6 +754,9 @@
 -                            serverlevel.getRandom().nextLong()
 -                        )
 -                    );
+-            }
+-        }
+-
 +                        .send(
 +                                new ClientboundSoundPacket(
 +                                        SoundEvents.RESPAWN_ANCHOR_DEPLETE,
@@ -765,9 +769,13 @@
 +                                        serverlevel.getRandom().nextLong()
 +                                )
 +                        );
-             }
-         }
--
++            }
++            // Paper start - Add PlayerPostRespawnEvent
++            if (blockstate.is(net.minecraft.tags.BlockTags.BEDS) && !dimensiontransition.missingRespawnBlock()) {
++                isBedSpawn = true;
++            }
++            // Paper end - Add PlayerPostRespawnEvent
++        }
 +        // Added from changeDimension
 +        this.sendAllPlayerInfo(serverplayer); // Update health, etc...
 +        serverplayer.onUpdateAbilities();
@@ -788,8 +796,9 @@
 +        if (serverplayer.connection.isDisconnected()) {
 +            this.save(serverplayer);
 +        }
-+        reason = null;
-+        location = null;
++        cserver.getPluginManager().callEvent(new com.destroystokyo.paper.event.player.PlayerPostRespawnEvent(serverplayer.getBukkitEntity(),
++                CraftLocation.toBukkit(dimensiontransition.pos(), dimensiontransition.newLevel().getWorld(), dimensiontransition.yRot(), dimensiontransition.xRot()),
++                isBedSpawn));
          return serverplayer;
      }
  
@@ -816,6 +825,7 @@
 +        entityplayer1.restoreFrom(entityplayer, flag);
 +        entityplayer1.setId(entityplayer.getId());
 +        entityplayer1.setMainArm(entityplayer.getMainArm());
++
 +        // CraftBukkit - not required, just copies old location into reused entity
 +        /*
 +        if (!dimensiontransition.missingRespawnBlock()) {
@@ -824,11 +834,7 @@
 +         */
 +        // CraftBukkit end
 +
-+        Iterator iterator = entityplayer.getTags().iterator();
-+
-+        while (iterator.hasNext()) {
-+            String s = (String) iterator.next();
-+
++        for (String s : entityplayer.getTags()) {
 +            entityplayer1.addTag(s);
 +        }
 +        // Paper start - Add PlayerPostRespawnEvent
@@ -854,7 +860,13 @@
 +        if (dimensiontransition == null) { // Paper - Add PlayerPostRespawnEvent - diff on change - spigot early returns if respawn pos is null, that is how they handle disconnected player in respawn event
 +            return entityplayer;
 +        }
-+        // Spigot End
++        // Spigot
++        if (isRespawn) {
++            // Neo: Allow changing the respawn position of players. The local dimension transition is updated with the new target.
++            var event = net.neoforged.neoforge.event.EventHooks.firePlayerRespawnPositionEvent(entityplayer, dimensiontransition, flag);
++            dimensiontransition = event.getDimensionTransition();
++        }
++
 +        ServerLevel worldserver = dimensiontransition.newLevel();
 +        entityplayer1.spawnIn(worldserver);
 +        entityplayer1.unsetRemoved();
@@ -917,6 +929,7 @@
 +
 +        // Don't fire on respawn
 +        if (fromWorld != worldserver) {
++            net.neoforged.neoforge.event.EventHooks.firePlayerChangedDimensionEvent(entityplayer1, fromWorld.dimension(), worldserver.dimension());
 +            PlayerChangedWorldEvent event = new PlayerChangedWorldEvent(entityplayer.getBukkitEntity(), fromWorld.getWorld());
 +            this.server.server.getPluginManager().callEvent(event);
 +        }
@@ -928,6 +941,7 @@
 +
 +        // Paper start - Add PlayerPostRespawnEvent
 +        if (isRespawn) {
++            net.neoforged.neoforge.event.EventHooks.firePlayerRespawnEvent(entityplayer1, flag);
 +            cserver.getPluginManager().callEvent(new com.destroystokyo.paper.event.player.PlayerPostRespawnEvent(entityplayer.getBukkitEntity(), location, isBedSpawn));
 +        }
 +        // Paper end - Add PlayerPostRespawnEvent
