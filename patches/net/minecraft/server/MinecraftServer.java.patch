@@ -83,7 +83,7 @@
  import net.minecraft.world.entity.ai.village.VillageSiege;
  import net.minecraft.world.entity.npc.CatSpawner;
  import net.minecraft.world.entity.npc.WanderingTraderSpawner;
-@@ -161,14 +_,41 @@
+@@ -161,14 +_,42 @@
  import net.minecraft.world.level.storage.LevelResource;
  import net.minecraft.world.level.storage.LevelStorageSource;
  import net.minecraft.world.level.storage.PlayerDataStorage;
@@ -119,6 +119,7 @@
 +import org.spigotmc.SpigotConfig;
  
  public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements ServerInfo, ChunkIOErrorReporter, CommandSource, AutoCloseable {
++    public static final String PORT_BIND_FAILED = "PORT_BIND_FAILED"; // Youer
 +    private static MinecraftServer SERVER; // Paper
      public static final Logger LOGGER = LogUtils.getLogger();
 +    public static final net.kyori.adventure.text.logger.slf4j.ComponentLogger COMPONENT_LOGGER = net.kyori.adventure.text.logger.slf4j.ComponentLogger.logger(LOGGER.getName()); // Paper
@@ -834,7 +835,7 @@
                  this.startMeasuringTaskExecutionTime();
                  this.waitUntilNextTick();
                  this.finishMeasuringTaskExecutionTime();
-@@ -710,34 +_,41 @@
+@@ -710,34 +_,44 @@
  
                  this.profiler.pop();
                  this.logFullTickTime();
@@ -850,6 +851,9 @@
 +            // Paper start
 +            if (throwable1 instanceof ThreadDeath) {
 +                MinecraftServer.LOGGER.error("Main thread terminated by WatchDog due to hard crash", throwable1);
++                return;
++            }
++            if (throwable1 instanceof IllegalStateException && PORT_BIND_FAILED.equals(throwable1.getMessage())) {
 +                return;
 +            }
 +            // Paper end
