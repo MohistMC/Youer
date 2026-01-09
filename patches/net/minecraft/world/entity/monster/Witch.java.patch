@@ -69,7 +69,7 @@
      @Override
      public SoundEvent getCelebrateSound() {
          return SoundEvents.WITCH_CELEBRATE;
-@@ -203,7 +_,7 @@
+@@ -203,13 +_,16 @@
      }
  
      @Override
@@ -77,7 +77,16 @@
 +    public float getDamageAfterMagicAbsorb(DamageSource p_34149_, float p_34150_) {
          p_34150_ = super.getDamageAfterMagicAbsorb(p_34149_, p_34150_);
          if (p_34149_.getEntity() == this) {
++            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.INNATE_RESISTANCE, p_34150_);
              p_34150_ = 0.0F;
+         }
+ 
++        else // Neo: Join the two ifs; if the first one runs (reducing damage to 0), the second one (reducing damage by 15%) effectively does nothing
+         if (p_34149_.is(DamageTypeTags.WITCH_RESISTANT_TO)) {
++            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.INNATE_RESISTANCE, p_34150_ * 0.85F);
+             p_34150_ *= 0.15F;
+         }
+ 
 @@ -240,9 +_,16 @@
              } else if (d3 <= 3.0 && !p_34143_.hasEffect(MobEffects.WEAKNESS) && this.random.nextFloat() < 0.25F) {
                  holder = Potions.WEAKNESS;
