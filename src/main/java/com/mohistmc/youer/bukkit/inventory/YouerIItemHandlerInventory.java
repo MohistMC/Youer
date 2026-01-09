@@ -179,9 +179,9 @@ public class YouerIItemHandlerInventory implements Container {
             return original.getLocation();
         } else if (nmsOwner != null) {
             if (nmsOwner instanceof BlockEntity be) {
-                return CraftLocation.toBukkit(be.getBlockPos());
+                return CraftLocation.toBukkit(be.getBlockPos(), be.getLevel());
             } else if (nmsOwner instanceof Entity entity) {
-                return CraftLocation.toBukkit(entity.position());
+                return CraftLocation.toBukkit(entity.position(), entity.level().getWorld());
             }
         }
         return null;
