@@ -22,7 +22,7 @@
      public final ShapedRecipePattern pattern;
      final ItemStack result;
      final String group;
-@@ -24,12 +_,75 @@
+@@ -24,12 +_,113 @@
          this.pattern = p_312827_;
          this.result = p_272852_;
          this.showNotification = p_312010_;
@@ -41,55 +41,93 @@
 +        recipe.setGroup(this.group);
 +        recipe.setCategory(CraftRecipe.getCategory(this.category()));
 +
-+        switch (this.pattern.height()) {
-+            case 1:
-+                switch (this.pattern.width()) {
-+                    case 1:
-+                        recipe.shape("a");
-+                        break;
-+                    case 2:
-+                        recipe.shape("ab");
-+                        break;
-+                    case 3:
-+                        recipe.shape("abc");
-+                        break;
-+                }
-+                break;
-+            case 2:
-+                switch (this.pattern.width()) {
-+                    case 1:
-+                        recipe.shape("a","b");
-+                        break;
-+                    case 2:
-+                        recipe.shape("ab","cd");
-+                        break;
-+                    case 3:
-+                        recipe.shape("abc","def");
-+                        break;
-+                }
-+                break;
-+            case 3:
-+                switch (this.pattern.width()) {
-+                    case 1:
-+                        recipe.shape("a","b","c");
-+                        break;
-+                    case 2:
-+                        recipe.shape("ab","cd","ef");
-+                        break;
-+                    case 3:
-+                        recipe.shape("abc","def","ghi");
-+                        break;
-+                }
-+                break;
-+        }
-+        char c = 'a';
-+        for (Ingredient list : this.pattern.ingredients()) {
-+            RecipeChoice choice = CraftRecipe.toBukkit(list);
-+            if (choice != RecipeChoice.empty()) { // Paper
-+                recipe.setIngredient(c, choice);
-+            }
++        java.util.Optional<ShapedRecipePattern.Data> data = this.pattern.data();
++        if (data.isPresent()) {
++            recipe.shape(data.get().pattern().toArray(new String[0]));
++            String[] shape = recipe.getShape();
++            for (java.util.Map.Entry<Character, Ingredient> entry : data.get().key().entrySet()) {
++                char c = entry.getKey();
++                if (c == ' ') continue; // CraftBukkit - space is reserved
 +
-+            c++;
++                RecipeChoice choice = CraftRecipe.toBukkit(entry.getValue());
++                if (choice != RecipeChoice.empty()) {
++                    // CraftBukkit start - check if the char is in the shape
++                    boolean found = false;
++                    for (String row : shape) {
++                        if (row.indexOf(c) != -1) {
++                            found = true;
++                            break;
++                        }
++                    }
++                    if (found) {
++                        recipe.setIngredient(c, choice);
++                    }
++                    // CraftBukkit end
++                }
++            }
++        } else {
++            switch (this.pattern.height()) {
++                case 1:
++                    switch (this.pattern.width()) {
++                        case 1:
++                            recipe.shape("a");
++                            break;
++                        case 2:
++                            recipe.shape("ab");
++                            break;
++                        case 3:
++                            recipe.shape("abc");
++                            break;
++                    }
++                    break;
++                case 2:
++                    switch (this.pattern.width()) {
++                        case 1:
++                            recipe.shape("a","b");
++                            break;
++                        case 2:
++                            recipe.shape("ab","cd");
++                            break;
++                        case 3:
++                            recipe.shape("abc","def");
++                            break;
++                    }
++                    break;
++                case 3:
++                    switch (this.pattern.width()) {
++                        case 1:
++                            recipe.shape("a","b","c");
++                            break;
++                        case 2:
++                            recipe.shape("ab","cd","ef");
++                            break;
++                        case 3:
++                            recipe.shape("abc","def","ghi");
++                            break;
++                    }
++                    break;
++            }
++            String[] shape = recipe.getShape(); // CraftBukkit
++            char c = 'a';
++            for (Ingredient list : this.pattern.ingredients()) {
++                RecipeChoice choice = CraftRecipe.toBukkit(list);
++                if (choice != RecipeChoice.empty()) { // Paper
++                    // CraftBukkit start - check if the char is in the shape
++                    boolean found = false;
++                    for (String row : shape) {
++                        if (row.indexOf(c) != -1) {
++                            found = true;
++                            break;
++                        }
++                    }
++                    if (found) {
++                        recipe.setIngredient(c, choice);
++                    }
++                    // CraftBukkit end
++                }
++
++                c++;
++            }
 +        }
 +        return recipe;
 +    }
