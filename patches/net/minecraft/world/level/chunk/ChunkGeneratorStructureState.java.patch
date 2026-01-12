@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/chunk/ChunkGeneratorStructureState.java
 +++ b/net/minecraft/world/level/chunk/ChunkGeneratorStructureState.java
+@@ -11,6 +_,7 @@
+ import java.util.Set;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.TimeUnit;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.stream.Collectors;
+ import java.util.stream.Stream;
+ import javax.annotation.Nullable;
 @@ -28,8 +_,10 @@
  import net.minecraft.world.level.levelgen.structure.Structure;
  import net.minecraft.world.level.levelgen.structure.StructureSet;
@@ -11,7 +19,7 @@
  
  public class ChunkGeneratorStructureState {
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -41,22 +_,80 @@
+@@ -41,12 +_,17 @@
      private final Map<ConcentricRingsStructurePlacement, CompletableFuture<List<ChunkPos>>> ringPositions = new Object2ObjectArrayMap<>();
      private boolean hasGeneratedPositions;
      private final List<Holder<StructureSet>> possibleStructureSets;
@@ -22,24 +30,21 @@
 +    }
  
      public static ChunkGeneratorStructureState createForFlat(
--        RandomState p_256240_, long p_256404_, BiomeSource p_256274_, Stream<Holder<StructureSet>> p_256348_
-+        RandomState p_256240_, long p_256404_, BiomeSource p_256274_, Stream<Holder<StructureSet>> p_256348_, org.spigotmc.SpigotWorldConfig conf // Spigot
+         RandomState p_256240_, long p_256404_, BiomeSource p_256274_, Stream<Holder<StructureSet>> p_256348_
      ) {
          List<Holder<StructureSet>> list = p_256348_.filter(p_255616_ -> hasBiomesForStructureSet(p_255616_.value(), p_256274_)).toList();
 -        return new ChunkGeneratorStructureState(p_256240_, p_256274_, p_256404_, 0L, list);
-+        return new ChunkGeneratorStructureState(p_256240_, p_256274_, p_256404_, 0L, injectSpigot(list, conf)).conf(conf); // Spigot
++        return new ChunkGeneratorStructureState(p_256240_, p_256274_, p_256404_, 0L, injectSpigot(list)); // Spigot
      }
  
      public static ChunkGeneratorStructureState createForNormal(
--        RandomState p_256197_, long p_255806_, BiomeSource p_256653_, HolderLookup<StructureSet> p_256659_
-+        RandomState p_256197_, long p_255806_, BiomeSource p_256653_, HolderLookup<StructureSet> p_256659_, org.spigotmc.SpigotWorldConfig conf // Spigot
-     ) {
+@@ -55,8 +_,63 @@
          List<Holder<StructureSet>> list = p_256659_.listElements()
              .filter(p_256144_ -> hasBiomesForStructureSet(p_256144_.value(), p_256653_))
              .collect(Collectors.toUnmodifiableList());
 -        return new ChunkGeneratorStructureState(p_256197_, p_256653_, p_255806_, p_255806_, list);
 -    }
-+        return new ChunkGeneratorStructureState(p_256197_, p_256653_, p_255806_, p_255806_, injectSpigot(list, conf)).conf(conf); // Spigot
++        return new ChunkGeneratorStructureState(p_256197_, p_256653_, p_255806_, p_255806_, injectSpigot(list)); // Spigot
 +    }
 +
 +    // Paper start - Add missing structure set seed configs; horrible hack because spigot creates a ton of direct Holders which lose track of the identifying key
@@ -53,13 +58,15 @@
 +    // Paper end - Add missing structure set seed configs
 +
 +    // Spigot start
-+    private static List<Holder<StructureSet>> injectSpigot(List<Holder<StructureSet>> list, org.spigotmc.SpigotWorldConfig conf) {
++    public static AtomicReference<SpigotWorldConfig> injectSpigot$conf = new AtomicReference<>();
++    private static List<Holder<StructureSet>> injectSpigot(List<Holder<StructureSet>> list) {
 +        return list.stream().map((holder) -> {
 +            StructureSet structureset = holder.value();
 +            final Holder<StructureSet> newHolder; // Paper - Add missing structure set seed configs
 +            if (structureset.placement() instanceof RandomSpreadStructurePlacement randomConfig && holder.unwrapKey().orElseThrow().location().getNamespace().equals(net.minecraft.resources.ResourceLocation.DEFAULT_NAMESPACE)) { // Paper - Add missing structure set seed configs; check namespace cause datapacks could add structure sets with the same path
 +                String name = holder.unwrapKey().orElseThrow().location().getPath();
 +                int seed = randomConfig.salt;
++                org.spigotmc.SpigotWorldConfig conf = injectSpigot$conf.getAndSet(null);
 +                if (conf != null) {
 +                    seed = switch (name) {
 +                        case "desert_pyramids" -> conf.desertSeed;

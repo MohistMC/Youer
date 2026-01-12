@@ -34,7 +34,7 @@
      private final Supplier<List<FeatureSorter.StepFeatureData>> featuresPerStep;
      public final Function<Holder<Biome>, BiomeGenerationSettings> generationSettingsGetter;
  
-@@ -92,19 +_,29 @@
+@@ -92,19 +_,30 @@
      public ChunkGenerator(BiomeSource p_255838_, Function<Holder<Biome>, BiomeGenerationSettings> p_256216_) {
          this.biomeSource = p_255838_;
          this.generationSettingsGetter = p_256216_;
@@ -56,7 +56,8 @@
      protected abstract MapCodec<? extends ChunkGenerator> codec();
 +    public AtomicReference<SpigotWorldConfig> createState$conf = new AtomicReference<>();
 +    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256405_, RandomState p_256101_, long p_256018_) { // Spigot
-+        return ChunkGeneratorStructureState.createForNormal(p_256101_, p_256018_, this.biomeSource, p_256405_, createState$conf.getAndSet(null)); // Spigot
++        ChunkGeneratorStructureState.injectSpigot$conf.set(createState$conf.get());
++        return ChunkGeneratorStructureState.createForNormal(p_256101_, p_256018_, this.biomeSource, p_256405_).conf(createState$conf.getAndSet(null)); // Spigot
 +    }
  
 -    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> p_256405_, RandomState p_256101_, long p_256018_) {
