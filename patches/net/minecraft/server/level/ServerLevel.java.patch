@@ -267,6 +267,17 @@
 +        } else {
 +            this.K = YouerDerivedWorldInfo.create(p_215002_);
 +        }
++        this.spigotConfig = new SpigotWorldConfig(name); // Spigot
++        paperWorldConfigCreator = spigotConfig -> p_214999_.paperConfigurations.createWorldConfig(
++                io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(
++                        p_215001_.levelDirectory.path(),
++                        name, // Youer  - use world name
++                        p_215003_.location(),
++                        spigotConfig,
++                        p_214999_.registryAccess(),
++                        (K != null ? K.getGameRules() : serverLevelData.getGameRules())));
++        this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
++        this.purpurConfig = new org.purpurmc.purpur.PurpurWorldConfig(name, environment); // Purpur
          ChunkGenerator chunkgenerator = p_215004_.generator();
 +        if (environment == null) {
 +            environment = NeoForgeInjectBukkit.environment.get(getTypeKey());
@@ -286,17 +297,6 @@
 +            chunkgenerator = new CustomChunkGenerator(this, chunkgenerator, generator);
 +        }
 +
-+        this.spigotConfig = new SpigotWorldConfig(name); // Spigot
-+        paperWorldConfigCreator = spigotConfig -> p_214999_.paperConfigurations.createWorldConfig(
-+                io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(
-+                        p_215001_.levelDirectory.path(),
-+                        name, // Youer  - use world name
-+                        p_215003_.location(),
-+                        spigotConfig,
-+                        p_214999_.registryAccess(),
-+                        (K != null ? K.getGameRules() : serverLevelData.getGameRules())));
-+        this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
-+        this.purpurConfig = new org.purpurmc.purpur.PurpurWorldConfig(name, environment); // Purpur
          boolean flag = p_214999_.forceSynchronousWrites();
          DataFixer datafixer = p_214999_.getFixerUpper();
          EntityPersistentStorage<Entity> entitypersistentstorage = new EntityStorage(
@@ -1307,6 +1307,9 @@
              }
  
              p_143375_.updateDynamicGameEventListener(DynamicGameEventListener::remove);
++
++            p_143375_.onRemovedFromLevel();
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent(p_143375_, ServerLevel.this));
 +            // CraftBukkit start
 +            p_143375_.valid = false;
 +            if (!(p_143375_ instanceof ServerPlayer)) {
@@ -1315,9 +1318,6 @@
 +                }
 +            }
 +            // CraftBukkit end
-+
-+            p_143375_.onRemovedFromLevel();
-+            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent(p_143375_, ServerLevel.this));
 +            new EntityRemoveFromWorldEvent(p_143375_.getBukkitEntity(), ServerLevel.this.getWorld()).callEvent(); // Paper - fire while valid
          }
  

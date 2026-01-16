@@ -2355,7 +2355,7 @@
          this.player.resetLastActionTime();
          if (this.player.containerMenu.containerId == p_9854_.containerId() && !this.player.isSpectator()) {
              if (!this.player.containerMenu.stillValid(this.player)) {
-@@ -1709,10 +_,15 @@
+@@ -1709,7 +_,7 @@
              }
  
              CustomData customdata = itemstack.getOrDefault(DataComponents.BLOCK_ENTITY_DATA, CustomData.EMPTY);
@@ -2363,16 +2363,7 @@
 +            if (customdata.contains("x") && customdata.contains("y") && customdata.contains("z") && this.player.getBukkitEntity().hasPermission("minecraft.nbt.copy")) { // Spigot
                  BlockPos blockpos = BlockEntity.getPosFromTag(customdata.getUnsafe());
                  if (this.player.level().isLoaded(blockpos)) {
--                    BlockEntity blockentity = this.player.level().getBlockEntity(blockpos);
-+                    // Paper start - Prevent tile entity copies loading chunks
-+                    BlockEntity blockentity = null;
-+                    if (this.player.distanceToSqr(blockpos.getX(), blockpos.getY(), blockpos.getZ()) < 32 * 32 && this.player.serverLevel().isLoadedAndInBounds(blockpos)) {
-+                        blockentity = this.player.level().getBlockEntity(blockpos);
-+                    }
-+                    // Paper end - Prevent tile entity copies loading chunks
-                     if (blockentity != null) {
-                         blockentity.saveToItem(itemstack, this.player.level().registryAccess());
-                     }
+                     BlockEntity blockentity = this.player.level().getBlockEntity(blockpos);
 @@ -1721,6 +_,43 @@
  
              boolean flag1 = p_9915_.slotNum() >= 1 && p_9915_.slotNum() <= 45;
