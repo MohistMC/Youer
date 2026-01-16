@@ -38,13 +38,13 @@
 ✅ **In Progress**
 - [x] Paper ([3cb8529bd](https://github.com/PaperMC/Paper-archive/commit/3cb8529bd))
   - [x] api (16)
-  - [x] server (225)
+  - [x] server (193)
     - [ ] chunk_system (AsyncYouer)
     - [ ] chunk_tick_iteration (AsyncYouer)
     - [ ] starlight (AsyncYouer)
 - [x] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))
   - [x] api
-  - [x] server (276)
+  - [x] server (274)
 
 🔄 **Compatible Progress**
 
@@ -64,13 +64,3 @@
 | Paper       | [GitHub](https://github.com/PaperMC/Paper.git)                      | Plugin support               | ✅      |
 | PurPur      | [GitHub](https://github.com/PurpurMC/Purpur.git)                    | Plugin support               | ✅      |
 | Arclight    | [GitHub](https://github.com/IzzelAliz/Arclight.git)                 | Plugin Remapping and Message | ✅      |
-
-## 💖 Special Thanks To:
-
-[![YourKit-Logo](https://www.yourkit.com/images/yklogo.png)](https://www.yourkit.com/)
-
-[YourKit](https://www.yourkit.com/), makers of the outstanding java profiler, support open source projects of all kinds with their full featured [Java](https://www.yourkit.com/java/profiler) and [.NET](https://www.yourkit.com/.net/profiler) application profilers. We thank them for granting MohistMC an OSS license so that we can make our software the best it can be.
-
-[<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg" alt="" width="200">](https://www.jetbrains.com)
-
-[JetBrains](https://www.jetbrains.com/), creators of the IntelliJ IDEA, supports MohistMC with one of their [Open Source Licenses](https://www.jetbrains.com/opensource/). IntelliJ IDEA is the recommended IDE for working with MohistMC, and most of the MohistMC team uses it.
