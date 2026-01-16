@@ -232,7 +232,7 @@
      public ServerLevel(
          MinecraftServer p_214999_,
          Executor p_215000_,
-@@ -230,11 +_,68 @@
+@@ -230,11 +_,66 @@
              p_215007_,
              p_214999_.getMaxChainedNeighborUpdates()
          );
@@ -271,23 +271,21 @@
 +        if (environment == null) {
 +            environment = NeoForgeInjectBukkit.environment.get(getTypeKey());
 +        }
++
++        this.world = new CraftWorld(this, generator, biomeProvider, environment);
 +        if (biomeProvider != null) {
-+            WorldInfo worldInfo = new CraftWorldInfo(K, p_215001_, environment, p_215004_.type().value(), chunkgenerator, p_214999_.registryAccess());
-+            BiomeSource worldChunkManager = new CustomWorldChunkManager(worldInfo, biomeProvider, server.registryAccess().registryOrThrow(Registries.BIOME), chunkgenerator.getBiomeSource()); // Paper - add vanillaBiomeProvider
++            BiomeSource worldChunkManager = new CustomWorldChunkManager(world, biomeProvider, server.registryAccess().registryOrThrow(Registries.BIOME), chunkgenerator.getBiomeSource()); // Paper - add vanillaBiomeProvider
 +            if (chunkgenerator instanceof NoiseBasedChunkGenerator cga) {
 +                chunkgenerator = new NoiseBasedChunkGenerator(worldChunkManager, cga.settings);
 +            } else if (chunkgenerator instanceof FlatLevelSource cpf) {
 +                chunkgenerator = new FlatLevelSource(cpf.settings(), worldChunkManager);
 +            }
-+        } else {
-+            biomeProvider = getCraftServer().getBiomeProvider(name);
 +        }
 +
 +        if (generator != null) {
 +            chunkgenerator = new CustomChunkGenerator(this, chunkgenerator, generator);
-+        } else {
-+            generator = getCraftServer().getGenerator(name);
 +        }
++
 +        this.spigotConfig = new SpigotWorldConfig(name); // Spigot
 +        paperWorldConfigCreator = spigotConfig -> p_214999_.paperConfigurations.createWorldConfig(
 +                io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(
@@ -326,7 +324,7 @@
          } else {
              this.dragonFight = null;
          }
-@@ -298,6 +_,52 @@
+@@ -298,6 +_,51 @@
          this.randomSequences = Objects.requireNonNullElseGet(
              p_288977_, () -> this.getDataStorage().computeIfAbsent(RandomSequences.factory(i), "random_sequences")
          );
@@ -335,7 +333,6 @@
 +        // Neo: Move the initialization of customSpawners to the end of costructor
 +        // Providing a fully initialized ServerLevel instance for the ServerLevelEvent.CustomSpawners
 +        this.customSpawners = net.neoforged.neoforge.event.EventHooks.getCustomSpawners(this, p_215008_);
-+        this.world = new CraftWorld(this, generator, biomeProvider, environment);
 +        this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
 +        this.K.setWorld(this);
 +        // CraftBukkit start

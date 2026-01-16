@@ -2,6 +2,7 @@ package com.mohistmc.youer.feature.warps;
 
 import com.mohistmc.youer.feature.config.YouerPluginConfig;
 import java.io.File;
+import java.util.Set;
 import org.bukkit.Location;
 
 /**
@@ -22,5 +23,9 @@ public class WarpsConfig extends YouerPluginConfig {
 
     public Location get(String name) {
         return yaml.getLocation(name);
+    }
+
+    public Set<String> getAllWarpNames() {
+        return yaml.getKeys(false);
     }
 }
