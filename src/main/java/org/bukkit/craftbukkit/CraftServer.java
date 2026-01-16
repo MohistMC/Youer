@@ -1110,7 +1110,7 @@ public final class CraftServer implements Server {
 
     @Override
     public void reload() {
-        Youer.LOGGER.warn("For your server security, Bukkit reloading is not supported by Mohist.");
+        Youer.LOGGER.warn("For your server security, Bukkit reloading is not supported by Youer.");
     }
 
     // Paper start - Wait for Async Tasks during shutdown

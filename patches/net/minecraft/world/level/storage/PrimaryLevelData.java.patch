@@ -8,15 +8,17 @@
  import java.util.HashSet;
  import java.util.Set;
  import java.util.UUID;
-@@ -16,6 +_,7 @@
+@@ -16,15 +_,20 @@
  import net.minecraft.SharedConstants;
  import net.minecraft.Util;
  import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Registry;
  import net.minecraft.core.RegistryAccess;
  import net.minecraft.core.UUIDUtil;
++import net.minecraft.core.registries.Registries;
  import net.minecraft.nbt.CompoundTag;
-@@ -24,7 +_,10 @@
+ import net.minecraft.nbt.ListTag;
+ import net.minecraft.nbt.NbtOps;
  import net.minecraft.nbt.NbtUtils;
  import net.minecraft.nbt.StringTag;
  import net.minecraft.nbt.Tag;
@@ -27,12 +29,13 @@
  import net.minecraft.world.Difficulty;
  import net.minecraft.world.level.GameRules;
  import net.minecraft.world.level.GameType;
-@@ -32,11 +_,15 @@
+@@ -32,11 +_,16 @@
  import net.minecraft.world.level.LevelSettings;
  import net.minecraft.world.level.WorldDataConfiguration;
  import net.minecraft.world.level.border.WorldBorder;
 +import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.dimension.end.EndDragonFight;
++import net.minecraft.world.level.levelgen.WorldDimensions;
  import net.minecraft.world.level.levelgen.WorldGenSettings;
  import net.minecraft.world.level.levelgen.WorldOptions;
  import net.minecraft.world.level.timers.TimerCallbacks;
@@ -94,6 +97,15 @@
      }
  
      @Override
+@@ -229,7 +_,7 @@
+         p_78547_.put("Version", compoundtag);
+         NbtUtils.addCurrentDataVersion(p_78547_);
+         DynamicOps<Tag> dynamicops = p_78546_.createSerializationContext(NbtOps.INSTANCE);
+-        WorldGenSettings.encode(dynamicops, this.worldOptions, p_78546_)
++        WorldGenSettings.encode(dynamicops, this.worldOptions, new WorldDimensions(this.customDimensions != null ? this.customDimensions : p_78546_.registryOrThrow(Registries.LEVEL_STEM)))
+             .resultOrPartial(Util.prefix("WorldGenSettings: ", LOGGER::error))
+             .ifPresent(p_78574_ -> p_78547_.put("WorldGenSettings", p_78574_));
+         p_78547_.putInt("GameType", this.settings.gameType().getId());
 @@ -273,6 +_,16 @@
          if (this.wanderingTraderId != null) {
              p_78547_.putUUID("WanderingTraderId", this.wanderingTraderId);
