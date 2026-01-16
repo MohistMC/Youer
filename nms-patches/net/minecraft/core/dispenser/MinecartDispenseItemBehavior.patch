@@ -1,8 +1,8 @@
 --- a/net/minecraft/core/dispenser/MinecartDispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/MinecartDispenseItemBehavior.java
 @@ -16,6 +16,12 @@
- import net.minecraft.world.level.block.state.properties.BlockPropertyTrackPosition;
- import net.minecraft.world.phys.Vec3D;
+ import net.minecraft.world.level.block.state.properties.RailShape;
+ import net.minecraft.world.phys.Vec3;
  
 +// CraftBukkit start
 +import org.bukkit.craftbukkit.block.CraftBlock;
@@ -10,23 +10,23 @@
 +import org.bukkit.event.block.BlockDispenseEvent;
 +// CraftBukkit end
 +
- public class MinecartDispenseItemBehavior extends DispenseBehaviorItem {
+ public class MinecartDispenseItemBehavior extends DefaultDispenseItemBehavior {
  
-     private final DispenseBehaviorItem defaultDispenseItemBehavior = new DispenseBehaviorItem();
-@@ -62,11 +68,40 @@
+     private final DefaultDispenseItemBehavior defaultDispenseItemBehavior = new DefaultDispenseItemBehavior();
+@@ -62,11 +68,38 @@
          }
  
-         Vec3D vec3d1 = new Vec3D(d0, d1 + d3, d2);
--        EntityMinecartAbstract entityminecartabstract = EntityMinecartAbstract.createMinecart(worldserver, vec3d1.x, vec3d1.y, vec3d1.z, this.entityType, EntitySpawnReason.DISPENSER, itemstack, (EntityHuman) null);
+         Vec3 vec31 = new Vec3(d0, d1 + d3, d2);
+-        AbstractMinecart abstractminecart = AbstractMinecart.createMinecart(serverlevel, vec31.x, vec31.y, vec31.z, this.entityType, EntitySpawnReason.DISPENSER, itemstack, (Player) null);
 +        // CraftBukkit start
 +        // EntityMinecartAbstract entityminecartabstract = EntityMinecartAbstract.createMinecart(worldserver, vec3d1.x, vec3d1.y, vec3d1.z, this.entityType, EntitySpawnReason.DISPENSER, itemstack, (EntityHuman) null);
 +        ItemStack itemstack1 = itemstack.split(1);
-+        org.bukkit.block.Block block2 = CraftBlock.at(worldserver, sourceblock.pos());
++        org.bukkit.block.Block block2 = CraftBlock.at(serverlevel, blocksource.pos());
 +        CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
 +
-+        BlockDispenseEvent event = new BlockDispenseEvent(block2, craftItem.clone(), new org.bukkit.util.Vector(vec3d1.x, vec3d1.y, vec3d1.z));
-+        if (!BlockDispenser.eventFired) {
-+            worldserver.getCraftServer().getPluginManager().callEvent(event);
++        BlockDispenseEvent event = new BlockDispenseEvent(block2, craftItem.clone(), new org.bukkit.util.Vector(vec31.x, vec31.y, vec31.z));
++        if (!DispenserBlock.eventFired) {
++            serverlevel.getCraftServer().getPluginManager().callEvent(event);
 +        }
 +
 +        if (event.isCancelled()) {
@@ -38,20 +38,18 @@
 +            itemstack.grow(1);
 +            // Chain to handler for new item
 +            ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
-+            IDispenseBehavior idispensebehavior = (IDispenseBehavior) BlockDispenser.DISPENSER_REGISTRY.get(eventStack.getItem());
-+            if (idispensebehavior != IDispenseBehavior.NOOP && idispensebehavior != this) {
-+                idispensebehavior.dispense(sourceblock, eventStack);
++            DispenseItemBehavior dispenseitembehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
++            if (dispenseitembehavior != DispenseItemBehavior.NOOP && dispenseitembehavior != this) {
++                dispenseitembehavior.dispense(blocksource, eventStack);
 +                return itemstack;
 +            }
 +        }
-+
-+        itemstack1 = CraftItemStack.asNMSCopy(event.getItem());
-+        EntityMinecartAbstract entityminecartabstract = EntityMinecartAbstract.createMinecart(worldserver, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), this.entityType, EntitySpawnReason.DISPENSER, itemstack1, (EntityHuman) null);
++        AbstractMinecart abstractminecart = AbstractMinecart.createMinecart(serverlevel, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), this.entityType, EntitySpawnReason.DISPENSER, itemstack1, (Player) null);
  
-         if (entityminecartabstract != null) {
--            worldserver.addFreshEntity(entityminecartabstract);
+         if (abstractminecart != null) {
+-            serverlevel.addFreshEntity(abstractminecart);
 -            itemstack.shrink(1);
-+            if (!worldserver.addFreshEntity(entityminecartabstract)) itemstack.grow(1);
++            if (!serverlevel.addFreshEntity(abstractminecart)) itemstack.grow(1);
 +            // itemstack.shrink(1); // CraftBukkit - handled during event processing
 +            // CraftBukkit end
          }

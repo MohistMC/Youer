@@ -1,0 +1,10 @@
+--- a/net/minecraft/server/commands/LootCommand.java
++++ b/net/minecraft/server/commands/LootCommand.java
+@@ -227,6 +227,7 @@
+     private static int dropInWorld(CommandSourceStack commandsourcestack, Vec3 vec3, List<ItemStack> list, LootCommand.Callback lootcommand_callback) throws CommandSyntaxException {
+         ServerLevel serverlevel = commandsourcestack.getLevel();
+ 
++        list.removeIf(ItemStack::isEmpty); // CraftBukkit - SPIGOT-6959 Remove empty items for avoid throw an error in new EntityItem
+         list.forEach((itemstack) -> {
+             ItemEntity itementity = new ItemEntity(serverlevel, vec3.x, vec3.y, vec3.z, itemstack.copy());
+ 

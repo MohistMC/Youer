@@ -6,7 +6,7 @@
  
 +// CraftBukkit start
 +import java.util.List;
-+import net.minecraft.world.IInventory;
++import net.minecraft.world.Container;
 +import net.minecraft.world.item.crafting.RecipeHolder;
 +import org.bukkit.Location;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
@@ -14,18 +14,18 @@
 +import org.bukkit.event.inventory.InventoryType;
 +// CraftBukkit end
 +
- public class TransientCraftingContainer implements InventoryCrafting {
+ public class TransientCraftingContainer implements CraftingContainer {
  
      private final NonNullList<ItemStack> items;
 @@ -14,6 +24,68 @@
      private final int height;
-     private final Container menu;
+     private final AbstractContainerMenu menu;
  
 +    // CraftBukkit start - add fields
 +    public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
 +    private RecipeHolder<?> currentRecipe;
-+    public IInventory resultInventory;
-+    private EntityHuman owner;
++    public Container resultInventory;
++    private Player owner;
 +    private int maxStack = MAX_STACK;
 +
 +    public List<ItemStack> getContents() {
@@ -64,7 +64,7 @@
 +
 +    @Override
 +    public Location getLocation() {
-+        return menu instanceof ContainerWorkbench ? ((ContainerWorkbench) menu).access.getLocation() : owner.getBukkitEntity().getLocation();
++        return menu instanceof CraftingMenu ? ((CraftingMenu) menu).access.getLocation() : owner.getBukkitEntity().getLocation();
 +    }
 +
 +    @Override
@@ -77,12 +77,12 @@
 +        this.currentRecipe = currentRecipe;
 +    }
 +
-+    public TransientCraftingContainer(Container container, int i, int j, EntityHuman player) {
-+        this(container, i, j);
++    public TransientCraftingContainer(AbstractContainerMenu abstractcontainermenu, int i, int j, Player player) {
++        this(abstractcontainermenu, i, j);
 +        this.owner = player;
 +    }
 +    // CraftBukkit end
 +
-     public TransientCraftingContainer(Container container, int i, int j) {
-         this(container, i, j, NonNullList.withSize(i * j, ItemStack.EMPTY));
+     public TransientCraftingContainer(AbstractContainerMenu abstractcontainermenu, int i, int j) {
+         this(abstractcontainermenu, i, j, NonNullList.withSize(i * j, ItemStack.EMPTY));
      }

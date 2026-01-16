@@ -1,0 +1,75 @@
+--- a/net/minecraft/world/item/BlockItem.java
++++ b/net/minecraft/world/item/BlockItem.java
+@@ -29,6 +29,13 @@
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import net.minecraft.server.level.ServerLevel;
++import org.bukkit.craftbukkit.block.CraftBlock;
++import org.bukkit.craftbukkit.block.data.CraftBlockData;
++import org.bukkit.event.block.BlockCanBuildEvent;
++// CraftBukkit end
++
+ public class BlockItem extends Item {
+ 
+     /** @deprecated */
+@@ -59,6 +66,12 @@
+                 return InteractionResult.FAIL;
+             } else {
+                 BlockState blockstate = this.getPlacementState(blockplacecontext1);
++                // CraftBukkit start - special case for handling block placement with water lilies and snow buckets
++                org.bukkit.block.BlockState replacedBlockState = null;
++                if (this instanceof PlaceOnWaterBlockItem || this instanceof SolidBucketItem) {
++                    replacedBlockState = org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(blockplacecontext1.getLevel(), blockplacecontext1.getClickedPos());
++                }
++                // CraftBukkit end
+ 
+                 if (blockstate == null) {
+                     return InteractionResult.FAIL;
+@@ -76,6 +89,19 @@
+                         this.updateCustomBlockEntityTag(blockpos, level, player, itemstack, blockstate1);
+                         updateBlockEntityComponents(level, blockpos, itemstack);
+                         blockstate1.getBlock().setPlacedBy(level, blockpos, blockstate1, player, itemstack);
++                        // CraftBukkit start
++                        if (replacedBlockState != null) {
++                            org.bukkit.event.block.BlockPlaceEvent placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPlaceEvent((ServerLevel) level, player, blockplacecontext1.getHand(), replacedBlockState, blockpos.getX(), blockpos.getY(), blockpos.getZ());
++                            if (placeEvent != null && (placeEvent.isCancelled() || !placeEvent.canBuild())) {
++                                replacedBlockState.update(true, false);
++
++                                if (this instanceof SolidBucketItem) {
++                                    ((ServerPlayer) player).getBukkitEntity().updateInventory(); // SPIGOT-4541
++                                }
++                                return InteractionResult.FAIL;
++                            }
++                        }
++                        // CraftBukkit end
+                         if (player instanceof ServerPlayer) {
+                             CriteriaTriggers.PLACED_BLOCK.trigger((ServerPlayer) player, blockpos, itemstack);
+                         }
+@@ -83,7 +109,7 @@
+ 
+                     SoundType soundtype = blockstate1.getSoundType();
+ 
+-                    level.playSound(player, blockpos, this.getPlaceSound(blockstate1), SoundSource.BLOCKS, (soundtype.getVolume() + 1.0F) / 2.0F, soundtype.getPitch() * 0.8F);
++                    // level.playSound(player, blockpos, this.getPlaceSound(blockstate1), SoundSource.BLOCKS, (soundtype.getVolume() + 1.0F) / 2.0F, soundtype.getPitch() * 0.8F);
+                     level.gameEvent(GameEvent.BLOCK_PLACE, blockpos, GameEvent.Context.of(player, blockstate1));
+                     itemstack.consume(1, player);
+                     return InteractionResult.SUCCESS;
+@@ -139,7 +165,15 @@
+     protected boolean canPlace(BlockPlaceContext blockplacecontext, BlockState blockstate) {
+         Player player = blockplacecontext.getPlayer();
+ 
+-        return (!this.mustSurvive() || blockstate.canSurvive(blockplacecontext.getLevel(), blockplacecontext.getClickedPos())) && blockplacecontext.getLevel().isUnobstructed(blockstate, blockplacecontext.getClickedPos(), CollisionContext.placementContext(player));
++        // CraftBukkit start - store default return
++        boolean defaultReturn = (!this.mustSurvive() || blockstate.canSurvive(blockplacecontext.getLevel(), blockplacecontext.getClickedPos())) && blockplacecontext.getLevel().isUnobstructed(blockstate, blockplacecontext.getClickedPos(), CollisionContext.placementContext(player));
++        org.bukkit.entity.Player bukkitPlayer = (blockplacecontext.getPlayer() instanceof ServerPlayer) ? (org.bukkit.entity.Player) blockplacecontext.getPlayer().getBukkitEntity() : null;
++
++        BlockCanBuildEvent event = new BlockCanBuildEvent(CraftBlock.at(blockplacecontext.getLevel(), blockplacecontext.getClickedPos()), bukkitPlayer, CraftBlockData.fromData(blockstate), defaultReturn);
++        blockplacecontext.getLevel().getCraftServer().getPluginManager().callEvent(event);
++
++        return event.isBuildable();
++        // CraftBukkit end
+     }
+ 
+     protected boolean mustSurvive() {

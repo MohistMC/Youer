@@ -1,60 +1,60 @@
 --- a/net/minecraft/world/level/block/Block.java
 +++ b/net/minecraft/world/level/block/Block.java
-@@ -409,7 +409,13 @@
-                 EntityItem entityitem = (EntityItem) supplier.get();
+@@ -412,7 +412,13 @@
+                 ItemEntity itementity = (ItemEntity) supplier.get();
  
-                 entityitem.setDefaultPickUpDelay();
--                world.addFreshEntity(entityitem);
+                 itementity.setDefaultPickUpDelay();
+-                level.addFreshEntity(itementity);
 +                // CraftBukkit start
-+                if (world.captureDrops != null) {
-+                    world.captureDrops.add(entityitem);
++                if (level.captureDrops != null) {
++                    level.captureDrops.add(itementity);
 +                } else {
-+                    world.addFreshEntity(entityitem);
++                    level.addFreshEntity(itementity);
 +                }
 +                // CraftBukkit end
                  return;
              }
          }
-@@ -438,7 +444,7 @@
+@@ -440,7 +446,7 @@
  
-     public void playerDestroy(World world, EntityHuman entityhuman, BlockPosition blockposition, IBlockData iblockdata, @Nullable TileEntity tileentity, ItemStack itemstack) {
-         entityhuman.awardStat(StatisticList.BLOCK_MINED.get(this));
--        entityhuman.causeFoodExhaustion(0.005F);
-+        entityhuman.causeFoodExhaustion(0.005F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.BLOCK_MINED); // CraftBukkit - EntityExhaustionEvent
-         dropResources(iblockdata, world, blockposition, tileentity, entityhuman, itemstack);
+     public void playerDestroy(Level level, Player player, BlockPos blockpos, BlockState blockstate, @Nullable BlockEntity blockentity, ItemStack itemstack) {
+         player.awardStat(Stats.BLOCK_MINED.get(this));
+-        player.causeFoodExhaustion(0.005F);
++        player.causeFoodExhaustion(0.005F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.BLOCK_MINED); // CraftBukkit - EntityExhaustionEvent
+         dropResources(blockstate, level, blockpos, blockentity, player, itemstack);
      }
  
-@@ -545,7 +551,7 @@
+@@ -547,7 +553,7 @@
      }
  
-     protected Function<IBlockData, VoxelShape> getShapeForEachState(Function<IBlockData, VoxelShape> function) {
+     protected Function<BlockState, VoxelShape> getShapeForEachState(Function<BlockState, VoxelShape> function) {
 -        ImmutableMap immutablemap = (ImmutableMap) this.stateDefinition.getPossibleStates().stream().collect(ImmutableMap.toImmutableMap(Function.identity(), function));
-+        ImmutableMap<IBlockData, VoxelShape> immutablemap = (ImmutableMap) this.stateDefinition.getPossibleStates().stream().collect(ImmutableMap.toImmutableMap(Function.identity(), function)); // CraftBukkit - decompile error
++        ImmutableMap<BlockState, VoxelShape> immutablemap = (ImmutableMap) this.stateDefinition.getPossibleStates().stream().collect(ImmutableMap.toImmutableMap(Function.identity(), function)); // CraftBukkit - decompile error
  
          Objects.requireNonNull(immutablemap);
          return immutablemap::get;
-@@ -582,14 +588,22 @@
+@@ -584,14 +590,22 @@
          return this.builtInRegistryHolder;
      }
  
--    protected void tryDropExperience(WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, IntProvider intprovider) {
+-    protected void tryDropExperience(ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack, IntProvider intprovider) {
 +    // CraftBukkit start
-+    protected int tryDropExperience(WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, IntProvider intprovider) {
-         int i = EnchantmentManager.processBlockExperience(worldserver, itemstack, intprovider.sample(worldserver.getRandom()));
++    protected int tryDropExperience(ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack, IntProvider intprovider) {
+         int i = EnchantmentHelper.processBlockExperience(serverlevel, itemstack, intprovider.sample(serverlevel.getRandom()));
  
          if (i > 0) {
--            this.popExperience(worldserver, blockposition, i);
-+            // this.popExperience(worldserver, blockposition, i);
+-            this.popExperience(serverlevel, blockpos, i);
++            // this.popExperience(serverlevel, blockposition, i);
 +            return i;
          }
  
 +        return 0;
 +    }
 +
-+    public int getExpDrop(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
++    public int getExpDrop(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack, boolean flag) {
 +        return 0;
      }
 +    // CraftBukkit end
  
-     private static record a(VoxelShape first, VoxelShape second) {
+     private static record ShapePairKey(VoxelShape first, VoxelShape second) {
  

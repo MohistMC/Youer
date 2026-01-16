@@ -1,0 +1,74 @@
+--- a/net/minecraft/world/SimpleContainer.java
++++ b/net/minecraft/world/SimpleContainer.java
+@@ -13,13 +13,71 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import org.bukkit.Location;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.entity.HumanEntity;
++// CraftBukkit end
++
+ public class SimpleContainer implements Container, StackedContentsCompatible {
+ 
+     private final int size;
+     public final NonNullList<ItemStack> items;
+     private @Nullable List<ContainerListener> listeners;
+ 
++    // CraftBukkit start - add fields and methods
++    public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
++    private int maxStack = MAX_STACK;
++    protected org.bukkit.inventory.InventoryHolder bukkitOwner;
++
++    public List<ItemStack> getContents() {
++        return this.items;
++    }
++
++    public void onOpen(CraftHumanEntity who) {
++        transaction.add(who);
++    }
++
++    public void onClose(CraftHumanEntity who) {
++        transaction.remove(who);
++    }
++
++    public List<HumanEntity> getViewers() {
++        return transaction;
++    }
++
++    @Override
++    public int getMaxStackSize() {
++        return maxStack;
++    }
++
++    public void setMaxStackSize(int i) {
++        maxStack = i;
++    }
++
++    public org.bukkit.inventory.InventoryHolder getOwner() {
++        return bukkitOwner;
++    }
++
++    @Override
++    public Location getLocation() {
++        return null;
++    }
++
++    public SimpleContainer(SimpleContainer original) {
++        this(original.size);
++        for (int slot = 0; slot < original.size; slot++) {
++            this.items.set(slot, original.items.get(slot).copy());
++        }
++    }
++
+     public SimpleContainer(int i) {
++        this(i, null);
++    }
++
++    public SimpleContainer(int i, org.bukkit.inventory.InventoryHolder owner) {
++        this.bukkitOwner = owner;
++        // CraftBukkit end
+         this.size = i;
+         this.items = NonNullList.<ItemStack>withSize(i, ItemStack.EMPTY);
+     }

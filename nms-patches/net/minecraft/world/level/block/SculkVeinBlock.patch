@@ -3,27 +3,27 @@
 @@ -92,10 +92,11 @@
  
      @Override
-     public int attemptUseCharge(SculkSpreader.a sculkspreader_a, GeneratorAccess generatoraccess, BlockPosition blockposition, RandomSource randomsource, SculkSpreader sculkspreader, boolean flag) {
--        return flag && this.attemptPlaceSculk(sculkspreader, generatoraccess, sculkspreader_a.getPos(), randomsource) ? sculkspreader_a.getCharge() - 1 : (randomsource.nextInt(sculkspreader.chargeDecayRate()) == 0 ? MathHelper.floor((float) sculkspreader_a.getCharge() * 0.5F) : sculkspreader_a.getCharge());
+     public int attemptUseCharge(SculkSpreader.ChargeCursor sculkspreader_chargecursor, LevelAccessor levelaccessor, BlockPos blockpos, RandomSource randomsource, SculkSpreader sculkspreader, boolean flag) {
+-        return flag && this.attemptPlaceSculk(sculkspreader, levelaccessor, sculkspreader_chargecursor.getPos(), randomsource) ? sculkspreader_chargecursor.getCharge() - 1 : (randomsource.nextInt(sculkspreader.chargeDecayRate()) == 0 ? Mth.floor((float) sculkspreader_chargecursor.getCharge() * 0.5F) : sculkspreader_chargecursor.getCharge());
 +        // CraftBukkit - add source block
-+        return flag && this.attemptPlaceSculk(sculkspreader, generatoraccess, sculkspreader_a.getPos(), randomsource, blockposition) ? sculkspreader_a.getCharge() - 1 : (randomsource.nextInt(sculkspreader.chargeDecayRate()) == 0 ? MathHelper.floor((float) sculkspreader_a.getCharge() * 0.5F) : sculkspreader_a.getCharge());
++        return flag && this.attemptPlaceSculk(sculkspreader, levelaccessor, sculkspreader_chargecursor.getPos(), randomsource, blockpos) ? sculkspreader_chargecursor.getCharge() - 1 : (randomsource.nextInt(sculkspreader.chargeDecayRate()) == 0 ? Mth.floor((float) sculkspreader_chargecursor.getCharge() * 0.5F) : sculkspreader_chargecursor.getCharge());
      }
  
--    private boolean attemptPlaceSculk(SculkSpreader sculkspreader, GeneratorAccess generatoraccess, BlockPosition blockposition, RandomSource randomsource) {
-+    private boolean attemptPlaceSculk(SculkSpreader sculkspreader, GeneratorAccess generatoraccess, BlockPosition blockposition, RandomSource randomsource, BlockPosition sourceBlock) { // CraftBukkit
-         IBlockData iblockdata = generatoraccess.getBlockState(blockposition);
+-    private boolean attemptPlaceSculk(SculkSpreader sculkspreader, LevelAccessor levelaccessor, BlockPos blockpos, RandomSource randomsource) {
++    private boolean attemptPlaceSculk(SculkSpreader sculkspreader, LevelAccessor levelaccessor, BlockPos blockpos, RandomSource randomsource, BlockPos sourceBlock) { // CraftBukkit
+         BlockState blockstate = levelaccessor.getBlockState(blockpos);
          TagKey<Block> tagkey = sculkspreader.replaceableBlocks();
  
 @@ -107,7 +108,11 @@
-                 if (iblockdata1.is(tagkey)) {
-                     IBlockData iblockdata2 = Blocks.SCULK.defaultBlockState();
+                 if (blockstate1.is(tagkey)) {
+                     BlockState blockstate2 = Blocks.SCULK.defaultBlockState();
  
--                    generatoraccess.setBlock(blockposition1, iblockdata2, 3);
+-                    levelaccessor.setBlock(blockpos1, blockstate2, 3);
 +                    // CraftBukkit start - Call BlockSpreadEvent
-+                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(generatoraccess, sourceBlock, blockposition1, iblockdata2, 3)) {
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(levelaccessor, sourceBlock, blockpos1, blockstate2, 3)) {
 +                        return false;
 +                    }
 +                    // CraftBukkit end
-                     Block.pushEntitiesUp(iblockdata1, iblockdata2, generatoraccess, blockposition1);
-                     generatoraccess.playSound((Entity) null, blockposition1, SoundEffects.SCULK_BLOCK_SPREAD, SoundCategory.BLOCKS, 1.0F, 1.0F);
-                     this.veinSpreader.spreadAll(iblockdata2, generatoraccess, blockposition1, sculkspreader.isWorldGeneration());
+                     Block.pushEntitiesUp(blockstate1, blockstate2, levelaccessor, blockpos1);
+                     levelaccessor.playSound((Entity) null, blockpos1, SoundEvents.SCULK_BLOCK_SPREAD, SoundSource.BLOCKS, 1.0F, 1.0F);
+                     this.veinSpreader.spreadAll(blockstate2, levelaccessor, blockpos1, sculkspreader.isWorldGeneration());

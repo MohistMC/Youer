@@ -7,20 +7,20 @@
 -        return reference2objectmap;
 +        return (Reference2ObjectMap) reference2objectmap; // CraftBukkit - decompile error
      });
-     public static final StreamCodec<RegistryFriendlyByteBuf, DataComponentPatch> STREAM_CODEC = createStreamCodec(new DataComponentPatch.b() {
+     public static final StreamCodec<RegistryFriendlyByteBuf, DataComponentPatch> STREAM_CODEC = createStreamCodec(new DataComponentPatch.CodecGetter() {
          @Override
 @@ -159,7 +159,7 @@
              }
  
              private <T> void encodeComponent(RegistryFriendlyByteBuf registryfriendlybytebuf, DataComponentType<T> datacomponenttype, Object object) {
--                datacomponentpatch_b.apply(datacomponenttype).encode(registryfriendlybytebuf, object);
-+                datacomponentpatch_b.apply(datacomponenttype).encode(registryfriendlybytebuf, (T) object); // CraftBukkit - decompile error
+-                datacomponentpatch_codecgetter.apply(datacomponenttype).encode(registryfriendlybytebuf, object);
++                datacomponentpatch_codecgetter.apply(datacomponenttype).encode(registryfriendlybytebuf, (T) object); // CraftBukkit - decompile error
              }
          };
      }
-@@ -321,6 +321,42 @@
+@@ -320,6 +320,42 @@
  
-         a() {}
+         private Builder() {}
  
 +        // CraftBukkit start
 +        public void copy(DataComponentPatch orig) {
@@ -45,7 +45,7 @@
 +                return true;
 +            }
 +
-+            if (object instanceof DataComponentPatch.a patch) {
++            if (object instanceof DataComponentPatch.Builder patch) {
 +                return this.map.equals(patch.map);
 +            }
 +
@@ -58,6 +58,6 @@
 +        }
 +        // CraftBukkit end
 +
-         public <T> DataComponentPatch.a set(DataComponentType<T> datacomponenttype, T t0) {
+         public <T> DataComponentPatch.Builder set(DataComponentType<T> datacomponenttype, T t0) {
              this.map.put(datacomponenttype, Optional.of(t0));
              return this;

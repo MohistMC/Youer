@@ -1,0 +1,83 @@
+--- a/net/minecraft/world/inventory/LecternMenu.java
++++ b/net/minecraft/world/inventory/LecternMenu.java
+@@ -5,8 +5,32 @@
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.ItemStack;
+ 
++// CraftBukkit start
++import net.minecraft.world.entity.player.Inventory;
++import net.minecraft.world.level.block.entity.LecternBlockEntity.LecternInventory;
++import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.inventory.CraftInventoryLectern;
++import org.bukkit.craftbukkit.inventory.view.CraftLecternView;
++import org.bukkit.event.player.PlayerTakeLecternBookEvent;
++// CraftBukkit end
++
+ public class LecternMenu extends AbstractContainerMenu {
+ 
++    // CraftBukkit start
++    private CraftLecternView bukkitEntity = null;
++    private org.bukkit.entity.Player player;
++
++    @Override
++    public CraftLecternView getBukkitView() {
++        if (bukkitEntity != null) {
++            return bukkitEntity;
++        }
++
++        CraftInventoryLectern inventory = new CraftInventoryLectern(this.lectern);
++        bukkitEntity = new CraftLecternView(this.player, inventory, this);
++        return bukkitEntity;
++    }
++    // CraftBukkit end
+     private static final int DATA_COUNT = 1;
+     private static final int SLOT_COUNT = 1;
+     public static final int BUTTON_PREV_PAGE = 1;
+@@ -16,11 +40,13 @@
+     private final Container lectern;
+     private final ContainerData lecternData;
+ 
+-    public LecternMenu(int i) {
+-        this(i, new SimpleContainer(1), new SimpleContainerData(1));
++    // CraftBukkit start - add player
++    public LecternMenu(int i, Inventory inventory) {
++        this(i, new SimpleContainer(1), new SimpleContainerData(1), inventory);
+     }
+ 
+-    public LecternMenu(int i, Container container, ContainerData containerdata) {
++    public LecternMenu(int i, Container container, ContainerData containerdata, Inventory inventory) {
++        // CraftBukkit end
+         super(MenuType.LECTERN, i);
+         checkContainerSize(container, 1);
+         checkContainerDataCount(containerdata, 1);
+@@ -34,6 +60,7 @@
+             }
+         });
+         this.addDataSlots(containerdata);
++        player = (org.bukkit.entity.Player) inventory.player.getBukkitEntity(); // CraftBukkit
+     }
+ 
+     @Override
+@@ -60,6 +87,13 @@
+                         return false;
+                     }
+ 
++                    // CraftBukkit start - Event for taking the book
++                    PlayerTakeLecternBookEvent event = new PlayerTakeLecternBookEvent(this.player, ((CraftInventoryLectern) getBukkitView().getTopInventory()).getHolder());
++                    Bukkit.getServer().getPluginManager().callEvent(event);
++                    if (event.isCancelled()) {
++                        return false;
++                    }
++                    // CraftBukkit end
+                     ItemStack itemstack = this.lectern.removeItemNoUpdate(0);
+ 
+                     this.lectern.setChanged();
+@@ -87,6 +121,8 @@
+ 
+     @Override
+     public boolean stillValid(Player player) {
++        if (lectern instanceof LecternInventory && !((LecternInventory) lectern).getLectern().hasBook()) return false; // CraftBukkit
++        if (!this.checkReachable) return true; // CraftBukkit
+         return this.lectern.stillValid(player);
+     }
+ 

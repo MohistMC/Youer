@@ -1,0 +1,31 @@
+--- a/net/minecraft/world/entity/ai/behavior/BehaviorUtils.java
++++ b/net/minecraft/world/entity/ai/behavior/BehaviorUtils.java
+@@ -90,6 +90,7 @@
+     }
+ 
+     public static void throwItem(LivingEntity livingentity, ItemStack itemstack, Vec3 vec3, Vec3 vec31, float f) {
++        if (itemstack.isEmpty()) return; // CraftBukkit - SPIGOT-4940: no empty loot
+         double d0 = livingentity.getEyeY() - (double) f;
+         ItemEntity itementity = new ItemEntity(livingentity.level(), livingentity.getX(), d0, livingentity.getZ(), itemstack);
+ 
+@@ -99,12 +100,19 @@
+         vec32 = vec32.normalize().multiply(vec31.x, vec31.y, vec31.z);
+         itementity.setDeltaMovement(vec32);
+         itementity.setDefaultPickUpDelay();
++        // CraftBukkit start
++        org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(livingentity.getBukkitEntity(), (org.bukkit.entity.Item) itementity.getBukkitEntity());
++        itementity.level().getCraftServer().getPluginManager().callEvent(event);
++        if (event.isCancelled()) {
++            return;
++        }
++        // CraftBukkit end
+         livingentity.level().addFreshEntity(itementity);
+     }
+ 
+     public static SectionPos findSectionClosestToVillage(ServerLevel serverlevel, SectionPos sectionpos, int i) {
+         int j = serverlevel.sectionsToVillage(sectionpos);
+-        Stream stream = SectionPos.cube(sectionpos, i).filter((sectionpos1) -> {
++        Stream<SectionPos> stream = SectionPos.cube(sectionpos, i).filter((sectionpos1) -> { // CraftBukkit - decompile error
+             return serverlevel.sectionsToVillage(sectionpos1) < j;
+         });
+ 

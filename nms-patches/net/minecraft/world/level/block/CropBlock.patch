@@ -1,0 +1,38 @@
+--- a/net/minecraft/world/level/block/CropBlock.java
++++ b/net/minecraft/world/level/block/CropBlock.java
+@@ -23,6 +23,8 @@
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ 
++import org.bukkit.craftbukkit.event.CraftEventFactory; // CraftBukkit
++
+ public class CropBlock extends VegetationBlock implements BonemealableBlock {
+ 
+     public static final MapCodec<CropBlock> CODEC = simpleCodec(CropBlock::new);
+@@ -86,7 +88,7 @@
+                 float f = getGrowthSpeed(this, serverlevel, blockpos);
+ 
+                 if (randomsource.nextInt((int) (25.0F / f) + 1) == 0) {
+-                    serverlevel.setBlock(blockpos, this.getStateForAge(i + 1), 2);
++                    CraftEventFactory.handleBlockGrowEvent(serverlevel, blockpos, this.getStateForAge(i + 1), 2); // CraftBukkit
+                 }
+             }
+         }
+@@ -96,7 +98,7 @@
+     public void growCrops(Level level, BlockPos blockpos, BlockState blockstate) {
+         int i = Math.min(this.getMaxAge(), this.getAge(blockstate) + this.getBonemealAgeIncrease(level));
+ 
+-        level.setBlock(blockpos, this.getStateForAge(i), 2);
++        CraftEventFactory.handleBlockGrowEvent(level, blockpos, this.getStateForAge(i), 2); // CraftBukkit
+     }
+ 
+     protected int getBonemealAgeIncrease(Level level) {
+@@ -159,7 +161,7 @@
+     @Override
+     protected void entityInside(BlockState blockstate, Level level, BlockPos blockpos, Entity entity, InsideBlockEffectApplier insideblockeffectapplier, boolean flag) {
+         if (level instanceof ServerLevel serverlevel) {
+-            if (entity instanceof Ravager && (Boolean) serverlevel.getGameRules().get(GameRules.MOB_GRIEFING)) {
++            if (entity instanceof Ravager && CraftEventFactory.callEntityChangeBlockEvent(entity, blockpos, Blocks.AIR.defaultBlockState(), !(Boolean) serverlevel.getGameRules().get(GameRules.MOB_GRIEFING))) { // CraftBukkit
+                 serverlevel.destroyBlock(blockpos, true, entity);
+             }
+         }

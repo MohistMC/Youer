@@ -1,0 +1,70 @@
+--- a/net/minecraft/world/inventory/BeaconMenu.java
++++ b/net/minecraft/world/inventory/BeaconMenu.java
+@@ -13,6 +13,11 @@
+ import net.minecraft.world.level.block.Blocks;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import net.minecraft.world.entity.player.Inventory;
++import org.bukkit.craftbukkit.inventory.view.CraftBeaconView;
++// CraftBukkit end
++
+ public class BeaconMenu extends AbstractContainerMenu {
+ 
+     private static final int PAYMENT_SLOT = 0;
+@@ -27,6 +32,10 @@
+     private final BeaconMenu.PaymentSlot paymentSlot;
+     private final ContainerLevelAccess access;
+     private final ContainerData beaconData;
++    // CraftBukkit start
++    private CraftBeaconView bukkitEntity = null;
++    private Inventory player;
++    // CraftBukkit end
+ 
+     public BeaconMenu(int i, Container container) {
+         this(i, container, new SimpleContainerData(3), ContainerLevelAccess.NULL);
+@@ -34,6 +43,7 @@
+ 
+     public BeaconMenu(int i, Container container, ContainerData containerdata, ContainerLevelAccess containerlevelaccess) {
+         super(MenuType.BEACON, i);
++        player = (Inventory) container; // CraftBukkit - TODO: check this
+         this.beacon = new SimpleContainer(1) {
+             @Override
+             public boolean canPlaceItem(int j, ItemStack itemstack) {
+@@ -69,6 +79,7 @@
+ 
+     @Override
+     public boolean stillValid(Player player) {
++        if (!this.checkReachable) return true; // CraftBukkit
+         return stillValid(this.access, player, Blocks.BEACON);
+     }
+ 
+@@ -147,8 +158,8 @@
+ 
+     public void updateEffects(Optional<Holder<MobEffect>> optional, Optional<Holder<MobEffect>> optional1) {
+         if (this.paymentSlot.hasItem()) {
+-            this.beaconData.set(1, encodeEffect((Holder) optional.orElse((Object) null)));
+-            this.beaconData.set(2, encodeEffect((Holder) optional1.orElse((Object) null)));
++            this.beaconData.set(1, encodeEffect((Holder) optional.orElse(null)));// CraftBukkit - decompile error
++            this.beaconData.set(2, encodeEffect((Holder) optional1.orElse(null)));// CraftBukkit - decompile error
+             this.paymentSlot.remove(1);
+             this.access.execute(Level::blockEntityChanged);
+         }
+@@ -175,4 +186,17 @@
+             return 1;
+         }
+     }
++
++    // CraftBukkit start
++    @Override
++    public CraftBeaconView getBukkitView() {
++        if (bukkitEntity != null) {
++            return bukkitEntity;
++        }
++
++        org.bukkit.craftbukkit.inventory.CraftInventoryBeacon inventory = new org.bukkit.craftbukkit.inventory.CraftInventoryBeacon(this.beacon);
++        bukkitEntity = new CraftBeaconView(this.player.player.getBukkitEntity(), inventory, this);
++        return bukkitEntity;
++    }
++    // CraftBukkit end
+ }

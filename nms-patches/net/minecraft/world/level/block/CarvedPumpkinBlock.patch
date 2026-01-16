@@ -1,0 +1,52 @@
+--- a/net/minecraft/world/level/block/CarvedPumpkinBlock.java
++++ b/net/minecraft/world/level/block/CarvedPumpkinBlock.java
+@@ -29,6 +29,10 @@
+ import net.minecraft.world.level.block.state.properties.EnumProperty;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
++// CraftBukkit end
++
+ public class CarvedPumpkinBlock extends HorizontalDirectionalBlock {
+ 
+     public static final MapCodec<CarvedPumpkinBlock> CODEC = simpleCodec(CarvedPumpkinBlock::new);
+@@ -94,7 +98,11 @@
+             CopperGolem coppergolem = EntityType.COPPER_GOLEM.create(level, EntitySpawnReason.TRIGGERED);
+ 
+             if (coppergolem != null) {
+-                spawnGolemInWorld(level, blockpattern_blockpatternmatch2, coppergolem, blockpattern_blockpatternmatch2.getBlock(0, 0, 0).getPos());
++                // CraftBukkit start - SPIGOT-8085: handle cancellation
++                if (!spawnGolemInWorld(level, blockpattern_blockpatternmatch2, coppergolem, blockpattern_blockpatternmatch2.getBlock(0, 0, 0).getPos())) {
++                    return;
++                }
++                // CraftBukkit end
+                 this.replaceCopperBlockWithChest(level, blockpattern_blockpatternmatch2);
+                 coppergolem.spawn(this.getWeatherStateFromPattern(blockpattern_blockpatternmatch2));
+             }
+@@ -117,16 +125,22 @@
+         }
+     }
+ 
+-    private static void spawnGolemInWorld(Level level, BlockPattern.BlockPatternMatch blockpattern_blockpatternmatch, Entity entity, BlockPos blockpos) {
+-        clearPatternBlocks(level, blockpattern_blockpatternmatch);
++    // CraftBukkit start
++    private static boolean spawnGolemInWorld(Level level, BlockPattern.BlockPatternMatch blockpattern_blockpatternmatch, Entity entity, BlockPos blockpos) {
++        // clearPatternBlocks(level, blockpattern_blockpatternmatch); // CraftBukkit - moved down
+         entity.snapTo((double) blockpos.getX() + 0.5D, (double) blockpos.getY() + 0.05D, (double) blockpos.getZ() + 0.5D, 0.0F, 0.0F);
+-        level.addFreshEntity(entity);
++        if (!level.addFreshEntity(entity, (entity.getType() == EntityType.SNOW_GOLEM) ? SpawnReason.BUILD_SNOWMAN : ((entity.getType() == EntityType.IRON_GOLEM) ? SpawnReason.BUILD_IRONGOLEM : SpawnReason.BUILD_COPPERGOLEM))) {
++            return false;
++        }
++        clearPatternBlocks(level, blockpattern_blockpatternmatch); // CraftBukkit - from above
++        // CraftBukkit end
+ 
+         for (ServerPlayer serverplayer : level.getEntitiesOfClass(ServerPlayer.class, entity.getBoundingBox().inflate(5.0D))) {
+             CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, entity);
+         }
+ 
+         updatePatternBlocks(level, blockpattern_blockpatternmatch);
++        return true; // CraftBukkit
+     }
+ 
+     public static void clearPatternBlocks(Level level, BlockPattern.BlockPatternMatch blockpattern_blockpatternmatch) {

@@ -1,0 +1,48 @@
+--- a/net/minecraft/world/level/block/BambooStalkBlock.java
++++ b/net/minecraft/world/level/block/BambooStalkBlock.java
+@@ -173,7 +173,7 @@
+             BlockPos blockpos1 = blockpos.above(i);
+             BlockState blockstate1 = serverlevel.getBlockState(blockpos1);
+ 
+-            if (k >= 16 || (Integer) blockstate1.getValue(BambooStalkBlock.STAGE) == 1 || !serverlevel.isEmptyBlock(blockpos1.above())) {
++            if (k >= 16 || !blockstate1.is(Blocks.BAMBOO) || (Integer) blockstate1.getValue(BambooStalkBlock.STAGE) == 1 || !serverlevel.isEmptyBlock(blockpos1.above())) { // CraftBukkit - If the BlockSpreadEvent was cancelled, we have no bamboo here
+                 return;
+             }
+ 
+@@ -189,14 +189,18 @@
+         BlockPos blockpos1 = blockpos.below(2);
+         BlockState blockstate2 = level.getBlockState(blockpos1);
+         BambooLeaves bambooleaves = BambooLeaves.NONE;
++        boolean shouldUpdateOthers = false; // CraftBukkit
+ 
+         if (i >= 1) {
+             if (blockstate1.is(Blocks.BAMBOO) && blockstate1.getValue(BambooStalkBlock.LEAVES) != BambooLeaves.NONE) {
+                 if (blockstate1.is(Blocks.BAMBOO) && blockstate1.getValue(BambooStalkBlock.LEAVES) != BambooLeaves.NONE) {
+                     bambooleaves = BambooLeaves.LARGE;
+                     if (blockstate2.is(Blocks.BAMBOO)) {
+-                        level.setBlock(blockpos.below(), (BlockState) blockstate1.setValue(BambooStalkBlock.LEAVES, BambooLeaves.SMALL), 3);
+-                        level.setBlock(blockpos1, (BlockState) blockstate2.setValue(BambooStalkBlock.LEAVES, BambooLeaves.NONE), 3);
++                        // CraftBukkit start - moved down
++                        // world.setBlock(blockposition.below(), (IBlockData) iblockdata1.setValue(BlockBamboo.LEAVES, BlockPropertyBambooSize.SMALL), 3);
++                        // world.setBlock(blockposition1, (IBlockData) iblockdata2.setValue(BlockBamboo.LEAVES, BlockPropertyBambooSize.NONE), 3);
++                        shouldUpdateOthers = true;
++                        // CraftBukkit end
+                     }
+                 }
+             } else {
+@@ -207,7 +211,14 @@
+         int j = (Integer) blockstate.getValue(BambooStalkBlock.AGE) != 1 && !blockstate2.is(Blocks.BAMBOO) ? 0 : 1;
+         int k = (i < 11 || randomsource.nextFloat() >= 0.25F) && i != 15 ? 0 : 1;
+ 
+-        level.setBlock(blockpos.above(), (BlockState) ((BlockState) ((BlockState) this.defaultBlockState().setValue(BambooStalkBlock.AGE, j)).setValue(BambooStalkBlock.LEAVES, bambooleaves)).setValue(BambooStalkBlock.STAGE, k), 3);
++        // CraftBukkit start
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, blockpos, blockpos.above(), (BlockState) ((BlockState) ((BlockState) this.defaultBlockState().setValue(BambooStalkBlock.AGE, j)).setValue(BambooStalkBlock.LEAVES, bambooleaves)).setValue(BambooStalkBlock.STAGE, k), 3)) {
++            if (shouldUpdateOthers) {
++                level.setBlock(blockpos.below(), (BlockState) blockstate1.setValue(BambooStalkBlock.LEAVES, BambooLeaves.SMALL), 3);
++                level.setBlock(blockpos1, (BlockState) blockstate2.setValue(BambooStalkBlock.LEAVES, BambooLeaves.NONE), 3);
++            }
++        }
++        // CraftBukkit end
+     }
+ 
+     protected int getHeightAboveUpToMax(BlockGetter blockgetter, BlockPos blockpos) {

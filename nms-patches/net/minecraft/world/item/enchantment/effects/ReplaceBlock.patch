@@ -3,9 +3,9 @@
 @@ -26,7 +26,7 @@
  
          if ((Boolean) this.predicate.map((blockpredicate) -> {
-             return blockpredicate.test(worldserver, blockposition);
--        }).orElse(true) && worldserver.setBlockAndUpdate(blockposition, this.blockState.getState(entity.getRandom(), blockposition))) {
-+        }).orElse(true) && org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(worldserver, blockposition, this.blockState.getState(entity.getRandom(), blockposition), entity)) { // CraftBukkit - Call EntityBlockFormEvent
+             return blockpredicate.test(serverlevel, blockpos);
+-        }).orElse(true) && serverlevel.setBlockAndUpdate(blockpos, this.blockState.getState(entity.getRandom(), blockpos))) {
++        }).orElse(true) && org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(serverlevel, blockpos, this.blockState.getState(entity.getRandom(), blockpos), entity)) { // CraftBukkit - Call EntityBlockFormEvent
              this.triggerGameEvent.ifPresent((holder) -> {
-                 worldserver.gameEvent(entity, holder, blockposition);
+                 serverlevel.gameEvent(entity, holder, blockpos);
              });

@@ -1,53 +1,53 @@
 --- a/net/minecraft/world/entity/animal/armadillo/Armadillo.java
 +++ b/net/minecraft/world/entity/animal/armadillo/Armadillo.java
 @@ -50,6 +50,10 @@
- import net.minecraft.world.level.storage.ValueOutput;
- import net.minecraft.world.level.storage.loot.LootTables;
+ import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+ import org.jspecify.annotations.Nullable;
  
 +// CraftBukkit start
 +import org.bukkit.event.entity.EntityDamageEvent;
 +// CraftBukkit end
 +
- public class Armadillo extends EntityAnimal {
+ public class Armadillo extends Animal {
  
      public static final float BABY_SCALE = 0.6F;
-@@ -131,16 +135,18 @@
-         GameProfilerFiller gameprofilerfiller = Profiler.get();
+@@ -130,16 +134,18 @@
+         ProfilerFiller profilerfiller = Profiler.get();
  
-         gameprofilerfiller.push("armadilloBrain");
--        this.brain.tick(worldserver, this);
-+        ((BehaviorController<Armadillo>) this.brain).tick(worldserver, this); // CraftBukkit - decompile error
-         gameprofilerfiller.pop();
-         gameprofilerfiller.push("armadilloActivityUpdate");
+         profilerfiller.push("armadilloBrain");
+-        this.brain.tick(serverlevel, this);
++        ((Brain<Armadillo>) this.brain).tick(serverlevel, this); // CraftBukkit - decompile error
+         profilerfiller.pop();
+         profilerfiller.push("armadilloActivityUpdate");
          ArmadilloAi.updateActivity(this);
-         gameprofilerfiller.pop();
-         if (this.isAlive() && !this.isBaby() && --this.scuteTime <= 0) {
+         profilerfiller.pop();
+         if (this.isAlive() && --this.scuteTime <= 0 && this.shouldDropLoot(serverlevel)) {
 +            this.forceDrops = true; // CraftBukkit
-             if (this.dropFromGiftLootTable(worldserver, LootTables.ARMADILLO_SHED, this::spawnAtLocation)) {
-                 this.playSound(SoundEffects.ARMADILLO_SCUTE_DROP, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F);
+             if (this.dropFromGiftLootTable(serverlevel, BuiltInLootTables.ARMADILLO_SHED, this::spawnAtLocation)) {
+                 this.playSound(SoundEvents.ARMADILLO_SCUTE_DROP, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F);
                  this.gameEvent(GameEvent.ENTITY_PLACE);
              }
 +            this.forceDrops = false; // CraftBukkit
  
              this.scuteTime = this.pickNextScuteDropTime();
          }
-@@ -286,8 +292,13 @@
+@@ -285,8 +291,13 @@
      }
  
      @Override
--    protected void actuallyHurt(WorldServer worldserver, DamageSource damagesource, float f) {
--        super.actuallyHurt(worldserver, damagesource, f);
+-    protected void actuallyHurt(ServerLevel serverlevel, DamageSource damagesource, float f) {
+-        super.actuallyHurt(serverlevel, damagesource, f);
 +    // CraftBukkit start - void -> boolean
-+    public boolean actuallyHurt(WorldServer worldserver, DamageSource damagesource, float f, EntityDamageEvent event) {
-+        boolean damageResult = super.actuallyHurt(worldserver, damagesource, f, event);
++    public boolean actuallyHurt(ServerLevel serverlevel, DamageSource damagesource, float f, EntityDamageEvent event) {
++        boolean damageResult = super.actuallyHurt(serverlevel, damagesource, f, event);
 +        if (!damageResult) {
 +            return false;
 +        }
 +        // CraftBukkit end
          if (!this.isNoAi() && !this.isDeadOrDying()) {
-             if (damagesource.getEntity() instanceof EntityLiving) {
+             if (damagesource.getEntity() instanceof LivingEntity) {
                  this.getBrain().setMemoryWithExpiry(MemoryModuleType.DANGER_DETECTED_RECENTLY, true, 80L);
-@@ -299,6 +310,7 @@
+@@ -298,6 +309,7 @@
              }
  
          }
@@ -55,13 +55,13 @@
      }
  
      @Override
-@@ -322,7 +334,9 @@
-             if (world instanceof WorldServer) {
-                 WorldServer worldserver = (WorldServer) world;
+@@ -321,7 +333,9 @@
+             if (level instanceof ServerLevel) {
+                 ServerLevel serverlevel = (ServerLevel) level;
  
 +                this.forceDrops = true; // CraftBukkit
-                 this.dropFromEntityInteractLootTable(worldserver, LootTables.ARMADILLO_BRUSH, entity, itemstack, this::spawnAtLocation);
+                 this.dropFromEntityInteractLootTable(serverlevel, BuiltInLootTables.ARMADILLO_BRUSH, entity, itemstack, this::spawnAtLocation);
 +                this.forceDrops = false; // CraftBukkit
-                 this.playSound(SoundEffects.ARMADILLO_BRUSH);
+                 this.playSound(SoundEvents.ARMADILLO_BRUSH);
                  this.gameEvent(GameEvent.ENTITY_INTERACT);
              }

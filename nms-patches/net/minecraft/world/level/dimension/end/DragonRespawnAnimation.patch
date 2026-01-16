@@ -1,0 +1,56 @@
+--- a/net/minecraft/world/level/dimension/end/DragonRespawnAnimation.java
++++ b/net/minecraft/world/level/dimension/end/DragonRespawnAnimation.java
+@@ -12,6 +12,10 @@
+ import net.minecraft.world.level.levelgen.feature.SpikeFeature;
+ import net.minecraft.world.level.levelgen.feature.configurations.SpikeConfiguration;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public enum DragonRespawnAnimation {
+ 
+     START {
+@@ -23,7 +27,7 @@
+                 endcrystal.setBeamTarget(blockpos1);
+             }
+ 
+-            enddragonfight.setRespawnStage(null.PREPARING_TO_SUMMON_PILLARS);
++            enddragonfight.setRespawnStage(PREPARING_TO_SUMMON_PILLARS); // CraftBukkit - decompile error
+         }
+     },
+     PREPARING_TO_SUMMON_PILLARS {
+@@ -34,7 +38,7 @@
+                     serverlevel.levelEvent(3001, new BlockPos(0, 128, 0), 0);
+                 }
+             } else {
+-                enddragonfight.setRespawnStage(null.SUMMONING_PILLARS);
++                enddragonfight.setRespawnStage(SUMMONING_PILLARS); // CraftBukkit - decompile error
+             }
+ 
+         }
+@@ -70,7 +74,7 @@
+                         Feature.END_SPIKE.place(spikeconfiguration, serverlevel, serverlevel.getChunkSource().getGenerator(), RandomSource.create(), new BlockPos(spikefeature_endspike.getCenterX(), 45, spikefeature_endspike.getCenterZ()));
+                     }
+                 } else if (flag) {
+-                    enddragonfight.setRespawnStage(null.SUMMONING_DRAGON);
++                    enddragonfight.setRespawnStage(SUMMONING_DRAGON); // CraftBukkit - decompile error
+                 }
+             }
+ 
+@@ -80,13 +84,13 @@
+         @Override
+         public void tick(ServerLevel serverlevel, EndDragonFight enddragonfight, List<EndCrystal> list, int i, BlockPos blockpos) {
+             if (i >= 100) {
+-                enddragonfight.setRespawnStage(null.END);
++                enddragonfight.setRespawnStage(END); // CraftBukkit - decompile error
+                 enddragonfight.resetSpikeCrystals();
+ 
+                 for (EndCrystal endcrystal : list) {
+                     endcrystal.setBeamTarget((BlockPos) null);
+                     serverlevel.explode(endcrystal, endcrystal.getX(), endcrystal.getY(), endcrystal.getZ(), 6.0F, Level.ExplosionInteraction.NONE);
+-                    endcrystal.discard();
++                    endcrystal.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
+                 }
+             } else if (i >= 80) {
+                 serverlevel.levelEvent(3001, new BlockPos(0, 128, 0), 0);

@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/level/block/PoweredRailBlock.java
++++ b/net/minecraft/world/level/block/PoweredRailBlock.java
+@@ -12,6 +12,8 @@
+ import net.minecraft.world.level.block.state.properties.Property;
+ import net.minecraft.world.level.block.state.properties.RailShape;
+ 
++import org.bukkit.craftbukkit.event.CraftEventFactory; // CraftBukkit
++
+ public class PoweredRailBlock extends BaseRailBlock {
+ 
+     public static final MapCodec<PoweredRailBlock> CODEC = simpleCodec(PoweredRailBlock::new);
+@@ -120,6 +122,13 @@
+         boolean flag1 = level.hasNeighborSignal(blockpos) || this.findPoweredRailSignal(level, blockpos, blockstate, true, 0) || this.findPoweredRailSignal(level, blockpos, blockstate, false, 0);
+ 
+         if (flag1 != flag) {
++            // CraftBukkit start
++            int power = flag ? 15 : 0;
++            int newPower = CraftEventFactory.callRedstoneChange(level, blockpos, power, 15 - power).getNewCurrent();
++            if (newPower == power) {
++                return;
++            }
++            // CraftBukkit end
+             level.setBlock(blockpos, (BlockState) blockstate.setValue(PoweredRailBlock.POWERED, flag1), 3);
+             level.updateNeighborsAt(blockpos.below(), this);
+             if (((RailShape) blockstate.getValue(PoweredRailBlock.SHAPE)).isSlope()) {

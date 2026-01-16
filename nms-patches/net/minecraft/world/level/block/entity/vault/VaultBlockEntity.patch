@@ -1,8 +1,8 @@
 --- a/net/minecraft/world/level/block/entity/vault/VaultBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/vault/VaultBlockEntity.java
 @@ -42,6 +42,13 @@
- import net.minecraft.world.level.storage.loot.parameters.LootContextParameters;
- import net.minecraft.world.phys.Vec3D;
+ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
  
 +// CraftBukkit start
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
@@ -11,10 +11,10 @@
 +import org.bukkit.event.block.VaultDisplayItemEvent;
 +// CraftBukkit end
 +
- public class VaultBlockEntity extends TileEntity {
+ public class VaultBlockEntity extends BlockEntity {
  
      private final VaultServerData serverData = new VaultServerData();
-@@ -82,13 +89,13 @@
+@@ -81,13 +88,13 @@
          VaultServerData vaultserverdata = this.serverData;
  
          Objects.requireNonNull(this.serverData);
@@ -29,28 +29,28 @@
 +        ((Optional<VaultSharedData>) optional).ifPresent(vaultshareddata::set); // CraftBukkit - decompile error
      }
  
-     @Nullable
-@@ -163,6 +170,14 @@
+     public @Nullable VaultServerData getServerData() {
+@@ -161,6 +168,14 @@
                      if (!list.isEmpty()) {
-                         entityhuman.awardStat(StatisticList.ITEM_USED.get(itemstack.getItem()));
-                         itemstack.consume(vaultconfig.keyItem().getCount(), entityhuman);
+                         player.awardStat(Stats.ITEM_USED.get(itemstack.getItem()));
+                         itemstack.consume(vaultconfig.keyItem().getCount(), player);
 +                        // CraftBukkit start
-+                        BlockDispenseLootEvent vaultDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(worldserver, blockposition, entityhuman, list);
++                        BlockDispenseLootEvent vaultDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(serverlevel, blockpos, player, list);
 +                        if (vaultDispenseLootEvent.isCancelled()) {
 +                            return;
 +                        }
 +
 +                        list = vaultDispenseLootEvent.getDispensedLoot().stream().map(CraftItemStack::asNMSCopy).toList();
 +                        // CraftBukkit end
-                         unlock(worldserver, iblockdata, blockposition, vaultconfig, vaultserverdata, vaultshareddata, list);
-                         vaultserverdata.addToRewardedPlayers(entityhuman);
-                         vaultshareddata.updateConnectedPlayersWithinRange(worldserver, blockposition, vaultserverdata, vaultconfig, vaultconfig.deactivationRange());
-@@ -184,6 +199,14 @@
+                         unlock(serverlevel, blockstate, blockpos, vaultconfig, vaultserverdata, vaultshareddata, list);
+                         vaultserverdata.addToRewardedPlayers(player);
+                         vaultshareddata.updateConnectedPlayersWithinRange(serverlevel, blockpos, vaultserverdata, vaultconfig, vaultconfig.deactivationRange());
+@@ -182,6 +197,14 @@
                  vaultshareddata.setDisplayItem(ItemStack.EMPTY);
              } else {
-                 ItemStack itemstack = getRandomDisplayItemFromLootTable(worldserver, blockposition, (ResourceKey) vaultconfig.overrideLootTableToDisplay().orElse(vaultconfig.lootTable()));
+                 ItemStack itemstack = getRandomDisplayItemFromLootTable(serverlevel, blockpos, (ResourceKey) vaultconfig.overrideLootTableToDisplay().orElse(vaultconfig.lootTable()));
 +                // CraftBukkit start
-+                VaultDisplayItemEvent event = CraftEventFactory.callVaultDisplayItemEvent(worldserver, blockposition, itemstack);
++                VaultDisplayItemEvent event = CraftEventFactory.callVaultDisplayItemEvent(serverlevel, blockpos, itemstack);
 +                if (event.isCancelled()) {
 +                    return;
 +                }

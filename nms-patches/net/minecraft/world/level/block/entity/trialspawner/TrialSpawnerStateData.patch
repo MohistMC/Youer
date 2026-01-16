@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/level/block/entity/trialspawner/TrialSpawnerStateData.java
++++ b/net/minecraft/world/level/block/entity/trialspawner/TrialSpawnerStateData.java
+@@ -184,7 +184,7 @@
+     }
+ 
+     public void resetAfterBecomingOminous(TrialSpawner trialspawner, ServerLevel serverlevel) {
+-        Stream stream = this.currentMobs.stream();
++        Stream<UUID> stream = this.currentMobs.stream(); // CraftBukkit - decompile error
+ 
+         Objects.requireNonNull(serverlevel);
+         stream.map(serverlevel::getEntity).forEach((entity) -> {
+@@ -196,7 +196,7 @@
+                     mob.dropPreservedEquipment(serverlevel);
+                 }
+ 
+-                entity.remove(Entity.RemovalReason.DISCARDED);
++                entity.remove(Entity.RemovalReason.DISCARDED, org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - Add bukkit remove cause;
+             }
+         });
+         if (!trialspawner.ominousConfig().spawnPotentialsDefinition().isEmpty()) {

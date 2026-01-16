@@ -2,26 +2,26 @@
 +++ b/net/minecraft/world/item/consume_effects/RemoveStatusEffectsConsumeEffect.java
 @@ -14,6 +14,10 @@
  import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.level.World;
+ import net.minecraft.world.level.Level;
  
 +// CraftBukkit start
 +import org.bukkit.event.entity.EntityPotionEffectEvent;
 +// CraftBukkit end
 +
- public record RemoveStatusEffectsConsumeEffect(HolderSet<MobEffectList> effects) implements ConsumeEffect {
+ public record RemoveStatusEffectsConsumeEffect(HolderSet<MobEffect> effects) implements ConsumeEffect {
  
      public static final MapCodec<RemoveStatusEffectsConsumeEffect> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
 @@ -31,11 +35,11 @@
      }
  
      @Override
--    public boolean apply(World world, ItemStack itemstack, EntityLiving entityliving) {
-+    public boolean apply(World world, ItemStack itemstack, EntityLiving entityliving, EntityPotionEffectEvent.Cause cause) { // CraftBukkit
+-    public boolean apply(Level level, ItemStack itemstack, LivingEntity livingentity) {
++    public boolean apply(Level level, ItemStack itemstack, LivingEntity livingentity, EntityPotionEffectEvent.Cause cause) { // CraftBukkit
          boolean flag = false;
  
-         for (Holder<MobEffectList> holder : this.effects) {
--            if (entityliving.removeEffect(holder)) {
-+            if (entityliving.removeEffect(holder, cause)) { // CraftBukkit
+         for (Holder<MobEffect> holder : this.effects) {
+-            if (livingentity.removeEffect(holder)) {
++            if (livingentity.removeEffect(holder, cause)) { // CraftBukkit
                  flag = true;
              }
          }

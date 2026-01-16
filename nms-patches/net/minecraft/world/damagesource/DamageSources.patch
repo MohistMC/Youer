@@ -8,8 +8,8 @@
 +    private final DamageSource melting;
 +    private final DamageSource poison;
  
-     public DamageSources(IRegistryCustom iregistrycustom) {
-         this.damageTypes = iregistrycustom.lookupOrThrow(Registries.DAMAGE_TYPE);
+     public DamageSources(RegistryAccess registryaccess) {
+         this.damageTypes = registryaccess.lookupOrThrow(Registries.DAMAGE_TYPE);
 +        this.melting = this.source(DamageTypes.ON_FIRE).melting();
 +        this.poison = this.source(DamageTypes.MAGIC).poison();
 +        // CraftBukkit end
@@ -51,14 +51,14 @@
 @@ -262,7 +284,13 @@
      }
  
-     public DamageSource badRespawnPointExplosion(Vec3D vec3d) {
--        return new DamageSource(this.damageTypes.getOrThrow(DamageTypes.BAD_RESPAWN_POINT), vec3d);
+     public DamageSource badRespawnPointExplosion(Vec3 vec3) {
+-        return new DamageSource(this.damageTypes.getOrThrow(DamageTypes.BAD_RESPAWN_POINT), vec3);
 +        // CraftBukkit start
-+        return badRespawnPointExplosion(vec3d, null);
++        return badRespawnPointExplosion(vec3, null);
 +    }
 +
-+    public DamageSource badRespawnPointExplosion(Vec3D vec3d, org.bukkit.block.BlockState blockState) {
-+        return new DamageSource(this.damageTypes.getOrThrow(DamageTypes.BAD_RESPAWN_POINT), vec3d).directBlockState(blockState);
++    public DamageSource badRespawnPointExplosion(Vec3 vec3, org.bukkit.block.BlockState blockState) {
++        return new DamageSource(this.damageTypes.getOrThrow(DamageTypes.BAD_RESPAWN_POINT), vec3).directBlockState(blockState);
 +        // CraftBukkit end
      }
  

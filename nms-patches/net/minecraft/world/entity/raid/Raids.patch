@@ -1,0 +1,36 @@
+--- a/net/minecraft/world/entity/raid/Raids.java
++++ b/net/minecraft/world/entity/raid/Raids.java
+@@ -149,11 +149,23 @@
+ 
+                 Raid raid = this.getOrCreateRaid(serverlevel, blockpos2);
+ 
++                /* CraftBukkit - moved down
+                 if (!raid.isStarted() && !this.raidMap.containsValue(raid)) {
+                     this.raidMap.put(this.getUniqueId(), raid);
+                 }
++                */
+ 
+-                if (!raid.isStarted() || raid.getRaidOmenLevel() < raid.getMaxRaidOmenLevel()) {
++                if (!raid.isStarted() || (raid.isInProgress() && raid.getRaidOmenLevel() < raid.getMaxRaidOmenLevel())) { // CraftBukkit - fixed a bug with raid: players could add up Bad Omen level even when the raid had finished
++                    // CraftBukkit start
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callRaidTriggerEvent(raid, serverlevel, serverplayer)) {
++                        serverplayer.removeEffect(net.minecraft.world.effect.MobEffects.RAID_OMEN);
++                        return null;
++                    }
++
++                    if (!raid.isStarted() && !this.raidMap.containsValue(raid)) {
++                        this.raidMap.put(this.getUniqueId(), raid);
++                    }
++                    // CraftBukkit end
+                     raid.absorbRaidOmen(serverplayer);
+                 }
+ 
+@@ -197,7 +209,7 @@
+ 
+     @VisibleForDebug
+     public List<BlockPos> getRaidCentersInChunk(ChunkPos chunkpos) {
+-        Stream stream = this.raidMap.values().stream().map(Raid::getCenter);
++        Stream<BlockPos> stream = this.raidMap.values().stream().map(Raid::getCenter); // CraftBukkit - decompile error
+ 
+         Objects.requireNonNull(chunkpos);
+         return stream.filter(chunkpos::contains).toList();

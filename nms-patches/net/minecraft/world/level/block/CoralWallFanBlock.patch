@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/level/block/CoralWallFanBlock.java
++++ b/net/minecraft/world/level/block/CoralWallFanBlock.java
+@@ -41,6 +41,11 @@
+     @Override
+     protected void tick(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, RandomSource randomsource) {
+         if (!scanForWater(blockstate, serverlevel, blockpos)) {
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(serverlevel, blockpos, this.deadBlock.defaultBlockState().setValue(CoralWallFanBlock.WATERLOGGED, false).setValue(CoralWallFanBlock.FACING, blockstate.getValue(CoralWallFanBlock.FACING))).isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
+             serverlevel.setBlock(blockpos, (BlockState) ((BlockState) this.deadBlock.defaultBlockState().setValue(CoralWallFanBlock.WATERLOGGED, false)).setValue(CoralWallFanBlock.FACING, (Direction) blockstate.getValue(CoralWallFanBlock.FACING)), 2);
+         }
+ 

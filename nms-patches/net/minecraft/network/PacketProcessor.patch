@@ -1,7 +1,7 @@
 --- a/net/minecraft/network/PacketProcessor.java
 +++ b/net/minecraft/network/PacketProcessor.java
 @@ -9,6 +9,10 @@
- import net.minecraft.network.protocol.PlayerConnectionUtils;
+ import net.minecraft.network.protocol.PacketUtils;
  import org.slf4j.Logger;
  
 +// CraftBukkit start
@@ -10,9 +10,9 @@
 +
  public class PacketProcessor implements AutoCloseable {
  
-     static final Logger LOGGER = LogUtils.getLogger();
+     private static final Logger LOGGER = LogUtils.getLogger();
 @@ -48,6 +52,7 @@
-     private static record a<T extends PacketListener>(T listener, Packet<T> packet) {
+     private static record ListenerAndPacket<T extends PacketListener>(T listener, Packet<T> packet) {
  
          public void handle() {
 +            if (this.listener instanceof ServerCommonPacketListenerImpl serverCommonPacketListener && serverCommonPacketListener.processedDisconnect) return; // CraftBukkit - Don't handle sync packets for kicked players

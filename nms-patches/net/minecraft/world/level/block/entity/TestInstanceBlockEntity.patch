@@ -2,23 +2,23 @@
 +++ b/net/minecraft/world/level/block/entity/TestInstanceBlockEntity.java
 @@ -107,12 +107,12 @@
  
-     public IChatBaseComponent getTestName() {
-         return (IChatBaseComponent) this.test().map((resourcekey) -> {
--            return IChatBaseComponent.literal(resourcekey.location().toString());
-+            return (IChatBaseComponent) IChatBaseComponent.literal(resourcekey.location().toString()); // CraftBukkit - decompile error
+     public Component getTestName() {
+         return (Component) this.test().map((resourcekey) -> {
+-            return Component.literal(resourcekey.identifier().toString());
++            return (Component) Component.literal(resourcekey.identifier().toString()); // CraftBukkit - decompile error
          }).orElse(TestInstanceBlockEntity.INVALID_TEST_NAME);
      }
  
-     private Optional<Holder.c<GameTestInstance>> getTestHolder() {
+     private Optional<Holder.Reference<GameTestInstance>> getTestHolder() {
 -        Optional optional = this.test();
 +        Optional<ResourceKey<GameTestInstance>> optional = this.test(); // CraftBukkit - decompile error
-         IRegistryCustom iregistrycustom = this.level.registryAccess();
+         RegistryAccess registryaccess = this.level.registryAccess();
  
-         Objects.requireNonNull(iregistrycustom);
+         Objects.requireNonNull(registryaccess);
 @@ -366,7 +366,7 @@
      private void removeEntities() {
          this.level.getEntities((Entity) null, this.getStructureBounds()).stream().filter((entity) -> {
-             return !(entity instanceof EntityHuman);
+             return !(entity instanceof Player);
 -        }).forEach(Entity::discard);
 +        }).forEach((entity) -> entity.discard(null)); // CraftBukkit - add Bukkit remove cause
      }

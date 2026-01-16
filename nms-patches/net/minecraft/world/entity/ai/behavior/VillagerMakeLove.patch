@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/entity/ai/behavior/VillagerMakeLove.java
++++ b/net/minecraft/world/entity/ai/behavior/VillagerMakeLove.java
+@@ -17,6 +17,11 @@
+ import net.minecraft.world.entity.npc.villager.Villager;
+ import net.minecraft.world.level.pathfinder.Path;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.CreatureSpawnEvent;
++// CraftBukkit end
++
+ public class VillagerMakeLove extends Behavior<Villager> {
+ 
+     private long birthTimestamp;
+@@ -113,11 +118,17 @@
+         if (villager2 == null) {
+             return Optional.empty();
+         } else {
+-            villager.setAge(6000);
+-            villager1.setAge(6000);
+             villager2.setAge(-24000);
+             villager2.snapTo(villager.getX(), villager.getY(), villager.getZ(), 0.0F, 0.0F);
+-            serverlevel.addFreshEntityWithPassengers(villager2);
++            // CraftBukkit start - call EntityBreedEvent
++            if (CraftEventFactory.callEntityBreedEvent(villager2, villager, villager1, null, null, 0).isCancelled()) {
++                return Optional.empty();
++            }
++            // Move age setting down
++            villager.setAge(6000);
++            villager1.setAge(6000);
++            serverlevel.addFreshEntityWithPassengers(villager2, CreatureSpawnEvent.SpawnReason.BREEDING);
++            // CraftBukkit end
+             serverlevel.broadcastEntityEvent(villager2, (byte) 12);
+             return Optional.of(villager2);
+         }

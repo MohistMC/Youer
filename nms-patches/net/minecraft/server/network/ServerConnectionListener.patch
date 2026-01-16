@@ -1,0 +1,23 @@
+--- a/net/minecraft/server/network/ServerConnectionListener.java
++++ b/net/minecraft/server/network/ServerConnectionListener.java
+@@ -76,9 +76,19 @@
+                     connection.configurePacketHandler(channelpipeline);
+                     connection.setListenerForServerboundHandshake(new ServerHandshakePacketListenerImpl(ServerConnectionListener.this.server, connection));
+                 }
+-            }).group(eventloopgroupholder.eventLoopGroup()).localAddress(inetaddress, i)).bind().syncUninterruptibly());
++            }).group(eventloopgroupholder.eventLoopGroup()).localAddress(inetaddress, i)).option(ChannelOption.AUTO_READ, false).bind().syncUninterruptibly()); // CraftBukkit
++        }
++    }
++
++    // CraftBukkit start
++    public void acceptConnections() {
++        synchronized (this.channels) {
++            for (ChannelFuture future : this.channels) {
++                future.channel().config().setAutoRead(true);
++            }
+         }
+     }
++    // CraftBukkit end
+ 
+     public SocketAddress startMemoryChannel() {
+         ChannelFuture channelfuture;

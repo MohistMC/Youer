@@ -1,0 +1,141 @@
+--- a/net/minecraft/world/entity/monster/zombie/Zombie.java
++++ b/net/minecraft/world/entity/monster/zombie/Zombie.java
+@@ -64,6 +64,14 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.entity.EntityCombustByEntityEvent;
++import org.bukkit.event.entity.EntityTargetEvent;
++import org.bukkit.event.entity.EntityTransformEvent;
++// CraftBukkit end
++
+ public class Zombie extends Monster {
+ 
+     private static final Identifier SPEED_MODIFIER_BABY_ID = Identifier.withDefaultNamespace("baby");
+@@ -92,6 +100,7 @@
+     private boolean canBreakDoors;
+     private int inWaterTime;
+     public int conversionTime;
++    private int lastTick = MinecraftServer.currentTick; // CraftBukkit - add field
+ 
+     public Zombie(EntityType<? extends Zombie> entitytype, Level level) {
+         super(entitytype, level);
+@@ -210,7 +219,10 @@
+         if (level instanceof ServerLevel serverlevel) {
+             if (this.isAlive() && !this.isNoAi()) {
+                 if (this.isUnderWaterConverting()) {
+-                    --this.conversionTime;
++                    // CraftBukkit start - Use wall time instead of ticks for conversion
++                    int elapsedTicks = MinecraftServer.currentTick - this.lastTick;
++                    this.conversionTime -= elapsedTicks;
++                    // CraftBukkit end
+                     if (this.conversionTime < 0) {
+                         this.doUnderWaterConversion(serverlevel);
+                     }
+@@ -228,9 +240,11 @@
+         }
+ 
+         super.tick();
++        this.lastTick = MinecraftServer.currentTick; // CraftBukkit
+     }
+ 
+     public void startUnderWaterConversion(int i) {
++        this.lastTick = MinecraftServer.currentTick; // CraftBukkit
+         this.conversionTime = i;
+         this.getEntityData().set(Zombie.DATA_DROWNED_CONVERSION_ID, true);
+     }
+@@ -244,26 +258,39 @@
+     }
+ 
+     protected void convertToZombieType(ServerLevel serverlevel, EntityType<? extends Zombie> entitytype) {
+-        this.convertTo(entitytype, ConversionParams.single(this, true, true), (zombie) -> {
++        Zombie converted = this.convertTo(entitytype, ConversionParams.single(this, true, true), (zombie) -> { // CraftBukkit
+             zombie.handleAttributes(serverlevel.getCurrentDifficultyAt(zombie.blockPosition()).getSpecialMultiplier());
+-        });
++        // CraftBukkit start
++        }, EntityTransformEvent.TransformReason.DROWNED, CreatureSpawnEvent.SpawnReason.DROWNED);
++        if (converted == null) {
++            ((org.bukkit.entity.Zombie) getBukkitEntity()).setConversionTime(-1); // CraftBukkit - SPIGOT-5208: End conversion to stop event spam
++        }
++        // CraftBukkit end
+     }
+ 
+     @VisibleForTesting
+     public boolean convertVillagerToZombieVillager(ServerLevel serverlevel, Villager villager) {
++        // CraftBukkit start
++        return convertVillagerToZombieVillager(serverlevel, villager, this.blockPosition(), this.isSilent(), EntityTransformEvent.TransformReason.INFECTION, CreatureSpawnEvent.SpawnReason.INFECTION) != null;
++    }
++
++    public static ZombieVillager convertVillagerToZombieVillager(ServerLevel serverlevel, Villager villager, net.minecraft.core.BlockPos blockPosition, boolean silent, EntityTransformEvent.TransformReason transformReason, CreatureSpawnEvent.SpawnReason spawnReason) {
++        // CraftBukkit end
+         ZombieVillager zombievillager = (ZombieVillager) villager.convertTo(EntityType.ZOMBIE_VILLAGER, ConversionParams.single(villager, true, true), (zombievillager1) -> {
+             zombievillager1.finalizeSpawn(serverlevel, serverlevel.getCurrentDifficultyAt(zombievillager1.blockPosition()), EntitySpawnReason.CONVERSION, new Zombie.ZombieGroupData(false, true));
+             zombievillager1.setVillagerData(villager.getVillagerData());
+             zombievillager1.setGossips(villager.getGossips().copy());
+             zombievillager1.setTradeOffers(villager.getOffers().copy());
+             zombievillager1.setVillagerXp(villager.getVillagerXp());
+-            if (!this.isSilent()) {
+-                serverlevel.levelEvent((Entity) null, 1026, this.blockPosition(), 0);
++            // CraftBukkit start
++            if (!silent) {
++                serverlevel.levelEvent((Entity) null, 1026, blockPosition, 0);
+             }
+ 
+-        });
++        }, transformReason, spawnReason);
+ 
+-        return zombievillager != null;
++        return zombievillager;
++        // CraftBukkit end
+     }
+ 
+     protected boolean isSunSensitive() {
+@@ -301,9 +328,9 @@
+                     if (SpawnPlacements.isSpawnPositionOk(entitytype, serverlevel, blockpos) && SpawnPlacements.checkSpawnRules(entitytype, serverlevel, EntitySpawnReason.REINFORCEMENT, blockpos, serverlevel.random)) {
+                         zombie.setPos((double) i1, (double) j1, (double) k1);
+                         if (!serverlevel.hasNearbyAlivePlayer((double) i1, (double) j1, (double) k1, 7.0D) && serverlevel.isUnobstructed(zombie) && serverlevel.noCollision((Entity) zombie) && (zombie.canSpawnInLiquids() || !serverlevel.containsAnyLiquid(zombie.getBoundingBox()))) {
+-                            zombie.setTarget(livingentity);
++                            zombie.setTarget(livingentity, EntityTargetEvent.TargetReason.REINFORCEMENT_TARGET, true); // CraftBukkit
+                             zombie.finalizeSpawn(serverlevel, serverlevel.getCurrentDifficultyAt(zombie.blockPosition()), EntitySpawnReason.REINFORCEMENT, (SpawnGroupData) null);
+-                            serverlevel.addFreshEntityWithPassengers(zombie);
++                            serverlevel.addFreshEntityWithPassengers(zombie, CreatureSpawnEvent.SpawnReason.REINFORCEMENTS); // CraftBukkit
+                             AttributeInstance attributeinstance = this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE);
+                             AttributeModifier attributemodifier = attributeinstance.getModifier(Zombie.REINFORCEMENT_CALLER_CHARGE_ID);
+                             double d0 = attributemodifier != null ? attributemodifier.amount() : 0.0D;
+@@ -329,7 +356,14 @@
+             float f = serverlevel.getCurrentDifficultyAt(this.blockPosition()).getEffectiveDifficulty();
+ 
+             if (this.getMainHandItem().isEmpty() && this.isOnFire() && this.random.nextFloat() < f * 0.3F) {
+-                entity.igniteForSeconds((float) (2 * (int) f));
++                // CraftBukkit start
++                EntityCombustByEntityEvent event = new EntityCombustByEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity(), (float) (2 * (int) f)); // PAIL: fixme
++                this.level().getCraftServer().getPluginManager().callEvent(event);
++
++                if (!event.isCancelled()) {
++                    entity.igniteForSeconds(event.getDuration(), false);
++                }
++                // CraftBukkit end
+             }
+         }
+ 
+@@ -362,7 +396,7 @@
+ 
+     @Override
+     public EntityType<? extends Zombie> getType() {
+-        return super.getType();
++        return (EntityType<? extends Zombie>) super.getType(); // CraftBukkit - decompile error
+     }
+ 
+     protected boolean canSpawnInLiquids() {
+@@ -479,7 +513,7 @@
+                             chicken1.finalizeSpawn(serverlevelaccessor, difficultyinstance, EntitySpawnReason.JOCKEY, (SpawnGroupData) null);
+                             chicken1.setChickenJockey(true);
+                             this.startRiding(chicken1, false, false);
+-                            serverlevelaccessor.addFreshEntity(chicken1);
++                            serverlevelaccessor.addFreshEntity(chicken1, CreatureSpawnEvent.SpawnReason.MOUNT); // CraftBukkit
+                         }
+                     }
+                 }

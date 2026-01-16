@@ -1,0 +1,172 @@
+--- a/net/minecraft/world/level/portal/PortalShape.java
++++ b/net/minecraft/world/level/portal/PortalShape.java
+@@ -23,6 +23,11 @@
+ import org.apache.commons.lang3.mutable.MutableInt;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.util.BlockStateListPopulator;
++import org.bukkit.event.world.PortalCreateEvent;
++// CraftBukkit end
++
+ public class PortalShape {
+ 
+     private static final int MIN_WIDTH = 2;
+@@ -40,8 +45,12 @@
+     private final BlockPos bottomLeft;
+     private final int height;
+     private final int width;
++    // CraftBukkit start - add field
++    private final BlockStateListPopulator blocks;
+ 
+-    private PortalShape(Direction.Axis direction_axis, int i, Direction direction, BlockPos blockpos, int j, int k) {
++    private PortalShape(Direction.Axis direction_axis, int i, Direction direction, BlockPos blockpos, int j, int k, BlockStateListPopulator blocks) {
++        this.blocks = blocks;
++        // CraftBukkit end
+         this.axis = direction_axis;
+         this.numPortalBlocks = i;
+         this.rightDir = direction;
+@@ -69,43 +78,44 @@
+     }
+ 
+     public static PortalShape findAnyShape(BlockGetter blockgetter, BlockPos blockpos, Direction.Axis direction_axis) {
++        BlockStateListPopulator blocks = new BlockStateListPopulator(((LevelAccessor) blockgetter).getMinecraftWorld()); // CraftBukkit
+         Direction direction = direction_axis == Direction.Axis.X ? Direction.WEST : Direction.SOUTH;
+-        BlockPos blockpos1 = calculateBottomLeft(blockgetter, direction, blockpos);
++        BlockPos blockpos1 = calculateBottomLeft(blockgetter, direction, blockpos, blocks); // CraftBukkit
+ 
+         if (blockpos1 == null) {
+-            return new PortalShape(direction_axis, 0, direction, blockpos, 0, 0);
++            return new PortalShape(direction_axis, 0, direction, blockpos, 0, 0, blocks); // CraftBukkit
+         } else {
+-            int i = calculateWidth(blockgetter, blockpos1, direction);
++            int i = calculateWidth(blockgetter, blockpos1, direction, blocks); // CraftBukkit
+ 
+             if (i == 0) {
+-                return new PortalShape(direction_axis, 0, direction, blockpos1, 0, 0);
++                return new PortalShape(direction_axis, 0, direction, blockpos1, 0, 0, blocks); // CraftBukkit
+             } else {
+                 MutableInt mutableint = new MutableInt();
+-                int j = calculateHeight(blockgetter, blockpos1, direction, i, mutableint);
++                int j = calculateHeight(blockgetter, blockpos1, direction, i, mutableint, blocks); // CraftBukkit
+ 
+-                return new PortalShape(direction_axis, mutableint.intValue(), direction, blockpos1, i, j);
++                return new PortalShape(direction_axis, mutableint.intValue(), direction, blockpos1, i, j, blocks); // CraftBukkit
+             }
+         }
+     }
+ 
+-    private static @Nullable BlockPos calculateBottomLeft(BlockGetter blockgetter, Direction direction, BlockPos blockpos) {
++    private static @Nullable BlockPos calculateBottomLeft(BlockGetter blockgetter, Direction direction, BlockPos blockpos, BlockStateListPopulator blocks) { // CraftBukkit
+         for (int i = Math.max(blockgetter.getMinY(), blockpos.getY() - 21); blockpos.getY() > i && isEmpty(blockgetter.getBlockState(blockpos.below())); blockpos = blockpos.below()) {
+             ;
+         }
+ 
+         Direction direction1 = direction.getOpposite();
+-        int j = getDistanceUntilEdgeAboveFrame(blockgetter, blockpos, direction1) - 1;
++        int j = getDistanceUntilEdgeAboveFrame(blockgetter, blockpos, direction1, blocks) - 1; // CraftBukkit
+ 
+         return j < 0 ? null : blockpos.relative(direction1, j);
+     }
+ 
+-    private static int calculateWidth(BlockGetter blockgetter, BlockPos blockpos, Direction direction) {
+-        int i = getDistanceUntilEdgeAboveFrame(blockgetter, blockpos, direction);
++    private static int calculateWidth(BlockGetter blockgetter, BlockPos blockpos, Direction direction, BlockStateListPopulator blocks) { // CraftBukkit
++        int i = getDistanceUntilEdgeAboveFrame(blockgetter, blockpos, direction, blocks); // CraftBukkit
+ 
+         return i >= 2 && i <= 21 ? i : 0;
+     }
+ 
+-    private static int getDistanceUntilEdgeAboveFrame(BlockGetter blockgetter, BlockPos blockpos, Direction direction) {
++    private static int getDistanceUntilEdgeAboveFrame(BlockGetter blockgetter, BlockPos blockpos, Direction direction, BlockStateListPopulator blocks) { // CraftBukkit
+         BlockPos.MutableBlockPos blockpos_mutableblockpos = new BlockPos.MutableBlockPos();
+ 
+         for (int i = 0; i <= 21; ++i) {
+@@ -114,6 +124,7 @@
+ 
+             if (!isEmpty(blockstate)) {
+                 if (PortalShape.FRAME.test(blockstate, blockgetter, blockpos_mutableblockpos)) {
++                    blocks.setBlock(blockpos_mutableblockpos, blockstate, 18); // CraftBukkit - lower left / right
+                     return i;
+                 }
+                 break;
+@@ -124,31 +135,33 @@
+             if (!PortalShape.FRAME.test(blockstate1, blockgetter, blockpos_mutableblockpos)) {
+                 break;
+             }
++            blocks.setBlock(blockpos_mutableblockpos, blockstate1, 18); // CraftBukkit - bottom row
+         }
+ 
+         return 0;
+     }
+ 
+-    private static int calculateHeight(BlockGetter blockgetter, BlockPos blockpos, Direction direction, int i, MutableInt mutableint) {
++    private static int calculateHeight(BlockGetter blockgetter, BlockPos blockpos, Direction direction, int i, MutableInt mutableint, BlockStateListPopulator blocks) { // CraftBukkit
+         BlockPos.MutableBlockPos blockpos_mutableblockpos = new BlockPos.MutableBlockPos();
+-        int j = getDistanceUntilTop(blockgetter, blockpos, direction, blockpos_mutableblockpos, i, mutableint);
++        int j = getDistanceUntilTop(blockgetter, blockpos, direction, blockpos_mutableblockpos, i, mutableint, blocks); // CraftBukkit
+ 
+-        return j >= 3 && j <= 21 && hasTopFrame(blockgetter, blockpos, direction, blockpos_mutableblockpos, i, j) ? j : 0;
++        return j >= 3 && j <= 21 && hasTopFrame(blockgetter, blockpos, direction, blockpos_mutableblockpos, i, j, blocks) ? j : 0; // CraftBukkit
+     }
+ 
+-    private static boolean hasTopFrame(BlockGetter blockgetter, BlockPos blockpos, Direction direction, BlockPos.MutableBlockPos blockpos_mutableblockpos, int i, int j) {
++    private static boolean hasTopFrame(BlockGetter blockgetter, BlockPos blockpos, Direction direction, BlockPos.MutableBlockPos blockpos_mutableblockpos, int i, int j, BlockStateListPopulator blocks) { // CraftBukkit
+         for (int k = 0; k < i; ++k) {
+             BlockPos.MutableBlockPos blockpos_mutableblockpos1 = blockpos_mutableblockpos.set(blockpos).move(Direction.UP, j).move(direction, k);
+ 
+             if (!PortalShape.FRAME.test(blockgetter.getBlockState(blockpos_mutableblockpos1), blockgetter, blockpos_mutableblockpos1)) {
+                 return false;
+             }
++            blocks.setBlock(blockpos_mutableblockpos1, blockgetter.getBlockState(blockpos_mutableblockpos1), 18); // CraftBukkit - upper row
+         }
+ 
+         return true;
+     }
+ 
+-    private static int getDistanceUntilTop(BlockGetter blockgetter, BlockPos blockpos, Direction direction, BlockPos.MutableBlockPos blockpos_mutableblockpos, int i, MutableInt mutableint) {
++    private static int getDistanceUntilTop(BlockGetter blockgetter, BlockPos blockpos, Direction direction, BlockPos.MutableBlockPos blockpos_mutableblockpos, int i, MutableInt mutableint, BlockStateListPopulator blocks) { // CraftBukkit
+         for (int j = 0; j < 21; ++j) {
+             blockpos_mutableblockpos.set(blockpos).move(Direction.UP, j).move(direction, -1);
+             if (!PortalShape.FRAME.test(blockgetter.getBlockState(blockpos_mutableblockpos), blockgetter, blockpos_mutableblockpos)) {
+@@ -172,6 +185,10 @@
+                     mutableint.increment();
+                 }
+             }
++            // CraftBukkit start - left and right
++            blocks.setBlock(blockpos_mutableblockpos.set(blockpos).move(Direction.UP, j).move(direction, -1), blockgetter.getBlockState(blockpos_mutableblockpos), 18);
++            blocks.setBlock(blockpos_mutableblockpos.set(blockpos).move(Direction.UP, j).move(direction, i), blockgetter.getBlockState(blockpos_mutableblockpos), 18);
++            // CraftBukkit end
+         }
+ 
+         return 21;
+@@ -185,12 +202,28 @@
+         return this.width >= 2 && this.width <= 21 && this.height >= 3 && this.height <= 21;
+     }
+ 
+-    public void createPortalBlocks(LevelAccessor levelaccessor) {
++    // CraftBukkit start - return boolean, add entity
++    public boolean createPortalBlocks(LevelAccessor levelaccessor, Entity entity) {
++        org.bukkit.World bworld = levelaccessor.getMinecraftWorld().getWorld();
++
++        // Copy below for loop
+         BlockState blockstate = (BlockState) Blocks.NETHER_PORTAL.defaultBlockState().setValue(NetherPortalBlock.AXIS, this.axis);
+ 
+         BlockPos.betweenClosed(this.bottomLeft, this.bottomLeft.relative(Direction.UP, this.height - 1).relative(this.rightDir, this.width - 1)).forEach((blockpos) -> {
++            blocks.setBlock(blockpos, blockstate, 18);
++        });
++
++        PortalCreateEvent event = new PortalCreateEvent((java.util.List<org.bukkit.block.BlockState>) (java.util.List) blocks.getList(), bworld, (entity == null) ? null : entity.getBukkitEntity(), PortalCreateEvent.CreateReason.FIRE);
++        levelaccessor.getMinecraftWorld().getServer().server.getPluginManager().callEvent(event);
++
++        if (event.isCancelled()) {
++            return false;
++        }
++        // CraftBukkit end
++        BlockPos.betweenClosed(this.bottomLeft, this.bottomLeft.relative(Direction.UP, this.height - 1).relative(this.rightDir, this.width - 1)).forEach((blockpos) -> {
+             levelaccessor.setBlock(blockpos, blockstate, 18);
+         });
++        return true; // CraftBukkit
+     }
+ 
+     public boolean isComplete() {

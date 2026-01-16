@@ -2,13 +2,13 @@
 +++ b/net/minecraft/world/level/block/AbstractCandleBlock.java
 @@ -47,6 +47,11 @@
      @Override
-     protected void onProjectileHit(World world, IBlockData iblockdata, MovingObjectPositionBlock movingobjectpositionblock, IProjectile iprojectile) {
-         if (!world.isClientSide() && iprojectile.isOnFire() && this.canBeLit(iblockdata)) {
+     protected void onProjectileHit(Level level, BlockState blockstate, BlockHitResult blockhitresult, Projectile projectile) {
+         if (!level.isClientSide() && projectile.isOnFire() && this.canBeLit(blockstate)) {
 +            // CraftBukkit start
-+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(world, movingobjectpositionblock.getBlockPos(), iprojectile).isCancelled()) {
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, blockhitresult.getBlockPos(), projectile).isCancelled()) {
 +                return;
 +            }
 +            // CraftBukkit end
-             setLit(world, iblockdata, movingobjectpositionblock.getBlockPos(), true);
+             setLit(level, blockstate, blockhitresult.getBlockPos(), true);
          }
  

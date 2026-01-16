@@ -1,0 +1,351 @@
+--- a/net/minecraft/world/entity/Mob.java
++++ b/net/minecraft/world/entity/Mob.java
+@@ -92,6 +92,23 @@
+ import net.minecraft.world.ticks.ContainerSingleItem;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import java.util.Arrays;
++import org.bukkit.Location;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.craftbukkit.entity.CraftLivingEntity;
++import org.bukkit.entity.HumanEntity;
++import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
++import org.bukkit.event.entity.EntityTargetEvent;
++import org.bukkit.event.entity.EntityTransformEvent;
++import org.bukkit.event.entity.EntityUnleashEvent;
++import org.bukkit.event.entity.EntityUnleashEvent.UnleashReason;
++import org.bukkit.inventory.InventoryHolder;
++// CraftBukkit end
++
+ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUser, Leashable {
+ 
+     private static final EntityDataAccessor<Byte> DATA_MOB_FLAGS_ID = SynchedEntityData.<Byte>defineId(Mob.class, EntityDataSerializers.BYTE);
+@@ -139,6 +156,8 @@
+     private BlockPos homePosition;
+     private int homeRadius;
+ 
++    public boolean aware = true; // CraftBukkit
++
+     protected Mob(EntityType<? extends Mob> entitytype, Level level) {
+         super(entitytype, level);
+         this.dropChances = DropChances.DEFAULT;
+@@ -162,6 +181,12 @@
+ 
+     }
+ 
++    // CraftBukkit start
++    public void setPersistenceRequired(boolean persistenceRequired) {
++        this.persistenceRequired = persistenceRequired;
++    }
++    // CraftBukkit end
++
+     protected void registerGoals() {}
+ 
+     public static AttributeSupplier.Builder createMobAttributes() {
+@@ -263,11 +288,42 @@
+     }
+ 
+     protected final @Nullable LivingEntity getTargetFromBrain() {
+-        return (LivingEntity) this.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse((Object) null);
++        return (LivingEntity) this.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null); // CraftBukkit - decompile error
+     }
+ 
+     public void setTarget(@Nullable LivingEntity livingentity) {
++        // CraftBukkit start - fire event
++        setTarget(livingentity, EntityTargetEvent.TargetReason.UNKNOWN, true);
++    }
++
++    public boolean setTarget(LivingEntity livingentity, EntityTargetEvent.TargetReason reason, boolean fireEvent) {
++        if (getTarget() == livingentity) return false;
++        if (fireEvent) {
++            if (reason == EntityTargetEvent.TargetReason.UNKNOWN && getTarget() != null && livingentity == null) {
++                reason = getTarget().isAlive() ? EntityTargetEvent.TargetReason.FORGOT_TARGET : EntityTargetEvent.TargetReason.TARGET_DIED;
++            }
++            if (reason == EntityTargetEvent.TargetReason.UNKNOWN) {
++                this.level().getCraftServer().getLogger().log(java.util.logging.Level.WARNING, "Unknown target reason, please report on the issue tracker", new Exception());
++            }
++            CraftLivingEntity ctarget = null;
++            if (livingentity != null) {
++                ctarget = (CraftLivingEntity) livingentity.getBukkitEntity();
++            }
++            EntityTargetLivingEntityEvent event = new EntityTargetLivingEntityEvent(this.getBukkitEntity(), ctarget, reason);
++            this.level().getCraftServer().getPluginManager().callEvent(event);
++            if (event.isCancelled()) {
++                return false;
++            }
++
++            if (event.getTarget() != null) {
++                livingentity = ((CraftLivingEntity) event.getTarget()).getHandle();
++            } else {
++                livingentity = null;
++            }
++        }
+         this.target = livingentity;
++        return true;
++        // CraftBukkit end
+     }
+ 
+     @Override
+@@ -388,6 +444,12 @@
+         return null;
+     }
+ 
++    // CraftBukkit start - Add delegate method
++    public SoundEvent getAmbientSound0() {
++        return getAmbientSound();
++    }
++    // CraftBukkit end
++
+     @Override
+     protected void addAdditionalSaveData(ValueOutput valueoutput) {
+         super.addAdditionalSaveData(valueoutput);
+@@ -415,13 +477,23 @@
+             valueoutput.putBoolean("NoAI", this.isNoAi());
+         }
+ 
++        valueoutput.putBoolean("Bukkit.Aware", this.aware); // CraftBukkit
+     }
+ 
+     @Override
+     protected void readAdditionalSaveData(ValueInput valueinput) {
+         super.readAdditionalSaveData(valueinput);
+-        this.setCanPickUpLoot(valueinput.getBooleanOr("CanPickUpLoot", false));
+-        this.persistenceRequired = valueinput.getBooleanOr("PersistenceRequired", false);
++        // CraftBukkit start - If looting or persistence is false only use it if it was set after we started using it
++        boolean canPickUpLoot = valueinput.getBooleanOr("CanPickUpLoot", false);
++        if (isLevelAtLeast(valueinput, 1) || canPickUpLoot) {
++            this.setCanPickUpLoot(canPickUpLoot);
++        }
++
++        boolean persistenceRequired = valueinput.getBooleanOr("PersistenceRequired", false);
++        if (isLevelAtLeast(valueinput, 1) || persistenceRequired) {
++            this.persistenceRequired = persistenceRequired;
++        }
++        // CraftBukkit end
+         this.dropChances = (DropChances) valueinput.read("drop_chances", DropChances.CODEC).orElse(DropChances.DEFAULT);
+         this.readLeashData(valueinput);
+         this.homeRadius = valueinput.getIntOr("home_radius", -1);
+@@ -433,6 +505,9 @@
+         this.lootTable = valueinput.<ResourceKey<LootTable>>read("DeathLootTable", LootTable.KEY_CODEC);
+         this.lootTableSeed = valueinput.getLongOr("DeathLootTableSeed", 0L);
+         this.setNoAi(valueinput.getBooleanOr("NoAI", false));
++        // CraftBukkit start
++        this.aware = valueinput.getBooleanOr("Bukkit.Aware", this.aware);
++        // CraftBukkit end
+     }
+ 
+     @Override
+@@ -551,20 +626,26 @@
+ 
+     protected void pickUpItem(ServerLevel serverlevel, ItemEntity itementity) {
+         ItemStack itemstack = itementity.getItem();
+-        ItemStack itemstack1 = this.equipItemIfPossible(serverlevel, itemstack.copy());
++        ItemStack itemstack1 = this.equipItemIfPossible(serverlevel, itemstack.copy(), itementity); // CraftBukkit - add item
+ 
+         if (!itemstack1.isEmpty()) {
+             this.onItemPickup(itementity);
+             this.take(itementity, itemstack1.getCount());
+             itemstack.shrink(itemstack1.getCount());
+             if (itemstack.isEmpty()) {
+-                itementity.discard();
++                itementity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             }
+         }
+ 
+     }
+ 
+     public ItemStack equipItemIfPossible(ServerLevel serverlevel, ItemStack itemstack) {
++        // CraftBukkit start - add item
++        return this.equipItemIfPossible(serverlevel, itemstack, null);
++    }
++
++    public ItemStack equipItemIfPossible(ServerLevel serverlevel, ItemStack itemstack, ItemEntity itementity) {
++        // CraftBukkit end
+         EquipmentSlot equipmentslot = this.getEquipmentSlotForItem(itemstack);
+ 
+         if (!this.isEquippableInSlot(itemstack, equipmentslot)) {
+@@ -579,11 +660,19 @@
+                 flag = itemstack1.isEmpty();
+             }
+ 
+-            if (flag && this.canHoldItem(itemstack)) {
++            // CraftBukkit start
++            boolean canPickup = flag && this.canHoldItem(itemstack);
++            if (itementity != null) {
++                canPickup = !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(this, itementity, 0, !canPickup).isCancelled();
++            }
++            if (canPickup) {
++                // CraftBukkit end
+                 double d0 = (double) this.dropChances.byEquipment(equipmentslot);
+ 
+                 if (!itemstack1.isEmpty() && (double) Math.max(this.random.nextFloat() - 0.1F, 0.0F) < d0) {
++                    this.forceDrops = true; // CraftBukkit
+                     this.spawnAtLocation(serverlevel, itemstack1);
++                    this.forceDrops = false; // CraftBukkit
+                 }
+ 
+                 ItemStack itemstack2 = equipmentslot.limit(itemstack);
+@@ -690,7 +779,7 @@
+     @Override
+     public void checkDespawn() {
+         if (this.level().getDifficulty() == Difficulty.PEACEFUL && !this.getType().isAllowedInPeaceful()) {
+-            this.discard();
++            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {
+             Entity entity = this.level().getNearestPlayer(this, -1.0D);
+ 
+@@ -700,14 +789,14 @@
+                 int j = i * i;
+ 
+                 if (d0 > (double) j && this.removeWhenFarAway(d0)) {
+-                    this.discard();
++                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                 }
+ 
+                 int k = this.getType().getCategory().getNoDespawnDistance();
+                 int l = k * k;
+ 
+                 if (this.noActionTime > 600 && this.random.nextInt(800) == 0 && d0 > (double) l && this.removeWhenFarAway(d0)) {
+-                    this.discard();
++                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                 } else if (d0 < (double) l) {
+                     this.noActionTime = 0;
+                 }
+@@ -721,6 +810,7 @@
+     @Override
+     protected final void serverAiStep() {
+         ++this.noActionTime;
++        if (!this.aware) return; // CraftBukkit
+         ProfilerFiller profilerfiller = Profiler.get();
+ 
+         profilerfiller.push("sensing");
+@@ -900,6 +990,51 @@
+             public boolean stillValid(Player player) {
+                 return player.getVehicle() == Mob.this || player.isWithinEntityInteractionRange((Entity) Mob.this, 4.0D);
+             }
++
++            // CraftBukkit start - add fields and methods
++            public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
++            private int maxStack = MAX_STACK;
++
++            @Override
++            public List<ItemStack> getContents() {
++                return Arrays.asList(this.getTheItem());
++            }
++
++            @Override
++            public void onOpen(CraftHumanEntity who) {
++                transaction.add(who);
++            }
++
++            @Override
++            public void onClose(CraftHumanEntity who) {
++                transaction.remove(who);
++            }
++
++            @Override
++            public List<HumanEntity> getViewers() {
++                return transaction;
++            }
++
++            @Override
++            public int getMaxStackSize() {
++                return maxStack;
++            }
++
++            @Override
++            public void setMaxStackSize(int size) {
++                maxStack = size;
++            }
++
++            @Override
++            public InventoryHolder getOwner() {
++                return (InventoryHolder) Mob.this.getBukkitEntity();
++            }
++
++            @Override
++            public Location getLocation() {
++                return Mob.this.getBukkitEntity().getLocation();
++            }
++            // CraftBukkit end
+         };
+     }
+ 
+@@ -1192,7 +1327,7 @@
+ 
+         if (item instanceof SpawnEggItem spawneggitem) {
+             if (this.level() instanceof ServerLevel) {
+-                Optional<Mob> optional = spawneggitem.spawnOffspringFromSpawnEgg(player, this, this.getType(), (ServerLevel) this.level(), this.position(), itemstack);
++                Optional<Mob> optional = spawneggitem.spawnOffspringFromSpawnEgg(player, this, (EntityType<? extends Mob>) this.getType(), (ServerLevel) this.level(), this.position(), itemstack); // CraftBukkit - decompile error
+ 
+                 optional.ifPresent((mob) -> {
+                     this.onOffspringSpawnedFromEgg(player, mob);
+@@ -1264,6 +1399,12 @@
+     }
+ 
+     public <T extends Mob> @Nullable T convertTo(EntityType<T> entitytype, ConversionParams conversionparams, EntitySpawnReason entityspawnreason, ConversionParams.AfterConversion<T> conversionparams_afterconversion) {
++        // CraftBukkit start
++        return this.convertTo(entitytype, conversionparams, entityspawnreason, conversionparams_afterconversion, EntityTransformEvent.TransformReason.UNKNOWN, CreatureSpawnEvent.SpawnReason.DEFAULT);
++    }
++
++    public <T extends Mob> @Nullable T convertTo(EntityType<T> entitytype, ConversionParams conversionparams, EntitySpawnReason entityspawnreason, ConversionParams.AfterConversion<T> conversionparams_afterconversion, EntityTransformEvent.TransformReason transformReason, CreatureSpawnEvent.SpawnReason spawnReason) {
++        // CraftBukkit end
+         if (this.isRemoved()) {
+             return null;
+         } else {
+@@ -1276,14 +1417,26 @@
+                 conversionparams_afterconversion.finalizeConversion(t0);
+                 Level level = this.level();
+ 
++                // CraftBukkit start
++                if (transformReason == null) {
++                    // Special handling for slime split and pig lightning
++                    return t0;
++                }
++
++                if (CraftEventFactory.callEntityTransformEvent(this, t0, transformReason).isCancelled()) {
++                    return null;
++                }
++
++                conversionparams.type().postConvert(this, t0, conversionparams);
++                // CraftBukkit end
+                 if (level instanceof ServerLevel) {
+                     ServerLevel serverlevel = (ServerLevel) level;
+ 
+-                    serverlevel.addFreshEntity(t0);
++                    serverlevel.addFreshEntity(t0, spawnReason); // CraftBukkit
+                 }
+ 
+                 if (conversionparams.type().shouldDiscardAfterConversion()) {
+-                    this.discard();
++                    this.discard(EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
+                 }
+ 
+                 return t0;
+@@ -1292,7 +1445,13 @@
+     }
+ 
+     public <T extends Mob> @Nullable T convertTo(EntityType<T> entitytype, ConversionParams conversionparams, ConversionParams.AfterConversion<T> conversionparams_afterconversion) {
+-        return (T) this.convertTo(entitytype, conversionparams, EntitySpawnReason.CONVERSION, conversionparams_afterconversion);
++        // CraftBukkit start
++        return (T) this.convertTo(entitytype, conversionparams, conversionparams_afterconversion, EntityTransformEvent.TransformReason.UNKNOWN, CreatureSpawnEvent.SpawnReason.DEFAULT);
++    }
++
++    public <T extends Mob> @Nullable T convertTo(EntityType<T> entitytype, ConversionParams conversionparams, ConversionParams.AfterConversion<T> conversionparams_afterconversion, EntityTransformEvent.TransformReason transformReason, CreatureSpawnEvent.SpawnReason spawnReason) {
++        return (T) this.convertTo(entitytype, conversionparams, EntitySpawnReason.CONVERSION, conversionparams_afterconversion, transformReason, spawnReason);
++        // CraftBukkit end
+     }
+ 
+     @Override
+@@ -1336,6 +1495,7 @@
+         boolean flag2 = super.startRiding(entity, flag, flag1);
+ 
+         if (flag2 && this.isLeashed()) {
++            this.level().getCraftServer().getPluginManager().callEvent(new EntityUnleashEvent(this.getBukkitEntity(), UnleashReason.UNKNOWN)); // CraftBukkit
+             this.dropLeash();
+         }
+ 

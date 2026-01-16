@@ -1,0 +1,29 @@
+--- a/net/minecraft/commands/arguments/blocks/BlockStateParser.java
++++ b/net/minecraft/commands/arguments/blocks/BlockStateParser.java
+@@ -65,7 +65,7 @@
+     private final StringReader reader;
+     private final boolean forTesting;
+     private final boolean allowNbt;
+-    private final Map<Property<?>, Comparable<?>> properties = Maps.newHashMap();
++    private final Map<Property<?>, Comparable<?>> properties = Maps.newLinkedHashMap(); // CraftBukkit - stable
+     private final Map<String, String> vagueProperties = Maps.newHashMap();
+     private Identifier id = Identifier.withDefaultNamespace("");
+     private @Nullable StateDefinition<Block, BlockState> definition;
+@@ -512,7 +512,7 @@
+         Optional<T> optional = property.getValue(s);
+ 
+         if (optional.isPresent()) {
+-            this.state = (BlockState) this.state.setValue(property, (Comparable) optional.get());
++            this.state = (BlockState) this.state.setValue(property, (T) optional.get()); // CraftBukkit - decompile error
+             this.properties.put(property, (Comparable) optional.get());
+         } else {
+             this.reader.setCursor(i);
+@@ -547,7 +547,7 @@
+     private static <T extends Comparable<T>> void appendProperty(StringBuilder stringbuilder, Property<T> property, Comparable<?> comparable) {
+         stringbuilder.append(property.getName());
+         stringbuilder.append('=');
+-        stringbuilder.append(property.getName(comparable));
++        stringbuilder.append(property.getName((T) comparable)); // CraftBukkit - decompile error
+     }
+ 
+     public static record BlockResult(BlockState blockState, Map<Property<?>, Comparable<?>> properties, @Nullable CompoundTag nbt) {

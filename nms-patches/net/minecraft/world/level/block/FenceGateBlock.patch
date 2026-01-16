@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/level/block/FenceGateBlock.java
++++ b/net/minecraft/world/level/block/FenceGateBlock.java
+@@ -183,6 +183,17 @@
+     protected void neighborChanged(BlockState blockstate, Level level, BlockPos blockpos, Block block, @Nullable Orientation orientation, boolean flag) {
+         if (!level.isClientSide()) {
+             boolean flag1 = level.hasNeighborSignal(blockpos);
++            // CraftBukkit start
++            boolean oldPowered = blockstate.getValue(FenceGateBlock.POWERED);
++            if (oldPowered != flag1) {
++                int newPower = flag1 ? 15 : 0;
++                int oldPower = oldPowered ? 15 : 0;
++                org.bukkit.block.Block bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(level, blockpos);
++                org.bukkit.event.block.BlockRedstoneEvent eventRedstone = new org.bukkit.event.block.BlockRedstoneEvent(bukkitBlock, oldPower, newPower);
++                level.getCraftServer().getPluginManager().callEvent(eventRedstone);
++                flag1 = eventRedstone.getNewCurrent() > 0;
++            }
++            // CraftBukkit end
+ 
+             if ((Boolean) blockstate.getValue(FenceGateBlock.POWERED) != flag1) {
+                 level.setBlock(blockpos, (BlockState) ((BlockState) blockstate.setValue(FenceGateBlock.POWERED, flag1)).setValue(FenceGateBlock.OPEN, flag1), 2);

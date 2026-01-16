@@ -5,7 +5,7 @@
  import net.minecraft.world.scores.Scoreboard;
  
 +// CraftBukkit start
-+import net.minecraft.core.BlockPosition;
++import net.minecraft.core.BlockPos;
 +import org.bukkit.event.entity.EntityRemoveEvent;
 +// CraftBukkit end
 +
@@ -14,42 +14,42 @@
      SINGLE(true) {
 @@ -28,7 +33,7 @@
  
-                 for (Entity entity1 : entityinsentient1.getPassengers()) {
+                 for (Entity entity1 : mob1.getPassengers()) {
                      entity1.stopRiding();
 -                    entity1.remove(Entity.RemovalReason.DISCARDED);
 +                    entity1.remove(Entity.RemovalReason.DISCARDED, EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
                  }
  
-                 entity.startRiding(entityinsentient1);
+                 entity.startRiding(mob1);
 @@ -46,7 +51,7 @@
-                     ItemStack itemstack = entityinsentient.getItemBySlot(enumitemslot);
+                     ItemStack itemstack = mob.getItemBySlot(equipmentslot);
  
                      if (!itemstack.isEmpty()) {
--                        entityinsentient1.setItemSlot(enumitemslot, itemstack.copyAndClear());
-+                        entityinsentient1.setItemSlot(enumitemslot, itemstack.copy()); // CraftBukkit - SPIGOT-7996: don't clear yet
-                         entityinsentient1.setDropChance(enumitemslot, entityinsentient.getDropChances().byEquipment(enumitemslot));
+-                        mob1.setItemSlot(equipmentslot, itemstack.copyAndClear());
++                        mob1.setItemSlot(equipmentslot, itemstack.copy()); // CraftBukkit - SPIGOT-7996: don't clear yet
+                         mob1.setDropChance(equipmentslot, mob.getDropChances().byEquipment(equipmentslot));
                      }
                  }
 @@ -58,7 +63,7 @@
-             entityinsentient1.hurtTime = entityinsentient.hurtTime;
-             entityinsentient1.yBodyRot = entityinsentient.yBodyRot;
-             entityinsentient1.setOnGround(entityinsentient.onGround());
--            Optional optional = entityinsentient.getSleepingPos();
-+            Optional<BlockPosition> optional = entityinsentient.getSleepingPos(); // CraftBukkit - decompile error
+             mob1.hurtTime = mob.hurtTime;
+             mob1.yBodyRot = mob.yBodyRot;
+             mob1.setOnGround(mob.onGround());
+-            Optional optional = mob.getSleepingPos();
++            Optional<BlockPos> optional = mob.getSleepingPos(); // CraftBukkit - decompile error
  
-             Objects.requireNonNull(entityinsentient1);
-             optional.ifPresent(entityinsentient1::setSleepingPos);
+             Objects.requireNonNull(mob1);
+             optional.ifPresent(mob1::setSleepingPos);
 @@ -70,6 +75,21 @@
  
-             this.convertCommon(entityinsentient, entityinsentient1, conversionparams);
+             this.convertCommon(mob, mob1, conversionparams);
          }
 +
 +        // CraftBukkit start
 +        @Override
-+        void postConvert(EntityInsentient entityinsentient, EntityInsentient entityinsentient1, ConversionParams conversionparams) {
++        void postConvert(Mob mob, Mob mob1, ConversionParams conversionparams) {
 +            if (conversionparams.keepEquipment()) {
-+                for (EnumItemSlot enumitemslot : EnumItemSlot.VALUES) {
-+                    ItemStack itemstack = entityinsentient.getItemBySlot(enumitemslot);
++                for (EquipmentSlot equipmentslot : EquipmentSlot.VALUES) {
++                    ItemStack itemstack = mob.getItemBySlot(equipmentslot);
 +
 +                    if (!itemstack.isEmpty()) {
 +                        itemstack.setCount(0); // SPIGOT-7996: clear after conversion
@@ -63,19 +63,19 @@
          @Override
 @@ -103,6 +123,8 @@
  
-     abstract void convert(EntityInsentient entityinsentient, EntityInsentient entityinsentient1, ConversionParams conversionparams);
+     abstract void convert(Mob mob, Mob mob1, ConversionParams conversionparams);
  
-+    void postConvert(EntityInsentient entityinsentient, EntityInsentient entityinsentient1, ConversionParams conversionparams) {} // CraftBukkit
++    void postConvert(Mob mob, Mob mob1, ConversionParams conversionparams) {} // CraftBukkit
 +
-     void convertCommon(EntityInsentient entityinsentient, EntityInsentient entityinsentient1, ConversionParams conversionparams) {
-         entityinsentient1.setAbsorptionAmount(entityinsentient.getAbsorptionAmount());
+     void convertCommon(Mob mob, Mob mob1, ConversionParams conversionparams) {
+         mob1.setAbsorptionAmount(mob.getAbsorptionAmount());
  
 @@ -145,7 +167,7 @@
-         entityinsentient1.setNoGravity(entityinsentient.isNoGravity());
-         entityinsentient1.setPortalCooldown(entityinsentient.getPortalCooldown());
-         entityinsentient1.setSilent(entityinsentient.isSilent());
--        Set set = entityinsentient.getTags();
-+        Set<String> set = entityinsentient.getTags(); // CraftBukkit - decompile error
+         mob1.setNoGravity(mob.isNoGravity());
+         mob1.setPortalCooldown(mob.getPortalCooldown());
+         mob1.setSilent(mob.isSilent());
+-        Set set = mob.getTags();
++        Set<String> set = mob.getTags(); // CraftBukkit - decompile error
  
-         Objects.requireNonNull(entityinsentient1);
-         set.forEach(entityinsentient1::addTag);
+         Objects.requireNonNull(mob1);
+         set.forEach(mob1::addTag);

@@ -1,0 +1,56 @@
+--- a/net/minecraft/world/entity/animal/parrot/Parrot.java
++++ b/net/minecraft/world/entity/animal/parrot/Parrot.java
+@@ -260,7 +260,7 @@
+             }
+ 
+             if (!this.level().isClientSide()) {
+-                if (this.random.nextInt(10) == 0) {
++                if (this.random.nextInt(10) == 0 && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, player).isCancelled()) { // CraftBukkit
+                     this.tame(player);
+                     this.level().broadcastEntityEvent(this, (byte) 7);
+                 } else {
+@@ -281,7 +281,7 @@
+             }
+         } else {
+             this.usePlayerItem(player, interactionhand, itemstack);
+-            this.addEffect(new MobEffectInstance(MobEffects.POISON, 900));
++            this.addEffect(new MobEffectInstance(MobEffects.POISON, 900), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.FOOD); // CraftBukkit
+             if (player.isCreative() || !this.isInvulnerable()) {
+                 this.hurt(this.damageSources().playerAttack(player), Float.MAX_VALUE);
+             }
+@@ -373,7 +373,7 @@
+ 
+     @Override
+     public boolean isPushable() {
+-        return true;
++        return super.isPushable(); // CraftBukkit - collidable API
+     }
+ 
+     @Override
+@@ -388,8 +388,14 @@
+         if (this.isInvulnerableTo(serverlevel, damagesource)) {
+             return false;
+         } else {
++            // CraftBukkit start
++            boolean result = super.hurtServer(serverlevel, damagesource, f);
++            if (!result) {
++                return result;
++            }
++            // CraftBukkit end
+             this.setOrderedToSit(false);
+-            return super.hurtServer(serverlevel, damagesource, f);
++            return result; // CraftBukkit
+         }
+     }
+ 
+@@ -488,8 +494,8 @@
+         }
+ 
+         static {
+-            PrimitiveCodec primitivecodec = Codec.INT;
+-            IntFunction intfunction = Parrot.Variant.BY_ID;
++            PrimitiveCodec<Integer> primitivecodec = Codec.INT; // CraftBukkit - decompile error
++            IntFunction<Parrot.Variant> intfunction = Parrot.Variant.BY_ID; // CraftBukkit - decompile error
+ 
+             Objects.requireNonNull(intfunction);
+             LEGACY_CODEC = primitivecodec.xmap(intfunction::apply, Parrot.Variant::getId);

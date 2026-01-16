@@ -1,0 +1,59 @@
+--- a/net/minecraft/world/level/gamerules/GameRules.java
++++ b/net/minecraft/world/level/gamerules/GameRules.java
+@@ -16,6 +16,10 @@
+ import net.minecraft.world.flag.FeatureFlags;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import net.minecraft.server.level.ServerLevel;
++// CraftBukkit end
++
+ public class GameRules {
+ 
+     public static final GameRule<Boolean> ADVANCE_TIME = registerBoolean("advance_time", GameRuleCategory.UPDATES, !SharedConstants.DEBUG_WORLD_RECREATE);
+@@ -114,13 +118,13 @@
+         }
+     }
+ 
+-    public <T> void set(GameRule<T> gamerule, T t0, @Nullable MinecraftServer minecraftserver) {
++    public <T> void set(GameRule<T> gamerule, T t0, @Nullable ServerLevel minecraftserver) { // CraftBukkit - per-world
+         if (!this.rules.has(gamerule)) {
+             throw new IllegalArgumentException("Tried to set invalid game rule");
+         } else {
+             this.rules.set(gamerule, t0);
+             if (minecraftserver != null) {
+-                minecraftserver.onGameRuleChanged(gamerule, t0);
++                MinecraftServer.onGameRuleChanged(gamerule, t0, minecraftserver); // CraftBukkit - per-world
+             }
+ 
+         }
+@@ -130,17 +134,17 @@
+         return new GameRules(featureflagset, this.rules);
+     }
+ 
+-    public void setAll(GameRules gamerules, @Nullable MinecraftServer minecraftserver) {
++    public void setAll(GameRules gamerules, @Nullable ServerLevel minecraftserver) { // CraftBukkit - per-world
+         this.setAll(gamerules.rules, minecraftserver);
+     }
+ 
+-    public void setAll(GameRuleMap gamerulemap, @Nullable MinecraftServer minecraftserver) {
++    public void setAll(GameRuleMap gamerulemap, @Nullable ServerLevel minecraftserver) { // CraftBukkit - per-world
+         gamerulemap.keySet().forEach((gamerule) -> {
+             this.setFromOther(gamerulemap, gamerule, minecraftserver);
+         });
+     }
+ 
+-    private <T> void setFromOther(GameRuleMap gamerulemap, GameRule<T> gamerule, @Nullable MinecraftServer minecraftserver) {
++    private <T> void setFromOther(GameRuleMap gamerulemap, GameRule<T> gamerule, @Nullable ServerLevel minecraftserver) { // CraftBukkit - per-world
+         this.set(gamerule, Objects.requireNonNull(gamerulemap.get(gamerule)), minecraftserver);
+     }
+ 
+@@ -172,7 +176,7 @@
+     }
+ 
+     private static <T> GameRule<T> register(String s, GameRuleCategory gamerulecategory, GameRuleType gameruletype, ArgumentType<T> argumenttype, Codec<T> codec, T t0, FeatureFlagSet featureflagset, GameRules.VisitorCaller<T> gamerules_visitorcaller, ToIntFunction<T> tointfunction) {
+-        return (GameRule) Registry.register(BuiltInRegistries.GAME_RULE, s, new GameRule(gamerulecategory, gameruletype, argumenttype, gamerules_visitorcaller, codec, tointfunction, t0, featureflagset));
++        return (GameRule) Registry.register(BuiltInRegistries.GAME_RULE, s, new GameRule<>(gamerulecategory, gameruletype, argumenttype, gamerules_visitorcaller, codec, tointfunction, t0, featureflagset)); // CraftBukkit - decompile error
+     }
+ 
+     public static GameRule<?> bootstrap(Registry<GameRule<?>> registry) {

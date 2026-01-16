@@ -3,11 +3,11 @@
 @@ -17,9 +17,12 @@
      }
  
-     public boolean areEnoughDeepSleeping(int i, List<EntityPlayer> list) {
--        int j = (int) list.stream().filter(EntityHuman::isSleepingLongEnough).count();
+     public boolean areEnoughDeepSleeping(int i, List<ServerPlayer> list) {
+-        int j = (int) list.stream().filter(Player::isSleepingLongEnough).count();
 +        // CraftBukkit start
 +        int j = (int) list.stream().filter((eh) -> { return eh.isSleepingLongEnough() || eh.fauxSleeping; }).count();
-+        boolean anyDeepSleep = list.stream().anyMatch(EntityHuman::isSleepingLongEnough);
++        boolean anyDeepSleep = list.stream().anyMatch(Player::isSleepingLongEnough);
  
 -        return j >= this.sleepersNeeded(i);
 +        return anyDeepSleep && j >= this.sleepersNeeded(i);
@@ -21,15 +21,15 @@
          this.sleepingPlayers = 0;
 +        boolean anySleep = false; // CraftBukkit
  
-         for (EntityPlayer entityplayer : list) {
-             if (!entityplayer.isSpectator()) {
+         for (ServerPlayer serverplayer : list) {
+             if (!serverplayer.isSpectator()) {
                  ++this.activePlayers;
--                if (entityplayer.isSleeping()) {
-+                if (entityplayer.isSleeping() || entityplayer.fauxSleeping) { // CraftBukkit
+-                if (serverplayer.isSleeping()) {
++                if (serverplayer.isSleeping() || serverplayer.fauxSleeping) { // CraftBukkit
                      ++this.sleepingPlayers;
                  }
 +                // CraftBukkit start
-+                if (entityplayer.isSleeping()) {
++                if (serverplayer.isSleeping()) {
 +                    anySleep = true;
 +                }
 +                // CraftBukkit end

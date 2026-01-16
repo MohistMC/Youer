@@ -1,0 +1,73 @@
+--- a/net/minecraft/world/level/block/ChorusFlowerBlock.java
++++ b/net/minecraft/world/level/block/ChorusFlowerBlock.java
+@@ -22,6 +22,8 @@
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ import org.jspecify.annotations.Nullable;
+ 
++import org.bukkit.craftbukkit.event.CraftEventFactory; // CraftBukkit
++
+ public class ChorusFlowerBlock extends Block {
+ 
+     public static final MapCodec<ChorusFlowerBlock> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
+@@ -101,8 +103,12 @@
+                 }
+ 
+                 if (flag && allNeighborsEmpty(serverlevel, blockpos1, (Direction) null) && serverlevel.isEmptyBlock(blockpos.above(2))) {
+-                    serverlevel.setBlock(blockpos, ChorusPlantBlock.getStateWithConnections(serverlevel, blockpos, this.plant.defaultBlockState()), 2);
+-                    this.placeGrownFlower(serverlevel, blockpos1, i);
++                    // CraftBukkit start - add event
++                    if (CraftEventFactory.handleBlockSpreadEvent(serverlevel, blockpos, blockpos1, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(i)), 2)) {
++                        serverlevel.setBlock(blockpos, ChorusPlantBlock.getStateWithConnections(serverlevel, blockpos, this.plant.defaultBlockState()), 2);
++                        this.placeGrownFlower(serverlevel, blockpos1, i);
++                    }
++                    // CraftBukkit end
+                 } else if (i < 4) {
+                     int l = randomsource.nextInt(4);
+ 
+@@ -117,18 +123,30 @@
+                         BlockPos blockpos2 = blockpos.relative(direction);
+ 
+                         if (serverlevel.isEmptyBlock(blockpos2) && serverlevel.isEmptyBlock(blockpos2.below()) && allNeighborsEmpty(serverlevel, blockpos2, direction.getOpposite())) {
+-                            this.placeGrownFlower(serverlevel, blockpos2, i + 1);
+-                            flag2 = true;
++                            // CraftBukkit start - add event
++                            if (CraftEventFactory.handleBlockSpreadEvent(serverlevel, blockpos, blockpos2, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(i + 1)), 2)) {
++                                this.placeGrownFlower(serverlevel, blockpos2, i + 1);
++                                flag2 = true;
++                            }
++                            // CraftBukkit end
+                         }
+                     }
+ 
+                     if (flag2) {
+                         serverlevel.setBlock(blockpos, ChorusPlantBlock.getStateWithConnections(serverlevel, blockpos, this.plant.defaultBlockState()), 2);
+                     } else {
+-                        this.placeDeadFlower(serverlevel, blockpos);
++                        // CraftBukkit start - add event
++                        if (CraftEventFactory.handleBlockGrowEvent(serverlevel, blockpos, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(5)), 2)) {
++                            this.placeDeadFlower(serverlevel, blockpos);
++                        }
++                        // CraftBukkit end
+                     }
+                 } else {
+-                    this.placeDeadFlower(serverlevel, blockpos);
++                    // CraftBukkit start - add event
++                    if (CraftEventFactory.handleBlockGrowEvent(serverlevel, blockpos, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(5)), 2)) {
++                        this.placeDeadFlower(serverlevel, blockpos);
++                    }
++                    // CraftBukkit end
+                 }
+ 
+             }
+@@ -258,6 +276,11 @@
+ 
+         if (level instanceof ServerLevel serverlevel) {
+             if (projectile.mayInteract(serverlevel, blockpos) && projectile.mayBreak(serverlevel)) {
++                // CraftBukkit
++                if (!CraftEventFactory.callEntityChangeBlockEvent(projectile, blockpos, Blocks.AIR.defaultBlockState())) {
++                    return;
++                }
++                // CraftBukkit end
+                 level.destroyBlock(blockpos, true, projectile);
+             }
+         }

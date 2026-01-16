@@ -23,19 +23,19 @@
 -    private void finishTickSprint() {
 +    private void finishTickSprint(boolean sendLog) { // CraftBukkit - add sendLog parameter
          long i = this.scheduledCurrentSprintTicks - this.remainingSprintTicks;
-         double d0 = Math.max(1.0D, (double) this.sprintTimeSpend) / (double) TimeRange.NANOSECONDS_PER_MILLISECOND;
-         int j = (int) ((double) (TimeRange.MILLISECONDS_PER_SECOND * i) / d0);
+         double d0 = Math.max(1.0D, (double) this.sprintTimeSpend) / (double) TimeUtil.NANOSECONDS_PER_MILLISECOND;
+         int j = (int) ((double) (TimeUtil.MILLISECONDS_PER_SECOND * i) / d0);
 @@ -87,9 +93,13 @@
  
          this.scheduledCurrentSprintTicks = 0L;
          this.sprintTimeSpend = 0L;
 -        this.server.createCommandSourceStack().sendSuccess(() -> {
--            return IChatBaseComponent.translatable("commands.tick.sprint.report", j, s);
+-            return Component.translatable("commands.tick.sprint.report", j, s);
 -        }, true);
 +        // CraftBukkit start - add sendLog parameter
 +        if (sendLog) {
 +            this.server.createCommandSourceStack().sendSuccess(() -> {
-+                return IChatBaseComponent.translatable("commands.tick.sprint.report", j, s);
++                return Component.translatable("commands.tick.sprint.report", j, s);
 +            }, true);
 +        }
 +        // CraftBukkit end

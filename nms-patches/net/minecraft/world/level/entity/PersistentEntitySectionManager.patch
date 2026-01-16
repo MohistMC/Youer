@@ -1,7 +1,7 @@
 --- a/net/minecraft/world/level/entity/PersistentEntitySectionManager.java
 +++ b/net/minecraft/world/level/entity/PersistentEntitySectionManager.java
 @@ -32,6 +32,12 @@
- import net.minecraft.world.level.ChunkCoordIntPair;
+ import net.minecraft.world.level.ChunkPos;
  import org.slf4j.Logger;
  
 +// CraftBukkit start
@@ -12,22 +12,22 @@
 +
  public class PersistentEntitySectionManager<T extends EntityAccess> implements AutoCloseable {
  
-     static final Logger LOGGER = LogUtils.getLogger();
+     private static final Logger LOGGER = LogUtils.getLogger();
 @@ -55,6 +61,16 @@
          this.entityGetter = new LevelEntityGetterAdapter<T>(this.visibleEntityStorage, this.sectionStorage);
      }
  
 +    // CraftBukkit start - add method to get all entities in chunk
-+    public List<Entity> getEntities(ChunkCoordIntPair chunkCoordIntPair) {
++    public List<Entity> getEntities(ChunkPos chunkCoordIntPair) {
 +        return sectionStorage.getExistingSectionsInChunk(chunkCoordIntPair.toLong()).flatMap(EntitySection::getEntities).map(entity -> (Entity) entity).collect(Collectors.toList());
 +    }
 +
 +    public boolean isPending(long pair) {
-+        return chunkLoadStatuses.get(pair) == b.PENDING;
++        return chunkLoadStatuses.get(pair) == ChunkLoadStatus.PENDING;
 +    }
 +    // CraftBukkit end
 +
-     void removeSectionIfEmpty(long i, EntitySection<T> entitysection) {
+     private void removeSectionIfEmpty(long i, EntitySection<T> entitysection) {
          if (entitysection.isEmpty()) {
              this.sectionStorage.remove(i);
 @@ -87,6 +103,11 @@
@@ -52,23 +52,23 @@
 +
 +    private boolean storeChunkSections(long i, Consumer<T> consumer, boolean callEvent) {
 +        // CraftBukkit end
-         PersistentEntitySectionManager.b persistententitysectionmanager_b = (PersistentEntitySectionManager.b) this.chunkLoadStatuses.get(i);
+         PersistentEntitySectionManager.ChunkLoadStatus persistententitysectionmanager_chunkloadstatus = (PersistentEntitySectionManager.ChunkLoadStatus) this.chunkLoadStatuses.get(i);
  
-         if (persistententitysectionmanager_b == PersistentEntitySectionManager.b.PENDING) {
+         if (persistententitysectionmanager_chunkloadstatus == PersistentEntitySectionManager.ChunkLoadStatus.PENDING) {
 @@ -211,6 +238,7 @@
  
              if (list.isEmpty()) {
-                 if (persistententitysectionmanager_b == PersistentEntitySectionManager.b.LOADED) {
-+                    if (callEvent) CraftEventFactory.callEntitiesUnloadEvent(((EntityStorage) permanentStorage).level, new ChunkCoordIntPair(i), ImmutableList.of()); // CraftBukkit
-                     this.permanentStorage.storeEntities(new ChunkEntities(new ChunkCoordIntPair(i), ImmutableList.of()));
+                 if (persistententitysectionmanager_chunkloadstatus == PersistentEntitySectionManager.ChunkLoadStatus.LOADED) {
++                    if (callEvent) CraftEventFactory.callEntitiesUnloadEvent(((EntityStorage) permanentStorage).level, new ChunkPos(i), ImmutableList.of()); // CraftBukkit
+                     this.permanentStorage.storeEntities(new ChunkEntities(new ChunkPos(i), ImmutableList.of()));
                  }
  
 @@ -219,6 +247,7 @@
                  this.requestChunkLoad(i);
                  return false;
              } else {
-+                if (callEvent) CraftEventFactory.callEntitiesUnloadEvent(((EntityStorage) permanentStorage).level, new ChunkCoordIntPair(i), list.stream().map(entity -> (Entity) entity).collect(Collectors.toList())); // CraftBukkit
-                 this.permanentStorage.storeEntities(new ChunkEntities(new ChunkCoordIntPair(i), list));
++                if (callEvent) CraftEventFactory.callEntitiesUnloadEvent(((EntityStorage) permanentStorage).level, new ChunkPos(i), list.stream().map(entity -> (Entity) entity).collect(Collectors.toList())); // CraftBukkit
+                 this.permanentStorage.storeEntities(new ChunkEntities(new ChunkPos(i), list));
                  list.forEach(consumer);
                  return true;
 @@ -242,7 +271,7 @@
@@ -98,7 +98,7 @@
 @@ -271,6 +300,10 @@
                  this.addEntity(entityaccess, true);
              });
-             this.chunkLoadStatuses.put(chunkentities.getPos().toLong(), PersistentEntitySectionManager.b.LOADED);
+             this.chunkLoadStatuses.put(chunkentities.getPos().toLong(), PersistentEntitySectionManager.ChunkLoadStatus.LOADED);
 +            // CraftBukkit start - call entity load event
 +            List<Entity> entities = getEntities(chunkentities.getPos());
 +            CraftEventFactory.callEntitiesLoadEvent(((EntityStorage) permanentStorage).level, chunkentities.getPos(), entities);
@@ -143,19 +143,10 @@
  
 @@ -354,7 +395,7 @@
      public void dumpSections(Writer writer) throws IOException {
-         CSVWriter csvwriter = CSVWriter.builder().addColumn("x").addColumn("y").addColumn("z").addColumn("visibility").addColumn("load_status").addColumn("entity_count").build(writer);
+         CsvOutput csvoutput = CsvOutput.builder().addColumn("x").addColumn("y").addColumn("z").addColumn("visibility").addColumn("load_status").addColumn("entity_count").build(writer);
  
 -        this.sectionStorage.getAllChunksWithExistingSections().forEach((i) -> {
 +        this.sectionStorage.getAllChunksWithExistingSections().forEach((java.util.function.LongConsumer) (i) -> { // CraftBukkit - decompile error
-             PersistentEntitySectionManager.b persistententitysectionmanager_b = (PersistentEntitySectionManager.b) this.chunkLoadStatuses.get(i);
+             PersistentEntitySectionManager.ChunkLoadStatus persistententitysectionmanager_chunkloadstatus = (PersistentEntitySectionManager.ChunkLoadStatus) this.chunkLoadStatuses.get(i);
  
              this.sectionStorage.getExistingSectionPositionsInChunk(i).forEach((j) -> {
-@@ -398,7 +439,7 @@
-         private EntitySection<T> currentSection;
- 
-         a(final EntityAccess entityaccess, final long i, final EntitySection entitysection) {
--            this.entity = entityaccess;
-+            this.entity = (T) entityaccess; // CraftBukkit - decompile error
-             this.currentSectionKey = i;
-             this.currentSection = entitysection;
-         }

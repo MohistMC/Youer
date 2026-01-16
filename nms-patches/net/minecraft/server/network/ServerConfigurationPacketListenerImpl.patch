@@ -1,11 +1,11 @@
 --- a/net/minecraft/server/network/ServerConfigurationPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerConfigurationPacketListenerImpl.java
 @@ -42,6 +42,12 @@
- import net.minecraft.world.flag.FeatureFlags;
+ import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
 +// CraftBukkit start
-+import net.minecraft.server.level.EntityPlayer;
++import net.minecraft.server.level.ServerPlayer;
 +import org.bukkit.craftbukkit.CraftServerLinks;
 +import org.bukkit.event.player.PlayerLinksSendEvent;
 +// CraftBukkit end
@@ -13,20 +13,20 @@
  public class ServerConfigurationPacketListenerImpl extends ServerCommonPacketListenerImpl implements ServerConfigurationPacketListener, TickablePacketListener {
  
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -57,8 +63,10 @@
-     @Nullable
-     private PrepareSpawnTask prepareSpawnTask;
+@@ -54,8 +60,10 @@
+     private @Nullable SynchronizeRegistriesTask synchronizeRegistriesTask;
+     private @Nullable PrepareSpawnTask prepareSpawnTask;
  
--    public ServerConfigurationPacketListenerImpl(MinecraftServer minecraftserver, NetworkManager networkmanager, CommonListenerCookie commonlistenercookie) {
--        super(minecraftserver, networkmanager, commonlistenercookie);
+-    public ServerConfigurationPacketListenerImpl(MinecraftServer minecraftserver, Connection connection, CommonListenerCookie commonlistenercookie) {
+-        super(minecraftserver, connection, commonlistenercookie);
 +    // CraftBukkit start
-+    public ServerConfigurationPacketListenerImpl(MinecraftServer minecraftserver, NetworkManager networkmanager, CommonListenerCookie commonlistenercookie, EntityPlayer player) {
-+        super(minecraftserver, networkmanager, commonlistenercookie, player);
++    public ServerConfigurationPacketListenerImpl(MinecraftServer minecraftserver, Connection connection, CommonListenerCookie commonlistenercookie, ServerPlayer player) {
++        super(minecraftserver, connection, commonlistenercookie, player);
 +        // CraftBukkit end
          this.gameProfile = commonlistenercookie.gameProfile();
          this.clientInformation = commonlistenercookie.clientInformation();
      }
-@@ -87,6 +95,12 @@
+@@ -84,6 +92,12 @@
      public void startConfiguration() {
          this.send(new ClientboundCustomPayloadPacket(new BrandPayload(this.server.getServerModName())));
          ServerLinks serverlinks = this.server.serverLinks();
@@ -39,7 +39,7 @@
  
          if (!serverlinks.isEmpty()) {
              this.send(new ClientboundServerLinksPacket(serverlinks.untrust()));
-@@ -105,7 +119,7 @@
+@@ -102,7 +116,7 @@
      }
  
      public void returnToWorld() {
@@ -48,21 +48,21 @@
          this.configurationTasks.add(this.prepareSpawnTask);
          this.configurationTasks.add(new JoinWorldTask());
          this.startNextTask();
-@@ -179,13 +193,17 @@
+@@ -176,13 +190,17 @@
                  return;
              }
  
--            IChatBaseComponent ichatbasecomponent = playerlist.canPlayerLogin(this.connection.getRemoteAddress(), new NameAndId(this.gameProfile));
-+            IChatBaseComponent ichatbasecomponent = null; // CraftBukkit - login checks already completed
+-            Component component = playerlist.canPlayerLogin(this.connection.getRemoteAddress(), new NameAndId(this.gameProfile));
++            Component component = null; // CraftBukkit - login checks already completed
  
-             if (ichatbasecomponent != null) {
-                 this.disconnect(ichatbasecomponent);
+             if (component != null) {
+                 this.disconnect(component);
                  return;
              }
  
 +            // CraftBukkit start
-+            EntityPlayer entityplayer = this.player;
-+            entityplayer.updateOptions(this.clientInformation);
++            ServerPlayer serverplayer = this.player;
++            serverplayer.updateOptions(this.clientInformation);
 +            // CraftBukkit end
              ((PrepareSpawnTask) Objects.requireNonNull(this.prepareSpawnTask)).spawnPlayer(this.connection, this.createCookie(this.clientInformation));
          } catch (Exception exception) {

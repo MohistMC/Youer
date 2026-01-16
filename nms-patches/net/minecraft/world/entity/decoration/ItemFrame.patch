@@ -1,0 +1,44 @@
+--- a/net/minecraft/world/entity/decoration/ItemFrame.java
++++ b/net/minecraft/world/entity/decoration/ItemFrame.java
+@@ -115,7 +115,7 @@
+         return this.createBoundingBox(this.pos, this.getDirection(), false);
+     }
+ 
+-    private AABB createBoundingBox(BlockPos blockpos, Direction direction, boolean flag) {
++    public static AABB createBoundingBox(BlockPos blockpos, Direction direction, boolean flag) { // CraftBukkit - static
+         float f = 0.46875F;
+         Vec3 vec3 = Vec3.atCenterOf(blockpos).relative(direction, -0.46875D);
+         float f1 = flag ? 1.0F : 0.75F;
+@@ -182,6 +182,11 @@
+             if (this.isInvulnerableToBase(damagesource)) {
+                 return false;
+             } else if (this.shouldDamageDropItem(damagesource)) {
++                // CraftBukkit start - fire EntityDamageEvent
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, damagesource, f, false) || this.isRemoved()) {
++                    return true;
++                }
++                // CraftBukkit end
+                 this.dropItem(serverlevel, damagesource.getEntity(), false);
+                 this.gameEvent(GameEvent.BLOCK_CHANGE, damagesource.getEntity());
+                 this.playSound(this.getRemoveItemSound(), 1.0F, 1.0F);
+@@ -293,13 +298,19 @@
+     }
+ 
+     public void setItem(ItemStack itemstack, boolean flag) {
++        // CraftBukkit start
++        this.setItem(itemstack, flag, true);
++    }
++
++    public void setItem(ItemStack itemstack, boolean flag, boolean playSound) {
++        // CraftBukkit end
+         if (!itemstack.isEmpty()) {
+             itemstack = itemstack.copyWithCount(1);
+         }
+ 
+         this.onItemChanged(itemstack);
+         this.getEntityData().set(ItemFrame.DATA_ITEM, itemstack);
+-        if (!itemstack.isEmpty()) {
++        if (!itemstack.isEmpty() && playSound) { // CraftBukkit
+             this.playSound(this.getAddItemSound(), 1.0F, 1.0F);
+         }
+ 

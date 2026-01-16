@@ -1,56 +1,56 @@
 --- a/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
-@@ -289,7 +289,7 @@
+@@ -286,7 +286,7 @@
          }
      }
  
--    public void applyBiomeDecoration(GeneratorAccessSeed generatoraccessseed, IChunkAccess ichunkaccess, StructureManager structuremanager) {
-+    public void addVanillaDecorations(GeneratorAccessSeed generatoraccessseed, IChunkAccess ichunkaccess, StructureManager structuremanager) { // CraftBukkit
-         ChunkCoordIntPair chunkcoordintpair = ichunkaccess.getPos();
+-    public void applyBiomeDecoration(WorldGenLevel worldgenlevel, ChunkAccess chunkaccess, StructureManager structuremanager) {
++    public void addVanillaDecorations(WorldGenLevel worldgenlevel, ChunkAccess chunkaccess, StructureManager structuremanager) { // CraftBukkit
+         ChunkPos chunkpos = chunkaccess.getPos();
  
-         if (!SharedConstants.debugVoidTerrain(chunkcoordintpair)) {
-@@ -308,7 +308,7 @@
-                 IChunkAccess ichunkaccess1 = generatoraccessseed.getChunk(chunkcoordintpair1.x, chunkcoordintpair1.z);
+         if (!SharedConstants.debugVoidTerrain(chunkpos)) {
+@@ -305,7 +305,7 @@
+                 ChunkAccess chunkaccess1 = worldgenlevel.getChunk(chunkpos1.x, chunkpos1.z);
  
-                 for (ChunkSection chunksection : ichunkaccess1.getSections()) {
--                    PalettedContainerRO palettedcontainerro = chunksection.getBiomes();
-+                    PalettedContainerRO<Holder<BiomeBase>> palettedcontainerro = chunksection.getBiomes(); // CraftBukkit - decompile error
+                 for (LevelChunkSection levelchunksection : chunkaccess1.getSections()) {
+-                    PalettedContainerRO palettedcontainerro = levelchunksection.getBiomes();
++                    PalettedContainerRO<Holder<Biome>> palettedcontainerro = levelchunksection.getBiomes(); // CraftBukkit - decompile error
  
                      Objects.requireNonNull(set);
                      palettedcontainerro.getAll(set::add);
-@@ -326,7 +326,7 @@
+@@ -323,7 +323,7 @@
                      int i1 = 0;
  
                      if (structuremanager.shouldGenerateStructures()) {
 -                        for (Structure structure : (List) map.getOrDefault(l, Collections.emptyList())) {
 +                        for (Structure structure : map.getOrDefault(l, Collections.emptyList())) { // CraftBukkit - decompile error
-                             seededrandom.setFeatureSeed(i, i1, l);
+                             worldgenrandom.setFeatureSeed(i, i1, l);
                              Supplier<String> supplier = () -> {
-                                 Optional optional = iregistry.getResourceKey(structure).map(Object::toString);
-@@ -416,6 +416,33 @@
+                                 Optional optional = registry.getResourceKey(structure).map(Object::toString);
+@@ -413,6 +413,33 @@
          }
      }
  
 +   // CraftBukkit start
-+    public void applyBiomeDecoration(GeneratorAccessSeed generatoraccessseed, IChunkAccess ichunkaccess, StructureManager structuremanager) {
-+        applyBiomeDecoration(generatoraccessseed, ichunkaccess, structuremanager, true);
++    public void applyBiomeDecoration(WorldGenLevel worldgenlevel, ChunkAccess chunkaccess, StructureManager structuremanager) {
++        applyBiomeDecoration(worldgenlevel, chunkaccess, structuremanager, true);
 +    }
 +
-+    public void applyBiomeDecoration(GeneratorAccessSeed generatoraccessseed, IChunkAccess ichunkaccess, StructureManager structuremanager, boolean vanilla) {
++    public void applyBiomeDecoration(WorldGenLevel worldgenlevel, ChunkAccess chunkaccess, StructureManager structuremanager, boolean vanilla) {
 +        if (vanilla) {
-+            addVanillaDecorations(generatoraccessseed, ichunkaccess, structuremanager);
++            addVanillaDecorations(worldgenlevel, chunkaccess, structuremanager);
 +        }
 +
-+        org.bukkit.World world = generatoraccessseed.getMinecraftWorld().getWorld();
++        org.bukkit.World world = worldgenlevel.getMinecraftWorld().getWorld();
 +        // only call when a populator is present (prevents unnecessary entity conversion)
 +        if (!world.getPopulators().isEmpty()) {
-+            org.bukkit.craftbukkit.generator.CraftLimitedRegion limitedRegion = new org.bukkit.craftbukkit.generator.CraftLimitedRegion(generatoraccessseed, ichunkaccess.getPos());
-+            int x = ichunkaccess.getPos().x;
-+            int z = ichunkaccess.getPos().z;
++            org.bukkit.craftbukkit.generator.CraftLimitedRegion limitedRegion = new org.bukkit.craftbukkit.generator.CraftLimitedRegion(worldgenlevel, chunkaccess.getPos());
++            int x = chunkaccess.getPos().x;
++            int z = chunkaccess.getPos().z;
 +            for (org.bukkit.generator.BlockPopulator populator : world.getPopulators()) {
-+                SeededRandom seededrandom = new SeededRandom(new net.minecraft.world.level.levelgen.LegacyRandomSource(generatoraccessseed.getSeed()));
-+                seededrandom.setDecorationSeed(generatoraccessseed.getSeed(), x, z);
-+                populator.populate(world, new org.bukkit.craftbukkit.util.RandomSourceWrapper.RandomWrapper(seededrandom), x, z, limitedRegion);
++                WorldgenRandom worldgenrandom = new WorldgenRandom(new net.minecraft.world.level.levelgen.LegacyRandomSource(worldgenlevel.getSeed()));
++                worldgenrandom.setDecorationSeed(worldgenlevel.getSeed(), x, z);
++                populator.populate(world, new org.bukkit.craftbukkit.util.RandomSourceWrapper.RandomWrapper(worldgenrandom), x, z, limitedRegion);
 +            }
 +            limitedRegion.saveEntities();
 +            limitedRegion.breakLink();
@@ -58,21 +58,21 @@
 +    }
 +    // CraftBukkit end
 +
-     private static StructureBoundingBox getWritableArea(IChunkAccess ichunkaccess) {
-         ChunkCoordIntPair chunkcoordintpair = ichunkaccess.getPos();
-         int i = chunkcoordintpair.getMinBlockX();
-@@ -544,6 +571,14 @@
-         StructureStart structurestart = structure.generate(structureset_a.structure(), resourcekey, iregistrycustom, this, this.biomeSource, randomstate, structuretemplatemanager, i, chunkcoordintpair, j, ichunkaccess, predicate);
+     private static BoundingBox getWritableArea(ChunkAccess chunkaccess) {
+         ChunkPos chunkpos = chunkaccess.getPos();
+         int i = chunkpos.getMinBlockX();
+@@ -541,6 +568,14 @@
+         StructureStart structurestart = structure.generate(structureset_structureselectionentry.structure(), resourcekey, registryaccess, this, this.biomeSource, randomstate, structuretemplatemanager, i, chunkpos, j, chunkaccess, predicate);
  
          if (structurestart.isValid()) {
 +            // CraftBukkit start
-+            StructureBoundingBox box = structurestart.getBoundingBox();
-+            org.bukkit.event.world.AsyncStructureSpawnEvent event = new org.bukkit.event.world.AsyncStructureSpawnEvent(structuremanager.level.getMinecraftWorld().getWorld(), org.bukkit.craftbukkit.generator.structure.CraftStructure.minecraftToBukkit(structure), new org.bukkit.util.BoundingBox(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()), chunkcoordintpair.x, chunkcoordintpair.z);
++            BoundingBox box = structurestart.getBoundingBox();
++            org.bukkit.event.world.AsyncStructureSpawnEvent event = new org.bukkit.event.world.AsyncStructureSpawnEvent(structuremanager.level.getMinecraftWorld().getWorld(), org.bukkit.craftbukkit.generator.structure.CraftStructure.minecraftToBukkit(structure), new org.bukkit.util.BoundingBox(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()), chunkpos.x, chunkpos.z);
 +            org.bukkit.Bukkit.getPluginManager().callEvent(event);
 +            if (event.isCancelled()) {
 +                return true;
 +            }
 +            // CraftBukkit end
-             structuremanager.setStartForStructure(sectionposition, structure, structurestart, ichunkaccess);
+             structuremanager.setStartForStructure(sectionpos, structure, structurestart, chunkaccess);
              return true;
          } else {

@@ -16,20 +16,20 @@
              }
  
 +            // CraftBukkit start
-+            ItemStack remaining = new InventorySubcontainer(inventorysubcontainer).addItem(itemstack);
-+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(entityinsentient, entityitem, remaining.getCount(), false).isCancelled()) {
++            ItemStack remaining = new SimpleContainer(simplecontainer).addItem(itemstack);
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(mob, itementity, remaining.getCount(), false).isCancelled()) {
 +                return;
 +            }
 +            // CraftBukkit end
 +
-             entityinsentient.onItemPickup(entityitem);
+             mob.onItemPickup(itementity);
              int i = itemstack.getCount();
-             ItemStack itemstack1 = inventorysubcontainer.addItem(itemstack);
+             ItemStack itemstack1 = simplecontainer.addItem(itemstack);
  
-             entityinsentient.take(entityitem, i - itemstack1.getCount());
+             mob.take(itementity, i - itemstack1.getCount());
              if (itemstack1.isEmpty()) {
--                entityitem.discard();
-+                entityitem.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+-                itementity.discard();
++                itementity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
              } else {
                  itemstack.setCount(itemstack1.getCount());
              }

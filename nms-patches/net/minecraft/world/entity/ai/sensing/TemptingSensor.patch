@@ -1,7 +1,7 @@
 --- a/net/minecraft/world/entity/ai/sensing/TemptingSensor.java
 +++ b/net/minecraft/world/entity/ai/sensing/TemptingSensor.java
-@@ -18,6 +18,14 @@
- import net.minecraft.world.entity.player.EntityHuman;
+@@ -20,6 +20,14 @@
+ import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.item.ItemStack;
  
 +// CraftBukkit start
@@ -12,34 +12,34 @@
 +import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 +// CraftBukkit end
 +
- public class TemptingSensor extends Sensor<EntityCreature> {
+ public class TemptingSensor extends Sensor<PathfinderMob> {
  
-     private static final PathfinderTargetCondition TEMPT_TARGETING = PathfinderTargetCondition.forNonCombat().ignoreLineOfSight();
-@@ -30,7 +38,7 @@
-     protected void doTick(WorldServer worldserver, EntityCreature entitycreature) {
-         BehaviorController<?> behaviorcontroller = entitycreature.getBrain();
-         PathfinderTargetCondition pathfindertargetcondition = TemptingSensor.TEMPT_TARGETING.copy().range((double) ((float) entitycreature.getAttributeValue(GenericAttributes.TEMPT_RANGE)));
--        Stream stream = worldserver.players().stream().filter(IEntitySelector.NO_SPECTATORS).filter((entityplayer) -> {
-+        Stream<net.minecraft.server.level.EntityPlayer> stream = worldserver.players().stream().filter(IEntitySelector.NO_SPECTATORS).filter((entityplayer) -> { // CraftBukkit - decompile error
-             return pathfindertargetcondition.test(worldserver, entitycreature, entityplayer);
-         }).filter(this::playerHoldingTemptation).filter((entityplayer) -> {
-             return !entitycreature.hasPassenger(entityplayer);
-@@ -42,7 +50,17 @@
+     private static final TargetingConditions TEMPT_TARGETING = TargetingConditions.forNonCombat().ignoreLineOfSight();
+@@ -48,7 +56,7 @@
+     protected void doTick(ServerLevel serverlevel, PathfinderMob pathfindermob) {
+         Brain<?> brain = pathfindermob.getBrain();
+         TargetingConditions targetingconditions = TemptingSensor.TEMPT_TARGETING.copy().range((double) ((float) pathfindermob.getAttributeValue(Attributes.TEMPT_RANGE)));
+-        Stream stream = serverlevel.players().stream().filter(EntitySelector.NO_SPECTATORS).filter((serverplayer) -> {
++        Stream<net.minecraft.server.level.ServerPlayer> stream = serverlevel.players().stream().filter(EntitySelector.NO_SPECTATORS).filter((serverplayer) -> { // CraftBukkit - decompile error
+             return targetingconditions.test(serverlevel, pathfindermob, serverplayer);
+         }).filter((serverplayer) -> {
+             return this.playerHoldingTemptation(pathfindermob, serverplayer);
+@@ -62,7 +70,17 @@
          if (!list.isEmpty()) {
-             EntityHuman entityhuman = (EntityHuman) list.get(0);
+             Player player = (Player) list.get(0);
  
--            behaviorcontroller.setMemory(MemoryModuleType.TEMPTING_PLAYER, entityhuman);
+-            brain.setMemory(MemoryModuleType.TEMPTING_PLAYER, player);
 +            // CraftBukkit start
-+            EntityTargetLivingEntityEvent event = CraftEventFactory.callEntityTargetLivingEvent(entitycreature, entityhuman, EntityTargetEvent.TargetReason.TEMPT);
++            EntityTargetLivingEntityEvent event = CraftEventFactory.callEntityTargetLivingEvent(pathfindermob, player, EntityTargetEvent.TargetReason.TEMPT);
 +            if (event.isCancelled()) {
 +                return;
 +            }
 +            if (event.getTarget() instanceof HumanEntity) {
-+                behaviorcontroller.setMemory(MemoryModuleType.TEMPTING_PLAYER, ((CraftHumanEntity) event.getTarget()).getHandle());
++                brain.setMemory(MemoryModuleType.TEMPTING_PLAYER, ((CraftHumanEntity) event.getTarget()).getHandle());
 +            } else {
-+                behaviorcontroller.eraseMemory(MemoryModuleType.TEMPTING_PLAYER);
++                brain.eraseMemory(MemoryModuleType.TEMPTING_PLAYER);
 +            }
 +            // CraftBukkit end
          } else {
-             behaviorcontroller.eraseMemory(MemoryModuleType.TEMPTING_PLAYER);
+             brain.eraseMemory(MemoryModuleType.TEMPTING_PLAYER);
          }

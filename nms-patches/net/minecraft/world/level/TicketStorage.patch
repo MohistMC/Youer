@@ -1,26 +1,26 @@
 --- a/net/minecraft/world/level/TicketStorage.java
 +++ b/net/minecraft/world/level/TicketStorage.java
 @@ -30,6 +30,10 @@
- import net.minecraft.world.level.saveddata.SavedDataType;
+ import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
 +// CraftBukkit start
 +import java.util.Objects;
 +// CraftBukkit end
 +
- public class TicketStorage extends PersistentBase {
+ public class TicketStorage extends SavedData {
  
      private static final int INITIAL_TICKET_LIST_CAPACITY = 4;
-@@ -97,7 +101,7 @@
+@@ -95,7 +99,7 @@
              Long2ObjectMap.Entry<List<Ticket>> long2objectmap_entry = (Entry) objectiterator.next();
-             ChunkCoordIntPair chunkcoordintpair = new ChunkCoordIntPair(long2objectmap_entry.getLongKey());
+             ChunkPos chunkpos = new ChunkPos(long2objectmap_entry.getLongKey());
  
 -            for (Ticket ticket : (List) long2objectmap_entry.getValue()) {
 +            for (Ticket ticket : long2objectmap_entry.getValue()) { // CraftBukkit - decompile error
-                 biconsumer.accept(chunkcoordintpair, ticket);
+                 biconsumer.accept(chunkpos, ticket);
              }
          }
-@@ -110,7 +114,7 @@
+@@ -108,7 +112,7 @@
          while (objectiterator.hasNext()) {
              Long2ObjectMap.Entry<List<Ticket>> long2objectmap_entry = (Entry) objectiterator.next();
  
@@ -29,7 +29,7 @@
                  this.addTicket(long2objectmap_entry.getLongKey(), ticket);
              }
          }
-@@ -202,7 +206,7 @@
+@@ -200,7 +204,7 @@
      }
  
      private static boolean isTicketSameTypeAndLevel(Ticket ticket, Ticket ticket1) {
@@ -38,7 +38,7 @@
      }
  
      public int getTicketLevelAt(long i, boolean flag) {
-@@ -404,7 +408,7 @@
+@@ -401,7 +405,7 @@
          while (objectiterator.hasNext()) {
              Long2ObjectMap.Entry<List<Ticket>> long2objectmap_entry = (Entry) objectiterator.next();
  
@@ -47,7 +47,7 @@
                  if (ticket.getType() == tickettype) {
                      list.add(Pair.of(ticket, long2objectmap_entry.getLongKey()));
                  }
-@@ -440,7 +444,7 @@
+@@ -437,7 +441,7 @@
          while (objectiterator.hasNext()) {
              Long2ObjectMap.Entry<List<Ticket>> long2objectmap_entry = (Entry) objectiterator.next();
  

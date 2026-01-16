@@ -1,0 +1,34 @@
+--- a/net/minecraft/world/entity/monster/skeleton/AbstractSkeleton.java
++++ b/net/minecraft/world/entity/monster/skeleton/AbstractSkeleton.java
+@@ -175,7 +175,17 @@
+         Level level = this.level();
+ 
+         if (level instanceof ServerLevel serverlevel) {
+-            Projectile.spawnProjectileUsingShoot(abstractarrow, serverlevel, itemstack1, d0, d1 + d3 * (double) 0.2F, d2, 1.6F, (float) (14 - serverlevel.getDifficulty().getId() * 4));
++            // CraftBukkit start
++            org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(this, this.getMainHandItem(), null, abstractarrow, net.minecraft.world.InteractionHand.MAIN_HAND, 0.8F, true);
++            if (event.isCancelled()) {
++                event.getProjectile().remove();
++                return;
++            }
++
++            if (event.getProjectile() == abstractarrow.getBukkitEntity()) {
++                Projectile.spawnProjectileUsingShoot(abstractarrow, serverlevel, itemstack1, d0, d1 + d3 * (double) 0.2F, d2, 1.6F, (float) (14 - serverlevel.getDifficulty().getId() * 4));
++            }
++            // CraftBukkit end
+         }
+ 
+         this.playSound(SoundEvents.SKELETON_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
+@@ -202,8 +212,10 @@
+     }
+ 
+     @Override
+-    public void onEquipItem(EquipmentSlot equipmentslot, ItemStack itemstack, ItemStack itemstack1) {
+-        super.onEquipItem(equipmentslot, itemstack, itemstack1);
++    // CraftBukkit start
++    public void onEquipItem(EquipmentSlot equipmentslot, ItemStack itemstack, ItemStack itemstack1, boolean silent) {
++        super.onEquipItem(equipmentslot, itemstack, itemstack1, silent);
++        // CraftBukkit end
+         if (!this.level().isClientSide()) {
+             this.reassessWeaponGoal();
+         }

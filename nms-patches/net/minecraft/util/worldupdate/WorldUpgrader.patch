@@ -1,23 +1,29 @@
 --- a/net/minecraft/util/worldupdate/WorldUpgrader.java
 +++ b/net/minecraft/util/worldupdate/WorldUpgrader.java
-@@ -82,7 +82,7 @@
+@@ -83,7 +83,7 @@
  
-     public WorldUpgrader(Convertable.ConversionSession convertable_conversionsession, DataFixer datafixer, SaveData savedata, IRegistryCustom iregistrycustom, boolean flag, boolean flag1) {
-         this.dimensions = iregistrycustom.lookupOrThrow(Registries.LEVEL_STEM);
+     public WorldUpgrader(LevelStorageSource.LevelStorageAccess levelstoragesource_levelstorageaccess, DataFixer datafixer, WorldData worlddata, RegistryAccess registryaccess, boolean flag, boolean flag1) {
+         this.dimensions = registryaccess.lookupOrThrow(Registries.LEVEL_STEM);
 -        this.levels = (Set) this.dimensions.registryKeySet().stream().map(Registries::levelStemToLevel).collect(Collectors.toUnmodifiableSet());
-+        this.levels = (Set) java.util.stream.Stream.of(convertable_conversionsession.dimensionType).map(Registries::levelStemToLevel).collect(Collectors.toUnmodifiableSet()); // CraftBukkit
++        this.levels = (Set) java.util.stream.Stream.of(levelstoragesource_levelstorageaccess.dimensionType).map(Registries::levelStemToLevel).collect(Collectors.toUnmodifiableSet()); // CraftBukkit
          this.eraseCache = flag;
          this.dataFixer = datafixer;
-         this.levelStorage = convertable_conversionsession;
-@@ -446,9 +446,9 @@
-             if (nbttagcompound != null) {
-                 int i = IChunkLoader.getVersion(nbttagcompound);
-                 ChunkGenerator chunkgenerator = ((WorldDimension) WorldUpgrader.this.dimensions.getValueOrThrow(Registries.levelToLevelStem(resourcekey))).generator();
--                NBTTagCompound nbttagcompound1 = ichunkloader.upgradeChunkTag(resourcekey, () -> {
-+                NBTTagCompound nbttagcompound1 = ichunkloader.upgradeChunkTag(Registries.levelToLevelStem(resourcekey), () -> { // CraftBukkit
-                     return WorldUpgrader.this.overworldDataStorage;
--                }, nbttagcompound, chunkgenerator.getTypeNameForDataFixer());
-+                }, nbttagcompound, chunkgenerator.getTypeNameForDataFixer(), chunkcoordintpair, null); // CraftBukkit
-                 ChunkCoordIntPair chunkcoordintpair1 = new ChunkCoordIntPair(nbttagcompound1.getIntOr("xPos", 0), nbttagcompound1.getIntOr("zPos", 0));
+         this.levelStorage = levelstoragesource_levelstorageaccess;
+@@ -446,7 +446,7 @@
+             if (compoundtag != null) {
+                 int i = NbtUtils.getDataVersion(compoundtag);
+                 ChunkGenerator chunkgenerator = ((LevelStem) WorldUpgrader.this.dimensions.getValueOrThrow(Registries.levelToLevelStem(resourcekey))).generator();
+-                CompoundTag compoundtag1 = simpleregionstorage.upgradeChunkTag(compoundtag, -1, ChunkMap.getChunkDataFixContextTag(resourcekey, chunkgenerator.getTypeNameForDataFixer()));
++                CompoundTag compoundtag1 = simpleregionstorage.upgradeChunkTag(compoundtag, -1, ChunkMap.getChunkDataFixContextTag(Registries.levelToLevelStem(resourcekey), chunkgenerator.getTypeNameForDataFixer()), chunkpos, null); // CraftBukkit
+                 ChunkPos chunkpos1 = new ChunkPos(compoundtag1.getIntOr("xPos", 0), compoundtag1.getIntOr("zPos", 0));
  
-                 if (!chunkcoordintpair1.equals(chunkcoordintpair)) {
+                 if (!chunkpos1.equals(chunkpos)) {
+@@ -491,7 +491,7 @@
+ 
+         @Override
+         protected SimpleRegionStorage createStorage(RegionStorageInfo regionstorageinfo, Path path) {
+-            Supplier<LegacyTagFixer> supplier = LegacyStructureDataHandler.getLegacyTagFixer(regionstorageinfo.dimension(), () -> {
++            Supplier<LegacyTagFixer> supplier = LegacyStructureDataHandler.getLegacyTagFixer(Registries.levelToLevelStem(regionstorageinfo.dimension()), () -> { // CraftBukkit
+                 return WorldUpgrader.this.overworldDataStorage;
+             }, WorldUpgrader.this.dataFixer);
+ 

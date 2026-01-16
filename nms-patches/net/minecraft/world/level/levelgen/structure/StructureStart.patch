@@ -1,8 +1,8 @@
 --- a/net/minecraft/world/level/levelgen/structure/StructureStart.java
 +++ b/net/minecraft/world/level/levelgen/structure/StructureStart.java
-@@ -31,6 +31,12 @@
-     @Nullable
-     private volatile StructureBoundingBox cachedBoundingBox;
+@@ -30,6 +30,12 @@
+     private int references;
+     private volatile @Nullable BoundingBox cachedBoundingBox;
  
 +    // CraftBukkit start
 +    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
@@ -10,44 +10,44 @@
 +    public org.bukkit.event.world.AsyncStructureGenerateEvent.Cause generationEventCause = org.bukkit.event.world.AsyncStructureGenerateEvent.Cause.WORLD_GENERATION;
 +    // CraftBukkit end
 +
-     public StructureStart(Structure structure, ChunkCoordIntPair chunkcoordintpair, int i, PiecesContainer piecescontainer) {
+     public StructureStart(Structure structure, ChunkPos chunkpos, int i, PiecesContainer piecescontainer) {
          this.structure = structure;
-         this.chunkPos = chunkcoordintpair;
-@@ -91,11 +97,25 @@
-             BlockPosition blockposition = structureboundingbox1.getCenter();
-             BlockPosition blockposition1 = new BlockPosition(blockposition.getX(), structureboundingbox1.minY(), blockposition.getZ());
+         this.chunkPos = chunkpos;
+@@ -89,11 +95,25 @@
+             BlockPos blockpos = boundingbox1.getCenter();
+             BlockPos blockpos1 = new BlockPos(blockpos.getX(), boundingbox1.minY(), blockpos.getZ());
  
 +            // CraftBukkit start
 +            /*
              for (StructurePiece structurepiece : list) {
-                 if (structurepiece.getBoundingBox().intersects(structureboundingbox)) {
-                     structurepiece.postProcess(generatoraccessseed, structuremanager, chunkgenerator, randomsource, structureboundingbox, chunkcoordintpair, blockposition1);
+                 if (structurepiece.getBoundingBox().intersects(boundingbox)) {
+                     structurepiece.postProcess(worldgenlevel, structuremanager, chunkgenerator, randomsource, boundingbox, chunkpos, blockpos1);
                  }
              }
 +            */
-+            List<StructurePiece> pieces = list.stream().filter(piece -> piece.getBoundingBox().intersects(structureboundingbox)).toList();
++            List<StructurePiece> pieces = list.stream().filter(piece -> piece.getBoundingBox().intersects(boundingbox)).toList();
 +            if (!pieces.isEmpty()) {
 +                org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess = new org.bukkit.craftbukkit.util.TransformerGeneratorAccess();
-+                transformerAccess.setHandle(generatoraccessseed);
-+                transformerAccess.setStructureTransformer(new org.bukkit.craftbukkit.util.CraftStructureTransformer(generationEventCause, generatoraccessseed, structuremanager, structure, structureboundingbox, chunkcoordintpair));
++                transformerAccess.setHandle(worldgenlevel);
++                transformerAccess.setStructureTransformer(new org.bukkit.craftbukkit.util.CraftStructureTransformer(generationEventCause, worldgenlevel, structuremanager, structure, boundingbox, chunkpos));
 +                for (StructurePiece piece : pieces) {
-+                    piece.postProcess(transformerAccess, structuremanager, chunkgenerator, randomsource, structureboundingbox, chunkcoordintpair, blockposition1);
++                    piece.postProcess(transformerAccess, structuremanager, chunkgenerator, randomsource, boundingbox, chunkpos, blockpos1);
 +                }
 +                transformerAccess.getStructureTransformer().discard();
 +            }
 +            // CraftBukkit end
  
-             this.structure.afterPlace(generatoraccessseed, structuremanager, chunkgenerator, randomsource, structureboundingbox, chunkcoordintpair, this.pieceContainer);
+             this.structure.afterPlace(worldgenlevel, structuremanager, chunkgenerator, randomsource, boundingbox, chunkpos, this.pieceContainer);
          }
-@@ -103,6 +123,11 @@
+@@ -101,6 +121,11 @@
  
-     public NBTTagCompound createTag(StructurePieceSerializationContext structurepieceserializationcontext, ChunkCoordIntPair chunkcoordintpair) {
-         NBTTagCompound nbttagcompound = new NBTTagCompound();
+     public CompoundTag createTag(StructurePieceSerializationContext structurepieceserializationcontext, ChunkPos chunkpos) {
+         CompoundTag compoundtag = new CompoundTag();
 +        // CraftBukkit start - store persistent data in nbt
 +        if (!persistentDataContainer.isEmpty()) {
-+            nbttagcompound.put("StructureBukkitValues", persistentDataContainer.toTagCompound());
++            compoundtag.put("StructureBukkitValues", persistentDataContainer.toTagCompound());
 +        }
 +        // CraftBukkit end
  
          if (this.isValid()) {
-             nbttagcompound.putString("id", structurepieceserializationcontext.registryAccess().lookupOrThrow(Registries.STRUCTURE).getKey(this.structure).toString());
+             compoundtag.putString("id", structurepieceserializationcontext.registryAccess().lookupOrThrow(Registries.STRUCTURE).getKey(this.structure).toString());

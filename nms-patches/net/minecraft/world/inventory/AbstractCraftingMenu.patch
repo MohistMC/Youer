@@ -4,13 +4,13 @@
  
      private final int width;
      private final int height;
--    public final InventoryCrafting craftSlots;
+-    public final CraftingContainer craftSlots;
 +    public final TransientCraftingContainer craftSlots; // CraftBukkit
-     public final InventoryCraftResult resultSlots = new InventoryCraftResult();
+     public final ResultContainer resultSlots = new ResultContainer();
  
--    public AbstractCraftingMenu(Containers<?> containers, int i, int j, int k) {
-+    public AbstractCraftingMenu(Containers<?> containers, int i, int j, int k, PlayerInventory playerInventory) { // CraftBukkit
-         super(containers, i);
+-    public AbstractCraftingMenu(MenuType<?> menutype, int i, int j, int k) {
++    public AbstractCraftingMenu(MenuType<?> menutype, int i, int j, int k, Inventory playerInventory) { // CraftBukkit
+         super(menutype, i);
          this.width = j;
          this.height = k;
 -        this.craftSlots = new TransientCraftingContainer(this, j, k);
@@ -20,22 +20,22 @@
 +        // CraftBukkit end
      }
  
-     protected Slot addResultSlot(EntityHuman entityhuman, int i, int j) {
+     protected Slot addResultSlot(Player player, int i, int j) {
 @@ -38,7 +41,7 @@
  
      @Override
-     public ContainerRecipeBook.a handlePlacement(boolean flag, boolean flag1, RecipeHolder<?> recipeholder, WorldServer worldserver, PlayerInventory playerinventory) {
--        RecipeHolder<RecipeCrafting> recipeholder1 = recipeholder;
-+        RecipeHolder<RecipeCrafting> recipeholder1 = (RecipeHolder<RecipeCrafting>) recipeholder; // CraftBukkit - decompile error
+     public RecipeBookMenu.PostPlaceAction handlePlacement(boolean flag, boolean flag1, RecipeHolder<?> recipeholder, ServerLevel serverlevel, Inventory inventory) {
+-        RecipeHolder<CraftingRecipe> recipeholder1 = recipeholder;
++        RecipeHolder<CraftingRecipe> recipeholder1 = (RecipeHolder<CraftingRecipe>) recipeholder; // CraftBukkit - decompile error
  
          this.beginPlacingRecipe();
  
 @@ -65,7 +68,7 @@
                  }
-             }, this.width, this.height, list, list, playerinventory, recipeholder1, flag, flag1);
+             }, this.width, this.height, list, list, inventory, recipeholder1, flag, flag1);
          } finally {
--            this.finishPlacingRecipe(worldserver, recipeholder);
-+            this.finishPlacingRecipe(worldserver, recipeholder1); // CraftBukkit - decompile error
+-            this.finishPlacingRecipe(serverlevel, recipeholder);
++            this.finishPlacingRecipe(serverlevel, recipeholder1); // CraftBukkit - decompile error
          }
  
-         return containerrecipebook_a;
+         return recipebookmenu_postplaceaction;

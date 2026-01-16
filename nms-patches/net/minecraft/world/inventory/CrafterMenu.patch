@@ -1,7 +1,7 @@
 --- a/net/minecraft/world/inventory/CrafterMenu.java
 +++ b/net/minecraft/world/inventory/CrafterMenu.java
 @@ -10,8 +10,35 @@
- import net.minecraft.world.item.crafting.RecipeCrafting;
+ import net.minecraft.world.item.crafting.CraftingRecipe;
  import net.minecraft.world.level.block.CrafterBlock;
  
 +// CraftBukkit start
@@ -11,7 +11,7 @@
 +import org.bukkit.craftbukkit.inventory.view.CraftCrafterView;
 +// CraftBukkit end
 +
- public class CrafterMenu extends Container implements ICrafting {
+ public class CrafterMenu extends AbstractContainerMenu implements ContainerListener {
  
 +    // CraftBukkit start
 +    private CraftCrafterView bukkitEntity = null;
@@ -39,24 +39,24 @@
 @@ -106,18 +133,24 @@
  
      @Override
-     public boolean stillValid(EntityHuman entityhuman) {
+     public boolean stillValid(Player player) {
 +        if (!this.checkReachable) return true; // CraftBukkit
-         return this.container.stillValid(entityhuman);
+         return this.container.stillValid(player);
      }
  
      private void refreshRecipeResult() {
 +        if (!this.opened) return; // CraftBukkit - SPIGOT-8005: don't refresh until opened
-         EntityHuman entityhuman = this.player;
+         Player player = this.player;
  
-         if (entityhuman instanceof EntityPlayer entityplayer) {
-             WorldServer worldserver = entityplayer.level();
+         if (player instanceof ServerPlayer serverplayer) {
+             ServerLevel serverlevel = serverplayer.level();
              CraftingInput craftinginput = this.container.asCraftInput();
--            ItemStack itemstack = (ItemStack) CrafterBlock.getPotentialResults(worldserver, craftinginput).map((recipeholder) -> {
+-            ItemStack itemstack = (ItemStack) CrafterBlock.getPotentialResults(serverlevel, craftinginput).map((recipeholder) -> {
 +            // CraftBukkit start
-+            Optional<RecipeHolder<RecipeCrafting>> recipe = CrafterBlock.getPotentialResults(worldserver, craftinginput);
++            Optional<RecipeHolder<CraftingRecipe>> recipe = CrafterBlock.getPotentialResults(serverlevel, craftinginput);
 +            ItemStack itemstack = (ItemStack) recipe.map((recipeholder) -> {
 +                // CraftBukkit end
-                 return ((RecipeCrafting) recipeholder.value()).assemble(craftinginput, worldserver.registryAccess());
+                 return ((CraftingRecipe) recipeholder.value()).assemble(craftinginput, serverlevel.registryAccess());
              }).orElse(ItemStack.EMPTY);
 +            itemstack = org.bukkit.craftbukkit.event.CraftEventFactory.callPreCraftEvent(this.container, this.resultContainer, itemstack, this.getBukkitView(), recipe); // CraftBukkit
  

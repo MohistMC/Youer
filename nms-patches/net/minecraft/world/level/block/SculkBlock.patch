@@ -1,14 +1,14 @@
 --- a/net/minecraft/world/level/block/SculkBlock.java
 +++ b/net/minecraft/world/level/block/SculkBlock.java
 @@ -41,8 +41,11 @@
-                     BlockPosition blockposition2 = blockposition1.above();
-                     IBlockData iblockdata = this.getRandomGrowthState(generatoraccess, blockposition2, randomsource, sculkspreader.isWorldGeneration());
+                     BlockPos blockpos2 = blockpos1.above();
+                     BlockState blockstate = this.getRandomGrowthState(levelaccessor, blockpos2, randomsource, sculkspreader.isWorldGeneration());
  
--                    generatoraccess.setBlock(blockposition2, iblockdata, 3);
--                    generatoraccess.playSound((Entity) null, blockposition1, iblockdata.getSoundType().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
+-                    levelaccessor.setBlock(blockpos2, blockstate, 3);
+-                    levelaccessor.playSound((Entity) null, blockpos1, blockstate.getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
 +                    // CraftBukkit start - Call BlockSpreadEvent
-+                    if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(generatoraccess, blockposition, blockposition2, iblockdata, 3)) {
-+                        generatoraccess.playSound((Entity) null, blockposition1, iblockdata.getSoundType().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(levelaccessor, blockpos, blockpos2, blockstate, 3)) {
++                        levelaccessor.playSound((Entity) null, blockpos1, blockstate.getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
 +                    }
 +                    // CraftBukkit end
                  }

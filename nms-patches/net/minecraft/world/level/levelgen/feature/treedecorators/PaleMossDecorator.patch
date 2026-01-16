@@ -1,22 +1,22 @@
 --- a/net/minecraft/world/level/levelgen/feature/treedecorators/PaleMossDecorator.java
 +++ b/net/minecraft/world/level/levelgen/feature/treedecorators/PaleMossDecorator.java
-@@ -17,6 +17,10 @@
- import org.apache.commons.lang3.mutable.Mutable;
- import org.apache.commons.lang3.mutable.MutableObject;
+@@ -18,6 +18,10 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
  
 +// CraftBukkit start
-+import net.minecraft.server.level.ChunkProviderServer;
++import net.minecraft.server.level.ServerChunkCache;
 +// CraftBukkit end
 +
- public class PaleMossDecorator extends WorldGenFeatureTree {
+ public class PaleMossDecorator extends TreeDecorator {
  
      public static final MapCodec<PaleMossDecorator> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
-@@ -64,7 +68,7 @@
-                 generatoraccessseed.registryAccess().lookup(Registries.CONFIGURED_FEATURE).flatMap((iregistry) -> {
-                     return iregistry.get(VegetationFeatures.PALE_MOSS_PATCH);
-                 }).ifPresent((holder_c) -> {
--                    ((WorldGenFeatureConfigured) holder_c.value()).place(generatoraccessseed, generatoraccessseed.getLevel().getChunkSource().getGenerator(), randomsource, blockposition.above());
-+                    ((WorldGenFeatureConfigured) holder_c.value()).place(generatoraccessseed, ((ChunkProviderServer) generatoraccessseed.getChunkSource()).getGenerator(), randomsource, blockposition.above()); // CraftBukkit - don't use level from DummyGeneratorAccess
+@@ -57,7 +61,7 @@
+                 worldgenlevel.registryAccess().lookup(Registries.CONFIGURED_FEATURE).flatMap((registry) -> {
+                     return registry.get(VegetationFeatures.PALE_MOSS_PATCH);
+                 }).ifPresent((holder_reference) -> {
+-                    ((ConfiguredFeature) holder_reference.value()).place(worldgenlevel, worldgenlevel.getLevel().getChunkSource().getGenerator(), randomsource, blockpos.above());
++                    ((ConfiguredFeature) holder_reference.value()).place(worldgenlevel, ((ServerChunkCache) worldgenlevel.getChunkSource()).getGenerator(), randomsource, blockpos.above()); // CraftBukkit - don't use level from DummyGeneratorAccess
                  });
              }
  

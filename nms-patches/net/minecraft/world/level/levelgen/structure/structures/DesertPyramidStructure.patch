@@ -2,17 +2,17 @@
 +++ b/net/minecraft/world/level/levelgen/structure/structures/DesertPyramidStructure.java
 @@ -64,6 +64,15 @@
  
-     private static void placeSuspiciousSand(StructureBoundingBox structureboundingbox, GeneratorAccessSeed generatoraccessseed, BlockPosition blockposition) {
-         if (structureboundingbox.isInside(blockposition)) {
+     private static void placeSuspiciousSand(BoundingBox boundingbox, WorldGenLevel worldgenlevel, BlockPos blockpos) {
+         if (boundingbox.isInside(blockpos)) {
 +            // CraftBukkit start
-+            if (generatoraccessseed instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess) {
-+                org.bukkit.craftbukkit.block.CraftBrushableBlock brushableState = (org.bukkit.craftbukkit.block.CraftBrushableBlock) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(generatoraccessseed, blockposition, Blocks.SUSPICIOUS_SAND.defaultBlockState(), null);
-+                brushableState.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(LootTables.DESERT_PYRAMID_ARCHAEOLOGY));
-+                brushableState.setSeed(blockposition.asLong());
-+                transformerAccess.setCraftBlock(blockposition, brushableState, 2);
++            if (worldgenlevel instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess) {
++                org.bukkit.craftbukkit.block.CraftBrushableBlock brushableState = (org.bukkit.craftbukkit.block.CraftBrushableBlock) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(worldgenlevel, blockpos, Blocks.SUSPICIOUS_SAND.defaultBlockState(), null);
++                brushableState.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(BuiltInLootTables.DESERT_PYRAMID_ARCHAEOLOGY));
++                brushableState.setSeed(blockpos.asLong());
++                transformerAccess.setCraftBlock(blockpos, brushableState, 2);
 +                return;
 +            }
 +            // CraftBukkit end
-             generatoraccessseed.setBlock(blockposition, Blocks.SUSPICIOUS_SAND.defaultBlockState(), 2);
-             generatoraccessseed.getBlockEntity(blockposition, TileEntityTypes.BRUSHABLE_BLOCK).ifPresent((brushableblockentity) -> {
-                 brushableblockentity.setLootTable(LootTables.DESERT_PYRAMID_ARCHAEOLOGY, blockposition.asLong());
+             worldgenlevel.setBlock(blockpos, Blocks.SUSPICIOUS_SAND.defaultBlockState(), 2);
+             worldgenlevel.getBlockEntity(blockpos, BlockEntityType.BRUSHABLE_BLOCK).ifPresent((brushableblockentity) -> {
+                 brushableblockentity.setLootTable(BuiltInLootTables.DESERT_PYRAMID_ARCHAEOLOGY, blockpos.asLong());

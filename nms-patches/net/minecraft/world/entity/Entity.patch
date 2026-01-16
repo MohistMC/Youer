@@ -1,20 +1,20 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -153,8 +153,69 @@
- import org.jetbrains.annotations.Contract;
+@@ -156,8 +156,68 @@
+ import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
 +// CraftBukkit start
-+import net.minecraft.network.protocol.game.PacketPlayOutAttachEntity;
-+import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
-+import net.minecraft.world.level.GameRules;
++import net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket;
++import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
++import net.minecraft.world.level.dimension.LevelStem;
++import net.minecraft.world.level.gamerules.GameRules;
 +import org.bukkit.Bukkit;
 +import org.bukkit.Location;
 +import org.bukkit.Server;
 +import org.bukkit.block.BlockFace;
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.entity.Hanging;
-+import org.bukkit.entity.LivingEntity;
 +import org.bukkit.entity.Vehicle;
 +import org.bukkit.event.entity.EntityCombustByEntityEvent;
 +import org.bukkit.event.hanging.HangingBreakByEntityEvent;
@@ -27,7 +27,6 @@
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.event.CraftPortalEvent;
 +import org.bukkit.craftbukkit.util.CraftLocation;
-+import org.bukkit.entity.Pose;
 +import org.bukkit.event.entity.EntityAirChangeEvent;
 +import org.bukkit.event.entity.EntityCombustEvent;
 +import org.bukkit.event.entity.EntityDismountEvent;
@@ -43,7 +42,7 @@
 +import org.bukkit.plugin.PluginManager;
 +// CraftBukkit end
 +
- public abstract class Entity implements SyncedDataHolder, DebugValueSource, INamableTileEntity, ItemOwner, EntityAccess, ScoreHolder, DataComponentGetter {
+ public abstract class Entity implements Nameable, EntityAccess, ScoreHolder, SyncedDataHolder, DataComponentGetter, ItemOwner, SlotProvider, DebugValueSource {
  
 +    // CraftBukkit start
 +    private static final int CURRENT_LEVEL = 2;
@@ -70,9 +69,9 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final String TAG_ID = "id";
      public static final String TAG_UUID = "UUID";
-@@ -287,6 +348,30 @@
+@@ -288,6 +348,30 @@
      private final LongSet visitedBlocks;
-     private final InsideBlockEffectApplier.a insideEffectCollector;
+     private final InsideBlockEffectApplier.StepBasedCollector insideEffectCollector;
      private CustomData customData;
 +    // CraftBukkit start
 +    public boolean forceDrops;
@@ -85,7 +84,7 @@
 +    public org.bukkit.projectiles.ProjectileSource projectileSource; // For projectiles only
 +    public boolean lastDamageCancelled; // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Keep track if the event was canceled
 +    public boolean persistentInvisibility = false;
-+    public BlockPosition lastLavaContact;
++    public BlockPos lastLavaContact;
 +    // Marks an entity, that it was removed by a plugin via Entity#remove
 +    // Main use case currently is for SPIGOT-7487, preventing dropping of leash when leash is removed
 +    public boolean pluginRemoved = false;
@@ -99,12 +98,12 @@
 +    }
 +    // CraftBukkit end
  
-     public Entity(EntityTypes<?> entitytypes, World world) {
+     public Entity(EntityType<?> entitytype, Level level) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -408,12 +493,18 @@
+@@ -410,12 +494,18 @@
      }
  
-     public void kill(WorldServer worldserver) {
+     public void kill(ServerLevel serverlevel) {
 -        this.remove(Entity.RemovalReason.KILLED);
 +        this.remove(Entity.RemovalReason.KILLED, EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
          this.gameEvent(GameEvent.ENTITY_DIE);
@@ -121,17 +120,17 @@
 +        // CraftBukkit end
      }
  
-     protected abstract void defineSynchedData(DataWatcher.a datawatcher_a);
-@@ -422,6 +513,16 @@
+     protected abstract void defineSynchedData(SynchedEntityData.Builder synchedentitydata_builder);
+@@ -424,6 +514,16 @@
          return this.entityData;
      }
  
 +    // CraftBukkit start
-+    public void refreshEntityData(EntityPlayer to) {
-+        List<DataWatcher.c<?>> list = this.getEntityData().getNonDefaultValues();
++    public void refreshEntityData(ServerPlayer to) {
++        List<SynchedEntityData.DataValue<?>> list = this.getEntityData().getNonDefaultValues();
 +
 +        if (list != null) {
-+            to.connection.send(new PacketPlayOutEntityMetadata(this.getId(), list));
++            to.connection.send(new ClientboundSetEntityDataPacket(this.getId(), list));
 +        }
 +    }
 +    // CraftBukkit end
@@ -139,7 +138,7 @@
      public boolean equals(Object object) {
          return object instanceof Entity ? ((Entity) object).id == this.id : false;
      }
-@@ -431,7 +532,13 @@
+@@ -433,7 +533,13 @@
      }
  
      public void remove(Entity.RemovalReason entity_removalreason) {
@@ -154,20 +153,20 @@
      }
  
      public void onClientRemoval() {}
-@@ -439,6 +546,12 @@
+@@ -441,6 +547,12 @@
      public void onRemoval(Entity.RemovalReason entity_removalreason) {}
  
-     public void setPose(EntityPose entitypose) {
+     public void setPose(Pose pose) {
 +        // CraftBukkit start
-+        if (entitypose == this.getPose()) {
++        if (pose == this.getPose()) {
 +            return;
 +        }
-+        this.level.getCraftServer().getPluginManager().callEvent(new EntityPoseChangeEvent(this.getBukkitEntity(), Pose.values()[entitypose.ordinal()]));
++        this.level.getCraftServer().getPluginManager().callEvent(new EntityPoseChangeEvent(this.getBukkitEntity(), org.bukkit.entity.Pose.values()[pose.ordinal()]));
 +        // CraftBukkit end
-         this.entityData.set(Entity.DATA_POSE, entitypose);
+         this.entityData.set(Entity.DATA_POSE, pose);
      }
  
-@@ -463,6 +576,33 @@
+@@ -465,6 +577,33 @@
      }
  
      protected void setRot(float f, float f1) {
@@ -177,7 +176,7 @@
 +        }
 +
 +        if (f == Float.POSITIVE_INFINITY || f == Float.NEGATIVE_INFINITY) {
-+            if (this instanceof EntityPlayer) {
++            if (this instanceof ServerPlayer) {
 +                this.level.getCraftServer().getLogger().warning(this.getScoreboardName() + " was caught trying to crash the server with an invalid yaw");
 +                ((CraftPlayer) this.getBukkitEntity()).kickPlayer("Infinite yaw (Hacking?)");
 +            }
@@ -190,7 +189,7 @@
 +        }
 +
 +        if (f1 == Float.POSITIVE_INFINITY || f1 == Float.NEGATIVE_INFINITY) {
-+            if (this instanceof EntityPlayer) {
++            if (this instanceof ServerPlayer) {
 +                this.level.getCraftServer().getLogger().warning(this.getScoreboardName() + " was caught trying to crash the server with an invalid pitch");
 +                ((CraftPlayer) this.getBukkitEntity()).kickPlayer("Infinite pitch (Hacking?)");
 +            }
@@ -201,32 +200,32 @@
          this.setYRot(f % 360.0F);
          this.setXRot(f1 % 360.0F);
      }
-@@ -508,6 +648,15 @@
+@@ -513,6 +652,15 @@
          this.baseTick();
      }
  
 +    // CraftBukkit start
 +    public void postTick() {
 +        // No clean way to break out of ticking once the entity has been copied to a new world, so instead we move the portalling later in the tick cycle
-+        if (!(this instanceof EntityPlayer)) {
++        if (!(this instanceof ServerPlayer)) {
 +            this.handlePortal();
 +        }
 +    }
 +    // CraftBukkit end
 +
      public void baseTick() {
-         GameProfilerFiller gameprofilerfiller = Profiler.get();
+         ProfilerFiller profilerfiller = Profiler.get();
  
-@@ -521,7 +670,7 @@
+@@ -527,7 +675,7 @@
              --this.boardingCooldown;
          }
  
 -        this.handlePortal();
-+        if (this instanceof EntityPlayer) this.handlePortal(); // CraftBukkit - // Moved up to postTick
++        if (this instanceof ServerPlayer) this.handlePortal(); // CraftBukkit - // Moved up to postTick
          if (this.canSpawnSprintParticle()) {
              this.spawnSprintParticle();
          }
-@@ -551,6 +700,10 @@
+@@ -557,6 +705,10 @@
  
          if (this.isInLava()) {
              this.fallDistance *= 0.5D;
@@ -237,22 +236,22 @@
          }
  
          this.checkBelowWorld();
-@@ -562,7 +715,7 @@
-         world = this.level();
-         if (world instanceof WorldServer worldserver1) {
+@@ -568,7 +720,7 @@
+         level = this.level();
+         if (level instanceof ServerLevel serverlevel1) {
              if (this instanceof Leashable) {
--                Leashable.tickLeash(worldserver1, (Entity) ((Leashable) this));
-+                Leashable.tickLeash(worldserver1, (Entity & Leashable) this); // CraftBukkit - decompile error
+-                Leashable.tickLeash(serverlevel1, (Entity) ((Leashable) this));
++                Leashable.tickLeash(serverlevel1, (Entity & Leashable) this); // CraftBukkit - decompile error
              }
          }
  
-@@ -605,7 +758,22 @@
+@@ -620,7 +772,22 @@
  
      public void lavaIgnite() {
          if (!this.fireImmune()) {
 -            this.igniteForSeconds(15.0F);
 +            // CraftBukkit start - Fallen in lava TODO: this event spams!
-+            if (this instanceof EntityLiving && remainingFireTicks <= 0) {
++            if (this instanceof LivingEntity && remainingFireTicks <= 0) {
 +                // not on fire yet
 +                org.bukkit.block.Block damager = (lastLavaContact == null) ? null : org.bukkit.craftbukkit.block.CraftBlock.at(level, lastLavaContact);
 +                org.bukkit.entity.Entity damagee = this.getBukkitEntity();
@@ -270,16 +269,16 @@
          }
      }
  
-@@ -616,7 +784,7 @@
-             if (world instanceof WorldServer) {
-                 WorldServer worldserver = (WorldServer) world;
+@@ -631,7 +798,7 @@
+             if (level instanceof ServerLevel) {
+                 ServerLevel serverlevel = (ServerLevel) level;
  
--                if (this.hurtServer(worldserver, this.damageSources().lava(), 4.0F) && this.shouldPlayLavaHurtSound() && !this.isSilent()) {
-+                if (this.hurtServer(worldserver, this.damageSources().lava().directBlock(level, lastLavaContact), 4.0F) && this.shouldPlayLavaHurtSound() && !this.isSilent()) { // CraftBukkit
-                     worldserver.playSound((Entity) null, this.getX(), this.getY(), this.getZ(), SoundEffects.GENERIC_BURN, this.getSoundSource(), 0.4F, 2.0F + this.random.nextFloat() * 0.4F);
+-                if (this.hurtServer(serverlevel, this.damageSources().lava(), 4.0F) && this.shouldPlayLavaHurtSound() && !this.isSilent()) {
++                if (this.hurtServer(serverlevel, this.damageSources().lava().directBlock(level, lastLavaContact), 4.0F) && this.shouldPlayLavaHurtSound() && !this.isSilent()) { // CraftBukkit
+                     serverlevel.playSound((Entity) null, this.getX(), this.getY(), this.getZ(), SoundEvents.GENERIC_BURN, this.getSoundSource(), 0.4F, 2.0F + this.random.nextFloat() * 0.4F);
                  }
              }
-@@ -629,6 +797,22 @@
+@@ -644,6 +811,22 @@
      }
  
      public final void igniteForSeconds(float f) {
@@ -299,10 +298,10 @@
 +            f = event.getDuration();
 +        }
 +        // CraftBukkit end
-         this.igniteForTicks(MathHelper.floor(f * 20.0F));
+         this.igniteForTicks(Mth.floor(f * 20.0F));
      }
  
-@@ -653,7 +837,7 @@
+@@ -668,7 +851,7 @@
      }
  
      protected void onBelowWorld() {
@@ -311,22 +310,22 @@
      }
  
      public boolean isFree(double d0, double d1, double d2) {
-@@ -802,6 +986,28 @@
+@@ -820,6 +1003,28 @@
                      }
                  }
  
 +                // CraftBukkit start
 +                if (horizontalCollision && getBukkitEntity() instanceof Vehicle) {
 +                    Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-+                    org.bukkit.block.Block bl = this.level.getWorld().getBlockAt(MathHelper.floor(this.getX()), MathHelper.floor(this.getY()), MathHelper.floor(this.getZ()));
++                    org.bukkit.block.Block bl = this.level.getWorld().getBlockAt(Mth.floor(this.getX()), Mth.floor(this.getY()), Mth.floor(this.getZ()));
 +
-+                    if (vec3d.x > vec3d1.x) {
++                    if (vec3.x > vec31.x) {
 +                        bl = bl.getRelative(BlockFace.EAST);
-+                    } else if (vec3d.x < vec3d1.x) {
++                    } else if (vec3.x < vec31.x) {
 +                        bl = bl.getRelative(BlockFace.WEST);
-+                    } else if (vec3d.z > vec3d1.z) {
++                    } else if (vec3.z > vec31.z) {
 +                        bl = bl.getRelative(BlockFace.SOUTH);
-+                    } else if (vec3d.z < vec3d1.z) {
++                    } else if (vec3.z < vec31.z) {
 +                        bl = bl.getRelative(BlockFace.NORTH);
 +                    }
 +
@@ -340,36 +339,36 @@
                  if (!this.level().isClientSide() || this.isLocalInstanceAuthoritative()) {
                      Entity.MovementEmission entity_movementemission = this.getMovementEmission();
  
-@@ -1213,6 +1419,20 @@
-         return SoundEffects.GENERIC_SPLASH;
+@@ -1235,6 +1440,20 @@
+         return SoundEvents.GENERIC_SPLASH;
      }
  
 +    // CraftBukkit start - Add delegate methods
-+    public SoundEffect getSwimSound0() {
++    public SoundEvent getSwimSound0() {
 +        return getSwimSound();
 +    }
 +
-+    public SoundEffect getSwimSplashSound0() {
++    public SoundEvent getSwimSplashSound0() {
 +        return getSwimSplashSound();
 +    }
 +
-+    public SoundEffect getSwimHighSpeedSplashSound0() {
++    public SoundEvent getSwimHighSpeedSplashSound0() {
 +        return getSwimHighSpeedSplashSound();
 +    }
 +    // CraftBukkit end
 +
-     private void checkInsideBlocks(List<Entity.c> list, InsideBlockEffectApplier.a insideblockeffectapplier_a) {
+     private void checkInsideBlocks(List<Entity.Movement> list, InsideBlockEffectApplier.StepBasedCollector insideblockeffectapplier_stepbasedcollector) {
          if (this.isAffectedByBlocks()) {
              LongSet longset = this.visitedBlocks;
-@@ -1777,6 +1997,7 @@
+@@ -1801,6 +2020,7 @@
          this.yo = d1;
          this.zo = d4;
          this.setPos(d3, d1, d4);
 +        if (valid) level.getChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4); // CraftBukkit
      }
  
-     public void snapTo(Vec3D vec3d) {
-@@ -2029,6 +2250,12 @@
+     public void snapTo(Vec3 vec3) {
+@@ -2059,6 +2279,12 @@
          return false;
      }
  
@@ -380,9 +379,9 @@
 +    // CraftBukkit end
 +
      public void awardKillScore(Entity entity, DamageSource damagesource) {
-         if (entity instanceof EntityPlayer) {
-             CriterionTriggers.ENTITY_KILLED_PLAYER.trigger((EntityPlayer) entity, this, damagesource);
-@@ -2057,16 +2284,22 @@
+         if (entity instanceof ServerPlayer) {
+             CriteriaTriggers.ENTITY_KILLED_PLAYER.trigger((ServerPlayer) entity, this, damagesource);
+@@ -2087,16 +2313,22 @@
      }
  
      public boolean saveAsPassenger(ValueOutput valueoutput) {
@@ -407,7 +406,7 @@
                  return true;
              }
          }
-@@ -2077,14 +2310,34 @@
+@@ -2107,14 +2339,34 @@
      }
  
      public void saveWithoutId(ValueOutput valueoutput) {
@@ -419,20 +418,20 @@
 +        // CraftBukkit end
          try {
 -            if (this.vehicle != null) {
--                valueoutput.store("Pos", Vec3D.CODEC, new Vec3D(this.vehicle.getX(), this.getY(), this.vehicle.getZ()));
+-                valueoutput.store("Pos", Vec3.CODEC, new Vec3(this.vehicle.getX(), this.getY(), this.vehicle.getZ()));
 -            } else {
--                valueoutput.store("Pos", Vec3D.CODEC, this.position());
+-                valueoutput.store("Pos", Vec3.CODEC, this.position());
 +            // CraftBukkit start - selectively save position
 +            if (includeAll) {
 +                if (this.vehicle != null) {
-+                    valueoutput.store("Pos", Vec3D.CODEC, new Vec3D(this.vehicle.getX(), this.getY(), this.vehicle.getZ()));
++                    valueoutput.store("Pos", Vec3.CODEC, new Vec3(this.vehicle.getX(), this.getY(), this.vehicle.getZ()));
 +                } else {
-+                    valueoutput.store("Pos", Vec3D.CODEC, this.position());
++                    valueoutput.store("Pos", Vec3.CODEC, this.position());
 +                }
              }
 +            // CraftBukkit end
  
-             valueoutput.store("Motion", Vec3D.CODEC, this.getDeltaMovement());
+             valueoutput.store("Motion", Vec3.CODEC, this.getDeltaMovement());
 +            // CraftBukkit start - Checking for NaN pitch/yaw and resetting to zero
 +            // TODO: make sure this is the best way to address this.
 +            if (Float.isNaN(this.yRot)) {
@@ -443,10 +442,10 @@
 +                this.xRot = 0;
 +            }
 +            // CraftBukkit end
-             valueoutput.store("Rotation", Vec2F.CODEC, new Vec2F(this.getYRot(), this.getXRot()));
+             valueoutput.store("Rotation", Vec2.CODEC, new Vec2(this.getYRot(), this.getXRot()));
              valueoutput.putDouble("fall_distance", this.fallDistance);
              valueoutput.putShort("Fire", (short) this.remainingFireTicks);
-@@ -2092,7 +2345,28 @@
+@@ -2122,7 +2374,28 @@
              valueoutput.putBoolean("OnGround", this.onGround());
              valueoutput.putBoolean("Invulnerable", this.invulnerable);
              valueoutput.putInt("PortalCooldown", this.portalCooldown);
@@ -455,8 +454,8 @@
 +            if (includeAll) {
 +                valueoutput.store("UUID", UUIDUtil.CODEC, this.getUUID());
 +                // PAIL: Check above UUID reads 1.8 properly, ie: UUIDMost / UUIDLeast
-+                valueoutput.putLong("WorldUUIDLeast", ((WorldServer) this.level).getWorld().getUID().getLeastSignificantBits());
-+                valueoutput.putLong("WorldUUIDMost", ((WorldServer) this.level).getWorld().getUID().getMostSignificantBits());
++                valueoutput.putLong("WorldUUIDLeast", ((ServerLevel) this.level).getWorld().getUID().getLeastSignificantBits());
++                valueoutput.putLong("WorldUUIDMost", ((ServerLevel) this.level).getWorld().getUID().getMostSignificantBits());
 +            }
 +            valueoutput.putInt("Bukkit.updateLevel", CURRENT_LEVEL);
 +            if (!this.persist) {
@@ -476,24 +475,24 @@
              valueoutput.storeNullable("CustomName", ComponentSerialization.CODEC, this.getCustomName());
              if (this.isCustomNameVisible()) {
                  valueoutput.putBoolean("CustomNameVisible", this.isCustomNameVisible());
-@@ -2128,14 +2402,14 @@
+@@ -2158,14 +2431,14 @@
                  valueoutput.store("data", CustomData.CODEC, this.customData);
              }
  
 -            this.addAdditionalSaveData(valueoutput);
 +            this.addAdditionalSaveData(valueoutput, includeAll); // CraftBukkit - pass on includeAll
              if (this.isVehicle()) {
-                 ValueOutput.b valueoutput_b = valueoutput.childrenList("Passengers");
+                 ValueOutput.ValueOutputList valueoutput_valueoutputlist = valueoutput.childrenList("Passengers");
  
                  for (Entity entity : this.getPassengers()) {
-                     ValueOutput valueoutput1 = valueoutput_b.addChild();
+                     ValueOutput valueoutput1 = valueoutput_valueoutputlist.addChild();
  
 -                    if (!entity.saveAsPassenger(valueoutput1)) {
 +                    if (!entity.saveAsPassenger(valueoutput1, includeAll)) { // CraftBukkit - pass on includeAll
-                         valueoutput_b.discardLast();
+                         valueoutput_valueoutputlist.discardLast();
                      }
                  }
-@@ -2145,6 +2419,11 @@
+@@ -2175,6 +2448,11 @@
                  }
              }
  
@@ -504,17 +503,17 @@
 +            // CraftBukkit end
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
-             CrashReportSystemDetails crashreportsystemdetails = crashreport.addCategory("Entity being saved");
-@@ -2184,7 +2463,7 @@
+             CrashReportCategory crashreportcategory = crashreport.addCategory("Entity being saved");
+@@ -2214,7 +2492,7 @@
                  if (Double.isFinite((double) this.getYRot()) && Double.isFinite((double) this.getXRot())) {
                      this.reapplyPosition();
                      this.setRot(this.getYRot(), this.getXRot());
--                    this.setCustomName((IChatBaseComponent) valueinput.read("CustomName", ComponentSerialization.CODEC).orElse((Object) null));
-+                    this.setCustomName((IChatBaseComponent) valueinput.read("CustomName", ComponentSerialization.CODEC).orElse(null)); // CraftBukkit - decompile error
+-                    this.setCustomName((Component) valueinput.read("CustomName", ComponentSerialization.CODEC).orElse((Object) null));
++                    this.setCustomName((Component) valueinput.read("CustomName", ComponentSerialization.CODEC).orElse(null)); // CraftBukkit - decompile error
                      this.setCustomNameVisible(valueinput.getBooleanOr("CustomNameVisible", false));
                      this.setSilent(valueinput.getBooleanOr("Silent", false));
                      this.setNoGravity(valueinput.getBooleanOr("NoGravity", false));
-@@ -2193,7 +2472,7 @@
+@@ -2223,7 +2501,7 @@
                      this.hasVisualFire = valueinput.getBooleanOr("HasVisualFire", false);
                      this.customData = (CustomData) valueinput.read("data", CustomData.CODEC).orElse(CustomData.EMPTY);
                      this.tags.clear();
@@ -523,7 +522,7 @@
                      Set set = this.tags;
  
                      Objects.requireNonNull(this.tags);
-@@ -2209,6 +2488,45 @@
+@@ -2239,6 +2517,45 @@
              } else {
                  throw new IllegalStateException("Entity has invalid position");
              }
@@ -536,7 +535,7 @@
 +            // CraftBukkit end
 +
 +            // CraftBukkit start - Reset world
-+            if (this instanceof EntityPlayer) {
++            if (this instanceof ServerPlayer) {
 +                Server server = Bukkit.getServer();
 +                org.bukkit.World bworld = null;
 +
@@ -553,10 +552,10 @@
 +                }
 +
 +                if (bworld == null) {
-+                    bworld = ((org.bukkit.craftbukkit.CraftServer) server).getServer().getLevel(World.OVERWORLD).getWorld();
++                    bworld = ((org.bukkit.craftbukkit.CraftServer) server).getServer().getLevel(Level.OVERWORLD).getWorld();
 +                }
 +
-+                ((EntityPlayer) this).setLevel(bworld == null ? null : ((CraftWorld) bworld).getHandle());
++                ((ServerPlayer) this).setLevel(bworld == null ? null : ((CraftWorld) bworld).getHandle());
 +            }
 +            this.getBukkitEntity().readBukkitValues(valueinput);
 +            boolean bukkitInvisible = valueinput.getBooleanOr("Bukkit.invisible", false);
@@ -568,9 +567,9 @@
 +
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Loading entity NBT");
-             CrashReportSystemDetails crashreportsystemdetails = crashreport.addCategory("Entity being loaded");
-@@ -2230,6 +2548,12 @@
-         return !entitytypes.canSerialize() ? null : minecraftkey.toString();
+             CrashReportCategory crashreportcategory = crashreport.addCategory("Entity being loaded");
+@@ -2259,6 +2576,12 @@
+         return !entitytype.canSerialize() ? null : identifier.toString();
      }
  
 +    // CraftBukkit start - allow excluding certain data when saving
@@ -582,74 +581,74 @@
      protected abstract void readAdditionalSaveData(ValueInput valueinput);
  
      protected abstract void addAdditionalSaveData(ValueOutput valueoutput);
-@@ -2249,9 +2573,22 @@
+@@ -2275,9 +2598,22 @@
          if (itemstack.isEmpty()) {
              return null;
          } else {
 +            // CraftBukkit start - Capture drops for death event
-+            if (this instanceof EntityLiving && !((EntityLiving) this).forceDrops) {
-+                ((EntityLiving) this).drops.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemstack));
++            if (this instanceof LivingEntity && !((LivingEntity) this).forceDrops) {
++                ((LivingEntity) this).drops.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemstack));
 +                return null;
 +            }
 +            // CraftBukkit end
-             EntityItem entityitem = new EntityItem(worldserver, this.getX() + vec3d.x, this.getY() + vec3d.y, this.getZ() + vec3d.z, itemstack);
+             ItemEntity itementity = new ItemEntity(serverlevel, this.getX() + vec3.x, this.getY() + vec3.y, this.getZ() + vec3.z, itemstack);
  
-             entityitem.setDefaultPickUpDelay();
+             itementity.setDefaultPickUpDelay();
 +            // CraftBukkit start
-+            EntityDropItemEvent event = new EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) entityitem.getBukkitEntity());
++            EntityDropItemEvent event = new EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) itementity.getBukkitEntity());
 +            Bukkit.getPluginManager().callEvent(event);
 +            if (event.isCancelled()) {
 +                return null;
 +            }
 +            // CraftBukkit end
-             worldserver.addFreshEntity(entityitem);
-             return entityitem;
+             serverlevel.addFreshEntity(itementity);
+             return itementity;
          }
-@@ -2337,6 +2674,12 @@
+@@ -2362,6 +2698,12 @@
  
-                 if (leashable2.getLeashHolder() == entityhuman) {
+                 if (leashable2.getLeashHolder() == player) {
                      if (!this.level().isClientSide()) {
 +                        // CraftBukkit start - fire PlayerUnleashEntityEvent
-+                        if (CraftEventFactory.callPlayerUnleashEntityEvent(this, entityhuman, enumhand).isCancelled()) {
-+                            ((EntityPlayer) entityhuman).connection.send(new PacketPlayOutAttachEntity(this, leashable2.getLeashHolder()));
-+                            return EnumInteractionResult.PASS;
++                        if (CraftEventFactory.callPlayerUnleashEntityEvent(this, player, interactionhand).isCancelled()) {
++                            ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(this, leashable2.getLeashHolder()));
++                            return InteractionResult.PASS;
 +                        }
 +                        // CraftBukkit end
-                         if (entityhuman.hasInfiniteMaterials()) {
+                         if (player.hasInfiniteMaterials()) {
                              leashable2.removeLeash();
                          } else {
-@@ -2354,6 +2697,13 @@
+@@ -2383,6 +2725,13 @@
+                     }
  
-                 if (itemstack1.is(Items.LEAD) && !(leashable2.getLeashHolder() instanceof EntityHuman)) {
-                     if (!this.level().isClientSide() && leashable2.canHaveALeashAttachedTo(entityhuman)) {
+                     if (leashable2.canHaveALeashAttachedTo(player)) {
 +                        // CraftBukkit start - fire PlayerLeashEntityEvent
-+                        if (CraftEventFactory.callPlayerLeashEntityEvent(this, entityhuman, entityhuman, enumhand).isCancelled()) {
-+                            ((EntityPlayer) entityhuman).resendItemInHands(); // SPIGOT-7615: Resend to fix client desync with used item
-+                            ((EntityPlayer) entityhuman).connection.send(new PacketPlayOutAttachEntity(this, leashable2.getLeashHolder()));
-+                            return EnumInteractionResult.PASS;
++                        if (CraftEventFactory.callPlayerLeashEntityEvent(this, player, player, interactionhand).isCancelled()) {
++                            ((ServerPlayer) player).resendItemInHands(); // SPIGOT-7615: Resend to fix client desync with used item
++                            ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(this, leashable2.getLeashHolder()));
++                            return InteractionResult.PASS;
 +                        }
 +                        // CraftBukkit end
                          if (leashable2.isLeashed()) {
                              leashable2.dropLeash();
                          }
-@@ -2372,7 +2722,7 @@
+@@ -2400,7 +2749,7 @@
      }
  
-     public boolean shearOffAllLeashConnections(@Nullable EntityHuman entityhuman) {
--        boolean flag = this.dropAllLeashConnections(entityhuman);
-+        boolean flag = this.dropAllLeashConnections(entityhuman, UnleashReason.SHEAR); // CraftBukkit
+     public boolean shearOffAllLeashConnections(@Nullable Player player) {
+-        boolean flag = this.dropAllLeashConnections(player);
++        boolean flag = this.dropAllLeashConnections(player, UnleashReason.SHEAR); // CraftBukkit
  
          if (flag) {
-             World world = this.level();
-@@ -2388,17 +2738,29 @@
+             Level level = this.level();
+@@ -2416,17 +2765,29 @@
      }
  
-     public boolean dropAllLeashConnections(@Nullable EntityHuman entityhuman) {
+     public boolean dropAllLeashConnections(@Nullable Player player) {
 +        // CraftBukkit start
-+        return dropAllLeashConnections(entityhuman, UnleashReason.UNKNOWN);
++        return dropAllLeashConnections(player, UnleashReason.UNKNOWN);
 +    }
 +
-+    public boolean dropAllLeashConnections(@Nullable EntityHuman entityhuman, EntityUnleashEvent.UnleashReason reason) {
++    public boolean dropAllLeashConnections(@Nullable Player player, EntityUnleashEvent.UnleashReason reason) {
 +        // CraftBukkit end
          List<Leashable> list = Leashable.leashableLeashedTo(this);
          boolean flag = !list.isEmpty();
@@ -671,17 +670,17 @@
              leashable1.dropLeash();
          }
  
-@@ -2427,7 +2789,9 @@
-                 if (world instanceof WorldServer) {
-                     WorldServer worldserver = (WorldServer) world;
+@@ -2455,7 +2816,9 @@
+                 if (level instanceof ServerLevel) {
+                     ServerLevel serverlevel = (ServerLevel) level;
  
 +                    this.forceDrops = true; // CraftBukkit
-                     this.spawnAtLocation(worldserver, itemstack1, vec3d);
+                     this.spawnAtLocation(serverlevel, itemstack1, vec3);
 +                    this.forceDrops = false; // CraftBukkit
-                     CriterionTriggers.PLAYER_SHEARED_EQUIPMENT.trigger((EntityPlayer) entityhuman, itemstack1, entityinsentient);
+                     CriteriaTriggers.PLAYER_SHEARED_EQUIPMENT.trigger((ServerPlayer) player, itemstack1, mob);
                  }
  
-@@ -2500,7 +2864,7 @@
+@@ -2528,7 +2891,7 @@
              return false;
          } else if (!entity.couldAcceptPassenger()) {
              return false;
@@ -690,12 +689,12 @@
              return false;
          } else {
              for (Entity entity1 = entity; entity1.vehicle != null; entity1 = entity1.vehicle) {
-@@ -2510,6 +2874,27 @@
+@@ -2538,6 +2901,27 @@
              }
  
              if (flag || this.canRide(entity) && entity.canAddPassenger(this)) {
 +                // CraftBukkit start
-+                if (entity.getBukkitEntity() instanceof Vehicle && this.getBukkitEntity() instanceof LivingEntity) {
++                if (entity.getBukkitEntity() instanceof Vehicle && this.getBukkitEntity() instanceof org.bukkit.entity.LivingEntity) {
 +                    VehicleEnterEvent event = new VehicleEnterEvent((Vehicle) entity.getBukkitEntity(), this.getBukkitEntity());
 +                    // Suppress during worldgen
 +                    if (this.valid) {
@@ -718,7 +717,7 @@
                  if (this.isPassenger()) {
                      this.stopRiding();
                  }
-@@ -2549,7 +2934,12 @@
+@@ -2577,7 +2961,12 @@
              Entity entity = this.vehicle;
  
              this.vehicle = null;
@@ -732,7 +731,7 @@
              Entity.RemovalReason entity_removalreason = this.getRemovalReason();
  
              if (entity_removalreason == null || entity_removalreason.shouldDestroy()) {
-@@ -2584,10 +2974,38 @@
+@@ -2612,10 +3001,38 @@
          }
      }
  
@@ -744,10 +743,10 @@
 +            // CraftBukkit start
 +            CraftEntity craft = (CraftEntity) entity.getBukkitEntity().getVehicle();
 +            Entity orig = craft == null ? null : craft.getHandle();
-+            if (getBukkitEntity() instanceof Vehicle && entity.getBukkitEntity() instanceof LivingEntity) {
++            if (getBukkitEntity() instanceof Vehicle && entity.getBukkitEntity() instanceof org.bukkit.entity.LivingEntity) {
 +                VehicleExitEvent event = new VehicleExitEvent(
 +                        (Vehicle) getBukkitEntity(),
-+                        (LivingEntity) entity.getBukkitEntity()
++                        (org.bukkit.entity.LivingEntity) entity.getBukkitEntity()
 +                );
 +                // Suppress during worldgen
 +                if (this.valid) {
@@ -772,7 +771,7 @@
              if (this.passengers.size() == 1 && this.passengers.get(0) == entity) {
                  this.passengers = ImmutableList.of();
              } else {
-@@ -2598,6 +3016,7 @@
+@@ -2626,6 +3043,7 @@
  
              entity.boardingCooldown = 60;
          }
@@ -780,22 +779,22 @@
      }
  
      protected boolean canAddPassenger(Entity entity) {
-@@ -2709,7 +3128,7 @@
+@@ -2740,7 +3158,7 @@
                      if (teleporttransition != null) {
-                         WorldServer worldserver1 = teleporttransition.newLevel();
+                         ServerLevel serverlevel1 = teleporttransition.newLevel();
  
--                        if (worldserver.getServer().isAllowedToEnterPortal(worldserver1) && (worldserver1.dimension() == worldserver.dimension() || this.canTeleport(worldserver, worldserver1))) {
-+                        if (this instanceof EntityPlayer || (worldserver1 != null && worldserver.getServer().isAllowedToEnterPortal(worldserver1) && (worldserver1.dimension() == worldserver.dimension() || this.canTeleport(worldserver, worldserver1)))) { // CraftBukkit - always call event for players
+-                        if (serverlevel.isAllowedToEnterPortal(serverlevel1) && (serverlevel1.dimension() == serverlevel.dimension() || this.canTeleport(serverlevel, serverlevel1))) {
++                        if ((this instanceof ServerPlayer && serverlevel1 == null) || (serverlevel1 != null && serverlevel.isAllowedToEnterPortal(serverlevel1) && (serverlevel1.dimension() == serverlevel.dimension() || this.canTeleport(serverlevel, serverlevel1)))) { // CraftBukkit - always call event for players
                              this.teleport(teleporttransition);
                          }
                      }
-@@ -2816,6 +3235,13 @@
+@@ -2847,6 +3265,13 @@
      }
  
      public void setSwimming(boolean flag) {
 +        // CraftBukkit start
-+        if (valid && this.isSwimming() != flag && this instanceof EntityLiving) {
-+            if (CraftEventFactory.callToggleSwimEvent((EntityLiving) this, flag).isCancelled()) {
++        if (valid && this.isSwimming() != flag && this instanceof LivingEntity) {
++            if (CraftEventFactory.callToggleSwimEvent((LivingEntity) this, flag).isCancelled()) {
 +                return;
 +            }
 +        }
@@ -803,8 +802,8 @@
          this.setSharedFlag(4, flag);
      }
  
-@@ -2869,8 +3295,12 @@
-         return this.getTeam() != null ? this.getTeam().isAlliedTo(scoreboardteambase) : false;
+@@ -2899,8 +3324,12 @@
+         return this.getTeam() != null ? this.getTeam().isAlliedTo(team) : false;
      }
  
 +    // CraftBukkit - start
@@ -817,7 +816,7 @@
      }
  
      public boolean getSharedFlag(int i) {
-@@ -2889,7 +3319,7 @@
+@@ -2919,7 +3348,7 @@
      }
  
      public int getMaxAirSupply() {
@@ -826,7 +825,7 @@
      }
  
      public int getAirSupply() {
-@@ -2897,7 +3327,18 @@
+@@ -2927,7 +3356,18 @@
      }
  
      public void setAirSupply(int i) {
@@ -846,13 +845,13 @@
      }
  
      public void clearFreeze() {
-@@ -2928,11 +3369,40 @@
+@@ -2958,11 +3398,40 @@
  
-     public void thunderHit(WorldServer worldserver, EntityLightning entitylightning) {
+     public void thunderHit(ServerLevel serverlevel, LightningBolt lightningbolt) {
          this.setRemainingFireTicks(this.remainingFireTicks + 1);
 +        // CraftBukkit start
 +        final org.bukkit.entity.Entity thisBukkitEntity = this.getBukkitEntity();
-+        final org.bukkit.entity.Entity stormBukkitEntity = entitylightning.getBukkitEntity();
++        final org.bukkit.entity.Entity stormBukkitEntity = lightningbolt.getBukkitEntity();
 +        final PluginManager pluginManager = Bukkit.getPluginManager();
 +        // CraftBukkit end
 +
@@ -867,7 +866,7 @@
 +            // CraftBukkit end
          }
  
--        this.hurtServer(worldserver, this.damageSources().lightningBolt(), 5.0F);
+-        this.hurtServer(serverlevel, this.damageSources().lightningBolt(), 5.0F);
 +        // CraftBukkit start
 +        if (thisBukkitEntity instanceof Hanging) {
 +            HangingBreakByEntityEvent hangingEvent = new HangingBreakByEntityEvent((Hanging) thisBukkitEntity, stormBukkitEntity);
@@ -882,21 +881,21 @@
 +            return;
 +        }
 +
-+        if (!this.hurtServer(worldserver, this.damageSources().lightningBolt().customEntityDamager(entitylightning), 5.0F)) {
++        if (!this.hurtServer(serverlevel, this.damageSources().lightningBolt().customEntityDamager(lightningbolt), 5.0F)) {
 +            return;
 +        }
 +        // CraftBukkit end
      }
  
-     public void onAboveBubbleColumn(boolean flag, BlockPosition blockposition) {
-@@ -3112,10 +3582,22 @@
+     public void onAboveBubbleColumn(boolean flag, BlockPos blockpos) {
+@@ -3141,10 +3610,22 @@
+     }
  
-     @Nullable
-     public Entity teleport(TeleportTransition teleporttransition) {
--        WorldServer worldserver = this.level();
-+        WorldServer worldserver = (WorldServer) this.level(); // CraftBukkit - decompile error
+     public @Nullable Entity teleport(TeleportTransition teleporttransition) {
+-        ServerLevel serverlevel = this.level();
++        ServerLevel serverlevel = (ServerLevel) this.level(); // CraftBukkit - decompile error
  
-         if (worldserver instanceof WorldServer worldserver1) {
+         if (serverlevel instanceof ServerLevel serverlevel1) {
              if (!this.isRemoved()) {
 +                // CraftBukkit start
 +                PositionMoveRotation absolutePosition = PositionMoveRotation.calculateAbsolute(PositionMoveRotation.of(this), PositionMoveRotation.of(teleporttransition), teleporttransition.relatives());
@@ -907,13 +906,13 @@
 +                }
 +                if (!to.equals(teleEvent.getTo())) {
 +                    to = teleEvent.getTo();
-+                    teleporttransition = new TeleportTransition(((CraftWorld) to.getWorld()).getHandle(), CraftLocation.toVec3D(to), Vec3D.ZERO, to.getYaw(), to.getPitch(), teleporttransition.missingRespawnBlock(), teleporttransition.asPassenger(), Set.of(), teleporttransition.postTeleportTransition(), teleporttransition.cause());
++                    teleporttransition = new TeleportTransition(((CraftWorld) to.getWorld()).getHandle(), CraftLocation.toVec3D(to), Vec3.ZERO, to.getYaw(), to.getPitch(), teleporttransition.missingRespawnBlock(), teleporttransition.asPassenger(), Set.of(), teleporttransition.postTeleportTransition(), teleporttransition.cause());
 +                }
 +                // CraftBukkit end
-                 worldserver = teleporttransition.newLevel();
-                 boolean flag = worldserver.dimension() != worldserver1.dimension();
+                 serverlevel = teleporttransition.newLevel();
+                 boolean flag = serverlevel.dimension() != serverlevel1.dimension();
  
-@@ -3178,8 +3660,12 @@
+@@ -3206,8 +3687,12 @@
          } else {
              entity2.restoreFrom(this);
              this.removeAfterChangingDimensions();
@@ -922,12 +921,12 @@
 +            entity2.bukkitEntity = this.getBukkitEntity();
 +            // CraftBukkit end
              entity2.teleportSetPosition(PositionMoveRotation.of(this), PositionMoveRotation.of(teleporttransition), teleporttransition.relatives());
--            worldserver1.addDuringTeleport(entity2);
-+            if (this.inWorld) worldserver1.addDuringTeleport(entity2); // CraftBukkit - Don't spawn the new entity if the current entity isn't spawned
+-            serverlevel1.addDuringTeleport(entity2);
++            if (this.inWorld) serverlevel1.addDuringTeleport(entity2); // CraftBukkit - Don't spawn the new entity if the current entity isn't spawned
  
              for (Entity entity3 : list1) {
                  entity3.startRiding(entity2, true, false);
-@@ -3266,8 +3752,9 @@
+@@ -3294,8 +3779,9 @@
      }
  
      protected void removeAfterChangingDimensions() {
@@ -938,8 +937,8 @@
              leashable.removeLeash();
          }
  
-@@ -3285,6 +3772,20 @@
-         return BlockPortalShape.getRelativePosition(blockutil_rectangle, enumdirection_enumaxis, this.position(), this.getDimensions(this.getPose()));
+@@ -3313,12 +3799,26 @@
+         return PortalShape.getRelativePosition(blockutil_foundrectangle, direction_axis, this.position(), this.getDimensions(this.getPose()));
      }
  
 +    // CraftBukkit start
@@ -959,70 +958,77 @@
      public boolean canUsePortal(boolean flag) {
          return (flag || !this.isPassenger()) && this.isAlive();
      }
-@@ -3409,8 +3910,14 @@
+ 
+     public boolean canTeleport(Level level, Level level1) {
+-        if (level.dimension() == Level.END && level1.dimension() == Level.OVERWORLD) {
++        if (level.getTypeKey() == LevelStem.END && level1.getTypeKey() == LevelStem.OVERWORLD) { // CraftBukkit
+             for (Entity entity : this.getPassengers()) {
+                 if (entity instanceof ServerPlayer) {
+                     ServerPlayer serverplayer = (ServerPlayer) entity;
+@@ -3436,8 +3936,14 @@
          return (Boolean) this.entityData.get(Entity.DATA_CUSTOM_NAME_VISIBLE);
      }
  
--    public boolean teleportTo(WorldServer worldserver, double d0, double d1, double d2, Set<Relative> set, float f, float f1, boolean flag) {
--        Entity entity = this.teleport(new TeleportTransition(worldserver, new Vec3D(d0, d1, d2), Vec3D.ZERO, f, f1, set, TeleportTransition.DO_NOTHING));
+-    public boolean teleportTo(ServerLevel serverlevel, double d0, double d1, double d2, Set<Relative> set, float f, float f1, boolean flag) {
+-        Entity entity = this.teleport(new TeleportTransition(serverlevel, new Vec3(d0, d1, d2), Vec3.ZERO, f, f1, set, TeleportTransition.DO_NOTHING));
 +    // CraftBukkit start
-+    public final boolean teleportTo(WorldServer worldserver, double d0, double d1, double d2, Set<Relative> set, float f, float f1, boolean flag) {
-+        return teleportTo(worldserver, d0, d1, d2, set, f, f1, flag, PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    public final boolean teleportTo(ServerLevel serverlevel, double d0, double d1, double d2, Set<Relative> set, float f, float f1, boolean flag) {
++        return teleportTo(serverlevel, d0, d1, d2, set, f, f1, flag, PlayerTeleportEvent.TeleportCause.UNKNOWN);
 +    }
 +
-+    public boolean teleportTo(WorldServer worldserver, double d0, double d1, double d2, Set<Relative> set, float f, float f1, boolean flag, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
-+        Entity entity = this.teleport(new TeleportTransition(worldserver, new Vec3D(d0, d1, d2), Vec3D.ZERO, f, f1, set, TeleportTransition.DO_NOTHING, cause));
++    public boolean teleportTo(ServerLevel serverlevel, double d0, double d1, double d2, Set<Relative> set, float f, float f1, boolean flag, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
++        Entity entity = this.teleport(new TeleportTransition(serverlevel, new Vec3(d0, d1, d2), Vec3.ZERO, f, f1, set, TeleportTransition.DO_NOTHING, cause));
 +        // CraftBukkit end
  
          return entity != null;
      }
-@@ -3532,7 +4039,26 @@
+@@ -3559,7 +4065,26 @@
      }
  
-     public final void setBoundingBox(AxisAlignedBB axisalignedbb) {
--        this.bb = axisalignedbb;
+     public final void setBoundingBox(AABB aabb) {
+-        this.bb = aabb;
 +        // CraftBukkit start - block invalid bounding boxes
-+        double minX = axisalignedbb.minX,
-+                minY = axisalignedbb.minY,
-+                minZ = axisalignedbb.minZ,
-+                maxX = axisalignedbb.maxX,
-+                maxY = axisalignedbb.maxY,
-+                maxZ = axisalignedbb.maxZ;
-+        double len = axisalignedbb.maxX - axisalignedbb.minX;
++        double minX = aabb.minX,
++                minY = aabb.minY,
++                minZ = aabb.minZ,
++                maxX = aabb.maxX,
++                maxY = aabb.maxY,
++                maxZ = aabb.maxZ;
++        double len = aabb.maxX - aabb.minX;
 +        if (len < 0) maxX = minX;
 +        if (len > 64) maxX = minX + 64.0;
 +
-+        len = axisalignedbb.maxY - axisalignedbb.minY;
++        len = aabb.maxY - aabb.minY;
 +        if (len < 0) maxY = minY;
 +        if (len > 64) maxY = minY + 64.0;
 +
-+        len = axisalignedbb.maxZ - axisalignedbb.minZ;
++        len = aabb.maxZ - aabb.minZ;
 +        if (len < 0) maxZ = minZ;
 +        if (len > 64) maxZ = minZ + 64.0;
-+        this.bb = new AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ);
++        this.bb = new AABB(minX, minY, minZ, maxX, maxY, maxZ);
 +        // CraftBukkit end
      }
  
-     public final float getEyeHeight(EntityPose entitypose) {
-@@ -3751,8 +4277,37 @@
+     public final float getEyeHeight(Pose pose) {
+@@ -3775,8 +4300,37 @@
          return 0;
      }
  
 +    // CraftBukkit start
-+    private final ICommandListener commandSource = new ICommandListener() {
++    private final CommandSource commandSource = new CommandSource() {
 +
 +        @Override
-+        public void sendSystemMessage(IChatBaseComponent ichatbasecomponent) {
++        public void sendSystemMessage(Component component) {
 +        }
 +
 +        @Override
-+        public CommandSender getBukkitSender(CommandListenerWrapper wrapper) {
++        public CommandSender getBukkitSender(CommandSourceStack wrapper) {
 +            return Entity.this.getBukkitEntity();
 +        }
 +
 +        @Override
 +        public boolean acceptsSuccess() {
-+            return ((WorldServer) Entity.this.level()).getGameRules().getBoolean(GameRules.RULE_SENDCOMMANDFEEDBACK);
++            return ((ServerLevel) Entity.this.level()).getGameRules().get(GameRules.SEND_COMMAND_FEEDBACK);
 +        }
 +
 +        @Override
@@ -1037,25 +1043,25 @@
 +    };
 +    // CraftBukkit end
 +
-     public CommandListenerWrapper createCommandSourceStackForNameResolution(WorldServer worldserver) {
--        return new CommandListenerWrapper(ICommandListener.NULL, this.position(), this.getRotationVector(), worldserver, 0, this.getPlainTextName(), this.getDisplayName(), worldserver.getServer(), this);
-+        return new CommandListenerWrapper(commandSource, this.position(), this.getRotationVector(), worldserver, 0, this.getPlainTextName(), this.getDisplayName(), worldserver.getServer(), this); // CraftBukkit
+     public CommandSourceStack createCommandSourceStackForNameResolution(ServerLevel serverlevel) {
+-        return new CommandSourceStack(CommandSource.NULL, this.position(), this.getRotationVector(), serverlevel, PermissionSet.NO_PERMISSIONS, this.getPlainTextName(), this.getDisplayName(), serverlevel.getServer(), this);
++        return new CommandSourceStack(commandSource, this.position(), this.getRotationVector(), serverlevel, PermissionSet.NO_PERMISSIONS, this.getPlainTextName(), this.getDisplayName(), serverlevel.getServer(), this); // CraftBukkit
      }
  
-     public void lookAt(ArgumentAnchor.Anchor argumentanchor_anchor, Vec3D vec3d) {
-@@ -3813,6 +4368,11 @@
-                                     vec3d = vec3d.add(vec3d1);
+     public void lookAt(EntityAnchorArgument.Anchor entityanchorargument_anchor, Vec3 vec3) {
+@@ -3837,6 +4391,11 @@
+                                     vec3 = vec3.add(vec31);
                                      ++k1;
                                  }
 +                                // CraftBukkit start - store last lava contact location
-+                                if (tagkey == TagsFluid.LAVA) {
-+                                    this.lastLavaContact = blockposition_mutableblockposition.immutable();
++                                if (tagkey == FluidTags.LAVA) {
++                                    this.lastLavaContact = blockpos_mutableblockpos.immutable();
 +                                }
 +                                // CraftBukkit end
                              }
                          }
                      }
-@@ -4121,6 +4681,14 @@
+@@ -4149,6 +4708,14 @@
  
      @Override
      public final void setRemoved(Entity.RemovalReason entity_removalreason) {

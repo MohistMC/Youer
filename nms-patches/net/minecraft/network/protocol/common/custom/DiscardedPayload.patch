@@ -2,22 +2,22 @@
 +++ b/net/minecraft/network/protocol/common/custom/DiscardedPayload.java
 @@ -4,16 +4,18 @@
  import net.minecraft.network.codec.StreamCodec;
- import net.minecraft.resources.MinecraftKey;
+ import net.minecraft.resources.Identifier;
  
--public record DiscardedPayload(MinecraftKey id) implements CustomPacketPayload {
-+public record DiscardedPayload(MinecraftKey id, io.netty.buffer.ByteBuf data) implements CustomPacketPayload { // CraftBukkit - store data
+-public record DiscardedPayload(Identifier id) implements CustomPacketPayload {
++public record DiscardedPayload(Identifier id, io.netty.buffer.ByteBuf data) implements CustomPacketPayload { // CraftBukkit - store data
  
-     public static <T extends PacketDataSerializer> StreamCodec<T, DiscardedPayload> codec(MinecraftKey minecraftkey, int i) {
-         return CustomPacketPayload.codec((discardedpayload, packetdataserializer) -> {
-+            packetdataserializer.writeBytes(discardedpayload.data); // CraftBukkit - serialize
-         }, (packetdataserializer) -> {
-             int j = packetdataserializer.readableBytes();
+     public static <T extends FriendlyByteBuf> StreamCodec<T, DiscardedPayload> codec(Identifier identifier, int i) {
+         return CustomPacketPayload.codec((discardedpayload, friendlybytebuf) -> {
++            friendlybytebuf.writeBytes(discardedpayload.data); // CraftBukkit - serialize
+         }, (friendlybytebuf) -> {
+             int j = friendlybytebuf.readableBytes();
  
              if (j >= 0 && j <= i) {
--                packetdataserializer.skipBytes(j);
--                return new DiscardedPayload(minecraftkey);
+-                friendlybytebuf.skipBytes(j);
+-                return new DiscardedPayload(identifier);
 +                // CraftBukkit start
-+                return new DiscardedPayload(minecraftkey, packetdataserializer.readBytes(j));
++                return new DiscardedPayload(identifier, friendlybytebuf.readBytes(j));
 +                // CraftBukkit end
              } else {
                  throw new IllegalArgumentException("Payload may not be larger than " + i + " bytes");

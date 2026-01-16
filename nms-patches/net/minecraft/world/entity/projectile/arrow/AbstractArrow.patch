@@ -1,0 +1,203 @@
+--- a/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
++++ b/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
+@@ -53,6 +53,13 @@
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import net.minecraft.world.entity.item.ItemEntity;
++import org.bukkit.event.entity.EntityCombustByEntityEvent;
++import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.player.PlayerPickupArrowEvent;
++// CraftBukkit end
++
+ public abstract class AbstractArrow extends Projectile {
+ 
+     private static final double ARROW_BASE_DAMAGE = 2.0D;
+@@ -93,7 +100,14 @@
+     }
+ 
+     protected AbstractArrow(EntityType<? extends AbstractArrow> entitytype, double d0, double d1, double d2, Level level, ItemStack itemstack, @Nullable ItemStack itemstack1) {
++        // CraftBukkit start - handle the owner before the rest of things
++        this(entitytype, d0, d1, d2, level, itemstack, itemstack1, null);
++    }
++
++    protected AbstractArrow(EntityType<? extends AbstractArrow> entitytype, double d0, double d1, double d2, Level level, ItemStack itemstack, @Nullable ItemStack itemstack1, @Nullable LivingEntity ownerEntity) {
+         this(entitytype, level);
++        this.setOwner(ownerEntity);
++        // CraftBukkit end
+         this.pickupItemStack = itemstack.copy();
+         this.applyComponentsFromItemStack(itemstack);
+         Unit unit = (Unit) itemstack.remove(DataComponents.INTANGIBLE_PROJECTILE);
+@@ -119,8 +133,8 @@
+     }
+ 
+     protected AbstractArrow(EntityType<? extends AbstractArrow> entitytype, LivingEntity livingentity, Level level, ItemStack itemstack, @Nullable ItemStack itemstack1) {
+-        this(entitytype, livingentity.getX(), livingentity.getEyeY() - (double) 0.1F, livingentity.getZ(), level, itemstack, itemstack1);
+-        this.setOwner(livingentity);
++        this(entitytype, livingentity.getX(), livingentity.getEyeY() - (double) 0.1F, livingentity.getZ(), level, itemstack, itemstack1, livingentity); // CraftBukkit
++        // this.setOwner(entityliving); // SPIGOT-7744 - Moved to the above constructor
+     }
+ 
+     public void setSoundEvent(SoundEvent soundevent) {
+@@ -289,7 +303,7 @@
+ 
+                 if (arraylist.isEmpty()) {
+                     if (this.isAlive() && blockhitresult.getType() != HitResult.Type.MISS) {
+-                        this.hitTargetOrDeflectSelf(blockhitresult);
++                        this.preHitTargetOrDeflectSelf(blockhitresult); // CraftBukkit - projectile hit event
+                         this.needsSync = true;
+                     }
+                 } else {
+@@ -312,7 +326,7 @@
+ 
+     private ProjectileDeflection hitTargetsOrDeflectSelf(Collection<EntityHitResult> collection) {
+         for (EntityHitResult entityhitresult : collection) {
+-            ProjectileDeflection projectiledeflection = this.hitTargetOrDeflectSelf(entityhitresult);
++            ProjectileDeflection projectiledeflection = this.preHitTargetOrDeflectSelf(entityhitresult); // CraftBukkit - projectile hit event
+ 
+             if (!this.isAlive() || projectiledeflection != ProjectileDeflection.NONE) {
+                 return projectiledeflection;
+@@ -381,7 +395,7 @@
+     protected void tickDespawn() {
+         ++this.life;
+         if (this.life >= 1200) {
+-            this.discard();
++            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         }
+ 
+     }
+@@ -454,7 +468,7 @@
+             }
+ 
+             if (this.piercingIgnoreEntityIds.size() >= this.getPierceLevel() + 1) {
+-                this.discard();
++                this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+                 return;
+             }
+ 
+@@ -475,7 +489,13 @@
+         int k = entity.getRemainingFireTicks();
+ 
+         if (this.isOnFire() && !flag) {
+-            entity.igniteForSeconds(5.0F);
++            // CraftBukkit start
++            EntityCombustByEntityEvent combustEvent = new EntityCombustByEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity(), 5.0F);
++            org.bukkit.Bukkit.getPluginManager().callEvent(combustEvent);
++            if (!combustEvent.isCancelled()) {
++                entity.igniteForSeconds(combustEvent.getDuration(), false);
++            }
++            // CraftBukkit end
+         }
+ 
+         if (entity.hurtOrSimulate(damagesource, (float) i)) {
+@@ -525,7 +545,7 @@
+ 
+             this.playSound(this.soundEvent, 1.0F, 1.2F / (this.random.nextFloat() * 0.2F + 0.9F));
+             if (this.getPierceLevel() <= 0) {
+-                this.discard();
++                this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+             }
+         } else {
+             entity.setRemainingFireTicks(k);
+@@ -541,7 +561,7 @@
+                         this.spawnAtLocation(serverlevel2, this.getPickupItem(), 0.1F);
+                     }
+ 
+-                    this.discard();
++                    this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+                 }
+             }
+         }
+@@ -683,7 +703,7 @@
+     protected void readAdditionalSaveData(ValueInput valueinput) {
+         super.readAdditionalSaveData(valueinput);
+         this.life = valueinput.getShortOr("life", (short) 0);
+-        this.lastState = (BlockState) valueinput.read("inBlockState", BlockState.CODEC).orElse((Object) null);
++        this.lastState = (BlockState) valueinput.read("inBlockState", BlockState.CODEC).orElse(null); // CraftBukkit - decompile error
+         this.shakeTime = valueinput.getByteOr("shake", (byte) 0) & 255;
+         this.setInGround(valueinput.getBooleanOr("inGround", false));
+         this.baseDamage = valueinput.getDoubleOr("damage", 2.0D);
+@@ -692,7 +712,7 @@
+         this.setPierceLevel(valueinput.getByteOr("PierceLevel", (byte) 0));
+         this.soundEvent = (SoundEvent) valueinput.read("SoundEvent", BuiltInRegistries.SOUND_EVENT.byNameCodec()).orElse(this.getDefaultHitGroundSoundEvent());
+         this.setPickupItemStack((ItemStack) valueinput.read("item", ItemStack.CODEC).orElse(this.getDefaultPickupItem()));
+-        this.firedFromWeapon = (ItemStack) valueinput.read("weapon", ItemStack.CODEC).orElse((Object) null);
++        this.firedFromWeapon = (ItemStack) valueinput.read("weapon", ItemStack.CODEC).orElse(null); // CraftBukkit - decompile error
+     }
+ 
+     @Override
+@@ -701,34 +721,31 @@
+         Entity entity1 = entity;
+         byte b0 = 0;
+ 
+-        AbstractArrow.Pickup abstractarrow_pickup;
++        AbstractArrow.Pickup abstractarrow_pickup = this.pickup; // CraftBukkit - decompile error
+ 
+         label16:
+-        while(true) {
+-            //$FF: b0->value
+-            //0->net/minecraft/world/entity/player/Player
+-            //1->net/minecraft/world/entity/OminousItemSpawner
+-            switch (entity1.typeSwitch<invokedynamic>(entity1, b0)) {
+-                case -1:
+-                default:
+-                    abstractarrow_pickup = this.pickup;
+-                    break label16;
+-                case 0:
+-                    Player player = (Player)entity1;
++        // CraftBukkit start - decompile error
++        while (true) {
++            switch (entity1) {
++                case Player player:
+ 
+                     if (this.pickup != AbstractArrow.Pickup.DISALLOWED) {
+                         b0 = 1;
+-                        break;
++                        break label16;
+                     }
+ 
+                     abstractarrow_pickup = AbstractArrow.Pickup.ALLOWED;
+                     break label16;
+-                case 1:
+-                    OminousItemSpawner ominousitemspawner = (OminousItemSpawner)entity1;
++                case OminousItemSpawner ominousitemspawner:
+ 
+                     abstractarrow_pickup = AbstractArrow.Pickup.DISALLOWED;
+                     break label16;
++                case null: // SPIGOT-7751: Fix crash caused by null owner
++                default:
++                    abstractarrow_pickup = this.pickup;
++                    break label16;
+             }
++            // CraftBukkit end
+         }
+ 
+         this.pickup = abstractarrow_pickup;
+@@ -737,9 +754,24 @@
+     @Override
+     public void playerTouch(Player player) {
+         if (!this.level().isClientSide() && (this.isInGround() || this.isNoPhysics()) && this.shakeTime <= 0) {
+-            if (this.tryPickup(player)) {
++            // CraftBukkit start
++            ItemStack itemstack = this.getPickupItem();
++            if (this.pickup == Pickup.ALLOWED && !itemstack.isEmpty() && player.getInventory().canHold(itemstack) > 0) {
++                ItemEntity item = new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), itemstack);
++                PlayerPickupArrowEvent event = new PlayerPickupArrowEvent((org.bukkit.entity.Player) player.getBukkitEntity(), new org.bukkit.craftbukkit.entity.CraftItem(this.level().getCraftServer(), item), (org.bukkit.entity.AbstractArrow) this.getBukkitEntity());
++                // event.setCancelled(!entityhuman.canPickUpLoot); TODO
++                this.level().getCraftServer().getPluginManager().callEvent(event);
++
++                if (event.isCancelled()) {
++                    return;
++                }
++                itemstack = item.getItem();
++            }
++
++            if ((this.pickup == AbstractArrow.Pickup.ALLOWED && player.getInventory().add(itemstack)) || (this.pickup == AbstractArrow.Pickup.CREATIVE_ONLY && player.getAbilities().instabuild)) {
++                // CraftBukkit end
+                 player.take(this, 1);
+-                this.discard();
++                this.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             }
+ 
+         }

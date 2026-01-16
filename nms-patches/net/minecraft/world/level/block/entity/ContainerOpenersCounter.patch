@@ -10,61 +10,61 @@
  
 @@ -27,11 +28,36 @@
  
-     protected abstract void openerCountChanged(World world, BlockPosition blockposition, IBlockData iblockdata, int i, int j);
+     protected abstract void openerCountChanged(Level level, BlockPos blockpos, BlockState blockstate, int i, int j);
  
 +    // CraftBukkit start
-+    public void onAPIOpen(World world, BlockPosition blockposition, IBlockData iblockdata) {
-+        onOpen(world, blockposition, iblockdata);
++    public void onAPIOpen(Level level, BlockPos blockpos, BlockState blockstate) {
++        onOpen(level, blockpos, blockstate);
 +    }
 +
-+    public void onAPIClose(World world, BlockPosition blockposition, IBlockData iblockdata) {
-+        onClose(world, blockposition, iblockdata);
++    public void onAPIClose(Level level, BlockPos blockpos, BlockState blockstate) {
++        onClose(level, blockpos, blockstate);
 +    }
 +
-+    public void openerAPICountChanged(World world, BlockPosition blockposition, IBlockData iblockdata, int i, int j) {
-+        openerCountChanged(world, blockposition, iblockdata, i, j);
++    public void openerAPICountChanged(Level level, BlockPos blockpos, BlockState blockstate, int i, int j) {
++        openerCountChanged(level, blockpos, blockstate, i, j);
 +    }
 +    // CraftBukkit end
 +
-     public abstract boolean isOwnContainer(EntityHuman entityhuman);
+     public abstract boolean isOwnContainer(Player player);
  
-     public void incrementOpeners(EntityLiving entityliving, World world, BlockPosition blockposition, IBlockData iblockdata, double d0) {
+     public void incrementOpeners(LivingEntity livingentity, Level level, BlockPos blockpos, BlockState blockstate, double d0) {
 +        int oldPower = Math.max(0, Math.min(15, this.openCount)); // CraftBukkit - Get power before new viewer is added
          int i = this.openCount++;
  
 +        // CraftBukkit start - Call redstone event
-+        if (world.getBlockState(blockposition).is(net.minecraft.world.level.block.Blocks.TRAPPED_CHEST)) {
++        if (level.getBlockState(blockpos).is(net.minecraft.world.level.block.Blocks.TRAPPED_CHEST)) {
 +            int newPower = Math.max(0, Math.min(15, this.openCount));
 +
 +            if (oldPower != newPower) {
-+                org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(world, blockposition, oldPower, newPower);
++                org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(level, blockpos, oldPower, newPower);
 +            }
 +        }
 +        // CraftBukkit end
 +
          if (i == 0) {
-             this.onOpen(world, blockposition, iblockdata);
-             world.gameEvent(entityliving, (Holder) GameEvent.CONTAINER_OPEN, blockposition);
+             this.onOpen(level, blockpos, blockstate);
+             level.gameEvent(livingentity, (Holder) GameEvent.CONTAINER_OPEN, blockpos);
 @@ -43,8 +69,19 @@
      }
  
-     public void decrementOpeners(EntityLiving entityliving, World world, BlockPosition blockposition, IBlockData iblockdata) {
+     public void decrementOpeners(LivingEntity livingentity, Level level, BlockPos blockpos, BlockState blockstate) {
 +        int oldPower = Math.max(0, Math.min(15, this.openCount)); // CraftBukkit - Get power before new viewer is added
          int i = this.openCount--;
  
 +        // CraftBukkit start - Call redstone event
-+        if (world.getBlockState(blockposition).is(net.minecraft.world.level.block.Blocks.TRAPPED_CHEST)) {
++        if (level.getBlockState(blockpos).is(net.minecraft.world.level.block.Blocks.TRAPPED_CHEST)) {
 +            int newPower = Math.max(0, Math.min(15, this.openCount));
 +
 +            if (oldPower != newPower) {
-+                org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(world, blockposition, oldPower, newPower);
++                org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(level, blockpos, oldPower, newPower);
 +            }
 +        }
 +        // CraftBukkit end
 +
          if (this.openCount == 0) {
-             this.onClose(world, blockposition, iblockdata);
-             world.gameEvent(entityliving, (Holder) GameEvent.CONTAINER_CLOSE, blockposition);
+             this.onClose(level, blockpos, blockstate);
+             level.gameEvent(livingentity, (Holder) GameEvent.CONTAINER_CLOSE, blockpos);
 @@ -85,6 +122,7 @@
          }
  

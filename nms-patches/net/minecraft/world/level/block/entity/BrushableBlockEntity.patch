@@ -1,7 +1,7 @@
 --- a/net/minecraft/world/level/block/entity/BrushableBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BrushableBlockEntity.java
 @@ -34,6 +34,13 @@
- import net.minecraft.world.phys.Vec3D;
+ import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
 +// CraftBukkit start
@@ -11,16 +11,16 @@
 +import org.bukkit.event.block.BlockBrushEvent;
 +// CraftBukkit end
 +
- public class BrushableBlockEntity extends TileEntity {
+ public class BrushableBlockEntity extends BlockEntity {
  
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -83,7 +90,12 @@
-                     IBlockData iblockdata = this.getBlockState();
-                     IBlockData iblockdata1 = (IBlockData) iblockdata.setValue(BlockProperties.DUSTED, k);
+@@ -81,7 +88,12 @@
+                     BlockState blockstate = this.getBlockState();
+                     BlockState blockstate1 = (BlockState) blockstate.setValue(BlockStateProperties.DUSTED, k);
  
--                    worldserver.setBlock(this.getBlockPos(), iblockdata1, 3);
+-                    serverlevel.setBlock(this.getBlockPos(), blockstate1, 3);
 +                    // CraftBukkit start
-+                    BlockBrushEvent event = CraftEventFactory.callBlockBrushEvent(worldserver, this.getBlockPos(), iblockdata1, 3, (EntityPlayer) entityliving);
++                    BlockBrushEvent event = CraftEventFactory.callBlockBrushEvent(serverlevel, this.getBlockPos(), blockstate1, 3, (ServerPlayer) livingentity);
 +                    if (!event.isCancelled()) {
 +                        event.getNewState().update(true);
 +                    }
@@ -28,51 +28,51 @@
                  }
  
                  return false;
-@@ -124,10 +136,10 @@
+@@ -122,10 +134,10 @@
      }
  
-     private void brushingCompleted(WorldServer worldserver, EntityLiving entityliving, ItemStack itemstack) {
--        this.dropContent(worldserver, entityliving, itemstack);
-+        // this.dropContent(worldserver, entityliving, itemstack); // CraftBukkit - moved down
-         IBlockData iblockdata = this.getBlockState();
+     private void brushingCompleted(ServerLevel serverlevel, LivingEntity livingentity, ItemStack itemstack) {
+-        this.dropContent(serverlevel, livingentity, itemstack);
++        // this.dropContent(serverlevel, livingentity, itemstack); // CraftBukkit - moved down
+         BlockState blockstate = this.getBlockState();
  
--        worldserver.levelEvent(3008, this.getBlockPos(), Block.getId(iblockdata));
+-        serverlevel.levelEvent(3008, this.getBlockPos(), Block.getId(blockstate));
 +        // worldserver.levelEvent(3008, this.getBlockPos(), Block.getId(iblockdata)); // CraftBukkit - moved down
          Block block = this.getBlockState().getBlock();
          Block block1;
  
-@@ -137,7 +149,15 @@
+@@ -135,7 +147,15 @@
              block1 = Blocks.AIR;
          }
  
--        worldserver.setBlock(this.worldPosition, block1.defaultBlockState(), 3);
+-        serverlevel.setBlock(this.worldPosition, block1.defaultBlockState(), 3);
 +        // CraftBukkit start
-+        BlockBrushEvent event = CraftEventFactory.callBlockBrushEvent(worldserver, this.worldPosition, block1.defaultBlockState(), 3, (EntityPlayer) entityliving);
++        BlockBrushEvent event = CraftEventFactory.callBlockBrushEvent(serverlevel, this.worldPosition, block1.defaultBlockState(), 3, (ServerPlayer) livingentity);
 +        if (!event.isCancelled()) {
-+            this.dropContent(worldserver, entityliving, itemstack); // CraftBukkit - from above
-+            worldserver.levelEvent(3008, this.getBlockPos(), Block.getId(iblockdata)); // CraftBukkit - from above
++            this.dropContent(serverlevel, livingentity, itemstack); // CraftBukkit - from above
++            serverlevel.levelEvent(3008, this.getBlockPos(), Block.getId(blockstate)); // CraftBukkit - from above
 +
 +            event.getNewState().update(true);
 +        }
 +        // CraftBukkit end
      }
  
-     private void dropContent(WorldServer worldserver, EntityLiving entityliving, ItemStack itemstack) {
-@@ -154,7 +174,12 @@
-             EntityItem entityitem = new EntityItem(worldserver, d3, d4, d5, this.item.split(worldserver.random.nextInt(21) + 10));
+     private void dropContent(ServerLevel serverlevel, LivingEntity livingentity, ItemStack itemstack) {
+@@ -152,7 +172,12 @@
+             ItemEntity itementity = new ItemEntity(serverlevel, d3, d4, d5, this.item.split(serverlevel.random.nextInt(21) + 10));
  
-             entityitem.setDeltaMovement(Vec3D.ZERO);
--            worldserver.addFreshEntity(entityitem);
+             itementity.setDeltaMovement(Vec3.ZERO);
+-            serverlevel.addFreshEntity(itementity);
 +            // CraftBukkit start
-+            if (entityliving instanceof EntityPlayer entityplayer) {
++            if (livingentity instanceof ServerPlayer serverplayer) {
 +                org.bukkit.block.Block bblock = CraftBlock.at(this.level, this.worldPosition);
-+                CraftEventFactory.handleBlockDropItemEvent(bblock, bblock.getState(), entityplayer, Arrays.asList(entityitem));
++                CraftEventFactory.handleBlockDropItemEvent(bblock, bblock.getState(), serverplayer, Arrays.asList(itementity));
 +            }
 +            // CraftBukkit end
              this.item = ItemStack.EMPTY;
          }
  
-@@ -187,7 +212,7 @@
+@@ -185,7 +210,7 @@
      }
  
      private boolean tryLoadLootTable(ValueInput valueinput) {
@@ -81,12 +81,12 @@
          this.lootTableSeed = valueinput.getLongOr("LootTableSeed", 0L);
          return this.lootTable != null;
      }
-@@ -233,7 +258,7 @@
+@@ -231,7 +256,7 @@
              this.item = ItemStack.EMPTY;
          }
  
--        this.hitDirection = (EnumDirection) valueinput.read("hit_direction", EnumDirection.LEGACY_ID_CODEC).orElse((Object) null);
-+        this.hitDirection = (EnumDirection) valueinput.read("hit_direction", EnumDirection.LEGACY_ID_CODEC).orElse(null); // CraftBukkit - decompile error
+-        this.hitDirection = (Direction) valueinput.read("hit_direction", Direction.LEGACY_ID_CODEC).orElse((Object) null);
++        this.hitDirection = (Direction) valueinput.read("hit_direction", Direction.LEGACY_ID_CODEC).orElse(null); // CraftBukkit - decompile error
      }
  
      @Override

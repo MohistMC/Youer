@@ -9,14 +9,14 @@
 +import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 +// CraftBukkit end
 +
- public record LootDataType<T>(ResourceKey<IRegistry<T>> registryKey, Codec<T> codec, LootDataType.a<T> validator) {
+ public record LootDataType<T>(ResourceKey<Registry<T>> registryKey, Codec<T> codec, LootDataType.Validator<T> validator) {
  
      public static final LootDataType<LootItemCondition> PREDICATE = new LootDataType<LootItemCondition>(Registries.PREDICATE, LootItemCondition.DIRECT_CODEC, createSimpleValidator());
 @@ -33,6 +38,7 @@
-     private static LootDataType.a<LootTable> createLootTableValidator() {
-         return (lootcollector, resourcekey, loottable) -> {
-             loottable.validate(lootcollector.setContextKeySet(loottable.getParamSet()).enterElement(new ProblemReporter.h(resourcekey), resourcekey));
-+            loottable.craftLootTable = new CraftLootTable(CraftNamespacedKey.fromMinecraft(resourcekey.location()), loottable); // CraftBukkit
+     private static LootDataType.Validator<LootTable> createLootTableValidator() {
+         return (validationcontext, resourcekey, loottable) -> {
+             loottable.validate(validationcontext.setContextKeySet(loottable.getParamSet()).enterElement(new ProblemReporter.RootElementPathElement(resourcekey), resourcekey));
++            loottable.craftLootTable = new CraftLootTable(CraftNamespacedKey.fromMinecraft(resourcekey.identifier()), loottable); // CraftBukkit
          };
      }
  

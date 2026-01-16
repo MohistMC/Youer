@@ -1,0 +1,50 @@
+--- a/net/minecraft/server/commands/TimeCommand.java
++++ b/net/minecraft/server/commands/TimeCommand.java
+@@ -9,6 +9,11 @@
+ import net.minecraft.network.chat.Component;
+ import net.minecraft.server.level.ServerLevel;
+ 
++// CraftBukkit start
++import org.bukkit.Bukkit;
++import org.bukkit.event.world.TimeSkipEvent;
++// CraftBukkit end
++
+ public class TimeCommand {
+ 
+     public TimeCommand() {}
+@@ -47,8 +52,15 @@
+     }
+ 
+     public static int setTime(CommandSourceStack commandsourcestack, int i) {
+-        for (ServerLevel serverlevel : commandsourcestack.getServer().getAllLevels()) {
+-            serverlevel.setDayTime((long) i);
++        // CraftBukkit start - SPIGOT-6496: Only set the time for the world the command originates in
++        {
++            ServerLevel serverlevel = commandsourcestack.getLevel();
++            TimeSkipEvent event = new TimeSkipEvent(serverlevel.getWorld(), TimeSkipEvent.SkipReason.COMMAND, i - serverlevel.getDayTime());
++            Bukkit.getPluginManager().callEvent(event);
++            if (!event.isCancelled()) {
++                serverlevel.setDayTime((long) serverlevel.getDayTime() + event.getSkipAmount());
++            }
++            // CraftBukkit end
+         }
+ 
+         commandsourcestack.getServer().forceTimeSynchronization();
+@@ -59,8 +71,15 @@
+     }
+ 
+     public static int addTime(CommandSourceStack commandsourcestack, int i) {
+-        for (ServerLevel serverlevel : commandsourcestack.getServer().getAllLevels()) {
+-            serverlevel.setDayTime(serverlevel.getDayTime() + (long) i);
++        // CraftBukkit start - SPIGOT-6496: Only set the time for the world the command originates in
++        {
++            ServerLevel serverlevel = commandsourcestack.getLevel();
++            TimeSkipEvent event = new TimeSkipEvent(serverlevel.getWorld(), TimeSkipEvent.SkipReason.COMMAND, i);
++            Bukkit.getPluginManager().callEvent(event);
++            if (!event.isCancelled()) {
++                serverlevel.setDayTime(serverlevel.getDayTime() + event.getSkipAmount());
++            }
++            // CraftBukkit end
+         }
+ 
+         commandsourcestack.getServer().forceTimeSynchronization();

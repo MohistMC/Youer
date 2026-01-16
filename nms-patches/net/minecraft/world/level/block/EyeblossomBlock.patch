@@ -1,15 +1,15 @@
 --- a/net/minecraft/world/level/block/EyeblossomBlock.java
 +++ b/net/minecraft/world/level/block/EyeblossomBlock.java
-@@ -88,7 +88,11 @@
+@@ -90,7 +90,11 @@
          } else {
-             EyeblossomBlock.a eyeblossomblock_a = this.type.transform();
+             EyeblossomBlock.Type eyeblossomblock_type = this.type.transform();
  
--            worldserver.setBlock(blockposition, eyeblossomblock_a.state(), 3);
+-            serverlevel.setBlock(blockpos, eyeblossomblock_type.state(), 3);
 +            // CraftBukkit start - BlockFormEvent
-+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(worldserver, blockposition, eyeblossomblock_a.state(), 3)) {
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(serverlevel, blockpos, eyeblossomblock_type.state(), 3)) {
 +                return false;
 +            }
 +            // CraftBukkit end
-             worldserver.gameEvent(GameEvent.BLOCK_CHANGE, blockposition, GameEvent.a.of(iblockdata));
-             eyeblossomblock_a.spawnTransformParticle(worldserver, blockposition, randomsource);
-             BlockPosition.betweenClosed(blockposition.offset(-3, -2, -3), blockposition.offset(3, 2, 3)).forEach((blockposition1) -> {
+             serverlevel.gameEvent(GameEvent.BLOCK_CHANGE, blockpos, GameEvent.Context.of(blockstate));
+             eyeblossomblock_type.spawnTransformParticle(serverlevel, blockpos, randomsource);
+             BlockPos.betweenClosed(blockpos.offset(-3, -2, -3), blockpos.offset(3, 2, 3)).forEach((blockpos1) -> {

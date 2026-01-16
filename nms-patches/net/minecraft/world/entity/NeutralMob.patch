@@ -1,0 +1,40 @@
+--- a/net/minecraft/world/entity/NeutralMob.java
++++ b/net/minecraft/world/entity/NeutralMob.java
+@@ -9,6 +9,10 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityTargetEvent;
++// CraftBukkit end
++
+ public interface NeutralMob {
+ 
+     String TAG_ANGER_END_TIME = "anger_end_time";
+@@ -54,7 +58,7 @@
+ 
+         if (level instanceof ServerLevel) {
+             this.setPersistentAngerTarget(EntityReference.read(valueinput, "angry_at"));
+-            this.setTarget(EntityReference.getLivingEntity(this.getPersistentAngerTarget(), level));
++            this.setTarget(EntityReference.getLivingEntity(this.getPersistentAngerTarget(), level), EntityTargetEvent.TargetReason.UNKNOWN, false); // CraftBukkit
+         }
+     }
+ 
+@@ -140,7 +144,7 @@
+     default void stopBeingAngry() {
+         this.setLastHurtByMob((LivingEntity) null);
+         this.setPersistentAngerTarget((EntityReference) null);
+-        this.setTarget((LivingEntity) null);
++        this.setTarget((LivingEntity) null, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET, true); // CraftBukkit
+         this.setPersistentAngerEndTime(-1L);
+     }
+ 
+@@ -151,6 +155,8 @@
+ 
+     void setTarget(@Nullable LivingEntity livingentity);
+ 
++    boolean setTarget(@Nullable LivingEntity livingentity, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent); // CraftBukkit
++
+     boolean canAttack(LivingEntity livingentity);
+ 
+     @Nullable

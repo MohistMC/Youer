@@ -3,22 +3,22 @@
 @@ -76,7 +76,7 @@
  
      @Override
-     public BehaviorController<Tadpole> getBrain() {
+     public Brain<Tadpole> getBrain() {
 -        return super.getBrain();
-+        return (BehaviorController<Tadpole>) super.getBrain(); // CraftBukkit - decompile error
++        return (Brain<Tadpole>) super.getBrain(); // CraftBukkit - decompile error
      }
  
      @Override
-@@ -218,12 +218,17 @@
-         World world = this.level();
+@@ -215,12 +215,17 @@
+         Level level = this.level();
  
-         if (world instanceof WorldServer worldserver) {
--            this.convertTo(EntityTypes.FROG, ConversionParams.single(this, false, false), (frog) -> {
-+            Frog converted = this.convertTo(EntityTypes.FROG, ConversionParams.single(this, false, false), (frog) -> { // CraftBukkit
-                 frog.finalizeSpawn(worldserver, this.level().getCurrentDifficultyAt(frog.blockPosition()), EntitySpawnReason.CONVERSION, (GroupDataEntity) null);
+         if (level instanceof ServerLevel serverlevel) {
+-            this.convertTo(EntityType.FROG, ConversionParams.single(this, false, false), (frog) -> {
++            Frog converted = this.convertTo(EntityType.FROG, ConversionParams.single(this, false, false), (frog) -> { // CraftBukkit
+                 frog.finalizeSpawn(serverlevel, serverlevel.getCurrentDifficultyAt(frog.blockPosition()), EntitySpawnReason.CONVERSION, (SpawnGroupData) null);
                  frog.setPersistenceRequired();
                  frog.fudgePositionAfterSizeChange(this.getDimensions(this.getPose()));
-                 this.playSound(SoundEffects.TADPOLE_GROW_UP, 0.15F, 1.0F);
+                 this.playSound(SoundEvents.TADPOLE_GROW_UP, 0.15F, 1.0F);
 -            });
 +            // CraftBukkit start
 +            }, org.bukkit.event.entity.EntityTransformEvent.TransformReason.METAMORPHOSIS, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.METAMORPHOSIS);

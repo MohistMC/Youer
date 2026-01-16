@@ -1,32 +1,31 @@
 --- a/net/minecraft/core/dispenser/EquipmentDispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/EquipmentDispenseItemBehavior.java
 @@ -10,6 +10,13 @@
- import net.minecraft.world.level.block.BlockDispenser;
- import net.minecraft.world.phys.AxisAlignedBB;
+ import net.minecraft.world.level.block.DispenserBlock;
+ import net.minecraft.world.phys.AABB;
  
 +// CraftBukkit start
-+import net.minecraft.world.level.World;
++import net.minecraft.world.level.Level;
 +import org.bukkit.craftbukkit.block.CraftBlock;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
 +import org.bukkit.event.block.BlockDispenseArmorEvent;
 +// CraftBukkit end
 +
- public class EquipmentDispenseItemBehavior extends DispenseBehaviorItem {
+ public class EquipmentDispenseItemBehavior extends DefaultDispenseItemBehavior {
  
      public static final EquipmentDispenseItemBehavior INSTANCE = new EquipmentDispenseItemBehavior();
-@@ -34,7 +41,34 @@
-             EnumItemSlot enumitemslot = entityliving.getEquipmentSlotForItem(itemstack);
+@@ -34,6 +41,33 @@
+             EquipmentSlot equipmentslot = livingentity.getEquipmentSlotForItem(itemstack);
              ItemStack itemstack1 = itemstack.split(1);
  
--            entityliving.setItemSlot(enumitemslot, itemstack1);
 +            // CraftBukkit start
-+            World world = sourceblock.level();
-+            org.bukkit.block.Block block = CraftBlock.at(world, sourceblock.pos());
++            Level level = blocksource.level();
++            org.bukkit.block.Block block = CraftBlock.at(level, blocksource.pos());
 +            CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
 +
-+            BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) entityliving.getBukkitEntity());
-+            if (!BlockDispenser.eventFired) {
-+                world.getCraftServer().getPluginManager().callEvent(event);
++            BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) livingentity.getBukkitEntity());
++            if (!DispenserBlock.eventFired) {
++                level.getCraftServer().getPluginManager().callEvent(event);
 +            }
 +
 +            if (event.isCancelled()) {
@@ -38,15 +37,14 @@
 +                itemstack.grow(1);
 +                // Chain to handler for new item
 +                ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
-+                IDispenseBehavior idispensebehavior = (IDispenseBehavior) BlockDispenser.DISPENSER_REGISTRY.get(eventStack.getItem());
-+                if (idispensebehavior != IDispenseBehavior.NOOP && idispensebehavior != EquipmentDispenseItemBehavior.INSTANCE) {
-+                    idispensebehavior.dispense(sourceblock, eventStack);
++                DispenseItemBehavior dispenseitembehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
++                if (dispenseitembehavior != DispenseItemBehavior.NOOP && dispenseitembehavior != EquipmentDispenseItemBehavior.INSTANCE) {
++                    dispenseitembehavior.dispense(blocksource, eventStack);
 +                    return true;
 +                }
 +            }
-+
-+            entityliving.setItemSlot(enumitemslot, CraftItemStack.asNMSCopy(event.getItem()));
 +            // CraftBukkit end
-             if (entityliving instanceof EntityInsentient) {
-                 EntityInsentient entityinsentient = (EntityInsentient) entityliving;
- 
++
+             livingentity.setItemSlot(equipmentslot, itemstack1);
+             if (livingentity instanceof Mob) {
+                 Mob mob = (Mob) livingentity;

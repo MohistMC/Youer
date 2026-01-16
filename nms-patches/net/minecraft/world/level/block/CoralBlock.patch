@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/level/block/CoralBlock.java
++++ b/net/minecraft/world/level/block/CoralBlock.java
+@@ -40,6 +40,11 @@
+     @Override
+     protected void tick(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, RandomSource randomsource) {
+         if (!this.scanForWater(serverlevel, blockpos)) {
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(serverlevel, blockpos, this.deadBlock.defaultBlockState()).isCancelled()) {
++                return;
++            }
++            // CraftBukkit end
+             serverlevel.setBlock(blockpos, this.deadBlock.defaultBlockState(), 2);
+         }
+ 

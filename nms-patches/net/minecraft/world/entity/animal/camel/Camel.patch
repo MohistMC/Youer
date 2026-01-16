@@ -1,39 +1,39 @@
 --- a/net/minecraft/world/entity/animal/camel/Camel.java
 +++ b/net/minecraft/world/entity/animal/camel/Camel.java
 @@ -56,6 +56,10 @@
- import net.minecraft.world.phys.Vec2F;
- import net.minecraft.world.phys.Vec3D;
+ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
  
 +// CraftBukkit start
 +import org.bukkit.event.entity.EntityDamageEvent;
 +// CraftBukkit end
 +
- public class Camel extends EntityHorseAbstract {
+ public class Camel extends AbstractHorse {
  
      public static final float BABY_SCALE = 0.45F;
 @@ -154,7 +158,7 @@
-         GameProfilerFiller gameprofilerfiller = Profiler.get();
+         ProfilerFiller profilerfiller = Profiler.get();
  
-         gameprofilerfiller.push("camelBrain");
--        BehaviorController<?> behaviorcontroller = this.getBrain();
-+        BehaviorController<Camel> behaviorcontroller = (BehaviorController<Camel>) this.getBrain(); // CraftBukkit - decompile error
+         profilerfiller.push("camelBrain");
+-        Brain<?> brain = this.getBrain();
++        Brain<Camel> brain = (Brain<Camel>) this.getBrain(); // CraftBukkit - decompile error
  
-         behaviorcontroller.tick(worldserver, this);
-         gameprofilerfiller.pop();
-@@ -470,9 +474,15 @@
+         brain.tick(serverlevel, this);
+         profilerfiller.pop();
+@@ -476,9 +480,15 @@
      }
  
      @Override
--    protected void actuallyHurt(WorldServer worldserver, DamageSource damagesource, float f) {
+-    protected void actuallyHurt(ServerLevel serverlevel, DamageSource damagesource, float f) {
 +    // CraftBukkit start - void -> boolean
-+    public boolean actuallyHurt(WorldServer worldserver, DamageSource damagesource, float f, EntityDamageEvent event) {
-+        boolean damageResult = super.actuallyHurt(worldserver, damagesource, f, event);
++    public boolean actuallyHurt(ServerLevel serverlevel, DamageSource damagesource, float f, EntityDamageEvent event) {
++        boolean damageResult = super.actuallyHurt(serverlevel, damagesource, f, event);
 +        if (!damageResult) {
 +            return false;
 +        }
 +        // CraftBukkit end
          this.standUpInstantly();
--        super.actuallyHurt(worldserver, damagesource, f);
+-        super.actuallyHurt(serverlevel, damagesource, f);
 +        return true; // CraftBukkit
      }
  

@@ -1,10 +1,25 @@
 --- a/net/minecraft/world/level/border/WorldBorder.java
 +++ b/net/minecraft/world/level/border/WorldBorder.java
-@@ -190,6 +190,7 @@
+@@ -216,6 +216,7 @@
      }
  
-     public void addListener(IWorldBorderListener iworldborderlistener) {
-+        if (listeners.contains(iworldborderlistener)) return; // CraftBukkit
-         this.listeners.add(iworldborderlistener);
+     public void addListener(BorderChangeListener borderchangelistener) {
++        if (listeners.contains(borderchangelistener)) return; // CraftBukkit
+         this.listeners.add(borderchangelistener);
      }
  
+@@ -297,7 +298,13 @@
+     }
+ 
+     public void applyInitialSettings(long i) {
+-        if (!this.initialized) {
++        // CraftBukkit start
++        this.applyInitialSettings(i, false);
++    }
++
++    public void applyInitialSettings(long i, boolean force) {
++        if (!this.initialized || force) {
++            // CraftBukkit end
+             this.setCenter(this.settings.centerX(), this.settings.centerZ());
+             this.setDamagePerBlock(this.settings.damagePerBlock());
+             this.setSafeZone(this.settings.safeZone());

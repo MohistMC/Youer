@@ -2,80 +2,80 @@
 +++ b/net/minecraft/world/level/block/SculkSensorBlock.java
 @@ -43,6 +43,12 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
- import net.minecraft.world.phys.shapes.VoxelShapeCollision;
+ import org.jspecify.annotations.Nullable;
  
 +// CraftBukkit start
-+import net.minecraft.world.entity.player.EntityHuman;
++import net.minecraft.world.entity.player.Player;
 +import org.bukkit.craftbukkit.block.CraftBlock;
 +import org.bukkit.event.block.BlockRedstoneEvent;
 +// CraftBukkit end
 +
- public class SculkSensorBlock extends BlockTileEntity implements IBlockWaterlogged {
+ public class SculkSensorBlock extends BaseEntityBlock implements SimpleWaterloggedBlock {
  
      public static final MapCodec<SculkSensorBlock> CODEC = simpleCodec(SculkSensorBlock::new);
-@@ -103,6 +109,18 @@
+@@ -102,6 +108,18 @@
      @Override
-     public void stepOn(World world, BlockPosition blockposition, IBlockData iblockdata, Entity entity) {
-         if (!world.isClientSide() && canActivate(iblockdata) && entity.getType() != EntityTypes.WARDEN) {
+     public void stepOn(Level level, BlockPos blockpos, BlockState blockstate, Entity entity) {
+         if (!level.isClientSide() && canActivate(blockstate) && entity.getType() != EntityType.WARDEN) {
 +            // CraftBukkit start
 +            org.bukkit.event.Cancellable cancellable;
-+            if (entity instanceof EntityHuman) {
-+                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((EntityHuman) entity, org.bukkit.event.block.Action.PHYSICAL, blockposition, null, null, null);
++            if (entity instanceof Player) {
++                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) entity, org.bukkit.event.block.Action.PHYSICAL, blockpos, null, null, null);
 +            } else {
-+                cancellable = new org.bukkit.event.entity.EntityInteractEvent(entity.getBukkitEntity(), world.getWorld().getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ()));
-+                world.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
++                cancellable = new org.bukkit.event.entity.EntityInteractEvent(entity.getBukkitEntity(), level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ()));
++                level.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
 +            }
 +            if (cancellable.isCancelled()) {
 +                return;
 +            }
 +            // CraftBukkit end
-             TileEntity tileentity = world.getBlockEntity(blockposition);
+             BlockEntity blockentity = level.getBlockEntity(blockpos);
  
-             if (tileentity instanceof SculkSensorBlockEntity) {
-@@ -198,6 +216,15 @@
+             if (blockentity instanceof SculkSensorBlockEntity) {
+@@ -195,6 +213,15 @@
      }
  
-     public static void deactivate(World world, BlockPosition blockposition, IBlockData iblockdata) {
+     public static void deactivate(Level level, BlockPos blockpos, BlockState blockstate) {
 +        // CraftBukkit start
-+        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(world, blockposition), iblockdata.getValue(SculkSensorBlock.POWER), 0);
-+        world.getCraftServer().getPluginManager().callEvent(eventRedstone);
++        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(level, blockpos), blockstate.getValue(SculkSensorBlock.POWER), 0);
++        level.getCraftServer().getPluginManager().callEvent(eventRedstone);
 +
 +        if (eventRedstone.getNewCurrent() > 0) {
-+            world.setBlock(blockposition, iblockdata.setValue(SculkSensorBlock.POWER, eventRedstone.getNewCurrent()), 3);
++            level.setBlock(blockpos, blockstate.setValue(SculkSensorBlock.POWER, eventRedstone.getNewCurrent()), 3);
 +            return;
 +        }
 +        // CraftBukkit end
-         world.setBlock(blockposition, (IBlockData) ((IBlockData) iblockdata.setValue(SculkSensorBlock.PHASE, SculkSensorPhase.COOLDOWN)).setValue(SculkSensorBlock.POWER, 0), 3);
-         world.scheduleTick(blockposition, iblockdata.getBlock(), 10);
-         updateNeighbours(world, blockposition, iblockdata);
-@@ -209,6 +236,15 @@
+         level.setBlock(blockpos, (BlockState) ((BlockState) blockstate.setValue(SculkSensorBlock.PHASE, SculkSensorPhase.COOLDOWN)).setValue(SculkSensorBlock.POWER, 0), 3);
+         level.scheduleTick(blockpos, blockstate.getBlock(), 10);
+         updateNeighbours(level, blockpos, blockstate);
+@@ -206,6 +233,15 @@
      }
  
-     public void activate(@Nullable Entity entity, World world, BlockPosition blockposition, IBlockData iblockdata, int i, int j) {
+     public void activate(@Nullable Entity entity, Level level, BlockPos blockpos, BlockState blockstate, int i, int j) {
 +        // CraftBukkit start
-+        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(world, blockposition), iblockdata.getValue(SculkSensorBlock.POWER), i);
-+        world.getCraftServer().getPluginManager().callEvent(eventRedstone);
++        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(level, blockpos), blockstate.getValue(SculkSensorBlock.POWER), i);
++        level.getCraftServer().getPluginManager().callEvent(eventRedstone);
 +
 +        if (eventRedstone.getNewCurrent() <= 0) {
 +            return;
 +        }
 +        i = eventRedstone.getNewCurrent();
 +        // CraftBukkit end
-         world.setBlock(blockposition, (IBlockData) ((IBlockData) iblockdata.setValue(SculkSensorBlock.PHASE, SculkSensorPhase.ACTIVE)).setValue(SculkSensorBlock.POWER, i), 3);
-         world.scheduleTick(blockposition, iblockdata.getBlock(), this.getActiveTicks());
-         updateNeighbours(world, blockposition, iblockdata);
-@@ -285,9 +321,16 @@
+         level.setBlock(blockpos, (BlockState) ((BlockState) blockstate.setValue(SculkSensorBlock.PHASE, SculkSensorPhase.ACTIVE)).setValue(SculkSensorBlock.POWER, i), 3);
+         level.scheduleTick(blockpos, blockstate.getBlock(), this.getActiveTicks());
+         updateNeighbours(level, blockpos, blockstate);
+@@ -282,9 +318,16 @@
      @Override
-     protected void spawnAfterBreak(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
-         super.spawnAfterBreak(iblockdata, worldserver, blockposition, itemstack, flag);
+     protected void spawnAfterBreak(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack, boolean flag) {
+         super.spawnAfterBreak(blockstate, serverlevel, blockpos, itemstack, flag);
 +        // CraftBukkit start - Delegate to getExpDrop
 +    }
 +
 +    @Override
-+    public int getExpDrop(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
++    public int getExpDrop(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack, boolean flag) {
          if (flag) {
--            this.tryDropExperience(worldserver, blockposition, itemstack, ConstantInt.of(5));
-+            return this.tryDropExperience(worldserver, blockposition, itemstack, ConstantInt.of(5));
+-            this.tryDropExperience(serverlevel, blockpos, itemstack, ConstantInt.of(5));
++            return this.tryDropExperience(serverlevel, blockpos, itemstack, ConstantInt.of(5));
          }
  
 +        return 0;

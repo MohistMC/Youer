@@ -1,43 +1,43 @@
 --- a/net/minecraft/world/level/block/MultifaceSpreader.java
 +++ b/net/minecraft/world/level/block/MultifaceSpreader.java
 @@ -95,7 +95,7 @@
-         return this.config.placeBlock(generatoraccess, multifacespreader_c, iblockdata, flag) ? Optional.of(multifacespreader_c) : Optional.empty();
+         return this.config.placeBlock(levelaccessor, multifacespreader_spreadpos, blockstate, flag) ? Optional.of(multifacespreader_spreadpos) : Optional.empty();
      }
  
--    public static record c(BlockPosition pos, EnumDirection face) {
-+    public static record c(BlockPosition pos, EnumDirection face, BlockPosition source) { // CraftBukkit
+-    public static record SpreadPos(BlockPos pos, Direction face) {
++    public static record SpreadPos(BlockPos pos, Direction face, BlockPos source) { // CraftBukkit
  
      }
  
 @@ -130,7 +130,7 @@
-                     generatoraccess.getChunk(multifacespreader_c.pos()).markPosForPostprocessing(multifacespreader_c.pos());
+                     levelaccessor.getChunk(multifacespreader_spreadpos.pos()).markPosForPostprocessing(multifacespreader_spreadpos.pos());
                  }
  
--                return generatoraccess.setBlock(multifacespreader_c.pos(), iblockdata1, 2);
-+                return org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(generatoraccess, multifacespreader_c.source(), multifacespreader_c.pos(), iblockdata1, 2); // CraftBukkit
+-                return levelaccessor.setBlock(multifacespreader_spreadpos.pos(), blockstate1, 2);
++                return org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(levelaccessor, multifacespreader_spreadpos.source(), multifacespreader_spreadpos.pos(), blockstate1, 2); // CraftBukkit
              } else {
                  return false;
              }
-@@ -168,19 +168,19 @@
+@@ -167,19 +167,19 @@
          SAME_POSITION {
              @Override
-             public MultifaceSpreader.c getSpreadPos(BlockPosition blockposition, EnumDirection enumdirection, EnumDirection enumdirection1) {
--                return new MultifaceSpreader.c(blockposition, enumdirection);
-+                return new MultifaceSpreader.c(blockposition, enumdirection, blockposition); // CraftBukkit
+             public MultifaceSpreader.SpreadPos getSpreadPos(BlockPos blockpos, Direction direction, Direction direction1) {
+-                return new MultifaceSpreader.SpreadPos(blockpos, direction);
++                return new MultifaceSpreader.SpreadPos(blockpos, direction, blockpos); // CraftBukkit
              }
          },
          SAME_PLANE {
              @Override
-             public MultifaceSpreader.c getSpreadPos(BlockPosition blockposition, EnumDirection enumdirection, EnumDirection enumdirection1) {
--                return new MultifaceSpreader.c(blockposition.relative(enumdirection), enumdirection1);
-+                return new MultifaceSpreader.c(blockposition.relative(enumdirection), enumdirection1, blockposition); // CraftBukkit
+             public MultifaceSpreader.SpreadPos getSpreadPos(BlockPos blockpos, Direction direction, Direction direction1) {
+-                return new MultifaceSpreader.SpreadPos(blockpos.relative(direction), direction1);
++                return new MultifaceSpreader.SpreadPos(blockpos.relative(direction), direction1, blockpos); // CraftBukkit
              }
          },
          WRAP_AROUND {
              @Override
-             public MultifaceSpreader.c getSpreadPos(BlockPosition blockposition, EnumDirection enumdirection, EnumDirection enumdirection1) {
--                return new MultifaceSpreader.c(blockposition.relative(enumdirection).relative(enumdirection1), enumdirection.getOpposite());
-+                return new MultifaceSpreader.c(blockposition.relative(enumdirection).relative(enumdirection1), enumdirection.getOpposite(), blockposition); // CraftBukkit
+             public MultifaceSpreader.SpreadPos getSpreadPos(BlockPos blockpos, Direction direction, Direction direction1) {
+-                return new MultifaceSpreader.SpreadPos(blockpos.relative(direction).relative(direction1), direction.getOpposite());
++                return new MultifaceSpreader.SpreadPos(blockpos.relative(direction).relative(direction1), direction.getOpposite(), blockpos); // CraftBukkit
              }
          };
  

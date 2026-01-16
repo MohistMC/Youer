@@ -1,0 +1,118 @@
+--- a/net/minecraft/world/level/block/entity/BlockEntity.java
++++ b/net/minecraft/world/level/block/entity/BlockEntity.java
+@@ -37,8 +37,18 @@
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer;
++import org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry;
++import org.bukkit.inventory.InventoryHolder;
++// CraftBukkit end
++
+ public abstract class BlockEntity implements DebugValueSource {
+ 
++    // CraftBukkit start - data containers
++    private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
++    public CraftPersistentDataContainer persistentDataContainer;
++    // CraftBukkit end
+     private static final Codec<BlockEntityType<?>> TYPE_CODEC = BuiltInRegistries.BLOCK_ENTITY_TYPE.byNameCodec();
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final BlockEntityType<?> type;
+@@ -75,7 +85,7 @@
+         int l = SectionPos.blockToSectionCoord(i);
+         int i1 = SectionPos.blockToSectionCoord(k);
+ 
+-        if (l != chunkpos.x || i1 != chunkpos.z) {
++        if (chunkpos != null && (l != chunkpos.x || i1 != chunkpos.z)) { // CraftBukkit - allow null
+             BlockEntity.LOGGER.warn("Block entity {} found in a wrong chunk, expected position from chunk {}", compoundtag, chunkpos);
+             i = chunkpos.getBlockX(SectionPos.sectionRelative(i));
+             k = chunkpos.getBlockZ(SectionPos.sectionRelative(k));
+@@ -96,7 +106,15 @@
+         return this.level != null;
+     }
+ 
+-    protected void loadAdditional(ValueInput valueinput) {}
++    // CraftBukkit start - read container
++    protected void loadAdditional(ValueInput valueinput) {
++        this.persistentDataContainer = new CraftPersistentDataContainer(DATA_TYPE_REGISTRY);
++
++        valueinput.child("PublicBukkitValues").ifPresent((persistentDataTag) -> {
++            this.persistentDataContainer.putAll(persistentDataTag);
++        });
++    }
++    // CraftBukkit end
+ 
+     public final void loadWithComponents(ValueInput valueinput) {
+         this.loadAdditional(valueinput);
+@@ -140,6 +158,11 @@
+     public void saveWithoutMetadata(ValueOutput valueoutput) {
+         this.saveAdditional(valueoutput);
+         valueoutput.store("components", DataComponentMap.CODEC, this.components);
++        // CraftBukkit start - store container
++        if (this.persistentDataContainer != null && !this.persistentDataContainer.isEmpty()) {
++            this.persistentDataContainer.store(valueoutput.child("PublicBukkitValues"));
++        }
++        // CraftBukkit end
+     }
+ 
+     public final CompoundTag saveCustomOnly(HolderLookup.Provider holderlookup_provider) {
+@@ -171,7 +194,7 @@
+     }
+ 
+     public static @Nullable BlockEntity loadStatic(BlockPos blockpos, BlockState blockstate, CompoundTag compoundtag, HolderLookup.Provider holderlookup_provider) {
+-        BlockEntityType<?> blockentitytype = (BlockEntityType) compoundtag.read("id", BlockEntity.TYPE_CODEC).orElse((Object) null);
++        BlockEntityType<?> blockentitytype = (BlockEntityType) compoundtag.read("id", BlockEntity.TYPE_CODEC).orElse(null); // CraftBukkit - decompile error
+ 
+         if (blockentitytype == null) {
+             BlockEntity.LOGGER.error("Skipping block entity with invalid type: {}", compoundtag.get("id"));
+@@ -295,6 +318,12 @@
+     }
+ 
+     public final void applyComponents(DataComponentMap datacomponentmap, DataComponentPatch datacomponentpatch) {
++        // CraftBukkit start
++        this.applyComponentsSet(datacomponentmap, datacomponentpatch);
++    }
++
++    public final Set<DataComponentType<?>> applyComponentsSet(DataComponentMap datacomponentmap, DataComponentPatch datacomponentpatch) {
++        // CraftBukkit end
+         final Set<DataComponentType<?>> set = new HashSet();
+ 
+         set.add(DataComponents.BLOCK_ENTITY_DATA);
+@@ -318,6 +347,11 @@
+         DataComponentPatch datacomponentpatch1 = datacomponentpatch.forget(set::contains);
+ 
+         this.components = datacomponentpatch1.split().added();
++        // CraftBukkit start
++        set.remove(DataComponents.BLOCK_ENTITY_DATA); // Remove as never actually added by applyImplicitComponents
++        set.remove(DataComponents.BLOCK_STATE); // Remove as never actually added by applyImplicitComponents
++        return set;
++        // CraftBukkit end
+     }
+ 
+     protected void collectImplicitComponents(DataComponentMap.Builder datacomponentmap_builder) {}
+@@ -343,7 +377,7 @@
+     }
+ 
+     public static @Nullable Component parseCustomNameSafe(ValueInput valueinput, String s) {
+-        return (Component) valueinput.read(s, ComponentSerialization.CODEC).orElse((Object) null);
++        return (Component) valueinput.read(s, ComponentSerialization.CODEC).orElse(null); // CraftBukkit - decompile error
+     }
+ 
+     public ProblemReporter.PathElement problemPath() {
+@@ -353,6 +387,15 @@
+     @Override
+     public void registerDebugValues(ServerLevel serverlevel, DebugValueSource.Registration debugvaluesource_registration) {}
+ 
++    // CraftBukkit start - add method
++    public InventoryHolder getOwner() {
++        if (level == null) return null;
++        org.bukkit.block.BlockState state = level.getWorld().getBlockAt(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ()).getState();
++        if (state instanceof InventoryHolder) return (InventoryHolder) state;
++        return null;
++    }
++    // CraftBukkit end
++
+     private static record BlockEntityPathElement(BlockEntity blockEntity) implements ProblemReporter.PathElement {
+ 
+         @Override

@@ -1,8 +1,8 @@
 --- a/net/minecraft/world/level/redstone/ExperimentalRedstoneWireEvaluator.java
 +++ b/net/minecraft/world/level/redstone/ExperimentalRedstoneWireEvaluator.java
 @@ -17,6 +17,11 @@
- import net.minecraft.world.level.block.state.properties.BlockPropertyRedstoneSide;
- import net.minecraft.world.level.block.state.properties.BlockStateEnum;
+ import net.minecraft.world.level.block.state.properties.RedstoneSide;
+ import org.jspecify.annotations.Nullable;
  
 +// CraftBukkit start
 +import org.bukkit.craftbukkit.block.CraftBlock;
@@ -11,21 +11,21 @@
 +
  public class ExperimentalRedstoneWireEvaluator extends RedstoneWireEvaluator {
  
-     private final Deque<BlockPosition> wiresToTurnOff = new ArrayDeque();
+     private final Deque<BlockPos> wiresToTurnOff = new ArrayDeque();
 @@ -41,7 +46,16 @@
              int j = unpackPower(i);
-             IBlockData iblockdata1 = world.getBlockState(blockposition1);
+             BlockState blockstate1 = level.getBlockState(blockpos1);
  
--            if (iblockdata1.is(this.wireBlock) && !((Integer) iblockdata1.getValue(BlockRedstoneWire.POWER)).equals(j)) {
+-            if (blockstate1.is(this.wireBlock) && !((Integer) blockstate1.getValue(RedStoneWireBlock.POWER)).equals(j)) {
 +            // CraftBukkit start
-+            int oldPower = iblockdata.getValue(BlockRedstoneWire.POWER);
++            int oldPower = blockstate.getValue(RedStoneWireBlock.POWER);
 +            if (oldPower != j) {
-+                BlockRedstoneEvent event = new BlockRedstoneEvent(CraftBlock.at(world, blockposition1), oldPower, j);
-+                world.getCraftServer().getPluginManager().callEvent(event);
++                BlockRedstoneEvent event = new BlockRedstoneEvent(CraftBlock.at(level, blockpos1), oldPower, j);
++                level.getCraftServer().getPluginManager().callEvent(event);
 +
 +                j = event.getNewCurrent();
 +            }
-+            if (iblockdata1.is(this.wireBlock) && oldPower != j) {
++            if (blockstate1.is(this.wireBlock) && oldPower != j) {
 +                // CraftBukkit end
                  int k = 2;
  
@@ -36,5 +36,5 @@
          int k1;
 +        Orientation orientation2; // CraftBukkit - decompile error
  
-         for (; !this.wiresToTurnOn.isEmpty(); this.propagateChangeToNeighbors(world, blockposition1, k1, orientation2, false)) {
-             blockposition1 = (BlockPosition) this.wiresToTurnOn.removeFirst();
+         for (; !this.wiresToTurnOn.isEmpty(); this.propagateChangeToNeighbors(level, blockpos1, k1, orientation2, false)) {
+             blockpos1 = (BlockPos) this.wiresToTurnOn.removeFirst();

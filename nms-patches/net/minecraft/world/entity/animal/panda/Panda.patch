@@ -1,0 +1,41 @@
+--- a/net/minecraft/world/entity/animal/panda/Panda.java
++++ b/net/minecraft/world/entity/animal/panda/Panda.java
+@@ -69,6 +69,12 @@
+ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.entity.EntityTargetEvent;
++// CraftBukkit end
++
+ public class Panda extends Animal {
+ 
+     private static final EntityDataAccessor<Integer> UNHAPPY_COUNTER = SynchedEntityData.<Integer>defineId(Panda.class, EntityDataSerializers.INT);
+@@ -536,14 +542,14 @@
+ 
+     @Override
+     protected void pickUpItem(ServerLevel serverlevel, ItemEntity itementity) {
+-        if (this.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty() && canPickUpAndEat(itementity)) {
++        if (!CraftEventFactory.callEntityPickupItemEvent(this, itementity, 0, !(this.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty() && canPickUpAndEat(itementity))).isCancelled()) { // CraftBukkit
+             this.onItemPickup(itementity);
+             ItemStack itemstack = itementity.getItem();
+ 
+             this.setItemSlot(EquipmentSlot.MAINHAND, itemstack);
+             this.setGuaranteedDrop(EquipmentSlot.MAINHAND);
+             this.take(itementity, itemstack.getCount());
+-            itementity.discard();
++            itementity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+         }
+ 
+     }
+@@ -1081,7 +1087,7 @@
+         @Override
+         protected void alertOther(Mob mob, LivingEntity livingentity) {
+             if (mob instanceof Panda && mob.isAggressive()) {
+-                mob.setTarget(livingentity);
++                mob.setTarget(livingentity, EntityTargetEvent.TargetReason.TARGET_ATTACKED_ENTITY, true); // CraftBukkit
+             }
+ 
+         }

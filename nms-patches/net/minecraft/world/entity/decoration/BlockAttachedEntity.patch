@@ -1,12 +1,12 @@
 --- a/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
 +++ b/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
 @@ -19,6 +19,15 @@
- import net.minecraft.world.phys.Vec3D;
+ import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
 +// CraftBukkit start
 +import net.minecraft.tags.DamageTypeTags;
-+import net.minecraft.world.level.block.state.IBlockData;
++import net.minecraft.world.level.block.state.BlockState;
 +import org.bukkit.entity.Hanging;
 +import org.bukkit.event.entity.EntityRemoveEvent;
 +import org.bukkit.event.hanging.HangingBreakByEntityEvent;
@@ -22,7 +22,7 @@
                  if (!this.isRemoved() && !this.survives()) {
 -                    this.discard();
 +                    // CraftBukkit start - fire break events
-+                    IBlockData material = this.level().getBlockState(this.blockPosition());
++                    BlockState material = this.level().getBlockState(this.blockPosition());
 +                    HangingBreakEvent.RemoveCause cause;
 +
 +                    if (!material.isAir()) {
@@ -40,7 +40,7 @@
 +                    }
 +                    // CraftBukkit end
 +                    this.discard(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
-                     this.dropItem(worldserver, (Entity) null);
+                     this.dropItem(serverlevel, (Entity) null);
                  }
              }
 @@ -82,6 +109,22 @@
@@ -63,13 +63,13 @@
 +                }
 +                // CraftBukkit end
 +
-                 this.kill(worldserver);
+                 this.kill(serverlevel);
                  this.markHurt();
-                 this.dropItem(worldserver, damagesource.getEntity());
+                 this.dropItem(serverlevel, damagesource.getEntity());
 @@ -104,6 +147,16 @@
  
-         if (world instanceof WorldServer worldserver) {
-             if (!this.isRemoved() && vec3d.lengthSqr() > 0.0D) {
+         if (level instanceof ServerLevel serverlevel) {
+             if (!this.isRemoved() && vec3.lengthSqr() > 0.0D) {
 +                // CraftBukkit start - fire break events
 +                // TODO - Does this need its own cause? Seems to only be triggered by pistons
 +                HangingBreakEvent event = new HangingBreakEvent((Hanging) this.getBukkitEntity(), HangingBreakEvent.RemoveCause.PHYSICS);
@@ -80,17 +80,17 @@
 +                }
 +                // CraftBukkit end
 +
-                 this.kill(worldserver);
-                 this.dropItem(worldserver, (Entity) null);
+                 this.kill(serverlevel);
+                 this.dropItem(serverlevel, (Entity) null);
              }
 @@ -116,7 +169,7 @@
-         World world = this.level();
+         Level level = this.level();
  
-         if (world instanceof WorldServer worldserver) {
+         if (level instanceof ServerLevel serverlevel) {
 -            if (!this.isRemoved() && d0 * d0 + d1 * d1 + d2 * d2 > 0.0D) {
 +            if (false && !this.isRemoved() && d0 * d0 + d1 * d1 + d2 * d2 > 0.0D) { // CraftBukkit - not needed
-                 this.kill(worldserver);
-                 this.dropItem(worldserver, (Entity) null);
+                 this.kill(serverlevel);
+                 this.dropItem(serverlevel, (Entity) null);
              }
 @@ -124,6 +177,15 @@
  
@@ -107,13 +107,13 @@
 +
      @Override
      protected void addAdditionalSaveData(ValueOutput valueoutput) {
-         valueoutput.store("block_pos", BlockPosition.CODEC, this.getPos());
+         valueoutput.store("block_pos", BlockPos.CODEC, this.getPos());
 @@ -131,7 +193,7 @@
  
      @Override
      protected void readAdditionalSaveData(ValueInput valueinput) {
--        BlockPosition blockposition = (BlockPosition) valueinput.read("block_pos", BlockPosition.CODEC).orElse((Object) null);
-+        BlockPosition blockposition = (BlockPosition) valueinput.read("block_pos", BlockPosition.CODEC).orElse(null); // CraftBukkit - decompile error
+-        BlockPos blockpos = (BlockPos) valueinput.read("block_pos", BlockPos.CODEC).orElse((Object) null);
++        BlockPos blockpos = (BlockPos) valueinput.read("block_pos", BlockPos.CODEC).orElse(null); // CraftBukkit - decompile error
  
-         if (blockposition != null && blockposition.closerThan(this.blockPosition(), 16.0D)) {
-             this.pos = blockposition;
+         if (blockpos != null && blockpos.closerThan(this.blockPosition(), 16.0D)) {
+             this.pos = blockpos;

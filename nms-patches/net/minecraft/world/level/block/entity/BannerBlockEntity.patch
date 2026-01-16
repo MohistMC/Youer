@@ -1,0 +1,45 @@
+--- a/net/minecraft/world/level/block/entity/BannerBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/BannerBlockEntity.java
+@@ -19,6 +19,10 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import java.util.List;
++// CraftBukkit end
++
+ public class BannerBlockEntity extends BlockEntity implements Nameable {
+ 
+     public static final int MAX_PATTERNS = 6;
+@@ -62,7 +66,7 @@
+     protected void loadAdditional(ValueInput valueinput) {
+         super.loadAdditional(valueinput);
+         this.name = parseCustomNameSafe(valueinput, "CustomName");
+-        this.patterns = (BannerPatternLayers) valueinput.read("patterns", BannerPatternLayers.CODEC).orElse(BannerPatternLayers.EMPTY);
++        this.setPatterns((BannerPatternLayers) valueinput.read("patterns", BannerPatternLayers.CODEC).orElse(BannerPatternLayers.EMPTY)); // CraftBukkit - apply limits
+     }
+ 
+     @Override
+@@ -93,7 +97,7 @@
+     @Override
+     protected void applyImplicitComponents(DataComponentGetter datacomponentgetter) {
+         super.applyImplicitComponents(datacomponentgetter);
+-        this.patterns = (BannerPatternLayers) datacomponentgetter.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY);
++        this.setPatterns((BannerPatternLayers) datacomponentgetter.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY)); // CraftBukkit - apply limits
+         this.name = (Component) datacomponentgetter.get(DataComponents.CUSTOM_NAME);
+     }
+ 
+@@ -109,4 +113,13 @@
+         valueoutput.discard("patterns");
+         valueoutput.discard("CustomName");
+     }
++
++    // CraftBukkit start
++    public void setPatterns(BannerPatternLayers bannerpatternlayers) {
++        if (bannerpatternlayers.layers().size() > 20) {
++            bannerpatternlayers = new BannerPatternLayers(List.copyOf(bannerpatternlayers.layers().subList(0, 20)));
++        }
++        this.patterns = bannerpatternlayers;
++    }
++    // CraftBukkit end
+ }
