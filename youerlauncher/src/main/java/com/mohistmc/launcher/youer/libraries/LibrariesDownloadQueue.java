@@ -25,17 +25,11 @@ import me.tongfei.progressbar.ProgressBarStyle;
 
 import static com.mohistmc.launcher.youer.Main.DEBUG;
 
-@ToString
 public class LibrariesDownloadQueue {
 
-    @ToString.Exclude
     public final Set<Libraries> allLibraries = new HashSet<>();
-    @ToString.Exclude
     private final Set<Libraries> fail = new HashSet<>();
-    @ToString.Exclude
     public Set<Libraries> need_download = new LinkedHashSet<>();
-
-    public String systemProperty = null;
     public boolean debug = DEBUG;
 
 

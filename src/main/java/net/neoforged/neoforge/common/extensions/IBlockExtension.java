@@ -47,7 +47,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.CandleBlock;
 import net.minecraft.world.level.block.CandleCakeBlock;
-import net.minecraft.world.level.block.FarmBlock;
+import net.minecraft.world.level.block.FarmlandBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.FireBlock;
 import net.minecraft.world.level.block.GrowingPlantHeadBlock;
@@ -457,8 +457,8 @@ public interface IBlockExtension {
      * @return True if the soil should be considered fertile.
      */
     default boolean isFertile(BlockState state, BlockGetter level, BlockPos pos) {
-        if (state.getBlock() instanceof FarmBlock)
-            return state.getValue(FarmBlock.MOISTURE) > 0;
+        if (state.getBlock() instanceof FarmlandBlock)
+            return state.getValue(FarmlandBlock.MOISTURE) > 0;
 
         return false;
     }
@@ -1049,16 +1049,16 @@ public interface IBlockExtension {
     /**
      * Determines if this block can spawn Bubble Columns and if so, what direction the column flows.
      * <p>
-     * NOTE: The block itself will still need to call {@link net.minecraft.world.level.block.BubbleColumnBlock#updateColumn(LevelAccessor, BlockPos, BlockState)} in their tick method and schedule a block tick in the block's onPlace.
+     * NOTE: The block itself will still need to call {@link net.minecraft.world.level.block.BubbleColumnBlock#updateColumn(Block, LevelAccessor, BlockPos, BlockState)} in their tick method and schedule a block tick in the block's onPlace.
      * Also, schedule a fluid tick in updateShape method if update direction is up. Both are needed in order to get the Bubble Columns to function properly. See {@link net.minecraft.world.level.block.SoulSandBlock} and {@link net.minecraft.world.level.block.MagmaBlock} for example.
      *
      * @param state The current state
      * @return BubbleColumnDirection.NONE for no Bubble Column. Otherwise, will spawn Bubble Column flowing with specified direction
      */
     default BubbleColumnDirection getBubbleColumnDirection(BlockState state) {
-        if (state.is(Blocks.SOUL_SAND)) {
+        if (state.is(BlockTags.ENABLES_BUBBLE_COLUMN_PUSH_UP)) {
             return BubbleColumnDirection.UPWARD;
-        } else if (state.is(Blocks.MAGMA_BLOCK)) {
+        } else if (state.is(BlockTags.ENABLES_BUBBLE_COLUMN_DRAG_DOWN)) {
             return BubbleColumnDirection.DOWNWARD;
         } else {
             return BubbleColumnDirection.NONE;

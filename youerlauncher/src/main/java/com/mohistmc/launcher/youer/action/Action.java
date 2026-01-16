@@ -27,6 +27,7 @@ import com.mohistmc.launcher.youer.util.I18n;
 import com.mohistmc.launcher.youer.util.LaunchArgsParser;
 import com.mohistmc.tools.FileUtils;
 import com.mohistmc.tools.MojangEulaUtil;
+import com.mohistmc.tools.OSUtil;
 import com.mohistmc.tools.SHA256;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -220,7 +221,7 @@ public class Action {
         }
         LaunchArgsParser.init(DataParser.launchArgs);
 
-        if (!MojangEulaUtil.hasAcceptedEULA()) {
+        if (!MojangEulaUtil.hasAcceptedEULA() && OSUtil.getOS().isWindows()) {
             if (System.console() != null) {
                 System.out.println(Main.i18n.as("eula"));
                 while (!"true".equals(new Scanner(System.in).next())) {

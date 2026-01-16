@@ -1,6 +1,6 @@
 --- a/net/minecraft/data/recipes/RecipeProvider.java
 +++ b/net/minecraft/data/recipes/RecipeProvider.java
-@@ -575,8 +_,7 @@
+@@ -599,8 +_,7 @@
      }
  
      protected void waxRecipes(FeatureFlagSet flagSet) {
@@ -10,18 +10,29 @@
              .forEach(
                  (block, waxedBlock) -> {
                      if (waxedBlock.requiredFeatures().isSubsetOf(flagSet)) {
-@@ -736,6 +_,10 @@
+@@ -758,6 +_,10 @@
          return Ingredient.of(this.items.getOrThrow(id));
      }
  
-+    protected ShapedRecipeBuilder shaped(RecipeCategory category, ItemStack stack) {
++    protected ShapedRecipeBuilder shaped(RecipeCategory category, net.minecraft.world.item.ItemInstance stack) {
 +        return ShapedRecipeBuilder.shaped(this.items, category, stack);
 +    }
 +
      protected ShapedRecipeBuilder shaped(RecipeCategory category, ItemLike item) {
          return ShapedRecipeBuilder.shaped(this.items, category, item);
      }
-@@ -780,18 +_,14 @@
+@@ -766,8 +_,8 @@
+         return ShapedRecipeBuilder.shaped(this.items, category, item, count);
+     }
+ 
+-    protected ShapelessRecipeBuilder shapeless(RecipeCategory category, ItemStackTemplate result) {
+-        return ShapelessRecipeBuilder.shapeless(this.items, category, result);
++    protected ShapelessRecipeBuilder shapeless(RecipeCategory category, net.minecraft.world.item.ItemInstance result) {
++        return ShapelessRecipeBuilder.shapeless(this.items, category, result.toTemplate());
+     }
+ 
+     protected ShapelessRecipeBuilder shapeless(RecipeCategory category, ItemLike item) {
+@@ -802,18 +_,14 @@
                          final Set<ResourceKey<Recipe<?>>> allRecipes = Sets.newHashSet();
                          final List<CompletableFuture<?>> tasks = new ArrayList<>();
                          RecipeOutput recipeOutput = new RecipeOutput() {
@@ -43,7 +54,7 @@
                                      }
                                  }
                              }
-@@ -810,13 +_,19 @@
+@@ -832,13 +_,19 @@
                              }
  
                              private void saveRecipe(ResourceKey<Recipe<?>> id, Recipe<?> recipe) {
