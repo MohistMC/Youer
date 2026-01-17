@@ -125,15 +125,14 @@
          }
  
          this.setDeltaMovement(this.getDeltaMovement().multiply((double)f, 0.98, (double)f));
-@@ -122,7 +_,7 @@
+@@ -122,6 +_,7 @@
  
          this.age++;
          if (this.age >= 6000) {
--            this.discard();
-+            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          }
      }
- 
 @@ -133,7 +_,7 @@
  
      private void scanForEntities() {
@@ -200,16 +199,15 @@
          p_147101_.discard();
      }
  
-@@ -201,7 +_,7 @@
+@@ -201,6 +_,7 @@
              this.markHurt();
              this.health = (int)((float)this.health - p_20786_);
              if (this.health <= 0) {
--                this.discard();
-+                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
              }
  
-             return true;
-@@ -212,32 +_,36 @@
+@@ -212,31 +_,36 @@
      public void addAdditionalSaveData(CompoundTag p_20796_) {
          p_20796_.putShort("Health", (short)this.health);
          p_20796_.putShort("Age", (short)this.age);
@@ -247,11 +245,10 @@
  
                  this.count--;
                  if (this.count == 0) {
--                    this.discard();
-+                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
++                    this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+                     this.discard();
                  }
              }
-         }
 @@ -247,8 +_,19 @@
          Optional<EnchantedItemInUse> optional = EnchantmentHelper.getRandomItemWith(EnchantmentEffectComponents.REPAIR_WITH_XP, p_344821_, ItemStack::isDamaged);
          if (optional.isPresent()) {

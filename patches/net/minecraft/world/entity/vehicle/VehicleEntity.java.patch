@@ -19,11 +19,10 @@
              this.setHurtDir(-this.getHurtDir());
              this.setHurtTime(10);
              this.markHurt();
-@@ -38,9 +_,26 @@
+@@ -38,9 +_,27 @@
              boolean flag = p_305898_.getEntity() instanceof Player && ((Player)p_305898_.getEntity()).getAbilities().instabuild;
              if ((flag || !(this.getDamage() > 40.0F)) && !this.shouldSourceDestroy(p_305898_)) {
                  if (flag) {
--                    this.discard();
 +                    // CraftBukkit start
 +                    org.bukkit.event.vehicle.VehicleDestroyEvent destroyEvent = new org.bukkit.event.vehicle.VehicleDestroyEvent(vehicle, attacker);
 +                    this.level().getCraftServer().getPluginManager().callEvent(destroyEvent);
@@ -33,7 +32,8 @@
 +                        return true;
 +                    }
 +                    // CraftBukkit end
-+                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
++                    this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
+                     this.discard();
                  }
              } else {
 +                // CraftBukkit start

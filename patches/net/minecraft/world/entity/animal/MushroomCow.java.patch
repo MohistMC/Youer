@@ -57,23 +57,24 @@
                  cow.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
                  cow.setHealth(this.getHealth());
                  cow.yBodyRot = this.yBodyRot;
-@@ -182,13 +_,21 @@
+@@ -182,13 +_,23 @@
                  }
  
                  cow.setInvulnerable(this.isInvulnerable());
--                this.level().addFreshEntity(cow);
++                // CraftBukkit start
++                if (CraftEventFactory.callEntityTransformEvent(this, cow, org.bukkit.event.entity.EntityTransformEvent.TransformReason.SHEARED).isCancelled()) {
++                    return;
++                }
++                cow.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SHEARED);
+                 this.level().addFreshEntity(cow);
 -
 -                for (int i = 0; i < 5; i++) {
 -                    this.level()
 -                        .addFreshEntity(
 -                            new ItemEntity(this.level(), this.getX(), this.getY(1.0), this.getZ(), new ItemStack(this.getVariant().blockState.getBlock()))
 -                        );
-+                // CraftBukkit start
-+                if (CraftEventFactory.callEntityTransformEvent(this, cow, org.bukkit.event.entity.EntityTransformEvent.TransformReason.SHEARED).isCancelled()) {
-+                    return;
-+                }
-+                this.level().addFreshEntity(cow, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SHEARED);
-+                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - from above and add Bukkit remove cause
++                this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
++                this.discard();
 +                // CraftBukkit end
 +                for (final ItemStack drop : shear$drops.isEmpty() ? generateDefaultDrops() : shear$drops) {
 +                    // Neo: Change from addFreshEntity to spawnAtLocation to ensure captureDrops can capture this, we also need to unset the default pickup delay from the item

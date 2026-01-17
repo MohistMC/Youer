@@ -592,7 +592,7 @@
          if (!this.pendingBlockEntityTickers.isEmpty()) {
              this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
              this.pendingBlockEntityTickers.clear();
-@@ -516,12 +_,17 @@
+@@ -516,12 +_,18 @@
  
      public <T extends Entity> void guardEntityTick(Consumer<T> p_46654_, T p_46655_) {
          try {
@@ -608,7 +608,8 @@
 +            final String msg = String.format("Entity threw exception at %s:%s,%s,%s", p_46655_.level().getWorld().getName(), p_46655_.getX(), p_46655_.getY(), p_46655_.getZ());
 +            MinecraftServer.LOGGER.error(msg, throwable);
 +            getCraftServer().getPluginManager().callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerInternalException(msg, throwable))); // Paper - ServerExceptionEvent
-+            p_46655_.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
++            p_46655_.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
++            p_46655_.discard();
 +		} finally {
 +            net.neoforged.neoforge.server.timings.TimeTracker.ENTITY_UPDATE.trackEnd(p_46655_);
          }

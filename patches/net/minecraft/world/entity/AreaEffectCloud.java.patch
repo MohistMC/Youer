@@ -35,24 +35,22 @@
      @Override
      public void tick() {
          super.tick();
-@@ -172,7 +_,7 @@
+@@ -172,6 +_,7 @@
              }
          } else {
              if (this.tickCount >= this.waitTime + this.duration) {
--                this.discard();
-+                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
                  return;
              }
- 
-@@ -188,7 +_,7 @@
+@@ -188,6 +_,7 @@
              if (this.radiusPerTick != 0.0F) {
                  f += this.radiusPerTick;
                  if (f < 0.5F) {
--                    this.discard();
-+                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                    this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                     this.discard();
                      return;
                  }
- 
 @@ -217,6 +_,9 @@
  
                      list.addAll(this.potionContents.customEffects());
@@ -63,7 +61,7 @@
                      if (!list1.isEmpty()) {
                          for (LivingEntity livingentity : list1) {
                              if (!this.victims.containsKey(livingentity)
-@@ -226,33 +_,47 @@
+@@ -226,33 +_,49 @@
                                  double d1 = livingentity.getZ() - this.getZ();
                                  double d3 = d5 * d5 + d1 * d1;
                                  if (d3 <= (double)(f * f)) {
@@ -113,7 +111,8 @@
 +                                        if (this.radiusOnUse != 0.0F) {
 +                                            f += this.radiusOnUse;
 +                                            if (f < 0.5F) {
-+                                                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                                                this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                                                this.discard();
 +                                                return;
 +                                            }
  
@@ -128,7 +127,8 @@
 +                                        if (this.durationOnUse != 0) {
 +                                            this.duration = this.duration + this.durationOnUse;
 +                                            if (this.duration <= 0) {
-+                                                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                                                this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                                                this.discard();
 +                                                return;
 +                                            }
                                          }

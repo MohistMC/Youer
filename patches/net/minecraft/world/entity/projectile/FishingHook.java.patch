@@ -70,21 +70,20 @@
      }
  
      public FishingHook(EntityType<? extends FishingHook> p_150138_, Level p_150139_) {
-@@ -141,12 +_,12 @@
+@@ -141,11 +_,13 @@
          super.tick();
          Player player = this.getPlayerOwner();
          if (player == null) {
--            this.discard();
-+            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          } else if (this.level().isClientSide || !this.shouldStopFishing(player)) {
              if (this.onGround()) {
                  this.life++;
                  if (this.life >= 1200) {
--                    this.discard();
-+                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                    this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                     this.discard();
                      return;
                  }
-             } else {
 @@ -240,23 +_,24 @@
      private boolean shouldStopFishing(Player p_37137_) {
          ItemStack itemstack = p_37137_.getMainHandItem();
