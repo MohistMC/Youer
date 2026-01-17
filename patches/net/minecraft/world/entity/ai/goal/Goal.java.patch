@@ -1,52 +1,13 @@
 --- a/net/minecraft/world/entity/ai/goal/Goal.java
 +++ b/net/minecraft/world/entity/ai/goal/Goal.java
-@@ -4,8 +_,16 @@
- import net.minecraft.util.Mth;
+@@ -5,7 +_,6 @@
  
  public abstract class Goal {
--    private final EnumSet<Goal.Flag> flags = EnumSet.noneOf(Goal.Flag.class);
-+    private final EnumSet<Goal.Flag> flags = EnumSet.noneOf(Goal.Flag.class); // Paper unused, but dummy to prevent plugins from crashing as hard. Theyll need to support paper in a special case if this is super important, but really doesn't seem like it would be.
-+    private final ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<net.minecraft.world.entity.ai.goal.Goal.Flag> goalTypes = new ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<>(Goal.Flag.class); // Paper - remove streams from pathfindergoalselector
- 
-+    // Paper start - remove streams from pathfindergoalselector; make sure types are not empty
-+    public Goal() {
-+        if (this.goalTypes.size() == 0) {
-+            this.goalTypes.addUnchecked(Flag.UNKNOWN_BEHAVIOR);
-+        }
-+    }
-+    // Paper end - remove streams from pathfindergoalselector
+     private final EnumSet<Goal.Flag> flags = EnumSet.noneOf(Goal.Flag.class);
+-
      public abstract boolean canUse();
  
      public boolean canContinueToUse() {
-@@ -30,8 +_,13 @@
-     }
- 
-     public void setFlags(EnumSet<Goal.Flag> p_25328_) {
--        this.flags.clear();
--        this.flags.addAll(p_25328_);
-+        // Paper start - remove streams from pathfindergoalselector
-+        this.goalTypes.clear();
-+        this.goalTypes.addAllUnchecked(p_25328_);
-+        if (this.goalTypes.size() == 0) {
-+            this.goalTypes.addUnchecked(Flag.UNKNOWN_BEHAVIOR);
-+        }
-+        // Paper end - remove streams from pathfindergoalselector
-     }
- 
-     @Override
-@@ -39,8 +_,10 @@
-         return this.getClass().getSimpleName();
-     }
- 
--    public EnumSet<Goal.Flag> getFlags() {
--        return this.flags;
-+    // Paper start - remove streams from pathfindergoalselector
-+    public ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<Goal.Flag> getFlags() {
-+        return this.goalTypes;
-+        // Paper end - remove streams from pathfindergoalselector
-     }
- 
-     protected int adjustedTickDelay(int p_186072_) {
 @@ -51,7 +_,19 @@
          return Mth.positiveCeilDiv(p_186074_, 2);
      }

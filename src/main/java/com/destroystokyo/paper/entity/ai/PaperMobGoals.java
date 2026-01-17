@@ -119,7 +119,7 @@ public class PaperMobGoals implements MobGoals {
         CraftMob craftMob = (CraftMob) mob;
         Set<Goal<T>> goals = new HashSet<>();
         for (WrappedGoal item : getHandle(craftMob, type).getAvailableGoals()) {
-            if (!item.getGoal().getFlags().hasElement(MobGoalHelper.paperToVanilla(type))) {
+            if (!item.getGoal().getFlags().contains(MobGoalHelper.paperToVanilla(type))) {
                 continue;
             }
 
@@ -142,7 +142,7 @@ public class PaperMobGoals implements MobGoals {
                 continue;
             }
             for (WrappedGoal item : getHandle(craftMob, internalType).getAvailableGoals()) {
-                if (item.getGoal().getFlags().hasElement(MobGoalHelper.paperToVanilla(type))) {
+                if (item.getGoal().getFlags().contains(MobGoalHelper.paperToVanilla(type))) {
                     continue;
                 }
 
@@ -172,7 +172,7 @@ public class PaperMobGoals implements MobGoals {
         Set<Goal<T>> goals = new HashSet<>();
         getHandle(craftMob, type).getAvailableGoals()
             .stream().filter(WrappedGoal::isRunning)
-            .filter(item -> item.getGoal().getFlags().hasElement(MobGoalHelper.paperToVanilla(type)))
+            .filter(item -> item.getGoal().getFlags().contains(MobGoalHelper.paperToVanilla(type)))
             .forEach(item -> {
                 if (item.getGoal() instanceof PaperCustomGoal) {
                     //noinspection unchecked
@@ -195,7 +195,7 @@ public class PaperMobGoals implements MobGoals {
             getHandle(craftMob, internalType).getAvailableGoals()
                 .stream()
                 .filter(WrappedGoal::isRunning)
-                .filter(item -> !item.getGoal().getFlags().hasElement(MobGoalHelper.paperToVanilla(type)))
+                .filter(item -> !item.getGoal().getFlags().contains(MobGoalHelper.paperToVanilla(type)))
                 .forEach(item -> {
                     if (item.getGoal() instanceof PaperCustomGoal) {
                         //noinspection unchecked

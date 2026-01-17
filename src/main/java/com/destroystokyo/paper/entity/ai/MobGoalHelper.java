@@ -291,7 +291,7 @@ public class MobGoalHelper {
     public static EnumSet<GoalType> vanillaToPaper(Goal goal) {
         EnumSet<GoalType> goals = EnumSet.noneOf(GoalType.class);
         for (GoalType type : GoalType.values()) {
-            if (goal.getFlags().hasElement(paperToVanilla(type))) {
+            if (goal.getFlags().contains(paperToVanilla(type))) {
                 goals.add(type);
             }
         }
