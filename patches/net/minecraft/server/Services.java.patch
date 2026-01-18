@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/Services.java
 +++ b/net/minecraft/server/Services.java
-@@ -11,15 +_,30 @@
+@@ -11,15 +_,36 @@
  import net.minecraft.util.SignatureValidator;
  
  public record Services(
@@ -21,8 +21,14 @@
 +    }
 +    // Paper end - add paper configuration files
 +    public static final String USERID_CACHE_FILE = "usercache.json"; // Paper - private -> public
++    public static File userCacheFile;
++    public static joptsimple.OptionSet optionSet;
 +
-+    public static Services create(YggdrasilAuthenticationService p_214345_, File p_214346_, File userCacheFile, joptsimple.OptionSet optionSet) throws Exception { // Paper - add optionset to load paper config files; add userCacheFile parameter
++    public static void setUserCacheFile(File userCacheFile, joptsimple.OptionSet optionSet) {
++        Services.userCacheFile = userCacheFile;
++        Services.optionSet = optionSet;
++    }
++    public static Services create(YggdrasilAuthenticationService p_214345_, File p_214346_) throws Exception { // Paper - add optionset to load paper config files; add userCacheFile parameter
          MinecraftSessionService minecraftsessionservice = p_214345_.createMinecraftSessionService();
          GameProfileRepository gameprofilerepository = p_214345_.createProfileRepository();
 -        GameProfileCache gameprofilecache = new GameProfileCache(gameprofilerepository, new File(p_214346_, "usercache.json"));
