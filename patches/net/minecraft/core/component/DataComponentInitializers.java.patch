@@ -1,11 +1,6 @@
 --- a/net/minecraft/core/component/DataComponentInitializers.java
 +++ b/net/minecraft/core/component/DataComponentInitializers.java
-@@ -64,10 +_,28 @@
-     ) {
-         final List<DataComponentInitializers.BakedEntry<T>> entries = new ArrayList<>();
-         final ResourceKey<? extends Registry<T>> registryKey = elementBuilders.registryKey;
-+
-         HolderLookup.RegistryLookup<T> registry = context.lookupOrThrow(registryKey);
+@@ -68,6 +_,21 @@
          Set<Holder.Reference<T>> elementsWithComponents = Sets.newIdentityHashSet();
          elementBuilders.builders.forEach((elementKey, elementBuilder) -> {
              Holder.Reference<T> element = registry.getOrThrow((ResourceKey<T>)elementKey);
@@ -22,13 +17,19 @@
 +                        pair.getSecond().accept(elementBuilder);
 +                    }
 +                }
-+
-+                item.resetDefaultResource();
 +            }
 +
              DataComponentMap components = elementBuilder.build();
              entries.add(new DataComponentInitializers.BakedEntry<>(element, components));
              elementsWithComponents.add(element);
+@@ -93,6 +_,7 @@
+             @Override
+             public void apply() {
+                 entries.forEach(DataComponentInitializers.BakedEntry::apply);
++                net.neoforged.neoforge.event.EventHooks.onDefaultComponentsUpdated(registryKey);
+             }
+         };
+     }
 @@ -115,6 +_,7 @@
          }
  

@@ -26,6 +26,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderLookup.RegistryLookup;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -114,6 +115,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.extensions.IFluidStateExtension;
 import net.neoforged.neoforge.common.extensions.IOwnedSpawner;
 import net.neoforged.neoforge.common.util.BlockSnapshot;
+import net.neoforged.neoforge.common.util.ClockAdjustment;
 import net.neoforged.neoforge.common.util.InsertableLinkedOpenCustomHashSet;
 import net.neoforged.neoforge.event.brewing.PlayerBrewedPotionEvent;
 import net.neoforged.neoforge.event.brewing.PotionBrewEvent;
@@ -798,10 +800,14 @@ public class EventHooks {
         NeoForge.EVENT_BUS.post(new PistonEvent.Post(level, pos, direction, extending ? PistonEvent.PistonMoveType.EXTEND : PistonEvent.PistonMoveType.RETRACT));
     }
 
-    public static long onSleepFinished(ServerLevel level, long newTime, long minTime) {
-        SleepFinishedTimeEvent event = new SleepFinishedTimeEvent(level, newTime, minTime);
+    @Nullable
+    public static ClockAdjustment onSleepFinished(ServerLevel level, ClockAdjustment defaultAdjustment) {
+        SleepFinishedTimeEvent event = new SleepFinishedTimeEvent(level, defaultAdjustment);
         NeoForge.EVENT_BUS.post(event);
-        return event.getNewTime();
+        if (event.isCanceled()) {
+            return null;
+        }
+        return event.getAdjustment();
     }
 
     /**
@@ -1144,5 +1150,10 @@ public class EventHooks {
 
     public static <T> void onGameRuleChanged(MinecraftServer server, GameRule<T> gameRule, T newValue) {
         NeoForge.EVENT_BUS.post(new GameRuleChangedEvent(server, gameRule, newValue));
+    }
+
+    @ApiStatus.Internal
+    public static <T> void onDefaultComponentsUpdated(ResourceKey<? extends Registry<T>> registryKey) {
+        NeoForge.EVENT_BUS.post(new DefaultComponentsUpdatedEvent(registryKey));
     }
 }
