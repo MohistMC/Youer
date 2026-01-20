@@ -1,12 +1,29 @@
 --- a/net/minecraft/world/item/ItemStackTemplate.java
 +++ b/net/minecraft/world/item/ItemStackTemplate.java
-@@ -96,4 +_,9 @@
-     public <T> @Nullable T get(DataComponentType<? extends T> type) {
-         return this.components.get(this.item.components(), type);
+@@ -49,6 +_,26 @@
+         this(item.builtInRegistryHolder(), 1, patch);
      }
-+
-+    @Override
-+    public ItemStackTemplate toTemplate() {
-+        return this;
+ 
++    // Neo: Provide full set of overloads
++    public ItemStackTemplate(Item item, int count, DataComponentPatch patch) {
++        this(item.builtInRegistryHolder(), count, patch);
 +    }
- }
++
++    // Neo: Easier integration with DeferredItem
++    public ItemStackTemplate(Holder<Item> item) {
++        this(item, 1, DataComponentPatch.EMPTY);
++    }
++
++    // Neo: Easier integration with DeferredItem
++    public ItemStackTemplate(Holder<Item> item, int count) {
++        this(item, count, DataComponentPatch.EMPTY);
++    }
++
++    // Neo: Easier integration with DeferredItem
++    public ItemStackTemplate(Holder<Item> item, DataComponentPatch patch) {
++        this(item, 1, patch);
++    }
++
+     public ItemStackTemplate(Holder<Item> item, int count, DataComponentPatch components) {
+         if (count != 0 && !item.is(Items.AIR.builtInRegistryHolder())) {
+             this.item = item;

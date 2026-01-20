@@ -23,7 +23,9 @@ import net.neoforged.neoforge.fluids.CauldronFluidContent;
 import net.neoforged.neoforge.registries.RegistryManager;
 
 public class RegistrationEvents {
+    // TODO 26.1: Find a better solution than this
     public static Map<Item, Consumer<DataComponentMap.Builder>> componentModifiersByItem;
+    // TODO 26.1: Find a better solution than this
     public static List<Pair<Predicate<? super Item>, Consumer<DataComponentMap.Builder>>> componentModifiersByPredicate;
 
     static void init() {
