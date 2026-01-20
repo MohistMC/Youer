@@ -1,5 +1,5 @@
 <div align="center">
-  <h1 align="center">Youer 1.21.11</h1>
+  <h1 align="center">Youer 26.1</h1>
   <h3 align="center">Minecraft NeoForge Hybrid server implementing the Paper API</h3>
 
   <p align="center">
