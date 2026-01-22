@@ -124,6 +124,51 @@
              );
          }
      }
+@@ -617,6 +_,16 @@
+         }
+     }
+ 
++    /**
++     * Compares an itemstack with an {@link ItemStackTemplate} as per {@link #matches(ItemStack, ItemStack)}.
++     */
++    public static boolean matches(ItemStack a, @Nullable ItemStackTemplate b) {
++        if (b == null) {
++            return a.isEmpty();
++        }
++        return a.getCount() == b.count() && isSameItemSameComponents(a, b);
++    }
++
+     @Deprecated
+     public static boolean listMatches(List<ItemStack> left, List<ItemStack> right) {
+         if (left.size() != right.size()) {
+@@ -644,6 +_,27 @@
+         }
+     }
+ 
++
++    /**
++     * {@return true if a and b refer to the same item, or if a is empty and b is null}
++     */
++    public static boolean isSameItem(ItemStack a, @Nullable ItemStackTemplate b) {
++        return b == null ? a.isEmpty() : a.is(b.item());
++    }
++
++    /**
++     * Compares the item and components of this stack against an {@link ItemStackTemplate}.
++     *
++     * @return True if either this stack is empty and the template is null, or they reference the same item and have equivalent component patches.
++     */
++    public static boolean isSameItemSameComponents(ItemStack a, @Nullable ItemStackTemplate b) {
++        if (a.isEmpty() || b == null) {
++            return a.isEmpty() == (b == null);
++        } else {
++            return a.is(b.item()) && a.components.patchEquals(b.components());
++        }
++    }
++
+     public static boolean matchesIgnoringComponents(ItemStack a, ItemStack b, Predicate<DataComponentType<?>> ignoredPredicate) {
+         if (a == b) {
+             return true;
 @@ -820,7 +_,7 @@
      }
  
