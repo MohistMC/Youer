@@ -1,13 +1,24 @@
 --- a/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
-@@ -68,17 +_,45 @@
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.block.entity;
+ 
++import java.util.concurrent.atomic.AtomicReference;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.HolderLookup;
+@@ -68,17 +_,48 @@
      protected abstract Component getDefaultName();
  
      public boolean canOpen(Player p_58645_) {
 -        return canUnlock(p_58645_, this.lockKey, this.getDisplayName());
--    }
--
--    public static boolean canUnlock(Player p_58630_, LockCode p_58631_, Component p_58632_) {
++        canUnlock$blockEntity.set(this);
++        return BaseContainerBlockEntity.canUnlock(p_58645_, this.lockKey, this.getDisplayName()); // Paper - Add BlockLockCheckEvent
+     }
+ 
++    private static final AtomicReference<BlockEntity> canUnlock$blockEntity = new AtomicReference<>(null);
++    // @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Add BlockLockCheckEvent // Youer mods use this method
+     public static boolean canUnlock(Player p_58630_, LockCode p_58631_, Component p_58632_) {
 -        if (!p_58630_.isSpectator() && !p_58631_.unlocksWith(p_58630_.getMainHandItem())) {
 -            p_58630_.displayClientMessage(Component.translatable("container.isLocked", p_58632_), true);
 -            p_58630_.playNotifySound(SoundEvents.CHEST_LOCKED, SoundSource.BLOCKS, 1.0F, 1.0F);
@@ -15,16 +26,7 @@
 -        } else {
 -            return true;
 -        }
-+        return BaseContainerBlockEntity.canUnlock(p_58645_, this.lockKey, this.getDisplayName(), this); // Paper - Add BlockLockCheckEvent
-+    }
-+
-+    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Add BlockLockCheckEvent
-+    public static boolean canUnlock(Player player, LockCode lock, Component containerName) {
-+        // Paper start - Add BlockLockCheckEvent
-+        return canUnlock(player, lock, containerName, null);
-+    }
-+
-+    public static boolean canUnlock(Player p_58630_, LockCode p_58631_, Component p_58632_, @Nullable BlockEntity blockEntity) {
++        BlockEntity blockEntity = canUnlock$blockEntity.getAndSet(null);
 +        if (p_58630_ instanceof net.minecraft.server.level.ServerPlayer serverPlayer && blockEntity != null && blockEntity.getLevel() != null && blockEntity.getLevel().getBlockEntity(blockEntity.getBlockPos()) == blockEntity) {
 +            final org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(blockEntity.getLevel(), blockEntity.getBlockPos());
 +            net.kyori.adventure.text.Component lockedMessage = net.kyori.adventure.text.Component.translatable("container.isLocked", io.papermc.paper.adventure.PaperAdventure.asAdventure(p_58632_));
@@ -54,6 +56,11 @@
 +                return true;
 +            }
 +        } // Paper - Add BlockLockCheckEvent
++    }
++
++    public static boolean canUnlock(Player p_58630_, LockCode p_58631_, Component p_58632_, @Nullable BlockEntity blockEntity) {
++        canUnlock$blockEntity.set(blockEntity);
++        return canUnlock(p_58630_, p_58631_, p_58632_);
      }
  
      protected abstract NonNullList<ItemStack> getItems();
