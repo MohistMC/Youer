@@ -445,7 +445,7 @@
                  profilerfiller.pop();
              }
  
-+            org.spigotmc.ActivationRange.activateEntities(this); // Spigot
++            // org.spigotmc.ActivationRange.activateEntities(this); // Spigot
              this.entityTickList.forEach(p_308566_ -> {
                  if (!p_308566_.isRemoved()) {
                      if (this.shouldDiscardEntity(p_308566_)) {
@@ -682,52 +682,25 @@
      }
  
      public void resetEmptyTime() {
-@@ -753,12 +_,22 @@
-     }
- 
-     public void tickNonPassenger(Entity p_8648_) {
-+        final boolean isActive = org.spigotmc.ActivationRange.checkIfActive(p_8648_);
-         p_8648_.setOldPosAndRot();
-         ProfilerFiller profilerfiller = this.getProfiler();
+@@ -758,7 +_,12 @@
          p_8648_.tickCount++;
          this.getProfiler().push(() -> BuiltInRegistries.ENTITY_TYPE.getKey(p_8648_.getType()).toString());
          profilerfiller.incrementCounter("tickNonPassenger");
 -        p_8648_.tick();
 +        // Neo: Permit cancellation of Entity#tick via EntityTickEvent.Pre
 +        if (!net.neoforged.neoforge.event.EventHooks.fireEntityTickPre(p_8648_).isCanceled()) {
-+            if (isActive) { // Paper - EAR 2
-+                p_8648_.tick();
-+                p_8648_.postTick(); // CraftBukkit
-+            } else {
-+                p_8648_.inactiveTick();
-+            } // Paper - EAR 2
++            p_8648_.tick();
++            p_8648_.postTick(); // CraftBukkit
 +            net.neoforged.neoforge.event.EventHooks.fireEntityTickPost(p_8648_);
 +        }
          this.getProfiler().pop();
  
          for (Entity entity : p_8648_.getPassengers()) {
-@@ -770,14 +_,24 @@
-         if (p_8664_.isRemoved() || p_8664_.getVehicle() != p_8663_) {
-             p_8664_.stopRiding();
-         } else if (p_8664_ instanceof Player || this.entityTickList.contains(p_8664_)) {
-+            final boolean isActive = org.spigotmc.ActivationRange.checkIfActive(p_8664_);
-+
-             p_8664_.setOldPosAndRot();
-             p_8664_.tickCount++;
-             ProfilerFiller profilerfiller = this.getProfiler();
+@@ -776,8 +_,8 @@
              profilerfiller.push(() -> BuiltInRegistries.ENTITY_TYPE.getKey(p_8664_.getType()).toString());
              profilerfiller.incrementCounter("tickPassenger");
--            p_8664_.rideTick();
-+            // Paper start - EAR 2
-+            if (isActive) {
-+                p_8664_.rideTick();
-+                p_8664_.postTick(); // CraftBukkit
-+            } else {
-+                p_8664_.setDeltaMovement(Vec3.ZERO);
-+                p_8664_.inactiveTick();
-+                // copied from inside of if (isPassenger()) of passengerTick, but that ifPassenger is unnecessary
-+                p_8663_.positionRider(p_8664_);
-+            }
+             p_8664_.rideTick();
++            p_8664_.postTick(); // CraftBukkit
              profilerfiller.pop();
 -
              for (Entity entity : p_8664_.getPassengers()) {

@@ -597,7 +597,7 @@
          this.discard();
      }
  
-@@ -599,11 +_,14 @@
+@@ -599,6 +_,7 @@
      }
  
      public void move(MoverType p_19973_, Vec3 p_19974_) {
@@ -605,27 +605,6 @@
          if (this.noPhysics) {
              this.setPos(this.getX() + p_19974_.x, this.getY() + p_19974_.y, this.getZ() + p_19974_.z);
          } else {
-             this.wasOnFire = this.isOnFire();
-             if (p_19973_ == MoverType.PISTON) {
-+                this.activatedTick = Math.max(this.activatedTick, MinecraftServer.currentTick + 20); // Paper
-+                this.activatedImmunityTick = Math.max(this.activatedImmunityTick, MinecraftServer.currentTick + 20);   // Paper
-                 p_19974_ = this.limitPistonMovement(p_19974_);
-                 if (p_19974_.equals(Vec3.ZERO)) {
-                     return;
-@@ -616,6 +_,13 @@
-                 this.stuckSpeedMultiplier = Vec3.ZERO;
-                 this.setDeltaMovement(Vec3.ZERO);
-             }
-+            // Paper start - ignore movement changes while inactive.
-+            if (isTemporarilyActive && !(this instanceof ItemEntity) && p_19974_ == getDeltaMovement() && p_19973_ == MoverType.SELF) {
-+                setDeltaMovement(Vec3.ZERO);
-+                this.level.getProfiler().pop();
-+                return;
-+            }
-+            // Paper end
- 
-             p_19974_ = this.maybeBackOffFromEdge(p_19974_, p_19973_);
-             Vec3 vec3 = this.collide(p_19974_);
 @@ -664,6 +_,28 @@
                      block.updateEntityAfterFallOn(this.level(), this);
                  }

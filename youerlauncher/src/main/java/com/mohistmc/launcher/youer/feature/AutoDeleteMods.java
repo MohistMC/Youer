@@ -25,7 +25,7 @@ public class AutoDeleteMods {
      */
     private static final Map<String, DeletionReason> MOD_BLACKLIST = new HashMap<>() {{
         put("org.spongepowered.common.applaunch.AppLaunch", DeletionReason.CORE_CONFLICT);
-        put("me.wesley1808.servercore.common.ServerCore", DeletionReason.DUPLICATE_FEATURE);
+        //put("me.wesley1808.servercore.common.ServerCore", DeletionReason.DUPLICATE_FEATURE);
         put("i18nupdatemod.I18nUpdateMod", DeletionReason.CLIENT_ONLY);
         put("dev.tr7zw.skinlayers.SkinLayersMod", DeletionReason.CLIENT_ONLY);
         put("com.biel.mod.mixin.VelocityMixin", DeletionReason.DUPLICATE_FEATURE);

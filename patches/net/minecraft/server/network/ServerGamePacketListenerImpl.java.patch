@@ -211,7 +211,17 @@
          return this.filterTextPacket(p_243213_, TextFilter::processStreamMessage);
      }
  
-@@ -389,11 +_,23 @@
+@@ -385,15 +_,33 @@
+         return Mth.clamp(p_143654_, -2.0E7, 2.0E7);
+     }
+ 
++    double handleMoveVehicle$prevX;
++    double handleMoveVehicle$prevY;
++    double handleMoveVehicle$prevZ;
++    float handleMoveVehicle$prevYaw;
++    float handleMoveVehicle$prevPitch;
++
+     @Override
      public void handleMoveVehicle(ServerboundMoveVehiclePacket p_9876_) {
          PacketUtils.ensureRunningOnSameThread(p_9876_, this, this.player.serverLevel());
          if (containsInvalidValues(p_9876_.getX(), p_9876_.getY(), p_9876_.getZ(), p_9876_.getYRot(), p_9876_.getXRot())) {
@@ -227,11 +237,11 @@
              if (entity != this.player && entity.getControllingPassenger() == this.player && entity == this.lastVehicle) {
                  ServerLevel serverlevel = this.player.serverLevel();
 +                // CraftBukkit - store current player position
-+                double prevX = this.player.getX();
-+                double prevY = this.player.getY();
-+                double prevZ = this.player.getZ();
-+                float prevYaw = this.player.getYRot();
-+                float prevPitch = this.player.getXRot();
++                handleMoveVehicle$prevX = this.player.getX();
++                handleMoveVehicle$prevY = this.player.getY();
++                handleMoveVehicle$prevZ = this.player.getZ();
++                handleMoveVehicle$prevYaw = this.player.getYRot();
++                handleMoveVehicle$prevPitch = this.player.getXRot();
 +                // CraftBukkit end
                  double d0 = entity.getX();
                  double d1 = entity.getY();
@@ -294,11 +304,11 @@
 +                // CraftBukkit start - fire PlayerMoveEvent
 +                org.bukkit.entity.Player player = this.getCraftPlayer();
 +                if (!this.hasMoved) {
-+                    this.lastPosX = prevX;
-+                    this.lastPosY = prevY;
-+                    this.lastPosZ = prevZ;
-+                    this.lastYaw = prevYaw;
-+                    this.lastPitch = prevPitch;
++                    this.lastPosX = handleMoveVehicle$prevX;
++                    this.lastPosY = handleMoveVehicle$prevY;
++                    this.lastPosZ = handleMoveVehicle$prevZ;
++                    this.lastYaw = handleMoveVehicle$prevYaw;
++                    this.lastPitch = handleMoveVehicle$prevPitch;
 +                    this.hasMoved = true;
 +                }
 +                org.bukkit.Location from = new org.bukkit.Location(player.getWorld(), lastPosX, lastPosY, lastPosZ, lastYaw, lastPitch); // Get the Players previous Event location.
@@ -642,7 +652,24 @@
          }
      }
  
-@@ -837,24 +_,32 @@
+@@ -832,15 +_,26 @@
+             this.player.connection.send(new ClientboundTagQueryPacket(p_320124_.getTransactionId(), compoundtag));
+         }
+     }
+-
++    double handleMovePlayer$prevX;
++    double handleMovePlayer$prevY;
++    double handleMovePlayer$prevZ;
++    float handleMovePlayer$prevYaw;
++    float handleMovePlayer$prevPitch;
++    double handleMovePlayer$currDeltaX;
++    double handleMovePlayer$currDeltaY;
++    double handleMovePlayer$currDeltaZ;
++    double handleMovePlayer$otherFieldX;
++    double handleMovePlayer$otherFieldY;
++    double handleMovePlayer$otherFieldZ;
++    double handleMovePlayer$speed;
+     @Override
      public void handleMovePlayer(ServerboundMovePlayerPacket p_9874_) {
          PacketUtils.ensureRunningOnSameThread(p_9874_, this, this.player.serverLevel());
          if (containsInvalidValues(p_9874_.getX(0.0), p_9874_.getY(0.0), p_9874_.getZ(0.0), p_9874_.getYRot(0.0F), p_9874_.getXRot(0.0F))) {
@@ -655,29 +682,18 @@
                  if (this.tickCount == 0) {
                      this.resetPosition();
                  }
- 
-                 if (!this.updateAwaitingTeleport()) {
--                    double d0 = clampHorizontal(p_9874_.getX(this.player.getX()));
--                    double d1 = clampVertical(p_9874_.getY(this.player.getY()));
--                    double d2 = clampHorizontal(p_9874_.getZ(this.player.getZ()));
--                    float f = Mth.wrapDegrees(p_9874_.getYRot(this.player.getYRot()));
--                    float f1 = Mth.wrapDegrees(p_9874_.getXRot(this.player.getXRot()));
-+                    double d0 = clampHorizontal(p_9874_.getX(this.player.getX()));  final double toX = d0; // Paper - OBFHELPER
-+                    double d1 = clampVertical(p_9874_.getY(this.player.getY())); final double toY = d1; // Paper - OBFHELPER
-+                    double d2 = clampHorizontal(p_9874_.getZ(this.player.getZ())); final double toZ = d2; // Paper - OBFHELPER
-+                    float f = Mth.wrapDegrees(p_9874_.getYRot(this.player.getYRot())); final float toYaw = f; // Paper - OBFHELPER
-+                    float f1 = Mth.wrapDegrees(p_9874_.getXRot(this.player.getXRot())); final float toPitch = f1; // Paper - OBFHELPER
+@@ -854,7 +_,15 @@
                      if (this.player.isPassenger()) {
                          this.player.absMoveTo(this.player.getX(), this.player.getY(), this.player.getZ(), f, f1);
                          this.player.serverLevel().getChunkSource().move(this.player);
 +                        this.allowedPlayerTicks = 20; // CraftBukkit
                      } else {
 +                        // CraftBukkit - Make sure the move is valid but then reset it for plugins to modify
-+                        double prevX = this.player.getX();
-+                        double prevY = this.player.getY();
-+                        double prevZ = this.player.getZ();
-+                        float prevYaw = this.player.getYRot();
-+                        float prevPitch = this.player.getXRot();
++                        handleMovePlayer$prevX = this.player.getX();
++                        handleMovePlayer$prevY = this.player.getY();
++                        handleMovePlayer$prevZ = this.player.getZ();
++                        handleMovePlayer$prevYaw = this.player.getYRot();
++                        handleMovePlayer$prevPitch = this.player.getXRot();
 +                        // CraftBukkit end
                          double d3 = this.player.getX();
                          double d4 = this.player.getY();
@@ -688,19 +704,19 @@
                          double d9 = this.player.getDeltaMovement().lengthSqr();
 -                        double d10 = d6 * d6 + d7 * d7 + d8 * d8;
 +                        // Paper start - fix large move vectors killing the server
-+                        double currDeltaX = toX - prevX;
-+                        double currDeltaY = toY - prevY;
-+                        double currDeltaZ = toZ - prevZ;
-+                        double d10 = Math.max(d6 * d6 + d7 * d7 + d8 * d8, (currDeltaX * currDeltaX + currDeltaY * currDeltaY + currDeltaZ * currDeltaZ) - 1);
-+                        double otherFieldX = d0 - this.lastGoodX;
-+                        double otherFieldY = d1 - this.lastGoodY;
-+                        double otherFieldZ = d2 - this.lastGoodZ;
-+                        d10 = Math.max(d10, (otherFieldX * otherFieldX + otherFieldY * otherFieldY + otherFieldZ * otherFieldZ) - 1);
++                        handleMovePlayer$currDeltaX = d0 - handleMovePlayer$prevX;
++                        handleMovePlayer$currDeltaY = d1 - handleMovePlayer$prevY;
++                        handleMovePlayer$currDeltaZ = d2 - handleMovePlayer$prevZ;
++                        double d10 = Math.max(d6 * d6 + d7 * d7 + d8 * d8, (handleMovePlayer$currDeltaX * handleMovePlayer$currDeltaX + handleMovePlayer$currDeltaY * handleMovePlayer$currDeltaY + handleMovePlayer$currDeltaZ * handleMovePlayer$currDeltaZ) - 1);
++                        handleMovePlayer$otherFieldX = d0 - this.lastGoodX;
++                        handleMovePlayer$otherFieldY = d1 - this.lastGoodY;
++                        handleMovePlayer$otherFieldZ = d2 - this.lastGoodZ;
++                        d10 = Math.max(d10, (handleMovePlayer$otherFieldX * handleMovePlayer$otherFieldX + handleMovePlayer$otherFieldY * handleMovePlayer$otherFieldY + handleMovePlayer$otherFieldZ * handleMovePlayer$otherFieldZ) - 1);
 +                        // Paper end - fix large move vectors killing the server
                          if (this.player.isSleeping()) {
                              if (d10 > 1.0) {
                                  this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), f, f1);
-@@ -872,18 +_,55 @@
+@@ -872,18 +_,56 @@
                              if (serverlevel.tickRateManager().runsNormally()) {
                                  this.receivedMovePacketCount++;
                                  int i = this.receivedMovePacketCount - this.knownMovePacketCount;
@@ -719,18 +735,19 @@
 +                                } else {
 +                                    allowedPlayerTicks = 20;
 +                                }
-+                                double speed;
++
 +                                if (player.getAbilities().flying) {
-+                                    speed = player.getAbilities().flyingSpeed * 20f;
++                                    handleMovePlayer$speed = player.getAbilities().flyingSpeed * 20f;
 +                                } else {
-+                                    speed = player.getAbilities().walkingSpeed * 10f;
++                                    handleMovePlayer$speed = player.getAbilities().walkingSpeed * 10f;
 +                                }
 +
 +                                // Paper start - Prevent moving into unloaded chunks
-+                                if (this.player.level().paperConfig().chunks.preventMovingIntoUnloadedChunks && (this.player.getX() != toX || this.player.getZ() != toZ) && !serverlevel.areChunksLoadedForMove(this.player.getBoundingBox().expandTowards(new Vec3(toX, toY, toZ).subtract(this.player.position())))) {
++                                if (this.player.level().paperConfig().chunks.preventMovingIntoUnloadedChunks && (this.player.getX() != d0 || this.player.getZ() != d2)
++                                        && !serverlevel.areChunksLoadedForMove(this.player.getBoundingBox().expandTowards(new Vec3(d0, d1, d2).subtract(this.player.position())))) {
 +                                    // Paper start - Add fail move event
 +                                    io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_INTO_UNLOADED_CHUNK,
-+                                            toX, toY, toZ, toYaw, toPitch, false);
++                                            d0, d1, d2, f, f1, false);
 +                                    if (!event.isAllowed()) {
 +                                        this.internalTeleport(this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot(), Collections.emptySet());
 +                                        return;
@@ -746,11 +763,11 @@
 -                                        LOGGER.warn("{} moved too quickly! {},{},{}", this.player.getName().getString(), d6, d7, d8);
 -                                        this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot());
 -                                        return;
-+                                    if (d10 - d9 > Math.max(f2, Math.pow((double) (org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) i * speed), 2)) && !this.isSingleplayerOwner()) {
++                                    if (d10 - d9 > Math.max(f2, Math.pow((double) (org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) i * handleMovePlayer$speed), 2)) && !this.isSingleplayerOwner()) {
 +                                        // CraftBukkit end
 +                                        // Paper start - Add fail move event
 +                                        io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_TOO_QUICKLY,
-+                                                toX, toY, toZ, toYaw, toPitch, true);
++                                                d0, d1, d2, f, f1, true);
 +                                        if (!event.isAllowed()) {
 +                                            if (event.getLogWarning())
 +                                                ServerGamePacketListenerImpl.LOGGER.warn("{} moved too quickly! {},{},{}", new Object[]{this.player.getName().getString(), d6, d7, d8});
@@ -823,7 +840,7 @@
 -                                LOGGER.warn("{} moved wrongly!", this.player.getName().getString());
 +                                // Paper start - Add fail move event
 +                                io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_WRONGLY,
-+                                        toX, toY, toZ, toYaw, toPitch, true);
++                                        d0, d1, d2, f, f1, true);
 +                                if (!event.isAllowed()) {
 +                                    movedWrongly = true;
 +                                    if (event.getLogWarning())
@@ -839,14 +856,14 @@
                                      && !this.isPlayerCollidingWithAnythingNew(serverlevel, aabb, d0, d1, d2)) {
 +                                // CraftBukkit start - fire PlayerMoveEvent
 +                                // Reset to old location first
-+                                this.player.absMoveTo(prevX, prevY, prevZ, prevYaw, prevPitch);
++                                this.player.absMoveTo(handleMovePlayer$prevX, handleMovePlayer$prevY, handleMovePlayer$prevZ, handleMovePlayer$prevYaw, handleMovePlayer$prevPitch);
 +                                org.bukkit.entity.Player player = this.getCraftPlayer();
 +                                if (!this.hasMoved) {
-+                                    this.lastPosX = prevX;
-+                                    this.lastPosY = prevY;
-+                                    this.lastPosZ = prevZ;
-+                                    this.lastYaw = prevYaw;
-+                                    this.lastPitch = prevPitch;
++                                    this.lastPosX = handleMovePlayer$prevX;
++                                    this.lastPosY = handleMovePlayer$prevY;
++                                    this.lastPosZ = handleMovePlayer$prevZ;
++                                    this.lastYaw = handleMovePlayer$prevYaw;
++                                    this.lastPitch = handleMovePlayer$prevPitch;
 +                                    this.hasMoved = true;
 +                                }
 +                                org.bukkit.Location from = new org.bukkit.Location(player.getWorld(), lastPosX, lastPosY, lastPosZ, lastYaw, lastPitch); // Get the Players previous Event location.
