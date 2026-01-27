@@ -136,7 +136,7 @@
                      setChanged(p_155579_, p_155580_, p_155581_);
                      return true;
                  }
-@@ -136,7 +_,204 @@
+@@ -136,7 +_,209 @@
          return true;
      }
  
@@ -282,7 +282,12 @@
 +            // Have to special-case large chests as they work oddly
 +            sourceInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest(compoundContainer);
 +        } else if (container instanceof BlockEntity blockEntity) {
-+            sourceInventory = blockEntity.getOwner(false).getInventory();
++            var ih = blockEntity.getOwner(false);
++            if (ih != null) {
++                sourceInventory = ih.getInventory();
++            } else {
++                sourceInventory = new CraftInventory(container);
++            }
 +        } else if (container.getOwner() != null) {
 +            sourceInventory = container.getOwner().getInventory();
 +        } else {
