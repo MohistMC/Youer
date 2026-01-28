@@ -105,7 +105,7 @@ public enum CraftStatistic {
     STRIDER_ONE_CM(Stats.STRIDER_ONE_CM);
     private final ResourceLocation minecraftKey;
     private final org.bukkit.Statistic bukkit;
-    private static final BiMap<ResourceLocation, org.bukkit.Statistic> statistics;
+    public static BiMap<ResourceLocation, org.bukkit.Statistic> statistics;
 
     static {
         ImmutableBiMap.Builder<ResourceLocation, org.bukkit.Statistic> statisticBuilder = ImmutableBiMap.builder();
