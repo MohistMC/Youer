@@ -28,7 +28,7 @@ public class BackCommands extends Command {
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
         if (sender instanceof Player player) {
-            if (BackConfig.INSTANCE.has(player.getName())) {
+            if (BackConfig.INSTANCE.has(player.getUniqueId().toString())) {
                 player.teleport(BackConfig.INSTANCE.getLocation(player));
                 player.sendMessage(I18n.as("backcommands.success",
                         BackConfig.INSTANCE.getBackType(player).isTeleport() ? I18n.as("backcommands.backtype.teleport") : I18n.as("backcommands.backtype.death")));
