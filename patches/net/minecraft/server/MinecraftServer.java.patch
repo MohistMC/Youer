@@ -775,7 +775,7 @@
              while (this.running) {
                  long i;
                  if (!this.isPaused() && this.tickRateManager.isSprinting() && this.tickRateManager.checkShouldSprintThisTick()) {
-@@ -682,25 +_,52 @@
+@@ -682,18 +_,39 @@
                      if (k > OVERLOADED_THRESHOLD_NANOS + 20L * i
                          && this.nextTickTimeNanos - this.lastOverloadWarningNanos >= OVERLOADED_WARNING_INTERVAL_NANOS + 100L * i) {
                          long j = k / i;
@@ -819,10 +819,9 @@
 +                // MinecraftServer.currentTick = (int) (System.currentTimeMillis() / 50); // CraftBukkit // Paper - don't overwrite current tick time
 +                lastTick = currentTime;
                  this.nextTickTimeNanos += i;
--                this.startMetricsRecordingTick();
-+                //this.startMetricsRecordingTick();
+                 this.startMetricsRecordingTick();
                  this.profiler.push("tick");
-                 this.tickServer(flag ? () -> false : this::haveTime);
+@@ -701,6 +_,12 @@
                  this.profiler.popPush("nextTickWait");
                  this.mayHaveDelayedTasks = true;
                  this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + i, this.nextTickTimeNanos);
@@ -1436,6 +1435,14 @@
      public void dumpServerProperties(Path p_177911_) throws IOException {
      }
  
+@@ -1808,6 +_,7 @@
+     }
+ 
+     private void startMetricsRecordingTick() {
++        if (true) return;
+         if (this.willStartRecordingMetrics) {
+             this.metricsRecorder = ActiveMetricsRecorder.createStarted(
+                 new ServerMetricsSamplersProvider(Util.timeSource, this.isDedicatedServer()),
 @@ -1875,6 +_,10 @@
          return this.worldData;
      }
