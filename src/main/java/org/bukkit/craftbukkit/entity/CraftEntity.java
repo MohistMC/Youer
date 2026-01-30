@@ -7,6 +7,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.bukkit.entity.CraftFakePlayer;
 import com.mohistmc.youer.bukkit.entity.YouerModsFireballEntity;
 import com.mohistmc.youer.neoforge.EntityClassLookup;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.common.util.FakePlayer;
 import org.bukkit.EntityEffect;
 import org.bukkit.Location;
 import org.bukkit.Server;
@@ -116,8 +118,13 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         Preconditions.checkArgument(entity != null, "Unknown entity");
 
         // Special case human, since bukkit use Player interface for ...
-        if (entity instanceof net.minecraft.world.entity.player.Player && !(entity instanceof ServerPlayer)) {
-            return new CraftHumanEntity(server, (net.minecraft.world.entity.player.Player) entity);
+        if (entity instanceof net.minecraft.world.entity.player.Player) {
+            if (entity instanceof ServerPlayer) {
+                if (entity instanceof FakePlayer) {
+                    return new CraftFakePlayer(server, (FakePlayer) entity);
+                }
+                return new CraftPlayer(server, (ServerPlayer) entity);
+            } else { return new CraftHumanEntity(server, (net.minecraft.world.entity.player.Player) entity); }
         }
 
         // Special case complex part, since there is no extra entity type for them

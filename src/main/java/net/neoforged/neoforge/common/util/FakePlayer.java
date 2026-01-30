@@ -96,7 +96,7 @@ public class FakePlayer extends ServerPlayer {
 
     @Override
     public CraftFakePlayer getBukkitEntity() {
-        return (CraftFakePlayer) super.getBukkitEntity();
+        return new CraftFakePlayer(server.server, this);
     }
 
     @Override
