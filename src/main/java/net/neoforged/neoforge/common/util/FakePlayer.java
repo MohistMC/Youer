@@ -5,6 +5,7 @@
 
 package net.neoforged.neoforge.common.util;
 
+import com.mohistmc.youer.bukkit.entity.CraftFakePlayer;
 import com.mojang.authlib.GameProfile;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -91,6 +92,11 @@ public class FakePlayer extends ServerPlayer {
     public FakePlayer(ServerLevel level, GameProfile name) {
         super(level.getServer(), level, name, ClientInformation.createDefault());
         this.connection = new FakePlayerNetHandler(level.getServer(), this);
+    }
+
+    @Override
+    public CraftFakePlayer getBukkitEntity() {
+        return (CraftFakePlayer) super.getBukkitEntity();
     }
 
     @Override

@@ -118,6 +118,7 @@ public class YouerConfig {
     public static boolean player_modlist_blacklist_use_real_feedback;
     public static String player_modlist_blacklist_failurereasons;
     public static List<String> player_modlist_blacklist;
+    public static boolean fakeplayer_callbukkitevent = false;
 
     static int version;
     static Map<String, Command> commands;
@@ -301,6 +302,8 @@ public class YouerConfig {
         player_modlist_blacklist_use_real_feedback = getBoolean("player_modlist_blacklist.use_real_feedback", false);
         player_modlist_blacklist_failurereasons = getString("player_modlist_blacklist.failurereasons", "<gradient:#00FF00:#0000FF>Do not install mods privately</gradient>");
         player_modlist_blacklist = getStringList("player_modlist_blacklist.list", new ArrayList<>());
+
+        fakeplayer_callbukkitevent = getBoolean("fakeplayer.callbukkitevent", fakeplayer_callbukkitevent);
 
         getBoolean("keepinventory.world.inventory", false);
         getBoolean("keepinventory.world.exp", false);
