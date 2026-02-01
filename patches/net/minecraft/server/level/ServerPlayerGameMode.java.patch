@@ -1,13 +1,15 @@
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
-@@ -1,5 +_,6 @@
+@@ -1,5 +_,8 @@
  package net.minecraft.server.level;
  
++import com.mohistmc.youer.api.ItemAPI;
++import com.mohistmc.youer.feature.ban.bans.BanBlock;
 +import com.mohistmc.youer.feature.ban.bans.BanItem;
  import com.mojang.logging.LogUtils;
  import java.util.Objects;
  import javax.annotation.Nullable;
-@@ -15,18 +_,25 @@
+@@ -15,18 +_,26 @@
  import net.minecraft.world.ItemInteractionResult;
  import net.minecraft.world.MenuProvider;
  import net.minecraft.world.entity.EquipmentSlot;
@@ -26,6 +28,7 @@
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.Vec3;
 +import org.bukkit.GameMode;
++import org.bukkit.craftbukkit.block.CraftBlock;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.event.Event;
 +import org.bukkit.event.block.Action;
@@ -282,7 +285,7 @@
              int i = p_9264_.getCount();
              int j = p_9264_.getDamageValue();
              InteractionResultHolder<ItemStack> interactionresultholder = p_9264_.use(p_9263_, p_9262_, p_9265_);
-@@ -304,24 +_,75 @@
+@@ -304,24 +_,77 @@
          }
      }
  
@@ -300,6 +303,8 @@
 +        if (BanItem.check(p_9266_, p_9268_)) return InteractionResult.FAIL;
          BlockPos blockpos = p_9270_.getBlockPos();
          BlockState blockstate = p_9267_.getBlockState(blockpos);
++        if (BanBlock.check(blockstate)) return InteractionResult.FAIL;
++        if (BanItem.check(p_9266_, blockstate.getBlock().asItem().getDefaultInstance())) return InteractionResult.FAIL; // Block
 +        boolean cancelledBlock = false;
 +        boolean cancelledItem = false; // Paper - correctly handle items on cooldown
          if (!blockstate.getBlock().isEnabled(p_9267_.enabledFeatures())) {
