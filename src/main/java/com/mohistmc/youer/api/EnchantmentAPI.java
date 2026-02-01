@@ -1,11 +1,9 @@
 package com.mohistmc.youer.api;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 
@@ -16,25 +14,22 @@ import org.bukkit.craftbukkit.inventory.CraftItemStack;
 public class EnchantmentAPI {
 
     public static boolean has(org.bukkit.inventory.ItemStack itemStack) {
-        return itemStack.hasItemMeta() && itemStack.getItemMeta().hasEnchants();
+        return (itemStack.hasItemMeta() && itemStack.getItemMeta().hasEnchants()) || itemStack.getType() == org.bukkit.Material.ENCHANTED_BOOK;
     }
 
     public static boolean has(net.minecraft.world.item.ItemStack itemStack) {
-        return has(CraftItemStack.asBukkitCopy(itemStack));
-    }
-
-    public static List<Enchantment> getNMS(org.bukkit.inventory.ItemStack itemStack) {
-        if (has(itemStack)) {
-            Map<org.bukkit.enchantments.Enchantment, Integer> map = itemStack.getEnchantments();
-            return map.keySet().stream().map(CraftEnchantment::bukkitToMinecraft).collect(Collectors.toList());
-        }
-        return Collections.emptyList();
+        return itemStack.has(DataComponents.ENCHANTMENTS);
     }
 
     public static List<org.bukkit.enchantments.Enchantment> get(org.bukkit.inventory.ItemStack itemStack) {
-        if (has(itemStack)) {
-            return new ArrayList<>(itemStack.getEnchantments().keySet());
+        var nms = CraftItemStack.asNMSCopy(itemStack);
+        List<org.bukkit.enchantments.Enchantment> enchantmentsS = new ArrayList<>();
+        if (EnchantmentHelper.hasAnyEnchantments(nms)) {
+            var enchantments = EnchantmentHelper.getEnchantmentsForCrafting(nms);
+            for (var enchantment : enchantments.keySet()) {
+                enchantmentsS.add(CraftEnchantment.minecraftToBukkit(enchantment.value()));
+            }
         }
-        return Collections.emptyList();
+        return enchantmentsS;
     }
 }

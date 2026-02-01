@@ -37,10 +37,6 @@ import net.minecraft.world.entity.raid.Raider;
 import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-// Pufferfish start
-import net.minecraft.world.phys.Vec3;
-import java.util.List;
-// Pufferfish end
 
 public class ActivationRange
 {
