@@ -65,7 +65,7 @@
      public Connection(PacketFlow p_129482_) {
          this.receiving = p_129482_;
      }
-@@ -117,30 +_,59 @@
+@@ -117,30 +_,64 @@
          super.channelActive(p_129525_);
          this.channel = p_129525_.channel();
          this.address = this.channel.remoteAddress();
@@ -86,6 +86,11 @@
  
      @Override
      public void exceptionCaught(ChannelHandlerContext p_129533_, Throwable p_129534_) {
++        if (p_129534_ instanceof io.netty.handler.codec.EncoderException &&
++                p_129534_.getMessage().contains("PacketBundleUnpacker")) {
++            LOGGER.debug("Detected invalid packet bundle, skipping...");
++            return;
++        }
 +        // Paper start - Handle large packets disconnecting client
 +        if (p_129534_ instanceof io.netty.handler.codec.EncoderException && p_129534_.getCause() instanceof PacketEncoder.PacketTooLargeException packetTooLargeException) {
 +            final Packet<?> packet = packetTooLargeException.getPacket();
