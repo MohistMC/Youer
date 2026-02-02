@@ -15,6 +15,14 @@
  
  public class ItemFrame extends HangingEntity {
      public static final EntityDataAccessor<ItemStack> DATA_ITEM = SynchedEntityData.defineId(ItemFrame.class, EntityDataSerializers.ITEM_STACK);
+@@ -48,6 +_,7 @@
+     private static final float HEIGHT = 0.75F;
+     public float dropChance = 1.0F;
+     public boolean fixed;
++    public @Nullable MapId cachedMapId; // Paper - Perf: Cache map ids on item frames
+ 
+     public ItemFrame(EntityType<? extends ItemFrame> p_31761_, Level p_31762_) {
+         super(p_31761_, p_31762_);
 @@ -85,6 +_,15 @@
          this.recalculateBoundingBox();
      }
@@ -106,6 +114,14 @@
      public SoundEvent getAddItemSound() {
          return SoundEvents.ITEM_FRAME_ADD_ITEM;
      }
+@@ -272,6 +_,7 @@
+     }
+ 
+     private void onItemChanged(ItemStack p_218866_) {
++        this.cachedMapId = p_218866_.getComponents().get(net.minecraft.core.component.DataComponents.MAP_ID); // Paper - Perf: Cache map ids on item frames
+         if (!p_218866_.isEmpty() && p_218866_.getFrame() != this) {
+             p_218866_.setEntityRepresentation(this);
+         }
 @@ -354,11 +_,24 @@
                          }
                      }

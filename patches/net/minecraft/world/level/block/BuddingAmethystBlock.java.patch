@@ -8,12 +8,18 @@
  
  public class BuddingAmethystBlock extends AmethystBlock {
      public static final MapCodec<BuddingAmethystBlock> CODEC = simpleCodec(BuddingAmethystBlock::new);
-@@ -44,7 +_,7 @@
+@@ -44,7 +_,13 @@
                  BlockState blockstate1 = block.defaultBlockState()
                      .setValue(AmethystClusterBlock.FACING, direction)
                      .setValue(AmethystClusterBlock.WATERLOGGED, Boolean.valueOf(blockstate.getFluidState().getType() == Fluids.WATER));
 -                p_220899_.setBlockAndUpdate(blockpos, blockstate1);
-+                CraftEventFactory.handleBlockSpreadEvent(p_220899_, p_220900_, blockpos, blockstate1); // CraftBukkit
++                // Paper start - Have Amethyst throw both spread and grow events
++                if (block == Blocks.SMALL_AMETHYST_BUD) {
++                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(p_220899_, p_220900_, blockpos, blockstate1); // CraftBukkit
++                } else {
++                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(p_220899_, blockpos, blockstate1);
++                }
++                // Paper end - Have Amethyst throw both spread and grow events
              }
          }
      }

@@ -81,7 +81,7 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("the_nether"));
-@@ -114,6 +_,105 @@
+@@ -114,6 +_,117 @@
      private final RegistryAccess registryAccess;
      private final DamageSources damageSources;
      private long subTickCount;
@@ -175,6 +175,18 @@
 +        return (CraftServer) Bukkit.getServer();
 +    }
 +
++    // Paper start - per world ticks per spawn
++    protected int getTicksPerSpawn(SpawnCategory spawnCategory) {
++        if (this.paperConfig() != null) {
++            final int perWorld = this.paperConfig().entities.spawning.ticksPerSpawn.getInt(CraftSpawnCategory.toNMS(spawnCategory));
++            if (perWorld >= 0) {
++                return perWorld;
++            }
++        }
++        return this.getCraftServer().getTicksPerSpawns(spawnCategory);
++    }
++    // Paper end
++
 +    public ResourceKey<LevelStem> getTypeKey() {
 +        return Registries.levelToLevelStem(dimension);
 +    }
@@ -187,19 +199,6 @@
  
      protected Level(
          WritableLevelData p_270739_,
-@@ -128,6 +_,12 @@
-     ) {
-         this.profiler = p_270692_;
-         this.levelData = p_270739_;
-+        // CraftBukkit Ticks things
-+        for (SpawnCategory spawnCategory : SpawnCategory.values()) {
-+            if (CraftSpawnCategory.isValidForLimits(spawnCategory) && getCraftServer() != null) {
-+                this.ticksPerSpawnCategory.put(spawnCategory, (long) this.getCraftServer().getTicksPerSpawns(spawnCategory));
-+            }
-+        }
-         this.dimensionTypeRegistration = p_270240_;
-         final DimensionType dimensiontype = p_270240_.value();
-         this.dimension = p_270683_;
 @@ -136,12 +_,12 @@
              this.worldBorder = new WorldBorder() {
                  @Override

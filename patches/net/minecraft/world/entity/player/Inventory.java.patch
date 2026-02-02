@@ -73,10 +73,18 @@
      public Inventory(Player p_35983_) {
          this.player = p_35983_;
      }
-@@ -56,6 +_,28 @@
-             && p_36015_.getCount() < this.getMaxStackSize(p_36015_);
-     }
+@@ -51,10 +_,32 @@
  
+     private boolean hasRemainingSpaceForItem(ItemStack p_36015_, ItemStack p_36016_) {
+         return !p_36015_.isEmpty()
+-            && ItemStack.isSameItemSameComponents(p_36015_, p_36016_)
+             && p_36015_.isStackable()
+-            && p_36015_.getCount() < this.getMaxStackSize(p_36015_);
+-    }
++            && p_36015_.getCount() < this.getMaxStackSize(p_36015_)
++            && ItemStack.isSameItemSameComponents(p_36015_, p_36016_); // Paper - check if itemstack is stackable first
++    }
++
 +    // CraftBukkit start - Watch method above! :D
 +    public int canHold(ItemStack itemstack) {
 +        int remains = itemstack.getCount();
@@ -98,10 +106,9 @@
 +        return itemstack.getCount() - remains;
 +    }
 +    // CraftBukkit end
-+
+ 
      public int getFreeSlot() {
          for (int i = 0; i < this.items.size(); i++) {
-             if (this.items.get(i).isEmpty()) {
 @@ -88,6 +_,13 @@
      }
  

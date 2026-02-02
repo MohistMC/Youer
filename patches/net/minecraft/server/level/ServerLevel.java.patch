@@ -112,7 +112,7 @@
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
-@@ -164,7 +_,24 @@
+@@ -164,7 +_,26 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
@@ -124,7 +124,9 @@
 +import org.bukkit.craftbukkit.generator.CustomChunkGenerator;
 +import org.bukkit.craftbukkit.generator.CustomWorldChunkManager;
 +import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.craftbukkit.util.CraftSpawnCategory;
 +import org.bukkit.craftbukkit.util.WorldUUID;
++import org.bukkit.entity.SpawnCategory;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.server.MapInitializeEvent;
 +import org.bukkit.event.weather.LightningStrikeEvent;
@@ -223,7 +225,7 @@
      public ServerLevel(
          MinecraftServer p_214999_,
          Executor p_215000_,
-@@ -230,11 +_,66 @@
+@@ -230,11 +_,72 @@
              p_215007_,
              p_214999_.getMaxChainedNeighborUpdates()
          );
@@ -269,6 +271,12 @@
 +                        (K != null ? K.getGameRules() : serverLevelData.getGameRules())));
 +        this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
 +        this.purpurConfig = new org.purpurmc.purpur.PurpurWorldConfig(name, environment); // Purpur
++        // CraftBukkit Ticks things
++        for (SpawnCategory spawnCategory : SpawnCategory.values()) {
++            if (CraftSpawnCategory.isValidForLimits(spawnCategory) && getCraftServer() != null) {
++                this.ticksPerSpawnCategory.put(spawnCategory, this.getTicksPerSpawn(spawnCategory)); // Paper
++            }
++        }
          ChunkGenerator chunkgenerator = p_215004_.generator();
 +        if (environment == null) {
 +            environment = NeoForgeInjectBukkit.environment.get(getTypeKey());
@@ -1270,8 +1278,6 @@
  
              p_143375_.updateDynamicGameEventListener(DynamicGameEventListener::remove);
 +
-+            p_143375_.onRemovedFromLevel();
-+            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent(p_143375_, ServerLevel.this));
 +            // CraftBukkit start
 +            p_143375_.valid = false;
 +            if (!(p_143375_ instanceof ServerPlayer)) {
@@ -1281,6 +1287,8 @@
 +            }
 +            // CraftBukkit end
 +            new EntityRemoveFromWorldEvent(p_143375_.getBukkitEntity(), ServerLevel.this.getWorld()).callEvent(); // Paper - fire while valid
++            p_143375_.onRemovedFromLevel();
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent(p_143375_, ServerLevel.this));
          }
  
          public void onSectionChange(Entity p_215086_) {
