@@ -1108,12 +1108,18 @@
      @Override
      public abstract boolean isSpectator();
  
-@@ -1847,7 +_,11 @@
+@@ -1847,7 +_,17 @@
  
      @Override
      public Component getDisplayName() {
 -        MutableComponent mutablecomponent = PlayerTeam.formatNameForTeam(this.getTeam(), this.getName());
-+        if (this.displayname == null) this.displayname = net.neoforged.neoforge.event.EventHooks.getPlayerDisplayName(this, this.getName());
++        if (this.displayname == null) {
++            synchronized (this) {
++                if (this.displayname == null) {
++                    this.displayname = net.neoforged.neoforge.event.EventHooks.getPlayerDisplayName(this, this.getName());
++                }
++            }
++        }
 +        MutableComponent mutablecomponent = Component.literal("");
 +        mutablecomponent = prefixes.stream().reduce(mutablecomponent, MutableComponent::append);
 +        mutablecomponent = mutablecomponent.append(PlayerTeam.formatNameForTeam(this.getTeam(), this.displayname));
