@@ -1,0 +1,65 @@
+--- a/net/minecraft/world/item/enchantment/ItemEnchantments.java
++++ b/net/minecraft/world/item/enchantment/ItemEnchantments.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.item.enchantment;
+ 
++import com.mohistmc.youer.feature.ban.bans.BanEnchantment;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
+@@ -64,6 +_,10 @@
+     }
+ 
+     public int getLevel(Holder<Enchantment> p_345693_) {
++        if (BanEnchantment.check(p_345693_)) {
++            this.enchantments.removeInt(p_345693_);
++            return 0;
++        }
+         return this.enchantments.getInt(p_345693_);
+     }
+ 
+@@ -147,7 +_,11 @@
+         public boolean showInTooltip;
+ 
+         public Mutable(ItemEnchantments p_330722_) {
+-            this.enchantments.putAll(p_330722_.enchantments);
++            for (var entry : p_330722_.enchantments.object2IntEntrySet()) {
++                if (!BanEnchantment.check(entry.getKey())) {
++                    this.enchantments.put(entry.getKey(), entry.getIntValue());
++                }
++            }
+             this.showInTooltip = p_330722_.showInTooltip;
+         }
+ 
+@@ -155,12 +_,20 @@
+             if (p_330832_ <= 0) {
+                 this.enchantments.removeInt(p_344861_);
+             } else {
++                if (BanEnchantment.check(p_344861_)){
++                    this.enchantments.removeInt(p_344861_);
++                    return;
++                }
+                 this.enchantments.put(p_344861_, Math.min(p_330832_, 255));
+             }
+         }
+ 
+         public void upgrade(Holder<Enchantment> p_346263_, int p_331153_) {
+             if (p_331153_ > 0) {
++                if (BanEnchantment.check(p_346263_)) {
++                    this.enchantments.removeInt(p_346263_);
++                    return;
++                }
+                 this.enchantments.merge(p_346263_, Math.min(p_331153_, 255), Integer::max);
+             }
+         }
+@@ -170,6 +_,10 @@
+         }
+ 
+         public int getLevel(Holder<Enchantment> p_345430_) {
++            if (BanEnchantment.check(p_345430_)) {
++                this.enchantments.removeInt(p_345430_);
++                return 0;
++            }
+             return this.enchantments.getOrDefault(p_345430_, 0);
+         }
+ 

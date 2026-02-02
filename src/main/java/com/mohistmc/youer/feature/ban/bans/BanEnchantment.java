@@ -3,6 +3,8 @@ package com.mohistmc.youer.feature.ban.bans;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.EnchantmentAPI;
 import com.mohistmc.youer.feature.ban.BanConfig;
+import net.minecraft.core.Holder;
+import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
@@ -17,6 +19,10 @@ public class BanEnchantment {
     public static boolean check(Enchantment enchantment) {
         if (!YouerConfig.ban_enchantment_enable) return false;
         return BanConfig.ENCHANTMENT.getEnchantment().contains(enchantment.getKey().asString());
+    }
+
+    public static boolean check(Holder<net.minecraft.world.item.enchantment.Enchantment> enchantment) {
+        return check(CraftEnchantment.minecraftToBukkit(enchantment.value()));
     }
 
     public static boolean check(ItemStack itemStack) {
