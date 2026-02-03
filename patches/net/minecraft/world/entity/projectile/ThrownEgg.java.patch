@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/ThrownEgg.java
 +++ b/net/minecraft/world/entity/projectile/ThrownEgg.java
-@@ -57,28 +_,65 @@
+@@ -57,27 +_,66 @@
      protected void onHit(HitResult p_37488_) {
          super.onHit(p_37488_);
          if (!this.level().isClientSide) {
@@ -45,8 +45,8 @@
 +                // Paper end - Add ThrownEggHatchEvent
 +
                  for (int j = 0; j < i; j++) {
--                    Chicken chicken = EntityType.CHICKEN.create(this.level());
-+                    net.minecraft.world.entity.Entity chicken = this.level().getWorld().makeEntity(new org.bukkit.Location(this.level().getWorld(), this.getX(), this.getY(), this.getZ(), this.getYRot(), 0.0F), hatchingType.getEntityClass()); // CraftBukkit
+                     Chicken chicken = EntityType.CHICKEN.create(this.level());
++                    chicken = (Chicken) this.level().getWorld().makeEntity(new org.bukkit.Location(this.level().getWorld(), this.getX(), this.getY(), this.getZ(), this.getYRot(), 0.0F), hatchingType.getEntityClass()); // CraftBukkit
                      if (chicken != null) {
 -                        chicken.setAge(-24000);
 +                        // CraftBukkit start
@@ -66,8 +66,7 @@
              }
  
              this.level().broadcastEntityEvent(this, (byte)3);
--            this.discard();
-+            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          }
      }
- 
