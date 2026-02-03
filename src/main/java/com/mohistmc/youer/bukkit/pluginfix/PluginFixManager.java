@@ -44,6 +44,9 @@ public class PluginFixManager {
         if (className.startsWith("net.Zrips.CMILib.") || className.startsWith("com.Zrips.CMI.")) {
             return patch(clazz, node -> helloWorld(node, "net.minecraft.server.network.PlayerConnection", "net.minecraft.server.network.ServerGamePacketListenerImpl"));
         }
+        if (className.endsWith(".io.github.classgraph.ModuleReaderProxy")) {
+            return patch(clazz, PluginFixManager::fixClassGraph);
+        }
         Consumer<ClassNode> patcher = switch (className) {
             case "com.earth2me.essentials.utils.VersionUtil" -> node -> {
                 helloWorld(node, "brand:", "peace");
@@ -202,5 +205,17 @@ public class PluginFixManager {
                 }
             }
         });
+    }
+
+    private static void fixClassGraph(ClassNode node) {
+        for (MethodNode methodNode : node.methods) {
+            if (methodNode.name.equals("list") && methodNode.desc.equals("()Ljava/util/List;")) {
+                methodNode.instructions.clear();
+                methodNode.instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/util/Collections", "emptyList", "()Ljava/util/List;", false));
+                methodNode.instructions.add(new InsnNode(Opcodes.ARETURN));
+                methodNode.tryCatchBlocks.clear();
+                methodNode.localVariables = null;
+            }
+        }
     }
 }
