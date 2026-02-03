@@ -4,6 +4,8 @@ import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.EnchantmentAPI;
 import com.mohistmc.youer.feature.ban.BanConfig;
 import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
@@ -22,7 +24,8 @@ public class BanEnchantment {
     }
 
     public static boolean check(Holder<net.minecraft.world.item.enchantment.Enchantment> enchantment) {
-        return check(CraftEnchantment.minecraftToBukkit(enchantment.value()));
+        if (!YouerConfig.ban_enchantment_enable) return false;
+        return BanConfig.ENCHANTMENT.getEnchantment().contains(enchantment.getRegisteredName());
     }
 
     public static boolean check(ItemStack itemStack) {
