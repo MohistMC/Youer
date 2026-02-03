@@ -64,12 +64,12 @@ public class ShapedRecipe extends CraftingRecipe {
     @NotNull
     public ShapedRecipe shape(@NotNull final String... shape) {
         Preconditions.checkArgument(shape != null, "Must provide a shape");
-        Preconditions.checkArgument(shape.length > 0 && shape.length < 4, "Crafting recipes should be 1, 2 or 3 rows, not ", shape.length);
+        // Preconditions.checkArgument(shape.length > 0 && shape.length < 4, "Crafting recipes should be 1, 2 or 3 rows, not ", shape.length);
 
         int lastLen = -1;
         for (String row : shape) {
             Preconditions.checkArgument(row != null, "Shape cannot have null rows");
-            Preconditions.checkArgument(row.length() > 0 && row.length() < 4, "Crafting rows should be 1, 2, or 3 characters, not ", row.length());
+            // Preconditions.checkArgument(row.length() > 0 && row.length() < 4, "Crafting rows should be 1, 2, or 3 characters, not ", row.length());
 
             Preconditions.checkArgument(lastLen == -1 || lastLen == row.length(), "Crafting recipes must be rectangular");
             lastLen = row.length();

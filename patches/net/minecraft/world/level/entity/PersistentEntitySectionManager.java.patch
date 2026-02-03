@@ -122,7 +122,7 @@
          if (!flag) {
              return false;
          } else {
-@@ -217,6 +_,7 @@
+@@ -217,19 +_,31 @@
      }
  
      private void unloadEntity(EntityAccess p_157586_) {
@@ -130,7 +130,14 @@
          p_157586_.setRemoved(Entity.RemovalReason.UNLOADED_TO_CHUNK);
          p_157586_.setLevelCallback(EntityInLevelCallback.NULL);
      }
-@@ -228,8 +_,17 @@
+ 
+     private void processUnloads() {
+-        this.chunksToUnload.removeIf(p_157584_ -> this.chunkVisibility.get(p_157584_) != Visibility.HIDDEN ? true : this.processChunkUnload(p_157584_));
++        synchronized (this.chunksToUnload) {
++            this.chunksToUnload.removeIf(p_157584_ -> this.chunkVisibility.get(p_157584_) != Visibility.HIDDEN ? true : this.processChunkUnload(p_157584_));
++        }
+     }
+ 
      private void processPendingLoads() {
          ChunkEntities<T> chunkentities;
          while ((chunkentities = this.loadingInbox.poll()) != null) {
