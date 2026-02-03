@@ -79,7 +79,7 @@ public class MerchantRecipe implements Recipe {
         this(result, uses, maxUses, experienceReward, villagerExperience, priceMultiplier, 0, 0, ignoreDiscounts);
     }
     public MerchantRecipe(@NotNull ItemStack result, int uses, int maxUses, boolean experienceReward, int villagerExperience, float priceMultiplier, int demand, int specialPrice, boolean ignoreDiscounts) {
-        Preconditions.checkArgument(!result.isEmpty(), "Recipe cannot have an empty result."); // Paper
+        // Preconditions.checkArgument(!result.isEmpty(), "Recipe cannot have an empty result."); // Paper
         this.ignoreDiscounts = ignoreDiscounts;
         // Paper end
         this.result = result;

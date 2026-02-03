@@ -35,7 +35,7 @@ public class StonecuttingRecipe implements Recipe, Keyed {
      * @param input The input choices.
      */
     public StonecuttingRecipe(@NotNull NamespacedKey key, @NotNull ItemStack result, @NotNull RecipeChoice input) {
-        Preconditions.checkArgument(!result.isEmpty(), "Recipe cannot have an empty result."); // Paper
+        // Preconditions.checkArgument(!result.isEmpty(), "Recipe cannot have an empty result."); // Paper
         this.key = key;
         this.output = new ItemStack(result);
         this.ingredient = input.validate(false).clone(); // Paper

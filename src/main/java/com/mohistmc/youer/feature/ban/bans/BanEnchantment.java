@@ -17,7 +17,6 @@ import org.bukkit.inventory.ItemStack;
  */
 public class BanEnchantment {
 
-
     public static boolean check(Enchantment enchantment) {
         if (!YouerConfig.ban_enchantment_enable) return false;
         return BanConfig.ENCHANTMENT.getEnchantment().contains(enchantment.getKey().asString());

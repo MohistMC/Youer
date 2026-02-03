@@ -44,7 +44,7 @@ public abstract class CookingRecipe<T extends CookingRecipe> implements Recipe, 
      * @param cookingTime The cooking time (in ticks)
      */
     public CookingRecipe(@NotNull NamespacedKey key, @NotNull ItemStack result, @NotNull RecipeChoice input, float experience, int cookingTime) {
-        Preconditions.checkArgument(!result.isEmpty(), "Recipe cannot have an empty result."); // Paper
+        // Preconditions.checkArgument(!result.isEmpty(), "Recipe cannot have an empty result."); // Paper
         this.key = key;
         this.output = new ItemStack(result);
         this.ingredient = input.validate(false).clone(); // Paper

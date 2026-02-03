@@ -45,7 +45,7 @@ public class SmithingRecipe implements Recipe, Keyed {
      */
     @Deprecated
     public SmithingRecipe(@NotNull NamespacedKey key, @NotNull ItemStack result, @Nullable RecipeChoice base, @Nullable RecipeChoice addition, boolean copyDataComponents) {
-        com.google.common.base.Preconditions.checkArgument(!result.isEmpty() || this instanceof ComplexRecipe, "Recipe cannot have an empty result."); // Paper
+        // com.google.common.base.Preconditions.checkArgument(!result.isEmpty() || this instanceof ComplexRecipe, "Recipe cannot have an empty result."); // Paper
         this.copyDataComponents = copyDataComponents;
         // Paper end
         this.key = key;
