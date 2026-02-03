@@ -364,7 +364,7 @@ public enum EntityType implements Keyed, Translatable, net.kyori.adventure.trans
     @NotNull
     @Override
     public NamespacedKey getKey() {
-        Preconditions.checkArgument(key != null, "EntityType doesn't have key! Is it UNKNOWN?");
+        Preconditions.checkArgument(key != null, "EntityType doesn't have key! Is it UNKNOWN? ",  this);
 
         return key;
     }

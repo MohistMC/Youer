@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/item/SpawnEggItem.java
 +++ b/net/minecraft/world/item/SpawnEggItem.java
+@@ -34,6 +_,7 @@
+ import net.minecraft.world.phys.BlockHitResult;
+ import net.minecraft.world.phys.HitResult;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.entity.CraftEntityType;
+ 
+ public class SpawnEggItem extends Item {
+     private static final Map<EntityType<? extends Mob>, SpawnEggItem> BY_ID = Maps.newIdentityHashMap();
 @@ -42,11 +_,14 @@
      private final int highlightColor;
      private final EntityType<?> defaultType;
@@ -15,7 +23,7 @@
          BY_ID.put(p_43207_, this);
      }
  
-@@ -61,7 +_,26 @@
+@@ -61,7 +_,36 @@
              Direction direction = p_43223_.getClickedFace();
              BlockState blockstate = level.getBlockState(blockpos);
              if (level.getBlockEntity(blockpos) instanceof Spawner spawner) {
@@ -24,14 +32,24 @@
 +                // Purpur start
 +                if (spawner instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity) {
 +                    org.bukkit.block.Block bukkitBlock = level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
-+                    org.purpurmc.purpur.event.PlayerSetSpawnerTypeWithEggEvent event = new org.purpurmc.purpur.event.PlayerSetSpawnerTypeWithEggEvent((org.bukkit.entity.Player) p_43223_.getPlayer().getBukkitEntity(), bukkitBlock, (org.bukkit.block.CreatureSpawner) bukkitBlock.getState(), org.bukkit.entity.EntityType.fromName(entitytype1.getName()));
++                    org.purpurmc.purpur.event.PlayerSetSpawnerTypeWithEggEvent event = new org.purpurmc.purpur.event.PlayerSetSpawnerTypeWithEggEvent(
++                            (org.bukkit.entity.Player) p_43223_.getPlayer().getBukkitEntity(),
++                            bukkitBlock,
++                            (org.bukkit.block.CreatureSpawner) bukkitBlock.getState(),
++                            CraftEntityType.minecraftToBukkit(entitytype1)
++                    );
 +                    if (!event.callEvent()) {
 +                        return InteractionResult.FAIL;
 +                    }
 +                    entitytype1 = EntityType.getFromBukkitType(event.getEntityType());
 +                } else if (spawner instanceof net.minecraft.world.level.block.entity.TrialSpawnerBlockEntity) {
 +                    org.bukkit.block.Block bukkitBlock = level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
-+                    org.purpurmc.purpur.event.PlayerSetTrialSpawnerTypeWithEggEvent event = new org.purpurmc.purpur.event.PlayerSetTrialSpawnerTypeWithEggEvent((org.bukkit.entity.Player) p_43223_.getPlayer().getBukkitEntity(), bukkitBlock, (org.bukkit.block.TrialSpawner) bukkitBlock.getState(), org.bukkit.entity.EntityType.fromName(entitytype1.getName()));
++                    org.purpurmc.purpur.event.PlayerSetTrialSpawnerTypeWithEggEvent event = new org.purpurmc.purpur.event.PlayerSetTrialSpawnerTypeWithEggEvent(
++                            (org.bukkit.entity.Player) p_43223_.getPlayer().getBukkitEntity(),
++                            bukkitBlock,
++                            (org.bukkit.block.TrialSpawner) bukkitBlock.getState(),
++                            CraftEntityType.minecraftToBukkit(entitytype1)
++                    );
 +                    if (!event.callEvent()) {
 +                        return InteractionResult.FAIL;
 +                    }
