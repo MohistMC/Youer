@@ -78,6 +78,10 @@ public class BansCommand extends Command {
                     BanRecipe.addBan(player, name);
                     return true;
                 }
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.RED + usageMessage);
+                    return false;
+                }
                 switch (args[1]) {
                     case "item" -> {
                         if (!YouerConfig.ban_item_enable) {
