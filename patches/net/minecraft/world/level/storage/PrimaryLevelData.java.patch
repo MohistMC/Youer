@@ -1,34 +1,30 @@
 --- a/net/minecraft/world/level/storage/PrimaryLevelData.java
 +++ b/net/minecraft/world/level/storage/PrimaryLevelData.java
-@@ -71,6 +_,7 @@
+@@ -42,6 +_,7 @@
+     private final Set<String> knownServerBrands;
      private boolean wasModded;
      private final Set<String> removedFeatureFlags;
-     private final TimerQueue<MinecraftServer> scheduledEvents;
 +    private boolean confirmedExperimentalWarning = false;
  
      private PrimaryLevelData(
-         @Nullable CompoundTag loadedPlayerTag,
-@@ -169,7 +_,7 @@
-         Lifecycle worldGenSettingsLifecycle
+         @Nullable UUID singlePlayerUUID,
+@@ -90,7 +_,7 @@
      ) {
          long gameTime = input.get("Time").asLong(0L);
+         LevelVersion levelVersion = LevelVersion.parse(input);
 -        return new PrimaryLevelData(
 +        var result = new PrimaryLevelData(
-             input.get("Player").flatMap(CompoundTag.CODEC::parse).result().orElse(null),
+             input.get("singleplayer_uuid").flatMap(UUIDUtil.CODEC::parse).result().orElse(null),
              input.get("WasModded").asBoolean(false),
              input.get("spawn").read(LevelData.RespawnData.CODEC).result().orElse(LevelData.RespawnData.DEFAULT),
-@@ -191,7 +_,8 @@
-             input.get("WanderingTraderSpawnChance").asInt(0),
-             input.get("WanderingTraderId").read(UUIDUtil.CODEC).result().orElse(null),
+@@ -98,11 +_,16 @@
+             levelVersion.levelDataVersion(),
+             input.get("initialized").asBoolean(true),
              input.get("ServerBrands").asStream().flatMap(b -> b.asString().result().stream()).collect(Collectors.toCollection(Sets::newLinkedHashSet)),
 -            input.get("removed_features").asStream().flatMap(b -> b.asString().result().stream()).collect(Collectors.toSet()),
 +            // Neo: Append removed modded feature flags
 +            updateRemovedFeatureFlags(input.get("removed_features").asStream().flatMap(b -> b.asString().result().stream()), input.get("enabled_features").asStream().flatMap(features -> features.asString().result().stream())).collect(Collectors.toSet()),
-             new TimerQueue<>(TimerCallbacks.SERVER_CALLBACKS, input.get("ScheduledEvents").asStream()),
-             (CompoundTag)input.get("CustomBossEvents").orElseEmptyMap().getValue(),
-             input.get("DragonFight").read(EndDragonFight.Data.CODEC).resultOrPartial(LOGGER::error).orElse(EndDragonFight.Data.DEFAULT),
-@@ -199,7 +_,11 @@
-             worldOptions,
+             settings,
              specialWorldProperty,
              worldGenSettingsLifecycle
 -        );
@@ -40,10 +36,10 @@
      }
  
      @Override
-@@ -264,6 +_,12 @@
-         tag.putInt("WanderingTraderSpawnDelay", this.wanderingTraderSpawnDelay);
-         tag.putInt("WanderingTraderSpawnChance", this.wanderingTraderSpawnChance);
-         tag.storeNullable("WanderingTraderId", UUIDUtil.CODEC, this.wanderingTraderId);
+@@ -139,6 +_,12 @@
+         }
+ 
+         tag.store(WorldDataConfiguration.MAP_CODEC, this.settings.dataConfiguration());
 +
 +        // Neo:
 +        tag.putString("forgeLifecycle", net.neoforged.neoforge.common.CommonHooks.encodeLifecycle(this.settings.getLifecycle()));
@@ -52,8 +48,8 @@
 +        tag.putFloat("neoDayTimePerTick", dayTimePerTick);
      }
  
-     private static ListTag stringCollectionToTag(Set<String> values) {
-@@ -554,10 +_,58 @@
+     public static void writeLastPlayed(CompoundTag tag) {
+@@ -320,10 +_,58 @@
          return this.settings.copy();
      }
  
