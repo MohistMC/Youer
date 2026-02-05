@@ -643,7 +643,11 @@ public class PurpurWorldConfig {
             dropsMap.forEach((itemId, chance) -> {
                 Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId.toString()));
                 if (item == Items.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid item for `tools.axe.strippables." + blockId + ".drops`: " + itemId); return; }
-                drops.put(item, (double) chance);
+                if (chance instanceof Number) {
+                    drops.put(item, ((Number) chance).doubleValue());
+                } else {
+                    PurpurConfig.log(Level.SEVERE, "Invalid chance value for `tools.axe.strippables." + blockId + ".drops`: " + chance);
+                }
             });
             axeStrippables.put(block, new Strippable(into, drops));
         });
@@ -697,7 +701,11 @@ public class PurpurWorldConfig {
             dropsMap.forEach((itemId, chance) -> {
                 Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId.toString()));
                 if (item == Items.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid item for `tools.axe.waxables." + blockId + ".drops`: " + itemId); return; }
-                drops.put(item, (double) chance);
+                if (chance instanceof Number) {
+                    drops.put(item, ((Number) chance).doubleValue());
+                } else {
+                    PurpurConfig.log(Level.SEVERE, "Invalid chance value for `tools.axe.strippables." + blockId + ".drops`: " + chance);
+                }
             });
             axeWaxables.put(block, new Waxable(into, drops));
         });
@@ -742,7 +750,11 @@ public class PurpurWorldConfig {
             dropsMap.forEach((itemId, chance) -> {
                 Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId.toString()));
                 if (item == Items.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid item for `tools.axe.weatherables." + blockId + ".drops`: " + itemId); return; }
-                drops.put(item, (double) chance);
+                if (chance instanceof Number) {
+                    drops.put(item, ((Number) chance).doubleValue());
+                } else {
+                    PurpurConfig.log(Level.SEVERE, "Invalid chance value for `tools.axe.strippables." + blockId + ".drops`: " + chance);
+                }
             });
             axeWeatherables.put(block, new Weatherable(into, drops));
         });
@@ -768,7 +780,11 @@ public class PurpurWorldConfig {
             dropsMap.forEach((itemId, chance) -> {
                 Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId.toString()));
                 if (item == Items.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid item for `tools.hoe.tillables." + blockId + ".drops`: " + itemId); return; }
-                drops.put(item, (double) chance);
+                if (chance instanceof Number) {
+                    drops.put(item, ((Number) chance).doubleValue());
+                } else {
+                    PurpurConfig.log(Level.SEVERE, "Invalid chance value for `tools.axe.strippables." + blockId + ".drops`: " + chance);
+                }
             });
             hoeTillables.put(block, new Tillable(condition, into, drops));
         });
@@ -792,7 +808,11 @@ public class PurpurWorldConfig {
             dropsMap.forEach((itemId, chance) -> {
                 Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId.toString()));
                 if (item == Items.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid item for `tools.shovel.flattenables." + blockId + ".drops`: " + itemId); return; }
-                drops.put(item, (double) chance);
+                if (chance instanceof Number) {
+                    drops.put(item, ((Number) chance).doubleValue());
+                } else {
+                    PurpurConfig.log(Level.SEVERE, "Invalid chance value for `tools.axe.strippables." + blockId + ".drops`: " + chance);
+                }
             });
             shovelFlattenables.put(block, new Flattenable(into, drops));
         });
