@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.java
 +++ b/net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.java
-@@ -79,14 +_,27 @@
+@@ -79,14 +_,37 @@
          return this.exclusionZone;
      }
  
@@ -16,17 +16,26 @@
 +            }
 +            structureSetKey = null;
 +        }
++        applyAdditionalChunkRestrictions$saltOverride = saltOverride;
 +        // Paper end - Add missing structure set seed configs
          return this.isPlacementChunk(p_256635_, p_255959_, p_256065_)
 -            && this.applyAdditionalChunkRestrictions(p_255959_, p_256065_, p_256635_.getLevelSeed())
-+            && this.applyAdditionalChunkRestrictions(p_255959_, p_256065_, p_256635_.getLevelSeed(), saltOverride) // Paper - Add missing structure set seed configs
++            && this.applyAdditionalChunkRestrictions(p_255959_, p_256065_, p_256635_.getLevelSeed()) // Paper - Add missing structure set seed configs
              && this.applyInteractionsWithOtherStructures(p_256635_, p_255959_, p_256065_);
      }
  
--    public boolean applyAdditionalChunkRestrictions(int p_321784_, int p_321723_, long p_321834_) {
++    @org.jetbrains.annotations.Nullable Integer applyAdditionalChunkRestrictions$saltOverride = null;
+     public boolean applyAdditionalChunkRestrictions(int p_321784_, int p_321723_, long p_321834_) {
 -        return !(this.frequency < 1.0F) || this.frequencyReductionMethod.shouldGenerate(p_321834_, this.salt, p_321784_, p_321723_, this.frequency);
-+    public boolean applyAdditionalChunkRestrictions(int p_321784_, int p_321723_, long p_321834_, @org.jetbrains.annotations.Nullable Integer saltOverride) {
++        @org.jetbrains.annotations.Nullable Integer saltOverride = applyAdditionalChunkRestrictions$saltOverride;
++        applyAdditionalChunkRestrictions$saltOverride = null;
 +        return !(this.frequency < 1.0F) || this.frequencyReductionMethod.shouldGenerate(p_321834_, this.salt, p_321784_, p_321723_, this.frequency, saltOverride);
++        // Paper end - Add missing structure set seed configs
++    }
++
++    public boolean applyAdditionalChunkRestrictions(int p_321784_, int p_321723_, long p_321834_, @org.jetbrains.annotations.Nullable Integer saltOverride) {
++        applyAdditionalChunkRestrictions$saltOverride = saltOverride;
++        return applyAdditionalChunkRestrictions(p_321784_, p_321723_, p_321834_);
 +        // Paper end - Add missing structure set seed configs
      }
  
