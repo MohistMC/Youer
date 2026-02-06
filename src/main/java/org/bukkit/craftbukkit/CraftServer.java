@@ -1370,7 +1370,7 @@ public final class CraftServer implements Server {
 
         // If set to not keep spawn in memory (changed from default) then adjust rule accordingly
         if (creator.keepSpawnLoaded() == net.kyori.adventure.util.TriState.FALSE) { // Paper
-            worlddata.getGameRules().getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(0, null);
+            worlddata.getGameRules().getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(0, (ServerLevel) null);
         }
         net.minecraft.world.level.Level.craftWorldData(creator.environment(), generator, biomeProvider);
         ServerLevel internal = new ServerLevel(this.console, this.console.executor, worldSession, worlddata, worldKey, worlddimension, this.getServer().progressListenerFactory.create(worlddata.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS)),

@@ -5,6 +5,7 @@ import com.mohistmc.org.spongepowered.configurate.NodePath;
 import com.mohistmc.org.spongepowered.configurate.transformation.ConfigurationTransformation;
 import com.mohistmc.org.spongepowered.configurate.transformation.TransformAction;
 import io.papermc.paper.configuration.Configurations;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.GameRules;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -38,9 +39,9 @@ public final class V31_SpawnLoadedRangeToGameRule implements TransformAction {
             worldSpawnNode.raw(null);
         }
         if (!keepLoaded) {
-            this.gameRules.getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(0, null);
+            this.gameRules.getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(0, (ServerLevel) null);
         } else {
-            this.gameRules.getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(range, null);
+            this.gameRules.getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(range, (ServerLevel) null);
         }
         return null;
     }
