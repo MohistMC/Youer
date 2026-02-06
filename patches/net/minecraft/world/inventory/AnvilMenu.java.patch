@@ -1,11 +1,12 @@
 --- a/net/minecraft/world/inventory/AnvilMenu.java
 +++ b/net/minecraft/world/inventory/AnvilMenu.java
-@@ -1,25 +_,29 @@
+@@ -1,25 +_,30 @@
  package net.minecraft.world.inventory;
  
 +import com.mohistmc.youer.YouerConfig;
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
++import java.util.Iterator;
  import javax.annotation.Nullable;
 -import net.minecraft.core.BlockPos;
  import net.minecraft.core.Holder;
@@ -33,7 +34,7 @@
  import org.slf4j.Logger;
  
  public class AnvilMenu extends ItemCombinerMenu {
-@@ -44,6 +_,30 @@
+@@ -44,6 +_,38 @@
      private static final int ADDITIONAL_SLOT_X_PLACEMENT = 76;
      private static final int RESULT_SLOT_X_PLACEMENT = 134;
      private static final int SLOT_Y_PLACEMENT = 47;
@@ -47,6 +48,14 @@
 +    public boolean bypassCost = false;
 +    public boolean canDoUnsafeEnchants = false;
 +    // Purpur end - Anvil API
++
++    private int getMaxMumRepairCost(int value) {
++        if (this.maximumRepairCost != 40) {
++            return value;
++        } else {
++            return this.maximumRepairCost;
++        }
++    }
 +
 +    @Override
 +    public CraftAnvilView getBukkitView() {
@@ -64,7 +73,7 @@
  
      public AnvilMenu(int p_39005_, Inventory p_39006_) {
          this(p_39005_, p_39006_, ContainerLevelAccess.NULL);
-@@ -70,7 +_,7 @@
+@@ -70,15 +_,26 @@
  
      @Override
      protected boolean mayPickup(Player p_39023_, boolean p_39024_) {
@@ -73,7 +82,17 @@
      }
  
      @Override
-@@ -79,6 +_,8 @@
+     protected void onTake(Player p_150474_, ItemStack p_150475_) {
++        // Purpur start - Anvil API
++        ItemStack purpur$itemstack = this.activeQuickItem != null ? this.activeQuickItem : p_150475_;
++        if (org.purpurmc.purpur.event.inventory.AnvilTakeResultEvent.getHandlerList().getRegisteredListeners().length > 0) new org.purpurmc.purpur.event.inventory.AnvilTakeResultEvent(
++                p_150474_.getBukkitEntity(),
++                getBukkitView(),
++                org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(purpur$itemstack)
++        ).callEvent();
++        // Purpur end - Anvil API
+         if (!p_150474_.getAbilities().instabuild) {
++            if (this.bypassCost) ((ServerPlayer) p_150474_).lastSentExp = -1; else // Purpur - Anvil API
              p_150474_.giveExperienceLevels(-this.cost.get());
          }
  
@@ -159,7 +178,7 @@
                          return;
                      }
  
-@@ -176,14 +_,16 @@
+@@ -176,23 +_,38 @@
                          int j2 = entry.getIntValue();
                          j2 = i2 == j2 ? j2 + 1 : Math.max(j2, i2);
                          Enchantment enchantment = holder.value();
@@ -167,24 +186,40 @@
 -                        if (this.player.getAbilities().instabuild || itemstack.is(Items.ENCHANTED_BOOK)) {
 +                        // Neo: Respect IItemExtension#supportsEnchantment - we also delegate the logic for Enchanted Books to this method.
 +                        // Though we still allow creative players to combine any item with any enchantment in the anvil here.
-+                        boolean flag1 = itemstack.supportsEnchantment(holder);
++                        // Purpur start - Config to allow unsafe enchants
++                        boolean flag1 = this.canDoUnsafeEnchants || org.purpurmc.purpur.PurpurConfig.allowInapplicableEnchants || itemstack.supportsEnchantment(holder);
++                        boolean flag4 = true; // whether two incompatible enchantments can be applied on a single item
++                        // Purpur end - Config to allow unsafe enchants
 +                        if (this.player.getAbilities().instabuild) {
                              flag1 = true;
                          }
  
-                         for (Holder<Enchantment> holder1 : itemenchantments$mutable.keySet()) {
+-                        for (Holder<Enchantment> holder1 : itemenchantments$mutable.keySet()) {
++                        Iterator iterator1 = itemenchantments$mutable.keySet().iterator();
++
++                        while (iterator1.hasNext()) {
++                            Holder<Enchantment> holder1 = (Holder) iterator1.next();
++
                              if (!holder1.equals(holder) && !Enchantment.areCompatible(holder, holder1)) {
 -                                flag1 = false;
-+                                flag1 = this.canDoUnsafeEnchants; // Purpur - Anvil API
++                                flag4 = this.canDoUnsafeEnchants || org.purpurmc.purpur.PurpurConfig.allowIncompatibleEnchants; // Purpur - Anvil API // Purpur - flag3 -> flag4 - Config to allow unsafe enchants
++                                // Purpur start - Config to allow unsafe enchants
++                                if (!flag4 && org.purpurmc.purpur.PurpurConfig.replaceIncompatibleEnchants) {
++                                    iterator1.remove(); // replace current enchant with the incompatible one trying to be applied
++                                    flag4 = true;
++                                }
++                                // Purpur end - Config to allow unsafe enchants
                                  i++;
                              }
                          }
-@@ -192,7 +_,7 @@
+ 
+-                        if (!flag1) {
++                        if (!flag1 || !flag4) { // Purpur - Config to allow unsafe enchants
                              flag3 = true;
                          } else {
                              flag2 = true;
 -                            if (j2 > enchantment.getMaxLevel()) {
-+                            if (j2 > enchantment.getMaxLevel() && !this.bypassEnchantmentLevelRestriction) { // Paper - bypass anvil level restrictions
++                            if (!org.purpurmc.purpur.PurpurConfig.allowHigherEnchantsLevels && j2 > enchantment.getMaxLevel() && !this.bypassEnchantmentLevelRestriction) { // Paper - bypass anvil level restrictions
                                  j2 = enchantment.getMaxLevel();
                              }
  
@@ -199,6 +234,61 @@
                          return;
                      }
                  }
+@@ -221,6 +_,54 @@
+                 if (!this.itemName.equals(itemstack.getHoverName().getString())) {
+                     k = 1;
+                     i += k;
++                    // Purpur start
++                    if (this.player != null) {
++                        org.bukkit.craftbukkit.entity.CraftHumanEntity player = this.player.getBukkitEntity();
++                        String name = this.itemName;
++                        boolean removeItalics = false;
++                        if (player.hasPermission("purpur.anvil.remove_italics")) {
++                            if (name.startsWith("&r")) {
++                                name = name.substring(2);
++                                removeItalics = true;
++                            } else if (name.startsWith("<r>")) {
++                                name = name.substring(3);
++                                removeItalics = true;
++                            } else if (name.startsWith("<reset>")) {
++                                name = name.substring(7);
++                                removeItalics = true;
++                            }
++                        }
++                        if (this.player.level().purpurConfig.anvilAllowColors) {
++                            if (player.hasPermission("purpur.anvil.color")) {
++                                java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(?i)&([0-9a-fr])").matcher(name);
++                                while (matcher.find()) {
++                                    String match = matcher.group(1);
++                                    name = name.replace("&" + match, "\u00a7" + match.toLowerCase(java.util.Locale.ROOT));
++                                }
++                                //name = name.replaceAll("(?i)&([0-9a-fr])", "\u00a7$1");
++                            }
++                            if (player.hasPermission("purpur.anvil.format")) {
++                                java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(?i)&([k-or])").matcher(name);
++                                while (matcher.find()) {
++                                    String match = matcher.group(1);
++                                    name = name.replace("&" + match, "\u00a7" + match.toLowerCase(java.util.Locale.ROOT));
++                                }
++                                //name = name.replaceAll("(?i)&([l-or])", "\u00a7$1");
++                            }
++                        }
++                        net.kyori.adventure.text.Component component;
++                        if (this.player.level().purpurConfig.anvilColorsUseMiniMessage && player.hasPermission("purpur.anvil.minimessage")) {
++                            component = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(org.bukkit.ChatColor.stripColor(name));
++                        } else {
++                            component = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(name);
++                        }
++                        if (removeItalics) {
++                            component = component.decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false);
++                        }
++                        itemstack1.set(DataComponents.CUSTOM_NAME, io.papermc.paper.adventure.PaperAdventure.asVanilla(component));
++                    }
++                    else
++                    // Purpur end
+                     itemstack1.set(DataComponents.CUSTOM_NAME, Component.literal(this.itemName));
+                 }
+             } else if (itemstack.has(DataComponents.CUSTOM_NAME)) {
 @@ -228,6 +_,7 @@
                  i += k;
                  itemstack1.remove(DataComponents.CUSTOM_NAME);
@@ -207,7 +297,7 @@
  
              int k2 = (int)Mth.clamp(j + (long)i, 0L, 2147483647L);
              this.cost.set(k2);
-@@ -235,12 +_,30 @@
+@@ -235,11 +_,17 @@
                  itemstack1 = ItemStack.EMPTY;
              }
  
@@ -216,34 +306,20 @@
 -            }
 -
 -            if (this.cost.get() >= 40 && !this.player.getAbilities().instabuild) {
--                itemstack1 = ItemStack.EMPTY;
-+            if (maximumRepairCost == 40) {
-+                if (k == i && k > 0 && this.cost.get() >= 40) {
-+                    this.cost.set(39);
-+                }
-+                // Purpur start - Anvil API
-+                if (this.bypassCost && this.cost.get() >= this.maximumRepairCost) {
-+                    this.cost.set(this.maximumRepairCost - 1);
-+                }
-+                // Purpur end - Anvil API
-+                if (this.cost.get() >= 40 && !this.player.getAbilities().instabuild) { // CraftBukkit
-+                    itemstack1 = ItemStack.EMPTY;
-+                }
-+            } else {
-+                if (k == i && k > 0 && this.cost.get() >= maximumRepairCost) { // CraftBukkit
-+                    this.cost.set(maximumRepairCost - 1); // CraftBukkit
-+                }
-+                // Purpur start - Anvil API
-+                if (this.bypassCost && this.cost.get() >= this.maximumRepairCost) {
-+                    this.cost.set(this.maximumRepairCost - 1);
-+                }
-+                // Purpur end - Anvil API
-+                if (this.cost.get() >= maximumRepairCost && !this.player.getAbilities().instabuild) { // CraftBukkit
-+                    itemstack1 = ItemStack.EMPTY;
-+                }
++            if (k == i && k > 0 && this.cost.get() >= getMaxMumRepairCost(40)) {
++                this.cost.set(getMaxMumRepairCost(40) -1);
++            }
++
++            // Purpur start - Anvil API
++            if (this.bypassCost && this.cost.get() >= getMaxMumRepairCost(40)) {
++                this.cost.set(getMaxMumRepairCost(40) -1);
++            }
++            // Purpur end - Anvil API
++
++            if (this.cost.get() >= getMaxMumRepairCost(40) && !this.player.getAbilities().instabuild) {
+                 itemstack1 = ItemStack.EMPTY;
              }
  
-             if (!itemstack1.isEmpty()) {
 @@ -257,11 +_,20 @@
                  EnchantmentHelper.setEnchantments(itemstack1, itemenchantments$mutable.toImmutable());
              }

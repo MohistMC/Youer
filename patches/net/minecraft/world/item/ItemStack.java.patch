@@ -271,16 +271,15 @@
      }
  
      public ItemStack hurtAndConvertOnBreak(int p_352405_, ItemLike p_352337_, LivingEntity p_352175_, EquipmentSlot p_352058_) {
-@@ -526,10 +_,16 @@
+@@ -525,16 +_,25 @@
+         return this.getItem().interactLivingEntity(this, p_41648_, p_41649_, p_41650_);
      }
  
++    // Paper start - Perf: Optimize Hoppers
++    AtomicBoolean copy$originalItem = new AtomicBoolean(false);
      public ItemStack copy() {
 -        if (this.isEmpty()) {
-+        // Paper start - Perf: Optimize Hoppers
-+        return this.copy(false);
-+    }
-+
-+    public ItemStack copy(boolean originalItem) {
++        boolean originalItem = copy$originalItem.getAndSet(false);
 +        if (!originalItem && this.isEmpty()) {
 +            // Paper end - Perf: Optimize Hoppers
              return EMPTY;
@@ -290,6 +289,16 @@
              itemstack.setPopTime(this.getPopTime());
              return itemstack;
          }
+     }
+ 
++    public ItemStack copyPaper(boolean originalItem) {
++        copy$originalItem.set(originalItem);
++        return this.copy();
++    }
++
+     public ItemStack copyWithCount(int p_256354_) {
+         if (this.isEmpty()) {
+             return EMPTY;
 @@ -661,6 +_,12 @@
          return this.getItem().useOnRelease(this);
      }
