@@ -161,6 +161,9 @@ public abstract class CraftRegionAccessor implements RegionAccessor {
 
     @Override
     public void setType(int x, int y, int z, Material material) {
+        if (material == null) {
+            return;
+        }
         this.setBlockData(x, y, z, material.createBlockData());
     }
 
