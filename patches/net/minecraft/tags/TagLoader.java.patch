@@ -9,7 +9,7 @@
                  } catch (Exception exception) {
                      LOGGER.error("Couldn't read tag list {} from {} in data pack {}", resourcelocation1, resourcelocation, resource.sourcePackId(), exception);
                  }
-@@ -67,16 +_,16 @@
+@@ -67,19 +_,22 @@
      }
  
      private Either<Collection<TagLoader.EntryWithSource>, Collection<T>> build(TagEntry.Lookup<T> p_215979_, List<TagLoader.EntryWithSource> p_215980_) {
@@ -28,7 +28,13 @@
 +        return list.isEmpty() ? Either.right(List.copyOf(builder)) : Either.left(list);
      }
  
++    // Paper start - fire tag registrar events
      public Map<ResourceLocation, Collection<T>> build(Map<ResourceLocation, List<TagLoader.EntryWithSource>> p_203899_) {
++        p_203899_ = io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.firePreFlattenEvent(p_203899_, loadAndBuild$eventConfig);
++        // Paper end - fire tag registrar events
+         final Map<ResourceLocation, Collection<T>> map = Maps.newHashMap();
+         TagEntry.Lookup<T> lookup = new TagEntry.Lookup<T>() {
+             @Nullable
 @@ -101,22 +_,25 @@
          dependencysorter.orderByDependencies(
              (p_284682_, p_284683_) -> this.build(lookup, p_284683_.entries)
@@ -47,7 +53,7 @@
 +        return io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.firePostFlattenEvent(map, loadAndBuild$eventConfig); // Paper - fire tag registrar events
      }
  
-+    public io.papermc.paper.tag.TagEventConfig<T, ?> loadAndBuild$eventConfig;
++    public @Nullable io.papermc.paper.tag.TagEventConfig<T, ?> loadAndBuild$eventConfig;
      public Map<ResourceLocation, Collection<T>> loadAndBuild(ResourceManager p_203901_) {
          return this.build(this.load(p_203901_));
 +        // Paper end - fire tag registrar events

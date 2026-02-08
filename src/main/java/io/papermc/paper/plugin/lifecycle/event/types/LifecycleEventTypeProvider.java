@@ -14,6 +14,10 @@ interface LifecycleEventTypeProvider {
     Optional<LifecycleEventTypeProvider> INSTANCE = ServiceLoader.load(LifecycleEventTypeProvider.class)
         .findFirst();
 
+    static boolean isPresent() {
+        return INSTANCE.isPresent();
+    }
+
     static LifecycleEventTypeProvider provider() {
         return INSTANCE.orElseThrow();
     }

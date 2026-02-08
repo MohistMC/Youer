@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1,16 +_,28 @@
+@@ -1,16 +_,29 @@
  package net.minecraft.server;
  
 +import com.mohistmc.youer.api.ColorAPI;
@@ -17,6 +17,7 @@
 +import com.google.gson.Gson;
 +import io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner;
 +import io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent;
++import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEventTypeProviderImpl;
 +import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 +import java.util.ArrayList;
 +import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -369,7 +370,7 @@
                  ServerLevel serverlevel1 = new ServerLevel(
                      this,
                      this.executor,
-@@ -421,10 +_,41 @@
+@@ -421,10 +_,43 @@
                  );
                  worldborder.addListener(new BorderChangeListener.DelegateBorderChangeListener(serverlevel1.getWorldBorder()));
                  this.levels.put(resourcekey1, serverlevel1);
@@ -404,7 +405,9 @@
 +        this.server.enablePlugins(PluginLoadOrder.POSTWORLD);
 +        if (io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.pluginsEnabled(); // Paper - Remap plugins
 +        io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // Paper - reset invalid state for event fire below
-+        io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL); // Paper - call commands event for regular plugins
++        if (LifecycleEventTypeProviderImpl.canPrioritized()) {
++            io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL); // Paper - call commands event for regular plugins
++        }
 +        ((SimpleHelpMap) this.server.getHelpMap()).initializeCommands();
 +        this.server.getPluginManager().callEvent(new ServerLoadEvent(ServerLoadEvent.LoadType.STARTUP));
 +        this.connection.acceptConnections();

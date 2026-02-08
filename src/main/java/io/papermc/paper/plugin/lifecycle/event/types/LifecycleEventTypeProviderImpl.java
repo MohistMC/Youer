@@ -8,6 +8,10 @@ import org.checkerframework.framework.qual.DefaultQualifier;
 @DefaultQualifier(NonNull.class)
 public final class LifecycleEventTypeProviderImpl implements LifecycleEventTypeProvider {
 
+    public static boolean canPrioritized() {
+        return LifecycleEventTypeProvider.isPresent();
+    }
+
     public static LifecycleEventTypeProviderImpl instance() {
         return (LifecycleEventTypeProviderImpl) LifecycleEventTypeProvider.provider();
     }
