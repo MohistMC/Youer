@@ -323,6 +323,14 @@
      protected void loadLevel() {
          if (!JvmProfiler.INSTANCE.isRunning()) {
          }
+@@ -336,6 +_,7 @@
+             .create(this.worldData.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS));
+         this.createLevels(chunkprogresslistener);
+         this.forceDifficulty();
++        this.fakeprepareLevels = true; // TODO fix mixin
+         this.prepareLevels(chunkprogresslistener);
+         if (profiledduration != null) {
+             profiledduration.finish();
 @@ -368,10 +_,18 @@
              this, this.executor, this.storageSource, serverleveldata, Level.OVERWORLD, levelstem, p_129816_, flag, j, list, true, null
          );
@@ -351,10 +359,11 @@
  
                  try {
                      serverlevel.fillReportDetails(crashreport);
-@@ -405,6 +_,18 @@
+@@ -405,6 +_,29 @@
              if (resourcekey != LevelStem.OVERWORLD) {
                  ResourceKey<Level> resourcekey1 = ResourceKey.create(Registries.DIMENSION, resourcekey.location());
                  DerivedLevelData derivedleveldata = new DerivedLevelData(this.worldData, serverleveldata);
++
 +                String name = resourcekey == LevelStem.NETHER ? "DIM1" : "DIM-1";
 +                if (resourcekey == LevelStem.NETHER) {
 +                    if (!this.server.getAllowNether()) {
@@ -364,23 +373,51 @@
 +                    if (!this.server.getAllowEnd()) {
 +                        continue;
 +                    }
++                } else if (resourcekey != LevelStem.OVERWORLD) {
++                    name = resourcekey.location().getNamespace() + "_" + resourcekey.location().getPath();
 +                }
 +                NeoForgeInjectBukkit.addEnumEnvironment(this.registryAccess().registryOrThrow(Registries.LEVEL_STEM));
 +                Level.craftWorldData(NeoForgeInjectBukkit.environment.get(resourcekey), this.server.getGenerator(name), this.server.getBiomeProvider(name));
++                ChunkProgressListener worldloadlistener = this.progressListenerFactory.create(this.worldData.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS));
++                // Paper start - option to use the dimension_type to check if spawners should be added. I imagine mojang will add some datapack-y way of managing this in the future.
++                final List<CustomSpawner> spawners;
++                if (io.papermc.paper.configuration.GlobalConfiguration.get().misc.useDimensionTypeForCustomSpawners && this.registryAccess().registryOrThrow(Registries.DIMENSION_TYPE).getResourceKey(entry.getValue().type().value()).orElseThrow() == net.minecraft.world.level.dimension.BuiltinDimensionTypes.OVERWORLD) {
++                    spawners = list;
++                } else {
++                    spawners = Collections.emptyList();
++                }
                  ServerLevel serverlevel1 = new ServerLevel(
                      this,
                      this.executor,
-@@ -421,10 +_,43 @@
+@@ -412,19 +_,58 @@
+                     derivedleveldata,
+                     resourcekey1,
+                     entry.getValue(),
+-                    p_129816_,
++                    worldloadlistener,
+                     flag,
+                     j,
+-                    ImmutableList.of(),
++                    spawners,
+                     false,
+                     randomsequences
                  );
-                 worldborder.addListener(new BorderChangeListener.DelegateBorderChangeListener(serverlevel1.getWorldBorder()));
+-                worldborder.addListener(new BorderChangeListener.DelegateBorderChangeListener(serverlevel1.getWorldBorder()));
++                // worldborder.addListener(new BorderChangeListener.DelegateBorderChangeListener(serverlevel1.getWorldBorder()));
                  this.levels.put(resourcekey1, serverlevel1);
 +                this.initWorld(serverlevel1, derivedleveldata, worldData, worldoptions); // CraftBukkit
++                this.getPlayerList().addWorldborderListener(serverlevel1);
 +                NeoForge.EVENT_BUS.post(new LevelEvent.Load(levels.get(resourcekey)));
              }
          }
  
          worldborder.applySettings(serverleveldata.getWorldBorder());
 +        YouerPlugin.init(); // Youer init mohist plugins
++        for (ServerLevel worldserver : this.getAllLevels()) {
++            this.prepareLevels(worldserver.getChunkSource().chunkMap.progressListener, worldserver);
++            worldserver.entityManager.tick(); // SPIGOT-6526: Load pending entities so they are available to the API
++            this.server.getPluginManager().callEvent(new org.bukkit.event.world.WorldLoadEvent(worldserver.getWorld()));
++        }
 +
 +        // Paper start - Configurable player collision; Handle collideRule team for player collision toggle
 +        final ServerScoreboard scoreboard = this.getScoreboard();
@@ -438,7 +475,7 @@
              int i = serverchunkcache.getGenerator().getSpawnHeight(p_177897_);
              if (i < p_177897_.getMinBuildHeight()) {
                  BlockPos blockpos = chunkpos.getWorldPosition();
-@@ -484,25 +_,64 @@
+@@ -484,25 +_,65 @@
          serverleveldata.setGameType(GameType.SPECTATOR);
      }
  
@@ -473,7 +510,6 @@
 +            }
 +            ForcedChunkManager.reinstatePersistentChunks(serverlevel, forcedchunkssaveddata);
 +        }
-+        Bukkit.getPluginManager().callEvent(new WorldLoadEvent(serverlevel.getWorld()));
 +
 +        // CraftBukkit start
 +        this.executeModerately();
@@ -483,7 +519,9 @@
 +        // CraftBukkit end
 +    }
 +
++    boolean fakeprepareLevels = false;
      public void prepareLevels(ChunkProgressListener p_129941_) {
++        if (fakeprepareLevels) return;
          ServerLevel serverlevel = this.overworld();
 -        LOGGER.info("Preparing start region for dimension {}", serverlevel.dimension().location());
 +        this.forceTicks = true;
@@ -510,13 +548,12 @@
          for (ServerLevel serverlevel1 : this.levels.values()) {
              ForcedChunksSavedData forcedchunkssaveddata = serverlevel1.getDataStorage().get(ForcedChunksSavedData.factory(), "chunks");
              if (forcedchunkssaveddata != null) {
-@@ -513,13 +_,17 @@
+@@ -513,13 +_,16 @@
                      ChunkPos chunkpos = new ChunkPos(k);
                      serverlevel1.getChunkSource().updateChunkForced(chunkpos, true);
                  }
 +                ForcedChunkManager.reinstatePersistentChunks(serverlevel1, forcedchunkssaveddata);
              }
-+            Bukkit.getPluginManager().callEvent(new WorldLoadEvent(serverlevel1.getWorld()));
          }
  
 -        this.nextTickTimeNanos = Util.getNanos() + PREPARE_LEVELS_DEFAULT_DELAY_NANOS;

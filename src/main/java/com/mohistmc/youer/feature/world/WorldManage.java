@@ -16,6 +16,12 @@ public class WorldManage {
         ConfigByWorlds.init();
         ConfigByWorlds.loadWorlds();
         ConfigByWorlds.addWorld(Bukkit.getUnsafe().getMainLevelName(), false);
+        if (Bukkit.getAllowNether()) {
+            ConfigByWorlds.addWorld("DIM1", false);
+        }
+        if (Bukkit.getAllowEnd()) {
+            ConfigByWorlds.addWorld("DIM-1", false);
+        }
     }
 
     public static void deleteDir(File path) {

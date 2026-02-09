@@ -174,7 +174,7 @@ public class WorldsCommands extends Command {
                     return false;
                 }
                 for (Player all2 : world.getPlayers()) {
-                    all2.teleport(Bukkit.getWorld(Bukkit.getUnsafe().getMainLevelName()).getSpawnLocation());
+                    ConfigByWorlds.getSpawn(Bukkit.getUnsafe().getMainLevelName(), all2);
                 }
                 Bukkit.unloadWorld(world, true);
                 ConfigByWorlds.removeWorld(worldName);
