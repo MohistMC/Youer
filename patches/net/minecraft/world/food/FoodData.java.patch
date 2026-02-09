@@ -39,7 +39,7 @@
      private void add(int p_340988_, float p_340961_) {
          this.foodLevel = Mth.clamp(p_340988_ + this.foodLevel, 0, 20);
          this.saturationLevel = Mth.clamp(p_340961_ + this.saturationLevel, 0.0F, (float)this.foodLevel);
-@@ -30,37 +_,67 @@
+@@ -30,39 +_,70 @@
          this.add(p_347533_.nutrition(), p_347533_.saturation());
      }
  
@@ -89,7 +89,8 @@
 +                p_38711_.pushHealReason(org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.SATIATED);
 +                p_38711_.pushHeal$isFastRegen(true); // Paper - This is fast regen
                  p_38711_.heal(f / 6.0F);
-+                p_38711_.exhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.REGEN); // CraftBukkit - EntityExhaustionEvent
++                p_38711_.causeFoodExhaustion(f, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.REGEN); // CraftBukkit - EntityExhaustionEvent
++                fakeaddExhaustion.set(true);
                  this.addExhaustion(f);
                  this.tickTimer = 0;
              }
@@ -109,8 +110,11 @@
 -            if (this.tickTimer >= 80) {
 +            if (this.tickTimer >= this.starvationRate) { // CraftBukkit - add regen rate manipulation
                  if (p_38711_.getHealth() > 10.0F || difficulty == Difficulty.HARD || p_38711_.getHealth() > 1.0F && difficulty == Difficulty.NORMAL) {
-                     p_38711_.hurt(p_38711_.damageSources().starve(), 1.0F);
+-                    p_38711_.hurt(p_38711_.damageSources().starve(), 1.0F);
++                    p_38711_.hurt(p_38711_.damageSources().starve(), p_38711_.level().purpurConfig.hungerStarvationDamage); // Purpur
                  }
+ 
+                 this.tickTimer = 0;
 @@ -100,7 +_,9 @@
          return this.foodLevel < 20;
      }

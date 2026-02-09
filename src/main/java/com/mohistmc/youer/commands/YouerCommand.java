@@ -383,10 +383,9 @@ public class YouerCommand extends Command {
 
             case "showp" -> {
                 if (args.length == 2) {
-                    if (Bukkit.getPlayer(args[1]) != null) {
-                        Player p2 = Bukkit.getPlayer(args[1]);
-                        AttributeInstance MaxHealth = p2.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-                        double getMaxHealth = MaxHealth.getBaseValue();
+                    Player p2 = Bukkit.getPlayer(args[1]);
+                    if (p2 != null) {
+                        float getMaxHealth = PlayerAPI.getNMSPlayer(p2).getMaxHealth();
 
                         sender.sendMessage(ChatColor.GOLD + I18n.as("youercmd.showp.title", p2.getName()));
 
