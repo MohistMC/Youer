@@ -230,6 +230,7 @@ public class ReflectionHandler extends ClassLoader {
             if (i > 0) {
                 String replace = cl.substring(0, i).replace('.', '/') + "$" + cl.substring(i + 1);
                 replace = remapper.mapType(replace).replace('/', '.').replace('$', '.');
+                replace = replace.replace("org.bukkit.craftbukkit.craftbukkit.", "org.bukkit.craftbukkit."); // TODO
                 return Class.forName(replace, initialize, classLoader);
             } else throw e;
         }
