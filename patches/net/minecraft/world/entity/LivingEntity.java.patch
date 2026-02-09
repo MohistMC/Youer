@@ -195,10 +195,10 @@
          super(p_20966_, p_20967_);
 -        this.attributes = new AttributeMap(DefaultAttributes.getSupplier(p_20966_));
 +        this.attributes = new AttributeMap(DefaultAttributes.getSupplier(p_20966_), this);
++        this.craftAttributes = new CraftAttributeMap(attributes); // CraftBukkit
 +        this.fake$setHealth(true);
          this.setHealth(this.getMaxHealth());
-+        this.craftAttributes = new CraftAttributeMap(attributes); // CraftBukkit
-+        this.entityData.set(DATA_HEALTH_ID, (float) this.getAttributeValue(Attributes.MAX_HEALTH));
++        this.entityData.set(DATA_HEALTH_ID, (float) this.getAttribute(Attributes.MAX_HEALTH).getValue());
          this.blocksBuilding = true;
          this.rotA = (float)((Math.random() + 1.0) * 0.01F);
          this.reapplyPosition();
@@ -688,7 +688,7 @@
      protected void onEffectAdded(MobEffectInstance p_147190_, @Nullable Entity p_147191_) {
          this.effectsDirty = true;
          if (!this.level().isClientSide) {
-@@ -1060,18 +_,81 @@
+@@ -1060,18 +_,82 @@
          }
      }
  
@@ -703,7 +703,7 @@
 +    }
 +
      public void heal(float p_21116_) {
-+        p_21116_ = EventHooks.onLivingHeal(this, p_21116_);
++        p_21116_ = net.neoforged.neoforge.event.EventHooks.onLivingHeal(this, p_21116_);
 +        if (p_21116_ <= 0) return;
          float f = this.getHealth();
          if (f > 0.0F) {
@@ -714,7 +714,7 @@
 +                this.level().getCraftServer().getPluginManager().callEvent(event);
 +            }
 +            if (!event.isCancelled()) {
-+                this.setHealth((float) (this.getHealth() + event.getAmount()));
++                this.setHealth((float) (f + event.getAmount()));
 +            }
 +            // CraftBukkit end
          }
@@ -765,6 +765,7 @@
 +            }
 +
 +            player.updateScaledHealth(false);
++            player.setRealHealth(p_21154_);
 +            return;
 +        }
 +        // CraftBukkit end
