@@ -150,7 +150,7 @@
      protected int lerpSteps;
      protected double lerpX;
      protected double lerpY;
-@@ -251,13 +_,46 @@
+@@ -251,14 +_,49 @@
      private float swimAmount;
      private float swimAmountO;
      protected Brain<?> brain;
@@ -197,16 +197,11 @@
 +        this.attributes = new AttributeMap(DefaultAttributes.getSupplier(p_20966_), this);
 +        this.fake$setHealth(true);
          this.setHealth(this.getMaxHealth());
++        this.craftAttributes = new CraftAttributeMap(attributes); // CraftBukkit
++        this.entityData.set(DATA_HEALTH_ID, (float) this.getAttributeValue(Attributes.MAX_HEALTH));
          this.blocksBuilding = true;
          this.rotA = (float)((Math.random() + 1.0) * 0.01F);
-@@ -267,6 +_,7 @@
-         this.yHeadRot = this.getYRot();
-         NbtOps nbtops = NbtOps.INSTANCE;
-         this.brain = this.makeBrain(new Dynamic<>(nbtops, nbtops.createMap(ImmutableMap.of(nbtops.createString("memories"), nbtops.emptyMap()))));
-+        this.craftAttributes = new CraftAttributeMap(attributes); // CraftBukkit
-     }
- 
-     public Brain<?> getBrain() {
+         this.reapplyPosition();
 @@ -320,8 +_,11 @@
              .add(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE)
              .add(Attributes.WATER_MOVEMENT_EFFICIENCY)
@@ -693,7 +688,7 @@
      protected void onEffectAdded(MobEffectInstance p_147190_, @Nullable Entity p_147191_) {
          this.effectsDirty = true;
          if (!this.level().isClientSide) {
-@@ -1060,18 +_,78 @@
+@@ -1060,18 +_,81 @@
          }
      }
  
@@ -750,12 +745,15 @@
 +        fake$setHealth.set(fake);
 +    }
      public void setHealth(float p_21154_) {
++        if (fake$setHealth.getAndSet(false)) {
++            return;
++        }
 +        // Paper start - Check for NaN
 +        if (Float.isNaN(p_21154_)) { p_21154_ = getMaxHealth(); if (this.valid) {
 +            System.err.println("[NAN-HEALTH] " + getScoreboardName() + " had NaN health set");
 +        } } // Paper end - Check for NaN
 +        // CraftBukkit start - Handle scaled health
-+        if (this instanceof ServerPlayer serverPlayer && !fake$setHealth.getAndSet(false) && serverPlayer.initialized) {
++        if (this instanceof ServerPlayer serverPlayer && serverPlayer.initialized) {
 +            CraftPlayer player = serverPlayer.getBukkitEntity();
 +            // Squeeze
 +            if (p_21154_ < 0.0F) {

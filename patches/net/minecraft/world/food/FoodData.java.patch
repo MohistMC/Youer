@@ -1,8 +1,9 @@
 --- a/net/minecraft/world/food/FoodData.java
 +++ b/net/minecraft/world/food/FoodData.java
-@@ -1,10 +_,14 @@
+@@ -1,10 +_,15 @@
  package net.minecraft.world.food;
  
++import java.util.concurrent.atomic.AtomicBoolean;
  import net.minecraft.nbt.CompoundTag;
 +import net.minecraft.network.protocol.game.ClientboundSetHealthPacket;
 +import net.minecraft.server.level.ServerPlayer;
@@ -38,7 +39,7 @@
      private void add(int p_340988_, float p_340961_) {
          this.foodLevel = Mth.clamp(p_340988_ + this.foodLevel, 0, 20);
          this.saturationLevel = Mth.clamp(p_340961_ + this.saturationLevel, 0.0F, (float)this.foodLevel);
-@@ -30,37 +_,66 @@
+@@ -30,37 +_,67 @@
          this.add(p_347533_.nutrition(), p_347533_.saturation());
      }
  
@@ -98,7 +99,8 @@
 +            if (this.tickTimer >= this.unsaturatedRegenRate) { // CraftBukkit - add regen rate manipulation
 +                p_38711_.pushHealReason(org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.SATIATED);
                  p_38711_.heal(1.0F);
-+                p_38711_.exhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.REGEN); // CraftBukkit - EntityExhaustionEvent
++                p_38711_.causeFoodExhaustion(p_38711_.level().spigotConfig.regenExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.REGEN); // CraftBukkit - EntityExhaustionEvent
++                fakeaddExhaustion.set(true);
                  this.addExhaustion(6.0F);
                  this.tickTimer = 0;
              }
@@ -109,3 +111,13 @@
                  if (p_38711_.getHealth() > 10.0F || difficulty == Difficulty.HARD || p_38711_.getHealth() > 1.0F && difficulty == Difficulty.NORMAL) {
                      p_38711_.hurt(p_38711_.damageSources().starve(), 1.0F);
                  }
+@@ -100,7 +_,9 @@
+         return this.foodLevel < 20;
+     }
+ 
++    AtomicBoolean fakeaddExhaustion = new AtomicBoolean(false);
+     public void addExhaustion(float p_38704_) {
++        if (fakeaddExhaustion.getAndSet(false)) return;
+         this.exhaustionLevel = Math.min(this.exhaustionLevel + p_38704_, 40.0F);
+     }
+ 
