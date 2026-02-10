@@ -8,6 +8,7 @@ import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
 import com.mohistmc.youer.feature.ban.bans.BanItem;
 import com.mohistmc.youer.feature.ban.bans.BanRecipe;
+import com.mohistmc.youer.feature.ban.bans.BanWorld;
 import com.mohistmc.youer.feature.ban.utils.BanSaveInventory;
 import com.mohistmc.youer.feature.ban.utils.BanUtils;
 import com.mohistmc.youer.util.I18n;
@@ -34,12 +35,12 @@ import org.jetbrains.annotations.NotNull;
 public class BansCommand extends Command {
 
     private final List<String> params = Arrays.asList("add", "show", "setmessage");
-    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt");
+    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world");
 
     public BansCommand(String name) {
         super(name);
         this.description = I18n.as("banscmd.description");
-        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment|recipe|block]";
+        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment|recipe|block|world]";
         this.setPermission("youer.command.bans");
     }
 
@@ -76,6 +77,23 @@ public class BansCommand extends Command {
                         return false;
                     }
                     BanRecipe.addBan(player, name);
+                    return true;
+                }
+                if (args.length == 3 && args[1].equals("world")) {
+                    if (!YouerConfig.ban_world_enable) {
+                        sender.sendMessage(ChatColor.RED + check);
+                        return false;
+                    }
+                    String name = args[2];
+                    if (BanConfig.WORLD.has(name)) {
+                        sender.sendMessage(ChatColor.RED + "This world already exists.");
+                        return false;
+                    }
+                    if (!BanWorld.CACHE.contains(ResourceLocation.parse(name))) {
+                        sender.sendMessage(ChatColor.RED + "This world does not exist.");
+                        return false;
+                    }
+                    BanWorld.addBan(player, name);
                     return true;
                 }
                 if (args.length < 2) {
@@ -274,7 +292,6 @@ public class BansCommand extends Command {
                             wh.addItem(new GUIItem(new ItemStackFactory(Material.KNOWLEDGE_BOOK)
                                     .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))
-                                    .setEnchantment(ItemAPI.getEnchantmentByKey(s))
                                     .build()) {
                                 @Override
                                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
@@ -334,6 +351,28 @@ public class BansCommand extends Command {
                                     }
                                 });
                             }
+                        }
+                        wh.openGUI(player);
+                        return true;
+                    }
+                    case "world" -> {
+                        DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.world"));
+                        List<String> old = BanConfig.WORLD.getWorld();
+                        for (String s : BanConfig.WORLD.getWorld()) {
+                            wh.addItem(new GUIItem(new ItemStackFactory(Material.GRASS_BLOCK)
+                                    .setDisplayName(s)
+                                    .addLore("§e" + I18n.as("banscmd.show.lore"))
+                                    .build()) {
+                                @Override
+                                public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                                    if (type.isRightClick()) {
+                                        old.remove(s);
+                                        BanUtils.saveToYaml(u, com.mohistmc.youer.feature.ban.ClickType.REMOVE, old, BanType.WORLD);
+                                        wh.removeItem(this);
+                                        wh.openGUI(player);
+                                    }
+                                }
+                            });
                         }
                         wh.openGUI(player);
                         return true;
@@ -418,6 +457,12 @@ public class BansCommand extends Command {
         }
         if (args.length == 3 && args[0].equals("add") && args[1].equals("recipe") && (sender.isOp() || testPermission(sender))) {
             return BanRecipe.CACHE.stream()
+                    .map(ResourceLocation::toString)
+                    .toList();
+        }
+
+        if (args.length == 3 && args[0].equals("add") && args[1].equals("world") && (sender.isOp() || testPermission(sender))) {
+            return BanWorld.CACHE.stream()
                     .map(ResourceLocation::toString)
                     .toList();
         }

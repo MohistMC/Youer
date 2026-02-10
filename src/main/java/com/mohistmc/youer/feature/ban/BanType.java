@@ -11,7 +11,8 @@ public enum BanType {
     ENTITY("ENTITYS", "bans.add.entity", "bans.remove.entity"),
     ENCHANTMENT("ENCHANTMENTS", "bans.add.enchantment", "bans.remove.enchantment"),
     RECIPE("RECIPES", "bans.add.recipe", "bans.remove.recipe"),
-    BLOCK("BLOCKS", "bans.add.block", "bans.remove.block");
+    BLOCK("BLOCKS", "bans.add.block", "bans.remove.block"),
+    WORLD("WORLDS", "bans.add.world", "bans.remove.world");
 
     public final String key;
     public final String i18n_key_add;

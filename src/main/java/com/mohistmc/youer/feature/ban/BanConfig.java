@@ -17,6 +17,7 @@ public class BanConfig extends YouerPluginConfig {
     public static BanConfig RECIPE;
     public static BanConfig BLOCK;
     public static BanConfig NBT;
+    public static BanConfig WORLD;
 
     public BanConfig(File file) {
         super(file);
@@ -31,6 +32,7 @@ public class BanConfig extends YouerPluginConfig {
         RECIPE = new BanConfig(new File(PARENT, "recipe.yml"));
         BLOCK = new BanConfig(new File(PARENT, "block.yml"));
         NBT = new BanConfig(new File(PARENT, "nbt.yml"));
+        WORLD = new BanConfig(new File(PARENT, "world.yml"));
     }
 
     public List<String> getMoShouList() {
@@ -55,6 +57,10 @@ public class BanConfig extends YouerPluginConfig {
 
     public List<String> getBlock() {
         return (!has("BLOCKS")) ? new ArrayList<>() : BLOCK.yaml.getStringList("BLOCKS");
+    }
+
+    public List<String> getWorld() {
+        return (!has("WORLDS")) ? new ArrayList<>() : WORLD.yaml.getStringList("WORLDS");
     }
 
     public String getMessage(String name) {

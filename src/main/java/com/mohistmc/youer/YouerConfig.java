@@ -86,6 +86,7 @@ public class YouerConfig {
     public static List<String> no_vanilla_entity_whitelist;
     public static boolean ban_enchantment_enable;
     public static boolean ban_recipe_enable;
+    public static boolean ban_world_enable;
     public static String pingCommandOutput;
     // Ban events
     public static boolean doFireTick;
@@ -266,6 +267,7 @@ public class YouerConfig {
         no_vanilla_entity_whitelist = getStringList("bans.entity.vanilla_entity.whitelist", new ArrayList<>());
         ban_enchantment_enable = getBoolean("bans.enchantment", false);
         ban_recipe_enable = getBoolean("bans.recipe", false);
+        ban_world_enable = getBoolean("bans.world", false);
 
         pingCommandOutput = getString("settings.messages.ping-command-output", "§2%s's ping is %sms");
 
