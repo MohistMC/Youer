@@ -193,8 +193,7 @@
  
      protected LivingEntity(EntityType<? extends LivingEntity> p_20966_, Level p_20967_) {
          super(p_20966_, p_20967_);
--        this.attributes = new AttributeMap(DefaultAttributes.getSupplier(p_20966_));
-+        this.attributes = new AttributeMap(DefaultAttributes.getSupplier(p_20966_), this);
+         this.attributes = new AttributeMap(DefaultAttributes.getSupplier(p_20966_));
 +        this.craftAttributes = new CraftAttributeMap(attributes); // CraftBukkit
 +        this.fake$setHealth(true);
          this.setHealth(this.getMaxHealth());
@@ -688,7 +687,7 @@
      protected void onEffectAdded(MobEffectInstance p_147190_, @Nullable Entity p_147191_) {
          this.effectsDirty = true;
          if (!this.level().isClientSide) {
-@@ -1060,18 +_,82 @@
+@@ -1060,18 +_,75 @@
          }
      }
  
@@ -755,17 +754,10 @@
 +        // CraftBukkit start - Handle scaled health
 +        if (this instanceof ServerPlayer serverPlayer && serverPlayer.initialized) {
 +            CraftPlayer player = serverPlayer.getBukkitEntity();
-+            // Squeeze
-+            if (p_21154_ < 0.0F) {
-+                player.setRealHealth(0.0D);
-+            } else if (p_21154_ > player.getMaxHealth()) {
-+                player.setRealHealth(player.getMaxHealth());
-+            } else {
-+                player.setRealHealth(p_21154_);
-+            }
-+
++            double realHealth = Mth.clamp(p_21154_, 0.0F, player.getMaxHealth());
++            player.setRealHealth(realHealth);
 +            player.updateScaledHealth(false);
-+            player.setRealHealth(p_21154_);
++            player.setRealHealth(realHealth);
 +            return;
 +        }
 +        // CraftBukkit end
