@@ -1,6 +1,7 @@
 package com.mohistmc.youer.api;
 
 import com.mohistmc.youer.feature.ban.BanConfig;
+import com.mohistmc.youer.feature.ban.BanType;
 import java.util.Objects;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -33,6 +34,9 @@ public class EntityAPI {
     }
 
     public static boolean isBan(Entity entity) {
-        return BanConfig.ENTITY != null && BanConfig.ENTITY.getEntity().contains(resourceLocation(entity));
+        if (entity == null || BanConfig.ENTITY == null) return false;
+        var list = BanConfig.getListByType(BanType.ENTITY);
+        if (list.isEmpty()) return false;
+        return list.contains(resourceLocation(entity));
     }
 }

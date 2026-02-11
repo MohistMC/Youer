@@ -4,6 +4,7 @@ import com.mohistmc.mjson.Json;
 import com.mohistmc.tools.Base64Utils;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.feature.ban.BanConfig;
+import com.mohistmc.youer.feature.ban.BanType;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -205,8 +206,10 @@ public class ItemAPI {
     }
 
     public static boolean isBan(ItemStack itemStack) {
-        if (itemStack == null || BanConfig.ITEM.getItem().isEmpty()) return false;
-        return BanConfig.ITEM.getItem().contains(itemStack.getType().getKey().asString());
+        if (itemStack == null) return false;
+        var list = BanConfig.getListByType(BanType.ITEM);
+        if (list.isEmpty()) return false;
+        return list.contains(itemStack.getType().getKey().asString());
     }
 
     public static Material getEggMaterial(net.minecraft.world.entity.EntityType<?> entitytype) {

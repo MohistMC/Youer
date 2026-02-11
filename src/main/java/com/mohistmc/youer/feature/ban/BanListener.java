@@ -29,7 +29,7 @@ public class BanListener {
             Inventory inventory = event.getInventory();
             if (openInventory != null && openInventory.getInventory() == inventory) {
                 if (openInventory.getBanType() == BanType.ITEM) {
-                    List<String> old = BanConfig.ITEM.getItem();
+                    List<String> old = BanConfig.getListByType(BanType.ITEM);
                     for (org.bukkit.inventory.ItemStack itemStack : event.getInventory().getContents()) {
                         if (itemStack != null && !itemStack.isEmpty()) {
                             ListUtils.isDuplicate(old, itemStack.getType().getKey().asString());
@@ -37,7 +37,7 @@ public class BanListener {
                     }
                     BanUtils.saveToYaml(player, ClickType.ADD, old, BanType.ITEM);
                 } else if (openInventory.getBanType() == BanType.ENTITY) {
-                    List<String> old = BanConfig.ENTITY.getEntity();
+                    List<String> old = BanConfig.getListByType(BanType.ENTITY);
                     for (org.bukkit.inventory.ItemStack itemStack : event.getInventory().getContents()) {
                         if (itemStack != null && !itemStack.isEmpty()) {
                             ItemStack nmsItem = ItemAPI.toNMSItem(itemStack);
@@ -50,7 +50,7 @@ public class BanListener {
                     }
                     BanUtils.saveToYaml(player, ClickType.ADD, old, BanType.ENTITY);
                 } else if (openInventory.getBanType() == BanType.ENCHANTMENT) {
-                    List<String> old = BanConfig.ENCHANTMENT.getEnchantment();
+                    List<String> old = BanConfig.getListByType(BanType.ENCHANTMENT);
                     for (org.bukkit.inventory.ItemStack itemStack : event.getInventory().getContents()) {
                         if (itemStack != null && !itemStack.isEmpty()) {
                             if (EnchantmentAPI.has(itemStack)) {
@@ -62,7 +62,7 @@ public class BanListener {
                     }
                     BanUtils.saveToYaml(player, ClickType.ADD, old, BanType.ENCHANTMENT);
                 } else if (openInventory.getBanType() == BanType.ITEM_MOSHOU) {
-                    List<String> old = BanConfig.MOSHOU.getMoShouList();
+                    List<String> old = BanConfig.getListByType(BanType.ITEM_MOSHOU);
                     for (org.bukkit.inventory.ItemStack itemStack : event.getInventory().getContents()) {
                         if (itemStack != null && !itemStack.isEmpty()) {
                             for (Player p : Bukkit.getOnlinePlayers()) {
@@ -74,7 +74,7 @@ public class BanListener {
                     BanUtils.saveToYaml(player, ClickType.ADD, old, BanType.ITEM_MOSHOU);
                 }
                 if (openInventory.getBanType() == BanType.BLOCK) {
-                    List<String> old = BanConfig.BLOCK.getBlock();
+                    List<String> old = BanConfig.getListByType(BanType.BLOCK);
                     for (org.bukkit.inventory.ItemStack itemStack : event.getInventory().getContents()) {
                         if (itemStack != null && !itemStack.isEmpty()) {
                             ListUtils.isDuplicate(old, itemStack.getType().getKey().asString());
@@ -85,8 +85,7 @@ public class BanListener {
                 openInventory = null;
             }
         } catch (Exception e) {
-            Youer.LOGGER.warn(I18n.as("bans.add.item.failed"));
-            e.printStackTrace();
+            Youer.LOGGER.warn(I18n.as("bans.add.item.failed"), e);
         }
     }
 }

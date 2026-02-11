@@ -17,7 +17,7 @@ public class BanRecipe {
     public static Set<ResourceLocation> CACHE = new HashSet<>();
 
     public static void addBan(Player player, String key) {
-        List<String> old = BanConfig.RECIPE.getRecipe();
+        List<String> old = BanConfig.getListByType(BanType.RECIPE);
         ListUtils.isDuplicate(old, key);
         BanUtils.saveToYaml(player, ClickType.ADD, old, BanType.RECIPE);
     }
@@ -25,6 +25,8 @@ public class BanRecipe {
     public static boolean checkBan(ResourceLocation resourceLocation) {
         if (!YouerConfig.yml.getBoolean("bans.recipe", false)) return false;
         CACHE.add(resourceLocation);
-        return BanConfig.RECIPE.getRecipe().contains(resourceLocation.toString());
+        var list = BanConfig.getListByType(BanType.RECIPE);
+        if (list.isEmpty()) return false;
+        return list.contains(resourceLocation.toString());
     }
 }

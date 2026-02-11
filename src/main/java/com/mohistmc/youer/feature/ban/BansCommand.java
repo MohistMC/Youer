@@ -192,8 +192,8 @@ public class BansCommand extends Command {
                 switch (args[1]) {
                     case "item" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.item"));
-                        List<String> old = BanConfig.ITEM.getItem();
-                        for (String s : BanConfig.ITEM.getItem()) {
+                        List<String> old = BanConfig.getListByType(BanType.ITEM);
+                        for (String s : BanConfig.getListByType(BanType.ITEM)) {
                             Material material = Material.matchMaterial(s);
                             if (material != null && !material.isAirSafe()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
@@ -217,8 +217,8 @@ public class BansCommand extends Command {
                     }
                     case "item-moshou" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.item-moshou"));
-                        List<String> old = BanConfig.MOSHOU.getMoShouList();
-                        for (String s : BanConfig.MOSHOU.getMoShouList()) {
+                        List<String> old = BanConfig.getListByType(BanType.ITEM_MOSHOU);
+                        for (String s : BanConfig.getListByType(BanType.ITEM_MOSHOU)) {
                             Material material = Material.matchMaterial(s);
                             if (material != null && !material.isAirSafe()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
@@ -242,8 +242,8 @@ public class BansCommand extends Command {
                     }
                     case "entity" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.entity"));
-                        List<String> old = BanConfig.ENTITY.getEntity();
-                        for (String s : BanConfig.ENTITY.getEntity()) {
+                        List<String> old = BanConfig.getListByType(BanType.ENTITY);
+                        for (String s : BanConfig.getListByType(BanType.ENTITY)) {
                             wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(EntityAPI.getType(s)))
                                     .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))
@@ -264,8 +264,8 @@ public class BansCommand extends Command {
                     }
                     case "enchantment" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.enchantment"));
-                        List<String> old = BanConfig.ENCHANTMENT.getEnchantment();
-                        for (String s : BanConfig.ENCHANTMENT.getEnchantment()) {
+                        List<String> old = BanConfig.getListByType(BanType.ENCHANTMENT);
+                        for (String s : BanConfig.getListByType(BanType.ENCHANTMENT)) {
                             wh.addItem(new GUIItem(new ItemStackFactory(Material.ENCHANTED_BOOK)
                                     .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))
@@ -287,8 +287,8 @@ public class BansCommand extends Command {
                     }
                     case "recipe" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.recipe"));
-                        List<String> old = BanConfig.RECIPE.getRecipe();
-                        for (String s : BanConfig.RECIPE.getRecipe()) {
+                        List<String> old = BanConfig.getListByType(BanType.RECIPE);
+                        for (String s : BanConfig.getListByType(BanType.RECIPE)) {
                             wh.addItem(new GUIItem(new ItemStackFactory(Material.KNOWLEDGE_BOOK)
                                     .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))
@@ -309,8 +309,8 @@ public class BansCommand extends Command {
                     }
                     case "block" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.block"));
-                        List<String> old = BanConfig.BLOCK.getBlock();
-                        for (String s : BanConfig.BLOCK.getBlock()) {
+                        List<String> old = BanConfig.getListByType(BanType.BLOCK);
+                        for (String s : BanConfig.getListByType(BanType.BLOCK)) {
                             Material material = Material.matchMaterial(s);
                             if (material != null && !material.isAirSafe()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
@@ -357,8 +357,8 @@ public class BansCommand extends Command {
                     }
                     case "world" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.world"));
-                        List<String> old = BanConfig.WORLD.getWorld();
-                        for (String s : BanConfig.WORLD.getWorld()) {
+                        List<String> old = BanConfig.getListByType(BanType.WORLD);
+                        for (String s : BanConfig.getListByType(BanType.WORLD)) {
                             wh.addItem(new GUIItem(new ItemStackFactory(Material.GRASS_BLOCK)
                                     .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))

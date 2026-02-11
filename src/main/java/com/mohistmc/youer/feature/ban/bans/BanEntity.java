@@ -33,11 +33,10 @@ public class BanEntity {
      * @return true if the entity should be banned, false otherwise
      */
     public static boolean banVanilla(Entity entity) {
+        if (!YouerConfig.no_vanilla_entity_enable) return false;
+        var list = YouerConfig.no_vanilla_entity_whitelist;
+        if (list.isEmpty()) return false;
         var key = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
-        if (YouerConfig.no_vanilla_entity_enable) {
-            return key.getNamespace().equals(NamespacedKey.MINECRAFT) && !YouerConfig.no_vanilla_entity_whitelist.contains(key.toString());
-        }
-
-        return false;
+        return key.getNamespace().equals(NamespacedKey.MINECRAFT) && !list.contains(key.toString());
     }
 }

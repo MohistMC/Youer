@@ -5,7 +5,6 @@ package com.mohistmc.youer.feature.ban;
  * @date 2023/7/27 15:10:13
  */
 public enum BanType {
-
     ITEM("ITEMS", "bans.add.item", "bans.remove.item"),
     ITEM_MOSHOU("ITEMS", "bans.add.item_moshou", "bans.remove.item_moshou"),
     ENTITY("ENTITYS", "bans.add.entity", "bans.remove.entity"),
@@ -24,3 +23,4 @@ public enum BanType {
         this.i18n_key_remove = i18n_key_remove;
     }
 }
+

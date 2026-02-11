@@ -35,41 +35,37 @@ public class BanConfig extends YouerPluginConfig {
         WORLD = new BanConfig(new File(PARENT, "world.yml"));
     }
 
-    public List<String> getMoShouList() {
-        return (!has("ITEMS")) ? new ArrayList<>() : MOSHOU.yaml.getStringList("ITEMS");
+    public static List<String> getListByType(BanType type) {
+        return switch (type) {
+            case ITEM -> ITEM.getList(type);
+            case ITEM_MOSHOU -> MOSHOU.getList(type);
+            case ENTITY -> ENTITY.getList(type);
+            case ENCHANTMENT -> ENCHANTMENT.getList(type);
+            case RECIPE -> RECIPE.getList(type);
+            case BLOCK -> BLOCK.getList(type);
+            case WORLD -> WORLD.getList(type);
+        };
     }
 
-    public List<String> getItem() {
-        return (!has("ITEMS")) ? new ArrayList<>() : ITEM.yaml.getStringList("ITEMS");
+    public List<String> getList(BanType type) {
+        return switch (type) {
+            case ITEM -> ITEM.yaml.getStringList(type.key);
+            case ITEM_MOSHOU -> MOSHOU.yaml.getStringList(type.key);
+            case ENTITY -> ENTITY.yaml.getStringList(type.key);
+            case ENCHANTMENT -> ENCHANTMENT.yaml.getStringList(type.key);
+            case RECIPE -> RECIPE.yaml.getStringList(type.key);
+            case BLOCK -> BLOCK.yaml.getStringList(type.key);
+            case WORLD -> WORLD.yaml.getStringList(type.key);
+        };
     }
 
-    public List<String> getEntity() {
-        return (!has("ENTITYS")) ? new ArrayList<>() : ENTITY.yaml.getStringList("ENTITYS");
+    public void setBanMessage(String key, Object value) {
+        BAN_MESSAGE.yaml.set(key, value);
+        BAN_MESSAGE.save();
     }
 
-    public List<String> getEnchantment() {
-        return (!has("ENCHANTMENTS")) ? new ArrayList<>() : ENCHANTMENT.yaml.getStringList("ENCHANTMENTS");
-    }
-
-    public List<String> getRecipe() {
-        return (!has("RECIPES")) ? new ArrayList<>() : RECIPE.yaml.getStringList("RECIPES");
-    }
-
-    public List<String> getBlock() {
-        return (!has("BLOCKS")) ? new ArrayList<>() : BLOCK.yaml.getStringList("BLOCKS");
-    }
-
-    public List<String> getWorld() {
-        return (!has("WORLDS")) ? new ArrayList<>() : WORLD.yaml.getStringList("WORLDS");
-    }
-
-    public String getMessage(String name) {
-        return (!has(name)) ? "" : BAN_MESSAGE.yaml.getString(name, "");
-    }
-
-    public void setBanMessage(String key, Object v) {
-        BAN_MESSAGE.yaml.set(key, v);
-        save();
+    public String getMessage(String key) {
+        return BAN_MESSAGE.yaml.getString(key, "");
     }
 
     public Set<String> getAllNbtKeys() {
@@ -80,11 +76,11 @@ public class BanConfig extends YouerPluginConfig {
         return (!NBT.has(key)) ? new ArrayList<>() : NBT.yaml.getStringList(key);
     }
 
-    public void addNbt(String key, String v) {
+    public void addNbt(String key, String value) {
         var list = NBT.yaml.getStringList(key);
-        list.add(v);
+        list.add(value);
         NBT.yaml.set(key, list);
-        save();
+        NBT.save();
     }
 
     public void removeNbt(String key, String nbt) {

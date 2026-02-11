@@ -21,7 +21,7 @@ public class BanWorld {
     public static Set<ResourceLocation> CACHE = new HashSet<>();
 
     public static void addBan(Player player, String key) {
-        List<String> old = BanConfig.WORLD.getWorld();
+        List<String> old = BanConfig.getListByType(BanType.WORLD);
         ListUtils.isDuplicate(old, key);
         BanUtils.saveToYaml(player, ClickType.ADD, old, BanType.WORLD);
     }
@@ -29,6 +29,8 @@ public class BanWorld {
     public static boolean checkBan(ResourceLocation resourceLocation) {
         if (!YouerConfig.yml.getBoolean("bans.world", false)) return false;
         CACHE.add(resourceLocation);
-        return BanConfig.WORLD.getWorld().contains(resourceLocation.toString());
+        var list = BanConfig.getListByType(BanType.WORLD);
+        if (list.isEmpty()) return false;
+        return list.contains(resourceLocation.toString());
     }
 }
