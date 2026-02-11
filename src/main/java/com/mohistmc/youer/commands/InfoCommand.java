@@ -240,9 +240,9 @@ public class InfoCommand extends Command {
 
     public void sendCommandInfo(CommandSender sender, PluginCommand pluginCommand) {
         String pluginName = pluginCommand.getPlugin().getName();
-        String pluginVersion = pluginCommand.getPlugin().getDescription().getVersion();
-        String pluginDescription = pluginCommand.getPlugin().getDescription().getDescription();
-        List<String> pluginAuthors = pluginCommand.getPlugin().getDescription().getAuthors();
+        String pluginVersion = pluginCommand.getPlugin().getPluginMeta().getVersion();
+        String pluginDescription = pluginCommand.getPlugin().getPluginMeta().getDescription();
+        List<String> pluginAuthors = pluginCommand.getPlugin().getPluginMeta().getAuthors();
         String permission = pluginCommand.getPermission();
         String commandDescription = pluginCommand.getDescription();
         String aliases = String.join(", ", pluginCommand.getAliases());

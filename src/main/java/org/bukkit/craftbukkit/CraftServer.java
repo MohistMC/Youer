@@ -127,6 +127,8 @@ import net.minecraft.world.level.storage.PlayerDataStorage;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraft.world.level.validation.ContentValidationException;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.level.LevelEvent;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -1389,7 +1391,7 @@ public final class CraftServer implements Server {
         ChunkProgressListener mohist$progressListener = this.console.progressListenerFactory.create(11);
         this.getServer().prepareLevels(mohist$progressListener, internal);
         internal.entityManager.tick(); // SPIGOT-6526: Load pending entities so they are available to the API
-
+        NeoForge.EVENT_BUS.post(new LevelEvent.Load(internal));
         this.pluginManager.callEvent(new WorldLoadEvent(internal.getWorld()));
         World world1 = internal.getWorld();
         world1.setBukkit(true);
