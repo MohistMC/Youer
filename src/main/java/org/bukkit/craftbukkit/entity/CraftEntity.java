@@ -7,6 +7,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.bukkit.entity.CraftFakePlayer;
 import com.mohistmc.youer.bukkit.entity.YouerModsFireballEntity;
 import com.mohistmc.youer.neoforge.EntityClassLookup;
@@ -1080,22 +1081,9 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
     // Paper start - more teleport API / async chunk API
     @Override
     public java.util.concurrent.CompletableFuture<Boolean> teleportAsync(final Location location, final TeleportCause cause, final io.papermc.paper.entity.TeleportFlag... teleportFlags) {
-        Preconditions.checkArgument(location != null, "location");
-        location.checkFinite();
-        Location locationClone = location.clone(); // clone so we don't need to worry about mutations after this call.
-
         java.util.concurrent.CompletableFuture<Boolean> ret = new java.util.concurrent.CompletableFuture<>();
-        net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
-            try {
-                ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
-            } catch (Throwable throwable) {
-                if (throwable instanceof ThreadDeath) {
-                    throw (ThreadDeath)throwable;
-                }
-                net.minecraft.server.MinecraftServer.LOGGER.error("Failed to teleport entity " + CraftEntity.this, throwable);
-                ret.completeExceptionally(throwable);
-            }
-        });
+        ret.complete(false);
+        Youer.LOGGER.error("Only moonrise's asynchronous api is supported in AsyncYouer");
         return ret;
     }
     // Paper end - more teleport API / async chunk API

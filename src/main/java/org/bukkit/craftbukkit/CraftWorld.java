@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
 import com.mojang.datafixers.util.Pair;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
@@ -2401,22 +2402,9 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     // Paper end
 
     public java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(int x, int z, boolean gen, boolean urgent) {
-        warnUnsafeChunk("getting a faraway chunk async", x, z); // Paper
-        if (Bukkit.isPrimaryThread()) {
-            net.minecraft.world.level.chunk.LevelChunk immediate = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
-            if (immediate != null) {
-                return java.util.concurrent.CompletableFuture.completedFuture(new CraftChunk(immediate));
-            }
-        }
-
         java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
-
-        net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
-            net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
-            if (chunk != null) this.addTicket(x, z); // Paper
-            ret.complete(chunk == null ? null : new CraftChunk(chunk));
-        });
-
+        ret.complete(null);
+        Youer.LOGGER.error("Only moonrise's asynchronous api is supported in AsyncYouer");
         return ret;
     }
 

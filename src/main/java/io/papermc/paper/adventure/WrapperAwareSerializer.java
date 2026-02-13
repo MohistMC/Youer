@@ -21,12 +21,16 @@ public final class WrapperAwareSerializer implements ComponentSerializer<Compone
         if (input instanceof AdventureComponent) {
             return ((AdventureComponent) input).adventure;
         }
-        final RegistryOps<Object> ops = this.javaOps.get();
-        final Object obj = ComponentSerialization.CODEC.encodeStart(ops, input)
-            .getOrThrow(s -> new RuntimeException("Failed to encode Minecraft Component: " + input + "; " + s));
-        final Pair<Component, Object> converted = AdventureCodecs.COMPONENT_CODEC.decode(ops, obj)
-            .getOrThrow(s -> new RuntimeException("Failed to decode to adventure Component: " + obj + "; " + s));
-        return converted.getFirst();
+        try {
+            final RegistryOps<Object> ops = this.javaOps.get();
+            final Object obj = ComponentSerialization.CODEC.encodeStart(ops, input)
+                    .getOrThrow(s -> new RuntimeException("Failed to encode Minecraft Component: " + input + "; " + s));
+            final Pair<Component, Object> converted = AdventureCodecs.COMPONENT_CODEC.decode(ops, obj)
+                    .getOrThrow(s -> new RuntimeException("Failed to decode to adventure Component: " + obj + "; " + s));
+            return converted.getFirst();
+        } catch (Exception e) {
+            return Component.empty();
+        }
     }
 
     @Override
