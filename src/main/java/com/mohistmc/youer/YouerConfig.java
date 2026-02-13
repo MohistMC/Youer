@@ -92,6 +92,8 @@ public class YouerConfig {
     public static boolean doFireTick;
     public static boolean explosion;
     public static boolean farmlandTrample;
+    public static boolean join_message;
+    public static boolean quit_message;
     public static boolean bukkitpermissionshandler;
     public static boolean recipe_warn;
     public static boolean permissions_debug_console;
@@ -274,6 +276,9 @@ public class YouerConfig {
         doFireTick = getBoolean("events.fire_tick", false);
         explosion = getBoolean("events.explosion", false);
         farmlandTrample = getBoolean("events.farmlandTrample", false);
+        join_message = getBoolean("events.join_message", true);
+        quit_message = getBoolean("events.quit_message", true);
+
         bukkitpermissionshandler = getBoolean("neoforge.bukkitpermissionshandler", true);
 
         recipe_warn = getBoolean("recipe.warn", false);
