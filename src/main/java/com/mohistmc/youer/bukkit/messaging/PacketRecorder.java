@@ -2,25 +2,25 @@ package com.mohistmc.youer.bukkit.messaging;
 
 import com.mohistmc.youer.Youer;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import net.minecraft.Util;
 import net.minecraft.resources.ResourceLocation;
 
 public class PacketRecorder {
-    private final Object2IntArrayMap<ResourceLocation> unknown = new Object2IntArrayMap<>();
+    private final ConcurrentHashMap<ResourceLocation, AtomicInteger> unknown = new ConcurrentHashMap<>();
     private long lastUpdate = Util.getMillis();
 
     public PacketRecorder() {
-        unknown.defaultReturnValue(0);
     }
 
-    public void recordUnknown(ResourceLocation id) {
+    public synchronized void recordUnknown(ResourceLocation id) {
         if (id == null) {
             Youer.LOGGER.debug("Received packet with null id. This should never happen.");
             return;
         }
-        int num = unknown.getInt(id);
-        unknown.put(id, num + 1);
+        unknown.computeIfAbsent(id, k -> new AtomicInteger(0)).incrementAndGet();
     }
 
     public void update() {
@@ -32,11 +32,13 @@ public class PacketRecorder {
     }
 
     public void consumeAndLog() {
-        String unknowns = unknown.object2IntEntrySet().stream()
+        ConcurrentHashMap<ResourceLocation, AtomicInteger> snapshot = new ConcurrentHashMap<>(unknown);
+        unknown.clear(); // 清空原始数据
+
+        String unknowns = snapshot.entrySet().stream()
                 .filter(entry -> entry.getKey() != null)
-                .map(it -> it.getKey().toString() + '(' + it.getIntValue() + ')')
+                .map(entry -> entry.getKey().toString() + '(' + entry.getValue().get() + ')')
                 .collect(Collectors.joining(", ", "unknown=[", "];"));
-        unknown.clear();
 
         Youer.LOGGER.debug("Packet error statistics: {}", unknowns);
     }

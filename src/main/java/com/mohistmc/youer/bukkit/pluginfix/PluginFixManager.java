@@ -40,6 +40,9 @@ public class PluginFixManager {
             case "com.onarandombox.MultiverseCore.utils.WorldManager" -> {
                 return patch(clazz, MultiverseCore::fix);
             }
+            case "net.Zrips.CMILib.Version.Version" -> {
+                return patch(clazz, PluginFixManager::cmilib);
+            }
         }
         if (className.startsWith("net.Zrips.CMILib.") || className.startsWith("com.Zrips.CMI.")) {
             return patch(clazz, node -> helloWorld(node, "net.minecraft.server.network.PlayerConnection", "net.minecraft.server.network.ServerGamePacketListenerImpl"));
@@ -92,6 +95,17 @@ public class PluginFixManager {
         }
     }
 
+    private static void cmilib(ClassNode node) {
+        for (MethodNode methodNode : node.methods) {
+            if (methodNode.name.equals("isPaperBranch") && methodNode.desc.equals("()Z")) {
+                InsnList toInject = new InsnList();
+                toInject.add(new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(PluginFixManager.class), "isPaperBranch", "()Z"));
+                toInject.add(new InsnNode(Opcodes.IRETURN));
+                methodNode.instructions = toInject;
+            }
+        }
+    }
+
     private static void removePaper0(ClassNode node) {
         helloWorld(node, "com.destroystokyo.paper.PaperConfig", Youer.modid);
         helloWorld(node, "io.papermc.paper.configuration.Configuration", Youer.modid);
@@ -125,6 +139,10 @@ public class PluginFixManager {
                 methodNode.tryCatchBlocks.clear();
             }
         }
+    }
+
+    public static boolean isPaperBranch() {
+        return true;
     }
 
     private static void qs(ClassNode node) {
