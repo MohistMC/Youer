@@ -1,10 +1,11 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1,16 +_,29 @@
+@@ -1,16 +_,30 @@
  package net.minecraft.server;
  
 +import com.mohistmc.youer.api.ColorAPI;
 +import com.mohistmc.youer.api.ServerAPI;
++import com.mohistmc.youer.feature.ban.bans.BanWorld;
 +import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 +import com.mohistmc.youer.feature.YouerPlugin;
 +import com.mohistmc.youer.util.I18n;
@@ -359,8 +360,11 @@
  
                  try {
                      serverlevel.fillReportDetails(crashreport);
-@@ -405,6 +_,29 @@
+@@ -403,8 +_,32 @@
+         for (Entry<ResourceKey<LevelStem>, LevelStem> entry : registry.entrySet()) {
+             ResourceKey<LevelStem> resourcekey = entry.getKey();
              if (resourcekey != LevelStem.OVERWORLD) {
++                if (BanWorld.checkBan(resourcekey.location())) continue;
                  ResourceKey<Level> resourcekey1 = ResourceKey.create(Registries.DIMENSION, resourcekey.location());
                  DerivedLevelData derivedleveldata = new DerivedLevelData(this.worldData, serverleveldata);
 +
@@ -668,7 +672,7 @@
                  }
              }
          }
-@@ -633,8 +_,28 @@
+@@ -633,8 +_,27 @@
          try {
              this.storageSource.close();
          } catch (IOException ioexception) {
@@ -693,7 +697,6 @@
 +        } catch (final Exception ignored) {
 +        }
 +        io.papermc.paper.log.CustomLogManager.forceReset(); // Paper - Reset loggers after shutdown
-+        ServerLifecycleHooks.handleServerStopped(this); // Youer
 +        this.onServerExit();
 +        // Paper end - Improved watchdog support
      }
@@ -874,7 +877,7 @@
                  this.startMeasuringTaskExecutionTime();
                  this.waitUntilNextTick();
                  this.finishMeasuringTaskExecutionTime();
-@@ -710,34 +_,44 @@
+@@ -710,34 +_,46 @@
  
                  this.profiler.pop();
                  this.logFullTickTime();
@@ -921,8 +924,9 @@
                  if (this.services.profileCache() != null) {
                      this.services.profileCache().clearExecutor();
                  }
--
+ 
 -                this.onServerExit();
++                net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStopped(this);
              }
          }
      }
