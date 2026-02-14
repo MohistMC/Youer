@@ -2402,9 +2402,20 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     // Paper end
 
     public java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(int x, int z, boolean gen, boolean urgent) {
+        warnUnsafeChunk("getting a faraway chunk async", x, z); // Paper
+        if (Bukkit.isPrimaryThread()) {
+            net.minecraft.world.level.chunk.LevelChunk immediate = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
+            if (immediate != null) {
+                return java.util.concurrent.CompletableFuture.completedFuture(new CraftChunk(immediate));
+            }
+        }
+
         java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
-        ret.complete(null);
-        Youer.LOGGER.error("Only moonrise's asynchronous api is supported in AsyncYouer");
+        net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
+            net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
+            if (chunk != null) this.addTicket(x, z); // Paper
+            ret.complete(chunk == null ? null : new CraftChunk(chunk));
+        });
         return ret;
     }
 

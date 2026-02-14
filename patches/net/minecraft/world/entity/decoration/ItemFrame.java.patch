@@ -1,9 +1,10 @@
 --- a/net/minecraft/world/entity/decoration/ItemFrame.java
 +++ b/net/minecraft/world/entity/decoration/ItemFrame.java
-@@ -1,5 +_,6 @@
+@@ -1,5 +_,7 @@
  package net.minecraft.world.entity.decoration;
  
 +import io.papermc.paper.event.player.PlayerItemFrameChangeEvent;
++import java.util.concurrent.atomic.AtomicBoolean;
  import javax.annotation.Nullable;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
@@ -91,24 +92,23 @@
      @Nullable
      public MapId getFramedMapId(ItemStack p_353029_) {
          return p_353029_.get(DataComponents.MAP_ID);
-@@ -255,6 +_,22 @@
+@@ -246,7 +_,7 @@
+ 
+         this.onItemChanged(p_31790_);
+         this.getEntityData().set(DATA_ITEM, p_31790_);
+-        if (!p_31790_.isEmpty()) {
++        if (!p_31790_.isEmpty() && p_31791_ && setItem$playSound.getAndSet(true)) {  // CraftBukkit // Paper - only play sound when update flag is set
+             this.playSound(this.getAddItemSound(), 1.0F, 1.0F);
+         }
+ 
+@@ -255,6 +_,12 @@
          }
      }
  
++    AtomicBoolean setItem$playSound = new AtomicBoolean(true);
 +    public void setItem(ItemStack p_31790_, boolean p_31791_, boolean playSound) {
-+        if (!p_31790_.isEmpty()) {
-+            p_31790_ = p_31790_.copyWithCount(1);
-+        }
-+
-+        this.onItemChanged(p_31790_);
-+        this.getEntityData().set(DATA_ITEM, p_31790_);
-+        if (!p_31790_.isEmpty() && p_31791_ && playSound) { // CraftBukkit
-+            this.playSound(this.getAddItemSound(), 1.0F, 1.0F);
-+        }
-+
-+        if (p_31791_ && this.pos != null) {
-+            this.level().updateNeighbourForOutputSignal(this.pos, Blocks.AIR);
-+        }
++        setItem$playSound.set(playSound);
++        setItem(p_31790_, p_31791_);
 +    }
 +
      public SoundEvent getAddItemSound() {

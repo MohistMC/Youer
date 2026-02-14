@@ -53,7 +53,7 @@ import org.bukkit.entity.Villager;
 import org.bukkit.potion.PotionType;
 
 public class NeoForgeInjectBukkit {
-
+    public static final boolean DEBUG = Boolean.getBoolean("youer.debug");
     public static BiMap<ResourceKey<LevelStem>, World.Environment> environment =
             HashBiMap.create(ImmutableMap.<ResourceKey<LevelStem>, World.Environment>builder()
                     .put(LevelStem.OVERWORLD, World.Environment.NORMAL)
@@ -118,7 +118,7 @@ public class NeoForgeInjectBukkit {
                 if (material != null) {
                     CraftMagicNumbers.ITEM_MATERIAL.put(item, material);
                     CraftMagicNumbers.MATERIAL_ITEM.put(material, item);
-                    Youer.LOGGER.debug("Save-ITEM: {} - {}", material.name(), material.key);
+                    debug("Save-ITEM: {} - {}", material.name(), material.key);
                 }
             }
         }
@@ -145,7 +145,7 @@ public class NeoForgeInjectBukkit {
                 if (material != null) {
                     CraftMagicNumbers.BLOCK_MATERIAL.put(block, material);
                     CraftMagicNumbers.MATERIAL_BLOCK.put(material, block);
-                    Youer.LOGGER.debug("Save-BLOCK:{} - {}", material.name(), material.key);
+                    debug("Save-BLOCK:{} - {}", material.name(), material.key);
                 }
             }
         }
@@ -176,7 +176,7 @@ public class NeoForgeInjectBukkit {
                         PotionType potionType = MohistDynamEnum.addEnum(PotionType.class, name, List.of(String.class), List.of(resourceLocation.toString()));
                         if (potionType != null) {
                             CraftPotionUtil.mods.put(resourceLocation, potionType);
-                            Youer.LOGGER.debug("Save-PotionType:{} - {}", name, potionType.name());
+                            debug("Save-PotionType:{} - {}", name, potionType.name());
                         }
                     }
                 }
@@ -192,7 +192,7 @@ public class NeoForgeInjectBukkit {
             if (!resourceLocation.getNamespace().equals(NamespacedKey.MINECRAFT)) {
                 Particle particle = MohistDynamEnum.addEnum(Particle.class, name);
                 if (particle != null) {
-                    Youer.LOGGER.debug("Save-ParticleType:{} - {}", name, particle.name());
+                    debug("Save-ParticleType:{} - {}", name, particle.name());
                 }
             }
         }
@@ -209,7 +209,7 @@ public class NeoForgeInjectBukkit {
                 org.bukkit.block.Biome biomeCB = MohistDynamEnum.addEnum(org.bukkit.block.Biome.class, biomeName);
                 biomeCB.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
                 biomeBiomeMap.put(biome, biomeCB);
-                Youer.LOGGER.debug("Save-BIOME:{} - {}", biomeCB.name(), biomeName);
+                debug("Save-BIOME:{} - {}", biomeCB.name(), biomeName);
             }
         }
         map.clear();
@@ -227,7 +227,7 @@ public class NeoForgeInjectBukkit {
                 environment1 = MohistDynamEnum.addEnum(World.Environment.class, name, List.of(Integer.TYPE), List.of(id));
                 environment.put(key, environment1);
                 environment0.put(environment1, key);
-                Youer.LOGGER.debug("Registered forge DimensionType as environment {}", environment1);
+                debug("Registered forge DimensionType as environment {}", environment1);
                 i++;
             }
         }
@@ -252,7 +252,7 @@ public class NeoForgeInjectBukkit {
                 if (bukkitType != null) {
                     bukkitType.hookForgeEntity(resourceLocation, entity);
                 }
-                Youer.LOGGER.debug("Registered forge EntityType as {}", bukkitType);
+                debug("Registered forge EntityType as {}", bukkitType);
             } else {
                 if (!entityTypeNames.contains(entityName)) {
                     int typeId = entityName.hashCode();
@@ -263,7 +263,7 @@ public class NeoForgeInjectBukkit {
                     if (bukkitType != null) {
                         bukkitType.hookForgeEntity(resourceLocation, entity);
                     }
-                    Youer.LOGGER.debug("Registered mods minecraft key EntityType as {}", bukkitType);
+                    debug("Registered mods minecraft key EntityType as {}", bukkitType);
                 } else {
                     ServerAPI.entityTypeMap.put(entity, MohistDynamEnum.normalizeName(resourceLocation.getPath()));
                 }
@@ -281,7 +281,7 @@ public class NeoForgeInjectBukkit {
                 org.bukkit.attribute.Attribute ab = MohistDynamEnum.addEnum(org.bukkit.attribute.Attribute.class, name, List.of(String.class), List.of(resourceLocation.toString()));
                 if (ab != null) {
                     attributemap.put(resourceLocation, ab);
-                    Youer.LOGGER.debug("Registered forge Attribute as Attribute(Bukkit) {}", ab.name());
+                    debug("Registered forge Attribute as Attribute(Bukkit) {}", ab.name());
                 }
             }
         }
@@ -294,7 +294,7 @@ public class NeoForgeInjectBukkit {
             if (isMods(resourceLocation)) {
                 String name = MohistDynamEnum.normalizeName(resourceLocation.getPath());
                 Fluid fluid = MohistDynamEnum.addEnum(Fluid.class, name);
-                Youer.LOGGER.debug("Registered forge Fluid as Fluid(Bukkit) {}", fluid.name());
+                debug("Registered forge Fluid as Fluid(Bukkit) {}", fluid.name());
             }
         }
     }
@@ -320,7 +320,7 @@ public class NeoForgeInjectBukkit {
                 statistic = MohistDynamEnum.addEnum(Statistic.class, name, List.of(Statistic.Type.class), List.of(type));
                 statistic.key = NamespacedKey.fromString(resourceLocation.toString());
                 STATISTICS.put(resourceLocation, statistic);
-                Youer.LOGGER.debug("Registered forge STAT_TYPE as Statistic(Bukkit) {}", name);
+                debug("Registered forge STAT_TYPE as Statistic(Bukkit) {}", name);
             }
         }
         for (ResourceLocation resourceLocation : BuiltInRegistries.CUSTOM_STAT) {
@@ -330,7 +330,7 @@ public class NeoForgeInjectBukkit {
                 statistic = MohistDynamEnum.addEnum(Statistic.class, name);
                 statistic.key = NamespacedKey.fromString(resourceLocation.toString());
                 STATISTICS.put(resourceLocation, statistic);
-                Youer.LOGGER.debug("Registered forge CUSTOM_STAT as Statistic(Bukkit) {}", name);
+                debug("Registered forge CUSTOM_STAT as Statistic(Bukkit) {}", name);
             }
         }
         CraftStatistic.statistics = STATISTICS;
@@ -346,7 +346,7 @@ public class NeoForgeInjectBukkit {
                 spawnCategoryMap.put(category, spawnCategory);
                 CategoryspawnMap.put(spawnCategory, category);
                 spawnCategory.isMods = true;
-                Youer.LOGGER.debug("Registered forge MobCategory as SpawnCategory(Bukkit) {}", spawnCategory);
+                debug("Registered forge MobCategory as SpawnCategory(Bukkit) {}", spawnCategory);
             }
         }
     }
@@ -355,7 +355,7 @@ public class NeoForgeInjectBukkit {
         for (Pose pose : Pose.values()) {
             if (pose.ordinal() > 14) {
                 org.bukkit.entity.Pose bukkit = MohistDynamEnum.addEnum(org.bukkit.entity.Pose.class, pose.name());
-                Youer.LOGGER.debug("Registered forge Pose as Pose(Bukkit) {}", bukkit);
+                debug("Registered forge Pose as Pose(Bukkit) {}", bukkit);
             }
         }
     }
@@ -375,7 +375,7 @@ public class NeoForgeInjectBukkit {
                 Art.BY_NAME.put(lookupName, art);
                 Art.BY_ID.put(id, art);
                 art.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
-                Youer.LOGGER.debug("Registered forge PaintingType as Art {}", art);
+                debug("Registered forge PaintingType as Art {}", art);
                 i++;
             }
         }
@@ -389,7 +389,7 @@ public class NeoForgeInjectBukkit {
                 String name = resourceLocation.getPath().replace(".", "_").toUpperCase(Locale.ROOT);
                 Sound sound = MohistDynamEnum.addEnum(Sound.class, name, List.of(String.class), List.of(resourceLocation.toString()));
                 Sound.MODD_SOUNDS.put(statType, sound);
-                Youer.LOGGER.debug("Registered mods SoundEvent as Sound(Bukkit) {}", sound.name());
+                debug("Registered mods SoundEvent as Sound(Bukkit) {}", sound.name());
             }
         }
     }
@@ -407,5 +407,13 @@ public class NeoForgeInjectBukkit {
             }
         } catch (Throwable ignored) {
         }
+    }
+    
+    public static void debug(String message, Object p0) {
+        if (DEBUG) Youer.LOGGER.debug(message, p0);
+    }
+
+    public static void debug(String message, Object p0, Object p1) {
+        if (DEBUG) Youer.LOGGER.debug(message, p0, p1);
     }
 }
