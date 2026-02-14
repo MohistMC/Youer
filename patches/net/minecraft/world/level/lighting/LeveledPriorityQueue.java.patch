@@ -4,9 +4,25 @@
      }
  
      public long removeFirstLong() {
-+        if (this.isEmpty() || this.firstQueuedLevel < 0) {
++        if (this.isEmpty() || this.firstQueuedLevel < 0 || this.firstQueuedLevel >= this.levelCount) {
 +            return 0L;
 +        }
          LongLinkedOpenHashSet longlinkedopenhashset = this.queues[this.firstQueuedLevel];
          long i = longlinkedopenhashset.removeFirstLong();
          if (longlinkedopenhashset.isEmpty()) {
+@@ -55,11 +_,12 @@
+     }
+ 
+     private void checkFirstQueuedLevel(int p_278303_) {
++        int targetLevel = Math.min(p_278303_, this.levelCount);
+         int i = this.firstQueuedLevel;
+-        this.firstQueuedLevel = p_278303_;
++        this.firstQueuedLevel = targetLevel;
+ 
+-        for (int j = i + 1; j < p_278303_; j++) {
+-            if (!this.queues[j].isEmpty()) {
++        for (int j = i + 1; j < targetLevel; j++) {
++            if (j < this.levelCount && !this.queues[j].isEmpty()) {
+                 this.firstQueuedLevel = j;
+                 break;
+             }

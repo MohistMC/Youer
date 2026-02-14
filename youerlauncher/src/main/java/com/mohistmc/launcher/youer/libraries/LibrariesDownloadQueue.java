@@ -82,8 +82,8 @@ public class LibrariesDownloadQueue {
                 for (Libraries lib : need_download) {
                     File file = new File(parentDirectory, lib.path);
                     file.getParentFile().mkdirs();
-                    String url = "META-INF/" + file.getPath();
-                    if (copyFileFromJar(file, url.replaceAll("\\\\", "/"), lib)) {
+                    String url = "META-INF/" + file.getPath().replace(File.separatorChar, '/');
+                    if (copyFileFromJar(file, url, lib)) {
                         debug("copyFileFromJar: OK");
                         fail.remove(lib);
                     } else {

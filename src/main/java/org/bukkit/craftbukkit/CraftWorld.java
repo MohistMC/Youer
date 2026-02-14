@@ -2339,13 +2339,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public boolean isMods() {
-        String path = getWorldFolder().getAbsolutePath().replaceAll("\\\\", "/");
+        String path = getWorldFolder().getAbsolutePath().replace(File.separatorChar, '/');
         return !isBukkit() && path.contains("/world/dimensions/");
     }
 
     @Override
     public String getModid() {
-        String path = getWorldFolder().getAbsolutePath().replaceAll("\\\\", "/");
+        String path = getWorldFolder().getAbsolutePath().replace(File.separatorChar, '/');
         String modName = "";
         if(path.contains("/world/dimensions/")) {
             modName = path.split("/world/dimensions/")[1].split("/")[0];

@@ -266,7 +266,7 @@ public class Action {
             if (clearOld) {
                 File parentfile = file.getParentFile();
                 if (file.getAbsolutePath().contains("neoforge")) {
-                    int lastSlashIndex = parentfile.getAbsolutePath().replaceAll("\\\\", "/").lastIndexOf("/");
+                    int lastSlashIndex = parentfile.getAbsolutePath().lastIndexOf(File.separator);
                     String result = parentfile.getAbsolutePath().substring(0, lastSlashIndex + 1);
                     File old = new File(result);
                     if (old.exists()) {
