@@ -542,7 +542,7 @@
 +
 +        Component defaultMessage = this.getCombatTracker().getDeathMessage();
 +        keepLevel = keepInventory; // SPIGOT-2222: pre-set keepLevel
-+        PlayerDeathEvent event = CraftEventFactory.callPlayerDeathEvent(this, p_9035_, loot, PaperAdventure.asAdventure(defaultMessage), keepInventory); // Paper - Adventure
++        PlayerDeathEvent event = CraftEventFactory.callPlayerDeathEvent(this, p_9035_, loot, ColorAPI.adventure(defaultMessage.getString()), keepInventory); // Paper - Adventure
 +        // Paper start - cancellable death event
 +        if (event.isCancelled()) {
 +            // make compatible with plugins that might have already set the health in an event listener
@@ -868,7 +868,7 @@
      }
  
 +    public int nextContainerCounterInt() {
-+        this.containerCounter = this.containerCounter % 100 + 1;
++        this.nextContainerCounter();
 +        return containerCounter; // CraftBukkit
 +    }
 +
@@ -973,12 +973,8 @@
  
      @Override
      public void openHorseInventory(AbstractHorse p_9059_, Container p_9060_) {
--        if (this.containerMenu != this.inventoryMenu) {
--            this.closeContainer();
--        }
--
 +        // CraftBukkit start - Inventory open hook
-         this.nextContainerCounter();
++        this.nextContainerCounter();
 +        AbstractContainerMenu container = new HorseInventoryMenu(this.containerCounter, this.getInventory(), p_9060_, p_9059_, p_9059_.getInventoryColumns());
 +        container.setTitle(p_9059_.getDisplayName());
 +        container = CraftEventFactory.callInventoryOpenEvent(this, container);
@@ -987,10 +983,11 @@
 +            return;
 +        }
 +        // CraftBukkit end
-+        if (this.containerMenu != this.inventoryMenu) {
-+            this.closeContainer();
-+        }
-+
+         if (this.containerMenu != this.inventoryMenu) {
+             this.closeContainer();
+         }
+ 
+-        this.nextContainerCounter();
 +        // this.nextContainerCounter(); // CraftBukkit - moved up
          int i = p_9059_.getInventoryColumns();
          this.connection.send(new ClientboundHorseScreenOpenPacket(this.containerCounter, i, p_9059_.getId()));
