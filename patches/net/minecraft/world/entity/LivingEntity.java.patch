@@ -399,7 +399,7 @@
              boolean flag = playerteam != null && scoreboard.addPlayerToTeam(this.getStringUUID(), playerteam);
              if (!flag) {
                  LOGGER.warn("Unable to add mob to team \"{}\" (that team probably doesn't exist)", s);
-@@ -762,17 +_,51 @@
+@@ -762,17 +_,53 @@
          if (p_21096_.contains("Brain", 10)) {
              this.brain = this.makeBrain(new Dynamic<>(NbtOps.INSTANCE, p_21096_.get("Brain")));
          }
@@ -445,9 +445,11 @@
 -                    if (!this.level().isClientSide) {
 +                    if (!this.level().isClientSide && !NeoForge.EVENT_BUS.post(new MobEffectEvent.Expired(this, mobeffectinstance)).isCanceled()) {
 +                        // CraftBukkit start
-+                        EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, mobeffectinstance, null, EntityPotionEffectEvent.Cause.EXPIRATION);
-+                        if (event.isCancelled()) {
-+                            continue;
++                        if (!AsyncCatcher.catchAsync()) {
++                            EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, mobeffectinstance, null, EntityPotionEffectEvent.Cause.EXPIRATION);
++                            if (event.isCancelled()) {
++                                continue;
++                            }
 +                        }
 +                        // CraftBukkit end
                          iterator.remove();
@@ -491,7 +493,7 @@
          return d0;
      }
  
-@@ -891,20 +_,41 @@
+@@ -891,20 +_,43 @@
          this.entityData.set(DATA_EFFECT_PARTICLES, List.of());
      }
  
@@ -512,9 +514,11 @@
 +                MobEffectInstance effect = iterator.next();
 +                if(EventHooks.onEffectRemoved(this, effect, null)) continue;
 +                // CraftBukkit start
-+                EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, effect, null, removeAllEffects$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), EntityPotionEffectEvent.Action.CLEARED);
-+                if (event.isCancelled()) {
-+                    continue;
++                if (!AsyncCatcher.catchAsync()) {
++                    EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, effect, null, removeAllEffects$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), EntityPotionEffectEvent.Action.CLEARED);
++                    if (event.isCancelled()) {
++                        continue;
++                    }
 +                }
 +                this.onEffectRemoved(effect);
 +                // CraftBukkit end
@@ -534,7 +538,7 @@
      }
  
      public Collection<MobEffectInstance> getActiveEffects() {
-@@ -925,22 +_,60 @@
+@@ -925,22 +_,59 @@
      }
  
      public final boolean addEffect(MobEffectInstance p_21165_) {
@@ -561,7 +565,6 @@
  
      public boolean addEffect(MobEffectInstance p_147208_, @Nullable Entity p_147209_) {
 -        if (!this.canBeAffected(p_147208_)) {
-+        boolean isAsync = AsyncCatcher.catchAsync();
 +        if (!CommonHooks.canMobEffectBeApplied(this, p_147208_, p_147209_)) {
              return false;
          } else {
@@ -574,7 +577,7 @@
 +                override = new MobEffectInstance(mobeffectinstance).update(p_147208_);
 +            }
 +
-+            if (!isAsync && addEffect$fireEvent.getAndSet(true)) {
++            if (!AsyncCatcher.catchAsync() && addEffect$fireEvent.getAndSet(true)) {
 +                EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, mobeffectinstance, p_147208_, addEffect$Cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), override);
 +                override = event.isOverride(); // Paper - Don't fire sync event during generation
 +                if (event.isCancelled()) {
@@ -634,7 +637,7 @@
              MobEffectInstance mobeffectinstance = this.activeEffects.put(p_147216_.getEffect(), p_147216_);
              if (mobeffectinstance == null) {
                  this.onEffectAdded(p_147216_, p_147217_);
-@@ -977,12 +_,39 @@
+@@ -977,12 +_,42 @@
          return this.getType().is(EntityTypeTags.INVERTED_HEALING_AND_HARM);
      }
  
@@ -655,10 +658,13 @@
 +            return null;
 +        }
 +
-+        EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, effect, null, removeEffectNoUpdateCause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN));
-+        if (event.isCancelled()) {
-+            return null;
++        if (!AsyncCatcher.catchAsync()) {
++            EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, effect, null, removeEffectNoUpdateCause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN));
++            if (event.isCancelled()) {
++                return null;
++            }
 +        }
++
          return this.activeEffects.remove(p_316233_);
      }
  
