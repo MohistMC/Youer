@@ -112,10 +112,11 @@
  import net.minecraft.world.level.storage.ServerLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
-@@ -164,7 +_,26 @@
+@@ -164,7 +_,27 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
++import net.neoforged.neoforge.common.util.FakePlayer;
 +import org.bukkit.Bukkit;
 +import org.bukkit.Location;
 +import org.bukkit.craftbukkit.CraftWorld;
@@ -951,7 +952,7 @@
                  double d2 = (double)p_8613_.getZ() - serverplayer.getZ();
 +
 +                // CraftBukkit start
-+                if (entityhuman != null && !serverplayer.getBukkitEntity().canSee(entityhuman.getBukkitEntity())) {
++                if (entityhuman != null && !(entityhuman instanceof FakePlayer) && !serverplayer.getBukkitEntity().canSee(entityhuman.getBukkitEntity())) {
 +                    continue;
 +                }
 +                // CraftBukkit end
@@ -1063,7 +1064,7 @@
 -            if (this.sendParticles(serverplayer, false, p_8769_, p_8770_, p_8771_, clientboundlevelparticlespacket)) {
 +        for (Player entityhuman : receivers) { // Paper - Particle API
 +            ServerPlayer serverplayer = (ServerPlayer) entityhuman; // Paper - Particle API
-+            if (sender != null && !serverplayer.getBukkitEntity().canSee(sender.getBukkitEntity())) continue; // CraftBukkit
++            if (sender != null && !(sender instanceof FakePlayer) && !serverplayer.getBukkitEntity().canSee(sender.getBukkitEntity())) continue; // CraftBukkit
 +            if (this.sendParticles(serverplayer, force, p_8769_, p_8770_, p_8771_, clientboundlevelparticlespacket)) { // CraftBukkit
                  i++;
              }
