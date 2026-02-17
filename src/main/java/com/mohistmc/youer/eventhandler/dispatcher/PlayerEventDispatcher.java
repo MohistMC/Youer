@@ -23,6 +23,7 @@ import net.minecraft.util.Unit;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.event.entity.player.CanPlayerSleepEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
@@ -33,16 +34,19 @@ public class PlayerEventDispatcher {
 
     @SubscribeEvent
     public void onContainerClose(PlayerContainerEvent.Close event) {
+        var player = event.getEntity();
+        var bukkit = player.getBukkitEntity();
         // Youer start - Custom Container compatible with mods
         AbstractContainerMenu abstractcontainermenu = event.getContainer();
-        abstractcontainermenu.containerOwner = event.getEntity();
+        abstractcontainermenu.containerOwner = player;
         if (abstractcontainermenu.getBukkitView() == null) {
-            org.bukkit.inventory.Inventory inventory = new CraftInventory(new YouerModsInventory(abstractcontainermenu, event.getEntity()));
+            org.bukkit.inventory.Inventory inventory = new CraftInventory(new YouerModsInventory(abstractcontainermenu, player));
             inventory.getType().setMods(true);
-            abstractcontainermenu.bukkitView = new CraftInventoryView<>(event.getEntity().getBukkitEntity(), inventory, abstractcontainermenu);
+            abstractcontainermenu.bukkitView = new CraftInventoryView<>(bukkit, inventory, abstractcontainermenu);
         }
         // Youer end
-        CraftEventFactory.handleInventoryCloseEvent(event.getEntity(), event.getClose$Reason()); // CraftBukkit
+        if (player instanceof FakePlayer || bukkit == null) return;
+        CraftEventFactory.handleInventoryCloseEvent(player, event.getClose$Reason()); // CraftBukkit
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
