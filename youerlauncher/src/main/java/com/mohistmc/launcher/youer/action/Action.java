@@ -23,7 +23,6 @@ import com.mohistmc.launcher.youer.feature.DefaultLibraries;
 import com.mohistmc.launcher.youer.feature.YouerProxySelector;
 import com.mohistmc.launcher.youer.libraries.Libraries;
 import com.mohistmc.launcher.youer.util.DataParser;
-import com.mohistmc.launcher.youer.util.I18n;
 import com.mohistmc.launcher.youer.util.LaunchArgsParser;
 import com.mohistmc.tools.FileUtils;
 import com.mohistmc.tools.MojangEulaUtil;
@@ -48,9 +47,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 import lombok.SneakyThrows;
-import me.tongfei.progressbar.ProgressBar;
-import me.tongfei.progressbar.ProgressBarBuilder;
-import me.tongfei.progressbar.ProgressBarStyle;
 
 public class Action {
 
@@ -90,9 +86,6 @@ public class Action {
         copyFileFromJar(BINPATCH, "data/client.lzma", true);
         copyFileFromJar(universalJar, "data/neoforge-%s-universal.jar".formatted(neoforgeVer), false);
 
-        System.out.println(I18n.as("installation.start"));
-        System.out.println(I18n.as("libraries.global.percentage"));
-
         if (youerVer == null) {
             System.out.println("[Youer] There is an error with the installation, the neoforge / neoform version is not set.");
             System.exit(0);
@@ -108,22 +101,11 @@ public class Action {
                 "--apply-patches", BINPATCH.getAbsolutePath()
         ));
 
-
-        try (ProgressBar pb = new ProgressBarBuilder()
-                .setTaskName("")
-                .setInitialMax(tasks.size())
-                .setStyle(ProgressBarStyle.ASCII)
-                .setUpdateIntervalMillis(10)
-                .build()) {
-
-            mute();
-            for (InstallationTask task : tasks) {
-                task.execute(pb);
-            }
-            unmute();
+        mute();
+        for (InstallationTask task : tasks) {
+            task.execute();
         }
-        System.out.println(I18n.as("installation.finished"));
-        start();
+        unmute();
     }
 
     protected void run(String mainClass, String... args) throws Exception {
@@ -229,12 +211,19 @@ public class Action {
                 MojangEulaUtil.writeInfos(Main.i18n.as("eula.text", "https://account.mojang.com/documents/minecraft_eula") + "\n" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\neula=true");
             }
         }
-        net.neoforged.fml.startup.Server.main(forgeArgs.toArray(String[]::new));
+        try {
+            Class<?> serverClass = Class.forName("net.neoforged.fml.startup.Server");
+            java.lang.reflect.Method mainMethod = serverClass.getDeclaredMethod("main", String[].class);
+            mainMethod.invoke(null, (Object) forgeArgs.toArray(String[]::new));
+        } catch (Exception e) {
+            System.err.println("Failed to invoke Server.main via reflection: " + e.getMessage());
+            e.printStackTrace();
+        }
         ProxySelector.setDefault(new YouerProxySelector(ProxySelector.getDefault()));
     }
 
     private interface InstallationTask {
-        void execute(ProgressBar pb) throws Exception;
+        void execute() throws Exception;
     }
 
     private class ConsoleToolTask implements InstallationTask {
@@ -247,9 +236,8 @@ public class Action {
         }
 
         @Override
-        public void execute(ProgressBar pb) throws Exception {
+        public void execute() throws Exception {
             run(mainClass, args);
-            pb.step();
         }
     }
 }

@@ -18,7 +18,6 @@
 package com.mohistmc.launcher.youer.feature;
 
 import com.mohistmc.launcher.youer.libraries.LibrariesDownloadQueue;
-import com.mohistmc.launcher.youer.util.I18n;
 import lombok.SneakyThrows;
 
 public class DefaultLibraries {
@@ -26,12 +25,8 @@ public class DefaultLibraries {
     @SneakyThrows
     public static void run() {
         LibrariesDownloadQueue queue = LibrariesDownloadQueue.create().build();
-        System.out.println(I18n.as("libraries.checking.start"));
         if (queue.needDownload()) {
-            System.out.println(I18n.as("libraries.global.percentage"));
             queue.progressBar();
         }
-
-        System.out.println(I18n.as("libraries.check.end"));
     }
 }

@@ -22,10 +22,12 @@ import com.mohistmc.launcher.youer.action.Action;
 import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.feature.DefaultLibraries;
 import com.mohistmc.launcher.youer.util.DataParser;
+import com.mohistmc.launcher.youer.util.I18n;
 import com.mohistmc.tools.Logo;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.SneakyThrows;
 
 public class Main {
     public static final boolean DEBUG = Boolean.getBoolean("youer.debug");
@@ -37,6 +39,7 @@ public class Main {
         return (Main.class.getPackage().getImplementationVersion() != null) ? Main.class.getPackage().getImplementationVersion() : MCVERSION;
     }
 
+    @SneakyThrows
     static void main(String[] args) {
         mainArgs.addAll(List.of(args));
         DataParser.parseVersions();
@@ -63,13 +66,20 @@ public class Main {
             }
         }
 
-
+        long startTime = System.currentTimeMillis();
         if (System.getProperty("log4j2.configurationFile") == null) {
             System.setProperty("log4j2.configurationFile", "log4j2_youer.xml");
         }
+        System.out.println(" ");
+        System.out.println(I18n.as("deployment.environment"));
         if (YouerConfigUtil.CHECK_LIBRARIES()) {
             DefaultLibraries.run();
         }
-        new Action();
+        var action = new Action();
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+        double seconds = duration / 1000.0;
+        System.out.println(I18n.as("deployment.finished", seconds));
+        action.start();
     }
 }

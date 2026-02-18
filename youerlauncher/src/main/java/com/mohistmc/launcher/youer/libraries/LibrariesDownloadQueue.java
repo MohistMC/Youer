@@ -18,10 +18,6 @@ import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import lombok.SneakyThrows;
-import lombok.ToString;
-import me.tongfei.progressbar.ProgressBar;
-import me.tongfei.progressbar.ProgressBarBuilder;
-import me.tongfei.progressbar.ProgressBarStyle;
 
 import static com.mohistmc.launcher.youer.Main.DEBUG;
 
@@ -58,24 +54,16 @@ public class LibrariesDownloadQueue {
      */
     public void progressBar() {
         if (needDownload()) {
-            ProgressBarBuilder builder = new ProgressBarBuilder()
-                    .setTaskName("")
-                    .setStyle(ProgressBarStyle.ASCII)
-                    .setUpdateIntervalMillis(100)
-                    .setInitialMax(need_download.size());
-            try (ProgressBar pb = builder.build()) {
-                for (Libraries lib : need_download) {
-                    File file = new File(Action.LIBRARIES, lib.path);
-                    file.getParentFile().mkdirs();
-                    String url = "META-INF/" + file.getPath();
-                    if (copyFileFromJar(file, url.replaceAll("\\\\", "/"), lib)) {
-                        debug("copyFileFromJar: OK");
-                        fail.remove(lib);
-                    } else {
-                        debug("copyFileFromJar: No " + url);
-                        fail.add(lib);
-                    }
-                    pb.step();
+            for (Libraries lib : need_download) {
+                File file = new File(Action.LIBRARIES, lib.path);
+                file.getParentFile().mkdirs();
+                String url = "META-INF/" + file.getPath();
+                if (copyFileFromJar(file, url.replaceAll("\\\\", "/"), lib)) {
+                    debug("copyFileFromJar: OK");
+                    fail.remove(lib);
+                } else {
+                    debug("copyFileFromJar: No " + url);
+                    fail.add(lib);
                 }
             }
         }

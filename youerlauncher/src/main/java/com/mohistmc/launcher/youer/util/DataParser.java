@@ -25,8 +25,8 @@ public class DataParser {
     }
 
     public static void parseLaunchArgs() {
-        OSUtil.OS os = OSUtil.getOS();
-        String osName = os.isWindows() ? "win" : "unix";
+        var os = OSUtil.getOS();
+        var osName = os.isWindows() ? "win" : "unix";
         launchArgs.addAll(FileUtils.readFileFromJar(DataParser.class.getClassLoader(), "data/" + osName + "_args.txt"));
     }
 }
