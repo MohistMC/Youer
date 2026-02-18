@@ -17,6 +17,7 @@ import net.minecraft.client.renderer.block.model.BlockElementFace;
 import net.minecraft.client.renderer.block.model.BlockElementRotation;
 import net.minecraft.client.renderer.block.model.FaceBakery;
 import net.minecraft.client.renderer.block.model.ItemTransform;
+import net.minecraft.client.renderer.block.model.Material;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
@@ -32,8 +33,6 @@ public final class ExtendedModelTemplate extends ModelTemplate {
     final CustomLoaderBuilder customLoader;
     final RootTransformsBuilder rootTransforms;
     @Nullable
-    final Identifier renderType;
-    @Nullable
     final Boolean ambientOcclusion;
     final UnbakedModel.@Nullable GuiLight guiLight;
 
@@ -43,13 +42,12 @@ public final class ExtendedModelTemplate extends ModelTemplate {
         this.elements = List.copyOf(builder.elements);
         this.customLoader = builder.customLoader;
         this.rootTransforms = builder.rootTransforms;
-        this.renderType = builder.renderType;
         this.ambientOcclusion = builder.ambientOcclusion;
         this.guiLight = builder.guiLight;
     }
 
     @Override
-    public JsonObject createBaseTemplate(Identifier modelPath, Map<TextureSlot, Identifier> textureMap) {
+    public JsonObject createBaseTemplate(Identifier modelPath, Map<TextureSlot, Material> textureMap) {
         var root = super.createBaseTemplate(modelPath, textureMap);
 
         if (this.ambientOcclusion != null) {
@@ -58,10 +56,6 @@ public final class ExtendedModelTemplate extends ModelTemplate {
 
         if (this.guiLight != null) {
             root.addProperty("gui_light", this.guiLight.getSerializedName());
-        }
-
-        if (this.renderType != null) {
-            root.addProperty("render_type", this.renderType.toString());
         }
 
         if (!this.transforms.isEmpty()) {

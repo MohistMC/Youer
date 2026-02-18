@@ -1,66 +1,28 @@
 --- a/net/minecraft/client/renderer/feature/BlockFeatureRenderer.java
 +++ b/net/minecraft/client/renderer/feature/BlockFeatureRenderer.java
-@@ -47,13 +_,18 @@
-     private void renderMovingBlockSubmits(
-         SubmitNodeCollection nodeCollection, MultiBufferSource.BufferSource bufferSource, BlockRenderDispatcher blockRenderDispatcher, boolean translucent
-     ) {
-+        if (nodeCollection.getMovingBlockSubmits().isEmpty()) return;
-+        java.util.function.Function<net.minecraft.client.renderer.chunk.ChunkSectionLayer, com.mojang.blaze3d.vertex.VertexConsumer> bufferLookup =
-+                chunkLayer -> bufferSource.getBuffer(net.neoforged.neoforge.client.RenderTypeHelper.getMovingBlockRenderType(chunkLayer));
-         for (SubmitNodeStorage.MovingBlockSubmit submit : nodeCollection.getMovingBlockSubmits()) {
+@@ -59,7 +_,7 @@
              MovingBlockRenderState movingBlockRenderState = submit.movingBlockRenderState();
              BlockState blockState = movingBlockRenderState.blockState;
--            RenderType renderType = ItemBlockRenderTypes.getMovingBlockRenderType(blockState);
--            if (renderType.hasBlending() == translucent) {
-+            // Neo: bypass single-rendertype blending check
-+            if (true) {
-                 List<BlockModelPart> parts = blockRenderDispatcher.getBlockModel(blockState)
--                    .collectParts(RandomSource.create(blockState.getSeed(movingBlockRenderState.randomSeedPos)));
-+                    .collectParts(movingBlockRenderState.level, movingBlockRenderState.blockPos, movingBlockRenderState.blockState, RandomSource.create(blockState.getSeed(movingBlockRenderState.randomSeedPos)));
-+                // Neo: filter out parts using a render type which does not match the translucent flag
-+                parts.removeIf(part -> part.getRenderType(blockState).sortOnUpload() != translucent);
+             BlockStateModel model = blockRenderDispatcher.getBlockModel(blockState);
+-            if (model.hasTranslucency() == translucent) {
++            if (model.hasTranslucency(movingBlockRenderState.level, movingBlockRenderState.blockPos, blockState) == translucent) {
+                 List<BlockModelPart> parts = model.collectParts(RandomSource.create(blockState.getSeed(movingBlockRenderState.randomSeedPos)));
                  PoseStack poseStack = new PoseStack();
                  poseStack.mulPose(submit.pose());
-                 blockRenderDispatcher.getModelRenderer()
-@@ -63,7 +_,7 @@
-                         blockState,
-                         movingBlockRenderState.blockPos,
-                         poseStack,
--                        bufferSource.getBuffer(renderType),
-+                        bufferLookup,
-                         false,
-                         OverlayTexture.NO_OVERLAY
-                     );
-@@ -78,15 +_,18 @@
-         OutlineBufferSource outlineBufferSource,
-         boolean translucent
+@@ -90,13 +_,13 @@
      ) {
-+        if (nodeCollection.getBlockSubmits().isEmpty()) return;
-+        java.util.function.Predicate<net.minecraft.client.renderer.chunk.ChunkSectionLayer> chunkLayerFilter =
-+                translucent ? layer -> layer.sortOnUpload() : layer -> !layer.sortOnUpload();
          for (SubmitNodeStorage.BlockSubmit submit : nodeCollection.getBlockSubmits()) {
--            RenderType renderType = ItemBlockRenderTypes.getRenderType(submit.state());
--            if (renderType.hasBlending() == translucent) {
-+            // Neo: bypass single-rendertype blending check
-+            if (true) {
+             BlockStateModel model = blockRenderDispatcher.getBlockModel(submit.state());
+-            if (model.hasTranslucency() == translucent) {
++            if (model.hasTranslucency(net.minecraft.world.level.EmptyBlockAndTintGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO, submit.state()) == translucent) {
                  this.poseStack.pushPose();
                  this.poseStack.last().set(submit.pose());
 -                blockRenderDispatcher.renderSingleBlock(submit.state(), this.poseStack, bufferSource, submit.lightCoords(), submit.overlayCoords());
-+                blockRenderDispatcher.renderSingleBlock(submit.state(), this.poseStack, bufferSource, submit.lightCoords(), submit.overlayCoords(), net.minecraft.world.level.EmptyBlockAndTintGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO, chunkLayerFilter);
++                blockRenderDispatcher.renderSingleBlock(submit.state(), this.poseStack, bufferSource, submit.lightCoords(), submit.overlayCoords(), net.minecraft.world.level.EmptyBlockAndTintGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO);
                  if (submit.outlineColor() != 0) {
                      outlineBufferSource.setColor(submit.outlineColor());
 -                    blockRenderDispatcher.renderSingleBlock(submit.state(), this.poseStack, outlineBufferSource, submit.lightCoords(), submit.overlayCoords());
-+                    blockRenderDispatcher.renderSingleBlock(submit.state(), this.poseStack, outlineBufferSource, submit.lightCoords(), submit.overlayCoords(), net.minecraft.world.level.EmptyBlockAndTintGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO, chunkLayerFilter);
++                    blockRenderDispatcher.renderSingleBlock(submit.state(), this.poseStack, outlineBufferSource, submit.lightCoords(), submit.overlayCoords(), net.minecraft.world.level.EmptyBlockAndTintGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO);
                  }
  
                  this.poseStack.popPose();
-@@ -97,6 +_,9 @@
-     private void renderBlockModelSubmits(
-         SubmitNodeCollection nodeCollection, MultiBufferSource.BufferSource bufferSource, OutlineBufferSource outlineBufferSource, boolean translucent
-     ) {
-+        // Neo: render extended block model submits with support for per-part render types
-+        renderExtendedBlockModelSubmits(nodeCollection.getExtendedBlockModelSubmits(), bufferSource, outlineBufferSource, translucent);
-+
-         for (SubmitNodeStorage.BlockModelSubmit submit : nodeCollection.getBlockModelSubmits()) {
-             if (submit.renderType().hasBlending() == translucent) {
-                 ModelBlockRenderer.renderModel(

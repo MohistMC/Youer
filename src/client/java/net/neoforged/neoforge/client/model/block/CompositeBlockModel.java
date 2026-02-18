@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.renderer.block.model.BlockModelPart;
 import net.minecraft.client.renderer.block.model.BlockStateModel;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.renderer.block.model.Material;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
@@ -22,11 +22,13 @@ import org.jspecify.annotations.Nullable;
 
 public class CompositeBlockModel implements DynamicBlockStateModel {
     private final List<BlockStateModel> models;
-    private final TextureAtlasSprite particleIcon;
+    private final Material.Baked particleMaterial;
+    private final boolean hasTranslucency;
 
     public CompositeBlockModel(List<BlockStateModel> models) {
         this.models = models;
-        this.particleIcon = models.getFirst().particleIcon();
+        this.particleMaterial = models.getFirst().particleMaterial();
+        this.hasTranslucency = models.stream().anyMatch(BlockStateModel::hasTranslucency);
     }
 
     @Override
@@ -64,8 +66,28 @@ public class CompositeBlockModel implements DynamicBlockStateModel {
     }
 
     @Override
-    public TextureAtlasSprite particleIcon() {
-        return particleIcon;
+    public Material.Baked particleMaterial() {
+        return particleMaterial;
+    }
+
+    @Override
+    public Material.Baked particleMaterial(BlockAndTintGetter level, BlockPos pos, BlockState state) {
+        return models.getFirst().particleMaterial(level, pos, state);
+    }
+
+    @Override
+    public boolean hasTranslucency() {
+        return hasTranslucency;
+    }
+
+    @Override
+    public boolean hasTranslucency(BlockAndTintGetter level, BlockPos pos, BlockState state) {
+        for (BlockStateModel model : models) {
+            if (model.hasTranslucency(level, pos, state)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public record Unbaked(List<BlockStateModel.Unbaked> models) implements CustomUnbakedBlockStateModel {
