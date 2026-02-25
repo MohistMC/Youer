@@ -1,6 +1,7 @@
 package com.mohistmc.youer;
 
 import com.google.common.base.Throwables;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.commands.BackupWorldCommand;
 import com.mohistmc.youer.commands.DumpCommand;
 import com.mohistmc.youer.commands.InfoCommand;
@@ -11,6 +12,7 @@ import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.feature.YouerPlugin;
 import com.mohistmc.youer.feature.ban.BansCommand;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig;
+import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import net.minecraft.server.MinecraftServer;
+import net.neoforged.neoforge.internal.versions.neoforge.NeoForgeVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -122,6 +125,7 @@ public class YouerConfig {
     public static String player_modlist_blacklist_failurereasons;
     public static List<String> player_modlist_blacklist;
     public static boolean fakeplayer_callbukkitevent = false;
+    public static String message_require_neoforge;
 
     static int version;
     static Map<String, Command> commands;
@@ -311,6 +315,7 @@ public class YouerConfig {
         player_modlist_blacklist = getStringList("player_modlist_blacklist.list", new ArrayList<>());
 
         fakeplayer_callbukkitevent = getBoolean("fakeplayer.callbukkitevent", fakeplayer_callbukkitevent);
+        message_require_neoforge = getString("message.require_neoforge", I18n.as("neoforge.network.negotiation.failure.vanilla.client.not_supported"));
 
         getBoolean("keepinventory.world.inventory", false);
         getBoolean("keepinventory.world.exp", false);
@@ -324,5 +329,9 @@ public class YouerConfig {
         int priority = YouerConfig.yml.getInt("threadpriority.server_thread", 5);
         priority = Math.max(Thread.MIN_PRIORITY, Math.min(Thread.MAX_PRIORITY, priority));
         return priority;
+    }
+
+    public static String getMessage_require_neoforge() {
+        return ColorAPI.string(message_require_neoforge.formatted(NeoForgeVersion.getVersion()));
     }
 }

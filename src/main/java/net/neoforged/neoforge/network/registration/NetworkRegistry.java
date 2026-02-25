@@ -433,7 +433,7 @@ public class NetworkRegistry {
 
             //Negotiation failed. Disconnect the client.
             if (!negotiationResult.success()) {
-                listener.disconnect(Component.literal(I18n.as("neoforge.network.negotiation.failure.vanilla.client.not_supported", NeoForgeVersion.getVersion())));
+                listener.disconnect(Component.literal(YouerConfig.getMessage_require_neoforge()));
                 return false;
             }
         }
