@@ -1,10 +1,11 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1,17 +_,25 @@
+@@ -1,17 +_,26 @@
  package net.minecraft.world.level;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
  import com.google.common.collect.Lists;
++import com.mohistmc.youer.YouerConfig;
 +import com.mohistmc.youer.api.event.block.SetBlockEvent;
 +import com.mohistmc.youer.feature.ban.bans.BanBlock;
  import com.mojang.serialization.Codec;
@@ -286,7 +287,7 @@
      public ChunkAccess getChunk(int p_46502_, int p_46503_, ChunkStatus p_331611_, boolean p_46505_) {
          ChunkAccess chunkaccess = this.getChunkSource().getChunk(p_46502_, p_46503_, p_331611_, p_46505_);
          if (chunkaccess == null && p_46505_) {
-@@ -202,13 +_,47 @@
+@@ -202,13 +_,50 @@
          }
      }
  
@@ -310,6 +311,9 @@
 +        }
 +        this.captured.set(false);
 +        {
++            if (YouerConfig.custom_disabled_spawner && p_46606_.getBlock() == Blocks.SPAWNER) {
++                p_46606_ = Blocks.AIR.defaultBlockState();
++            }
 +            if (SetBlockEvent.getHandlerList().getRegisteredListeners().length > 0 && this.getWorld() != null) {
 +                SetBlockEvent event = new SetBlockEvent(new Location(this.getWorld(), p_46605_.getX(), p_46605_.getY(), p_46605_.getZ()));
 +                Bukkit.getPluginManager().callEvent(event);
