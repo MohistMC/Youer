@@ -1,6 +1,7 @@
 package com.mohistmc.youer.bukkit.pluginfix;
 
 import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.YouerConfig;
 import java.util.function.Consumer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -96,6 +97,7 @@ public class PluginFixManager {
     }
 
     private static void cmilib(ClassNode node) {
+        if (!YouerConfig.custom_fix_cmi_tempban) return;
         for (MethodNode methodNode : node.methods) {
             if (methodNode.name.equals("isPaperBranch") && methodNode.desc.equals("()Z")) {
                 InsnList toInject = new InsnList();

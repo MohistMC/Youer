@@ -120,6 +120,7 @@ public class YouerConfig {
     public static int custom_lava_speed_normal;
     public static int custom_lava_speed_nether;
     public static boolean custom_fix_flat;
+    public static boolean custom_fix_cmi_tempban;
     public static boolean custom_disabled_spawner;
     public static boolean player_modlist_blacklist_enable;
     public static boolean player_modlist_blacklist_use_real_feedback;
@@ -309,6 +310,7 @@ public class YouerConfig {
         custom_lava_speed_normal = getInt("custom.lava_speed.normal", 30);
         custom_lava_speed_nether = getInt("custom.lava_speed.nether", 10);
         custom_fix_flat = getBoolean("custom.fix_flat", false);
+        custom_fix_cmi_tempban = getBoolean("custom.fix_cmi_tempban", false);
         custom_disabled_spawner = getBoolean("custom.disabled_spawner", false);
 
         player_modlist_blacklist_enable = getBoolean("player_modlist_blacklist.enable", false);
