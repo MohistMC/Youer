@@ -92,7 +92,7 @@
          T t = p_46174_.getRule(p_46173_);
          this.<T>getRule(p_46173_).setFrom(t, p_46175_);
      }
-@@ -276,13 +_,13 @@
+@@ -276,14 +_,14 @@
      public static class BooleanValue extends GameRules.Value<GameRules.BooleanValue> {
          private boolean value;
  
@@ -105,11 +105,13 @@
          }
  
 -        public static GameRules.Type<GameRules.BooleanValue> create(boolean p_46251_) {
+-            return create(p_46251_, (p_46236_, p_46237_) -> {
 +        static GameRules.Type<GameRules.BooleanValue> create(boolean p_46251_) {
-             return create(p_46251_, (p_46236_, p_46237_) -> {
++            return create(p_46251_, (ServerLevel p_46236_, BooleanValue p_46237_) -> {
              });
          }
-@@ -293,19 +_,27 @@
+ 
+@@ -293,19 +_,26 @@
          }
  
          @Override
@@ -133,30 +135,24 @@
          }
  
 +        public void set(boolean p_46247_, @Nullable MinecraftServer p_46248_) {
-+            this.value = p_46247_;
-+            this.onChanged(p_46248_.overworld());
++            set(p_46247_, p_46248_.overworld());
 +        }
 +
          @Override
          public String serialize() {
              return Boolean.toString(this.value);
-@@ -329,10 +_,15 @@
+@@ -329,6 +_,11 @@
              return new GameRules.BooleanValue(this.type, this.value);
          }
  
--        public void setFrom(GameRules.BooleanValue p_46225_, @Nullable MinecraftServer p_46226_) {
 +        public void setFrom(GameRules.BooleanValue p_46225_, @Nullable ServerLevel p_46226_) {
++            this.value = p_46225_.value;
++            this.onChanged(p_46226_);
++        }
++
+         public void setFrom(GameRules.BooleanValue p_46225_, @Nullable MinecraftServer p_46226_) {
              this.value = p_46225_.value;
              this.onChanged(p_46226_);
-         }
-+
-+        public void setFrom(GameRules.BooleanValue p_46225_, @Nullable MinecraftServer  p_46226_) {
-+            this.value = p_46225_.value;
-+            this.onChanged(p_46226_.overworld());
-+        }
-     }
- 
-     public static enum Category {
 @@ -369,24 +_,24 @@
      public static class IntegerValue extends GameRules.Value<GameRules.IntegerValue> {
          private int value;
@@ -190,7 +186,7 @@
              return create(p_46313_, (p_46309_, p_46310_) -> {
              });
          }
-@@ -397,19 +_,27 @@
+@@ -397,14 +_,22 @@
          }
  
          @Override
@@ -207,20 +203,14 @@
              return this.value;
          }
  
--        public void set(int p_151490_, @Nullable MinecraftServer p_151491_) {
 +        public void set(int p_151490_, @Nullable ServerLevel p_151491_) {
-             this.value = p_151490_;
-             this.onChanged(p_151491_);
-         }
- 
-+        public void set(int p_151490_, @Nullable MinecraftServer p_151491_) {
 +            this.value = p_151490_;
-+            this.onChanged(p_151491_.overworld());
++            this.onChanged(p_151491_);
 +        }
 +
-         @Override
-         public String serialize() {
-             return Integer.toString(this.value);
+         public void set(int p_151490_, @Nullable MinecraftServer p_151491_) {
+             this.value = p_151490_;
+             this.onChanged(p_151491_);
 @@ -455,7 +_,7 @@
              return new GameRules.IntegerValue(this.type, this.value);
          }
@@ -250,26 +240,45 @@
          ) {
              this.argument = p_46342_;
              this.constructor = p_46343_;
-@@ -536,14 +_,14 @@
+@@ -536,16 +_,28 @@
              this.type = p_46362_;
          }
  
 -        protected abstract void updateFromArgument(CommandContext<CommandSourceStack> p_46365_, String p_46366_);
-+        protected abstract void updateFromArgument(CommandContext<CommandSourceStack> p_46365_, String p_46366_, GameRules.Key<T> gameRuleKey); // Paper - Add WorldGameRuleChangeEvent
- 
+-
 -        public void setFromArgument(CommandContext<CommandSourceStack> p_46371_, String p_46372_) {
 -            this.updateFromArgument(p_46371_, p_46372_);
 -            this.onChanged(p_46371_.getSource().getServer());
+-        }
+-
+-        public void onChanged(@Nullable MinecraftServer p_46369_) {
+-            if (p_46369_ != null) {
+-                this.type.callback.accept(p_46369_, this.getSelf());
++        protected abstract void updateFromArgument(CommandContext<CommandSourceStack> p_46365_, String p_46366_, GameRules.Key<T> gameRuleKey); // Paper - Add WorldGameRuleChangeEvent
++
 +        public void setFromArgument(CommandContext<CommandSourceStack> p_46371_, String p_46372_, GameRules.Key<T> gameRuleKey) { // Paper - Add WorldGameRuleChangeEvent
 +            this.updateFromArgument(p_46371_, p_46372_, gameRuleKey); // Paper - Add WorldGameRuleChangeEvent
 +            this.onChanged(p_46371_.getSource().getLevel());
++        }
++
++        public void onChanged(@Nullable ServerLevel p_46369_) {
++            if (p_46369_ != null) {
++                try {
++                    this.type.callback.accept(p_46369_, this.getSelf());
++                } catch (ClassCastException ignored) {
++                }
++            }
++        }
++
++        protected void onChanged(@Nullable MinecraftServer p_46369_) {
++            if (p_46369_ != null) {
++                ServerLevel serverlevel = p_46369_.overworld();
++                if (serverlevel != null) {
++                    onChanged(serverlevel);
++                }
+             }
          }
  
--        public void onChanged(@Nullable MinecraftServer p_46369_) {
-+        public void onChanged(@Nullable ServerLevel p_46369_) {
-             if (p_46369_ != null) {
-                 this.type.callback.accept(p_46369_, this.getSelf());
-             }
 @@ -564,7 +_,7 @@
  
          protected abstract T copy();
