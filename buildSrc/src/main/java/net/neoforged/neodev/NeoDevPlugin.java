@@ -252,6 +252,7 @@ public class NeoDevPlugin implements Plugin<Project> {
                 manifest.attributes(Map.of("Implementation-Title", "Youer"));
                 manifest.attributes(Map.of("Implementation-Version", minecraftVersion));
                 manifest.attributes(Map.of("Implementation-Vendor", "MohistMC"));
+                manifest.attributes(Map.of("CraftBukkit-Package-Version", "v1_21_R1"));
                 // These attributes are used from NeoForgeVersion.java to find the NF version without command line arguments.
                 manifest.attributes(
                         Map.of(

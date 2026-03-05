@@ -249,11 +249,6 @@
 -        public void setFromArgument(CommandContext<CommandSourceStack> p_46371_, String p_46372_) {
 -            this.updateFromArgument(p_46371_, p_46372_);
 -            this.onChanged(p_46371_.getSource().getServer());
--        }
--
--        public void onChanged(@Nullable MinecraftServer p_46369_) {
--            if (p_46369_ != null) {
--                this.type.callback.accept(p_46369_, this.getSelf());
 +        protected abstract void updateFromArgument(CommandContext<CommandSourceStack> p_46365_, String p_46366_, GameRules.Key<T> gameRuleKey); // Paper - Add WorldGameRuleChangeEvent
 +
 +        public void setFromArgument(CommandContext<CommandSourceStack> p_46371_, String p_46372_, GameRules.Key<T> gameRuleKey) { // Paper - Add WorldGameRuleChangeEvent
@@ -268,10 +263,11 @@
 +                } catch (ClassCastException ignored) {
 +                }
 +            }
-+        }
-+
-+        protected void onChanged(@Nullable MinecraftServer p_46369_) {
-+            if (p_46369_ != null) {
+         }
+ 
+         public void onChanged(@Nullable MinecraftServer p_46369_) {
+             if (p_46369_ != null) {
+-                this.type.callback.accept(p_46369_, this.getSelf());
 +                ServerLevel serverlevel = p_46369_.overworld();
 +                if (serverlevel != null) {
 +                    onChanged(serverlevel);
