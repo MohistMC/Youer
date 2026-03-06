@@ -101,15 +101,12 @@ public class NeoForgeInjectBukkit {
 
     public static void addEnumMaterialInItems() {
         var registry = BuiltInRegistries.ITEM;
-        List<String> materials = new ArrayList<>(Arrays.stream(Material.values())
-                .map(Enum::name)
-                .toList());
         for (Item item : registry) {
             ResourceLocation resourceLocation = registry.getKey(item);
             boolean isMod = isMods(resourceLocation);
             String materialName = getMaterialName(resourceLocation, isMod);
 
-            if (isMod || !materials.contains(materialName)) {
+            if (isMod || CraftMagicNumbers.getMaterial(item) == null) {
                 int id = Item.getId(item);
                 int maxStackSize = item.getMaxStackSize(new ItemStack(item));
 
@@ -122,21 +119,17 @@ public class NeoForgeInjectBukkit {
                 }
             }
         }
-        materials.clear();
     }
 
     public static void addEnumMaterialsInBlocks() {
         var registry = BuiltInRegistries.BLOCK;
-        List<String> materials = new ArrayList<>(Arrays.stream(Material.values())
-                .map(Enum::name)
-                .toList());
         for (Block block : registry) {
             ResourceLocation resourceLocation = registry.getKey(block);
             boolean isMod = isMods(resourceLocation);
             String materialName = getMaterialName(resourceLocation, isMod);
 
             // 检查是否需要添加材料
-            if (isMod || !materials.contains(materialName)) {
+            if (isMod || CraftMagicNumbers.getMaterial(block) == null) {
                 int id = Item.getId(block.asItem());
                 Item item = Item.byId(id);
                 int maxStackSize = item.getMaxStackSize(new ItemStack(item));
@@ -149,7 +142,6 @@ public class NeoForgeInjectBukkit {
                 }
             }
         }
-        materials.clear();
     }
 
     public static void addEnumMaterialsInBlockEntityType() {

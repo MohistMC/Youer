@@ -1,5 +1,7 @@
 package org.bukkit.craftbukkit.tag;
 
+import com.mohistmc.youer.Youer;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import net.minecraft.core.Registry;
@@ -28,6 +30,17 @@ public class CraftBlockTag extends CraftTag<Block, Material> {
 
     @Override
     public Set<Material> getValues() {
-        return this.getHandle().stream().map((block) -> CraftBlockType.minecraftToBukkit(block.value())).collect(Collectors.toUnmodifiableSet());
+        return this.getHandle().stream()
+                .map(block -> {
+                    Material material = CraftBlockType.minecraftToBukkit(block.value());
+                    if (material == null) {
+                        String blockName = block.value().getDescriptionId();
+                        String registryName = block.value().builtInRegistryHolder().key().location().toString();
+                        Youer.LOGGER.warn("CraftBlockTag: No Bukkit Material mapping for Minecraft block: {} ({}) in tag {}", blockName, registryName, this.tag.location());
+                    }
+                    return material;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toUnmodifiableSet());
     }
 }
