@@ -5,7 +5,7 @@ import com.mohistmc.youer.feature.ban.BanType;
 import com.mohistmc.youer.feature.ban.ClickType;
 import com.mohistmc.youer.util.I18n;
 import java.util.List;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.HumanEntity;
 
 /**
  * @author Mgazul by MohistMC
@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
  */
 public class BanUtils {
 
-    public static void saveToYaml(Player player, ClickType clickType, List<String> list, BanType banType) {
+    public static void saveToYaml(HumanEntity player, ClickType clickType, List<String> list, BanType banType) {
         switch (banType) {
             case ITEM -> BanConfig.ITEM.put(banType.key, list);
             case ENTITY -> BanConfig.ENTITY.put(banType.key, list);

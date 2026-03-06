@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import org.bukkit.Bukkit;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
@@ -23,8 +24,7 @@ public class BanListener {
     public static BanSaveInventory openInventory;
 
     public static void save(InventoryCloseEvent event) {
-        Player player = (Player) event.getPlayer();
-        if (!player.isOp()) return;
+        HumanEntity player = event.getPlayer(); // TODO player is null?
         try {
             Inventory inventory = event.getInventory();
             if (openInventory != null && openInventory.getInventory() == inventory) {
