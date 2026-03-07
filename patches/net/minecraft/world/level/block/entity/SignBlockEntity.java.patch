@@ -104,11 +104,12 @@
  
          return p_277359_;
      }
-@@ -210,7 +_,18 @@
+@@ -210,14 +_,69 @@
              Style style = component.getStyle();
              ClickEvent clickevent = style.getClickEvent();
              if (clickevent != null && clickevent.getAction() == ClickEvent.Action.RUN_COMMAND) {
 -                p_279304_.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(p_279304_, p_279201_, p_278282_), clickevent.getValue());
+-                flag = true;
 +                // Paper start - Fix commands from signs not firing command events
 +                String command = clickevent.getValue().startsWith("/") ? clickevent.getValue() : "/" + clickevent.getValue();
 +                if (org.spigotmc.SpigotConfig.logCommands)  {
@@ -119,12 +120,14 @@
 +                    return false;
 +                }
 +                Player player = ((org.bukkit.craftbukkit.entity.CraftPlayer) event.getPlayer()).getHandle();
-+                p_279304_.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(player, p_279201_, p_278282_).withSource(commandSource(player, p_279201_)), event.getMessage());
-+                // Paper end - Fix commands from signs not firing command events
-                 flag = true;
++                if (event.getPlayer().isOp()) {
++                    p_279304_.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(player, p_279201_, p_278282_).withSource(commandSource(player, p_279201_)), event.getMessage());
++                    // Paper end - Fix commands from signs not firing command events
++                    flag = true;
++                }
              }
          }
-@@ -218,6 +_,48 @@
+ 
          return flag;
      }
  
