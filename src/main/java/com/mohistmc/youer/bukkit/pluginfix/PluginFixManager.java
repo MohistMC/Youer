@@ -112,7 +112,6 @@ public class PluginFixManager {
     }
 
     private static void gsit(ClassNode node) {
-        if (!YouerConfig.custom_fix_cmi_tempban) return;
         for (MethodNode methodNode : node.methods) {
             if (methodNode.name.equals("isPaperServer") && methodNode.desc.equals("()Z")) {
                 InsnList toInject = new InsnList();
@@ -133,7 +132,7 @@ public class PluginFixManager {
     }
 
     // GSit
-    public boolean isPaperServer() {
+    public static boolean isPaperServer() {
         return false;
     }
 
