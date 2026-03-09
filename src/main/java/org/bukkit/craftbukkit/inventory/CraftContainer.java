@@ -29,6 +29,7 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
+import org.jetbrains.annotations.NotNull;
 
 public class CraftContainer extends AbstractContainerMenu {
 
@@ -65,6 +66,12 @@ public class CraftContainer extends AbstractContainerMenu {
             @Override
             public HumanEntity getPlayer() {
                 return player.getBukkitEntity();
+            }
+
+            @NotNull
+            @Override
+            public void setPlayer(HumanEntity player) {
+
             }
 
             @Override

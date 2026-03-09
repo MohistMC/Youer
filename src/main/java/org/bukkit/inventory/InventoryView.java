@@ -156,6 +156,15 @@ public interface InventoryView {
     public HumanEntity getPlayer();
 
     /**
+     * Youer Add
+     * Get the player viewing.
+     *
+     * @return the player
+     */
+    @NotNull
+    public void setPlayer(HumanEntity player);
+
+    /**
      * Determine the type of inventory involved in the transaction. This
      * indicates the window style being shown. It will never return PLAYER,
      * since that is common to all windows.
