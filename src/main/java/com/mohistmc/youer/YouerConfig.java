@@ -122,6 +122,7 @@ public class YouerConfig {
     public static boolean custom_fix_flat;
     public static boolean custom_fix_cmi_tempban;
     public static boolean custom_disabled_spawner;
+    public static boolean custom_disabled_sign_commands;
     public static boolean player_modlist_blacklist_enable;
     public static boolean player_modlist_blacklist_use_real_feedback;
     public static String player_modlist_blacklist_failurereasons;
@@ -312,6 +313,7 @@ public class YouerConfig {
         custom_fix_flat = getBoolean("custom.fix_flat", false);
         custom_fix_cmi_tempban = getBoolean("custom.fix_cmi_tempban", false);
         custom_disabled_spawner = getBoolean("custom.disabled_spawner", false);
+        custom_disabled_sign_commands = getBoolean("custom.disabled_signblock_commands", true);
 
         player_modlist_blacklist_enable = getBoolean("player_modlist_blacklist.enable", false);
         player_modlist_blacklist_use_real_feedback = getBoolean("player_modlist_blacklist.use_real_feedback", false);

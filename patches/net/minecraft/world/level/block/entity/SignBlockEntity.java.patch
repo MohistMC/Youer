@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/level/block/entity/SignBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/SignBlockEntity.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.block.entity;
+ 
++import com.mohistmc.youer.YouerConfig;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.DynamicOps;
 @@ -20,6 +_,7 @@
  import net.minecraft.network.chat.Style;
  import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -104,12 +111,18 @@
  
          return p_277359_;
      }
-@@ -210,14 +_,69 @@
+@@ -206,11 +_,25 @@
+     public boolean executeClickCommandsIfPresent(Player p_279304_, Level p_279201_, BlockPos p_278282_, boolean p_278254_) {
+         boolean flag = false;
+ 
++        if (YouerConfig.custom_disabled_sign_commands) {
++            return false;
++        }
+         for (Component component : this.getText(p_278254_).getMessages(p_279304_.isTextFilteringEnabled())) {
              Style style = component.getStyle();
              ClickEvent clickevent = style.getClickEvent();
              if (clickevent != null && clickevent.getAction() == ClickEvent.Action.RUN_COMMAND) {
 -                p_279304_.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(p_279304_, p_279201_, p_278282_), clickevent.getValue());
--                flag = true;
 +                // Paper start - Fix commands from signs not firing command events
 +                String command = clickevent.getValue().startsWith("/") ? clickevent.getValue() : "/" + clickevent.getValue();
 +                if (org.spigotmc.SpigotConfig.logCommands)  {
@@ -120,14 +133,12 @@
 +                    return false;
 +                }
 +                Player player = ((org.bukkit.craftbukkit.entity.CraftPlayer) event.getPlayer()).getHandle();
-+                if (event.getPlayer().isOp()) {
-+                    p_279304_.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(player, p_279201_, p_278282_).withSource(commandSource(player, p_279201_)), event.getMessage());
-+                    // Paper end - Fix commands from signs not firing command events
-+                    flag = true;
-+                }
++                p_279304_.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(player, p_279201_, p_278282_).withSource(commandSource(player, p_279201_)), event.getMessage());
++                // Paper end - Fix commands from signs not firing command events
+                 flag = true;
              }
          }
- 
+@@ -218,6 +_,48 @@
          return flag;
      }
  
