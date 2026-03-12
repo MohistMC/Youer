@@ -90,7 +90,7 @@
  import net.minecraft.world.level.block.HorizontalDirectionalBlock;
  import net.minecraft.world.level.block.RespawnAnchorBlock;
  import net.minecraft.world.level.block.entity.BlockEntity;
-@@ -158,12 +_,45 @@
+@@ -158,12 +_,46 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreAccess;
  import net.minecraft.world.scores.ScoreHolder;
@@ -113,6 +113,7 @@
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.event.CraftPortalEvent;
++import org.bukkit.craftbukkit.util.CraftChatMessage;
 +import org.bukkit.craftbukkit.util.CraftLocation;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
 +import org.bukkit.event.entity.EntityExhaustionEvent;
@@ -509,7 +510,7 @@
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Ticking player");
              CrashReportCategory crashreportcategory = crashreport.addCategory("Player being ticked");
-@@ -656,10 +_,53 @@
+@@ -656,10 +_,59 @@
  
      @Override
      public void die(DamageSource p_9035_) {
@@ -542,8 +543,9 @@
 +        } // Paper - fix player loottables running when mob loot gamerule is false
 +
 +        Component defaultMessage = this.getCombatTracker().getDeathMessage();
++        String deathmessage = defaultMessage.getString();
 +        keepLevel = keepInventory; // SPIGOT-2222: pre-set keepLevel
-+        PlayerDeathEvent event = CraftEventFactory.callPlayerDeathEvent(this, p_9035_, loot, ColorAPI.adventure(defaultMessage.getString()), keepInventory); // Paper - Adventure
++        PlayerDeathEvent event = CraftEventFactory.callPlayerDeathEvent(this, p_9035_, loot, defaultMessage.getString(), keepInventory); // Paper - Adventure
 +        // Paper start - cancellable death event
 +        if (event.isCancelled()) {
 +            // make compatible with plugins that might have already set the health in an event listener
@@ -560,9 +562,14 @@
 +            InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.DEATH); // Paper - Inventory close reason
 +            this.closeContainer();
 +        }
-+        net.kyori.adventure.text.Component deathMessage = event.deathMessage() != null ? event.deathMessage() : net.kyori.adventure.text.Component.empty(); // Paper - Adventure
-+        if (deathMessage != null && deathMessage != net.kyori.adventure.text.Component.empty() && flag) { // Paper - Adventure // TODO: allow plugins to override?
-+            Component component = PaperAdventure.asVanilla(deathMessage); // Paper - Adventure
++        String deathMessage = event.getDeathMessage();
++        if (deathMessage != null && !deathMessage.isEmpty() && flag) { // TODO: allow plugins to override?
++            Component component;
++            if (deathMessage.equals(deathmessage)) {
++                component = this.getCombatTracker().getDeathMessage();
++            } else {
++                component = CraftChatMessage.fromStringOrNull(deathMessage);
++            }
              this.connection
                  .send(
                      new ClientboundPlayerCombatKillPacket(this.getId(), component),
