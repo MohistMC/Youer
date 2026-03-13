@@ -4,11 +4,12 @@ import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Field;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import lombok.SneakyThrows;
 
 /**
@@ -17,67 +18,63 @@ import lombok.SneakyThrows;
  */
 public class LaunchArgsParser {
 
-    public static final sun.misc.Unsafe unsafe;
+    private static final String ADD_OPENS_PREFIX = "--add-opens ";
+    private static final String ADD_EXPORTS_PREFIX = "--add-exports ";
+    private static final String CLASSPATH_ARG = "-classpath";
+    private static final String SYSTEM_PROPERTY_PREFIX = "-D";
+    private static final String MODULE_SEPARATOR = "=";
+    private static final String PACKAGE_SEPARATOR = "/";
+
     private static final MethodHandles.Lookup IMPL_LOOKUP;
 
     static {
-        try {
-            Field theUnsafe = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-            theUnsafe.setAccessible(true);
-            unsafe = (sun.misc.Unsafe) theUnsafe.get(null);
-            MethodHandles.lookup().ensureInitialized(MethodHandles.Lookup.class);
-            Field field = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
-            Object base = unsafe.staticFieldBase(field);
-            long offset = unsafe.staticFieldOffset(field);
-            IMPL_LOOKUP = (MethodHandles.Lookup) unsafe.getObject(base, offset);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        export(ModuleLayer.boot().findModule("java.base").orElseThrow(), "jdk.internal.module", LaunchArgsParser.class.getModule());
+        IMPL_LOOKUP = MethodHandles.lookup();
     }
 
     @SneakyThrows
     private static void addExports(List<String> exports) {
-        MethodHandle implAddExportsMH = IMPL_LOOKUP.findVirtual(Module.class, "implAddExports", MethodType.methodType(void.class, String.class, Module.class));
-        MethodHandle implAddExportsToAllUnnamedMH = IMPL_LOOKUP.findVirtual(Module.class, "implAddExportsToAllUnnamed", MethodType.methodType(void.class, String.class));
+        var modulesCl = IMPL_LOOKUP.findClass("jdk.internal.module.Modules");
+        MethodHandle implAddExportsToAllUnnamedMH = IMPL_LOOKUP.findStatic(modulesCl, "addExportsToAllUnnamed", MethodType.methodType(void.class, Module.class, String.class));
 
-        addExtra(exports, implAddExportsMH, implAddExportsToAllUnnamedMH);
+        processModuleDirectives(exports, ModuleDirectiveType.EXPORT, implAddExportsToAllUnnamedMH);
     }
 
     @SneakyThrows
     private static void addOpens(List<String> opens) {
-        MethodHandle implAddOpensMH = IMPL_LOOKUP.findVirtual(Module.class, "implAddOpens", MethodType.methodType(void.class, String.class, Module.class));
-        MethodHandle implAddOpensToAllUnnamedMH = IMPL_LOOKUP.findVirtual(Module.class, "implAddOpensToAllUnnamed", MethodType.methodType(void.class, String.class));
+        var modulesCl = IMPL_LOOKUP.findClass("jdk.internal.module.Modules");
+        MethodHandle implAddOpensToAllUnnamedMH = IMPL_LOOKUP.findStatic(modulesCl, "addOpensToAllUnnamed", MethodType.methodType(void.class, Module.class, String.class));
 
-        addExtra(opens, implAddOpensMH, implAddOpensToAllUnnamedMH);
+        processModuleDirectives(opens, ModuleDirectiveType.OPEN, implAddOpensToAllUnnamedMH);
     }
 
-    private static ParserData parseModuleExtra(String extra) {
-        String[] all = extra.split("=", 2);
+    private static ModuleDirectiveData parseModuleDirective(String directive) {
+        String[] all = directive.split(MODULE_SEPARATOR, 2);
         if (all.length < 2) {
             return null;
         }
 
-        String[] source = all[0].split("/", 2);
+        String[] source = all[0].split(PACKAGE_SEPARATOR, 2);
         if (source.length < 2) {
             return null;
         }
-        return new ParserData(source[0], source[1], all[1]);
+        return new ModuleDirectiveData(source[0], source[1], all[1]);
     }
 
-    private static void addExtra(List<String> extras, MethodHandle implAddExtraMH, MethodHandle implAddExtraToAllUnnamedMH) {
-        extras.forEach(extra -> {
-            ParserData data = parseModuleExtra(extra);
+    private static void processModuleDirectives(List<String> directives, ModuleDirectiveType directiveType, MethodHandle implAddExtraToAllUnnamedMH) {
+        directives.forEach(directive -> {
+            ModuleDirectiveData data = parseModuleDirective(directive);
             if (data != null) {
                 ModuleLayer.boot().findModule(data.module).ifPresent(m -> {
                     try {
                         if ("ALL-UNNAMED".equals(data.target)) {
                             implAddExtraToAllUnnamedMH.invokeWithArguments(m, data.packages);
                         } else {
-                            ModuleLayer.boot().findModule(data.target).ifPresent(tm -> {
-                                try {
-                                    implAddExtraMH.invokeWithArguments(m, data.packages, tm);
-                                } catch (Throwable t) {
-                                    throw new RuntimeException(t);
+                            ModuleLayer.boot().findModule(data.target).ifPresent(to -> {
+                                if (directiveType == ModuleDirectiveType.OPEN) {
+                                    open(m, data.packages, to);
+                                } else if (directiveType == ModuleDirectiveType.EXPORT) {
+                                    export(m, data.packages, to);
                                 }
                             });
                         }
@@ -87,6 +84,19 @@ public class LaunchArgsParser {
                 });
             }
         });
+    }
+
+    public enum ModuleDirectiveType {
+        OPEN,
+        EXPORT
+    }
+
+    private static void export(Module module, String pkg, Module to) {
+        JarLoader.inst.redefineModule(module, Set.of(), Map.of(pkg, Set.of(to)), Map.of(), Set.of(), Map.of());
+    }
+
+    private static void open(Module module, String pkg, Module to) {
+        JarLoader.inst.redefineModule(module, Set.of(), Map.of(), Map.of(pkg, Set.of(to)), Set.of(), Map.of());
     }
 
     @SneakyThrows
@@ -99,24 +109,24 @@ public class LaunchArgsParser {
         for (int i = 0; i < args.size(); i++) {
             String arg = args.get(i);
             if (arg.startsWith("-")) {
-                if (arg.equals("-classpath")) {
+                if (arg.equals(CLASSPATH_ARG)) {
                     if (i + 1 < args.size()) {
                         classpath = args.get(i + 1);
                         i++;
                     }
-                } else if (arg.startsWith("--add-opens")) {
-                    opens.add(arg.substring("--add-opens ".length()).trim());
-                } else if (arg.startsWith("--add-exports")) {
-                    exports.add(arg.substring("--add-exports ".length()).trim());
-                } else if (arg.startsWith("-D")) {
+                } else if (arg.startsWith(ADD_OPENS_PREFIX)) {
+                    opens.add(arg.substring(ADD_OPENS_PREFIX.length()).trim());
+                } else if (arg.startsWith(ADD_EXPORTS_PREFIX)) {
+                    exports.add(arg.substring(ADD_EXPORTS_PREFIX.length()).trim());
+                } else if (arg.startsWith(SYSTEM_PROPERTY_PREFIX)) {
                     var split = arg.substring(2).split("=", 2);
-                    System.setProperty(split[0], split[1]);
+                    System.setProperty(split[0], split.length > 1 ? split[1] : "");
                 }
             }
         }
 
         if (classpath != null) {
-            System.setProperty("java.class.path", classpath); // TODO Seems to be repeated
+            System.setProperty("java.class.path", classpath);
             loadModules(classpath);
         }
 
@@ -125,12 +135,11 @@ public class LaunchArgsParser {
     }
 
     public static void loadModules(String modulePath) {
-
         Arrays.stream(modulePath.split(File.pathSeparator))
                 .map(Paths::get)
                 .forEach(JarLoader::loadJar);
     }
 
-    private record ParserData(String module, String packages, String target) {
+    private record ModuleDirectiveData(String module, String packages, String target) {
     }
 }

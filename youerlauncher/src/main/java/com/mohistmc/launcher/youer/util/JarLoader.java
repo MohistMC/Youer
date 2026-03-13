@@ -25,13 +25,17 @@ import java.util.jar.JarFile;
 
 public class JarLoader {
 
-    private static Instrumentation inst = null;
+    static Instrumentation inst = null;
 
     public JarLoader() {
     }
 
+    public static void premain(String args, Instrumentation instrumentation) {
+        agentmain(args, instrumentation);
+    }
+
     // The JRE will call method before launching your main()
-    public static void agentmain(final String a, final Instrumentation inst) {
+    public static void agentmain(String a, Instrumentation inst) {
         JarLoader.inst = inst;
     }
 
