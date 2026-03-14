@@ -1,15 +1,25 @@
 --- a/net/minecraft/world/level/lighting/LeveledPriorityQueue.java
 +++ b/net/minecraft/world/level/lighting/LeveledPriorityQueue.java
-@@ -26,6 +_,9 @@
+@@ -26,7 +_,19 @@
      }
  
      public long removeFirstLong() {
 +        if (this.isEmpty() || this.firstQueuedLevel < 0 || this.firstQueuedLevel >= this.levelCount) {
 +            return 0L;
 +        }
++
          LongLinkedOpenHashSet longlinkedopenhashset = this.queues[this.firstQueuedLevel];
++        if (longlinkedopenhashset.isEmpty()) {
++            this.checkFirstQueuedLevel(this.levelCount);
++            if (this.isEmpty() || this.firstQueuedLevel < 0 || this.firstQueuedLevel >= this.levelCount) {
++                return 0L;
++            }
++            longlinkedopenhashset = this.queues[this.firstQueuedLevel];
++        }
++
          long i = longlinkedopenhashset.removeFirstLong();
          if (longlinkedopenhashset.isEmpty()) {
+             this.checkFirstQueuedLevel(this.levelCount);
 @@ -55,11 +_,12 @@
      }
  

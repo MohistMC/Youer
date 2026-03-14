@@ -179,7 +179,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
     @Override
     public void setVelocity(Vector velocity) {
         Preconditions.checkArgument(velocity != null, "velocity");
-        velocity.checkFinite();
+        //velocity.checkFinite();
         // Paper start - Warn server owners when plugins try to set super high velocities
         if (!(this instanceof org.bukkit.entity.Projectile || this instanceof org.bukkit.entity.Minecart) && isUnsafeVelocity(velocity)) {
             CraftServer.excessiveVelEx = new Exception("Excessive velocity set detected: tried to set velocity of entity " + entity.getScoreboardName() + " id #" + getEntityId() + " to (" + velocity.getX() + "," + velocity.getY() + "," + velocity.getZ() + ").");

@@ -85,7 +85,7 @@
  import net.minecraft.world.entity.ai.village.VillageSiege;
  import net.minecraft.world.entity.npc.CatSpawner;
  import net.minecraft.world.entity.npc.WanderingTraderSpawner;
-@@ -161,14 +_,42 @@
+@@ -161,14 +_,41 @@
  import net.minecraft.world.level.storage.LevelResource;
  import net.minecraft.world.level.storage.LevelStorageSource;
  import net.minecraft.world.level.storage.PlayerDataStorage;
@@ -115,7 +115,6 @@
 +import org.bukkit.craftbukkit.util.ServerShutdownThread;
 +import org.bukkit.event.server.ServerLoadEvent;
 +import org.bukkit.event.world.WorldInitEvent;
-+import org.bukkit.event.world.WorldLoadEvent;
 +import org.bukkit.plugin.PluginLoadOrder;
  import org.slf4j.Logger;
 +import org.spigotmc.SpigotConfig;
@@ -324,14 +323,6 @@
      protected void loadLevel() {
          if (!JvmProfiler.INSTANCE.isRunning()) {
          }
-@@ -336,6 +_,7 @@
-             .create(this.worldData.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS));
-         this.createLevels(chunkprogresslistener);
-         this.forceDifficulty();
-+        this.fakeprepareLevels = true; // TODO fix mixin
-         this.prepareLevels(chunkprogresslistener);
-         if (profiledduration != null) {
-             profiledduration.finish();
 @@ -368,10 +_,18 @@
              this, this.executor, this.storageSource, serverleveldata, Level.OVERWORLD, levelstem, p_129816_, flag, j, list, true, null
          );
@@ -393,7 +384,7 @@
                  ServerLevel serverlevel1 = new ServerLevel(
                      this,
                      this.executor,
-@@ -412,19 +_,58 @@
+@@ -412,19 +_,56 @@
                      derivedleveldata,
                      resourcekey1,
                      entry.getValue(),
@@ -418,11 +409,9 @@
          worldborder.applySettings(serverleveldata.getWorldBorder());
 +        YouerPlugin.init(); // Youer init mohist plugins
 +        for (ServerLevel worldserver : this.getAllLevels()) {
-+            this.prepareLevels(worldserver.getChunkSource().chunkMap.progressListener, worldserver);
 +            worldserver.entityManager.tick(); // SPIGOT-6526: Load pending entities so they are available to the API
 +            this.server.getPluginManager().callEvent(new org.bukkit.event.world.WorldLoadEvent(worldserver.getWorld()));
 +        }
-+
 +        // Paper start - Configurable player collision; Handle collideRule team for player collision toggle
 +        final ServerScoreboard scoreboard = this.getScoreboard();
 +        final Collection<String> toRemove = new ArrayList<>();
@@ -479,15 +468,12 @@
              int i = serverchunkcache.getGenerator().getSpawnHeight(p_177897_);
              if (i < p_177897_.getMinBuildHeight()) {
                  BlockPos blockpos = chunkpos.getWorldPosition();
-@@ -484,25 +_,65 @@
+@@ -484,25 +_,60 @@
          serverleveldata.setGameType(GameType.SPECTATOR);
      }
  
 +    public void prepareLevels(ChunkProgressListener p_129941_, ServerLevel serverlevel) {
 +        markWorldsDirty();
-+        if (!serverlevel.getWorld().getKeepSpawnInMemory()) {
-+            return;
-+        }
 +        this.forceTicks = true;
 +        LOGGER.info(I18n.as("minecraftserver.4", serverlevel.dimension().location()));
 +        BlockPos blockpos = serverlevel.getSharedSpawnPos();
@@ -523,9 +509,7 @@
 +        // CraftBukkit end
 +    }
 +
-+    boolean fakeprepareLevels = false;
      public void prepareLevels(ChunkProgressListener p_129941_) {
-+        if (fakeprepareLevels) return;
          ServerLevel serverlevel = this.overworld();
 -        LOGGER.info("Preparing start region for dimension {}", serverlevel.dimension().location());
 +        this.forceTicks = true;
