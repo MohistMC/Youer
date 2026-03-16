@@ -914,7 +914,7 @@
              }
          }
      }
-@@ -782,15 +_,26 @@
+@@ -782,15 +_,27 @@
                  crashreport.addCategory("Wrapped in").setDetailError("Wrapping exception", p_206569_);
              }
          } else {
@@ -928,6 +928,7 @@
      private boolean haveTime() {
 -        return this.runningTask() || Util.getNanos() < (this.mayHaveDelayedTasks ? this.delayedTasksMaxNextTickTimeNanos : this.nextTickTimeNanos);
 -    }
++        if (isOversleep) return canOversleep(); // Paper - because of our changes, this logic is broken
 +        return this.forceTicks || this.runningTask() || Util.getNanos() < (this.mayHaveDelayedTasks ? this.delayedTasksMaxNextTickTimeNanos : this.nextTickTimeNanos);
 +    }
 +
@@ -944,6 +945,17 @@
  
      public static boolean throwIfFatalException() {
          RuntimeException runtimeexception = fatalException.get();
+@@ -811,8 +_,8 @@
+     }
+ 
+     protected void waitUntilNextTick() {
+-        this.runAllTasks();
+-        this.managedBlock(() -> !this.haveTime());
++        //this.executeAll(); // Paper - move this into the tick method for timings
++        this.managedBlock(() -> !this.canSleepForTickNoOversleep());
+     }
+ 
+     @Override
 @@ -826,6 +_,16 @@
      }
  
@@ -980,10 +992,20 @@
          }
      }
  
-@@ -900,12 +_,16 @@
+@@ -900,12 +_,26 @@
  
      public void tickServer(BooleanSupplier p_129871_) {
          long i = Util.getNanos();
++        // Paper start - move oversleep into full server tick
++        isOversleep = true;
++        this.managedBlock(new BooleanSupplier() {
++            @Override
++            public boolean getAsBoolean() {
++                return !MinecraftServer.this.canOversleep();
++            }
++        });
++        isOversleep = false;
++        // Paper end
 +        new com.destroystokyo.paper.event.server.ServerTickStartEvent(this.tickCount+1).callEvent(); // Paper - Server Tick Events
 +
          this.tickCount++;
@@ -997,11 +1019,14 @@
          }
  
          this.ticksUntilAutosave--;
-@@ -917,7 +_,11 @@
+@@ -917,7 +_,14 @@
              this.profiler.pop();
              LOGGER.debug("Autosave finished");
          }
 -
++        // Paper start - move executeAll() into full server tick timing
++        this.runAllTasks();
++        // Paper end
 +        // Paper start - Server Tick Events
 +        long endTime = System.nanoTime();
 +        long remaining = (TICK_TIME - (endTime - lastTick)) - catchupTime;
