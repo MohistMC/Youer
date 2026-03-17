@@ -175,8 +175,7 @@ public class Action {
     }
 
     private void init() {
-        try {
-            BufferedReader b = new BufferedReader(new InputStreamReader(DefaultLibraries.class.getClassLoader().getResourceAsStream("installer.txt")));
+        try (BufferedReader b = new BufferedReader(new InputStreamReader(DefaultLibraries.class.getClassLoader().getResourceAsStream("installer.txt")))) {
             for (String line = b.readLine(); line != null; line = b.readLine()) {
                 Libraries libraries = Libraries.from(line);
                 File file = new File(LIBRARIES, libraries.getPath());
