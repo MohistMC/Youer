@@ -42,6 +42,7 @@ import org.bukkit.Statistic;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.CraftStatistic;
+import org.bukkit.craftbukkit.potion.CraftPotionUtil;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.craftbukkit.util.CraftSpawnCategory;
@@ -127,7 +128,6 @@ public class NeoForgeInjectBukkit {
             boolean isMod = isMods(resourceLocation);
             String materialName = getMaterialName(resourceLocation, isMod);
 
-            // 检查是否需要添加材料
             if (isMod || CraftMagicNumbers.getMaterial(block) == null) {
                 int id = Item.getId(block.asItem());
                 Item item = Item.byId(id);
@@ -166,6 +166,7 @@ public class NeoForgeInjectBukkit {
                     } catch (Exception e) {
                         PotionType potionType = MohistDynamEnum.addEnum(PotionType.class, name, List.of(String.class), List.of(resourceLocation.toString()));
                         if (potionType != null) {
+                            CraftPotionUtil.mods.put(resourceLocation, potionType);
                             debug("Save-PotionType:{} - {}", name, potionType.name());
                         }
                     }
