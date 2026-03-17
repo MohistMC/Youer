@@ -57,6 +57,7 @@ public class AutoDeleteMods {
         put("com.leclowndu93150.threadtweak.ThreadTweak", DeletionReason.DUPLICATE_FEATURE);
         put("ru.vidtu.ksyxis.platform.KNeoForge", DeletionReason.DUPLICATE_FEATURE);
         //put("carpet.CarpetServer", DeletionReason.DUPLICATE_FEATURE);
+        put("io.github.reserveword.imblocker.IMBlocker", DeletionReason.CLIENT_ONLY);
     }};
 
     /**
@@ -76,8 +77,7 @@ public class AutoDeleteMods {
         for (String identifier : services) {
             try {
                 checkModFile(identifier, true);
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Exception ignored) {
             }
         }
         if (!YouerConfigUtil.AutoDeleteMods()) return;
@@ -87,8 +87,7 @@ public class AutoDeleteMods {
         for (String identifier : identifiers) {
             try {
                 checkModFile(identifier, false);
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Exception ignored) {
             }
         }
     }
@@ -158,8 +157,7 @@ public class AutoDeleteMods {
                     modFile.getName(),
                     reason.getDisplayText()
             ));
-        } catch (IOException e) {
-            System.err.println("Failed to delete file: " + modFile.getName() + " - " + e.getMessage());
+        } catch (IOException ignored) {
         }
     }
 
