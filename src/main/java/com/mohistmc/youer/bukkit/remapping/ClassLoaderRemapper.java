@@ -96,17 +96,19 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
     }
 
     private Map.Entry<Map<Method, String>, Map<WrappedMethod, Method>> tryGetMethods(Class<?> cl) {
+        Map<Method, String> names = new HashMap<>();
+        Map<WrappedMethod, Method> types = new HashMap<>();
+        String className = cl.getName();
         try {
-            Map<Method, String> names = new HashMap<>();
-            Map<WrappedMethod, Method> types = new HashMap<>();
-            for (Method method : cl.getMethods()) {
+            for (Method method : cl.getDeclaredMethods()) {
                 checkMethodTypes(method);
                 String name = mapMethod(method);
                 names.put(method, name);
                 WrappedMethod wrapped = new WrappedMethod(name, method.getParameterTypes());
                 types.put(wrapped, method);
             }
-            for (Method method : cl.getDeclaredMethods()) {
+
+            for (Method method : cl.getMethods()) {
                 checkMethodTypes(method);
                 String name = mapMethod(method);
                 names.put(method, name);
@@ -119,9 +121,8 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
                 tryDefineClass(e.getCause().getMessage().replace('.', '/'));
                 return tryGetMethods(cl);
             } else throw e;
-        } catch (NoClassDefFoundError error) {
-            tryDefineClass(error.getMessage());
-            return tryGetMethods(cl);
+        } catch (NoClassDefFoundError | IncompatibleClassChangeError error) {
+            return Maps.immutableEntry(names, types);
         }
     }
 
