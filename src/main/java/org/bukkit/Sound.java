@@ -1632,7 +1632,6 @@ public enum Sound implements Keyed, net.kyori.adventure.sound.Sound.Type { // Pa
     WEATHER_RAIN_ABOVE("weather.rain.above");
 
     private final NamespacedKey key;
-    public static final BiMap<SoundEvent, Sound> MODD_SOUNDS = HashBiMap.create();
 
     private Sound(String key) {
         if (key.contains(":")) {
