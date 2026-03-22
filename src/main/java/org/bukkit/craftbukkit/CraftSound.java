@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.sounds.SoundEvent;
@@ -15,8 +16,8 @@ public class CraftSound {
             return null;
         }
 
-        if (Sound.MODD_SOUNDS.containsKey(minecraft)) {
-            return Sound.MODD_SOUNDS.get(minecraft);
+        if (NeoForgeInjectBukkit.MODD_SOUNDS.containsKey(minecraft)) {
+            return NeoForgeInjectBukkit.MODD_SOUNDS.get(minecraft);
         }
 
         try {
@@ -32,8 +33,8 @@ public class CraftSound {
 
     public static SoundEvent bukkitToMinecraft(Sound bukkit) {
         Preconditions.checkArgument(bukkit != null);
-        if (Sound.MODD_SOUNDS.containsValue(bukkit)) {
-            return Sound.MODD_SOUNDS.inverse().get(bukkit);
+        if (NeoForgeInjectBukkit.MODD_SOUNDS.containsValue(bukkit)) {
+            return NeoForgeInjectBukkit.MODD_SOUNDS.inverse().get(bukkit);
         }
         return CraftRegistry.getMinecraftRegistry(Registries.SOUND_EVENT)
                 .getOptional(CraftNamespacedKey.toMinecraft(bukkit.getKey())).orElseThrow();

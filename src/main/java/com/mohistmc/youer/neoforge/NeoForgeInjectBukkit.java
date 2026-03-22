@@ -74,6 +74,7 @@ public class NeoForgeInjectBukkit {
     public static Map<MobCategory, SpawnCategory> spawnCategoryMap = new HashMap<>();
     public static Map<SpawnCategory, MobCategory> CategoryspawnMap = new HashMap<>();
     private static final BiMap<ResourceLocation, Statistic> STATISTICS = HashBiMap.create(CraftStatistic.statistics);
+    public static final BiMap<SoundEvent, Sound> MODD_SOUNDS = HashBiMap.create();
 
     public static void init() {
         addEnumMaterialInItems();
@@ -379,7 +380,7 @@ public class NeoForgeInjectBukkit {
             if (isMods(resourceLocation)) {
                 String name = resourceLocation.getPath().replace(".", "_").toUpperCase(Locale.ROOT);
                 Sound sound = MohistDynamEnum.addEnum(Sound.class, name, List.of(String.class), List.of(resourceLocation.toString()));
-                Sound.MODD_SOUNDS.put(statType, sound);
+                MODD_SOUNDS.put(statType, sound);
                 debug("Registered mods SoundEvent as Sound(Bukkit) {}", sound.name());
             }
         }

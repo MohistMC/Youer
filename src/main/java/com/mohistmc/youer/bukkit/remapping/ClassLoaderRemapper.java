@@ -98,7 +98,6 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
     private Map.Entry<Map<Method, String>, Map<WrappedMethod, Method>> tryGetMethods(Class<?> cl) {
         Map<Method, String> names = new HashMap<>();
         Map<WrappedMethod, Method> types = new HashMap<>();
-        String className = cl.getName();
         try {
             for (Method method : cl.getDeclaredMethods()) {
                 checkMethodTypes(method);
