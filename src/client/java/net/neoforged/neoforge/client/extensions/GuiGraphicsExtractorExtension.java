@@ -15,7 +15,7 @@ import net.minecraft.resources.Identifier;
 /**
  * Extension interface for {@link GuiGraphicsExtractor}.
  */
-public interface IGuiGraphicsExtension {
+public interface GuiGraphicsExtractorExtension {
     private GuiGraphicsExtractor self() {
         return (GuiGraphicsExtractor) this;
     }

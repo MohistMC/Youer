@@ -32,7 +32,7 @@ public final class RegisterFluidModelsEvent extends Event implements IModBusEven
     }
 
     /// Register the given [FluidModel.Unbaked] for the given [Fluid]
-    public void register(FluidModel.Unbaked model, Supplier<Fluid> fluid) {
+    public void register(FluidModel.Unbaked model, Supplier<? extends Fluid> fluid) {
         this.register(model, fluid.get());
     }
 
@@ -42,7 +42,7 @@ public final class RegisterFluidModelsEvent extends Event implements IModBusEven
     }
 
     /// Register the given [FluidModel.Unbaked] for the two given [Fluid]s
-    public void register(FluidModel.Unbaked model, Supplier<Fluid> stillFluid, Supplier<Fluid> flowingFluid) {
+    public void register(FluidModel.Unbaked model, Supplier<? extends Fluid> stillFluid, Supplier<? extends Fluid> flowingFluid) {
         this.register(model, stillFluid.get(), flowingFluid.get());
     }
 
