@@ -1,12 +1,5 @@
 package org.bukkit;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundEvent;
-import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -1634,11 +1627,7 @@ public enum Sound implements Keyed, net.kyori.adventure.sound.Sound.Type { // Pa
     private final NamespacedKey key;
 
     private Sound(String key) {
-        if (key.contains(":")) {
-            this.key = CraftNamespacedKey.fromStringOrNull(key);
-        } else {
-            this.key = NamespacedKey.minecraft(key);
-        }
+        this.key = NamespacedKey.fromString(key);
     }
 
     // Paper start - deprecate getKey
