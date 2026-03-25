@@ -30,7 +30,7 @@
 ## 📊 Progress Status
 
 ✅ **Core Integration**
-- [x] NeoForge ([9a34aa97c](https://github.com/neoforged/NeoForge/commit/9a34aa97c))
+- [x] NeoForge ([84928347e](https://github.com/neoforged/NeoForge/commit/84928347e))
 - [ ] Paper ([27f926e7e](https://github.com/PaperMC/Paper/commit/27f926e7e))
   - [ ] api
   - [ ] server
