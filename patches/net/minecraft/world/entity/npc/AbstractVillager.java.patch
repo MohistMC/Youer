@@ -38,7 +38,7 @@
      @Override
      public MerchantOffers getOffers() {
          if (this.level().isClientSide) {
-@@ -119,14 +_,28 @@
+@@ -119,14 +_,34 @@
      public void overrideXp(int p_35322_) {
      }
  
@@ -54,14 +54,20 @@
 +        //this.notifyTrade(recipe);
 +    }
 +    // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
++    public @Nullable io.papermc.paper.event.player.PlayerPurchaseEvent event;
 +
      @Override
      public void notifyTrade(MerchantOffer p_35274_) {
 -        p_35274_.increaseUses();
-+        // offer.increaseUses(); // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
++        if (event == null || event.willIncreaseTradeUses()) {
++            p_35274_.increaseUses();
++        }
++
          this.ambientSoundTime = -this.getAmbientSoundInterval();
 -        this.rewardTradeXp(p_35274_);
-+        // this.rewardTradeXp(offer); // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
++        if (event == null || event.isRewardingExp()) {
++            this.rewardTradeXp(p_35274_);
++        }
          if (this.tradingPlayer instanceof ServerPlayer) {
              CriteriaTriggers.TRADE.trigger((ServerPlayer)this.tradingPlayer, this, p_35274_.getResult());
          }

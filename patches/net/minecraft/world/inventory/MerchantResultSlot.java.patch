@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/inventory/MerchantResultSlot.java
 +++ b/net/minecraft/world/inventory/MerchantResultSlot.java
-@@ -47,12 +_,32 @@
+@@ -1,6 +_,7 @@
+ package net.minecraft.world.inventory;
+ 
+ import net.minecraft.stats.Stats;
++import net.minecraft.world.entity.npc.AbstractVillager;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.trading.Merchant;
+@@ -47,12 +_,34 @@
  
      @Override
      public void onTake(Player p_150631_, ItemStack p_150632_) {
@@ -30,7 +38,9 @@
              ItemStack itemstack = this.slots.getItem(0);
              ItemStack itemstack1 = this.slots.getItem(1);
              if (merchantoffer.take(itemstack, itemstack1) || merchantoffer.take(itemstack1, itemstack)) {
-+                this.merchant.processTrade(merchantoffer, event); // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
++                if (this.merchant instanceof AbstractVillager abstractVillager) {
++                    abstractVillager.event = event; // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
++                }
                  this.merchant.notifyTrade(merchantoffer);
                  p_150631_.awardStat(Stats.TRADED_WITH_VILLAGER);
                  this.slots.setItem(0, itemstack);
