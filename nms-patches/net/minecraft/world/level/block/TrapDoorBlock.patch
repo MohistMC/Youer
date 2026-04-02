@@ -10,15 +10,15 @@
  
      public static final MapCodec<TrapDoorBlock> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
 @@ -124,6 +126,19 @@
-             boolean flag1 = level.hasNeighborSignal(blockpos);
+             boolean flag1 = level.hasNeighborSignal(pos);
  
-             if (flag1 != (Boolean) blockstate.getValue(TrapDoorBlock.POWERED)) {
+             if (flag1 != (Boolean) state.getValue(TrapDoorBlock.POWERED)) {
 +                // CraftBukkit start
 +                org.bukkit.World bworld = level.getWorld();
-+                org.bukkit.block.Block bblock = bworld.getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
++                org.bukkit.block.Block bblock = bworld.getBlockAt(pos.getX(), pos.getY(), pos.getZ());
 +
 +                int power = bblock.getBlockPower();
-+                int oldPower = (Boolean) blockstate.getValue(OPEN) ? 15 : 0;
++                int oldPower = (Boolean) state.getValue(OPEN) ? 15 : 0;
 +
 +                if (oldPower == 0 ^ power == 0 || block.defaultBlockState().isSignalSource()) {
 +                    BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(bblock, oldPower, power);
@@ -26,6 +26,6 @@
 +                    flag1 = eventRedstone.getNewCurrent() > 0;
 +                }
 +                // CraftBukkit end
-                 if ((Boolean) blockstate.getValue(TrapDoorBlock.OPEN) != flag1) {
-                     blockstate = (BlockState) blockstate.setValue(TrapDoorBlock.OPEN, flag1);
-                     this.playSound((Player) null, level, blockpos, flag1);
+                 if ((Boolean) state.getValue(TrapDoorBlock.OPEN) != flag1) {
+                     state = (BlockState) state.setValue(TrapDoorBlock.OPEN, flag1);
+                     this.playSound((Player) null, level, pos, flag1);

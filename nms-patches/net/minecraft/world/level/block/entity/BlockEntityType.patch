@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/entity/BlockEntityType.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntityType.java
-@@ -70,7 +70,7 @@
+@@ -69,7 +69,7 @@
      public static final BlockEntityType<TestBlockEntity> TEST_BLOCK = register("test_block", TestBlockEntity::new, Blocks.TEST_BLOCK);
      public static final BlockEntityType<TestInstanceBlockEntity> TEST_INSTANCE_BLOCK = register("test_instance_block", TestInstanceBlockEntity::new, Blocks.TEST_INSTANCE_BLOCK);
      public static final BlockEntityType<CopperGolemStatueBlockEntity> COPPER_GOLEM_STATUE = register("copper_golem_statue", CopperGolemStatueBlockEntity::new, Blocks.COPPER_GOLEM_STATUE, Blocks.EXPOSED_COPPER_GOLEM_STATUE, Blocks.WEATHERED_COPPER_GOLEM_STATUE, Blocks.OXIDIZED_COPPER_GOLEM_STATUE, Blocks.WAXED_COPPER_GOLEM_STATUE, Blocks.WAXED_EXPOSED_COPPER_GOLEM_STATUE, Blocks.WAXED_WEATHERED_COPPER_GOLEM_STATUE, Blocks.WAXED_OXIDIZED_COPPER_GOLEM_STATUE);
@@ -9,12 +9,12 @@
      private final BlockEntityType.BlockEntitySupplier<? extends T> factory;
      private final Set<Block> validBlocks;
      private final Holder.Reference<BlockEntityType<?>> builtInRegistryHolder;
-@@ -85,7 +85,7 @@
+@@ -80,7 +80,7 @@
          }
  
-         Util.fetchChoiceType(References.BLOCK_ENTITY, s);
--        return (BlockEntityType) Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, s, new BlockEntityType(blockentitytype_blockentitysupplier, Set.of(ablock)));
-+        return (BlockEntityType) Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, s, new BlockEntityType<>(blockentitytype_blockentitysupplier, Set.of(ablock))); // CraftBukkit - decompile error
+         Util.fetchChoiceType(References.BLOCK_ENTITY, name);
+-        return (BlockEntityType) Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, name, new BlockEntityType(factory, Set.of(validBlocks)));
++        return (BlockEntityType) Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, name, new BlockEntityType<>(factory, Set.of(validBlocks))); // CraftBukkit - decompile error
      }
  
-     private BlockEntityType(BlockEntityType.BlockEntitySupplier<? extends T> blockentitytype_blockentitysupplier, Set<Block> set) {
+     private BlockEntityType(BlockEntityType.BlockEntitySupplier<? extends T> factory, Set<Block> validBlocks) {

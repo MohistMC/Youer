@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/bossevents/CustomBossEvent.java
 +++ b/net/minecraft/server/bossevents/CustomBossEvent.java
-@@ -18,6 +18,11 @@
+@@ -17,6 +17,11 @@
  import net.minecraft.util.Mth;
  import net.minecraft.world.BossEvent;
  
@@ -13,9 +13,9 @@
  
      private static final int DEFAULT_MAX = 100;
 @@ -25,6 +30,16 @@
-     private final Set<UUID> players = Sets.newHashSet();
      private int value;
      private int max = 100;
+     private final Runnable dirtyCallback;
 +    // CraftBukkit start
 +    private KeyedBossBar bossBar;
 +
@@ -27,14 +27,5 @@
 +    }
 +    // CraftBukkit end
  
-     public CustomBossEvent(Identifier identifier, Component component) {
-         super(component, BossEvent.BossBarColor.WHITE, BossEvent.BossBarOverlay.PROGRESS);
-@@ -145,7 +160,7 @@
-         custombossevent.setDarkenScreen(custombossevent_packed.darkenScreen);
-         custombossevent.setPlayBossMusic(custombossevent_packed.playBossMusic);
-         custombossevent.setCreateWorldFog(custombossevent_packed.createWorldFog);
--        Set set = custombossevent_packed.players;
-+        Set<UUID> set = custombossevent_packed.players; // CraftBukkit - decompile error
- 
-         Objects.requireNonNull(custombossevent);
-         set.forEach(custombossevent::addOfflinePlayer);
+     public CustomBossEvent(UUID id, Identifier customId, Component name, Runnable dirtyCallback) {
+         super(id, name, BossEvent.BossBarColor.WHITE, BossEvent.BossBarOverlay.PROGRESS);

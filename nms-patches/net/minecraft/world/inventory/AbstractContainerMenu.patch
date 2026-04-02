@@ -50,7 +50,7 @@
 +    }
 +    // CraftBukkit end
 +
-     protected AbstractContainerMenu(@Nullable MenuType<?> menutype, int i) {
+     protected AbstractContainerMenu(@Nullable MenuType<?> menuType, int containerId) {
          this.carried = ItemStack.EMPTY;
          this.remoteSlots = NonNullList.<RemoteSlot>create();
 @@ -199,6 +238,16 @@
@@ -67,8 +67,8 @@
 +    }
 +    // CraftBukkit end
 +
-     public void removeSlotListener(ContainerListener containerlistener) {
-         this.containerListeners.remove(containerlistener);
+     public void removeSlotListener(ContainerListener listener) {
+         this.containerListeners.remove(listener);
      }
 @@ -406,7 +455,7 @@
                  }
@@ -88,7 +88,7 @@
                      for (Slot slot1 : this.quickcraftSlots) {
                          ItemStack itemstack2 = this.getCarried();
 @@ -432,12 +482,48 @@
-                             int l1 = Math.min(getQuickCraftPlaceCount(this.quickcraftSlots, this.quickcraftType, itemstack1) + j1, k1);
+                             int l1 = Math.min(getQuickCraftPlaceCount(this.quickcraftSlots.size(), this.quickcraftType, itemstack1) + j1, k1);
  
                              i1 -= l1 - j1;
 -                            slot1.setByPlayer(itemstack1.copyWithCount(l1));
@@ -140,7 +140,7 @@
  
                  this.resetQuickCraft();
 @@ -452,8 +538,11 @@
-             if (i == -999) {
+             if (slotIndex == -999) {
                  if (!this.getCarried().isEmpty()) {
                      if (clickaction == ClickAction.PRIMARY) {
 -                        player.drop(this.getCarried(), true);
@@ -166,8 +166,8 @@
 +                }
 +                // CraftBukkit end
              }
-         } else if (clicktype == ClickType.SWAP && (j >= 0 && j < 9 || j == 40)) {
-             ItemStack itemstack6 = inventory.getItem(j);
+         } else if (containerInput == ContainerInput.SWAP && (buttonNum >= 0 && buttonNum < 9 || buttonNum == 40)) {
+             ItemStack itemstack6 = inventory.getItem(buttonNum);
 @@ -587,7 +685,11 @@
                      }
  
@@ -181,7 +181,7 @@
                      player.handleCreativeModeItemDrop(itemstack9);
                  }
              }
-@@ -649,8 +751,9 @@
+@@ -653,8 +755,9 @@
              ItemStack itemstack = this.getCarried();
  
              if (!itemstack.isEmpty()) {
@@ -192,7 +192,7 @@
              }
  
          }
-@@ -879,6 +982,11 @@
+@@ -883,6 +986,11 @@
      }
  
      public ItemStack getCarried() {

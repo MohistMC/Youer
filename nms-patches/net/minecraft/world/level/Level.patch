@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -87,6 +87,22 @@
+@@ -92,6 +92,22 @@
  import org.apache.commons.lang3.mutable.MutableBoolean;
  import org.jspecify.annotations.Nullable;
  
@@ -23,11 +23,11 @@
  public abstract class Level implements LevelAccessor, AutoCloseable {
  
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
-@@ -127,7 +143,41 @@
+@@ -132,7 +148,41 @@
      private final PalettedContainerFactory palettedContainerFactory;
      private long subTickCount;
  
--    protected Level(WritableLevelData writableleveldata, ResourceKey<Level> resourcekey, RegistryAccess registryaccess, Holder<DimensionType> holder, boolean flag, boolean flag1, long i, int j) {
+-    protected Level(WritableLevelData levelData, ResourceKey<Level> dimension, RegistryAccess registryAccess, Holder<DimensionType> dimensionTypeRegistration, boolean isClientSide, boolean isDebug, long biomeZoomSeed, int maxChainedNeighborUpdates) {
 +    // CraftBukkit start Added the following
 +    private final CraftWorld world;
 +    public org.bukkit.generator.ChunkGenerator generator;
@@ -51,7 +51,7 @@
 +
 +    public abstract ResourceKey<LevelStem> getTypeKey();
 +
-+    protected Level(WritableLevelData writableleveldata, ResourceKey<Level> resourcekey, RegistryAccess registryaccess, Holder<DimensionType> holder, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env) {
++    protected Level(WritableLevelData levelData, ResourceKey<Level> dimension, RegistryAccess registryAccess, Holder<DimensionType> dimensionTypeRegistration, boolean isClientSide, boolean isDebug, long biomeZoomSeed, int maxChainedNeighborUpdates, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env) {
 +        this.generator = gen;
 +        this.world = new CraftWorld((ServerLevel) this, gen, biomeProvider, env);
 +
@@ -63,68 +63,68 @@
 +        }
 +
 +        // CraftBukkit end
-         this.levelData = writableleveldata;
-         this.dimensionTypeRegistration = holder;
-         this.dimension = resourcekey;
-@@ -205,6 +255,18 @@
+         this.levelData = levelData;
+         this.dimensionTypeRegistration = dimensionTypeRegistration;
+         this.dimension = dimension;
+@@ -210,6 +260,18 @@
  
      @Override
-     public boolean setBlock(BlockPos blockpos, BlockState blockstate, @Block.UpdateFlags int i, int j) {
+     public boolean setBlock(BlockPos pos, BlockState blockState, @Block.UpdateFlags int updateFlags, int updateLimit) {
 +        // CraftBukkit start - tree generation
 +        if (this.captureTreeGeneration) {
-+            CapturedBlockState capturedBlockState = capturedBlockStates.get(blockpos);
++            CapturedBlockState capturedBlockState = capturedBlockStates.get(pos);
 +            if (capturedBlockState == null) {
-+                capturedBlockState = CapturedBlockState.getTreeBlockState(this, blockpos, i);
-+                this.capturedBlockStates.put(blockpos.immutable(), capturedBlockState);
++                capturedBlockState = CapturedBlockState.getTreeBlockState(this, pos, updateFlags);
++                this.capturedBlockStates.put(pos.immutable(), capturedBlockState);
 +            }
-+            capturedBlockState.setData(blockstate);
-+            capturedBlockState.setFlag(i);
++            capturedBlockState.setData(blockState);
++            capturedBlockState.setFlag(updateFlags);
 +            return true;
 +        }
 +        // CraftBukkit end
-         if (!this.isInValidBounds(blockpos)) {
+         if (!this.isInValidBounds(pos)) {
              return false;
          } else if (!this.isClientSide() && this.isDebug()) {
-@@ -212,13 +274,29 @@
+@@ -217,13 +279,29 @@
          } else {
-             LevelChunk levelchunk = this.getChunkAt(blockpos);
-             Block block = blockstate.getBlock();
+             LevelChunk levelchunk = this.getChunkAt(pos);
+             Block block = blockState.getBlock();
 +
 +            // CraftBukkit start - capture blockstates
 +            boolean captured = false;
-+            if (this.captureBlockStates && !this.capturedBlockStates.containsKey(blockpos)) {
-+                CapturedBlockState capturedBlockState = CapturedBlockState.getBlockState(this, blockpos, i);
-+                this.capturedBlockStates.put(blockpos.immutable(), capturedBlockState);
++            if (this.captureBlockStates && !this.capturedBlockStates.containsKey(pos)) {
++                CapturedBlockState capturedBlockState = CapturedBlockState.getBlockState(this, pos, updateFlags);
++                this.capturedBlockStates.put(pos.immutable(), capturedBlockState);
 +                captured = true;
 +            }
 +            // CraftBukkit end
 +
-             BlockState blockstate1 = levelchunk.setBlockState(blockpos, blockstate, i);
+             BlockState blockstate1 = levelchunk.setBlockState(pos, blockState, updateFlags);
  
              if (blockstate1 == null) {
 +                // CraftBukkit start - remove blockstate if failed (or the same)
 +                if (this.captureBlockStates && captured) {
-+                    this.capturedBlockStates.remove(blockpos);
++                    this.capturedBlockStates.remove(pos);
 +                }
 +                // CraftBukkit end
                  return false;
              } else {
-                 BlockState blockstate2 = this.getBlockState(blockpos);
+                 BlockState blockstate2 = this.getBlockState(pos);
  
 +                /*
-                 if (blockstate2 == blockstate) {
+                 if (blockstate2 == blockState) {
                      if (blockstate1 != blockstate2) {
-                         this.setBlocksDirty(blockpos, blockstate1, blockstate2);
-@@ -245,12 +323,69 @@
+                         this.setBlocksDirty(pos, blockstate1, blockstate2);
+@@ -250,12 +328,69 @@
  
-                     this.updatePOIOnBlockStateChange(blockpos, blockstate1, blockstate2);
+                     this.updatePOIOnBlockStateChange(pos, blockstate1, blockstate2);
                  }
 +                */
 +
 +                // CraftBukkit start
 +                if (!this.captureBlockStates) { // Don't notify clients or update physics while capturing blockstates
 +                    // Modularize client and physic updates
-+                    notifyAndUpdatePhysics(blockpos, levelchunk, blockstate1, blockstate, blockstate2, i, j);
++                    notifyAndUpdatePhysics(pos, levelchunk, blockstate1, blockState, blockstate2, updateFlags, updateLimit);
 +                }
 +                // CraftBukkit end
  
@@ -182,66 +182,54 @@
 +    }
 +    // CraftBukkit end
 +
-     public void updatePOIOnBlockStateChange(BlockPos blockpos, BlockState blockstate, BlockState blockstate1) {}
+     public void updatePOIOnBlockStateChange(BlockPos pos, BlockState oldState, BlockState newState) {}
  
      @Override
-@@ -336,6 +471,14 @@
+@@ -341,6 +476,14 @@
  
      @Override
-     public BlockState getBlockState(BlockPos blockpos) {
+     public BlockState getBlockState(BlockPos pos) {
 +        // CraftBukkit start - tree generation
 +        if (captureTreeGeneration) {
-+            CapturedBlockState previous = capturedBlockStates.get(blockpos);
++            CapturedBlockState previous = capturedBlockStates.get(pos);
 +            if (previous != null) {
 +                return previous.getHandle();
 +            }
 +        }
 +        // CraftBukkit end
-         if (!this.isInValidBounds(blockpos)) {
+         if (!this.isInValidBounds(pos)) {
              return Blocks.VOID_AIR.defaultBlockState();
          } else {
-@@ -485,6 +628,15 @@
+@@ -490,6 +633,15 @@
  
      @Override
-     public @Nullable BlockEntity getBlockEntity(BlockPos blockpos) {
+     public @Nullable BlockEntity getBlockEntity(BlockPos pos) {
 +        // CraftBukkit start
-+        return getBlockEntity(blockpos, true);
++        return getBlockEntity(pos, true);
 +    }
 +
-+    public @Nullable BlockEntity getBlockEntity(BlockPos blockpos, boolean validate) {
-+        if (capturedTileEntities.containsKey(blockpos)) {
-+            return capturedTileEntities.get(blockpos);
++    public @Nullable BlockEntity getBlockEntity(BlockPos pos, boolean validate) {
++        if (capturedTileEntities.containsKey(pos)) {
++            return capturedTileEntities.get(pos);
 +        }
 +        // CraftBukkit end
-         return !this.isInValidBounds(blockpos) ? null : (!this.isClientSide() && Thread.currentThread() != this.thread ? null : this.getChunkAt(blockpos).getBlockEntity(blockpos, LevelChunk.EntityCreationType.IMMEDIATE));
+         return !this.isInValidBounds(pos) ? null : (!this.isClientSide() && Thread.currentThread() != this.thread ? null : this.getChunkAt(pos).getBlockEntity(pos, LevelChunk.EntityCreationType.IMMEDIATE));
      }
  
-@@ -492,6 +644,12 @@
-         BlockPos blockpos = blockentity.getBlockPos();
+@@ -497,6 +649,12 @@
+         BlockPos blockpos = blockEntity.getBlockPos();
  
          if (this.isInValidBounds(blockpos)) {
 +            // CraftBukkit start
 +            if (captureBlockStates) {
-+                capturedTileEntities.put(blockpos.immutable(), blockentity);
++                capturedTileEntities.put(blockpos.immutable(), blockEntity);
 +                return;
 +            }
 +            // CraftBukkit end
-             this.getChunkAt(blockpos).addAndRegisterBlockEntity(blockentity);
+             this.getChunkAt(blockpos).addAndRegisterBlockEntity(blockEntity);
          }
      }
-@@ -545,6 +703,11 @@
-     }
- 
-     protected void prepareWeather() {
-+        // CraftBukkit start - SPIGOT-8029: consistent with WorldServer#advanceWeatherCycle
-+        if (!this.dimensionType().hasSkyLight()) {
-+            return;
-+        }
-+        // CraftBukkit end
-         if (this.levelData.isRaining()) {
-             this.rainLevel = 1.0F;
-             if (this.levelData.isThundering()) {
-@@ -906,7 +1069,7 @@
+@@ -916,7 +1074,7 @@
  
      public static enum ExplosionInteraction implements StringRepresentable {
  

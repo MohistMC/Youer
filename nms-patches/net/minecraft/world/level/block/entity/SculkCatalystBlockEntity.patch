@@ -1,15 +1,15 @@
 --- a/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
 @@ -34,10 +34,13 @@
-     public SculkCatalystBlockEntity(BlockPos blockpos, BlockState blockstate) {
-         super(BlockEntityType.SCULK_CATALYST, blockpos, blockstate);
-         this.catalystListener = new SculkCatalystBlockEntity.CatalystListener(blockstate, new BlockPositionSource(blockpos));
+     public SculkCatalystBlockEntity(BlockPos worldPosition, BlockState blockState) {
+         super(BlockEntityType.SCULK_CATALYST, worldPosition, blockState);
+         this.catalystListener = new SculkCatalystBlockEntity.CatalystListener(blockState, new BlockPositionSource(worldPosition));
 +        catalystListener.level = level; // CraftBukkit
      }
  
-     public static void serverTick(Level level, BlockPos blockpos, BlockState blockstate, SculkCatalystBlockEntity sculkcatalystblockentity) {
-+        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = sculkcatalystblockentity.getBlockPos(); // CraftBukkit - SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep.
-         sculkcatalystblockentity.catalystListener.getSculkSpreader().updateCursors(level, blockpos, level.getRandom(), true);
+     public static void serverTick(Level level, BlockPos pos, BlockState state, SculkCatalystBlockEntity entity) {
++        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = entity.getBlockPos(); // CraftBukkit - SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep.
+         entity.catalystListener.getSculkSpreader().updateCursors(level, pos, level.getRandom(), true);
 +        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = null; // CraftBukkit
      }
  
@@ -20,9 +20,9 @@
          private final PositionSource positionSource;
 +        private Level level; // CraftBukkit
  
-         public CatalystListener(BlockState blockstate, PositionSource positionsource) {
-             this.blockState = blockstate;
-             this.positionSource = positionsource;
+         public CatalystListener(BlockState blockState, PositionSource positionSource) {
+             this.blockState = blockState;
+             this.positionSource = positionSource;
              this.sculkSpreader = SculkSpreader.createLevelSpreader();
 +            this.sculkSpreader.level = level; // CraftBukkit
          }

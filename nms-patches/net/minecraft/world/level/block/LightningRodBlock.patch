@@ -15,19 +15,19 @@
 @@ -76,6 +81,18 @@
      }
  
-     public void onLightningStrike(BlockState blockstate, Level level, BlockPos blockpos) {
+     public void onLightningStrike(BlockState state, Level level, BlockPos pos) {
 +        // CraftBukkit start
-+        boolean powered = blockstate.getValue(LightningRodBlock.POWERED);
++        boolean powered = state.getValue(LightningRodBlock.POWERED);
 +        int old = (powered) ? 15 : 0;
 +        int current = (!powered) ? 15 : 0;
 +
-+        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(level, blockpos), old, current);
++        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(level, pos), old, current);
 +        level.getCraftServer().getPluginManager().callEvent(eventRedstone);
 +
 +        if (eventRedstone.getNewCurrent() <= 0) {
 +            return;
 +        }
 +        // CraftBukkit end
-         level.setBlock(blockpos, (BlockState) blockstate.setValue(LightningRodBlock.POWERED, true), 3);
-         this.updateNeighbours(blockstate, level, blockpos);
-         level.scheduleTick(blockpos, (Block) this, 8);
+         level.setBlock(pos, (BlockState) state.setValue(LightningRodBlock.POWERED, true), 3);
+         this.updateNeighbours(state, level, pos);
+         level.scheduleTick(pos, (Block) this, 8);

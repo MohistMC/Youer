@@ -15,12 +15,12 @@
  
      public static final EquipmentDispenseItemBehavior INSTANCE = new EquipmentDispenseItemBehavior();
 @@ -34,6 +41,33 @@
-             EquipmentSlot equipmentslot = livingentity.getEquipmentSlotForItem(itemstack);
-             ItemStack itemstack1 = itemstack.split(1);
+             EquipmentSlot equipmentslot = livingentity.getEquipmentSlotForItem(dispensed);
+             ItemStack itemstack1 = dispensed.split(1);
  
 +            // CraftBukkit start
-+            Level level = blocksource.level();
-+            org.bukkit.block.Block block = CraftBlock.at(level, blocksource.pos());
++            Level level = source.level();
++            org.bukkit.block.Block block = CraftBlock.at(level, source.pos());
 +            CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
 +
 +            BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) livingentity.getBukkitEntity());
@@ -29,17 +29,17 @@
 +            }
 +
 +            if (event.isCancelled()) {
-+                itemstack.grow(1);
++                dispensed.grow(1);
 +                return false;
 +            }
 +
 +            if (!event.getItem().equals(craftItem)) {
-+                itemstack.grow(1);
++                dispensed.grow(1);
 +                // Chain to handler for new item
 +                ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
 +                DispenseItemBehavior dispenseitembehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
 +                if (dispenseitembehavior != DispenseItemBehavior.NOOP && dispenseitembehavior != EquipmentDispenseItemBehavior.INSTANCE) {
-+                    dispenseitembehavior.dispense(blocksource, eventStack);
++                    dispenseitembehavior.dispense(source, eventStack);
 +                    return true;
 +                }
 +            }

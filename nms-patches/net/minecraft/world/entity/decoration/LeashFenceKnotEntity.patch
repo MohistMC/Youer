@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/decoration/LeashFenceKnotEntity.java
 +++ b/net/minecraft/world/entity/decoration/LeashFenceKnotEntity.java
-@@ -25,6 +25,13 @@
+@@ -26,6 +26,13 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -14,13 +14,13 @@
  public class LeashFenceKnotEntity extends BlockAttachedEntity {
  
      public static final double OFFSET_Y = 0.375D;
-@@ -87,6 +94,15 @@
+@@ -88,6 +95,15 @@
  
              for (Leashable leashable : Leashable.leashableLeashedTo(player)) {
                  if (leashable.canHaveALeashAttachedTo(this)) {
 +                    // CraftBukkit start
 +                    if (leashable instanceof Entity leashed) {
-+                        if (CraftEventFactory.callPlayerLeashEntityEvent(leashed, this, player, interactionhand).isCancelled()) {
++                        if (CraftEventFactory.callPlayerLeashEntityEvent(leashed, this, player, hand).isCancelled()) {
 +                            ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(leashed, leashable.getLeashHolder()));
 +                            flag = true; // Also set true when the event is cancelled otherwise it tries to unleash the entities
 +                            continue;
@@ -30,16 +30,16 @@
                      leashable.setLeashedTo(this, true);
                      flag = true;
                  }
-@@ -97,6 +113,18 @@
+@@ -98,6 +114,18 @@
              if (!flag && !player.isSecondaryUseActive()) {
                  for (Leashable leashable1 : Leashable.leashableLeashedTo(this)) {
                      if (leashable1.canHaveALeashAttachedTo(player)) {
 +                        // CraftBukkit start
 +                        if (leashable1 instanceof Entity leashed) {
-+                            if (CraftEventFactory.callPlayerUnleashEntityEvent(leashed, player, interactionhand).isCancelled()) {
++                            if (CraftEventFactory.callPlayerUnleashEntityEvent(leashed, player, hand).isCancelled()) {
 +                                continue;
 +                            }
-+                            if (CraftEventFactory.callPlayerLeashEntityEvent(leashed, this, player, interactionhand).isCancelled()) {
++                            if (CraftEventFactory.callPlayerLeashEntityEvent(leashed, this, player, hand).isCancelled()) {
 +                                ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(leashed, leashable1.getLeashHolder()));
 +                                flag1 = true; // Also set true when the event is cancelled otherwise it tries to unleash the entities
 +                                continue;
@@ -49,9 +49,9 @@
                          leashable1.setLeashedTo(player, true);
                          flag1 = true;
                      }
-@@ -116,7 +144,7 @@
+@@ -117,7 +145,7 @@
      @Override
-     public void notifyLeasheeRemoved(Leashable leashable) {
+     public void notifyLeasheeRemoved(Leashable entity) {
          if (Leashable.leashableLeashedTo(this).isEmpty()) {
 -            this.discard();
 +            this.discard(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause

@@ -10,20 +10,20 @@
 +
  public abstract class VegetationBlock extends Block {
  
-     protected VegetationBlock(BlockBehaviour.Properties blockbehaviour_properties) {
+     protected VegetationBlock(BlockBehaviour.Properties properties) {
 @@ -27,7 +31,15 @@
  
      @Override
-     protected BlockState updateShape(BlockState blockstate, LevelReader levelreader, ScheduledTickAccess scheduledtickaccess, BlockPos blockpos, Direction direction, BlockPos blockpos1, BlockState blockstate1, RandomSource randomsource) {
--        return !blockstate.canSurvive(levelreader, blockpos) ? Blocks.AIR.defaultBlockState() : super.updateShape(blockstate, levelreader, scheduledtickaccess, blockpos, direction, blockpos1, blockstate1, randomsource);
+     protected BlockState updateShape(BlockState state, LevelReader level, ScheduledTickAccess ticks, BlockPos pos, Direction directionToNeighbour, BlockPos neighbourPos, BlockState neighbourState, RandomSource random) {
+-        return !state.canSurvive(level, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, level, ticks, pos, directionToNeighbour, neighbourPos, neighbourState, random);
 +        // CraftBukkit start
-+        if (!blockstate.canSurvive(levelreader, blockpos)) {
++        if (!state.canSurvive(level, pos)) {
 +            // Suppress during worldgen
-+            if (!(levelreader instanceof Level level) || !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(level, blockpos).isCancelled()) {
++            if (!(level instanceof Level actualLevel) || !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(actualLevel, pos).isCancelled()) {
 +                return Blocks.AIR.defaultBlockState();
 +            }
 +        }
-+        return super.updateShape(blockstate, levelreader, scheduledtickaccess, blockpos, direction, blockpos1, blockstate1, randomsource);
++        return super.updateShape(state, level, ticks, pos, directionToNeighbour, neighbourPos, neighbourState, random);
 +        // CraftBukkit end
      }
  

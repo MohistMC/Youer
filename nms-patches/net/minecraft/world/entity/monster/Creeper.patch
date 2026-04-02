@@ -20,14 +20,14 @@
      private boolean droppedSkulls;
 +    public Entity entityIgniter; // CraftBukkit
  
-     public Creeper(EntityType<? extends Creeper> entitytype, Level level) {
-         super(entitytype, level);
+     public Creeper(EntityType<? extends Creeper> type, Level level) {
+         super(type, level);
 @@ -207,9 +215,20 @@
      @Override
-     public void thunderHit(ServerLevel serverlevel, LightningBolt lightningbolt) {
-         super.thunderHit(serverlevel, lightningbolt);
+     public void thunderHit(ServerLevel level, LightningBolt lightningBolt) {
+         super.thunderHit(level, lightningBolt);
 +        // CraftBukkit start
-+        if (CraftEventFactory.callCreeperPowerEvent(this, lightningbolt, org.bukkit.event.entity.CreeperPowerEvent.PowerCause.LIGHTNING).isCancelled()) {
++        if (CraftEventFactory.callCreeperPowerEvent(this, lightningBolt, org.bukkit.event.entity.CreeperPowerEvent.PowerCause.LIGHTNING).isCancelled()) {
 +            return;
 +        }
 +        // CraftBukkit end
@@ -41,8 +41,8 @@
 +    // CraftBukkit end
 +
      @Override
-     protected InteractionResult mobInteract(Player player, InteractionHand interactionhand) {
-         ItemStack itemstack = player.getItemInHand(interactionhand);
+     protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+         ItemStack itemstack = player.getItemInHand(hand);
 @@ -219,8 +238,9 @@
  
              this.level().playSound(player, this.getX(), this.getY(), this.getZ(), soundevent, this.getSoundSource(), 1.0F, this.random.nextFloat() * 0.4F + 0.8F);
@@ -53,7 +53,7 @@
 +                if (itemstack.getMaxDamage() == 0) { // CraftBukkit - fix MC-264285: unbreakable flint and steels are completely consumed when igniting a creeper
                      itemstack.shrink(1);
                  } else {
-                     itemstack.hurtAndBreak(1, player, interactionhand.asEquipmentSlot());
+                     itemstack.hurtAndBreak(1, player, hand.asEquipmentSlot());
 @@ -239,11 +259,20 @@
          if (level instanceof ServerLevel serverlevel) {
              float f = this.isPowered() ? 2.0F : 1.0F;

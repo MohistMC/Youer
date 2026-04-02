@@ -26,25 +26,25 @@
                  } else {
                      Vec3 vec31 = (Vec3) optional.get();
  
--                    if (!vibrationsystem_user.canReceiveVibration(serverlevel, BlockPos.containing(vec3), holder, gameevent_context)) {
+-                    if (!vibrationsystem_user.canReceiveVibration(level, BlockPos.containing(sourcePosition), event, context)) {
 +                    // CraftBukkit start
-+                    boolean defaultCancel = !vibrationsystem_user.canReceiveVibration(serverlevel, BlockPos.containing(vec3), holder, gameevent_context);
-+                    Entity entity = gameevent_context.sourceEntity();
-+                    BlockReceiveGameEvent event = new BlockReceiveGameEvent(CraftGameEvent.minecraftToBukkit(holder.value()), CraftBlock.at(serverlevel, BlockPos.containing(vec31)), (entity == null) ? null : entity.getBukkitEntity());
-+                    event.setCancelled(defaultCancel);
-+                    serverlevel.getCraftServer().getPluginManager().callEvent(event);
-+                    if (event.isCancelled()) {
++                    boolean defaultCancel = !vibrationsystem_user.canReceiveVibration(level, BlockPos.containing(sourcePosition), event, context);
++                    Entity sourceEntity = context.sourceEntity();
++                    BlockReceiveGameEvent bukkitEvent = new BlockReceiveGameEvent(CraftGameEvent.minecraftToBukkit(event.value()), CraftBlock.at(level, BlockPos.containing(vec31)), (sourceEntity == null) ? null : sourceEntity.getBukkitEntity());
++                    bukkitEvent.setCancelled(defaultCancel);
++                    level.getCraftServer().getPluginManager().callEvent(bukkitEvent);
++                    if (bukkitEvent.isCancelled()) {
 +                        // CraftBukkit end
                          return false;
-                     } else if (isOccluded(serverlevel, vec3, vec31)) {
+                     } else if (isOccluded(level, sourcePosition, vec31)) {
                          return false;
 @@ -312,7 +325,8 @@
-             if (vibrationsystem_user.requiresAdjacentChunksToBeTicking() && !areAdjacentChunksTicking(serverlevel, blockpos1)) {
+             if (user.requiresAdjacentChunksToBeTicking() && !areAdjacentChunksTicking(serverLevel, blockpos1)) {
                  return false;
              } else {
--                vibrationsystem_user.onReceiveVibration(serverlevel, blockpos, vibrationinfo.gameEvent(), (Entity) vibrationinfo.getEntity(serverlevel).orElse((Object) null), (Entity) vibrationinfo.getProjectileOwner(serverlevel).orElse((Object) null), VibrationSystem.Listener.distanceBetweenInBlocks(blockpos, blockpos1));
+-                user.onReceiveVibration(serverLevel, blockpos, currentVibration.gameEvent(), (Entity) currentVibration.getEntity(serverLevel).orElse((Object) null), (Entity) currentVibration.getProjectileOwner(serverLevel).orElse((Object) null), VibrationSystem.Listener.distanceBetweenInBlocks(blockpos, blockpos1));
 +                // CraftBukkit - decompile error
-+                vibrationsystem_user.onReceiveVibration(serverlevel, blockpos, vibrationinfo.gameEvent(), (Entity) vibrationinfo.getEntity(serverlevel).orElse(null), (Entity) vibrationinfo.getProjectileOwner(serverlevel).orElse(null), VibrationSystem.Listener.distanceBetweenInBlocks(blockpos, blockpos1));
-                 vibrationsystem_data.setCurrentVibration((VibrationInfo) null);
++                user.onReceiveVibration(serverLevel, blockpos, currentVibration.gameEvent(), (Entity) currentVibration.getEntity(serverLevel).orElse(null), (Entity) currentVibration.getProjectileOwner(serverLevel).orElse(null), VibrationSystem.Listener.distanceBetweenInBlocks(blockpos, blockpos1));
+                 data.setCurrentVibration((VibrationInfo) null);
                  return true;
              }

@@ -14,7 +14,7 @@
      private static final int TIME_BETWEEN_APPLICATIONS = 5;
 @@ -212,7 +217,7 @@
  
-     private void serverTick(ServerLevel serverlevel) {
+     private void serverTick(ServerLevel serverLevel) {
          if (this.duration != -1 && this.tickCount - this.waitTime >= this.duration) {
 -            this.discard();
 +            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
@@ -63,7 +63,7 @@
  
                                              for (MobEffectInstance mobeffectinstance : list) {
                                                  if (((MobEffect) mobeffectinstance.getEffect().value()).isInstantenous()) {
-                                                     ((MobEffect) mobeffectinstance.getEffect().value()).applyInstantenousEffect(serverlevel, this, this.getOwner(), livingentity, mobeffectinstance.getAmplifier(), 0.5D);
+                                                     ((MobEffect) mobeffectinstance.getEffect().value()).applyInstantenousEffect(serverLevel, this, this.getOwner(), livingentity, mobeffectinstance.getAmplifier(), 0.5D);
                                                  } else {
 -                                                    livingentity.addEffect(new MobEffectInstance(mobeffectinstance), this);
 +                                                    livingentity.addEffect(new MobEffectInstance(mobeffectinstance), this, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.AREA_EFFECT_CLOUD); // CraftBukkit
@@ -88,11 +88,11 @@
                                                  }
                                              }
 @@ -351,7 +370,7 @@
-         this.radiusPerTick = valueinput.getFloatOr("RadiusPerTick", 0.0F);
-         this.setRadius(valueinput.getFloatOr("Radius", 3.0F));
-         this.owner = EntityReference.<LivingEntity>read(valueinput, "Owner");
--        this.setCustomParticle((ParticleOptions) valueinput.read("custom_particle", ParticleTypes.CODEC).orElse((Object) null));
-+        this.setCustomParticle((ParticleOptions) valueinput.read("custom_particle", ParticleTypes.CODEC).orElse(null)); // CraftBukkit - decompile error
-         this.setPotionContents((PotionContents) valueinput.read("potion_contents", PotionContents.CODEC).orElse(PotionContents.EMPTY));
-         this.potionDurationScale = valueinput.getFloatOr("potion_duration_scale", 1.0F);
+         this.radiusPerTick = input.getFloatOr("RadiusPerTick", 0.0F);
+         this.setRadius(input.getFloatOr("Radius", 3.0F));
+         this.owner = EntityReference.<LivingEntity>read(input, "Owner");
+-        this.setCustomParticle((ParticleOptions) input.read("custom_particle", ParticleTypes.CODEC).orElse((Object) null));
++        this.setCustomParticle((ParticleOptions) input.read("custom_particle", ParticleTypes.CODEC).orElse(null)); // CraftBukkit - decompile error
+         this.setPotionContents((PotionContents) input.read("potion_contents", PotionContents.CODEC).orElse(PotionContents.EMPTY));
+         this.potionDurationScale = input.getFloatOr("potion_duration_scale", 1.0F);
      }

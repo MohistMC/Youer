@@ -3,25 +3,25 @@
 @@ -17,9 +17,12 @@
      }
  
-     public boolean areEnoughDeepSleeping(int i, List<ServerPlayer> list) {
--        int j = (int) list.stream().filter(Player::isSleepingLongEnough).count();
+     public boolean areEnoughDeepSleeping(int sleepPercentageNeeded, List<ServerPlayer> players) {
+-        int j = (int) players.stream().filter(Player::isSleepingLongEnough).count();
 +        // CraftBukkit start
-+        int j = (int) list.stream().filter((eh) -> { return eh.isSleepingLongEnough() || eh.fauxSleeping; }).count();
-+        boolean anyDeepSleep = list.stream().anyMatch(Player::isSleepingLongEnough);
++        int j = (int) players.stream().filter((eh) -> { return eh.isSleepingLongEnough() || eh.fauxSleeping; }).count();
++        boolean anyDeepSleep = players.stream().anyMatch(Player::isSleepingLongEnough);
  
--        return j >= this.sleepersNeeded(i);
-+        return anyDeepSleep && j >= this.sleepersNeeded(i);
+-        return j >= this.sleepersNeeded(sleepPercentageNeeded);
++        return anyDeepSleep && j >= this.sleepersNeeded(sleepPercentageNeeded);
 +        // CraftBukkit end
      }
  
-     public int sleepersNeeded(int i) {
+     public int sleepersNeeded(int sleepPercentageNeeded) {
 @@ -40,16 +43,22 @@
  
          this.activePlayers = 0;
          this.sleepingPlayers = 0;
 +        boolean anySleep = false; // CraftBukkit
  
-         for (ServerPlayer serverplayer : list) {
+         for (ServerPlayer serverplayer : players) {
              if (!serverplayer.isSpectator()) {
                  ++this.activePlayers;
 -                if (serverplayer.isSleeping()) {

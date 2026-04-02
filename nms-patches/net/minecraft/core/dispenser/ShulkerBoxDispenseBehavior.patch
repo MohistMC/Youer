@@ -14,20 +14,20 @@
  
      private static final Logger LOGGER = LogUtils.getLogger();
 @@ -26,6 +32,30 @@
-             BlockPos blockpos = blocksource.pos().relative(direction);
-             Direction direction1 = blocksource.level().isEmptyBlock(blockpos.below()) ? direction : Direction.UP;
+             BlockPos blockpos = source.pos().relative(direction);
+             Direction direction1 = source.level().isEmptyBlock(blockpos.below()) ? direction : Direction.UP;
  
 +            // CraftBukkit start
-+            org.bukkit.block.Block bukkitBlock = CraftBlock.at(blocksource.level(), blocksource.pos());
-+            CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack);
++            org.bukkit.block.Block bukkitBlock = CraftBlock.at(source.level(), source.pos());
++            CraftItemStack craftItem = CraftItemStack.asCraftMirror(dispensed);
 +
 +            BlockDispenseEvent event = new BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(blockpos.getX(), blockpos.getY(), blockpos.getZ()));
 +            if (!DispenserBlock.eventFired) {
-+                blocksource.level().getCraftServer().getPluginManager().callEvent(event);
++                source.level().getCraftServer().getPluginManager().callEvent(event);
 +            }
 +
 +            if (event.isCancelled()) {
-+                return itemstack;
++                return dispensed;
 +            }
 +
 +            if (!event.getItem().equals(craftItem)) {
@@ -35,12 +35,12 @@
 +                ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
 +                DispenseItemBehavior dispenseitembehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
 +                if (dispenseitembehavior != DispenseItemBehavior.NOOP && dispenseitembehavior != this) {
-+                    dispenseitembehavior.dispense(blocksource, eventStack);
-+                    return itemstack;
++                    dispenseitembehavior.dispense(source, eventStack);
++                    return dispensed;
 +                }
 +            }
 +            // CraftBukkit end
 +
              try {
-                 this.setSuccess(((BlockItem) item).place(new DirectionalPlaceContext(blocksource.level(), blockpos, direction, itemstack, direction1)).consumesAction());
+                 this.setSuccess(((BlockItem) item).place(new DirectionalPlaceContext(source.level(), blockpos, direction, dispensed, direction1)).consumesAction());
              } catch (Exception exception) {

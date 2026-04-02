@@ -13,12 +13,12 @@
  public abstract class AbstractCow extends Animal {
  
      private static final EntityDimensions BABY_DIMENSIONS = EntityType.COW.getDimensions().scale(0.5F).withEyeHeight(0.665F);
-@@ -89,8 +95,16 @@
-         ItemStack itemstack = player.getItemInHand(interactionhand);
+@@ -93,8 +99,16 @@
+         ItemStack itemstack = player.getItemInHand(hand);
  
          if (itemstack.is(Items.BUCKET) && !this.isBaby()) {
 +            // CraftBukkit start - Got milk?
-+            PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent(player.level(), player, this.blockPosition(), this.blockPosition(), null, itemstack, Items.MILK_BUCKET, interactionhand);
++            PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent(player.level(), player, this.blockPosition(), this.blockPosition(), null, itemstack, Items.MILK_BUCKET, hand);
 +
 +            if (event.isCancelled()) {
 +                return InteractionResult.PASS;
@@ -29,5 +29,5 @@
 -            ItemStack itemstack1 = ItemUtils.createFilledResult(itemstack, player, Items.MILK_BUCKET.getDefaultInstance());
 +            ItemStack itemstack1 = ItemUtils.createFilledResult(itemstack, player, CraftItemStack.asNMSCopy(event.getItemStack())); // CraftBukkit
  
-             player.setItemInHand(interactionhand, itemstack1);
+             player.setItemInHand(hand, itemstack1);
              return InteractionResult.SUCCESS;

@@ -1,7 +1,7 @@
 --- a/net/minecraft/world/level/block/MultifaceSpreader.java
 +++ b/net/minecraft/world/level/block/MultifaceSpreader.java
 @@ -95,7 +95,7 @@
-         return this.config.placeBlock(levelaccessor, multifacespreader_spreadpos, blockstate, flag) ? Optional.of(multifacespreader_spreadpos) : Optional.empty();
+         return this.config.placeBlock(level, spreadPos, blockstate, postProcess) ? Optional.of(spreadPos) : Optional.empty();
      }
  
 -    public static record SpreadPos(BlockPos pos, Direction face) {
@@ -10,34 +10,34 @@
      }
  
 @@ -130,7 +130,7 @@
-                     levelaccessor.getChunk(multifacespreader_spreadpos.pos()).markPosForPostprocessing(multifacespreader_spreadpos.pos());
+                     level.getChunk(spreadPos.pos()).markPosForPostprocessing(spreadPos.pos());
                  }
  
--                return levelaccessor.setBlock(multifacespreader_spreadpos.pos(), blockstate1, 2);
-+                return org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(levelaccessor, multifacespreader_spreadpos.source(), multifacespreader_spreadpos.pos(), blockstate1, 2); // CraftBukkit
+-                return level.setBlock(spreadPos.pos(), blockstate1, 2);
++                return org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, spreadPos.source(), spreadPos.pos(), blockstate1, 2); // CraftBukkit
              } else {
                  return false;
              }
 @@ -167,19 +167,19 @@
          SAME_POSITION {
              @Override
-             public MultifaceSpreader.SpreadPos getSpreadPos(BlockPos blockpos, Direction direction, Direction direction1) {
--                return new MultifaceSpreader.SpreadPos(blockpos, direction);
-+                return new MultifaceSpreader.SpreadPos(blockpos, direction, blockpos); // CraftBukkit
+             public MultifaceSpreader.SpreadPos getSpreadPos(BlockPos pos, Direction spreadDirection, Direction fromFace) {
+-                return new MultifaceSpreader.SpreadPos(pos, spreadDirection);
++                return new MultifaceSpreader.SpreadPos(pos, spreadDirection, pos); // CraftBukkit
              }
          },
          SAME_PLANE {
              @Override
-             public MultifaceSpreader.SpreadPos getSpreadPos(BlockPos blockpos, Direction direction, Direction direction1) {
--                return new MultifaceSpreader.SpreadPos(blockpos.relative(direction), direction1);
-+                return new MultifaceSpreader.SpreadPos(blockpos.relative(direction), direction1, blockpos); // CraftBukkit
+             public MultifaceSpreader.SpreadPos getSpreadPos(BlockPos pos, Direction spreadDirection, Direction fromFace) {
+-                return new MultifaceSpreader.SpreadPos(pos.relative(spreadDirection), fromFace);
++                return new MultifaceSpreader.SpreadPos(pos.relative(spreadDirection), fromFace, pos); // CraftBukkit
              }
          },
          WRAP_AROUND {
              @Override
-             public MultifaceSpreader.SpreadPos getSpreadPos(BlockPos blockpos, Direction direction, Direction direction1) {
--                return new MultifaceSpreader.SpreadPos(blockpos.relative(direction).relative(direction1), direction.getOpposite());
-+                return new MultifaceSpreader.SpreadPos(blockpos.relative(direction).relative(direction1), direction.getOpposite(), blockpos); // CraftBukkit
+             public MultifaceSpreader.SpreadPos getSpreadPos(BlockPos pos, Direction spreadDirection, Direction fromFace) {
+-                return new MultifaceSpreader.SpreadPos(pos.relative(spreadDirection).relative(fromFace), spreadDirection.getOpposite());
++                return new MultifaceSpreader.SpreadPos(pos.relative(spreadDirection).relative(fromFace), spreadDirection.getOpposite(), pos); // CraftBukkit
              }
          };
  

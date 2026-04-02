@@ -10,29 +10,29 @@
 +
  public class ThrownExperienceBottle extends ThrowableItemProjectile {
  
-     public ThrownExperienceBottle(EntityType<? extends ThrownExperienceBottle> entitytype, Level level) {
+     public ThrownExperienceBottle(EntityType<? extends ThrownExperienceBottle> type, Level level) {
 @@ -42,9 +46,18 @@
          Level level = this.level();
  
          if (level instanceof ServerLevel serverlevel) {
 -            serverlevel.levelEvent(2002, this.blockPosition(), -13083194);
 +            // CraftBukkit - moved to after event
-+            // worldserver.levelEvent(2002, this.blockPosition(), -13083194);
-             int i = 3 + serverlevel.random.nextInt(5) + serverlevel.random.nextInt(5);
++            // serverlevel.levelEvent(2002, this.blockPosition(), -13083194);
+             int i = 3 + this.random.nextInt(5) + this.random.nextInt(5);
  
 +            // CraftBukkit start
-+            org.bukkit.event.entity.ExpBottleEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExpBottleEvent(this, hitresult, i);
++            org.bukkit.event.entity.ExpBottleEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExpBottleEvent(this, hitResult, i);
 +            i = event.getExperience();
 +            if (event.getShowEffect()) {
 +                serverlevel.levelEvent(2002, this.blockPosition(), -13083194);
 +            }
 +            // CraftBukkit end
 +
-             if (hitresult instanceof BlockHitResult blockhitresult) {
+             if (hitResult instanceof BlockHitResult blockhitresult) {
                  Vec3 vec3 = blockhitresult.getDirection().getUnitVec3();
  
 @@ -53,7 +66,7 @@
-                 ExperienceOrb.awardWithDirection(serverlevel, hitresult.getLocation(), this.getDeltaMovement().scale(-1.0D), i);
+                 ExperienceOrb.awardWithDirection(serverlevel, hitResult.getLocation(), this.getDeltaMovement().scale(-1.0D), i);
              }
  
 -            this.discard();

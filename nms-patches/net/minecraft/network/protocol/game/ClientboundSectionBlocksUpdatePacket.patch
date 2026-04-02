@@ -4,8 +4,8 @@
              short short0 = (Short) shortiterator.next();
  
              this.positions[j] = short0;
--            this.states[j] = levelchunksection.getBlockState(SectionPos.sectionRelativeX(short0), SectionPos.sectionRelativeY(short0), SectionPos.sectionRelativeZ(short0));
-+            this.states[j] = (levelchunksection != null) ? levelchunksection.getBlockState(SectionPos.sectionRelativeX(short0), SectionPos.sectionRelativeY(short0), SectionPos.sectionRelativeZ(short0)) : net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(); // CraftBukkit - SPIGOT-6076, Mojang bug when empty chunk section notified
+-            this.states[j] = section.getBlockState(SectionPos.sectionRelativeX(short0), SectionPos.sectionRelativeY(short0), SectionPos.sectionRelativeZ(short0));
++            this.states[j] = (section != null) ? section.getBlockState(SectionPos.sectionRelativeX(short0), SectionPos.sectionRelativeY(short0), SectionPos.sectionRelativeZ(short0)) : net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(); // CraftBukkit - SPIGOT-6076, Mojang bug when empty chunk section notified
          }
  
      }
@@ -18,6 +18,6 @@
 +    }
 +    // CraftBukkit end
 +
-     private ClientboundSectionBlocksUpdatePacket(FriendlyByteBuf friendlybytebuf) {
-         this.sectionPos = (SectionPos) SectionPos.STREAM_CODEC.decode(friendlybytebuf);
-         int i = friendlybytebuf.readVarInt();
+     private ClientboundSectionBlocksUpdatePacket(FriendlyByteBuf input) {
+         this.sectionPos = (SectionPos) SectionPos.STREAM_CODEC.decode(input);
+         int i = input.readVarInt();

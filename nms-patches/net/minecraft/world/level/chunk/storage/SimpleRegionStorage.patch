@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/chunk/storage/SimpleRegionStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/SimpleRegionStorage.java
-@@ -20,6 +20,14 @@
+@@ -18,6 +18,14 @@
  import net.minecraft.world.level.ChunkPos;
  import org.jspecify.annotations.Nullable;
  
@@ -15,8 +15,8 @@
  public class SimpleRegionStorage implements AutoCloseable {
  
      private final IOWorker worker;
-@@ -58,13 +66,60 @@
-         return this.worker.store(chunkpos, supplier);
+@@ -48,13 +56,60 @@
+         return this.worker.store(pos, supplier);
      }
  
 +    // CraftBukkit start
@@ -49,30 +49,30 @@
 +        return false;
 +    }
 +
-     public CompoundTag upgradeChunkTag(CompoundTag compoundtag, int i, @Nullable CompoundTag compoundtag1) {
+     public CompoundTag upgradeChunkTag(CompoundTag chunkTag, int defaultVersion, @Nullable CompoundTag dataFixContextTag, int targetVersion) {
 +        // CraftBukkit start
-+        return this.upgradeChunkTag(compoundtag, i, compoundtag1, null, null);
++        return this.upgradeChunkTag(chunkTag, defaultVersion, dataFixContextTag, targetVersion, null, null);
 +    }
 +
-+    public CompoundTag upgradeChunkTag(CompoundTag compoundtag, int i, @Nullable CompoundTag compoundtag1, ChunkPos pos, @Nullable LevelAccessor levelaccessor) {
++    public CompoundTag upgradeChunkTag(CompoundTag chunkTag, int defaultVersion, @Nullable CompoundTag dataFixContextTag, int targetVersion, ChunkPos pos, @Nullable LevelAccessor levelaccessor) {
 +        // CraftBukkit end
-         int j = NbtUtils.getDataVersion(compoundtag, i);
+         int k = NbtUtils.getDataVersion(chunkTag, defaultVersion);
  
-         if (j == SharedConstants.getCurrentVersion().dataVersion().version()) {
-             return compoundtag;
+         if (k >= targetVersion) {
+             return chunkTag;
          } else {
              try {
 +                // CraftBukkit start
-+                if (j < 1466 && pos != null) {
-+                    CompoundTag level = compoundtag.getCompoundOrEmpty("Level");
++                if (k < 1466 && pos != null) {
++                    CompoundTag level = chunkTag.getCompoundOrEmpty("Level");
 +                    if (level.getBooleanOr("TerrainPopulated", false) && !level.getBooleanOr("LightPopulated", false)) {
 +                        ServerChunkCache cps = (levelaccessor == null) ? null : ((ServerLevel) levelaccessor).getChunkSource();
-+                        if (check(cps, pos.x - 1, pos.z) && check(cps, pos.x - 1, pos.z - 1) && check(cps, pos.x, pos.z - 1)) {
++                        if (check(cps, pos.x() - 1, pos.z()) && check(cps, pos.x() - 1, pos.z() - 1) && check(cps, pos.x(), pos.z() - 1)) {
 +                            level.putBoolean("LightPopulated", true);
 +                        }
 +                    }
 +                }
 +                // CraftBukkit end
-                 compoundtag = ((LegacyTagFixer) this.legacyFixer.get()).applyFix(compoundtag);
-                 injectDatafixingContext(compoundtag, compoundtag1);
-                 compoundtag = this.dataFixType.updateToCurrentVersion(this.fixerUpper, compoundtag, Math.max(((LegacyTagFixer) this.legacyFixer.get()).targetDataVersion(), j));
+                 injectDatafixingContext(chunkTag, dataFixContextTag);
+                 chunkTag = this.dataFixType.update(this.fixerUpper, chunkTag, k, targetVersion);
+                 removeDatafixingContext(chunkTag);

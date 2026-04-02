@@ -20,10 +20,10 @@
 +
      ContainerLevelAccess NULL = new ContainerLevelAccess() {
          @Override
-         public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, T> bifunction) {
+         public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, T> action) {
 @@ -17,6 +31,18 @@
  
-     static ContainerLevelAccess create(final Level level, final BlockPos blockpos) {
+     static ContainerLevelAccess create(final Level level, final BlockPos pos) {
          return new ContainerLevelAccess() {
 +            // CraftBukkit start
 +            @Override
@@ -33,10 +33,10 @@
 +
 +            @Override
 +            public BlockPos getPosition() {
-+                return blockpos;
++                return pos;
 +            }
 +            // CraftBukkit end
 +
              @Override
-             public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, T> bifunction) {
-                 return Optional.of(bifunction.apply(level, blockpos));
+             public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, T> action) {
+                 return Optional.of(action.apply(level, pos));

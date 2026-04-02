@@ -13,7 +13,7 @@
  
      private static final Logger LOGGER = LogUtils.getLogger();
 @@ -110,7 +115,25 @@
-         RecipeManager.LOGGER.info("Loaded {} recipes", recipemap.values().size());
+         RecipeManager.LOGGER.info("Loaded {} recipes", recipes.values().size());
      }
  
 +    // CraftBukkit start
@@ -32,8 +32,8 @@
 +        }
 +    }
 +
-     public void finalizeRecipeLoading(FeatureFlagSet featureflagset) {
-+        this.featureflagset = featureflagset;
+     public void finalizeRecipeLoading(FeatureFlagSet enabledFlags) {
++        this.featureflagset = enabledFlags;
 +        // CraftBukkit end
          List<SelectableRecipe.SingleInputEntry<StonecutterRecipe>> list = new ArrayList();
          List<RecipeManager.IngredientCollector> list1 = RecipeManager.RECIPE_PROPERTY_SETS.entrySet().stream().map((entry) -> {
@@ -41,26 +41,26 @@
 @@ -171,7 +194,10 @@
      }
  
-     public <I extends RecipeInput, T extends Recipe<I>> Optional<RecipeHolder<T>> getRecipeFor(RecipeType<T> recipetype, I i0, Level level) {
--        return this.recipes.getRecipesFor(recipetype, i0, level).findFirst();
+     public <I extends RecipeInput, T extends Recipe<I>> Optional<RecipeHolder<T>> getRecipeFor(RecipeType<T> type, I input, Level level) {
+-        return this.recipes.getRecipesFor(type, input, level).findFirst();
 +        // CraftBukkit start
-+        List<RecipeHolder<T>> list = this.recipes.getRecipesFor(recipetype, i0, level).toList();
++        List<RecipeHolder<T>> list = this.recipes.getRecipesFor(type, input, level).toList();
 +        return (list.isEmpty()) ? Optional.empty() : Optional.of(list.getLast()); // CraftBukkit - SPIGOT-4638: last recipe gets priority
 +        // CraftBukkit end
      }
  
-     public Optional<RecipeHolder<?>> byKey(ResourceKey<Recipe<?>> resourcekey) {
+     public Optional<RecipeHolder<?>> byKey(ResourceKey<Recipe<?>> recipeId) {
 @@ -181,7 +207,7 @@
-     private <T extends Recipe<?>> @Nullable RecipeHolder<T> byKeyTyped(RecipeType<T> recipetype, ResourceKey<Recipe<?>> resourcekey) {
-         RecipeHolder<?> recipeholder = this.recipes.byKey(resourcekey);
+     private <T extends Recipe<?>> @Nullable RecipeHolder<T> byKeyTyped(RecipeType<T> type, ResourceKey<Recipe<?>> recipeId) {
+         RecipeHolder<?> recipeholder = this.recipes.byKey(recipeId);
  
--        return recipeholder != null && recipeholder.value().getType().equals(recipetype) ? recipeholder : null;
-+        return recipeholder != null && recipeholder.value().getType().equals(recipetype) ? (RecipeHolder) recipeholder : null; // CraftBukkit - decompile error
+-        return recipeholder != null && recipeholder.value().getType().equals(type) ? recipeholder : null;
++        return recipeholder != null && recipeholder.value().getType().equals(type) ? (RecipeHolder) recipeholder : null; // CraftBukkit - decompile error
      }
  
      public Map<ResourceKey<RecipePropertySet>, RecipePropertySet> getSynchronizedItemProperties() {
 @@ -230,6 +256,22 @@
-         return new RecipeHolder(resourcekey, recipe);
+         return new RecipeHolder(id, recipe);
      }
  
 +    // CraftBukkit start
@@ -79,6 +79,6 @@
 +    }
 +    // CraftBukkit end
 +
-     public static <I extends RecipeInput, T extends Recipe<I>> RecipeManager.CachedCheck<I, T> createCheck(final RecipeType<T> recipetype) {
+     public static <I extends RecipeInput, T extends Recipe<I>> RecipeManager.CachedCheck<I, T> createCheck(final RecipeType<T> type) {
          return new RecipeManager.CachedCheck<I, T>() {
              private @Nullable ResourceKey<Recipe<?>> lastRecipe;

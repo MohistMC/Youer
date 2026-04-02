@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
+@@ -37,6 +_,8 @@
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.entity.HumanEntity;
+ import org.jspecify.annotations.Nullable;
+ 
+ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer, StackedContentsCompatible, RecipeCraftingHolder {
 @@ -72,9 +_,14 @@
          public int get(int dataId) {
              switch (dataId) {
@@ -16,7 +25,7 @@
                  case 2:
                      return AbstractFurnaceBlockEntity.this.cookingTimer;
                  case 3:
-@@ -108,12 +_,14 @@
+@@ -108,23 +_,55 @@
      };
      public final Reference2IntOpenHashMap<ResourceKey<Recipe<?>>> recipesUsed = new Reference2IntOpenHashMap<>();
      private final RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> quickCheck;
@@ -27,11 +36,42 @@
      ) {
          super(type, worldPosition, blockState);
          this.quickCheck = RecipeManager.createCheck(recipeType);
+-    }
 +        this.recipeType = recipeType;
-     }
++    }
++
++    // CraftBukkit start - add fields and methods
++    private int maxStack = MAX_STACK;
++    public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
++
++    public List<ItemStack> getContents() {
++        return this.items;
++    }
++
++    public void onOpen(CraftHumanEntity who) {
++        transaction.add(who);
++    }
++
++    public void onClose(CraftHumanEntity who) {
++        transaction.remove(who);
++    }
++
++    public List<HumanEntity> getViewers() {
++        return transaction;
++    }
++
++    @Override
++    public int getMaxStackSize() {
++        return maxStack;
++    }
++
++    public void setMaxStackSize(int size) {
++        maxStack = size;
++    }
++    // CraftBukkit end
  
      @Override
-@@ -121,10 +_,10 @@
+     protected void loadAdditional(ValueInput input) {
          super.loadAdditional(input);
          this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
          ContainerHelper.loadAllItems(input, this.items);

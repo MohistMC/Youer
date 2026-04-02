@@ -2,13 +2,13 @@
 +++ b/net/minecraft/world/level/block/SnowLayerBlock.java
 @@ -91,6 +91,11 @@
      @Override
-     protected void randomTick(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, RandomSource randomsource) {
-         if (serverlevel.getBrightness(LightLayer.BLOCK, blockpos) > 11) {
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+         if (level.getBrightness(LightLayer.BLOCK, pos) > 11) {
 +            // CraftBukkit start
-+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(serverlevel, blockpos, Blocks.AIR.defaultBlockState()).isCancelled()) {
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(level, pos, Blocks.AIR.defaultBlockState()).isCancelled()) {
 +                return;
 +            }
 +            // CraftBukkit end
-             dropResources(blockstate, serverlevel, blockpos);
-             serverlevel.removeBlock(blockpos, false);
+             dropResources(state, level, pos);
+             level.removeBlock(pos, false);
          }

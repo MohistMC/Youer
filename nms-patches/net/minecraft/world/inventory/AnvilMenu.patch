@@ -21,14 +21,14 @@
 +    private CraftAnvilView bukkitEntity;
 +    // CraftBukkit end
  
-     public AnvilMenu(int i, Inventory inventory) {
-         this(i, inventory, ContainerLevelAccess.NULL);
+     public AnvilMenu(int containerId, Inventory inventory) {
+         this(containerId, inventory, ContainerLevelAccess.NULL);
 @@ -71,7 +80,7 @@
  
      @Override
-     protected boolean mayPickup(Player player, boolean flag) {
+     protected boolean mayPickup(Player player, boolean hasItem) {
 -        return (player.hasInfiniteMaterials() || player.experienceLevel >= this.cost.get()) && this.cost.get() > 0;
-+        return (player.hasInfiniteMaterials() || player.experienceLevel >= this.cost.get()) && this.cost.get() > AnvilMenu.DEFAULT_DENIED_COST && flag; // CraftBukkit - allow cost 0 like a free item
++        return (player.hasInfiniteMaterials() || player.experienceLevel >= this.cost.get()) && this.cost.get() > AnvilMenu.DEFAULT_DENIED_COST && hasItem; // CraftBukkit - allow cost 0 like a free item
      }
  
      @Override
@@ -108,7 +108,7 @@
 +        sendAllDataToRemote(); // CraftBukkit - SPIGOT-6686, SPIGOT-7931: Always send completed inventory to stay in sync with client
      }
  
-     public static int calculateIncreasedRepairCost(int i) {
+     public static int calculateIncreasedRepairCost(int baseCost) {
 @@ -328,4 +338,19 @@
      public int getCost() {
          return this.cost.get();

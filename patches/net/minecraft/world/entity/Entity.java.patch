@@ -1,6 +1,13 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -159,6 +_,7 @@
+@@ -154,11 +_,14 @@
+ import net.minecraft.world.scores.Scoreboard;
+ import net.minecraft.world.scores.Team;
+ import net.minecraft.world.waypoints.WaypointTransmitter;
++import org.bukkit.craftbukkit.entity.CraftEntity;
++import org.bukkit.event.entity.EntityRemoveEvent;
+ import org.jetbrains.annotations.Contract;
+ import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
  public abstract class Entity
@@ -8,6 +15,36 @@
      implements Nameable,
      EntityAccess,
      ScoreHolder,
+@@ -168,6 +_,29 @@
+     SlotProvider,
+     DebugValueSource,
+     TypedInstance<EntityType<?>>, net.neoforged.neoforge.common.extensions.IEntityExtension {
++
++    // CraftBukkit start
++    private static final int CURRENT_LEVEL = 2;
++    static boolean isLevelAtLeast(ValueInput tag, int level) {
++        int updateLevel = tag.getIntOr("Bukkit.updateLevel", -1);
++        return updateLevel != -1 && tag.getIntOr("Bukkit.updateLevel", -1) >= level;
++    }
++
++    private CraftEntity bukkitEntity;
++
++    public CraftEntity getBukkitEntity() {
++        if (bukkitEntity == null) {
++            bukkitEntity = CraftEntity.getEntity(level.getCraftServer(), this);
++        }
++        return bukkitEntity;
++    }
++
++    // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
++    public int getDefaultMaxAirSupply() {
++        return TOTAL_AIR_SUPPLY;
++    }
++    // CraftBukkit end
++
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public static final String TAG_ID = "id";
+     public static final String TAG_UUID = "UUID";
 @@ -205,6 +_,7 @@
      private static final int MAX_BLOCK_ITERATIONS_ALONG_TRAVEL_PER_TICK = 16;
      private static final double MAX_MOVEMENT_RESETTING_TRACE_DISTANCE = 8.0;
@@ -16,6 +53,38 @@
      private final EntityType<?> type;
      private boolean requiresPrecisePosition;
      private int id = ENTITY_COUNTER.incrementAndGet();
+@@ -299,6 +_,31 @@
+     private final LongSet visitedBlocks = new LongOpenHashSet();
+     private final InsideBlockEffectApplier.StepBasedCollector insideEffectCollector = new InsideBlockEffectApplier.StepBasedCollector();
+     private CustomData customData = CustomData.EMPTY;
++    // CraftBukkit start
++    public boolean forceDrops;
++    public boolean persist = true;
++    public boolean visibleByDefault = true;
++    public boolean valid;
++    public boolean inWorld = false;
++    public boolean generation;
++    public int maxAirTicks = getDefaultMaxAirSupply(); // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
++    public org.bukkit.projectiles.ProjectileSource projectileSource; // For projectiles only
++    public boolean lastDamageCancelled; // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Keep track if the event was canceled
++    public boolean persistentInvisibility = false;
++    public BlockPos lastLavaContact;
++    // Marks an entity, that it was removed by a plugin via Entity#remove
++    // Main use case currently is for SPIGOT-7487, preventing dropping of leash when leash is removed
++    public boolean pluginRemoved = false;
++
++    public float getBukkitYaw() {
++        return this.yRot;
++    }
++
++    public boolean isChunkLoaded() {
++        return level.hasChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4);
++    }
++    // CraftBukkit end
++    public EntityRemoveEvent.Cause removeReason;  // Youer - EntityRemoveEvent
+ 
+     public Entity(EntityType<?> type, Level level) {
+         this.type = type;
 @@ -319,7 +_,10 @@
          this.defineSynchedData(entityDataBuilder);
          this.entityData = entityDataBuilder.build();
@@ -27,6 +96,21 @@
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
+@@ -405,6 +_,14 @@
+         this.remove(Entity.RemovalReason.DISCARDED);
+     }
+ 
++    public final void discard(EntityRemoveEvent.Cause cause) {
++        this.removeCB(Entity.RemovalReason.DISCARDED, cause);
++    }
++
++    public void removeCB(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
++        this.setRemovedCB(entity_removalreason, cause);
++    }
++
+     protected abstract void defineSynchedData(SynchedEntityData.Builder entityData);
+ 
+     public SynchedEntityData getEntityData() {
 @@ -542,7 +_,7 @@
          }
  
@@ -243,6 +327,20 @@
      }
  
      public void checkDespawn() {
+@@ -3843,6 +_,13 @@
+         this.onRemoval(reason);
+     }
+ 
++    @Override
++    public final void setRemovedCB(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
++        this.removeReason = cause;
++        this.setRemoved(entity_removalreason);
++    }
++    // Youer end
++
+     public void unsetRemoved() {
+         this.removalReason = null;
+     }
 @@ -3868,6 +_,90 @@
  
      public boolean mayInteract(ServerLevel level, BlockPos pos) {

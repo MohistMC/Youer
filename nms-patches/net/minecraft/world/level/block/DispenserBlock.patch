@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/DispenserBlock.java
 +++ b/net/minecraft/world/level/block/DispenserBlock.java
-@@ -51,6 +51,7 @@
+@@ -53,6 +53,7 @@
      private static final DefaultDispenseItemBehavior DEFAULT_BEHAVIOR = new DefaultDispenseItemBehavior();
      public static final Map<Item, DispenseItemBehavior> DISPENSER_REGISTRY = new IdentityHashMap();
      private static final int TRIGGER_DURATION = 4;
@@ -8,17 +8,17 @@
  
      @Override
      public MapCodec<? extends DispenserBlock> codec() {
-@@ -87,7 +88,7 @@
+@@ -89,7 +90,7 @@
      }
  
-     public void dispenseFrom(ServerLevel serverlevel, BlockState blockstate, BlockPos blockpos) {
--        DispenserBlockEntity dispenserblockentity = (DispenserBlockEntity) serverlevel.getBlockEntity(blockpos, BlockEntityType.DISPENSER).orElse((Object) null);
-+        DispenserBlockEntity dispenserblockentity = (DispenserBlockEntity) serverlevel.getBlockEntity(blockpos, BlockEntityType.DISPENSER).orElse(null); // CraftBukkit - decompile error
+     public void dispenseFrom(ServerLevel level, BlockState state, BlockPos pos) {
+-        DispenserBlockEntity dispenserblockentity = (DispenserBlockEntity) level.getBlockEntity(pos, BlockEntityType.DISPENSER).orElse((Object) null);
++        DispenserBlockEntity dispenserblockentity = (DispenserBlockEntity) level.getBlockEntity(pos, BlockEntityType.DISPENSER).orElse(null); // CraftBukkit - decompile error
  
          if (dispenserblockentity == null) {
-             DispenserBlock.LOGGER.warn("Ignoring dispensing attempt for Dispenser without matching block entity at {}", blockpos);
-@@ -103,6 +104,7 @@
-                 DispenseItemBehavior dispenseitembehavior = this.getDispenseMethod(serverlevel, itemstack);
+             DispenserBlock.LOGGER.warn("Ignoring dispensing attempt for Dispenser without matching block entity at {}", pos);
+@@ -105,6 +106,7 @@
+                 DispenseItemBehavior dispenseitembehavior = this.getDispenseMethod(level, itemstack);
  
                  if (dispenseitembehavior != DispenseItemBehavior.NOOP) {
 +                    eventFired = false; // CraftBukkit - reset event status

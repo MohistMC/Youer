@@ -14,34 +14,34 @@
      SINGLE(true) {
 @@ -28,7 +33,7 @@
  
-                 for (Entity entity1 : mob1.getPassengers()) {
+                 for (Entity entity1 : to.getPassengers()) {
                      entity1.stopRiding();
 -                    entity1.remove(Entity.RemovalReason.DISCARDED);
 +                    entity1.remove(Entity.RemovalReason.DISCARDED, EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
                  }
  
-                 entity.startRiding(mob1);
+                 entity.startRiding(to);
 @@ -46,7 +51,7 @@
-                     ItemStack itemstack = mob.getItemBySlot(equipmentslot);
+                     ItemStack itemstack = from.getItemBySlot(equipmentslot);
  
                      if (!itemstack.isEmpty()) {
--                        mob1.setItemSlot(equipmentslot, itemstack.copyAndClear());
-+                        mob1.setItemSlot(equipmentslot, itemstack.copy()); // CraftBukkit - SPIGOT-7996: don't clear yet
-                         mob1.setDropChance(equipmentslot, mob.getDropChances().byEquipment(equipmentslot));
+-                        to.setItemSlot(equipmentslot, itemstack.copyAndClear());
++                        to.setItemSlot(equipmentslot, itemstack.copy()); // CraftBukkit - SPIGOT-7996: don't clear yet
+                         to.setDropChance(equipmentslot, from.getDropChances().byEquipment(equipmentslot));
                      }
                  }
 @@ -58,7 +63,7 @@
-             mob1.hurtTime = mob.hurtTime;
-             mob1.yBodyRot = mob.yBodyRot;
-             mob1.setOnGround(mob.onGround());
--            Optional optional = mob.getSleepingPos();
-+            Optional<BlockPos> optional = mob.getSleepingPos(); // CraftBukkit - decompile error
+             to.hurtTime = from.hurtTime;
+             to.yBodyRot = from.yBodyRot;
+             to.setOnGround(from.onGround());
+-            Optional optional = from.getSleepingPos();
++            Optional<BlockPos> optional = from.getSleepingPos(); // CraftBukkit - decompile error
  
-             Objects.requireNonNull(mob1);
-             optional.ifPresent(mob1::setSleepingPos);
+             Objects.requireNonNull(to);
+             optional.ifPresent(to::setSleepingPos);
 @@ -70,6 +75,21 @@
  
-             this.convertCommon(mob, mob1, conversionparams);
+             this.convertCommon(from, to, params);
          }
 +
 +        // CraftBukkit start
@@ -63,19 +63,19 @@
          @Override
 @@ -103,6 +123,8 @@
  
-     abstract void convert(Mob mob, Mob mob1, ConversionParams conversionparams);
+     abstract void convert(Mob from, Mob to, ConversionParams params);
  
 +    void postConvert(Mob mob, Mob mob1, ConversionParams conversionparams) {} // CraftBukkit
 +
-     void convertCommon(Mob mob, Mob mob1, ConversionParams conversionparams) {
-         mob1.setAbsorptionAmount(mob.getAbsorptionAmount());
+     void convertCommon(Mob from, Mob to, ConversionParams params) {
+         to.setAbsorptionAmount(from.getAbsorptionAmount());
  
 @@ -145,7 +167,7 @@
-         mob1.setNoGravity(mob.isNoGravity());
-         mob1.setPortalCooldown(mob.getPortalCooldown());
-         mob1.setSilent(mob.isSilent());
--        Set set = mob.getTags();
-+        Set<String> set = mob.getTags(); // CraftBukkit - decompile error
+         to.setNoGravity(from.isNoGravity());
+         to.setPortalCooldown(from.getPortalCooldown());
+         to.setSilent(from.isSilent());
+-        Set set = from.entityTags();
++        Set<String> set = from.entityTags(); // CraftBukkit - decompile error
  
-         Objects.requireNonNull(mob1);
-         set.forEach(mob1::addTag);
+         Objects.requireNonNull(to);
+         set.forEach(to::addTag);

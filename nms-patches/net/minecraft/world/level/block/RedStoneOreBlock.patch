@@ -15,80 +15,80 @@
 @@ -38,14 +43,27 @@
  
      @Override
-     protected void attack(BlockState blockstate, Level level, BlockPos blockpos, Player player) {
--        interact(blockstate, level, blockpos);
-+        interact(blockstate, level, blockpos, player); // CraftBukkit - add entityhuman
-         super.attack(blockstate, level, blockpos, player);
+     protected void attack(BlockState state, Level level, BlockPos pos, Player player) {
+-        interact(state, level, pos);
++        interact(state, level, pos, player); // CraftBukkit - add entityhuman
+         super.attack(state, level, pos, player);
      }
  
      @Override
-     public void stepOn(Level level, BlockPos blockpos, BlockState blockstate, Entity entity) {
+     public void stepOn(Level level, BlockPos pos, BlockState onState, Entity entity) {
          if (!entity.isSteppingCarefully()) {
--            interact(blockstate, level, blockpos);
+-            interact(onState, level, pos);
 +            // CraftBukkit start
 +            if (entity instanceof Player) {
-+                org.bukkit.event.player.PlayerInteractEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) entity, org.bukkit.event.block.Action.PHYSICAL, blockpos, null, null, null);
++                org.bukkit.event.player.PlayerInteractEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) entity, org.bukkit.event.block.Action.PHYSICAL, pos, null, null, null);
 +                if (!event.isCancelled()) {
-+                    interact(level.getBlockState(blockpos), level, blockpos, entity); // add entity
++                    interact(level.getBlockState(pos), level, pos, entity); // add entity
 +                }
 +            } else {
-+                EntityInteractEvent event = new EntityInteractEvent(entity.getBukkitEntity(), level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ()));
++                EntityInteractEvent event = new EntityInteractEvent(entity.getBukkitEntity(), level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()));
 +                level.getCraftServer().getPluginManager().callEvent(event);
 +                if (!event.isCancelled()) {
-+                    interact(level.getBlockState(blockpos), level, blockpos, entity); // add entity
++                    interact(level.getBlockState(pos), level, pos, entity); // add entity
 +                }
 +            }
 +            // CraftBukkit end
          }
  
-         super.stepOn(level, blockpos, blockstate, entity);
+         super.stepOn(level, pos, onState, entity);
 @@ -56,15 +74,20 @@
          if (level.isClientSide()) {
-             spawnParticles(level, blockpos);
+             spawnParticles(level, pos);
          } else {
--            interact(blockstate, level, blockpos);
-+            interact(blockstate, level, blockpos, player); // CraftBukkit - add entityhuman
+-            interact(state, level, pos);
++            interact(state, level, pos, player); // CraftBukkit - add entityhuman
          }
  
-         return (InteractionResult) (itemstack.getItem() instanceof BlockItem && (new BlockPlaceContext(player, interactionhand, itemstack, blockhitresult)).canPlace() ? InteractionResult.PASS : InteractionResult.SUCCESS);
+         return (InteractionResult) (itemStack.getItem() instanceof BlockItem && (new BlockPlaceContext(player, hand, itemStack, hitResult)).canPlace() ? InteractionResult.PASS : InteractionResult.SUCCESS);
      }
  
--    private static void interact(BlockState blockstate, Level level, BlockPos blockpos) {
-+    private static void interact(BlockState blockstate, Level level, BlockPos blockpos, Entity entity) { // CraftBukkit - add Entity
-         spawnParticles(level, blockpos);
-         if (!(Boolean) blockstate.getValue(RedStoneOreBlock.LIT)) {
+-    private static void interact(BlockState state, Level level, BlockPos pos) {
++    private static void interact(BlockState state, Level level, BlockPos pos, Entity entity) { // CraftBukkit - add Entity
+         spawnParticles(level, pos);
+         if (!(Boolean) state.getValue(RedStoneOreBlock.LIT)) {
 +            // CraftBukkit start
-+            if (!CraftEventFactory.callEntityChangeBlockEvent(entity, blockpos, blockstate.setValue(RedStoneOreBlock.LIT, true))) {
++            if (!CraftEventFactory.callEntityChangeBlockEvent(entity, pos, state.setValue(RedStoneOreBlock.LIT, true))) {
 +                return;
 +            }
 +            // CraftBukkit end
-             level.setBlock(blockpos, (BlockState) blockstate.setValue(RedStoneOreBlock.LIT, true), 3);
+             level.setBlock(pos, (BlockState) state.setValue(RedStoneOreBlock.LIT, true), 3);
          }
  
 @@ -78,6 +101,11 @@
      @Override
-     protected void randomTick(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, RandomSource randomsource) {
-         if ((Boolean) blockstate.getValue(RedStoneOreBlock.LIT)) {
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+         if ((Boolean) state.getValue(RedStoneOreBlock.LIT)) {
 +            // CraftBukkit start
-+            if (CraftEventFactory.callBlockFadeEvent(serverlevel, blockpos, blockstate.setValue(RedStoneOreBlock.LIT, false)).isCancelled()) {
++            if (CraftEventFactory.callBlockFadeEvent(level, pos, state.setValue(RedStoneOreBlock.LIT, false)).isCancelled()) {
 +                return;
 +            }
 +            // CraftBukkit end
-             serverlevel.setBlock(blockpos, (BlockState) blockstate.setValue(RedStoneOreBlock.LIT, false), 3);
+             level.setBlock(pos, (BlockState) state.setValue(RedStoneOreBlock.LIT, false), 3);
          }
  
 @@ -86,10 +114,17 @@
      @Override
-     protected void spawnAfterBreak(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack, boolean flag) {
-         super.spawnAfterBreak(blockstate, serverlevel, blockpos, itemstack, flag);
+     protected void spawnAfterBreak(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
+         super.spawnAfterBreak(state, level, pos, tool, dropExperience);
 +        // CraftBukkit start - Delegated to getExpDrop
 +    }
 +
 +    @Override
-+    public int getExpDrop(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack, boolean flag) {
-         if (flag) {
--            this.tryDropExperience(serverlevel, blockpos, itemstack, UniformInt.of(1, 5));
-+            return this.tryDropExperience(serverlevel, blockpos, itemstack, UniformInt.of(1, 5));
++    public int getExpDrop(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
+         if (dropExperience) {
+-            this.tryDropExperience(level, pos, tool, UniformInt.of(1, 5));
++            return this.tryDropExperience(level, pos, tool, UniformInt.of(1, 5));
          }
  
 +        return 0;

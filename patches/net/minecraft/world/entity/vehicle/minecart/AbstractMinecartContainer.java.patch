@@ -1,5 +1,72 @@
 --- a/net/minecraft/world/entity/vehicle/minecart/AbstractMinecartContainer.java
 +++ b/net/minecraft/world/entity/vehicle/minecart/AbstractMinecartContainer.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.entity.vehicle.minecart;
+ 
++import java.util.List;
+ import net.minecraft.core.NonNullList;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.level.ServerLevel;
+@@ -20,13 +_,58 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.level.storage.loot.LootTable;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.Location;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.entity.HumanEntity;
++import org.bukkit.inventory.InventoryHolder;
+ import org.jspecify.annotations.Nullable;
+ 
+ public abstract class AbstractMinecartContainer extends AbstractMinecart implements ContainerEntity {
+-    private NonNullList<ItemStack> itemStacks = NonNullList.withSize(36, ItemStack.EMPTY);
++    private NonNullList<ItemStack> itemStacks = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
+     public @Nullable ResourceKey<LootTable> lootTable;
+     public long lootTableSeed;
+ 
++    // CraftBukkit start
++    public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
++    private int maxStack = MAX_STACK;
++
++    public List<ItemStack> getContents() {
++        return this.itemStacks;
++    }
++
++    public void onOpen(CraftHumanEntity who) {
++        transaction.add(who);
++    }
++
++    public void onClose(CraftHumanEntity who) {
++        transaction.remove(who);
++    }
++
++    public List<HumanEntity> getViewers() {
++        return transaction;
++    }
++
++    public InventoryHolder getOwner() {
++        org.bukkit.entity.Entity cart = getBukkitEntity();
++        if(cart instanceof InventoryHolder) return (InventoryHolder) cart;
++        return null;
++    }
++
++    @Override
++    public int getMaxStackSize() {
++        return maxStack;
++    }
++
++    public void setMaxStackSize(int size) {
++        maxStack = size;
++    }
++
++    @Override
++    public Location getLocation() {
++        return getBukkitEntity().getLocation();
++    }
++    // CraftBukkit end
++
+     protected AbstractMinecartContainer(EntityType<?> type, Level level) {
+         super(type, level);
+     }
 @@ -94,6 +_,8 @@
  
      @Override

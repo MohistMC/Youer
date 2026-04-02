@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/BucketItem.java
 +++ b/net/minecraft/world/item/BucketItem.java
-@@ -31,6 +31,16 @@
+@@ -32,6 +32,16 @@
  import net.minecraft.world.phys.HitResult;
  import org.jspecify.annotations.Nullable;
  
@@ -17,14 +17,14 @@
  public class BucketItem extends Item implements DispensibleContainerItem {
  
      public final Fluid content;
-@@ -61,6 +71,17 @@
+@@ -62,6 +72,17 @@
  
                      if (block instanceof BucketPickup) {
                          BucketPickup bucketpickup = (BucketPickup) block;
 +                        // CraftBukkit start
 +                        ItemStack dummyFluid = bucketpickup.pickupBlock(player, DummyGeneratorAccess.INSTANCE, blockpos, blockstate);
 +                        if (dummyFluid.isEmpty()) return InteractionResult.FAIL; // Don't fire event if the bucket won't be filled.
-+                        PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) level, player, blockpos, blockpos, blockhitresult.getDirection(), itemstack, dummyFluid.getItem(), interactionhand);
++                        PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) level, player, blockpos, blockpos, blockhitresult.getDirection(), itemstack, dummyFluid.getItem(), hand);
 +
 +                        if (event.isCancelled()) {
 +                            ((ServerPlayer) player).connection.send(new ClientboundBlockUpdatePacket(level, blockpos)); // SPIGOT-5163 (see PlayerInteractManager)
@@ -35,7 +35,7 @@
                          ItemStack itemstack1 = bucketpickup.pickupBlock(player, level, blockpos, blockstate);
  
                          if (!itemstack1.isEmpty()) {
-@@ -69,7 +90,7 @@
+@@ -70,7 +91,7 @@
                                  player.playSound(soundevent, 1.0F, 1.0F);
                              });
                              level.gameEvent(player, (Holder) GameEvent.FLUID_PICKUP, blockpos);
@@ -44,24 +44,24 @@
  
                              if (!level.isClientSide()) {
                                  CriteriaTriggers.FILLED_BUCKET.trigger((ServerPlayer) player, itemstack1);
-@@ -84,7 +105,7 @@
+@@ -85,7 +106,7 @@
                      BlockState blockstate1 = level.getBlockState(blockpos);
                      BlockPos blockpos2 = blockstate1.getBlock() instanceof LiquidBlockContainer && this.content == Fluids.WATER ? blockpos : blockpos1;
  
 -                    if (this.emptyContents(player, level, blockpos2, blockhitresult)) {
-+                    if (this.emptyContents(player, level, blockpos2, blockhitresult, blockhitresult.getDirection(), blockpos, itemstack, interactionhand)) { // CraftBukkit
++                    if (this.emptyContents(player, level, blockpos2, blockhitresult, blockhitresult.getDirection(), blockpos, itemstack, hand)) { // CraftBukkit
                          this.checkExtraContent(player, level, itemstack, blockpos2);
                          if (player instanceof ServerPlayer) {
                              CriteriaTriggers.PLACED_BLOCK.trigger((ServerPlayer) player, blockpos2, itemstack);
-@@ -113,11 +134,18 @@
+@@ -114,11 +135,18 @@
  
      @Override
-     public boolean emptyContents(@Nullable LivingEntity livingentity, Level level, BlockPos blockpos, @Nullable BlockHitResult blockhitresult) {
+     public boolean emptyContents(@Nullable LivingEntity user, Level level, BlockPos pos, @Nullable BlockHitResult hitResult) {
 +        // CraftBukkit start
-+        return emptyContents(livingentity, level, blockpos, blockhitresult, null, null, null, InteractionHand.MAIN_HAND);
++        return emptyContents(user, level, pos, hitResult, null, null, null, InteractionHand.MAIN_HAND);
 +    }
 +
-+    public boolean emptyContents(@Nullable LivingEntity livingentity, Level level, BlockPos blockpos, @Nullable BlockHitResult blockhitresult, Direction direction, BlockPos clicked, ItemStack itemstack, InteractionHand interactionhand) {
++    public boolean emptyContents(@Nullable LivingEntity user, Level level, BlockPos pos, @Nullable BlockHitResult hitResult, Direction direction, BlockPos clicked, ItemStack itemstack, InteractionHand interactionhand) {
 +        // CraftBukkit end
          Fluid fluid = this.content;
  
@@ -72,23 +72,23 @@
              Block block;
              boolean flag;
              boolean flag1;
-@@ -150,8 +178,18 @@
+@@ -151,8 +179,18 @@
              boolean flag3 = flag2;
-             boolean flag4 = blockstate.isAir() || flag3 && (!flag1 || blockhitresult == null);
+             boolean flag4 = blockstate.isAir() || flag3 && (!flag1 || hitResult == null);
  
 +            // CraftBukkit start
-+            if (flag3 && livingentity instanceof ServerPlayer serverplayer) {
-+                PlayerBucketEmptyEvent event = CraftEventFactory.callPlayerBucketEmptyEvent((ServerLevel) level, serverplayer, blockpos, clicked, direction, itemstack, interactionhand);
++            if (flag3 && user instanceof ServerPlayer serverplayer) {
++                PlayerBucketEmptyEvent event = CraftEventFactory.callPlayerBucketEmptyEvent((ServerLevel) level, serverplayer, pos, clicked, direction, itemstack, interactionhand);
 +                if (event.isCancelled()) {
-+                    serverplayer.connection.send(new ClientboundBlockUpdatePacket(level, blockpos)); // SPIGOT-4238: needed when looking through entity
++                    serverplayer.connection.send(new ClientboundBlockUpdatePacket(level, pos)); // SPIGOT-4238: needed when looking through entity
 +                    serverplayer.getBukkitEntity().updateInventory(); // SPIGOT-4541
 +                    return false;
 +                }
 +            }
 +            // CraftBukkit end
              if (!flag4) {
--                return blockhitresult != null && this.emptyContents(livingentity, level, blockhitresult.getBlockPos().relative(blockhitresult.getDirection()), (BlockHitResult) null);
-+                return blockhitresult != null && this.emptyContents(livingentity, level, blockhitresult.getBlockPos().relative(blockhitresult.getDirection()), (BlockHitResult) null, direction, clicked, itemstack, interactionhand); // CraftBukkit
-             } else if ((Boolean) level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, blockpos) && this.content.is(FluidTags.WATER)) {
-                 int i = blockpos.getX();
-                 int j = blockpos.getY();
+-                return hitResult != null && this.emptyContents(user, level, hitResult.getBlockPos().relative(hitResult.getDirection()), (BlockHitResult) null);
++                return hitResult != null && this.emptyContents(user, level, hitResult.getBlockPos().relative(hitResult.getDirection()), (BlockHitResult) null, direction, clicked, itemstack, interactionhand); // CraftBukkit
+             } else if ((Boolean) level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos) && this.content.is(FluidTags.WATER)) {
+                 int i = pos.getX();
+                 int j = pos.getY();

@@ -20,11 +20,11 @@
      private final LevelLoadListener loadListener;
      private PrepareSpawnTask.@Nullable State state;
  
--    public PrepareSpawnTask(MinecraftServer minecraftserver, NameAndId nameandid) {
-+    public PrepareSpawnTask(MinecraftServer minecraftserver, ServerPlayer nameandid) { // CraftBukkit
-         this.server = minecraftserver;
-         this.nameAndId = nameandid;
-         this.loadListener = minecraftserver.getLevelLoadListener();
+-    public PrepareSpawnTask(MinecraftServer server, NameAndId nameAndId) {
++    public PrepareSpawnTask(MinecraftServer server, ServerPlayer nameAndId) { // CraftBukkit
+         this.server = server;
+         this.nameAndId = nameAndId;
+         this.loadListener = server.getLevelLoadListener();
 @@ -53,8 +58,8 @@
              ServerPlayer.SavedPosition serverplayer_savedposition = (ServerPlayer.SavedPosition) optional.flatMap((valueinput) -> {
                  return valueinput.read(ServerPlayer.SavedPosition.MAP_CODEC);
@@ -71,11 +71,11 @@
          }
  
          return flag;
-@@ -208,7 +211,7 @@
-             ChunkPos chunkpos = new ChunkPos(BlockPos.containing(this.spawnPosition));
+@@ -213,7 +216,7 @@
+             ChunkPos chunkpos = ChunkPos.containing(BlockPos.containing(this.spawnPosition));
  
              this.spawnLevel.waitForEntities(chunkpos, 3);
--            ServerPlayer serverplayer = new ServerPlayer(PrepareSpawnTask.this.server, this.spawnLevel, commonlistenercookie.gameProfile(), commonlistenercookie.clientInformation());
+-            ServerPlayer serverplayer = new ServerPlayer(PrepareSpawnTask.this.server, this.spawnLevel, cookie.gameProfile(), cookie.clientInformation());
 +            ServerPlayer serverplayer = nameAndId; // CraftBukkit
  
              try (ProblemReporter.ScopedCollector problemreporter_scopedcollector = new ProblemReporter.ScopedCollector(serverplayer.problemPath(), PrepareSpawnTask.LOGGER)) {

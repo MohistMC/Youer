@@ -48,12 +48,12 @@
          } else {
              if (!this.isRemoved()) {
 +                // CraftBukkit start - fire break events
-+                Entity damager = (damagesource.isDirect()) ? damagesource.getDirectEntity() : damagesource.getEntity();
++                Entity damager = (source.isDirect()) ? source.getDirectEntity() : source.getEntity();
 +                HangingBreakEvent event;
 +                if (damager != null) {
-+                    event = new HangingBreakByEntityEvent((Hanging) this.getBukkitEntity(), damager.getBukkitEntity(), damagesource.is(DamageTypeTags.IS_EXPLOSION) ? HangingBreakEvent.RemoveCause.EXPLOSION : HangingBreakEvent.RemoveCause.ENTITY);
++                    event = new HangingBreakByEntityEvent((Hanging) this.getBukkitEntity(), damager.getBukkitEntity(), source.is(DamageTypeTags.IS_EXPLOSION) ? HangingBreakEvent.RemoveCause.EXPLOSION : HangingBreakEvent.RemoveCause.ENTITY);
 +                } else {
-+                    event = new HangingBreakEvent((Hanging) this.getBukkitEntity(), damagesource.is(DamageTypeTags.IS_EXPLOSION) ? HangingBreakEvent.RemoveCause.EXPLOSION : HangingBreakEvent.RemoveCause.DEFAULT);
++                    event = new HangingBreakEvent((Hanging) this.getBukkitEntity(), source.is(DamageTypeTags.IS_EXPLOSION) ? HangingBreakEvent.RemoveCause.EXPLOSION : HangingBreakEvent.RemoveCause.DEFAULT);
 +                }
 +
 +                this.level().getCraftServer().getPluginManager().callEvent(event);
@@ -63,13 +63,13 @@
 +                }
 +                // CraftBukkit end
 +
-                 this.kill(serverlevel);
+                 this.kill(level);
                  this.markHurt();
-                 this.dropItem(serverlevel, damagesource.getEntity());
+                 this.dropItem(level, source.getEntity());
 @@ -104,6 +147,16 @@
  
          if (level instanceof ServerLevel serverlevel) {
-             if (!this.isRemoved() && vec3.lengthSqr() > 0.0D) {
+             if (!this.isRemoved() && delta.lengthSqr() > 0.0D) {
 +                // CraftBukkit start - fire break events
 +                // TODO - Does this need its own cause? Seems to only be triggered by pistons
 +                HangingBreakEvent event = new HangingBreakEvent((Hanging) this.getBukkitEntity(), HangingBreakEvent.RemoveCause.PHYSICS);
@@ -87,8 +87,8 @@
          Level level = this.level();
  
          if (level instanceof ServerLevel serverlevel) {
--            if (!this.isRemoved() && d0 * d0 + d1 * d1 + d2 * d2 > 0.0D) {
-+            if (false && !this.isRemoved() && d0 * d0 + d1 * d1 + d2 * d2 > 0.0D) { // CraftBukkit - not needed
+-            if (!this.isRemoved() && xa * xa + ya * ya + za * za > 0.0D) {
++            if (false && !this.isRemoved() && xa * xa + ya * ya + za * za > 0.0D) { // CraftBukkit - not needed
                  this.kill(serverlevel);
                  this.dropItem(serverlevel, (Entity) null);
              }
@@ -106,14 +106,14 @@
 +    // CraftBukkit end
 +
      @Override
-     protected void addAdditionalSaveData(ValueOutput valueoutput) {
-         valueoutput.store("block_pos", BlockPos.CODEC, this.getPos());
+     protected void addAdditionalSaveData(ValueOutput output) {
+         output.store("block_pos", BlockPos.CODEC, this.getPos());
 @@ -131,7 +193,7 @@
  
      @Override
-     protected void readAdditionalSaveData(ValueInput valueinput) {
--        BlockPos blockpos = (BlockPos) valueinput.read("block_pos", BlockPos.CODEC).orElse((Object) null);
-+        BlockPos blockpos = (BlockPos) valueinput.read("block_pos", BlockPos.CODEC).orElse(null); // CraftBukkit - decompile error
+     protected void readAdditionalSaveData(ValueInput input) {
+-        BlockPos blockpos = (BlockPos) input.read("block_pos", BlockPos.CODEC).orElse((Object) null);
++        BlockPos blockpos = (BlockPos) input.read("block_pos", BlockPos.CODEC).orElse(null); // CraftBukkit - decompile error
  
          if (blockpos != null && blockpos.closerThan(this.blockPosition(), 16.0D)) {
              this.pos = blockpos;

@@ -15,22 +15,22 @@
 @@ -113,7 +118,17 @@
  
      @Override
-     public void setTarget(@Nullable LivingEntity livingentity) {
--        super.setTarget(livingentity);
+     public void setTarget(@Nullable LivingEntity target) {
+-        super.setTarget(target);
 +        // CraftBukkit start - fire event
-+        setTarget(livingentity, EntityTargetEvent.TargetReason.UNKNOWN, true);
++        setTarget(target, EntityTargetEvent.TargetReason.UNKNOWN, true);
 +    }
 +
 +    @Override
-+    public boolean setTarget(LivingEntity livingentity, EntityTargetEvent.TargetReason reason, boolean fireEvent) {
-+        if (!super.setTarget(livingentity, reason, fireEvent)) {
++    public boolean setTarget(LivingEntity target, EntityTargetEvent.TargetReason reason, boolean fireEvent) {
++        if (!super.setTarget(target, reason, fireEvent)) {
 +            return false;
 +        }
-+        livingentity = getTarget();
++        target = getTarget();
 +        // CraftBukkit end
          AttributeInstance attributeinstance = this.getAttribute(Attributes.MOVEMENT_SPEED);
  
-         if (livingentity == null) {
+         if (target == null) {
 @@ -128,6 +143,7 @@
                  attributeinstance.addTransientModifier(EnderMan.SPEED_MODIFIER_ATTACKING);
              }
@@ -40,12 +40,12 @@
      }
  
 @@ -200,7 +216,7 @@
-         super.readAdditionalSaveData(valueinput);
-         this.setCarriedBlock((BlockState) valueinput.read("carriedBlockState", BlockState.CODEC).filter((blockstate) -> {
+         super.readAdditionalSaveData(input);
+         this.setCarriedBlock((BlockState) input.read("carriedBlockState", BlockState.CODEC).filter((blockstate) -> {
              return !blockstate.isAir();
 -        }).orElse((Object) null));
 +        }).orElse(null)); // CraftBukkit - decompile error
-         this.readPersistentAngerSaveData(this.level(), valueinput);
+         this.readPersistentAngerSaveData(this.level(), input);
      }
  
 @@ -558,9 +574,11 @@

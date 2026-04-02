@@ -29,8 +29,8 @@
 +    public boolean skyInfluenced = true;
 +    // CraftBukkit end
 +
-     private FishingHook(EntityType<? extends FishingHook> entitytype, Level level, int i, int j) {
-         super(entitytype, level);
+     private FishingHook(EntityType<? extends FishingHook> type, Level level, int luck, int lureSpeed) {
+         super(type, level);
          this.syncronizedRandom = RandomSource.create();
 @@ -157,12 +175,12 @@
          Player player = this.getPlayerOwner();
@@ -66,7 +66,7 @@
      @Override
 @@ -307,11 +325,11 @@
          int i = 1;
-         BlockPos blockpos1 = blockpos.above();
+         BlockPos blockpos1 = blockPos.above();
  
 -        if (this.random.nextFloat() < 0.25F && this.level().isRainingAt(blockpos1)) {
 +        if (this.rainInfluenced && this.random.nextFloat() < 0.25F && this.level().isRainingAt(blockpos1)) { // CraftBukkit
@@ -137,7 +137,7 @@
 +                }
 +                // CraftBukkit end
                  this.pullEntity(this.hookedIn);
-                 CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer) player, itemstack, this, Collections.emptyList());
+                 CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer) player, rod, this, Collections.emptyList());
                  this.level().broadcastEntityEvent(this, (byte) 31);
 @@ -465,6 +506,15 @@
  
@@ -200,22 +200,22 @@
 @@ -526,8 +597,15 @@
  
      @Override
-     public void remove(Entity.RemovalReason entity_removalreason) {
+     public void remove(Entity.RemovalReason reason) {
 +        // CraftBukkit start - add Bukkit remove cause
-+        this.remove(entity_removalreason, null);
++        this.remove(reason, null);
 +    }
 +
 +    @Override
-+    public void remove(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
++    public void remove(Entity.RemovalReason reason, EntityRemoveEvent.Cause cause) {
 +        // CraftBukkit end
          this.updateOwnerInfo((FishingHook) null);
--        super.remove(entity_removalreason);
-+        super.remove(entity_removalreason, cause); // CraftBukkit - add Bukkit remove cause
+-        super.remove(reason);
++        super.remove(reason, cause); // CraftBukkit - add Bukkit remove cause
      }
  
      @Override
 @@ -586,7 +664,7 @@
-             int i = clientboundaddentitypacket.getData();
+             int i = packet.getData();
  
              FishingHook.LOGGER.error("Failed to recreate fishing hook on client. {} (id: {}) is not a valid owner.", this.level().getEntity(i), i);
 -            this.discard();

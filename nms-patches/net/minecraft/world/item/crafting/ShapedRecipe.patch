@@ -1,8 +1,8 @@
 --- a/net/minecraft/world/item/crafting/ShapedRecipe.java
 +++ b/net/minecraft/world/item/crafting/ShapedRecipe.java
-@@ -17,6 +17,14 @@
+@@ -15,6 +15,14 @@
+ import net.minecraft.world.item.crafting.display.SlotDisplay;
  import net.minecraft.world.level.Level;
- import org.jspecify.annotations.Nullable;
  
 +// CraftBukkit start
 +import org.bukkit.NamespacedKey;
@@ -12,11 +12,11 @@
 +import org.bukkit.inventory.RecipeChoice;
 +// CraftBukkit end
 +
- public class ShapedRecipe implements CraftingRecipe {
+ public class ShapedRecipe extends NormalCraftingRecipe {
  
-     private final ShapedRecipePattern pattern;
-@@ -38,6 +46,68 @@
-         this(s, craftingbookcategory, shapedrecipepattern, itemstack, true);
+     public static final MapCodec<ShapedRecipe> MAP_CODEC = RecordCodecBuilder.mapCodec((instance) -> {
+@@ -47,6 +55,68 @@
+         this.result = result;
      }
  
 +    // CraftBukkit start
@@ -24,7 +24,7 @@
 +    public org.bukkit.inventory.ShapedRecipe toBukkitRecipe(NamespacedKey id) {
 +        CraftItemStack result = CraftItemStack.asCraftMirror(this.result);
 +        CraftShapedRecipe recipe = new CraftShapedRecipe(id, result, this);
-+        recipe.setGroup(this.group);
++        recipe.setGroup(this.group());
 +        recipe.setCategory(CraftRecipe.getCategory(this.category()));
 +
 +        switch (this.pattern.height()) {
@@ -82,5 +82,5 @@
 +    // CraftBukkit end
 +
      @Override
-     public RecipeSerializer<? extends ShapedRecipe> getSerializer() {
-         return RecipeSerializer.SHAPED_RECIPE;
+     public RecipeSerializer<ShapedRecipe> getSerializer() {
+         return ShapedRecipe.SERIALIZER;

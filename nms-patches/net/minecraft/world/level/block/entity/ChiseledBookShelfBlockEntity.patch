@@ -54,8 +54,8 @@
 +    }
 +    // CraftBukkit end
  
-     public ChiseledBookShelfBlockEntity(BlockPos blockpos, BlockState blockstate) {
-         super(BlockEntityType.CHISELED_BOOKSHELF, blockpos, blockstate);
+     public ChiseledBookShelfBlockEntity(BlockPos worldPosition, BlockState blockState) {
+         super(BlockEntityType.CHISELED_BOOKSHELF, worldPosition, blockState);
 @@ -72,7 +114,7 @@
  
      @Override
@@ -67,19 +67,19 @@
      @Override
 @@ -86,7 +128,7 @@
  
-         this.getItems().set(i, ItemStack.EMPTY);
+         this.getItems().set(slot, ItemStack.EMPTY);
          if (!itemstack.isEmpty()) {
--            this.updateState(i);
-+            if (level != null) this.updateState(i); // CraftBukkit - SPIGOT-7381: check for null world
+-            this.updateState(slot);
++            if (level != null) this.updateState(slot); // CraftBukkit - SPIGOT-7381: check for null world
          }
  
          return itemstack;
 @@ -96,7 +138,7 @@
-     public void setItem(int i, ItemStack itemstack) {
-         if (this.acceptsItemType(itemstack)) {
-             this.getItems().set(i, itemstack);
--            this.updateState(i);
-+            if (level != null) this.updateState(i); // CraftBukkit - SPIGOT-7381: check for null world
-         } else if (itemstack.isEmpty()) {
-             this.removeItem(i, this.getMaxStackSize());
+     public void setItem(int slot, ItemStack itemStack) {
+         if (this.acceptsItemType(itemStack)) {
+             this.getItems().set(slot, itemStack);
+-            this.updateState(slot);
++            if (level != null) this.updateState(slot); // CraftBukkit - SPIGOT-7381: check for null world
+         } else if (itemStack.isEmpty()) {
+             this.removeItem(slot, this.getMaxStackSize());
          }

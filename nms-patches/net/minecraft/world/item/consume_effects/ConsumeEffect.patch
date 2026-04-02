@@ -15,14 +15,14 @@
  
      ConsumeEffect.Type<? extends ConsumeEffect> getType();
  
--    boolean apply(Level level, ItemStack itemstack, LivingEntity livingentity);
+-    boolean apply(Level level, ItemStack stack, LivingEntity user);
 +    // CraftBukkit start
-+    default boolean apply(Level level, ItemStack itemstack, LivingEntity livingentity) {
-+        return this.apply(level, itemstack, livingentity, EntityPotionEffectEvent.Cause.UNKNOWN);
++    default boolean apply(Level level, ItemStack stack, LivingEntity user) {
++        return this.apply(level, stack, user, EntityPotionEffectEvent.Cause.UNKNOWN);
 +    }
 +
-+    default boolean apply(Level level, ItemStack itemstack, LivingEntity livingentity, EntityPotionEffectEvent.Cause cause) {
-+        return this.apply(level, itemstack, livingentity);
++    default boolean apply(Level level, ItemStack stack, LivingEntity user, EntityPotionEffectEvent.Cause cause) {
++        return this.apply(level, stack, user);
 +    }
 +    // CraftBukkit end
  
@@ -31,9 +31,9 @@
 @@ -30,7 +42,7 @@
          public static final ConsumeEffect.Type<PlaySoundConsumeEffect> PLAY_SOUND = register("play_sound", PlaySoundConsumeEffect.CODEC, PlaySoundConsumeEffect.STREAM_CODEC);
  
-         private static <T extends ConsumeEffect> ConsumeEffect.Type<T> register(String s, MapCodec<T> mapcodec, StreamCodec<RegistryFriendlyByteBuf, T> streamcodec) {
--            return (ConsumeEffect.Type) Registry.register(BuiltInRegistries.CONSUME_EFFECT_TYPE, s, new ConsumeEffect.Type(mapcodec, streamcodec));
-+            return (ConsumeEffect.Type) Registry.register(BuiltInRegistries.CONSUME_EFFECT_TYPE, s, new ConsumeEffect.Type<>(mapcodec, streamcodec)); // CraftBukkit - decompile error
+         private static <T extends ConsumeEffect> ConsumeEffect.Type<T> register(String name, MapCodec<T> codec, StreamCodec<RegistryFriendlyByteBuf, T> streamCodec) {
+-            return (ConsumeEffect.Type) Registry.register(BuiltInRegistries.CONSUME_EFFECT_TYPE, name, new ConsumeEffect.Type(codec, streamCodec));
++            return (ConsumeEffect.Type) Registry.register(BuiltInRegistries.CONSUME_EFFECT_TYPE, name, new ConsumeEffect.Type<>(codec, streamCodec)); // CraftBukkit - decompile error
          }
      }
  }

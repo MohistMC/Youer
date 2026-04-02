@@ -1,0 +1,39 @@
+--- a/net/minecraft/world/inventory/CraftingMenu.java
++++ b/net/minecraft/world/inventory/CraftingMenu.java
+@@ -14,6 +_,8 @@
+ import net.minecraft.world.item.crafting.RecipeHolder;
+ import net.minecraft.world.item.crafting.RecipeType;
+ import net.minecraft.world.level.block.Blocks;
++import org.bukkit.craftbukkit.inventory.CraftInventoryCrafting;
++import org.bukkit.craftbukkit.inventory.CraftInventoryView;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class CraftingMenu extends AbstractCraftingMenu {
+@@ -30,6 +_,9 @@
+     public final ContainerLevelAccess access;
+     private final Player player;
+     private boolean placingRecipe;
++    // CraftBukkit start
++    private CraftInventoryView bukkitEntity = null;
++    // CraftBukkit end
+ 
+     public CraftingMenu(int containerId, Inventory inventory) {
+         this(containerId, inventory, ContainerLevelAccess.NULL);
+@@ -176,4 +_,17 @@
+     protected Player owner() {
+         return this.player;
+     }
++
++    // CraftBukkit start
++    @Override
++    public CraftInventoryView getBukkitView() {
++        if (bukkitEntity != null) {
++            return bukkitEntity;
++        }
++
++        CraftInventoryCrafting inventory = new CraftInventoryCrafting(this.craftSlots, this.resultSlots);
++        bukkitEntity = new CraftInventoryView(this.player.getBukkitEntity(), inventory, this);
++        return bukkitEntity;
++    }
++    // CraftBukkit end
+ }

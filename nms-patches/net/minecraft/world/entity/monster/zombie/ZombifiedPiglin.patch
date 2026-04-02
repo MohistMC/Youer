@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/zombie/ZombifiedPiglin.java
 +++ b/net/minecraft/world/entity/monster/zombie/ZombifiedPiglin.java
-@@ -142,7 +142,7 @@
+@@ -144,7 +144,7 @@
          }).filter((zombifiedpiglin) -> {
              return !zombifiedpiglin.isAlliedTo((Entity) this.getTarget());
          }).forEach((zombifiedpiglin) -> {
@@ -9,27 +9,34 @@
          });
      }
  
-@@ -151,18 +151,27 @@
+@@ -153,18 +153,34 @@
      }
  
      @Override
--    public void setTarget(@Nullable LivingEntity livingentity) {
-+    public boolean setTarget(@Nullable LivingEntity livingentity, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent) { // CraftBukkit - signature
-         if (this.getTarget() == null && livingentity != null) {
+-    public void setTarget(@Nullable LivingEntity target) {
++    public boolean setTarget(@Nullable LivingEntity target, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent) { // CraftBukkit - signature
+         if (this.getTarget() == null && target != null) {
              this.playFirstAngerSoundIn = ZombifiedPiglin.FIRST_ANGER_SOUND_DELAY.sample(this.random);
              this.ticksUntilNextAlert = ZombifiedPiglin.ALERT_INTERVAL.sample(this.random);
          }
  
--        super.setTarget(livingentity);
-+        return super.setTarget(livingentity, reason, fireEvent); // CraftBukkit
+-        super.setTarget(target);
++        return super.setTarget(target, reason, fireEvent); // CraftBukkit
      }
  
      @Override
      public void startPersistentAngerTimer() {
 -        this.setTimeToRemainAngry((long) ZombifiedPiglin.PERSISTENT_ANGER_TIME.sample(this.random));
 +        // CraftBukkit start
-+        LivingEntity entity = getPersistentAngerTarget().getEntity(this.level(), LivingEntity.class);
-+        org.bukkit.event.entity.PigZombieAngerEvent event = new org.bukkit.event.entity.PigZombieAngerEvent((org.bukkit.entity.PigZombie) this.getBukkitEntity(), (entity == null) ? null : entity.getBukkitEntity(), ZombifiedPiglin.PERSISTENT_ANGER_TIME.sample(this.random));
++        org.bukkit.entity.Entity target = null;
++        EntityReference<LivingEntity> targetReference = getPersistentAngerTarget();
++        if (targetReference != null) {
++            LivingEntity targetHandle = targetReference.getEntity(this.level(), LivingEntity.class);
++            if (targetHandle != null) {
++                target = targetHandle.getBukkitEntity();
++            }
++        }
++        org.bukkit.event.entity.PigZombieAngerEvent event = new org.bukkit.event.entity.PigZombieAngerEvent((org.bukkit.entity.PigZombie) this.getBukkitEntity(), target, ZombifiedPiglin.PERSISTENT_ANGER_TIME.sample(this.random));
 +        this.level().getCraftServer().getPluginManager().callEvent(event);
 +        if (event.isCancelled()) {
 +            this.setPersistentAngerTarget(null);
@@ -39,4 +46,4 @@
 +        // CraftBukkit end
      }
  
-     public static boolean checkZombifiedPiglinSpawnRules(EntityType<ZombifiedPiglin> entitytype, LevelAccessor levelaccessor, EntitySpawnReason entityspawnreason, BlockPos blockpos, RandomSource randomsource) {
+     public static boolean checkZombifiedPiglinSpawnRules(EntityType<ZombifiedPiglin> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {

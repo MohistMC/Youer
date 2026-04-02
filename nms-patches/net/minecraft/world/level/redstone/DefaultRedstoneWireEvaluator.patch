@@ -11,22 +11,22 @@
 +
  public class DefaultRedstoneWireEvaluator extends RedstoneWireEvaluator {
  
-     public DefaultRedstoneWireEvaluator(RedStoneWireBlock redstonewireblock) {
+     public DefaultRedstoneWireEvaluator(RedStoneWireBlock wireBlock) {
 @@ -19,7 +24,16 @@
-     public void updatePowerStrength(Level level, BlockPos blockpos, BlockState blockstate, @Nullable Orientation orientation, boolean flag) {
-         int i = this.calculateTargetStrength(level, blockpos);
+     public void updatePowerStrength(Level level, BlockPos pos, BlockState state, @Nullable Orientation orientation, boolean skipShapeUpdates) {
+         int i = this.calculateTargetStrength(level, pos);
  
--        if ((Integer) blockstate.getValue(RedStoneWireBlock.POWER) != i) {
+-        if ((Integer) state.getValue(RedStoneWireBlock.POWER) != i) {
 +        // CraftBukkit start
-+        int oldPower = blockstate.getValue(RedStoneWireBlock.POWER);
++        int oldPower = state.getValue(RedStoneWireBlock.POWER);
 +        if (oldPower != i) {
-+            BlockRedstoneEvent event = new BlockRedstoneEvent(CraftBlock.at(level, blockpos), oldPower, i);
++            BlockRedstoneEvent event = new BlockRedstoneEvent(CraftBlock.at(level, pos), oldPower, i);
 +            level.getCraftServer().getPluginManager().callEvent(event);
 +
 +            i = event.getNewCurrent();
 +        }
 +        if (oldPower != i) {
 +            // CraftBukkit end
-             if (level.getBlockState(blockpos) == blockstate) {
-                 level.setBlock(blockpos, (BlockState) blockstate.setValue(RedStoneWireBlock.POWER, i), 2);
+             if (level.getBlockState(pos) == state) {
+                 level.setBlock(pos, (BlockState) state.setValue(RedStoneWireBlock.POWER, i), 2);
              }

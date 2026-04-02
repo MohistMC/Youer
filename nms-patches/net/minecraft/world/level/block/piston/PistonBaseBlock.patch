@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 +++ b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
-@@ -42,6 +42,14 @@
+@@ -43,6 +43,14 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -15,13 +15,13 @@
  public class PistonBaseBlock extends DirectionalBlock {
  
      public static final MapCodec<PistonBaseBlock> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
-@@ -129,6 +137,18 @@
+@@ -130,6 +138,18 @@
                  }
              }
  
 +            // CraftBukkit start
 +            if (!this.isSticky) {
-+                org.bukkit.block.Block block = level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
++                org.bukkit.block.Block block = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
 +                BlockPistonRetractEvent event = new BlockPistonRetractEvent(block, ImmutableList.<org.bukkit.block.Block>of(), CraftBlock.notchToBlockFace(direction));
 +                level.getCraftServer().getPluginManager().callEvent(event);
 +
@@ -31,15 +31,15 @@
 +            }
 +            // PAIL: checkME - what happened to setTypeAndData?
 +            // CraftBukkit end
-             level.blockEvent(blockpos, this, i, direction.get3DDataValue());
+             level.blockEvent(pos, this, i, direction.get3DDataValue());
          }
  
-@@ -295,6 +315,48 @@
+@@ -298,6 +318,48 @@
              BlockState[] ablockstate = new BlockState[list.size() + list2.size()];
-             Direction direction1 = flag ? direction : direction.getOpposite();
+             Direction direction1 = extending ? direction : direction.getOpposite();
              int i = 0;
 +            // CraftBukkit start
-+            final org.bukkit.block.Block bblock = level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
++            final org.bukkit.block.Block bblock = level.getWorld().getBlockAt(pistonPos.getX(), pistonPos.getY(), pistonPos.getZ());
 +
 +            final List<BlockPos> moved = pistonstructureresolver.getToPush();
 +            final List<BlockPos> broken = pistonstructureresolver.getToDestroy();
@@ -61,7 +61,7 @@
 +                }
 +            };
 +            org.bukkit.event.block.BlockPistonEvent event;
-+            if (flag) {
++            if (extending) {
 +                event = new BlockPistonExtendEvent(bblock, blocks, CraftBlock.notchToBlockFace(direction1));
 +            } else {
 +                event = new BlockPistonRetractEvent(bblock, blocks, CraftBlock.notchToBlockFace(direction1));

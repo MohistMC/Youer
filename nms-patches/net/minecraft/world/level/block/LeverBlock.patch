@@ -10,12 +10,12 @@
  
      public static final MapCodec<LeverBlock> CODEC = simpleCodec(LeverBlock::new);
 @@ -74,6 +76,20 @@
-                 makeParticle(blockstate1, level, blockpos, 1.0F);
+                 makeParticle(blockstate1, level, pos, 1.0F);
              }
          } else {
 +            // CraftBukkit start - Interact Lever
-+            boolean powered = blockstate.getValue(LeverBlock.POWERED); // Old powered state
-+            org.bukkit.block.Block block = level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
++            boolean powered = stateBefore.getValue(LeverBlock.POWERED); // Old powered state
++            org.bukkit.block.Block block = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
 +            int old = (powered) ? 15 : 0;
 +            int current = (!powered) ? 15 : 0;
 +
@@ -27,6 +27,6 @@
 +            }
 +            // CraftBukkit end
 +
-             this.pull(blockstate, level, blockpos, (Player) null);
+             this.pull(stateBefore, level, pos, (Player) null);
          }
  

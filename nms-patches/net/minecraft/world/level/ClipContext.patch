@@ -3,9 +3,18 @@
 @@ -27,7 +27,7 @@
      private final CollisionContext collisionContext;
  
-     public ClipContext(Vec3 vec3, Vec3 vec31, ClipContext.Block clipcontext_block, ClipContext.Fluid clipcontext_fluid, Entity entity) {
--        this(vec3, vec31, clipcontext_block, clipcontext_fluid, CollisionContext.of(entity));
-+        this(vec3, vec31, clipcontext_block, clipcontext_fluid, (entity == null) ? CollisionContext.empty() : CollisionContext.of(entity)); // CraftBukkit
+     public ClipContext(Vec3 from, Vec3 to, ClipContext.Block block, ClipContext.Fluid fluid, Entity entity) {
+-        this(from, to, block, fluid, CollisionContext.of(entity));
++        this(from, to, block, fluid, (entity == null) ? CollisionContext.empty() : CollisionContext.of(entity)); // CraftBukkit
      }
  
-     public ClipContext(Vec3 vec3, Vec3 vec31, ClipContext.Block clipcontext_block, ClipContext.Fluid clipcontext_fluid, CollisionContext collisioncontext) {
+     public ClipContext(Vec3 from, Vec3 to, ClipContext.Block block, ClipContext.Fluid fluid, CollisionContext collisionContext) {
+@@ -63,7 +63,7 @@
+                 if (collisioncontext instanceof EntityCollisionContext) {
+                     EntityCollisionContext entitycollisioncontext = (EntityCollisionContext) collisioncontext;
+ 
+-                    if (entitycollisioncontext.getEntity() != null && entitycollisioncontext.getEntity().is((Object) EntityType.PLAYER)) {
++                    if (entitycollisioncontext.getEntity() != null && entitycollisioncontext.getEntity().is(EntityType.PLAYER)) { // CraftBukkit - decompile error
+                         if (blockstate.is(Blocks.END_GATEWAY) || blockstate.is(Blocks.END_PORTAL)) {
+                             return Shapes.block();
+                         }

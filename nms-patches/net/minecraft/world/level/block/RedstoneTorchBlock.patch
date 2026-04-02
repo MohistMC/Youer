@@ -14,13 +14,13 @@
          }
  
 +        // CraftBukkit start
-+        org.bukkit.plugin.PluginManager manager = serverlevel.getCraftServer().getPluginManager();
-+        org.bukkit.block.Block block = serverlevel.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
-+        int oldCurrent = ((Boolean) blockstate.getValue(RedstoneTorchBlock.LIT)).booleanValue() ? 15 : 0;
++        org.bukkit.plugin.PluginManager manager = level.getCraftServer().getPluginManager();
++        org.bukkit.block.Block block = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++        int oldCurrent = ((Boolean) state.getValue(RedstoneTorchBlock.LIT)).booleanValue() ? 15 : 0;
 +
 +        BlockRedstoneEvent event = new BlockRedstoneEvent(block, oldCurrent, oldCurrent);
 +        // CraftBukkit end
-         if ((Boolean) blockstate.getValue(RedstoneTorchBlock.LIT)) {
+         if ((Boolean) state.getValue(RedstoneTorchBlock.LIT)) {
              if (flag) {
 +                // CraftBukkit start
 +                if (oldCurrent != 0) {
@@ -31,13 +31,13 @@
 +                    }
 +                }
 +                // CraftBukkit end
-                 serverlevel.setBlock(blockpos, (BlockState) blockstate.setValue(RedstoneTorchBlock.LIT, false), 3);
-                 if (isToggledTooFrequently(serverlevel, blockpos, true)) {
-                     serverlevel.levelEvent(1502, blockpos, 0);
+                 level.setBlock(pos, (BlockState) state.setValue(RedstoneTorchBlock.LIT, false), 3);
+                 if (isToggledTooFrequently(level, pos, true)) {
+                     level.levelEvent(1502, pos, 0);
 @@ -90,6 +108,15 @@
                  }
              }
-         } else if (!flag && !isToggledTooFrequently(serverlevel, blockpos, false)) {
+         } else if (!flag && !isToggledTooFrequently(level, pos, false)) {
 +            // CraftBukkit start
 +            if (oldCurrent != 15) {
 +                event.setNewCurrent(15);
@@ -47,6 +47,6 @@
 +                }
 +            }
 +            // CraftBukkit end
-             serverlevel.setBlock(blockpos, (BlockState) blockstate.setValue(RedstoneTorchBlock.LIT, true), 3);
+             level.setBlock(pos, (BlockState) state.setValue(RedstoneTorchBlock.LIT, true), 3);
          }
  

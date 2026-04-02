@@ -17,7 +17,7 @@
 @@ -27,6 +34,17 @@
                          LivingEntity livingentity1 = (LivingEntity) behaviorbuilder_instance.get(memoryaccessor);
  
-                         if (livingentity.closerThan(livingentity1, (double) (uniformint.getMaxValue() + 1)) && !livingentity.closerThan(livingentity1, (double) uniformint.getMinValue())) {
+                         if (livingentity.closerThan(livingentity1, (double) (followRange.maxInclusive() + 1)) && !livingentity.closerThan(livingentity1, (double) followRange.minInclusive())) {
 +                            // CraftBukkit start
 +                            EntityTargetLivingEntityEvent event = CraftEventFactory.callEntityTargetLivingEvent(livingentity, livingentity1, EntityTargetEvent.TargetReason.FOLLOW_LEADER);
 +                            if (event.isCancelled()) {
@@ -29,6 +29,6 @@
 +                            }
 +                            livingentity1 = ((CraftLivingEntity) event.getTarget()).getHandle();
 +                            // CraftBukkit end
-                             WalkTarget walktarget = new WalkTarget(new EntityTracker(livingentity1, flag, flag), (Float) function.apply(livingentity), uniformint.getMinValue() - 1);
+                             WalkTarget walktarget = new WalkTarget(new EntityTracker(livingentity1, targetEye, targetEye), (Float) speedModifier.apply(livingentity), followRange.minInclusive() - 1);
  
-                             memoryaccessor1.set(new EntityTracker(livingentity1, true, flag));
+                             memoryaccessor1.set(new EntityTracker(livingentity1, true, targetEye));

@@ -1,0 +1,49 @@
+--- a/net/minecraft/server/jsonrpc/internalapi/MinecraftGameRuleServiceImpl.java
++++ b/net/minecraft/server/jsonrpc/internalapi/MinecraftGameRuleServiceImpl.java
+@@ -11,22 +11,28 @@
+ public class MinecraftGameRuleServiceImpl implements MinecraftGameRuleService {
+ 
+     private final DedicatedServer server;
+-    private final GameRules gameRules;
++    // private final GameRules gameRules;  // CraftBukkit - per-world
+     private final JsonRpcLogger jsonrpcLogger;
+ 
++    // CraftBukkit - per-world
++    private GameRules getGameRules() {
++        return this.server.getGameRules();
++    }
++    // CraftBukkit end
++
+     public MinecraftGameRuleServiceImpl(DedicatedServer server, JsonRpcLogger jsonrpcLogger) {
+         this.server = server;
+-        this.gameRules = server.getGameRules();
++        // this.gameRules = server.getGameRules(); // CraftBukkit - per-world
+         this.jsonrpcLogger = jsonrpcLogger;
+     }
+ 
+     @Override
+     public <T> GameRulesService.GameRuleUpdate<T> updateGameRule(GameRulesService.GameRuleUpdate<T> update, ClientInfo clientInfo) {
+         GameRule<T> gamerule = update.gameRule();
+-        T t0 = (T) this.gameRules.get(gamerule);
++        T t0 = (T) this.getGameRules().get(gamerule); // CraftBukkit - per-world
+         T t1 = update.value();
+ 
+-        this.gameRules.set(gamerule, t1, this.server);
++        this.getGameRules().set(gamerule, t1, this.server.overworld()); // CraftBukkit - per-world
+         this.jsonrpcLogger.log(clientInfo, "Game rule '{}' updated from '{}' to '{}'", gamerule.id(), gamerule.serialize(t0), gamerule.serialize(t1));
+         return update;
+     }
+@@ -38,11 +44,11 @@
+ 
+     @Override
+     public Stream<GameRule<?>> getAvailableGameRules() {
+-        return this.gameRules.availableRules();
++        return this.getGameRules().availableRules(); // CraftBukkit - per-world
+     }
+ 
+     @Override
+     public <T> T getRuleValue(GameRule<T> gameRule) {
+-        return (T) this.gameRules.get(gameRule);
++        return (T) this.getGameRules().get(gameRule); // CraftBukkit - per-world
+     }
+ }

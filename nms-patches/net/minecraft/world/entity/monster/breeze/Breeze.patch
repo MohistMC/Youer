@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/breeze/Breeze.java
 +++ b/net/minecraft/world/entity/monster/breeze/Breeze.java
-@@ -78,7 +78,7 @@
+@@ -74,7 +74,7 @@
  
      @Override
      public Brain<Breeze> getBrain() {
@@ -9,11 +9,25 @@
      }
  
      @Override
-@@ -246,6 +246,7 @@
+@@ -195,7 +195,7 @@
  
      @Override
-     public boolean canAttackType(EntityType<?> entitytype) {
-+        if (this.getTarget() != null) return this.getTarget().getType() == entitytype; // SPIGOT-7957: Allow attack if target from brain was set
-         return entitytype == EntityType.PLAYER || entitytype == EntityType.IRON_GOLEM;
+     public ProjectileDeflection deflection(Projectile projectile) {
+-        return !projectile.is((Object) EntityType.BREEZE_WIND_CHARGE) && !projectile.is((Object) EntityType.WIND_CHARGE) ? (this.is(EntityTypeTags.DEFLECTS_PROJECTILES) ? Breeze.PROJECTILE_DEFLECTION : ProjectileDeflection.NONE) : ProjectileDeflection.NONE;
++        return !projectile.is(EntityType.BREEZE_WIND_CHARGE) && !projectile.is(EntityType.WIND_CHARGE) ? (this.is(EntityTypeTags.DEFLECTS_PROJECTILES) ? Breeze.PROJECTILE_DEFLECTION : ProjectileDeflection.NONE) : ProjectileDeflection.NONE; // CraftBukkit - decompile error
      }
  
+     @Override
+@@ -241,7 +241,11 @@
+ 
+     @Override
+     public boolean canAttack(LivingEntity target) {
+-        return (target.is((Object) EntityType.PLAYER) || target.is((Object) EntityType.IRON_GOLEM)) && super.canAttack(target);
++        // CraftBukkit start - SPIGOT-7957: Allow attack if target from brain was set
++        LivingEntity brainTarget = this.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null);
++        if (brainTarget != null) return target.is(brainTarget);
++        // CraftBukkit end
++        return (target.is(EntityType.PLAYER) || target.is(EntityType.IRON_GOLEM)) && super.canAttack(target); // CraftBukkit - decompile error
+     }
+ 
+     @Override

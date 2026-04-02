@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/DyeItem.java
 +++ b/net/minecraft/world/item/DyeItem.java
-@@ -13,6 +13,8 @@
+@@ -12,6 +12,8 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.entity.SignBlockEntity;
  
@@ -8,14 +8,13 @@
 +
  public class DyeItem extends Item implements SignApplicator {
  
-     private static final Map<DyeColor, DyeItem> ITEM_BY_COLOR = Maps.newEnumMap(DyeColor.class);
-@@ -30,7 +32,17 @@
-             if (sheep.isAlive() && !sheep.isSheared() && sheep.getColor() != this.dyeColor) {
-                 sheep.level().playSound(player, (Entity) sheep, SoundEvents.DYE_USE, SoundSource.PLAYERS, 1.0F, 1.0F);
-                 if (!player.level().isClientSide()) {
--                    sheep.setColor(this.dyeColor);
+     public DyeItem(Item.Properties properties) {
+@@ -25,6 +27,17 @@
+                 DyeColor dyecolor = (DyeColor) itemStack.get(DataComponents.DYE);
+ 
+                 if (dyecolor != null && sheep.getColor() != dyecolor) {
 +                    // CraftBukkit start
-+                    byte bColor = (byte) this.dyeColor.getId();
++                    byte bColor = (byte) dyecolor.getId();
 +                    SheepDyeWoolEvent event = new SheepDyeWoolEvent((org.bukkit.entity.Sheep) sheep.getBukkitEntity(), org.bukkit.DyeColor.getByWoolData(bColor), (org.bukkit.entity.Player) player.getBukkitEntity());
 +                    sheep.level().getCraftServer().getPluginManager().callEvent(event);
 +
@@ -23,8 +22,8 @@
 +                        return InteractionResult.PASS;
 +                    }
 +
-+                    sheep.setColor(DyeColor.byId((byte) event.getColor().getWoolData()));
++                    dyecolor = DyeColor.byId((byte) event.getColor().getWoolData());
 +                    // CraftBukkit end
-                     itemstack.shrink(1);
-                 }
- 
+                     sheep.level().playSound(player, (Entity) sheep, SoundEvents.DYE_USE, SoundSource.PLAYERS, 1.0F, 1.0F);
+                     if (!player.level().isClientSide()) {
+                         sheep.setColor(dyecolor);

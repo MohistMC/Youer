@@ -11,16 +11,52 @@
  public abstract class Raider extends PatrollingMonster {
  
      protected static final EntityDataAccessor<Boolean> IS_CELEBRATING = SynchedEntityData.<Boolean>defineId(Raider.class, EntityDataSerializers.BOOLEAN);
+@@ -103,7 +107,7 @@
+                     } else {
+                         LivingEntity livingentity = this.getTarget();
+ 
+-                        if (livingentity != null && (livingentity.is((Object) EntityType.PLAYER) || livingentity.is((Object) EntityType.IRON_GOLEM))) {
++                        if (livingentity != null && (livingentity.is(EntityType.PLAYER) || livingentity.is(EntityType.IRON_GOLEM))) { // CraftBukkit - decompile error
+                             this.noActionTime = 0;
+                         }
+                     }
+@@ -132,7 +136,7 @@
+                     raid.removeLeader(this.getWave());
+                 }
+ 
+-                if (entity != null && entity.is((Object) EntityType.PLAYER)) {
++                if (entity != null && entity.is(EntityType.PLAYER)) { // CraftBukkit - decompile error
+                     raid.addHeroOfTheVillage(entity);
+                 }
+ 
 @@ -252,7 +256,7 @@
-             this.onItemPickup(itementity);
+             this.onItemPickup(entity);
              this.setItemSlot(equipmentslot, itemstack);
-             this.take(itementity, itemstack.getCount());
--            itementity.discard();
-+            itementity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             this.take(entity, itemstack.getCount());
+-            entity.discard();
++            entity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
              this.getCurrentRaid().setLeader(this.getWave(), this);
              this.setPatrolLeader(true);
          } else {
-@@ -447,7 +451,7 @@
+@@ -290,7 +294,7 @@
+ 
+     @Override
+     public @Nullable SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason spawnReason, @Nullable SpawnGroupData groupData) {
+-        this.setCanJoinRaid(!this.is((Object) EntityType.WITCH) || spawnReason != EntitySpawnReason.NATURAL);
++        this.setCanJoinRaid(!this.is(EntityType.WITCH) || spawnReason != EntitySpawnReason.NATURAL); // CraftBukkit - decompile error
+         return super.finalizeSpawn(level, difficulty, spawnReason, groupData);
+     }
+ 
+@@ -443,7 +447,7 @@
+         public boolean canUse() {
+             LivingEntity livingentity = this.mob.getLastHurtByMob();
+ 
+-            return this.mob.getCurrentRaid() == null && this.mob.isPatrolling() && this.mob.getTarget() != null && !this.mob.isAggressive() && (livingentity == null || !livingentity.is((Object) EntityType.PLAYER));
++            return this.mob.getCurrentRaid() == null && this.mob.isPatrolling() && this.mob.getTarget() != null && !this.mob.isAggressive() && (livingentity == null || !livingentity.is(EntityType.PLAYER)); // CraftBukkit - decompile error
+         }
+ 
+         @Override
+@@ -452,7 +456,7 @@
              this.mob.getNavigation().stop();
  
              for (Raider raider : getServerLevel((Entity) this.mob).getNearbyEntities(Raider.class, this.shoutTargeting, this.mob, this.mob.getBoundingBox().inflate(8.0D, 8.0D, 8.0D))) {
@@ -29,7 +65,7 @@
              }
  
          }
-@@ -459,7 +463,7 @@
+@@ -464,7 +468,7 @@
  
              if (livingentity != null) {
                  for (Raider raider : getServerLevel((Entity) this.mob).getNearbyEntities(Raider.class, this.shoutTargeting, this.mob, this.mob.getBoundingBox().inflate(8.0D, 8.0D, 8.0D))) {

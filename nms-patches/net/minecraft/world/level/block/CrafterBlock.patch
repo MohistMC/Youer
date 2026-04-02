@@ -18,31 +18,31 @@
      public static final MapCodec<CrafterBlock> CODEC = simpleCodec(CrafterBlock::new);
 @@ -186,6 +195,13 @@
                  RecipeHolder<CraftingRecipe> recipeholder = (RecipeHolder) optional.get();
-                 ItemStack itemstack = (recipeholder.value()).assemble(craftinginput, serverlevel.registryAccess());
+                 ItemStack itemstack = (recipeholder.value()).assemble(craftinginput);
  
 +                // CraftBukkit start
-+                CrafterCraftEvent event = CraftEventFactory.callCrafterCraftEvent(blockpos, serverlevel, crafterblockentity, itemstack, recipeholder.value().getRemainingItems(craftinginput), recipeholder);
++                CrafterCraftEvent event = CraftEventFactory.callCrafterCraftEvent(pos, level, crafterblockentity, itemstack, recipeholder.value().getRemainingItems(craftinginput), recipeholder);
 +                if (event.isCancelled()) {
 +                    return;
 +                }
 +                itemstack = CraftItemStack.asNMSCopy(event.getResult());
 +                // CraftBukkit end
                  if (itemstack.isEmpty()) {
-                     serverlevel.levelEvent(1050, blockpos, 0);
+                     level.levelEvent(1050, pos, 0);
                  } else {
 @@ -194,7 +210,7 @@
-                     itemstack.onCraftedBySystem(serverlevel);
-                     this.dispenseItem(serverlevel, blockpos, crafterblockentity, itemstack, blockstate, recipeholder);
+                     itemstack.onCraftedBySystem(level);
+                     this.dispenseItem(level, pos, crafterblockentity, itemstack, state, recipeholder);
  
 -                    for (ItemStack itemstack1 : (recipeholder.value()).getRemainingItems(craftinginput)) {
 +                    for (ItemStack itemstack1 : event.getRemainingItems().stream().map(CraftItemStack::asNMSCopy).toList()) { // CraftBukkit
                          if (!itemstack1.isEmpty()) {
-                             this.dispenseItem(serverlevel, blockpos, crafterblockentity, itemstack1, blockstate, recipeholder);
+                             this.dispenseItem(level, pos, crafterblockentity, itemstack1, state, recipeholder);
                          }
 @@ -221,7 +237,25 @@
-         ItemStack itemstack1 = itemstack.copy();
+         ItemStack itemstack1 = results.copy();
  
-         if (container != null && (container instanceof CrafterBlockEntity || itemstack.getCount() > container.getMaxStackSize(itemstack))) {
+         if (container != null && (container instanceof CrafterBlockEntity || results.getCount() > container.getMaxStackSize(results))) {
 +            // CraftBukkit start - InventoryMoveItemEvent
 +            CraftItemStack oitemstack = CraftItemStack.asCraftMirror(itemstack1);
 +
@@ -54,8 +54,8 @@
 +                destinationInventory = container.getOwner().getInventory();
 +            }
 +
-+            InventoryMoveItemEvent event = new InventoryMoveItemEvent(crafterblockentity.getOwner().getInventory(), oitemstack, destinationInventory, true);
-+            serverlevel.getCraftServer().getPluginManager().callEvent(event);
++            InventoryMoveItemEvent event = new InventoryMoveItemEvent(blockEntity.getOwner().getInventory(), oitemstack, destinationInventory, true);
++            level.getCraftServer().getPluginManager().callEvent(event);
 +            itemstack1 = CraftItemStack.asNMSCopy(event.getItem());
              while (!itemstack1.isEmpty()) {
 +                if (event.isCancelled()) {
@@ -63,7 +63,7 @@
 +                }
 +                // CraftBukkit end
                  ItemStack itemstack2 = itemstack1.copyWithCount(1);
-                 ItemStack itemstack3 = HopperBlockEntity.addItem(crafterblockentity, container, itemstack2, direction.getOpposite());
+                 ItemStack itemstack3 = HopperBlockEntity.addItem(blockEntity, container, itemstack2, direction.getOpposite());
  
 @@ -232,7 +266,25 @@
                  itemstack1.shrink(1);
@@ -80,8 +80,8 @@
 +                destinationInventory = container.getOwner().getInventory();
 +            }
 +
-+            InventoryMoveItemEvent event = new InventoryMoveItemEvent(crafterblockentity.getOwner().getInventory(), oitemstack, destinationInventory, true);
-+            serverlevel.getCraftServer().getPluginManager().callEvent(event);
++            InventoryMoveItemEvent event = new InventoryMoveItemEvent(blockEntity.getOwner().getInventory(), oitemstack, destinationInventory, true);
++            level.getCraftServer().getPluginManager().callEvent(event);
 +            itemstack1 = CraftItemStack.asNMSCopy(event.getItem());
              while (!itemstack1.isEmpty()) {
 +                if (event.isCancelled()) {
@@ -90,4 +90,4 @@
 +                // CraftBukkit end
                  int i = itemstack1.getCount();
  
-                 itemstack1 = HopperBlockEntity.addItem(crafterblockentity, container, itemstack1, direction.getOpposite());
+                 itemstack1 = HopperBlockEntity.addItem(blockEntity, container, itemstack1, direction.getOpposite());

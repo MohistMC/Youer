@@ -3,18 +3,18 @@
 @@ -184,7 +184,7 @@
      }
  
-     public void resetAfterBecomingOminous(TrialSpawner trialspawner, ServerLevel serverlevel) {
+     public void resetAfterBecomingOminous(TrialSpawner trialSpawner, ServerLevel level) {
 -        Stream stream = this.currentMobs.stream();
 +        Stream<UUID> stream = this.currentMobs.stream(); // CraftBukkit - decompile error
  
-         Objects.requireNonNull(serverlevel);
-         stream.map(serverlevel::getEntity).forEach((entity) -> {
+         Objects.requireNonNull(level);
+         stream.map(level::getEntity).forEach((entity) -> {
 @@ -196,7 +196,7 @@
-                     mob.dropPreservedEquipment(serverlevel);
+                     mob.dropPreservedEquipment(level);
                  }
  
 -                entity.remove(Entity.RemovalReason.DISCARDED);
 +                entity.remove(Entity.RemovalReason.DISCARDED, org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - Add bukkit remove cause;
              }
          });
-         if (!trialspawner.ominousConfig().spawnPotentialsDefinition().isEmpty()) {
+         if (!trialSpawner.ominousConfig().spawnPotentialsDefinition().isEmpty()) {

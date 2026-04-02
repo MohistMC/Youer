@@ -11,11 +11,11 @@
 +
  public class SmallFireball extends Fireball {
  
-     public SmallFireball(EntityType<? extends SmallFireball> entitytype, Level level) {
+     public SmallFireball(EntityType<? extends SmallFireball> type, Level level) {
 @@ -24,6 +29,11 @@
  
-     public SmallFireball(Level level, LivingEntity livingentity, Vec3 vec3) {
-         super(EntityType.SMALL_FIREBALL, livingentity, vec3, level);
+     public SmallFireball(Level level, LivingEntity mob, Vec3 direction) {
+         super(EntityType.SMALL_FIREBALL, mob, direction, level);
 +        // CraftBukkit start
 +        if (this.getOwner() != null && this.getOwner() instanceof Mob) {
 +            isIncendiary = (level instanceof ServerLevel serverlevel) && serverlevel.getGameRules().get(GameRules.MOB_GRIEFING);
@@ -23,7 +23,7 @@
 +        // CraftBukkit end
      }
  
-     public SmallFireball(Level level, double d0, double d1, double d2, Vec3 vec3) {
+     public SmallFireball(Level level, double x, double y, double z, Vec3 direction) {
 @@ -40,7 +50,14 @@
              Entity entity1 = this.getOwner();
              int i = entity.getRemainingFireTicks();
@@ -46,7 +46,7 @@
  
 -            if (!(entity instanceof Mob) || (Boolean) serverlevel.getGameRules().get(GameRules.MOB_GRIEFING)) {
 +            if (isIncendiary) { // CraftBukkit
-                 BlockPos blockpos = blockhitresult.getBlockPos().relative(blockhitresult.getDirection());
+                 BlockPos blockpos = hitResult.getBlockPos().relative(hitResult.getDirection());
  
 -                if (this.level().isEmptyBlock(blockpos)) {
 +                if (this.level().isEmptyBlock(blockpos) && !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(this.level(), blockpos, this).isCancelled()) { // CraftBukkit
@@ -54,8 +54,8 @@
                  }
              }
 @@ -75,7 +92,7 @@
-     protected void onHit(HitResult hitresult) {
-         super.onHit(hitresult);
+     protected void onHit(HitResult hitResult) {
+         super.onHit(hitResult);
          if (!this.level().isClientSide()) {
 -            this.discard();
 +            this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause

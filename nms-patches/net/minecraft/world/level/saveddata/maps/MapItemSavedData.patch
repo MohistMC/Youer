@@ -1,8 +1,8 @@
 --- a/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
 +++ b/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
-@@ -41,6 +41,16 @@
+@@ -40,6 +40,16 @@
+ import net.minecraft.world.level.saveddata.SavedDataType;
  import org.jspecify.annotations.Nullable;
- import org.slf4j.Logger;
  
 +// CraftBukkit start
 +import java.util.UUID;
@@ -16,8 +16,8 @@
 +
  public class MapItemSavedData extends SavedData {
  
-     private static final Logger LOGGER = LogUtils.getLogger();
-@@ -70,6 +80,14 @@
+     private static final int MAP_SIZE = 128;
+@@ -68,6 +78,14 @@
              return List.copyOf(mapitemsaveddata.bannerMarkers.values());
          }), MapFrame.CODEC.listOf().optionalFieldOf("frames", List.of()).forGetter((mapitemsaveddata) -> {
              return List.copyOf(mapitemsaveddata.frameMarkers.values());
@@ -32,7 +32,7 @@
          })).apply(instance, MapItemSavedData::new);
      });
      public int centerX;
-@@ -87,6 +105,46 @@
+@@ -85,6 +103,46 @@
      private final Map<String, MapFrame> frameMarkers;
      private int trackedDecorationCount;
  
@@ -76,44 +76,44 @@
 +    }
 +    // CraftBukkit end
 +
-     public static SavedDataType<MapItemSavedData> type(MapId mapid) {
-         return new SavedDataType<MapItemSavedData>(mapid.key(), () -> {
+     public static SavedDataType<MapItemSavedData> type(MapId id) {
+         return new SavedDataType<MapItemSavedData>(Identifier.withDefaultNamespace(id.key()), () -> {
              throw new IllegalStateException("Should never create an empty map saved data");
-@@ -107,17 +165,21 @@
-         this.trackingPosition = flag;
-         this.unlimitedTracking = flag1;
-         this.locked = flag2;
+@@ -105,17 +163,21 @@
+         this.trackingPosition = trackingPosition;
+         this.unlimitedTracking = unlimitedTracking;
+         this.locked = locked;
 +        // CraftBukkit start
 +        updateUUID();
 +        mapView = new CraftMapView(this);
      }
  
--    private MapItemSavedData(ResourceKey<Level> resourcekey, int i, int j, byte b0, ByteBuffer bytebuffer, boolean flag, boolean flag1, boolean flag2, List<MapBanner> list, List<MapFrame> list1) {
--        this(i, j, (byte) Mth.clamp(b0, 0, 4), flag, flag1, flag2, resourcekey);
-+    private MapItemSavedData(ResourceKey<Level> resourcekey, int i, int j, byte b0, ByteBuffer bytebuffer, boolean flag, boolean flag1, boolean flag2, List<MapBanner> list, List<MapFrame> list1, long uuidLeast, long uuidMost) {
-+        this(i, j, (byte) Mth.clamp(b0, 0, 4), flag, flag1, flag2, getWorldKey(resourcekey, uuidLeast, uuidMost));
+-    private MapItemSavedData(ResourceKey<Level> dimension, int centerX, int centerZ, byte scale, ByteBuffer colors, boolean trackingPosition, boolean unlimitedTracking, boolean locked, List<MapBanner> banners, List<MapFrame> frames) {
+-        this(centerX, centerZ, (byte) Mth.clamp(scale, 0, 4), trackingPosition, unlimitedTracking, locked, dimension);
++    private MapItemSavedData(ResourceKey<Level> dimension, int centerX, int centerZ, byte scale, ByteBuffer colors, boolean trackingPosition, boolean unlimitedTracking, boolean locked, List<MapBanner> banners, List<MapFrame> frames, long uuidLeast, long uuidMost) {
++        this(centerX, centerZ, (byte) Mth.clamp(scale, 0, 4), trackingPosition, unlimitedTracking, locked, getWorldKey(dimension, uuidLeast, uuidMost));
 +        // CraftBukkit end
-         if (bytebuffer.array().length == 16384) {
-             this.colors = bytebuffer.array();
+         if (colors.array().length == 16384) {
+             this.colors = colors.array();
          }
  
-         for (MapBanner mapbanner : list) {
+         for (MapBanner mapbanner : banners) {
              this.bannerMarkers.put(mapbanner.getId(), mapbanner);
 -            this.addDecoration(mapbanner.getDecoration(), (LevelAccessor) null, mapbanner.getId(), (double) mapbanner.pos().getX(), (double) mapbanner.pos().getZ(), 180.0D, (Component) mapbanner.name().orElse((Object) null));
 +            this.addDecoration(mapbanner.getDecoration(), (LevelAccessor) null, mapbanner.getId(), (double) mapbanner.pos().getX(), (double) mapbanner.pos().getZ(), 180.0D, (Component) mapbanner.name().orElse(null)); // CraftBukkit - decompile error
          }
  
-         for (MapFrame mapframe : list1) {
-@@ -396,7 +458,7 @@
+         for (MapFrame mapframe : frames) {
+@@ -393,7 +455,7 @@
  
              if (!this.isTrackedCountOverLimit(256)) {
                  this.bannerMarkers.put(mapbanner.getId(), mapbanner);
--                this.addDecoration(mapbanner.getDecoration(), levelaccessor, mapbanner.getId(), d0, d1, 180.0D, (Component) mapbanner.name().orElse((Object) null));
-+                this.addDecoration(mapbanner.getDecoration(), levelaccessor, mapbanner.getId(), d0, d1, 180.0D, (Component) mapbanner.name().orElse(null)); // CraftBukkit - decompile error
+-                this.addDecoration(mapbanner.getDecoration(), level, mapbanner.getId(), d0, d1, 180.0D, (Component) mapbanner.name().orElse((Object) null));
++                this.addDecoration(mapbanner.getDecoration(), level, mapbanner.getId(), d0, d1, 180.0D, (Component) mapbanner.name().orElse(null)); // CraftBukkit - decompile error
                  this.setDirty();
                  return true;
              }
-@@ -547,7 +609,7 @@
+@@ -550,7 +612,7 @@
              this.player = player;
          }
  
@@ -122,7 +122,7 @@
              int i = this.minDirtyX;
              int j = this.minDirtyY;
              int k = this.maxDirtyX + 1 - this.minDirtyX;
-@@ -556,7 +618,7 @@
+@@ -559,7 +621,7 @@
  
              for (int i1 = 0; i1 < k; ++i1) {
                  for (int j1 = 0; j1 < l; ++j1) {
@@ -131,9 +131,9 @@
                  }
              }
  
-@@ -565,19 +627,29 @@
+@@ -568,19 +630,29 @@
  
-         private @Nullable Packet<?> nextUpdatePacket(MapId mapid) {
+         private @Nullable Packet<?> nextUpdatePacket(MapId id) {
              MapItemSavedData.MapPatch mapitemsaveddata_mappatch;
 +            org.bukkit.craftbukkit.map.RenderData render = MapItemSavedData.this.mapView.render((org.bukkit.craftbukkit.entity.CraftPlayer) this.player.getBukkitEntity()); // CraftBukkit
  

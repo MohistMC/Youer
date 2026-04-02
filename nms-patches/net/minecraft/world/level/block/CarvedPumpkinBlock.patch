@@ -28,25 +28,25 @@
          }
      }
  
--    private static void spawnGolemInWorld(Level level, BlockPattern.BlockPatternMatch blockpattern_blockpatternmatch, Entity entity, BlockPos blockpos) {
--        clearPatternBlocks(level, blockpattern_blockpatternmatch);
+-    private static void spawnGolemInWorld(Level level, BlockPattern.BlockPatternMatch match, Entity golem, BlockPos spawnPos) {
+-        clearPatternBlocks(level, match);
 +    // CraftBukkit start
-+    private static boolean spawnGolemInWorld(Level level, BlockPattern.BlockPatternMatch blockpattern_blockpatternmatch, Entity entity, BlockPos blockpos) {
++    private static boolean spawnGolemInWorld(Level level, BlockPattern.BlockPatternMatch match, Entity golem, BlockPos spawnPos) {
 +        // clearPatternBlocks(level, blockpattern_blockpatternmatch); // CraftBukkit - moved down
-         entity.snapTo((double) blockpos.getX() + 0.5D, (double) blockpos.getY() + 0.05D, (double) blockpos.getZ() + 0.5D, 0.0F, 0.0F);
--        level.addFreshEntity(entity);
-+        if (!level.addFreshEntity(entity, (entity.getType() == EntityType.SNOW_GOLEM) ? SpawnReason.BUILD_SNOWMAN : ((entity.getType() == EntityType.IRON_GOLEM) ? SpawnReason.BUILD_IRONGOLEM : SpawnReason.BUILD_COPPERGOLEM))) {
+         golem.snapTo((double) spawnPos.getX() + 0.5D, (double) spawnPos.getY() + 0.05D, (double) spawnPos.getZ() + 0.5D, 0.0F, 0.0F);
+-        level.addFreshEntity(golem);
++        if (!level.addFreshEntity(golem, (golem.getType() == EntityType.SNOW_GOLEM) ? SpawnReason.BUILD_SNOWMAN : ((golem.getType() == EntityType.IRON_GOLEM) ? SpawnReason.BUILD_IRONGOLEM : SpawnReason.BUILD_COPPERGOLEM))) {
 +            return false;
 +        }
-+        clearPatternBlocks(level, blockpattern_blockpatternmatch); // CraftBukkit - from above
++        clearPatternBlocks(level, match); // CraftBukkit - from above
 +        // CraftBukkit end
  
-         for (ServerPlayer serverplayer : level.getEntitiesOfClass(ServerPlayer.class, entity.getBoundingBox().inflate(5.0D))) {
-             CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, entity);
+         for (ServerPlayer serverplayer : level.getEntitiesOfClass(ServerPlayer.class, golem.getBoundingBox().inflate(5.0D))) {
+             CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, golem);
          }
  
-         updatePatternBlocks(level, blockpattern_blockpatternmatch);
+         updatePatternBlocks(level, match);
 +        return true; // CraftBukkit
      }
  
-     public static void clearPatternBlocks(Level level, BlockPattern.BlockPatternMatch blockpattern_blockpatternmatch) {
+     public static void clearPatternBlocks(Level level, BlockPattern.BlockPatternMatch match) {

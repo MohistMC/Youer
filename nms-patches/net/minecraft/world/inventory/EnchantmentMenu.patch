@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/inventory/EnchantmentMenu.java
 +++ b/net/minecraft/world/inventory/EnchantmentMenu.java
-@@ -30,6 +30,18 @@
+@@ -31,6 +31,18 @@
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.EnchantingTableBlock;
  
@@ -19,7 +19,7 @@
  public class EnchantmentMenu extends AbstractContainerMenu {
  
      private static final Identifier EMPTY_SLOT_LAPIS_LAZULI = Identifier.withDefaultNamespace("container/slot/lapis_lazuli");
-@@ -40,6 +52,10 @@
+@@ -41,6 +53,10 @@
      public final int[] costs;
      public final int[] enchantClue;
      public final int[] levelClue;
@@ -28,9 +28,9 @@
 +    private org.bukkit.entity.Player player;
 +    // CraftBukkit end
  
-     public EnchantmentMenu(int i, Inventory inventory) {
-         this(i, inventory, ContainerLevelAccess.NULL);
-@@ -53,6 +69,13 @@
+     public EnchantmentMenu(int containerId, Inventory inventory) {
+         this(containerId, inventory, ContainerLevelAccess.NULL);
+@@ -58,6 +74,13 @@
                  super.setChanged();
                  EnchantmentMenu.this.slotsChanged(this);
              }
@@ -38,13 +38,13 @@
 +            // CraftBukkit start
 +            @Override
 +            public Location getLocation() {
-+                return containerlevelaccess.getLocation();
++                return access.getLocation();
 +            }
 +            // CraftBukkit end
          };
          this.random = RandomSource.create();
          this.enchantmentSeed = DataSlot.standalone();
-@@ -88,6 +111,9 @@
+@@ -101,6 +124,9 @@
          this.addDataSlot(DataSlot.shared(this.levelClue, 0));
          this.addDataSlot(DataSlot.shared(this.levelClue, 1));
          this.addDataSlot(DataSlot.shared(this.levelClue, 2));
@@ -54,7 +54,7 @@
      }
  
      @Override
-@@ -95,7 +121,7 @@
+@@ -108,7 +134,7 @@
          if (container == this.enchantSlots) {
              ItemStack itemstack = container.getItem(0);
  
@@ -63,7 +63,7 @@
                  this.access.execute((level, blockpos) -> {
                      IdMap<Holder<Enchantment>> idmap = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).asHolderIdMap();
                      int i = 0;
-@@ -130,6 +156,41 @@
+@@ -143,6 +169,41 @@
                          }
                      }
  
@@ -105,9 +105,9 @@
                      this.broadcastChanges();
                  });
              } else {
-@@ -159,17 +220,46 @@
+@@ -172,17 +233,46 @@
                      ItemStack itemstack2 = itemstack;
-                     List<EnchantmentInstance> list = this.getEnchantmentList(level.registryAccess(), itemstack, i, this.costs[i]);
+                     List<EnchantmentInstance> list = this.getEnchantmentList(level.registryAccess(), itemstack, buttonId, this.costs[buttonId]);
  
 -                    if (!list.isEmpty()) {
 -                        player.onEnchantmentPerformed(itemstack, j);
@@ -121,9 +121,9 @@
 +                        }
 +                        CraftItemStack item = CraftItemStack.asCraftMirror(itemstack2);
 +
-+                        org.bukkit.enchantments.Enchantment hintedEnchantment = CraftEnchantment.minecraftHolderToBukkit(idmap.byId(enchantClue[i]));
-+                        int hintedEnchantmentLevel = levelClue[i];
-+                        EnchantItemEvent event = new EnchantItemEvent((org.bukkit.entity.Player) player.getBukkitEntity(), this.getBukkitView(), access.getLocation().getBlock(), item, this.costs[i], enchants, hintedEnchantment, hintedEnchantmentLevel, i);
++                        org.bukkit.enchantments.Enchantment hintedEnchantment = CraftEnchantment.minecraftHolderToBukkit(idmap.byId(enchantClue[buttonId]));
++                        int hintedEnchantmentLevel = levelClue[buttonId];
++                        EnchantItemEvent event = new EnchantItemEvent((org.bukkit.entity.Player) player.getBukkitEntity(), this.getBukkitView(), access.getLocation().getBlock(), item, this.costs[buttonId], enchants, hintedEnchantment, hintedEnchantmentLevel, buttonId);
 +                        level.getCraftServer().getPluginManager().callEvent(event);
 +
 +                        int expLevelCost = event.getExpLevelCost();
@@ -155,7 +155,7 @@
                          itemstack1.consume(j, player);
                          if (itemstack1.isEmpty()) {
                              this.enchantSlots.setItem(1, ItemStack.EMPTY);
-@@ -234,6 +324,7 @@
+@@ -247,6 +337,7 @@
  
      @Override
      public boolean stillValid(Player player) {
@@ -163,7 +163,7 @@
          return stillValid(this.access, player, Blocks.ENCHANTING_TABLE);
      }
  
-@@ -284,4 +375,17 @@
+@@ -297,4 +388,17 @@
  
          return itemstack;
      }

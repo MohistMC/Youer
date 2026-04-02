@@ -23,20 +23,20 @@
 +    public float yield;
 +    // CraftBukkit end
  
-     public ServerExplosion(ServerLevel serverlevel, @Nullable Entity entity, @Nullable DamageSource damagesource, @Nullable ExplosionDamageCalculator explosiondamagecalculator, Vec3 vec3, float f, boolean flag, Explosion.BlockInteraction explosion_blockinteraction) {
-         this.level = serverlevel;
-         this.source = entity;
--        this.radius = f;
-+        this.radius = (float) Math.max(f, 0.0); // CraftBukkit - clamp bad values
-         this.center = vec3;
-         this.fire = flag;
-         this.blockInteraction = explosion_blockinteraction;
-         this.damageSource = damagesource == null ? serverlevel.damageSources().explosion(this) : damagesource;
-         this.damageCalculator = explosiondamagecalculator == null ? this.makeDamageCalculator(entity) : explosiondamagecalculator;
+     public ServerExplosion(ServerLevel level, @Nullable Entity source, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator damageCalculator, Vec3 center, float radius, boolean fire, Explosion.BlockInteraction blockInteraction) {
+         this.level = level;
+         this.source = source;
+-        this.radius = radius;
++        this.radius = (float) Math.max(radius, 0.0); // CraftBukkit - clamp bad values
+         this.center = center;
+         this.fire = fire;
+         this.blockInteraction = blockInteraction;
+         this.damageSource = damageSource == null ? level.damageSources().explosion(this) : damageSource;
+         this.damageCalculator = damageCalculator == null ? this.makeDamageCalculator(source) : damageCalculator;
 +        this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F; // CraftBukkit
      }
  
-     private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity entity) {
+     private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity source) {
 @@ -174,7 +186,10 @@
              int i1 = Mth.floor(this.center.z - (double) f - 1.0D);
              int j1 = Mth.floor(this.center.z + (double) f + 1.0D);
@@ -103,23 +103,23 @@
 +                        // CraftBukkit end
  
                          entity.push(vec32);
-                         if (entity.getType().is(EntityTypeTags.REDIRECTABLE_PROJECTILE) && entity instanceof Projectile) {
+                         if (entity.is(EntityTypeTags.REDIRECTABLE_PROJECTILE) && entity instanceof Projectile) {
 @@ -228,8 +282,30 @@
          List<ServerExplosion.StackCollector> list1 = new ArrayList();
  
-         Util.shuffle(list, this.level.random);
+         Util.shuffle(targetBlocks, this.level.random);
 +        // CraftBukkit start
-+        List<org.bukkit.block.Block> bukkitBlocks = CraftEventFactory.handleExplodeEvent(this, list);
++        List<org.bukkit.block.Block> bukkitBlocks = CraftEventFactory.handleExplodeEvent(this, targetBlocks);
 +
-+        list.clear();
-+        list.addAll(bukkitBlocks.stream().map(bblock -> new BlockPos(bblock.getX(), bblock.getY(), bblock.getZ())).toList());
++        targetBlocks.clear();
++        targetBlocks.addAll(bukkitBlocks.stream().map(bblock -> new BlockPos(bblock.getX(), bblock.getY(), bblock.getZ())).toList());
 +
 +        if (this.wasCanceled) {
 +            return;
 +        }
 +        // CraftBukkit end
  
-         for (BlockPos blockpos : list) {
+         for (BlockPos blockpos : targetBlocks) {
 +            // CraftBukkit start - TNTPrimeEvent
 +            BlockState blockstate = this.level.getBlockState(blockpos);
 +            Block block = blockstate.getBlock();
@@ -136,8 +136,8 @@
                  addOrAppendStack(list1, itemstack, blockpos1);
              });
 @@ -244,13 +320,22 @@
-     private void createFire(List<BlockPos> list) {
-         for (BlockPos blockpos : list) {
+     private void createFire(List<BlockPos> targetBlocks) {
+         for (BlockPos blockpos : targetBlocks) {
              if (this.level.random.nextInt(3) == 0 && this.level.getBlockState(blockpos).isAir() && this.level.getBlockState(blockpos.below()).isSolidRender()) {
 -                this.level.setBlockAndUpdate(blockpos, BaseFireBlock.getState(this.level, blockpos));
 +                // CraftBukkit start - Ignition by explosion
@@ -178,8 +178,24 @@
 @@ -271,6 +364,7 @@
      }
  
-     private static void addOrAppendStack(List<ServerExplosion.StackCollector> list, ItemStack itemstack, BlockPos blockpos) {
-+        if (itemstack.isEmpty()) return; // CraftBukkit - SPIGOT-5425
-         for (ServerExplosion.StackCollector serverexplosion_stackcollector : list) {
-             serverexplosion_stackcollector.tryMerge(itemstack);
-             if (itemstack.isEmpty()) {
+     private static void addOrAppendStack(List<ServerExplosion.StackCollector> stacks, ItemStack stack, BlockPos pos) {
++        if (stack.isEmpty()) return; // CraftBukkit - SPIGOT-5425
+         for (ServerExplosion.StackCollector serverexplosion_stackcollector : stacks) {
+             serverexplosion_stackcollector.tryMerge(stack);
+             if (stack.isEmpty()) {
+@@ -315,13 +409,13 @@
+ 
+     @Override
+     public boolean canTriggerBlocks() {
+-        return this.blockInteraction != Explosion.BlockInteraction.TRIGGER_BLOCK ? false : (this.source != null && this.source.is((Object) EntityType.BREEZE_WIND_CHARGE) ? (Boolean) this.level.getGameRules().get(GameRules.MOB_GRIEFING) : true);
++        return this.blockInteraction != Explosion.BlockInteraction.TRIGGER_BLOCK ? false : (this.source != null && this.source.is(EntityType.BREEZE_WIND_CHARGE) ? (Boolean) this.level.getGameRules().get(GameRules.MOB_GRIEFING) : true); // CraftBukkit - decompile error
+     }
+ 
+     @Override
+     public boolean shouldAffectBlocklikeEntities() {
+         boolean flag = (Boolean) this.level.getGameRules().get(GameRules.MOB_GRIEFING);
+-        boolean flag1 = this.source == null || !this.source.is((Object) EntityType.BREEZE_WIND_CHARGE) && !this.source.is((Object) EntityType.WIND_CHARGE);
++        boolean flag1 = this.source == null || !this.source.is(EntityType.BREEZE_WIND_CHARGE) && !this.source.is(EntityType.WIND_CHARGE); // CraftBukkit - decompile error
+ 
+         return flag ? flag1 : this.blockInteraction.shouldAffectBlocklikeEntities() && flag1;
+     }

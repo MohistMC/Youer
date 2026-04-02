@@ -1,0 +1,78 @@
+--- a/net/minecraft/world/level/block/entity/LecternBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/LecternBlockEntity.java
+@@ -1,5 +_,8 @@
+ package net.minecraft.world.level.block.entity;
+ 
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.List;
+ import java.util.Objects;
+ import net.minecraft.commands.CommandSource;
+ import net.minecraft.commands.CommandSourceStack;
+@@ -29,6 +_,12 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.phys.Vec2;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.Location;
++import org.bukkit.block.Lectern;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.entity.HumanEntity;
++import org.bukkit.inventory.InventoryHolder;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class LecternBlockEntity extends BlockEntity implements Clearable, MenuProvider {
+@@ -36,7 +_,52 @@
+     public static final int NUM_DATA = 1;
+     public static final int SLOT_BOOK = 0;
+     public static final int NUM_SLOTS = 1;
+-    public final Container bookAccess = new Container() {
++    public final Container bookAccess = new LecternInventory();
++    public class LecternInventory implements Container {
++
++        public List<HumanEntity> transaction = new ArrayList<>();
++        private int maxStack = 1;
++
++        @Override
++        public List<ItemStack> getContents() {
++            return Arrays.asList(book);
++        }
++
++        @Override
++        public void onOpen(CraftHumanEntity who) {
++            transaction.add(who);
++        }
++
++        @Override
++        public void onClose(CraftHumanEntity who) {
++            transaction.remove(who);
++        }
++
++        @Override
++        public List<HumanEntity> getViewers() {
++            return transaction;
++        }
++
++        @Override
++        public void setMaxStackSize(int i) {
++            maxStack = i;
++        }
++
++        @Override
++        public Location getLocation() {
++            if (level == null) return null;
++            return CraftLocation.toBukkit(worldPosition, level.getWorld());
++        }
++
++        @Override
++        public InventoryHolder getOwner() {
++            return (Lectern) LecternBlockEntity.this.getOwner();
++        }
++
++        public LecternBlockEntity getLectern() {
++            return LecternBlockEntity.this;
++        }
++        // CraftBukkit end
+         {
+             Objects.requireNonNull(LecternBlockEntity.this);
+         }

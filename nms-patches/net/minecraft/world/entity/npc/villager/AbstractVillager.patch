@@ -1,8 +1,8 @@
 --- a/net/minecraft/world/entity/npc/villager/AbstractVillager.java
 +++ b/net/minecraft/world/entity/npc/villager/AbstractVillager.java
-@@ -37,14 +37,27 @@
- import net.minecraft.world.phys.Vec3;
+@@ -51,13 +51,26 @@
  import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
  
 +// CraftBukkit start
 +import org.bukkit.Bukkit;
@@ -19,30 +19,38 @@
 +        return (org.bukkit.craftbukkit.entity.CraftAbstractVillager) getBukkitEntity();
 +    }
 +    // CraftBukkit end
+     private static final Logger LOGGER = LogUtils.getLogger();
      private static final EntityDataAccessor<Integer> DATA_UNHAPPY_COUNTER = SynchedEntityData.<Integer>defineId(AbstractVillager.class, EntityDataSerializers.INT);
-     public static final int VILLAGER_SLOT_OFFSET = 300;
-     private static final int VILLAGER_INVENTORY_SIZE = 8;
      private @Nullable Player tradingPlayer;
      protected @Nullable MerchantOffers offers;
 -    private final SimpleContainer inventory = new SimpleContainer(8);
 +    private final SimpleContainer inventory = new SimpleContainer(8, (org.bukkit.craftbukkit.entity.CraftAbstractVillager) this.getBukkitEntity()); // CraftBukkit add argument
  
-     public AbstractVillager(EntityType<? extends AbstractVillager> entitytype, Level level) {
-         super(entitytype, level);
-@@ -173,7 +186,7 @@
+     public AbstractVillager(EntityType<? extends AbstractVillager> type, Level level) {
+         super(type, level);
+@@ -186,7 +199,7 @@
      @Override
-     protected void readAdditionalSaveData(ValueInput valueinput) {
-         super.readAdditionalSaveData(valueinput);
--        this.offers = (MerchantOffers) valueinput.read("Offers", MerchantOffers.CODEC).orElse((Object) null);
-+        this.offers = (MerchantOffers) valueinput.read("Offers", MerchantOffers.CODEC).orElse(null); // CraftBukkit - decompile error
-         this.readInventoryFromTag(valueinput);
+     protected void readAdditionalSaveData(ValueInput input) {
+         super.readAdditionalSaveData(input);
+-        this.offers = (MerchantOffers) input.read("Offers", MerchantOffers.CODEC).orElse((Object) null);
++        this.offers = (MerchantOffers) input.read("Offers", MerchantOffers.CODEC).orElse(null); // CraftBukkit - decompile error
+         this.readInventoryFromTag(input);
      }
  
-@@ -231,7 +244,16 @@
-             MerchantOffer merchantoffer = ((VillagerTrades.ItemListing) arraylist.remove(this.random.nextInt(arraylist.size()))).getOffer(serverlevel, this, this.random);
+@@ -275,7 +288,7 @@
+ 
+     }
+ 
+-    private static void addOffersFromItemListingsWithoutDuplicates(LootContext lootContext, MerchantOffers merchantOffers, HolderSet<VillagerTrade> potentialOffers, int numberOfOffers) {
++    private void addOffersFromItemListingsWithoutDuplicates(LootContext lootContext, MerchantOffers merchantOffers, HolderSet<VillagerTrade> potentialOffers, int numberOfOffers) { // CraftBukkit
+         List<Holder<VillagerTrade>> list = Lists.newArrayList(potentialOffers);
+         int j = 0;
+ 
+@@ -284,7 +297,16 @@
+             MerchantOffer merchantoffer = ((VillagerTrade) holder.value()).getOffer(lootContext);
  
              if (merchantoffer != null) {
--                merchantoffers.add(merchantoffer);
+-                merchantOffers.add(merchantoffer);
 +                // CraftBukkit start
 +                VillagerAcquireTradeEvent event = new VillagerAcquireTradeEvent((org.bukkit.entity.AbstractVillager) getBukkitEntity(), merchantoffer.asBukkit());
 +                // Suppress during worldgen
@@ -50,7 +58,7 @@
 +                    Bukkit.getPluginManager().callEvent(event);
 +                }
 +                if (!event.isCancelled()) {
-+                    merchantoffers.add(CraftMerchantRecipe.fromBukkit(event.getRecipe()).toMinecraft());
++                    merchantOffers.add(CraftMerchantRecipe.fromBukkit(event.getRecipe()).toMinecraft());
 +                }
 +                // CraftBukkit end
                  ++j;

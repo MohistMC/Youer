@@ -1,7 +1,44 @@
 --- a/net/minecraft/world/inventory/GrindstoneMenu.java
 +++ b/net/minecraft/world/inventory/GrindstoneMenu.java
-@@ -42,6 +_,7 @@
+@@ -19,8 +_,27 @@
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.Location;
++import org.bukkit.craftbukkit.inventory.CraftInventoryGrindstone;
++import org.bukkit.craftbukkit.inventory.CraftInventoryView;
+ 
+ public class GrindstoneMenu extends AbstractContainerMenu {
++
++    // CraftBukkit start
++    private CraftInventoryView bukkitEntity = null;
++    private org.bukkit.entity.Player player;
++
++    @Override
++    public CraftInventoryView getBukkitView() {
++        if (bukkitEntity != null) {
++            return bukkitEntity;
++        }
++
++        CraftInventoryGrindstone inventory = new CraftInventoryGrindstone(this.repairSlots, this.resultSlots);
++        bukkitEntity = new CraftInventoryView(this.player, inventory, this);
++        return bukkitEntity;
++    }
++    // CraftBukkit end
+     public static final int MAX_NAME_LENGTH = 35;
+     public static final int INPUT_SLOT = 0;
+     public static final int ADDITIONAL_SLOT = 1;
+@@ -40,8 +_,16 @@
+             super.setChanged();
+             GrindstoneMenu.this.slotsChanged(this);
          }
++
++        // CraftBukkit start
++        @Override
++        public Location getLocation() {
++            return access.getLocation();
++        }
++        // CraftBukkit end
      };
      private final ContainerLevelAccess access;
 +    private int xp = -1;
@@ -42,6 +79,14 @@
                  int amount = 0;
                  amount += this.getExperienceFromItem(GrindstoneMenu.this.repairSlots.getItem(0));
                  amount += this.getExperienceFromItem(GrindstoneMenu.this.repairSlots.getItem(1));
+@@ -121,6 +_,7 @@
+             }
+         });
+         this.addStandardInventorySlots(inventory, 8, 84);
++        player = (org.bukkit.entity.Player) inventory.player.getBukkitEntity(); // CraftBukkit
+     }
+ 
+     @Override
 @@ -132,6 +_,8 @@
      }
  
@@ -68,3 +113,11 @@
              }
  
              this.mergeEnchantsFrom(newItem, additional);
+@@ -220,6 +_,7 @@
+ 
+     @Override
+     public boolean stillValid(Player player) {
++        if (!this.checkReachable) return true; // CraftBukkit
+         return stillValid(this.access, player, Blocks.GRINDSTONE);
+     }
+ 

@@ -1,6 +1,6 @@
 --- a/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
-@@ -7,10 +7,25 @@
+@@ -8,10 +8,25 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.DispenserBlock;
  
@@ -26,34 +26,34 @@
      public DefaultDispenseItemBehavior() {}
  
      @Override
-@@ -27,11 +42,22 @@
-         Position position = DispenserBlock.getDispensePosition(blocksource);
-         ItemStack itemstack1 = itemstack.split(1);
+@@ -28,11 +43,22 @@
+         Position position = DispenserBlock.getDispensePosition(source);
+         ItemStack itemstack1 = dispensed.split(1);
  
--        spawnItem(blocksource.level(), itemstack1, 6, direction, position);
+-        spawnItem(source.level(), itemstack1, 6, direction, position);
 +        // CraftBukkit start
-+        if (!spawnItem(blocksource.level(), itemstack1, 6, direction, blocksource, dropper)) {
-+            itemstack.grow(1);
++        if (!spawnItem(source.level(), itemstack1, 6, direction, source, dropper)) {
++            dispensed.grow(1);
 +        }
 +        // CraftBukkit end
-         return itemstack;
+         return dispensed;
      }
  
-     public static void spawnItem(Level level, ItemStack itemstack, int i, Direction direction, Position position) {
+     public static void spawnItem(Level level, ItemStack itemStack, int accuracy, Direction direction, Position position) {
 +        // CraftBukkit start
-+        ItemEntity itementity = prepareItem(level, itemstack, i, direction, position);
++        ItemEntity itementity = prepareItem(level, itemStack, accuracy, direction, position);
 +        level.addFreshEntity(itementity);
 +    }
 +
-+    private static ItemEntity prepareItem(Level level, ItemStack itemstack, int i, Direction direction, Position position) {
++    private static ItemEntity prepareItem(Level level, ItemStack itemStack, int accuracy, Direction direction, Position position) {
 +        // CraftBukkit end
          double d0 = position.x();
          double d1 = position.y();
          double d2 = position.z();
-@@ -46,7 +72,47 @@
-         double d3 = level.random.nextDouble() * 0.1D + 0.2D;
+@@ -48,7 +74,47 @@
+         double d3 = randomsource.nextDouble() * 0.1D + 0.2D;
  
-         itementity.setDeltaMovement(level.random.triangle((double) direction.getStepX() * d3, 0.0172275D * (double) i), level.random.triangle(0.2D, 0.0172275D * (double) i), level.random.triangle((double) direction.getStepZ() * d3, 0.0172275D * (double) i));
+         itementity.setDeltaMovement(randomsource.triangle((double) direction.getStepX() * d3, 0.0172275D * (double) accuracy), randomsource.triangle(0.2D, 0.0172275D * (double) accuracy), randomsource.triangle((double) direction.getStepZ() * d3, 0.0172275D * (double) accuracy));
 +        // CraftBukkit start
 +        return itementity;
 +    }
@@ -97,4 +97,4 @@
 +        // CraftBukkit end
      }
  
-     protected void playSound(BlockSource blocksource) {
+     protected void playSound(BlockSource source) {

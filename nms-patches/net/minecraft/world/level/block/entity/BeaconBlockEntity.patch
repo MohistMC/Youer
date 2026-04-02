@@ -26,21 +26,21 @@
 +    }
 +    // CraftBukkit end
  
-     private static @Nullable Holder<MobEffect> filterEffect(@Nullable Holder<MobEffect> holder) {
-         return BeaconBlockEntity.VALID_EFFECTS.contains(holder) ? holder : null;
-@@ -248,32 +262,72 @@
+     private static @Nullable Holder<MobEffect> filterEffect(@Nullable Holder<MobEffect> effect) {
+         return BeaconBlockEntity.VALID_EFFECTS.contains(effect) ? effect : null;
+@@ -252,32 +266,72 @@
          super.setRemoved();
      }
  
--    private static void applyEffects(Level level, BlockPos blockpos, int i, @Nullable Holder<MobEffect> holder, @Nullable Holder<MobEffect> holder1) {
--        if (!level.isClientSide() && holder != null) {
--            double d0 = (double) (i * 10 + 10);
+-    private static void applyEffects(Level level, BlockPos worldPosition, int levels, @Nullable Holder<MobEffect> primaryPower, @Nullable Holder<MobEffect> secondaryPower) {
+-        if (!level.isClientSide() && primaryPower != null) {
+-            double d0 = (double) (levels * 10 + 10);
 +    // CraftBukkit start - split into components
-+    private static int getAmplification(int i, @Nullable Holder<MobEffect> holder, @Nullable Holder<MobEffect> holder1) {
++    private static int getAmplification(int levels, @Nullable Holder<MobEffect> primaryPower, @Nullable Holder<MobEffect> secondaryPower) {
 +        {
              int j = 0;
  
-             if (i >= 4 && Objects.equals(holder, holder1)) {
+             if (levels >= 4 && Objects.equals(primaryPower, secondaryPower)) {
                  j = 1;
              }
  
@@ -48,18 +48,18 @@
 +        }
 +    }
 +
-+    private static int getLevel(int i) {
++    private static int getLevel(int levels) {
 +        {
-             int k = (9 + i * 2) * 20;
+             int k = (9 + levels * 2) * 20;
 +            return k;
 +        }
 +    }
 +
-+    public static List getHumansInRange(Level level, BlockPos blockpos, int i) {
++    public static List getHumansInRange(Level level, BlockPos worldPosition, int i) {
 +        {
 +            double d0 = (double) (i * 10 + 10);
 +
-             AABB aabb = (new AABB(blockpos)).inflate(d0).expandTowards(0.0D, (double) level.getHeight(), 0.0D);
+             AABB aabb = (new AABB(worldPosition)).inflate(d0).expandTowards(0.0D, (double) level.getHeight(), 0.0D);
              List<Player> list = level.<Player>getEntitiesOfClass(Player.class, aabb);
  
 +            return list;
@@ -69,17 +69,17 @@
 +    private static void applyEffect(List<Player> list, @Nullable Holder<MobEffect> holder, int k, int j) {
 +        {
              for (Player player : list) {
--                player.addEffect(new MobEffectInstance(holder, k, j, true, true));
+-                player.addEffect(new MobEffectInstance(primaryPower, k, j, true, true));
 +                player.addEffect(new MobEffectInstance(holder, k, j, true, true), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.BEACON);
              }
 +        }
 +    }
  
-+    private static boolean hasSecondaryEffect(int i, @Nullable Holder<MobEffect> holder, @Nullable Holder<MobEffect> holder1) {
++    private static boolean hasSecondaryEffect(int levels, @Nullable Holder<MobEffect> primaryPower, @Nullable Holder<MobEffect> secondaryPower) {
 +        {
-             if (i >= 4 && !Objects.equals(holder, holder1) && holder1 != null) {
+             if (levels >= 4 && !Objects.equals(primaryPower, secondaryPower) && secondaryPower != null) {
 -                for (Player player1 : list) {
--                    player1.addEffect(new MobEffectInstance(holder1, k, 0, true, true));
+-                    player1.addEffect(new MobEffectInstance(secondaryPower, k, 0, true, true));
 -                }
 +                return true;
              }
@@ -88,27 +88,27 @@
          }
      }
  
-+    private static void applyEffects(Level level, BlockPos blockpos, int i, @Nullable Holder<MobEffect> holder, @Nullable Holder<MobEffect> holder1) {
-+        if (!level.isClientSide() && holder != null) {
-+            int j = getAmplification(i, holder, holder1);
++    private static void applyEffects(Level level, BlockPos worldPosition, int levels, @Nullable Holder<MobEffect> primaryPower, @Nullable Holder<MobEffect> secondaryPower) {
++        if (!level.isClientSide() && primaryPower != null) {
++            int j = getAmplification(levels, primaryPower, secondaryPower);
 +
-+            int k = getLevel(i);
-+            List list = getHumansInRange(level, blockpos, i);
++            int k = getLevel(levels);
++            List list = getHumansInRange(level, worldPosition, levels);
 +
-+            applyEffect(list, holder, k, j);
++            applyEffect(list, primaryPower, k, j);
 +
-+            if (hasSecondaryEffect(i, holder, holder1)) {
-+                applyEffect(list, holder1, k, 0);
++            if (hasSecondaryEffect(levels, primaryPower, secondaryPower)) {
++                applyEffect(list, secondaryPower, k, 0);
 +            }
 +        }
 +
 +    }
 +    // CraftBukkit end
 +
-     public static void playSound(Level level, BlockPos blockpos, SoundEvent soundevent) {
-         level.playSound((Entity) null, blockpos, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
+     public static void playSound(Level level, BlockPos worldPosition, SoundEvent event) {
+         level.playSound((Entity) null, worldPosition, event, SoundSource.BLOCKS, 1.0F, 1.0F);
      }
-@@ -307,7 +361,7 @@
+@@ -311,7 +365,7 @@
          Set set = BeaconBlockEntity.VALID_EFFECTS;
  
          Objects.requireNonNull(set);
@@ -117,11 +117,11 @@
      }
  
      @Override
-@@ -315,6 +369,7 @@
-         super.loadAdditional(valueinput);
-         this.primaryPower = loadEffect(valueinput, "primary_effect");
-         this.secondaryPower = loadEffect(valueinput, "secondary_effect");
-+        this.levels = valueinput.getIntOr("Levels", this.levels); // CraftBukkit - SPIGOT-5053, use where available
-         this.name = parseCustomNameSafe(valueinput, "CustomName");
-         this.lockKey = LockCode.fromTag(valueinput);
+@@ -319,6 +373,7 @@
+         super.loadAdditional(input);
+         this.primaryPower = loadEffect(input, "primary_effect");
+         this.secondaryPower = loadEffect(input, "secondary_effect");
++        this.levels = input.getIntOr("Levels", this.levels); // CraftBukkit - SPIGOT-5053, use where available
+         this.name = parseCustomNameSafe(input, "CustomName");
+         this.lockKey = LockCode.fromTag(input);
      }

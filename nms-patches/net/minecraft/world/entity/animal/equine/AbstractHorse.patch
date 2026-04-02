@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/equine/AbstractHorse.java
 +++ b/net/minecraft/world/entity/animal/equine/AbstractHorse.java
-@@ -77,6 +77,11 @@
+@@ -78,6 +78,11 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -12,15 +12,15 @@
  public abstract class AbstractHorse extends Animal implements PlayerRideableJumping, HasCustomInventoryScreen, OwnableEntity {
  
      public static final int CHEST_SLOT_OFFSET = 499;
-@@ -145,6 +150,7 @@
+@@ -147,6 +152,7 @@
      protected boolean canGallop = true;
      protected int gallopSoundCounter;
      public @Nullable EntityReference<LivingEntity> owner;
 +    public int maxDomestication = 100; // CraftBukkit - store max domestication value
  
-     protected AbstractHorse(EntityType<? extends AbstractHorse> entitytype, Level level) {
-         super(entitytype, level);
-@@ -321,7 +327,7 @@
+     protected AbstractHorse(EntityType<? extends AbstractHorse> type, Level level) {
+         super(type, level);
+@@ -323,7 +329,7 @@
      public void createInventory() {
          SimpleContainer simplecontainer = this.inventory;
  
@@ -29,7 +29,7 @@
          if (simplecontainer != null) {
              int i = Math.min(simplecontainer.getContainerSize(), this.inventory.getContainerSize());
  
-@@ -408,7 +414,7 @@
+@@ -410,7 +416,7 @@
      }
  
      public int getMaxTemper() {
@@ -38,7 +38,7 @@
      }
  
      @Override
-@@ -487,7 +493,7 @@
+@@ -489,7 +495,7 @@
          }
  
          if (this.getHealth() < this.getMaxHealth() && f > 0.0F) {
@@ -47,7 +47,7 @@
              flag = true;
          }
  
-@@ -564,7 +570,7 @@
+@@ -566,7 +572,7 @@
          if (level instanceof ServerLevel serverlevel) {
              if (this.isAlive()) {
                  if (this.random.nextInt(900) == 0 && this.deathTime == 0) {
@@ -56,34 +56,34 @@
                  }
  
                  if (this.canEatGrass()) {
-@@ -831,6 +837,7 @@
-         valueoutput.putInt("Temper", this.getTemper());
-         valueoutput.putBoolean("Tame", this.isTamed());
-         EntityReference.store(this.owner, valueoutput, "Owner");
-+        valueoutput.putInt("Bukkit.MaxDomestication", this.maxDomestication); // CraftBukkit
+@@ -833,6 +839,7 @@
+         output.putInt("Temper", this.getTemper());
+         output.putBoolean("Tame", this.isTamed());
+         EntityReference.store(this.owner, output, "Owner");
++        output.putInt("Bukkit.MaxDomestication", this.maxDomestication); // CraftBukkit
      }
  
      @Override
-@@ -841,6 +848,9 @@
-         this.setTemper(valueinput.getIntOr("Temper", 0));
-         this.setTamed(valueinput.getBooleanOr("Tame", false));
-         this.owner = EntityReference.<LivingEntity>readWithOldOwnerConversion(valueinput, "Owner", this.level());
+@@ -843,6 +850,9 @@
+         this.setTemper(input.getIntOr("Temper", 0));
+         this.setTamed(input.getBooleanOr("Tame", false));
+         this.owner = EntityReference.<LivingEntity>readWithOldOwnerConversion(input, "Owner", this.level());
 +        // CraftBukkit start
-+        this.maxDomestication = valueinput.getIntOr("Bukkit.MaxDomestication", this.maxDomestication);
++        this.maxDomestication = input.getIntOr("Bukkit.MaxDomestication", this.maxDomestication);
 +        // CraftBukkit end
      }
  
      @Override
-@@ -932,6 +942,17 @@
+@@ -934,6 +944,17 @@
  
      @Override
-     public void handleStartJump(int i) {
+     public void handleStartJump(int jumpScale) {
 +        // CraftBukkit start
 +        float power;
-+        if (i >= 90) {
++        if (jumpScale >= 90) {
 +            power = 1.0F;
 +        } else {
-+            power = 0.4F + 0.4F * (float) i / 90.0F;
++            power = 0.4F + 0.4F * (float) jumpScale / 90.0F;
 +        }
 +        if (!CraftEventFactory.callHorseJumpEvent(this, power)) {
 +            return;

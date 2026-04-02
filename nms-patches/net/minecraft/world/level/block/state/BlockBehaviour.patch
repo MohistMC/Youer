@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
-@@ -84,6 +84,11 @@
+@@ -82,6 +82,11 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -12,9 +12,9 @@
  public abstract class BlockBehaviour implements FeatureElement {
  
      protected static final Direction[] UPDATE_SHAPE_ORDER = new Direction[]{Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH, Direction.DOWN, Direction.UP};
-@@ -158,6 +163,12 @@
+@@ -156,6 +161,12 @@
  
-     protected void onPlace(BlockState blockstate, Level level, BlockPos blockpos, BlockState blockstate1, boolean flag) {}
+     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {}
  
 +    // CraftBukkit start
 +    protected void onPlace(BlockState blockstate, Level level, BlockPos blockpos, BlockState blockstate1, boolean flag, @Nullable UseOnContext context) {
@@ -22,12 +22,12 @@
 +    }
 +    // CraftBukkit end
 +
-     protected void affectNeighborsAfterRemoval(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, boolean flag) {}
+     protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {}
  
-     protected void onExplosionHit(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, Explosion explosion, BiConsumer<ItemStack, BlockPos> biconsumer) {
-@@ -169,8 +180,10 @@
-                 BlockEntity blockentity = blockstate.hasBlockEntity() ? serverlevel.getBlockEntity(blockpos) : null;
-                 LootParams.Builder lootparams_builder = (new LootParams.Builder(serverlevel)).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(blockpos)).withParameter(LootContextParams.TOOL, ItemStack.EMPTY).withOptionalParameter(LootContextParams.BLOCK_ENTITY, blockentity).withOptionalParameter(LootContextParams.THIS_ENTITY, explosion.getDirectSourceEntity());
+     protected void onExplosionHit(BlockState state, ServerLevel level, BlockPos pos, Explosion explosion, BiConsumer<ItemStack, BlockPos> onHit) {
+@@ -167,8 +178,10 @@
+                 BlockEntity blockentity = state.hasBlockEntity() ? level.getBlockEntity(pos) : null;
+                 LootParams.Builder lootparams_builder = (new LootParams.Builder(level)).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(pos)).withParameter(LootContextParams.TOOL, ItemStack.EMPTY).withOptionalParameter(LootContextParams.BLOCK_ENTITY, blockentity).withOptionalParameter(LootContextParams.THIS_ENTITY, explosion.getDirectSourceEntity());
  
 -                if (explosion.getBlockInteraction() == Explosion.BlockInteraction.DESTROY_WITH_DECAY) {
 -                    lootparams_builder.withParameter(LootContextParams.EXPLOSION_RADIUS, explosion.radius());
@@ -37,14 +37,14 @@
 +                    // CraftBukkit end
                  }
  
-                 blockstate.spawnAfterBreak(serverlevel, blockpos, ItemStack.EMPTY, flag);
-@@ -1103,7 +1116,13 @@
+                 state.spawnAfterBreak(level, pos, ItemStack.EMPTY, flag);
+@@ -1100,7 +1113,13 @@
          }
  
-         public void onPlace(Level level, BlockPos blockpos, BlockState blockstate, boolean flag) {
--            this.getBlock().onPlace(this.asState(), level, blockpos, blockstate, flag);
+         public void onPlace(Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+-            this.getBlock().onPlace(this.asState(), level, pos, oldState, movedByPiston);
 +            // CraftBukkit start
-+            this.onPlace(level, blockpos, blockstate, flag, null);
++            this.onPlace(level, pos, oldState, movedByPiston, null);
 +        }
 +
 +        public void onPlace(Level level, BlockPos blockpos, BlockState blockstate, boolean flag, @Nullable UseOnContext context) {
@@ -52,4 +52,4 @@
 +            // CraftBukkit end
          }
  
-         public void affectNeighborsAfterRemoval(ServerLevel serverlevel, BlockPos blockpos, boolean flag) {
+         public void affectNeighborsAfterRemoval(ServerLevel level, BlockPos pos, boolean movedByPiston) {

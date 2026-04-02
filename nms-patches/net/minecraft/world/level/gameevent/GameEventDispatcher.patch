@@ -15,11 +15,11 @@
  
      private final ServerLevel level;
 @@ -23,6 +30,14 @@
-     public void post(Holder<GameEvent> holder, Vec3 vec3, GameEvent.Context gameevent_context) {
-         int i = ((GameEvent) holder.value()).notificationRadius();
-         BlockPos blockpos = BlockPos.containing(vec3);
+     public void post(Holder<GameEvent> gameEvent, Vec3 position, GameEvent.Context context) {
+         int i = ((GameEvent) gameEvent.value()).notificationRadius();
+         BlockPos blockpos = BlockPos.containing(position);
 +        // CraftBukkit start
-+        GenericGameEvent event = new GenericGameEvent(CraftGameEvent.minecraftToBukkit(holder.value()), CraftLocation.toBukkit(blockpos, level.getWorld()), (gameevent_context.sourceEntity() == null) ? null : gameevent_context.sourceEntity().getBukkitEntity(), i, !Bukkit.isPrimaryThread());
++        GenericGameEvent event = new GenericGameEvent(CraftGameEvent.minecraftToBukkit(gameEvent.value()), CraftLocation.toBukkit(blockpos, level.getWorld()), (context.sourceEntity() == null) ? null : context.sourceEntity().getBukkitEntity(), i, !Bukkit.isPrimaryThread());
 +        level.getCraftServer().getPluginManager().callEvent(event);
 +        if (event.isCancelled()) {
 +            return;

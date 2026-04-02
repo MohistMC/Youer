@@ -18,8 +18,8 @@
          }
  
 +        // CraftBukkit start
-+        ItemStack itemstack1 = itemstack.split(1);
-+        org.bukkit.block.Block block = CraftBlock.at(serverlevel, blocksource.pos());
++        ItemStack itemstack1 = dispensed.split(1);
++        org.bukkit.block.Block block = CraftBlock.at(serverlevel, source.pos());
 +        CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
 +
 +        BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector(d1, d2 + d4, d3));
@@ -28,18 +28,18 @@
 +        }
 +
 +        if (event.isCancelled()) {
-+            itemstack.grow(1);
-+            return itemstack;
++            dispensed.grow(1);
++            return dispensed;
 +        }
 +
 +        if (!event.getItem().equals(craftItem)) {
-+            itemstack.grow(1);
++            dispensed.grow(1);
 +            // Chain to handler for new item
 +            ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
 +            DispenseItemBehavior dispenseitembehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
 +            if (dispenseitembehavior != DispenseItemBehavior.NOOP && dispenseitembehavior != this) {
-+                dispenseitembehavior.dispense(blocksource, eventStack);
-+                return itemstack;
++                dispenseitembehavior.dispense(source, eventStack);
++                return dispensed;
 +            }
 +        }
 +        // CraftBukkit end
@@ -48,12 +48,12 @@
          if (abstractboat != null) {
 -            abstractboat.setInitialPos(d1, d2 + d4, d3);
 +            abstractboat.setInitialPos(event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ()); // CraftBukkit
-             EntityType.createDefaultStackConfig(serverlevel, itemstack, (LivingEntity) null).accept(abstractboat);
+             EntityType.createDefaultStackConfig(serverlevel, dispensed, (LivingEntity) null).accept(abstractboat);
              abstractboat.setYRot(direction.toYRot());
 -            serverlevel.addFreshEntity(abstractboat);
--            itemstack.shrink(1);
-+            if (!serverlevel.addFreshEntity(abstractboat)) itemstack.grow(1); // CraftBukkit
+-            dispensed.shrink(1);
++            if (!serverlevel.addFreshEntity(abstractboat)) dispensed.grow(1); // CraftBukkit
 +            // itemstack.shrink(1); // CraftBukkit - handled during event processing
          }
  
-         return itemstack;
+         return dispensed;

@@ -15,9 +15,9 @@
  public interface NeighborUpdater {
  
      Direction[] UPDATE_ORDER = new Direction[]{Direction.WEST, Direction.EAST, Direction.DOWN, Direction.UP, Direction.NORTH, Direction.SOUTH};
-@@ -45,6 +53,22 @@
+@@ -56,6 +64,22 @@
  
-     static void executeUpdate(Level level, BlockState blockstate, BlockPos blockpos, Block block, @Nullable Orientation orientation, boolean flag) {
+     static void executeUpdate(Level level, BlockState state, BlockPos pos, Block changedBlock, @Nullable Orientation orientation, boolean movedByPiston) {
          try {
 +            // CraftBukkit start
 +            // BUKKIT-4923: Ignore Block Physics in Chunk population.
@@ -27,7 +27,7 @@
 +
 +            CraftWorld cworld = ((ServerLevel) level).getWorld();
 +            if (cworld != null) {
-+                BlockPhysicsEvent event = new BlockPhysicsEvent(CraftBlock.at(level, blockpos), CraftBlockData.fromData(blockstate));
++                BlockPhysicsEvent event = new BlockPhysicsEvent(CraftBlock.at(level, pos), CraftBlockData.fromData(state));
 +                ((ServerLevel) level).getCraftServer().getPluginManager().callEvent(event);
 +
 +                if (event.isCancelled()) {
@@ -35,6 +35,6 @@
 +                }
 +            }
 +            // CraftBukkit end
-             blockstate.handleNeighborChanged(level, blockpos, block, orientation, flag);
+             state.handleNeighborChanged(level, pos, changedBlock, orientation, movedByPiston);
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Exception while updating neighbours");

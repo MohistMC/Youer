@@ -1,8 +1,7 @@
 --- a/net/minecraft/world/item/crafting/CustomRecipe.java
 +++ b/net/minecraft/world/item/crafting/CustomRecipe.java
-@@ -8,6 +8,15 @@
- import net.minecraft.network.RegistryFriendlyByteBuf;
- import net.minecraft.network.codec.StreamCodec;
+@@ -1,5 +1,14 @@
+ package net.minecraft.world.item.crafting;
  
 +// CraftBukkit start
 +import net.minecraft.world.item.ItemStack;
@@ -15,11 +14,12 @@
 +
  public abstract class CustomRecipe implements CraftingRecipe {
  
-     private final CraftingBookCategory category;
-@@ -34,6 +43,19 @@
+     public CustomRecipe() {}
+@@ -31,4 +40,17 @@
+ 
      @Override
      public abstract RecipeSerializer<? extends CustomRecipe> getSerializer();
- 
++
 +    // CraftBukkit start
 +    @Override
 +    public Recipe toBukkitRecipe(NamespacedKey id) {
@@ -32,23 +32,4 @@
 +        return recipe;
 +    }
 +    // CraftBukkit end
-+
-     public static class Serializer<T extends CraftingRecipe> implements RecipeSerializer<T> {
- 
-         private final MapCodec<T> codec;
-@@ -41,13 +63,13 @@
- 
-         public Serializer(CustomRecipe.Serializer.Factory<T> customrecipe_serializer_factory) {
-             this.codec = RecordCodecBuilder.mapCodec((instance) -> {
--                P1 p1 = instance.group(CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(CraftingRecipe::category));
-+                P1<RecordCodecBuilder.Mu<T>, CraftingBookCategory> p1 = instance.group(CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(CraftingRecipe::category)); // CraftBukkit - decompile error
- 
-                 Objects.requireNonNull(customrecipe_serializer_factory);
-                 return p1.apply(instance, customrecipe_serializer_factory::create);
-             });
-             StreamCodec streamcodec = CraftingBookCategory.STREAM_CODEC;
--            Function function = CraftingRecipe::category;
-+            Function<CraftingRecipe, CraftingBookCategory> function = CraftingRecipe::category; // CraftBukkit - decompile error
- 
-             Objects.requireNonNull(customrecipe_serializer_factory);
-             this.streamCodec = StreamCodec.composite(streamcodec, function, customrecipe_serializer_factory::create);
+ }

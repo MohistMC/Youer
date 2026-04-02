@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
-@@ -101,6 +101,35 @@
+@@ -99,6 +99,35 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -33,21 +33,21 @@
 +import org.bukkit.event.world.StructureGrowEvent;
 +// CraftBukkit end
 +
- public final class ItemStack implements DataComponentHolder {
+ public final class ItemStack implements DataComponentHolder, ItemInstance {
  
      private static final List<Component> OP_NBT_WARNING = List.of(Component.translatable("item.op_warning.line1").withStyle(ChatFormatting.RED, ChatFormatting.BOLD), Component.translatable("item.op_warning.line2").withStyle(ChatFormatting.RED), Component.translatable("item.op_warning.line3").withStyle(ChatFormatting.RED));
-@@ -139,7 +168,7 @@
+@@ -132,7 +161,7 @@
  
-         return dataresult.isError() ? dataresult.map((unit) -> {
-             return itemstack;
--        }) : (itemstack.getCount() > itemstack.getMaxStackSize() ? DataResult.error(() -> {
-+        }) : (itemstack.getCount() > itemstack.getMaxStackSize() ? DataResult.<ItemStack>error(() -> { // CraftBukkit - decompile error
-             int i = itemstack.getCount();
+         return dataresult.isError() ? dataresult.map((object) -> {
+             return itemStack;
+-        }) : (itemStack.getCount() > itemStack.getMaxStackSize() ? DataResult.error(() -> {
++        }) : (itemStack.getCount() > itemStack.getMaxStackSize() ? DataResult.<ItemStack>error(() -> { // CraftBukkit - decompile error
+             int i = itemStack.getCount();
  
-             return "Item stack with stack size of " + i + " was larger than maximum: " + itemstack.getMaxStackSize();
-@@ -157,12 +186,18 @@
-                     Holder<Item> holder = (Holder) Item.STREAM_CODEC.decode(registryfriendlybytebuf);
-                     DataComponentPatch datacomponentpatch = (DataComponentPatch) streamcodec.decode(registryfriendlybytebuf);
+             return "Item stack with stack size of " + i + " was larger than maximum: " + itemStack.getMaxStackSize();
+@@ -150,12 +179,18 @@
+                     Holder<Item> holder = (Holder) Item.STREAM_CODEC.decode(input);
+                     DataComponentPatch datacomponentpatch = (DataComponentPatch) patchCodec.decode(input);
  
 -                    return new ItemStack(holder, i, datacomponentpatch);
 +                    // CraftBukkit start
@@ -60,21 +60,21 @@
                  }
              }
  
-             public void encode(RegistryFriendlyByteBuf registryfriendlybytebuf, ItemStack itemstack) {
--                if (itemstack.isEmpty()) {
-+                if (itemstack.isEmpty() || itemstack.getItem() == null) { // CraftBukkit - NPE fix itemstack.getItem()
-                     registryfriendlybytebuf.writeVarInt(0);
+             public void encode(RegistryFriendlyByteBuf output, ItemStack itemStack) {
+-                if (itemStack.isEmpty()) {
++                if (itemStack.isEmpty() || itemStack.getItem() == null) { // CraftBukkit - NPE fix itemstack.getItem()
+                     output.writeVarInt(0);
                  } else {
-                     registryfriendlybytebuf.writeVarInt(itemstack.getCount());
-@@ -339,15 +374,173 @@
+                     output.writeVarInt(itemStack.getCount());
+@@ -350,15 +385,173 @@
              return InteractionResult.PASS;
          } else {
              Item item = this.getItem();
--            InteractionResult interactionresult = item.useOn(useoncontext);
+-            InteractionResult interactionresult = item.useOn(context);
 +            // CraftBukkit start - handle all block place event logic here
 +            DataComponentPatch oldData = this.components.asPatch();
 +            int oldCount = this.getCount();
-+            ServerLevel world = (ServerLevel) useoncontext.getLevel();
++            ServerLevel world = (ServerLevel) context.getLevel();
 +
 +            if (!(item instanceof BucketItem || item instanceof SolidBucketItem)) { // if not bucket
 +                world.captureBlockStates = true;
@@ -85,7 +85,7 @@
 +            }
 +            InteractionResult interactionresult;
 +            try {
-+                interactionresult = item.useOn(useoncontext);
++                interactionresult = item.useOn(context);
 +            } finally {
 +                world.captureBlockStates = false;
 +            }
@@ -134,7 +134,7 @@
  
                  if (interactionresult_success.wasItemInteraction()) {
 -                    player.awardStat(Stats.ITEM_USED.get(item));
-+                    InteractionHand interactionhand = useoncontext.getHand();
++                    InteractionHand interactionhand = context.getHand();
 +                    org.bukkit.event.block.BlockPlaceEvent placeEvent = null;
 +                    List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
 +                    world.capturedBlockStates.clear();
@@ -179,7 +179,7 @@
 +                            BlockState block = world.getBlockState(newblockposition);
 +
 +                            if (!(block.getBlock() instanceof BaseEntityBlock)) { // Containers get placed automatically
-+                                block.onPlace(world, newblockposition, oldBlock, true, useoncontext);
++                                block.onPlace(world, newblockposition, oldBlock, true, context);
 +                            }
 +
 +                            world.notifyAndUpdatePhysics(newblockposition, null, oldBlock, block, world.getBlockState(newblockposition), updateFlag, 512); // send null chunk as chunk.k() returns false by this point
@@ -191,7 +191,7 @@
 +                                if (!world.getBlockState(blockpos).isSolid()) {
 +                                    bp = null;
 +                                } else {
-+                                    bp = bp.relative(useoncontext.getClickedFace());
++                                    bp = bp.relative(context.getClickedFace());
 +                                }
 +                            }
 +                            if (bp != null) {
@@ -242,13 +242,13 @@
  
              return interactionresult;
          }
-@@ -434,6 +627,21 @@
+@@ -441,6 +634,21 @@
  
-     public void hurtAndBreak(int i, ServerLevel serverlevel, @Nullable ServerPlayer serverplayer, Consumer<Item> consumer) {
-         int j = this.processDurabilityChange(i, serverlevel, serverplayer);
+     public void hurtAndBreak(int amount, ServerLevel level, @Nullable ServerPlayer player, Consumer<Item> onBreak) {
+         int j = this.processDurabilityChange(amount, level, player);
 +        // CraftBukkit start
-+        if (serverplayer != null) {
-+            PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverplayer.getBukkitEntity(), CraftItemStack.asCraftMirror(this), j);
++        if (player != null) {
++            PlayerItemDamageEvent event = new PlayerItemDamageEvent(player.getBukkitEntity(), CraftItemStack.asCraftMirror(this), j);
 +            event.getPlayer().getServer().getPluginManager().callEvent(event);
 +
 +            if (j != event.getDamage() || event.isCancelled()) {
@@ -263,20 +263,20 @@
 +        // CraftBukkit end
  
          if (j != 0) {
-             this.applyDamage(this.getDamageValue() + j, serverplayer, consumer);
-@@ -453,6 +661,11 @@
-         this.setDamageValue(i);
+             this.applyDamage(this.getDamageValue() + j, player, onBreak);
+@@ -460,6 +668,11 @@
+         this.setDamageValue(newDamage);
          if (this.isBroken()) {
              Item item = this.getItem();
 +            // CraftBukkit start - Check for item breaking
-+            if (this.count == 1 && serverplayer != null) {
-+                org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemBreakEvent(serverplayer, this);
++            if (this.count == 1 && player != null) {
++                org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemBreakEvent(player, this);
 +            }
 +            // CraftBukkit end
  
              this.shrink(1);
-             consumer.accept(item);
-@@ -769,6 +982,12 @@
+             onBreak.accept(item);
+@@ -776,6 +989,12 @@
          return this.getItem().useOnRelease(this);
      }
  
@@ -286,16 +286,16 @@
 +    }
 +    // CraftBukkit end
 +
-     public <T> @Nullable T set(DataComponentType<T> datacomponenttype, @Nullable T t0) {
-         return (T) this.components.set(datacomponenttype, t0);
+     public <T> @Nullable T set(DataComponentType<T> type, @Nullable T value) {
+         return (T) this.components.set(type, value);
      }
-@@ -1075,6 +1294,13 @@
-         EnchantmentHelper.forEachModifier(this, equipmentslot, biconsumer);
+@@ -1063,6 +1282,13 @@
+         EnchantmentHelper.forEachModifier(this, slot, consumer);
      }
  
 +    // CraftBukkit start
 +    @Deprecated
-+    public void setItem(Item item) {
++    public void setItem(Holder<Item> item) {
 +        this.item = item;
 +    }
 +    // CraftBukkit end
@@ -303,21 +303,12 @@
      public Component getDisplayName() {
          MutableComponent mutablecomponent = Component.empty().append(this.getHoverName());
  
-@@ -1141,7 +1367,7 @@
+@@ -1134,7 +1360,7 @@
      }
  
-     public void consume(int i, @Nullable LivingEntity livingentity) {
--        if (livingentity == null || !livingentity.hasInfiniteMaterials()) {
-+        if ((livingentity == null || !livingentity.hasInfiniteMaterials()) && this != ItemStack.EMPTY) { // CraftBukkit
-             this.shrink(i);
+     public void consume(int amount, @Nullable LivingEntity owner) {
+-        if (owner == null || !owner.hasInfiniteMaterials()) {
++        if ((owner == null || !owner.hasInfiniteMaterials()) && this != ItemStack.EMPTY) { // CraftBukkit
+             this.shrink(amount);
          }
  
-@@ -1191,7 +1417,7 @@
-     }
- 
-     public DamageSource getDamageSource(LivingEntity livingentity, Supplier<DamageSource> supplier) {
--        return (DamageSource) Optional.ofNullable((EitherHolder) this.get(DataComponents.DAMAGE_TYPE)).flatMap((eitherholder) -> {
-+        return (DamageSource) Optional.ofNullable(this.get(DataComponents.DAMAGE_TYPE)).flatMap((eitherholder) -> { // CraftBukkit - decompile error
-             return eitherholder.unwrap(livingentity.registryAccess());
-         }).map((holder) -> {
-             return new DamageSource(holder, livingentity);

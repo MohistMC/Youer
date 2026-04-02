@@ -21,9 +21,9 @@
      public final float bobOffs;
 +    private int lastTick = MinecraftServer.currentTick - 1; // CraftBukkit
  
-     public ItemEntity(EntityType<? extends ItemEntity> entitytype, Level level) {
-         super(entitytype, level);
-@@ -110,12 +119,15 @@
+     public ItemEntity(EntityType<? extends ItemEntity> type, Level level) {
+         super(type, level);
+@@ -113,12 +122,15 @@
      @Override
      public void tick() {
          if (this.getItem().isEmpty()) {
@@ -43,7 +43,7 @@
  
              this.xo = this.getX();
              this.yo = this.getY();
-@@ -165,9 +177,11 @@
+@@ -170,9 +182,11 @@
                  this.mergeWithNeighbours();
              }
  
@@ -53,9 +53,9 @@
              }
 +            // CraftBukkit end */
  
-             this.needsSync |= this.updateInWaterStateAndDoFluidPushing();
+             this.needsSync |= this.updateFluidInteraction();
              if (!this.level().isClientSide()) {
-@@ -179,7 +193,13 @@
+@@ -184,7 +198,13 @@
              }
  
              if (!this.level().isClientSide() && this.age >= 6000) {
@@ -70,36 +70,36 @@
              }
  
          }
-@@ -259,11 +279,16 @@
+@@ -264,11 +284,16 @@
      }
  
-     private static void merge(ItemEntity itementity, ItemStack itemstack, ItemEntity itementity1, ItemStack itemstack1) {
+     private static void merge(ItemEntity toItem, ItemStack toStack, ItemEntity fromItem, ItemStack fromStack) {
 +        // CraftBukkit start
-+        if (!CraftEventFactory.callItemMergeEvent(itementity1, itementity)) {
++        if (!CraftEventFactory.callItemMergeEvent(fromItem, toItem)) {
 +            return;
 +        }
 +        // CraftBukkit end
-         merge(itementity, itemstack, itemstack1);
-         itementity.pickupDelay = Math.max(itementity.pickupDelay, itementity1.pickupDelay);
-         itementity.age = Math.min(itementity.age, itementity1.age);
-         if (itemstack1.isEmpty()) {
--            itementity1.discard();
-+            itementity1.discard(EntityRemoveEvent.Cause.MERGE); // CraftBukkit - add Bukkit remove cause);
+         merge(toItem, toStack, fromStack);
+         toItem.pickupDelay = Math.max(toItem.pickupDelay, fromItem.pickupDelay);
+         toItem.age = Math.min(toItem.age, fromItem.age);
+         if (fromStack.isEmpty()) {
+-            fromItem.discard();
++            fromItem.discard(EntityRemoveEvent.Cause.MERGE); // CraftBukkit - add Bukkit remove cause);
          }
  
      }
-@@ -292,12 +317,17 @@
-         } else if (!this.getItem().canBeHurtBy(damagesource)) {
+@@ -297,12 +322,17 @@
+         } else if (!this.getItem().canBeHurtBy(source)) {
              return false;
          } else {
 +            // CraftBukkit start
-+            if (CraftEventFactory.handleNonLivingEntityDamageEvent(this, damagesource, f)) {
++            if (CraftEventFactory.handleNonLivingEntityDamageEvent(this, source, damage)) {
 +                return false;
 +            }
 +            // CraftBukkit end
              this.markHurt();
-             this.health = (int) ((float) this.health - f);
-             this.gameEvent(GameEvent.ENTITY_DAMAGE, damagesource.getEntity());
+             this.health = (int) ((float) this.health - damage);
+             this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
              if (this.health <= 0) {
                  this.getItem().onDestroyed(this);
 -                this.discard();
@@ -107,21 +107,21 @@
              }
  
              return true;
-@@ -327,11 +357,11 @@
-         this.health = valueinput.getShortOr("Health", (short) 5);
-         this.age = valueinput.getShortOr("Age", (short) 0);
-         this.pickupDelay = valueinput.getShortOr("PickupDelay", (short) 0);
--        this.target = (UUID) valueinput.read("Owner", UUIDUtil.CODEC).orElse((Object) null);
-+        this.target = (UUID) valueinput.read("Owner", UUIDUtil.CODEC).orElse(null); // CraftBukkit - decompile error
-         this.thrower = EntityReference.<Entity>read(valueinput, "Thrower");
-         this.setItem((ItemStack) valueinput.read("Item", ItemStack.CODEC).orElse(ItemStack.EMPTY));
+@@ -332,11 +362,11 @@
+         this.health = input.getShortOr("Health", (short) 5);
+         this.age = input.getShortOr("Age", (short) 0);
+         this.pickupDelay = input.getShortOr("PickupDelay", (short) 0);
+-        this.target = (UUID) input.read("Owner", UUIDUtil.CODEC).orElse((Object) null);
++        this.target = (UUID) input.read("Owner", UUIDUtil.CODEC).orElse(null); // CraftBukkit - decompile error
+         this.thrower = EntityReference.<Entity>read(input, "Thrower");
+         this.setItem((ItemStack) input.read("Item", ItemStack.CODEC).orElse(ItemStack.EMPTY));
          if (this.getItem().isEmpty()) {
 -            this.discard();
 +            this.discard(null); // CraftBukkit - add Bukkit remove cause
          }
  
      }
-@@ -343,10 +373,50 @@
+@@ -348,10 +378,50 @@
              Item item = itemstack.getItem();
              int i = itemstack.getCount();
  

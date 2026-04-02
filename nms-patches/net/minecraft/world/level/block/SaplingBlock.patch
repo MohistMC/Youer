@@ -24,23 +24,23 @@
      @Override
      public MapCodec<? extends SaplingBlock> codec() {
 @@ -56,7 +65,32 @@
-         if ((Integer) blockstate.getValue(SaplingBlock.STAGE) == 0) {
-             serverlevel.setBlock(blockpos, (BlockState) blockstate.cycle(SaplingBlock.STAGE), 260);
+         if ((Integer) state.getValue(SaplingBlock.STAGE) == 0) {
+             level.setBlock(pos, (BlockState) state.cycle(SaplingBlock.STAGE), 260);
          } else {
--            this.treeGrower.growTree(serverlevel, serverlevel.getChunkSource().getGenerator(), blockpos, blockstate, randomsource);
+-            this.treeGrower.growTree(level, level.getChunkSource().getGenerator(), pos, state, random);
 +            // CraftBukkit start
-+            if (serverlevel.captureTreeGeneration) {
-+                this.treeGrower.growTree(serverlevel, serverlevel.getChunkSource().getGenerator(), blockpos, blockstate, randomsource);
++            if (level.captureTreeGeneration) {
++                this.treeGrower.growTree(level, level.getChunkSource().getGenerator(), pos, state, random);
 +            } else {
-+                serverlevel.captureTreeGeneration = true;
-+                this.treeGrower.growTree(serverlevel, serverlevel.getChunkSource().getGenerator(), blockpos, blockstate, randomsource);
-+                serverlevel.captureTreeGeneration = false;
-+                if (serverlevel.capturedBlockStates.size() > 0) {
++                level.captureTreeGeneration = true;
++                this.treeGrower.growTree(level, level.getChunkSource().getGenerator(), pos, state, random);
++                level.captureTreeGeneration = false;
++                if (level.capturedBlockStates.size() > 0) {
 +                    TreeType treeType = SaplingBlock.treeType;
 +                    SaplingBlock.treeType = null;
-+                    Location location = CraftLocation.toBukkit(blockpos, serverlevel.getWorld());
-+                    java.util.List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(serverlevel.capturedBlockStates.values());
-+                    serverlevel.capturedBlockStates.clear();
++                    Location location = CraftLocation.toBukkit(pos, level.getWorld());
++                    java.util.List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(level.capturedBlockStates.values());
++                    level.capturedBlockStates.clear();
 +                    StructureGrowEvent event = null;
 +                    if (treeType != null) {
 +                        event = new StructureGrowEvent(location, treeType, false, null, blocks);

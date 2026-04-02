@@ -1,6 +1,6 @@
 --- a/net/minecraft/core/component/DataComponentPatch.java
 +++ b/net/minecraft/core/component/DataComponentPatch.java
-@@ -60,7 +60,7 @@
+@@ -61,7 +61,7 @@
              }
          }
  
@@ -9,16 +9,25 @@
      });
      public static final StreamCodec<RegistryFriendlyByteBuf, DataComponentPatch> STREAM_CODEC = createStreamCodec(new DataComponentPatch.CodecGetter() {
          @Override
-@@ -159,7 +159,7 @@
+@@ -160,7 +160,7 @@
              }
  
-             private <T> void encodeComponent(RegistryFriendlyByteBuf registryfriendlybytebuf, DataComponentType<T> datacomponenttype, Object object) {
--                datacomponentpatch_codecgetter.apply(datacomponenttype).encode(registryfriendlybytebuf, object);
-+                datacomponentpatch_codecgetter.apply(datacomponenttype).encode(registryfriendlybytebuf, (T) object); // CraftBukkit - decompile error
+             private <T> void encodeComponent(RegistryFriendlyByteBuf output, DataComponentType<T> type, Object value) {
+-                codecGetter.apply(type).encode(output, value);
++                codecGetter.apply(type).encode(output, (T) value); // CraftBukkit - decompile error
              }
          };
      }
-@@ -320,6 +320,42 @@
+@@ -180,7 +180,7 @@
+     static <T> @Nullable T getFromPatchAndPrototype(Reference2ObjectMap<DataComponentType<?>, Optional<?>> patch, DataComponentGetter prototype, DataComponentType<? extends T> type) {
+         Optional<? extends T> optional = (Optional) patch.get(type);
+ 
+-        return (T) (optional != null ? optional.orElse((Object) null) : prototype.get(type));
++        return (T) (optional != null ? optional.orElse(null) : prototype.get(type)); // CraftBukkit - decompile error
+     }
+ 
+     public Set<Map.Entry<DataComponentType<?>, Optional<?>>> entrySet() {
+@@ -327,6 +327,42 @@
  
          private Builder() {}
  
@@ -58,6 +67,6 @@
 +        }
 +        // CraftBukkit end
 +
-         public <T> DataComponentPatch.Builder set(DataComponentType<T> datacomponenttype, T t0) {
-             this.map.put(datacomponenttype, Optional.of(t0));
+         public <T> DataComponentPatch.Builder set(DataComponentType<T> type, T value) {
+             this.map.put(type, Optional.of(value));
              return this;

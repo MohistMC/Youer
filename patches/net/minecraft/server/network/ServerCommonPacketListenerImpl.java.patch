@@ -1,5 +1,23 @@
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
+@@ -23,14 +_,16 @@
+ import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ClientInformation;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.server.players.NameAndId;
+ import net.minecraft.util.Util;
+ import net.minecraft.util.VisibleForDebug;
+ import net.minecraft.util.profiling.Profiler;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+-public abstract class ServerCommonPacketListenerImpl implements ServerCommonPacketListener {
++public abstract class ServerCommonPacketListenerImpl implements ServerCommonPacketListener, CraftPlayer.TransferCookieConnection {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public static final int LATENCY_CHECK_INTERVAL = 15000;
+     private static final int CLOSED_LISTENER_TIMEOUT = 15000;
 @@ -46,6 +_,10 @@
      private boolean closed = false;
      private int latency;
@@ -11,12 +29,24 @@
  
      public ServerCommonPacketListenerImpl(MinecraftServer server, Connection connection, CommonListenerCookie cookie) {
          this.server = server;
-@@ -53,6 +_,8 @@
+@@ -53,6 +_,20 @@
          this.keepAliveTime = Util.getMillis();
          this.latency = cookie.latency();
          this.transferred = cookie.transferred();
 +        // Neo: Set the connection type based on the cookie from the previous phase.
 +        this.connectionType = cookie.connectionType();
++        // CraftBukkit start - add fields and methods
++        this.player = player;
++        this.player.transferCookieConnection = this;
++        this.cserver = server.server;
++    }
++    protected final ServerPlayer player;
++    protected final org.bukkit.craftbukkit.CraftServer cserver;
++    public boolean processedDisconnect;
++
++    public CraftPlayer getCraftPlayer() {
++        return (this.player == null) ? null : (CraftPlayer) this.player.getBukkitEntity();
++        // CraftBukkit end
      }
  
      private void close() {

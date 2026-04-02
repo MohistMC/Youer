@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/camel/Camel.java
 +++ b/net/minecraft/world/entity/animal/camel/Camel.java
-@@ -56,6 +56,10 @@
+@@ -59,6 +59,10 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -10,30 +10,30 @@
 +
  public class Camel extends AbstractHorse {
  
-     public static final float BABY_SCALE = 0.45F;
-@@ -154,7 +158,7 @@
-         ProfilerFiller profilerfiller = Profiler.get();
+     public static final float BABY_SCALE = 0.6F;
+@@ -144,7 +148,7 @@
  
-         profilerfiller.push("camelBrain");
--        Brain<?> brain = this.getBrain();
-+        Brain<Camel> brain = (Brain<Camel>) this.getBrain(); // CraftBukkit - decompile error
- 
-         brain.tick(serverlevel, this);
-         profilerfiller.pop();
-@@ -476,9 +480,15 @@
+     @Override
+     public Brain<Camel> getBrain() {
+-        return super.getBrain();
++        return (Brain<Camel>) super.getBrain(); // CraftBukkit - decompile error
      }
  
      @Override
--    protected void actuallyHurt(ServerLevel serverlevel, DamageSource damagesource, float f) {
+@@ -482,9 +486,15 @@
+     }
+ 
+     @Override
+-    protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
 +    // CraftBukkit start - void -> boolean
-+    public boolean actuallyHurt(ServerLevel serverlevel, DamageSource damagesource, float f, EntityDamageEvent event) {
-+        boolean damageResult = super.actuallyHurt(serverlevel, damagesource, f, event);
++    public boolean actuallyHurt(ServerLevel level, DamageSource source, float dmg, EntityDamageEvent event) {
++        boolean damageResult = super.actuallyHurt(level, source, dmg, event);
 +        if (!damageResult) {
 +            return false;
 +        }
 +        // CraftBukkit end
          this.standUpInstantly();
--        super.actuallyHurt(serverlevel, damagesource, f);
+-        super.actuallyHurt(level, source, dmg);
 +        return true; // CraftBukkit
      }
  

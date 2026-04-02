@@ -21,11 +21,11 @@
 +        this.pendingFullStateConfirmation = CompletableFuture.completedFuture(null); // CraftBukkit - decompile error
 +        this.sendSync = CompletableFuture.completedFuture(null); // CraftBukkit - decompile error
 +        this.saveSync = CompletableFuture.completedFuture(null); // CraftBukkit - decompile error
-         this.levelHeightAccessor = levelheightaccessor;
-         this.lightEngine = levellightengine;
-         this.onLevelChange = chunkholder_levelchangelistener;
+         this.levelHeightAccessor = levelHeightAccessor;
+         this.lightEngine = lightEngine;
+         this.onLevelChange = onLevelChange;
 @@ -72,6 +76,18 @@
-         this.changedBlocksPerSection = new ShortSet[levelheightaccessor.getSectionsCount()];
+         this.changedBlocksPerSection = new ShortSet[levelHeightAccessor.getSectionsCount()];
      }
  
 +    // CraftBukkit start
@@ -55,14 +55,14 @@
 @@ -135,6 +151,7 @@
          } else {
              boolean flag = this.hasChangedSections;
-             int i = this.levelHeightAccessor.getSectionIndex(blockpos.getY());
+             int i = this.levelHeightAccessor.getSectionIndex(pos.getY());
 +            if (i < 0 || i >= this.changedBlocksPerSection.length) return false; // CraftBukkit - SPIGOT-6086, SPIGOT-6296
              ShortSet shortset = this.changedBlocksPerSection[i];
  
              if (shortset == null) {
 @@ -291,7 +308,7 @@
          this.pendingFullStateConfirmation = completablefuture1;
-         completablefuture.thenAccept((chunkresult) -> {
+         task.thenAccept((chunkresult) -> {
              chunkresult.ifSuccess((levelchunk) -> {
 -                completablefuture1.complete((Object) null);
 +                completablefuture1.complete(null); // CraftBukkit - decompile error
@@ -70,7 +70,7 @@
          });
      }
 @@ -301,6 +318,38 @@
-         chunkmap.onFullChunkStatusChange(this.pos, fullchunkstatus);
+         scheduler.onFullChunkStatusChange(this.pos, status);
      }
  
 +    // CraftBukkit start
@@ -105,7 +105,7 @@
 +    }
 +    // CraftBukkit end
 +
-     protected void updateFutures(ChunkMap chunkmap, Executor executor) {
+     protected void updateFutures(ChunkMap scheduler, Executor mainThreadExecutor) {
          FullChunkStatus fullchunkstatus = ChunkLevel.fullStatus(this.oldTicketLevel);
          FullChunkStatus fullchunkstatus1 = ChunkLevel.fullStatus(this.ticketLevel);
 @@ -357,6 +406,26 @@
@@ -118,7 +118,7 @@
 +            this.getFullChunkFuture().thenAccept((either) -> {
 +                LevelChunk levelchunk = (LevelChunk) either.orElse(null);
 +                if (levelchunk != null) {
-+                    chunkmap.callbackExecutor.execute(() -> {
++                    scheduler.callbackExecutor.execute(() -> {
 +                        levelchunk.loadCallback();
 +                    });
 +                }
@@ -129,7 +129,7 @@
 +            });
 +
 +            // Run callback right away if the future was already done
-+            chunkmap.callbackExecutor.run();
++            scheduler.callbackExecutor.run();
 +        }
 +        // CraftBukkit end
      }

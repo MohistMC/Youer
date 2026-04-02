@@ -1,29 +1,26 @@
 --- a/net/minecraft/world/level/storage/PrimaryLevelData.java
 +++ b/net/minecraft/world/level/storage/PrimaryLevelData.java
-@@ -43,6 +43,19 @@
+@@ -29,6 +29,16 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
 +// CraftBukkit start
 +import net.minecraft.core.Registry;
-+import net.minecraft.core.registries.Registries;
++import net.minecraft.nbt.Tag;
 +import net.minecraft.network.protocol.game.ClientboundChangeDifficultyPacket;
 +import net.minecraft.server.level.ServerPlayer;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.level.dimension.LevelStem;
-+import net.minecraft.world.level.levelgen.WorldDimensions;
 +import org.bukkit.Bukkit;
-+import org.bukkit.event.weather.ThunderChangeEvent;
-+import org.bukkit.event.weather.WeatherChangeEvent;
 +// CraftBukkit end
 +
  public class PrimaryLevelData implements ServerLevelData, WorldData {
  
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -77,6 +90,20 @@
+@@ -47,6 +57,20 @@
+     private final Set<String> knownServerBrands;
      private boolean wasModded;
      private final Set<String> removedFeatureFlags;
-     private final TimerQueue<MinecraftServer> scheduledEvents;
 +    // CraftBukkit start - Add world and pdc
 +    public Registry<LevelStem> customDimensions;
 +    private ServerLevel world;
@@ -39,102 +36,43 @@
 +    }
 +    // CraftBukkit end
  
-     private PrimaryLevelData(@Nullable CompoundTag compoundtag, boolean flag, LevelData.RespawnData leveldata_respawndata, long i, long j, int k, int l, int i1, boolean flag1, int j1, boolean flag2, boolean flag3, boolean flag4, Optional<WorldBorder.Settings> optional, int k1, int l1, @Nullable UUID uuid, Set<String> set, Set<String> set1, TimerQueue<MinecraftServer> timerqueue, @Nullable CompoundTag compoundtag1, EndDragonFight.Data enddragonfight_data, LevelSettings levelsettings, WorldOptions worldoptions, PrimaryLevelData.SpecialWorldProperty primaryleveldata_specialworldproperty, Lifecycle lifecycle) {
-         this.wasModded = flag;
-@@ -113,7 +140,7 @@
- 
-     public static <T> PrimaryLevelData parse(Dynamic<T> dynamic, LevelSettings levelsettings, PrimaryLevelData.SpecialWorldProperty primaryleveldata_specialworldproperty, WorldOptions worldoptions, Lifecycle lifecycle) {
-         long i = dynamic.get("Time").asLong(0L);
--        OptionalDynamic optionaldynamic = dynamic.get("Player");
-+        OptionalDynamic<T> optionaldynamic = dynamic.get("Player"); // CraftBukkit - decompile error
-         Codec codec = CompoundTag.CODEC;
+     private PrimaryLevelData(@Nullable UUID singlePlayerUUID, boolean wasModded, LevelData.RespawnData respawnData, long gameTime, int version, boolean initialized, Set<String> knownServerBrands, Set<String> removedFeatureFlags, LevelSettings settings, PrimaryLevelData.SpecialWorldProperty specialWorldProperty, Lifecycle worldGenSettingsLifecycle) {
+         this.wasModded = wasModded;
+@@ -69,11 +93,12 @@
+     public static <T> PrimaryLevelData parse(Dynamic<T> input, LevelSettings settings, PrimaryLevelData.SpecialWorldProperty specialWorldProperty, Lifecycle worldGenSettingsLifecycle) {
+         long i = input.get("Time").asLong(0L);
+         LevelVersion levelversion = LevelVersion.parse(input);
+-        OptionalDynamic optionaldynamic = input.get("singleplayer_uuid");
+-        Codec codec = UUIDUtil.CODEC;
++        OptionalDynamic<T> optionaldynamic = input.get("singleplayer_uuid"); // CraftBukkit - decompile error
++        Codec<UUID> codec = UUIDUtil.CODEC; // CraftBukkit - decompile error
  
          Objects.requireNonNull(codec);
-@@ -132,7 +159,7 @@
-         Optional optional = WorldBorder.Settings.CODEC.parse(dynamic.get("world_border").orElseEmptyMap()).result();
-         int k1 = dynamic.get("WanderingTraderSpawnDelay").asInt(0);
-         int l1 = dynamic.get("WanderingTraderSpawnChance").asInt(0);
--        UUID uuid = (UUID) dynamic.get("WanderingTraderId").read(UUIDUtil.CODEC).result().orElse((Object) null);
-+        UUID uuid = (UUID) dynamic.get("WanderingTraderId").read(UUIDUtil.CODEC).result().orElse(null); // CraftBukkit - decompile error
-         Set set = (Set) dynamic.get("ServerBrands").asStream().flatMap((dynamic1) -> {
+-        return new PrimaryLevelData((UUID) optionaldynamic.flatMap(codec::parse).result().orElse((Object) null), input.get("WasModded").asBoolean(false), (LevelData.RespawnData) input.get("spawn").read(LevelData.RespawnData.CODEC).result().orElse(LevelData.RespawnData.DEFAULT), i, levelversion.levelDataVersion(), input.get("initialized").asBoolean(true), (Set) input.get("ServerBrands").asStream().flatMap((dynamic1) -> {
++        // CraftBukkit - decompile error
++        return new PrimaryLevelData((UUID) optionaldynamic.flatMap(codec::parse).result().orElse(null), input.get("WasModded").asBoolean(false), (LevelData.RespawnData) input.get("spawn").read(LevelData.RespawnData.CODEC).result().orElse(LevelData.RespawnData.DEFAULT), i, levelversion.levelDataVersion(), input.get("initialized").asBoolean(true), (Set) input.get("ServerBrands").asStream().flatMap((dynamic1) -> {
              return dynamic1.asString().result().stream();
-         }).collect(Collectors.toCollection(Sets::newLinkedHashSet));
-@@ -141,7 +168,7 @@
-         }).collect(Collectors.toSet());
-         TimerQueue timerqueue = new TimerQueue(TimerCallbacks.SERVER_CALLBACKS, dynamic.get("ScheduledEvents").asStream());
-         CompoundTag compoundtag1 = (CompoundTag) dynamic.get("CustomBossEvents").orElseEmptyMap().getValue();
--        DataResult dataresult = dynamic.get("DragonFight").read(EndDragonFight.Data.CODEC);
-+        DataResult<EndDragonFight.Data> dataresult = dynamic.get("DragonFight").read(EndDragonFight.Data.CODEC); // CraftBukkit - decompile error
-         Logger logger = PrimaryLevelData.LOGGER;
+         }).collect(Collectors.toCollection(Sets::newLinkedHashSet)), (Set) input.get("removed_features").asStream().flatMap((dynamic1) -> {
+             return dynamic1.asString().result().stream();
+@@ -115,6 +140,8 @@
+         }
  
-         Objects.requireNonNull(logger);
-@@ -176,7 +203,7 @@
-         compoundtag.put("Version", compoundtag2);
-         NbtUtils.addCurrentDataVersion(compoundtag);
-         DynamicOps<Tag> dynamicops = registryaccess.<Tag>createSerializationContext(NbtOps.INSTANCE);
--        DataResult dataresult = WorldGenSettings.encode(dynamicops, this.worldOptions, registryaccess);
-+        DataResult<Tag> dataresult = WorldGenSettings.encode(dynamicops, this.worldOptions, new WorldDimensions(this.customDimensions != null ? this.customDimensions : registryaccess.lookupOrThrow(Registries.LEVEL_STEM))); // CraftBukkit
-         Logger logger = PrimaryLevelData.LOGGER;
- 
-         Objects.requireNonNull(logger);
-@@ -218,11 +245,13 @@
-         compoundtag.putInt("WanderingTraderSpawnDelay", this.wanderingTraderSpawnDelay);
-         compoundtag.putInt("WanderingTraderSpawnChance", this.wanderingTraderSpawnChance);
-         compoundtag.storeNullable("WanderingTraderId", UUIDUtil.CODEC, this.wanderingTraderId);
-+        compoundtag.putString("Bukkit.Version", Bukkit.getName() + "/" + Bukkit.getVersion() + "/" + Bukkit.getBukkitVersion()); // CraftBukkit
-+        world.getWorld().storeBukkitValues(compoundtag); // CraftBukkit - add pdc
+         tag.store(WorldDataConfiguration.MAP_CODEC, this.settings.dataConfiguration());
++        tag.putString("Bukkit.Version", Bukkit.getName() + "/" + Bukkit.getVersion() + "/" + Bukkit.getBukkitVersion()); // CraftBukkit
++        world.getWorld().storeBukkitValues(tag); // CraftBukkit - add pdc
      }
  
-     private static ListTag stringCollectionToTag(Set<String> set) {
+     public static void writeLastPlayed(CompoundTag tag) {
+@@ -143,7 +170,7 @@
+ 
+     private static ListTag stringCollectionToTag(Set<String> values) {
          ListTag listtag = new ListTag();
--        Stream stream = set.stream().map(StringTag::valueOf);
-+        Stream<StringTag> stream = set.stream().map(StringTag::valueOf); // CraftBukkit - decompile error
+-        Stream stream = values.stream().map(StringTag::valueOf);
++        Stream<StringTag> stream = values.stream().map(StringTag::valueOf); // CraftBukkit - decompile error
  
          Objects.requireNonNull(listtag);
          stream.forEach(listtag::add);
-@@ -291,6 +320,20 @@
- 
-     @Override
-     public void setThundering(boolean flag) {
-+        // CraftBukkit start
-+        if (this.thundering == flag) {
-+            return;
-+        }
-+
-+        org.bukkit.World world = Bukkit.getWorld(getLevelName());
-+        if (world != null) {
-+            ThunderChangeEvent thunder = new ThunderChangeEvent(world, flag);
-+            Bukkit.getServer().getPluginManager().callEvent(thunder);
-+            if (thunder.isCancelled()) {
-+                return;
-+            }
-+        }
-+        // CraftBukkit end
-         this.thundering = flag;
-     }
- 
-@@ -311,6 +354,20 @@
- 
-     @Override
-     public void setRaining(boolean flag) {
-+        // CraftBukkit start
-+        if (this.raining == flag) {
-+            return;
-+        }
-+
-+        org.bukkit.World world = Bukkit.getWorld(getLevelName());
-+        if (world != null) {
-+            WeatherChangeEvent weather = new WeatherChangeEvent(world, flag);
-+            Bukkit.getServer().getPluginManager().callEvent(weather);
-+            if (weather.isCancelled()) {
-+                return;
-+            }
-+        }
-+        // CraftBukkit end
-         this.raining = flag;
-     }
- 
-@@ -377,6 +434,12 @@
+@@ -223,6 +250,12 @@
      @Override
      public void setDifficulty(Difficulty difficulty) {
          this.settings = this.settings.withDifficulty(difficulty);
@@ -147,7 +85,7 @@
      }
  
      @Override
-@@ -511,6 +574,14 @@
+@@ -297,6 +330,14 @@
          return this.settings.copy();
      }
  

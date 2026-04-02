@@ -17,15 +17,15 @@
 @@ -54,7 +61,8 @@
      }
  
-     private boolean removeWaterBreadthFirstSearch(Level level, BlockPos blockpos) {
--        return BlockPos.breadthFirstTraversal(blockpos, 6, 65, (blockpos1, consumer) -> {
+     private boolean removeWaterBreadthFirstSearch(Level level, BlockPos startPos) {
+-        return BlockPos.breadthFirstTraversal(startPos, 6, 65, (blockpos1, consumer) -> {
 +        BlockStateListPopulator blockList = new BlockStateListPopulator(level); // CraftBukkit - Use BlockStateListPopulator
-+        BlockPos.breadthFirstTraversal(blockpos, 6, 65, (blockpos1, consumer) -> {
++        BlockPos.breadthFirstTraversal(startPos, 6, 65, (blockpos1, consumer) -> {
              for (Direction direction : SpongeBlock.ALL_DIRECTIONS) {
                  consumer.accept(blockpos1.relative(direction));
              }
 @@ -63,8 +71,10 @@
-             if (blockpos1.equals(blockpos)) {
+             if (blockpos1.equals(startPos)) {
                  return BlockPos.TraversalNodeStatus.ACCEPT;
              } else {
 -                BlockState blockstate = level.getBlockState(blockpos1);
@@ -74,7 +74,7 @@
 +        // CraftBukkit start
 +        List<CraftBlockState> blocks = blockList.getList(); // Is a clone
 +        if (!blocks.isEmpty()) {
-+            final org.bukkit.block.Block bblock = level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
++            final org.bukkit.block.Block bblock = level.getWorld().getBlockAt(startPos.getX(), startPos.getY(), startPos.getZ());
 +
 +            SpongeAbsorbEvent event = new SpongeAbsorbEvent(bblock, (List<org.bukkit.block.BlockState>) (List) blocks);
 +            level.getCraftServer().getPluginManager().callEvent(event);

@@ -1,29 +1,31 @@
 --- a/net/minecraft/util/worldupdate/WorldUpgrader.java
 +++ b/net/minecraft/util/worldupdate/WorldUpgrader.java
-@@ -83,7 +83,7 @@
+@@ -46,7 +46,7 @@
  
-     public WorldUpgrader(LevelStorageSource.LevelStorageAccess levelstoragesource_levelstorageaccess, DataFixer datafixer, WorldData worlddata, RegistryAccess registryaccess, boolean flag, boolean flag1) {
-         this.dimensions = registryaccess.lookupOrThrow(Registries.LEVEL_STEM);
+     public WorldUpgrader(LevelStorageSource.LevelStorageAccess levelSource, DataFixer dataFixer, RegistryAccess registryAccess, boolean eraseCache, boolean recreateRegionFiles) {
+         this.dimensions = registryAccess.lookupOrThrow(Registries.LEVEL_STEM);
 -        this.levels = (Set) this.dimensions.registryKeySet().stream().map(Registries::levelStemToLevel).collect(Collectors.toUnmodifiableSet());
-+        this.levels = (Set) java.util.stream.Stream.of(levelstoragesource_levelstorageaccess.dimensionType).map(Registries::levelStemToLevel).collect(Collectors.toUnmodifiableSet()); // CraftBukkit
-         this.eraseCache = flag;
-         this.dataFixer = datafixer;
-         this.levelStorage = levelstoragesource_levelstorageaccess;
-@@ -446,7 +446,7 @@
-             if (compoundtag != null) {
-                 int i = NbtUtils.getDataVersion(compoundtag);
-                 ChunkGenerator chunkgenerator = ((LevelStem) WorldUpgrader.this.dimensions.getValueOrThrow(Registries.levelToLevelStem(resourcekey))).generator();
--                CompoundTag compoundtag1 = simpleregionstorage.upgradeChunkTag(compoundtag, -1, ChunkMap.getChunkDataFixContextTag(resourcekey, chunkgenerator.getTypeNameForDataFixer()));
-+                CompoundTag compoundtag1 = simpleregionstorage.upgradeChunkTag(compoundtag, -1, ChunkMap.getChunkDataFixContextTag(Registries.levelToLevelStem(resourcekey), chunkgenerator.getTypeNameForDataFixer()), chunkpos, null); // CraftBukkit
-                 ChunkPos chunkpos1 = new ChunkPos(compoundtag1.getIntOr("xPos", 0), compoundtag1.getIntOr("zPos", 0));
++        this.levels = (Set) java.util.stream.Stream.of(levelSource.dimensionType).map(Registries::levelStemToLevel).collect(Collectors.toUnmodifiableSet()); // CraftBukkit
+         this.eraseCache = eraseCache;
+         this.dataFixer = dataFixer;
+         this.levelStorage = levelSource;
+@@ -61,8 +61,8 @@
+         this.thread.start();
+     }
  
-                 if (!chunkpos1.equals(chunkpos)) {
-@@ -491,7 +491,7 @@
+-    public static CompoundTag getDataFixContextTag(Registry<LevelStem> dimensions, ResourceKey<Level> dimension) {
+-        ChunkGenerator chunkgenerator = ((LevelStem) dimensions.getValueOrThrow(Registries.levelToLevelStem(dimension))).generator();
++    public static CompoundTag getDataFixContextTag(Registry<LevelStem> dimensions, ResourceKey<LevelStem> dimension) { // CraftBukkit
++        ChunkGenerator chunkgenerator = ((LevelStem) dimensions.getValueOrThrow(dimension)).generator(); // CraftBukkit
  
-         @Override
-         protected SimpleRegionStorage createStorage(RegionStorageInfo regionstorageinfo, Path path) {
--            Supplier<LegacyTagFixer> supplier = LegacyStructureDataHandler.getLegacyTagFixer(regionstorageinfo.dimension(), () -> {
-+            Supplier<LegacyTagFixer> supplier = LegacyStructureDataHandler.getLegacyTagFixer(Registries.levelToLevelStem(regionstorageinfo.dimension()), () -> { // CraftBukkit
-                 return WorldUpgrader.this.overworldDataStorage;
-             }, WorldUpgrader.this.dataFixer);
- 
+         return ChunkMap.getChunkDataFixContextTag(dimension, chunkgenerator.getTypeNameForDataFixer());
+     }
+@@ -123,7 +123,7 @@
+         this.upgradeLevels(DataFixTypes.POI_CHUNK, (new RegionStorageUpgrader.Builder(this.dataFixer)).setTypeAndFolderName("poi").setDefaultVersion(1945).setRecreateRegionFiles(this.recreateRegionFiles).trackProgress(this.upgradeProgress));
+         WorldUpgrader.LOGGER.info("Upgrading blocks");
+         this.upgradeLevels(DataFixTypes.CHUNK, (new RegionStorageUpgrader.Builder(this.dataFixer)).setType("chunk").setFolderName("region").setRecreateRegionFiles(this.recreateRegionFiles).trackProgress(this.upgradeProgress), (regionstorageupgrader_builder, resourcekey) -> {
+-            return regionstorageupgrader_builder.setDataFixContextTag(getDataFixContextTag(this.dimensions, resourcekey)).addTagModifier(j, this.eraseCache ? WorldUpgrader::verifyChunkPosAndEraseCache : WorldUpgrader::verifyChunkPos);
++            return regionstorageupgrader_builder.setDataFixContextTag(getDataFixContextTag(this.dimensions, Registries.levelToLevelStem(resourcekey))).addTagModifier(j, this.eraseCache ? WorldUpgrader::verifyChunkPosAndEraseCache : WorldUpgrader::verifyChunkPos); // CraftBukkit
+         });
+         this.overworldSavedDataStorage.saveAndJoin();
+         i = Util.getMillis() - i;

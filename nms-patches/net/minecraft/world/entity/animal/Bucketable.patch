@@ -17,53 +17,53 @@
 @@ -64,7 +71,7 @@
      /** @deprecated */
      @Deprecated
-     static void loadDefaultDataFromBucketTag(Mob mob, CompoundTag compoundtag) {
--        Optional optional = compoundtag.getBoolean("NoAI");
-+        Optional<Boolean> optional = compoundtag.getBoolean("NoAI"); // CraftBukkit - decompile error
+     static void loadDefaultDataFromBucketTag(Mob entity, CompoundTag tag) {
+-        Optional optional = tag.getBoolean("NoAI");
++        Optional<Boolean> optional = tag.getBoolean("NoAI"); // CraftBukkit - decompile error
  
-         Objects.requireNonNull(mob);
-         optional.ifPresent(mob::setNoAi);
+         Objects.requireNonNull(entity);
+         optional.ifPresent(entity::setNoAi);
 @@ -80,19 +87,31 @@
-         optional = compoundtag.getBoolean("Invulnerable");
-         Objects.requireNonNull(mob);
-         optional.ifPresent(mob::setInvulnerable);
--        optional = compoundtag.getFloat("Health");
-+        Optional<Float> optional2 = compoundtag.getFloat("Health"); // CraftBukkit - decompile error
-         Objects.requireNonNull(mob);
--        optional.ifPresent(mob::setHealth);
-+        optional2.ifPresent(mob::setHealth); // CraftBukkit - decompile error
+         optional = tag.getBoolean("Invulnerable");
+         Objects.requireNonNull(entity);
+         optional.ifPresent(entity::setInvulnerable);
+-        optional = tag.getFloat("Health");
++        Optional<Float> optional2 = tag.getFloat("Health"); // CraftBukkit - decompile error
+         Objects.requireNonNull(entity);
+-        optional.ifPresent(entity::setHealth);
++        optional2.ifPresent(entity::setHealth); // CraftBukkit - decompile error
      }
  
-     static <T extends LivingEntity & Bucketable> Optional<InteractionResult> bucketMobPickup(Player player, InteractionHand interactionhand, T t0) {
-         ItemStack itemstack = player.getItemInHand(interactionhand);
+     static <T extends LivingEntity & Bucketable> Optional<InteractionResult> bucketMobPickup(Player player, InteractionHand hand, T pickupEntity) {
+         ItemStack itemstack = player.getItemInHand(hand);
  
-         if (itemstack.getItem() == Items.WATER_BUCKET && t0.isAlive()) {
--            t0.playSound(((Bucketable) t0).getPickupSound(), 1.0F, 1.0F);
+         if (itemstack.getItem() == Items.WATER_BUCKET && pickupEntity.isAlive()) {
+-            pickupEntity.playSound(((Bucketable) pickupEntity).getPickupSound(), 1.0F, 1.0F);
 +            // CraftBukkit start
 +            // t0.playSound(((Bucketable) t0).getPickupSound(), 1.0F, 1.0F); // CraftBukkit - moved down
-             ItemStack itemstack1 = ((Bucketable) t0).getBucketItemStack();
+             ItemStack itemstack1 = ((Bucketable) pickupEntity).getBucketItemStack();
  
-             ((Bucketable) t0).saveToBucketTag(itemstack1);
+             ((Bucketable) pickupEntity).saveToBucketTag(itemstack1);
 +
-+            PlayerBucketEntityEvent playerBucketFishEvent = CraftEventFactory.callPlayerFishBucketEvent(t0, player, itemstack, itemstack1, interactionhand);
++            PlayerBucketEntityEvent playerBucketFishEvent = CraftEventFactory.callPlayerFishBucketEvent(pickupEntity, player, itemstack, itemstack1, hand);
 +            itemstack1 = CraftItemStack.asNMSCopy(playerBucketFishEvent.getEntityBucket());
 +            if (playerBucketFishEvent.isCancelled()) {
 +                ((ServerPlayer) player).containerMenu.sendAllDataToRemote(); // We need to update inventory to resync client's bucket
-+                t0.getBukkitEntity().update((ServerPlayer) player); // We need to play out these packets as the client assumes the fish is gone
-+                t0.refreshEntityData((ServerPlayer) player); // Need to send data such as the display name to client
++                pickupEntity.getBukkitEntity().update((ServerPlayer) player); // We need to play out these packets as the client assumes the fish is gone
++                pickupEntity.refreshEntityData((ServerPlayer) player); // Need to send data such as the display name to client
 +                return Optional.of(InteractionResult.FAIL);
 +            }
-+            t0.playSound(((Bucketable) t0).getPickupSound(), 1.0F, 1.0F);
++            pickupEntity.playSound(((Bucketable) pickupEntity).getPickupSound(), 1.0F, 1.0F);
 +            // CraftBukkit end
              ItemStack itemstack2 = ItemUtils.createFilledResult(itemstack, player, itemstack1, false);
  
-             player.setItemInHand(interactionhand, itemstack2);
+             player.setItemInHand(hand, itemstack2);
 @@ -102,7 +121,7 @@
                  CriteriaTriggers.FILLED_BUCKET.trigger((ServerPlayer) player, itemstack1);
              }
  
--            t0.discard();
-+            t0.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+-            pickupEntity.discard();
++            pickupEntity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
              return Optional.of(InteractionResult.SUCCESS);
          } else {
              return Optional.empty();

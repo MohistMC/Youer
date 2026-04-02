@@ -19,16 +19,16 @@
                  ServerLevel serverlevel = (ServerLevel) level;
  
 +                // CraftBukkit start
-+                if (!CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemstack, interactionhand)) {
++                if (!CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemstack, hand)) {
 +                    return InteractionResult.PASS;
 +                }
 +                // CraftBukkit end
                  this.shear(serverlevel, SoundSource.PLAYERS, itemstack);
                  this.gameEvent(GameEvent.SHEAR, player);
-                 itemstack.hurtAndBreak(1, player, interactionhand.asEquipmentSlot());
+                 itemstack.hurtAndBreak(1, player, hand.asEquipmentSlot());
 @@ -168,11 +180,19 @@
-             serverlevel.sendParticles(ParticleTypes.EXPLOSION, this.getX(), this.getY(0.5D), this.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
-             this.dropFromShearingLootTable(serverlevel, BuiltInLootTables.SHEAR_MOOSHROOM, itemstack, (serverlevel1, itemstack1) -> {
+             level.sendParticles(ParticleTypes.EXPLOSION, this.getX(), this.getY(0.5D), this.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
+             this.dropFromShearingLootTable(level, BuiltInLootTables.SHEAR_MOOSHROOM, tool, (serverlevel1, itemstack1) -> {
                  for (int i = 0; i < itemstack1.getCount(); ++i) {
 -                    serverlevel1.addFreshEntity(new ItemEntity(this.level(), this.getX(), this.getY(1.0D), this.getZ(), itemstack1.copyWithCount(1)));
 +                    // CraftBukkit start
@@ -49,11 +49,11 @@
  
      @Override
 @@ -191,7 +211,7 @@
-     protected void readAdditionalSaveData(ValueInput valueinput) {
-         super.readAdditionalSaveData(valueinput);
-         this.setVariant((MushroomCow.Variant) valueinput.read("Type", MushroomCow.Variant.CODEC).orElse(MushroomCow.Variant.DEFAULT));
--        this.stewEffects = (SuspiciousStewEffects) valueinput.read("stew_effects", SuspiciousStewEffects.CODEC).orElse((Object) null);
-+        this.stewEffects = (SuspiciousStewEffects) valueinput.read("stew_effects", SuspiciousStewEffects.CODEC).orElse(null); // CraftBukkit - decompile error
+     protected void readAdditionalSaveData(ValueInput input) {
+         super.readAdditionalSaveData(input);
+         this.setVariant((MushroomCow.Variant) input.read("Type", MushroomCow.Variant.CODEC).orElse(MushroomCow.Variant.DEFAULT));
+-        this.stewEffects = (SuspiciousStewEffects) input.read("stew_effects", SuspiciousStewEffects.CODEC).orElse((Object) null);
++        this.stewEffects = (SuspiciousStewEffects) input.read("stew_effects", SuspiciousStewEffects.CODEC).orElse(null); // CraftBukkit - decompile error
      }
  
-     private Optional<SuspiciousStewEffects> getEffectsFromItemStack(ItemStack itemstack) {
+     private Optional<SuspiciousStewEffects> getEffectsFromItemStack(ItemStack itemStack) {

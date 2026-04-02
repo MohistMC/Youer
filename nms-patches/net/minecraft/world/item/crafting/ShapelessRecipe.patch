@@ -1,8 +1,8 @@
 --- a/net/minecraft/world/item/crafting/ShapelessRecipe.java
 +++ b/net/minecraft/world/item/crafting/ShapelessRecipe.java
-@@ -17,6 +17,13 @@
+@@ -15,6 +15,13 @@
+ import net.minecraft.world.item.crafting.display.SlotDisplay;
  import net.minecraft.world.level.Level;
- import org.jspecify.annotations.Nullable;
  
 +// CraftBukkit start
 +import org.bukkit.NamespacedKey;
@@ -11,11 +11,11 @@
 +import org.bukkit.craftbukkit.inventory.CraftShapelessRecipe;
 +// CraftBukkit end
 +
- public class ShapelessRecipe implements CraftingRecipe {
+ public class ShapelessRecipe extends NormalCraftingRecipe {
  
-     private final String group;
-@@ -32,6 +39,22 @@
-         this.ingredients = list;
+     public static final MapCodec<ShapelessRecipe> MAP_CODEC = RecordCodecBuilder.mapCodec((instance) -> {
+@@ -47,6 +54,22 @@
+         this.ingredients = ingredients;
      }
  
 +    // CraftBukkit start
@@ -24,7 +24,7 @@
 +    public org.bukkit.inventory.ShapelessRecipe toBukkitRecipe(NamespacedKey id) {
 +        CraftItemStack result = CraftItemStack.asCraftMirror(this.result);
 +        CraftShapelessRecipe recipe = new CraftShapelessRecipe(id, result, this);
-+        recipe.setGroup(this.group);
++        recipe.setGroup(this.group());
 +        recipe.setCategory(CraftRecipe.getCategory(this.category()));
 +
 +        for (Ingredient list : this.ingredients) {
@@ -36,4 +36,4 @@
 +
      @Override
      public RecipeSerializer<ShapelessRecipe> getSerializer() {
-         return RecipeSerializer.SHAPELESS_RECIPE;
+         return ShapelessRecipe.SERIALIZER;

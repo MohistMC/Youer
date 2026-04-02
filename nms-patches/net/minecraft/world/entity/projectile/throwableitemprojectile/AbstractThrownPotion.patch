@@ -19,7 +19,7 @@
                  this.onHitAsWater(serverlevel);
 -            } else if (potioncontents.hasEffects()) {
 +            } else if (true || potioncontents.hasEffects()) { // CraftBukkit - Call event even if no effects to apply
-                 this.onHitAsPotion(serverlevel, itemstack, hitresult);
+                 this.onHitAsPotion(serverlevel, itemstack, hitResult);
              }
  
              int i = potioncontents.potion().isPresent() && ((Potion) ((Holder) potioncontents.potion().get()).value()).hasInstantEffects() ? 2007 : 2002;
@@ -31,31 +31,31 @@
      }
  
 @@ -124,13 +130,25 @@
-         BlockState blockstate = this.level().getBlockState(blockpos);
+         BlockState blockstate = this.level().getBlockState(pos);
  
          if (blockstate.is(BlockTags.FIRE)) {
--            this.level().destroyBlock(blockpos, false, this);
+-            this.level().destroyBlock(pos, false, this);
 +            // CraftBukkit start
-+            if (CraftEventFactory.callEntityChangeBlockEvent(this, blockpos, Blocks.AIR.defaultBlockState())) {
-+                this.level().destroyBlock(blockpos, false, this);
++            if (CraftEventFactory.callEntityChangeBlockEvent(this, pos, Blocks.AIR.defaultBlockState())) {
++                this.level().destroyBlock(pos, false, this);
 +            }
 +            // CraftBukkit end
          } else if (AbstractCandleBlock.isLit(blockstate)) {
--            AbstractCandleBlock.extinguish((Player) null, blockstate, this.level(), blockpos);
+-            AbstractCandleBlock.extinguish((Player) null, blockstate, this.level(), pos);
 +            // CraftBukkit start
-+            if (CraftEventFactory.callEntityChangeBlockEvent(this, blockpos, blockstate.setValue(AbstractCandleBlock.LIT, false))) {
-+                AbstractCandleBlock.extinguish((Player) null, blockstate, this.level(), blockpos);
++            if (CraftEventFactory.callEntityChangeBlockEvent(this, pos, blockstate.setValue(AbstractCandleBlock.LIT, false))) {
++                AbstractCandleBlock.extinguish((Player) null, blockstate, this.level(), pos);
 +            }
 +            // CraftBukkit end
          } else if (CampfireBlock.isLitCampfire(blockstate)) {
--            this.level().levelEvent((Entity) null, 1009, blockpos, 0);
--            CampfireBlock.dowse(this.getOwner(), this.level(), blockpos, blockstate);
--            this.level().setBlockAndUpdate(blockpos, (BlockState) blockstate.setValue(CampfireBlock.LIT, false));
+-            this.level().levelEvent((Entity) null, 1009, pos, 0);
+-            CampfireBlock.dowse(this.getOwner(), this.level(), pos, blockstate);
+-            this.level().setBlockAndUpdate(pos, (BlockState) blockstate.setValue(CampfireBlock.LIT, false));
 +            // CraftBukkit start
-+            if (CraftEventFactory.callEntityChangeBlockEvent(this, blockpos, blockstate.setValue(CampfireBlock.LIT, false))) {
-+                this.level().levelEvent((Entity) null, 1009, blockpos, 0);
-+                CampfireBlock.dowse(this.getOwner(), this.level(), blockpos, blockstate);
-+                this.level().setBlockAndUpdate(blockpos, (BlockState) blockstate.setValue(CampfireBlock.LIT, false));
++            if (CraftEventFactory.callEntityChangeBlockEvent(this, pos, blockstate.setValue(CampfireBlock.LIT, false))) {
++                this.level().levelEvent((Entity) null, 1009, pos, 0);
++                CampfireBlock.dowse(this.getOwner(), this.level(), pos, blockstate);
++                this.level().setBlockAndUpdate(pos, (BlockState) blockstate.setValue(CampfireBlock.LIT, false));
 +            }
 +            // CraftBukkit end
          }

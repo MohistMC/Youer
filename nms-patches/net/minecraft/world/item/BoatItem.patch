@@ -13,8 +13,8 @@
      private final EntityType<? extends AbstractBoat> entityType;
 @@ -32,7 +36,7 @@
      @Override
-     public InteractionResult use(Level level, Player player, InteractionHand interactionhand) {
-         ItemStack itemstack = player.getItemInHand(interactionhand);
+     public InteractionResult use(Level level, Player player, InteractionHand hand) {
+         ItemStack itemstack = player.getItemInHand(hand);
 -        HitResult hitresult = getPlayerPOVHitResult(level, player, ClipContext.Fluid.ANY);
 +        BlockHitResult hitresult = getPlayerPOVHitResult(level, player, ClipContext.Fluid.ANY); // CraftBukkit
  
@@ -25,7 +25,7 @@
  
              if (hitresult.getType() == HitResult.Type.BLOCK) {
 +                // CraftBukkit start - Boat placement
-+                org.bukkit.event.player.PlayerInteractEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(player, org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK, hitresult.getBlockPos(), hitresult.getDirection(), itemstack, false, interactionhand, hitresult.getLocation());
++                org.bukkit.event.player.PlayerInteractEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(player, org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK, hitresult.getBlockPos(), hitresult.getDirection(), itemstack, false, hand, hitresult.getLocation());
 +
 +                if (event.isCancelled()) {
 +                    return InteractionResult.PASS;
@@ -40,7 +40,7 @@
                          if (!level.isClientSide()) {
 -                            level.addFreshEntity(abstractboat);
 +                            // CraftBukkit start
-+                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPlaceEvent(level, hitresult.getBlockPos(), hitresult.getDirection(), player, abstractboat, interactionhand).isCancelled()) {
++                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPlaceEvent(level, hitresult.getBlockPos(), hitresult.getDirection(), player, abstractboat, hand).isCancelled()) {
 +                                return InteractionResult.FAIL;
 +                            }
 +

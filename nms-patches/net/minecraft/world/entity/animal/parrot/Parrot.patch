@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/parrot/Parrot.java
 +++ b/net/minecraft/world/entity/animal/parrot/Parrot.java
-@@ -260,7 +260,7 @@
+@@ -262,7 +262,7 @@
              }
  
              if (!this.level().isClientSide()) {
@@ -9,16 +9,16 @@
                      this.tame(player);
                      this.level().broadcastEntityEvent(this, (byte) 7);
                  } else {
-@@ -281,7 +281,7 @@
+@@ -283,7 +283,7 @@
              }
          } else {
-             this.usePlayerItem(player, interactionhand, itemstack);
+             this.usePlayerItem(player, hand, itemstack);
 -            this.addEffect(new MobEffectInstance(MobEffects.POISON, 900));
 +            this.addEffect(new MobEffectInstance(MobEffects.POISON, 900), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.FOOD); // CraftBukkit
              if (player.isCreative() || !this.isInvulnerable()) {
                  this.hurt(this.damageSources().playerAttack(player), Float.MAX_VALUE);
              }
-@@ -373,7 +373,7 @@
+@@ -375,7 +375,7 @@
  
      @Override
      public boolean isPushable() {
@@ -27,23 +27,23 @@
      }
  
      @Override
-@@ -388,8 +388,14 @@
-         if (this.isInvulnerableTo(serverlevel, damagesource)) {
+@@ -390,8 +390,14 @@
+         if (this.isInvulnerableTo(level, source)) {
              return false;
          } else {
 +            // CraftBukkit start
-+            boolean result = super.hurtServer(serverlevel, damagesource, f);
++            boolean result = super.hurtServer(level, source, damage);
 +            if (!result) {
 +                return result;
 +            }
 +            // CraftBukkit end
              this.setOrderedToSit(false);
--            return super.hurtServer(serverlevel, damagesource, f);
+-            return super.hurtServer(level, source, damage);
 +            return result; // CraftBukkit
          }
      }
  
-@@ -488,8 +494,8 @@
+@@ -490,8 +496,8 @@
          }
  
          static {

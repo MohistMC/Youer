@@ -1,9 +1,57 @@
 --- a/net/minecraft/world/level/block/entity/ChestBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/ChestBlockEntity.java
-@@ -192,6 +_,17 @@
-         return ChestMenu.threeRows(containerId, inventory, this);
-     }
+@@ -25,6 +_,8 @@
+ import net.minecraft.world.level.block.state.properties.ChestType;
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.entity.HumanEntity;
  
+ public class ChestBlockEntity extends RandomizableContainerBlockEntity implements LidBlockEntity {
+     private static final int EVENT_SET_OPEN_COUNT = 1;
+@@ -67,6 +_,36 @@
+     };
+     private final ChestLidController chestLidController = new ChestLidController();
+ 
++    // CraftBukkit start - add fields and methods
++    public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
++    private int maxStack = MAX_STACK;
++
++    public List<ItemStack> getContents() {
++        return this.items;
++    }
++
++    public void onOpen(CraftHumanEntity who) {
++        transaction.add(who);
++    }
++
++    public void onClose(CraftHumanEntity who) {
++        transaction.remove(who);
++    }
++
++    public List<HumanEntity> getViewers() {
++        return transaction;
++    }
++
++    @Override
++    public int getMaxStackSize() {
++        return maxStack;
++    }
++
++    public void setMaxStackSize(int size) {
++        maxStack = size;
++    }
++    // CraftBukkit end
++
+     protected ChestBlockEntity(BlockEntityType<?> type, BlockPos worldPosition, BlockState blockState) {
+         super(type, worldPosition, blockState);
+     }
+@@ -190,6 +_,17 @@
+     @Override
+     protected AbstractContainerMenu createMenu(int containerId, Inventory inventory) {
+         return ChestMenu.threeRows(containerId, inventory, this);
++    }
++
 +    @Override
 +    public void setBlockState(BlockState blockState) {
 +        var oldState = getBlockState();
@@ -13,8 +61,6 @@
 +                || (oldState.getValue(ChestBlock.TYPE) != blockState.getValue(ChestBlock.TYPE))) {
 +            this.invalidateCapabilities();
 +        }
-+    }
-+
+     }
+ 
      public void recheckOpen() {
-         if (!this.remove) {
-             this.openersCounter.recheckOpeners(this.getLevel(), this.getBlockPos(), this.getBlockState());

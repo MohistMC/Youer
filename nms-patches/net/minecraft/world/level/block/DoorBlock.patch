@@ -12,20 +12,20 @@
 @@ -203,9 +205,24 @@
  
      @Override
-     protected void neighborChanged(BlockState blockstate, Level level, BlockPos blockpos, Block block, @Nullable Orientation orientation, boolean flag) {
--        boolean flag1 = level.hasNeighborSignal(blockpos) || level.hasNeighborSignal(blockpos.relative(blockstate.getValue(DoorBlock.HALF) == DoubleBlockHalf.LOWER ? Direction.UP : Direction.DOWN));
+     protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
+-        boolean flag1 = level.hasNeighborSignal(pos) || level.hasNeighborSignal(pos.relative(state.getValue(DoorBlock.HALF) == DoubleBlockHalf.LOWER ? Direction.UP : Direction.DOWN));
 +        // CraftBukkit start
-+        BlockPos otherHalf = blockpos.relative(blockstate.getValue(DoorBlock.HALF) == DoubleBlockHalf.LOWER ? Direction.UP : Direction.DOWN);
++        BlockPos otherHalf = pos.relative(state.getValue(DoorBlock.HALF) == DoubleBlockHalf.LOWER ? Direction.UP : Direction.DOWN);
  
--        if (!this.defaultBlockState().is(block) && flag1 != (Boolean) blockstate.getValue(DoorBlock.POWERED)) {
+-        if (!this.defaultBlockState().is(block) && flag1 != (Boolean) state.getValue(DoorBlock.POWERED)) {
 +        org.bukkit.World bworld = level.getWorld();
-+        org.bukkit.block.Block bukkitBlock = bworld.getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
++        org.bukkit.block.Block bukkitBlock = bworld.getBlockAt(pos.getX(), pos.getY(), pos.getZ());
 +        org.bukkit.block.Block blockTop = bworld.getBlockAt(otherHalf.getX(), otherHalf.getY(), otherHalf.getZ());
 +
 +        int power = bukkitBlock.getBlockPower();
 +        int powerTop = blockTop.getBlockPower();
 +        if (powerTop > power) power = powerTop;
-+        int oldPower = (Boolean) blockstate.getValue(DoorBlock.POWERED) ? 15 : 0;
++        int oldPower = (Boolean) state.getValue(DoorBlock.POWERED) ? 15 : 0;
 +
 +        if (oldPower == 0 ^ power == 0) {
 +            BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(bukkitBlock, oldPower, power);
@@ -33,6 +33,6 @@
 +
 +            boolean flag1 = eventRedstone.getNewCurrent() > 0;
 +            // CraftBukkit end
-             if (flag1 != (Boolean) blockstate.getValue(DoorBlock.OPEN)) {
-                 this.playSound((Entity) null, level, blockpos, flag1);
-                 level.gameEvent((Entity) null, (Holder) (flag1 ? GameEvent.BLOCK_OPEN : GameEvent.BLOCK_CLOSE), blockpos);
+             if (flag1 != (Boolean) state.getValue(DoorBlock.OPEN)) {
+                 this.playSound((Entity) null, level, pos, flag1);
+                 level.gameEvent((Entity) null, (Holder) (flag1 ? GameEvent.BLOCK_OPEN : GameEvent.BLOCK_CLOSE), pos);

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/entity/BannerBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BannerBlockEntity.java
-@@ -19,6 +19,10 @@
+@@ -18,6 +18,10 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import org.jspecify.annotations.Nullable;
  
@@ -11,27 +11,27 @@
  public class BannerBlockEntity extends BlockEntity implements Nameable {
  
      public static final int MAX_PATTERNS = 6;
-@@ -62,7 +66,7 @@
-     protected void loadAdditional(ValueInput valueinput) {
-         super.loadAdditional(valueinput);
-         this.name = parseCustomNameSafe(valueinput, "CustomName");
--        this.patterns = (BannerPatternLayers) valueinput.read("patterns", BannerPatternLayers.CODEC).orElse(BannerPatternLayers.EMPTY);
-+        this.setPatterns((BannerPatternLayers) valueinput.read("patterns", BannerPatternLayers.CODEC).orElse(BannerPatternLayers.EMPTY)); // CraftBukkit - apply limits
+@@ -61,7 +65,7 @@
+     protected void loadAdditional(ValueInput input) {
+         super.loadAdditional(input);
+         this.name = parseCustomNameSafe(input, "CustomName");
+-        this.patterns = (BannerPatternLayers) input.read("patterns", BannerPatternLayers.CODEC).orElse(BannerPatternLayers.EMPTY);
++        this.setPatterns((BannerPatternLayers) input.read("patterns", BannerPatternLayers.CODEC).orElse(BannerPatternLayers.EMPTY)); // CraftBukkit - apply limits
      }
  
      @Override
-@@ -93,7 +97,7 @@
+@@ -92,7 +96,7 @@
      @Override
-     protected void applyImplicitComponents(DataComponentGetter datacomponentgetter) {
-         super.applyImplicitComponents(datacomponentgetter);
--        this.patterns = (BannerPatternLayers) datacomponentgetter.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY);
-+        this.setPatterns((BannerPatternLayers) datacomponentgetter.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY)); // CraftBukkit - apply limits
-         this.name = (Component) datacomponentgetter.get(DataComponents.CUSTOM_NAME);
+     protected void applyImplicitComponents(DataComponentGetter components) {
+         super.applyImplicitComponents(components);
+-        this.patterns = (BannerPatternLayers) components.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY);
++        this.setPatterns((BannerPatternLayers) components.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY)); // CraftBukkit - apply limits
+         this.name = (Component) components.get(DataComponents.CUSTOM_NAME);
      }
  
-@@ -109,4 +113,13 @@
-         valueoutput.discard("patterns");
-         valueoutput.discard("CustomName");
+@@ -108,4 +112,13 @@
+         output.discard("patterns");
+         output.discard("CustomName");
      }
 +
 +    // CraftBukkit start

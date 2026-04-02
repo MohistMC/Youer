@@ -19,15 +19,15 @@
              float f4 = Mth.wrapDegrees(f2);
              float f5 = Mth.wrapDegrees(f3);
  
--            if (entity.teleportTo(serverlevel, d3, d4, d5, set, f4, f5, true)) {
+-            if (victim.teleportTo(level, d3, d4, d5, relatives, f4, f5, true)) {
 +            // CraftBukkit start - Teleport event
 +            boolean result;
-+            if (entity instanceof ServerPlayer player) {
-+                result = player.teleportTo(serverlevel, d3, d4, d5, set, f4, f5, true, PlayerTeleportEvent.TeleportCause.COMMAND);
++            if (victim instanceof ServerPlayer player) {
++                result = player.teleportTo(level, d3, d4, d5, relatives, f4, f5, true, PlayerTeleportEvent.TeleportCause.COMMAND);
 +            } else {
-+                Location to = new Location(serverlevel.getWorld(), d3, d4, d5, f4, f5);
-+                EntityTeleportEvent event = new EntityTeleportEvent(entity.getBukkitEntity(), entity.getBukkitEntity().getLocation(), to);
-+                serverlevel.getCraftServer().getPluginManager().callEvent(event);
++                Location to = new Location(level.getWorld(), d3, d4, d5, f4, f5);
++                EntityTeleportEvent event = new EntityTeleportEvent(victim.getBukkitEntity(), victim.getBukkitEntity().getLocation(), to);
++                level.getCraftServer().getPluginManager().callEvent(event);
 +                if (event.isCancelled()) {
 +                    return;
 +                }
@@ -37,13 +37,13 @@
 +                d5 = to.getZ();
 +                f4 = to.getYaw();
 +                f5 = to.getPitch();
-+                serverlevel = ((CraftWorld) to.getWorld()).getHandle();
++                level = ((CraftWorld) to.getWorld()).getHandle();
 +
-+                result = entity.teleportTo(serverlevel, d3, d4, d5, set, f4, f5, true);
++                result = victim.teleportTo(level, d3, d4, d5, relatives, f4, f5, true);
 +            }
 +
 +            if (result) {
 +                // CraftBukkit end
-                 if (lookat != null) {
-                     lookat.perform(commandsourcestack, entity);
+                 if (lookAt != null) {
+                     lookAt.perform(source, victim);
                  }

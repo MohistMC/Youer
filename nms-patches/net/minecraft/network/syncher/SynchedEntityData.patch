@@ -3,12 +3,12 @@
 @@ -50,7 +50,7 @@
      }
  
-     private <T> SynchedEntityData.DataItem<T> getItem(EntityDataAccessor<T> entitydataaccessor) {
--        return this.itemsById[entitydataaccessor.id()];
-+        return (SynchedEntityData.DataItem<T>) this.itemsById[entitydataaccessor.id()]; // CraftBukkit - decompile error
+     private <T> SynchedEntityData.DataItem<T> getItem(EntityDataAccessor<T> accessor) {
+-        return this.itemsById[accessor.id()];
++        return (SynchedEntityData.DataItem<T>) this.itemsById[accessor.id()]; // CraftBukkit - decompile error
      }
  
-     public <T> T get(EntityDataAccessor<T> entitydataaccessor) {
+     public <T> T get(EntityDataAccessor<T> accessor) {
 @@ -73,6 +73,13 @@
  
      }
@@ -24,11 +24,11 @@
          return this.isDirty;
      }
 @@ -126,7 +133,7 @@
-         if (!Objects.equals(synchedentitydata_datavalue.serializer(), synchedentitydata_dataitem.accessor.serializer())) {
-             throw new IllegalStateException(String.format(Locale.ROOT, "Invalid entity data item type for field %d on entity %s: old=%s(%s), new=%s(%s)", synchedentitydata_dataitem.accessor.id(), this.entity, synchedentitydata_dataitem.value, synchedentitydata_dataitem.value.getClass(), synchedentitydata_datavalue.value, synchedentitydata_datavalue.value.getClass()));
+         if (!Objects.equals(item.serializer(), dataItem.accessor.serializer())) {
+             throw new IllegalStateException(String.format(Locale.ROOT, "Invalid entity data item type for field %d on entity %s: old=%s(%s), new=%s(%s)", dataItem.accessor.id(), this.entity, dataItem.value, dataItem.value.getClass(), item.value, item.value.getClass()));
          } else {
--            synchedentitydata_dataitem.setValue(synchedentitydata_datavalue.value);
-+            synchedentitydata_dataitem.setValue((T) synchedentitydata_datavalue.value); // CraftBukkit - decompile error
+-            dataItem.setValue(item.value);
++            dataItem.setValue((T) item.value); // CraftBukkit - decompile error
          }
      }
  
@@ -39,5 +39,5 @@
 -        private final @Nullable SynchedEntityData.DataItem<?>[] itemsById;
 +        private final SynchedEntityData.DataItem<?> @Nullable [] itemsById; // CraftBukkit - decompile error
  
-         public Builder(SyncedDataHolder synceddataholder) {
-             this.entity = synceddataholder;
+         public Builder(SyncedDataHolder entity) {
+             this.entity = entity;

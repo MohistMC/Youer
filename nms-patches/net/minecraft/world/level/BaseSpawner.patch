@@ -2,14 +2,14 @@
 +++ b/net/minecraft/world/level/BaseSpawner.java
 @@ -60,6 +60,7 @@
  
-     public void setEntityId(EntityType<?> entitytype, @Nullable Level level, RandomSource randomsource, BlockPos blockpos) {
-         this.getOrCreateNextSpawnData(level, randomsource, blockpos).getEntityToSpawn().putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(entitytype).toString());
+     public void setEntityId(EntityType<?> type, @Nullable Level level, RandomSource random, BlockPos pos) {
+         this.getOrCreateNextSpawnData(level, random, pos).getEntityToSpawn().putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(type).toString());
 +        this.spawnPotentials = WeightedList.of(); // CraftBukkit - SPIGOT-3496, MC-92282
      }
  
-     private boolean isNearPlayer(Level level, BlockPos blockpos) {
+     private boolean isNearPlayer(Level level, BlockPos pos) {
 @@ -162,13 +163,18 @@
-                                     ((Mob) entity).finalizeSpawn(serverlevel, serverlevel.getCurrentDifficultyAt(entity.blockPosition()), EntitySpawnReason.SPAWNER, (SpawnGroupData) null);
+                                     ((Mob) entity).finalizeSpawn(level, level.getCurrentDifficultyAt(entity.blockPosition()), EntitySpawnReason.SPAWNER, (SpawnGroupData) null);
                                  }
  
 -                                Optional optional1 = spawndata.getEquipment();
@@ -19,13 +19,13 @@
                                  optional1.ifPresent(mob::equip);
                              }
  
--                            if (!serverlevel.tryAddFreshEntityWithPassengers(entity)) {
+-                            if (!level.tryAddFreshEntityWithPassengers(entity)) {
 +                            // CraftBukkit start
-+                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callSpawnerSpawnEvent(entity, blockpos).isCancelled()) {
++                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callSpawnerSpawnEvent(entity, pos).isCancelled()) {
 +                                continue;
 +                            }
-+                            if (!serverlevel.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER)) {
++                            if (!level.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER)) {
 +                                // CraftBukkit end
-                                 this.delay(serverlevel, blockpos);
+                                 this.delay(level, pos);
                                  return;
                              }

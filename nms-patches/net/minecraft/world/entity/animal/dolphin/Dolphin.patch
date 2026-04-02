@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/dolphin/Dolphin.java
 +++ b/net/minecraft/world/entity/animal/dolphin/Dolphin.java
-@@ -64,8 +64,20 @@
+@@ -66,8 +66,20 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -21,7 +21,7 @@
      private static final EntityDataAccessor<Boolean> GOT_FISH = SynchedEntityData.<Boolean>defineId(Dolphin.class, EntityDataSerializers.BOOLEAN);
      private static final EntityDataAccessor<Integer> MOISTNESS_LEVEL = SynchedEntityData.<Integer>defineId(Dolphin.class, EntityDataSerializers.INT);
      private static final TargetingConditions SWIM_WITH_PLAYER_TARGETING = TargetingConditions.forNonCombat().range(10.0D).ignoreLineOfSight();
-@@ -184,7 +196,7 @@
+@@ -187,7 +199,7 @@
  
      @Override
      public int getMaxAirSupply() {
@@ -30,26 +30,26 @@
      }
  
      @Override
-@@ -218,11 +230,17 @@
-             ItemStack itemstack = itementity.getItem();
+@@ -221,11 +233,17 @@
+             ItemStack itemstack = entity.getItem();
  
              if (this.canHoldItem(itemstack)) {
 +                // CraftBukkit start - call EntityPickupItemEvent
-+                if (CraftEventFactory.callEntityPickupItemEvent(this, itementity, 0, false).isCancelled()) {
++                if (CraftEventFactory.callEntityPickupItemEvent(this, entity, 0, false).isCancelled()) {
 +                    return;
 +                }
-+                itemstack = itementity.getItem(); // CraftBukkit- update ItemStack from event
++                itemstack = entity.getItem(); // CraftBukkit- update ItemStack from event
 +                // CraftBukkit start
-                 this.onItemPickup(itementity);
+                 this.onItemPickup(entity);
                  this.setItemSlot(EquipmentSlot.MAINHAND, itemstack);
                  this.setGuaranteedDrop(EquipmentSlot.MAINHAND);
-                 this.take(itementity, itemstack.getCount());
--                itementity.discard();
-+                itementity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+                 this.take(entity, itemstack.getCount());
+-                entity.discard();
++                entity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
              }
          }
  
-@@ -453,7 +471,7 @@
+@@ -460,7 +478,7 @@
  
          @Override
          public void start() {
@@ -58,10 +58,10 @@
          }
  
          @Override
-@@ -472,7 +490,7 @@
+@@ -479,7 +497,7 @@
              }
  
-             if (this.player.isSwimming() && this.player.level().random.nextInt(6) == 0) {
+             if (this.player.isSwimming() && this.player.level().getRandom().nextInt(6) == 0) {
 -                this.player.addEffect(new MobEffectInstance(MobEffects.DOLPHINS_GRACE, 100), this.dolphin);
 +                this.player.addEffect(new MobEffectInstance(MobEffects.DOLPHINS_GRACE, 100), this.dolphin, EntityPotionEffectEvent.Cause.DOLPHIN); // CraftBukkit
              }

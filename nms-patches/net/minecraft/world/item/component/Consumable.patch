@@ -13,28 +13,28 @@
  
      public static final float DEFAULT_CONSUME_SECONDS = 1.6F;
 @@ -69,8 +74,19 @@
-             consumablelistener.onConsume(level, livingentity, itemstack, this);
+             consumablelistener.onConsume(level, user, stack, this);
          });
          if (!level.isClientSide()) {
 +            // CraftBukkit start
 +            EntityPotionEffectEvent.Cause cause;
-+            if (itemstack.is(Items.MILK_BUCKET)) {
++            if (stack.is(Items.MILK_BUCKET)) {
 +                cause = EntityPotionEffectEvent.Cause.MILK;
-+            } else if (itemstack.is(Items.POTION)) {
++            } else if (stack.is(Items.POTION)) {
 +                cause = EntityPotionEffectEvent.Cause.POTION_DRINK;
 +            } else {
 +                cause = EntityPotionEffectEvent.Cause.FOOD;
 +            }
 +
              this.onConsumeEffects.forEach((consumeeffect) -> {
--                consumeeffect.apply(level, itemstack, livingentity);
-+                consumeeffect.apply(level, itemstack, livingentity, cause);
+-                consumeeffect.apply(level, stack, user);
++                consumeeffect.apply(level, stack, user, cause);
 +                // CraftBukkit end
              });
          }
  
 @@ -79,6 +95,15 @@
-         return itemstack;
+         return stack;
      }
  
 +    // CraftBukkit start
@@ -46,6 +46,6 @@
 +    }
 +    // CraftBukkit end
 +
-     public boolean canConsume(LivingEntity livingentity, ItemStack itemstack) {
-         FoodProperties foodproperties = (FoodProperties) itemstack.get(DataComponents.FOOD);
+     public boolean canConsume(LivingEntity user, ItemStack stack) {
+         FoodProperties foodproperties = (FoodProperties) stack.get(DataComponents.FOOD);
  

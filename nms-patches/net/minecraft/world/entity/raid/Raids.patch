@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/raid/Raids.java
 +++ b/net/minecraft/world/entity/raid/Raids.java
-@@ -149,11 +149,23 @@
+@@ -142,11 +142,23 @@
  
                  Raid raid = this.getOrCreateRaid(serverlevel, blockpos2);
  
@@ -13,8 +13,8 @@
 -                if (!raid.isStarted() || raid.getRaidOmenLevel() < raid.getMaxRaidOmenLevel()) {
 +                if (!raid.isStarted() || (raid.isInProgress() && raid.getRaidOmenLevel() < raid.getMaxRaidOmenLevel())) { // CraftBukkit - fixed a bug with raid: players could add up Bad Omen level even when the raid had finished
 +                    // CraftBukkit start
-+                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callRaidTriggerEvent(raid, serverlevel, serverplayer)) {
-+                        serverplayer.removeEffect(net.minecraft.world.effect.MobEffects.RAID_OMEN);
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callRaidTriggerEvent(raid, serverlevel, player)) {
++                        player.removeEffect(net.minecraft.world.effect.MobEffects.RAID_OMEN);
 +                        return null;
 +                    }
 +
@@ -22,15 +22,15 @@
 +                        this.raidMap.put(this.getUniqueId(), raid);
 +                    }
 +                    // CraftBukkit end
-                     raid.absorbRaidOmen(serverplayer);
+                     raid.absorbRaidOmen(player);
                  }
  
-@@ -197,7 +209,7 @@
+@@ -190,7 +202,7 @@
  
      @VisibleForDebug
-     public List<BlockPos> getRaidCentersInChunk(ChunkPos chunkpos) {
+     public List<BlockPos> getRaidCentersInChunk(ChunkPos chunkPos) {
 -        Stream stream = this.raidMap.values().stream().map(Raid::getCenter);
 +        Stream<BlockPos> stream = this.raidMap.values().stream().map(Raid::getCenter); // CraftBukkit - decompile error
  
-         Objects.requireNonNull(chunkpos);
-         return stream.filter(chunkpos::contains).toList();
+         Objects.requireNonNull(chunkPos);
+         return stream.filter(chunkPos::contains).toList();

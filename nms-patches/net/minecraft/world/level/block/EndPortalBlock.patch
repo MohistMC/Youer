@@ -20,28 +20,31 @@
      public static final MapCodec<EndPortalBlock> CODEC = simpleCodec(EndPortalBlock::new);
 @@ -61,6 +72,10 @@
      @Override
-     protected void entityInside(BlockState blockstate, Level level, BlockPos blockpos, Entity entity, InsideBlockEffectApplier insideblockeffectapplier, boolean flag) {
+     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
          if (entity.canUsePortal(false)) {
 +            // CraftBukkit start - Entity in portal
-+            EntityPortalEnterEvent event = new EntityPortalEnterEvent(entity.getBukkitEntity(), new org.bukkit.Location(level.getWorld(), blockpos.getX(), blockpos.getY(), blockpos.getZ()));
++            EntityPortalEnterEvent event = new EntityPortalEnterEvent(entity.getBukkitEntity(), new org.bukkit.Location(level.getWorld(), pos.getX(), pos.getY(), pos.getZ()));
 +            level.getCraftServer().getPluginManager().callEvent(event);
 +            // CraftBukkit end
              if (!level.isClientSide() && level.dimension() == Level.END && entity instanceof ServerPlayer) {
                  ServerPlayer serverplayer = (ServerPlayer) entity;
  
-@@ -78,14 +93,16 @@
+@@ -77,15 +92,18 @@
+ 
      @Override
-     public @Nullable TeleportTransition getPortalDestination(ServerLevel serverlevel, Entity entity, BlockPos blockpos) {
-         LevelData.RespawnData leveldata_respawndata = serverlevel.getRespawnData();
--        ResourceKey<Level> resourcekey = serverlevel.dimension();
+     public @Nullable TeleportTransition getPortalDestination(ServerLevel currentLevel, Entity entity, BlockPos portalEntryPos) {
+-        LevelData.RespawnData leveldata_respawndata = currentLevel.getRespawnData();
+-        ResourceKey<Level> resourcekey = currentLevel.dimension();
 -        boolean flag = resourcekey == Level.END;
-+        // CraftBukkit start - SPIGOT-6152: send back to main overworld in custom ends
-+        ResourceKey<LevelStem> resourcekey = serverlevel.getTypeKey();
++        // CraftBukkit start - SPIGOT-8111: send back to main overworld
++        LevelData.RespawnData leveldata_respawndata = currentLevel.getServer().findRespawnDimension().getRespawnData();
++        // SPIGOT-6152: send back to main overworld in custom ends
++        ResourceKey<LevelStem> resourcekey = currentLevel.getTypeKey();
 +        boolean flag = resourcekey == LevelStem.END;
 +        // CraftBukkit end
          ResourceKey<Level> resourcekey1 = flag ? leveldata_respawndata.dimension() : Level.END;
          BlockPos blockpos1 = flag ? leveldata_respawndata.pos() : ServerLevel.END_SPAWN_POINT;
-         ServerLevel serverlevel1 = serverlevel.getServer().getLevel(resourcekey1);
+         ServerLevel serverlevel1 = currentLevel.getServer().getLevel(resourcekey1);
  
          if (serverlevel1 == null) {
 -            return null;
@@ -49,7 +52,7 @@
          } else {
              Vec3 vec3 = blockpos1.getBottomCenter();
              float f;
-@@ -93,7 +110,7 @@
+@@ -93,7 +111,7 @@
              Set<Relative> set;
  
              if (!flag) {
@@ -58,7 +61,7 @@
                  f = Direction.WEST.toYRot();
                  f1 = 0.0F;
                  set = Relative.union(Relative.DELTA, Set.of(Relative.X_ROT));
-@@ -107,13 +124,21 @@
+@@ -107,13 +125,21 @@
                  if (entity instanceof ServerPlayer) {
                      ServerPlayer serverplayer = (ServerPlayer) entity;
  

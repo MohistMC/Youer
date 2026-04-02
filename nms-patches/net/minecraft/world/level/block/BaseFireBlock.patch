@@ -30,11 +30,11 @@
      }
  
      @Override
--    protected void onPlace(BlockState blockstate, Level level, BlockPos blockpos, BlockState blockstate1, boolean flag) {
-+    protected void onPlace(BlockState blockstate, Level level, BlockPos blockpos, BlockState blockstate1, boolean flag, UseOnContext context) { // CraftBukkit - context
-         if (!blockstate1.is(blockstate.getBlock())) {
+-    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
++    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston, UseOnContext context) { // CraftBukkit - context
+         if (!oldState.is(state.getBlock())) {
              if (inPortalDimension(level)) {
-                 Optional<PortalShape> optional = PortalShape.findEmptyPortalShape(level, blockpos, Direction.Axis.X);
+                 Optional<PortalShape> optional = PortalShape.findEmptyPortalShape(level, pos, Direction.Axis.X);
  
                  if (optional.isPresent()) {
 -                    ((PortalShape) optional.get()).createPortalBlocks(level);
@@ -43,9 +43,9 @@
                  }
              }
  
-             if (!blockstate.canSurvive(level, blockpos)) {
--                level.removeBlock(blockpos, false);
-+                fireExtinguished(level, blockpos); // CraftBukkit - fuel block broke
+             if (!state.canSurvive(level, pos)) {
+-                level.removeBlock(pos, false);
++                fireExtinguished(level, pos); // CraftBukkit - fuel block broke
              }
  
          }

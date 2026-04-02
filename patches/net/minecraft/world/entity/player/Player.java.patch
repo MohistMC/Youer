@@ -1,6 +1,18 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -124,6 +_,7 @@
+@@ -11,6 +_,7 @@
+ import java.util.Objects;
+ import java.util.Optional;
+ import java.util.OptionalInt;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.Predicate;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+@@ -121,9 +_,11 @@
+ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.scores.PlayerTeam;
+ import net.minecraft.world.scores.Team;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
  import org.jspecify.annotations.Nullable;
  
  public abstract class Player extends Avatar implements ContainerUser, net.neoforged.neoforge.common.extensions.IPlayerExtension {
@@ -8,7 +20,7 @@
      public static final int MAX_HEALTH = 20;
      public static final int SLEEP_DURATION = 100;
      public static final int WAKE_UP_DURATION = 10;
-@@ -171,6 +_,10 @@
+@@ -171,6 +_,20 @@
      private Optional<GlobalPos> lastDeathLocation = Optional.empty();
      public @Nullable FishingHook fishing;
      public float hurtDir;
@@ -16,6 +28,16 @@
 +    private final java.util.Collection<MutableComponent> suffixes = new java.util.LinkedList<>();
 +    @Nullable
 +    private Pose forcedPose = null;
++
++    // CraftBukkit start
++    public boolean fauxSleeping;
++    public int oldLevel = -1;
++
++    @Override
++    public CraftHumanEntity getBukkitEntity() {
++        return (CraftHumanEntity) super.getBukkitEntity();
++    }
++    // CraftBukkit end
  
      public Player(Level level, GameProfile gameProfile) {
          super(EntityType.PLAYER, level);
@@ -317,6 +339,19 @@
                      float enchantedDamage = this.getEnchantedDamage(nearby, var12, damageSource) * attackStrengthScale;
                      if (nearby.hurtServer(serverLevel, damageSource, enchantedDamage)) {
                          nearby.knockback(0.4F, Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)), -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)));
+@@ -1289,6 +_,12 @@
+         return true;
+     }
+ 
++    protected AtomicBoolean startSleepInBed_force = new AtomicBoolean(false);
++    public Player forceSleepInBed(boolean force) {
++        startSleepInBed_force.set(force);
++        return this;
++    }
++
+     public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos pos) {
+         this.startSleeping(pos);
+         this.sleepCounter = 0;
 @@ -1296,6 +_,7 @@
      }
  

@@ -20,22 +20,22 @@
              boolean flag;
 +            // CraftBukkit start
 +            Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-+            org.bukkit.entity.Entity attacker = (damagesource.getEntity() == null) ? null : damagesource.getEntity().getBukkitEntity();
++            org.bukkit.entity.Entity attacker = (source.getEntity() == null) ? null : source.getEntity().getBukkitEntity();
 +
-+            VehicleDamageEvent event = new VehicleDamageEvent(vehicle, attacker, (double) f);
++            VehicleDamageEvent event = new VehicleDamageEvent(vehicle, attacker, (double) damage);
 +            this.level().getCraftServer().getPluginManager().callEvent(event);
 +
 +            if (event.isCancelled()) {
 +                return false;
 +            }
-+            f = (float) event.getDamage();
++            damage = (float) event.getDamage();
 +            // CraftBukkit end
              label32:
              {
                  this.setHurtDir(-this.getHurtDir());
 @@ -65,9 +84,27 @@
  
-             if ((flag1 || this.getDamage() <= 40.0F) && !this.shouldSourceDestroy(damagesource)) {
+             if ((flag1 || this.getDamage() <= 40.0F) && !this.shouldSourceDestroy(source)) {
                  if (flag1) {
 -                    this.discard();
 +                    // CraftBukkit start
@@ -59,6 +59,6 @@
 +                    return true;
 +                }
 +                // CraftBukkit end
-                 this.destroy(serverlevel, damagesource);
+                 this.destroy(level, source);
              }
  

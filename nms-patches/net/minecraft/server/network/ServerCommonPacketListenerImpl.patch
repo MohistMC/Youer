@@ -50,17 +50,17 @@
      private int latency;
      private volatile boolean suspendFlushingOnServerThread = false;
  
--    public ServerCommonPacketListenerImpl(MinecraftServer minecraftserver, Connection connection, CommonListenerCookie commonlistenercookie) {
-+    public ServerCommonPacketListenerImpl(MinecraftServer minecraftserver, Connection connection, CommonListenerCookie commonlistenercookie, ServerPlayer player) { // CraftBukkit
-         this.server = minecraftserver;
+-    public ServerCommonPacketListenerImpl(MinecraftServer server, Connection connection, CommonListenerCookie cookie) {
++    public ServerCommonPacketListenerImpl(MinecraftServer server, Connection connection, CommonListenerCookie cookie, ServerPlayer player) { // CraftBukkit
+         this.server = server;
          this.connection = connection;
          this.keepAliveTime = Util.getMillis();
-         this.latency = commonlistenercookie.latency();
-         this.transferred = commonlistenercookie.transferred();
+         this.latency = cookie.latency();
+         this.transferred = cookie.transferred();
 +        // CraftBukkit start - add fields and methods
 +        this.player = player;
 +        this.player.transferCookieConnection = this;
-+        this.cserver = minecraftserver.server;
++        this.cserver = server.server;
 +    }
 +    protected final ServerPlayer player;
 +    protected final org.bukkit.craftbukkit.CraftServer cserver;
@@ -75,28 +75,28 @@
 @@ -82,6 +130,7 @@
  
      @Override
-     public void handleKeepAlive(ServerboundKeepAlivePacket serverboundkeepalivepacket) {
-+        PacketUtils.ensureRunningOnSameThread(serverboundkeepalivepacket, this, this.player.level()); // CraftBukkit
-         if (this.keepAlivePending && serverboundkeepalivepacket.getId() == this.keepAliveChallenge) {
+     public void handleKeepAlive(ServerboundKeepAlivePacket packet) {
++        PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level()); // CraftBukkit
+         if (this.keepAlivePending && packet.getId() == this.keepAliveChallenge) {
              int i = (int) (Util.getMillis() - this.keepAliveTime);
  
 @@ -96,13 +145,61 @@
      @Override
-     public void handlePong(ServerboundPongPacket serverboundpongpacket) {}
+     public void handlePong(ServerboundPongPacket serverboundPongPacket) {}
  
 +    // CraftBukkit start
 +    private static final Identifier CUSTOM_REGISTER = Identifier.withDefaultNamespace("register");
 +    private static final Identifier CUSTOM_UNREGISTER = Identifier.withDefaultNamespace("unregister");
 +
      @Override
--    public void handleCustomPayload(ServerboundCustomPayloadPacket serverboundcustompayloadpacket) {}
-+    public void handleCustomPayload(ServerboundCustomPayloadPacket serverboundcustompayloadpacket) {
-+        if (!(serverboundcustompayloadpacket.payload() instanceof DiscardedPayload)) {
+-    public void handleCustomPayload(ServerboundCustomPayloadPacket packet) {}
++    public void handleCustomPayload(ServerboundCustomPayloadPacket packet) {
++        if (!(packet.payload() instanceof DiscardedPayload)) {
 +            return;
 +        }
-+        PacketUtils.ensureRunningOnSameThread(serverboundcustompayloadpacket, this, this.player.level());
-+        Identifier identifier = serverboundcustompayloadpacket.payload().type().id();
-+        ByteBuf payload = ((DiscardedPayload)serverboundcustompayloadpacket.payload()).data();
++        PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
++        Identifier identifier = packet.payload().type().id();
++        ByteBuf payload = ((DiscardedPayload)packet.payload()).data();
 +
 +        if (identifier.equals(CUSTOM_REGISTER)) {
 +            try {
@@ -137,26 +137,26 @@
 +    // CraftBukkit end
  
      @Override
-     public void handleCustomClickAction(ServerboundCustomClickActionPacket serverboundcustomclickactionpacket) {
-         PacketUtils.ensureRunningOnSameThread(serverboundcustomclickactionpacket, this, this.server.packetProcessor());
--        this.server.handleCustomClickAction(serverboundcustomclickactionpacket.id(), serverboundcustomclickactionpacket.payload());
-+        this.server.handleCustomClickAction(serverboundcustomclickactionpacket.id(), serverboundcustomclickactionpacket.payload(), this.player); // CraftBukkit - add player
+     public void handleCustomClickAction(ServerboundCustomClickActionPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.server.packetProcessor());
+-        this.server.handleCustomClickAction(packet.id(), packet.payload());
++        this.server.handleCustomClickAction(packet.id(), packet.payload(), this.player); // CraftBukkit - add player
      }
  
      @Override
 @@ -112,11 +209,18 @@
-             ServerCommonPacketListenerImpl.LOGGER.info("Disconnecting {} due to resource pack {} rejection", this.playerProfile().name(), serverboundresourcepackpacket.id());
+             ServerCommonPacketListenerImpl.LOGGER.info("Disconnecting {} due to resource pack {} rejection", this.playerProfile().name(), packet.id());
              this.disconnect((Component) Component.translatable("multiplayer.requiredTexturePrompt.disconnect"));
          }
-+        this.cserver.getPluginManager().callEvent(new PlayerResourcePackStatusEvent(getCraftPlayer(), serverboundresourcepackpacket.id(), PlayerResourcePackStatusEvent.Status.values()[serverboundresourcepackpacket.action().ordinal()])); // CraftBukkit
++        this.cserver.getPluginManager().callEvent(new PlayerResourcePackStatusEvent(getCraftPlayer(), packet.id(), PlayerResourcePackStatusEvent.Status.values()[packet.action().ordinal()])); // CraftBukkit
  
      }
  
      @Override
-     public void handleCookieResponse(ServerboundCookieResponsePacket serverboundcookieresponsepacket) {
+     public void handleCookieResponse(ServerboundCookieResponsePacket packet) {
 +        // CraftBukkit start
-+        PacketUtils.ensureRunningOnSameThread(serverboundcookieresponsepacket, this, this.server.packetProcessor());
-+        if (this.player.getBukkitEntity().handleCookieResponse(serverboundcookieresponsepacket)) {
++        PacketUtils.ensureRunningOnSameThread(packet, this, this.server.packetProcessor());
++        if (this.player.getBukkitEntity().handleCookieResponse(packet)) {
 +            return;
 +        }
 +        // CraftBukkit end
@@ -175,7 +175,7 @@
 @@ -164,6 +268,14 @@
      }
  
-     public void send(Packet<?> packet, @Nullable ChannelFutureListener channelfuturelistener) {
+     public void send(Packet<?> packet, @Nullable ChannelFutureListener listener) {
 +        // CraftBukkit start
 +        if (packet == null) {
 +            return;
@@ -190,7 +190,7 @@
 @@ -188,15 +300,61 @@
      }
  
-     public void disconnect(DisconnectionDetails disconnectiondetails) {
+     public void disconnect(DisconnectionDetails details) {
 +        // CraftBukkit start - fire PlayerKickEvent
 +        if (this.processedDisconnect) {
 +            return;
@@ -199,7 +199,7 @@
 +            Waitable waitable = new Waitable() {
 +                @Override
 +                protected Object evaluate() {
-+                    ServerCommonPacketListenerImpl.this.disconnect(disconnectiondetails);
++                    ServerCommonPacketListenerImpl.this.disconnect(details);
 +                    return null;
 +                }
 +            };
@@ -218,7 +218,7 @@
 +
 +        String leaveMessage = ChatFormatting.YELLOW + this.player.getScoreboardName() + " left the game.";
 +
-+        PlayerKickEvent event = new PlayerKickEvent(this.player.getBukkitEntity(), CraftChatMessage.fromComponent(disconnectiondetails.reason()), leaveMessage);
++        PlayerKickEvent event = new PlayerKickEvent(this.player.getBukkitEntity(), CraftChatMessage.fromComponent(details.reason()), leaveMessage);
 +
 +        if (this.cserver.getServer().isRunning()) {
 +            this.cserver.getPluginManager().callEvent(event);
@@ -230,15 +230,15 @@
 +        }
 +        this.player.kickLeaveMessage = event.getLeaveMessage(); // CraftBukkit - SPIGOT-3034: Forward leave message to PlayerQuitEvent
 +        // Send the possibly modified leave message
-+        disconnect0(new DisconnectionDetails(CraftChatMessage.fromString(event.getReason(), true)[0], disconnectiondetails.report(), disconnectiondetails.bugReportLink()));
++        disconnect0(new DisconnectionDetails(CraftChatMessage.fromString(event.getReason(), true)[0], details.report(), details.bugReportLink()));
 +    }
 +
-+    private void disconnect0(DisconnectionDetails disconnectiondetails) {
++    private void disconnect0(DisconnectionDetails details) {
 +        // CraftBukkit end
-         this.connection.send(new ClientboundDisconnectPacket(disconnectiondetails.reason()), PacketSendListener.thenRun(() -> {
-             this.connection.disconnect(disconnectiondetails);
+         this.connection.send(new ClientboundDisconnectPacket(details.reason()), PacketSendListener.thenRun(() -> {
+             this.connection.disconnect(details);
          }));
-+        this.onDisconnect(disconnectiondetails); // CraftBukkit - fire quit instantly
++        this.onDisconnect(details); // CraftBukkit - fire quit instantly
          this.connection.setReadOnly();
          MinecraftServer minecraftserver = this.server;
          Connection connection = this.connection;

@@ -1,6 +1,12 @@
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
-@@ -39,15 +_,20 @@
+@@ -36,18 +_,30 @@
+ import net.minecraft.world.level.storage.TagValueOutput;
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
++import org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer;
++import org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry;
++import org.bukkit.inventory.InventoryHolder;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -19,6 +25,10 @@
 +    private CompoundTag customPersistentData;
 +    @Nullable
 +    private Set<net.neoforged.neoforge.attachment.AttachmentType<?>> attachmentTypesToSync;
++    // CraftBukkit start - data containers
++    private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
++    public CraftPersistentDataContainer persistentDataContainer;
++    // CraftBukkit end
  
      public BlockEntity(BlockEntityType<?> type, BlockPos worldPosition, BlockState blockState) {
          this.type = type;
@@ -31,10 +41,15 @@
      }
  
      public static BlockPos getPosFromTag(ChunkPos base, CompoundTag entityTag) {
-@@ -94,6 +_,8 @@
+@@ -94,6 +_,13 @@
      }
  
      protected void loadAdditional(ValueInput input) {
++        this.persistentDataContainer = new CraftPersistentDataContainer(DATA_TYPE_REGISTRY);
++
++        input.child("PublicBukkitValues").ifPresent((persistentDataTag) -> {
++            this.persistentDataContainer.putAll(persistentDataTag);
++        });
 +        input.read("NeoForgeData", CompoundTag.CODEC).ifPresent(neoData -> this.customPersistentData = neoData);
 +        input.child(ATTACHMENTS_NBT_KEY).ifPresent(attachments -> this.deserializeAttachments(attachments));
      }
@@ -52,6 +67,18 @@
      }
  
      public final CompoundTag saveWithFullMetadata(HolderLookup.Provider registries) {
+@@ -143,6 +_,11 @@
+     public void saveWithoutMetadata(ValueOutput output) {
+         this.saveAdditional(output);
+         output.store("components", DataComponentMap.CODEC, this.components);
++        // CraftBukkit start - store container
++        if (this.persistentDataContainer != null && !this.persistentDataContainer.isEmpty()) {
++            this.persistentDataContainer.store(output.child("PublicBukkitValues"));
++        }
++        // CraftBukkit end
+     }
+ 
+     public final CompoundTag saveCustomOnly(HolderLookup.Provider registries) {
 @@ -239,10 +_,14 @@
  
      public void setRemoved() {
@@ -67,13 +94,10 @@
      }
  
      public void preRemoveSideEffects(BlockPos pos, BlockState state) {
-@@ -272,6 +_,48 @@
+@@ -275,6 +_,48 @@
+     }
  
-     public BlockEntityType<?> getType() {
-         return this.type;
-+    }
-+
-+    @Override
+     @Override
 +    public CompoundTag getPersistentData() {
 +        if (this.customPersistentData == null)
 +            this.customPersistentData = new CompoundTag();
@@ -113,6 +137,23 @@
 +        var ret = attachmentTypesToSync;
 +        attachmentTypesToSync = null;
 +        return ret;
++    }
++
++    @Override
+     public Holder<BlockEntityType<?>> typeHolder() {
+         return this.type.builtInRegistryHolder();
      }
- 
-     @Override
+@@ -358,4 +_,13 @@
+             return this.blockEntity.getNameForReporting() + "@" + this.blockEntity.getBlockPos();
+         }
+     }
++
++    // CraftBukkit start - add method
++    public InventoryHolder getOwner() {
++        if (level == null) return null;
++        org.bukkit.block.BlockState state = level.getWorld().getBlockAt(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ()).getState();
++        if (state instanceof InventoryHolder) return (InventoryHolder) state;
++        return null;
++    }
++    // CraftBukkit end
+ }

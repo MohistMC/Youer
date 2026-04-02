@@ -3,21 +3,21 @@
 @@ -54,13 +54,19 @@
      }
  
-     public static List<ServerPlayer> addEffectToPlayersAround(ServerLevel serverlevel, @Nullable Entity entity, Vec3 vec3, double d0, MobEffectInstance mobeffectinstance, int i) {
+     public static List<ServerPlayer> addEffectToPlayersAround(ServerLevel level, @Nullable Entity source, Vec3 position, double radius, MobEffectInstance effectInstance, int displayEffectLimit) {
 +        // CraftBukkit start
-+        return addEffectToPlayersAround(serverlevel, entity, vec3, d0, mobeffectinstance, i, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
++        return addEffectToPlayersAround(level, source, position, radius, effectInstance, displayEffectLimit, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
 +    }
 +
-+    public static List<ServerPlayer> addEffectToPlayersAround(ServerLevel serverlevel, @Nullable Entity entity, Vec3 vec3, double d0, MobEffectInstance mobeffectinstance, int i, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
++    public static List<ServerPlayer> addEffectToPlayersAround(ServerLevel level, @Nullable Entity source, Vec3 position, double radius, MobEffectInstance effectInstance, int displayEffectLimit, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
 +        // CraftBukkit end
-         Holder<MobEffect> holder = mobeffectinstance.getEffect();
-         List<ServerPlayer> list = serverlevel.getPlayers((serverplayer) -> {
-             return serverplayer.gameMode.isSurvival() && (entity == null || !entity.isAlliedTo((Entity) serverplayer)) && vec3.closerThan(serverplayer.position(), d0) && (!serverplayer.hasEffect(holder) || serverplayer.getEffect(holder).getAmplifier() < mobeffectinstance.getAmplifier() || serverplayer.getEffect(holder).endsWithin(i - 1));
+         Holder<MobEffect> holder = effectInstance.getEffect();
+         List<ServerPlayer> list = level.getPlayers((serverplayer) -> {
+             return serverplayer.gameMode.isSurvival() && (source == null || !source.isAlliedTo((Entity) serverplayer)) && position.closerThan(serverplayer.position(), radius) && (!serverplayer.hasEffect(holder) || serverplayer.getEffect(holder).getAmplifier() < effectInstance.getAmplifier() || serverplayer.getEffect(holder).endsWithin(displayEffectLimit - 1));
          });
  
          list.forEach((serverplayer) -> {
--            serverplayer.addEffect(new MobEffectInstance(mobeffectinstance), entity);
-+            serverplayer.addEffect(new MobEffectInstance(mobeffectinstance), entity, cause); // CraftBukkit
+-            serverplayer.addEffect(new MobEffectInstance(effectInstance), source);
++            serverplayer.addEffect(new MobEffectInstance(effectInstance), source, cause); // CraftBukkit
          });
          return list;
      }

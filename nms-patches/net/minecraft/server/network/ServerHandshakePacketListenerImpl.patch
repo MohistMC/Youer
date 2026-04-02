@@ -21,14 +21,14 @@
 @@ -25,6 +34,7 @@
  
      @Override
-     public void handleIntention(ClientIntentionPacket clientintentionpacket) {
-+        this.connection.hostname = clientintentionpacket.hostName() + ":" + clientintentionpacket.port(); // CraftBukkit  - set hostname
-         switch (clientintentionpacket.intention()) {
+     public void handleIntention(ClientIntentionPacket packet) {
++        this.connection.hostname = packet.hostName() + ":" + packet.port(); // CraftBukkit  - set hostname
+         switch (packet.intention()) {
              case LOGIN:
-                 this.beginLogin(clientintentionpacket, false);
+                 this.beginLogin(packet, false);
 @@ -58,6 +68,40 @@
  
-     private void beginLogin(ClientIntentionPacket clientintentionpacket, boolean flag) {
+     private void beginLogin(ClientIntentionPacket packet, boolean transfer) {
          this.connection.setupOutboundProtocol(LoginProtocols.CLIENTBOUND);
 +        // CraftBukkit start - Connection throttle
 +        try {
@@ -64,6 +64,6 @@
 +            org.apache.logging.log4j.LogManager.getLogger().debug("Failed to check connection throttle", t);
 +        }
 +        // CraftBukkit end
-         if (clientintentionpacket.protocolVersion() != SharedConstants.getCurrentVersion().protocolVersion()) {
+         if (packet.protocolVersion() != SharedConstants.getCurrentVersion().protocolVersion()) {
              Component component;
  

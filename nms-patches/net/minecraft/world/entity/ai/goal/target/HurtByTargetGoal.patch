@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java
 +++ b/net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java
+@@ -37,7 +37,7 @@
+         LivingEntity livingentity = this.mob.getLastHurtByMob();
+ 
+         if (i != this.timestamp && livingentity != null) {
+-            if (livingentity.is((Object) EntityType.PLAYER) && (Boolean) getServerLevel((Entity) this.mob).getGameRules().get(GameRules.UNIVERSAL_ANGER)) {
++            if (livingentity.is(EntityType.PLAYER) && (Boolean) getServerLevel((Entity) this.mob).getGameRules().get(GameRules.UNIVERSAL_ANGER)) { // CraftBukkit - decompile error
+                 return false;
+             } else {
+                 for (Class<?> oclass : this.toIgnoreDamage) {
 @@ -61,7 +61,7 @@
  
      @Override
@@ -21,8 +30,8 @@
 @@ -112,6 +112,6 @@
      }
  
-     protected void alertOther(Mob mob, LivingEntity livingentity) {
--        mob.setTarget(livingentity);
-+        mob.setTarget(livingentity, org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_NEARBY_ENTITY, true); // CraftBukkit - reason
+     protected void alertOther(Mob other, LivingEntity hurtByMob) {
+-        other.setTarget(hurtByMob);
++        other.setTarget(hurtByMob, org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_NEARBY_ENTITY, true); // CraftBukkit - reason
      }
  }

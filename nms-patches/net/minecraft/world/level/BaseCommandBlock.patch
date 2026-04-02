@@ -14,26 +14,26 @@
  
                          });
  
--                        serverlevel.getServer().getCommands().performPrefixedCommand(commandsourcestack, this.command);
-+                        serverlevel.getServer().getCommands().dispatchServerCommand(commandsourcestack, this.command); // CraftBukkit
+-                        level.getServer().getCommands().performPrefixedCommand(commandsourcestack, this.command);
++                        level.getServer().getCommands().dispatchServerCommand(commandsourcestack, this.command); // CraftBukkit
                      }
                  } catch (Throwable throwable) {
                      CrashReport crashreport = CrashReport.forThrowable(throwable, "Executing command block");
 @@ -138,7 +141,11 @@
      }
  
-     public BaseCommandBlock.@Nullable CloseableCommandBlockSource createSource(ServerLevel serverlevel) {
--        return this.trackOutput ? new BaseCommandBlock.CloseableCommandBlockSource(serverlevel) : null;
+     public BaseCommandBlock.@Nullable CloseableCommandBlockSource createSource(ServerLevel level) {
+-        return this.trackOutput ? new BaseCommandBlock.CloseableCommandBlockSource(level) : null;
 +        // CraftBukkit start - don't use a null source with no output as we still need the Bukkit sender, just close it immediately to give the same effect
-+        BaseCommandBlock.CloseableCommandBlockSource source = new BaseCommandBlock.CloseableCommandBlockSource(serverlevel);
++        BaseCommandBlock.CloseableCommandBlockSource source = new BaseCommandBlock.CloseableCommandBlockSource(level);
 +        source.closed = !this.trackOutput;
 +        return source;
 +        // CraftBukkit end
      }
  
      public Component getName() {
-@@ -181,6 +188,13 @@
-             this.level = serverlevel;
+@@ -183,6 +190,13 @@
+             this.level = level;
          }
  
 +        // CraftBukkit start

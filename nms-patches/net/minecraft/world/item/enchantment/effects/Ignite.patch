@@ -15,14 +15,14 @@
 @@ -18,7 +23,21 @@
  
      @Override
-     public void apply(ServerLevel serverlevel, int i, EnchantedItemInUse enchantediteminuse, Entity entity, Vec3 vec3) {
--        entity.igniteForSeconds(this.duration.calculate(i));
+     public void apply(ServerLevel serverLevel, int enchantmentLevel, EnchantedItemInUse item, Entity entity, Vec3 position) {
+-        entity.igniteForSeconds(this.duration.calculate(enchantmentLevel));
 +        // CraftBukkit start - Call a combust event when somebody hits with a fire enchanted item
 +        EntityCombustEvent entityCombustEvent;
-+        if (enchantediteminuse.owner() != null) {
-+            entityCombustEvent = new EntityCombustByEntityEvent(enchantediteminuse.owner().getBukkitEntity(), entity.getBukkitEntity(), this.duration.calculate(i));
++        if (item.owner() != null) {
++            entityCombustEvent = new EntityCombustByEntityEvent(item.owner().getBukkitEntity(), entity.getBukkitEntity(), this.duration.calculate(enchantmentLevel));
 +        } else {
-+            entityCombustEvent = new EntityCombustEvent(entity.getBukkitEntity(), this.duration.calculate(i));
++            entityCombustEvent = new EntityCombustEvent(entity.getBukkitEntity(), this.duration.calculate(enchantmentLevel));
 +        }
 +
 +        org.bukkit.Bukkit.getPluginManager().callEvent(entityCombustEvent);

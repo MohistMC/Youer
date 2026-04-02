@@ -15,7 +15,7 @@
 @@ -44,7 +49,7 @@
  
      @Override
-     protected int getSignalStrength(Level level, BlockPos blockpos) {
+     protected int getSignalStrength(Level level, BlockPos pos) {
 -        Class oclass;
 +        Class<? extends Entity> oclass; // CraftBukkit
  
@@ -25,18 +25,18 @@
  
          Class<? extends Entity> oclass1 = oclass;
  
--        return getEntityCount(level, PressurePlateBlock.TOUCH_AABB.move(blockpos), oclass1) > 0 ? 15 : 0;
+-        return getEntityCount(level, PressurePlateBlock.TOUCH_AABB.move(pos), oclass1) > 0 ? 15 : 0;
 +        // CraftBukkit start - Call interact event when turning on a pressure plate
-+        for (Entity entity : getEntities(level, PressurePlateBlock.TOUCH_AABB.move(blockpos), oclass)) {
-+            if (this.getSignalForState(level.getBlockState(blockpos)) == 0) {
++        for (Entity entity : getEntities(level, PressurePlateBlock.TOUCH_AABB.move(pos), oclass)) {
++            if (this.getSignalForState(level.getBlockState(pos)) == 0) {
 +                org.bukkit.World bworld = level.getWorld();
 +                org.bukkit.plugin.PluginManager manager = level.getCraftServer().getPluginManager();
 +                org.bukkit.event.Cancellable cancellable;
 +
 +                if (entity instanceof Player) {
-+                    cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) entity, org.bukkit.event.block.Action.PHYSICAL, blockpos, null, null, null);
++                    cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) entity, org.bukkit.event.block.Action.PHYSICAL, pos, null, null, null);
 +                } else {
-+                    cancellable = new EntityInteractEvent(entity.getBukkitEntity(), bworld.getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ()));
++                    cancellable = new EntityInteractEvent(entity.getBukkitEntity(), bworld.getBlockAt(pos.getX(), pos.getY(), pos.getZ()));
 +                    manager.callEvent((EntityInteractEvent) cancellable);
 +                }
 +

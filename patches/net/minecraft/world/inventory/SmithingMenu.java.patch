@@ -1,0 +1,39 @@
+--- a/net/minecraft/world/inventory/SmithingMenu.java
++++ b/net/minecraft/world/inventory/SmithingMenu.java
+@@ -16,6 +_,7 @@
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.craftbukkit.inventory.CraftInventoryView;
+ 
+ public class SmithingMenu extends ItemCombinerMenu {
+     public static final int TEMPLATE_SLOT = 0;
+@@ -32,6 +_,9 @@
+     private final RecipePropertySet templateItemTest;
+     private final RecipePropertySet additionItemTest;
+     private final DataSlot hasRecipeError = DataSlot.standalone();
++    // CraftBukkit start
++    private CraftInventoryView bukkitEntity;
++    // CraftBukkit end
+ 
+     public SmithingMenu(int containerId, Inventory inventory) {
+         this(containerId, inventory, ContainerLevelAccess.NULL);
+@@ -142,4 +_,18 @@
+     public boolean hasRecipeError() {
+         return this.hasRecipeError.get() > 0;
+     }
++
++    // CraftBukkit start
++    @Override
++    public CraftInventoryView getBukkitView() {
++        if (bukkitEntity != null) {
++            return bukkitEntity;
++        }
++
++        org.bukkit.craftbukkit.inventory.CraftInventory inventory = new org.bukkit.craftbukkit.inventory.CraftInventorySmithing(
++                access.getLocation(), this.inputSlots, this.resultSlots);
++        bukkitEntity = new CraftInventoryView(this.player.getBukkitEntity(), inventory, this);
++        return bukkitEntity;
++    }
++    // CraftBukkit end
+ }

@@ -21,45 +21,45 @@
      public final String serverIp = this.get("server-ip", "");
 @@ -118,8 +123,10 @@
      public final WorldOptions worldOptions;
-     public Settings<DedicatedServerProperties>.MutableValue<Boolean> acceptsTransfers;
+     public final Settings<DedicatedServerProperties>.MutableValue<Boolean> acceptsTransfers;
  
--    public DedicatedServerProperties(Properties properties) {
--        super(properties);
+-    public DedicatedServerProperties(Properties settings) {
+-        super(settings);
 +    // CraftBukkit start
 +    public DedicatedServerProperties(Properties properties, OptionSet optionset) {
 +        super(properties, optionset);
 +        // CraftBukkit end
-         this.difficulty = this.<Difficulty>getMutable("difficulty", dispatchNumberOrString(Difficulty::byId, Difficulty::byName), Difficulty::getKey, Difficulty.EASY);
+         this.difficulty = this.<Difficulty>getMutable("difficulty", dispatchNumberOrString(Difficulty::byId, Difficulty::byName), Difficulty::getSerializedName, Difficulty.EASY);
          this.gameMode = this.<GameType>getMutable("gamemode", dispatchNumberOrString(GameType::byId, GameType::byName), GameType::getName, GameType.SURVIVAL);
          this.levelName = this.get("level-name", "world");
 @@ -186,13 +193,15 @@
          this.initialDataPackConfiguration = getDatapackConfig(this.get("initial-enabled-packs", String.join(",", WorldDataConfiguration.DEFAULT.dataPacks().getEnabled())), this.get("initial-disabled-packs", String.join(",", WorldDataConfiguration.DEFAULT.dataPacks().getDisabled())));
      }
  
--    public static DedicatedServerProperties fromFile(Path path) {
--        return new DedicatedServerProperties(loadFromFile(path));
+-    public static DedicatedServerProperties fromFile(Path file) {
+-        return new DedicatedServerProperties(loadFromFile(file));
 +    // CraftBukkit start
 +    public static DedicatedServerProperties fromFile(Path path, OptionSet optionset) {
 +        return new DedicatedServerProperties(loadFromFile(path), optionset);
      }
  
      @Override
--    protected DedicatedServerProperties reload(RegistryAccess registryaccess, Properties properties) {
+-    protected DedicatedServerProperties reload(RegistryAccess registryAccess, Properties properties) {
 -        return new DedicatedServerProperties(properties);
 +    protected DedicatedServerProperties reload(RegistryAccess registryaccess, Properties properties, OptionSet optionset) {
 +        return new DedicatedServerProperties(properties, optionset);
 +        // CraftBukkit end
      }
  
-     private static @Nullable Component parseResourcePackPrompt(String s) {
+     private static @Nullable Component parseResourcePackPrompt(String prompt) {
 @@ -202,7 +211,7 @@
  
                  return (Component) ComponentSerialization.CODEC.parse(RegistryAccess.EMPTY.createSerializationContext(JsonOps.INSTANCE), jsonelement).resultOrPartial((s1) -> {
-                     DedicatedServerProperties.LOGGER.warn("Failed to parse resource pack prompt '{}': {}", s, s1);
+                     DedicatedServerProperties.LOGGER.warn("Failed to parse resource pack prompt '{}': {}", prompt, s1);
 -                }).orElse((Object) null);
 +                }).orElse(null); // CraftBukkit - decompile error
              } catch (Exception exception) {
-                 DedicatedServerProperties.LOGGER.warn("Failed to parse resource pack prompt '{}'", s, exception);
+                 DedicatedServerProperties.LOGGER.warn("Failed to parse resource pack prompt '{}'", prompt, exception);
              }
 @@ -290,10 +299,10 @@
              }).orElseThrow(() -> {
@@ -77,7 +77,7 @@
 @@ -305,7 +314,7 @@
  
              if (holder.is(WorldPresets.FLAT)) {
-                 RegistryOps<JsonElement> registryops = holderlookup_provider.<JsonElement>createSerializationContext(JsonOps.INSTANCE);
+                 RegistryOps<JsonElement> registryops = registries.<JsonElement>createSerializationContext(JsonOps.INSTANCE);
 -                DataResult dataresult = FlatLevelGeneratorSettings.CODEC.parse(new Dynamic(registryops, this.generatorSettings()));
 +                DataResult<FlatLevelGeneratorSettings> dataresult = FlatLevelGeneratorSettings.CODEC.parse(new Dynamic(registryops, this.generatorSettings())); // CraftBukkit - decompile error
                  Logger logger = DedicatedServerProperties.LOGGER;

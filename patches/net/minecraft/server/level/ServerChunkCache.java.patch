@@ -1,5 +1,22 @@
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
+@@ -15,6 +_,7 @@
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.CompletionStage;
+ import java.util.concurrent.Executor;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.BooleanSupplier;
+ import java.util.function.Consumer;
+ import java.util.function.Supplier;
+@@ -63,7 +_,7 @@
+     public final ServerChunkCache.MainThreadExecutor mainThreadProcessor;
+     public final ChunkMap chunkMap;
+     private final SavedDataStorage savedDataStorage;
+-    private final TicketStorage ticketStorage;
++    public final TicketStorage ticketStorage;
+     private long lastInhabitedUpdate;
+     public boolean spawnEnemies = true;
+     private static final int CACHE_SIZE = 4;
 @@ -99,7 +_,7 @@
              LOGGER.error("Failed to create dimension data storage directory", (Throwable)var14);
          }
@@ -9,6 +26,23 @@
          this.ticketStorage = this.savedDataStorage.computeIfAbsent(TicketStorage.TYPE);
          this.chunkMap = new ChunkMap(
              level,
+@@ -122,6 +_,16 @@
+         this.clearCache();
+     }
+ 
++    // CraftBukkit start - properly implement isChunkLoaded
++    public boolean isChunkLoaded(int chunkX, int chunkZ) {
++        ChunkHolder chunk = this.chunkMap.getUpdatingChunkIfPresent(ChunkPos.pack(chunkX, chunkZ));
++        if (chunk == null) {
++            return false;
++        }
++        return chunk.getFullChunkNow() != null;
++    }
++    // CraftBukkit end
++
+     public ThreadedLevelLightEngine getLightEngine() {
+         return this.lightEngine;
+     }
 @@ -160,6 +_,10 @@
                  }
              }
@@ -28,3 +62,40 @@
                  ChunkAccess chunk = chunkHolder.getChunkIfPresent(ChunkStatus.FULL);
                  if (chunk != null) {
                      this.storeInCache(pos, chunk, ChunkStatus.FULL);
+@@ -304,13 +_,35 @@
+         this.chunkMap.saveAllChunks(flushStorage);
+     }
+ 
++    public AtomicBoolean close_save = new AtomicBoolean(true);
+     @Override
+     public void close() throws IOException {
+-        this.save(true);
++        if (this.close_save.getAndSet(true)) {
++            this.save(true);
++        }
+         this.savedDataStorage.close();
+         this.lightEngine.close();
+         this.chunkMap.close();
+     }
++
++    public void close(boolean save) throws IOException {
++        this.close_save.set(save);
++        this.close();
++    }
++
++    // CraftBukkit start - modelled on below
++    public void purgeUnload() {
++        ProfilerFiller profilerfiller = Profiler.get();
++
++        profilerfiller.push("purge");
++        this.ticketStorage.purgeStaleTickets(this.chunkMap);
++        this.runDistanceManagerUpdates();
++        profilerfiller.popPush("unload");
++        this.chunkMap.tick(() -> true);
++        profilerfiller.pop();
++        this.clearCache();
++    }
++    // CraftBukkit end
+ 
+     @Override
+     public void tick(BooleanSupplier haveTime, boolean tickChunks) {

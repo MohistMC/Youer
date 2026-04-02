@@ -15,17 +15,17 @@
 @@ -98,10 +103,17 @@
      }
  
-     public static FallingBlockEntity fall(Level level, BlockPos blockpos, BlockState blockstate) {
+     public static FallingBlockEntity fall(Level level, BlockPos pos, BlockState state) {
 +        // CraftBukkit start
-+        return fall(level, blockpos, blockstate, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
++        return fall(level, pos, state, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
 +    }
 +
-+    public static FallingBlockEntity fall(Level level, BlockPos blockpos, BlockState blockstate, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason) {
++    public static FallingBlockEntity fall(Level level, BlockPos pos, BlockState state, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason) {
 +        // CraftBukkit end
-         FallingBlockEntity fallingblockentity = new FallingBlockEntity(level, (double) blockpos.getX() + 0.5D, (double) blockpos.getY(), (double) blockpos.getZ() + 0.5D, blockstate.hasProperty(BlockStateProperties.WATERLOGGED) ? (BlockState) blockstate.setValue(BlockStateProperties.WATERLOGGED, false) : blockstate);
-+        if (!CraftEventFactory.callEntityChangeBlockEvent(fallingblockentity, blockpos, blockstate.getFluidState().createLegacyBlock())) return fallingblockentity; // CraftBukkit
+         FallingBlockEntity fallingblockentity = new FallingBlockEntity(level, (double) pos.getX() + 0.5D, (double) pos.getY(), (double) pos.getZ() + 0.5D, state.hasProperty(BlockStateProperties.WATERLOGGED) ? (BlockState) state.setValue(BlockStateProperties.WATERLOGGED, false) : state);
++        if (!CraftEventFactory.callEntityChangeBlockEvent(fallingblockentity, pos, state.getFluidState().createLegacyBlock())) return fallingblockentity; // CraftBukkit
  
-         level.setBlock(blockpos, blockstate.getFluidState().createLegacyBlock(), 3);
+         level.setBlock(pos, state.getFluidState().createLegacyBlock(), 3);
 -        level.addFreshEntity(fallingblockentity);
 +        level.addFreshEntity(fallingblockentity, spawnReason); // CraftBukkit
          return fallingblockentity;
@@ -90,11 +90,11 @@
                              }
                          }
 @@ -335,7 +353,7 @@
-         this.fallDamagePerDistance = valueinput.getFloatOr("FallHurtAmount", 0.0F);
-         this.fallDamageMax = valueinput.getIntOr("FallHurtMax", 40);
-         this.dropItem = valueinput.getBooleanOr("DropItem", true);
--        this.blockData = (CompoundTag) valueinput.read("TileEntityData", CompoundTag.CODEC).orElse((Object) null);
-+        this.blockData = (CompoundTag) valueinput.read("TileEntityData", CompoundTag.CODEC).orElse(null); // CraftBukkit - decompile error
-         this.cancelDrop = valueinput.getBooleanOr("CancelDrop", false);
+         this.fallDamagePerDistance = input.getFloatOr("FallHurtAmount", 0.0F);
+         this.fallDamageMax = input.getIntOr("FallHurtMax", 40);
+         this.dropItem = input.getBooleanOr("DropItem", true);
+-        this.blockData = (CompoundTag) input.read("TileEntityData", CompoundTag.CODEC).orElse((Object) null);
++        this.blockData = (CompoundTag) input.read("TileEntityData", CompoundTag.CODEC).orElse(null); // CraftBukkit - decompile error
+         this.cancelDrop = input.getBooleanOr("CancelDrop", false);
      }
  

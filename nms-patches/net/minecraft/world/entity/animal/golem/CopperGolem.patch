@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/golem/CopperGolem.java
 +++ b/net/minecraft/world/entity/animal/golem/CopperGolem.java
-@@ -56,6 +56,12 @@
+@@ -57,6 +57,12 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -13,7 +13,7 @@
  public class CopperGolem extends AbstractGolem implements ContainerUser, Shearable {
  
      private static final long IGNORE_WEATHERING_TICK = -2L;
-@@ -153,7 +159,7 @@
+@@ -152,7 +158,7 @@
  
      @Override
      public Brain<CopperGolem> getBrain() {
@@ -22,61 +22,61 @@
      }
  
      @Override
-@@ -223,6 +229,11 @@
+@@ -222,6 +228,11 @@
              if (level instanceof ServerLevel) {
                  ServerLevel serverlevel = (ServerLevel) level;
  
 +                // CraftBukkit start
-+                if (!CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemstack, interactionhand)) {
++                if (!CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemstack, hand)) {
 +                    return InteractionResult.PASS;
 +                }
 +                // CraftBukkit end
                  this.shear(serverlevel, SoundSource.PLAYERS, itemstack);
                  this.gameEvent(GameEvent.SHEAR, player);
-                 itemstack.hurtAndBreak(1, player, interactionhand);
-@@ -291,13 +302,21 @@
-     private void turnToStatue(ServerLevel serverlevel) {
+                 itemstack.hurtAndBreak(1, player, hand);
+@@ -290,13 +301,21 @@
+     private void turnToStatue(ServerLevel level) {
          BlockPos blockpos = this.blockPosition();
  
--        serverlevel.setBlock(blockpos, (BlockState) ((BlockState) Blocks.OXIDIZED_COPPER_GOLEM_STATUE.defaultBlockState().setValue(CopperGolemStatueBlock.POSE, CopperGolemStatueBlock.Pose.values()[this.random.nextInt(0, CopperGolemStatueBlock.Pose.values().length)])).setValue(CopperGolemStatueBlock.FACING, Direction.fromYRot((double) this.getYRot())), 3);
+-        level.setBlock(blockpos, (BlockState) ((BlockState) Blocks.OXIDIZED_COPPER_GOLEM_STATUE.defaultBlockState().setValue(CopperGolemStatueBlock.POSE, CopperGolemStatueBlock.Pose.values()[this.random.nextInt(0, CopperGolemStatueBlock.Pose.values().length)])).setValue(CopperGolemStatueBlock.FACING, Direction.fromYRot((double) this.getYRot())), 3);
 +        // CraftBukkit start
 +        BlockState blockState = (BlockState) ((BlockState) Blocks.OXIDIZED_COPPER_GOLEM_STATUE.defaultBlockState().setValue(CopperGolemStatueBlock.POSE, CopperGolemStatueBlock.Pose.values()[this.random.nextInt(0, CopperGolemStatueBlock.Pose.values().length)])).setValue(CopperGolemStatueBlock.FACING, Direction.fromYRot((double) this.getYRot()));
 +        if (!CraftEventFactory.callEntityChangeBlockEvent(this, blockpos, blockState)) {
 +            return;
 +        }
-+        serverlevel.setBlock(blockpos, blockState, 3);
++        level.setBlock(blockpos, blockState, 3);
 +        // CraftBukkit end
-         BlockEntity blockentity = serverlevel.getBlockEntity(blockpos);
+         BlockEntity blockentity = level.getBlockEntity(blockpos);
  
          if (blockentity instanceof CopperGolemStatueBlockEntity coppergolemstatueblockentity) {
              coppergolemstatueblockentity.createStatue(this);
 +            this.forceDrops = true; // CraftBukkit
-             this.dropPreservedEquipment(serverlevel);
+             this.dropPreservedEquipment(level);
 -            this.discard();
 +            this.forceDrops = false; // CraftBukkkit
 +            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
              this.playSound(SoundEvents.COPPER_GOLEM_BECOME_STATUE);
              if (this.isLeashed()) {
-                 if ((Boolean) serverlevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
-@@ -431,7 +450,9 @@
+                 if ((Boolean) level.getGameRules().get(GameRules.ENTITY_DROPS)) {
+@@ -430,7 +449,9 @@
          ItemStack itemstack1 = this.getItemBySlot(CopperGolem.EQUIPMENT_SLOT_ANTENNA);
  
          this.setItemSlot(CopperGolem.EQUIPMENT_SLOT_ANTENNA, ItemStack.EMPTY);
 +        this.forceDrops = true; // CraftBukkit
-         this.spawnAtLocation(serverlevel, itemstack1, 1.5F);
+         this.spawnAtLocation(level, itemstack1, 1.5F);
 +        this.forceDrops = false; // CraftBukkit
      }
  
      @Override
-@@ -446,9 +467,15 @@
+@@ -445,9 +466,15 @@
      }
  
      @Override
--    protected void actuallyHurt(ServerLevel serverlevel, DamageSource damagesource, float f) {
--        super.actuallyHurt(serverlevel, damagesource, f);
+-    protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
+-        super.actuallyHurt(level, source, dmg);
 +    // CraftBukkit start - void -> boolean
-+    public boolean actuallyHurt(ServerLevel serverlevel, DamageSource damagesource, float f, EntityDamageEvent event) {
-+        boolean damageResult = super.actuallyHurt(serverlevel, damagesource, f, event);
++    public boolean actuallyHurt(ServerLevel level, DamageSource source, float dmg, EntityDamageEvent event) {
++        boolean damageResult = super.actuallyHurt(level, source, dmg, event);
 +        if (!damageResult) {
 +            return false;
 +        }

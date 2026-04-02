@@ -8,8 +8,8 @@
 +    private final DamageSource melting;
 +    private final DamageSource poison;
  
-     public DamageSources(RegistryAccess registryaccess) {
-         this.damageTypes = registryaccess.lookupOrThrow(Registries.DAMAGE_TYPE);
+     public DamageSources(RegistryAccess registries) {
+         this.damageTypes = registries.lookupOrThrow(Registries.DAMAGE_TYPE);
 +        this.melting = this.source(DamageTypes.ON_FIRE).melting();
 +        this.poison = this.source(DamageTypes.MAGIC).poison();
 +        // CraftBukkit end
@@ -17,7 +17,7 @@
          this.campfire = this.source(DamageTypes.CAMPFIRE);
          this.lightningBolt = this.source(DamageTypes.LIGHTNING_BOLT);
 @@ -85,6 +91,16 @@
-         return new DamageSource(this.damageTypes.getOrThrow(resourcekey), entity, entity1);
+         return new DamageSource(this.damageTypes.getOrThrow(key), directEntity, causingEntity);
      }
  
 +    // CraftBukkit start
@@ -36,10 +36,10 @@
 @@ -254,7 +270,13 @@
      }
  
-     public DamageSource explosion(@Nullable Entity entity, @Nullable Entity entity1) {
--        return this.source(entity1 != null && entity != null ? DamageTypes.PLAYER_EXPLOSION : DamageTypes.EXPLOSION, entity, entity1);
+     public DamageSource explosion(@Nullable Entity entity, @Nullable Entity cause) {
+-        return this.source(cause != null && entity != null ? DamageTypes.PLAYER_EXPLOSION : DamageTypes.EXPLOSION, entity, cause);
 +        // CraftBukkit start
-+        return this.explosion(entity, entity1, entity1 != null && entity != null ? DamageTypes.PLAYER_EXPLOSION : DamageTypes.EXPLOSION);
++        return this.explosion(entity, cause, cause != null && entity != null ? DamageTypes.PLAYER_EXPLOSION : DamageTypes.EXPLOSION);
 +    }
 +
 +    public DamageSource explosion(@Nullable Entity entity, @Nullable Entity entity1, ResourceKey<DamageType> resourceKey) {
@@ -51,10 +51,10 @@
 @@ -262,7 +284,13 @@
      }
  
-     public DamageSource badRespawnPointExplosion(Vec3 vec3) {
--        return new DamageSource(this.damageTypes.getOrThrow(DamageTypes.BAD_RESPAWN_POINT), vec3);
+     public DamageSource badRespawnPointExplosion(Vec3 boomPos) {
+-        return new DamageSource(this.damageTypes.getOrThrow(DamageTypes.BAD_RESPAWN_POINT), boomPos);
 +        // CraftBukkit start
-+        return badRespawnPointExplosion(vec3, null);
++        return badRespawnPointExplosion(boomPos, null);
 +    }
 +
 +    public DamageSource badRespawnPointExplosion(Vec3 vec3, org.bukkit.block.BlockState blockState) {

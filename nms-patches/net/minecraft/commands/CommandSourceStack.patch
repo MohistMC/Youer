@@ -22,12 +22,12 @@
 +    public volatile CommandNode currentCommand;
 +    // CraftBukkit end
  
-     public CommandSourceStack(CommandSource commandsource, Vec3 vec3, Vec2 vec2, ServerLevel serverlevel, PermissionSet permissionset, String s, Component component, MinecraftServer minecraftserver, @Nullable Entity entity) {
-         this(commandsource, vec3, vec2, serverlevel, permissionset, s, component, minecraftserver, entity, false, CommandResultCallback.EMPTY, EntityAnchorArgument.Anchor.FEET, CommandSigningContext.ANONYMOUS, TaskChainer.immediate(minecraftserver));
+     public CommandSourceStack(CommandSource source, Vec3 position, Vec2 rotation, ServerLevel level, PermissionSet permissions, String textName, Component displayName, MinecraftServer server, @Nullable Entity entity) {
+         this(source, position, rotation, level, permissions, textName, displayName, server, entity, false, CommandResultCallback.EMPTY, EntityAnchorArgument.Anchor.FEET, CommandSigningContext.ANONYMOUS, TaskChainer.immediate(server));
 @@ -86,8 +96,41 @@
-         this.rotation = vec2;
-         this.signingContext = commandsigningcontext;
-         this.chatMessageChainer = taskchainer;
+         this.rotation = rotation;
+         this.signingContext = signingContext;
+         this.chatMessageChainer = chatMessageChainer;
 +        // CraftBukkit start
 +        this.bukkitPermissions = new DelegatePermissionSet(permissions);
      }
@@ -63,8 +63,8 @@
 +    }
 +    // CraftBukkit end
 +
-     public CommandSourceStack withSource(CommandSource commandsource) {
-         return this.source == commandsource ? this : new CommandSourceStack(commandsource, this.worldPosition, this.rotation, this.level, this.permissions, this.textName, this.displayName, this.server, this.entity, this.silent, this.resultCallback, this.anchor, this.signingContext, this.chatMessageChainer);
+     public CommandSourceStack withSource(CommandSource source) {
+         return this.source == source ? this : new CommandSourceStack(source, this.worldPosition, this.rotation, this.level, this.permissions, this.textName, this.displayName, this.server, this.entity, this.silent, this.resultCallback, this.anchor, this.signingContext, this.chatMessageChainer);
      }
 @@ -172,7 +215,7 @@
  

@@ -15,18 +15,18 @@
      private static final Codec<List<SavedTick<Block>>> BLOCK_TICKS_CODEC = SavedTick.codec(BuiltInRegistries.BLOCK.byNameCodec()).listOf();
      private static final Codec<List<SavedTick<Fluid>>> FLUID_TICKS_CODEC = SavedTick.codec(BuiltInRegistries.FLUID.byNameCodec()).listOf();
 @@ -100,9 +105,9 @@
-                 return new UpgradeData(compoundtag1, levelheightaccessor);
+                 return new UpgradeData(compoundtag1, levelHeight);
              }).orElse(UpgradeData.EMPTY);
-             boolean flag = compoundtag.getBooleanOr("isLightOn", false);
--            BlendingData.Packed blendingdata_packed = (BlendingData.Packed) compoundtag.read("blending_data", BlendingData.Packed.CODEC).orElse((Object) null);
--            BelowZeroRetrogen belowzeroretrogen = (BelowZeroRetrogen) compoundtag.read("below_zero_retrogen", BelowZeroRetrogen.CODEC).orElse((Object) null);
--            long[] along = (long[]) compoundtag.getLongArray("carving_mask").orElse((Object) null);
-+            BlendingData.Packed blendingdata_packed = (BlendingData.Packed) compoundtag.read("blending_data", BlendingData.Packed.CODEC).orElse(null); // CraftBukkit - decompile error
-+            BelowZeroRetrogen belowzeroretrogen = (BelowZeroRetrogen) compoundtag.read("below_zero_retrogen", BelowZeroRetrogen.CODEC).orElse(null); // CraftBukkit - decompile error
-+            long[] along = (long[]) compoundtag.getLongArray("carving_mask").orElse(null); // CraftBukkit - decompile error
+             boolean flag = chunkData.getBooleanOr("isLightOn", false);
+-            BlendingData.Packed blendingdata_packed = (BlendingData.Packed) chunkData.read("blending_data", BlendingData.Packed.CODEC).orElse((Object) null);
+-            BelowZeroRetrogen belowzeroretrogen = (BelowZeroRetrogen) chunkData.read("below_zero_retrogen", BelowZeroRetrogen.CODEC).orElse((Object) null);
+-            long[] along = (long[]) chunkData.getLongArray("carving_mask").orElse((Object) null);
++            BlendingData.Packed blendingdata_packed = (BlendingData.Packed) chunkData.read("blending_data", BlendingData.Packed.CODEC).orElse(null); // CraftBukkit - decompile error
++            BelowZeroRetrogen belowzeroretrogen = (BelowZeroRetrogen) chunkData.read("below_zero_retrogen", BelowZeroRetrogen.CODEC).orElse(null); // CraftBukkit - decompile error
++            long[] along = (long[]) chunkData.getLongArray("carving_mask").orElse(null); // CraftBukkit - decompile error
              Map<Heightmap.Types, long[]> map = new EnumMap(Heightmap.Types.class);
  
-             compoundtag.getCompound("Heightmaps").ifPresent((compoundtag1) -> {
+             chunkData.getCompound("Heightmaps").ifPresent((compoundtag1) -> {
 @@ -120,7 +125,7 @@
              ShortList[] ashortlist = new ShortList[listtag.size()];
  
@@ -37,20 +37,20 @@
                  if (listtag1 != null && !listtag1.isEmpty()) {
                      ShortList shortlist = new ShortArrayList(listtag1.size());
 @@ -138,7 +143,7 @@
-             CompoundTag compoundtag1 = compoundtag.getCompoundOrEmpty("structures");
-             ListTag listtag2 = compoundtag.getListOrEmpty("sections");
+             CompoundTag compoundtag1 = chunkData.getCompoundOrEmpty("structures");
+             ListTag listtag2 = chunkData.getListOrEmpty("sections");
              List<SerializableChunkData.SectionData> list4 = new ArrayList(listtag2.size());
--            Codec<PalettedContainerRO<Holder<Biome>>> codec = palettedcontainerfactory.biomeContainerCodec();
-+            Codec<PalettedContainer<Holder<Biome>>> codec = palettedcontainerfactory.biomeContainerCodecRW(); // CraftBukkit - read/write
-             Codec<PalettedContainer<BlockState>> codec1 = palettedcontainerfactory.blockStatesContainerCodec();
+-            Codec<PalettedContainerRO<Holder<Biome>>> codec = containerFactory.biomeContainerCodec();
++            Codec<PalettedContainer<Holder<Biome>>> codec = containerFactory.biomeContainerCodecRW(); // CraftBukkit - read/write
+             Codec<PalettedContainer<BlockState>> codec1 = containerFactory.blockStatesContainerCodec();
  
              for (int i1 = 0; i1 < listtag2.size(); ++i1) {
 @@ -165,21 +170,22 @@
                              }).getOrThrow(SerializableChunkData.ChunkReadException::new);
                          });
-                         Objects.requireNonNull(palettedcontainerfactory);
--                        PalettedContainerRO<Holder<Biome>> palettedcontainerro = (PalettedContainerRO) optional1.orElseGet(palettedcontainerfactory::createForBiomes);
-+                        PalettedContainer<Holder<Biome>> palettedcontainerro = (PalettedContainer) optional1.orElseGet(palettedcontainerfactory::createForBiomes); // CraftBukkit - read/write
+                         Objects.requireNonNull(containerFactory);
+-                        PalettedContainerRO<Holder<Biome>> palettedcontainerro = (PalettedContainerRO) optional1.orElseGet(containerFactory::createForBiomes);
++                        PalettedContainer<Holder<Biome>> palettedcontainerro = (PalettedContainer) optional1.orElseGet(containerFactory::createForBiomes); // CraftBukkit - read/write
  
                          levelchunksection = new LevelChunkSection(palettedcontainer, palettedcontainerro);
                      } else {
@@ -66,9 +66,9 @@
                  }
              }
  
--            return new SerializableChunkData(palettedcontainerfactory, chunkpos, levelheightaccessor.getMinSectionY(), i, j, chunkstatus, blendingdata_packed, belowzeroretrogen, upgradedata, along, map, chunkaccess_packedticks, ashortlist, flag, list4, list2, list3, compoundtag1);
+-            return new SerializableChunkData(containerFactory, chunkpos, levelHeight.getMinSectionY(), i, j, chunkstatus, blendingdata_packed, belowzeroretrogen, upgradedata, along, map, chunkaccess_packedticks, ashortlist, flag, list4, list2, list3, compoundtag1);
 +            // CraftBukkit - ChunkBukkitValues
-+            return new SerializableChunkData(palettedcontainerfactory, chunkpos, levelheightaccessor.getMinSectionY(), i, j, chunkstatus, blendingdata_packed, belowzeroretrogen, upgradedata, along, map, chunkaccess_packedticks, ashortlist, flag, list4, list2, list3, compoundtag1, compoundtag.get("ChunkBukkitValues"));
++            return new SerializableChunkData(containerFactory, chunkpos, levelHeight.getMinSectionY(), i, j, chunkstatus, blendingdata_packed, belowzeroretrogen, upgradedata, along, map, chunkaccess_packedticks, ashortlist, flag, list4, list2, list3, compoundtag1, chunkData.get("ChunkBukkitValues"));
          }
      }
  
@@ -87,16 +87,16 @@
  
 @@ -365,7 +377,14 @@
              });
-             CompoundTag compoundtag1 = packStructureData(StructurePieceSerializationContext.fromLevel(serverlevel), chunkpos, chunkaccess.getAllStarts(), chunkaccess.getAllReferences());
+             CompoundTag compoundtag1 = packStructureData(StructurePieceSerializationContext.fromLevel(level), chunkpos, chunk.getAllStarts(), chunk.getAllReferences());
  
--            return new SerializableChunkData(serverlevel.palettedContainerFactory(), chunkpos, chunkaccess.getMinSectionY(), serverlevel.getGameTime(), chunkaccess.getInhabitedTime(), chunkaccess.getPersistedStatus(), (BlendingData.Packed) Optionull.map(chunkaccess.getBlendingData(), BlendingData::pack), chunkaccess.getBelowZeroRetrogen(), chunkaccess.getUpgradeData().copy(), along, map, chunkaccess_packedticks, ashortlist, chunkaccess.isLightCorrect(), list, list2, list1, compoundtag1);
+-            return new SerializableChunkData(level.palettedContainerFactory(), chunkpos, chunk.getMinSectionY(), level.getGameTime(), chunk.getInhabitedTime(), chunk.getPersistedStatus(), (BlendingData.Packed) Optionull.map(chunk.getBlendingData(), BlendingData::pack), chunk.getBelowZeroRetrogen(), chunk.getUpgradeData().copy(), along, map, chunkaccess_packedticks, ashortlist, chunk.isLightCorrect(), list, list2, list1, compoundtag1);
 +            // CraftBukkit start - store chunk persistent data in nbt
 +            CompoundTag persistentDataContainer = null;
-+            if (!chunkaccess.persistentDataContainer.isEmpty()) { // SPIGOT-6814: Always save PDC to account for 1.17 to 1.18 chunk upgrading.
-+                persistentDataContainer = chunkaccess.persistentDataContainer.toTagCompound();
++            if (!chunk.persistentDataContainer.isEmpty()) { // SPIGOT-6814: Always save PDC to account for 1.17 to 1.18 chunk upgrading.
++                persistentDataContainer = chunk.persistentDataContainer.toTagCompound();
 +            }
 +
-+            return new SerializableChunkData(serverlevel.palettedContainerFactory(), chunkpos, chunkaccess.getMinSectionY(), serverlevel.getGameTime(), chunkaccess.getInhabitedTime(), chunkaccess.getPersistedStatus(), (BlendingData.Packed) Optionull.map(chunkaccess.getBlendingData(), BlendingData::pack), chunkaccess.getBelowZeroRetrogen(), chunkaccess.getUpgradeData().copy(), along, map, chunkaccess_packedticks, ashortlist, chunkaccess.isLightCorrect(), list, list2, list1, compoundtag1, persistentDataContainer);
++            return new SerializableChunkData(level.palettedContainerFactory(), chunkpos, chunk.getMinSectionY(), level.getGameTime(), chunk.getInhabitedTime(), chunk.getPersistedStatus(), (BlendingData.Packed) Optionull.map(chunk.getBlendingData(), BlendingData::pack), chunk.getBelowZeroRetrogen(), chunk.getUpgradeData().copy(), along, map, chunkaccess_packedticks, ashortlist, chunk.isLightCorrect(), list, list2, list1, compoundtag1, persistentDataContainer);
 +            // CraftBukkit end
          }
      }
@@ -114,7 +114,7 @@
      }
  
 @@ -518,6 +542,12 @@
-                 StructureStart structurestart = StructureStart.loadStaticStart(structurepieceserializationcontext, compoundtag1.getCompoundOrEmpty(s), i);
+                 StructureStart structurestart = StructureStart.loadStaticStart(context, compoundtag1.getCompoundOrEmpty(s), seed);
  
                  if (structurestart != null) {
 +                    // CraftBukkit start - load persistent data for structure start

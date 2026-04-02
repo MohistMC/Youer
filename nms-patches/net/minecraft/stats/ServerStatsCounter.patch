@@ -9,13 +9,13 @@
      private final Path file;
      private final Set<Stat<?>> dirty = Sets.newHashSet();
  
--    private static <T> Codec<Map<Stat<?>, Integer>> createTypedStatsCodec(StatType<T> stattype) {
-+    private static <T> Codec<Map<Stat<T>, Integer>> createTypedStatsCodec(StatType<T> stattype) { // CraftBukkit - decompile error
-         Codec<T> codec = stattype.getRegistry().byNameCodec();
+-    private static <T> Codec<Map<Stat<?>, Integer>> createTypedStatsCodec(StatType<T> type) {
++    private static <T> Codec<Map<Stat<T>, Integer>> createTypedStatsCodec(StatType<T> type) { // CraftBukkit - decompile error
+         Codec<T> codec = type.getRegistry().byNameCodec();
  
-         Objects.requireNonNull(stattype);
--        Codec<Stat<?>> codec1 = codec.flatComapMap(stattype::get, (stat) -> {
-+        Codec<Stat<T>> codec1 = codec.flatComapMap(stattype::get, (stat) -> { // CraftBukkit - decompile error
-             return stat.getType() == stattype ? DataResult.success(stat.getValue()) : DataResult.error(() -> {
-                 String s = String.valueOf(stattype);
+         Objects.requireNonNull(type);
+-        Codec<Stat<?>> codec1 = codec.flatComapMap(type::get, (stat) -> {
++        Codec<Stat<T>> codec1 = codec.flatComapMap(type::get, (stat) -> { // CraftBukkit - decompile error
+             return stat.getType() == type ? DataResult.success(stat.getValue()) : DataResult.error(() -> {
+                 String s = String.valueOf(type);
  

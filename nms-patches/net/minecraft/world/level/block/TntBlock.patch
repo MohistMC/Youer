@@ -14,45 +14,45 @@
      public static final MapCodec<TntBlock> CODEC = simpleCodec(TntBlock::new);
 @@ -49,7 +54,7 @@
      @Override
-     protected void onPlace(BlockState blockstate, Level level, BlockPos blockpos, BlockState blockstate1, boolean flag) {
-         if (!blockstate1.is(blockstate.getBlock())) {
--            if (level.hasNeighborSignal(blockpos) && prime(level, blockpos)) {
-+            if (level.hasNeighborSignal(blockpos) && CraftEventFactory.callTNTPrimeEvent(level, blockpos, PrimeCause.REDSTONE, null, null) && prime(level, blockpos)) { // CraftBukkit - TNTPrimeEvent
-                 level.removeBlock(blockpos, false);
+     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+         if (!oldState.is(state.getBlock())) {
+-            if (level.hasNeighborSignal(pos) && prime(level, pos)) {
++            if (level.hasNeighborSignal(pos) && CraftEventFactory.callTNTPrimeEvent(level, pos, PrimeCause.REDSTONE, null, null) && prime(level, pos)) { // CraftBukkit - TNTPrimeEvent
+                 level.removeBlock(pos, false);
              }
  
 @@ -58,7 +63,7 @@
  
      @Override
-     protected void neighborChanged(BlockState blockstate, Level level, BlockPos blockpos, Block block, @Nullable Orientation orientation, boolean flag) {
--        if (level.hasNeighborSignal(blockpos) && prime(level, blockpos)) {
-+        if (level.hasNeighborSignal(blockpos) && CraftEventFactory.callTNTPrimeEvent(level, blockpos, PrimeCause.REDSTONE, null, null) && prime(level, blockpos)) { // CraftBukkit - TNTPrimeEvent
-             level.removeBlock(blockpos, false);
+     protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
+-        if (level.hasNeighborSignal(pos) && prime(level, pos)) {
++        if (level.hasNeighborSignal(pos) && CraftEventFactory.callTNTPrimeEvent(level, pos, PrimeCause.REDSTONE, null, null) && prime(level, pos)) { // CraftBukkit - TNTPrimeEvent
+             level.removeBlock(pos, false);
          }
  
 @@ -66,7 +71,7 @@
  
      @Override
-     public BlockState playerWillDestroy(Level level, BlockPos blockpos, BlockState blockstate, Player player) {
--        if (!level.isClientSide() && !player.getAbilities().instabuild && (Boolean) blockstate.getValue(TntBlock.UNSTABLE)) {
-+        if (!level.isClientSide() && !player.getAbilities().instabuild && (Boolean) blockstate.getValue(TntBlock.UNSTABLE) && CraftEventFactory.callTNTPrimeEvent(level, blockpos, PrimeCause.BLOCK_BREAK, player, null)) { // CraftBukkit - TNTPrimeEvent
-             prime(level, blockpos);
+     public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+-        if (!level.isClientSide() && !player.getAbilities().instabuild && (Boolean) state.getValue(TntBlock.UNSTABLE)) {
++        if (!level.isClientSide() && !player.getAbilities().instabuild && (Boolean) state.getValue(TntBlock.UNSTABLE) && CraftEventFactory.callTNTPrimeEvent(level, pos, PrimeCause.BLOCK_BREAK, player, null)) { // CraftBukkit - TNTPrimeEvent
+             prime(level, pos);
          }
  
 @@ -108,6 +113,11 @@
-         if (!itemstack.is(Items.FLINT_AND_STEEL) && !itemstack.is(Items.FIRE_CHARGE)) {
-             return super.useItemOn(itemstack, blockstate, level, blockpos, player, interactionhand, blockhitresult);
+         if (!itemStack.is(Items.FLINT_AND_STEEL) && !itemStack.is(Items.FIRE_CHARGE)) {
+             return super.useItemOn(itemStack, state, level, pos, player, hand, hitResult);
          } else {
 +            // CraftBukkit start - TNTPrimeEvent
-+            if (!CraftEventFactory.callTNTPrimeEvent(level, blockpos, PrimeCause.PLAYER, player, null)) {
++            if (!CraftEventFactory.callTNTPrimeEvent(level, pos, PrimeCause.PLAYER, player, null)) {
 +                return InteractionResult.CONSUME;
 +            }
 +            // CraftBukkit end
-             if (prime(level, blockpos, player)) {
-                 level.setBlock(blockpos, Blocks.AIR.defaultBlockState(), 11);
-                 Item item = itemstack.getItem();
+             if (prime(level, pos, player)) {
+                 level.setBlock(pos, Blocks.AIR.defaultBlockState(), 11);
+                 Item item = itemStack.getItem();
 @@ -138,7 +148,8 @@
-             BlockPos blockpos = blockhitresult.getBlockPos();
+             BlockPos blockpos = blockHit.getBlockPos();
              Entity entity = projectile.getOwner();
  
 -            if (projectile.isOnFire() && projectile.mayInteract(serverlevel, blockpos) && prime(level, blockpos, entity instanceof LivingEntity ? (LivingEntity) entity : null)) {

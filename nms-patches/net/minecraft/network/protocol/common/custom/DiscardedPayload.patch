@@ -7,18 +7,18 @@
 -public record DiscardedPayload(Identifier id) implements CustomPacketPayload {
 +public record DiscardedPayload(Identifier id, io.netty.buffer.ByteBuf data) implements CustomPacketPayload { // CraftBukkit - store data
  
-     public static <T extends FriendlyByteBuf> StreamCodec<T, DiscardedPayload> codec(Identifier identifier, int i) {
+     public static <T extends FriendlyByteBuf> StreamCodec<T, DiscardedPayload> codec(Identifier id, int maxPayloadSize) {
          return CustomPacketPayload.codec((discardedpayload, friendlybytebuf) -> {
 +            friendlybytebuf.writeBytes(discardedpayload.data); // CraftBukkit - serialize
          }, (friendlybytebuf) -> {
              int j = friendlybytebuf.readableBytes();
  
-             if (j >= 0 && j <= i) {
+             if (j >= 0 && j <= maxPayloadSize) {
 -                friendlybytebuf.skipBytes(j);
--                return new DiscardedPayload(identifier);
+-                return new DiscardedPayload(id);
 +                // CraftBukkit start
-+                return new DiscardedPayload(identifier, friendlybytebuf.readBytes(j));
++                return new DiscardedPayload(id, friendlybytebuf.readBytes(j));
 +                // CraftBukkit end
              } else {
-                 throw new IllegalArgumentException("Payload may not be larger than " + i + " bytes");
+                 throw new IllegalArgumentException("Payload may not be larger than " + maxPayloadSize + " bytes");
              }

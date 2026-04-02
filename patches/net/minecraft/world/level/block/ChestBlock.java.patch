@@ -1,5 +1,84 @@
 --- a/net/minecraft/world/level/block/ChestBlock.java
 +++ b/net/minecraft/world/level/block/ChestBlock.java
+@@ -90,12 +_,35 @@
+             return Optional.empty();
+         }
+     };
+-    public static DoubleBlockCombiner.Combiner<ChestBlockEntity, Optional<MenuProvider>> MENU_PROVIDER_COMBINER = new DoubleBlockCombiner.Combiner<ChestBlockEntity, Optional<MenuProvider>>() {
+-        public Optional<MenuProvider> acceptDouble(ChestBlockEntity first, ChestBlockEntity second) {
+-            final Container container = new CompoundContainer(first, second);
+-            return Optional.of(new MenuProvider() {
++
++    // CraftBukkit start
++    public static final DoubleBlockCombiner.Combiner<ChestBlockEntity, Optional<MenuProvider>> MENU_PROVIDER_COMBINER = new DoubleChestCombiner();
++
++    public static class DoubleChestCombiner implements DoubleBlockCombiner.Combiner<ChestBlockEntity, Optional<MenuProvider>> {
++
++        public Optional<MenuProvider> acceptDouble(final ChestBlockEntity first, final ChestBlockEntity second) {
++            final CompoundContainer container = new CompoundContainer(first, second);
++
++            return Optional.of(new Dummy.DoubleInventory(first, second, container));
++        }
++
++        public static class Dummy {
++
++            public static class DoubleInventory implements MenuProvider {
++
++                private final ChestBlockEntity first;
++                private final ChestBlockEntity second;
++                public final CompoundContainer container;
++
++                public DoubleInventory(ChestBlockEntity first, ChestBlockEntity second, CompoundContainer container) {
++                    this.first = first;
++                    this.second = second;
++                    this.container = container;
++                }
++                // CraftBukkit end
++
+                 {
+-                    
++                    // $FF impossible: Objects.requireNonNull(<VAR_NAMELESS_ENCLOSURE>);
+                 }
+ 
+                 @Override
+@@ -105,29 +_,27 @@
+                         second.unpackLootTable(inventory.player);
+                         return ChestMenu.sixRows(containerId, inventory, container);
+                     } else {
+-                        Direction connectedDirection = ChestBlock.getConnectedDirection(first.getBlockState());
+-                        Vec3 firstCenter = first.getBlockPos().getCenter();
+-                        Vec3 centerBetweenChests = firstCenter.add(connectedDirection.getStepX() / 2.0, 0.0, connectedDirection.getStepZ() / 2.0);
+-                        BaseContainerBlockEntity.sendChestLockedNotifications(centerBetweenChests, player, this.getDisplayName());
++                        Direction direction = ChestBlock.getConnectedDirection(first.getBlockState());
++                        Vec3 vec3 = first.getBlockPos().getCenter();
++                        Vec3 vec31 = vec3.add((double) direction.getStepX() / 2.0D, 0.0D, (double) direction.getStepZ() / 2.0D);
++
++                        BaseContainerBlockEntity.sendChestLockedNotifications(vec31, player, this.getDisplayName());
+                         return null;
+                     }
+                 }
+ 
+                 @Override
+                 public Component getDisplayName() {
+-                    if (first.hasCustomName()) {
+-                        return first.getDisplayName();
+-                    } else {
+-                        return (Component)(second.hasCustomName() ? second.getDisplayName() : Component.translatable("container.chestDouble"));
+-                    }
++                    return (Component) (first.hasCustomName() ? first.getDisplayName() : (second.hasCustomName() ? second.getDisplayName() : Component.translatable("container.chestDouble")));
+                 }
+-            });
++            };
+         }
+ 
+         public Optional<MenuProvider> acceptSingle(ChestBlockEntity single) {
+             return Optional.of(single);
+         }
+ 
++        @Override
+         public Optional<MenuProvider> acceptNone() {
+             return Optional.empty();
+         }
 @@ -368,7 +_,8 @@
  
      @Override

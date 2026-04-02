@@ -1,5 +1,24 @@
 --- a/net/minecraft/server/level/ChunkHolder.java
 +++ b/net/minecraft/server/level/ChunkHolder.java
+@@ -71,6 +_,18 @@
+         this.changedBlocksPerSection = new ShortSet[levelHeightAccessor.getSectionsCount()];
+     }
+ 
++    // CraftBukkit start
++    public LevelChunk getFullChunkNow() {
++        // Note: We use the oldTicketLevel for isLoaded checks.
++        if (!ChunkLevel.fullStatus(this.oldTicketLevel).isOrAfter(FullChunkStatus.FULL)) return null;
++        return this.getFullChunkNowUnchecked();
++    }
++
++    public LevelChunk getFullChunkNowUnchecked() {
++        return (LevelChunk) this.getChunkIfPresentUnchecked(ChunkStatus.FULL);
++    }
++    // CraftBukkit end
++
+     public CompletableFuture<ChunkResult<LevelChunk>> getTickingChunkFuture() {
+         return this.tickingChunkFuture;
+     }
 @@ -230,6 +_,7 @@
              if (packet != null) {
                  this.broadcast(players, packet);

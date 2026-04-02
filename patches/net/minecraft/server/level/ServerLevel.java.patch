@@ -1,6 +1,85 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -215,11 +_,17 @@
+@@ -55,9 +_,11 @@
+ import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
+ import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
+ import net.minecraft.network.protocol.game.ClientboundSoundPacket;
++import net.minecraft.resources.Identifier;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.ServerScoreboard;
++import net.minecraft.server.bossevents.CustomBossEvents;
+ import net.minecraft.server.players.SleepStatus;
+ import net.minecraft.server.waypoints.ServerWaypointManager;
+ import net.minecraft.sounds.SoundEvent;
+@@ -68,6 +_,7 @@
+ import net.minecraft.util.CsvOutput;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.ProgressListener;
++import net.minecraft.util.RandomSource;
+ import net.minecraft.util.Util;
+ import net.minecraft.util.datafix.DataFixTypes;
+ import net.minecraft.util.debug.DebugSubscriptions;
+@@ -79,6 +_,7 @@
+ import net.minecraft.util.valueproviders.UniformInt;
+ import net.minecraft.world.Difficulty;
+ import net.minecraft.world.DifficultyInstance;
++import net.minecraft.world.RandomSequences;
+ import net.minecraft.world.TickRateManager;
+ import net.minecraft.world.attribute.EnvironmentAttributeSystem;
+ import net.minecraft.world.attribute.EnvironmentAttributes;
+@@ -121,6 +_,7 @@
+ import net.minecraft.world.level.StructureManager;
+ import net.minecraft.world.level.WorldGenLevel;
+ import net.minecraft.world.level.biome.Biome;
++import net.minecraft.world.level.biome.BiomeSource;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.SnowLayerBlock;
+@@ -150,8 +_,11 @@
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.gameevent.GameEventDispatcher;
+ import net.minecraft.world.level.gamerules.GameRule;
++import net.minecraft.world.level.gamerules.GameRuleMap;
+ import net.minecraft.world.level.gamerules.GameRules;
++import net.minecraft.world.level.levelgen.FlatLevelSource;
+ import net.minecraft.world.level.levelgen.Heightmap;
++import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
+ import net.minecraft.world.level.levelgen.WorldGenSettings;
+ import net.minecraft.world.level.levelgen.WorldOptions;
+ import net.minecraft.world.level.levelgen.structure.BoundingBox;
+@@ -170,8 +_,10 @@
+ import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+ import net.minecraft.world.level.storage.LevelData;
+ import net.minecraft.world.level.storage.LevelStorageSource;
++import net.minecraft.world.level.storage.PrimaryLevelData;
+ import net.minecraft.world.level.storage.SavedDataStorage;
+ import net.minecraft.world.level.storage.ServerLevelData;
++import net.minecraft.world.level.timers.TimerQueue;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.phys.shapes.BooleanOp;
+@@ -179,6 +_,10 @@
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ import net.minecraft.world.ticks.LevelTicks;
+ import net.minecraft.world.waypoints.WaypointTransmitter;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.generator.CustomWorldChunkManager;
++import org.bukkit.craftbukkit.util.WorldUUID;
++import org.bukkit.event.weather.LightningStrikeEvent;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+@@ -194,7 +_,7 @@
+     private final List<ServerPlayer> players = Lists.newArrayList();
+     public final ServerChunkCache chunkSource;
+     private final MinecraftServer server;
+-    public final ServerLevelData serverLevelData;
++    public final PrimaryLevelData serverLevelData;
+     private final EntityTickList entityTickList = new EntityTickList();
+     private final ServerWaypointManager waypointManager;
+     private EnvironmentAttributeSystem environmentAttributes;
+@@ -215,11 +_,70 @@
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      private @Nullable EnderDragonFight dragonFight;
@@ -16,10 +95,63 @@
 +    public java.util.OptionalLong getSeedOverride() {
 +        return this.seedOverride;
 +    }
++
++    // CraftBukkit start
++    public final LevelStorageSource.LevelStorageAccess storageSource;
++    public final UUID uuid;
++    // Moved from MinecraftServer start
++    private final SavedDataStorage savedDataStorage;
++    private final GameRules gameRules;
++    private final WorldGenSettings worldGenSettings;
++    private final CustomBossEvents customBossEvents;
++    private final RandomSequences randomSequences;
++    private final WeatherData weatherData;
++    private final TimerQueue<MinecraftServer> scheduledEvents;
++    private final ServerClockManager clockManager;
++
++    public WorldGenSettings getWorldGenSettings() {
++        return this.worldGenSettings;
++    }
++
++    public CustomBossEvents getCustomBossEvents() {
++        return this.customBossEvents;
++    }
++
++    public RandomSource getRandomSequence(Identifier key) {
++        return this.randomSequences.get(key, this.worldGenSettings.options().seed());
++    }
++
++    public RandomSequences getRandomSequences() {
++        return this.randomSequences;
++    }
++
++    public void setWeatherParameters(int clearTime, int rainTime, boolean raining, boolean thundering) {
++        WeatherData weatherdata = this.getWeatherData();
++
++        weatherdata.setClearWeatherTime(clearTime);
++        weatherdata.setRainTime(rainTime);
++        weatherdata.setThunderTime(rainTime);
++        weatherdata.setRaining(raining);
++        weatherdata.setThundering(thundering);
++    }
++
++    public TimerQueue<MinecraftServer> getScheduledEvents() {
++        return this.scheduledEvents;
++    }
++    // Moved from MinecraftServer end
++
++    public LevelChunk getChunkIfLoaded(int x, int z) {
++        return this.chunkSource.getChunk(x, z, false);
++    }
++
++    @Override
++    public ResourceKey<LevelStem> getTypeKey() {
++        return storageSource.dimensionType;
++    }
  
      public ServerLevel(
          MinecraftServer server,
-@@ -233,10 +_,12 @@
+@@ -233,12 +_,48 @@
          List<CustomSpawner> customSpawners,
          boolean tickTime
      ) {
@@ -27,12 +159,48 @@
 +        this.seedOverride = levelStem.seedOverride();
 +        biomeZoomSeed = net.minecraft.util.ExtraCodecs.fromOptionalLong.apply(levelStem.seedOverride()).map(net.minecraft.world.level.biome.BiomeManager::obfuscateSeed).orElse(biomeZoomSeed);
          super(levelData, dimension, server.registryAccess(), levelStem.type(), false, isDebug, biomeZoomSeed, server.getMaxChainedNeighborUpdates());
++        storageSource = levelStorage;
++        uuid = WorldUUID.getUUID(levelStorage.levelDirectory.path().toFile());
++        // CraftBukkit end
          this.tickTime = tickTime;
          this.server = server;
 -        this.customSpawners = customSpawners;
          this.serverLevelData = levelData;
          ChunkGenerator generator = levelStem.generator();
++        // CraftBukkit start
++        serverLevelData.setWorld(this);
++
++        // Start moved from MinecraftServer<init>
++        this.savedDataStorage = savedDataStorage;
++
++        this.worldGenSettings = worldGenSettings;
++        this.savedDataStorage.set(WorldGenSettings.TYPE, this.worldGenSettings);
++
++        this.randomSequences = (RandomSequences) this.savedDataStorage.computeIfAbsent(RandomSequences.TYPE);
++        this.weatherData = (WeatherData) this.savedDataStorage.computeIfAbsent(WeatherData.TYPE);
++        this.gameRules = new GameRules(this.serverLevelData.enabledFeatures(), (GameRuleMap) this.savedDataStorage.computeIfAbsent(GameRuleMap.TYPE));
++
++        this.clockManager = (ServerClockManager) this.savedDataStorage.computeIfAbsent(ServerClockManager.TYPE);
++        this.clockManager.init(this);
++        this.customBossEvents = (CustomBossEvents) this.savedDataStorage.computeIfAbsent(CustomBossEvents.TYPE);
++        this.scheduledEvents = (TimerQueue) this.savedDataStorage.computeIfAbsent(TimerQueue.TYPE);
++        // End moved from MinecraftServer<init>
++        if (biomeProvider != null) {
++            BiomeSource worldChunkManager = new CustomWorldChunkManager(getWorld(), biomeProvider, server.registryAccess().lookupOrThrow(Registries.BIOME));
++            if (chunkgenerator instanceof NoiseBasedChunkGenerator cga) {
++                chunkgenerator = new NoiseBasedChunkGenerator(worldChunkManager, cga.settings);
++            } else if (chunkgenerator instanceof FlatLevelSource cpf) {
++                chunkgenerator = new FlatLevelSource(cpf.settings(), worldChunkManager);
++            }
++        }
++
++        if (gen != null) {
++            chunkgenerator = new org.bukkit.craftbukkit.generator.CustomChunkGenerator(this, chunkgenerator, gen);
++        }
++        // CraftBukkit end
          boolean syncWrites = server.forceSynchronousWrites();
+         DataFixer fixerUpper = server.getFixerUpper();
+         EntityPersistentStorage<Entity> entityStorage = new EntityStorage(
 @@ -279,7 +_,7 @@
  
          WorldGenSettings worldGenSettings = server.getWorldGenSettings();
@@ -172,6 +340,29 @@
          }
      }
  
+@@ -1007,6 +_,22 @@
+         player.remove(reason);
+     }
+ 
++    // CraftBukkit start
++    public boolean strikeLightning(Entity entitylightning) {
++        return this.strikeLightning(entitylightning, LightningStrikeEvent.Cause.UNKNOWN);
++    }
++
++    public boolean strikeLightning(Entity entitylightning, LightningStrikeEvent.Cause cause) {
++        LightningStrikeEvent lightning = CraftEventFactory.callLightningStrikeEvent((org.bukkit.entity.LightningStrike) entitylightning.getBukkitEntity(), cause);
++
++        if (lightning.isCancelled()) {
++            return false;
++        }
++
++        return this.addFreshEntity(entitylightning);
++    }
++    // CraftBukkit end
++
+     @Override
+     public void destroyBlockProgress(int id, BlockPos blockPos, int progress) {
+         for (ServerPlayer player : this.server.getPlayerList().getPlayers()) {
 @@ -1025,6 +_,12 @@
      public void playSeededSound(
          @Nullable Entity except, double x, double y, double z, Holder<SoundEvent> sound, SoundSource source, float volume, float pitch, long seed
@@ -242,6 +433,31 @@
          int blockCount = explosion.explode();
          ParticleOptions explosionParticle = explosion.isSmall() ? smallExplosionParticles : largeExplosionParticles;
  
+@@ -1281,6 +_,24 @@
+         return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, speed);
+     }
+ 
++    // CraftBukkit start - visibility api support
++    public <T extends ParticleOptions> int sendParticlesSource(ServerPlayer sender, T particle, boolean overrideLimiter, boolean alwaysShow, double x, double y, double z, int count, double xDist, double yDist, double zDist, double speed) {
++        // CraftBukkit end
++        ClientboundLevelParticlesPacket clientboundlevelparticlespacket = new ClientboundLevelParticlesPacket(particle, overrideLimiter, alwaysShow, x, y, z, (float) xDist, (float) yDist, (float) zDist, (float) speed, count);
++        int j = 0;
++
++        for (int k = 0; k < this.players.size(); ++k) {
++            ServerPlayer serverplayer = (ServerPlayer) this.players.get(k);
++            if (sender != null && !serverplayer.getBukkitEntity().canSee(sender.getBukkitEntity())) continue; // CraftBukkit
++
++            if (this.sendParticles(serverplayer, overrideLimiter, x, y, z, clientboundlevelparticlespacket)) {
++                ++j;
++            }
++        }
++
++        return j;
++    }
++
+     public <T extends ParticleOptions> int sendParticles(
+         T particle,
+         boolean overrideLimiter,
 @@ -1379,7 +_,7 @@
      }
  

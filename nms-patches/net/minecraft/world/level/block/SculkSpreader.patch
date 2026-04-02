@@ -20,43 +20,43 @@
      private List<SculkSpreader.ChargeCursor> cursors = new ArrayList();
 +    public Level level; // CraftBukkit
  
-     public SculkSpreader(boolean flag, TagKey<Block> tagkey, int i, int j, int k, int l) {
-         this.isWorldGeneration = flag;
+     public SculkSpreader(boolean isWorldGeneration, TagKey<Block> replaceableBlocks, int growthSpawnCost, int noGrowthRadius, int chargeDecayRate, int additionalDecayRate) {
+         this.isWorldGeneration = isWorldGeneration;
 @@ -105,7 +113,7 @@
  
-     public void load(ValueInput valueinput) {
+     public void load(ValueInput input) {
          this.cursors.clear();
--        ((List) valueinput.read("cursors", SculkSpreader.ChargeCursor.CODEC.sizeLimitedListOf(32)).orElse(List.of())).forEach(this::addCursor);
-+        (valueinput.read("cursors", SculkSpreader.ChargeCursor.CODEC.sizeLimitedListOf(32)).orElse(List.of())).forEach(this::addCursor); // CraftBukkit - decompile error
+-        ((List) input.read("cursors", SculkSpreader.ChargeCursor.CODEC.sizeLimitedListOf(32)).orElse(List.of())).forEach(this::addCursor);
++        (input.read("cursors", SculkSpreader.ChargeCursor.CODEC.sizeLimitedListOf(32)).orElse(List.of())).forEach(this::addCursor); // CraftBukkit - decompile error
      }
  
-     public void save(ValueOutput valueoutput) {
+     public void save(ValueOutput output) {
 @@ -137,6 +145,19 @@
  
-     private void addCursor(SculkSpreader.ChargeCursor sculkspreader_chargecursor) {
+     private void addCursor(SculkSpreader.ChargeCursor cursor) {
          if (this.cursors.size() < 32) {
 +            // CraftBukkit start
 +            if (!isWorldGeneration()) { // CraftBukkit - SPIGOT-7475: Don't call event during world generation
-+                CraftBlock bukkitBlock = CraftBlock.at(level, sculkspreader_chargecursor.pos);
-+                SculkBloomEvent event = new SculkBloomEvent(bukkitBlock, sculkspreader_chargecursor.getCharge());
++                CraftBlock bukkitBlock = CraftBlock.at(level, cursor.pos);
++                SculkBloomEvent event = new SculkBloomEvent(bukkitBlock, cursor.getCharge());
 +                Bukkit.getPluginManager().callEvent(event);
 +                if (event.isCancelled()) {
 +                    return;
 +                }
 +
-+                sculkspreader_chargecursor.charge = event.getCharge();
++                cursor.charge = event.getCharge();
 +            }
 +            // CraftBukkit end
 +
-             this.cursors.add(sculkspreader_chargecursor);
+             this.cursors.add(cursor);
          }
      }
 @@ -228,7 +249,7 @@
-             this.charge = i;
-             this.decayDelay = j;
-             this.updateDelay = k;
--            this.facings = (Set) optional.orElse((Object) null);
-+            this.facings = (Set) optional.orElse(null); // CraftBukkit - decompile error
+             this.charge = charge;
+             this.decayDelay = decayDelay;
+             this.updateDelay = updateDelay;
+-            this.facings = (Set) facings.orElse((Object) null);
++            this.facings = (Set) facings.orElse(null); // CraftBukkit - decompile error
          }
  
-         public ChargeCursor(BlockPos blockpos, int i) {
+         public ChargeCursor(BlockPos pos, int charge) {

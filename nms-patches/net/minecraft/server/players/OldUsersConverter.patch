@@ -50,8 +50,8 @@
              }
  
 @@ -341,6 +347,30 @@
-                         File file5 = new File(file, s2 + ".dat");
-                         File file6 = new File(file4, s3 + ".dat");
+                         File file5 = new File(file, oldName + ".dat");
+                         File file6 = new File(directory, newName + ".dat");
  
 +                        // CraftBukkit start - Use old file name to seed lastKnownName
 +                        CompoundTag root = null;
@@ -67,7 +67,7 @@
 +                                root.put("bukkit", new CompoundTag());
 +                            }
 +                            CompoundTag data = root.getCompoundOrEmpty("bukkit");
-+                            data.putString("lastKnownName", s2);
++                            data.putString("lastKnownName", oldName);
 +
 +                            try {
 +                                NbtIo.writeCompressed(root, new java.io.FileOutputStream(file2));
@@ -77,6 +77,6 @@
 +                       }
 +                        // CraftBukkit end
 +
-                         OldUsersConverter.ensureDirectoryExists(file4);
+                         OldUsersConverter.ensureDirectoryExists(directory);
                          if (!file5.renameTo(file6)) {
-                             throw new OldUsersConverter.ConversionError("Could not convert file for " + s2);
+                             throw new OldUsersConverter.ConversionError("Could not convert file for " + oldName);

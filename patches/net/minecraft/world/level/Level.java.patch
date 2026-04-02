@@ -1,7 +1,52 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -90,7 +_,7 @@
+@@ -4,9 +_,11 @@
+ import com.mojang.serialization.Codec;
+ import java.io.IOException;
+ import java.util.Collection;
++import java.util.HashMap;
+ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Locale;
++import java.util.Map;
+ import java.util.Optional;
+ import java.util.UUID;
+ import java.util.function.Consumer;
+@@ -30,6 +_,7 @@
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.FullChunkStatus;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.sounds.SoundEvent;
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.sounds.SoundSource;
+@@ -51,6 +_,7 @@
+ import net.minecraft.world.entity.EntitySelector;
+ import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+ import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
++import net.minecraft.world.entity.item.ItemEntity;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.alchemy.PotionBrewing;
+@@ -71,6 +_,7 @@
+ import net.minecraft.world.level.chunk.PalettedContainerFactory;
+ import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.dimension.DimensionType;
++import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.entity.EntityTypeTest;
+ import net.minecraft.world.level.entity.LevelEntityGetter;
+ import net.minecraft.world.level.gameevent.GameEvent;
+@@ -88,9 +_,16 @@
+ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.scores.Scoreboard;
  import org.apache.commons.lang3.mutable.MutableBoolean;
++import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.CraftServer;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.block.CapturedBlockState;
++import org.bukkit.craftbukkit.block.data.CraftBlockData;
++import org.bukkit.entity.SpawnCategory;
++import org.bukkit.event.block.BlockPhysicsEvent;
  import org.jspecify.annotations.Nullable;
  
 -public abstract class Level implements LevelAccessor, AutoCloseable, net.neoforged.neoforge.common.extensions.ILevelExtension {
@@ -9,7 +54,7 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace("the_nether"));
-@@ -130,6 +_,11 @@
+@@ -130,6 +_,34 @@
      private final DamageSources damageSources;
      private final PalettedContainerFactory palettedContainerFactory;
      private long subTickCount;
@@ -18,6 +63,29 @@
 +    public java.util.ArrayList<net.neoforged.neoforge.common.util.BlockSnapshot> capturedBlockSnapshots = new java.util.ArrayList<>();
 +    private final java.util.ArrayList<BlockEntity> freshBlockEntities = new java.util.ArrayList<>();
 +    private final java.util.ArrayList<BlockEntity> pendingFreshBlockEntities = new java.util.ArrayList<>();
++
++    // CraftBukkit start Added the following
++    private CraftWorld world;
++    public org.bukkit.generator.ChunkGenerator generator;
++
++    public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
++    public boolean captureBlockStates = false;
++    public boolean captureTreeGeneration = false;
++    public Map<BlockPos, CapturedBlockState> capturedBlockStates = new java.util.LinkedHashMap<>();
++    public Map<BlockPos, BlockEntity> capturedTileEntities = new HashMap<>();
++    public List<ItemEntity> captureDrops;
++    public final it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>();
++    public boolean populating;
++
++    public CraftWorld getWorld() {
++        return this.world;
++    }
++
++    public CraftServer getCraftServer() {
++        return (CraftServer) Bukkit.getServer();
++    }
++
++    public abstract ResourceKey<LevelStem> getTypeKey();
  
      protected Level(
          WritableLevelData levelData,
@@ -58,16 +126,72 @@
                  if (newState == blockState) {
                      if (oldState != newState) {
                          this.setBlocksDirty(pos, oldState, newState);
-@@ -253,9 +_,8 @@
+@@ -253,12 +_,60 @@
                      }
  
                      this.updatePOIOnBlockStateChange(pos, oldState, newState);
-+                    blockState.onBlockStateChange(this, pos, oldState);
-                 }
+-                }
 -
 -                return true;
-             }
-         }
+-            }
+-        }
+-    }
++                    blockState.onBlockStateChange(this, pos, oldState);
++                }
++            }
++        }
++    }
++
++    // CraftBukkit start - Split off from above in order to directly send client and physic updates
++    public void notifyAndUpdatePhysics(BlockPos blockpos, LevelChunk levelchunk, BlockState oldBlock, BlockState newBlock, BlockState actualBlock, int i, int j) {
++        BlockState blockstate = newBlock;
++        BlockState blockstate1 = oldBlock;
++        BlockState blockstate2 = actualBlock;
++        if (blockstate2 == blockstate) {
++            if (blockstate1 != blockstate2) {
++                this.setBlocksDirty(blockpos, blockstate1, blockstate2);
++            }
++
++            if ((i & 2) != 0 && (!this.isClientSide || (i & 4) == 0) && (this.isClientSide || levelchunk == null || (levelchunk.getFullStatus() != null && levelchunk.getFullStatus().isOrAfter(FullChunkStatus.BLOCK_TICKING)))) { // allow chunk to be null here as chunk.isReady() is false when we send our notification during block placement
++                this.sendBlockUpdated(blockpos, blockstate1, blockstate, i);
++            }
++
++            if ((i & 1) != 0) {
++                this.updateNeighborsAt(blockpos, blockstate1.getBlock());
++                if (!this.isClientSide && blockstate.hasAnalogOutputSignal()) {
++                    this.updateNeighbourForOutputSignal(blockpos, newBlock.getBlock());
++                }
++            }
++
++            if ((i & 16) == 0 && j > 0) {
++                int k = i & -34;
++
++                // CraftBukkit start
++                blockstate1.updateIndirectNeighbourShapes(this, blockpos, k, j - 1); // Don't call an event for the old block to limit event spam
++                CraftWorld world = ((ServerLevel) this).getWorld();
++                if (world != null) {
++                    BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ()), CraftBlockData.fromData(blockstate));
++                    this.getCraftServer().getPluginManager().callEvent(event);
++
++                    if (event.isCancelled()) {
++                        return;
++                    }
++                }
++                // CraftBukkit end
++                blockstate.updateNeighbourShapes(this, blockpos, k, j - 1);
++                blockstate.updateIndirectNeighbourShapes(this, blockpos, k, j - 1);
++            }
++
++            // CraftBukkit start - SPIGOT-5710
++            if (!preventPoiUpdated) {
++                this.updatePOIOnBlockStateChange(blockpos, blockstate1, blockstate2);
++            }
++            // CraftBukkit end
++        }
++    }
++    // CraftBukkit end
+ 
+     public void updatePOIOnBlockStateChange(BlockPos pos, BlockState oldState, BlockState newState) {
      }
 @@ -307,6 +_,7 @@
      }
@@ -228,12 +352,10 @@
                          this.neighborChanged(state, relativePos, changedBlock, null, false);
                      }
                  }
-@@ -980,6 +_,18 @@
-     @Override
-     public BiomeManager getBiomeManager() {
+@@ -982,6 +_,18 @@
          return this.biomeManager;
-+    }
-+
+     }
+ 
 +    private double maxEntityRadius = 2.0D;
 +    @Override
 +    public double getMaxEntityRadius() {
@@ -244,6 +366,18 @@
 +        if (value > maxEntityRadius)
 +            maxEntityRadius = value;
 +        return maxEntityRadius;
-     }
- 
++    }
++
      public final boolean isDebug() {
+         return this.isDebug;
+     }
+@@ -1023,7 +_,8 @@
+         BLOCK("block"),
+         MOB("mob"),
+         TNT("tnt"),
+-        TRIGGER("trigger");
++        TRIGGER("trigger"),
++        STANDARD("standard"); // CraftBukkit - Add STANDARD which will always use Explosion.Effect.DESTROY
+ 
+         public static final Codec<Level.ExplosionInteraction> CODEC = StringRepresentable.fromEnum(Level.ExplosionInteraction::values);
+         private final String id;

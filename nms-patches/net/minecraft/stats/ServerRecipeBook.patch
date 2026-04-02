@@ -10,11 +10,11 @@
  
      public static final String RECIPE_BOOK_TAG = "recipeBook";
 @@ -66,7 +68,7 @@
-         for (RecipeHolder<?> recipeholder : collection) {
+         for (RecipeHolder<?> recipeholder : recipes) {
              ResourceKey<Recipe<?>> resourcekey = recipeholder.id();
  
 -            if (!this.known.contains(resourcekey) && !recipeholder.value().isSpecial()) {
-+            if (!this.known.contains(resourcekey) && !recipeholder.value().isSpecial() && CraftEventFactory.handlePlayerRecipeListUpdateEvent(serverplayer, resourcekey.identifier())) { // CraftBukkit
++            if (!this.known.contains(resourcekey) && !recipeholder.value().isSpecial() && CraftEventFactory.handlePlayerRecipeListUpdateEvent(player, resourcekey.identifier())) { // CraftBukkit
                  this.add(resourcekey);
                  this.addHighlight(resourcekey);
                  this.displayResolver.displaysForRecipe(resourcekey, (recipedisplayentry) -> {
@@ -23,8 +23,8 @@
          }
  
 -        if (!list.isEmpty()) {
-+        if (!list.isEmpty() && serverplayer.connection != null) { // SPIGOT-4478 during PlayerLoginEvent
-             serverplayer.connection.send(new ClientboundRecipeBookAddPacket(list, false));
++        if (!list.isEmpty() && player.connection != null) { // SPIGOT-4478 during PlayerLoginEvent
+             player.connection.send(new ClientboundRecipeBookAddPacket(list, false));
          }
  
 @@ -97,7 +99,7 @@
@@ -32,7 +32,7 @@
          }
  
 -        if (!list.isEmpty()) {
-+        if (!list.isEmpty() && serverplayer.connection != null) { // SPIGOT-4478 during PlayerLoginEvent
-             serverplayer.connection.send(new ClientboundRecipeBookRemovePacket(list));
++        if (!list.isEmpty() && player.connection != null) { // SPIGOT-4478 during PlayerLoginEvent
+             player.connection.send(new ClientboundRecipeBookRemovePacket(list));
          }
  

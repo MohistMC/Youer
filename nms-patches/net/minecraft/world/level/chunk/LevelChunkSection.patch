@@ -1,54 +1,25 @@
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
-@@ -19,7 +19,7 @@
+@@ -21,7 +21,7 @@
      private short tickingBlockCount;
      private short tickingFluidCount;
      private final PalettedContainer<BlockState> states;
 -    private PalettedContainerRO<Holder<Biome>> biomes;
 +    private PalettedContainer<Holder<Biome>> biomes; // CraftBukkit - read/write
  
-     private LevelChunkSection(LevelChunkSection levelchunksection) {
-         this.nonEmptyBlockCount = levelchunksection.nonEmptyBlockCount;
-@@ -29,7 +29,7 @@
-         this.biomes = levelchunksection.biomes.copy();
+     private LevelChunkSection(LevelChunkSection source) {
+         this.nonEmptyBlockCount = source.nonEmptyBlockCount;
+@@ -32,7 +32,7 @@
+         this.biomes = source.biomes.copy();
      }
  
--    public LevelChunkSection(PalettedContainer<BlockState> palettedcontainer, PalettedContainerRO<Holder<Biome>> palettedcontainerro) {
-+    public LevelChunkSection(PalettedContainer<BlockState> palettedcontainer, PalettedContainer<Holder<Biome>> palettedcontainerro) { // CraftBukkit - read/write
-         this.states = palettedcontainer;
-         this.biomes = palettedcontainerro;
+-    public LevelChunkSection(PalettedContainer<BlockState> states, PalettedContainerRO<Holder<Biome>> biomes) {
++    public LevelChunkSection(PalettedContainer<BlockState> states, PalettedContainer<Holder<Biome>> biomes) { // CraftBukkit - read/write
+         this.states = states;
+         this.biomes = biomes;
          this.recalcBlockCounts();
-@@ -114,7 +114,8 @@
-     }
- 
-     public void recalcBlockCounts() {
--        class 1BlockCounter implements PalettedContainer.CountConsumer<BlockState> {
-+        // CraftBukkit start - decompile error
-+        class _BlockCounter implements PalettedContainer.CountConsumer<BlockState> {
- 
-             public int nonEmptyBlockCount;
-             public int tickingBlockCount;
-@@ -143,12 +144,13 @@
-             }
-         }
- 
--        1BlockCounter 1blockcounter = new 1BlockCounter();
-+        _BlockCounter _blockcounter = new _BlockCounter();
- 
--        this.states.count(1blockcounter);
--        this.nonEmptyBlockCount = (short)1blockcounter.nonEmptyBlockCount;
--        this.tickingBlockCount = (short)1blockcounter.tickingBlockCount;
--        this.tickingFluidCount = (short)1blockcounter.tickingFluidCount;
-+        this.states.count(_blockcounter);
-+        this.nonEmptyBlockCount = (short) _blockcounter.nonEmptyBlockCount;
-+        this.tickingBlockCount = (short) _blockcounter.tickingBlockCount;
-+        this.tickingFluidCount = (short) _blockcounter.tickingFluidCount;
-+        // CraftBukkit end - decompile error
-     }
- 
-     public PalettedContainer<BlockState> getStates() {
-@@ -193,6 +195,12 @@
-         return this.biomes.get(i, j, k);
+@@ -213,6 +213,12 @@
+         return this.biomes.get(quartX, quartY, quartZ);
      }
  
 +    // CraftBukkit start
@@ -57,6 +28,6 @@
 +    }
 +    // CraftBukkit end
 +
-     public void fillBiomesFromNoise(BiomeResolver biomeresolver, Climate.Sampler climate_sampler, int i, int j, int k) {
+     public void fillBiomesFromNoise(BiomeResolver biomeResolver, Climate.Sampler sampler, int quartMinX, int quartMinY, int quartMinZ) {
          PalettedContainer<Holder<Biome>> palettedcontainer = this.biomes.recreate();
          int l = 4;

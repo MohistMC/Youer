@@ -1,29 +1,28 @@
 --- a/net/minecraft/world/entity/npc/wanderingtrader/WanderingTraderSpawner.java
 +++ b/net/minecraft/world/entity/npc/wanderingtrader/WanderingTraderSpawner.java
-@@ -99,7 +99,7 @@
+@@ -100,14 +100,14 @@
                      return false;
                  }
  
--                WanderingTrader wanderingtrader = EntityType.WANDERING_TRADER.spawn(serverlevel, blockpos2, EntitySpawnReason.EVENT);
-+                WanderingTrader wanderingtrader = EntityType.WANDERING_TRADER.spawn(serverlevel, blockpos2, EntitySpawnReason.EVENT, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL); // CraftBukkit
+-                WanderingTrader wanderingtrader = EntityType.WANDERING_TRADER.spawn(level, blockpos2, EntitySpawnReason.EVENT);
++                WanderingTrader wanderingtrader = EntityType.WANDERING_TRADER.spawn(level, blockpos2, EntitySpawnReason.EVENT, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL); // CraftBukkit
  
                  if (wanderingtrader != null) {
                      for (int j = 0; j < 2; ++j) {
-@@ -107,7 +107,7 @@
+                         this.tryToSpawnLlamaFor(level, wanderingtrader, 4);
                      }
  
-                     this.serverLevelData.setWanderingTraderId(wanderingtrader.getUUID());
 -                    wanderingtrader.setDespawnDelay(48000);
-+                    // entityvillagertrader.setDespawnDelay(48000); // CraftBukkit - moved to EntityVillagerTrader constructor. This lets the value be modified by plugins on CreatureSpawnEvent
++                    // wanderingtrader.setDespawnDelay(48000); // CraftBukkit - moved to WanderingTrader constructor. This lets the value be modified by plugins on CreatureSpawnEvent
                      wanderingtrader.setWanderTarget(blockpos1);
                      wanderingtrader.setHomeTo(blockpos1, 16);
                      return true;
 @@ -122,7 +122,7 @@
-         BlockPos blockpos = this.findSpawnPositionNear(serverlevel, wanderingtrader.blockPosition(), i);
+         BlockPos blockpos = this.findSpawnPositionNear(level, trader.blockPosition(), radius);
  
          if (blockpos != null) {
--            TraderLlama traderllama = EntityType.TRADER_LLAMA.spawn(serverlevel, blockpos, EntitySpawnReason.EVENT);
-+            TraderLlama traderllama = EntityType.TRADER_LLAMA.spawn(serverlevel, blockpos, EntitySpawnReason.EVENT, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL); // CraftBukkit
+-            TraderLlama traderllama = EntityType.TRADER_LLAMA.spawn(level, blockpos, EntitySpawnReason.EVENT);
++            TraderLlama traderllama = EntityType.TRADER_LLAMA.spawn(level, blockpos, EntitySpawnReason.EVENT, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL); // CraftBukkit
  
              if (traderllama != null) {
-                 traderllama.setLeashedTo(wanderingtrader, true);
+                 traderllama.setLeashedTo(trader, true);

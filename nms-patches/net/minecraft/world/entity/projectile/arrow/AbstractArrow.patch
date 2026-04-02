@@ -17,42 +17,42 @@
 @@ -93,7 +100,14 @@
      }
  
-     protected AbstractArrow(EntityType<? extends AbstractArrow> entitytype, double d0, double d1, double d2, Level level, ItemStack itemstack, @Nullable ItemStack itemstack1) {
+     protected AbstractArrow(EntityType<? extends AbstractArrow> type, double x, double y, double z, Level level, ItemStack pickupItemStack, @Nullable ItemStack firedFromWeapon) {
 +        // CraftBukkit start - handle the owner before the rest of things
-+        this(entitytype, d0, d1, d2, level, itemstack, itemstack1, null);
++        this(type, x, y, z, level, pickupItemStack, firedFromWeapon, null);
 +    }
 +
-+    protected AbstractArrow(EntityType<? extends AbstractArrow> entitytype, double d0, double d1, double d2, Level level, ItemStack itemstack, @Nullable ItemStack itemstack1, @Nullable LivingEntity ownerEntity) {
-         this(entitytype, level);
++    protected AbstractArrow(EntityType<? extends AbstractArrow> type, double x, double y, double z, Level level, ItemStack pickupItemStack, @Nullable ItemStack firedFromWeapon, @Nullable LivingEntity ownerEntity) {
+         this(type, level);
 +        this.setOwner(ownerEntity);
 +        // CraftBukkit end
-         this.pickupItemStack = itemstack.copy();
-         this.applyComponentsFromItemStack(itemstack);
-         Unit unit = (Unit) itemstack.remove(DataComponents.INTANGIBLE_PROJECTILE);
+         this.pickupItemStack = pickupItemStack.copy();
+         this.applyComponentsFromItemStack(pickupItemStack);
+         Unit unit = (Unit) pickupItemStack.remove(DataComponents.INTANGIBLE_PROJECTILE);
 @@ -119,8 +133,8 @@
      }
  
-     protected AbstractArrow(EntityType<? extends AbstractArrow> entitytype, LivingEntity livingentity, Level level, ItemStack itemstack, @Nullable ItemStack itemstack1) {
--        this(entitytype, livingentity.getX(), livingentity.getEyeY() - (double) 0.1F, livingentity.getZ(), level, itemstack, itemstack1);
--        this.setOwner(livingentity);
-+        this(entitytype, livingentity.getX(), livingentity.getEyeY() - (double) 0.1F, livingentity.getZ(), level, itemstack, itemstack1, livingentity); // CraftBukkit
+     protected AbstractArrow(EntityType<? extends AbstractArrow> type, LivingEntity mob, Level level, ItemStack pickupItemStack, @Nullable ItemStack firedFromWeapon) {
+-        this(type, mob.getX(), mob.getEyeY() - (double) 0.1F, mob.getZ(), level, pickupItemStack, firedFromWeapon);
+-        this.setOwner(mob);
++        this(type, mob.getX(), mob.getEyeY() - (double) 0.1F, mob.getZ(), level, pickupItemStack, firedFromWeapon, mob); // CraftBukkit
 +        // this.setOwner(entityliving); // SPIGOT-7744 - Moved to the above constructor
      }
  
-     public void setSoundEvent(SoundEvent soundevent) {
+     public void setSoundEvent(SoundEvent soundEvent) {
 @@ -289,7 +303,7 @@
  
                  if (arraylist.isEmpty()) {
-                     if (this.isAlive() && blockhitresult.getType() != HitResult.Type.MISS) {
--                        this.hitTargetOrDeflectSelf(blockhitresult);
-+                        this.preHitTargetOrDeflectSelf(blockhitresult); // CraftBukkit - projectile hit event
+                     if (this.isAlive() && blockHitResult.getType() != HitResult.Type.MISS) {
+-                        this.hitTargetOrDeflectSelf(blockHitResult);
++                        this.preHitTargetOrDeflectSelf(blockHitResult); // CraftBukkit - projectile hit event
                          this.needsSync = true;
                      }
                  } else {
 @@ -312,7 +326,7 @@
  
-     private ProjectileDeflection hitTargetsOrDeflectSelf(Collection<EntityHitResult> collection) {
-         for (EntityHitResult entityhitresult : collection) {
+     private ProjectileDeflection hitTargetsOrDeflectSelf(Collection<EntityHitResult> entityHitResults) {
+         for (EntityHitResult entityhitresult : entityHitResults) {
 -            ProjectileDeflection projectiledeflection = this.hitTargetOrDeflectSelf(entityhitresult);
 +            ProjectileDeflection projectiledeflection = this.preHitTargetOrDeflectSelf(entityhitresult); // CraftBukkit - projectile hit event
  
@@ -76,7 +76,12 @@
                  return;
              }
  
-@@ -475,7 +489,13 @@
+@@ -471,11 +485,17 @@
+             livingentity.setLastHurtMob(entity);
+         }
+ 
+-        boolean flag = entity.is((Object) EntityType.ENDERMAN);
++        boolean flag = entity.is(EntityType.ENDERMAN); // CraftBukkit - decompile error
          int k = entity.getRemainingFireTicks();
  
          if (this.isOnFire() && !flag) {
@@ -110,25 +115,25 @@
              }
          }
 @@ -683,7 +703,7 @@
-     protected void readAdditionalSaveData(ValueInput valueinput) {
-         super.readAdditionalSaveData(valueinput);
-         this.life = valueinput.getShortOr("life", (short) 0);
--        this.lastState = (BlockState) valueinput.read("inBlockState", BlockState.CODEC).orElse((Object) null);
-+        this.lastState = (BlockState) valueinput.read("inBlockState", BlockState.CODEC).orElse(null); // CraftBukkit - decompile error
-         this.shakeTime = valueinput.getByteOr("shake", (byte) 0) & 255;
-         this.setInGround(valueinput.getBooleanOr("inGround", false));
-         this.baseDamage = valueinput.getDoubleOr("damage", 2.0D);
+     protected void readAdditionalSaveData(ValueInput input) {
+         super.readAdditionalSaveData(input);
+         this.life = input.getShortOr("life", (short) 0);
+-        this.lastState = (BlockState) input.read("inBlockState", BlockState.CODEC).orElse((Object) null);
++        this.lastState = (BlockState) input.read("inBlockState", BlockState.CODEC).orElse(null); // CraftBukkit - decompile error
+         this.shakeTime = input.getByteOr("shake", (byte) 0) & 255;
+         this.setInGround(input.getBooleanOr("inGround", false));
+         this.baseDamage = input.getDoubleOr("damage", 2.0D);
 @@ -692,7 +712,7 @@
-         this.setPierceLevel(valueinput.getByteOr("PierceLevel", (byte) 0));
-         this.soundEvent = (SoundEvent) valueinput.read("SoundEvent", BuiltInRegistries.SOUND_EVENT.byNameCodec()).orElse(this.getDefaultHitGroundSoundEvent());
-         this.setPickupItemStack((ItemStack) valueinput.read("item", ItemStack.CODEC).orElse(this.getDefaultPickupItem()));
--        this.firedFromWeapon = (ItemStack) valueinput.read("weapon", ItemStack.CODEC).orElse((Object) null);
-+        this.firedFromWeapon = (ItemStack) valueinput.read("weapon", ItemStack.CODEC).orElse(null); // CraftBukkit - decompile error
+         this.setPierceLevel(input.getByteOr("PierceLevel", (byte) 0));
+         this.soundEvent = (SoundEvent) input.read("SoundEvent", BuiltInRegistries.SOUND_EVENT.byNameCodec()).orElse(this.getDefaultHitGroundSoundEvent());
+         this.setPickupItemStack((ItemStack) input.read("item", ItemStack.CODEC).orElse(this.getDefaultPickupItem()));
+-        this.firedFromWeapon = (ItemStack) input.read("weapon", ItemStack.CODEC).orElse((Object) null);
++        this.firedFromWeapon = (ItemStack) input.read("weapon", ItemStack.CODEC).orElse(null); // CraftBukkit - decompile error
      }
  
      @Override
 @@ -701,34 +721,31 @@
-         Entity entity1 = entity;
+         Entity entity1 = owner;
          byte b0 = 0;
  
 -        AbstractArrow.Pickup abstractarrow_pickup;

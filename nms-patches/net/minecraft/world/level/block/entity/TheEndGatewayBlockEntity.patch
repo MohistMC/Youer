@@ -12,20 +12,20 @@
  
      private static final Logger LOGGER = LogUtils.getLogger();
 @@ -61,7 +65,7 @@
-     protected void loadAdditional(ValueInput valueinput) {
-         super.loadAdditional(valueinput);
-         this.age = valueinput.getLongOr("Age", 0L);
--        this.exitPortal = (BlockPos) valueinput.read("exit_portal", BlockPos.CODEC).filter(Level::isInSpawnableBounds).orElse((Object) null);
-+        this.exitPortal = (BlockPos) valueinput.read("exit_portal", BlockPos.CODEC).filter(Level::isInSpawnableBounds).orElse(null); // CraftBukkit - decompile error
-         this.exactTeleport = valueinput.getBooleanOr("ExactTeleport", false);
+     protected void loadAdditional(ValueInput input) {
+         super.loadAdditional(input);
+         this.age = input.getLongOr("Age", 0L);
+-        this.exitPortal = (BlockPos) input.read("exit_portal", BlockPos.CODEC).filter(Level::isInSpawnableBounds).orElse((Object) null);
++        this.exitPortal = (BlockPos) input.read("exit_portal", BlockPos.CODEC).filter(Level::isInSpawnableBounds).orElse(null); // CraftBukkit - decompile error
+         this.exactTeleport = input.getBooleanOr("ExactTeleport", false);
      }
  
 @@ -136,7 +140,7 @@
      }
  
-     public @Nullable Vec3 getPortalPosition(ServerLevel serverlevel, BlockPos blockpos) {
--        if (this.exitPortal == null && serverlevel.dimension() == Level.END) {
-+        if (this.exitPortal == null && serverlevel.getTypeKey() == LevelStem.END) { // CraftBukkit - work in alternate worlds
-             BlockPos blockpos1 = findOrCreateValidTeleportPos(serverlevel, blockpos);
+     public @Nullable Vec3 getPortalPosition(ServerLevel currentLevel, BlockPos portalEntryPos) {
+-        if (this.exitPortal == null && currentLevel.dimension() == Level.END) {
++        if (this.exitPortal == null && currentLevel.getTypeKey() == LevelStem.END) { // CraftBukkit - work in alternate worlds
+             BlockPos blockpos1 = findOrCreateValidTeleportPos(currentLevel, portalEntryPos);
  
              blockpos1 = blockpos1.above(10);

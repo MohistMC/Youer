@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEgg.java
 +++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEgg.java
-@@ -18,6 +18,17 @@
+@@ -19,6 +19,17 @@
  import net.minecraft.world.phys.EntityHitResult;
  import net.minecraft.world.phys.HitResult;
  
@@ -18,9 +18,9 @@
  public class ThrownEgg extends ThrowableItemProjectile {
  
      private static final EntityDimensions ZERO_SIZED_DIMENSIONS = EntityDimensions.fixed(0.0F, 0.0F);
-@@ -56,36 +67,68 @@
-     protected void onHit(HitResult hitresult) {
-         super.onHit(hitresult);
+@@ -61,34 +72,66 @@
+     protected void onHit(HitResult hitResult) {
+         super.onHit(hitResult);
          if (!this.level().isClientSide()) {
 -            if (this.random.nextInt(8) == 0) {
 +            // CraftBukkit start
@@ -66,10 +66,8 @@
 +                        }
 +                        // CraftBukkit end
                          chicken.snapTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), 0.0F);
--                        Optional optional = Optional.ofNullable((EitherHolder) this.getItem().get(DataComponents.CHICKEN_VARIANT)).flatMap((eitherholder) -> {
-+                        Optional<Holder<ChickenVariant>> optional = Optional.ofNullable((EitherHolder) this.getItem().get(DataComponents.CHICKEN_VARIANT)).flatMap((eitherholder) -> { // CraftBukkit - decompile error
-                             return eitherholder.unwrap(this.registryAccess());
-                         });
+-                        Optional optional = Optional.ofNullable((Holder) this.getItem().get(DataComponents.CHICKEN_VARIANT));
++                        Optional<Holder<ChickenVariant>> optional = Optional.ofNullable(this.getItem().get(DataComponents.CHICKEN_VARIANT)); // CraftBukkit - decompile error
  
                          Objects.requireNonNull(chicken);
 -                        optional.ifPresent(chicken::setVariant);

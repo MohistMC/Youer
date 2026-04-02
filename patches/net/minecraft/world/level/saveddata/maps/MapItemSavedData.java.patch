@@ -1,0 +1,85 @@
+--- a/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
++++ b/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
+@@ -13,6 +_,7 @@
+ import java.util.Map;
+ import java.util.Objects;
+ import java.util.Optional;
++import java.util.UUID;
+ import java.util.function.Predicate;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+@@ -24,6 +_,7 @@
+ import net.minecraft.network.protocol.game.ClientboundMapItemDataPacket;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.resources.ResourceKey;
++import net.minecraft.server.MinecraftServer;
+ import net.minecraft.tags.ItemTags;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.datafix.DataFixTypes;
+@@ -38,6 +_,9 @@
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.saveddata.SavedData;
+ import net.minecraft.world.level.saveddata.SavedDataType;
++import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.map.CraftMapView;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class MapItemSavedData extends SavedData {
+@@ -76,6 +_,46 @@
+     private final Map<String, MapFrame> frameMarkers = Maps.newHashMap();
+     private int trackedDecorationCount;
+ 
++    // CraftBukkit start
++    public final CraftMapView mapView;
++    public UUID uniqueId = null;
++    public MapId id;
++
++    private static ResourceKey<Level> getWorldKey(ResourceKey<Level> resourcekey, long uuidLeast, long uuidMost) {
++        Level lookup = MinecraftServer.getServer().getLevel(resourcekey);
++        if (lookup != null) {
++            return resourcekey;
++        }
++
++        if (uuidLeast != 0L && uuidMost != 0L) {
++            UUID uniqueId = new UUID(uuidMost, uuidLeast);
++
++            CraftWorld world = (CraftWorld) Bukkit.getWorld(uniqueId);
++            // Check if the stored world details are correct.
++            if (world == null) {
++                /* All Maps which do not have their valid world loaded are set to a dimension which hopefully won't be reached.
++                   This is to prevent them being corrupted with the wrong map data. */
++                // PAIL: Use Vanilla exception handling for now
++            } else {
++                return world.getHandle().dimension();
++            }
++        }
++        throw new IllegalArgumentException("Invalid map dimension: " + resourcekey);
++    }
++
++    @Nullable
++    private UUID updateUUID() {
++        if (this.uniqueId == null) {
++            Level level = MinecraftServer.getServer().getLevel(this.dimension);
++            if (level != null) {
++                this.uniqueId = level.getWorld().getUID();
++            }
++        }
++
++        return this.uniqueId;
++    }
++    // CraftBukkit end
++
+     public static SavedDataType<MapItemSavedData> type(MapId id) {
+         return new SavedDataType<>(Identifier.withDefaultNamespace(id.key()), () -> {
+             throw new IllegalStateException("Should never create an empty map saved data");
+@@ -92,6 +_,9 @@
+         this.trackingPosition = trackingPosition;
+         this.unlimitedTracking = unlimitedTracking;
+         this.locked = locked;
++        // CraftBukkit start
++        updateUUID();
++        mapView = new CraftMapView(this);
+     }
+ 
+     private MapItemSavedData(

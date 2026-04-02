@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/storage/loot/LootTable.java
 +++ b/net/minecraft/world/level/storage/loot/LootTable.java
-@@ -32,6 +32,13 @@
+@@ -31,6 +31,13 @@
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import org.slf4j.Logger;
  
@@ -11,10 +11,10 @@
 +import org.bukkit.event.world.LootGenerateEvent;
 +// CraftBukkit end
 +
- public class LootTable {
+ public class LootTable implements Validatable {
  
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -51,13 +58,14 @@
+@@ -50,13 +57,14 @@
              })).apply(instance, LootTable::new);
          });
      });
@@ -28,19 +28,19 @@
      private final BiFunction<ItemStack, LootContext, ItemStack> compositeFunction;
 +    public CraftLootTable craftLootTable; // CraftBukkit
  
-     private LootTable(ContextKeySet contextkeyset, Optional<Identifier> optional, List<LootPool> list, List<LootItemFunction> list1) {
-         this.paramSet = contextkeyset;
-@@ -156,9 +164,22 @@
+     private LootTable(ContextKeySet paramSet, Optional<Identifier> randomSequence, List<LootPool> pools, List<LootItemFunction> functions) {
+         this.paramSet = paramSet;
+@@ -150,9 +158,22 @@
      }
  
-     public void fill(Container container, LootParams lootparams, long i) {
+     public void fill(Container container, LootParams params, long optionalRandomSeed) {
 +        // CraftBukkit start
-+        this.fillInventory(container, lootparams, i, false);
++        this.fillInventory(container, params, optionalRandomSeed, false);
 +    }
 +
-+    public void fillInventory(Container container, LootParams lootparams, long i, boolean plugin) {
++    public void fillInventory(Container container, LootParams params, long optionalRandomSeed, boolean plugin) {
 +        // CraftBukkit end
-         LootContext lootcontext = (new LootContext.Builder(lootparams)).withOptionalRandomSeed(i).create(this.randomSequence);
+         LootContext lootcontext = (new LootContext.Builder(params)).withOptionalRandomSeed(optionalRandomSeed).create(this.randomSequence);
          ObjectArrayList<ItemStack> objectarraylist = this.getRandomItems(lootcontext);
          RandomSource randomsource = lootcontext.getRandom();
 +        // CraftBukkit start

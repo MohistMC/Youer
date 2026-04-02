@@ -38,17 +38,17 @@
                  ServerLevel serverlevel = (ServerLevel) level;
  
 +                // CraftBukkit start
-+                if (!CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemstack, interactionhand)) {
++                if (!CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemstack, hand)) {
 +                    return InteractionResult.PASS;
 +                }
 +                // CraftBukkit end
                  this.shear(serverlevel, SoundSource.PLAYERS, itemstack);
                  this.gameEvent(GameEvent.SHEAR, player);
-                 itemstack.hurtAndBreak(1, player, interactionhand.asEquipmentSlot());
+                 itemstack.hurtAndBreak(1, player, hand.asEquipmentSlot());
 @@ -167,7 +180,9 @@
-         serverlevel.playSound((Entity) null, (Entity) this, SoundEvents.SNOW_GOLEM_SHEAR, soundsource, 1.0F, 1.0F);
+         level.playSound((Entity) null, (Entity) this, SoundEvents.SNOW_GOLEM_SHEAR, soundSource, 1.0F, 1.0F);
          this.setPumpkin(false);
-         this.dropFromShearingLootTable(serverlevel, BuiltInLootTables.SHEAR_SNOW_GOLEM, itemstack, (serverlevel1, itemstack1) -> {
+         this.dropFromShearingLootTable(level, BuiltInLootTables.SHEAR_SNOW_GOLEM, tool, (serverlevel1, itemstack1) -> {
 +            this.forceDrops = true; // CraftBukkit
              this.spawnAtLocation(serverlevel1, itemstack1, this.getEyeHeight());
 +            this.forceDrops = false; // CraftBukkit

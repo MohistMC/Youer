@@ -16,11 +16,11 @@
      public ShearsDispenseItemBehavior() {}
 @@ -27,11 +34,34 @@
      @Override
-     protected ItemStack execute(BlockSource blocksource, ItemStack itemstack) {
-         ServerLevel serverlevel = blocksource.level();
+     protected ItemStack execute(BlockSource source, ItemStack dispensed) {
+         ServerLevel serverlevel = source.level();
 +        // CraftBukkit start
-+        org.bukkit.block.Block bukkitBlock = CraftBlock.at(serverlevel, blocksource.pos());
-+        CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack);
++        org.bukkit.block.Block bukkitBlock = CraftBlock.at(serverlevel, source.pos());
++        CraftItemStack craftItem = CraftItemStack.asCraftMirror(dispensed);
 +
 +        BlockDispenseEvent event = new BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(0, 0, 0));
 +        if (!DispenserBlock.eventFired) {
@@ -28,7 +28,7 @@
 +        }
 +
 +        if (event.isCancelled()) {
-+            return itemstack;
++            return dispensed;
 +        }
 +
 +        if (!event.getItem().equals(craftItem)) {
@@ -36,27 +36,27 @@
 +            ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
 +            DispenseItemBehavior dispenseitembehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
 +            if (dispenseitembehavior != DispenseItemBehavior.NOOP && dispenseitembehavior != this) {
-+                dispenseitembehavior.dispense(blocksource, eventStack);
-+                return itemstack;
++                dispenseitembehavior.dispense(source, eventStack);
++                return dispensed;
 +            }
 +        }
 +        // CraftBukkit end
  
          if (!serverlevel.isClientSide()) {
-             BlockPos blockpos = blocksource.pos().relative((Direction) blocksource.state().getValue(DispenserBlock.FACING));
+             BlockPos blockpos = source.pos().relative((Direction) source.state().getValue(DispenserBlock.FACING));
  
--            this.setSuccess(tryShearBeehive(serverlevel, itemstack, blockpos) || tryShearEntity(serverlevel, blockpos, itemstack));
-+            this.setSuccess(tryShearBeehive(serverlevel, itemstack, blockpos) || tryShearEntity(serverlevel, blockpos, itemstack, bukkitBlock, craftItem)); // CraftBukkit
+-            this.setSuccess(tryShearBeehive(serverlevel, dispensed, blockpos) || tryShearEntity(serverlevel, blockpos, dispensed));
++            this.setSuccess(tryShearBeehive(serverlevel, dispensed, blockpos) || tryShearEntity(serverlevel, blockpos, dispensed, bukkitBlock, craftItem)); // CraftBukkit
              if (this.isSuccess()) {
-                 itemstack.hurtAndBreak(1, serverlevel, (ServerPlayer) null, (item) -> {
+                 dispensed.hurtAndBreak(1, serverlevel, (ServerPlayer) null, (item) -> {
                  });
 @@ -61,7 +91,7 @@
          return false;
      }
  
--    private static boolean tryShearEntity(ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack) {
-+    private static boolean tryShearEntity(ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack, org.bukkit.block.Block bukkitBlock, CraftItemStack craftItem) { // CraftBukkit - add args
-         for (Entity entity : serverlevel.getEntitiesOfClass(Entity.class, new AABB(blockpos), EntitySelector.NO_SPECTATORS)) {
+-    private static boolean tryShearEntity(ServerLevel level, BlockPos pos, ItemStack tool) {
++    private static boolean tryShearEntity(ServerLevel level, BlockPos pos, ItemStack tool, org.bukkit.block.Block bukkitBlock, CraftItemStack craftItem) { // CraftBukkit - add args
+         for (Entity entity : level.getEntitiesOfClass(Entity.class, new AABB(pos), EntitySelector.NO_SPECTATORS)) {
              if (entity.shearOffAllLeashConnections((Player) null)) {
                  return true;
 @@ -69,6 +99,11 @@
@@ -68,6 +68,6 @@
 +                        continue;
 +                    }
 +                    // CraftBukkit end
-                     shearable.shear(serverlevel, SoundSource.BLOCKS, itemstack);
-                     serverlevel.gameEvent((Entity) null, (Holder) GameEvent.SHEAR, blockpos);
+                     shearable.shear(level, SoundSource.BLOCKS, tool);
+                     level.gameEvent((Entity) null, (Holder) GameEvent.SHEAR, pos);
                      return true;

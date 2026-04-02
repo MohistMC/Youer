@@ -1,12 +1,12 @@
 --- a/net/minecraft/world/item/FlintAndSteelItem.java
 +++ b/net/minecraft/world/item/FlintAndSteelItem.java
 @@ -35,6 +35,12 @@
-             BlockPos blockpos1 = blockpos.relative(useoncontext.getClickedFace());
+             BlockPos blockpos1 = blockpos.relative(context.getClickedFace());
  
-             if (BaseFireBlock.canBePlacedAt(level, blockpos1, useoncontext.getHorizontalDirection())) {
+             if (BaseFireBlock.canBePlacedAt(level, blockpos1, context.getHorizontalDirection())) {
 +                // CraftBukkit start - Store the clicked block
 +                if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, blockpos1, org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL, player).isCancelled()) {
-+                    useoncontext.getItemInHand().hurtAndBreak(1, player, useoncontext.getHand().asEquipmentSlot());
++                    context.getItemInHand().hurtAndBreak(1, player, context.getHand().asEquipmentSlot());
 +                    return InteractionResult.PASS;
 +                }
 +                // CraftBukkit end
@@ -19,7 +19,7 @@
          } else {
 +            // CraftBukkit start - Store the clicked block
 +            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, blockpos, org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL, player).isCancelled()) {
-+                useoncontext.getItemInHand().hurtAndBreak(1, player, useoncontext.getHand().asEquipmentSlot());
++                context.getItemInHand().hurtAndBreak(1, player, context.getHand().asEquipmentSlot());
 +                return InteractionResult.PASS;
 +            }
 +            // CraftBukkit end

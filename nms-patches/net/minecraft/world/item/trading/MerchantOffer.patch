@@ -26,18 +26,18 @@
 +    }
 +    // CraftBukkit end
  
-     private MerchantOffer(ItemCost itemcost, Optional<ItemCost> optional, ItemStack itemstack, int i, int j, boolean flag, int k, int l, float f, int i1) {
-         this.baseCostA = itemcost;
+     private MerchantOffer(ItemCost baseCostA, Optional<ItemCost> costB, ItemStack result, int uses, int maxUses, boolean rewardExp, int specialPriceDiff, int demand, float priceMultiplier, int xp) {
+         this.baseCostA = baseCostA;
 @@ -185,7 +199,11 @@
-         if (!this.satisfiedBy(itemstack, itemstack1)) {
+         if (!this.satisfiedBy(buyA, buyB)) {
              return false;
          } else {
--            itemstack.shrink(this.getCostA().getCount());
+-            buyA.shrink(this.getCostA().getCount());
 +            // CraftBukkit start
 +            if (!this.getCostA().isEmpty()) {
-+                itemstack.shrink(this.getCostA().getCount());
++                buyA.shrink(this.getCostA().getCount());
 +            }
 +            // CraftBukkit end
              if (!this.getCostB().isEmpty()) {
-                 itemstack1.shrink(this.getCostB().getCount());
+                 buyB.shrink(this.getCostB().getCount());
              }

@@ -29,10 +29,10 @@
 @@ -72,7 +82,7 @@
  
      @Override
-     protected void readAdditionalSaveData(ValueInput valueinput) {
--        this.setBeamTarget((BlockPos) valueinput.read("beam_target", BlockPos.CODEC).orElse((Object) null));
-+        this.setBeamTarget((BlockPos) valueinput.read("beam_target", BlockPos.CODEC).orElse(null)); // CraftBukkit - decompile error
-         this.setShowBottom(valueinput.getBooleanOr("ShowBottom", true));
+     protected void readAdditionalSaveData(ValueInput input) {
+-        this.setBeamTarget((BlockPos) input.read("beam_target", BlockPos.CODEC).orElse((Object) null));
++        this.setBeamTarget((BlockPos) input.read("beam_target", BlockPos.CODEC).orElse(null)); // CraftBukkit - decompile error
+         this.setShowBottom(input.getBooleanOr("ShowBottom", true));
      }
  
 @@ -94,12 +104,26 @@
@@ -41,14 +41,14 @@
              if (!this.isRemoved()) {
 -                this.remove(Entity.RemovalReason.KILLED);
 +                // CraftBukkit start - All non-living entities need this
-+                if (CraftEventFactory.handleNonLivingEntityDamageEvent(this, damagesource, f, false)) {
++                if (CraftEventFactory.handleNonLivingEntityDamageEvent(this, source, damage, false)) {
 +                    return false;
 +                }
 +                // CraftBukkit end
-                 if (!damagesource.is(DamageTypeTags.IS_EXPLOSION)) {
-                     DamageSource damagesource1 = damagesource.getEntity() != null ? this.damageSources().explosion(this, damagesource.getEntity()) : null;
+                 if (!source.is(DamageTypeTags.IS_EXPLOSION)) {
+                     DamageSource damagesource1 = source.getEntity() != null ? this.damageSources().explosion(this, source.getEntity()) : null;
  
--                    serverlevel.explode(this, damagesource1, (ExplosionDamageCalculator) null, this.getX(), this.getY(), this.getZ(), 6.0F, false, Level.ExplosionInteraction.BLOCK);
+-                    level.explode(this, damagesource1, (ExplosionDamageCalculator) null, this.getX(), this.getY(), this.getZ(), 6.0F, false, Level.ExplosionInteraction.BLOCK);
 +                    // CraftBukkit start
 +                    ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent(this, 6.0F, false);
 +                    if (event.isCancelled()) {
@@ -56,11 +56,11 @@
 +                    }
 +
 +                    this.remove(Entity.RemovalReason.KILLED, EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
-+                    serverlevel.explode(this, damagesource1, (ExplosionDamageCalculator) null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.BLOCK);
++                    level.explode(this, damagesource1, (ExplosionDamageCalculator) null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.BLOCK);
 +                } else {
 +                    this.remove(Entity.RemovalReason.KILLED, EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
                  }
 +                // CraftBukkit end
  
-                 this.onDestroyedBy(serverlevel, damagesource);
+                 this.onDestroyedBy(level, source);
              }

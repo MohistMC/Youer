@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/MushroomBlock.java
 +++ b/net/minecraft/world/level/block/MushroomBlock.java
-@@ -19,6 +19,10 @@
+@@ -22,6 +22,10 @@
  import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.VoxelShape;
  
@@ -11,20 +11,20 @@
  public class MushroomBlock extends VegetationBlock implements BonemealableBlock {
  
      public static final MapCodec<MushroomBlock> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
-@@ -70,7 +74,7 @@
+@@ -73,7 +77,7 @@
              }
  
-             if (serverlevel.isEmptyBlock(blockpos2) && blockstate.canSurvive(serverlevel, blockpos2)) {
--                serverlevel.setBlock(blockpos2, blockstate, 2);
-+                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(serverlevel, blockpos, blockpos2, blockstate, 2); // CraftBukkit
+             if (level.isEmptyBlock(blockpos2) && state.canSurvive(level, blockpos2)) {
+-                level.setBlock(blockpos2, state, 2);
++                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, pos, blockpos2, state, 2); // CraftBukkit
              }
          }
  
-@@ -96,6 +100,7 @@
+@@ -99,6 +103,7 @@
              return false;
          } else {
-             serverlevel.removeBlock(blockpos, false);
+             level.removeBlock(pos, false);
 +            SaplingBlock.treeType = (this == Blocks.BROWN_MUSHROOM) ? TreeType.BROWN_MUSHROOM : TreeType.RED_MUSHROOM; // CraftBukkit
-             if (((ConfiguredFeature) ((Holder) optional.get()).value()).place(serverlevel, serverlevel.getChunkSource().getGenerator(), randomsource, blockpos)) {
+             if (((ConfiguredFeature) ((Holder) optional.get()).value()).place(level, level.getChunkSource().getGenerator(), random, pos)) {
                  return true;
              } else {

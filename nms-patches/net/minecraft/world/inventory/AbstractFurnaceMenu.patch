@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/inventory/AbstractFurnaceMenu.java
 +++ b/net/minecraft/world/inventory/AbstractFurnaceMenu.java
-@@ -18,6 +18,12 @@
+@@ -19,6 +19,12 @@
  import net.minecraft.world.item.crafting.SingleRecipeInput;
  import net.minecraft.world.level.Level;
  
@@ -13,7 +13,7 @@
  public abstract class AbstractFurnaceMenu extends RecipeBookMenu {
  
      public static final int INGREDIENT_SLOT = 0;
-@@ -36,6 +42,22 @@
+@@ -37,6 +43,22 @@
      private final RecipePropertySet acceptedInputs;
      private final RecipeBookType recipeBookType;
  
@@ -33,18 +33,18 @@
 +    }
 +    // CraftBukkit end
 +
-     protected AbstractFurnaceMenu(MenuType<?> menutype, RecipeType<? extends AbstractCookingRecipe> recipetype, ResourceKey<RecipePropertySet> resourcekey, RecipeBookType recipebooktype, int i, Inventory inventory) {
-         this(menutype, recipetype, resourcekey, recipebooktype, i, inventory, new SimpleContainer(3), new SimpleContainerData(4));
+     protected AbstractFurnaceMenu(MenuType<?> menuType, RecipeType<? extends AbstractCookingRecipe> recipeType, ResourceKey<RecipePropertySet> allowedInputs, RecipeBookType recipeBookType, int containerId, Inventory inventory) {
+         this(menuType, recipeType, allowedInputs, recipeBookType, containerId, inventory, new SimpleContainer(3), new SimpleContainerData(4));
      }
-@@ -53,6 +75,7 @@
+@@ -54,6 +76,7 @@
          this.addSlot(new Slot(container, 0, 56, 17));
          this.addSlot(new FurnaceFuelSlot(this, container, 1, 56, 53));
          this.addSlot(new FurnaceResultSlot(inventory.player, container, 2, 116, 35));
 +        this.player = inventory; // CraftBukkit - save player
          this.addStandardInventorySlots(inventory, 8, 84);
-         this.addDataSlots(containerdata);
+         this.addDataSlots(data);
      }
-@@ -71,6 +94,7 @@
+@@ -72,6 +95,7 @@
  
      @Override
      public boolean stillValid(Player player) {
@@ -52,11 +52,11 @@
          return this.container.stillValid(player);
      }
  
-@@ -180,6 +204,6 @@
-             public boolean recipeMatches(RecipeHolder<AbstractCookingRecipe> recipeholder1) {
-                 return ((AbstractCookingRecipe) recipeholder1.value()).matches(new SingleRecipeInput(AbstractFurnaceMenu.this.container.getItem(0)), serverlevel);
+@@ -185,6 +209,6 @@
+             public boolean recipeMatches(RecipeHolder<AbstractCookingRecipe> recipe) {
+                 return ((AbstractCookingRecipe) recipe.value()).matches(new SingleRecipeInput(AbstractFurnaceMenu.this.container.getItem(0)), level);
              }
--        }, 1, 1, List.of(this.getSlot(0)), list, inventory, recipeholder, flag, flag1);
-+        }, 1, 1, List.of(this.getSlot(0)), list, inventory, (RecipeHolder<AbstractCookingRecipe>) recipeholder, flag, flag1); // CraftBukkit - decompile error
+-        }, 1, 1, List.of(this.getSlot(0)), list, inventory, recipe, useMaxItems, allowDroppingItemsToClear);
++        }, 1, 1, List.of(this.getSlot(0)), list, inventory, (RecipeHolder<AbstractCookingRecipe>) recipe, useMaxItems, allowDroppingItemsToClear); // CraftBukkit - decompile error
      }
  }

@@ -13,15 +13,15 @@
      public static final MapCodec<WeatheringCopperGolemStatueBlock> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
 @@ -66,9 +70,10 @@
              if (this.getAge().equals(WeatheringCopper.WeatherState.UNAFFECTED)) {
-                 CopperGolem coppergolem = coppergolemstatueblockentity.removeStatue(blockstate);
+                 CopperGolem coppergolem = coppergolemstatueblockentity.removeStatue(state);
  
--                itemstack.hurtAndBreak(1, player, interactionhand.asEquipmentSlot());
+-                itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
 -                if (coppergolem != null) {
 -                    level.addFreshEntity(coppergolem);
 +                // CraftBukkit start
 +                if (coppergolem != null && level.addFreshEntity(coppergolem, CreatureSpawnEvent.SpawnReason.REANIMATE)) {
-+                    itemstack.hurtAndBreak(1, player, interactionhand.asEquipmentSlot());
++                    itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
 +                    // CraftBukkit end
-                     level.removeBlock(blockpos, false);
+                     level.removeBlock(pos, false);
                      return InteractionResult.SUCCESS;
                  }

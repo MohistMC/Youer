@@ -1,7 +1,7 @@
 --- a/net/minecraft/world/level/block/grower/TreeGrower.java
 +++ b/net/minecraft/world/level/block/grower/TreeGrower.java
-@@ -23,6 +23,12 @@
- import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
+@@ -26,6 +26,12 @@
+ import net.minecraft.world.level.levelgen.feature.configurations.TreeConfiguration;
  import org.jspecify.annotations.Nullable;
  
 +// CraftBukkit start
@@ -13,47 +13,62 @@
  public final class TreeGrower {
  
      private static final Map<String, TreeGrower> GROWERS = new Object2ObjectArrayMap();
-@@ -73,20 +79,21 @@
+@@ -76,20 +82,21 @@
              }
          }
  
--        return flag && this.flowers.isPresent() ? (ResourceKey) this.flowers.get() : (ResourceKey) this.tree.orElse((Object) null);
-+        return flag && this.flowers.isPresent() ? (ResourceKey) this.flowers.get() : (ResourceKey) this.tree.orElse(null); // CraftBukkit - decompile error
+-        return hasFlowers && this.flowers.isPresent() ? (ResourceKey) this.flowers.get() : (ResourceKey) this.tree.orElse((Object) null);
++        return hasFlowers && this.flowers.isPresent() ? (ResourceKey) this.flowers.get() : (ResourceKey) this.tree.orElse(null); // CraftBukkit - decompile error
      }
  
-     private @Nullable ResourceKey<ConfiguredFeature<?, ?>> getConfiguredMegaFeature(RandomSource randomsource) {
--        return this.secondaryMegaTree.isPresent() && randomsource.nextFloat() < this.secondaryChance ? (ResourceKey) this.secondaryMegaTree.get() : (ResourceKey) this.megaTree.orElse((Object) null);
-+        return this.secondaryMegaTree.isPresent() && randomsource.nextFloat() < this.secondaryChance ? (ResourceKey) this.secondaryMegaTree.get() : (ResourceKey) this.megaTree.orElse(null); // CraftBukkit - decompile error
+     private @Nullable ResourceKey<ConfiguredFeature<?, ?>> getConfiguredMegaFeature(RandomSource random) {
+-        return this.secondaryMegaTree.isPresent() && random.nextFloat() < this.secondaryChance ? (ResourceKey) this.secondaryMegaTree.get() : (ResourceKey) this.megaTree.orElse((Object) null);
++        return this.secondaryMegaTree.isPresent() && random.nextFloat() < this.secondaryChance ? (ResourceKey) this.secondaryMegaTree.get() : (ResourceKey) this.megaTree.orElse(null); // CraftBukkit - decompile error
      }
  
-     public boolean growTree(ServerLevel serverlevel, ChunkGenerator chunkgenerator, BlockPos blockpos, BlockState blockstate, RandomSource randomsource) {
-         ResourceKey<ConfiguredFeature<?, ?>> resourcekey = this.getConfiguredMegaFeature(randomsource);
+     public boolean growTree(ServerLevel level, ChunkGenerator generator, BlockPos pos, BlockState state, RandomSource random) {
+         ResourceKey<ConfiguredFeature<?, ?>> resourcekey = this.getConfiguredMegaFeature(random);
  
          if (resourcekey != null) {
--            Holder<ConfiguredFeature<?, ?>> holder = (Holder) serverlevel.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(resourcekey).orElse((Object) null);
-+            Holder<ConfiguredFeature<?, ?>> holder = (Holder) serverlevel.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(resourcekey).orElse(null); // CraftBukkit - decompile error
+-            Holder<ConfiguredFeature<?, ?>> holder = (Holder) level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(resourcekey).orElse((Object) null);
++            Holder<ConfiguredFeature<?, ?>> holder = (Holder) level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(resourcekey).orElse(null); // CraftBukkit - decompile error
  
              if (holder != null) {
 +                setTreeType(holder); // CraftBukkit
                  for (int i = 0; i >= -1; --i) {
                      for (int j = 0; j >= -1; --j) {
-                         if (isTwoByTwoSapling(blockstate, serverlevel, blockpos, i, j)) {
-@@ -117,11 +124,12 @@
+                         if (isTwoByTwoSapling(state, level, pos, i, j)) {
+@@ -120,11 +127,12 @@
          if (resourcekey1 == null) {
              return false;
          } else {
--            Holder<ConfiguredFeature<?, ?>> holder1 = (Holder) serverlevel.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(resourcekey1).orElse((Object) null);
-+            Holder<ConfiguredFeature<?, ?>> holder1 = (Holder) serverlevel.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(resourcekey1).orElse(null); // CraftBukkit - decompile error
+-            Holder<ConfiguredFeature<?, ?>> holder1 = (Holder) level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(resourcekey1).orElse((Object) null);
++            Holder<ConfiguredFeature<?, ?>> holder1 = (Holder) level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(resourcekey1).orElse(null); // CraftBukkit - decompile error
  
              if (holder1 == null) {
                  return false;
              } else {
 +                setTreeType(holder1); // CraftBukkit
                  ConfiguredFeature<?, ?> configuredfeature1 = holder1.value();
-                 BlockState blockstate2 = serverlevel.getFluidState(blockpos).createLegacyBlock();
+                 BlockState blockstate2 = level.getFluidState(pos).createLegacyBlock();
  
-@@ -156,11 +164,66 @@
-         return false;
+@@ -160,12 +168,12 @@
+     }
+ 
+     public OptionalInt getMinimumHeight(ServerLevel level) {
+-        ResourceKey<ConfiguredFeature<?, ?>> resourcekey = (ResourceKey) this.tree.orElse((Object) null);
++        ResourceKey<ConfiguredFeature<?, ?>> resourcekey = (ResourceKey) this.tree.orElse(null); // CraftBukkit - decompile error
+ 
+         if (resourcekey == null) {
+             return OptionalInt.empty();
+         } else {
+-            Holder<ConfiguredFeature<?, ?>> holder = (Holder) level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(resourcekey).orElse((Object) null);
++            Holder<ConfiguredFeature<?, ?>> holder = (Holder) level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(resourcekey).orElse(null); // CraftBukkit - decompile error
+ 
+             if (holder != null) {
+                 FeatureConfiguration featureconfiguration = ((ConfiguredFeature) holder.value()).config();
+@@ -181,11 +189,66 @@
+         }
      }
  
 +    // CraftBukkit start

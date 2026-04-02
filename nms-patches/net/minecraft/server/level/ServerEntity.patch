@@ -20,12 +20,12 @@
 +    // CraftBukkit start
 +    private final Set<ServerPlayerConnection> trackedPlayers;
  
--    public ServerEntity(ServerLevel serverlevel, Entity entity, int i, boolean flag, ServerEntity.Synchronizer serverentity_synchronizer) {
-+    public ServerEntity(ServerLevel serverlevel, Entity entity, int i, boolean flag, ServerEntity.Synchronizer serverentity_synchronizer, Set<ServerPlayerConnection> trackedPlayers) {
+-    public ServerEntity(ServerLevel level, Entity entity, int updateInterval, boolean trackDelta, ServerEntity.Synchronizer synchronizer) {
++    public ServerEntity(ServerLevel level, Entity entity, int updateInterval, boolean trackDelta, ServerEntity.Synchronizer synchronizer, Set<ServerPlayerConnection> trackedPlayers) {
 +        this.trackedPlayers = trackedPlayers;
 +        // CraftBukkit end
-         this.level = serverlevel;
-         this.synchronizer = serverentity_synchronizer;
+         this.level = level;
+         this.synchronizer = synchronizer;
          this.entity = entity;
 @@ -93,7 +103,7 @@
          List<Entity> list = this.entity.getPassengers();
@@ -53,7 +53,7 @@
 -                        for (ServerPlayer serverplayer : this.level.players()) {
 +                        for (ServerPlayerConnection connection : this.trackedPlayers) { // CraftBukkit
 +                            ServerPlayer serverplayer = connection.getPlayer(); // CraftBukkit
-                             mapitemsaveddata.tickCarriedBy(serverplayer, itemstack);
+                             mapitemsaveddata.tickCarriedBy(serverplayer, itemstack, itemframe);
                              Packet<?> packet = mapitemsaveddata.getUpdatePacket(mapid, serverplayer);
  
 @@ -239,6 +250,27 @@
@@ -85,7 +85,7 @@
              this.synchronizer.sendToTrackingPlayersAndSelf(new ClientboundSetEntityMotionPacket(this.entity));
          }
 @@ -284,7 +316,10 @@
-     public void sendPairingData(ServerPlayer serverplayer, Consumer<Packet<ClientGamePacketListener>> consumer) {
+     public void sendPairingData(ServerPlayer player, Consumer<Packet<ClientGamePacketListener>> broadcast) {
          this.entity.updateDataBeforeSync();
          if (this.entity.isRemoved()) {
 -            ServerEntity.LOGGER.warn("Fetching packet for removed entity {}", this.entity);
@@ -101,17 +101,17 @@
              Collection<AttributeInstance> collection = livingentity.getAttributes().getSyncableAttributes();
  
 +            // CraftBukkit start - If sending own attributes send scaled health instead of current maximum health
-+            if (this.entity.getId() == serverplayer.getId()) {
++            if (this.entity.getId() == player.getId()) {
 +                ((ServerPlayer) this.entity).getBukkitEntity().injectScaledMaxHealth(collection, false);
 +            }
 +            // CraftBukkit end
 +
              if (!collection.isEmpty()) {
-                 consumer.accept(new ClientboundUpdateAttributesPacket(this.entity.getId(), collection));
+                 broadcast.accept(new ClientboundUpdateAttributesPacket(this.entity.getId(), collection));
              }
 @@ -319,6 +360,7 @@
              if (!list.isEmpty()) {
-                 consumer.accept(new ClientboundSetEquipmentPacket(this.entity.getId(), list));
+                 broadcast.accept(new ClientboundSetEquipmentPacket(this.entity.getId(), list));
              }
 +            ((LivingEntity) this.entity).detectEquipmentUpdatesPublic(); // CraftBukkit - SPIGOT-3789: sync again immediately after sending
          }

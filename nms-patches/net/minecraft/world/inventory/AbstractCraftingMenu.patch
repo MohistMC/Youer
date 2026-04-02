@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/inventory/AbstractCraftingMenu.java
 +++ b/net/minecraft/world/inventory/AbstractCraftingMenu.java
-@@ -13,14 +13,17 @@
+@@ -14,14 +14,17 @@
  
      private final int width;
      private final int height;
@@ -8,34 +8,34 @@
 +    public final TransientCraftingContainer craftSlots; // CraftBukkit
      public final ResultContainer resultSlots = new ResultContainer();
  
--    public AbstractCraftingMenu(MenuType<?> menutype, int i, int j, int k) {
-+    public AbstractCraftingMenu(MenuType<?> menutype, int i, int j, int k, Inventory playerInventory) { // CraftBukkit
-         super(menutype, i);
-         this.width = j;
-         this.height = k;
--        this.craftSlots = new TransientCraftingContainer(this, j, k);
+-    public AbstractCraftingMenu(MenuType<?> menuType, int containerId, int width, int height) {
++    public AbstractCraftingMenu(MenuType<?> menuType, int containerId, int width, int height, Inventory playerInventory) { // CraftBukkit
+         super(menuType, containerId);
+         this.width = width;
+         this.height = height;
+-        this.craftSlots = new TransientCraftingContainer(this, width, height);
 +        // CraftBukkit start
-+        this.craftSlots = new TransientCraftingContainer(this, j, k, playerInventory.player); // CraftBukkit - pass player
++        this.craftSlots = new TransientCraftingContainer(this, width, height, playerInventory.player); // CraftBukkit - pass player
 +        this.craftSlots.resultInventory = this.resultSlots; // CraftBukkit - let InventoryCrafting know about its result slot
 +        // CraftBukkit end
      }
  
-     protected Slot addResultSlot(Player player, int i, int j) {
-@@ -38,7 +41,7 @@
+     protected Slot addResultSlot(Player player, int x, int y) {
+@@ -39,7 +42,7 @@
  
      @Override
-     public RecipeBookMenu.PostPlaceAction handlePlacement(boolean flag, boolean flag1, RecipeHolder<?> recipeholder, ServerLevel serverlevel, Inventory inventory) {
--        RecipeHolder<CraftingRecipe> recipeholder1 = recipeholder;
-+        RecipeHolder<CraftingRecipe> recipeholder1 = (RecipeHolder<CraftingRecipe>) recipeholder; // CraftBukkit - decompile error
+     public RecipeBookMenu.PostPlaceAction handlePlacement(boolean useMaxItems, boolean allowDroppingItemsToClear, RecipeHolder<?> recipe, ServerLevel level, Inventory inventory) {
+-        RecipeHolder<CraftingRecipe> recipeholder1 = recipe;
++        RecipeHolder<CraftingRecipe> recipeholder1 = (RecipeHolder<CraftingRecipe>) recipe; // CraftBukkit - decompile error
  
          this.beginPlacingRecipe();
  
-@@ -65,7 +68,7 @@
+@@ -70,7 +73,7 @@
                  }
-             }, this.width, this.height, list, list, inventory, recipeholder1, flag, flag1);
+             }, this.width, this.height, list, list, inventory, recipeholder1, useMaxItems, allowDroppingItemsToClear);
          } finally {
--            this.finishPlacingRecipe(serverlevel, recipeholder);
-+            this.finishPlacingRecipe(serverlevel, recipeholder1); // CraftBukkit - decompile error
+-            this.finishPlacingRecipe(level, recipe);
++            this.finishPlacingRecipe(level, recipeholder1); // CraftBukkit - decompile error
          }
  
          return recipebookmenu_postplaceaction;

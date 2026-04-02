@@ -55,8 +55,8 @@
 +    }
 +    // CraftBukkit end
  
-     public JukeboxBlockEntity(BlockPos blockpos, BlockState blockstate) {
-         super(BlockEntityType.JUKEBOX, blockpos, blockstate);
+     public JukeboxBlockEntity(BlockPos worldPosition, BlockState blockState) {
+         super(BlockEntityType.JUKEBOX, worldPosition, blockState);
 @@ -141,7 +185,7 @@
  
      @Override
@@ -70,11 +70,11 @@
      }
  
      @VisibleForTesting
--    public void setSongItemWithoutPlaying(ItemStack itemstack) {
-+    public void setSongItemWithoutPlaying(ItemStack itemstack, long ticksSinceSongStarted) { // CraftBukkit - add argument
-         this.item = itemstack;
+-    public void setSongItemWithoutPlaying(ItemStack itemStack) {
++    public void setSongItemWithoutPlaying(ItemStack itemStack, long ticksSinceSongStarted) { // CraftBukkit - add argument
+         this.item = itemStack;
 +        this.jukeboxSongPlayer.song = null; // CraftBukkit - reset
-         JukeboxSong.fromStack(this.level.registryAccess(), itemstack).ifPresent((holder) -> {
+         JukeboxSong.fromStack(itemStack).ifPresent((holder) -> {
 -            this.jukeboxSongPlayer.setSongWithoutPlaying(holder, 0L);
 +            this.jukeboxSongPlayer.setSongWithoutPlaying(holder, ticksSinceSongStarted); // CraftBukkit - add argument
          });

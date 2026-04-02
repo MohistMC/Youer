@@ -14,11 +14,11 @@
  
      public static final MapCodec<SummonEntityEffect> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
 @@ -34,7 +40,7 @@
-             Optional<Holder<EntityType<?>>> optional = this.entityTypes().getRandomElement(serverlevel.getRandom());
+             Optional<Holder<EntityType<?>>> optional = this.entityTypes().getRandomElement(serverLevel.getRandom());
  
              if (!optional.isEmpty()) {
--                Entity entity1 = ((EntityType) ((Holder) optional.get()).value()).spawn(serverlevel, blockpos, EntitySpawnReason.TRIGGERED);
-+                Entity entity1 = ((EntityType) ((Holder) optional.get()).value()).create(serverlevel, null, blockpos, EntitySpawnReason.TRIGGERED, false, false); // CraftBukkit
+-                Entity entity1 = ((EntityType) ((Holder) optional.get()).value()).spawn(serverLevel, blockpos, EntitySpawnReason.TRIGGERED);
++                Entity entity1 = ((EntityType) ((Holder) optional.get()).value()).create(serverLevel, null, blockpos, EntitySpawnReason.TRIGGERED, false, false); // CraftBukkit
  
                  if (entity1 != null) {
                      if (entity1 instanceof LightningBolt) {
@@ -27,9 +27,9 @@
                              lightningbolt.setCause(serverplayer);
                          }
 +                        // CraftBukkit start
-+                        serverlevel.strikeLightning(entity1, (enchantediteminuse.itemStack().getItem() == Items.TRIDENT) ? LightningStrikeEvent.Cause.TRIDENT : LightningStrikeEvent.Cause.ENCHANTMENT);
++                        serverLevel.strikeLightning(entity1, (item.itemStack().getItem() == Items.TRIDENT) ? LightningStrikeEvent.Cause.TRIDENT : LightningStrikeEvent.Cause.ENCHANTMENT);
 +                    } else {
-+                        serverlevel.addFreshEntityWithPassengers(entity1, CreatureSpawnEvent.SpawnReason.ENCHANTMENT);
++                        serverLevel.addFreshEntityWithPassengers(entity1, CreatureSpawnEvent.SpawnReason.ENCHANTMENT);
 +                        // CraftBukkit end
                      }
  

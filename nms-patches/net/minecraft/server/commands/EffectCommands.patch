@@ -2,17 +2,17 @@
 +++ b/net/minecraft/server/commands/EffectCommands.java
 @@ -78,7 +78,7 @@
              if (entity instanceof LivingEntity) {
-                 MobEffectInstance mobeffectinstance = new MobEffectInstance(holder, k, i, false, flag);
+                 MobEffectInstance mobeffectinstance = new MobEffectInstance(effectHolder, k, amplifier, false, particles);
  
--                if (((LivingEntity) entity).addEffect(mobeffectinstance, commandsourcestack.getEntity())) {
-+                if (((LivingEntity) entity).addEffect(mobeffectinstance, commandsourcestack.getEntity(), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.COMMAND)) { // CraftBukkit
+-                if (((LivingEntity) entity).addEffect(mobeffectinstance, source.getEntity())) {
++                if (((LivingEntity) entity).addEffect(mobeffectinstance, source.getEntity(), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.COMMAND)) { // CraftBukkit
                      ++j;
                  }
              }
 @@ -105,7 +105,7 @@
          int i = 0;
  
-         for (Entity entity : collection) {
+         for (Entity entity : entities) {
 -            if (entity instanceof LivingEntity && ((LivingEntity) entity).removeAllEffects()) {
 +            if (entity instanceof LivingEntity && ((LivingEntity) entity).removeAllEffects(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.COMMAND)) { // CraftBukkit
                  ++i;
@@ -21,9 +21,9 @@
 @@ -132,7 +132,7 @@
          int i = 0;
  
-         for (Entity entity : collection) {
--            if (entity instanceof LivingEntity && ((LivingEntity) entity).removeEffect(holder)) {
-+            if (entity instanceof LivingEntity && ((LivingEntity) entity).removeEffect(holder, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.COMMAND)) { // CraftBukkit
+         for (Entity entity : entities) {
+-            if (entity instanceof LivingEntity && ((LivingEntity) entity).removeEffect(effectHolder)) {
++            if (entity instanceof LivingEntity && ((LivingEntity) entity).removeEffect(effectHolder, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.COMMAND)) { // CraftBukkit
                  ++i;
              }
          }

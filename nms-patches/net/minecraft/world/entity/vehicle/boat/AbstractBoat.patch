@@ -28,9 +28,9 @@
 +    public boolean landBoats = false;
 +    // CraftBukkit end
 +
-     public AbstractBoat(EntityType<? extends AbstractBoat> entitytype, Level level, Supplier<Item> supplier) {
-         super(entitytype, level);
-         this.dropItem = supplier;
+     public AbstractBoat(EntityType<? extends AbstractBoat> type, Level level, Supplier<Item> dropItem) {
+         super(type, level);
+         this.dropItem = dropItem;
 @@ -178,9 +195,29 @@
      public void push(Entity entity) {
          if (entity instanceof AbstractBoat) {
@@ -94,20 +94,20 @@
 @@ -727,11 +780,18 @@
  
      @Override
-     public void remove(Entity.RemovalReason entity_removalreason) {
+     public void remove(Entity.RemovalReason reason) {
 +        // CraftBukkit start - add Bukkit remove cause
-+        this.remove(entity_removalreason, null);
++        this.remove(reason, null);
 +    }
 +
 +    @Override
-+    public void remove(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
++    public void remove(Entity.RemovalReason reason, EntityRemoveEvent.Cause cause) {
 +        // CraftBukkit end
-         if (!this.level().isClientSide() && entity_removalreason.shouldDestroy() && this.isLeashed()) {
+         if (!this.level().isClientSide() && reason.shouldDestroy() && this.isLeashed()) {
              this.dropLeash();
          }
  
--        super.remove(entity_removalreason);
-+        super.remove(entity_removalreason, cause); // CraftBukkit - add Bukkit remove cause
+-        super.remove(reason);
++        super.remove(reason, cause); // CraftBukkit - add Bukkit remove cause
      }
  
      @Override

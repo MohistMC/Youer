@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/entity/vault/VaultBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/vault/VaultBlockEntity.java
-@@ -42,6 +42,13 @@
+@@ -43,6 +43,13 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -14,14 +14,14 @@
  public class VaultBlockEntity extends BlockEntity {
  
      private final VaultServerData serverData = new VaultServerData();
-@@ -81,13 +88,13 @@
+@@ -82,13 +89,13 @@
          VaultServerData vaultserverdata = this.serverData;
  
          Objects.requireNonNull(this.serverData);
 -        optional.ifPresent(vaultserverdata::set);
 +        ((Optional<VaultServerData>) optional).ifPresent(vaultserverdata::set); // CraftBukkit - decompile error
-         this.config = (VaultConfig) valueinput.read("config", VaultConfig.CODEC).orElse(VaultConfig.DEFAULT);
-         optional = valueinput.read("shared_data", VaultSharedData.CODEC);
+         this.config = (VaultConfig) input.read("config", VaultConfig.CODEC).orElse(VaultConfig.DEFAULT);
+         optional = input.read("shared_data", VaultSharedData.CODEC);
          VaultSharedData vaultshareddata = this.sharedData;
  
          Objects.requireNonNull(this.sharedData);
@@ -30,27 +30,27 @@
      }
  
      public @Nullable VaultServerData getServerData() {
-@@ -161,6 +168,14 @@
+@@ -162,6 +169,14 @@
                      if (!list.isEmpty()) {
-                         player.awardStat(Stats.ITEM_USED.get(itemstack.getItem()));
-                         itemstack.consume(vaultconfig.keyItem().getCount(), player);
+                         player.awardStat(Stats.ITEM_USED.get(stackToInsert.getItem()));
+                         stackToInsert.consume(config.keyItem().getCount(), player);
 +                        // CraftBukkit start
-+                        BlockDispenseLootEvent vaultDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(serverlevel, blockpos, player, list);
++                        BlockDispenseLootEvent vaultDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(serverLevel, pos, player, list);
 +                        if (vaultDispenseLootEvent.isCancelled()) {
 +                            return;
 +                        }
 +
 +                        list = vaultDispenseLootEvent.getDispensedLoot().stream().map(CraftItemStack::asNMSCopy).toList();
 +                        // CraftBukkit end
-                         unlock(serverlevel, blockstate, blockpos, vaultconfig, vaultserverdata, vaultshareddata, list);
-                         vaultserverdata.addToRewardedPlayers(player);
-                         vaultshareddata.updateConnectedPlayersWithinRange(serverlevel, blockpos, vaultserverdata, vaultconfig, vaultconfig.deactivationRange());
-@@ -182,6 +197,14 @@
-                 vaultshareddata.setDisplayItem(ItemStack.EMPTY);
+                         unlock(serverLevel, blockState, pos, config, serverData, sharedData, list);
+                         serverData.addToRewardedPlayers(player);
+                         sharedData.updateConnectedPlayersWithinRange(serverLevel, pos, serverData, config, config.deactivationRange());
+@@ -183,6 +198,14 @@
+                 sharedData.setDisplayItem(ItemStack.EMPTY);
              } else {
-                 ItemStack itemstack = getRandomDisplayItemFromLootTable(serverlevel, blockpos, (ResourceKey) vaultconfig.overrideLootTableToDisplay().orElse(vaultconfig.lootTable()));
+                 ItemStack itemstack = getRandomDisplayItemFromLootTable(serverLevel, pos, (ResourceKey) config.overrideLootTableToDisplay().orElse(config.lootTable()));
 +                // CraftBukkit start
-+                VaultDisplayItemEvent event = CraftEventFactory.callVaultDisplayItemEvent(serverlevel, blockpos, itemstack);
++                VaultDisplayItemEvent event = CraftEventFactory.callVaultDisplayItemEvent(serverLevel, pos, itemstack);
 +                if (event.isCancelled()) {
 +                    return;
 +                }
@@ -58,5 +58,5 @@
 +                itemstack = CraftItemStack.asNMSCopy(event.getDisplayItem());
 +                // CraftBukkit end
  
-                 vaultshareddata.setDisplayItem(itemstack);
+                 sharedData.setDisplayItem(itemstack);
              }

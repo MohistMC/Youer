@@ -20,21 +20,21 @@
 +    private CraftInventoryView bukkitEntity = null;
 +    // CraftBukkit end
  
-     public CraftingMenu(int i, Inventory inventory) {
-         this(i, inventory, ContainerLevelAccess.NULL);
+     public CraftingMenu(int containerId, Inventory inventory) {
+         this(containerId, inventory, ContainerLevelAccess.NULL);
      }
  
-     public CraftingMenu(int i, Inventory inventory, ContainerLevelAccess containerlevelaccess) {
--        super(MenuType.CRAFTING, i, 3, 3);
-+        super(MenuType.CRAFTING, i, 3, 3, inventory); // CraftBukkit - pass player
-         this.access = containerlevelaccess;
+     public CraftingMenu(int containerId, Inventory inventory, ContainerLevelAccess access) {
+-        super(MenuType.CRAFTING, containerId, 3, 3);
++        super(MenuType.CRAFTING, containerId, 3, 3, inventory); // CraftBukkit - pass player
+         this.access = access;
          this.player = inventory.player;
          this.addResultSlot(this.player, 124, 35);
 @@ -50,6 +58,7 @@
          ServerPlayer serverplayer = (ServerPlayer) player;
          ItemStack itemstack = ItemStack.EMPTY;
-         Optional<RecipeHolder<CraftingRecipe>> optional = serverlevel.getServer().getRecipeManager().getRecipeFor(RecipeType.CRAFTING, craftinginput, serverlevel, recipeholder);
-+        craftingcontainer.setCurrentRecipe(optional.orElse(null)); // CraftBukkit
+         Optional<RecipeHolder<CraftingRecipe>> optional = level.getServer().getRecipeManager().getRecipeFor(RecipeType.CRAFTING, craftinginput, level, recipeHint);
++        container.setCurrentRecipe(optional.orElse(null)); // CraftBukkit
  
          if (optional.isPresent()) {
              RecipeHolder<CraftingRecipe> recipeholder1 = (RecipeHolder) optional.get();
@@ -42,10 +42,10 @@
                  }
              }
          }
-+        itemstack = org.bukkit.craftbukkit.event.CraftEventFactory.callPreCraftEvent(craftingcontainer, resultcontainer, itemstack, abstractcontainermenu.getBukkitView(), optional); // CraftBukkit
++        itemstack = org.bukkit.craftbukkit.event.CraftEventFactory.callPreCraftEvent(container, resultSlots, itemstack, menu.getBukkitView(), optional); // CraftBukkit
  
-         resultcontainer.setItem(0, itemstack);
-         abstractcontainermenu.setRemoteSlot(0, itemstack);
+         resultSlots.setItem(0, itemstack);
+         menu.setRemoteSlot(0, itemstack);
 @@ -103,6 +113,7 @@
  
      @Override

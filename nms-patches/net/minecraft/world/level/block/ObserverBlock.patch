@@ -11,20 +11,20 @@
      public static final MapCodec<ObserverBlock> CODEC = simpleCodec(ObserverBlock::new);
 @@ -51,8 +53,18 @@
      @Override
-     protected void tick(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, RandomSource randomsource) {
-         if ((Boolean) blockstate.getValue(ObserverBlock.POWERED)) {
+     protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+         if ((Boolean) state.getValue(ObserverBlock.POWERED)) {
 +            // CraftBukkit start
-+            if (CraftEventFactory.callRedstoneChange(serverlevel, blockpos, 15, 0).getNewCurrent() != 0) {
++            if (CraftEventFactory.callRedstoneChange(level, pos, 15, 0).getNewCurrent() != 0) {
 +                return;
 +            }
 +            // CraftBukkit end
-             serverlevel.setBlock(blockpos, (BlockState) blockstate.setValue(ObserverBlock.POWERED, false), 2);
+             level.setBlock(pos, (BlockState) state.setValue(ObserverBlock.POWERED, false), 2);
          } else {
 +            // CraftBukkit start
-+            if (CraftEventFactory.callRedstoneChange(serverlevel, blockpos, 0, 15).getNewCurrent() != 15) {
++            if (CraftEventFactory.callRedstoneChange(level, pos, 0, 15).getNewCurrent() != 15) {
 +                return;
 +            }
 +            // CraftBukkit end
-             serverlevel.setBlock(blockpos, (BlockState) blockstate.setValue(ObserverBlock.POWERED, true), 2);
-             serverlevel.scheduleTick(blockpos, (Block) this, 2);
+             level.setBlock(pos, (BlockState) state.setValue(ObserverBlock.POWERED, true), 2);
+             level.scheduleTick(pos, (Block) this, 2);
          }

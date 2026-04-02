@@ -60,8 +60,8 @@
 +    }
 +    // CraftBukkit end
 +
-     protected AbstractMinecartContainer(EntityType<?> entitytype, Level level) {
-         super(entitytype, level);
+     protected AbstractMinecartContainer(EntityType<?> type, Level level) {
+         super(type, level);
 -        this.itemStacks = NonNullList.<ItemStack>withSize(36, ItemStack.EMPTY);
 +        this.itemStacks = NonNullList.<ItemStack>withSize(this.getContainerSize(), ItemStack.EMPTY); // CraftBukkit - SPIGOT-3513
      }
@@ -70,20 +70,20 @@
 @@ -74,11 +124,18 @@
  
      @Override
-     public void remove(Entity.RemovalReason entity_removalreason) {
+     public void remove(Entity.RemovalReason reason) {
 +        // CraftBukkit start - add Bukkit remove cause
-+        this.remove(entity_removalreason, null);
++        this.remove(reason, null);
 +    }
 +
 +    @Override
-+    public void remove(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
++    public void remove(Entity.RemovalReason reason, EntityRemoveEvent.Cause cause) {
 +        // CraftBukkit end
-         if (!this.level().isClientSide() && entity_removalreason.shouldDestroy()) {
+         if (!this.level().isClientSide() && reason.shouldDestroy()) {
              Containers.dropContents(this.level(), (Entity) this, this);
          }
  
--        super.remove(entity_removalreason);
-+        super.remove(entity_removalreason, cause); // CraftBukkit - add Bukkit remove cause
+-        super.remove(reason);
++        super.remove(reason, cause); // CraftBukkit - add Bukkit remove cause
      }
  
      @Override

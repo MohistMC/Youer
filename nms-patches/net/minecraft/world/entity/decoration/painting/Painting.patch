@@ -1,8 +1,8 @@
 --- a/net/minecraft/world/entity/decoration/painting/Painting.java
 +++ b/net/minecraft/world/entity/decoration/painting/Painting.java
 @@ -94,7 +94,7 @@
-     public static Optional<Painting> create(Level level, BlockPos blockpos, Direction direction) {
-         Painting painting = new Painting(level, blockpos);
+     public static Optional<Painting> create(Level level, BlockPos pos, Direction direction) {
+         Painting painting = new Painting(level, pos);
          List<Holder<PaintingVariant>> list = new ArrayList();
 -        Iterable iterable = level.registryAccess().lookupOrThrow(Registries.PAINTING_VARIANT).getTagOrEmpty(PaintingVariantTags.PLACEABLE);
 +        Iterable<Holder<PaintingVariant>> iterable = level.registryAccess().lookupOrThrow(Registries.PAINTING_VARIANT).getTagOrEmpty(PaintingVariantTags.PLACEABLE); // CraftBukkit - decompile error
@@ -12,16 +12,16 @@
 @@ -159,22 +159,32 @@
  
      @Override
-     protected AABB calculateBoundingBox(BlockPos blockpos, Direction direction) {
+     protected AABB calculateBoundingBox(BlockPos pos, Direction direction) {
 +        // CraftBukkit start
 +        PaintingVariant paintingvariant = (PaintingVariant) this.getVariant().value();
-+        return calculateBoundingBoxStatic(blockpos, direction, paintingvariant.width(), paintingvariant.height());
++        return calculateBoundingBoxStatic(pos, direction, paintingvariant.width(), paintingvariant.height());
 +    }
 +
-+    public static AABB calculateBoundingBoxStatic(BlockPos blockpos, Direction direction, int width, int height) {
++    public static AABB calculateBoundingBoxStatic(BlockPos pos, Direction direction, int width, int height) {
 +        // CraftBukkit end
          float f = 0.46875F;
-         Vec3 vec3 = Vec3.atCenterOf(blockpos).relative(direction, -0.46875D);
+         Vec3 vec3 = Vec3.atCenterOf(pos).relative(direction, -0.46875D);
 -        PaintingVariant paintingvariant = (PaintingVariant) this.getVariant().value();
 -        double d0 = this.offsetForPaintingSize(paintingvariant.width());
 -        double d1 = this.offsetForPaintingSize(paintingvariant.height());
@@ -44,8 +44,8 @@
          return AABB.ofSize(vec31, d2, d3, d4);
      }
  
--    private double offsetForPaintingSize(int i) {
-+    private static double offsetForPaintingSize(int i) { // CraftBukkit - static
-         return i % 2 == 0 ? 0.5D : 0.0D;
+-    private double offsetForPaintingSize(int size) {
++    private static double offsetForPaintingSize(int size) { // CraftBukkit - static
+         return size % 2 == 0 ? 0.5D : 0.0D;
      }
  

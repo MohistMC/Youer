@@ -22,12 +22,12 @@
 @@ -47,7 +53,7 @@
  
      @Override
-     public void dispenseFrom(ServerLevel serverlevel, BlockState blockstate, BlockPos blockpos) {
--        DispenserBlockEntity dispenserblockentity = (DispenserBlockEntity) serverlevel.getBlockEntity(blockpos, BlockEntityType.DROPPER).orElse((Object) null);
-+        DispenserBlockEntity dispenserblockentity = (DispenserBlockEntity) serverlevel.getBlockEntity(blockpos, BlockEntityType.DROPPER).orElse(null); // CraftBukkit - decompile error
+     public void dispenseFrom(ServerLevel level, BlockState state, BlockPos pos) {
+-        DispenserBlockEntity dispenserblockentity = (DispenserBlockEntity) level.getBlockEntity(pos, BlockEntityType.DROPPER).orElse((Object) null);
++        DispenserBlockEntity dispenserblockentity = (DispenserBlockEntity) level.getBlockEntity(pos, BlockEntityType.DROPPER).orElse(null); // CraftBukkit - decompile error
  
          if (dispenserblockentity == null) {
-             DropperBlock.LOGGER.warn("Ignoring dispensing attempt for Dropper without matching block entity at {}", blockpos);
+             DropperBlock.LOGGER.warn("Ignoring dispensing attempt for Dropper without matching block entity at {}", pos);
 @@ -68,8 +74,25 @@
                      if (container == null) {
                          itemstack1 = DropperBlock.DISPENSE_BEHAVIOUR.dispense(blocksource, itemstack);
@@ -46,7 +46,7 @@
 +                        }
 +
 +                        InventoryMoveItemEvent event = new InventoryMoveItemEvent(dispenserblockentity.getOwner().getInventory(), oitemstack, destinationInventory, true);
-+                        serverlevel.getCraftServer().getPluginManager().callEvent(event);
++                        level.getCraftServer().getPluginManager().callEvent(event);
 +                        if (event.isCancelled()) {
 +                            return;
 +                        }

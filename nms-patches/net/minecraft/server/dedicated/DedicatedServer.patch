@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -75,6 +75,22 @@
+@@ -79,6 +79,22 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -23,32 +23,32 @@
  public class DedicatedServer extends MinecraftServer implements ServerInterface {
  
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -82,7 +98,7 @@
+@@ -86,7 +102,7 @@
      private static final int CONVERSION_RETRIES = 2;
      private final List<ConsoleInput> consoleInput = Collections.synchronizedList(Lists.newArrayList());
      private @Nullable QueryThreadGs4 queryThreadGs4;
 -    private final RconConsoleSource rconConsoleSource;
-+    // private final RemoteControlCommandListener rconConsoleSource; // CraftBukkit - remove field
++    // private final RconConsoleSource rconConsoleSource; // CraftBukkit - remove field
      private @Nullable RconThread rconThread;
      public DedicatedServerSettings settings;
      private @Nullable MinecraftServerGui gui;
-@@ -94,10 +110,12 @@
+@@ -98,10 +114,12 @@
      private @Nullable ManagementServer jsonRpcServer;
      private long lastHeartbeat;
  
--    public DedicatedServer(Thread thread, LevelStorageSource.LevelStorageAccess levelstoragesource_levelstorageaccess, PackRepository packrepository, WorldStem worldstem, DedicatedServerSettings dedicatedserversettings, DataFixer datafixer, Services services) {
--        super(thread, levelstoragesource_levelstorageaccess, packrepository, worldstem, Proxy.NO_PROXY, datafixer, services, LoggingLevelLoadListener.forDedicatedServer());
+-    public DedicatedServer(Thread serverThread, LevelStorageSource.LevelStorageAccess levelStorageSource, PackRepository packRepository, WorldStem worldStem, Optional<GameRules> gameRules, DedicatedServerSettings settings, DataFixer fixerUpper, Services services) {
+-        super(serverThread, levelStorageSource, packRepository, worldStem, gameRules, Proxy.NO_PROXY, fixerUpper, services, LoggingLevelLoadListener.forDedicatedServer(), true);
 +    // CraftBukkit start - Signature changed
-+    public DedicatedServer(joptsimple.OptionSet options, WorldLoader.DataLoadContext worldLoader, Thread thread, LevelStorageSource.LevelStorageAccess levelstoragesource_levelstorageaccess, PackRepository packrepository, WorldStem worldstem, DedicatedServerSettings dedicatedserversettings, DataFixer datafixer, Services services) {
-+        super(options, worldLoader, thread, levelstoragesource_levelstorageaccess, packrepository, worldstem, Proxy.NO_PROXY, datafixer, services, LoggingLevelLoadListener.forDedicatedServer());
++    public DedicatedServer(joptsimple.OptionSet options, WorldLoader.DataLoadContext worldLoader, Thread serverThread, LevelStorageSource.LevelStorageAccess levelStorageSource, PackRepository packRepository, WorldStem worldStem, Optional<GameRules> gameRules, DedicatedServerSettings settings, DataFixer fixerUpper, Services services) {
++        super(options, worldLoader, serverThread, levelStorageSource, packRepository, worldStem, gameRules, Proxy.NO_PROXY, fixerUpper, services, LoggingLevelLoadListener.forDedicatedServer(), true);
 +        // CraftBukkit end
-         this.settings = dedicatedserversettings;
+         this.settings = settings;
 -        this.rconConsoleSource = new RconConsoleSource(this);
 +        // this.rconConsoleSource = new RconConsoleSource(this); // CraftBukkit - remove field
-         this.serverTextFilter = ServerTextFilter.createFromConfig(dedicatedserversettings.getProperties());
-         this.serverLinks = createServerLinks(dedicatedserversettings);
-         if (dedicatedserversettings.getProperties().codeOfConduct) {
-@@ -139,7 +157,7 @@
+         this.serverTextFilter = ServerTextFilter.createFromConfig(settings.getProperties());
+         this.serverLinks = createServerLinks(settings);
+         if (settings.getProperties().codeOfConduct) {
+@@ -143,7 +161,7 @@
                      }
                  }
  
@@ -57,7 +57,7 @@
              } catch (IOException ioexception1) {
                  throw new IllegalArgumentException("Failed to read Code of Conduct folder", ioexception1);
              }
-@@ -186,23 +204,82 @@
+@@ -190,27 +208,86 @@
              }
          }
  
@@ -69,6 +69,10 @@
 +                .build();
 +        // CraftBukkit end
          Thread thread = new Thread("Server console handler") {
+             {
+                 Objects.requireNonNull(DedicatedServer.this);
+             }
+ 
              public void run() {
 -                BufferedReader bufferedreader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
 +                // CraftBukkit start
@@ -144,7 +148,7 @@
          thread.setDaemon(true);
          thread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(DedicatedServer.LOGGER));
          thread.start();
-@@ -222,7 +299,7 @@
+@@ -230,7 +307,7 @@
              this.setLocalIp(dedicatedserverproperties.serverIp);
          }
  
@@ -153,7 +157,7 @@
          DedicatedServer.LOGGER.info("Default game type: {}", dedicatedserverproperties.gameMode.get());
          InetAddress inetaddress = null;
  
-@@ -246,6 +323,12 @@
+@@ -254,6 +331,12 @@
              return false;
          }
  
@@ -166,8 +170,8 @@
          if (!this.usesAuthentication()) {
              DedicatedServer.LOGGER.warn("**** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!");
              DedicatedServer.LOGGER.warn("The server will make no attempt to authenticate usernames. Beware.");
-@@ -260,19 +343,19 @@
-         if (!OldUsersConverter.serverReadyAfterUserconversion(this)) {
+@@ -268,19 +351,19 @@
+         if (!OldUsersConverter.areOldUserlistsRemoved()) {
              return false;
          } else {
 -            this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
@@ -184,12 +188,12 @@
  
              DedicatedServer.LOGGER.info("Done ({})! For help, type \"help\"", s3);
              if (dedicatedserverproperties.announcePlayerAchievements != null) {
--                this.worldData.getGameRules().set(GameRules.SHOW_ADVANCEMENT_MESSAGES, dedicatedserverproperties.announcePlayerAchievements, this);
-+                this.worldData.getGameRules().set(GameRules.SHOW_ADVANCEMENT_MESSAGES, dedicatedserverproperties.announcePlayerAchievements, this.overworld()); // CraftBukkit - per-world
+-                this.getGameRules().set(GameRules.SHOW_ADVANCEMENT_MESSAGES, dedicatedserverproperties.announcePlayerAchievements, this);
++                this.overworld().getGameRules().set(GameRules.SHOW_ADVANCEMENT_MESSAGES, dedicatedserverproperties.announcePlayerAchievements, this.overworld()); // CraftBukkit - per-world
              }
  
              if (dedicatedserverproperties.enableQuery) {
-@@ -463,6 +546,7 @@
+@@ -484,6 +567,7 @@
              }
          }
  
@@ -197,7 +201,7 @@
      }
  
      @Override
-@@ -479,7 +563,15 @@
+@@ -500,7 +584,15 @@
          while (!this.consoleInput.isEmpty()) {
              ConsoleInput consoleinput = (ConsoleInput) this.consoleInput.remove(0);
  
@@ -214,7 +218,7 @@
          }
  
      }
-@@ -756,16 +848,52 @@
+@@ -777,16 +869,52 @@
  
      @Override
      public String getPluginNames() {
@@ -246,7 +250,7 @@
      }
  
      @Override
-     public String runCommand(String s) {
+     public String runCommand(String command) {
 -        this.rconConsoleSource.prepareForCommand();
 +        // CraftBukkit start - fire RemoteServerCommandEvent
 +        throw new UnsupportedOperationException("Not supported - remote source required.");
@@ -255,7 +259,7 @@
 +    public String runCommand(RconConsoleSource rconConsoleSource, String s) {
 +        rconConsoleSource.prepareForCommand();
          this.executeBlocking(() -> {
--            this.getCommands().performPrefixedCommand(this.rconConsoleSource.createCommandSourceStack(), s);
+-            this.getCommands().performPrefixedCommand(this.rconConsoleSource.createCommandSourceStack(), command);
 +            CommandSourceStack wrapper = rconConsoleSource.createCommandSourceStack();
 +            RemoteServerCommandEvent event = new RemoteServerCommandEvent(rconConsoleSource.getBukkitSender(wrapper), s);
 +            server.getPluginManager().callEvent(event);
@@ -271,7 +275,7 @@
      }
  
      @Override
-@@ -913,4 +1041,15 @@
+@@ -934,4 +1062,15 @@
      public Map<String, String> getCodeOfConducts() {
          return this.codeOfConductTexts;
      }

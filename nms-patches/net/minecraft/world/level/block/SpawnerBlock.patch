@@ -1,19 +1,20 @@
 --- a/net/minecraft/world/level/block/SpawnerBlock.java
 +++ b/net/minecraft/world/level/block/SpawnerBlock.java
-@@ -39,11 +39,19 @@
+@@ -40,12 +40,20 @@
      @Override
-     protected void spawnAfterBreak(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack, boolean flag) {
-         super.spawnAfterBreak(blockstate, serverlevel, blockpos, itemstack, flag);
+     protected void spawnAfterBreak(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
+         super.spawnAfterBreak(state, level, pos, tool, dropExperience);
 +        // CraftBukkit start - Delegate to getExpDrop
 +    }
 +
 +    @Override
-+    public int getExpDrop(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack, boolean flag) {
-         if (flag) {
-             int i = 15 + serverlevel.random.nextInt(15) + serverlevel.random.nextInt(15);
++    public int getExpDrop(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
+         if (dropExperience) {
+             RandomSource randomsource = level.getRandom();
+             int i = 15 + randomsource.nextInt(15) + randomsource.nextInt(15);
  
--            this.popExperience(serverlevel, blockpos, i);
-+            // this.popExperience(worldserver, blockposition, i);
+-            this.popExperience(level, pos, i);
++            // this.popExperience(level, pos, i);
 +            return i;
          }
  

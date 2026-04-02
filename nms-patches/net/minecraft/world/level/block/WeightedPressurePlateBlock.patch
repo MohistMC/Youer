@@ -15,18 +15,18 @@
 @@ -39,7 +44,27 @@
  
      @Override
-     protected int getSignalStrength(Level level, BlockPos blockpos) {
--        int i = Math.min(getEntityCount(level, WeightedPressurePlateBlock.TOUCH_AABB.move(blockpos), Entity.class), this.maxWeight);
+     protected int getSignalStrength(Level level, BlockPos pos) {
+-        int i = Math.min(getEntityCount(level, WeightedPressurePlateBlock.TOUCH_AABB.move(pos), Entity.class), this.maxWeight);
 +        // CraftBukkit start
 +        // int i = Math.min(getEntityCount(world, BlockPressurePlateWeighted.TOUCH_AABB.move(blockposition), Entity.class), this.maxWeight);
 +        int i = 0;
-+        for (Entity entity : getEntities(level, WeightedPressurePlateBlock.TOUCH_AABB.move(blockpos), Entity.class)) {
++        for (Entity entity : getEntities(level, WeightedPressurePlateBlock.TOUCH_AABB.move(pos), Entity.class)) {
 +            org.bukkit.event.Cancellable cancellable;
 +
 +            if (entity instanceof Player) {
-+                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) entity, org.bukkit.event.block.Action.PHYSICAL, blockpos, null, null, null);
++                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) entity, org.bukkit.event.block.Action.PHYSICAL, pos, null, null, null);
 +            } else {
-+                cancellable = new EntityInteractEvent(entity.getBukkitEntity(), level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ()));
++                cancellable = new EntityInteractEvent(entity.getBukkitEntity(), level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()));
 +                level.getCraftServer().getPluginManager().callEvent((EntityInteractEvent) cancellable);
 +            }
 +

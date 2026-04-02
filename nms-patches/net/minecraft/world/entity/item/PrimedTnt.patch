@@ -19,8 +19,8 @@
      public float explosionPower;
 +    public boolean isIncendiary = false; // CraftBukkit - add field
  
-     public PrimedTnt(EntityType<? extends PrimedTnt> entitytype, Level level) {
-         super(entitytype, level);
+     public PrimedTnt(EntityType<? extends PrimedTnt> type, Level level) {
+         super(type, level);
 @@ -108,10 +115,13 @@
  
          this.setFuse(i);
@@ -34,7 +34,7 @@
 +            this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
 +            // CraftBukkit end
          } else {
-             this.updateInWaterStateAndDoFluidPushing();
+             this.updateFluidInteraction();
              if (this.level().isClientSide()) {
 @@ -126,7 +136,13 @@
  

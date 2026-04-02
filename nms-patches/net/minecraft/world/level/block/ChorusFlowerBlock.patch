@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/ChorusFlowerBlock.java
 +++ b/net/minecraft/world/level/block/ChorusFlowerBlock.java
-@@ -22,6 +22,8 @@
+@@ -23,6 +23,8 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -9,30 +9,30 @@
  public class ChorusFlowerBlock extends Block {
  
      public static final MapCodec<ChorusFlowerBlock> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
-@@ -101,8 +103,12 @@
+@@ -102,8 +104,12 @@
                  }
  
-                 if (flag && allNeighborsEmpty(serverlevel, blockpos1, (Direction) null) && serverlevel.isEmptyBlock(blockpos.above(2))) {
--                    serverlevel.setBlock(blockpos, ChorusPlantBlock.getStateWithConnections(serverlevel, blockpos, this.plant.defaultBlockState()), 2);
--                    this.placeGrownFlower(serverlevel, blockpos1, i);
+                 if (flag && allNeighborsEmpty(level, blockpos1, (Direction) null) && level.isEmptyBlock(pos.above(2))) {
+-                    level.setBlock(pos, ChorusPlantBlock.getStateWithConnections(level, pos, this.plant.defaultBlockState()), 2);
+-                    this.placeGrownFlower(level, blockpos1, i);
 +                    // CraftBukkit start - add event
-+                    if (CraftEventFactory.handleBlockSpreadEvent(serverlevel, blockpos, blockpos1, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(i)), 2)) {
-+                        serverlevel.setBlock(blockpos, ChorusPlantBlock.getStateWithConnections(serverlevel, blockpos, this.plant.defaultBlockState()), 2);
-+                        this.placeGrownFlower(serverlevel, blockpos1, i);
++                    if (CraftEventFactory.handleBlockSpreadEvent(level, pos, blockpos1, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(i)), 2)) {
++                        level.setBlock(pos, ChorusPlantBlock.getStateWithConnections(level, pos, this.plant.defaultBlockState()), 2);
++                        this.placeGrownFlower(level, blockpos1, i);
 +                    }
 +                    // CraftBukkit end
                  } else if (i < 4) {
-                     int l = randomsource.nextInt(4);
+                     int l = random.nextInt(4);
  
-@@ -117,18 +123,30 @@
-                         BlockPos blockpos2 = blockpos.relative(direction);
+@@ -118,18 +124,30 @@
+                         BlockPos blockpos2 = pos.relative(direction);
  
-                         if (serverlevel.isEmptyBlock(blockpos2) && serverlevel.isEmptyBlock(blockpos2.below()) && allNeighborsEmpty(serverlevel, blockpos2, direction.getOpposite())) {
--                            this.placeGrownFlower(serverlevel, blockpos2, i + 1);
+                         if (level.isEmptyBlock(blockpos2) && level.isEmptyBlock(blockpos2.below()) && allNeighborsEmpty(level, blockpos2, direction.getOpposite())) {
+-                            this.placeGrownFlower(level, blockpos2, i + 1);
 -                            flag2 = true;
 +                            // CraftBukkit start - add event
-+                            if (CraftEventFactory.handleBlockSpreadEvent(serverlevel, blockpos, blockpos2, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(i + 1)), 2)) {
-+                                this.placeGrownFlower(serverlevel, blockpos2, i + 1);
++                            if (CraftEventFactory.handleBlockSpreadEvent(level, pos, blockpos2, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(i + 1)), 2)) {
++                                this.placeGrownFlower(level, blockpos2, i + 1);
 +                                flag2 = true;
 +                            }
 +                            // CraftBukkit end
@@ -40,26 +40,26 @@
                      }
  
                      if (flag2) {
-                         serverlevel.setBlock(blockpos, ChorusPlantBlock.getStateWithConnections(serverlevel, blockpos, this.plant.defaultBlockState()), 2);
+                         level.setBlock(pos, ChorusPlantBlock.getStateWithConnections(level, pos, this.plant.defaultBlockState()), 2);
                      } else {
--                        this.placeDeadFlower(serverlevel, blockpos);
+-                        this.placeDeadFlower(level, pos);
 +                        // CraftBukkit start - add event
-+                        if (CraftEventFactory.handleBlockGrowEvent(serverlevel, blockpos, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(5)), 2)) {
-+                            this.placeDeadFlower(serverlevel, blockpos);
++                        if (CraftEventFactory.handleBlockGrowEvent(level, pos, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(5)), 2)) {
++                            this.placeDeadFlower(level, pos);
 +                        }
 +                        // CraftBukkit end
                      }
                  } else {
--                    this.placeDeadFlower(serverlevel, blockpos);
+-                    this.placeDeadFlower(level, pos);
 +                    // CraftBukkit start - add event
-+                    if (CraftEventFactory.handleBlockGrowEvent(serverlevel, blockpos, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(5)), 2)) {
-+                        this.placeDeadFlower(serverlevel, blockpos);
++                    if (CraftEventFactory.handleBlockGrowEvent(level, pos, this.defaultBlockState().setValue(ChorusFlowerBlock.AGE, Integer.valueOf(5)), 2)) {
++                        this.placeDeadFlower(level, pos);
 +                    }
 +                    // CraftBukkit end
                  }
  
              }
-@@ -258,6 +276,11 @@
+@@ -259,6 +277,11 @@
  
          if (level instanceof ServerLevel serverlevel) {
              if (projectile.mayInteract(serverlevel, blockpos) && projectile.mayBreak(serverlevel)) {

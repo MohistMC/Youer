@@ -4,28 +4,28 @@
                  float f6 = f4 + f5 * (float) ((i + 1) / 2) * f3;
  
                  f5 = -f5;
--                Projectile.spawnProjectile(this.createProjectile(serverlevel, livingentity, itemstack, itemstack1, flag), serverlevel, itemstack1, (projectile) -> {
--                    this.shootProjectile(livingentity, projectile, i, f, f1, f6, livingentity1);
+-                Projectile.spawnProjectile(this.createProjectile(level, shooter, weapon, itemstack1, isCrit), level, itemstack1, (projectile) -> {
+-                    this.shootProjectile(shooter, projectile, i, power, uncertainty, f6, targetOverride);
 -                });
 +                // CraftBukkit start
-+                Projectile projectile = this.createProjectile(serverlevel, livingentity, itemstack, itemstack1, flag);
-+                this.shootProjectile(livingentity, projectile, i, f, f1, f6, livingentity1);
++                Projectile projectile = this.createProjectile(level, shooter, weapon, itemstack1, isCrit);
++                this.shootProjectile(shooter, projectile, i, power, uncertainty, f6, targetOverride);
 +
-+                org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(livingentity, itemstack, itemstack1, projectile, interactionhand, f, true);
++                org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(shooter, weapon, itemstack1, projectile, hand, power, true);
 +                if (event.isCancelled()) {
 +                    event.getProjectile().remove();
 +                    return;
 +                }
 +
 +                if (event.getProjectile() == projectile.getBukkitEntity()) {
-+                    if (Projectile.spawnProjectile(projectile, serverlevel, itemstack1).isRemoved()) {
-+                        if (livingentity instanceof net.minecraft.server.level.ServerPlayer) {
-+                            ((net.minecraft.server.level.ServerPlayer) livingentity).getBukkitEntity().updateInventory();
++                    if (Projectile.spawnProjectile(projectile, level, itemstack1).isRemoved()) {
++                        if (shooter instanceof net.minecraft.server.level.ServerPlayer) {
++                            ((net.minecraft.server.level.ServerPlayer) shooter).getBukkitEntity().updateInventory();
 +                        }
 +                        return;
 +                    }
 +                }
 +                // CraftBukkit end
-                 itemstack.hurtAndBreak(this.getDurabilityUse(itemstack1), livingentity, interactionhand.asEquipmentSlot());
-                 if (itemstack.isEmpty()) {
+                 weapon.hurtAndBreak(this.getDurabilityUse(itemstack1), shooter, hand.asEquipmentSlot());
+                 if (weapon.isEmpty()) {
                      break;

@@ -1,0 +1,62 @@
+--- a/net/minecraft/world/inventory/LecternMenu.java
++++ b/net/minecraft/world/inventory/LecternMenu.java
+@@ -3,10 +_,29 @@
+ import java.util.Objects;
+ import net.minecraft.world.Container;
+ import net.minecraft.world.SimpleContainer;
++import net.minecraft.world.entity.player.Inventory;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.ItemStack;
++import org.bukkit.craftbukkit.inventory.CraftInventoryLectern;
++import org.bukkit.craftbukkit.inventory.view.CraftLecternView;
+ 
+ public class LecternMenu extends AbstractContainerMenu {
++
++    // CraftBukkit start
++    private CraftLecternView bukkitEntity = null;
++    private org.bukkit.entity.Player player;
++
++    @Override
++    public CraftLecternView getBukkitView() {
++        if (bukkitEntity != null) {
++            return bukkitEntity;
++        }
++
++        CraftInventoryLectern inventory = new CraftInventoryLectern(this.lectern);
++        bukkitEntity = new CraftLecternView(this.player, inventory, this);
++        return bukkitEntity;
++    }
++    // CraftBukkit end
+     private static final int DATA_COUNT = 1;
+     private static final int SLOT_COUNT = 1;
+     public static final int BUTTON_PREV_PAGE = 1;
+@@ -39,6 +_,29 @@
+         });
+         this.addDataSlots(lecternData);
+     }
++
++    // Youer start
++    public LecternMenu player(Inventory playerinventory) {
++        player = (org.bukkit.entity.Player) playerinventory.player.getBukkitEntity(); // CraftBukkit
++        return this;
++    }
++
++    public LecternMenu(int pContainerId, Container pLectern, ContainerData pLecternData, Inventory playerinventory) {
++        super(MenuType.LECTERN, pContainerId);
++        checkContainerSize(pLectern, 1);
++        checkContainerDataCount(pLecternData, 1);
++        this.lectern = pLectern;
++        this.lecternData = pLecternData;
++        this.addSlot(new Slot(pLectern, 0, 0, 0) {
++            public void setChanged() {
++                super.setChanged();
++                LecternMenu.this.slotsChanged(this.container);
++            }
++        });
++        this.addDataSlots(pLecternData);
++        player = (org.bukkit.entity.Player) playerinventory.player.getBukkitEntity(); // CraftBukkit
++    }
++    // Youer end
+ 
+     @Override
+     public boolean clickMenuButton(Player player, int buttonId) {

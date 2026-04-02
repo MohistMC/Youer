@@ -13,61 +13,61 @@
  
      public static final MapCodec<ComposterBlock> CODEC = simpleCodec(ComposterBlock::new);
 @@ -276,7 +281,14 @@
-         int i = (Integer) blockstate.getValue(ComposterBlock.LEVEL);
+         int i = (Integer) state.getValue(ComposterBlock.LEVEL);
  
-         if (i < 7 && ComposterBlock.COMPOSTABLES.containsKey(itemstack.getItem())) {
--            BlockState blockstate1 = addItem(entity, blockstate, serverlevel, blockpos, itemstack);
+         if (i < 7 && ComposterBlock.COMPOSTABLES.containsKey(itemStack.getItem())) {
+-            BlockState blockstate1 = addItem(sourceEntity, state, level, pos, itemStack);
 +            // CraftBukkit start
-+            double rand = serverlevel.getRandom().nextDouble();
-+            BlockState blockstate1 = addItem(entity, blockstate, DummyGeneratorAccess.INSTANCE, blockpos, itemstack, rand);
-+            if (blockstate == blockstate1 || !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, blockpos, blockstate1)) {
-+                return blockstate;
++            double rand = level.getRandom().nextDouble();
++            BlockState blockstate1 = addItem(sourceEntity, state, DummyGeneratorAccess.INSTANCE, pos, itemStack, rand);
++            if (state == blockstate1 || !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(sourceEntity, pos, blockstate1)) {
++                return state;
 +            }
-+            blockstate1 = addItem(entity, blockstate, serverlevel, blockpos, itemstack, rand);
++            blockstate1 = addItem(sourceEntity, state, level, pos, itemStack, rand);
 +            // CraftBukkit end
  
-             itemstack.shrink(1);
+             itemStack.shrink(1);
              return blockstate1;
 @@ -286,6 +298,14 @@
      }
  
-     public static BlockState extractProduce(Entity entity, BlockState blockstate, Level level, BlockPos blockpos) {
+     public static BlockState extractProduce(Entity sourceEntity, BlockState state, Level level, BlockPos pos) {
 +        // CraftBukkit start
-+        if (entity != null && !(entity instanceof Player)) {
-+            BlockState blockstate1 = empty(entity, blockstate, DummyGeneratorAccess.INSTANCE, blockpos);
-+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, blockpos, blockstate1)) {
-+                return blockstate;
++        if (sourceEntity != null && !(sourceEntity instanceof Player)) {
++            BlockState blockstate1 = empty(sourceEntity, state, DummyGeneratorAccess.INSTANCE, pos);
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(sourceEntity, pos, blockstate1)) {
++                return state;
 +            }
 +        }
 +        // CraftBukkit end
          if (!level.isClientSide()) {
-             Vec3 vec3 = Vec3.atLowerCornerWithOffset(blockpos, 0.5D, 1.01D, 0.5D).offsetRandomXZ(level.random, 0.7F);
+             Vec3 vec3 = Vec3.atLowerCornerWithOffset(pos, 0.5D, 1.01D, 0.5D).offsetRandomXZ(level.getRandom(), 0.7F);
              ItemEntity itementity = new ItemEntity(level, vec3.x(), vec3.y(), vec3.z(), new ItemStack(Items.BONE_MEAL));
 @@ -309,10 +329,16 @@
      }
  
-     private static BlockState addItem(@Nullable Entity entity, BlockState blockstate, LevelAccessor levelaccessor, BlockPos blockpos, ItemStack itemstack) {
+     private static BlockState addItem(@Nullable Entity sourceEntity, BlockState state, LevelAccessor level, BlockPos pos, ItemStack itemStack) {
 +        // CraftBukkit start
-+        return addItem(entity, blockstate, levelaccessor, blockpos, itemstack, levelaccessor.getRandom().nextDouble());
++        return addItem(sourceEntity, state, level, pos, itemStack, level.getRandom().nextDouble());
 +    }
 +
-+    private static BlockState addItem(@Nullable Entity entity, BlockState blockstate, LevelAccessor levelaccessor, BlockPos blockpos, ItemStack itemstack, double rand) {
++    private static BlockState addItem(@Nullable Entity sourceEntity, BlockState state, LevelAccessor level, BlockPos pos, ItemStack itemStack, double rand) {
 +        // CraftBukkit end
-         int i = (Integer) blockstate.getValue(ComposterBlock.LEVEL);
-         float f = ComposterBlock.COMPOSTABLES.getFloat(itemstack.getItem());
+         int i = (Integer) state.getValue(ComposterBlock.LEVEL);
+         float f = ComposterBlock.COMPOSTABLES.getFloat(itemStack.getItem());
  
--        if ((i != 0 || f <= 0.0F) && levelaccessor.getRandom().nextDouble() >= (double) f) {
+-        if ((i != 0 || f <= 0.0F) && level.getRandom().nextDouble() >= (double) f) {
 +        if ((i != 0 || f <= 0.0F) && rand >= (double) f) {
-             return blockstate;
+             return state;
          } else {
              int j = i + 1;
 @@ -361,13 +387,15 @@
-     public WorldlyContainer getContainer(BlockState blockstate, LevelAccessor levelaccessor, BlockPos blockpos) {
-         int i = (Integer) blockstate.getValue(ComposterBlock.LEVEL);
+     public WorldlyContainer getContainer(BlockState state, LevelAccessor level, BlockPos pos) {
+         int i = (Integer) state.getValue(ComposterBlock.LEVEL);
  
--        return (WorldlyContainer) (i == 8 ? new ComposterBlock.OutputContainer(blockstate, levelaccessor, blockpos, new ItemStack(Items.BONE_MEAL)) : (i < 7 ? new ComposterBlock.InputContainer(blockstate, levelaccessor, blockpos) : new ComposterBlock.EmptyContainer()));
+-        return (WorldlyContainer) (i == 8 ? new ComposterBlock.OutputContainer(state, level, pos, new ItemStack(Items.BONE_MEAL)) : (i < 7 ? new ComposterBlock.InputContainer(state, level, pos) : new ComposterBlock.EmptyContainer()));
 +        // CraftBukkit - empty generatoraccess, blockposition
-+        return (WorldlyContainer) (i == 8 ? new ComposterBlock.OutputContainer(blockstate, levelaccessor, blockpos, new ItemStack(Items.BONE_MEAL)) : (i < 7 ? new ComposterBlock.InputContainer(blockstate, levelaccessor, blockpos) : new ComposterBlock.EmptyContainer(levelaccessor, blockpos)));
++        return (WorldlyContainer) (i == 8 ? new ComposterBlock.OutputContainer(state, level, pos, new ItemStack(Items.BONE_MEAL)) : (i < 7 ? new ComposterBlock.InputContainer(state, level, pos) : new ComposterBlock.EmptyContainer(level, pos)));
      }
  
      public static class EmptyContainer extends SimpleContainer implements WorldlyContainer {
@@ -80,10 +80,10 @@
  
          @Override
 @@ -398,6 +426,7 @@
-             this.state = blockstate;
-             this.level = levelaccessor;
-             this.pos = blockpos;
-+            this.bukkitOwner = new CraftBlockInventoryHolder(levelaccessor, blockpos, this); // CraftBukkit
+             this.state = state;
+             this.level = level;
+             this.pos = pos;
++            this.bukkitOwner = new CraftBlockInventoryHolder(level, pos, this); // CraftBukkit
          }
  
          @Override
@@ -105,9 +105,9 @@
  
 @@ -436,6 +472,7 @@
  
-         public InputContainer(BlockState blockstate, LevelAccessor levelaccessor, BlockPos blockpos) {
+         public InputContainer(BlockState state, LevelAccessor level, BlockPos pos) {
              super(1);
-+            this.bukkitOwner = new CraftBlockInventoryHolder(levelaccessor, blockpos, this); // CraftBukkit
-             this.state = blockstate;
-             this.level = levelaccessor;
-             this.pos = blockpos;
++            this.bukkitOwner = new CraftBlockInventoryHolder(level, pos, this); // CraftBukkit
+             this.state = state;
+             this.level = level;
+             this.pos = pos;

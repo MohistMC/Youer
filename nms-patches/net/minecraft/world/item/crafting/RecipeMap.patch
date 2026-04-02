@@ -20,11 +20,11 @@
 -    private final Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey;
 +    private final LinkedHashMap<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey;
  
--    private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> multimap, Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> map) {
-+    private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> multimap, LinkedHashMap<ResourceKey<Recipe<?>>, RecipeHolder<?>> map) {
+-    private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> byType, Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey) {
++    private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> byType, LinkedHashMap<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey) {
 +        // CraftBukkit end
-         this.byType = multimap;
-         this.byKey = map;
+         this.byType = byType;
+         this.byKey = byKey;
      }
 @@ -30,11 +39,39 @@
              immutablemap_builder.put(recipeholder.id(), recipeholder);
@@ -62,9 +62,9 @@
 +    }
 +    // CraftBukkit end
 +
-     public <I extends RecipeInput, T extends Recipe<I>> Collection<RecipeHolder<T>> byType(RecipeType<T> recipetype) {
--        return this.byType.get(recipetype);
-+        return (Collection) this.byType.get(recipetype); // CraftBukkit - decompile error
+     public <I extends RecipeInput, T extends Recipe<I>> Collection<RecipeHolder<T>> byType(RecipeType<T> type) {
+-        return this.byType.get(type);
++        return (Collection) this.byType.get(type); // CraftBukkit - decompile error
      }
  
      public Collection<RecipeHolder<?>> values() {

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/boss/wither/WitherBoss.java
 +++ b/net/minecraft/world/entity/boss/wither/WitherBoss.java
-@@ -57,6 +57,17 @@
+@@ -59,6 +59,17 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -18,26 +18,26 @@
  public class WitherBoss extends Monster implements RangedAttackMob {
  
      private static final EntityDataAccessor<Integer> DATA_TARGET_A = SynchedEntityData.<Integer>defineId(WitherBoss.class, EntityDataSerializers.INT);
-@@ -248,15 +259,40 @@
+@@ -252,15 +263,40 @@
  
              this.bossEvent.setProgress(1.0F - (float) i / 220.0F);
              if (i <= 0) {
--                serverlevel.explode(this, this.getX(), this.getEyeY(), this.getZ(), 7.0F, false, Level.ExplosionInteraction.MOB);
+-                level.explode(this, this.getX(), this.getEyeY(), this.getZ(), 7.0F, false, Level.ExplosionInteraction.MOB);
 +                // CraftBukkit start
 +                // worldserver.explode(this, this.getX(), this.getEyeY(), this.getZ(), 7.0F, false, World.a.MOB);
 +                ExplosionPrimeEvent event = new ExplosionPrimeEvent(this.getBukkitEntity(), 7.0F, false);
-+                serverlevel.getCraftServer().getPluginManager().callEvent(event);
++                level.getCraftServer().getPluginManager().callEvent(event);
 +
 +                if (!event.isCancelled()) {
-+                    serverlevel.explode(this, this.getX(), this.getEyeY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB);
++                    level.explode(this, this.getX(), this.getEyeY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB);
 +                }
 +                // CraftBukkit end
 +
                  if (!this.isSilent()) {
--                    serverlevel.globalLevelEvent(1023, this.blockPosition(), 0);
+-                    level.globalLevelEvent(1023, this.blockPosition(), 0);
 +                    // CraftBukkit start - Use relative location for far away sounds
 +                    // worldserver.globalLevelEvent(1023, new BlockPosition(this), 0);
-+                    int viewDistance = serverlevel.getCraftServer().getViewDistance() * 16;
++                    int viewDistance = level.getCraftServer().getViewDistance() * 16;
 +                    for (ServerPlayer player : (List<ServerPlayer>) MinecraftServer.getServer().getPlayerList().players) {
 +                        double deltaX = this.getX() - player.getX();
 +                        double deltaZ = this.getZ() - player.getZ();
@@ -62,7 +62,7 @@
              }
  
          } else {
-@@ -300,6 +336,7 @@
+@@ -304,6 +340,7 @@
                          if (!list.isEmpty()) {
                              LivingEntity livingentity1 = (LivingEntity) list.get(this.random.nextInt(list.size()));
  
@@ -70,8 +70,8 @@
                              this.setAlternativeTarget(j, livingentity1.getId());
                          }
                      }
-@@ -323,6 +360,11 @@
-                         BlockState blockstate = serverlevel.getBlockState(blockpos);
+@@ -327,6 +364,11 @@
+                         BlockState blockstate = level.getBlockState(blockpos);
  
                          if (canDestroy(blockstate)) {
 +                            // CraftBukkit start
@@ -79,10 +79,10 @@
 +                                continue;
 +                            }
 +                            // CraftBukkit end
-                             flag = serverlevel.destroyBlock(blockpos, true, this) || flag;
+                             flag = level.destroyBlock(blockpos, true, this) || flag;
                          }
                      }
-@@ -334,7 +376,7 @@
+@@ -338,7 +380,7 @@
              }
  
              if (this.tickCount % 20 == 0) {
@@ -91,7 +91,7 @@
              }
  
              this.bossEvent.setProgress(this.getHealth() / this.getMaxHealth());
-@@ -491,7 +533,7 @@
+@@ -495,7 +537,7 @@
      @Override
      public void checkDespawn() {
          if (this.level().getDifficulty() == Difficulty.PEACEFUL && !this.getType().isAllowedInPeaceful()) {

@@ -1,30 +1,30 @@
 --- a/net/minecraft/world/item/crafting/TransmuteRecipe.java
 +++ b/net/minecraft/world/item/crafting/TransmuteRecipe.java
-@@ -16,6 +16,13 @@
+@@ -18,6 +18,13 @@
+ import net.minecraft.world.item.crafting.display.SlotDisplay;
  import net.minecraft.world.level.Level;
- import org.jspecify.annotations.Nullable;
  
 +// CraftBukkit start
 +import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
 +import org.bukkit.craftbukkit.inventory.CraftRecipe;
 +import org.bukkit.craftbukkit.inventory.CraftTransmuteRecipe;
-+import org.bukkit.inventory.Recipe;
 +// CraftBukkit end
 +
- public class TransmuteRecipe implements CraftingRecipe {
+ public class TransmuteRecipe extends NormalCraftingRecipe {
  
-     private final String group;
-@@ -81,6 +88,13 @@
-         return List.of(new ShapelessCraftingRecipeDisplay(List.of(this.input.display(), this.material.display()), this.result.display(), new SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE)));
+     private static final int MIN_MATERIAL_COUNT = 1;
+@@ -201,6 +208,13 @@
+         return (Integer) this.materialCount.max().orElse(8);
      }
  
 +    // CraftBukkit start
 +    @Override
-+    public Recipe toBukkitRecipe(NamespacedKey id) {
-+        return new CraftTransmuteRecipe(id, CraftRecipe.toBukkit(this.result), CraftRecipe.toBukkit(this.input), CraftRecipe.toBukkit(this.material));
++    public org.bukkit.inventory.Recipe toBukkitRecipe(NamespacedKey id) {
++        return new CraftTransmuteRecipe(id, CraftItemStack.asCraftMirror(this.result), CraftRecipe.toBukkit(this.input), CraftRecipe.toBukkit(this.material), this.minMaterialCount(), this.maxMaterialCount(), this.addMaterialCountToResult);
 +    }
 +    // CraftBukkit end
 +
      @Override
      public RecipeSerializer<TransmuteRecipe> getSerializer() {
-         return RecipeSerializer.TRANSMUTE;
+         return TransmuteRecipe.SERIALIZER;

@@ -1,12 +1,12 @@
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
-@@ -97,6 +97,16 @@
+@@ -96,6 +96,16 @@
          this.clearCache();
      }
  
 +    // CraftBukkit start - properly implement isChunkLoaded
 +    public boolean isChunkLoaded(int chunkX, int chunkZ) {
-+        ChunkHolder chunk = this.chunkMap.getUpdatingChunkIfPresent(ChunkPos.asLong(chunkX, chunkZ));
++        ChunkHolder chunk = this.chunkMap.getUpdatingChunkIfPresent(ChunkPos.pack(chunkX, chunkZ));
 +        if (chunk == null) {
 +            return false;
 +        }
@@ -17,29 +17,29 @@
      @Override
      public ThreadedLevelLightEngine getLightEngine() {
          return this.lightEngine;
-@@ -134,7 +144,7 @@
-                 if (k == this.lastChunkPos[l] && chunkstatus == this.lastChunkStatus[l]) {
+@@ -133,7 +143,7 @@
+                 if (k == this.lastChunkPos[l] && targetStatus == this.lastChunkStatus[l]) {
                      ChunkAccess chunkaccess = this.lastChunk[l];
  
--                    if (chunkaccess != null || !flag) {
+-                    if (chunkaccess != null || !loadOrGenerate) {
 +                    if (chunkaccess != null) { // CraftBukkit - the chunk can become accessible in the meantime TODO for non-null chunks it might also make sense to check that the chunk's state hasn't changed in the meantime
                          return chunkaccess;
                      }
                  }
-@@ -147,7 +157,7 @@
+@@ -146,7 +156,7 @@
              Objects.requireNonNull(completablefuture);
              serverchunkcache_mainthreadexecutor.managedBlock(completablefuture::isDone);
              ChunkResult<ChunkAccess> chunkresult = (ChunkResult) completablefuture.join();
 -            ChunkAccess chunkaccess1 = chunkresult.orElse((Object) null);
 +            ChunkAccess chunkaccess1 = chunkresult.orElse(null); // CraftBukkit - decompile error
  
-             if (chunkaccess1 == null && flag) {
+             if (chunkaccess1 == null && loadOrGenerate) {
                  throw (IllegalStateException) Util.pauseInIde(new IllegalStateException("Chunk not there when requested: " + chunkresult.getError()));
-@@ -226,7 +236,15 @@
-         int l = ChunkLevel.byStatus(chunkstatus);
+@@ -225,7 +235,15 @@
+         int l = ChunkLevel.byStatus(targetStatus);
          ChunkHolder chunkholder = this.getVisibleChunkIfPresent(k);
  
--        if (flag) {
+-        if (loadOrGenerate) {
 +        // CraftBukkit start - don't add new ticket for currently unloading chunk
 +        boolean currentlyUnloading = false;
 +        if (chunkholder != null) {
@@ -47,21 +47,21 @@
 +            FullChunkStatus currentChunkState = ChunkLevel.fullStatus(chunkholder.getTicketLevel());
 +            currentlyUnloading = (oldChunkState.isOrAfter(FullChunkStatus.FULL) && !currentChunkState.isOrAfter(FullChunkStatus.FULL));
 +        }
-+        if (flag && !currentlyUnloading) {
++        if (loadOrGenerate && !currentlyUnloading) {
 +            // CraftBukkit end
              this.addTicket(new Ticket(TicketType.UNKNOWN, l), chunkpos);
              if (this.chunkAbsent(chunkholder, l)) {
                  ProfilerFiller profilerfiller = Profiler.get();
-@@ -245,7 +263,7 @@
+@@ -244,7 +262,7 @@
      }
  
-     private boolean chunkAbsent(@Nullable ChunkHolder chunkholder, int i) {
--        return chunkholder == null || chunkholder.getTicketLevel() > i;
-+        return chunkholder == null || chunkholder.oldTicketLevel > i; // CraftBukkit using oldTicketLevel for isLoaded checks
+     private boolean chunkAbsent(@Nullable ChunkHolder chunkHolder, int targetTicketLevel) {
+-        return chunkHolder == null || chunkHolder.getTicketLevel() > targetTicketLevel;
++        return chunkHolder == null || chunkHolder.oldTicketLevel > targetTicketLevel; // CraftBukkit using oldTicketLevel for isLoaded checks
      }
  
      @Override
-@@ -303,12 +321,34 @@
+@@ -302,12 +320,34 @@
  
      @Override
      public void close() throws IOException {
@@ -75,7 +75,7 @@
 +            this.save(true);
 +        }
 +        // CraftBukkit end
-         this.dataStorage.close();
+         this.savedDataStorage.close();
          this.lightEngine.close();
          this.chunkMap.close();
      }
@@ -95,9 +95,9 @@
 +    // CraftBukkit end
 +
      @Override
-     public void tick(BooleanSupplier booleansupplier, boolean flag) {
+     public void tick(BooleanSupplier haveTime, boolean tickChunks) {
          ProfilerFiller profilerfiller = Profiler.get();
-@@ -372,14 +412,14 @@
+@@ -371,14 +411,14 @@
          NaturalSpawner.SpawnState naturalspawner_spawnstate = NaturalSpawner.createState(j, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap));
  
          this.lastSpawnState = naturalspawner_spawnstate;
@@ -115,7 +115,7 @@
          } else {
              list = List.of();
          }
-@@ -641,13 +681,19 @@
+@@ -634,13 +674,19 @@
          }
  
          @Override

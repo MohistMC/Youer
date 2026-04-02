@@ -5,18 +5,18 @@
  package net.minecraft.world.level.chunk.storage;
  
  import com.google.common.annotations.VisibleForTesting;
-@@ -63,8 +64,8 @@
+@@ -64,8 +65,8 @@
          } else {
-             this.externalFileDir = path1;
+             this.externalFileDir = externalFileDir;
              this.offsets = this.header.asIntBuffer();
 -            this.offsets.limit(1024);
 -            this.header.position(4096);
 +            ((java.nio.Buffer) this.offsets).limit(1024); // CraftBukkit - decompile error
 +            ((java.nio.Buffer) this.header).position(4096); // CraftBukkit - decompile error
              this.timestamps = this.header.asIntBuffer();
-             if (flag) {
+             if (sync) {
                  this.file = FileChannel.open(path, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.DSYNC);
-@@ -73,7 +74,7 @@
+@@ -74,7 +75,7 @@
              }
  
              this.usedSectors.force(0, 2);
@@ -25,16 +25,16 @@
              int i = this.file.read(this.header, 0L);
  
              if (i != -1) {
-@@ -131,7 +132,7 @@
+@@ -133,7 +134,7 @@
              ByteBuffer bytebuffer = ByteBuffer.allocate(l);
  
              this.file.read(bytebuffer, (long) (j * 4096));
 -            bytebuffer.flip();
 +            ((java.nio.Buffer) bytebuffer).flip(); // CraftBukkit - decompile error
              if (bytebuffer.remaining() < 5) {
-                 RegionFile.LOGGER.error("Chunk {} header is truncated: expected {} but read {}", new Object[]{chunkpos, l, bytebuffer.remaining()});
+                 RegionFile.LOGGER.error("Chunk {} header is truncated: expected {} but read {}", new Object[]{pos, l, bytebuffer.remaining()});
                  return null;
-@@ -243,7 +244,7 @@
+@@ -245,7 +246,7 @@
  
              try {
                  this.file.read(bytebuffer, (long) (j * 4096));
@@ -43,7 +43,7 @@
                  if (bytebuffer.remaining() != 5) {
                      return false;
                  } else {
-@@ -346,7 +347,7 @@
+@@ -348,7 +349,7 @@
  
          bytebuffer.putInt(1);
          bytebuffer.put((byte) (this.version.getId() | 128));
@@ -52,16 +52,16 @@
          return bytebuffer;
      }
  
-@@ -354,7 +355,7 @@
+@@ -356,7 +357,7 @@
          Path path1 = Files.createTempFile(this.externalFileDir, "tmp", (String) null);
  
          try (FileChannel filechannel = FileChannel.open(path1, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
--            bytebuffer.position(5);
-+            ((java.nio.Buffer) bytebuffer).position(5); // CraftBukkit - decompile error
-             filechannel.write(bytebuffer);
+-            data.position(5);
++            ((java.nio.Buffer) data).position(5); // CraftBukkit - decompile error
+             filechannel.write(data);
          }
  
-@@ -364,7 +365,7 @@
+@@ -366,7 +367,7 @@
      }
  
      private void writeHeader() throws IOException {
@@ -70,7 +70,7 @@
          this.file.write(this.header, 0L);
      }
  
-@@ -400,7 +401,7 @@
+@@ -402,7 +403,7 @@
          if (i != j) {
              ByteBuffer bytebuffer = RegionFile.PADDING_BUFFER.duplicate();
  

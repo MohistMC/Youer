@@ -16,9 +16,9 @@
 @@ -90,7 +96,7 @@
      }
  
-     public void load(ValueInput valueinput) {
--        Optional optional = valueinput.read(TrialSpawnerStateData.Packed.MAP_CODEC);
-+        Optional<TrialSpawnerStateData.Packed> optional = valueinput.read(TrialSpawnerStateData.Packed.MAP_CODEC); // CraftBukkit - decompile error
+     public void load(ValueInput input) {
+-        Optional optional = input.read(TrialSpawnerStateData.Packed.MAP_CODEC);
++        Optional<TrialSpawnerStateData.Packed> optional = input.read(TrialSpawnerStateData.Packed.MAP_CODEC); // CraftBukkit - decompile error
          TrialSpawnerStateData trialspawnerstatedata = this.data;
  
          Objects.requireNonNull(this.data);
@@ -33,12 +33,12 @@
                                  optional1.ifPresent(mob::equip);
                              }
  
--                            if (!serverlevel.tryAddFreshEntityWithPassengers(entity)) {
+-                            if (!level.tryAddFreshEntityWithPassengers(entity)) {
 +                            // CraftBukkit start
-+                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callTrialSpawnerSpawnEvent(entity, blockpos).isCancelled()) {
++                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callTrialSpawnerSpawnEvent(entity, spawnerPos).isCancelled()) {
 +                                return Optional.empty();
 +                            }
-+                            if (!serverlevel.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.TRIAL_SPAWNER)) {
++                            if (!level.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.TRIAL_SPAWNER)) {
 +                                // CraftBukkit end
                                  return Optional.empty();
                              } else {
@@ -48,7 +48,7 @@
  
          if (!objectarraylist.isEmpty()) {
 +            // CraftBukkit start
-+            BlockDispenseLootEvent spawnerDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(serverlevel, blockpos, null, objectarraylist);
++            BlockDispenseLootEvent spawnerDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(level, pos, null, objectarraylist);
 +            if (spawnerDispenseLootEvent.isCancelled()) {
 +                return;
 +            }

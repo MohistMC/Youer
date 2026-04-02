@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/goat/Goat.java
 +++ b/net/minecraft/world/entity/animal/goat/Goat.java
-@@ -54,6 +54,12 @@
+@@ -51,6 +51,12 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -13,7 +13,7 @@
  public class Goat extends Animal {
  
      public static final EntityDimensions LONG_JUMPING_DIMENSIONS = EntityDimensions.scalable(0.9F, 1.3F).scale(0.7F);
-@@ -186,7 +192,7 @@
+@@ -180,7 +186,7 @@
  
      @Override
      public Brain<Goat> getBrain() {
@@ -22,12 +22,12 @@
      }
  
      @Override
-@@ -231,8 +237,15 @@
-         ItemStack itemstack = player.getItemInHand(interactionhand);
+@@ -225,8 +231,15 @@
+         ItemStack itemstack = player.getItemInHand(hand);
  
          if (itemstack.is(Items.BUCKET) && !this.isBaby()) {
 +            // CraftBukkit start - Got milk?
-+            PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) player.level(), player, this.blockPosition(), this.blockPosition(), null, itemstack, Items.MILK_BUCKET, interactionhand);
++            PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) player.level(), player, this.blockPosition(), this.blockPosition(), null, itemstack, Items.MILK_BUCKET, hand);
 +
 +            if (event.isCancelled()) {
 +                return InteractionResult.PASS;
@@ -37,5 +37,5 @@
 -            ItemStack itemstack1 = ItemUtils.createFilledResult(itemstack, player, Items.MILK_BUCKET.getDefaultInstance());
 +            ItemStack itemstack1 = ItemUtils.createFilledResult(itemstack, player, CraftItemStack.asNMSCopy(event.getItemStack())); // CraftBukkit
  
-             player.setItemInHand(interactionhand, itemstack1);
+             player.setItemInHand(hand, itemstack1);
              return InteractionResult.SUCCESS;

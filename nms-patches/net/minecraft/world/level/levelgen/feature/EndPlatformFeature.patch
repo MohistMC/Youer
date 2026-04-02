@@ -16,30 +16,30 @@
 @@ -21,6 +27,13 @@
      }
  
-     public static void createEndPlatform(ServerLevelAccessor serverlevelaccessor, BlockPos blockpos, boolean flag) {
-+        createEndPlatform(serverlevelaccessor, blockpos, flag, null);
+     public static void createEndPlatform(ServerLevelAccessor newLevel, BlockPos origin, boolean dropResources) {
++        createEndPlatform(newLevel, origin, dropResources, null);
 +        // CraftBukkit start
 +    }
 +
-+    public static void createEndPlatform(ServerLevelAccessor serverlevelaccessor, BlockPos blockpos, boolean flag, Entity entity) {
-+        org.bukkit.craftbukkit.util.BlockStateListPopulator blockList = new org.bukkit.craftbukkit.util.BlockStateListPopulator(serverlevelaccessor);
++    public static void createEndPlatform(ServerLevelAccessor newLevel, BlockPos origin, boolean dropResources, Entity entity) {
++        org.bukkit.craftbukkit.util.BlockStateListPopulator blockList = new org.bukkit.craftbukkit.util.BlockStateListPopulator(newLevel);
 +        // CraftBukkit end
-         BlockPos.MutableBlockPos blockpos_mutableblockpos = blockpos.mutable();
+         BlockPos.MutableBlockPos blockpos_mutableblockpos = origin.mutable();
  
          for (int i = -2; i <= 2; ++i) {
 @@ -29,16 +42,36 @@
-                     BlockPos blockpos1 = blockpos_mutableblockpos.set(blockpos).move(j, k, i);
+                     BlockPos blockpos1 = blockpos_mutableblockpos.set(origin).move(j, k, i);
                      Block block = k == -1 ? Blocks.OBSIDIAN : Blocks.AIR;
  
--                    if (!serverlevelaccessor.getBlockState(blockpos1).is(block)) {
+-                    if (!newLevel.getBlockState(blockpos1).is(block)) {
 +                    // CraftBukkit start
 +                    if (!blockList.getBlockState(blockpos1).is(block)) {
-                         if (flag) {
--                            serverlevelaccessor.destroyBlock(blockpos1, true, (Entity) null);
+                         if (dropResources) {
+-                            newLevel.destroyBlock(blockpos1, true, (Entity) null);
 +                            blockList.destroyBlock(blockpos1, true, (Entity) null);
                          }
  
--                        serverlevelaccessor.setBlock(blockpos1, block.defaultBlockState(), 3);
+-                        newLevel.setBlock(blockpos1, block.defaultBlockState(), 3);
 +                        blockList.setBlock(blockpos1, block.defaultBlockState(), 3);
 +                        // CraftBukkit end
                      }
@@ -49,18 +49,18 @@
 +        // CraftBukkit start
 +        // SPIGOT-7746: Entity will only be null during world generation, which is async, so just generate without event
 +        if (entity != null) {
-+            org.bukkit.World bworld = serverlevelaccessor.getLevel().getWorld();
++            org.bukkit.World bworld = newLevel.getLevel().getWorld();
 +            PortalCreateEvent portalEvent = new PortalCreateEvent((List<BlockState>) (List) blockList.getList(), bworld, entity.getBukkitEntity(), org.bukkit.event.world.PortalCreateEvent.CreateReason.END_PLATFORM);
 +
-+            serverlevelaccessor.getLevel().getCraftServer().getPluginManager().callEvent(portalEvent);
++            newLevel.getLevel().getCraftServer().getPluginManager().callEvent(portalEvent);
 +            if (portalEvent.isCancelled()) {
 +                return;
 +            }
 +        }
 +
 +        // SPIGOT-7856: End platform not dropping items after replacing blocks
-+        if (flag) {
-+            blockList.getList().forEach((state) -> serverlevelaccessor.destroyBlock(state.getPosition(), true, null));
++        if (dropResources) {
++            blockList.getList().forEach((state) -> newLevel.destroyBlock(state.getPosition(), true, null));
 +        }
 +        blockList.updateList();
 +        // CraftBukkit end

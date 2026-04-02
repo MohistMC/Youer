@@ -11,17 +11,17 @@
      public static final MapCodec<CommandBlock> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
 @@ -78,6 +80,15 @@
  
-     private void setPoweredAndUpdate(Level level, BlockPos blockpos, CommandBlockEntity commandblockentity, boolean flag) {
-         boolean flag1 = commandblockentity.isPowered();
+     private void setPoweredAndUpdate(Level level, BlockPos pos, CommandBlockEntity commandBlock, boolean isPowered) {
+         boolean flag1 = commandBlock.isPowered();
 +        // CraftBukkit start
-+        org.bukkit.block.Block bukkitBlock = level.getWorld().getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ());
++        org.bukkit.block.Block bukkitBlock = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
 +        int old = flag1 ? 15 : 0;
-+        int current = flag ? 15 : 0;
++        int current = isPowered ? 15 : 0;
 +
 +        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(bukkitBlock, old, current);
 +        level.getCraftServer().getPluginManager().callEvent(eventRedstone);
-+        flag = eventRedstone.getNewCurrent() > 0;
++        isPowered = eventRedstone.getNewCurrent() > 0;
 +        // CraftBukkit end
  
-         if (flag != flag1) {
-             commandblockentity.setPowered(flag);
+         if (isPowered != flag1) {
+             commandBlock.setPowered(isPowered);
