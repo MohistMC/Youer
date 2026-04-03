@@ -92,9 +92,22 @@
  
          try {
              PlayerList playerList = this.server.getPlayerList();
-@@ -175,7 +_,7 @@
+@@ -169,13 +_,17 @@
                  return;
              }
+ 
+-            Component loginError = playerList.canPlayerLogin(this.connection.getRemoteAddress(), new NameAndId(this.gameProfile));
+-            if (loginError != null) {
+-                this.disconnect(loginError);
++            Component component = null; // CraftBukkit - login checks already completed
++            if (component != null) {
++                this.disconnect(component);
+                 return;
+             }
++            // CraftBukkit start
++            ServerPlayer serverplayer = this.player;
++            serverplayer.updateOptions(this.clientInformation);
++            // CraftBukkit end
  
 -            Objects.requireNonNull(this.prepareSpawnTask).spawnPlayer(this.connection, this.createCookie(this.clientInformation));
 +            Objects.requireNonNull(this.prepareSpawnTask).spawnPlayer(this.connection, this.createCookie(this.clientInformation, this.connectionType));

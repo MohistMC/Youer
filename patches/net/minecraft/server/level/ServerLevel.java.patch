@@ -59,14 +59,16 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.BooleanOp;
-@@ -179,6 +_,11 @@
+@@ -179,6 +_,13 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
  import net.minecraft.world.waypoints.WaypointTransmitter;
++import org.bukkit.Bukkit;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.generator.CustomWorldChunkManager;
 +import org.bukkit.craftbukkit.util.WorldUUID;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.server.MapInitializeEvent;
 +import org.bukkit.event.weather.LightningStrikeEvent;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
@@ -211,6 +213,15 @@
          boolean syncWrites = server.forceSynchronousWrites();
          DataFixer fixerUpper = server.getFixerUpper();
          EntityPersistentStorage<Entity> entityStorage = new EntityStorage(
+@@ -269,7 +_,7 @@
+         this.chunkSource.getGeneratorState().ensureStructuresGenerated();
+         this.portalForcer = new PortalForcer(this);
+         if (this.canHaveWeather()) {
+-            this.prepareWeather(server.getWeatherData());
++            this.prepareWeather(this.getWeatherData()); // CraftBukkit
+         }
+ 
+         this.raids = this.getDataStorage().computeIfAbsent(Raids.TYPE);
 @@ -277,9 +_,9 @@
              levelData.setGameType(server.getDefaultGameType());
          }
@@ -228,7 +239,7 @@
          this.waypointManager = new ServerWaypointManager();
          this.environmentAttributes = EnvironmentAttributeSystem.builder().addDefaultLayers(this).build();
          this.updateSkyBrightness();
-+
++        this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
 +        net.neoforged.neoforge.attachment.LevelAttachmentsSavedData.init(this);
 +        // Neo: Move the initialization of customSpawners to the end of costructor
 +        // Providing a fully initialized ServerLevel instance for the ServerLevelEvent.CustomSpawners
@@ -236,6 +247,15 @@
      }
  
      @Deprecated
+@@ -321,7 +_,7 @@
+     }
+ 
+     public ServerClockManager clockManager() {
+-        return this.server.clockManager();
++        return this.clockManager; // CraftBukkit
+     }
+ 
+     @Override
 @@ -354,7 +_,11 @@
          if (this.sleepStatus.areEnoughSleeping(percentage) && this.sleepStatus.areEnoughDeepSleeping(percentage, this.players)) {
              Optional<Holder<WorldClock>> defaultClock = this.dimensionType().defaultClock();
@@ -277,6 +297,20 @@
          if (biome.shouldFreeze(this, belowPos)) {
              this.setBlockAndUpdate(belowPos, Blocks.ICE.defaultBlockState());
          }
+@@ -688,6 +_,13 @@
+     }
+ 
+     private void prepareWeather(WeatherData weatherData) {
++        // CraftBukkit start - SPIGOT-8029: consistent with WorldServer#advanceWeatherCycle
++        weatherData.init(this);
++
++        if (!this.dimensionType().hasSkyLight()) {
++            return;
++        }
++        // CraftBukkit end
+         if (weatherData.isRaining()) {
+             this.rainLevel = 1.0F;
+             if (weatherData.isThundering()) {
 @@ -771,15 +_,19 @@
                  .broadcastAll(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, this.thunderLevel), this.dimension());
          }
@@ -520,7 +554,7 @@
      public <T extends ParticleOptions> int sendParticles(
          T particle,
          boolean overrideLimiter,
-@@ -1379,7 +_,7 @@
+@@ -1379,12 +_,12 @@
      }
  
      @Override
@@ -529,7 +563,13 @@
          return this.dragonParts.values();
      }
  
-@@ -1431,6 +_,12 @@
+     public @Nullable BlockPos findNearestMapStructure(TagKey<Structure> structureTag, BlockPos origin, int maxSearchRadius, boolean createReference) {
+-        if (!this.server.getWorldGenSettings().options().generateStructures()) {
++        if (!this.worldGenSettings.options().generateStructures()) { // CraftBukkit
+             return null;
+         } else {
+             Optional<HolderSet.Named<Structure>> tag = this.registryAccess().lookupOrThrow(Registries.STRUCTURE).get(structureTag);
+@@ -1431,16 +_,33 @@
          return this.noSave;
      }
  
@@ -542,17 +582,95 @@
      public SavedDataStorage getDataStorage() {
          return this.getChunkSource().getDataStorage();
      }
-@@ -1640,7 +_,8 @@
+ 
+     @Override
+     public @Nullable MapItemSavedData getMapData(MapId id) {
+-        return this.getServer().getDataStorage().get(MapItemSavedData.type(id));
++        // CraftBukkit start
++        MapItemSavedData mapitemsaveddata = (MapItemSavedData) this.getServer().getDataStorage().get(MapItemSavedData.type(id));
++        if (mapitemsaveddata != null) {
++            mapitemsaveddata.id = id;
++        }
++        return mapitemsaveddata;
++        // CraftBukkit end
+     }
+ 
+     public void setMapData(MapId id, MapItemSavedData data) {
++        // CraftBukkit start
++        data.id = id;
++        MapInitializeEvent event = new MapInitializeEvent(data.mapView);
++        Bukkit.getServer().getPluginManager().callEvent(event);
++        // CraftBukkit end
+         this.getServer().getDataStorage().set(MapItemSavedData.type(id), data);
+     }
+ 
+@@ -1450,12 +_,12 @@
+ 
+     @Override
+     public void setRespawnData(LevelData.RespawnData respawnData) {
+-        this.getServer().setRespawnData(respawnData);
++        this.getServer().setRespawnData(respawnData, this); // CraftBukkit
+     }
+ 
+     @Override
+     public LevelData.RespawnData getRespawnData() {
+-        return this.getServer().getRespawnData();
++        return this.serverLevelData.getRespawnData(); // CraftBukkit
+     }
+ 
+     public LongSet getForceLoadedChunks() {
+@@ -1635,12 +_,13 @@
+     }
+ 
+     public boolean isFlat() {
+-        return this.server.getWorldData().isFlatWorld();
++        return this.serverLevelData.isFlatWorld(); // CraftBukkit
+     }
  
      @Override
      public long getSeed() {
 -        return this.server.getWorldGenSettings().options().seed();
 +        // NeoForge: use seed override if present, otherwise default to vanilla global seed
-+        return this.getSeedOverride().orElseGet(() -> this.server.getWorldGenSettings().options().seed());
++        return this.getSeedOverride().orElseGet(() -> this.getWorldGenSettings().options().seed());
      }
  
      public @Nullable EnderDragonFight getDragonFight() {
-@@ -1906,8 +_,8 @@
+@@ -1648,7 +_,7 @@
+     }
+ 
+     public WeatherData getWeatherData() {
+-        return this.server.getWeatherData();
++        return this.weatherData; // CraftBukkit
+     }
+ 
+     @Override
+@@ -1743,6 +_,7 @@
+     public void close() throws IOException {
+         super.close();
+         this.entityManager.close();
++        this.savedDataStorage.close(); // CraftBukkit - from MinecraftServer#stopServer
+     }
+ 
+     @Override
+@@ -1799,7 +_,7 @@
+     }
+ 
+     public GameRules getGameRules() {
+-        return this.server.getGameRules();
++        return this.gameRules; // CraftBukkit
+     }
+ 
+     @Override
+@@ -1837,7 +_,7 @@
+     }
+ 
+     public boolean isAllowedToEnterPortal(Level toLevel) {
+-        return toLevel.dimension() == Level.NETHER ? this.getGameRules().get(GameRules.ALLOW_ENTERING_NETHER_USING_PORTALS) : true;
++        return toLevel.getTypeKey() == LevelStem.NETHER ? (Boolean) this.getGameRules().get(GameRules.ALLOW_ENTERING_NETHER_USING_PORTALS) : true; // CraftBukkit
+     }
+ 
+     public boolean isPvpAllowed() {
+@@ -1906,13 +_,14 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -563,7 +681,13 @@
                      ServerLevel.this.dragonParts.put(subEntity.getId(), subEntity);
                  }
              }
-@@ -1927,25 +_,62 @@
+ 
+             entity.updateDynamicGameEventListener(DynamicGameEventListener::add);
++            entity.valid = true; // CraftBukkit
+         }
+ 
+         public void onTrackingEnd(Entity entity) {
+@@ -1927,25 +_,69 @@
                  if (ServerLevel.this.isUpdatingNavigations) {
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
@@ -585,7 +709,14 @@
  
              entity.updateDynamicGameEventListener(DynamicGameEventListener::remove);
              ServerLevel.this.debugSynchronizers.dropEntity(entity);
-+
++            // CraftBukkit start
++            entity.valid = false;
++            if (!(entity instanceof ServerPlayer)) {
++                for (ServerPlayer player : players) {
++                    player.getBukkitEntity().onEntityRemove(entity);
++                }
++            }
++            // CraftBukkit end
 +            entity.onRemovedFromLevel();
 +            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent(entity, ServerLevel.this));
          }

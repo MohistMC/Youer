@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
+import com.mohistmc.youer.Youer;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
@@ -575,7 +576,7 @@ public final class CraftServer implements Server {
 
     @Override
     public String getName() {
-        return console.getServerModName();
+        return Youer.NAME;
     }
 
     @Override

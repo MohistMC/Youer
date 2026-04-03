@@ -8,12 +8,21 @@
  import net.minecraft.server.WorldStem;
  import net.minecraft.server.gui.MinecraftServerGui;
  import net.minecraft.server.jsonrpc.JsonRpcNotificationService;
-@@ -77,6 +_,8 @@
+@@ -77,6 +_,17 @@
  import net.minecraft.world.level.gamerules.GameRules;
  import net.minecraft.world.level.storage.LevelData;
  import net.minecraft.world.level.storage.LevelStorageSource;
++import org.apache.logging.log4j.Level;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.io.IoBuilder;
 +import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.util.TerminalConsoleWriterThread;
 +import org.bukkit.event.server.RemoteServerCommandEvent;
++import org.bukkit.event.server.ServerCommandEvent;
++import org.jline.reader.EndOfFileException;
++import org.jline.reader.LineReader;
++import org.jline.reader.LineReaderBuilder;
++import org.jline.reader.UserInterruptException;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -54,15 +63,123 @@
          this.serverTextFilter = ServerTextFilter.createFromConfig(settings.getProperties());
          this.serverLinks = createServerLinks(settings);
          if (settings.getProperties().codeOfConduct) {
-@@ -211,6 +_,7 @@
+@@ -204,6 +_,13 @@
+             }
+         }
+ 
++        // CraftBukkit start
++        LineReader reader = LineReaderBuilder.builder()
++                .terminal(terminal)
++                .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
++                .completer(new org.bukkit.craftbukkit.command.ConsoleCommandCompleter())
++                .build();
++        // CraftBukkit end
+         Thread consoleThread = new Thread("Server console handler") {
+             {
+                 Objects.requireNonNull(DedicatedServer.this);
+@@ -211,18 +_,70 @@
  
              @Override
              public void run() {
+-                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
++                // CraftBukkit start
++                if (!org.bukkit.craftbukkit.Main.useConsole) {
++                    return;
++                }
++
++                // MC-33041, SPIGOT-5538: if System.in is not valid due to javaw, then return
++                try {
++                    System.in.available();
++                } catch (IOException ex) {
++                    return;
++                }
++                // CraftBukkit end
 +                if (net.neoforged.neoforge.server.console.TerminalHandler.handleCommands(DedicatedServer.this)) return;
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
  
                  String line;
-@@ -284,13 +_,15 @@
+                 try {
+-                    while (!DedicatedServer.this.isStopped() && DedicatedServer.this.isRunning() && (line = reader.readLine()) != null) {
+-                        DedicatedServer.this.handleConsoleInput(line, DedicatedServer.this.createCommandSourceStack());
++                    while (!DedicatedServer.this.isStopped() && DedicatedServer.this.isRunning()) {
++                        try {
++                            if (org.bukkit.craftbukkit.Main.useJline) {
++                                line = reader.readLine(">", null);
++                            } else {
++                                line = reader.readLine();
++                            }
++
++                            if (line.trim().length() > 0) { // Trim to filter lines which are just spaces
++                                DedicatedServer.this.handleConsoleInput(line, DedicatedServer.this.createCommandSourceStack());
++                            }
++                        } catch (EndOfFileException | UserInterruptException eof) {
++                            // SPIGOT-5220: Throttle if EOF (ctrl^d) or stdin is /dev/null
++                            try {
++                                Thread.sleep(50L);
++                            } catch (InterruptedException ex) {
++                                Thread.currentThread().interrupt();
++                            }
++                        }
+                     }
+-                } catch (IOException var4) {
++                } catch (Throwable var4) {
+                     DedicatedServer.LOGGER.error("Exception handling console input", (Throwable)var4);
+                 }
+             }
+         };
++
++        // CraftBukkit start - TODO: handle command-line logging arguments
++        java.util.logging.Logger global = java.util.logging.Logger.getLogger("");
++        global.setUseParentHandlers(false);
++        for (java.util.logging.Handler handler : global.getHandlers()) {
++            global.removeHandler(handler);
++        }
++        global.addHandler(new org.bukkit.craftbukkit.util.ForwardLogHandler());
++
++        final org.apache.logging.log4j.core.Logger logger = ((org.apache.logging.log4j.core.Logger) LogManager.getRootLogger());
++        for (org.apache.logging.log4j.core.Appender appender : logger.getAppenders().values()) {
++            if (appender instanceof org.apache.logging.log4j.core.appender.ConsoleAppender) {
++                logger.removeAppender(appender);
++            }
++        }
++
++        TerminalConsoleWriterThread writerThread = new TerminalConsoleWriterThread(System.out, reader);
++        writerThread.start();
++
++        System.setOut(IoBuilder.forLogger(logger).setLevel(Level.INFO).buildPrintStream());
++        System.setErr(IoBuilder.forLogger(logger).setLevel(Level.WARN).buildPrintStream());
++        // CraftBukkit end
++
+         consoleThread.setDaemon(true);
+         consoleThread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
+         consoleThread.start();
+@@ -241,7 +_,7 @@
+             this.setLocalIp(properties.serverIp);
+         }
+ 
+-        this.worldData.setGameType(properties.gameMode.get());
++        // this.worldData.setGameType(properties.gameMode.get()); // CraftBukkit - moved to world loading
+         LOGGER.info("Default game type: {}", properties.gameMode.get());
+         InetAddress localAddress = null;
+         if (!this.getLocalIp().isEmpty()) {
+@@ -264,6 +_,12 @@
+             return false;
+         }
+ 
++        // CraftBukkit start
++        this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
++        server.loadPlugins();
++        server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
++        // CraftBukkit end
++
+         if (!this.usesAuthentication()) {
+             LOGGER.warn("**** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!");
+             LOGGER.warn("The server will make no attempt to authenticate usernames. Beware.");
+@@ -280,17 +_,19 @@
+         if (!OldUsersConverter.areOldUserlistsRemoved()) {
+             return false;
+         } else {
+-            this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
++            // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
              this.tickTimeLogger = new RemoteSampleLogger(TpsDebugDimensions.values().length, this.debugSubscribers(), RemoteDebugSampleType.TICK_TIME);
              long levelNanoTime = Util.getNanos();
              this.services.nameToIdCache().resolveOfflineUsers(!this.usesAuthentication());
@@ -105,7 +222,56 @@
          if (this.jsonRpcServer != null) {
              try {
                  this.jsonRpcServer.stop(true);
-@@ -744,15 +_,35 @@
+@@ -484,8 +_,17 @@
+ 
+     public void handleConsoleInputs() {
+         while (!this.consoleInput.isEmpty()) {
+-            ConsoleInput input = this.consoleInput.remove(0);
+-            this.getCommands().performPrefixedCommand(input.source, input.msg);
++            ConsoleInput consoleinput = (ConsoleInput) this.consoleInput.remove(0);
++
++            // CraftBukkit start - ServerCommand for preprocessing
++            ServerCommandEvent event = new ServerCommandEvent(console, consoleinput.msg);
++            server.getPluginManager().callEvent(event);
++            if (event.isCancelled()) continue;
++            consoleinput = new ConsoleInput(event.getCommand(), consoleinput.source);
++
++            // this.getCommands().performPrefixedCommand(servercommand.source, servercommand.msg); // Called in dispatchServerCommand
++            server.dispatchServerCommand(console, consoleinput);
++            // CraftBukkit end
+         }
+     }
+ 
+@@ -739,20 +_,63 @@
+ 
+     @Override
+     public String getPluginNames() {
+-        return "";
++        // CraftBukkit start - Whole method
++        StringBuilder result = new StringBuilder();
++        org.bukkit.plugin.Plugin[] plugins = server.getPluginManager().getPlugins();
++
++        result.append(server.getName());
++        result.append(" on Bukkit ");
++        result.append(server.getBukkitVersion());
++
++        if (plugins.length > 0 && server.getQueryPlugins()) {
++            result.append(": ");
++
++            for (int i = 0; i < plugins.length; i++) {
++                if (i > 0) {
++                    result.append("; ");
++                }
++
++                result.append(plugins[i].getDescription().getName());
++                result.append(" ");
++                result.append(plugins[i].getDescription().getVersion().replaceAll(";", ","));
++            }
++        }
++
++        return result.toString();
++        // CraftBukkit end
+     }
  
      @Override
      public String runCommand(String command) {

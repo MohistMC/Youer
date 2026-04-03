@@ -1,0 +1,70 @@
+--- a/net/minecraft/world/level/saveddata/WeatherData.java
++++ b/net/minecraft/world/level/saveddata/WeatherData.java
+@@ -3,7 +_,11 @@
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.resources.Identifier;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.datafix.DataFixTypes;
++import org.bukkit.Bukkit;
++import org.bukkit.event.weather.ThunderChangeEvent;
++import org.bukkit.event.weather.WeatherChangeEvent;
+ 
+ public final class WeatherData extends SavedData {
+     public static final Codec<WeatherData> CODEC = RecordCodecBuilder.create(
+@@ -24,6 +_,13 @@
+     private int thunderTime;
+     private boolean raining;
+     private boolean thundering;
++    // CraftBukkit start
++    private ServerLevel world;
++
++    public void init(ServerLevel world) {
++        this.world = world;
++    }
++    // CraftBukkit end
+ 
+     public WeatherData() {
+     }
+@@ -50,6 +_,20 @@
+     }
+ 
+     public void setThundering(boolean thundering) {
++        // CraftBukkit start
++        if (this.thundering == thundering) {
++            return;
++        }
++
++        org.bukkit.World world = this.world.getWorld();
++        if (world != null) {
++            ThunderChangeEvent thunder = new ThunderChangeEvent(world, thundering);
++            Bukkit.getServer().getPluginManager().callEvent(thunder);
++            if (thunder.isCancelled()) {
++                return;
++            }
++        }
++        // CraftBukkit end
+         this.thundering = thundering;
+         this.setDirty();
+     }
+@@ -68,6 +_,20 @@
+     }
+ 
+     public void setRaining(boolean raining) {
++        // CraftBukkit start
++        if (this.raining == raining) {
++            return;
++        }
++
++        org.bukkit.World world = this.world.getWorld();
++        if (world != null) {
++            WeatherChangeEvent weather = new WeatherChangeEvent(world, raining);
++            Bukkit.getServer().getPluginManager().callEvent(weather);
++            if (weather.isCancelled()) {
++                return;
++            }
++        }
++        // CraftBukkit end
+         this.raining = raining;
+         this.setDirty();
+     }

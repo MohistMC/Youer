@@ -301,6 +301,7 @@ public class NeoDevPlugin implements Plugin<Project> {
             task.from(project.zipTree(joinedJar.flatMap(AbstractArchiveTask::getArchiveFile)));
             task.exclude("net/minecraft/**");
             task.exclude("com/**");
+            task.exclude("org/bukkit/**"); // Youer
             task.exclude("mcp/**");
             task.from(binaryPatchOutputs, spec -> {
                 spec.into("net/neoforged/neoforge/common/");
@@ -459,7 +460,7 @@ public class NeoDevPlugin implements Plugin<Project> {
             if (project.getProperties().containsKey(installerDebugProperty) && Boolean.parseBoolean(project.getProperties().get(installerDebugProperty).toString())) {
                 task.from(universalJar.flatMap(AbstractArchiveTask::getArchiveFile), spec -> {
                     spec.into("data");
-                    spec.rename(name -> String.format("neoforge-%s-universal.jar", neoForgeVersion.get()));
+                    spec.rename(_ -> String.format("neoforge-%s-universal.jar", neoForgeVersion.get()));
                 });
             }
         });

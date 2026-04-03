@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.command;
 
+import com.mohistmc.youer.Youer;
 import java.awt.Color;
 import java.util.EnumMap;
 import java.util.Map;
@@ -66,7 +67,7 @@ public class ColouredConsoleSender extends CraftConsoleCommandSender {
                         result = result.replaceAll("(?i)" + color.toString(), "");
                     }
                 }
-                System.out.println(result + Ansi.ansi().reset().toString());
+                Youer.LOGGER.info("{}{}", result, Ansi.ansi().reset().toString());
             }
         } else {
             super.sendMessage(message);

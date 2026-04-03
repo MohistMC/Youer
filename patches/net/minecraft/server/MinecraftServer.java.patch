@@ -59,7 +59,7 @@
  import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.gamerules.GameRule;
  import net.minecraft.world.level.gamerules.GameRuleMap;
-@@ -171,23 +_,35 @@
+@@ -171,23 +_,37 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.level.levelgen.PatrolSpawner;
  import net.minecraft.world.level.levelgen.PhantomSpawner;
@@ -89,7 +89,9 @@
 +import org.bukkit.Bukkit;
 +import org.bukkit.craftbukkit.CraftRegistry;
 +import org.bukkit.craftbukkit.CraftServer;
++import org.bukkit.craftbukkit.util.CraftLocation;
 +import org.bukkit.event.server.ServerLoadEvent;
++import org.bukkit.event.world.SpawnChangeEvent;
 +import org.jline.terminal.Terminal;
 +import org.jline.terminal.TerminalBuilder;
  import org.jspecify.annotations.Nullable;
@@ -938,6 +940,27 @@
              return configureRepositoryWithSelection(packRepository, selected, forcedFeatures, true);
          }
      }
+@@ -1715,10 +_,20 @@
+     }
+ 
+     public void setRespawnData(LevelData.RespawnData respawnData) {
++        // CraftBukkit start
++        setRespawnData(respawnData, this.overworld());
++    }
++
++    public void setRespawnData(LevelData.RespawnData respawnData, ServerLevel world) {
++        // CraftBukkit end
+         ServerLevelData levelData = this.worldData.overworldData();
+         LevelData.RespawnData oldRespawnData = levelData.getRespawnData();
+         if (!oldRespawnData.equals(respawnData)) {
+             levelData.setSpawn(respawnData);
++            // CraftBukkit start - Notify anyone who's listening.
++            SpawnChangeEvent event = new SpawnChangeEvent(world.getWorld(), CraftLocation.toBukkit(oldRespawnData.pos(), world.getWorld(), oldRespawnData.yaw(), oldRespawnData.pitch()));
++            this.server.getPluginManager().callEvent(event);
++            // CraftBukkit end
+             this.getPlayerList().broadcastAll(new ClientboundSetDefaultSpawnPositionPacket(respawnData));
+             this.updateEffectiveRespawnData();
+         }
 @@ -1742,7 +_,7 @@
      public abstract boolean shouldInformAdmins();
  

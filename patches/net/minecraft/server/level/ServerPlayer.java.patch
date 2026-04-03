@@ -459,18 +459,19 @@
      public SectionPos getLastSectionPos() {
          return this.lastSectionPos;
      }
-@@ -2006,7 +_,10 @@
+@@ -2006,8 +_,10 @@
      }
  
      @Override
 -    public ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
+-        ItemEntity entity = super.drop(itemStack, randomly, thrownFromHand);
 +    // CraftBukkit start - SPIGOT-2942: Add boolean to call event
 +    public ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand, boolean callEvent) {
-+        ItemEntity itementity = super.drop(itemStack, randomly, thrownFromHand, callEvent);
++        ItemEntity entity = super.drop(itemStack, randomly, thrownFromHand, callEvent);
 +        // CraftBukkit end
-         ItemEntity entity = super.drop(itemStack, randomly, thrownFromHand);
          if (thrownFromHand) {
              ItemStack droppedItemStack = entity != null ? entity.getItem() : ItemStack.EMPTY;
+             if (!droppedItemStack.isEmpty()) {
 @@ -2019,6 +_,75 @@
          return entity;
      }
