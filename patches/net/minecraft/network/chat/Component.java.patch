@@ -1,0 +1,35 @@
+--- a/net/minecraft/network/chat/Component.java
++++ b/net/minecraft/network/chat/Component.java
+@@ -7,9 +_,11 @@
+ import java.util.ArrayList;
+ import java.util.Collections;
+ import java.util.Date;
++import java.util.Iterator;
+ import java.util.List;
+ import java.util.Optional;
+ import java.util.UUID;
++import java.util.stream.Stream;
+ import net.minecraft.commands.arguments.NbtPathArgument;
+ import net.minecraft.commands.arguments.selector.EntitySelector;
+ import net.minecraft.network.chat.contents.KeybindContents;
+@@ -27,7 +_,19 @@
+ import net.minecraft.world.level.ChunkPos;
+ import org.jspecify.annotations.Nullable;
+ 
+-public interface Component extends Message, FormattedText {
++public interface Component extends Message, FormattedText, Iterable<Component> { // CraftBukkit
++
++    // CraftBukkit start
++    default Stream<Component> stream() {
++        return com.google.common.collect.Streams.concat(new Stream[]{Stream.of(this), this.getSiblings().stream().flatMap(Component::stream)});
++    }
++
++    @Override
++    default Iterator<Component> iterator() {
++        return this.stream().iterator();
++    }
++    // CraftBukkit end
++
+     Style getStyle();
+ 
+     ComponentContents getContents();

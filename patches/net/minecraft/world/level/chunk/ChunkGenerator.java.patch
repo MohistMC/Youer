@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
-@@ -94,9 +_,14 @@
+@@ -94,11 +_,16 @@
      public ChunkGenerator(BiomeSource biomeSource, Function<Holder<Biome>, BiomeGenerationSettings> generationSettingsGetter) {
          this.biomeSource = biomeSource;
          this.generationSettingsGetter = generationSettingsGetter;
@@ -8,11 +8,47 @@
 +        this.featuresPerStep = net.neoforged.neoforge.common.util.Lazy.of(
              () -> FeatureSorter.buildFeaturesPerStep(List.copyOf(biomeSource.possibleBiomes()), b -> generationSettingsGetter.apply(b).features(), true)
          );
-+    }
-+
+     }
+ 
 +    @org.jetbrains.annotations.ApiStatus.Internal
 +    public void refreshFeaturesPerStep() {
 +        ((net.neoforged.neoforge.common.util.Lazy<?>) this.featuresPerStep).invalidate();
-     }
- 
++    }
++
      public void validate() {
+         this.featuresPerStep.get();
+     }
+@@ -414,6 +_,33 @@
+             }
+         }
+     }
++
++    // CraftBukkit start
++    public void applyBiomeDecorationCB(WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager) {
++        applyBiomeDecorationCB(level, chunk, structureManager, true);
++    }
++
++    public void applyBiomeDecorationCB(WorldGenLevel worldgenlevel, ChunkAccess chunkaccess, StructureManager structuremanager, boolean vanilla) {
++        if (vanilla) {
++            applyBiomeDecoration(worldgenlevel, chunkaccess, structuremanager);
++        }
++
++        org.bukkit.World world = worldgenlevel.getMinecraftWorld().getWorld();
++        // only call when a populator is present (prevents unnecessary entity conversion)
++        if (!world.getPopulators().isEmpty()) {
++            org.bukkit.craftbukkit.generator.CraftLimitedRegion limitedRegion = new org.bukkit.craftbukkit.generator.CraftLimitedRegion(worldgenlevel, chunkaccess.getPos());
++            int x = chunkaccess.getPos().x();
++            int z = chunkaccess.getPos().z();
++            for (org.bukkit.generator.BlockPopulator populator : world.getPopulators()) {
++                WorldgenRandom worldgenrandom = new WorldgenRandom(new net.minecraft.world.level.levelgen.LegacyRandomSource(worldgenlevel.getSeed()));
++                worldgenrandom.setDecorationSeed(worldgenlevel.getSeed(), x, z);
++                populator.populate(world, new org.bukkit.craftbukkit.util.RandomSourceWrapper.RandomWrapper(worldgenrandom), x, z, limitedRegion);
++            }
++            limitedRegion.saveEntities();
++            limitedRegion.breakLink();
++        }
++    }
++    // CraftBukkit end
+ 
+     private static BoundingBox getWritableArea(ChunkAccess chunk) {
+         ChunkPos chunkPos = chunk.getPos();

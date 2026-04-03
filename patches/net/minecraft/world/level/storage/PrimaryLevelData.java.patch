@@ -1,10 +1,46 @@
 --- a/net/minecraft/world/level/storage/PrimaryLevelData.java
 +++ b/net/minecraft/world/level/storage/PrimaryLevelData.java
-@@ -42,6 +_,7 @@
+@@ -11,17 +_,21 @@
+ import java.util.stream.Collectors;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.SharedConstants;
++import net.minecraft.core.Registry;
+ import net.minecraft.core.UUIDUtil;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.ListTag;
+ import net.minecraft.nbt.NbtUtils;
+ import net.minecraft.nbt.StringTag;
++import net.minecraft.nbt.Tag;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.Util;
+ import net.minecraft.world.Difficulty;
+ import net.minecraft.world.level.GameType;
+ import net.minecraft.world.level.LevelHeightAccessor;
+ import net.minecraft.world.level.LevelSettings;
+ import net.minecraft.world.level.WorldDataConfiguration;
++import net.minecraft.world.level.dimension.LevelStem;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+@@ -42,6 +_,21 @@
      private final Set<String> knownServerBrands;
      private boolean wasModded;
      private final Set<String> removedFeatureFlags;
 +    private boolean confirmedExperimentalWarning = false;
++    // CraftBukkit start - Add world and pdc
++    public Registry<LevelStem> customDimensions;
++    private ServerLevel world;
++    protected Tag pdc;
++
++    public void setWorld(ServerLevel world) {
++        if (this.world != null) {
++            return;
++        }
++        this.world = world;
++        world.getWorld().readBukkitValues(pdc);
++        pdc = null;
++    }
++    // CraftBukkit end
  
      private PrimaryLevelData(
          @Nullable UUID singlePlayerUUID,
@@ -49,10 +85,18 @@
      }
  
      public static void writeLastPlayed(CompoundTag tag) {
-@@ -320,10 +_,58 @@
+@@ -320,10 +_,66 @@
          return this.settings.copy();
      }
  
++    // CraftBukkit start - Check if the name stored in NBT is the correct one
++    public void checkName(String name) {
++        if (!this.settings.levelName().equals(name)) {
++            this.settings.levelName = name;
++        }
++    }
++    // CraftBukkit end
++
 +    public boolean hasConfirmedExperimentalWarning() {
 +        return this.confirmedExperimentalWarning;
 +    }

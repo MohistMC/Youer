@@ -1,5 +1,24 @@
 --- a/net/minecraft/world/entity/projectile/ShulkerBullet.java
 +++ b/net/minecraft/world/entity/projectile/ShulkerBullet.java
+@@ -57,6 +_,18 @@
+         this.selectNextMoveDirection(invalidStartAxis, target);
+     }
+ 
++    // CraftBukkit start
++    public Entity getTarget() {
++        return EntityReference.get(this.finalTarget, this.level(), Entity.class);
++    }
++
++    public void setTarget(Entity e) {
++        this.finalTarget = (e != null) ? EntityReference.of(e) : null;
++        this.currentMoveDirection = Direction.UP;
++        this.selectNextMoveDirection(Direction.Axis.X, e);
++    }
++    // CraftBukkit end
++
+     @Override
+     public SoundSource getSoundSource() {
+         return SoundSource.HOSTILE;
 @@ -217,7 +_,7 @@
              this.handlePortal();
          }

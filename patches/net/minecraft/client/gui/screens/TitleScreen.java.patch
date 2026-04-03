@@ -1,5 +1,13 @@
 --- a/net/minecraft/client/gui/screens/TitleScreen.java
 +++ b/net/minecraft/client/gui/screens/TitleScreen.java
+@@ -34,6 +_,7 @@
+ import net.minecraft.util.ARGB;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.Util;
++import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.levelgen.WorldOptions;
+ import net.minecraft.world.level.levelgen.presets.WorldPresets;
+ import net.minecraft.world.level.storage.LevelStorageSource;
 @@ -104,11 +_,17 @@
          int copyrightWidth = this.font.width(COPYRIGHT_TEXT);
          int copyrightX = this.width - copyrightWidth - 2;
@@ -28,6 +36,24 @@
                      .build()
              );
          }
+@@ -234,7 +_,7 @@
+                     button -> {
+                         LevelStorageSource levelSource = this.minecraft.getLevelSource();
+ 
+-                        try (LevelStorageSource.LevelStorageAccess levelAccess = levelSource.createAccess("Demo_World")) {
++                        try (LevelStorageSource.LevelStorageAccess levelAccess = levelSource.createAccess("Demo_World", LevelStem.OVERWORLD)) {
+                             if (levelAccess.hasWorldData()) {
+                                 this.minecraft
+                                     .setScreen(
+@@ -263,7 +_,7 @@
+     private boolean checkDemoWorldPresence() {
+         try {
+             boolean var2;
+-            try (LevelStorageSource.LevelStorageAccess levelSource = this.minecraft.getLevelSource().createAccess("Demo_World")) {
++            try (LevelStorageSource.LevelStorageAccess levelSource = this.minecraft.getLevelSource().createAccess("Demo_World", LevelStem.OVERWORLD)) {
+                 var2 = levelSource.hasWorldData();
+             }
+ 
 @@ -297,6 +_,7 @@
          this.extractPanorama(graphics, a);
          super.extractRenderState(graphics, mouseX, mouseY, a);
@@ -51,3 +77,12 @@
          if (this.realmsNotificationsEnabled() && widgetFade >= 1.0F) {
              this.realmsNotificationsScreen.extractRenderState(graphics, mouseX, mouseY, a);
          }
+@@ -344,7 +_,7 @@
+ 
+     private void confirmDemo(boolean result) {
+         if (result) {
+-            try (LevelStorageSource.LevelStorageAccess levelSource = this.minecraft.getLevelSource().createAccess("Demo_World")) {
++            try (LevelStorageSource.LevelStorageAccess levelSource = this.minecraft.getLevelSource().createAccess("Demo_World", LevelStem.OVERWORLD)) {
+                 levelSource.deleteLevel();
+             } catch (IOException var7) {
+                 SystemToast.onWorldDeleteFailure(this.minecraft, "Demo_World");

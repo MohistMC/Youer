@@ -1,11 +1,36 @@
 --- a/net/minecraft/client/server/IntegratedServer.java
 +++ b/net/minecraft/client/server/IntegratedServer.java
+@@ -17,6 +_,7 @@
+ import net.minecraft.SystemReport;
+ import net.minecraft.client.Minecraft;
+ import net.minecraft.client.gui.components.toasts.SystemToast;
++import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.GlobalPos;
+ import net.minecraft.gizmos.Gizmos;
+@@ -47,6 +_,7 @@
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.neoforged.api.distmarker.Dist;
+ import net.neoforged.api.distmarker.OnlyIn;
++import org.bukkit.command.CommandSender;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+@@ -76,6 +_,7 @@
+         LevelLoadListener levelLoadListener
+     ) {
+         super(
++                null, null,
+             serverThread,
+             levelStorageAccess,
+             packRepository,
 @@ -98,11 +_,13 @@
          LOGGER.info("Starting integrated minecraft server version {}", SharedConstants.getCurrentVersion().name());
          this.setUsesAuthentication(true);
          this.initializeKeyPair();
+-        this.loadLevel();
 +        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
-         this.loadLevel();
++        this.loadLevel("world");
          GameProfile host = this.getSingleplayerProfile();
          String levelName = this.getWorldData().getLevelName();
          this.setMotd(host != null ? host.name() + " - " + levelName : levelName);
@@ -14,6 +39,18 @@
          return true;
      }
  
+@@ -185,6 +_,11 @@
+     }
+ 
+     @Override
++    public CommandSender getBukkitSender(CommandSourceStack wrapper) {
++        return null;
++    }
++
++    @Override
+     public Path getServerDirectory() {
+         return this.minecraft.gameDirectory.toPath();
+     }
 @@ -259,6 +_,7 @@
  
      @Override

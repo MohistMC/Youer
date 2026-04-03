@@ -9,3 +9,27 @@
      }
  
      default Stream<BlockState> getBlockStates(AABB box) {
+@@ -80,6 +_,23 @@
+             return BlockHitResult.miss(context.getTo(), Direction.getApproximateNearest(delta.x, delta.y, delta.z), BlockPos.containing(context.getTo()));
+         });
+     }
++
++    // CraftBukkit start - moved block handling into separate method for use by Block#rayTrace
++    default BlockHitResult clip(ClipContext clipcontext1, BlockPos blockpos) {
++        BlockState blockstate = this.getBlockState(blockpos);
++        FluidState fluidstate = this.getFluidState(blockpos);
++        Vec3 vec3 = clipcontext1.getFrom();
++        Vec3 vec31 = clipcontext1.getTo();
++        VoxelShape voxelshape = clipcontext1.getBlockShape(blockstate, this, blockpos);
++        BlockHitResult blockhitresult = this.clipWithInteractionOverride(vec3, vec31, blockpos, voxelshape, blockstate);
++        VoxelShape voxelshape1 = clipcontext1.getFluidShape(fluidstate, this, blockpos);
++        BlockHitResult blockhitresult1 = voxelshape1.clip(vec3, vec31, blockpos);
++        double d0 = blockhitresult == null ? Double.MAX_VALUE : clipcontext1.getFrom().distanceToSqr(blockhitresult.getLocation());
++        double d1 = blockhitresult1 == null ? Double.MAX_VALUE : clipcontext1.getFrom().distanceToSqr(blockhitresult1.getLocation());
++
++        return d0 <= d1 ? blockhitresult : blockhitresult1;
++    }
++    // CraftBukkit end
+ 
+     default @Nullable BlockHitResult clipWithInteractionOverride(Vec3 from, Vec3 to, BlockPos pos, VoxelShape blockShape, BlockState blockState) {
+         BlockHitResult result = blockShape.clip(from, to, pos);

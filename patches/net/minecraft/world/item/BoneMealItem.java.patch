@@ -9,10 +9,42 @@
              if (!level.isClientSide()) {
                  boneMealStack.causeUseVibration(context.getPlayer(), GameEvent.ITEM_INTERACT_FINISH);
                  level.levelEvent(1505, pos, 15);
-@@ -61,8 +_,17 @@
+@@ -61,8 +_,49 @@
          }
      }
  
++    public static InteractionResult applyBonemeal(UseOnContext context) {
++        // CraftBukkit end
++        Level level = context.getLevel();
++        BlockPos blockpos = context.getClickedPos();
++        BlockPos blockpos1 = blockpos.relative(context.getClickedFace());
++        ItemStack itemstack = context.getItemInHand();
++
++        if (growCrop(itemstack, level, blockpos)) {
++            if (!level.isClientSide()) {
++                if (context.getPlayer() != null) itemstack.causeUseVibration(context.getPlayer(), GameEvent.ITEM_INTERACT_FINISH); // CraftBukkit - SPIGOT-7518
++                level.levelEvent(1505, blockpos, 15);
++                return InteractionResult.SUCCESS_SERVER;
++            } else {
++                return InteractionResult.PASS;
++            }
++        } else {
++            BlockState blockstate = level.getBlockState(blockpos);
++            boolean flag = blockstate.isFaceSturdy(level, blockpos, context.getClickedFace());
++
++            if (flag && growWaterPlant(itemstack, level, blockpos1, context.getClickedFace())) {
++                if (!level.isClientSide()) {
++                    if (context.getPlayer() != null) itemstack.causeUseVibration(context.getPlayer(), GameEvent.ITEM_INTERACT_FINISH); // CraftBukkit - SPIGOT-7518
++                    level.levelEvent(1505, blockpos1, 15);
++                }
++
++                return InteractionResult.SUCCESS;
++            } else {
++                return InteractionResult.PASS;
++            }
++        }
++    }
++
 +    @Deprecated //Forge: Use Player/Hand version
      public static boolean growCrop(ItemStack itemStack, Level level, BlockPos pos) {
 +        if (level instanceof net.minecraft.server.level.ServerLevel)

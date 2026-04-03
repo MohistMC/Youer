@@ -1,5 +1,22 @@
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
+@@ -9,6 +_,7 @@
+ import java.io.IOException;
+ import java.net.SocketAddress;
+ import java.nio.file.Files;
++import java.nio.file.LinkOption;
+ import java.nio.file.Path;
+ import java.text.SimpleDateFormat;
+ import java.time.Instant;
+@@ -99,6 +_,8 @@
+ import net.minecraft.world.scores.Objective;
+ import net.minecraft.world.scores.PlayerTeam;
+ import net.minecraft.world.scores.Team;
++import org.bukkit.Location;
++import org.bukkit.event.player.PlayerRespawnEvent;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
 @@ -127,6 +_,7 @@
      private int simulationDistance;
      private boolean allowCommandsForAllPlayers;
@@ -56,7 +73,15 @@
          ServerLevel level = player.level();
          player.awardStat(Stats.LEAVE_GAME);
          this.save(player);
-@@ -390,13 +_,20 @@
+@@ -386,17 +_,28 @@
+         return !dupes.isEmpty();
+     }
+ 
++    public ServerPlayer respawn(ServerPlayer serverplayer, boolean flag, Entity.RemovalReason entity_removalreason, PlayerRespawnEvent.RespawnReason reason, Location location) {
++        return respawn(serverplayer, flag, entity_removalreason);
++    }
++
+     public ServerPlayer respawn(ServerPlayer serverPlayer, boolean keepAllPlayerData, Entity.RemovalReason removalReason) {
          TeleportTransition respawnInfo = serverPlayer.findRespawnPositionAndUseSpawnBlock(!keepAllPlayerData, TeleportTransition.DO_NOTHING);
          this.players.remove(serverPlayer);
          serverPlayer.level().removePlayerImmediately(serverPlayer, removalReason);
@@ -103,6 +128,15 @@
          if (this.ops.remove(nameAndId)) {
              ServerPlayer player = this.getPlayer(nameAndId.id());
              if (player != null) {
+@@ -640,7 +_,7 @@
+     public void sendLevelInfo(ServerPlayer player, ServerLevel level) {
+         WorldBorder worldBorder = level.getWorldBorder();
+         player.connection.send(new ClientboundInitializeBorderPacket(worldBorder));
+-        player.connection.send(this.server.clockManager().createFullSyncPacket());
++        player.connection.send(this.server.clockManager().createFullSyncPacket(player)); // CraftBukkit - per-player
+         player.connection.send(new ClientboundSetDefaultSpawnPositionPacket(level.getRespawnData()));
+         if (level.isRaining()) {
+             player.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.START_RAINING, 0.0F));
 @@ -650,6 +_,7 @@
  
          player.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.LEVEL_CHUNKS_LOAD_START, 0.0F));
@@ -111,6 +145,51 @@
      }
  
      public void sendAllPlayerInfo(ServerPlayer player) {
+@@ -758,6 +_,44 @@
+         });
+     }
+ 
++    public ServerStatsCounter getPlayerStats(NameAndId gameprofile) {
++        ServerPlayer entityhuman = this.getPlayer(gameprofile.id());
++        ServerStatsCounter serverstatscounter = entityhuman == null ? null : (ServerStatsCounter) entityhuman.getStats();
++        if (serverstatscounter == null) {
++            Path path = this.locateStatsFile(gameprofile);
++
++            return new ServerStatsCounter(this.server, path);
++        }
++        return serverstatscounter;
++    }
++
++    private Path locateStatsFile(NameAndId gameProfile) {
++        // CraftBukkit end
++        Path path = this.server.getWorldPath(LevelResource.PLAYER_STATS_DIR);
++        Path path1 = path.resolve(String.valueOf(gameProfile.id()) + ".json");
++
++        if (Files.exists(path1, new LinkOption[0])) {
++            return path1;
++        } else {
++            String s = gameProfile.name() + ".json";
++
++            if (FileUtil.isValidPathSegment(s)) {
++                Path path2 = path.resolve(s);
++
++                if (Files.isRegularFile(path2, new LinkOption[0])) {
++                    try {
++                        return Files.move(path2, path1);
++                    } catch (IOException ioexception) {
++                        PlayerList.LOGGER.warn("Failed to copy file {} to {}", s, path1);
++                        return path2;
++                    }
++                }
++            }
++
++            return path1;
++        }
++    }
++
+     private Path locateStatsFile(GameProfile gameProfile) {
+         Path statFolder = this.server.getWorldPath(LevelResource.PLAYER_STATS_DIR);
+         Path uuidStatsFile = statFolder.resolve(gameProfile.id() + ".json");
 @@ -790,6 +_,8 @@
              this.advancements.put(uuid, result);
          }
@@ -137,12 +216,27 @@
          this.broadcastAll(new ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.registries)));
          RecipeManager recipeManager = this.server.getRecipeManager();
          ClientboundUpdateRecipesPacket recipes = new ClientboundUpdateRecipesPacket(
-@@ -848,10 +_,15 @@
+@@ -848,10 +_,29 @@
          for (ServerPlayer player : this.players) {
              player.connection.send(recipes);
              player.getRecipeBook().sendInitialRecipeBook(player);
+-        }
 +            net.neoforged.neoforge.common.CommonHooks.sendRecipes(player, dataSyncEvent.getRecipeTypesToSend(), recipeManager.recipeMap());
-         }
++        }
++    }
++
++    public void reloadRecipes() {
++        // CraftBukkit end
++        var dataSyncEvent = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.OnDatapackSyncEvent(this, null));
++        RecipeManager recipemanager = this.server.getRecipeManager();
++        ClientboundUpdateRecipesPacket clientboundupdaterecipespacket = new ClientboundUpdateRecipesPacket(recipemanager.getSynchronizedItemProperties(), recipemanager.getSynchronizedStonecutterRecipes());
++
++        for (ServerPlayer serverplayer : this.players) {
++            serverplayer.connection.send(clientboundupdaterecipespacket);
++            serverplayer.getRecipeBook().sendInitialRecipeBook(serverplayer);
++            net.neoforged.neoforge.common.CommonHooks.sendRecipes(serverplayer, dataSyncEvent.getRecipeTypesToSend(), recipemanager.recipeMap());
++        }
++
      }
  
      public boolean isAllowCommandsForAllPlayers() {

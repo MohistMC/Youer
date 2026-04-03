@@ -8,11 +8,12 @@
  import java.util.function.Predicate;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
-@@ -121,9 +_,11 @@
+@@ -121,9 +_,12 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Team;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.event.player.PlayerBedEnterEvent;
  import org.jspecify.annotations.Nullable;
  
  public abstract class Player extends Avatar implements ContainerUser, net.neoforged.neoforge.common.extensions.IPlayerExtension {
@@ -475,10 +476,21 @@
      }
  
      @Override
-@@ -2020,5 +_,41 @@
-         public static final Player.BedSleepingProblem OBSTRUCTED = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.obstructed"));
-         public static final Player.BedSleepingProblem OTHER_PROBLEM = new Player.BedSleepingProblem(null);
-         public static final Player.BedSleepingProblem NOT_SAFE = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.not_safe"));
+@@ -2015,10 +_,47 @@
+         return ResolvableProfile.createResolved(this.gameProfile);
+     }
+ 
+-    public record BedSleepingProblem(@Nullable Component message) {
+-        public static final Player.BedSleepingProblem TOO_FAR_AWAY = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.too_far_away"));
+-        public static final Player.BedSleepingProblem OBSTRUCTED = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.obstructed"));
+-        public static final Player.BedSleepingProblem OTHER_PROBLEM = new Player.BedSleepingProblem(null);
+-        public static final Player.BedSleepingProblem NOT_SAFE = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.not_safe"));
++    public record BedSleepingProblem(@Nullable Component message, PlayerBedEnterEvent.BedEnterResult bukkit) {
++        public static final Player.BedSleepingProblem TOO_FAR_AWAY = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.too_far_away"), PlayerBedEnterEvent.BedEnterResult.TOO_FAR_AWAY);
++        public static final Player.BedSleepingProblem OBSTRUCTED = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.obstructed"), PlayerBedEnterEvent.BedEnterResult.OTHER_PROBLEM);
++        public static final Player.BedSleepingProblem OTHER_PROBLEM = new Player.BedSleepingProblem((Component) null, PlayerBedEnterEvent.BedEnterResult.OTHER_PROBLEM);
++        public static final Player.BedSleepingProblem NOT_SAFE = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.not_safe"), PlayerBedEnterEvent.BedEnterResult.NOT_SAFE);
++        // CraftBukkit end
 +    }
 +
 +    // Neo: Getters for the Player's name prefixes and suffixes

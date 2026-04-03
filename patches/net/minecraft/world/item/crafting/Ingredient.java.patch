@@ -1,7 +1,18 @@
 --- a/net/minecraft/world/item/crafting/Ingredient.java
 +++ b/net/minecraft/world/item/crafting/Ingredient.java
-@@ -23,16 +_,18 @@
+@@ -2,6 +_,7 @@
+ 
+ import com.mojang.serialization.Codec;
+ import java.util.Arrays;
++import java.util.List;
+ import java.util.Objects;
+ import java.util.Optional;
+ import java.util.function.Predicate;
+@@ -21,18 +_,40 @@
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.item.crafting.display.SlotDisplay;
  import net.minecraft.world.level.ItemLike;
++import org.jspecify.annotations.Nullable;
  
  public final class Ingredient implements Predicate<ItemStack>, StackedContents.IngredientInfo<Holder<Item>> {
 -    public static final StreamCodec<RegistryFriendlyByteBuf, Ingredient> CONTENTS_STREAM_CODEC = ByteBufCodecs.holderSet(Registries.ITEM)
@@ -22,6 +33,25 @@
      public final HolderSet<Item> values;
 +    private net.neoforged.neoforge.common.crafting.@org.jspecify.annotations.Nullable ICustomIngredient customIngredient = null;
 +    private java.util.@org.jspecify.annotations.Nullable List<Holder<Item>> customIngredientValues;
++
++    // CraftBukkit start
++    @Nullable
++    private List<ItemStack> itemStacks;
++
++    public boolean isExact() {
++        return this.itemStacks != null;
++    }
++
++    public List<ItemStack> itemStacks() {
++        return this.itemStacks;
++    }
++
++    public static Ingredient ofStacks(List<ItemStack> stacks) {
++        Ingredient recipe = Ingredient.of(stacks.stream().map(ItemStack::getItem));
++        recipe.itemStacks = stacks;
++        return recipe;
++    }
++    // CraftBukkit end
  
      private Ingredient(HolderSet<Item> values) {
          values.unwrap().ifRight(directValues -> {

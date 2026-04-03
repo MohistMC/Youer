@@ -1,6 +1,22 @@
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -89,6 +_,13 @@
+@@ -14,6 +_,7 @@
+ import java.nio.file.Path;
+ import java.nio.file.Paths;
+ import java.util.Optional;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.BooleanSupplier;
+ import joptsimple.OptionParser;
+ import joptsimple.OptionSet;
+@@ -82,13 +_,19 @@
+         OptionSpec<Void> jfrProfilingOption = parser.accepts("jfrProfile");
+         OptionSpec<Path> pidFile = parser.accepts("pidFile").withRequiredArg().withValuesConvertedBy(new PathConverter());
+         OptionSpec<String> nonOptions = parser.nonOptions();
+-
++        OptionSet options = parser.parse(args);
+         try {
+-            OptionSet options = parser.parse(args);
+             if (options.has(help)) {
                  parser.printHelpOn(System.err);
                  return;
              }
@@ -14,12 +30,13 @@
  
              Path pidFilePath = options.valueOf(pidFile);
              if (pidFilePath != null) {
-@@ -104,24 +_,22 @@
+@@ -104,26 +_,24 @@
              Bootstrap.validate();
              Util.startTimerHackThread();
              Path settingsFile = Paths.get("server.properties");
+-            DedicatedServerSettings settings = new DedicatedServerSettings(settingsFile);
 +            if (!options.has(initSettings)) net.neoforged.neoforge.server.loading.ServerModLoader.load(false); // Load mods before we load almost anything else anymore. Single spot now. Only loads if they haven't passed the initserver param
-             DedicatedServerSettings settings = new DedicatedServerSettings(settingsFile);
++            DedicatedServerSettings settings = new DedicatedServerSettings(options);// CraftBukkit - CLI argument support
              settings.forceSave();
              RegionFileVersion.configure(settings.getProperties().regionFileComression);
 -            Path eulaFile = Paths.get("eula.txt");
@@ -42,9 +59,47 @@
 +                return;
 +            }
              LevelStorageSource levelStorageSource = LevelStorageSource.createDefault(universePath.toPath());
-             LevelStorageSource.LevelStorageAccess access = levelStorageSource.validateAndCreateAccess(levelName);
+-            LevelStorageSource.LevelStorageAccess access = levelStorageSource.validateAndCreateAccess(levelName);
++            LevelStorageSource.LevelStorageAccess access = levelStorageSource.validateAndCreateAccess(levelName, LevelStem.OVERWORLD);
              Dynamic<?> levelDataTag;
-@@ -219,6 +_,7 @@
+             if (access.hasWorldData()) {
+                 Dynamic<?> levelDataUnfixed;
+@@ -157,6 +_,8 @@
+ 
+             PackRepository packRepository = ServerPacksSource.createPackRepository(access);
+ 
++            AtomicReference<WorldLoader.DataLoadContext> worldLoader = new AtomicReference<>();
++
+             WorldStem worldStem;
+             try {
+                 WorldLoader.InitConfig worldLoadConfig = loadOrCreateConfig(settings.getProperties(), levelDataTag, safeModeEnabled, packRepository);
+@@ -164,6 +_,7 @@
+                         executor -> WorldLoader.load(
+                             worldLoadConfig,
+                             context -> {
++                                worldLoader.set(context); // CraftBukkit
+                                 Registry<LevelStem> datapackDimensions = context.datapackDimensions().lookupOrThrow(Registries.LEVEL_STEM);
+                                 if (levelDataTag != null) {
+                                     LevelDataAndDimensions worldData = LevelStorageSource.getLevelDataAndDimensions(
+@@ -202,11 +_,9 @@
+             final DedicatedServer dedicatedServer = MinecraftServer.spin(
+                 thread -> {
+                     DedicatedServer server = new DedicatedServer(
++                        options, worldLoader.get(),
+                         thread, access, packRepository, worldStem, Optional.empty(), settings, DataFixers.getDataFixer(), services
+                     );
+-                    server.setPort(options.valueOf(port));
+-                    server.setDemo(options.has(demo));
+-                    server.setId(options.valueOf(serverId));
+                     boolean gui = !options.has(nogui) && !options.valuesOf(nonOptions).contains("nogui");
+                     if (gui && !GraphicsEnvironment.isHeadless()) {
+                         server.showGui();
+@@ -215,14 +_,17 @@
+                     return server;
+                 }
+             );
++            /* CraftBukkit start
+             Thread shutdownThread = new Thread("Server Shutdown Thread") {
                  @Override
                  public void run() {
                      dedicatedServer.halt(true);
@@ -52,6 +107,11 @@
                  }
              };
              shutdownThread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
+             Runtime.getRuntime().addShutdownHook(shutdownThread);
++            */ // CraftBukkit end
+         } catch (Throwable var40) {
+             LOGGER.error(LogUtils.FATAL_MARKER, "Failed to start the minecraft server", var40);
+         }
 @@ -251,6 +_,9 @@
              dimensions = properties.createDimensions(context.datapackWorldgen());
          }

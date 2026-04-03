@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/level/BaseCommandBlock.java
++++ b/net/minecraft/world/level/BaseCommandBlock.java
+@@ -30,6 +_,9 @@
+     private @Nullable Component lastOutput;
+     private String command = "";
+     private @Nullable Component customName;
++    // CraftBukkit start
++    public abstract org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper);
++    // CraftBukkit end
+ 
+     public int getSuccessCount() {
+         return this.successCount;
+@@ -128,7 +_,7 @@
+         }
+     }
+ 
+-    private BaseCommandBlock.@Nullable CloseableCommandBlockSource createSource(ServerLevel level) {
++    public BaseCommandBlock.@Nullable CloseableCommandBlockSource createSource(ServerLevel level) {
+         return this.trackOutput ? new BaseCommandBlock.CloseableCommandBlockSource(level) : null;
+     }
+ 
+@@ -172,6 +_,13 @@
+             super();
+             this.level = level;
+         }
++
++        // CraftBukkit start
++        @Override
++        public org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper) {
++            return BaseCommandBlock.this.getBukkitSender(wrapper);
++        }
++        // CraftBukkit end
+ 
+         @Override
+         public boolean acceptsSuccess() {

@@ -1,0 +1,27 @@
+--- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
+@@ -35,6 +_,7 @@
+ import net.minecraft.network.protocol.login.ServerboundKeyPacket;
+ import net.minecraft.network.protocol.login.ServerboundLoginAcknowledgedPacket;
+ import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.server.notifications.ServerActivityMonitor;
+ import net.minecraft.server.players.NameAndId;
+ import net.minecraft.server.players.PlayerList;
+@@ -60,6 +_,7 @@
+     public @Nullable GameProfile authenticatedProfile;
+     private final String serverId = "";
+     private final boolean transferred;
++    private ServerPlayer player; // CraftBukkit
+ 
+     public ServerLoginPacketListenerImpl(MinecraftServer minecraftserver, Connection connection, boolean transferred) {
+         this.server = minecraftserver;
+@@ -244,7 +_,7 @@
+         Validate.validState(this.state == ServerLoginPacketListenerImpl.State.PROTOCOL_SWITCHING, "Unexpected login acknowledgement packet");
+         this.connection.setupOutboundProtocol(ConfigurationProtocols.CLIENTBOUND);
+         CommonListenerCookie cookie = CommonListenerCookie.createInitial(Objects.requireNonNull(this.authenticatedProfile), this.transferred);
+-        ServerConfigurationPacketListenerImpl configPacketListener = new ServerConfigurationPacketListenerImpl(this.server, this.connection, cookie);
++        ServerConfigurationPacketListenerImpl configPacketListener = new ServerConfigurationPacketListenerImpl(this.server, this.connection, cookie, this.player); // CraftBukkit
+         this.connection.setupInboundProtocol(ConfigurationProtocols.SERVERBOUND, configPacketListener);
+         configPacketListener.startConfiguration();
+         this.state = ServerLoginPacketListenerImpl.State.ACCEPTED;

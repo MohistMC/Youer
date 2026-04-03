@@ -1,11 +1,102 @@
 --- a/net/minecraft/server/dedicated/Settings.java
 +++ b/net/minecraft/server/dedicated/Settings.java
-@@ -66,7 +_,7 @@
+@@ -19,6 +_,7 @@
+ import java.util.function.IntFunction;
+ import java.util.function.Supplier;
+ import java.util.function.UnaryOperator;
++import joptsimple.OptionSet;
+ import net.minecraft.core.RegistryAccess;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+@@ -26,13 +_,31 @@
+ public abstract class Settings<T extends Settings<T>> {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public final Properties properties;
++    // CraftBukkit start
++    private OptionSet options = null;
+ 
+-    public Settings(Properties properties) {
++    public Settings(Properties properties, final OptionSet options) {
+         this.properties = properties;
++
++        this.options = options;
++    }
++
++    private String getOverride(String name, String value) {
++        if ((this.options != null) && (this.options.has(name))) {
++            return String.valueOf(this.options.valueOf(name));
++        }
++
++        return value;
++        // CraftBukkit end
+     }
+ 
+     public static Properties loadFromFile(Path file) {
+         try {
++            // CraftBukkit start - SPIGOT-7465, MC-264979: Don't load if file doesn't exist
++            if (!file.toFile().exists()) {
++                return new Properties();
++            }
++            // CraftBukkit end
+             try {
+                 Properties var13;
+                 try (InputStream is = Files.newInputStream(file)) {
+@@ -65,8 +_,13 @@
+     }
  
      public void store(Path output) {
++        // CraftBukkit start - Don't attempt writing to file if it's read only
++        if (output.toFile().exists() && !output.toFile().canWrite()) {
++            return;
++        }
++        // CraftBukkit end
          try (Writer os = Files.newBufferedWriter(output, StandardCharsets.UTF_8)) {
 -            this.properties.store(os, "Minecraft server properties");
 +            net.neoforged.neoforge.common.util.SortedProperties.store(this.properties, os, "Minecraft server properties");
          } catch (IOException var7) {
              LOGGER.error("Failed to store properties to file: {}", output);
          }
+@@ -95,7 +_,7 @@
+     }
+ 
+     public @Nullable String getStringRaw(String key) {
+-        return (String)this.properties.get(key);
++        return (String) getOverride(key, this.properties.getProperty(key)); // CraftBukkit
+     }
+ 
+     protected <V> @Nullable V getLegacy(String key, Function<String, V> deserializer) {
+@@ -109,6 +_,16 @@
+     }
+ 
+     protected <V> V get(String key, Function<String, @Nullable V> deserializer, Function<V, String> serializer, V defaultValue) {
++        // CraftBukkit start
++        try {
++            return get0(key, deserializer, serializer, defaultValue);
++        } catch (Exception ex) {
++            throw new RuntimeException("Could not load invalidly configured property '" + key + "'", ex);
++        }
++    }
++
++    private <V> V get0(String key, Function<String, @Nullable V> deserializer, Function<V, String> serializer, V defaultValue) {
++        // CraftBukkit end
+         String value = this.getStringRaw(key);
+         V result = MoreObjects.firstNonNull(value != null ? deserializer.apply(value) : null, defaultValue);
+         this.properties.put(key, serializer.apply(result));
+@@ -183,7 +_,7 @@
+         return result;
+     }
+ 
+-    protected abstract T reload(final RegistryAccess registryAccess, final Properties properties);
++    protected abstract T reload(final RegistryAccess registryAccess, final Properties properties, OptionSet optionset); // CraftBukkit
+ 
+     public class MutableValue<V> implements Supplier<V> {
+         private final String key;
+@@ -206,7 +_,7 @@
+         public T update(RegistryAccess registryAccess, V value) {
+             Properties properties = Settings.this.cloneProperties();
+             properties.put(this.key, this.serializer.apply(value));
+-            return Settings.this.reload(registryAccess, properties);
++            return Settings.this.reload(registryAccess, properties, Settings.this.options); // CraftBukkit
+         }
+     }
+ }

@@ -105,7 +105,7 @@ public class CraftMannequin extends CraftLivingEntity implements Mannequin {
 
     @Override
     public String getDescription() {
-        Component description = getHandle().description;
+        Component description = getHandle().getDescription();
 
         return (description != null) ? CraftChatMessage.fromComponent(description) : null;
     }

@@ -96,3 +96,25 @@
          boolean itemWasInserted = !this.item.isEmpty();
          Optional<Holder<JukeboxSong>> maybeSong = JukeboxSong.fromStack(this.item);
          this.notifyItemChangedInJukebox(itemWasInserted);
+@@ -159,6 +_,21 @@
+         this.item = itemStack;
+         JukeboxSong.fromStack(itemStack).ifPresent(song -> this.jukeboxSongPlayer.setSongWithoutPlaying((Holder<JukeboxSong>)song, 0L));
+         this.level.updateNeighborsAt(this.getBlockPos(), this.getBlockState().getBlock());
++        this.setChanged();
++    }
++
++    @VisibleForTesting
++    public void setSongItemWithoutPlaying(ItemStack itemStack, long ticksSinceSongStarted) { // CraftBukkit - add argument
++        this.item = itemStack;
++        this.jukeboxSongPlayer.song = null; // CraftBukkit - reset
++        JukeboxSong.fromStack(itemStack).ifPresent((holder) -> {
++            this.jukeboxSongPlayer.setSongWithoutPlaying(holder, ticksSinceSongStarted); // CraftBukkit - add argument
++        });
++        // CraftBukkit start - add null check for level
++        if (level != null) {
++            this.level.updateNeighborsAt(this.getBlockPos(), this.getBlockState().getBlock());
++        }
++        // CraftBukkit end
+         this.setChanged();
+     }
+ 

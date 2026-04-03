@@ -59,13 +59,14 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.BooleanOp;
-@@ -179,6 +_,10 @@
+@@ -179,6 +_,11 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
  import net.minecraft.world.waypoints.WaypointTransmitter;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.generator.CustomWorldChunkManager;
 +import org.bukkit.craftbukkit.util.WorldUUID;
++import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.weather.LightningStrikeEvent;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
@@ -79,7 +80,7 @@
      private final EntityTickList entityTickList = new EntityTickList();
      private final ServerWaypointManager waypointManager;
      private EnvironmentAttributeSystem environmentAttributes;
-@@ -215,11 +_,70 @@
+@@ -215,30 +_,125 @@
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      private @Nullable EnderDragonFight dragonFight;
@@ -151,14 +152,23 @@
  
      public ServerLevel(
          MinecraftServer server,
-@@ -233,12 +_,48 @@
+         Executor executor,
+         LevelStorageSource.LevelStorageAccess levelStorage,
+-        ServerLevelData levelData,
++        PrimaryLevelData levelData,
+         ResourceKey<Level> dimension,
+         LevelStem levelStem,
+         boolean isDebug,
+         long biomeZoomSeed,
          List<CustomSpawner> customSpawners,
-         boolean tickTime
+-        boolean tickTime
++        boolean tickTime, SavedDataStorage savedDataStorage, WorldGenSettings worldGenSettings, org.bukkit.World.Environment env, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider
      ) {
+-        super(levelData, dimension, server.registryAccess(), levelStem.type(), false, isDebug, biomeZoomSeed, server.getMaxChainedNeighborUpdates());
 +        // NeoForge: set seed override asap because things like the chunk cache constructor check level.getSeed()
 +        this.seedOverride = levelStem.seedOverride();
 +        biomeZoomSeed = net.minecraft.util.ExtraCodecs.fromOptionalLong.apply(levelStem.seedOverride()).map(net.minecraft.world.level.biome.BiomeManager::obfuscateSeed).orElse(biomeZoomSeed);
-         super(levelData, dimension, server.registryAccess(), levelStem.type(), false, isDebug, biomeZoomSeed, server.getMaxChainedNeighborUpdates());
++        super(levelData, dimension, server.registryAccess(), levelStem.type(), false, isDebug, biomeZoomSeed, server.getMaxChainedNeighborUpdates(), gen, biomeProvider, env);
 +        storageSource = levelStorage;
 +        uuid = WorldUUID.getUUID(levelStorage.levelDirectory.path().toFile());
 +        // CraftBukkit end
@@ -187,25 +197,29 @@
 +        // End moved from MinecraftServer<init>
 +        if (biomeProvider != null) {
 +            BiomeSource worldChunkManager = new CustomWorldChunkManager(getWorld(), biomeProvider, server.registryAccess().lookupOrThrow(Registries.BIOME));
-+            if (chunkgenerator instanceof NoiseBasedChunkGenerator cga) {
-+                chunkgenerator = new NoiseBasedChunkGenerator(worldChunkManager, cga.settings);
-+            } else if (chunkgenerator instanceof FlatLevelSource cpf) {
-+                chunkgenerator = new FlatLevelSource(cpf.settings(), worldChunkManager);
++            if (generator instanceof NoiseBasedChunkGenerator cga) {
++                generator = new NoiseBasedChunkGenerator(worldChunkManager, cga.settings);
++            } else if (generator instanceof FlatLevelSource cpf) {
++                generator = new FlatLevelSource(cpf.settings(), worldChunkManager);
 +            }
 +        }
 +
 +        if (gen != null) {
-+            chunkgenerator = new org.bukkit.craftbukkit.generator.CustomChunkGenerator(this, chunkgenerator, gen);
++            generator = new org.bukkit.craftbukkit.generator.CustomChunkGenerator(this, generator, gen);
 +        }
 +        // CraftBukkit end
          boolean syncWrites = server.forceSynchronousWrites();
          DataFixer fixerUpper = server.getFixerUpper();
          EntityPersistentStorage<Entity> entityStorage = new EntityStorage(
-@@ -279,7 +_,7 @@
+@@ -277,9 +_,9 @@
+             levelData.setGameType(server.getDefaultGameType());
+         }
  
-         WorldGenSettings worldGenSettings = server.getWorldGenSettings();
-         WorldOptions options = worldGenSettings.options();
+-        WorldGenSettings worldGenSettings = server.getWorldGenSettings();
+-        WorldOptions options = worldGenSettings.options();
 -        long seed = options.seed();
++        WorldGenSettings worldgensettings = this.getWorldGenSettings(); // CraftBukkit
++        WorldOptions options = worldgensettings.options();
 +        long seed = seedOverride.orElse(options.seed()); // NeoForge: use the seed override here too
          this.structureCheck = new StructureCheck(
              this.chunkSource.chunkScanner(),
@@ -326,7 +340,7 @@
      }
  
      private boolean addEntity(Entity entity) {
-@@ -984,7 +_,12 @@
+@@ -984,8 +_,18 @@
              LOGGER.warn("Tried to add entity {} but it was marked as removed already", entity.typeHolder().getRegisteredName());
              return false;
          } else {
@@ -338,8 +352,30 @@
 +                return false;
 +            }
          }
++    }
++
++    public boolean addEntityByReason(Entity entity, CreatureSpawnEvent.SpawnReason spawnReason) {
++        entity.spawnReason(spawnReason);
++        return addEntity(entity);
      }
  
+     public boolean tryAddFreshEntityWithPassengers(Entity entity) {
+@@ -997,6 +_,15 @@
+         }
+     }
+ 
++    public boolean tryAddFreshEntityWithPassengers(Entity pEntity, CreatureSpawnEvent.SpawnReason reason) {
++        if (pEntity.getSelfAndPassengers().map(Entity::getUUID).anyMatch(this.entityManager::isLoaded)) {
++            return false;
++        } else {
++            this.addFreshEntityWithPassengers(pEntity, reason);
++            return true;
++        }
++    }
++
+     public void unload(LevelChunk levelChunk) {
+         levelChunk.clearAllBlockEntities();
+         levelChunk.unregisterTickContainerFromLevel(this);
 @@ -1007,6 +_,22 @@
          player.remove(reason);
      }
@@ -416,7 +452,16 @@
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, blockObject, skipDirection, orientation);
      }
  
-@@ -1194,7 +_,7 @@
+@@ -1191,18 +_,33 @@
+         WeightedList<ExplosionParticleInfo> blockParticles,
+         Holder<SoundEvent> explosionSound
+     ) {
++        // CraftBukkit start
++        this.explode0(source, damageSource, damageCalculator, x, y, z, r, fire, interactionType, smallExplosionParticles, largeExplosionParticles, blockParticles, explosionSound);
++    }
++
++    public ServerExplosion explode0(@Nullable Entity source, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator damageCalculator, double x, double y, double z, float r, boolean fire, Level.ExplosionInteraction interactionType, ParticleOptions smallExplosionParticles, ParticleOptions largeExplosionParticles, WeightedList<ExplosionParticleInfo> blockParticles, Holder<SoundEvent> explosionSound) {
++        // CraftBukkit end
          Explosion.BlockInteraction blockInteraction = switch (interactionType) {
              case NONE -> Explosion.BlockInteraction.KEEP;
              case BLOCK -> this.getDestroyType(GameRules.BLOCK_EXPLOSION_DROP_DECAY);
@@ -425,14 +470,31 @@
                  ? this.getDestroyType(GameRules.MOB_EXPLOSION_DROP_DECAY)
                  : Explosion.BlockInteraction.KEEP;
              case TNT -> this.getDestroyType(GameRules.TNT_EXPLOSION_DROP_DECAY);
-@@ -1202,6 +_,7 @@
+             case TRIGGER -> Explosion.BlockInteraction.TRIGGER_BLOCK;
++            // CraftBukkit start - handle custom explosion type
++            case STANDARD-> Explosion.BlockInteraction.DESTROY;
++            // CraftBukkit end
          };
          Vec3 center = new Vec3(x, y, z);
          ServerExplosion explosion = new ServerExplosion(this, source, damageSource, damageCalculator, center, r, fire, blockInteraction);
-+        if (net.neoforged.neoforge.event.EventHooks.onExplosionStart(this, explosion)) return;
++        if (net.neoforged.neoforge.event.EventHooks.onExplosionStart(this, explosion)) return explosion;
          int blockCount = explosion.explode();
++        // CraftBukkit start
++        if (explosion.wasCanceled) {
++            return explosion;
++        }
++        // CraftBukkit end
          ParticleOptions explosionParticle = explosion.isSmall() ? smallExplosionParticles : largeExplosionParticles;
  
+         for (ServerPlayer player : this.players) {
+@@ -1211,6 +_,7 @@
+                 player.connection.send(new ClientboundExplodePacket(center, r, blockCount, playerKnockback, explosionParticle, explosionSound, blockParticles));
+             }
+         }
++        return explosion; // CraftBukkit
+     }
+ 
+     private Explosion.BlockInteraction getDestroyType(GameRule<Boolean> gameRule) {
 @@ -1281,6 +_,24 @@
          return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, speed);
      }
@@ -467,6 +529,19 @@
          return this.dragonParts.values();
      }
  
+@@ -1431,6 +_,12 @@
+         return this.noSave;
+     }
+ 
++    // CraftBukkit start
++    public SavedDataStorage getWorldContainerDataStorage() {
++        return this.savedDataStorage;
++    }
++    // CraftBukkit end
++
+     public SavedDataStorage getDataStorage() {
+         return this.getChunkSource().getDataStorage();
+     }
 @@ -1640,7 +_,8 @@
  
      @Override

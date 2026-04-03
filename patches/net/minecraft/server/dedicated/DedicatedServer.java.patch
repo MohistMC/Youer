@@ -1,13 +1,59 @@
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -97,6 +_,7 @@
+@@ -38,6 +_,7 @@
+ import net.minecraft.server.ServerInterface;
+ import net.minecraft.server.ServerLinks;
+ import net.minecraft.server.Services;
++import net.minecraft.server.WorldLoader;
+ import net.minecraft.server.WorldStem;
+ import net.minecraft.server.gui.MinecraftServerGui;
+ import net.minecraft.server.jsonrpc.JsonRpcNotificationService;
+@@ -77,6 +_,8 @@
+ import net.minecraft.world.level.gamerules.GameRules;
+ import net.minecraft.world.level.storage.LevelData;
+ import net.minecraft.world.level.storage.LevelStorageSource;
++import org.bukkit.command.CommandSender;
++import org.bukkit.event.server.RemoteServerCommandEvent;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+@@ -86,7 +_,7 @@
+     private static final int CONVERSION_RETRIES = 2;
+     private final List<ConsoleInput> consoleInput = Collections.synchronizedList(Lists.newArrayList());
+     private @Nullable QueryThreadGs4 queryThreadGs4;
+-    private final RconConsoleSource rconConsoleSource;
++    // private final RconConsoleSource rconConsoleSource; // CraftBukkit - remove field
+     private @Nullable RconThread rconThread;
+     public DedicatedServerSettings settings;
+     private @Nullable MinecraftServerGui gui;
+@@ -97,8 +_,10 @@
      private final Map<String, String> codeOfConductTexts;
      private @Nullable ManagementServer jsonRpcServer;
      private long lastHeartbeat;
 +    private net.neoforged.neoforge.server.dedicated.@Nullable DedicatedLanServerPinger dediLanPinger;
  
      public DedicatedServer(
++        joptsimple.OptionSet options, WorldLoader.DataLoadContext worldLoader,
          Thread serverThread,
+         LevelStorageSource.LevelStorageAccess levelStorageSource,
+         PackRepository packRepository,
+@@ -109,6 +_,7 @@
+         Services services
+     ) {
+         super(
++            options, worldLoader,
+             serverThread,
+             levelStorageSource,
+             packRepository,
+@@ -121,7 +_,7 @@
+             true
+         );
+         this.settings = settings;
+-        this.rconConsoleSource = new RconConsoleSource(this);
++        // this.rconConsoleSource = new RconConsoleSource(this); // CraftBukkit - remove field
+         this.serverTextFilter = ServerTextFilter.createFromConfig(settings.getProperties());
+         this.serverLinks = createServerLinks(settings);
+         if (settings.getProperties().codeOfConduct) {
 @@ -211,6 +_,7 @@
  
              @Override
@@ -16,20 +62,24 @@
                  BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
  
                  String line;
-@@ -284,11 +_,13 @@
+@@ -284,13 +_,15 @@
              this.tickTimeLogger = new RemoteSampleLogger(TpsDebugDimensions.values().length, this.debugSubscribers(), RemoteDebugSampleType.TICK_TIME);
              long levelNanoTime = Util.getNanos();
              this.services.nameToIdCache().resolveOfflineUsers(!this.usesAuthentication());
 +            net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
              LOGGER.info("Preparing level \"{}\"", this.getLevelIdName());
-             this.loadLevel();
+-            this.loadLevel();
++            this.loadLevel(storageSource.getLevelId()); // CraftBukkit
              long elapsed = Util.getNanos() - levelNanoTime;
              String time = String.format(Locale.ROOT, "%.3fs", elapsed / 1.0E9);
              LOGGER.info("Done ({})! For help, type \"help\"", time);
 +            this.nextTickTimeNanos = Util.getNanos(); // Neo: Update server time to prevent watchdog/spamming during long load.
              if (properties.announcePlayerAchievements != null) {
-                 this.getGameRules().set(GameRules.SHOW_ADVANCEMENT_MESSAGES, properties.announcePlayerAchievements, this);
+-                this.getGameRules().set(GameRules.SHOW_ADVANCEMENT_MESSAGES, properties.announcePlayerAchievements, this);
++                this.overworld().getGameRules().set(GameRules.SHOW_ADVANCEMENT_MESSAGES, properties.announcePlayerAchievements, this.overworld()); // CraftBukkit - per-world
              }
+ 
+             if (properties.enableQuery) {
 @@ -318,6 +_,12 @@
  
              this.saveEverything(false, true, true);
@@ -55,7 +105,33 @@
          if (this.jsonRpcServer != null) {
              try {
                  this.jsonRpcServer.stop(true);
-@@ -752,7 +_,12 @@
+@@ -744,15 +_,35 @@
+ 
+     @Override
+     public String runCommand(String command) {
+-        this.rconConsoleSource.prepareForCommand();
+-        this.executeBlocking(() -> this.getCommands().performPrefixedCommand(this.rconConsoleSource.createCommandSourceStack(), command));
+-        return this.rconConsoleSource.getCommandResponse();
++        // CraftBukkit start - fire RemoteServerCommandEvent
++        throw new UnsupportedOperationException("Not supported - remote source required.");
++    }
++
++    public String runCommand(RconConsoleSource rconConsoleSource, String s) {
++        rconConsoleSource.prepareForCommand();
++        this.executeBlocking(() -> {
++            CommandSourceStack wrapper = rconConsoleSource.createCommandSourceStack();
++            RemoteServerCommandEvent event = new RemoteServerCommandEvent(rconConsoleSource.getBukkitSender(wrapper), s);
++            server.getPluginManager().callEvent(event);
++            if (event.isCancelled()) {
++                return;
++            }
++            ConsoleInput serverCommand = new ConsoleInput(event.getCommand(), wrapper);
++            server.dispatchServerCommand(event.getSender(), serverCommand);
++        });
++        return rconConsoleSource.getCommandResponse();
++        // CraftBukkit end
+     }
+ 
      @Override
      protected void stopServer() {
          this.notificationManager().serverShuttingDown();
@@ -68,3 +144,19 @@
          Util.shutdownExecutors();
      }
  
+@@ -881,4 +_,15 @@
+     public Map<String, String> getCodeOfConducts() {
+         return this.codeOfConductTexts;
+     }
++
++    // CraftBukkit start
++    public boolean isDebugging() {
++        return this.getProperties().debug;
++    }
++
++    @Override
++    public CommandSender getBukkitSender(CommandSourceStack wrapper) {
++        return console;
++    }
++    // CraftBukkit end
+ }

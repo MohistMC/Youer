@@ -1,5 +1,13 @@
 --- a/net/minecraft/gametest/framework/GameTestMainUtil.java
 +++ b/net/minecraft/gametest/framework/GameTestMainUtil.java
+@@ -18,6 +_,7 @@
+ import net.minecraft.server.packs.repository.PackRepository;
+ import net.minecraft.server.packs.repository.ServerPacksSource;
+ import net.minecraft.util.Util;
++import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.storage.LevelStorageSource;
+ import org.apache.commons.io.FileUtils;
+ import org.slf4j.Logger;
 @@ -75,6 +_,7 @@
  
              Bootstrap.bootStrap();
@@ -8,3 +16,12 @@
              String universePath = options.valueOf(universe);
              createOrResetDir(universePath);
              onUniverseCreated.accept(universePath);
+@@ -83,7 +_,7 @@
+                 copyPacks(universePath, packFolder);
+             }
+ 
+-            LevelStorageSource.LevelStorageAccess levelStorageSource = LevelStorageSource.createDefault(Paths.get(universePath)).createAccess("gametestworld");
++            LevelStorageSource.LevelStorageAccess levelStorageSource = LevelStorageSource.createDefault(Paths.get(universePath)).createAccess("gametestworld",  LevelStem.OVERWORLD);
+             PackRepository packRepository = ServerPacksSource.createPackRepository(levelStorageSource);
+             MinecraftServer.spin(
+                 thread -> GameTestServer.create(

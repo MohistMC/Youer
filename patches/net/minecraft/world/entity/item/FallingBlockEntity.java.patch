@@ -1,5 +1,30 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -50,6 +_,7 @@
+ import net.minecraft.world.phys.BlockHitResult;
+ import net.minecraft.world.phys.HitResult;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+@@ -101,6 +_,16 @@
+         return entity;
+     }
+ 
++    public static FallingBlockEntity fall(Level level, BlockPos pos, BlockState state, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason) {
++        // CraftBukkit end
++        FallingBlockEntity fallingblockentity = new FallingBlockEntity(level, (double) pos.getX() + 0.5D, (double) pos.getY(), (double) pos.getZ() + 0.5D, state.hasProperty(BlockStateProperties.WATERLOGGED) ? (BlockState) state.setValue(BlockStateProperties.WATERLOGGED, false) : state);
++        if (!CraftEventFactory.callEntityChangeBlockEvent(fallingblockentity, pos, state.getFluidState().createLegacyBlock())) return fallingblockentity; // CraftBukkit
++
++        level.setBlock(pos, state.getFluidState().createLegacyBlock(), 3);
++        level.addFreshEntity(fallingblockentity, spawnReason); // CraftBukkit
++        return fallingblockentity;
++    }
++
+     @Override
+     public boolean isAttackable() {
+         return false;
 @@ -157,7 +_,7 @@
              if (this.level() instanceof ServerLevel serverLevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
                  BlockPos pos = this.blockPosition();

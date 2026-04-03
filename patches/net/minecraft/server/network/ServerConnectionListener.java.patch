@@ -35,6 +35,23 @@
                          .localAddress(address, port)
                          .bind()
                          .syncUninterruptibly()
+@@ -95,6 +_,16 @@
+         }
+     }
+ 
++    // CraftBukkit start
++    public void acceptConnections() {
++        synchronized (this.channels) {
++            for (ChannelFuture future : this.channels) {
++                future.channel().config().setAutoRead(true);
++            }
++        }
++    }
++    // CraftBukkit end
++
+     public SocketAddress startMemoryChannel() {
+         ChannelFuture newChannel;
+         synchronized (this.channels) {
 @@ -126,7 +_,7 @@
                          }
                      }

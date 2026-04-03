@@ -55,7 +55,12 @@
      private final AttributeMap attributes;
      public CombatTracker combatTracker = new CombatTracker(this);
      public final Map<Holder<MobEffect>, MobEffectInstance> activeEffects = Maps.newHashMap();
-@@ -268,10 +_,33 @@
+@@ -264,14 +_,37 @@
+     private final EnumMap<EquipmentSlot, Reference2ObjectMap<Enchantment, Set<EnchantmentLocationBasedEffect>>> activeLocationDependentEnchantments = new EnumMap<>(
+         EquipmentSlot.class
+     );
+-    protected final EntityEquipment equipment;
++    public final EntityEquipment equipment;
      private Waypoint.Icon locatorBarIcon = new Waypoint.Icon();
      public @Nullable Vec3 currentImpulseImpactPos;
      public @Nullable Entity currentExplosionCause;
@@ -125,6 +130,19 @@
      public boolean canBreatheUnderwater() {
          return this.is(EntityTypeTags.CAN_BREATHE_UNDER_WATER);
      }
+@@ -755,6 +_,12 @@
+     }
+ 
+     public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
++        // CraftBukkit start - SPIGOT-2942: Add boolean to call event
++        return drop(itemStack, randomly, thrownFromHand, true);
++    }
++
++    public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand, boolean callEvent) {
++        // CraftBukkit end
+         if (itemStack.isEmpty()) {
+             return null;
+         } else if (this.level().isClientSide()) {
 @@ -763,7 +_,11 @@
          } else {
              ItemEntity entity = this.createItemStackToDrop(itemStack, randomly, thrownFromHand);
@@ -138,6 +156,35 @@
              }
  
              return entity;
+@@ -822,6 +_,28 @@
+         this.updateDirtyEffects();
+     }
+ 
++    // CraftBukkit start
++    private boolean isTickingEffects = false;
++    private List<ProcessableEffect> effectsToProcess = Lists.newArrayList();
++
++    private static class ProcessableEffect {
++
++        private Holder<MobEffect> type;
++        private MobEffectInstance effect;
++        private final EntityPotionEffectEvent.Cause cause;
++
++        private ProcessableEffect(MobEffectInstance effect, EntityPotionEffectEvent.Cause cause) {
++            this.effect = effect;
++            this.cause = cause;
++        }
++
++        private ProcessableEffect(Holder<MobEffect> type, EntityPotionEffectEvent.Cause cause) {
++            this.type = type;
++            this.cause = cause;
++        }
++    }
++    // CraftBukkit end
++
+     protected void tickEffects() {
+         if (this.level() instanceof ServerLevel serverLevel) {
+             Iterator<Holder<MobEffect>> iterator = this.activeEffects.keySet().iterator();
 @@ -831,8 +_,10 @@
                      Holder<MobEffect> mobEffect = iterator.next();
                      MobEffectInstance effect = this.activeEffects.get(mobEffect);
@@ -254,14 +301,51 @@
              MobEffectInstance previousEffect = this.activeEffects.put(newEffect.getEffect(), newEffect);
              if (previousEffect == null) {
                  this.onEffectAdded(newEffect, source);
-@@ -1038,6 +_,7 @@
+@@ -1034,11 +_,35 @@
+     }
+ 
+     public final @Nullable MobEffectInstance removeEffectNoUpdate(Holder<MobEffect> effect) {
++        return removeEffectNoUpdate(effect, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
++    }
++
++    public final @Nullable MobEffectInstance removeEffectNoUpdate(Holder<MobEffect> effect, EntityPotionEffectEvent.Cause cause) {
++        if (isTickingEffects) {
++            effectsToProcess.add(new ProcessableEffect(effect, cause));
++            return null;
++        }
++
++        MobEffectInstance activeEffect = this.activeEffects.get(effect);
++        if (activeEffect == null) {
++            return null;
++        }
++
++        EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, activeEffect, null, cause);
++        if (event.isCancelled()) {
++            return null;
++        }
++
+         return this.activeEffects.remove(effect);
      }
  
      public boolean removeEffect(Holder<MobEffect> effect) {
-+        if (net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, effect)) return false;
-         MobEffectInstance effectInstance = this.removeEffectNoUpdate(effect);
+-        MobEffectInstance effectInstance = this.removeEffectNoUpdate(effect);
++        return removeEffect(effect, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
++    }
++
++    public boolean removeEffect(Holder<MobEffect> holder, EntityPotionEffectEvent.Cause cause) {
++        if (net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, holder)) return false;
++        MobEffectInstance effectInstance = this.removeEffectNoUpdate(holder, cause);
          if (effectInstance != null) {
              this.onEffectsRemoved(List.of(effectInstance));
+             return true;
+@@ -1046,6 +_,7 @@
+             return false;
+         }
+     }
++    // Youer end
+ 
+     protected void onEffectAdded(MobEffectInstance effect, @Nullable Entity source) {
+         if (!this.level().isClientSide()) {
 @@ -1129,6 +_,8 @@
      }
  
@@ -395,7 +479,7 @@
          boolean playerKilled = this.lastHurtByPlayerMemoryTime > 0;
          if (this.shouldDropLoot(level)) {
              this.dropFromLootTable(level, source, playerKilled);
-@@ -1477,6 +_,10 @@
+@@ -1477,18 +_,31 @@
  
          this.dropEquipment(level);
          this.dropExperience(level, source.getEntity());
@@ -406,7 +490,19 @@
      }
  
      protected void dropEquipment(ServerLevel level) {
-@@ -1488,7 +_,8 @@
+     }
+ 
++    public int getExpReward(ServerLevel level, @Nullable Entity entity) { // CraftBukkit
++        if (!this.wasExperienceConsumed() && (this.isAlwaysExperienceDropper() || this.lastHurtByPlayerMemoryTime > 0 && this.shouldDropExperience() && (Boolean) level.getGameRules().get(GameRules.MOB_DROPS))) {
++            return this.getExperienceReward(level, entity); // CraftBukkit
++        }
++
++        return 0; // CraftBukkit
++    }
++
+     protected void dropExperience(ServerLevel level, @Nullable Entity killer) {
+         if (!this.wasExperienceConsumed()
+             && (
                  this.isAlwaysExperienceDropper()
                      || this.lastHurtByPlayerMemoryTime > 0 && this.shouldDropExperience() && level.getGameRules().get(GameRules.MOB_DROPS)
              )) {

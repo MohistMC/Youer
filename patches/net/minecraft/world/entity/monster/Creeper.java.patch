@@ -1,0 +1,47 @@
+--- a/net/minecraft/world/entity/monster/Creeper.java
++++ b/net/minecraft/world/entity/monster/Creeper.java
+@@ -40,6 +_,7 @@
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.level.storage.loot.BuiltInLootTables;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class Creeper extends Monster {
+@@ -55,6 +_,7 @@
+     public int maxSwell = 30;
+     public int explosionRadius = 3;
+     public boolean droppedSkulls;
++    public Entity entityIgniter; // CraftBukkit
+ 
+     public Creeper(EntityType<? extends Creeper> type, Level level) {
+         super(type, level);
+@@ -203,9 +_,20 @@
+     @Override
+     public void thunderHit(ServerLevel level, LightningBolt lightningBolt) {
+         super.thunderHit(level, lightningBolt);
++        // CraftBukkit start
++        if (CraftEventFactory.callCreeperPowerEvent(this, lightningBolt, org.bukkit.event.entity.CreeperPowerEvent.PowerCause.LIGHTNING).isCancelled()) {
++            return;
++        }
++        // CraftBukkit end
+         this.entityData.set(DATA_IS_POWERED, true);
+     }
+ 
++    // CraftBukkit start
++    public void setPowered(boolean powered) {
++        this.entityData.set(Creeper.DATA_IS_POWERED, powered);
++    }
++    // CraftBukkit end
++
+     @Override
+     protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+         ItemStack itemStack = player.getItemInHand(hand);
+@@ -214,6 +_,7 @@
+             this.level()
+                 .playSound(player, this.getX(), this.getY(), this.getZ(), soundEvent, this.getSoundSource(), 1.0F, this.random.nextFloat() * 0.4F + 0.8F);
+             if (!this.level().isClientSide()) {
++                this.entityIgniter = player; // CraftBukkit
+                 this.ignite();
+                 if (!itemStack.isDamageableItem()) {
+                     itemStack.shrink(1);

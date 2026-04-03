@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/level/storage/loot/LootTable.java
 +++ b/net/minecraft/world/level/storage/loot/LootTable.java
+@@ -9,6 +_,7 @@
+ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Optional;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.BiFunction;
+ import java.util.function.Consumer;
+ import net.minecraft.core.Holder;
+@@ -27,6 +_,7 @@
+ import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
+ import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
++import org.bukkit.craftbukkit.CraftLootTable;
+ import org.slf4j.Logger;
+ 
+ public class LootTable implements Validatable {
 @@ -39,12 +_,14 @@
              i -> i.group(
                      LootContextParamSets.CODEC.lenientOptionalFieldOf("type", DEFAULT_PARAM_SET).forGetter(t -> t.paramSet),
@@ -17,7 +33,12 @@
      public static final Codec<Holder<LootTable>> CODEC = RegistryFileCodec.create(Registries.LOOT_TABLE, DIRECT_CODEC);
      public static final LootTable EMPTY = new LootTable(LootContextParamSets.EMPTY, Optional.empty(), List.of(), List.of());
      private final ContextKeySet paramSet;
-@@ -56,7 +_,7 @@
+@@ -52,11 +_,12 @@
+     private final List<LootPool> pools;
+     private final List<LootItemFunction> functions;
+     private final BiFunction<ItemStack, LootContext, ItemStack> compositeFunction;
++    public CraftLootTable craftLootTable; // CraftBukkit
+ 
      private LootTable(ContextKeySet paramSet, Optional<Identifier> randomSequence, List<LootPool> pools, List<LootItemFunction> functions) {
          this.paramSet = paramSet;
          this.randomSequence = randomSequence;
@@ -71,6 +92,26 @@
          return result;
      }
  
+@@ -141,6 +_,7 @@
+         Validatable.validate(context, "functions", this.functions);
+     }
+ 
++    public AtomicBoolean fill$plugin = new AtomicBoolean(false);
+     public void fill(Container container, LootParams params, long optionalRandomSeed) {
+         LootContext context = new LootContext.Builder(params).withOptionalRandomSeed(optionalRandomSeed).create(this.randomSequence);
+         ObjectArrayList<ItemStack> itemStacks = this.getRandomItems(context);
+@@ -162,6 +_,11 @@
+         }
+     }
+ 
++    public void fillInventory(Container container, LootParams params, long optionalRandomSeed, boolean plugin) {
++        fill$plugin.set(plugin);
++        fill(container, params, optionalRandomSeed);
++    }
++
+     private void shuffleAndSplitItems(ObjectArrayList<ItemStack> result, int availableSlots, RandomSource random) {
+         List<ItemStack> splittableItems = Lists.newArrayList();
+         Iterator<ItemStack> iterator = result.iterator();
 @@ -214,11 +_,68 @@
          return new LootTable.Builder();
      }

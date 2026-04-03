@@ -36,7 +36,7 @@
  import net.minecraft.world.level.entity.EntityTypeTest;
  import net.minecraft.world.level.entity.LevelEntityGetter;
  import net.minecraft.world.level.gameevent.GameEvent;
-@@ -88,9 +_,16 @@
+@@ -88,9 +_,17 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.Scoreboard;
  import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -45,6 +45,7 @@
 +import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.craftbukkit.block.CapturedBlockState;
 +import org.bukkit.craftbukkit.block.data.CraftBlockData;
++import org.bukkit.craftbukkit.util.CraftSpawnCategory;
 +import org.bukkit.entity.SpawnCategory;
 +import org.bukkit.event.block.BlockPhysicsEvent;
  import org.jspecify.annotations.Nullable;
@@ -65,7 +66,7 @@
 +    private final java.util.ArrayList<BlockEntity> pendingFreshBlockEntities = new java.util.ArrayList<>();
 +
 +    // CraftBukkit start Added the following
-+    private CraftWorld world;
++    private final CraftWorld world;
 +    public org.bukkit.generator.ChunkGenerator generator;
 +
 +    public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
@@ -89,6 +90,27 @@
  
      protected Level(
          WritableLevelData levelData,
+@@ -139,8 +_,19 @@
+         boolean isClientSide,
+         boolean isDebug,
+         long biomeZoomSeed,
+-        int maxChainedNeighborUpdates
++        int maxChainedNeighborUpdates, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env
+     ) {
++        this.generator = gen;
++        this.world = new CraftWorld((ServerLevel) this, gen, biomeProvider, env);
++
++        // CraftBukkit Ticks things
++        for (SpawnCategory spawnCategory : SpawnCategory.values()) {
++            if (CraftSpawnCategory.isValidForLimits(spawnCategory)) {
++                this.ticksPerSpawnCategory.put(spawnCategory, (long) this.getCraftServer().getTicksPerSpawns(spawnCategory));
++            }
++        }
++
++        // CraftBukkit end
+         this.levelData = levelData;
+         this.dimensionTypeRegistration = dimensionTypeRegistration;
+         this.dimension = dimension;
 @@ -222,11 +_,36 @@
          } else {
              LevelChunk chunk = this.getChunkAt(pos);

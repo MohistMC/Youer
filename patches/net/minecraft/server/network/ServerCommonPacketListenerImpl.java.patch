@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -23,14 +_,16 @@
+@@ -7,6 +_,7 @@
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+ import net.minecraft.network.Connection;
++import net.minecraft.network.ConnectionProtocol;
+ import net.minecraft.network.DisconnectionDetails;
+ import net.minecraft.network.PacketSendListener;
+ import net.minecraft.network.chat.Component;
+@@ -23,14 +_,36 @@
  import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ClientInformation;
@@ -15,10 +23,30 @@
  
 -public abstract class ServerCommonPacketListenerImpl implements ServerCommonPacketListener {
 +public abstract class ServerCommonPacketListenerImpl implements ServerCommonPacketListener, CraftPlayer.TransferCookieConnection {
++    @Override
++    public boolean isTransferred() {
++        return this.transferred;
++    }
++
++    @Override
++    public ConnectionProtocol getProtocol() {
++        return protocol();
++    }
++
++    @Override
++    public void sendPacket(Packet<?> packet) {
++        send(packet);
++    }
++
++    @Override
++    public void kickPlayer(Component reason) {
++        disconnect(reason);
++    }
++    // CraftBukkit end
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final int LATENCY_CHECK_INTERVAL = 15000;
      private static final int CLOSED_LISTENER_TIMEOUT = 15000;
-@@ -46,6 +_,10 @@
+@@ -46,13 +_,31 @@
      private boolean closed = false;
      private int latency;
      private volatile boolean suspendFlushingOnServerThread = false;
@@ -27,9 +55,10 @@
 +     */
 +    protected net.neoforged.neoforge.network.connection.ConnectionType connectionType;
  
-     public ServerCommonPacketListenerImpl(MinecraftServer server, Connection connection, CommonListenerCookie cookie) {
+-    public ServerCommonPacketListenerImpl(MinecraftServer server, Connection connection, CommonListenerCookie cookie) {
++    public ServerCommonPacketListenerImpl(MinecraftServer server, Connection connection, CommonListenerCookie cookie, ServerPlayer player) { // CraftBukkit
          this.server = server;
-@@ -53,6 +_,20 @@
+         this.connection = connection;
          this.keepAliveTime = Util.getMillis();
          this.latency = cookie.latency();
          this.transferred = cookie.transferred();

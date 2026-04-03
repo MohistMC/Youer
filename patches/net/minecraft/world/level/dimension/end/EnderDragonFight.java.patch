@@ -1,17 +1,46 @@
 --- a/net/minecraft/world/level/dimension/end/EnderDragonFight.java
 +++ b/net/minecraft/world/level/dimension/end/EnderDragonFight.java
-@@ -581,6 +_,14 @@
+@@ -16,6 +_,7 @@
+ import java.util.Optional;
+ import java.util.Set;
+ import java.util.UUID;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.Predicate;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+@@ -549,6 +_,10 @@
          }
      }
  
++    private AtomicBoolean respawnDragonBoolean = new AtomicBoolean(false);
++    public boolean respawnDragonBoolean(){
++        return respawnDragonBoolean.getAndSet(false);
++    }
+     public void respawnDragon(List<EndCrystal> crystals) {
+         if (this.dragonKilled && this.respawnStage == null) {
+             for (BlockPattern.BlockPatternMatch portal = this.findExitPortal(); portal != null; portal = this.findExitPortal()) {
+@@ -569,7 +_,9 @@
+             this.spawnExitPortal(false);
+             this.respawnCrystals = crystals.stream().map(EntityReference::of).toList();
+             this.setDirty();
++            respawnDragonBoolean.set(true);
+         }
++        respawnDragonBoolean.set(false);
+     }
+ 
+     public void resetSpikeCrystals() {
+@@ -579,6 +_,14 @@
+                 crystal.setBeamTarget(null);
+             }
+         }
++    }
++
 +    public void addPlayer(ServerPlayer player) {
 +        this.dragonEvent.addPlayer(player);
 +    }
 +
 +    public void removePlayer(ServerPlayer player) {
 +        this.dragonEvent.removePlayer(player);
-+    }
-+
-     public @Nullable UUID dragonUUID() {
-         return this.dragonUUID;
      }
+ 
+     public @Nullable UUID dragonUUID() {

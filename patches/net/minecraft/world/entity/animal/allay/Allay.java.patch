@@ -1,5 +1,26 @@
 --- a/net/minecraft/world/entity/animal/allay/Allay.java
 +++ b/net/minecraft/world/entity/animal/allay/Allay.java
+@@ -98,6 +_,7 @@
+     private float dancingAnimationTicks;
+     private float spinningAnimationTicks;
+     private float spinningAnimationTicks0;
++    public boolean forceDancing = false; // CraftBukkit
+ 
+     public Allay(EntityType<? extends Allay> type, Level level) {
+         super(type, level);
+@@ -111,6 +_,12 @@
+         );
+     }
+ 
++    // CraftBukkit start
++    public void setCanDuplicate(boolean canDuplicate) {
++        this.entityData.set(Allay.DATA_CAN_DUPLICATE, canDuplicate);
++    }
++    // CraftBukkit end
++
+     @Override
+     protected Brain<Allay> makeBrain(Brain.Packed packedBrain) {
+         return BRAIN_PROVIDER.makeBrain(this, packedBrain);
 @@ -336,9 +_,9 @@
      public boolean wantsToPickUp(ServerLevel level, ItemStack itemStack) {
          ItemStack itemInHand = this.getItemInHand(InteractionHand.MAIN_HAND);
@@ -12,3 +33,31 @@
      }
  
      private boolean allayConsidersItemEqual(ItemStack item1, ItemStack item2) {
+@@ -380,6 +_,7 @@
+     }
+ 
+     private boolean shouldStopDancing() {
++        if (this.forceDancing) {return false;} // CraftBukkit
+         return this.jukeboxPos == null
+             || !this.jukeboxPos.closerToCenterThan(this.position(), GameEvent.JUKEBOX_PLAY.value().notificationRadius())
+             || !this.level().getBlockState(this.jukeboxPos).is(Blocks.JUKEBOX);
+@@ -460,6 +_,19 @@
+             this.resetDuplicationCooldown();
+             this.level().addFreshEntity(allay);
+         }
++    }
++
++    public Allay duplicateAllay0() { // CraftBukkit - return allay
++        Allay allay = EntityType.ALLAY.create(this.level(), EntitySpawnReason.BREEDING);
++
++        if (allay != null) {
++            allay.snapTo(this.position());
++            allay.setPersistenceRequired();
++            allay.resetDuplicationCooldown();
++            this.resetDuplicationCooldown();
++            this.level().addFreshEntity(allay, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DUPLICATION); // CraftBukkit - reason for duplicated allay
++        }
++        return allay; // CraftBukkit
+     }
+ 
+     public void resetDuplicationCooldown() {

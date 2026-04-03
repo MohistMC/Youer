@@ -1,14 +1,62 @@
 --- a/net/minecraft/world/level/storage/LevelStorageSource.java
 +++ b/net/minecraft/world/level/storage/LevelStorageSource.java
-@@ -461,6 +_,8 @@
+@@ -392,19 +_,19 @@
+         return this.backupDir;
+     }
+ 
+-    public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String levelId) throws IOException, ContentValidationException {
++    public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String levelId, ResourceKey<LevelStem> dimensionType) throws IOException, ContentValidationException {
+         Path levelPath = this.getLevelPath(levelId);
+         List<ForbiddenSymlinkInfo> validationResults = this.worldDirValidator.validateDirectory(levelPath, true);
+         if (!validationResults.isEmpty()) {
+             throw new ContentValidationException(levelPath, validationResults);
+         } else {
+-            return new LevelStorageSource.LevelStorageAccess(levelId, levelPath);
++            return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, dimensionType);
+         }
+     }
+ 
+-    public LevelStorageSource.LevelStorageAccess createAccess(String levelId) throws IOException {
++    public LevelStorageSource.LevelStorageAccess createAccess(String levelId, ResourceKey<LevelStem> dimensionType) throws IOException {
+         Path levelPath = this.getLevelPath(levelId);
+-        return new LevelStorageSource.LevelStorageAccess(levelId, levelPath);
++        return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, dimensionType);
+     }
+ 
+     public DirectoryValidator getWorldDirValidator() {
+@@ -456,13 +_,31 @@
+         }
+     }
+ 
++    // CraftBukkit start
++    public static Path getPre261StorageFolder(Path path, ResourceKey<LevelStem> dimensionType) {
++        if (dimensionType == LevelStem.OVERWORLD) {
++            return path;
++        } else if (dimensionType == LevelStem.NETHER) {
++            return path.resolve("DIM-1");
++        } else if (dimensionType == LevelStem.END) {
++            return path.resolve("DIM1");
++        } else {
++            return path.resolve("dimensions").resolve(dimensionType.identifier().getNamespace()).resolve(dimensionType.identifier().getPath());
++        }
++    }
++    // CraftBukkit end
++
+     public class LevelStorageAccess implements AutoCloseable {
+         private DirectoryLock lock;
          public final LevelStorageSource.LevelDirectory levelDirectory;
          private final String levelId;
          private final Map<LevelResource, Path> resources;
 +        // CraftBukkit start
-+        public ResourceKey<LevelStem> dimensionType;
++        public final ResourceKey<LevelStem> dimensionType;
  
-         private LevelStorageAccess(String levelId, Path path) throws IOException {
+-        private LevelStorageAccess(String levelId, Path path) throws IOException {
++        private LevelStorageAccess(String levelId, Path path, ResourceKey<LevelStem> dimensionType) throws IOException {
++            this.dimensionType = dimensionType;
++            // CraftBukkit end
              Objects.requireNonNull(LevelStorageSource.this);
+             super();
+             this.resources = Maps.newHashMap();
 @@ -531,6 +_,19 @@
              }
          }

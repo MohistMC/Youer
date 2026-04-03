@@ -8,3 +8,35 @@
  
      public BeehiveBlockEntity(BlockPos worldPosition, BlockState blockState) {
          super(BlockEntityType.BEEHIVE, worldPosition, blockState);
+@@ -150,6 +_,20 @@
+         return spawned;
+     }
+ 
++    public List<Entity> releaseBees(BlockState blockstate, BeehiveBlockEntity.BeeReleaseStatus beehiveblockentity_beereleasestatus, boolean force) {
++        List<Entity> list = Lists.newArrayList();
++
++        this.stored.removeIf((beehiveblockentity_beedata) -> {
++            return releaseOccupant(this.level, this.worldPosition, blockstate, beehiveblockentity_beedata.toOccupant(), list, beehiveblockentity_beereleasestatus, this.savedFlowerPos, force);
++            // CraftBukkit end
++        });
++        if (!list.isEmpty()) {
++            super.setChanged();
++        }
++
++        return list;
++    }
++
+     @VisibleForDebug
+     public int getOccupantCount() {
+         return this.stored.size();
+@@ -261,6 +_,10 @@
+                 }
+             }
+         }
++    }
++
++    private static boolean releaseOccupant(Level level, BlockPos blockPos, BlockState state, BeehiveBlockEntity.Occupant beeData, @Nullable List<Entity> spawned, BeehiveBlockEntity.BeeReleaseStatus releaseStatus, @Nullable BlockPos savedFlowerPos, boolean force) {
++        return releaseOccupant(level, blockPos, state, beeData, spawned, releaseStatus, savedFlowerPos);
+     }
+ 
+     private boolean hasSavedFlowerPos() {

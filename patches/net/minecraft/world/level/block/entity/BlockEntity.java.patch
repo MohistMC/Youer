@@ -143,6 +143,49 @@
      public Holder<BlockEntityType<?>> typeHolder() {
          return this.type.builtInRegistryHolder();
      }
+@@ -318,6 +_,42 @@
+         this.components = newPatch.split().added();
+     }
+ 
++    public final Set<DataComponentType<?>> applyComponentsSet(DataComponentMap prototype, DataComponentPatch patch) {
++        // CraftBukkit end
++        final Set<DataComponentType<?>> set = new HashSet();
++
++        set.add(DataComponents.BLOCK_ENTITY_DATA);
++        set.add(DataComponents.BLOCK_STATE);
++        final DataComponentMap datacomponentmap1 = PatchedDataComponentMap.fromPatch(prototype, patch);
++
++        this.applyImplicitComponents(new DataComponentGetter() {
++            {
++                Objects.requireNonNull(BlockEntity.this);
++            }
++
++            @Override
++            public <T> @Nullable T get(DataComponentType<? extends T> type) {
++                set.add(type);
++                return (T) datacomponentmap1.get(type);
++            }
++
++            @Override
++            public <T> T getOrDefault(DataComponentType<? extends T> type, T defaultValue) {
++                set.add(type);
++                return (T) datacomponentmap1.getOrDefault(type, defaultValue);
++            }
++        });
++        Objects.requireNonNull(set);
++        DataComponentPatch datacomponentpatch1 = patch.forget(set::contains);
++
++        this.components = datacomponentpatch1.split().added();
++        // CraftBukkit start
++        set.remove(DataComponents.BLOCK_ENTITY_DATA); // Remove as never actually added by applyImplicitComponents
++        set.remove(DataComponents.BLOCK_STATE); // Remove as never actually added by applyImplicitComponents
++        return set;
++        // CraftBukkit end
++    }
++
+     protected void collectImplicitComponents(DataComponentMap.Builder components) {
+     }
+ 
 @@ -358,4 +_,13 @@
              return this.blockEntity.getNameForReporting() + "@" + this.blockEntity.getBlockPos();
          }

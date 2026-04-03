@@ -1,5 +1,58 @@
 --- a/net/minecraft/world/entity/monster/piglin/Piglin.java
 +++ b/net/minecraft/world/entity/monster/piglin/Piglin.java
+@@ -1,8 +_,13 @@
+ package net.minecraft.world.entity.monster.piglin;
+ 
++import com.mojang.serialization.Codec;
++import java.util.HashSet;
+ import java.util.List;
++import java.util.Set;
++import java.util.stream.Collectors;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.component.DataComponents;
++import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.network.syncher.EntityDataAccessor;
+ import net.minecraft.network.syncher.EntityDataSerializers;
+ import net.minecraft.network.syncher.SynchedEntityData;
+@@ -96,6 +_,10 @@
+         List.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_PLAYERS, SensorType.NEAREST_ITEMS, SensorType.HURT_BY, SensorType.PIGLIN_SPECIFIC_SENSOR),
+         PiglinAi::getActivities
+     );
++    // CraftBukkit start - Custom bartering and interest list
++    public Set<Item> allowedBarterItems = new HashSet<>();
++    public Set<Item> interestItems = new HashSet<>();
++    // CraftBukkit end
+ 
+     public Piglin(EntityType<? extends AbstractPiglin> type, Level level) {
+         super(type, level);
+@@ -108,6 +_,12 @@
+         output.putBoolean("IsBaby", this.isBaby());
+         output.putBoolean("CannotHunt", this.cannotHunt);
+         this.writeInventoryToTag(output);
++        // CraftBukkit start
++        ValueOutput.TypedOutputList<String> barterList = output.list("Bukkit.BarterList", Codec.STRING);
++        allowedBarterItems.stream().map(BuiltInRegistries.ITEM::getKey).map(Identifier::toString).forEach(barterList::add);
++        ValueOutput.TypedOutputList<String> interestList = output.list("Bukkit.InterestList", Codec.STRING);
++        interestItems.stream().map(BuiltInRegistries.ITEM::getKey).map(Identifier::toString).forEach(interestList::add);
++        // CraftBukkit end
+     }
+ 
+     @Override
+@@ -116,6 +_,14 @@
+         this.setBaby(input.getBooleanOr("IsBaby", false));
+         this.setCannotHunt(input.getBooleanOr("CannotHunt", false));
+         this.readInventoryFromTag(input);
++        // CraftBukkit start
++        input.list("Bukkit.BarterList", Codec.STRING).ifPresent((list -> {
++            this.allowedBarterItems = list.stream().map(Identifier::tryParse).map(BuiltInRegistries.ITEM::getValue).collect(Collectors.toCollection(HashSet::new));
++        }));
++        input.list("Bukkit.InterestList", Codec.STRING).ifPresent((list -> {
++            this.interestItems = list.stream().map(Identifier::tryParse).map(BuiltInRegistries.ITEM::getValue).collect(Collectors.toCollection(HashSet::new));
++        }));
++        // CraftBukkit end
+     }
+ 
+     @VisibleForDebug
 @@ -320,7 +_,7 @@
          } else if (this.isChargingCrossbow()) {
              return PiglinArmPose.CROSSBOW_CHARGE;

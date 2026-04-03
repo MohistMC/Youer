@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/item/crafting/SmithingTrimRecipe.java
++++ b/net/minecraft/world/item/crafting/SmithingTrimRecipe.java
+@@ -17,6 +_,10 @@
+ import net.minecraft.world.item.equipment.trim.ArmorTrim;
+ import net.minecraft.world.item.equipment.trim.TrimMaterial;
+ import net.minecraft.world.item.equipment.trim.TrimPattern;
++import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.inventory.CraftRecipe;
++import org.bukkit.craftbukkit.inventory.CraftSmithingTrimRecipe;
++import org.bukkit.craftbukkit.inventory.trim.CraftTrimPattern;
+ 
+ public class SmithingTrimRecipe extends SimpleSmithingRecipe {
+     public static final MapCodec<SmithingTrimRecipe> MAP_CODEC = RecordCodecBuilder.mapCodec(
+@@ -117,4 +_,11 @@
+             )
+         );
+     }
++
++    // CraftBukkit start
++    @Override
++    public org.bukkit.inventory.Recipe toBukkitRecipe(NamespacedKey id) {
++        return new CraftSmithingTrimRecipe(id, CraftRecipe.toBukkit(this.template), CraftRecipe.toBukkit(this.base), CraftRecipe.toBukkit(this.addition), CraftTrimPattern.minecraftHolderToBukkit(this.pattern));
++    }
++    // CraftBukkit end
+ }

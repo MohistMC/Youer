@@ -1,6 +1,35 @@
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
-@@ -139,6 +_,11 @@
+@@ -4,12 +_,14 @@
+ import com.google.common.collect.Maps;
+ import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
+ import java.util.ArrayList;
++import java.util.Arrays;
+ import java.util.HashSet;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Objects;
+ import java.util.Optional;
+ import java.util.Set;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.Predicate;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+@@ -90,6 +_,13 @@
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.ticks.ContainerSingleItem;
++import org.bukkit.Location;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.entity.HumanEntity;
++import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.entity.EntityTargetEvent;
++import org.bukkit.event.entity.EntityTransformEvent;
++import org.bukkit.inventory.InventoryHolder;
+ import org.jspecify.annotations.Nullable;
+ 
+ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUser, Leashable {
+@@ -139,6 +_,13 @@
      private Leashable.@Nullable LeashData leashData;
      private BlockPos homePosition = BlockPos.ZERO;
      private int homeRadius = -1;
@@ -9,12 +38,23 @@
 +    private boolean spawnCancelled = false;
 +    /** Neo: Prevent immediate spawning from conversions to capture conversion results for events */
 +    protected boolean preventConversionSpawns = false;
++
++    public boolean aware = true; // CraftBukkit
  
      protected Mob(EntityType<? extends Mob> type, Level level) {
          super(type, level);
-@@ -244,7 +_,11 @@
+@@ -243,8 +_,28 @@
+         return this.asValidTarget(this.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null));
      }
  
++    private EntityTargetEvent.TargetReason reason = EntityTargetEvent.TargetReason.UNKNOWN;
++    private boolean fireCBEvent = true;
++    public AtomicBoolean canSetTarget = new AtomicBoolean(true);
++    public void setTargetReason(EntityTargetEvent.TargetReason reason, boolean fireCBEvent) {
++        this.reason = reason;
++        this.fireCBEvent = fireCBEvent;
++    }
++
      public void setTarget(@Nullable LivingEntity target) {
 -        this.target = this.asValidTarget(target);
 +        target = this.asValidTarget(target);
@@ -22,6 +62,14 @@
 +        if(!changeTargetEvent.isCanceled()) {
 +             this.target = changeTargetEvent.getNewAboutToBeSetTarget();
 +        }
++    }
++
++    public boolean setTargetCB(LivingEntity p_21544_, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent) {
++        if (getTarget() == p_21544_) return false;
++        setTargetReason(reason, fireEvent);
++        setTarget(p_21544_);
++        return canSetTarget.getAndSet(true);
++        // CraftBukkit end
      }
  
      @Override
@@ -38,6 +86,19 @@
      }
  
      protected void updateControlFlags() {
+@@ -359,6 +_,12 @@
+         return null;
+     }
+ 
++    // CraftBukkit start - Add delegate method
++    public SoundEvent getAmbientSound0() {
++        return getAmbientSound();
++    }
++    // CraftBukkit end
++
+     @Override
+     protected void addAdditionalSaveData(ValueOutput output) {
+         super.addAdditionalSaveData(output);
 @@ -383,6 +_,9 @@
          if (this.isNoAi()) {
              output.putBoolean("NoAI", this.isNoAi());
@@ -89,6 +150,58 @@
          if (this.level().getDifficulty() == Difficulty.PEACEFUL && !this.getType().isAllowedInPeaceful()) {
              this.discard();
          } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {
+@@ -859,6 +_,51 @@
+             public boolean stillValid(Player player) {
+                 return player.getVehicle() == Mob.this || player.isWithinEntityInteractionRange(Mob.this, 4.0);
+             }
++
++            // CraftBukkit start - add fields and methods
++            public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
++            private int maxStack = MAX_STACK;
++
++            @Override
++            public List<ItemStack> getContents() {
++                return Arrays.asList(this.getTheItem());
++            }
++
++            @Override
++            public void onOpen(CraftHumanEntity who) {
++                transaction.add(who);
++            }
++
++            @Override
++            public void onClose(CraftHumanEntity who) {
++                transaction.remove(who);
++            }
++
++            @Override
++            public List<HumanEntity> getViewers() {
++                return transaction;
++            }
++
++            @Override
++            public int getMaxStackSize() {
++                return maxStack;
++            }
++
++            @Override
++            public void setMaxStackSize(int size) {
++                maxStack = size;
++            }
++
++            @Override
++            public InventoryHolder getOwner() {
++                return (InventoryHolder) Mob.this.getBukkitEntity();
++            }
++
++            @Override
++            public Location getLocation() {
++                return Mob.this.getBukkitEntity().getLocation();
++            }
++            // CraftBukkit end
+         };
+     }
+ 
 @@ -1054,6 +_,11 @@
          }
      }
@@ -109,6 +222,19 @@
          return groupData;
      }
  
+@@ -1203,6 +_,12 @@
+     public <T extends Mob> @Nullable T convertTo(
+         EntityType<T> entityType, ConversionParams params, EntitySpawnReason spawnReason, ConversionParams.AfterConversion<T> afterConversion
+     ) {
++        // CraftBukkit start
++        return this.convertTo(entityType, params, spawnReason, afterConversion, EntityTransformEvent.TransformReason.UNKNOWN, CreatureSpawnEvent.SpawnReason.DEFAULT);
++    }
++
++    public <T extends Mob> @Nullable T convertTo(EntityType<T> entityType, ConversionParams params, EntitySpawnReason spawnReason, ConversionParams.AfterConversion<T> afterConversion, EntityTransformEvent.TransformReason transformReason, CreatureSpawnEvent.SpawnReason bukkitSpawnReason) {
++        // CraftBukkit end
+         if (this.isRemoved()) {
+             return null;
+         } else {
 @@ -1212,6 +_,7 @@
              } else {
                  params.type().convert(this, newMob, params);
@@ -117,6 +243,21 @@
                  if (this.level() instanceof ServerLevel serverLevel) {
                      serverLevel.addFreshEntity(newMob);
                  }
+@@ -1226,7 +_,13 @@
+     }
+ 
+     public <T extends Mob> @Nullable T convertTo(EntityType<T> entityType, ConversionParams params, ConversionParams.AfterConversion<T> afterConversion) {
+-        return this.convertTo(entityType, params, EntitySpawnReason.CONVERSION, afterConversion);
++        // CraftBukkit start
++        return (T) this.convertTo(entityType, params, afterConversion, EntityTransformEvent.TransformReason.UNKNOWN, CreatureSpawnEvent.SpawnReason.DEFAULT);
++    }
++
++    public <T extends Mob> @Nullable T convertTo(EntityType<T> entityType, ConversionParams params, ConversionParams.AfterConversion<T> afterConversion, EntityTransformEvent.TransformReason transformReason, CreatureSpawnEvent.SpawnReason spawnReason) {
++        return (T) this.convertTo(entityType, params, EntitySpawnReason.CONVERSION, afterConversion, transformReason, spawnReason);
++        // CraftBukkit end
+     }
+ 
+     @Override
 @@ -1375,14 +_,24 @@
      }
  

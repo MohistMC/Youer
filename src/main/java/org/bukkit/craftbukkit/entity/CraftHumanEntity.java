@@ -334,7 +334,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
     private static void openCustomInventory(Inventory inventory, ServerPlayer player, MenuType<?> windowType) {
         if (player.connection == null) return;
         Preconditions.checkArgument(windowType != null, "Unknown windowType");
-        AbstractContainerMenu abstractcontainermenu = new CraftContainer(inventory, player, player.nextContainerCounterInt());
+        AbstractContainerMenu abstractcontainermenu = new CraftContainer(inventory, player, player.nextContainerCounter());
 
         abstractcontainermenu = CraftEventFactory.callInventoryOpenEvent(player, abstractcontainermenu);
         if (abstractcontainermenu == null) return;
@@ -400,7 +400,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
         if (inventory instanceof CraftInventoryView) {
             abstractcontainermenu = ((CraftInventoryView) inventory).getHandle();
         } else {
-            abstractcontainermenu = new CraftContainer(inventory, this.getHandle(), player.nextContainerCounterInt());
+            abstractcontainermenu = new CraftContainer(inventory, this.getHandle(), player.nextContainerCounter());
         }
 
         // Trigger an INVENTORY_OPEN event

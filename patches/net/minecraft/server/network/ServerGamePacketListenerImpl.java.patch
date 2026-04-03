@@ -16,10 +16,11 @@
  import net.minecraft.network.chat.PlayerChatMessage;
  import net.minecraft.network.chat.RemoteChatSession;
  import net.minecraft.network.chat.SignableCommand;
-@@ -218,6 +_,12 @@
+@@ -218,6 +_,13 @@
  import net.minecraft.world.phys.shapes.BooleanOp;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.Location;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.util.LazyPlayerSet;
 +import org.bukkit.craftbukkit.util.Waitable;
@@ -29,6 +30,38 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
+@@ -276,7 +_,7 @@
+     private int clientLoadedTimeoutTimer;
+ 
+     public ServerGamePacketListenerImpl(MinecraftServer server, Connection connection, ServerPlayer player, CommonListenerCookie cookie) {
+-        super(server, connection, cookie);
++        super(server, connection, cookie, player);
+         this.restartClientLoadTimerAfterRespawn();
+         this.chunkSender = new PlayerChunkSender(connection.isMemoryConnection());
+         this.player = player;
+@@ -286,6 +_,22 @@
+         this.chatMessageChain = new FutureChain(server);
+     }
+ 
++    // CraftBukkit start - add fields and methods
++    private int lastTick = MinecraftServer.currentTick;
++    private int allowedPlayerTicks = 1;
++    private int lastDropTick = MinecraftServer.currentTick;
++    private int lastBookTick  = MinecraftServer.currentTick;
++    private int dropCount = 0;
++
++    private boolean hasMoved = false;
++    private double lastPosX = Double.MAX_VALUE;
++    private double lastPosY = Double.MAX_VALUE;
++    private double lastPosZ = Double.MAX_VALUE;
++    private float lastPitch = Float.MAX_VALUE;
++    private float lastYaw = Float.MAX_VALUE;
++    private boolean justTeleported = false;
++    // CraftBukkit end
++
+     @Override
+     public void tick() {
+         if (this.ackBlockChangesUpTo > -1) {
 @@ -492,18 +_,21 @@
  
                  if (fail && level.noCollision(vehicle, oldAABB) || this.isEntityCollidingWithAnythingNew(level, vehicle, oldAABB, targetX, targetY, targetZ)) {
@@ -84,6 +117,15 @@
                  if (!itemStack.isEmpty()) {
                      if (includeData) {
                          addBlockDataToItem(blockState, level, pos, itemStack);
+@@ -808,7 +_,7 @@
+ 
+     private <T> void setGameRuleValue(GameRules gameRules, GameRule<T> rule, String value) {
+         rule.deserialize(value).result().ifPresent(parsedValue -> {
+-            gameRules.set(rule, (T)parsedValue, this.server);
++            gameRules.set(rule, (T)parsedValue, this.player.level()); // CraftBukkit - per-world
+             this.broadcastGameRuleChangeToOperators(rule, (T)parsedValue);
+         });
+     }
 @@ -1157,7 +_,7 @@
                                          && !playerStandsOnSomething
                                          && !this.player.isSpectator()
@@ -93,6 +135,53 @@
                                          && !this.player.hasEffect(MobEffects.LEVITATION)
                                          && !isFallFlying
                                          && !isAutoSpinAttack
+@@ -1245,11 +_,32 @@
+         return false;
+     }
+ 
++    public void teleport(Location dest) {
++        this.teleport(dest.getX(), dest.getY(), dest.getZ(), dest.getYaw(), dest.getPitch());
++    }
++
+     public void teleport(double x, double y, double z, float yRot, float xRot) {
+         this.teleport(new PositionMoveRotation(new Vec3(x, y, z), Vec3.ZERO, yRot, xRot), Collections.emptySet());
+     }
+ 
++    private void internalTeleport(double d0, double d1, double d2, float f, float f1) {
++        this.teleport(d0, d1, d2, f, f1);
++    }
++
++    public void internalTeleport(PositionMoveRotation destination, Set<Relative> relatives) {
++        this.teleport(destination, relatives);
++    }
++
+     public void teleport(PositionMoveRotation destination, Set<Relative> relatives) {
++        if (Float.isNaN(destination.yRot())) {
++            destination = new PositionMoveRotation(destination.position(), destination.deltaMovement(), 0, destination.xRot());
++        }
++        if (Float.isNaN(destination.xRot())) {
++            destination = new PositionMoveRotation(destination.position(), destination.deltaMovement(), destination.yRot(), 0);
++        }
++
++        this.justTeleported = true;
++        // CraftBukkit end
+         this.awaitingTeleportTime = this.tickCount;
+         if (++this.awaitingTeleport == Integer.MAX_VALUE) {
+             this.awaitingTeleport = 0;
+@@ -1257,6 +_,13 @@
+ 
+         this.player.teleportSetPosition(destination, relatives);
+         this.awaitingPositionFromClient = this.player.position();
++        // CraftBukkit start - update last location
++        this.lastPosX = this.awaitingPositionFromClient.x;
++        this.lastPosY = this.awaitingPositionFromClient.y;
++        this.lastPosZ = this.awaitingPositionFromClient.z;
++        this.lastYaw = this.player.getYRot();
++        this.lastPitch = this.player.getXRot();
++        // CraftBukkit end
+         this.send(ClientboundPlayerPositionPacket.of(this.awaitingTeleport, destination, relatives));
+     }
+ 
 @@ -1286,9 +_,10 @@
                      }
                  case SWAP_ITEM_WITH_OFFHAND:
@@ -266,6 +355,15 @@
                              ItemStack awardedForStack = success.wasItemInteraction() ? usedItemStack : ItemStack.EMPTY;
                              CriteriaTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(this.player, awardedForStack, target);
                              if (success.swingSource() == InteractionResult.SwingSource.SERVER) {
+@@ -1889,7 +_,7 @@
+                     this.restartClientLoadTimerAfterRespawn();
+                     if (this.server.isHardcore()) {
+                         this.player.setGameMode(GameType.SPECTATOR);
+-                        this.player.level().getGameRules().set(GameRules.SPECTATORS_GENERATE_CHUNKS, false, this.server);
++                        this.player.level().getGameRules().set(GameRules.SPECTATORS_GENERATE_CHUNKS, false, this.player.level()); // CraftBukkit - per-world
+                     }
+                 }
+                 break;
 @@ -2057,14 +_,16 @@
      @Override
      public void handlePlayerAbilities(ServerboundPlayerAbilitiesPacket packet) {
@@ -289,7 +387,7 @@
                  .setupInboundProtocol(
                      ConfigurationProtocols.SERVERBOUND,
 -                    new ServerConfigurationPacketListenerImpl(this.server, this.connection, this.createCookie(this.player.clientInformation()))
-+                    new ServerConfigurationPacketListenerImpl(this.server, this.connection, this.createCookie(this.player.clientInformation(), this.connectionType))
++                    new ServerConfigurationPacketListenerImpl(this.server, this.connection, this.createCookie(this.player.clientInformation(), this.connectionType), this.player) // CraftBukkit
                  );
          }
      }

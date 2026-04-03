@@ -1,5 +1,21 @@
 --- a/net/minecraft/gametest/framework/GameTestServer.java
 +++ b/net/minecraft/gametest/framework/GameTestServer.java
+@@ -22,6 +_,7 @@
+ import net.minecraft.CrashReport;
+ import net.minecraft.ReportType;
+ import net.minecraft.SystemReport;
++import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.commands.Commands;
+ import net.minecraft.commands.arguments.ResourceSelectorArgument;
+ import net.minecraft.core.BlockPos;
+@@ -70,6 +_,7 @@
+ import net.minecraft.world.level.storage.LevelDataAndDimensions;
+ import net.minecraft.world.level.storage.LevelStorageSource;
+ import net.minecraft.world.level.storage.PrimaryLevelData;
++import org.bukkit.command.CommandSender;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
 @@ -91,6 +_,11 @@
      private final Stopwatch stopwatch = Stopwatch.createUnstarted();
      private static final WorldOptions WORLD_OPTIONS = new WorldOptions(0L, false, false);
@@ -12,7 +28,13 @@
  
      public static GameTestServer create(
          Thread serverThread,
-@@ -159,7 +_,7 @@
+@@ -154,12 +_,12 @@
+         boolean verify,
+         int repeatCount
+     ) {
+-        super(
++        super(null, null,
+             serverThread,
              levelStorageSource,
              packRepository,
              worldStem,
@@ -25,8 +47,9 @@
              }
          });
          Gizmos.withCollector(GizmoCollector.NOOP);
+-        this.loadLevel();
 +        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
-         this.loadLevel();
++        this.loadLevel("world");
          ServerLevel level = this.overworld();
          this.testBatches = this.evaluateTestsToRun(level);
          LOGGER.info("Started game test server");
@@ -64,3 +87,15 @@
          }
      }
  
+@@ -383,6 +_,11 @@
+     @Override
+     public boolean shouldInformAdmins() {
+         return false;
++    }
++
++    @Override
++    public CommandSender getBukkitSender(CommandSourceStack wrapper) {
++        return null;
+     }
+ 
+     @Override

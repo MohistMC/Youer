@@ -288,7 +288,7 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
         int z = chunkaccess.getPos().z();
 
         random.setSeed(Mth.getSeed(x, "should-decoration".hashCode(), z) ^ worldgenlevel.getSeed());
-        super.applyBiomeDecoration(worldgenlevel, chunkaccess, structuremanager, generator.shouldGenerateDecorations(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z));
+        super.applyBiomeDecorationCB(worldgenlevel, chunkaccess, structuremanager, generator.shouldGenerateDecorations(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z));
     }
 
     @Override

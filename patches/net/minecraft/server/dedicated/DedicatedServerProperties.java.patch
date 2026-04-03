@@ -1,11 +1,53 @@
 --- a/net/minecraft/server/dedicated/DedicatedServerProperties.java
 +++ b/net/minecraft/server/dedicated/DedicatedServerProperties.java
-@@ -53,7 +_,7 @@
+@@ -17,6 +_,7 @@
+ import java.util.UUID;
+ import java.util.concurrent.TimeUnit;
+ import java.util.regex.Pattern;
++import joptsimple.OptionSet;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.RegistryAccess;
+@@ -53,7 +_,8 @@
      public static final String MANAGEMENT_SERVER_TLS_ENABLED_KEY = "management-server-tls-enabled";
      public static final String MANAGEMENT_SERVER_TLS_KEYSTORE_KEY = "management-server-tls-keystore";
      public static final String MANAGEMENT_SERVER_TLS_KEYSTORE_PASSWORD_KEY = "management-server-tls-keystore-password";
 -    public final boolean onlineMode = this.get("online-mode", true);
++    public final boolean debug = this.get("debug", false); // CraftBukkit
 +    public final boolean onlineMode = this.get("online-mode", !net.minecraft.SharedConstants.IS_RUNNING_IN_IDE);
      public final boolean preventProxyConnections = this.get("prevent-proxy-connections", false);
      public final String serverIp = this.get("server-ip", "");
      public final Settings<DedicatedServerProperties>.MutableValue<Boolean> allowFlight = this.getMutable("allow-flight", false);
+@@ -128,8 +_,10 @@
+     public final WorldOptions worldOptions;
+     public final Settings<DedicatedServerProperties>.MutableValue<Boolean> acceptsTransfers = this.getMutable("accepts-transfers", false);
+ 
+-    public DedicatedServerProperties(Properties settings) {
+-        super(settings);
++    // CraftBukkit start
++    public DedicatedServerProperties(Properties settings, OptionSet optionset) {
++        super(settings, optionset);
++        // CraftBukkit end
+         String levelSeed = this.get("level-seed", "");
+         boolean generateStructures = this.get("generate-structures", true);
+         long seed = WorldOptions.parseSeed(levelSeed).orElse(WorldOptions.randomSeed());
+@@ -152,12 +_,15 @@
+         );
+     }
+ 
+-    public static DedicatedServerProperties fromFile(Path file) {
+-        return new DedicatedServerProperties(loadFromFile(file));
++    // CraftBukkit start
++    public static DedicatedServerProperties fromFile(Path path, OptionSet optionset) {
++        return new DedicatedServerProperties(loadFromFile(path), optionset);
+     }
+ 
+-    protected DedicatedServerProperties reload(RegistryAccess registryAccess, Properties properties) {
+-        return new DedicatedServerProperties(properties);
++    @Override
++    protected DedicatedServerProperties reload(RegistryAccess registryaccess, Properties properties, OptionSet optionset) {
++        return new DedicatedServerProperties(properties, optionset);
++        // CraftBukkit end
+     }
+ 
+     private static @Nullable Component parseResourcePackPrompt(String prompt) {

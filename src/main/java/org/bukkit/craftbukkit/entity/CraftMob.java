@@ -22,9 +22,9 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob {
 
         net.minecraft.world.entity.Mob entity = getHandle();
         if (target == null) {
-            entity.setTarget(null, null, false);
+            entity.setTargetCB(null, null, false);
         } else if (target instanceof CraftLivingEntity) {
-            entity.setTarget(((CraftLivingEntity) target).getHandle(), null, false);
+            entity.setTargetCB(((CraftLivingEntity) target).getHandle(), null, false);
         }
     }
 

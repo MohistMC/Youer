@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/monster/zombie/Zombie.java
 +++ b/net/minecraft/world/entity/monster/zombie/Zombie.java
+@@ -66,6 +_,8 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
++import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.entity.EntityTransformEvent;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class Zombie extends Monster {
 @@ -238,6 +_,7 @@
      }
  
@@ -30,6 +39,32 @@
                  if (!this.isSilent()) {
                      level.levelEvent(null, 1026, this.blockPosition(), 0);
                  }
+@@ -275,6 +_,25 @@
+         return zombieVillager != null;
+     }
+ 
++    public static ZombieVillager convertVillagerToZombieVillager(ServerLevel level, Villager villager, net.minecraft.core.BlockPos blockPosition, boolean silent, EntityTransformEvent.TransformReason transformReason, CreatureSpawnEvent.SpawnReason spawnReason) {
++        // CraftBukkit end
++        ZombieVillager zombievillager = (ZombieVillager) villager.convertTo(EntityType.ZOMBIE_VILLAGER, ConversionParams.single(villager, true, true), (zombievillager1) -> {
++            zombievillager1.finalizeSpawn(level, level.getCurrentDifficultyAt(zombievillager1.blockPosition()), EntitySpawnReason.CONVERSION, new Zombie.ZombieGroupData(false, true));
++            zombievillager1.setVillagerData(villager.getVillagerData());
++            zombievillager1.setGossips(villager.getGossips().copy());
++            zombievillager1.setTradeOffers(villager.getOffers().copy());
++            zombievillager1.setVillagerXp(villager.getVillagerXp());
++            // CraftBukkit start
++            if (!silent) {
++                level.levelEvent((Entity) null, 1026, blockPosition, 0);
++            }
++
++        }, transformReason, spawnReason);
++
++        return zombievillager;
++        // CraftBukkit end
++    }
++
+     public boolean isSunSensitive() {
+         return true;
+     }
 @@ -424,7 +_,7 @@
      @Override
      public boolean killedEntity(ServerLevel level, LivingEntity entity, DamageSource source) {

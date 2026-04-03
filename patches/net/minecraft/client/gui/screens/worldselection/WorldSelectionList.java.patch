@@ -1,5 +1,13 @@
 --- a/net/minecraft/client/gui/screens/worldselection/WorldSelectionList.java
 +++ b/net/minecraft/client/gui/screens/worldselection/WorldSelectionList.java
+@@ -61,6 +_,7 @@
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.util.Util;
+ import net.minecraft.world.level.LevelSettings;
++import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.storage.LevelResource;
+ import net.minecraft.world.level.storage.LevelStorageException;
+ import net.minecraft.world.level.storage.LevelStorageSource;
 @@ -83,6 +_,7 @@
      private static final Identifier WARNING_SPRITE = Identifier.withDefaultNamespace("world_list/warning");
      private static final Identifier JOIN_HIGHLIGHTED_SPRITE = Identifier.withDefaultNamespace("world_list/join_highlighted");
@@ -16,6 +24,33 @@
              if (this.list.entryType == WorldSelectionList.EntryType.SINGLEPLAYER && (this.minecraft.options.touchscreen().get() || hovered)) {
                  graphics.fill(this.getContentX(), this.getContentY(), this.getContentX() + 32, this.getContentY() + 32, -1601138544);
                  int relX = mouseX - this.getContentX();
+@@ -657,7 +_,7 @@
+             LevelStorageSource levelSource = this.minecraft.getLevelSource();
+             String levelId = this.summary.getLevelId();
+ 
+-            try (LevelStorageSource.LevelStorageAccess access = levelSource.createAccess(levelId)) {
++            try (LevelStorageSource.LevelStorageAccess access = levelSource.createAccess(levelId, LevelStem.OVERWORLD)) {
+                 access.deleteLevel();
+             } catch (IOException var8) {
+                 SystemToast.onWorldDeleteFailure(this.minecraft, levelId);
+@@ -671,7 +_,7 @@
+ 
+             LevelStorageSource.LevelStorageAccess access;
+             try {
+-                access = this.minecraft.getLevelSource().validateAndCreateAccess(levelId);
++                access = this.minecraft.getLevelSource().validateAndCreateAccess(levelId, LevelStem.OVERWORLD);
+             } catch (IOException var6) {
+                 SystemToast.onWorldAccessFailure(this.minecraft, levelId);
+                 WorldSelectionList.LOGGER.error("Failed to access level {}", levelId, var6);
+@@ -703,7 +_,7 @@
+         public void recreateWorld() {
+             this.queueLoadScreen();
+ 
+-            try (LevelStorageSource.LevelStorageAccess access = this.minecraft.getLevelSource().validateAndCreateAccess(this.summary.getLevelId())) {
++            try (LevelStorageSource.LevelStorageAccess access = this.minecraft.getLevelSource().validateAndCreateAccess(this.summary.getLevelId(), LevelStem.OVERWORLD)) {
+                 Pair<LevelSettings, WorldCreationContext> recreatedSettings = this.minecraft.createWorldOpenFlows().recreateWorldData(access);
+                 LevelSettings levelSettings = recreatedSettings.getFirst();
+                 WorldCreationContext creationContext = recreatedSettings.getSecond();
 @@ -779,6 +_,19 @@
          @Override
          public LevelSummary getLevelSummary() {

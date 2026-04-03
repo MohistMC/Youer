@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/item/crafting/RecipeManager.java
 +++ b/net/minecraft/world/item/crafting/RecipeManager.java
+@@ -9,6 +_,7 @@
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+ import java.util.ArrayList;
+ import java.util.Collection;
++import java.util.Collections;
+ import java.util.IdentityHashMap;
+ import java.util.List;
+ import java.util.Map;
+@@ -23,6 +_,7 @@
+ import net.minecraft.resources.FileToIdConverter;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.resources.ResourceKey;
++import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.packs.resources.ResourceManager;
+ import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 @@ -61,6 +_,7 @@
      private SelectableRecipe.SingleInputSet<StonecutterRecipe> stonecutterRecipes = SelectableRecipe.SingleInputSet.empty();
      private List<RecipeManager.ServerDisplayInfo> allDisplays = List.of();
@@ -17,14 +33,56 @@
          );
          List<RecipeHolder<?>> recipeHolders = new ArrayList<>(recipes.size());
          recipes.forEach((id, recipe) -> {
-@@ -86,6 +_,7 @@
+@@ -85,7 +_,26 @@
+         LOGGER.info("Loaded {} recipes", recipes.values().size());
      }
  
++    // CraftBukkit start
++    public void addRecipe(RecipeHolder<?> irecipe) {
++        this.recipes.addRecipe(irecipe);
++        finalizeRecipeLoading();
++    }
++
++    private FeatureFlagSet featureflagset;
++
++    public void finalizeRecipeLoading() {
++        if (featureflagset != null) {
++            finalizeRecipeLoading(featureflagset);
++
++            MinecraftServer.getServer().getPlayerList().reloadRecipes();
++        }
++    }
++
      public void finalizeRecipeLoading(FeatureFlagSet enabledFlags) {
++        this.featureflagset = enabledFlags;
++        // CraftBukkit end
 +        this.recipes.order(this.recipePriorities); // Neo: order recipes by priority.
          List<SelectableRecipe.SingleInputEntry<StonecutterRecipe>> stonecutterRecipes = new ArrayList<>();
          List<RecipeManager.IngredientCollector> propertySetCollectors = RECIPE_PROPERTY_SETS.entrySet()
              .stream()
+@@ -194,6 +_,22 @@
+         return new RecipeHolder<>(id, recipe);
+     }
+ 
++    // CraftBukkit start
++    public boolean removeRecipe(ResourceKey<Recipe<?>> mcKey) {
++        boolean removed = this.recipes.removeRecipe(mcKey);
++        if (removed) {
++            finalizeRecipeLoading();
++        }
++
++        return removed;
++    }
++
++    public void clearRecipes() {
++        this.recipes = RecipeMap.create(Collections.emptyList());
++        finalizeRecipeLoading();
++    }
++    // CraftBukkit end
++
+     public static <I extends RecipeInput, T extends Recipe<I>> RecipeManager.CachedCheck<I, T> createCheck(RecipeType<T> type) {
+         return new RecipeManager.CachedCheck<I, T>() {
+             private @Nullable ResourceKey<Recipe<?>> lastRecipe;
 @@ -250,6 +_,16 @@
          return recipe -> recipe.getType() == type && recipe instanceof SingleItemRecipe singleItemRecipe
              ? Optional.of(singleItemRecipe.input())

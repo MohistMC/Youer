@@ -169,6 +169,19 @@
      public static boolean matchesIgnoringComponents(ItemStack a, ItemStack b, Predicate<DataComponentType<?>> ignoredPredicate) {
          if (a == b) {
              return true;
+@@ -748,6 +_,12 @@
+         return this.getItem().useOnRelease(this);
+     }
+ 
++    // CraftBukkit start
++    public void restorePatch(DataComponentPatch datacomponentpatch) {
++        this.components.restorePatch(datacomponentpatch);
++    }
++    // CraftBukkit end
++
+     public <T> @Nullable T set(DataComponentType<T> type, @Nullable T value) {
+         return this.components.set(type, value);
+     }
 @@ -818,7 +_,7 @@
      }
  
@@ -216,7 +229,7 @@
      private void addAttributeTooltips(Consumer<Component> consumer, TooltipDisplay display, @Nullable Player player) {
          if (display.shows(DataComponents.ATTRIBUTE_MODIFIERS)) {
              for (EquipmentSlotGroup slot : EquipmentSlotGroup.values()) {
-@@ -980,19 +_,43 @@
+@@ -980,22 +_,53 @@
          return !this.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).isEmpty();
      }
  
@@ -260,6 +273,16 @@
          EnchantmentHelper.forEachModifier(this, slot, consumer);
      }
  
++    // CraftBukkit start
++    @Deprecated
++    public void setItem(Holder<Item> item) {
++        this.item = item;
++    }
++    // CraftBukkit end
++
+     public Component getDisplayName() {
+         MutableComponent hoverName = Component.empty().append(this.getHoverName());
+         if (this.has(DataComponents.CUSTOM_NAME)) {
 @@ -1004,7 +_,7 @@
  
          MutableComponent result = ComponentUtils.wrapInSquareBrackets(hoverName);

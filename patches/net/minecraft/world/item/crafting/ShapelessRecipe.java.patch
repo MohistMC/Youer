@@ -1,5 +1,16 @@
 --- a/net/minecraft/world/item/crafting/ShapelessRecipe.java
 +++ b/net/minecraft/world/item/crafting/ShapelessRecipe.java
+@@ -13,6 +_,10 @@
+ import net.minecraft.world.item.crafting.display.ShapelessCraftingRecipeDisplay;
+ import net.minecraft.world.item.crafting.display.SlotDisplay;
+ import net.minecraft.world.level.Level;
++import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.craftbukkit.inventory.CraftRecipe;
++import org.bukkit.craftbukkit.inventory.CraftShapelessRecipe;
+ 
+ public class ShapelessRecipe extends NormalCraftingRecipe {
+     public static final MapCodec<ShapelessRecipe> MAP_CODEC = RecordCodecBuilder.mapCodec(
 @@ -20,7 +_,7 @@
                  Recipe.CommonInfo.MAP_CODEC.forGetter(o -> o.commonInfo),
                  CraftingRecipe.CraftingBookInfo.MAP_CODEC.forGetter(o -> o.bookInfo),
@@ -9,7 +20,7 @@
              )
              .apply(i, ShapelessRecipe::new)
      );
-@@ -38,11 +_,13 @@
+@@ -38,12 +_,30 @@
      public static final RecipeSerializer<ShapelessRecipe> SERIALIZER = new RecipeSerializer<>(MAP_CODEC, STREAM_CODEC);
      private final ItemStackTemplate result;
      private final List<Ingredient> ingredients;
@@ -19,10 +30,28 @@
          super(commonInfo, bookInfo);
          this.result = result;
          this.ingredients = ingredients;
+-    }
 +        this.isSimple = ingredients.stream().allMatch(Ingredient::isSimple);
-     }
++    }
++
++    // CraftBukkit start
++    @SuppressWarnings("unchecked")
++    @Override
++    public org.bukkit.inventory.ShapelessRecipe toBukkitRecipe(NamespacedKey id) {
++        CraftItemStack result = CraftItemStack.asCraftMirror(this.result);
++        CraftShapelessRecipe recipe = new CraftShapelessRecipe(id, result, this);
++        recipe.setGroup(this.group());
++        recipe.setCategory(CraftRecipe.getCategory(this.category()));
++
++        for (Ingredient list : this.ingredients) {
++            recipe.addIngredient(CraftRecipe.toBukkit(list));
++        }
++        return recipe;
++    }
++    // CraftBukkit end
  
      @Override
+     public RecipeSerializer<ShapelessRecipe> getSerializer() {
 @@ -58,11 +_,24 @@
      public boolean matches(CraftingInput input, Level level) {
          if (input.ingredientCount() != this.ingredients.size()) {

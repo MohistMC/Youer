@@ -16,7 +16,7 @@
  import net.minecraft.world.inventory.AbstractContainerMenu;
  import net.minecraft.world.inventory.ContainerListener;
  import net.minecraft.world.inventory.ContainerSynchronizer;
-@@ -199,6 +_,14 @@
+@@ -199,6 +_,15 @@
  import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.scores.criteria.ObjectiveCriteria;
@@ -24,6 +24,7 @@
 +import org.bukkit.Bukkit;
 +import org.bukkit.Location;
 +import org.bukkit.WeatherType;
++import org.bukkit.command.CommandSender;
 +import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.util.CraftLocation;
@@ -51,7 +52,18 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(container.containerId, id, value));
          }
  
-@@ -379,6 +_,25 @@
+@@ -375,10 +_,36 @@
+         public void sendSystemMessage(Component message) {
+             ServerPlayer.this.sendSystemMessage(message);
+         }
++
++        // CraftBukkit start
++        @Override
++        public CommandSender getBukkitSender(CommandSourceStack wrapper) {
++            return getBukkitEntity();
++        }
++        // CraftBukkit end
+     };
      private Set<DebugSubscription<?>> requestedDebugSubscriptions = Set.of();
      private int containerCounter;
      public boolean wonGame;
@@ -283,15 +295,16 @@
          return this.isReachableBedBlock(pos) || this.isReachableBedBlock(pos.relative(direction.getOpposite()));
      }
  
-@@ -1337,13 +_,26 @@
-         this.containerCounter = this.containerCounter % 100 + 1;
+@@ -1333,17 +_,26 @@
+         this.connection.send(new ClientboundShowDialogPacket(dialog));
      }
  
-+    public int nextContainerCounterInt() {
-+        this.nextContainerCounter();
+-    public void nextContainerCounter() {
++    public int nextContainerCounter() {
+         this.containerCounter = this.containerCounter % 100 + 1;
 +        return containerCounter; // CraftBukkit
-+    }
-+
+     }
+ 
      @Override
      public OptionalInt openMenu(@Nullable MenuProvider provider) {
 +        return openMenu(provider, (java.util.function.Consumer<net.minecraft.network.RegistryFriendlyByteBuf>) null);
@@ -446,6 +459,18 @@
      public SectionPos getLastSectionPos() {
          return this.lastSectionPos;
      }
+@@ -2006,7 +_,10 @@
+     }
+ 
+     @Override
+-    public ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
++    // CraftBukkit start - SPIGOT-2942: Add boolean to call event
++    public ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand, boolean callEvent) {
++        ItemEntity itementity = super.drop(itemStack, randomly, thrownFromHand, callEvent);
++        // CraftBukkit end
+         ItemEntity entity = super.drop(itemStack, randomly, thrownFromHand);
+         if (thrownFromHand) {
+             ItemStack droppedItemStack = entity != null ? entity.getItem() : ItemStack.EMPTY;
 @@ -2019,6 +_,75 @@
          return entity;
      }

@@ -1,19 +1,70 @@
 --- a/net/minecraft/world/item/crafting/RecipeMap.java
 +++ b/net/minecraft/world/item/crafting/RecipeMap.java
-@@ -13,7 +_,7 @@
+@@ -2,9 +_,13 @@
+ 
+ import com.google.common.collect.ImmutableMap;
+ import com.google.common.collect.ImmutableMultimap;
++import com.google.common.collect.LinkedHashMultimap;
++import com.google.common.collect.Maps;
+ import com.google.common.collect.Multimap;
+ import com.google.common.collect.ImmutableMultimap.Builder;
+ import java.util.Collection;
++import java.util.Iterator;
++import java.util.LinkedHashMap;
+ import java.util.Map;
+ import java.util.stream.Stream;
+ import net.minecraft.resources.ResourceKey;
+@@ -12,11 +_,11 @@
+ import org.jspecify.annotations.Nullable;
  
  public class RecipeMap {
-     public static final RecipeMap EMPTY = new RecipeMap(ImmutableMultimap.of(), Map.of());
+-    public static final RecipeMap EMPTY = new RecipeMap(ImmutableMultimap.of(), Map.of());
 -    public final Multimap<RecipeType<?>, RecipeHolder<?>> byType;
-+    private Multimap<RecipeType<?>, RecipeHolder<?>> byType;
-     public final Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey;
+-    public final Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey;
++    public static final RecipeMap EMPTY = new RecipeMap(ImmutableMultimap.of(), Maps.newLinkedHashMap());
++    public Multimap<RecipeType<?>, RecipeHolder<?>> byType;
++    public final LinkedHashMap<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey;
  
-     private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> byType, Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey) {
-@@ -31,6 +_,25 @@
+-    private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> byType, Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey) {
++    private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> byType, LinkedHashMap<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey) {
+         this.byType = byType;
+         this.byKey = byKey;
+     }
+@@ -30,7 +_,54 @@
+             byKey.put(recipe.id(), recipe);
          }
  
-         return new RecipeMap(byType.build(), byKey.build());
+-        return new RecipeMap(byType.build(), byKey.build());
++        // CraftBukkit start - mutable, ordered
++        return new RecipeMap(LinkedHashMultimap.create(byType.build()), Maps.newLinkedHashMap(byKey.build()));
 +    }
++
++    public void addRecipe(RecipeHolder<?> irecipe) {
++        Collection<RecipeHolder<?>> map = this.byType.get(irecipe.value().getType());
++
++        if (byKey.containsKey(irecipe.id())) {
++            throw new IllegalStateException("Duplicate recipe ignored with ID " + irecipe.id());
++        } else {
++            map.add(irecipe);
++            byKey.putFirst(irecipe.id(), irecipe); // CraftBukkit - ordered
++        }
++    }
++
++    public boolean removeRecipe(ResourceKey<Recipe<?>> mcKey) {
++        boolean removed = false;
++        Iterator<RecipeHolder<?>> iter = byType.values().iterator();
++        while (iter.hasNext()) {
++            RecipeHolder<?> recipe = iter.next();
++            if (recipe.id().equals(mcKey)) {
++                iter.remove();
++                removed = true;
++            }
++        }
++        removed |= byKey.remove(mcKey) != null;
++
++        return removed;
++    }
++    // CraftBukkit end
 +
 +    // Neo: handle ordering according to any recipe priorities
 +    public void order(it.unimi.dsi.fastutil.objects.Object2IntMap<ResourceKey<net.minecraft.world.item.crafting.Recipe<?>>> recipePriorities) {

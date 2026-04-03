@@ -1,0 +1,33 @@
+--- a/net/minecraft/world/attribute/BedRule.java
++++ b/net/minecraft/world/attribute/BedRule.java
+@@ -8,12 +_,17 @@
+ import net.minecraft.util.StringRepresentable;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.level.Level;
+-
+-public record BedRule(BedRule.Rule canSleep, BedRule.Rule canSetSpawn, boolean explodes, Optional<Component> errorMessage) {
++import org.bukkit.event.player.PlayerBedEnterEvent;
++
++public record BedRule(BedRule.Rule canSleep, BedRule.Rule canSetSpawn, boolean explodes, Optional<Component> errorMessage, PlayerBedEnterEvent.BedEnterResult bukkit) {
++
++    public BedRule(BedRule.Rule canSleep, BedRule.Rule canSetSpawn, boolean explodes, Optional<Component> errorMessage) {
++        this(canSleep, canSetSpawn, explodes, errorMessage, PlayerBedEnterEvent.BedEnterResult.OTHER_PROBLEM);
++    }
+     public static final BedRule CAN_SLEEP_WHEN_DARK = new BedRule(
+-        BedRule.Rule.WHEN_DARK, BedRule.Rule.ALWAYS, false, Optional.of(Component.translatable("block.minecraft.bed.no_sleep"))
++        BedRule.Rule.WHEN_DARK, BedRule.Rule.ALWAYS, false, Optional.of(Component.translatable("block.minecraft.bed.no_sleep")), PlayerBedEnterEvent.BedEnterResult.NOT_POSSIBLE_NOW
+     );
+-    public static final BedRule EXPLODES = new BedRule(BedRule.Rule.NEVER, BedRule.Rule.NEVER, true, Optional.empty());
++    public static final BedRule EXPLODES = new BedRule(BedRule.Rule.NEVER, BedRule.Rule.NEVER, true, Optional.empty(), PlayerBedEnterEvent.BedEnterResult.NOT_POSSIBLE_HERE);
+     public static final Codec<BedRule> CODEC = RecordCodecBuilder.create(
+         i -> i.group(
+                 BedRule.Rule.CODEC.fieldOf("can_sleep").forGetter(BedRule::canSleep),
+@@ -33,7 +_,7 @@
+     }
+ 
+     public Player.BedSleepingProblem asProblem() {
+-        return new Player.BedSleepingProblem(this.errorMessage.orElse(null));
++        return new Player.BedSleepingProblem(this.errorMessage.orElse(null), bukkit);
+     }
+ 
+     public static enum Rule implements StringRepresentable {
