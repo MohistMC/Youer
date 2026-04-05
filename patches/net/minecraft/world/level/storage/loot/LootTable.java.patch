@@ -8,11 +8,14 @@
  import java.util.function.BiFunction;
  import java.util.function.Consumer;
  import net.minecraft.core.Holder;
-@@ -27,6 +_,7 @@
+@@ -27,6 +_,10 @@
  import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
  import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 +import org.bukkit.craftbukkit.CraftLootTable;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.event.world.LootGenerateEvent;
  import org.slf4j.Logger;
  
  public class LootTable implements Validatable {
@@ -92,7 +95,7 @@
          return result;
      }
  
-@@ -141,6 +_,7 @@
+@@ -141,10 +_,18 @@
          Validatable.validate(context, "functions", this.functions);
      }
  
@@ -100,6 +103,17 @@
      public void fill(Container container, LootParams params, long optionalRandomSeed) {
          LootContext context = new LootContext.Builder(params).withOptionalRandomSeed(optionalRandomSeed).create(this.randomSequence);
          ObjectArrayList<ItemStack> itemStacks = this.getRandomItems(context);
+         RandomSource random = context.getRandom();
++        // CraftBukkit start
++        LootGenerateEvent event = CraftEventFactory.callLootGenerateEvent(container, this, context, itemStacks, fill$plugin.getAndSet(false));
++        if (event.isCancelled()) {
++            return;
++        }
++        itemStacks = event.getLoot().stream().map(CraftItemStack::asNMSCopy).collect(ObjectArrayList.toList());
++        // CraftBukkit end
+         List<Integer> availableSlots = this.getAvailableSlots(container, random);
+         this.shuffleAndSplitItems(itemStacks, availableSlots.size(), random);
+ 
 @@ -162,6 +_,11 @@
          }
      }

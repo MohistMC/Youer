@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/CompoundContainer.java
 +++ b/net/minecraft/world/CompoundContainer.java
-@@ -1,12 +_,59 @@
+@@ -1,13 +_,60 @@
  package net.minecraft.world;
  
 +import java.util.ArrayList;
@@ -15,7 +15,7 @@
  public class CompoundContainer implements Container {
      public final Container container1;
      public final Container container2;
-+
+ 
 +    // CraftBukkit start - add fields and methods
 +    public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
 +
@@ -57,6 +57,16 @@
 +        return container1.getLocation(); // TODO: right?
 +    }
 +    // CraftBukkit end
- 
++
      public CompoundContainer(Container container1, Container container2) {
          this.container1 = container1;
+         this.container2 = container2;
+@@ -57,7 +_,7 @@
+ 
+     @Override
+     public int getMaxStackSize() {
+-        return this.container1.getMaxStackSize();
++        return Math.min(this.container1.getMaxStackSize(), this.container2.getMaxStackSize()); // CraftBukkit - check both sides
+     }
+ 
+     @Override

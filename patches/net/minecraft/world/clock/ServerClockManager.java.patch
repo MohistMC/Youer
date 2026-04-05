@@ -29,7 +29,7 @@
      );
      private final PackedClockStates packedClockStates;
 -    private MinecraftServer server;
-+    private ServerLevel server;
++    private ServerLevel server; // CraftBukkit - per world
      private final Map<Holder<WorldClock>, ServerClockManager.ClockInstance> clocks = new HashMap<>();
  
      private ServerClockManager(PackedClockStates packedClockStates) {
@@ -37,7 +37,7 @@
      }
  
 -    public void init(MinecraftServer server) {
-+    public void init(ServerLevel server) {
++    public void init(ServerLevel server) { // CraftBukkit - per world
          this.server = server;
          server.registryAccess()
              .lookupOrThrow(Registries.WORLD_CLOCK)
@@ -215,7 +215,7 @@
 -            return new ClockNetworkState(this.totalTicks, this.partialTick, paused ? 0.0F : this.rate);
 +        // CraftBukkit start - per-player and per-world
 +        public ClockNetworkState packNetworkState(Holder<WorldClock> clock, ServerPlayer player) {
-+            boolean flag = (Boolean) player.level().getGameRules().get(GameRules.ADVANCE_TIME);
++            boolean flag = player.level().getGameRules().get(GameRules.ADVANCE_TIME);
 +            boolean flag1 = this.paused || !flag;
 +
 +            return new ClockNetworkState((isDefaultClock(player.level(), clock)) ? player.getPlayerTime(this.totalTicks) : this.totalTicks, this.partialTick, flag1 ? 0.0F : this.rate);

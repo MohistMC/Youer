@@ -1,5 +1,94 @@
 --- a/net/minecraft/commands/CommandSourceStack.java
 +++ b/net/minecraft/commands/CommandSourceStack.java
+@@ -9,6 +_,7 @@
+ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+ import com.mojang.brigadier.suggestion.Suggestions;
+ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
++import com.mojang.brigadier.tree.CommandNode;
+ import java.util.Collection;
+ import java.util.Objects;
+ import java.util.Optional;
+@@ -35,7 +_,9 @@
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.server.permissions.Permission;
+ import net.minecraft.server.permissions.PermissionSet;
++import net.minecraft.server.permissions.Permissions;
+ import net.minecraft.sounds.SoundEvent;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.TaskChainer;
+@@ -65,6 +_,10 @@
+     private final Vec2 rotation;
+     private final CommandSigningContext signingContext;
+     private final TaskChainer chatMessageChainer;
++    // CraftBukkit start
++    private final PermissionSet bukkitPermissions;
++    public volatile CommandNode currentCommand;
++    // CraftBukkit end
+ 
+     public CommandSourceStack(
+         CommandSource source,
+@@ -125,7 +_,40 @@
+         this.rotation = rotation;
+         this.signingContext = signingContext;
+         this.chatMessageChainer = chatMessageChainer;
+-    }
++        // CraftBukkit start
++        this.bukkitPermissions = new DelegatePermissionSet(permissions);
++    }
++
++    private class DelegatePermissionSet implements PermissionSet {
++
++        private final PermissionSet handle;
++
++        public DelegatePermissionSet(PermissionSet handle) {
++            this.handle = handle;
++        }
++
++        @Override
++        public boolean hasPermission(Permission permission) {
++            boolean hasPermission = handle.hasPermission(permission);
++
++            CommandNode currentCommand = CommandSourceStack.this.currentCommand;
++            if (currentCommand != null) {
++                return hasPermission(hasPermission, org.bukkit.craftbukkit.command.VanillaCommandWrapper.getPermission(currentCommand));
++            }
++
++            if (permission.equals(Permissions.COMMANDS_ENTITY_SELECTORS)) {
++                return hasPermission(hasPermission, "minecraft.command.selector");
++            }
++
++            return hasPermission;
++        }
++
++        public boolean hasPermission(boolean hasPermission, String bukkitPermission) {
++            // World is null when loading functions
++            return ((getLevel() == null || !getLevel().getCraftServer().ignoreVanillaPermissions) && hasPermission) || getBukkitSender().hasPermission(bukkitPermission);
++        }
++    }
++    // CraftBukkit end
+ 
+     public CommandSourceStack withSource(CommandSource source) {
+         return this.source == source
+@@ -375,7 +_,7 @@
+ 
+     @Override
+     public PermissionSet permissions() {
+-        return this.permissions;
++        return this.bukkitPermissions; // CraftBukkit
+     }
+ 
+     public Vec3 getPosition() {
+@@ -481,7 +_,7 @@
+         GameRules gameRules = this.level.getGameRules();
+         if (gameRules.get(GameRules.SEND_COMMAND_FEEDBACK)) {
+             for (ServerPlayer player : this.server.getPlayerList().getPlayers()) {
+-                if (player.commandSource() != this.source && this.server.getPlayerList().isOp(player.nameAndId())) {
++                if (player.commandSource() != this.source && player.getBukkitEntity().hasPermission("minecraft.admin.command_feedback")) { // CraftBukkit
+                     player.sendSystemMessage(broadcast);
+                 }
+             }
 @@ -580,4 +_,10 @@
      public boolean isSilent() {
          return this.silent;

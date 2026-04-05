@@ -1,5 +1,13 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
+@@ -27,6 +_,7 @@
+ import java.util.Set;
+ import java.util.UUID;
+ import java.util.concurrent.Executor;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.BooleanSupplier;
+ import java.util.function.Function;
+ import java.util.function.Predicate;
 @@ -55,9 +_,11 @@
  import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
  import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
@@ -222,7 +230,7 @@
          }
  
          this.raids = this.getDataStorage().computeIfAbsent(Raids.TYPE);
-@@ -277,9 +_,9 @@
+@@ -277,14 +_,14 @@
              levelData.setGameType(server.getDefaultGameType());
          }
  
@@ -235,6 +243,12 @@
          this.structureCheck = new StructureCheck(
              this.chunkSource.chunkScanner(),
              this.registryAccess(),
+             server.getStructureManager(),
+-            dimension,
++            getTypeKey(),
+             generator,
+             this.chunkSource.randomState(),
+             this,
 @@ -303,6 +_,11 @@
          this.waypointManager = new ServerWaypointManager();
          this.environmentAttributes = EnvironmentAttributeSystem.builder().addDefaultLayers(this).build();
@@ -356,6 +370,62 @@
          }
      }
  
+@@ -943,22 +_,51 @@
+         return players.isEmpty() ? null : players.get(this.random.nextInt(players.size()));
+     }
+ 
++    private AtomicBoolean canaddFreshEntity = new AtomicBoolean(false);
++
++    public boolean canAddFreshEntity() {
++        return canaddFreshEntity.getAndSet(false);
++    }
++
+     @Override
+     public boolean addFreshEntity(Entity entity) {
+-        return this.addEntity(entity);
++        entity.spawnReason(CreatureSpawnEvent.SpawnReason.DEFAULT);
++        boolean add = this.addEntity(entity);
++        canaddFreshEntity.set(add);
++        return add;
++    }
++
++    public boolean addFreshEntity(Entity entity, CreatureSpawnEvent.SpawnReason reason) {
++        return this.addEntityByReason(entity, reason);
+     }
+ 
+     public boolean addWithUUID(Entity entity) {
++        entity.spawnReason(CreatureSpawnEvent.SpawnReason.DEFAULT);
+         return this.addEntity(entity);
++    }
++
++    public boolean addWithUUID(Entity entity, CreatureSpawnEvent.SpawnReason reason) {
++        return this.addEntityByReason(entity, reason);
+     }
+ 
+     public void addDuringTeleport(Entity entity) {
+         if (entity instanceof ServerPlayer player) {
+             this.addPlayer(player);
+         } else {
+-            this.addEntity(entity);
+-        }
+-    }
++            entity.spawnReason(null);
++            this.addEntity(entity);
++        }
++    }
++
++    public void addDuringTeleport(Entity entity, CreatureSpawnEvent.SpawnReason reason) {
++        if (entity instanceof ServerPlayer player) {
++            this.addPlayer(player);
++        } else {
++            entity.spawnReason(reason);
++            this.addEntity(entity);
++        }
++    }
++    // CraftBukkit end
+ 
+     public void addNewPlayer(ServerPlayer player) {
+         this.addPlayer(player);
 @@ -969,6 +_,7 @@
      }
  

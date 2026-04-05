@@ -1,11 +1,46 @@
 --- a/net/minecraft/util/SpawnUtil.java
 +++ b/net/minecraft/util/SpawnUtil.java
-@@ -39,7 +_,7 @@
+@@ -1,6 +_,7 @@
+ package net.minecraft.util;
+ 
+ import java.util.Optional;
++import java.util.concurrent.atomic.AtomicReference;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -14,8 +_,23 @@
+ import net.minecraft.world.level.block.StainedGlassBlock;
+ import net.minecraft.world.level.block.StainedGlassPaneBlock;
+ import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.event.entity.CreatureSpawnEvent;
+ 
+ public class SpawnUtil {
++
++    // Youer start
++    private static final AtomicReference<CreatureSpawnEvent.SpawnReason> trySpawnMob$reason = new AtomicReference<>(CreatureSpawnEvent.SpawnReason.DEFAULT);
++
++    public static void trySpawnMob$reason(CreatureSpawnEvent.SpawnReason reason) {
++        trySpawnMob$reason.set(reason);
++    }
++
++    public static <T extends Mob> Optional<T> trySpawnMob(EntityType<T> entityType, EntitySpawnReason spawnReason, ServerLevel level, BlockPos start, int spawnAttempts, int spawnRangeXZ, int spawnRangeY, SpawnUtil.Strategy strategy, boolean checkCollisions, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason reason) {
++        trySpawnMob$reason(reason);
++        return trySpawnMob(entityType, spawnReason, level, start, spawnAttempts, spawnRangeXZ, spawnRangeY, strategy, checkCollisions);
++    }
++    // Youer end
++
+     public static <T extends Mob> Optional<T> trySpawnMob(
+         EntityType<T> entityType,
+         EntitySpawnReason spawnReason,
+@@ -39,8 +_,10 @@
                  && (!checkCollisions || level.noCollision(entityType.getSpawnAABB(searchPos.getX() + 0.5, searchPos.getY(), searchPos.getZ() + 0.5)))) {
                  T mob = (T)entityType.create(level, null, searchPos, spawnReason, false, false);
                  if (mob != null) {
 -                    if (mob.checkSpawnRules(level, spawnReason) && mob.checkSpawnObstruction(level)) {
 +                    if (net.neoforged.neoforge.event.EventHooks.checkSpawnPosition(mob, level, spawnReason)) {
++                        mob.spawnReason(trySpawnMob$reason.getAndSet(CreatureSpawnEvent.SpawnReason.DEFAULT));
                          level.addFreshEntityWithPassengers(mob);
++                        if (mob.isRemoved()) return Optional.empty(); // CraftBukkit
                          mob.playAmbientSound();
                          return Optional.of(mob);
+                     }

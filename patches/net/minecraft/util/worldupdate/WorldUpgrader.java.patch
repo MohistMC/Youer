@@ -1,6 +1,11 @@
 --- a/net/minecraft/util/worldupdate/WorldUpgrader.java
 +++ b/net/minecraft/util/worldupdate/WorldUpgrader.java
-@@ -51,7 +_,7 @@
+@@ -47,11 +_,11 @@
+         LevelStorageSource.LevelStorageAccess levelSource, DataFixer dataFixer, RegistryAccess registryAccess, boolean eraseCache, boolean recreateRegionFiles
+     ) {
+         this.dimensions = registryAccess.lookupOrThrow(Registries.LEVEL_STEM);
+-        this.levels = this.dimensions.registryKeySet().stream().map(Registries::levelStemToLevel).collect(Collectors.toUnmodifiableSet());
++        this.levels = java.util.stream.Stream.of(levelSource.dimensionType).map(Registries::levelStemToLevel).collect(Collectors.toUnmodifiableSet()); // CraftBukkit
          this.eraseCache = eraseCache;
          this.dataFixer = dataFixer;
          this.levelStorage = levelSource;
@@ -9,3 +14,25 @@
          this.recreateRegionFiles = recreateRegionFiles;
          this.thread = THREAD_FACTORY.newThread(this::work);
          this.thread.setUncaughtExceptionHandler((t, e) -> {
+@@ -62,9 +_,9 @@
+         this.thread.start();
+     }
+ 
+-    public static CompoundTag getDataFixContextTag(Registry<LevelStem> dimensions, ResourceKey<Level> dimension) {
+-        ChunkGenerator generator = dimensions.getValueOrThrow(Registries.levelToLevelStem(dimension)).generator();
+-        return ChunkMap.getChunkDataFixContextTag(dimension, generator.getTypeNameForDataFixer());
++    public static CompoundTag getDataFixContextTag(Registry<LevelStem> dimensions, ResourceKey<LevelStem> dimension) {
++        ChunkGenerator generator = dimensions.getValueOrThrow(dimension).generator(); // CraftBukkit
++        return ChunkMap.getChunkDataFixContextTag(dimension, generator.getTypeNameForDataFixer()); // CraftBukkit
+     }
+ 
+     public static boolean verifyChunkPosAndEraseCache(ChunkPos pos, CompoundTag upgradedTag) {
+@@ -135,7 +_,7 @@
+                 .setFolderName("region")
+                 .setRecreateRegionFiles(this.recreateRegionFiles)
+                 .trackProgress(this.upgradeProgress),
+-            (levelSpecificBuilder, level) -> levelSpecificBuilder.setDataFixContextTag(getDataFixContextTag(this.dimensions, level))
++            (levelSpecificBuilder, level) -> levelSpecificBuilder.setDataFixContextTag(getDataFixContextTag(this.dimensions, Registries.levelToLevelStem(level))) // CraftBukkit
+                 .addTagModifier(currentVersion, this.eraseCache ? WorldUpgrader::verifyChunkPosAndEraseCache : WorldUpgrader::verifyChunkPos)
+         );
+         this.overworldSavedDataStorage.saveAndJoin();

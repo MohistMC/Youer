@@ -1,0 +1,47 @@
+--- a/net/minecraft/world/effect/MobEffectUtil.java
++++ b/net/minecraft/world/effect/MobEffectUtil.java
+@@ -1,6 +_,7 @@
+ package net.minecraft.world.effect;
+ 
+ import java.util.List;
++import java.util.concurrent.atomic.AtomicReference;
+ import net.minecraft.core.Holder;
+ import net.minecraft.network.chat.Component;
+ import net.minecraft.server.level.ServerLevel;
+@@ -10,6 +_,7 @@
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.event.entity.EntityPotionEffectEvent;
+ import org.jspecify.annotations.Nullable;
+ 
+ public final class MobEffectUtil {
+@@ -48,6 +_,11 @@
+         return !mob.hasEffect(MobEffects.BREATH_OF_THE_NAUTILUS) || mob.hasEffect(MobEffects.WATER_BREATHING) || mob.hasEffect(MobEffects.CONDUIT_POWER);
+     }
+ 
++    private final static AtomicReference<EntityPotionEffectEvent.Cause> addEffectToPlayersAround$cause = new AtomicReference<>(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
++    public static void addEffectToPlayersAround$cause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
++        addEffectToPlayersAround$cause.set(cause);
++    }
++
+     public static List<ServerPlayer> addEffectToPlayersAround(
+         ServerLevel level, @Nullable Entity source, Vec3 position, double radius, MobEffectInstance effectInstance, int displayEffectLimit
+     ) {
+@@ -62,7 +_,15 @@
+                         || input.getEffect(effect).endsWithin(displayEffectLimit - 1)
+                 )
+         );
+-        players.forEach(player -> player.addEffect(new MobEffectInstance(effectInstance), source));
++        players.forEach(player -> {
++            player.addEffectCause(addEffectToPlayersAround$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN));
++            player.addEffect(new MobEffectInstance(effectInstance), source);
++        });
+         return players;
++    }
++
++    public static List<ServerPlayer> addEffectToPlayersAround(ServerLevel level, @Nullable Entity source, Vec3 position, double radius, MobEffectInstance effectInstance, int displayEffectLimit, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
++        addEffectToPlayersAround$cause(cause);
++        return addEffectToPlayersAround(level, source, position, radius, effectInstance, displayEffectLimit);
+     }
+ }

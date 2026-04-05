@@ -1,6 +1,11 @@
 --- a/net/minecraft/network/PacketProcessor.java
 +++ b/net/minecraft/network/PacketProcessor.java
-@@ -11,7 +_,7 @@
+@@ -7,11 +_,12 @@
+ import net.minecraft.ReportedException;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.PacketUtils;
++import net.minecraft.server.network.ServerCommonPacketListenerImpl;
+ import org.slf4j.Logger;
  
  public class PacketProcessor implements AutoCloseable {
      private static final Logger LOGGER = LogUtils.getLogger();
@@ -9,13 +14,10 @@
      private final Thread runningThread;
      private boolean closed;
  
-@@ -28,6 +_,19 @@
-             throw new RejectedExecutionException("Server already shutting down");
-         } else {
-             this.packetsToBeHandled.add(new PacketProcessor.ListenerAndPacket<>(listener, packet));
-+        }
-+    }
-+
+@@ -31,6 +_,19 @@
+         }
+     }
+ 
 +    /**
 +     * Neo: Enqueue a main thread task from a custom payload packet handler.
 +     * Use via {@link net.neoforged.neoforge.network.handling.IPayloadContext#enqueueWork}
@@ -26,6 +28,17 @@
 +            throw new RejectedExecutionException("Server already shutting down");
 +        } else {
 +            this.packetsToBeHandled.add(new net.neoforged.neoforge.network.handling.QueuedPacket.CustomPayload(task));
-         }
-     }
++        }
++    }
++
+     public void processQueuedPackets() {
+         if (!this.closed) {
+             while (!this.packetsToBeHandled.isEmpty()) {
+@@ -46,6 +_,7 @@
  
+     private record ListenerAndPacket<T extends PacketListener>(T listener, Packet<T> packet) implements net.neoforged.neoforge.network.handling.QueuedPacket {
+         public void handle() {
++            if (this.listener instanceof ServerCommonPacketListenerImpl serverCommonPacketListener && serverCommonPacketListener.processedDisconnect) return; // CraftBukkit - Don't handle sync packets for kicked players
+             if (this.listener.shouldHandleMessage(this.packet)) {
+                 try {
+                     this.packet.handle(this.listener);

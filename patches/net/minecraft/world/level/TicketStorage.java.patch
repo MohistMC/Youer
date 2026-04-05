@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/TicketStorage.java
 +++ b/net/minecraft/world/level/TicketStorage.java
+@@ -14,6 +_,7 @@
+ import java.util.ArrayList;
+ import java.util.Iterator;
+ import java.util.List;
++import java.util.Objects;
+ import java.util.function.BiConsumer;
+ import java.util.function.Predicate;
+ import net.minecraft.SharedConstants;
 @@ -35,7 +_,9 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final Codec<Pair<ChunkPos, Ticket>> TICKET_ENTRY = Codec.mapPair(ChunkPos.CODEC.fieldOf("chunk_pos"), Ticket.CODEC).codec();
@@ -19,7 +27,7 @@
      }
  
      public TicketStorage() {
-@@ -173,6 +_,7 @@
+@@ -173,13 +_,14 @@
          if (ticket.getType().equals(TicketType.FORCED)) {
              this.chunksWithForcedTickets.add(key);
          }
@@ -27,6 +35,14 @@
  
          this.setDirty();
          return true;
+     }
+ 
+     private static boolean isTicketSameTypeAndLevel(Ticket ticket, Ticket t) {
+-        return t.getType() == ticket.getType() && t.getTicketLevel() == ticket.getTicketLevel();
++        return t.getType() == ticket.getType() && t.getTicketLevel() == ticket.getTicketLevel() && Objects.equals(ticket.key, t.key); // CraftBukkit
+     }
+ 
+     public int getTicketLevelAt(long key, boolean simulation) {
 @@ -259,6 +_,7 @@
                  if (ticket.getType().equals(TicketType.FORCED)) {
                      this.updateForcedChunks();

@@ -1,5 +1,13 @@
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
+@@ -94,6 +_,7 @@
+ import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
+ import net.minecraft.world.level.chunk.storage.SerializableChunkData;
+ import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
++import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.entity.ChunkStatusUpdateListener;
+ import net.minecraft.world.level.gamerules.GameRules;
+ import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 @@ -389,6 +_,7 @@
                  this.modified = true;
              }
@@ -52,6 +60,21 @@
          player.connection.chunkSender.dropChunk(player, pos);
      }
  
+@@ -916,12 +_,12 @@
+         return this.upgradeChunkTag(
+             tag,
+             -1,
+-            getChunkDataFixContextTag(this.level.dimension(), this.generator().getTypeNameForDataFixer()),
++            getChunkDataFixContextTag(this.level.getTypeKey(), this.generator().getTypeNameForDataFixer()),
+             SharedConstants.getCurrentVersion().dataVersion().version()
+         );
+     }
+ 
+-    public static CompoundTag getChunkDataFixContextTag(ResourceKey<Level> dimension, Optional<Identifier> generatorIdentifier) {
++    public static CompoundTag getChunkDataFixContextTag(ResourceKey<LevelStem> dimension, Optional<Identifier> generatorIdentifier) {
+         CompoundTag contextTag = new CompoundTag();
+         contextTag.putString("dimension", dimension.identifier().toString());
+         generatorIdentifier.ifPresent(identifier -> contextTag.putString("generator", identifier.toString()));
 @@ -935,7 +_,7 @@
              ChunkHolder holder = this.visibleChunkMap.get(spawnCandidateChunks.nextLong());
              if (holder != null) {

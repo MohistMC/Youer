@@ -8,11 +8,13 @@
  import java.util.function.Predicate;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
-@@ -121,9 +_,12 @@
+@@ -121,9 +_,14 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Team;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityExhaustionEvent;
 +import org.bukkit.event.player.PlayerBedEnterEvent;
  import org.jspecify.annotations.Nullable;
  
@@ -418,8 +420,33 @@
          this.experienceLevel = IntMath.saturatedAdd(this.experienceLevel, amount);
          if (this.experienceLevel < 0) {
              this.experienceLevel = 0;
-@@ -1547,7 +_,7 @@
+@@ -1541,13 +_,31 @@
+     public void causeFoodExhaustion(float amount) {
+         if (!this.abilities.invulnerable) {
+             if (!this.level().isClientSide()) {
+-                this.foodData.addExhaustion(amount);
++                // CraftBukkit start
++                EntityExhaustionEvent event = CraftEventFactory.callPlayerExhaustionEvent(this, causeFoodExhaustion$reason, amount);
++                if (!event.isCancelled()) {
++                    this.foodData.addExhaustion(event.getExhaustion());
++                }
++                // CraftBukkit end
+             }
+         }
      }
++
++    // Youer start
++    private EntityExhaustionEvent.ExhaustionReason causeFoodExhaustion$reason = EntityExhaustionEvent.ExhaustionReason.UNKNOWN;
++    // CraftBukkit start
++    public void exhaustionReason(EntityExhaustionEvent.ExhaustionReason exhaustionReason) {
++        causeFoodExhaustion$reason = exhaustionReason;
++    }
++    public void causeFoodExhaustion(float f, EntityExhaustionEvent.ExhaustionReason reason) {
++        this.exhaustionReason(reason);
++        causeFoodExhaustion(f);
++    }
++    // CraftBukkit end
++    // Youer end
  
      protected boolean hasEnoughFoodToDoExhaustiveManoeuvres() {
 -        return this.getFoodData().hasEnoughFood() || this.getAbilities().mayfly;

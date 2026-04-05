@@ -1,5 +1,19 @@
 --- a/net/minecraft/world/level/storage/PlayerDataStorage.java
 +++ b/net/minecraft/world/level/storage/PlayerDataStorage.java
+@@ -12,11 +_,13 @@
+ import net.minecraft.nbt.NbtAccounter;
+ import net.minecraft.nbt.NbtIo;
+ import net.minecraft.nbt.NbtUtils;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.server.players.NameAndId;
+ import net.minecraft.util.ProblemReporter;
+ import net.minecraft.util.Util;
+ import net.minecraft.util.datafix.DataFixTypes;
+ import net.minecraft.world.entity.player.Player;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
+ import org.slf4j.Logger;
+ 
+ public class PlayerDataStorage {
 @@ -41,6 +_,7 @@
              Path realFile = playerDirPath.resolve(player.getStringUUID() + ".dat");
              Path oldFile = playerDirPath.resolve(player.getStringUUID() + ".dat_old");
@@ -8,6 +22,30 @@
          } catch (Exception var11) {
              LOGGER.warn("Failed to save player data for {}", player.getPlainTextName());
          }
+@@ -73,6 +_,23 @@
+         return Optional.empty();
+     }
+ 
++    // CraftBukkit start
++    public Optional<CompoundTag> load(Player player) {
++        return load(player.nameAndId()).map((compoundtag) -> {
++            if (player instanceof ServerPlayer) {
++                CraftPlayer craftPlayer = (CraftPlayer) player.getBukkitEntity();
++                // Only update first played if it is older than the one we have
++                long modified = new File(this.playerDir, player.getStringUUID() + ".dat").lastModified();
++                if (modified < craftPlayer.getFirstPlayed()) {
++                    craftPlayer.setFirstPlayed(modified);
++                }
++            }
++
++            return compoundtag;
++        });
++    }
++    // CraftBukkit end
++
+     public Optional<CompoundTag> load(NameAndId nameAndId) {
+         Optional<CompoundTag> optTag = this.load(nameAndId, ".dat");
+         if (optTag.isEmpty()) {
 @@ -83,5 +_,9 @@
              int version = NbtUtils.getDataVersion(tag);
              return DataFixTypes.PLAYER.updateToCurrentVersion(this.fixerUpper, tag, version);

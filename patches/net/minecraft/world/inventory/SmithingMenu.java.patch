@@ -18,6 +18,17 @@
  
      public SmithingMenu(int containerId, Inventory inventory) {
          this(containerId, inventory, ContainerLevelAccess.NULL);
+@@ -118,7 +_,9 @@
+         foundRecipe.ifPresentOrElse(recipe -> {
+             ItemStack result = recipe.value().assemble(input);
+             this.resultSlots.setRecipeUsed((RecipeHolder<?>)recipe);
+-            this.resultSlots.setItem(0, result);
++            // CraftBukkit start
++            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareSmithingEvent(getBukkitView(), result);
++            // CraftBukkit end
+         }, () -> {
+             this.resultSlots.setRecipeUsed(null);
+             this.resultSlots.setItem(0, ItemStack.EMPTY);
 @@ -142,4 +_,18 @@
      public boolean hasRecipeError() {
          return this.hasRecipeError.get() > 0;

@@ -1,0 +1,14 @@
+--- a/net/minecraft/network/chat/FormattedText.java
++++ b/net/minecraft/network/chat/FormattedText.java
+@@ -86,6 +_,11 @@
+     default String getString() {
+         StringBuilder builder = new StringBuilder();
+         this.visit(contents -> {
++            // CraftBukkit start
++            if (builder.length() >= Short.MAX_VALUE) {
++                throw new IllegalArgumentException("Component string exceeded maximum length");
++            }
++            // CraftBukkit end
+             builder.append(contents);
+             return Optional.empty();
+         });
