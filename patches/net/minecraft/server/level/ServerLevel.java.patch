@@ -767,7 +767,7 @@
          }
  
          this.getChunkSource().getDataStorage().save();
-@@ -870,22 +_,45 @@
+@@ -870,23 +_,57 @@
          return list.isEmpty() ? null : list.get(this.random.nextInt(list.size()));
      }
  
@@ -782,6 +782,7 @@
      @Override
      public boolean addFreshEntity(Entity p_8837_) {
 -        return this.addEntity(p_8837_);
++        p_8837_.spawnReason(CreatureSpawnEvent.SpawnReason.DEFAULT);
 +        boolean add = this.addEntity(p_8837_);
 +        canaddFreshEntity.set(add);
 +        return add;
@@ -792,6 +793,7 @@
      }
  
      public boolean addWithUUID(Entity p_8848_) {
++        p_8848_.spawnReason(CreatureSpawnEvent.SpawnReason.DEFAULT);
          return this.addEntity(p_8848_);
      }
  
@@ -800,26 +802,30 @@
 +    }
 +
      public void addDuringTeleport(Entity p_143335_) {
--        if (p_143335_ instanceof ServerPlayer serverplayer) {
--            this.addPlayer(serverplayer);
--        } else {
--            this.addEntity(p_143335_);
--        }
--    }
 +        // SPIGOT-6415: Don't call spawn event for entities which travel trough worlds,
 +        // since it is only an implementation detail, that a new entity is created when
 +        // they are traveling between worlds.
-+        p_143335_.spawnReason(null); // Mohist
-+        this.addEntity(p_143335_);
-+    }
-+
+         if (p_143335_ instanceof ServerPlayer serverplayer) {
+             this.addPlayer(serverplayer);
+         } else {
++            p_143335_.spawnReason(null);
+             this.addEntity(p_143335_);
+         }
+     }
+ 
 +    public void addDuringTeleport(Entity entity, CreatureSpawnEvent.SpawnReason reason) {
-+        this.addEntityByReason(entity, reason);
++        if (entity instanceof ServerPlayer serverplayer) {
++            this.addPlayer(serverplayer);
++        } else {
++            entity.spawnReason(reason);
++            this.addEntity(entity);
++        }
 +    }
 +    // CraftBukkit end
- 
++
      public void addNewPlayer(ServerPlayer p_8835_) {
          this.addPlayer(p_8835_);
+     }
 @@ -896,6 +_,7 @@
      }
  
