@@ -78,6 +78,7 @@ public final class ClientPayloadHandler {
             Set<ResourceKey<?>> keysUnknownToClient = RegistryManager.applySnapshot(synchronizedRegistries, false);
             if (!keysUnknownToClient.isEmpty()) {
                 context.disconnect(Component.translatable("neoforge.network.registries.sync.server-with-unknown-keys", keysUnknownToClient.stream().map(Object::toString).collect(Collectors.joining(", "))));
+                RegistryManager.revertToFrozen();
                 return;
             }
 
@@ -87,6 +88,7 @@ public final class ClientPayloadHandler {
         } catch (Throwable t) {
             LOGGER.error("Failed to handle registry sync from server.", t);
             context.disconnect(Component.translatable("neoforge.network.registries.sync.failed", t.toString()));
+            RegistryManager.revertToFrozen();
         }
     }
 
