@@ -1,7 +1,6 @@
 package com.mohistmc.youer.bukkit.messaging;
 
 import com.mohistmc.youer.Youer;
-import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
