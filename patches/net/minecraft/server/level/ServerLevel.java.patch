@@ -1200,7 +1200,7 @@
                      String s = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -1713,16 +_,64 @@
+@@ -1713,16 +_,66 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -1225,7 +1225,9 @@
 +                p_143371_.setOrigin(p_143371_.getOriginVector().toLocation(getWorld()));
 +            }
 +            // Paper end - Entity origin API
-+            new EntityAddToWorldEvent(p_143371_.getBukkitEntity(), ServerLevel.this.getWorld()).callEvent(); // Paper - fire while valid
++            if (!AsyncCatcher.catchAsync()) {
++                new EntityAddToWorldEvent(p_143371_.getBukkitEntity(), ServerLevel.this.getWorld()).callEvent(); // Paper - fire while valid
++            }
          }
  
          public void onTrackingEnd(Entity p_143375_) {
@@ -1267,7 +1269,7 @@
              ServerLevel.this.getChunkSource().removeEntity(p_143375_);
              if (p_143375_ instanceof ServerPlayer serverplayer) {
                  ServerLevel.this.players.remove(serverplayer);
-@@ -1730,27 +_,123 @@
+@@ -1730,27 +_,125 @@
              }
  
              if (p_143375_ instanceof Mob mob) {
@@ -1301,7 +1303,9 @@
 +                }
 +            }
 +            // CraftBukkit end
-+            new EntityRemoveFromWorldEvent(p_143375_.getBukkitEntity(), ServerLevel.this.getWorld()).callEvent(); // Paper - fire while valid
++            if (!AsyncCatcher.catchAsync()) {
++                new EntityRemoveFromWorldEvent(p_143375_.getBukkitEntity(), ServerLevel.this.getWorld()).callEvent(); // Paper - fire while valid
++            }
 +            p_143375_.onRemovedFromLevel();
 +            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent(p_143375_, ServerLevel.this));
          }
