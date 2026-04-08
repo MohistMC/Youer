@@ -1,8 +1,10 @@
 --- a/net/minecraft/world/inventory/EnchantmentMenu.java
 +++ b/net/minecraft/world/inventory/EnchantmentMenu.java
-@@ -2,6 +_,7 @@
+@@ -1,7 +_,9 @@
+ package net.minecraft.world.inventory;
  
  import com.mojang.datafixers.util.Pair;
++import java.util.ArrayList;
  import java.util.List;
 +import java.util.Map;
  import java.util.Optional;
@@ -142,7 +144,7 @@
                      this.broadcastChanges();
                  });
              } else {
-@@ -159,18 +_,54 @@
+@@ -159,18 +_,56 @@
                  this.access
                      .execute(
                          (p_347276_, p_347277_) -> {
@@ -181,6 +183,7 @@
 +                                // Paper end
 +
 +                                // CraftBukkit start
++                                var newList = new ArrayList<EnchantmentInstance>();
 +                                for (Map.Entry<org.bukkit.enchantments.Enchantment, Integer> entry : event.getEnchantsToAdd().entrySet()) {
 +                                    Holder<Enchantment> nms = CraftEnchantment.bukkitToMinecraftHolder(entry.getKey());
 +                                    if (nms == null) {
@@ -188,8 +191,9 @@
 +                                    }
 +
 +                                    EnchantmentInstance weightedrandomenchant = new EnchantmentInstance(nms, entry.getValue());
-+                                    itemstack2.enchant(weightedrandomenchant.enchantment, weightedrandomenchant.level);
++                                    newList.add(weightedrandomenchant);
 +                                }
++                                list = newList;
                                  p_39465_.onEnchantmentPerformed(itemstack, i);
 -                                if (itemstack.is(Items.BOOK)) {
 -                                    itemstack2 = itemstack.transmuteCopy(Items.ENCHANTED_BOOK);
