@@ -272,6 +272,7 @@ neoDev {
     }
 }
 
+
 generateAccessTransformers {
     // Make all render pipeline snippet fields public
     fieldGroup(
@@ -333,6 +334,26 @@ generateAccessTransformers {
             classesWithSuperclass('net/minecraft/client/gui/components/debug/DebugScreenEntry'),
             fieldsOfType(named('net/minecraft/resources/Identifier'))
     )
+
+    // Make all BuiltInBlockModels factory methods public
+    methodGroup(
+            'BuiltInBlockModels factory methods', PUBLIC,
+            named('net/minecraft/client/renderer/block/BuiltInBlockModels'),
+            or(or(nameStartsWith('create'), nameStartsWith('special')), named('combineSpecialAndBlockModels'))
+    )
+
+    // Make the CauldronInteraction dispatcher put methods public so mods can add new interactions
+    methodGroup(
+            'CauldronInteraction.Dispatcher put methods', PUBLIC,
+            named('net/minecraft/core/cauldron/CauldronInteraction$Dispatcher'),
+            named('put')
+    )
+
+    methodGroup(
+            'CauldronInteractions helpers', PUBLIC,
+            named('net/minecraft/core/cauldron/CauldronInteractions'),
+            and(methodsReturning('net/minecraft/world/InteractionResult'), not(nameStartsWith('lambda')))
+    )
 }
 
 tasks.register('generateFinalizeSpawnTargets', GenerateFinalizeSpawnTargets.class) {
@@ -383,7 +404,6 @@ final generateResources = tasks.register('generateResources', ProcessResources) 
     inputs.properties placeholders
     expand placeholders
 }
-
 sourceSets.main.resources.srcDir generateResources
 net.neoforged.moddevgradle.internal.NeoDevFacade.runTaskOnProjectSync(project, generateResources)
 

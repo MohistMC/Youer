@@ -54,15 +54,22 @@
      private void registerTimeMarker(ResourceKey<ClockTimeMarker> timeMarkerId, ClockTimeMarker timeMarker) {
          this.getInstance(timeMarker.clock()).timeMarkers.put(timeMarkerId, timeMarker);
      }
-@@ -61,7 +_,7 @@
+@@ -61,9 +_,13 @@
      }
  
      public void tick() {
 -        boolean advanceTime = this.server.getGlobalGameRules().get(GameRules.ADVANCE_TIME);
++        if (this.server == null) {
++            return; // Neo: Our JUnit ephemeral testserver has no overworld and getGlobalGameRules() would crash
++        }
 +        boolean advanceTime = this.server.getGameRules().get(GameRules.ADVANCE_TIME);
++        // Neo: Custom ticking logic to move the advance time check to be per clock rather than global
++        this.clocks.values().forEach(clock -> clock.tick(advanceTime));
          if (advanceTime) {
-             this.clocks.values().forEach(ServerClockManager.ClockInstance::tick);
+-            this.clocks.values().forEach(ServerClockManager.ClockInstance::tick);
              this.setDirty();
+         }
+     }
 @@ -78,13 +_,25 @@
      }
  
@@ -205,7 +212,43 @@
      }
  
      public boolean isAtTimeMarker(Holder<WorldClock> clock, ResourceKey<ClockTimeMarker> timeMarkerId) {
-@@ -171,10 +_,13 @@
+@@ -150,6 +_,17 @@
+         private float partialTick;
+         private float rate = 1.0F;
+         private boolean paused;
++        private final @org.jspecify.annotations.Nullable Holder<WorldClock> holder;
++
++        public ClockInstance(Holder<WorldClock> holder) {
++            this.holder = holder;
++        }
++
++        /// @deprecated Neo: Use [#ClockInstance(Holder)] instead
++        @Deprecated
++        public ClockInstance() {
++            holder = null;
++        }
+ 
+         public void loadFrom(ClockState state) {
+             this.totalTicks = state.totalTicks();
+@@ -158,8 +_,16 @@
+             this.paused = state.paused();
+         }
+ 
++        /// @deprecated Neo: Use [#tick(boolean)], Passing in if time is advancing
++        @Deprecated
+         public void tick() {
+-            if (!this.paused) {
++            // Neo: Call the new method with the vanilla value
++            // Vanilla calls this inside of 'GameRules.ADVANCE_TIME == true' check
++            this.tick(true);
++        }
++
++        public void tick(boolean advanceTime) {
++            if (this.ticking(advanceTime)) {
+                 this.partialTick = this.partialTick + this.rate;
+                 int fullTicks = Mth.floor(this.partialTick);
+                 this.partialTick -= fullTicks;
+@@ -171,10 +_,26 @@
              return new ClockState(this.totalTicks, this.partialTick, this.rate, this.paused);
          }
  
@@ -215,11 +258,24 @@
 -            return new ClockNetworkState(this.totalTicks, this.partialTick, paused ? 0.0F : this.rate);
 +        // CraftBukkit start - per-player and per-world
 +        public ClockNetworkState packNetworkState(Holder<WorldClock> clock, ServerPlayer player) {
-+            boolean flag = player.level().getGameRules().get(GameRules.ADVANCE_TIME);
-+            boolean flag1 = this.paused || !flag;
++            boolean advanceTime = player.level().getGameRules().get(GameRules.ADVANCE_TIME);
++            // Neo: Use the corrected pause value
++            boolean paused = !this.ticking(advanceTime);
 +
-+            return new ClockNetworkState((isDefaultClock(player.level(), clock)) ? player.getPlayerTime(this.totalTicks) : this.totalTicks, this.partialTick, flag1 ? 0.0F : this.rate);
++            return new ClockNetworkState((isDefaultClock(player.level(), clock)) ? player.getPlayerTime(this.totalTicks) : this.totalTicks, this.partialTick, paused ? 0.0F : this.rate);
 +            // CraftBukkit end
++        }
++
++        private boolean ticking(boolean advanceTime) {
++            if (this.paused && !this.hasTag(net.neoforged.neoforge.common.Tags.WorldClocks.IGNORES_PAUSE_COMMAND)) {
++                return false;
++            }
++
++            return advanceTime || this.hasTag(net.neoforged.neoforge.common.Tags.WorldClocks.IGNORES_ADVANCE_TIME_RULE);
++        }
++
++        private boolean hasTag(net.minecraft.tags.TagKey<WorldClock> tag) {
++            return this.holder != null && this.holder.is(tag);
          }
      }
  }
