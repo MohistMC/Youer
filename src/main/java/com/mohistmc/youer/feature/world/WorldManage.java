@@ -6,7 +6,6 @@ import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
 import java.io.File;
 import java.util.Objects;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.common.NeoForge;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.World;

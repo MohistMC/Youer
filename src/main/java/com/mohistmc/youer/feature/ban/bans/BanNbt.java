@@ -1,6 +1,5 @@
 package com.mohistmc.youer.feature.ban.bans;
 
-import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.feature.ban.BanConfig;
 import org.bukkit.inventory.ItemStack;
 

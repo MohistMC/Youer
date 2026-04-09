@@ -1,15 +1,9 @@
 package com.mohistmc.youer.bukkit;
 
-import com.mohistmc.youer.util.I18n;
-import com.mojang.authlib.GameProfile;
 import java.util.concurrent.ExecutionException;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
-import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.util.Waitable;
-import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
-import org.bukkit.event.player.PlayerPreLoginEvent;
-import org.bukkit.event.player.PlayerPreLoginEvent.Result;
 
 public class LoginHandler {
 

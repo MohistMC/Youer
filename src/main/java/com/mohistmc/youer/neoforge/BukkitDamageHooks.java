@@ -1,9 +1,5 @@
 package com.mohistmc.youer.neoforge;
 
-import com.google.common.base.Function;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.LivingEntity;
-
 public class BukkitDamageHooks {
 
 
