@@ -87,15 +87,18 @@
      }
  
      @Override
-@@ -132,6 +_,8 @@
+@@ -132,7 +_,10 @@
      }
  
      private void createResult() {
+-        this.resultSlots.setItem(0, this.computeResult(this.repairSlots.getItem(0), this.repairSlots.getItem(1)));
 +        this.xp = net.neoforged.neoforge.common.CommonHooks.onGrindstoneChange(this.repairSlots.getItem(0), this.repairSlots.getItem(1), this.resultSlots, -1);
 +        if (this.xp == Integer.MIN_VALUE)
-         this.resultSlots.setItem(0, this.computeResult(this.repairSlots.getItem(0), this.repairSlots.getItem(1)));
++        org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareGrindstoneEvent(getBukkitView(), this.computeResult(this.repairSlots.getItem(0), this.repairSlots.getItem(1))); // CraftBukkit
++        sendAllDataToRemote(); // CraftBukkit - SPIGOT-6686: Always send completed inventory to stay in sync with client
          this.broadcastChanges();
      }
+ 
 @@ -162,7 +_,7 @@
              int remaining2 = additional.getMaxDamage() - additional.getDamageValue();
              int remaining = remaining1 + remaining2 + durability * 5 / 100;

@@ -1,11 +1,15 @@
 --- a/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
-@@ -37,6 +_,8 @@
+@@ -37,6 +_,12 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.block.CraftBlock;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.craftbukkit.inventory.CraftItemType;
 +import org.bukkit.entity.HumanEntity;
++import org.bukkit.event.block.BlockExpEvent;
++import org.bukkit.event.inventory.FurnaceExtractEvent;
  import org.jspecify.annotations.Nullable;
  
  public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer, StackedContentsCompatible, RecipeCraftingHolder {
@@ -178,3 +182,57 @@
          }
      }
  
+@@ -332,8 +_,8 @@
+     public void awardUsedRecipes(Player player, List<ItemStack> itemStacks) {
+     }
+ 
+-    public void awardUsedRecipesAndPopExperience(ServerPlayer player) {
+-        List<RecipeHolder<?>> recipesToAward = this.getRecipesToAwardAndPopExperience(player.level(), player.position());
++    public void awardUsedRecipesAndPopExperience(ServerPlayer player, ItemStack itemstack, int amount) { // CraftBukkit
++        List<RecipeHolder<?>> recipesToAward = this.getRecipesToAwardAndPopExperience(player.level(), player.position(), this.worldPosition, player, itemstack, amount); // CraftBukkit
+         player.awardRecipes(recipesToAward);
+ 
+         for (RecipeHolder<?> recipe : recipesToAward) {
+@@ -344,24 +_,40 @@
+     }
+ 
+     public List<RecipeHolder<?>> getRecipesToAwardAndPopExperience(ServerLevel level, Vec3 position) {
++        // CraftBukkit start
++        return this.getRecipesToAwardAndPopExperience(level, position, this.worldPosition, null, null, 0);
++    }
++
++    public List<RecipeHolder<?>> getRecipesToAwardAndPopExperience(ServerLevel level, Vec3 position, BlockPos blockpos, ServerPlayer serverplayer, ItemStack itemstack, int amount) {
+         List<RecipeHolder<?>> recipesToAward = Lists.newArrayList();
+ 
+         for (Entry<ResourceKey<Recipe<?>>> entry : this.recipesUsed.reference2IntEntrySet()) {
+             level.recipeAccess().byKey(entry.getKey()).ifPresent(recipe -> {
+                 recipesToAward.add((RecipeHolder<?>)recipe);
+-                createExperience(level, position, entry.getIntValue(), ((AbstractCookingRecipe)recipe.value()).experience());
++                createExperience(level, position, entry.getIntValue(), ((AbstractCookingRecipe)recipe.value()).experience(), blockpos, serverplayer, itemstack, amount); // CraftBukkit
+             });
+         }
+ 
+         return recipesToAward;
+     }
+ 
+-    private static void createExperience(ServerLevel level, Vec3 position, int amount, float value) {
++    private static void createExperience(ServerLevel level, Vec3 position, int amount, float value, BlockPos blockpos, Player player, ItemStack itemstack, int itemAmount) { // CraftBukkit
+         int xpReward = Mth.floor(amount * value);
+         float xpFraction = Mth.frac(amount * value);
+         if (xpFraction != 0.0F && level.getRandom().nextFloat() < xpFraction) {
+             xpReward++;
+         }
++
++        // CraftBukkit start - fire FurnaceExtractEvent / BlockExpEvent
++        BlockExpEvent event;
++        if (itemAmount != 0) {
++            event = new FurnaceExtractEvent((org.bukkit.entity.Player) player.getBukkitEntity(), CraftBlock.at(level, blockpos), CraftItemType.minecraftToBukkit(itemstack.getItem()), itemAmount, xpReward);
++        } else {
++            event = new BlockExpEvent(CraftBlock.at(level, blockpos), xpReward);
++        }
++        level.getCraftServer().getPluginManager().callEvent(event);
++        xpReward = event.getExpToDrop();
++        // CraftBukkit end
+ 
+         ExperienceOrb.award(level, position, xpReward);
+     }

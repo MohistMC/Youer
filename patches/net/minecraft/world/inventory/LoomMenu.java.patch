@@ -64,3 +64,27 @@
      }
  
      private static boolean isPatternItem(ItemStack itemStack) {
+@@ -143,6 +_,7 @@
+ 
+     @Override
+     public boolean stillValid(Player player) {
++        if (!this.checkReachable) return true; // CraftBukkit
+         return stillValid(this.access, player, Blocks.LOOM);
+     }
+ 
+@@ -302,7 +_,14 @@
+                 result.update(
+                     DataComponents.BANNER_PATTERNS,
+                     BannerPatternLayers.EMPTY,
+-                    layers -> new BannerPatternLayers.Builder().addAll(layers).add(pattern, patternColor).build()
++                    layers -> {
++                        // CraftBukkit start
++                        if (layers.layers().size() > 20) {
++                            layers = new BannerPatternLayers(List.copyOf(layers.layers().subList(0, 20)));
++                        }
++                        // CraftBukkit end
++                        return new BannerPatternLayers.Builder().addAll(layers).add(pattern, patternColor).build();
++                    }
+                 );
+             }
+         }

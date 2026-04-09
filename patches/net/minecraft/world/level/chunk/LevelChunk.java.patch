@@ -127,6 +127,64 @@
              }
          }
  
+@@ -516,6 +_,57 @@
+         }
+     }
+ 
++    // CraftBukkit start
++    public void loadCallback() {
++        org.bukkit.Server server = this.level.getCraftServer();
++        if (server != null) {
++            /*
++             * If it's a new world, the first few chunks are generated inside
++             * the World constructor. We can't reliably alter that, so we have
++             * no way of creating a CraftWorld/CraftServer at that point.
++             */
++            org.bukkit.Chunk bukkitChunk = new org.bukkit.craftbukkit.CraftChunk(this);
++            server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkLoadEvent(bukkitChunk, this.needsDecoration));
++
++            if (this.needsDecoration) {
++                this.needsDecoration = false;
++                java.util.Random random = new java.util.Random();
++                random.setSeed(level.getSeed());
++                long xRand = random.nextLong() / 2L * 2L + 1L;
++                long zRand = random.nextLong() / 2L * 2L + 1L;
++                random.setSeed((long) this.chunkPos.x() * xRand + (long) this.chunkPos.z() * zRand ^ level.getSeed());
++
++                org.bukkit.World world = this.level.getWorld();
++                if (world != null) {
++                    this.level.populating = true;
++                    try {
++                        for (org.bukkit.generator.BlockPopulator populator : world.getPopulators()) {
++                            populator.populate(world, random, bukkitChunk);
++                        }
++                    } finally {
++                        this.level.populating = false;
++                    }
++                }
++                server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkPopulateEvent(bukkitChunk));
++            }
++        }
++    }
++
++    public void unloadCallback() {
++        org.bukkit.Server server = this.level.getCraftServer();
++        org.bukkit.Chunk bukkitChunk = new org.bukkit.craftbukkit.CraftChunk(this);
++        org.bukkit.event.world.ChunkUnloadEvent unloadEvent = new org.bukkit.event.world.ChunkUnloadEvent(bukkitChunk, this.isUnsaved());
++        server.getPluginManager().callEvent(unloadEvent);
++        // note: saving can be prevented, but not forced if no saving is actually required
++        this.mustNotSave = !unloadEvent.isSaveChunk();
++    }
++
++    @Override
++    public boolean isUnsaved() {
++        return super.isUnsaved() && !this.mustNotSave;
++    }
++    // CraftBukkit end
++
+     public boolean isEmpty() {
+         return false;
+     }
 @@ -536,7 +_,7 @@
              blockEntities.accept((pos, type, tag) -> {
                  BlockEntity blockEntity = this.getBlockEntity(pos, LevelChunk.EntityCreationType.IMMEDIATE);

@@ -11,9 +11,11 @@
      }
  
      public void close() {
-@@ -156,6 +_,9 @@
+@@ -155,7 +_,11 @@
+         this.finalizers.forEach(Runnable::run);
      }
  
++    private static final java.util.regex.Pattern ANSI = java.util.regex.Pattern.compile("\\x1B\\[([0-9]{1,2}(;[0-9]{1,2})*)?[m|K]"); // CraftBukkit
      public void print(JTextArea console, JScrollPane scrollPane, String line) {
 +        try {
 +            latch.await();
@@ -21,3 +23,12 @@
          if (!SwingUtilities.isEventDispatchThread()) {
              SwingUtilities.invokeLater(() -> this.print(console, scrollPane, line));
          } else {
+@@ -167,7 +_,7 @@
+             }
+ 
+             try {
+-                document.insertString(document.getLength(), line, null);
++                document.insertString(document.getLength(), ANSI.matcher(line).replaceAll(""), null); // CraftBukkit
+             } catch (BadLocationException var8) {
+             }
+ 

@@ -1,0 +1,43 @@
+--- a/net/minecraft/server/commands/EffectCommands.java
++++ b/net/minecraft/server/commands/EffectCommands.java
+@@ -176,9 +_,10 @@
+         }
+ 
+         for (Entity entity : entities) {
+-            if (entity instanceof LivingEntity) {
++            if (entity instanceof LivingEntity livingEntity) {
+                 MobEffectInstance instance = new MobEffectInstance(effectHolder, duration, amplifier, false, particles);
+-                if (((LivingEntity)entity).addEffect(instance, source.getEntity())) {
++                livingEntity.addEffectCause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.COMMAND); // CraftBukkit
++                if (livingEntity.addEffect(instance, source.getEntity())) {
+                     count++;
+                 }
+             }
+@@ -208,8 +_,11 @@
+         int count = 0;
+ 
+         for (Entity entity : entities) {
+-            if (entity instanceof LivingEntity && ((LivingEntity)entity).removeAllEffects()) {
+-                count++;
++            if (entity instanceof LivingEntity livingEntity) {
++                livingEntity.removeAllEffects(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.COMMAND);
++                if (livingEntity.removeAllEffects()) {
++                    count++;
++                }
+             }
+         }
+ 
+@@ -233,8 +_,11 @@
+         int count = 0;
+ 
+         for (Entity entity : entities) {
+-            if (entity instanceof LivingEntity && ((LivingEntity)entity).removeEffect(effectHolder)) {
+-                count++;
++            if (entity instanceof LivingEntity livingEntity) {
++                livingEntity.removeAllEffects(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.COMMAND);
++                if (livingEntity.removeEffect(effectHolder)) {
++                    count++;
++                }
+             }
+         }
+ 

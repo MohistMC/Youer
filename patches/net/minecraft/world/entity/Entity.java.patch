@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -154,11 +_,16 @@
+@@ -154,11 +_,17 @@
  import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.waypoints.WaypointTransmitter;
@@ -8,6 +8,7 @@
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.player.PlayerTeleportEvent;
  import org.jetbrains.annotations.Contract;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
@@ -350,6 +351,22 @@
      public boolean isPushedByFluid() {
          return true;
      }
+@@ -3231,9 +_,12 @@
+     }
+ 
+     public boolean teleportTo(ServerLevel level, double x, double y, double z, Set<Relative> relatives, float newYRot, float newXRot, boolean resetCamera) {
+-        Entity newEntity = this.teleport(
+-            new TeleportTransition(level, new Vec3(x, y, z), Vec3.ZERO, newYRot, newXRot, relatives, TeleportTransition.DO_NOTHING)
+-        );
++        return teleportTo(level, x, y, z, relatives, newYRot, newXRot, resetCamera, PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    }
++
++    public boolean teleportTo(ServerLevel level, double x, double y, double z, Set<Relative> relatives, float newYRot, float newXRot, boolean resetCamera, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
++        Entity newEntity = this.teleport(new TeleportTransition(level, new Vec3(x, y, z), Vec3.ZERO, newYRot, newXRot, relatives, TeleportTransition.DO_NOTHING, cause));
++        // CraftBukkit end
+         return newEntity != null;
+     }
+ 
 @@ -3287,6 +_,8 @@
          EntityDimensions oldDim = this.dimensions;
          Pose pose = this.getPose();

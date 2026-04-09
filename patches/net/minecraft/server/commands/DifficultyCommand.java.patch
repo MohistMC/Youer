@@ -1,0 +1,16 @@
+--- a/net/minecraft/server/commands/DifficultyCommand.java
++++ b/net/minecraft/server/commands/DifficultyCommand.java
+@@ -31,10 +_,11 @@
+ 
+     public static int setDifficulty(CommandSourceStack source, Difficulty difficulty) throws CommandSyntaxException {
+         MinecraftServer server = source.getServer();
+-        if (server.getWorldData().getDifficulty() == difficulty) {
++        net.minecraft.server.level.ServerLevel worldServer = source.getLevel(); // CraftBukkit
++        if (worldServer.getDifficulty() == difficulty) { // CraftBukkit
+             throw ERROR_ALREADY_SAME_DIFFICULTY.create(difficulty.getSerializedName());
+         } else {
+-            server.setDifficulty(difficulty, true);
++            worldServer.serverLevelData.setDifficulty(difficulty); // CraftBukkit
+             source.sendSuccess(() -> Component.translatable("commands.difficulty.success", difficulty.getDisplayName()), true);
+             return 0;
+         }

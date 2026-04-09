@@ -16,7 +16,15 @@
  import net.minecraft.world.inventory.AbstractContainerMenu;
  import net.minecraft.world.inventory.ContainerListener;
  import net.minecraft.world.inventory.ContainerSynchronizer;
-@@ -199,6 +_,15 @@
+@@ -175,6 +_,7 @@
+ import net.minecraft.world.level.biome.BiomeManager;
+ import net.minecraft.world.level.block.BedBlock;
+ import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.ChestBlock;
+ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+ import net.minecraft.world.level.block.RespawnAnchorBlock;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+@@ -199,6 +_,16 @@
  import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.scores.criteria.ObjectiveCriteria;
@@ -27,6 +35,7 @@
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.util.CraftLocation;
 +import org.bukkit.event.player.PlayerSpawnChangeEvent;
  import org.jspecify.annotations.Nullable;
@@ -323,14 +332,17 @@
              }
  
              this.nextContainerCounter();
-@@ -1355,9 +_,31 @@
+@@ -1355,9 +_,47 @@
  
                  return OptionalInt.empty();
              } else {
+-                this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), provider.getDisplayName()));
 +                // Neo: Support sending additional arbitrary data to menu factories on the client-side
++                menu.setTitle(provider.getDisplayName());
++                AbstractContainerMenu finalMenu = menu;
 +                var extraData = net.neoforged.neoforge.common.util.FriendlyByteBufUtil.writeCustomData(
 +                        buffer -> {
-+                            provider.writeClientSideData(menu, buffer);
++                            provider.writeClientSideData(finalMenu, buffer);
 +                            if (extraDataWriter != null) {
 +                                extraDataWriter.accept(buffer);
 +                            }
@@ -347,7 +359,21 @@
 +                            )
 +                    );
 +                } else {
-                 this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), provider.getDisplayName()));
++                    menu.setTitle(provider.getDisplayName());
++
++                    boolean cancelled = false;
++                    menu = CraftEventFactory.callInventoryOpenEvent(this, menu, cancelled);
++                    if (menu == null && !cancelled) { // Let pre-cancelled events fall through
++                        // SPIGOT-5263 - close chest if cancelled
++                        if (provider instanceof Container) {
++                            ((Container) provider).stopOpen(this);
++                        } else if (provider instanceof ChestBlock.DoubleChestCombiner.Dummy.DoubleInventory) {
++                            // SPIGOT-5355 - double chests too :(
++                            ((ChestBlock.DoubleChestCombiner.Dummy.DoubleInventory) provider).container.stopOpen(this);
++                        }
++                        return OptionalInt.empty();
++                    }
++                    this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), provider.getDisplayName()));
 +                }
                  this.initMenu(menu);
                  this.containerMenu = menu;
@@ -355,14 +381,74 @@
                  return OptionalInt.of(this.containerCounter);
              }
          }
-@@ -1379,6 +_,7 @@
+@@ -1370,27 +_,49 @@
+ 
+     @Override
+     public void openHorseInventory(AbstractHorse horse, Container container) {
+-        if (this.containerMenu != this.inventoryMenu) {
+-            this.closeContainer();
+-        }
+-
++        // CraftBukkit start - Inventory open hook
+         this.nextContainerCounter();
+         int inventoryColumns = horse.getInventoryColumns();
++        AbstractContainerMenu abstractcontainermenu = new HorseInventoryMenu(this.containerCounter, this.getInventory(), container, horse, inventoryColumns);
++        abstractcontainermenu.setTitle(horse.getDisplayName());
++        abstractcontainermenu = CraftEventFactory.callInventoryOpenEvent(this, abstractcontainermenu);
++
++        if (abstractcontainermenu == null) {
++            container.stopOpen(this);
++            return;
++        }
++        // CraftBukkit end
++        if (this.containerMenu != this.inventoryMenu) {
++            this.closeContainer();
++        }
++
          this.connection.send(new ClientboundMountScreenOpenPacket(this.containerCounter, inventoryColumns, horse.getId()));
-         this.containerMenu = new HorseInventoryMenu(this.containerCounter, this.getInventory(), container, horse, inventoryColumns);
+-        this.containerMenu = new HorseInventoryMenu(this.containerCounter, this.getInventory(), container, horse, inventoryColumns);
++        this.containerMenu = abstractcontainermenu;
          this.initMenu(this.containerMenu);
 +        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerContainerEvent.Open(this, this.containerMenu));
      }
  
      @Override
+     public void openNautilusInventory(AbstractNautilus nautilus, Container container) {
+-        if (this.containerMenu != this.inventoryMenu) {
+-            this.closeContainer();
+-        }
+-
++        // CraftBukkit start - Inventory open hook
+         this.nextContainerCounter();
+         int inventoryColumns = nautilus.getInventoryColumns();
++
++        AbstractContainerMenu abstractcontainermenu = new NautilusInventoryMenu(this.containerCounter, this.getInventory(), container, nautilus, inventoryColumns);
++        abstractcontainermenu.setTitle(nautilus.getDisplayName());
++        abstractcontainermenu = CraftEventFactory.callInventoryOpenEvent(this, abstractcontainermenu);
++
++        if (abstractcontainermenu == null) {
++            container.stopOpen(this);
++            return;
++        }
++        // CraftBukkit end
++        if (this.containerMenu != this.inventoryMenu) {
++            this.closeContainer();
++        }
++
+         this.connection.send(new ClientboundMountScreenOpenPacket(this.containerCounter, inventoryColumns, nautilus.getId()));
+-        this.containerMenu = new NautilusInventoryMenu(this.containerCounter, this.getInventory(), container, nautilus, inventoryColumns);
++        this.containerMenu = abstractcontainermenu; // CraftBukkit
+         this.initMenu(this.containerMenu);
+     }
+ 
+@@ -1412,6 +_,7 @@
+ 
+     @Override
+     public void closeContainer() {
++        CraftEventFactory.handleInventoryCloseEvent(this); // CraftBukkit
+         this.connection.send(new ClientboundContainerClosePacket(this.containerMenu.containerId));
+         this.doCloseContainer();
+     }
 @@ -1420,6 +_,7 @@
      public void doCloseContainer() {
          this.containerMenu.removed(this);
