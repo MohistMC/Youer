@@ -1,13 +1,11 @@
 --- a/net/minecraft/world/inventory/AbstractContainerMenu.java
 +++ b/net/minecraft/world/inventory/AbstractContainerMenu.java
-@@ -1,5 +_,6 @@
- package net.minecraft.world.inventory;
- 
-+import com.google.common.base.Preconditions;
- import com.google.common.base.Suppliers;
- import com.google.common.collect.HashBasedTable;
+@@ -5,11 +_,14 @@
  import com.google.common.collect.Lists;
-@@ -9,7 +_,9 @@
+ import com.google.common.collect.Sets;
+ import com.google.common.collect.Table;
++import com.mohistmc.youer.bukkit.inventory.YouerModsInventory;
+ import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.ints.IntArrayList;
  import it.unimi.dsi.fastutil.ints.IntList;
  import java.util.ArrayList;
@@ -26,7 +24,7 @@
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.util.Mth;
  import net.minecraft.world.Container;
-@@ -33,6 +_,15 @@
+@@ -33,6 +_,16 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.entity.BlockEntity;
@@ -34,6 +32,7 @@
 +import org.bukkit.Material;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 +import org.bukkit.craftbukkit.inventory.CraftInventory;
++import org.bukkit.craftbukkit.inventory.CraftInventoryView;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
 +import org.bukkit.event.Event;
 +import org.bukkit.event.inventory.InventoryDragEvent;
@@ -42,15 +41,49 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -65,6 +_,48 @@
+@@ -65,6 +_,82 @@
      private @Nullable ContainerSynchronizer synchronizer;
      private boolean suppressRemoteUpdates;
  
 +    // CraftBukkit start
 +    public boolean checkReachable = true;
-+    public abstract InventoryView getBukkitView();
++    // Youer start
++    public InventoryView bukkitView ;
++    public Player containerOwner = null;
++
++    public InventoryView getBukkitView(){
++        if (bukkitView == null && containerOwner != null) {
++            org.bukkit.inventory.Inventory view = new CraftInventory(new YouerModsInventory(this, containerOwner));
++            view.getType().setMods(true);
++            bukkitView = new CraftInventoryView<>(containerOwner.getBukkitEntity(), view, this);
++        }
++        return bukkitView;
++    }
++
++    public InventoryView getBukkitView(AbstractContainerMenu other){
++        if (other.bukkitView == null && other.containerOwner != null) {
++            org.bukkit.inventory.Inventory view = new CraftInventory(new YouerModsInventory(other, containerOwner));
++            view.getType().setMods(true);
++            return new CraftInventoryView<>(other.containerOwner.getBukkitEntity(), view, other);
++        }
++        return other.bukkitView;
++    }
++
 +    public void transferTo(AbstractContainerMenu other, CraftHumanEntity player) {
++        other.containerOwner = player.getHandle();
++        this.containerOwner = player.getHandle();
 +        InventoryView source = this.getBukkitView(), destination = other.getBukkitView();
++        if (destination == null) {
++            destination = this.getBukkitView(other);
++        }
++        if (source == null) {
++            org.bukkit.inventory.Inventory view = new CraftInventory(new YouerModsInventory(this, containerOwner));
++            view.getType().setMods(true);
++            source = new CraftInventoryView<>(containerOwner.getBukkitEntity(), view, this);
++        }
++        if (source.getPlayer() == null) {
++            source.setPlayer(player);
++        }
 +        ((CraftInventory) source.getTopInventory()).getInventory().onClose(player);
 +        ((CraftInventory) source.getBottomInventory()).getInventory().onClose(player);
 +        ((CraftInventory) destination.getTopInventory()).getInventory().onOpen(player);

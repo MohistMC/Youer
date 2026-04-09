@@ -737,6 +737,16 @@ public final class Bukkit {
     }
 
     /**
+     * Gets a list of all world name on this server.
+     *
+     * @return a set of worlds
+     */
+    @NotNull
+    public static Set<String> getWorldsByName() {
+        return server.getWorldsByName();
+    }
+
+    /**
      * Creates or loads a world with the given name using the specified
      * options.
      * <p>
@@ -2197,5 +2207,15 @@ public final class Bukkit {
     @NotNull
     public static UnsafeValues getUnsafe() {
         return server.getUnsafe();
+    }
+
+    /**
+     * Gets the active {@link org.bukkit.command.CommandMap}
+     *
+     * @return the active command map
+     */
+    @NotNull
+    public static org.bukkit.command.CommandMap getCommandMap() {
+        return server.getCommandMap();
     }
 }

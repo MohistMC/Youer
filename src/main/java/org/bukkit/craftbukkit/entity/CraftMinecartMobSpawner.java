@@ -16,7 +16,7 @@ import org.bukkit.entity.EntitySnapshot;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.minecart.SpawnerMinecart;
 
-final class CraftMinecartMobSpawner extends CraftMinecart implements SpawnerMinecart {
+public final class CraftMinecartMobSpawner extends CraftMinecart implements SpawnerMinecart {
     CraftMinecartMobSpawner(CraftServer server, MinecartSpawner entity) {
         super(server, entity);
     }

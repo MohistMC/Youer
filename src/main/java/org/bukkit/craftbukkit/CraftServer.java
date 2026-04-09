@@ -9,6 +9,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
 import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
+import com.mohistmc.youer.util.Level2LevelStem;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
@@ -342,6 +344,8 @@ public final class CraftServer implements Server {
 
         CraftRegistry.setMinecraftRegistry(console.registryAccess());
 
+        NeoForgeInjectBukkit.init();
+
         if (!Main.useConsole) {
             getLogger().info("Console input is disabled due to --noconsole command argument");
         }
@@ -399,6 +403,47 @@ public final class CraftServer implements Server {
             MapPalette.setMapColorCache(new CraftMapColorCache(logger));
         }
     }
+
+    // Youer start
+    public void initConfig() {
+        configuration = YamlConfiguration.loadConfiguration(getConfigFile());
+        configuration.options().copyDefaults(true);
+        configuration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("configurations/bukkit.yml"), Charsets.UTF_8)));
+        ConfigurationSection legacyAlias = null;
+        if (!configuration.isString("aliases")) {
+            legacyAlias = configuration.getConfigurationSection("aliases");
+            configuration.set("aliases", "now-in-commands.yml");
+        }
+        saveConfig();
+        if (getCommandsConfigFile().isFile()) {
+            legacyAlias = null;
+        }
+        commandsConfiguration = YamlConfiguration.loadConfiguration(getCommandsConfigFile());
+        commandsConfiguration.options().copyDefaults(true);
+        commandsConfiguration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("configurations/commands.yml"), Charsets.UTF_8)));
+        saveCommandsConfig();
+
+        // Migrate aliases from old file and add previously implicit $1- to pass all arguments
+        if (legacyAlias != null) {
+            ConfigurationSection aliases = commandsConfiguration.createSection("aliases");
+            for (String key : legacyAlias.getKeys(false)) {
+                ArrayList<String> commands = new ArrayList<String>();
+
+                if (legacyAlias.isList(key)) {
+                    for (String command : legacyAlias.getStringList(key)) {
+                        commands.add(command + " $1-");
+                    }
+                } else {
+                    commands.add(legacyAlias.getString(key) + " $1-");
+                }
+
+                aliases.set(key, commands);
+            }
+        }
+
+        saveCommandsConfig();
+    }
+    // Youer end
 
     public boolean getCommandBlockOverride(String command) {
         return overrideAllCommandBlockCommands || commandsConfiguration.getStringList("command-block-overrides").contains(command);
@@ -882,6 +927,11 @@ public final class CraftServer implements Server {
         return new ArrayList<World>(worlds.values());
     }
 
+    @Override
+    public Set<String> getWorldsByName() {
+        return new HashSet<>(worlds.keySet());
+    }
+
     public DedicatedPlayerList getHandle() {
         return playerList;
     }
@@ -1020,7 +1070,7 @@ public final class CraftServer implements Server {
     }
 
     @SuppressWarnings({ "unchecked", "finally" })
-    private void loadCustomPermissions() {
+    public void loadCustomPermissions() {
         File file = new File(configuration.getString("settings.permissions-file"));
         FileInputStream stream;
 
@@ -1290,6 +1340,15 @@ public final class CraftServer implements Server {
         worlds.remove(world.getName().toLowerCase(Locale.ROOT));
         console.removeLevel(handle);
         return true;
+    }
+
+    public void removeWorld(ServerLevel world) {
+        if (world == null) {
+            return;
+        }
+        String worldname = world.getWorld().getName().startsWith("DIM") ? world.getWorld().getName() :world.getWorld().getName().toLowerCase(java.util.Locale.ENGLISH);
+        this.worlds.remove(worldname);
+        Level2LevelStem.plugin_worlds.remove(worldname);
     }
 
     public DedicatedServer getServer() {
@@ -2091,6 +2150,7 @@ public final class CraftServer implements Server {
         return helpMap;
     }
 
+    @Override // Paper - add override
     public SimpleCommandMap getCommandMap() {
         return commandMap;
     }

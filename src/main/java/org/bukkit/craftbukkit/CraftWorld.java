@@ -2005,4 +2005,55 @@ public class CraftWorld extends CraftRegionAccessor implements World {
             this.persistentDataContainer.putAll((CompoundTag) c);
         }
     }
+
+    // Youer start
+    private boolean isbukkit = false;
+    @Override
+    public boolean isBukkit() {
+        return isbukkit;
+    }
+
+    @Override
+    public void setBukkit(boolean b) {
+        isbukkit = b;
+    }
+
+    private boolean isvoid = false;
+    @Override
+    public boolean isVoid() {
+        return isvoid;
+    }
+
+    @Override
+    public void setVoid(boolean b) {
+        isvoid = b;
+    }
+
+    private boolean isflat = false;
+    @Override
+    public boolean isFlat() {
+        return isflat;
+    }
+
+    @Override
+    public void setFlat(boolean b) {
+        isflat = b;
+    }
+
+    @Override
+    public boolean isMods() {
+        String path = getWorldFolder().getAbsolutePath().replaceAll("\\\\", "/");
+        return !isBukkit() && path.contains("/world/dimensions/");
+    }
+
+    @Override
+    public String getModid() {
+        String path = getWorldFolder().getAbsolutePath().replaceAll("\\\\", "/");
+        String modName = "";
+        if(path.contains("/world/dimensions/")) {
+            modName = path.split("/world/dimensions/")[1].split("/")[0];
+        }
+        return modName;
+    }
+    // Youer end
 }

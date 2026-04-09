@@ -630,6 +630,14 @@ public interface Server extends PluginMessageRecipient {
     public List<World> getWorlds();
 
     /**
+     * Gets a list of all world name on this server.
+     *
+     * @return a set of worlds
+     */
+    @NotNull
+    public Set<String> getWorldsByName();
+
+    /**
      * Creates or loads a world with the given name using the specified
      * options.
      * <p>
@@ -1871,4 +1879,12 @@ public interface Server extends PluginMessageRecipient {
     @Deprecated(since = "1.7.2")
     @NotNull
     UnsafeValues getUnsafe();
+
+    /**
+     * Gets the active {@link org.bukkit.command.CommandMap}
+     *
+     * @return the active command map
+     */
+    @NotNull
+    org.bukkit.command.CommandMap getCommandMap();
 }

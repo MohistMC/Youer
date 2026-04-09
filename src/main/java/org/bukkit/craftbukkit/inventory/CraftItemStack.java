@@ -110,7 +110,7 @@ public final class CraftItemStack extends ItemStack {
         return new ItemPredicate(Optional.of(HolderSet.direct(nms.typeHolder())), MinMaxBounds.Ints.ANY, new DataComponentMatchers(predicate, Collections.emptyMap()));
     }
 
-    net.minecraft.world.item.ItemStack handle;
+    public net.minecraft.world.item.ItemStack handle;
     private boolean isForInventoryDrop;
 
     /**

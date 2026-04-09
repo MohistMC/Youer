@@ -107,4 +107,35 @@ public final class NullCommandSender implements CommandSender {
     public void setOp(boolean value) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
+
+    // Spigot start
+    private final org.bukkit.command.CommandSender.Spigot spigot = new org.bukkit.command.CommandSender.Spigot()
+    {
+        @Override
+        public void sendMessage(net.md_5.bungee.api.chat.BaseComponent component)
+        {
+        }
+
+        @Override
+        public void sendMessage(net.md_5.bungee.api.chat.BaseComponent... components)
+        {
+        }
+
+        @Override
+        public void sendMessage(UUID sender, net.md_5.bungee.api.chat.BaseComponent... components)
+        {
+        }
+
+        @Override
+        public void sendMessage(UUID sender, net.md_5.bungee.api.chat.BaseComponent component)
+        {
+        }
+    };
+
+    @Override
+    public org.bukkit.command.CommandSender.Spigot spigot()
+    {
+        return spigot;
+    }
+    // Spigot end
 }

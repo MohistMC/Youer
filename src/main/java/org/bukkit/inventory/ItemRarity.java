@@ -22,4 +22,13 @@ public enum ItemRarity {
      * Light purple item name.
      */
     EPIC;
+
+    public static ItemRarity byName(String name) {
+        for (ItemRarity rarity : values()) {
+            if (rarity.name().equalsIgnoreCase(name)) {
+                return rarity;
+            }
+        }
+        return COMMON;
+    }
 }

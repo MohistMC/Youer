@@ -1,15 +1,22 @@
 package org.bukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.api.ServerAPI;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.EntitySpawnReason;
 import org.bukkit.Bukkit;
 import org.bukkit.Keyed;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Translatable;
 import org.bukkit.World;
+import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.entity.boat.AcaciaBoat;
 import org.bukkit.entity.boat.AcaciaChestBoat;
 import org.bukkit.entity.boat.BambooChestRaft;
@@ -359,7 +366,9 @@ public enum EntityType implements Keyed, Translatable, RegistryAware {
     private final Class<? extends Entity> clazz;
     private final short typeId;
     private final boolean independent, living;
-    private final NamespacedKey key;
+    private NamespacedKey key;
+    private net.minecraft.world.entity.EntityType<?> handleType;
+    private Function<Location, ? extends net.minecraft.world.entity.Entity> factory;
 
     private static final Map<String, EntityType> NAME_MAP = new HashMap<String, EntityType>();
     private static final Map<Short, EntityType> ID_MAP = new HashMap<Short, EntityType>();
@@ -511,5 +520,30 @@ public enum EntityType implements Keyed, Translatable, RegistryAware {
     @Override
     public boolean isRegistered() {
         return this != UNKNOWN;
+    }
+
+    public void hookForgeEntity(Identifier location, net.minecraft.world.entity.EntityType<?> entityType) {
+        this.key = CraftNamespacedKey.fromMinecraft(location);
+        this.handleType = entityType;
+        NAME_MAP.put(name.toLowerCase(), this);
+        ID_MAP.put(typeId, this);
+        ServerAPI.entityTypeMap.put(entityType, name);
+        ServerAPI.entityTypeMap0.put(entityType, this);
+        this.factory = bukkitLoc -> {
+            if (bukkitLoc != null && bukkitLoc.getWorld() != null) {
+                ServerLevel serverLevel = ((CraftWorld) bukkitLoc.getWorld()).getHandle();
+                net.minecraft.world.entity.Entity entity = handleType.create(serverLevel, EntitySpawnReason.COMMAND);
+                if (entity != null) {
+                    entity.absSnapTo(bukkitLoc.getX(), bukkitLoc.getY(), bukkitLoc.getZ(), bukkitLoc.getYaw(), bukkitLoc.getPitch());
+                }
+                return entity;
+            } else {
+                return null;
+            }
+        };
+    }
+
+    public Function<Location, ? extends net.minecraft.world.entity.Entity> getFactory() {
+        return factory;
     }
 }

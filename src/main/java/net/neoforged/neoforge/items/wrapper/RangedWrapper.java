@@ -18,7 +18,7 @@ import net.neoforged.neoforge.transfer.RangedResourceHandler;
  */
 @Deprecated(since = "1.21.9", forRemoval = true)
 public class RangedWrapper implements IItemHandlerModifiable {
-    private final IItemHandlerModifiable compose;
+    public final IItemHandlerModifiable compose;
     private final int minSlot;
     private final int maxSlot;
 

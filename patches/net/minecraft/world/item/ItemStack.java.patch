@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
+@@ -97,6 +_,7 @@
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import org.apache.commons.lang3.function.TriConsumer;
+ import org.apache.commons.lang3.mutable.MutableBoolean;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
 @@ -237,6 +_,10 @@
          return !this.isEmpty() && this.components.hasNonDefault(type);
      }
@@ -182,6 +190,32 @@
      public <T> @Nullable T set(DataComponentType<T> type, @Nullable T value) {
          return this.components.set(type, value);
      }
+@@ -782,6 +_,25 @@
+             this.components.restorePatch(oldPatch);
+         }
+     }
++    // Paper start - (this is just a good no conflict location)
++    public org.bukkit.inventory.ItemStack asBukkitMirror() {
++        return CraftItemStack.asCraftMirror(this);
++    }
++    public org.bukkit.inventory.ItemStack asBukkitCopy() {
++        return CraftItemStack.asCraftMirror(this.copy());
++    }
++    public static ItemStack fromBukkitCopy(org.bukkit.inventory.ItemStack itemstack) {
++        return CraftItemStack.asNMSCopy(itemstack);
++    }
++    private CraftItemStack bukkitStack;
++    public org.bukkit.inventory.ItemStack getBukkitStack() {
++        if (bukkitStack == null || bukkitStack.handle != this) {
++            bukkitStack = CraftItemStack.asCraftMirror(this);
++        }
++        return bukkitStack;
++    }
++    // Paper end
++
+ 
+     public void applyComponents(DataComponentPatch patch) {
+         this.components.applyPatch(patch);
 @@ -818,7 +_,7 @@
      }
  

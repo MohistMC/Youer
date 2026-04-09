@@ -4,11 +4,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.mohistmc.dynamicenum.MohistDynamEnum;
 import java.lang.reflect.Constructor;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import net.minecraft.resources.Identifier;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
@@ -127,6 +130,7 @@ import org.bukkit.block.data.type.Wall;
 import org.bukkit.block.data.type.WallHangingSign;
 import org.bukkit.block.data.type.WallSign;
 import org.bukkit.block.data.type.WallSkull;
+import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.inventory.CreativeCategory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -5073,17 +5077,28 @@ public enum Material implements Keyed, Translatable, RegistryAware {
 
     private final int id;
     private final Constructor<? extends MaterialData> ctor;
-    private static final Map<String, Material> BY_NAME = Maps.newHashMap();
+    public static final Map<String, Material> BY_NAME = Maps.newHashMap();
+    public static final Map<String, Material> BY_KEY = Maps.newHashMap();
     private final short durability;
     public final Class<?> data;
     private final boolean legacy;
-    private final NamespacedKey key;
+    private NamespacedKey key;
     private final Supplier<ItemType> itemType;
     private final Supplier<BlockType> blockType;
+    public boolean isModBlock = false;
+    public boolean isModItem = false;
 
     private Material(final int id) {
         this(id, MaterialData.class);
     }
+
+    // Youer start - constructor used to set if the Material is a block or not
+    private Material(final int id, boolean isForgeBlock, boolean isForgeItem) {
+        this(id);
+        this.isModBlock = isForgeBlock;
+        this.isModItem = isForgeItem;
+    }
+    // Youer end
 
     private Material(final int id, final int durability) {
         this(id, durability, MaterialData.class);
@@ -5423,8 +5438,14 @@ public enum Material implements Keyed, Translatable, RegistryAware {
      * @return True if this material is an air block.
      */
     public boolean isAir() {
-        BlockType type = asBlockType();
-        return type != null && type.isAir();
+        return isAirSafe();
+    }
+
+    public boolean isAirSafe() {
+        return switch (this) {
+            case AIR, CAVE_AIR, VOID_AIR, LEGACY_AIR -> true;
+            default -> false;
+        };
     }
 
     /**
@@ -6038,5 +6059,27 @@ public enum Material implements Keyed, Translatable, RegistryAware {
     @Nullable
     public BlockType asBlockType() {
         return blockType.get();
+    }
+
+    public static Material addMaterial(String materialName, int id, boolean isBlock, boolean isItem, Identifier resourceLocation) {
+        if (isBlock) {
+            Material material = BY_NAME.get(materialName);
+            if (material != null) {
+                material.isModBlock = true;
+            } else {
+                material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, isBlock, isItem));
+            }
+            BY_NAME.put(materialName, material);
+            material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
+            BY_KEY.put(resourceLocation.toString(), material);
+            return material;
+        } else { // Forge Items
+            Material material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, isBlock, isItem));
+            BY_NAME.put(materialName, material);
+            material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
+            material.isModItem = true;
+            BY_KEY.put(resourceLocation.toString(), material);
+            return material;
+        }
     }
 }
