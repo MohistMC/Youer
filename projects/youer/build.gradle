@@ -384,6 +384,7 @@ tasks.withType(Javadoc.class).configureEach {
 // Exposed project properties
 Map<String, String> placeholders = [
         'version' : project.version.toString(),
+        'youer_version' : gradleutils.gitInfo.abbreviatedId,
         'neoform_version' : project.neoform_version,
         'minecraft_version' : project.minecraft_version,
         'build_type' : 'BETA'
@@ -412,6 +413,11 @@ final generateSources = tasks.register('generateSources', ProcessResources) {
     group = 'build'
     from(rootProject.file('src/main/templates/NeoForgeVersion.java')) {
         rename '(.*)', 'net/neoforged/neoforge/common/$1'
+    }
+    into 'build/generated/sources/neoforge/java'
+
+    from(rootProject.file('src/main/templates/YouerVersion.java')) {
+        rename '(.*)', 'com/mohistmc/youer/util/$1'
     }
     into 'build/generated/sources/neoforge/java'
 
