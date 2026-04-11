@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.neoforge.EntityClassLookup;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -103,7 +104,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
             return (CraftEntity) entityTypeData.convertFunction().apply(server, entity);
         }
 
-        throw new AssertionError("Unknown entity " + (entity == null ? null : entity.getClass()));
+        return EntityClassLookup.getEntity(server, entity);
     }
 
     @Override
