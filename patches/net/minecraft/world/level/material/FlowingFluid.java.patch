@@ -1,5 +1,51 @@
 --- a/net/minecraft/world/level/material/FlowingFluid.java
 +++ b/net/minecraft/world/level/material/FlowingFluid.java
+@@ -31,6 +_,12 @@
+ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.phys.shapes.Shapes;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.block.BlockFace;
++import org.bukkit.craftbukkit.block.CraftBlock;
++import org.bukkit.craftbukkit.block.data.CraftBlockData;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.block.BlockFromToEvent;
++import org.bukkit.event.block.FluidLevelChangeEvent;
+ 
+ public abstract class FlowingFluid extends Fluid {
+     public static final BooleanProperty FALLING = BlockStateProperties.FALLING;
+@@ -126,6 +_,15 @@
+                 Fluid newBelowFluidType = newBelowFluid.getType();
+                 if (belowFluid.canBeReplacedWith(level, belowPos, newBelowFluidType, Direction.DOWN)
+                     && canHoldSpecificFluid(level, belowPos, belowState, newBelowFluidType)) {
++                    // CraftBukkit start
++                    org.bukkit.block.Block source = CraftBlock.at(level, pos);
++                    BlockFromToEvent event = new BlockFromToEvent(source, BlockFace.DOWN);
++                    level.getCraftServer().getPluginManager().callEvent(event);
++
++                    if (event.isCancelled()) {
++                        return;
++                    }
++                    // CraftBukkit end
+                     this.spreadTo(level, belowPos, belowState, Direction.DOWN, newBelowFluid);
+                     if (this.sourceNeighborCount(level, pos) >= 3) {
+                         this.spreadToSides(level, pos, fluidState, state);
+@@ -154,6 +_,16 @@
+                 Direction spread = entry.getKey();
+                 FluidState newNeighborFluid = entry.getValue();
+                 BlockPos neighborPos = pos.relative(spread);
++
++                // CraftBukkit start
++                org.bukkit.block.Block source = CraftBlock.at(level, pos);
++                BlockFromToEvent event = new BlockFromToEvent(source, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(spread));
++                level.getCraftServer().getPluginManager().callEvent(event);
++
++                if (event.isCancelled()) {
++                    continue;
++                }
++                // CraftBukkit end
+                 this.spreadTo(level, neighborPos, level.getBlockState(neighborPos), spread, newNeighborFluid);
+             }
+         }
 @@ -169,7 +_,7 @@
              BlockState blockState = level.getBlockState(relativePos);
              FluidState fluidState = blockState.getFluidState();
@@ -34,3 +80,28 @@
      protected abstract boolean canConvertToSource(ServerLevel level);
  
      protected void spreadTo(LevelAccessor level, BlockPos pos, BlockState state, Direction direction, FluidState target) {
+@@ -431,10 +_,24 @@
+             if (newFluidState.isEmpty()) {
+                 fluidState = newFluidState;
+                 blockState = Blocks.AIR.defaultBlockState();
++                // CraftBukkit start
++                FluidLevelChangeEvent event = CraftEventFactory.callFluidLevelChangeEvent(level, pos, blockState);
++                if (event.isCancelled()) {
++                    return;
++                }
++                blockState = ((CraftBlockData) event.getNewData()).getState();
++                // CraftBukkit end
+                 level.setBlock(pos, blockState, 3);
+             } else if (newFluidState != fluidState) {
+                 fluidState = newFluidState;
+                 blockState = newFluidState.createLegacyBlock();
++                // CraftBukkit start
++                FluidLevelChangeEvent event = CraftEventFactory.callFluidLevelChangeEvent(level, pos, blockState);
++                if (event.isCancelled()) {
++                    return;
++                }
++                blockState = ((CraftBlockData) event.getNewData()).getState();
++                // CraftBukkit end
+                 level.setBlock(pos, blockState, 3);
+                 level.scheduleTick(pos, newFluidState.getType(), tickDelay);
+             }

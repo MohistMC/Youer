@@ -5,6 +5,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.Graphs;
 import com.google.common.graph.MutableGraph;
+import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.bukkit.entity.CraftFakePlayer;
+import com.mohistmc.youer.feature.YouerPlugin;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -34,6 +37,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
@@ -571,6 +575,8 @@ public final class SimplePluginManager implements PluginManager {
      */
     @Override
     public void callEvent(@NotNull Event event) {
+        if (!YouerConfig.fakeplayer_callbukkitevent && event instanceof PlayerEvent playerEvent && playerEvent.getPlayer() instanceof CraftFakePlayer) return; // Youer
+        YouerPlugin.registerListener(event); // Youer
         if (event.isAsynchronous()) {
             if (Thread.holdsLock(this)) {
                 throw new IllegalStateException(event.getEventName() + " cannot be triggered asynchronously from inside synchronized code.");

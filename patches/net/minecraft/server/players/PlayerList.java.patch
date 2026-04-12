@@ -37,14 +37,16 @@
  import net.minecraft.server.notifications.NotificationService;
  import net.minecraft.server.permissions.LevelBasedPermissionSet;
  import net.minecraft.sounds.SoundEvents;
-@@ -99,6 +_,11 @@
+@@ -99,6 +_,13 @@
  import net.minecraft.world.scores.Objective;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Team;
 +import org.bukkit.Location;
 +import org.bukkit.craftbukkit.CraftServer;
 +import org.bukkit.craftbukkit.util.CraftChatMessage;
++import org.bukkit.event.entity.EntityRemoveEvent;
 +import org.bukkit.event.player.PlayerLoginEvent;
++import org.bukkit.event.player.PlayerQuitEvent;
 +import org.bukkit.event.player.PlayerRespawnEvent;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
@@ -107,18 +109,74 @@
          this.playerIo.save(player);
          ServerStatsCounter stats = this.stats.get(player.getUUID());
          if (stats != null) {
-@@ -305,6 +_,7 @@
+@@ -304,22 +_,43 @@
+         }
      }
  
++    public String quitMessage;
++
      public void remove(ServerPlayer player) {
 +        net.neoforged.neoforge.event.EventHooks.firePlayerLoggedOut(player);
          ServerLevel level = player.level();
          player.awardStat(Stats.LEAVE_GAME);
++
++        // CraftBukkit start - Quitting must be before we do final save of data, in case plugins need to modify it
++        // See SPIGOT-5799, SPIGOT-6145
++        if (player.containerMenu != player.inventoryMenu) {
++            player.closeContainer();
++        }
++
++        PlayerQuitEvent playerQuitEvent = new PlayerQuitEvent(player.getBukkitEntity(), player.kickLeaveMessage != null ? player.kickLeaveMessage : "\u00A7e" + player.getScoreboardName() + " left the game");
++        cserver.getPluginManager().callEvent(playerQuitEvent);
++        player.getBukkitEntity().disconnect(playerQuitEvent.getQuitMessage());
++
++        player.doTick(); // SPIGOT-924
++        // CraftBukkit end
++
          this.save(player);
-@@ -339,7 +_,44 @@
-         this.broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID())));
-     }
+         if (player.isPassenger()) {
+             Entity vehicle = player.getRootVehicle();
+             if (vehicle.hasExactlyOnePlayerPassenger()) {
+                 LOGGER.debug("Removing player mount");
+                 player.stopRiding();
+-                vehicle.getPassengersAndSelf().forEach(e -> e.setRemoved(Entity.RemovalReason.UNLOADED_WITH_PLAYER));
++                vehicle.getPassengersAndSelf().forEach(e -> {
++                    e.removeReason(EntityRemoveEvent.Cause.PLAYER_QUIT); // CraftBukkit - add Bukkit remove cause
++                    e.setRemoved(Entity.RemovalReason.UNLOADED_WITH_PLAYER);
++                });
+             }
+         }
  
+         player.unRide();
+ 
+         for (ThrownEnderpearl enderpearl : player.getEnderPearls()) {
++            enderpearl.removeReason(EntityRemoveEvent.Cause.PLAYER_QUIT); // CraftBukkit - add Bukkit remove cause
+             enderpearl.setRemoved(Entity.RemovalReason.UNLOADED_WITH_PLAYER);
+         }
+ 
+@@ -336,10 +_,60 @@
+             this.server.notificationManager().playerLeft(player);
+         }
+ 
+-        this.broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID())));
+-    }
+-
++        ClientboundPlayerInfoRemovePacket packet = new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID()));
++        for (int i = 0; i < players.size(); i++) {
++            ServerPlayer serverplayer2 = (ServerPlayer) this.players.get(i);
++
++            if (serverplayer2.getBukkitEntity().canSee(player.getBukkitEntity())) {
++                serverplayer2.connection.send(packet);
++            } else {
++                serverplayer2.getBukkitEntity().onEntityRemove(player);
++            }
++        }
++        // This removes the scoreboard (and player reference) for the specific player in the manager
++        cserver.getScoreboardManager().removePlayer(player.getBukkitEntity());
++        // CraftBukkit end
++        quitMessage = playerQuitEvent.getQuitMessage();
++    }
++
 +    // Youer start
 +    public final AtomicReference<ServerPlayer> youer$canPlayerLogin$entity = new AtomicReference<>(null);
 +    private final AtomicReference<ServerLoginPacketListenerImpl> youer$canPlayerLogin$handler = new AtomicReference<>(null);
@@ -173,7 +231,7 @@
          } else if (this.ipBans.isBanned(address)) {
              IpBanListEntry ban = this.ipBans.get(address);
              MutableComponent reason = Component.translatable("multiplayer.disconnect.banned_ip.reason", ban.getReasonMessage());
-@@ -357,46 +_,47 @@
+@@ -357,46 +_,51 @@
                  reason.append(Component.translatable("multiplayer.disconnect.banned_ip.expiration", BAN_DATE_FORMAT.format(ban.getExpires())));
              }
  
@@ -217,6 +275,10 @@
 +
 +    public boolean disconnectAllPlayersWithProfile(UUID playerId, ServerPlayer player) { // CraftBukkit - added EntityPlayer
 +        return player == null;
++    }
++
++    public ServerPlayer respawn(ServerPlayer serverPlayer, boolean keepAllPlayerData, Entity.RemovalReason removalReason, PlayerRespawnEvent.RespawnReason reason) {
++        return this.respawn(serverPlayer, keepAllPlayerData, removalReason, reason, null);
 +    }
 +
 +    public ServerPlayer respawn(ServerPlayer serverplayer, boolean flag, Entity.RemovalReason entity_removalreason, PlayerRespawnEvent.RespawnReason reason, Location location) {
@@ -287,6 +349,31 @@
      }
  
      public void sendAllPlayerInfo(ServerPlayer player) {
+@@ -699,10 +_,20 @@
+     }
+ 
+     public void removeAll() {
+-        for (int i = 0; i < this.players.size(); i++) {
+-            this.players.get(i).connection.disconnect(Component.translatable("multiplayer.disconnect.server_shutdown"));
+-        }
+-    }
++        // CraftBukkit start - disconnect safely
++        for (ServerPlayer player : this.players) {
++            player.connection.disconnect(CraftChatMessage.fromStringOrEmpty(this.server.server.getShutdownMessage())); // CraftBukkit - add custom shutdown message
++        }
++        // CraftBukkit end
++    }
++
++    // CraftBukkit start
++    public void broadcastMessage(Component[] iChatBaseComponents) {
++        for (Component component : iChatBaseComponents) {
++            broadcastSystemMessage(component, false);
++        }
++    }
++    // CraftBukkit end
+ 
+     public void broadcastSystemMessage(Component message, boolean overlay) {
+         this.broadcastSystemMessage(message, player -> message, overlay);
 @@ -758,6 +_,44 @@
          });
      }

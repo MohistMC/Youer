@@ -13,14 +13,14 @@
      }
  
 -    public <T> void set(GameRule<T> gameRule, T value, @Nullable MinecraftServer server) {
-+    public <T> void set(GameRule<T> gameRule, T value, @Nullable ServerLevel server) {
++    public <T> void set(GameRule<T> gameRule, T value, @Nullable ServerLevel server) { // CraftBukkit - per-world
          if (!this.rules.has(gameRule)) {
              LOGGER.warn("Tried to set invalid game rule '{}' to value '{}'", gameRule.getIdentifierWithFallback(), value);
          } else {
              this.rules.set(gameRule, value);
              if (server != null) {
 -                server.onGameRuleChanged(gameRule, value);
-+                MinecraftServer.onGameRuleChanged(gameRule, value, server);
++                MinecraftServer.onGameRuleChanged(gameRule, value, server); // CraftBukkit - per-world
              }
          }
      }
@@ -29,17 +29,17 @@
      }
  
 -    public void setAll(GameRules other, @Nullable MinecraftServer server) {
-+    public void setAll(GameRules other, @Nullable ServerLevel server) {
++    public void setAll(GameRules other, @Nullable ServerLevel server) { // CraftBukkit - per-world
          this.setAll(other.rules, server);
      }
  
 -    public void setAll(GameRuleMap gameRulesMap, @Nullable MinecraftServer server) {
-+    public void setAll(GameRuleMap gameRulesMap, @Nullable ServerLevel server) {
++    public void setAll(GameRuleMap gameRulesMap, @Nullable ServerLevel server) { // CraftBukkit - per-world
          gameRulesMap.keySet().forEach(gameRule -> this.setFromOther(gameRulesMap, (GameRule<?>)gameRule, server));
      }
  
 -    private <T> void setFromOther(GameRuleMap gameRulesMap, GameRule<T> gameRule, @Nullable MinecraftServer server) {
-+    private <T> void setFromOther(GameRuleMap gameRulesMap, GameRule<T> gameRule, @Nullable ServerLevel server) {
++    private <T> void setFromOther(GameRuleMap gameRulesMap, GameRule<T> gameRule, @Nullable ServerLevel server) { // CraftBukkit - per-world
          this.set(gameRule, Objects.requireNonNull(gameRulesMap.get(gameRule)), server);
      }
  

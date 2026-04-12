@@ -107,7 +107,7 @@ public enum CraftStatistic {
     NAUTILUS_ONE_CM(Stats.NAUTILUS_ONE_CM);
     private final Identifier minecraftKey;
     private final org.bukkit.Statistic bukkit;
-    private static final BiMap<Identifier, org.bukkit.Statistic> statistics;
+    public static BiMap<Identifier, org.bukkit.Statistic> statistics;
 
     static {
         ImmutableBiMap.Builder<Identifier, org.bukkit.Statistic> statisticBuilder = ImmutableBiMap.builder();

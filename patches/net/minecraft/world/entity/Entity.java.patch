@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
+@@ -57,6 +_,7 @@
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.game.ClientGamePacketListener;
+ import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
++import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
+ import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
+ import net.minecraft.network.protocol.game.VecDeltaCodec;
+ import net.minecraft.network.syncher.EntityDataAccessor;
 @@ -154,11 +_,17 @@
  import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
@@ -75,8 +83,8 @@
 +    // Marks an entity, that it was removed by a plugin via Entity#remove
 +    // Main use case currently is for SPIGOT-7487, preventing dropping of leash when leash is removed
 +    public boolean pluginRemoved = false;
-+    public CreatureSpawnEvent.SpawnReason spawnReason;  // Youer - Entity#getEntitySpawnReason
-+    public EntityRemoveEvent.Cause removeReason;  // Youer - EntityRemoveEvent
++    public CreatureSpawnEvent.@Nullable SpawnReason spawnReason;  // Youer - Entity#getEntitySpawnReason
++    public EntityRemoveEvent.@Nullable Cause removeReason;  // Youer - EntityRemoveEvent
 +    public void spawnReason(CreatureSpawnEvent.SpawnReason spawnReason) {
 +        this.spawnReason = spawnReason;
 +    }
@@ -106,7 +114,7 @@
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
-@@ -405,6 +_,14 @@
+@@ -405,12 +_,30 @@
          this.remove(Entity.RemovalReason.DISCARDED);
      }
  
@@ -121,6 +129,53 @@
      protected abstract void defineSynchedData(SynchedEntityData.Builder entityData);
  
      public SynchedEntityData getEntityData() {
+         return this.entityData;
+     }
+ 
++    // CraftBukkit start
++    public void refreshEntityData(ServerPlayer to) {
++        List<SynchedEntityData.DataValue<?>> list = this.getEntityData().getNonDefaultValues();
++
++        if (list != null) {
++            to.connection.send(new ClientboundSetEntityDataPacket(this.getId(), list));
++        }
++    }
++    // CraftBukkit end
++
+     @Override
+     public boolean equals(Object obj) {
+         return obj instanceof Entity ? ((Entity)obj).id == this.id : false;
+@@ -422,7 +_,12 @@
+     }
+ 
+     public void remove(Entity.RemovalReason reason) {
+-        this.setRemoved(reason);
++        this.remove(reason, null);
++    }
++
++    public void remove(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
++        this.setRemovedCB(entity_removalreason, cause);
++        // CraftBukkit end
+     }
+ 
+     public void onClientRemoval() {
+@@ -502,6 +_,16 @@
+         this.baseTick();
+     }
+ 
++    // CraftBukkit start
++    public void postTick() {
++        // No clean way to break out of ticking once the entity has been copied to a new world, so instead we move the portalling later in the tick cycle
++        if (!(this instanceof ServerPlayer)) {
++            this.handlePortal();
++        }
++    }
++    // CraftBukkit end
++
++
+     public void baseTick() {
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("entityBaseTick");
 @@ -542,7 +_,7 @@
          }
  
@@ -395,20 +450,23 @@
          if (this.removalReason == null) {
              this.removalReason = reason;
          }
-@@ -3843,6 +_,13 @@
+@@ -3841,7 +_,15 @@
+         this.getPassengers().forEach(Entity::stopRiding);
+         this.levelCallback.onRemove(reason);
          this.onRemoval(reason);
-     }
- 
+-    }
++        removeReason = null;
++    }
++
 +    @Override
 +    public final void setRemovedCB(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
 +        this.removeReason = cause;
 +        this.setRemoved(entity_removalreason);
 +    }
 +    // Youer end
-+
+ 
      public void unsetRemoved() {
          this.removalReason = null;
-     }
 @@ -3868,6 +_,90 @@
  
      public boolean mayInteract(ServerLevel level, BlockPos pos) {

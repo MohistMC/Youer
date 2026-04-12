@@ -1,6 +1,7 @@
 package com.mohistmc.youer;
 
 import com.google.common.base.Throwables;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.commands.BackupWorldCommand;
 import com.mohistmc.youer.commands.DumpCommand;
 import com.mohistmc.youer.commands.InfoCommand;
@@ -11,6 +12,7 @@ import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.feature.YouerPlugin;
 import com.mohistmc.youer.feature.ban.BansCommand;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig;
+import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import net.minecraft.server.MinecraftServer;
+import net.neoforged.neoforge.common.NeoForgeVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -86,11 +89,14 @@ public class YouerConfig {
     public static List<String> no_vanilla_entity_whitelist;
     public static boolean ban_enchantment_enable;
     public static boolean ban_recipe_enable;
+    public static boolean ban_world_enable;
     public static String pingCommandOutput;
     // Ban events
     public static boolean doFireTick;
     public static boolean explosion;
     public static boolean farmlandTrample;
+    public static boolean join_message;
+    public static boolean quit_message;
     public static boolean bukkitpermissionshandler;
     public static boolean recipe_warn;
     public static boolean permissions_debug_console;
@@ -114,10 +120,15 @@ public class YouerConfig {
     public static int custom_lava_speed_normal;
     public static int custom_lava_speed_nether;
     public static boolean custom_fix_flat;
+    public static boolean custom_fix_cmi_tempban;
+    public static boolean custom_disabled_spawner;
+    public static boolean custom_disabled_sign_commands;
     public static boolean player_modlist_blacklist_enable;
     public static boolean player_modlist_blacklist_use_real_feedback;
     public static String player_modlist_blacklist_failurereasons;
     public static List<String> player_modlist_blacklist;
+    public static boolean fakeplayer_callbukkitevent = false;
+    public static String message_require_neoforge;
 
     static int version;
     static Map<String, Command> commands;
@@ -265,12 +276,16 @@ public class YouerConfig {
         no_vanilla_entity_whitelist = getStringList("bans.entity.vanilla_entity.whitelist", new ArrayList<>());
         ban_enchantment_enable = getBoolean("bans.enchantment", false);
         ban_recipe_enable = getBoolean("bans.recipe", false);
+        ban_world_enable = getBoolean("bans.world", false);
 
         pingCommandOutput = getString("settings.messages.ping-command-output", "§2%s's ping is %sms");
 
         doFireTick = getBoolean("events.fire_tick", false);
         explosion = getBoolean("events.explosion", false);
         farmlandTrample = getBoolean("events.farmlandTrample", false);
+        join_message = getBoolean("events.join_message", true);
+        quit_message = getBoolean("events.quit_message", true);
+
         bukkitpermissionshandler = getBoolean("neoforge.bukkitpermissionshandler", true);
 
         recipe_warn = getBoolean("recipe.warn", false);
@@ -296,11 +311,17 @@ public class YouerConfig {
         custom_lava_speed_normal = getInt("custom.lava_speed.normal", 30);
         custom_lava_speed_nether = getInt("custom.lava_speed.nether", 10);
         custom_fix_flat = getBoolean("custom.fix_flat", false);
+        custom_fix_cmi_tempban = getBoolean("custom.fix_cmi_tempban", false);
+        custom_disabled_spawner = getBoolean("custom.disabled_spawner", false);
+        custom_disabled_sign_commands = getBoolean("custom.disabled_signblock_commands", true);
 
         player_modlist_blacklist_enable = getBoolean("player_modlist_blacklist.enable", false);
         player_modlist_blacklist_use_real_feedback = getBoolean("player_modlist_blacklist.use_real_feedback", false);
         player_modlist_blacklist_failurereasons = getString("player_modlist_blacklist.failurereasons", "<gradient:#00FF00:#0000FF>Do not install mods privately</gradient>");
         player_modlist_blacklist = getStringList("player_modlist_blacklist.list", new ArrayList<>());
+
+        fakeplayer_callbukkitevent = getBoolean("fakeplayer.callbukkitevent", fakeplayer_callbukkitevent);
+        message_require_neoforge = getString("message.require_neoforge", I18n.as("neoforge.network.negotiation.failure.vanilla.client.not_supported"));
 
         getBoolean("keepinventory.world.inventory", false);
         getBoolean("keepinventory.world.exp", false);
@@ -314,5 +335,9 @@ public class YouerConfig {
         int priority = YouerConfig.yml.getInt("threadpriority.server_thread", 5);
         priority = Math.max(Thread.MIN_PRIORITY, Math.min(Thread.MAX_PRIORITY, priority));
         return priority;
+    }
+
+    public static String getMessage_require_neoforge() {
+        return ColorAPI.string(message_require_neoforge.formatted(NeoForgeVersion.getVersion()));
     }
 }

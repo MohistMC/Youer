@@ -1,5 +1,15 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
+@@ -2,6 +_,9 @@
+ 
+ import com.google.common.annotations.VisibleForTesting;
+ import com.google.common.collect.Lists;
++import com.mohistmc.youer.YouerConfig;
++import com.mohistmc.youer.feature.ban.bans.BanEntity;
++import com.mojang.authlib.GameProfile;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.logging.LogUtils;
 @@ -27,6 +_,7 @@
  import java.util.Set;
  import java.util.UUID;
@@ -36,6 +46,14 @@
  import net.minecraft.world.TickRateManager;
  import net.minecraft.world.attribute.EnvironmentAttributeSystem;
  import net.minecraft.world.attribute.EnvironmentAttributes;
+@@ -103,6 +_,7 @@
+ import net.minecraft.world.entity.animal.equine.SkeletonHorse;
+ import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+ import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
++import net.minecraft.world.entity.npc.villager.Villager;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.entity.raid.Raid;
+ import net.minecraft.world.entity.raid.Raids;
 @@ -121,6 +_,7 @@
  import net.minecraft.world.level.StructureManager;
  import net.minecraft.world.level.WorldGenLevel;
@@ -253,11 +271,11 @@
          this.waypointManager = new ServerWaypointManager();
          this.environmentAttributes = EnvironmentAttributeSystem.builder().addDefaultLayers(this).build();
          this.updateSkyBrightness();
-+        this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
 +        net.neoforged.neoforge.attachment.LevelAttachmentsSavedData.init(this);
 +        // Neo: Move the initialization of customSpawners to the end of costructor
 +        // Providing a fully initialized ServerLevel instance for the ServerLevelEvent.CustomSpawners
 +        this.customSpawners = net.neoforged.neoforge.event.EventHooks.getCustomSpawners(this, customSpawners);
++        this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
      }
  
      @Deprecated
@@ -303,14 +321,56 @@
                                      profiler.pop();
                                  }
                              }
-@@ -569,6 +_,7 @@
+@@ -548,6 +_,7 @@
+                         horse.setTrap(true);
+                         horse.setAge(0);
+                         horse.setPos(pos.getX(), pos.getY(), pos.getZ());
++                        horse.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING); // CraftBukkit
+                         this.addFreshEntity(horse);
+                     }
+                 }
+@@ -556,7 +_,14 @@
+                 if (bolt != null) {
+                     bolt.snapTo(Vec3.atBottomCenterOf(pos));
+                     bolt.setVisualOnly(isTrap);
++                    // Youer start - fix mixin
++                    LightningStrikeEvent lightning = CraftEventFactory.callLightningStrikeEvent((org.bukkit.entity.LightningStrike) bolt.getBukkitEntity(), org.bukkit.event.weather.LightningStrikeEvent.Cause.WEATHER);
++
++                    if (lightning.isCancelled()) {
++                        return;
++                    }
+                     this.addFreshEntity(bolt);
++                    // Youer end
+                 }
+             }
+         }
+@@ -569,8 +_,11 @@
          BlockPos topPos = this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, pos);
          BlockPos belowPos = topPos.below();
          Biome biome = this.getBiome(topPos).value();
 +        if (this.isAreaLoaded(belowPos, 1)) // Forge: check area to avoid loading neighbors in unloaded chunks
          if (biome.shouldFreeze(this, belowPos)) {
++            this.callEvent(true);
              this.setBlockAndUpdate(belowPos, Blocks.ICE.defaultBlockState());
++            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this, belowPos, this.youer$defaultBlockState, null); // CraftBukkit
          }
+ 
+         if (this.isRaining()) {
+@@ -582,10 +_,14 @@
+                     if (currentLayers < Math.min(maxHeight, 8)) {
+                         BlockState newState = state.setValue(SnowLayerBlock.LAYERS, currentLayers + 1);
+                         Block.pushEntitiesUp(state, newState, this, topPos);
++                        this.callEvent(true);
+                         this.setBlockAndUpdate(topPos, newState);
++                        CraftEventFactory.handleBlockFormEvent(this, topPos, this.youer$defaultBlockState, null); // CraftBukkit
+                     }
+                 } else {
++                    this.callEvent(true);
+                     this.setBlockAndUpdate(topPos, Blocks.SNOW.defaultBlockState());
++                    CraftEventFactory.handleBlockFormEvent(this, topPos, this.youer$defaultBlockState, null); // CraftBukkit
+                 }
+             }
+ 
 @@ -688,6 +_,13 @@
      }
  
@@ -325,7 +385,7 @@
          if (weatherData.isRaining()) {
              this.rainLevel = 1.0F;
              if (weatherData.isThundering()) {
-@@ -771,15 +_,19 @@
+@@ -771,25 +_,41 @@
                  .broadcastAll(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, this.thunderLevel), this.dimension());
          }
  
@@ -349,7 +409,31 @@
          }
      }
  
-@@ -817,7 +_,11 @@
+     @VisibleForTesting
+     public void resetWeatherCycle() {
+         WeatherData weatherData = this.getWeatherData();
+-        weatherData.setRainTime(0);
++        // CraftBukkit start
+         weatherData.setRaining(false);
+-        weatherData.setThunderTime(0);
++        // If we stop due to everyone sleeping we should reset the weather duration to some other random value.
++        // Not that everyone ever manages to get the whole server to sleep at the same time....
++        if (!weatherData.isRaining()) {
++            weatherData.setRainTime(0);
++        }
++        // CraftBukkit end
+         weatherData.setThundering(false);
++        // CraftBukkit start
++        // If we stop due to everyone sleeping we should reset the weather duration to some other random value.
++        // Not that everyone ever manages to get the whole server to sleep at the same time....
++        if (!weatherData.isThundering()) {
++            weatherData.setThunderTime(0);
++        }
++        // CraftBukkit end
+     }
+ 
+     public void resetEmptyTime() {
+@@ -817,7 +_,12 @@
          entity.tickCount++;
          profiler.push(entity.typeHolder()::getRegisteredName);
          profiler.incrementCounter("tickNonPassenger");
@@ -357,11 +441,43 @@
 +        // Neo: Permit cancellation of Entity#tick via EntityTickEvent.Pre
 +        if (!net.neoforged.neoforge.event.EventHooks.fireEntityTickPre(entity).isCanceled()) {
 +            entity.tick();
++            entity.postTick(); // CraftBukkit
 +            net.neoforged.neoforge.event.EventHooks.fireEntityTickPost(entity);
 +        }
          profiler.pop();
  
          for (Entity passenger : entity.getPassengers()) {
+@@ -835,6 +_,7 @@
+             profiler.push(entity.typeHolder()::getRegisteredName);
+             profiler.incrementCounter("tickPassenger");
+             entity.rideTick();
++            entity.postTick(); // CraftBukkit
+             profiler.pop();
+ 
+             for (Entity passenger : entity.getPassengers()) {
+@@ -865,10 +_,22 @@
+     public void save(@Nullable ProgressListener progressListener, boolean flush, boolean noSave) {
+         ServerChunkCache chunkSource = this.getChunkSource();
+         if (!noSave) {
++            org.bukkit.Bukkit.getPluginManager().callEvent(new org.bukkit.event.world.WorldSaveEvent(getWorld())); // CraftBukkit
+             if (progressListener != null) {
+                 progressListener.progressStartNoAbort(Component.translatable("menu.savingLevel"));
+             }
+ 
++            // CraftBukkit start - moved from MinecraftServer.saveAllChunks
++            GameProfile gameprofile = this.server.getSingleplayerProfile();
++
++            this.storageSource.saveDataTag(this.serverLevelData, gameprofile == null ? null : gameprofile.id());
++            if (flush) {
++                this.savedDataStorage.saveAndJoin();
++            } else {
++                this.savedDataStorage.scheduleSave();
++            }
++            // CraftBukkit end
++
+             this.saveLevelData(flush);
+             if (progressListener != null) {
+                 progressListener.progressStage(Component.translatable("menu.savingChunks"));
 @@ -880,6 +_,7 @@
              } else {
                  this.entityManager.autoSave();
@@ -434,7 +550,7 @@
          Entity existing = this.getEntity(player.getUUID());
          if (existing != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", player.getUUID());
-@@ -976,7 +_,8 @@
+@@ -976,16 +_,36 @@
              this.removePlayerImmediately((ServerPlayer)existing, Entity.RemovalReason.DISCARDED);
          }
  
@@ -444,11 +560,21 @@
      }
  
      private boolean addEntity(Entity entity) {
-@@ -984,8 +_,18 @@
-             LOGGER.warn("Tried to add entity {} but it was marked as removed already", entity.typeHolder().getRegisteredName());
+         if (entity.isRemoved()) {
+-            LOGGER.warn("Tried to add entity {} but it was marked as removed already", entity.typeHolder().getRegisteredName());
++            if (Boolean.parseBoolean("false")) LOGGER.warn("Tried to add entity {} but it was marked as removed already", entity.typeHolder().getRegisteredName());
              return false;
          } else {
 -            return this.entityManager.addNewEntity(entity);
++            if (entity instanceof Villager && YouerConfig.custom_no_villager) return false;
++            if (BanEntity.check(entity)) {
++                entity.discard();
++                return false;
++            }
++            // SPIGOT-6415: Don't call spawn event when reason is null. For example when an entity teleports to a new world.
++            if (entity.spawnReason != null && !CraftEventFactory.doEntityAddEventCalling(this, entity, entity.spawnReason)) {
++                return false;
++            }
 +            if (this.entityManager.addNewEntity(entity)) {
 +                entity.onAddedToLevel();
 +                return true;
@@ -480,7 +606,11 @@
      public void unload(LevelChunk levelChunk) {
          levelChunk.clearAllBlockEntities();
          levelChunk.unregisterTickContainerFromLevel(this);
-@@ -1007,6 +_,22 @@
+@@ -1004,16 +_,45 @@
+     }
+ 
+     public void removePlayerImmediately(ServerPlayer player, Entity.RemovalReason reason) {
++        player.removeReason(null); // CraftBukkit - add Bukkit remove cause
          player.remove(reason);
      }
  
@@ -502,7 +632,26 @@
 +
      @Override
      public void destroyBlockProgress(int id, BlockPos blockPos, int progress) {
++        // CraftBukkit start
++        Player player_bukkit = null;
++        Entity entity = this.getEntity(id);
++        if (entity instanceof Player) player_bukkit = (Player) entity;
++        // CraftBukkit end
          for (ServerPlayer player : this.server.getPlayerList().getPlayers()) {
+             if (player.level() == this && player.getId() != id) {
+                 double xd = blockPos.getX() - player.getX();
+                 double yd = blockPos.getY() - player.getY();
+                 double zd = blockPos.getZ() - player.getZ();
++
++                // CraftBukkit start
++                if (player_bukkit != null && !player.getBukkitEntity().canSee(player_bukkit.getBukkitEntity())) {
++                    continue;
++                }
++                // CraftBukkit end
++
+                 if (xd * xd + yd * yd + zd * zd < 1024.0) {
+                     player.connection.send(new ClientboundBlockDestructionPacket(id, blockPos, progress));
+                 }
 @@ -1025,6 +_,12 @@
      public void playSeededSound(
          @Nullable Entity except, double x, double y, double z, Holder<SoundEvent> sound, SoundSource source, float volume, float pitch, long seed
@@ -537,6 +686,29 @@
          this.gameEventDispatcher.post(gameEvent, position, context);
      }
  
+@@ -1117,7 +_,21 @@
+         if (Shapes.joinIsNotEmpty(oldShape, newShape, BooleanOp.NOT_SAME)) {
+             List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
+ 
+-            for (Mob navigatingMob : this.navigatingMobs) {
++            // CraftBukkit start - fix SPIGOT-6362
++            java.util.Iterator<Mob> iterator = this.navigatingMobs.iterator();
++
++            while (iterator.hasNext()) {
++                Mob navigatingMob;
++                try {
++                    navigatingMob = iterator.next();
++                } catch (java.util.ConcurrentModificationException ex) {
++                    // This can happen because the pathfinder update below may trigger a chunk load, which in turn may cause more navigators to register
++                    // In this case we just run the update again across all the iterators as the chunk will then be loaded
++                    // As this is a relative edge case it is much faster than copying navigators (on either read or write)
++                    sendBlockUpdated(pos, old, current, updateFlags);
++                    return;
++                }
++                // CraftBukkit end
+                 PathNavigation pathNavigation = navigatingMob.getNavigation();
+                 if (pathNavigation.shouldRecomputePath(pos)) {
+                     navigationsToUpdate.add(pathNavigation);
 @@ -1138,6 +_,7 @@
  
      @Override

@@ -3,6 +3,8 @@ package org.bukkit.craftbukkit.entity;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
+import com.mohistmc.youer.api.ColorAPI;
+import com.mohistmc.youer.feature.GlobalVariableSystem;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import io.netty.buffer.Unpooled;
@@ -372,7 +374,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
         if (getHandle().connection == null) return;
 
-        for (Component component : CraftChatMessage.fromString(message)) {
+        for (Component component : CraftChatMessage.fromString(ColorAPI.string(GlobalVariableSystem.as(this, message)))) {
             getHandle().sendSystemMessage(component);
         }
     }
@@ -1175,7 +1177,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         BlockPos bed = respawnConfig.respawnData().pos();
 
         if (world != null && bed != null) {
-            Optional<ServerPlayer.RespawnPosAngle> spawnLoc = ServerPlayer.findRespawnAndUseSpawnBlock(world, respawnConfig, true);
+            Optional<ServerPlayer.RespawnPosAngle> spawnLoc = ServerPlayer.findRespawnAndUseSpawnBlock(world, respawnConfig, false);
             if (spawnLoc.isPresent()) {
                 ServerPlayer.RespawnPosAngle vec = spawnLoc.get();
                 return CraftLocation.toBukkit(vec.position(), world.getWorld(), vec.yaw(), vec.pitch());

@@ -20,6 +20,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.stats.StatType;
+import net.minecraft.stats.Stats;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.item.Item;
@@ -33,6 +34,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Statistic;
 import org.bukkit.World;
+import org.bukkit.craftbukkit.CraftStatistic;
 import org.bukkit.craftbukkit.potion.CraftPotionUtil;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.craftbukkit.util.CraftSpawnCategory;
@@ -60,7 +62,7 @@ public class NeoForgeInjectBukkit {
                     .build());
 
     public static Map<Villager.Profession, Identifier> profession = new HashMap<>();
-    public static Map<StatType<?>, Statistic> statisticMap = new HashMap<>();
+    private static final BiMap<Identifier, Statistic> STATISTICS = HashBiMap.create(CraftStatistic.statistics);
     public static Map<MobCategory, SpawnCategory> spawnCategoryMap = new HashMap<>();
     public static Map<SpawnCategory, MobCategory> CategoryspawnMap = new HashMap<>();
 
@@ -240,14 +242,38 @@ public class NeoForgeInjectBukkit {
     public static void addStatistic() {
         var registry = BuiltInRegistries.STAT_TYPE;
         for (StatType<?> statType : registry) {
-            Identifier resourceLocation = registry.getKey(statType);
-            if (isMods(resourceLocation)) {
+            if (statType == Stats.CUSTOM) continue;
+            var resourceLocation = registry.getKey(statType);
+            Statistic statistic = STATISTICS.get(resourceLocation);
+            if (statistic == null && isMods(resourceLocation)) {
                 String name = MohistDynamEnum.normalizeName(resourceLocation.getPath());
-                Statistic statistic = MohistDynamEnum.addEnum(Statistic.class, name);
-                statisticMap.put(statType, statistic);
-                debug("Registered forge StatType as Statistic(Bukkit) {}", statistic.name());
+                Statistic.Type type;
+                if (statType.getRegistry() == BuiltInRegistries.ENTITY_TYPE) {
+                    type = Statistic.Type.ENTITY;
+                } else if (statType.getRegistry() == BuiltInRegistries.BLOCK) {
+                    type = Statistic.Type.BLOCK;
+                } else if (statType.getRegistry() == BuiltInRegistries.ITEM) {
+                    type = Statistic.Type.ITEM;
+                } else {
+                    type = Statistic.Type.UNTYPED;
+                }
+                statistic = MohistDynamEnum.addEnum(Statistic.class, name, List.of(Statistic.Type.class), List.of(type));
+                statistic.key = NamespacedKey.fromString(resourceLocation.toString());
+                STATISTICS.put(resourceLocation, statistic);
+                debug("Registered forge STAT_TYPE as Statistic(Bukkit) {}", name);
             }
         }
+        for (Identifier resourceLocation : BuiltInRegistries.CUSTOM_STAT) {
+            Statistic statistic = STATISTICS.get(resourceLocation);
+            if (statistic == null && isMods(resourceLocation)) {
+                String name = MohistDynamEnum.normalizeName(resourceLocation.getPath());
+                statistic = MohistDynamEnum.addEnum(Statistic.class, name);
+                statistic.key = NamespacedKey.fromString(resourceLocation.toString());
+                STATISTICS.put(resourceLocation, statistic);
+                debug("Registered forge CUSTOM_STAT as Statistic(Bukkit) {}", name);
+            }
+        }
+        CraftStatistic.statistics = STATISTICS;
     }
 
     private static void loadSpawnCategory() {

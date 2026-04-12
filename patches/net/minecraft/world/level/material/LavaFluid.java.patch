@@ -1,21 +1,36 @@
 --- a/net/minecraft/world/level/material/LavaFluid.java
 +++ b/net/minecraft/world/level/material/LavaFluid.java
-@@ -93,7 +_,7 @@
+@@ -93,7 +_,14 @@
                      BlockState blockState = level.getBlockState(testPos);
                      if (blockState.isAir()) {
                          if (this.hasFlammableNeighbours(level, testPos)) {
 -                            level.setBlockAndUpdate(testPos, BaseFireBlock.getState(level, testPos));
++                            // CraftBukkit start - Prevent lava putting something on fire
++                            if (level.getBlockState(testPos).getBlock() != Blocks.FIRE) {
++                                if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, testPos, pos).isCancelled()) {
++                                    continue;
++                                }
++                            }
++                            // CraftBukkit end
 +                            level.setBlockAndUpdate(testPos, net.neoforged.neoforge.event.EventHooks.fireFluidPlaceBlockEvent(level, testPos, pos, BaseFireBlock.getState(level, testPos)));
                              return;
                          }
                      } else if (blockState.blocksMotion()) {
-@@ -107,8 +_,8 @@
+@@ -107,8 +_,16 @@
                          return;
                      }
  
 -                    if (level.isEmptyBlock(testPos.above()) && this.isFlammable(level, testPos)) {
 -                        level.setBlockAndUpdate(testPos.above(), BaseFireBlock.getState(level, testPos));
 +                    if (level.isEmptyBlock(testPos.above()) && this.isFlammable(level, testPos, Direction.UP)) {
++                        // CraftBukkit start - Prevent lava putting something on fire
++                        BlockPos up = testPos.above();
++                        if (level.getBlockState(up).getBlock() != Blocks.FIRE) {
++                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, up, pos).isCancelled()) {
++                                continue;
++                            }
++                        }
++                        // CraftBukkit end
 +                        level.setBlockAndUpdate(testPos.above(), net.neoforged.neoforge.event.EventHooks.fireFluidPlaceBlockEvent(level, testPos.above(), pos, BaseFireBlock.getState(level, testPos)));
                      }
                  }
@@ -50,12 +65,16 @@
      @Override
      public @Nullable ParticleOptions getDripParticle() {
          return ParticleTypes.DRIPPING_LAVA;
-@@ -206,7 +_,7 @@
+@@ -206,7 +_,11 @@
              FluidState fluidState = level.getFluidState(pos);
              if (this.is(FluidTags.LAVA) && fluidState.is(FluidTags.WATER)) {
                  if (state.getBlock() instanceof LiquidBlock) {
 -                    level.setBlock(pos, Blocks.STONE.defaultBlockState(), 3);
-+                    level.setBlock(pos, net.neoforged.neoforge.event.EventHooks.fireFluidPlaceBlockEvent(level, pos, pos, Blocks.STONE.defaultBlockState()), 3);
++                    // CraftBukkit start
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(level.getMinecraftWorld(), pos, net.neoforged.neoforge.event.EventHooks.fireFluidPlaceBlockEvent(level, pos, pos, Blocks.STONE.defaultBlockState()), 3)) {
++                        return;
++                    }
++                    // CraftBukkit end
                  }
  
                  this.fizz(level, pos);

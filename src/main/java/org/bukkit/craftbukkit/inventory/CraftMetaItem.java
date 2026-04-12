@@ -10,6 +10,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mojang.serialization.DynamicOps;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -1301,7 +1302,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
 
     @Override
     public final void setDisplayName(String name) {
-        this.displayName = CraftChatMessage.fromStringOrNull(name);
+        this.displayName = CraftChatMessage.fromStringOrNull(ColorAPI.string(name));
     }
 
     @Override
@@ -1316,7 +1317,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
 
     @Override
     public final void setItemName(String name) {
-        this.itemName = CraftChatMessage.fromStringOrNull(name);
+        this.itemName = CraftChatMessage.fromStringOrNull(ColorAPI.string(name));
     }
 
     @Override
@@ -2714,7 +2715,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
                 addTo.add(Component.empty());
             } else {
                 String entry = object.toString();
-                Component component = (possiblyJsonInput) ? CraftChatMessage.fromJSONOrString(entry) : CraftChatMessage.fromStringOrNull(entry);
+                Component component = (possiblyJsonInput) ? CraftChatMessage.fromJSONOrString(entry) : CraftChatMessage.fromStringOrNull(ColorAPI.string(entry));
 
                 if (component != null) {
                     addTo.add(component);

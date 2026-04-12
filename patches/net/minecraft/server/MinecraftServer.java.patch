@@ -1,6 +1,12 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -10,6 +_,8 @@
+@@ -5,11 +_,14 @@
+ import com.google.common.collect.Lists;
+ import com.google.common.collect.Maps;
+ import com.google.common.collect.Sets;
++import com.mohistmc.youer.feature.YouerPlugin;
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.datafixers.DataFixer;
  import com.mojang.jtracy.DiscontinuousFrame;
  import com.mojang.jtracy.TracyClient;
  import com.mojang.logging.LogUtils;
@@ -59,7 +65,7 @@
  import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.gamerules.GameRule;
  import net.minecraft.world.level.gamerules.GameRuleMap;
-@@ -171,23 +_,37 @@
+@@ -171,23 +_,38 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.level.levelgen.PatrolSpawner;
  import net.minecraft.world.level.levelgen.PhantomSpawner;
@@ -89,6 +95,7 @@
 +import org.bukkit.Bukkit;
 +import org.bukkit.craftbukkit.CraftRegistry;
 +import org.bukkit.craftbukkit.CraftServer;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.util.CraftLocation;
 +import org.bukkit.event.server.ServerLoadEvent;
 +import org.bukkit.event.world.SpawnChangeEvent;
@@ -261,7 +268,7 @@
          if (profiledDuration != null) {
              profiledDuration.finish(true);
          }
-@@ -425,65 +_,243 @@
+@@ -425,65 +_,244 @@
      protected void forceDifficulty() {
      }
  
@@ -467,6 +474,7 @@
 +            this.getPlayerList().addWorldborderListener(world);
 +        }
 +        this.forceDifficulty();
++        YouerPlugin.init(); // Youer init mohist plugins
 +        for (ServerLevel serverlevel : this.getAllLevels()) {
 +            this.prepareLevels(serverlevel);
 +            serverlevel.entityManager.tick(); // SPIGOT-6526: Load pending entities so they are available to the API
@@ -638,7 +646,7 @@
  
          if (flush) {
              for (ServerLevel level : this.getAllLevels()) {
-@@ -645,13 +_,34 @@
+@@ -645,19 +_,41 @@
          this.stopServer();
      }
  
@@ -673,6 +681,13 @@
          this.getConnection().stop();
          this.isSaving = true;
          if (this.playerList != null) {
+             LOGGER.info("Saving players");
+             this.playerList.saveAll();
+             this.playerList.removeAll();
++            try { Thread.sleep(100); } catch (InterruptedException ex) {} // CraftBukkit - SPIGOT-625 - give server at least a chance to send packets
+         }
+ 
+         LOGGER.info("Saving worlds");
 @@ -684,6 +_,7 @@
          for (ServerLevel levelx : this.getAllLevels()) {
              if (levelx != null) {
@@ -702,6 +717,23 @@
  
              while (this.running) {
                  long thisTickNanos;
+@@ -747,6 +_,7 @@
+                     if (behindTimeNanos > OVERLOADED_THRESHOLD_NANOS + 20L * thisTickNanos
+                         && this.nextTickTimeNanos - this.lastOverloadWarningNanos >= OVERLOADED_WARNING_INTERVAL_NANOS + 100L * thisTickNanos) {
+                         long ticks = behindTimeNanos / thisTickNanos;
++                        if (server.getWarnOnOverload()) // CraftBukkit
+                         LOGGER.warn(
+                             "Can't keep up! Is the server overloaded? Running {}ms or {} ticks behind",
+                             behindTimeNanos / TimeUtil.NANOSECONDS_PER_MILLISECOND,
+@@ -762,7 +_,7 @@
+                     this.debugCommandProfilerDelayStart = false;
+                     this.debugCommandProfiler = new MinecraftServer.TimeProfiler(Util.getNanos(), this.tickCount);
+                 }
+-
++                MinecraftServer.currentTick = (int) (System.currentTimeMillis() / 50); // CraftBukkit
+                 this.nextTickTimeNanos += thisTickNanos;
+ 
+                 try (Profiler.Scope ignored = Profiler.use(this.createProfiler())) {
 @@ -787,6 +_,8 @@
                  this.isReady = true;
                  JvmProfiler.INSTANCE.onServerTick(this.smoothedTickTimeMillis);
@@ -1064,6 +1096,32 @@
      public RegistryAccess.Frozen registryAccess() {
          return this.registries.compositeAccess();
      }
+@@ -2072,6 +_,11 @@
+         }
+     }
+ 
++    // CraftBukkit start
++    public final java.util.concurrent.ExecutorService chatExecutor = java.util.concurrent.Executors.newCachedThreadPool(
++            new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Chat Thread - #%d").build());
++    // CraftBukkit end
++
+     public ChatDecorator getChatDecorator() {
+         return ChatDecorator.PLAIN;
+     }
+@@ -2080,8 +_,11 @@
+         return true;
+     }
+ 
+-    public void handleCustomClickAction(Identifier id, Optional<Tag> payload) {
+-        LOGGER.debug("Received custom click action {} with payload {}", id, payload.orElse(null));
++    // CraftBukkit start - add player
++    public void handleCustomClickAction(Identifier identifier, Optional<Tag> optional, ServerPlayer player) {
++        MinecraftServer.LOGGER.debug("Received custom click action {} with payload {}", identifier, optional.orElse(null)); // CraftBukkit - decompile error
++        CraftEventFactory.callPlayerCustomClickEvent(identifier, optional, player);
++        // CraftBukkit end
+     }
+ 
+     public LevelLoadListener getLevelLoadListener() {
 @@ -2111,12 +_,12 @@
          return false;
      }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -4,9 +_,11 @@
+@@ -4,11 +_,14 @@
  import com.mojang.serialization.Codec;
  import java.io.IOException;
  import java.util.Collection;
@@ -11,7 +11,10 @@
 +import java.util.Map;
  import java.util.Optional;
  import java.util.UUID;
++import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.function.Consumer;
+ import java.util.function.Predicate;
+ import java.util.stream.Collectors;
 @@ -30,6 +_,7 @@
  import net.minecraft.resources.ResourceKey;
  import net.minecraft.server.MinecraftServer;
@@ -215,6 +218,22 @@
  
      public void updatePOIOnBlockStateChange(BlockPos pos, BlockState oldState, BlockState newState) {
      }
+@@ -297,7 +_,15 @@
+     public void addDestroyBlockEffect(BlockPos pos, BlockState blockState) {
+     }
+ 
++    private AtomicBoolean callEvent = new AtomicBoolean(false);
++
++    public void callEvent(boolean call) {
++        callEvent.set(call);
++    }
++    public BlockState youer$defaultBlockState;
+     public boolean setBlockAndUpdate(BlockPos pos, BlockState blockState) {
++        youer$defaultBlockState = blockState;
++        if (callEvent.getAndSet(false)) return false;
+         return this.setBlock(pos, blockState, 3);
+     }
+ 
 @@ -307,6 +_,7 @@
      }
  
