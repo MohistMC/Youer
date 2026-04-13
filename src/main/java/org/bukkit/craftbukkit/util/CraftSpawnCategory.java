@@ -7,7 +7,7 @@ import org.bukkit.entity.SpawnCategory;
 public class CraftSpawnCategory {
 
     public static boolean isValidForLimits(SpawnCategory spawnCategory) {
-        return spawnCategory != null && (spawnCategory.isMods || spawnCategory.ordinal() < SpawnCategory.MISC.ordinal()); // Youer - fix mod
+        return spawnCategory != null && (spawnCategory.ordinal() < SpawnCategory.MISC.ordinal()); // TODO
     }
 
     public static String getConfigNameSpawnLimit(SpawnCategory spawnCategory) {
