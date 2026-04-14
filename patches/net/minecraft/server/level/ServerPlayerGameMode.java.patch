@@ -209,11 +209,12 @@
              }
          }
      }
-@@ -238,38 +_,58 @@
+@@ -238,38 +_,59 @@
  
      public boolean destroyBlock(BlockPos p_9281_) {
          BlockState blockstate1 = this.level.getBlockState(p_9281_);
 -        if (!this.player.getMainHandItem().getItem().canAttackBlock(blockstate1, this.level, p_9281_, this.player)) {
++        if (BanBlock.check(blockstate1)) return false; // Youer
 +        var event = net.neoforged.neoforge.common.CommonHooks.fireBlockBreak(level, gameModeForPlayer, player, p_9281_, blockstate1);
 +        if (event.isCanceled()) {
              return false;
@@ -285,7 +286,7 @@
              int i = p_9264_.getCount();
              int j = p_9264_.getDamageValue();
              InteractionResultHolder<ItemStack> interactionresultholder = p_9264_.use(p_9263_, p_9262_, p_9265_);
-@@ -304,24 +_,77 @@
+@@ -304,24 +_,71 @@
          }
      }
  
@@ -296,15 +297,17 @@
 +    public InteractionHand interactHand;
 +    public ItemStack interactItemStack;
      public InteractionResult useItemOn(ServerPlayer p_9266_, Level p_9267_, ItemStack p_9268_, InteractionHand p_9269_, BlockHitResult p_9270_) {
-+        if (BanItem.checkMoShou(p_9266_, p_9266_.getItemInHand(p_9269_))) {
++        if (BanItem.checkMoShou(p_9266_, p_9268_)) {
 +            p_9266_.setItemInHand(p_9269_, ItemStack.EMPTY);
 +            return InteractionResult.FAIL;
 +        }
 +        if (BanItem.check(p_9266_, p_9268_)) return InteractionResult.FAIL;
          BlockPos blockpos = p_9270_.getBlockPos();
          BlockState blockstate = p_9267_.getBlockState(blockpos);
-+        if (BanBlock.check(blockstate)) return InteractionResult.FAIL;
-+        if (BanItem.check(p_9266_, blockstate.getBlock().asItem().getDefaultInstance())) return InteractionResult.FAIL; // Block
++        if (BanBlock.check(blockstate) || BanItem.check(p_9266_, blockstate.getBlock().asItem().getDefaultInstance())) {
++            callUseItemOn(blockstate); // Youer
++            return InteractionResult.FAIL;
++        }
 +        boolean cancelledBlock = false;
 +        boolean cancelledItem = false; // Paper - correctly handle items on cooldown
          if (!blockstate.getBlock().isEnabled(p_9267_.enabledFeatures())) {
@@ -332,15 +335,7 @@
 +            event.setCancellationResult(InteractionResult.SUCCESS);
 +        }
 +        if (event.isCanceled()){
-+            // Paper start - Don't resync blocks
-+            if (blockstate.getBlock() instanceof CakeBlock) {
-+                player.getBukkitEntity().sendHealthUpdate(); // SPIGOT-1341 - reset health for cake
-+            } else if (blockstate.is(Blocks.JIGSAW) || blockstate.is(Blocks.STRUCTURE_BLOCK) || blockstate.getBlock() instanceof net.minecraft.world.level.block.CommandBlock) {
-+                player.connection.send(new net.minecraft.network.protocol.game.ClientboundContainerClosePacket(this.player.containerMenu.containerId));
-+            }
-+            // Paper end - extend Player Interact cancellation
-+            player.getBukkitEntity().updateInventory(); // SPIGOT-2867
-+            this.player.resyncUsingItem(this.player); // Paper - Properly cancel usable items
++            callUseItemOn(blockstate); // Youer
 +            return event.getCancellationResult();
 +        }
 +        if (this.gameModeForPlayer == GameType.SPECTATOR) {
@@ -390,3 +385,21 @@
                  return InteractionResult.PASS;
              }
          }
+@@ -361,5 +_,17 @@
+ 
+     public void setLevel(ServerLevel p_9261_) {
+         this.level = p_9261_;
++    }
++
++    public void callUseItemOn(BlockState blockstate) {
++        // Paper start - Don't resync blocks
++        if (blockstate.getBlock() instanceof CakeBlock) {
++            player.getBukkitEntity().sendHealthUpdate(); // SPIGOT-1341 - reset health for cake
++        } else if (blockstate.is(Blocks.JIGSAW) || blockstate.is(Blocks.STRUCTURE_BLOCK) || blockstate.getBlock() instanceof net.minecraft.world.level.block.CommandBlock) {
++            player.connection.send(new net.minecraft.network.protocol.game.ClientboundContainerClosePacket(this.player.containerMenu.containerId));
++        }
++        // Paper end - extend Player Interact cancellation
++        player.getBukkitEntity().updateInventory(); // SPIGOT-2867
++        this.player.resyncUsingItem(this.player); // Paper - Properly cancel usable items
+     }
+ }

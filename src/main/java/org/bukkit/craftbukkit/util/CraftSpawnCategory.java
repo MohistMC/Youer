@@ -62,7 +62,7 @@ public class CraftSpawnCategory {
 
     public static MobCategory toNMS(SpawnCategory spawnCategory) {
         if (spawnCategory.isMods) {
-            return NeoForgeInjectBukkit.CategoryspawnMap.get(spawnCategory);
+            return NeoForgeInjectBukkit.CATEGORYSPAWNMAP.get(spawnCategory);
         }
         return switch (spawnCategory) {
             case MONSTER -> MobCategory.MONSTER;

@@ -9,7 +9,7 @@ public class YouerPluginConfig {
 
     public static final String CONFIG_FILE = "youer-config";
     public final FileConfiguration yaml;
-    private final File config;
+    public final File config;
 
     public YouerPluginConfig(File file) {
         config = file;

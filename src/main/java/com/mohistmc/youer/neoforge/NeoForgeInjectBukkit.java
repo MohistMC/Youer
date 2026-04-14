@@ -71,8 +71,7 @@ public class NeoForgeInjectBukkit {
     public static Map<Villager.Profession, ResourceLocation> profession = new HashMap<>();
     public static Map<ResourceLocation, org.bukkit.attribute.Attribute> attributemap = new HashMap<>();
     public static Map<net.minecraft.world.level.biome.Biome, Biome> biomeBiomeMap = new HashMap<>();
-    public static Map<MobCategory, SpawnCategory> spawnCategoryMap = new HashMap<>();
-    public static Map<SpawnCategory, MobCategory> CategoryspawnMap = new HashMap<>();
+    public static Map<SpawnCategory, MobCategory> CATEGORYSPAWNMAP = new HashMap<>();
     private static final BiMap<ResourceLocation, Statistic> STATISTICS = HashBiMap.create(CraftStatistic.statistics);
     public static final BiMap<SoundEvent, Sound> MODD_SOUNDS = HashBiMap.create();
 
@@ -335,8 +334,7 @@ public class NeoForgeInjectBukkit {
             } catch (Exception e) {
                 String name = category.name();
                 SpawnCategory spawnCategory = MohistDynamEnum.addEnum(SpawnCategory.class, name);
-                spawnCategoryMap.put(category, spawnCategory);
-                CategoryspawnMap.put(spawnCategory, category);
+                CATEGORYSPAWNMAP.put(spawnCategory, category);
                 spawnCategory.isMods = true;
                 debug("Registered forge MobCategory as SpawnCategory(Bukkit) {}", spawnCategory);
             }
