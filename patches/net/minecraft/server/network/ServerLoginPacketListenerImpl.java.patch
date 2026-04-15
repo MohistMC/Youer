@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-@@ -19,10 +_,12 @@
+@@ -19,10 +_,13 @@
  import net.minecraft.DefaultUncaughtExceptionHandler;
  import net.minecraft.core.UUIDUtil;
  import net.minecraft.network.Connection;
@@ -10,6 +10,7 @@
  import net.minecraft.network.TickablePacketListener;
  import net.minecraft.network.chat.Component;
 +import net.minecraft.network.protocol.Packet;
++import net.minecraft.network.protocol.PacketUtils;
  import net.minecraft.network.protocol.configuration.ConfigurationProtocols;
  import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
  import net.minecraft.network.protocol.login.ClientboundHelloPacket;
@@ -21,11 +22,14 @@
  import net.minecraft.server.notifications.ServerActivityMonitor;
  import net.minecraft.server.players.NameAndId;
  import net.minecraft.server.players.PlayerList;
-@@ -43,15 +_,37 @@
+@@ -43,15 +_,40 @@
  import net.minecraft.util.RandomSource;
  import net.minecraft.util.StringUtil;
  import org.apache.commons.lang3.Validate;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.craftbukkit.util.Waitable;
++import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
++import org.bukkit.event.player.PlayerPreLoginEvent;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -82,6 +86,57 @@
          if (this.state == ServerLoginPacketListenerImpl.State.WAITING_FOR_DUPE_DISCONNECT
              && !this.isPlayerAlreadyInWorld(Objects.requireNonNull(this.authenticatedProfile))) {
              this.finishLoginAndWaitForClient(this.authenticatedProfile);
+@@ -85,6 +_,13 @@
+         }
+     }
+ 
++    // CraftBukkit start
++    @Deprecated
++    public void disconnect(String s) {
++        disconnect(Component.literal(s));
++    }
++    // CraftBukkit end
++
+     @Override
+     public boolean isAcceptingMessages() {
+         return this.connection.isConnected();
+@@ -92,6 +_,7 @@
+ 
+     public void disconnect(Component component) {
+         try {
++            this.state = State.DISCONNECTED; // CraftBukkit - SPIGOT-8020: prevent repetition
+             LOGGER.info("Disconnecting {}: {}", this.getUserName(), component.getString());
+             this.connection.send(new ClientboundLoginDisconnectPacket(component));
+             this.connection.disconnect(component);
+@@ -127,7 +_,27 @@
+                 this.state = ServerLoginPacketListenerImpl.State.KEY;
+                 this.connection.send(new ClientboundHelloPacket("", this.server.getKeyPair().getPublic().getEncoded(), this.challenge, true));
+             } else {
+-                this.startClientVerification(UUIDUtil.createOfflineProfile(this.requestedUsername));
++                // CraftBukkit start
++                Thread thread = new Thread("User Authenticator #" + ServerLoginPacketListenerImpl.UNIQUE_THREAD_ID.incrementAndGet()) {
++
++                    @Override
++                    public void run() {
++                        try {
++                            GameProfile gameprofile = UUIDUtil.createOfflineProfile(ServerLoginPacketListenerImpl.this.requestedUsername);
++
++                            ServerLoginPacketListenerImpl.this.callPlayerPreLoginEvents(gameprofile);
++                            ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.name(), gameprofile.id());
++                            ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
++                        } catch (Exception ex) {
++                            disconnect("Failed to verify username!");
++                            server.server.getLogger().log(java.util.logging.Level.WARNING, "Exception verifying " + ServerLoginPacketListenerImpl.this.requestedUsername, ex);
++                        }
++                    }
++                };
++
++                thread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(ServerLoginPacketListenerImpl.LOGGER));
++                thread.start();
++                // CraftBukkit end
+             }
+         }
+     }
 @@ -139,23 +_,55 @@
  
      private void verifyLoginAndFinishConnectionSetup(GameProfile profile) {
@@ -145,7 +200,80 @@
              }
          }
      }
-@@ -244,7 +_,7 @@
+@@ -202,6 +_,12 @@
+                         .hasJoinedServer(name, digest, this.getAddress());
+                     if (result != null) {
+                         GameProfile profile = result.profile();
++                        // CraftBukkit start - fire PlayerPreLoginEvent
++                        if (!connection.isConnected()) {
++                            return;
++                        }
++                        ServerLoginPacketListenerImpl.this.callPlayerPreLoginEvents(profile);
++                        // CraftBukkit end
+                         ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", profile.name(), profile.id());
+                         ServerLoginPacketListenerImpl.this.serverActivityMonitor.reportLoginActivity();
+                         ServerLoginPacketListenerImpl.this.startClientVerification(profile);
+@@ -220,6 +_,11 @@
+                         ServerLoginPacketListenerImpl.this.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
+                         ServerLoginPacketListenerImpl.LOGGER.error("Couldn't verify username because servers are unavailable");
+                     }
++                    // CraftBukkit start - catch all exceptions
++                } catch (Exception exception) {
++                    disconnect("Failed to verify username!");
++                    server.server.getLogger().log(java.util.logging.Level.WARNING, "Exception verifying " + name, exception);
++                    // CraftBukkit end
+                 }
+             }
+ 
+@@ -234,6 +_,43 @@
+         thread.start();
+     }
+ 
++    // CraftBukkit start
++    private void callPlayerPreLoginEvents(GameProfile gameprofile) throws Exception {
++        String playerName = gameprofile.name();
++        java.net.InetAddress address = ((java.net.InetSocketAddress) connection.getRemoteAddress()).getAddress();
++        java.util.UUID uniqueId = gameprofile.id();
++        final org.bukkit.craftbukkit.CraftServer server = ServerLoginPacketListenerImpl.this.server.server;
++
++        AsyncPlayerPreLoginEvent asyncEvent = new AsyncPlayerPreLoginEvent(playerName, address, uniqueId, this.transferred);
++        server.getPluginManager().callEvent(asyncEvent);
++
++        if (PlayerPreLoginEvent.getHandlerList().getRegisteredListeners().length != 0) {
++            final PlayerPreLoginEvent event = new PlayerPreLoginEvent(playerName, address, uniqueId);
++            if (asyncEvent.getResult() != PlayerPreLoginEvent.Result.ALLOWED) {
++                event.disallow(asyncEvent.getResult(), asyncEvent.getKickMessage());
++            }
++            Waitable<PlayerPreLoginEvent.Result> waitable = new Waitable<PlayerPreLoginEvent.Result>() {
++                @Override
++                protected PlayerPreLoginEvent.Result evaluate() {
++                    server.getPluginManager().callEvent(event);
++                    return event.getResult();
++                }
++            };
++
++            ServerLoginPacketListenerImpl.this.server.processQueue.add(waitable);
++            if (waitable.get() != PlayerPreLoginEvent.Result.ALLOWED) {
++                disconnect(event.getKickMessage());
++                return;
++            }
++        } else {
++            if (asyncEvent.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED) {
++                disconnect(asyncEvent.getKickMessage());
++                return;
++            }
++        }
++    }
++    // CraftBukkit end
++
+     @Override
+     public void handleCustomQueryPacket(ServerboundCustomQueryAnswerPacket packet) {
+         this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
+@@ -241,10 +_,11 @@
+ 
+     @Override
+     public void handleLoginAcknowledgement(ServerboundLoginAcknowledgedPacket packet) {
++        PacketUtils.ensureRunningOnSameThread(packet, this, this.server.packetProcessor()); // CraftBukkit
          Validate.validState(this.state == ServerLoginPacketListenerImpl.State.PROTOCOL_SWITCHING, "Unexpected login acknowledgement packet");
          this.connection.setupOutboundProtocol(ConfigurationProtocols.CLIENTBOUND);
          CommonListenerCookie cookie = CommonListenerCookie.createInitial(Objects.requireNonNull(this.authenticatedProfile), this.transferred);
@@ -154,11 +282,25 @@
          this.connection.setupInboundProtocol(ConfigurationProtocols.SERVERBOUND, configPacketListener);
          configPacketListener.startConfiguration();
          this.state = ServerLoginPacketListenerImpl.State.ACCEPTED;
-@@ -268,6 +_,6 @@
+@@ -257,6 +_,12 @@
+ 
+     @Override
+     public void handleCookieResponse(ServerboundCookieResponsePacket packet) {
++        // CraftBukkit start
++        PacketUtils.ensureRunningOnSameThread(packet, this, this.server.packetProcessor());
++        if (this.player != null && this.player.getBukkitEntity().handleCookieResponse(packet)) {
++            return;
++        }
++        // CraftBukkit end
+         this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
+     }
+ 
+@@ -268,6 +_,7 @@
          VERIFYING,
          WAITING_FOR_DUPE_DISCONNECT,
          PROTOCOL_SWITCHING,
 -        ACCEPTED;
-+        ACCEPTED, WAITING_FOR_COOKIES, DISCONNECTED; // CraftBukkit
++        ACCEPTED,
++        WAITING_FOR_COOKIES, DISCONNECTED; // CraftBukkit
      }
  }

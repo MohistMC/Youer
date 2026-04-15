@@ -26,16 +26,17 @@
                                      if (ServerConnectionListener.this.server.repliesToStatus()) {
                                          pipeline.addLast("legacy_query", new LegacyQueryHandler(ServerConnectionListener.this.getServer()));
                                      }
-@@ -87,7 +_,7 @@
+@@ -87,14 +_,25 @@
                                  }
                              }
                          )
 -                        .group(eventLoopGroupHolder.eventLoopGroup())
 +                        .group(eventLoopGroupHolder.serverEventLoopGroup())
                          .localAddress(address, port)
++                        .option(ChannelOption.AUTO_READ, false) // CraftBukkit
                          .bind()
                          .syncUninterruptibly()
-@@ -95,6 +_,16 @@
+                 );
          }
      }
  

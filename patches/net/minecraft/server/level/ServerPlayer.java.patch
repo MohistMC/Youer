@@ -360,7 +360,7 @@
 +                    );
 +                } else {
 +                    menu.setTitle(provider.getDisplayName());
-+
++                    menu.containerOwner = this;
 +                    boolean cancelled = false;
 +                    menu = CraftEventFactory.callInventoryOpenEvent(this, menu, cancelled);
 +                    if (menu == null && !cancelled) { // Let pre-cancelled events fall through
@@ -441,14 +441,6 @@
          this.initMenu(this.containerMenu);
      }
  
-@@ -1412,6 +_,7 @@
- 
-     @Override
-     public void closeContainer() {
-+        CraftEventFactory.handleInventoryCloseEvent(this); // CraftBukkit
-         this.connection.send(new ClientboundContainerClosePacket(this.containerMenu.containerId));
-         this.doCloseContainer();
-     }
 @@ -1420,6 +_,7 @@
      public void doCloseContainer() {
          this.containerMenu.removed(this);

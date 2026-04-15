@@ -16,16 +16,36 @@
  import net.minecraft.tags.ItemTags;
  import net.minecraft.util.Mth;
  import net.minecraft.util.datafix.DataFixTypes;
-@@ -38,6 +_,9 @@
+@@ -38,6 +_,11 @@
  import net.minecraft.world.level.LevelAccessor;
  import net.minecraft.world.level.saveddata.SavedData;
  import net.minecraft.world.level.saveddata.SavedDataType;
 +import org.bukkit.Bukkit;
 +import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.map.CraftMapCursor;
 +import org.bukkit.craftbukkit.map.CraftMapView;
++import org.bukkit.craftbukkit.util.CraftChatMessage;
  import org.jspecify.annotations.Nullable;
  
  public class MapItemSavedData extends SavedData {
+@@ -57,7 +_,16 @@
+                 Codec.BOOL.optionalFieldOf("unlimitedTracking", false).forGetter(m -> m.unlimitedTracking),
+                 Codec.BOOL.optionalFieldOf("locked", false).forGetter(m -> m.locked),
+                 MapBanner.CODEC.listOf().optionalFieldOf("banners", List.of()).forGetter(m -> List.copyOf(m.bannerMarkers.values())),
+-                MapFrame.CODEC.listOf().optionalFieldOf("frames", List.of()).forGetter(m -> List.copyOf(m.frameMarkers.values()))
++                MapFrame.CODEC.listOf().optionalFieldOf("frames", List.of()).forGetter(m -> List.copyOf(m.frameMarkers.values())),
++                Codec.LONG.optionalFieldOf("UUIDLeast", 0L).forGetter((mapitemsaveddata) -> {
++                      UUID uuid = mapitemsaveddata.updateUUID();
++                      return (uuid != null) ? uuid.getLeastSignificantBits() : 0L;
++                }),
++                Codec.LONG.optionalFieldOf("UUIDMost", 0L).forGetter((mapitemsaveddata) -> {
++                      UUID uuid = mapitemsaveddata.updateUUID();
++                      return (uuid != null) ? uuid.getMostSignificantBits() : 0L;
++                      // CraftBukkit end
++                })
+             )
+             .apply(i, MapItemSavedData::new)
+     );
 @@ -76,6 +_,46 @@
      private final Map<String, MapFrame> frameMarkers = Maps.newHashMap();
      private int trackedDecorationCount;
@@ -83,3 +103,64 @@
      }
  
      private MapItemSavedData(
+@@ -104,9 +_,9 @@
+         boolean unlimitedTracking,
+         boolean locked,
+         List<MapBanner> banners,
+-        List<MapFrame> frames
++        List<MapFrame> frames, long uuidLeast, long uuidMost
+     ) {
+-        this(centerX, centerZ, (byte)Mth.clamp(scale, 0, 4), trackingPosition, unlimitedTracking, locked, dimension);
++        this(centerX, centerZ, (byte)Mth.clamp(scale, 0, 4), trackingPosition, unlimitedTracking, locked, getWorldKey(dimension, uuidLeast, uuidMost));
+         if (colors.array().length == 16384) {
+             this.colors = colors.array();
+         }
+@@ -499,7 +_,7 @@
+             this.player = player;
+         }
+ 
+-        private MapItemSavedData.MapPatch createPatch() {
++        private MapItemSavedData.MapPatch createPatch(byte[] buffer) { // CraftBukkit
+             int startX = this.minDirtyX;
+             int startY = this.minDirtyY;
+             int width = this.maxDirtyX + 1 - this.minDirtyX;
+@@ -508,7 +_,7 @@
+ 
+             for (int x = 0; x < width; x++) {
+                 for (int y = 0; y < height; y++) {
+-                    patch[x + y * width] = MapItemSavedData.this.colors[startX + x + (startY + y) * 128];
++                    patch[x + y * width] = buffer[startX + x + (startY + y) * 128];
+                 }
+             }
+ 
+@@ -517,17 +_,27 @@
+ 
+         private @Nullable Packet<?> nextUpdatePacket(MapId id) {
+             MapItemSavedData.MapPatch patch;
++            org.bukkit.craftbukkit.map.RenderData render = MapItemSavedData.this.mapView.render((org.bukkit.craftbukkit.entity.CraftPlayer) this.player.getBukkitEntity()); // CraftBukkit
+             if (this.dirtyData) {
+                 this.dirtyData = false;
+-                patch = this.createPatch();
++                patch = this.createPatch(render.buffer); // CraftBukkit
+             } else {
+                 patch = null;
+             }
+ 
+             Collection<MapDecoration> decorations;
+-            if (this.dirtyDecorations && this.tick++ % 5 == 0) {
++            if ((true || this.dirtyDecorations) && this.tick++ % 5 == 0) { // CraftBukkit - custom maps don't update this yet
+                 this.dirtyDecorations = false;
+-                decorations = MapItemSavedData.this.decorations.values();
++                // CraftBukkit start
++                java.util.Collection<MapDecoration> icons = new java.util.ArrayList<MapDecoration>();
++
++                for (org.bukkit.map.MapCursor cursor : render.cursors) {
++                    if (cursor.isVisible()) {
++                        icons.add(new MapDecoration(CraftMapCursor.CraftType.bukkitToMinecraftHolder(cursor.getType()), cursor.getX(), cursor.getY(), cursor.getDirection(), CraftChatMessage.fromStringOrOptional(cursor.getCaption())));
++                    }
++                }
++                decorations = icons;
++                // CraftBukkit end
+             } else {
+                 decorations = null;
+             }

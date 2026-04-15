@@ -44,6 +44,15 @@
          this.synchronizeRegistriesTask = new SynchronizeRegistriesTask(knownPacks, registries);
          this.configurationTasks.add(this.synchronizeRegistriesTask);
          this.addOptionalTasks();
+@@ -101,7 +_,7 @@
+     }
+ 
+     public void returnToWorld() {
+-        this.prepareSpawnTask = new PrepareSpawnTask(this.server, new NameAndId(this.gameProfile));
++        this.prepareSpawnTask = new PrepareSpawnTask(this.server, this.player); // CraftBukkit
+         this.configurationTasks.add(this.prepareSpawnTask);
+         this.configurationTasks.add(new JoinWorldTask());
+         this.startNextTask();
 @@ -125,6 +_,32 @@
          }
  
@@ -77,6 +86,14 @@
      }
  
      @Override
+@@ -153,6 +_,7 @@
+ 
+     @Override
+     public void handleAcceptCodeOfConduct(ServerboundAcceptCodeOfConductPacket packet) {
++        PacketUtils.ensureRunningOnSameThread(packet, this, this.server.packetProcessor()); // CraftBukkit
+         this.finishCurrentTask(ServerCodeOfConductConfigurationTask.TYPE);
+     }
+ 
 @@ -160,7 +_,13 @@
      public void handleConfigurationFinished(ServerboundFinishConfigurationPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.server.packetProcessor());

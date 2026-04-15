@@ -1,5 +1,49 @@
 --- a/net/minecraft/server/rcon/thread/RconClient.java
 +++ b/net/minecraft/server/rcon/thread/RconClient.java
+@@ -9,7 +_,9 @@
+ import java.nio.charset.StandardCharsets;
+ import java.util.Locale;
+ import net.minecraft.server.ServerInterface;
++import net.minecraft.server.dedicated.DedicatedServer;
+ import net.minecraft.server.rcon.PktUtils;
++import net.minecraft.server.rcon.RconConsoleSource;
+ import org.slf4j.Logger;
+ 
+ public class RconClient extends GenericThread {
+@@ -23,11 +_,14 @@
+     private final Socket client;
+     private final byte[] buf = new byte[1460];
+     private final String rconPassword;
+-    private final ServerInterface serverInterface;
++    // CraftBukkit start
++    private final DedicatedServer serverInterface;
++    private final RconConsoleSource rconConsoleSource;
++    // CraftBukkit end
+ 
+     RconClient(ServerInterface serverInterface, String rconPassword, Socket socket) {
+         super("RCON Client " + socket.getInetAddress());
+-        this.serverInterface = serverInterface;
++        this.serverInterface = (DedicatedServer) serverInterface; // CraftBukkit
+         this.client = socket;
+ 
+         try {
+@@ -37,6 +_,7 @@
+         }
+ 
+         this.rconPassword = rconPassword;
++        this.rconConsoleSource = new net.minecraft.server.rcon.RconConsoleSource(this.serverInterface, socket.getRemoteSocketAddress()); // CraftBukkit
+     }
+ 
+     @Override
+@@ -67,7 +_,7 @@
+                                 String command = PktUtils.stringFromByteArray(this.buf, offset, read);
+ 
+                                 try {
+-                                    this.sendCmdResponse(requestid, this.serverInterface.runCommand(command));
++                                    this.sendCmdResponse(requestid, this.serverInterface.runCommand(this.rconConsoleSource, command));
+                                 } catch (Exception var15) {
+                                     this.sendCmdResponse(requestid, "Error executing: " + command + " (" + var15.getMessage() + ")");
+                                 }
 @@ -123,13 +_,14 @@
      }
  

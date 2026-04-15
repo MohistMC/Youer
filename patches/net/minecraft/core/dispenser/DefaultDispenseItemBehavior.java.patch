@@ -1,18 +1,15 @@
 --- a/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
-@@ -8,10 +8,25 @@
+@@ -7,10 +_,24 @@
+ import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.DispenserBlock;
- 
-+// CraftBukkit start
 +import org.bukkit.craftbukkit.block.CraftBlock;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
 +import org.bukkit.craftbukkit.util.CraftVector;
 +import org.bukkit.event.block.BlockDispenseEvent;
-+// CraftBukkit end
-+
- public class DefaultDispenseItemBehavior implements DispenseItemBehavior {
  
+ public class DefaultDispenseItemBehavior implements DispenseItemBehavior {
      private static final int DEFAULT_ACCURACY = 6;
  
 +    // CraftBukkit start
@@ -23,16 +20,18 @@
 +    }
 +    // CraftBukkit end
 +
-     public DefaultDispenseItemBehavior() {}
- 
++    public DefaultDispenseItemBehavior() {}
++
      @Override
-@@ -28,11 +43,22 @@
+     public final ItemStack dispense(BlockSource source, ItemStack dispensed) {
+         ItemStack result = this.execute(source, dispensed);
+@@ -23,29 +_,78 @@
+         Direction direction = source.state().getValue(DispenserBlock.FACING);
          Position position = DispenserBlock.getDispensePosition(source);
-         ItemStack itemstack1 = dispensed.split(1);
- 
--        spawnItem(source.level(), itemstack1, 6, direction, position);
+         ItemStack itemStack = dispensed.split(1);
+-        spawnItem(source.level(), itemStack, 6, direction, position);
 +        // CraftBukkit start
-+        if (!spawnItem(source.level(), itemstack1, 6, direction, source, dropper)) {
++        if (!spawnItem(source.level(), itemStack, 6, direction, source, dropper)) {
 +            dispensed.grow(1);
 +        }
 +        // CraftBukkit end
@@ -40,6 +39,9 @@
      }
  
      public static void spawnItem(Level level, ItemStack itemStack, int accuracy, Direction direction, Position position) {
+-        double spawnX = position.x();
+-        double spawnY = position.y();
+-        double spawnZ = position.z();
 +        // CraftBukkit start
 +        ItemEntity itementity = prepareItem(level, itemStack, accuracy, direction, position);
 +        level.addFreshEntity(itementity);
@@ -47,13 +49,34 @@
 +
 +    private static ItemEntity prepareItem(Level level, ItemStack itemStack, int accuracy, Direction direction, Position position) {
 +        // CraftBukkit end
-         double d0 = position.x();
-         double d1 = position.y();
-         double d2 = position.z();
-@@ -48,7 +74,47 @@
-         double d3 = randomsource.nextDouble() * 0.1D + 0.2D;
- 
-         itementity.setDeltaMovement(randomsource.triangle((double) direction.getStepX() * d3, 0.0172275D * (double) accuracy), randomsource.triangle(0.2D, 0.0172275D * (double) accuracy), randomsource.triangle((double) direction.getStepZ() * d3, 0.0172275D * (double) accuracy));
++        double d0 = position.x();
++        double d1 = position.y();
++        double d2 = position.z();
++
+         if (direction.getAxis() == Direction.Axis.Y) {
+-            spawnY -= 0.125;
++            d1 -= 0.125D;
+         } else {
+-            spawnY -= 0.15625;
+-        }
+-
+-        ItemEntity itemEntity = new ItemEntity(level, spawnX, spawnY, spawnZ, itemStack);
+-        RandomSource random = level.getRandom();
+-        double pow = random.nextDouble() * 0.1 + 0.2;
+-        itemEntity.setDeltaMovement(
+-            random.triangle(direction.getStepX() * pow, 0.0172275 * accuracy),
+-            random.triangle(0.2, 0.0172275 * accuracy),
+-            random.triangle(direction.getStepZ() * pow, 0.0172275 * accuracy)
+-        );
+-        level.addFreshEntity(itemEntity);
++            d1 -= 0.15625D;
++        }
++
++        ItemEntity itementity = new ItemEntity(level, d0, d1, d2, itemStack);
++        RandomSource randomsource = level.getRandom();
++        double d3 = randomsource.nextDouble() * 0.1D + 0.2D;
++
++        itementity.setDeltaMovement(randomsource.triangle((double) direction.getStepX() * d3, 0.0172275D * (double) accuracy), randomsource.triangle(0.2D, 0.0172275D * (double) accuracy), randomsource.triangle((double) direction.getStepZ() * d3, 0.0172275D * (double) accuracy));
 +        // CraftBukkit start
 +        return itementity;
 +    }
@@ -91,7 +114,7 @@
 +            return false;
 +        }
 +
-         level.addFreshEntity(itementity);
++        level.addFreshEntity(itementity);
 +
 +        return true;
 +        // CraftBukkit end

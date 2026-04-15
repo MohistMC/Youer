@@ -1315,7 +1315,7 @@
                          if (target instanceof ItemEntity
                              || target instanceof ExperienceOrb
 -                            || target == this.player
-+                            || (target != this.player || this.player.isSpectator())
++                            || (target == this.player && !this.player.isSpectator())
                              || target instanceof AbstractArrow abstractArrow && !abstractArrow.isAttackable()) {
                              this.disconnect(Component.translatable("multiplayer.disconnect.invalid_entity_attacked"));
                              LOGGER.warn("Player {} tried to attack an invalid entity", this.player.getPlainTextName());
@@ -1407,14 +1407,11 @@
                      }
                  }
                  break;
-@@ -1919,15 +_,21 @@
+@@ -1919,15 +_,18 @@
      @Override
      public void handleContainerClose(ServerboundContainerClosePacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
-+
 +        if (this.player.isImmobile()) return; // CraftBukkit
-+        CraftEventFactory.handleInventoryCloseEvent(this.player); // CraftBukkit
-+
          this.player.doCloseContainer();
      }
  
@@ -1431,7 +1428,7 @@
                  this.player.containerMenu.sendAllDataToRemote();
              } else if (!this.player.containerMenu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, this.player.containerMenu);
-@@ -1943,7 +_,284 @@
+@@ -1943,7 +_,285 @@
                  } else {
                      boolean fullResyncNeeded = packet.stateId() != this.player.containerMenu.getStateId();
                      this.player.containerMenu.suppressRemoteUpdates();
@@ -1441,6 +1438,7 @@
 +                        return;
 +                    }
 +
++                    this.player.containerMenu.containerOwner = this.player;
 +                    InventoryView inventory = this.player.containerMenu.getBukkitView();
 +                    InventoryType.SlotType type = inventory.getSlotType(packet.slotNum());
 +

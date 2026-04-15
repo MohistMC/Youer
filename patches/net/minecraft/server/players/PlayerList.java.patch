@@ -101,9 +101,21 @@
      }
  
      public void updateEntireScoreboard(ServerScoreboard scoreboard, ServerPlayer player) {
-@@ -292,6 +_,7 @@
+@@ -291,7 +_,19 @@
+         }
      }
  
++    public Optional<CompoundTag> loadPlayerData(Player nameAndId) { // CraftBukkit
++        UUID uuid = this.server.getWorldData().getSinglePlayerUUID();
++
++        if (this.server.isSingleplayerOwner(nameAndId.nameAndId()) && uuid != null) { // CraftBukkit
++            PlayerList.LOGGER.debug("loading single player");
++            return this.playerIo.load(new NameAndId(uuid, "<singleplayer owner>"));
++        } else {
++            return this.playerIo.load(nameAndId);
++        }
++    }
++
      protected void save(ServerPlayer player) {
 +        if (player.connection == null) return;
          this.playerIo.save(player);

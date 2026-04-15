@@ -1,5 +1,28 @@
 --- a/net/minecraft/server/network/config/PrepareSpawnTask.java
 +++ b/net/minecraft/server/network/config/PrepareSpawnTask.java
+@@ -33,11 +_,11 @@
+     public static final ConfigurationTask.Type TYPE = new ConfigurationTask.Type("prepare_spawn");
+     public static final int PREPARE_CHUNK_RADIUS = 3;
+     private final MinecraftServer server;
+-    private final NameAndId nameAndId;
++    private final ServerPlayer nameAndId;
+     private final LevelLoadListener loadListener;
+     private PrepareSpawnTask.@Nullable State state;
+ 
+-    public PrepareSpawnTask(MinecraftServer server, NameAndId nameAndId) {
++    public PrepareSpawnTask(MinecraftServer server, ServerPlayer nameAndId) {
+         this.server = server;
+         this.nameAndId = nameAndId;
+         this.loadListener = server.getLevelLoadListener();
+@@ -178,7 +_,7 @@
+         public ServerPlayer spawn(Connection connection, CommonListenerCookie cookie) {
+             ChunkPos spawnChunk = ChunkPos.containing(BlockPos.containing(this.spawnPosition));
+             this.spawnLevel.waitForEntities(spawnChunk, 3);
+-            ServerPlayer player = new ServerPlayer(PrepareSpawnTask.this.server, this.spawnLevel, cookie.gameProfile(), cookie.clientInformation());
++            ServerPlayer player = nameAndId; // CraftBukkit
+ 
+             ServerPlayer var7;
+             try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(player.problemPath(), PrepareSpawnTask.LOGGER)) {
 @@ -187,6 +_,7 @@
                      .loadPlayerData(PrepareSpawnTask.this.nameAndId)
                      .map(tag -> TagValueInput.create(reporter, PrepareSpawnTask.this.server.registryAccess(), tag));
