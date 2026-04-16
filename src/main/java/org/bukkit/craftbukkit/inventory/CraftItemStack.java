@@ -307,7 +307,7 @@ public final class CraftItemStack extends ItemStack {
         if (this.handle == null) {
             return 0;
         }
-        return EnchantmentHelper.getItemEnchantmentLevel(CraftEnchantment.bukkitToMinecraftHolder(ench), this.handle);
+        return EnchantmentHelper.getTagEnchantmentLevel(CraftEnchantment.bukkitToMinecraftHolder(ench), this.handle);
     }
 
     @Override
