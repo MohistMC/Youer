@@ -1,21 +1,23 @@
 --- a/net/minecraft/world/item/component/Consumable.java
 +++ b/net/minecraft/world/item/component/Consumable.java
-@@ -29,6 +29,11 @@
+@@ -24,10 +_,12 @@
+ import net.minecraft.world.food.FoodProperties;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.ItemUseAnimation;
++import net.minecraft.world.item.Items;
+ import net.minecraft.world.item.consume_effects.ConsumeEffect;
+ import net.minecraft.world.item.consume_effects.PlaySoundConsumeEffect;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.gameevent.GameEvent;
- 
-+// CraftBukkit start
-+import net.minecraft.world.item.Items;
 +import org.bukkit.event.entity.EntityPotionEffectEvent;
-+// CraftBukkit end
-+
- public record Consumable(float consumeSeconds, ItemUseAnimation animation, Holder<SoundEvent> sound, boolean hasConsumeParticles, List<ConsumeEffect> onConsumeEffects) {
  
-     public static final float DEFAULT_CONSUME_SECONDS = 1.6F;
-@@ -69,8 +74,19 @@
-             consumablelistener.onConsume(level, user, stack, this);
-         });
+ public record Consumable(
+     float consumeSeconds, ItemUseAnimation animation, Holder<SoundEvent> sound, boolean hasConsumeParticles, List<ConsumeEffect> onConsumeEffects
+@@ -84,13 +_,31 @@
+ 
+         stack.getAllOfType(ConsumableListener.class).forEach(component -> component.onConsume(level, user, stack, this));
          if (!level.isClientSide()) {
+-            this.onConsumeEffects.forEach(action -> action.apply(level, stack, user));
 +            // CraftBukkit start
 +            EntityPotionEffectEvent.Cause cause;
 +            if (stack.is(Items.MILK_BUCKET)) {
@@ -25,18 +27,14 @@
 +            } else {
 +                cause = EntityPotionEffectEvent.Cause.FOOD;
 +            }
-+
-             this.onConsumeEffects.forEach((consumeeffect) -> {
--                consumeeffect.apply(level, stack, user);
-+                consumeeffect.apply(level, stack, user, cause);
-+                // CraftBukkit end
-             });
++            this.onConsumeEffects.forEach(action -> action.apply(level, stack, user, cause));
          }
  
-@@ -79,6 +95,15 @@
+         user.gameEvent(this.animation == ItemUseAnimation.DRINK ? GameEvent.DRINK : GameEvent.EAT);
+         stack.consume(1, user);
          return stack;
      }
- 
++
 +    // CraftBukkit start
 +    public void cancelUsingItem(net.minecraft.server.level.ServerPlayer serverplayer, ItemStack itemstack) {
 +        itemstack.getAllOfType(ConsumableListener.class).forEach((consumablelistener) -> {
@@ -45,7 +43,6 @@
 +        serverplayer.server.getPlayerList().sendActivePlayerEffects(serverplayer);
 +    }
 +    // CraftBukkit end
-+
-     public boolean canConsume(LivingEntity user, ItemStack stack) {
-         FoodProperties foodproperties = (FoodProperties) stack.get(DataComponents.FOOD);
  
+     public boolean canConsume(LivingEntity user, ItemStack stack) {
+         FoodProperties foodProperties = stack.get(DataComponents.FOOD);

@@ -21,15 +21,18 @@
  import java.util.function.BiConsumer;
  import java.util.function.Consumer;
  import java.util.function.Function;
-@@ -135,6 +_,11 @@
+@@ -135,6 +_,14 @@
  import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.waypoints.Waypoint;
  import net.minecraft.world.waypoints.WaypointTransmitter;
 +import org.bukkit.craftbukkit.attribute.CraftAttributeMap;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.event.entity.ArrowBodyCountChangeEvent;
 +import org.bukkit.event.entity.EntityPotionEffectEvent;
 +import org.bukkit.event.entity.EntityRegainHealthEvent;
++import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.player.PlayerDropItemEvent;
  import org.jetbrains.annotations.Contract;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
@@ -56,7 +59,7 @@
      private final AttributeMap attributes;
      public CombatTracker combatTracker = new CombatTracker(this);
      public final Map<Holder<MobEffect>, MobEffectInstance> activeEffects = Maps.newHashMap();
-@@ -264,14 +_,37 @@
+@@ -264,14 +_,38 @@
      private final EnumMap<EquipmentSlot, Reference2ObjectMap<Enchantment, Set<EnchantmentLocationBasedEffect>>> activeLocationDependentEnchantments = new EnumMap<>(
          EquipmentSlot.class
      );
@@ -92,6 +95,7 @@
          super(type, level);
          this.attributes = new AttributeMap(DefaultAttributes.getSupplier(type));
 +        this.craftAttributes = new CraftAttributeMap(attributes); // CraftBukkit
++        this.fake$setHealth(true);
          this.setHealth(this.getMaxHealth());
          this.equipment = this.createEquipment();
          this.blocksBuilding = true;
@@ -113,13 +117,20 @@
          }
  
          if (this.level() instanceof ServerLevel level && onGround && this.fallDistance > 0.0) {
-@@ -364,7 +_,8 @@
+@@ -364,7 +_,15 @@
  
                  double scale = Math.min(0.2F + power / 15.0, 2.5);
                  int particles = (int)(150.0 * scale);
 -                level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, onState), x, y, z, particles, 0.0, 0.0, 0.0, 0.15F);
-+                if (!onState.addLandingEffects(level, pos, onState, this, particles))
-+                level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, onState, pos), x, y, z, particles, 0.0, 0.0, 0.0, 0.15F);
++                if (!onState.addLandingEffects(level, pos, onState, this, particles)) {
++                    // CraftBukkit start - visiblity api
++                    if (this instanceof ServerPlayer) {
++                        level.sendParticlesSource((ServerPlayer) this, new BlockParticleOption(ParticleTypes.BLOCK, onState, pos), false, false, x, y, z, particles, 0.0, 0.0, 0.0, 0.15F);
++                    } else {
++                        level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, onState, pos), x, y, z, particles, 0.0, 0.0, 0.0, 0.15F);
++                    }
++                    // CraftBukkit end
++                }
              }
          }
  
@@ -131,6 +142,60 @@
      public boolean canBreatheUnderwater() {
          return this.is(EntityTypeTags.CAN_BREATHE_UNDER_WATER);
      }
+@@ -549,6 +_,7 @@
+         this.deathTime++;
+         if (this.deathTime >= 20 && !this.level().isClientSide() && !this.isRemoved()) {
+             this.level().broadcastEntityEvent(this, (byte)60);
++            this.removeReason(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
+             this.remove(Entity.RemovalReason.KILLED);
+         }
+     }
+@@ -663,10 +_,16 @@
+     }
+ 
+     public void onEquipItem(EquipmentSlot slot, ItemStack oldStack, ItemStack stack) {
++        // CraftBukkit start
++        onEquipItem(slot, oldStack, stack, false);
++    }
++
++    public void onEquipItem(EquipmentSlot slot, ItemStack oldStack, ItemStack stack, boolean silent) {
++        // CraftBukkit end
+         if (!this.level().isClientSide() && !this.isSpectator()) {
+             if (!ItemStack.isSameItemSameComponents(oldStack, stack) && !this.firstTick) {
+                 Equippable equippable = stack.get(DataComponents.EQUIPPABLE);
+-                if (!this.isSilent() && equippable != null && slot == equippable.slot()) {
++                if (!this.isSilent() && equippable != null && slot == equippable.slot() && !silent) { // CraftBukkit
+                     this.level()
+                         .playSeededSound(
+                             null,
+@@ -694,11 +_,18 @@
+ 
+     @Override
+     public void remove(Entity.RemovalReason reason) {
++        // CraftBukkit start - add Bukkit remove cause
++        this.remove(reason, null);
++    }
++
++    @Override
++    public void remove(Entity.RemovalReason reason, EntityRemoveEvent.Cause cause) {
++        // CraftBukkit end
+         if ((reason == Entity.RemovalReason.KILLED || reason == Entity.RemovalReason.DISCARDED) && this.level() instanceof ServerLevel level) {
+             this.triggerOnDeathMobEffects(level, reason);
+         }
+ 
+-        super.remove(reason);
++        super.remove(reason, cause); // CraftBukkit
+         this.brain.clearMemories();
+     }
+ 
+@@ -715,6 +_,7 @@
+             effect.onMobRemoved(level, this, reason);
+         }
+ 
++        this.removeAllEffects(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.DEATH); // CraftBukkit
+         this.activeEffects.clear();
+     }
+ 
 @@ -755,6 +_,12 @@
      }
  
@@ -144,7 +209,7 @@
          if (itemStack.isEmpty()) {
              return null;
          } else if (this.level().isClientSide()) {
-@@ -763,7 +_,11 @@
+@@ -763,7 +_,36 @@
          } else {
              ItemEntity entity = this.createItemStackToDrop(itemStack, randomly, thrownFromHand);
              if (entity != null) {
@@ -152,12 +217,51 @@
 +                if (captureDrops() != null) {
 +                    captureDrops().add(entity);
 +                } else {
++                    // CraftBukkit start - fire PlayerDropItemEvent
++                    if (callEvent && this instanceof ServerPlayer) {
++                        org.bukkit.entity.Player player = (org.bukkit.entity.Player) this.getBukkitEntity();
++                        org.bukkit.entity.Item drop = (org.bukkit.entity.Item) entity.getBukkitEntity();
++
++                        PlayerDropItemEvent event = new PlayerDropItemEvent(player, drop);
++                        this.level().getCraftServer().getPluginManager().callEvent(event);
++
++                        if (event.isCancelled()) {
++                            org.bukkit.inventory.ItemStack cur = player.getInventory().getItemInHand();
++                            if (thrownFromHand && (cur == null || cur.getAmount() == 0)) {
++                                // The complete stack was dropped
++                                player.getInventory().setItemInHand(drop.getItemStack());
++                            } else if (thrownFromHand && cur.isSimilar(drop.getItemStack()) && cur.getAmount() < cur.getMaxStackSize() && drop.getItemStack().getAmount() == 1) {
++                                // Only one item is dropped
++                                cur.setAmount(cur.getAmount() + 1);
++                                player.getInventory().setItemInHand(cur);
++                            } else {
++                                // Fallback
++                                player.getInventory().addItem(drop.getItemStack());
++                            }
++                            return null;
++                        }
++                    }
++                    // CraftBukkit end
 +                    this.level().addFreshEntity(entity);
 +                }
              }
  
              return entity;
-@@ -822,6 +_,28 @@
+@@ -785,6 +_,13 @@
+             this.effectsDirty = true;
+         }
+ 
++        // CraftBukkit start
++        float maxHealth = input.getFloatOr("Bukkit.MaxHealth", -1);
++        if (maxHealth > 0) {
++            this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(maxHealth);
++        }
++        // CraftBukkit end
++
+         this.setHealth(input.getFloatOr("Health", this.getMaxHealth()));
+         this.hurtTime = input.getShortOr("HurtTime", (short)0);
+         this.deathTime = input.getShortOr("DeathTime", (short)0);
+@@ -822,23 +_,65 @@
          this.updateDirtyEffects();
      }
  
@@ -186,10 +290,19 @@
      protected void tickEffects() {
          if (this.level() instanceof ServerLevel serverLevel) {
              Iterator<Holder<MobEffect>> iterator = this.activeEffects.keySet().iterator();
-@@ -831,8 +_,10 @@
+ 
++            isTickingEffects = true; // CraftBukkit
+             try {
+                 while (iterator.hasNext()) {
                      Holder<MobEffect> mobEffect = iterator.next();
                      MobEffectInstance effect = this.activeEffects.get(mobEffect);
                      if (!effect.tickServer(serverLevel, this, () -> this.onEffectUpdated(effect, true, null))) {
++                        // CraftBukkit start
++                        EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, effect, null, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.EXPIRATION);
++                        if (event.isCancelled()) {
++                            continue;
++                        }
++                        // CraftBukkit end
 +                        if (!net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.living.MobEffectEvent.Expired(this, effect)).isCanceled()) {
                          iterator.remove();
                          this.onEffectsRemoved(List.of(effect));
@@ -197,6 +310,23 @@
                      } else if (effect.getDuration() % 600 == 0) {
                          this.onEffectUpdated(effect, false, null);
                      }
+                 }
+             } catch (ConcurrentModificationException var6) {
+             }
++            // CraftBukkit start
++            isTickingEffects = false;
++            for (ProcessableEffect e : effectsToProcess) {
++                if (e.effect != null) {
++                    addEffect(e.effect, e.cause);
++                } else {
++                    removeEffect(e.type, e.cause);
++                }
++            }
++            effectsToProcess.clear();
++            // CraftBukkit end
+         } else {
+             for (MobEffectInstance effect : this.activeEffects.values()) {
+                 effect.tickClient();
 @@ -879,8 +_,9 @@
          List<ParticleOptions> visibleEffectParticles = this.activeEffects
              .values()
@@ -217,7 +347,17 @@
          return visibilityPercent;
      }
  
-@@ -954,11 +_,20 @@
+@@ -948,17 +_,32 @@
+         this.entityData.set(DATA_EFFECT_PARTICLES, List.of());
+     }
+ 
++    private final AtomicReference<EntityPotionEffectEvent.Cause> removeAllEffects$cause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
++    public void removeAllEffects$cause(EntityPotionEffectEvent.Cause cause) {
++        removeAllEffects$cause.set(cause);
++    }
+     public boolean removeAllEffects() {
+         if (this.level().isClientSide()) {
+             return false;
          } else if (this.activeEffects.isEmpty()) {
              return false;
          } else {
@@ -226,7 +366,8 @@
 -            this.onEffectsRemoved(copy.values());
 +            Map<Holder<MobEffect>, MobEffectInstance> map = new java.util.HashMap<>(this.activeEffects.size());
 +            for (Map.Entry<Holder<MobEffect>, MobEffectInstance> entry : this.activeEffects.entrySet()) {
-+                if (!net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, entry.getValue())) {
++                EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, entry.getValue(), null, removeAllEffects$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), EntityPotionEffectEvent.Action.CLEARED);
++                if (!event.isCancelled() && !net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, entry.getValue())) {
 +                    map.put(entry.getKey(), entry.getValue());
 +                }
 +            }
@@ -237,11 +378,12 @@
 +    }
 +
 +    public boolean removeAllEffects(EntityPotionEffectEvent.Cause cause) {
++        removeAllEffects$cause(cause);
 +        return removeAllEffects();
      }
  
      public Collection<MobEffectInstance> getActiveEffects() {
-@@ -983,15 +_,28 @@
+@@ -983,22 +_,57 @@
      }
  
      public final boolean addEffect(MobEffectInstance newEffect) {
@@ -263,15 +405,45 @@
  
      public boolean addEffect(MobEffectInstance newEffect, @Nullable Entity source) {
 -        if (!this.canBeAffected(newEffect)) {
++        if (isTickingEffects) {
++            effectsToProcess.add(new ProcessableEffect(newEffect, addEffect$Cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN)));
++            return true;
++        }
++        // CraftBukkit end
 +        if (!net.neoforged.neoforge.common.CommonHooks.canMobEffectBeApplied(this, newEffect, source)) {
              return false;
          } else {
              MobEffectInstance effect = this.activeEffects.get(newEffect.getEffect());
              boolean changed = false;
++
++            // CraftBukkit start
++            boolean override = false;
++            if (effect != null) {
++                override = new MobEffectInstance(effect).update(newEffect);
++            }
++
++            EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, effect, newEffect, addEffect$Cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), override);
++            override = event.isOverride();
++            if (event.isCancelled()) {
++                return false;
++            }
++            // CraftBukkit end
++
 +            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.living.MobEffectEvent.Added(this, effect, newEffect, source));
              if (effect == null) {
                  this.activeEffects.put(newEffect.getEffect(), newEffect);
                  this.onEffectAdded(newEffect, source);
+                 changed = true;
+                 newEffect.onEffectAdded(this);
+-            } else if (effect.update(newEffect)) {
++                // CraftBukkit start
++            } else if (override) {
++                effect.update(newEffect);
+                 this.onEffectUpdated(effect, true, source);
++                // CraftBukkit end
+                 changed = true;
+             }
+ 
 @@ -1007,6 +_,20 @@
          }
      }
@@ -347,7 +519,7 @@
  
      protected void onEffectAdded(MobEffectInstance effect, @Nullable Entity source) {
          if (!this.level().isClientSide()) {
-@@ -1128,10 +_,31 @@
+@@ -1128,18 +_,65 @@
          }
      }
  
@@ -380,7 +552,48 @@
          }
      }
  
-@@ -1156,11 +_,14 @@
+     public float getHealth() {
++        // CraftBukkit start - Use unscaled health
++        if (this instanceof ServerPlayer serverPlayer && serverPlayer.initialized) {
++            return (float) serverPlayer.getBukkitEntity().getHealth();
++        }
++        // CraftBukkit end
+         return this.entityData.get(DATA_HEALTH_ID);
+     }
+ 
++
++    public AtomicBoolean fake$setHealth = new AtomicBoolean(false);
++    public void fake$setHealth(boolean fake) {
++        fake$setHealth.set(fake);
++    }
+     public void setHealth(float health) {
++        if (fake$setHealth.getAndSet(false)) {
++            return;
++        }
++        // Paper start - Check for NaN
++        if (Float.isNaN(health)) { health = getMaxHealth(); if (this.valid) {
++            System.err.println("[NAN-HEALTH] " + getScoreboardName() + " had NaN health set");
++        } } // Paper end - Check for NaN
++        // CraftBukkit start - Handle scaled health
++        if (this instanceof ServerPlayer serverPlayer && serverPlayer.initialized) {
++            CraftPlayer player = serverPlayer.getBukkitEntity();
++            double realHealth = Mth.clamp(health, 0.0F, player.getMaxHealth());
++            player.setRealHealth(realHealth);
++            player.updateScaledHealth(false);
++            return;
++        }
++        // CraftBukkit end
+         this.entityData.set(DATA_HEALTH_ID, Mth.clamp(health, 0.0F, this.getMaxHealth()));
+     }
+ 
+@@ -1151,16 +_,21 @@
+     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+         if (this.isInvulnerableTo(level, source)) {
+             return false;
++        } else if (this.isRemoved() || this.dead || this.getHealth() <= 0.0F) { // CraftBukkit - Don't allow entities that got set to dead/killed elsewhere to get damaged and die
++            return false;
+         } else if (this.isDeadOrDying()) {
+             return false;
          } else if (source.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE)) {
              return false;
          } else {
@@ -787,6 +1000,18 @@
          this.moveRelative(speed, input);
          this.move(MoverType.SELF, this.getDeltaMovement());
          Vec3 ladderMovement = this.getDeltaMovement();
+@@ -2510,6 +_,11 @@
+     }
+ 
+     public void stopFallFlying() {
++        // CraftBukkit start
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.callToggleGlideEvent(this, false).isCancelled()) {
++            return;
++        }
++        // CraftBukkit end
+         this.setSharedFlag(7, true);
+         this.setSharedFlag(7, false);
+     }
 @@ -2622,7 +_,7 @@
              double xd = Mth.clamp(delta.x, -0.15F, 0.15F);
              double zd = Mth.clamp(delta.z, -0.15F, 0.15F);
@@ -795,6 +1020,17 @@
 +            if (yd < 0.0D && !this.getInBlockState().isScaffolding(this) && this.isSuppressingSlidingDownLadder() && this instanceof Player) {
                  yd = 0.0;
              }
+ 
+@@ -2849,6 +_,10 @@
+         }
+     }
+ 
++    public void detectEquipmentUpdatesPublic() { // CraftBukkit
++        detectEquipmentUpdates();
++    }
++
+     private @Nullable Map<EquipmentSlot, ItemStack> collectEquipmentChanges() {
+         Map<EquipmentSlot, ItemStack> changedItems = null;
  
 @@ -2856,6 +_,7 @@
              ItemStack previous = this.lastEquipmentItems.get(slot);
@@ -817,6 +1053,38 @@
              }
          } else {
              this.noJumpDelay = 0;
+@@ -3087,6 +_,7 @@
+         this.checkFallDistanceAccumulation();
+         if (!this.level().isClientSide()) {
+             if (!this.canGlide()) {
++                if (this.getSharedFlag(7) != false && !CraftEventFactory.callToggleGlideEvent(this, false).isCancelled()) // CraftBukkit
+                 this.setSharedFlag(7, false);
+                 return;
+             }
+@@ -3261,13 +_,20 @@
+ 
+     @Override
+     public boolean isPickable() {
+-        return !this.isRemoved();
++        return !this.isRemoved() && this.collides; // CraftBukkit
+     }
+ 
+     @Override
+     public boolean isPushable() {
+-        return this.isAlive() && !this.isSpectator() && !this.onClimbable();
+-    }
++        return this.isAlive() && !this.isSpectator() && !this.onClimbable() && this.collides; // CraftBukkit
++    }
++
++    // CraftBukkit start - collidable API
++    @Override
++    public boolean canCollideWithBukkit(Entity entity) {
++        return isPushable() && this.collides != this.collidableExemptions.contains(entity.getUUID());
++    }
++    // CraftBukkit end
+ 
+     @Override
+     public float getYHeadRot() {
 @@ -3327,8 +_,11 @@
  
      private void updatingUsingItem() {

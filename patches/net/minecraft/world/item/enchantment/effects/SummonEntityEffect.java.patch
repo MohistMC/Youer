@@ -1,0 +1,36 @@
+--- a/net/minecraft/world/item/enchantment/effects/SummonEntityEffect.java
++++ b/net/minecraft/world/item/enchantment/effects/SummonEntityEffect.java
+@@ -15,9 +_,12 @@
+ import net.minecraft.world.entity.EntitySpawnReason;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.LightningBolt;
++import net.minecraft.world.item.Items;
+ import net.minecraft.world.item.enchantment.EnchantedItemInUse;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.weather.LightningStrikeEvent;
+ 
+ public record SummonEntityEffect(HolderSet<EntityType<?>> entityTypes, boolean joinTeam) implements EnchantmentEntityEffect {
+     public static final MapCodec<SummonEntityEffect> CODEC = RecordCodecBuilder.mapCodec(
+@@ -34,10 +_,17 @@
+         if (Level.isInSpawnableBounds(blockPos)) {
+             Optional<Holder<EntityType<?>>> entityType = this.entityTypes().getRandomElement(serverLevel.getRandom());
+             if (!entityType.isEmpty()) {
+-                Entity spawned = entityType.get().value().spawn(serverLevel, blockPos, EntitySpawnReason.TRIGGERED);
++                Entity spawned = entityType.get().value().create(serverLevel, null, blockPos, EntitySpawnReason.TRIGGERED, false, false); // CraftBukkit
+                 if (spawned != null) {
+-                    if (spawned instanceof LightningBolt lightningBolt && item.owner() instanceof ServerPlayer player) {
+-                        lightningBolt.setCause(player);
++                    if (spawned instanceof LightningBolt lightningBolt) {
++                        if (item.owner() instanceof ServerPlayer player) {
++                            lightningBolt.setCause(player);
++                        }
++                        // CraftBukkit start
++                        serverLevel.strikeLightning(spawned, (item.itemStack().getItem() == Items.TRIDENT) ? LightningStrikeEvent.Cause.TRIDENT : LightningStrikeEvent.Cause.ENCHANTMENT);
++                    } else {
++                        serverLevel.addFreshEntityWithPassengers(spawned, CreatureSpawnEvent.SpawnReason.ENCHANTMENT);
++                        // CraftBukkit end
+                     }
+ 
+                     if (this.joinTeam && entity.getTeam() != null) {

@@ -55,7 +55,7 @@
  
      private Ingredient(HolderSet<Item> values) {
          values.unwrap().ifRight(directValues -> {
-@@ -45,30 +_,95 @@
+@@ -45,30 +_,106 @@
          this.values = values;
      }
  
@@ -87,6 +87,17 @@
 +        if (this.customIngredient != null) {
 +            return this.customIngredient.test(input);
 +        }
++        // CraftBukkit start
++        if (this.isExact()) {
++            for (ItemStack itemstack1 : this.itemStacks()) {
++                if (itemstack1.getItem() == input.getItem() && ItemStack.isSameItemSameComponents(input, itemstack1)) {
++                    return true;
++                }
++            }
++
++            return false;
++        }
++        // CraftBukkit end
          return input.is(this.values);
      }
  
@@ -100,7 +111,7 @@
      @Override
      public boolean equals(Object o) {
 -        return o instanceof Ingredient other ? Objects.equals(this.values, other.values) : false;
-+        return o instanceof Ingredient ingredient ? java.util.Objects.equals(this.customIngredient, ingredient.customIngredient) && Objects.equals(this.values, ingredient.values) : false;
++        return o instanceof Ingredient ingredient ? java.util.Objects.equals(this.customIngredient, ingredient.customIngredient) && Objects.equals(this.values, ingredient.values) && Objects.equals(this.itemStacks, ingredient.itemStacks) : false;
 +    }
 +
 +    @Override

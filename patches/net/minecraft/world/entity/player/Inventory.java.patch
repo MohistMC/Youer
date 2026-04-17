@@ -85,6 +85,35 @@
      public Inventory(Player player, EntityEquipment equipment) {
          this.player = player;
          this.equipment = equipment;
+@@ -98,6 +_,28 @@
+             && slotItemStack.getCount() < this.getMaxStackSize(slotItemStack);
+     }
+ 
++    // CraftBukkit start - Watch method above! :D
++    public int canHold(ItemStack itemstack) {
++        int remains = itemstack.getCount();
++        for (int i = 0; i < this.items.size(); ++i) {
++            ItemStack itemstack1 = this.getItem(i);
++            if (itemstack1.isEmpty()) return itemstack.getCount();
++
++            if (this.hasRemainingSpaceForItem(itemstack1, itemstack)) {
++                remains -= (itemstack1.getMaxStackSize() < this.getMaxStackSize() ? itemstack1.getMaxStackSize() : this.getMaxStackSize()) - itemstack1.getCount();
++            }
++            if (remains <= 0) return itemstack.getCount();
++        }
++        ItemStack offhandItemStack = this.equipment.get(EquipmentSlot.OFFHAND);
++        if (this.hasRemainingSpaceForItem(offhandItemStack, itemstack)) {
++            remains -= (offhandItemStack.getMaxStackSize() < this.getMaxStackSize() ? offhandItemStack.getMaxStackSize() : this.getMaxStackSize()) - offhandItemStack.getCount();
++        }
++        if (remains <= 0) return itemstack.getCount();
++
++        return itemstack.getCount() - remains;
++    }
++    // CraftBukkit end
++
+     public int getFreeSlot() {
+         for (int i = 0; i < this.items.size(); i++) {
+             if (this.items.get(i).isEmpty()) {
 @@ -290,6 +_,8 @@
              } catch (Throwable var6) {
                  CrashReport report = CrashReport.forThrowable(var6, "Adding item to inventory");

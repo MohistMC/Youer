@@ -8,13 +8,14 @@
  import java.util.function.Predicate;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
-@@ -121,9 +_,14 @@
+@@ -121,9 +_,15 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Team;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.event.entity.EntityExhaustionEvent;
++import org.bukkit.event.entity.EntityRemoveEvent;
 +import org.bukkit.event.player.PlayerBedEnterEvent;
  import org.jspecify.annotations.Nullable;
  
@@ -23,7 +24,7 @@
      public static final int MAX_HEALTH = 20;
      public static final int SLEEP_DURATION = 100;
      public static final int WAKE_UP_DURATION = 10;
-@@ -171,6 +_,20 @@
+@@ -171,11 +_,26 @@
      private Optional<GlobalPos> lastDeathLocation = Optional.empty();
      public @Nullable FishingHook fishing;
      public float hurtDir;
@@ -44,6 +45,12 @@
  
      public Player(Level level, GameProfile gameProfile) {
          super(EntityType.PLAYER, level);
+         this.setUUID(gameProfile.id());
+         this.gameProfile = gameProfile;
++        this.enderChestInventory.setOwner(this); // Youer
+         this.inventory = new Inventory(this, this.equipment);
+         this.inventoryMenu = new InventoryMenu(this.inventory, !level.isClientSide(), this);
+         this.containerMenu = this.inventoryMenu;
 @@ -212,7 +_,8 @@
              .add(Attributes.MINING_EFFICIENCY)
              .add(Attributes.SWEEPING_DAMAGE_RATIO)
@@ -79,6 +86,14 @@
      }
  
      @Override
+@@ -317,6 +_,7 @@
+     }
+ 
+     private void turtleHelmetTick() {
++        this.addEffectCause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.TURTLE_HELMET); // CraftBukkit
+         this.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, 200, 0, false, false, true));
+     }
+ 
 @@ -337,6 +_,10 @@
      }
  
@@ -90,6 +105,23 @@
          if (this.canPlayerFitWithinBlocksAndEntitiesWhen(Pose.SWIMMING)) {
              Pose desiredPose = this.getDesiredPose();
              Pose actualPose;
+@@ -429,8 +_,14 @@
+     public void rideTick() {
+         if (!this.level().isClientSide() && this.wantsToStopRiding() && this.isPassenger()) {
+             this.stopRiding();
+-            this.setShiftKeyDown(false);
+-        } else {
++            // CraftBukkit start - SPIGOT-7316: no longer passenger, dismount and return
++            if (!this.isPassenger()) {
++                this.setShiftKeyDown(false);
++                return;
++            }
++        }
++        {
++            // CraftBukkit end
+             super.rideTick();
+         }
+     }
 @@ -521,6 +_,7 @@
  
      @Override
@@ -148,6 +180,42 @@
                      if (level.getDifficulty() == Difficulty.PEACEFUL) {
                          damage = 0.0F;
                      }
+@@ -720,13 +_,29 @@
+     }
+ 
+     public boolean canHarmPlayer(Player target) {
+-        Team team = this.getTeam();
+-        Team otherTeam = target.getTeam();
+-        if (team == null) {
+-            return true;
++        // CraftBukkit start - Change to check OTHER player's scoreboard team according to API
++        // To summarize this method's logic, it's "Can parameter hurt this"
++        org.bukkit.scoreboard.Team team;
++        if (target instanceof ServerPlayer) {
++            ServerPlayer thatPlayer = (ServerPlayer) target;
++            team = thatPlayer.getBukkitEntity().getScoreboard().getPlayerTeam(thatPlayer.getBukkitEntity());
++            if (team == null || team.allowFriendlyFire()) {
++                return true;
++            }
+         } else {
+-            return !team.isAlliedTo(otherTeam) ? true : team.isAllowFriendlyFire();
+-        }
++            // This should never be called, but is implemented anyway
++            org.bukkit.OfflinePlayer thisPlayer = target.level().getCraftServer().getOfflinePlayer(target.getScoreboardName());
++            team = target.level().getCraftServer().getScoreboardManager().getMainScoreboard().getPlayerTeam(thisPlayer);
++            if (team == null || team.allowFriendlyFire()) {
++                return true;
++            }
++        }
++
++        if (this instanceof ServerPlayer) {
++            return !team.hasPlayer(((ServerPlayer) this).getBukkitEntity());
++        }
++        return !team.hasPlayer(this.level().getCraftServer().getOfflinePlayer(this.getScoreboardName()));
++        // CraftBukkit end
+     }
+ 
+     @Override
 @@ -742,11 +_,14 @@
      @Override
      protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
@@ -342,6 +410,22 @@
                      float enchantedDamage = this.getEnchantedDamage(nearby, var12, damageSource) * attackStrengthScale;
                      if (nearby.hurtServer(serverLevel, damageSource, enchantedDamage)) {
                          nearby.knockback(0.4F, Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)), -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)));
+@@ -1222,7 +_,14 @@
+ 
+     @Override
+     public void remove(Entity.RemovalReason reason) {
+-        super.remove(reason);
++        // CraftBukkit start - add Bukkit remove cause
++        this.remove(reason, null);
++    }
++
++    @Override
++    public void remove(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
++        super.remove(entity_removalreason, cause);
++        // CraftBukkit end
+         this.inventoryMenu.removed(this);
+         if (this.hasContainerOpen()) {
+             this.doCloseContainer();
 @@ -1289,6 +_,12 @@
          return true;
      }

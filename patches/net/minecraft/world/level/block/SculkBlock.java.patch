@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/level/block/SculkBlock.java
++++ b/net/minecraft/world/level/block/SculkBlock.java
+@@ -6,6 +_,7 @@
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.util.valueproviders.ConstantInt;
++import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.block.state.BlockBehaviour;
+ import net.minecraft.world.level.block.state.BlockState;
+@@ -37,8 +_,11 @@
+                 if (random.nextInt(xpPerGrowthSpawn) < charge) {
+                     BlockPos growthPlacement = chargePos.above();
+                     BlockState growthState = this.getRandomGrowthState(level, growthPlacement, random, spreader.isWorldGeneration());
+-                    level.setBlock(growthPlacement, growthState, 3);
+-                    level.playSound(null, chargePos, growthState.getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
++                    // CraftBukkit start - Call BlockSpreadEvent
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, originPos, growthPlacement, growthState, 3)) {
++                        level.playSound((Entity) null, chargePos, growthState.getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
++                    }
++                    // CraftBukkit end
+                 }
+ 
+                 return Math.max(0, charge - xpPerGrowthSpawn);

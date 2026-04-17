@@ -8,7 +8,7 @@
  import net.minecraft.world.damagesource.DamageSource;
  import net.minecraft.world.damagesource.DamageTypes;
  import net.minecraft.world.effect.MobEffectInstance;
-@@ -151,6 +_,7 @@
+@@ -151,10 +_,12 @@
  import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
  import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
  import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
@@ -16,6 +16,11 @@
  import net.minecraft.world.inventory.AbstractContainerMenu;
  import net.minecraft.world.inventory.ContainerListener;
  import net.minecraft.world.inventory.ContainerSynchronizer;
+ import net.minecraft.world.inventory.HorseInventoryMenu;
++import net.minecraft.world.inventory.InventoryMenu;
+ import net.minecraft.world.inventory.NautilusInventoryMenu;
+ import net.minecraft.world.inventory.RemoteSlot;
+ import net.minecraft.world.inventory.ResultSlot;
 @@ -175,6 +_,7 @@
  import net.minecraft.world.level.biome.BiomeManager;
  import net.minecraft.world.level.block.BedBlock;
@@ -24,7 +29,7 @@
  import net.minecraft.world.level.block.HorizontalDirectionalBlock;
  import net.minecraft.world.level.block.RespawnAnchorBlock;
  import net.minecraft.world.level.block.entity.BlockEntity;
-@@ -199,6 +_,16 @@
+@@ -199,6 +_,17 @@
  import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.scores.criteria.ObjectiveCriteria;
@@ -34,6 +39,7 @@
 +import org.bukkit.WeatherType;
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.CraftWorldBorder;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.util.CraftLocation;
@@ -61,7 +67,7 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(container.containerId, id, value));
          }
  
-@@ -375,10 +_,36 @@
+@@ -375,10 +_,37 @@
          public void sendSystemMessage(Component message) {
              ServerPlayer.this.sendSystemMessage(message);
          }
@@ -95,10 +101,11 @@
 +    public String kickLeaveMessage = null; // SPIGOT-3034: Forward leave message to PlayerQuitEvent
 +    // CraftBukkit end
 +    public PlayerSpawnChangeEvent.Cause respawnPositionCause = PlayerSpawnChangeEvent.Cause.UNKNOWN;
++    public boolean initialized = false;
  
      public ServerPlayer(MinecraftServer server, ServerLevel level, GameProfile gameProfile, ClientInformation clientInformation) {
          super(level, gameProfile);
-@@ -391,6 +_,11 @@
+@@ -391,6 +_,21 @@
          this.advancements = server.getPlayerList().getPlayerAdvancements(this);
          this.updateOptions(clientInformation);
          this.object = null;
@@ -107,9 +114,90 @@
 +        this.displayName = this.getScoreboardName();
 +        this.bukkitPickUpLoot = true;
 +        this.maxHealthCache = this.getMaxHealth();
++        this.initialized = true;
++    }
++
++    // Use method to resend items in hands in case of client desync, because the item use got cancelled.
++    // For example, when cancelling the leash event
++    public void resendItemInHands() {
++        containerMenu.findSlot(getInventory(), getInventory().getSelectedSlot()).ifPresent(s -> {
++            containerSynchronizer.sendSlotChange(containerMenu, s, getMainHandItem());
++        });
++        containerSynchronizer.sendSlotChange(inventoryMenu, InventoryMenu.SHIELD_SLOT, getOffhandItem());
      }
  
      @Override
+@@ -408,11 +_,21 @@
+         this.seenCredits = input.getBooleanOr("seenCredits", false);
+         input.read("recipeBook", ServerRecipeBook.Packed.CODEC)
+             .ifPresent(p -> this.recipeBook.loadUntrusted(p, id -> this.server.getRecipeManager().byKey(id).isPresent()));
++        this.getBukkitEntity().readExtraData(input); // CraftBukkit
+         if (this.isSleeping()) {
+             this.stopSleeping();
+         }
+ 
+         this.respawnConfig = input.read("respawn", ServerPlayer.RespawnConfig.CODEC).orElse(null);
++        // CraftBukkit start
++        String spawnWorld = input.getStringOr("SpawnWorld", "");
++        CraftWorld oldWorld = (CraftWorld) Bukkit.getWorld(spawnWorld);
++        if (oldWorld != null) {
++            ServerPlayer.RespawnConfig respawnConfig = this.respawnConfig;
++            LevelData.RespawnData respawnData = respawnConfig.respawnData();
++            this.respawnConfig = new RespawnConfig(LevelData.RespawnData.of(oldWorld.getHandle().dimension(), respawnData.pos(), respawnData.yaw(), respawnData.pitch()), respawnConfig.forced());
++        }
++        // CraftBukkit end
+         this.spawnExtraParticlesOnFall = input.getBooleanOr("spawn_extra_particles_on_fall", false);
+         this.raidOmenPosition = input.read("raid_omen_position", BlockPos.CODEC).orElse(null);
+         this.gameMode
+@@ -432,6 +_,7 @@
+         output.store("recipeBook", ServerRecipeBook.Packed.CODEC, this.recipeBook.pack());
+         output.putString("Dimension", this.level().dimension().identifier().toString());
+         output.storeNullable("respawn", ServerPlayer.RespawnConfig.CODEC, this.respawnConfig);
++        this.getBukkitEntity().setExtraData(output); // CraftBukkit
+         output.putBoolean("spawn_extra_particles_on_fall", this.spawnExtraParticlesOnFall);
+         output.storeNullable("raid_omen_position", BlockPos.CODEC, this.raidOmenPosition);
+         this.saveEnderPearls(output);
+@@ -525,6 +_,20 @@
+         }
+     }
+ 
++    // CraftBukkit start - World fallback code, either respawn location or global spawn
++    public void spawnIn(Level level, boolean flag) {
++        this.setLevel(level);
++        if (level == null) {
++            this.unsetRemoved();
++            TeleportTransition teleporttransition = this.findRespawnPositionAndUseSpawnBlock(!flag, TeleportTransition.DO_NOTHING);
++
++            this.setLevel(teleporttransition.newLevel());
++            this.setPos(teleporttransition.position());
++        }
++        this.gameMode.setLevel((ServerLevel) level);
++    }
++    // CraftBukkit end
++
+     public void setExperiencePoints(int amount) {
+         float limit = this.getXpNeededForNextLevel();
+         float max = (limit - 1.0F) / limit;
+@@ -559,6 +_,7 @@
+     public void initMenu(AbstractContainerMenu container) {
+         container.addSlotListener(this.containerListener);
+         container.setSynchronizer(this.containerSynchronizer);
++        container.startOpen(); // CraftBukkit - don't force startOpen until container actually opens
+     }
+ 
+     public void initInventoryMenu() {
+@@ -589,6 +_,11 @@
+ 
+     @Override
+     public void tick() {
++        // CraftBukkit start
++        if (this.joining) {
++            this.joining = false;
++        }
++        // CraftBukkit end
+         this.connection.tickClientLoadTimeout();
+         this.gameMode.tick();
+         this.wardenSpawnTracker.tick();
 @@ -676,7 +_,26 @@
                  }
  
@@ -138,7 +226,29 @@
                  }
              }
  
-@@ -731,6 +_,11 @@
+@@ -690,7 +_,7 @@
+             if (this.getHealth() != this.lastSentHealth
+                 || this.lastSentFood != this.foodData.getFoodLevel()
+                 || this.foodData.getSaturationLevel() == 0.0F != this.lastFoodSaturationZero) {
+-                this.connection.send(new ClientboundSetHealthPacket(this.getHealth(), this.foodData.getFoodLevel(), this.foodData.getSaturationLevel()));
++                this.connection.send(new ClientboundSetHealthPacket(this.getBukkitEntity().getScaledHealth(), this.foodData.getFoodLevel(), this.foodData.getSaturationLevel()));
+                 this.lastSentHealth = this.getHealth();
+                 this.lastSentFood = this.foodData.getFoodLevel();
+                 this.lastFoodSaturationZero = this.foodData.getSaturationLevel() == 0.0F;
+@@ -721,6 +_,12 @@
+                 this.updateScoreForCriteria(ObjectiveCriteria.EXPERIENCE, Mth.ceil((float)this.lastRecordedExperience));
+             }
+ 
++            // CraftBukkit start - Force max health updates
++            if (this.maxHealthCache != this.getMaxHealth()) {
++                this.getBukkitEntity().updateScaledHealth();
++            }
++            // CraftBukkit end
++
+             if (this.experienceLevel != this.lastRecordedLevel) {
+                 this.lastRecordedLevel = this.experienceLevel;
+                 this.updateScoreForCriteria(ObjectiveCriteria.LEVEL, Mth.ceil((float)this.lastRecordedLevel));
+@@ -731,9 +_,29 @@
                  this.connection.send(new ClientboundSetExperiencePacket(this.experienceProgress, this.totalExperience, this.experienceLevel));
              }
  
@@ -150,6 +260,24 @@
              if (this.tickCount % 20 == 0) {
                  CriteriaTriggers.LOCATION.trigger(this);
              }
++
++            // CraftBukkit start - initialize oldLevel, fire PlayerLevelChangeEvent, and tick client-sided world border
++            if (this.oldLevel == -1) {
++                this.oldLevel = this.experienceLevel;
++            }
++
++            if (this.oldLevel != this.experienceLevel) {
++                CraftEventFactory.callPlayerLevelChangeEvent(this, this.oldLevel, this.experienceLevel);
++                this.oldLevel = this.experienceLevel;
++            }
++
++            if (this.getBukkitEntity().hasClientWorldBorder()) {
++                ((CraftWorldBorder) this.getBukkitEntity().getWorldBorder()).getHandle().tick();
++            }
++            // CraftBukkit end
+         } catch (Throwable var4) {
+             CrashReport report = CrashReport.forThrowable(var4, "Ticking player");
+             CrashReportCategory category = report.addCategory("Player being ticked");
 @@ -744,7 +_,7 @@
  
      private void synchronizeSpecialItemUpdates(ItemStack itemStack) {
@@ -449,6 +577,15 @@
          this.containerMenu = this.inventoryMenu;
      }
  
+@@ -1628,7 +_,7 @@
+         this.lastSentExp = -1;
+         this.lastSentHealth = -1.0F;
+         this.lastSentFood = -1;
+-        this.recipeBook.copyOverData(oldPlayer.recipeBook);
++        // this.recipeBook.copyOverData(oldPlayer.recipeBook);// CraftBukkit
+         this.seenCredits = oldPlayer.seenCredits;
+         this.enteredNetherPosition = oldPlayer.enteredNetherPosition;
+         this.chunkTrackingView = oldPlayer.chunkTrackingView;
 @@ -1637,6 +_,15 @@
          this.setShoulderEntityRight(oldPlayer.getShoulderEntityRight());
          this.setLastDeathLocation(oldPlayer.getLastDeathLocation());
