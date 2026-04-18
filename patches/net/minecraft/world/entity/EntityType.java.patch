@@ -208,15 +208,18 @@
                  mob.playAmbientSound();
              }
  
-@@ -983,6 +_,15 @@
+@@ -983,6 +_,18 @@
          MinecraftServer minecraftserver = p_20621_.getServer();
          if (minecraftserver != null && p_20623_ != null) {
              if (p_20621_.isClientSide || !p_20623_.onlyOpCanSetNbt() || p_20622_ != null && minecraftserver.getPlayerList().isOp(p_20622_.getGameProfile())) {
 +                // Paper start - filter out protected tags
 +                if (p_20622_ == null || !p_20622_.getBukkitEntity().hasPermission("minecraft.nbt.place")) {
-+                    p_331752_ = p_331752_.update((compound) -> {
-+                        for (net.minecraft.commands.arguments.NbtPathArgument.NbtPath tag : p_20621_.paperConfig().entities.spawning.filteredEntityTagNbtPaths) {
-+                            tag.remove(compound);
++                    p_331752_ = p_331752_.update(new Consumer<>() {
++                        @Override
++                        public void accept(CompoundTag compound) {
++                            for (net.minecraft.commands.arguments.NbtPathArgument.NbtPath tag : p_20621_.paperConfig().entities.spawning.filteredEntityTagNbtPaths) {
++                                tag.remove(compound);
++                            }
 +                        }
 +                    });
 +                }
