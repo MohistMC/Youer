@@ -769,7 +769,7 @@
          this.entityData.set(DATA_HEALTH_ID, Mth.clamp(p_21154_, 0.0F, this.getMaxHealth()));
      }
  
-@@ -1079,63 +_,113 @@
+@@ -1079,63 +_,114 @@
          return this.getHealth() <= 0.0F;
      }
  
@@ -805,16 +805,17 @@
              }
  
              this.noActionTime = 0;
-+            event = BukkitDamageHooks.handleEntityDamage(this, p_21016_, p_21017_);
++            p_21017_ = this.damageContainers.peek().getNewDamage(); //Neo: enforce damage container as source of truth for damage amount
++
++            // Youer start
++            event = BukkitDamageHooks.handleEntityDamage(this, p_21016_, p_21017_); // Transmits the mod's modified damage value to the Bukkit event
 +            if (event == null || event.isCancelled()) {
 +                this.damageContainers.pop();
 +                return false;
 +            }
 +            damageContainers.peek().setNewDamage((float) event.getDamage());
-+            if (p_21016_.getEntity() instanceof net.minecraft.world.entity.player.Player player) {
-+                player.resetAttackStrengthTicker();
-+            }
-+            p_21017_ = this.damageContainers.peek().getNewDamage(); //Neo: enforce damage container as source of truth for damage amount
++            p_21017_ = (float) event.getDamage();
++            // Youer end
 +
              float f = p_21017_;
              boolean flag = false;
