@@ -7,7 +7,7 @@
       <img alt="GitHub Stars" src="https://img.shields.io/github/stars/MohistMC/Youer?logo=github&color=181717&style=flat-square">
     </a>
     <a href="https://neoforged.net/">
-      <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-21.1.226-FF8B00?style=flat-square">
+      <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-21.1.227-FF8B00?style=flat-square">
     </a>
     <a href="https://www.azul.com/downloads/?version=java-21-lts#zulu">
       <img alt="JDK" src="https://img.shields.io/badge/JDK-21.0.8-007396?logo=java&logoColor=white&style=flat-square">
@@ -30,21 +30,21 @@
 ## 📊 Progress Status
 
 ✅ **Core Integration**
-- [x] NeoForge ([0a75c6661](https://github.com/neoforged/NeoForge/commit/0a75c6661))
+- [x] NeoForge ([9e9b258ff](https://github.com/neoforged/NeoForge/commit/9e9b258ff))
 - [x] Bukkit API ([69fa4695](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/bukkit/commits/69fa4695))
 - [x] CraftBukkit ([19bf84656](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/19bf84656))
 - [x] Spigot ([a759b629](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/spigot/commits/a759b629))
 
 ✅ **In Progress**
 - [x] Paper ([3cb8529bd](https://github.com/PaperMC/Paper-archive/commit/3cb8529bd))
-  - [x] api (16)
-  - [x] server (193)
+  - [x] api (13)
+  - [x] server (165)
     - [ ] chunk_system (AsyncYouer)
     - [ ] chunk_tick_iteration (AsyncYouer)
     - [ ] starlight (AsyncYouer)
 - [x] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))
   - [x] api
-  - [x] server (274)
+  - [x] server (273)
 
 🔄 **Compatible Progress**
 
