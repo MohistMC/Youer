@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/level/block/LoomBlock.java
++++ b/net/minecraft/world/level/block/LoomBlock.java
+@@ -35,11 +_,10 @@
+     protected InteractionResult useWithoutItem(BlockState p_54787_, Level p_54788_, BlockPos p_54789_, Player p_54790_, BlockHitResult p_54792_) {
+         if (p_54788_.isClientSide) {
+             return InteractionResult.SUCCESS;
+-        } else {
+-            p_54790_.openMenu(p_54787_.getMenuProvider(p_54788_, p_54789_));
++        } else if (p_54790_.openMenu(p_54787_.getMenuProvider(p_54788_, p_54789_)).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+             p_54790_.awardStat(Stats.INTERACT_WITH_LOOM);
+-            return InteractionResult.CONSUME;
+         }
++        return InteractionResult.CONSUME; // Paper - Fix InventoryOpenEvent cancellation
+     }
+ 
+     @Override

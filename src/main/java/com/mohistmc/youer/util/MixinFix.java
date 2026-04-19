@@ -20,10 +20,7 @@ public class MixinFix {
         BlockPlaceEvent placeEvent = CraftEventFactory.callBlockPlaceEvent(level, player, blockplacecontext.getHand(), place$blockstateCB, blockpos.getX(), blockpos.getY(), blockpos.getZ());
         if (placeEvent != null && (placeEvent.isCancelled() || !placeEvent.canBuild())) {
             place$blockstateCB.update(true, false);
-
-            if (blockItem instanceof SolidBucketItem) {
-                player.getBukkitEntity().updateInventory(); // SPIGOT-4541
-            }
+            player.getBukkitEntity().updateInventory(); // SPIGOT-4541
             return true;
         }
         return false;

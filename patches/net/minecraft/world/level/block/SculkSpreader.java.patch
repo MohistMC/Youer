@@ -8,6 +8,14 @@
  import it.unimi.dsi.fastutil.objects.Object2IntMap;
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+@@ -19,6 +_,7 @@
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.Set;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import javax.annotation.Nullable;
+ import net.minecraft.Util;
+ import net.minecraft.core.BlockPos;
 @@ -26,7 +_,6 @@
  import net.minecraft.core.Vec3i;
  import net.minecraft.nbt.CompoundTag;
@@ -32,12 +40,29 @@
  
      public SculkSpreader(boolean p_222248_, TagKey<Block> p_222249_, int p_222250_, int p_222251_, int p_222252_, int p_222253_) {
          this.isWorldGeneration = p_222248_;
-@@ -136,6 +_,18 @@
+@@ -113,6 +_,7 @@
+             int i = Math.min(list.size(), 32);
  
+             for (int j = 0; j < i; j++) {
++                this.addCursor$fireEvent.set(false);
+                 this.addCursor(list.get(j));
+             }
+         }
+@@ -129,13 +_,27 @@
+     public void addCursors(BlockPos p_222267_, int p_222268_) {
+         while (p_222268_ > 0) {
+             int i = Math.min(p_222268_, 1000);
++            this.addCursor$fireEvent.set(true);
+             this.addCursor(new SculkSpreader.ChargeCursor(p_222267_, i));
+             p_222268_ -= i;
+         }
+     }
+ 
++    private final AtomicBoolean addCursor$fireEvent = new AtomicBoolean(false);
      private void addCursor(SculkSpreader.ChargeCursor p_222261_) {
          if (this.cursors.size() < 32) {
 +            // CraftBukkit start
-+            if (!isWorldGeneration()) { // CraftBukkit - SPIGOT-7475: Don't call event during world generation
++            if (!isWorldGeneration() && addCursor$fireEvent.getAndSet(false)) { // CraftBukkit - SPIGOT-7475: Don't call event during world generation // Paper - add boolean to conditionally fire SculkBloomEvent
 +                CraftBlock bukkitBlock = CraftBlock.at(level, p_222261_.pos);
 +                org.bukkit.event.block.SculkBloomEvent event = new org.bukkit.event.block.SculkBloomEvent(bukkitBlock, p_222261_.getCharge());
 +                org.bukkit.Bukkit.getPluginManager().callEvent(event);

@@ -1813,7 +1813,7 @@
          this.player.resetLastActionTime();
          this.player.setShiftKeyDown(p_9866_.isUsingSecondaryAction());
          if (entity != null) {
-@@ -1532,14 +_,51 @@
+@@ -1532,14 +_,52 @@
              }
  
              AABB aabb = entity.getBoundingBox();
@@ -1847,10 +1847,11 @@
 +                                    // Refresh the current entity metadata
 +                                    entity.refreshEntityData(player);
 +                                    // SPIGOT-7136 - Allays
-+                                    if (entity instanceof net.minecraft.world.entity.animal.allay.Allay) {
++                                    if (entity instanceof net.minecraft.world.entity.animal.allay.Allay || entity instanceof net.minecraft.world.entity.animal.horse.AbstractHorse) { // Paper - Fix horse armor desync
 +                                        send(new net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket(entity.getId(), java.util.Arrays.stream(net.minecraft.world.entity.EquipmentSlot.values()).map((slot) -> com.mojang.datafixers.util.Pair.of(slot, ((net.minecraft.world.entity.LivingEntity) entity).getItemBySlot(slot).copy())).collect(Collectors.toList()), true)); // Paper - sanitize
-+                                        player.containerMenu.sendAllDataToRemote();
 +                                    }
++
++                                    ServerGamePacketListenerImpl.this.player.containerMenu.sendAllDataToRemote(); // Paper - fix slot desync - always refresh player inventory
 +                                }
 +                                if (event.isCancelled()) {
 +                                    return;

@@ -215,6 +215,53 @@
                  }
              };
          } else {
+@@ -156,6 +_,46 @@
+         this.damageSources = new DamageSources(p_270200_);
+     }
+ 
++    // Paper start - Cancel hit for vanished players
++    // ret true if no collision
++    public final boolean checkEntityCollision(BlockState data, Entity source, net.minecraft.world.phys.shapes.CollisionContext voxelshapedcollision,
++                                              BlockPos position, boolean checkCanSee) {
++        // Copied from IWorldReader#a(IBlockData, BlockPosition, VoxelShapeCollision) & EntityAccess#a(Entity, VoxelShape)
++        net.minecraft.world.phys.shapes.VoxelShape voxelshape = data.getCollisionShape(this, position, voxelshapedcollision);
++        if (voxelshape.isEmpty()) {
++            return true;
++        }
++
++        voxelshape = voxelshape.move((double) position.getX(), (double) position.getY(), (double) position.getZ());
++        if (voxelshape.isEmpty()) {
++            return true;
++        }
++
++        List<Entity> entities = this.getEntities(null, voxelshape.bounds());
++        for (int i = 0, len = entities.size(); i < len; ++i) {
++            Entity entity = entities.get(i);
++
++            if (checkCanSee && source instanceof net.minecraft.server.level.ServerPlayer && entity instanceof net.minecraft.server.level.ServerPlayer
++                    && !((net.minecraft.server.level.ServerPlayer) source).getBukkitEntity().canSee(((net.minecraft.server.level.ServerPlayer) entity).getBukkitEntity())) {
++                continue;
++            }
++
++            // !entity1.dead && entity1.i && (entity == null || !entity1.x(entity));
++            // elide the last check since vanilla calls with entity = null
++            // only we care about the source for the canSee check
++            if (entity.isRemoved() || !entity.blocksBuilding) {
++                continue;
++            }
++
++            if (net.minecraft.world.phys.shapes.Shapes.joinIsNotEmpty(voxelshape, net.minecraft.world.phys.shapes.Shapes.create(entity.getBoundingBox()), net.minecraft.world.phys.shapes.BooleanOp.AND)) {
++                return false;
++            }
++        }
++
++        return true;
++    }
++    // Paper end - Cancel hit for vanished players
++
+     @Override
+     public boolean isClientSide() {
+         return this.isClientSide;
 @@ -167,6 +_,13 @@
          return null;
      }

@@ -35,7 +35,7 @@
          GameProfileCache.GameProfileInfo gameprofilecache$gameprofileinfo = new GameProfileCache.GameProfileInfo(p_10992_, date);
          this.safeAdd(gameprofilecache$gameprofileinfo);
 -        this.save();
-+        if( !org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly ) this.save(); // Spigot - skip saving if disabled
++        if( !org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly ) this.save(true); // Spigot - skip saving if disabled // Paper - Perf: Async GameProfileCache saving
      }
  
      private long getNextOperation() {
@@ -58,7 +58,7 @@
      public Optional<GameProfile> get(String p_10997_) {
          String s = p_10997_.toLowerCase(Locale.ROOT);
          GameProfileCache.GameProfileInfo gameprofilecache$gameprofileinfo = this.profilesByName.get(s);
-@@ -134,14 +_,14 @@
+@@ -134,15 +_,15 @@
              gameprofilecache$gameprofileinfo.setLastAccess(this.getNextOperation());
              optional = Optional.of(gameprofilecache$gameprofileinfo.getProfile());
          } else {
@@ -71,10 +71,12 @@
          }
  
 -        if (flag) {
+-            this.save();
 +        if (flag && !org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly) { // Spigot - skip saving if disabled
-             this.save();
++            this.save(true); // Paper - Perf: Async GameProfileCache saving
          }
  
+         return optional;
 @@ -157,7 +_,7 @@
                  return completablefuture;
              } else {
@@ -84,12 +86,31 @@
                      )
                      .whenCompleteAsync((p_143965_, p_143966_) -> this.requests.remove(p_143968_), this.executor);
                  this.requests.put(p_143968_, completablefuture1);
-@@ -216,7 +_,7 @@
-     public void save() {
+@@ -213,16 +_,24 @@
+         return list;
+     }
+ 
+-    public void save() {
++    public void save(boolean asyncSave) { // Paper - Perf: Async GameProfileCache saving
          JsonArray jsonarray = new JsonArray();
          DateFormat dateformat = createDateFormat();
 -        this.getTopMRUProfiles(1000).forEach(p_143962_ -> jsonarray.add(writeGameProfile(p_143962_, dateformat)));
 +        this.getTopMRUProfiles(org.spigotmc.SpigotConfig.userCacheCap).forEach(p_143962_ -> jsonarray.add(writeGameProfile(p_143962_, dateformat))); // Spigot
          String s = this.gson.toJson((JsonElement)jsonarray);
- 
+-
++        Runnable save = () -> { // Paper - Perf: Async GameProfileCache saving
          try (Writer writer = Files.newWriter(this.file, StandardCharsets.UTF_8)) {
+             writer.write(s);
+         } catch (IOException ioexception) {
+         }
++            // Paper start - Perf: Async GameProfileCache saving
++        };
++        if (asyncSave) {
++            io.papermc.paper.util.MCUtil.scheduleAsyncTask(save);
++        } else {
++            save.run();
++        }
++        // Paper end - Perf: Async GameProfileCache saving
+     }
+ 
+     private Stream<GameProfileCache.GameProfileInfo> getTopMRUProfiles(int p_10978_) {

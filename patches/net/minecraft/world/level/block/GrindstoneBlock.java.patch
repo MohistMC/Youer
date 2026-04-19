@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/level/block/GrindstoneBlock.java
++++ b/net/minecraft/world/level/block/GrindstoneBlock.java
+@@ -159,11 +_,10 @@
+     protected InteractionResult useWithoutItem(BlockState p_53821_, Level p_53822_, BlockPos p_53823_, Player p_53824_, BlockHitResult p_53826_) {
+         if (p_53822_.isClientSide) {
+             return InteractionResult.SUCCESS;
+-        } else {
+-            p_53824_.openMenu(p_53821_.getMenuProvider(p_53822_, p_53823_));
++        } else if (p_53824_.openMenu(p_53821_.getMenuProvider(p_53822_, p_53823_)).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+             p_53824_.awardStat(Stats.INTERACT_WITH_GRINDSTONE);
+-            return InteractionResult.CONSUME;
+         }
++        return InteractionResult.CONSUME; // Paper - Fix InventoryOpenEvent cancellation
+     }
+ 
+     @Override

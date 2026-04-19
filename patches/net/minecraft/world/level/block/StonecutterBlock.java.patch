@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/level/block/StonecutterBlock.java
++++ b/net/minecraft/world/level/block/StonecutterBlock.java
+@@ -50,11 +_,10 @@
+     protected InteractionResult useWithoutItem(BlockState p_57083_, Level p_57084_, BlockPos p_57085_, Player p_57086_, BlockHitResult p_57088_) {
+         if (p_57084_.isClientSide) {
+             return InteractionResult.SUCCESS;
+-        } else {
+-            p_57086_.openMenu(p_57083_.getMenuProvider(p_57084_, p_57085_));
++        } else if (p_57086_.openMenu(p_57083_.getMenuProvider(p_57084_, p_57085_)).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+             p_57086_.awardStat(Stats.INTERACT_WITH_STONECUTTER);
+-            return InteractionResult.CONSUME;
+         }
++        return InteractionResult.CONSUME; // Paper - Fix InventoryOpenEvent cancellation
+     }
+ 
+     @Nullable

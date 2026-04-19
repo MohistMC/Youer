@@ -79,12 +79,11 @@ public class NeoForgeInjectBukkit {
         addEnumMaterialInItems();
         addEnumEffectAndPotion();
         addEnumMaterialsInBlocks();
-        // addEnumMaterialsInBlockEntityType();
         addEnumBiome();
         addFluid();
         addEnumEntity();
         addEnumArt();
-        //addEnumParticle();
+        addEnumParticle();
         addStatistic();
         loadSpawnCategory();
         addPose();
@@ -139,17 +138,6 @@ public class NeoForgeInjectBukkit {
                     CraftMagicNumbers.MATERIAL_BLOCK.put(material, block);
                     debug("Save-BLOCK:{} - {}", material.name(), material.key);
                 }
-            }
-        }
-    }
-
-    public static void addEnumMaterialsInBlockEntityType() {
-        var registry = BuiltInRegistries.BLOCK_ENTITY_TYPE;
-        for (BlockEntityType<?> entityType : registry) {
-            ResourceLocation resourceLocation = registry.getKey(entityType);
-            if (isMods(resourceLocation)) {
-                String materialName = MohistDynamEnum.normalizeName(resourceLocation.toString());
-                Youer.LOGGER.error("Discover entity blocks:{} - {}", entityType, materialName);
             }
         }
     }

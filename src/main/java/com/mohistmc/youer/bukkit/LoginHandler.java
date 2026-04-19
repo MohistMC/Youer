@@ -3,6 +3,8 @@ package com.mohistmc.youer.bukkit;
 import com.mohistmc.youer.util.I18n;
 import com.mojang.authlib.GameProfile;
 import io.papermc.paper.configuration.GlobalConfiguration;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
@@ -34,11 +36,11 @@ public class LoginHandler {
         }
     }
 
-    public void fireEvents(ServerLoginPacketListenerImpl serverLoginPacketListener, GameProfile gameprofile) throws Exception {
+    public static GameProfile callPlayerPreLoginEvents(ServerLoginPacketListenerImpl serverLoginPacketListener, GameProfile gameprofile) throws Exception {
         // Paper start - Velocity support
         if (serverLoginPacketListener.velocityLoginMessageId == -1 && GlobalConfiguration.get().proxies.velocity.enabled) {
             serverLoginPacketListener.disconnect(I18n.as("velocity.requires"));
-            return;
+            return gameprofile;
         }
         // Paper end
         String playerName = gameprofile.getName();
@@ -46,8 +48,17 @@ public class LoginHandler {
         java.util.UUID uniqueId = gameprofile.getId();
         final CraftServer server = serverLoginPacketListener.server.server;
 
-        AsyncPlayerPreLoginEvent asyncEvent = new AsyncPlayerPreLoginEvent(playerName, address, uniqueId);
+        // Paper start - Add more fields to AsyncPlayerPreLoginEvent
+        final InetAddress rawAddress = ((InetSocketAddress) serverLoginPacketListener.connection.channel.remoteAddress()).getAddress();
+        com.destroystokyo.paper.profile.PlayerProfile profile = com.destroystokyo.paper.profile.CraftPlayerProfile.asBukkitMirror(gameprofile); // Paper - setPlayerProfileAPI
+        AsyncPlayerPreLoginEvent asyncEvent = new AsyncPlayerPreLoginEvent(playerName, address, rawAddress, uniqueId, serverLoginPacketListener.transferred, profile, serverLoginPacketListener.connection.hostname);
         server.getPluginManager().callEvent(asyncEvent);
+        profile = asyncEvent.getPlayerProfile();
+        profile.complete(true); // Paper - setPlayerProfileAPI
+        gameprofile = com.destroystokyo.paper.profile.CraftPlayerProfile.asAuthlibCopy(profile);
+        playerName = gameprofile.getName();
+        uniqueId = gameprofile.getId();
+        // Paper end - Add more fields to AsyncPlayerPreLoginEvent
 
         if (PlayerPreLoginEvent.getHandlerList().getRegisteredListeners().length != 0) {
             final PlayerPreLoginEvent event = new PlayerPreLoginEvent(playerName, address, uniqueId);
@@ -65,15 +76,13 @@ public class LoginHandler {
             serverLoginPacketListener.server.processQueue.add(waitable);
             if (waitable.get() != PlayerPreLoginEvent.Result.ALLOWED) {
                 serverLoginPacketListener.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.kickMessage())); // Paper - Adventure
-                return;
             }
         } else {
             if (asyncEvent.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED) {
                 serverLoginPacketListener.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(asyncEvent.kickMessage())); // Paper - Adventure
-                return;
             }
         }
-        ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
+        return gameprofile; // Paper - Add more fields to AsyncPlayerPreLoginEvent
         // CraftBukkit end
     }
 }

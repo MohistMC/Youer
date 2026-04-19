@@ -1,0 +1,15 @@
+--- a/net/minecraft/world/level/block/SmithingTableBlock.java
++++ b/net/minecraft/world/level/block/SmithingTableBlock.java
+@@ -40,10 +_,9 @@
+     protected InteractionResult useWithoutItem(BlockState p_56428_, Level p_56429_, BlockPos p_56430_, Player p_56431_, BlockHitResult p_56433_) {
+         if (p_56429_.isClientSide) {
+             return InteractionResult.SUCCESS;
+-        } else {
+-            p_56431_.openMenu(p_56428_.getMenuProvider(p_56429_, p_56430_));
++        } else if (p_56431_.openMenu(p_56428_.getMenuProvider(p_56429_, p_56430_)).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+             p_56431_.awardStat(Stats.INTERACT_WITH_SMITHING_TABLE);
+-            return InteractionResult.CONSUME;
+         }
++        return InteractionResult.CONSUME; // Paper - Fix InventoryOpenEvent cancellation
+     }
+ }

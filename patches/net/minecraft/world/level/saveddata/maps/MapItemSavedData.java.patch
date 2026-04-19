@@ -28,10 +28,12 @@
  import org.slf4j.Logger;
  
  public class MapItemSavedData extends SavedData {
-@@ -65,6 +_,14 @@
+@@ -64,6 +_,15 @@
+     public final Map<String, MapDecoration> decorations = Maps.newLinkedHashMap();
      private final Map<String, MapFrame> frameMarkers = Maps.newHashMap();
      private int trackedDecorationCount;
- 
++    private org.bukkit.craftbukkit.map.RenderData vanillaRender = new org.bukkit.craftbukkit.map.RenderData(); // Paper
++
 +    // CraftBukkit start
 +    public final CraftMapView mapView;
 +    private CraftServer server;
@@ -39,17 +41,17 @@
 +    public MapId id;
 +    // CraftBukkit end
 +    public boolean isExplorerMap; // Purpur
-+
+ 
      public static SavedData.Factory<MapItemSavedData> factory() {
          return new SavedData.Factory<>(() -> {
-             throw new IllegalStateException("Should never create an empty map saved data");
-@@ -82,6 +_,10 @@
+@@ -82,6 +_,11 @@
          this.unlimitedTracking = p_164772_;
          this.locked = p_164773_;
          this.setDirty();
 +        // CraftBukkit start
 +        mapView = new CraftMapView(this);
 +        server = (CraftServer) org.bukkit.Bukkit.getServer();
++        this.vanillaRender.buffer = colors; // Paper
 +        // CraftBukkit end
      }
  
@@ -85,6 +87,14 @@
          int i = p_164808_.getInt("xCenter");
          int j = p_164808_.getInt("zCenter");
          byte b0 = (byte)Mth.clamp(p_164808_.getByte("scale"), 0, 4);
+@@ -114,6 +_,7 @@
+         if (abyte.length == 16384) {
+             mapitemsaveddata.colors = abyte;
+         }
++        mapitemsaveddata.vanillaRender.buffer = abyte; // Paper
+ 
+         RegistryOps<Tag> registryops = p_324560_.createSerializationContext(NbtOps.INSTANCE);
+ 
 @@ -156,10 +_,32 @@
  
      @Override
@@ -138,7 +148,7 @@
          }
  
          MapDecorations mapdecorations = p_77920_.getOrDefault(DataComponents.MAP_DECORATIONS, MapDecorations.EMPTY);
-@@ -268,7 +_,7 @@
+@@ -268,13 +_,13 @@
          }
      }
  
@@ -147,6 +157,13 @@
          MapDecoration mapdecoration = this.decorations.remove(p_164800_);
          if (mapdecoration != null && mapdecoration.type().value().trackCount()) {
              this.trackedDecorationCount--;
+         }
+ 
+-        this.setDecorationsDirty();
++        if (mapdecoration != null) this.setDecorationsDirty(); // Paper - only mark dirty if a change occurs
+     }
+ 
+     public static void addTargetDecoration(ItemStack p_77926_, BlockPos p_77927_, String p_77928_, Holder<MapDecorationType> p_335759_) {
 @@ -285,7 +_,7 @@
          }
      }
@@ -165,6 +182,29 @@
                  this.bannerMarkers.put(mapbanner.getId(), mapbanner);
                  this.addDecoration(mapbanner.getDecoration(), p_77935_, mapbanner.getId(), d0, d1, 180.0, mapbanner.name().orElse(null));
                  return true;
+@@ -492,6 +_,22 @@
+     }
+ 
+     public class HoldingPlayer {
++
++        // Paper start
++        private void addSeenPlayers(java.util.Collection<MapDecoration> icons) {
++            org.bukkit.entity.Player player = (org.bukkit.entity.Player) this.player.getBukkitEntity();
++            MapItemSavedData.this.decorations.forEach((name, mapIcon) -> {
++                // If this cursor is for a player check visibility with vanish system
++                org.bukkit.entity.Player other = org.bukkit.Bukkit.getPlayerExact(name); // Spigot
++                if (other == null || player.canSee(other)) {
++                    icons.add(mapIcon);
++                }
++            });
++        }
++        private boolean shouldUseVanillaMap() {
++            return mapView.getRenderers().size() == 1 && mapView.getRenderers().get(0).getClass() == org.bukkit.craftbukkit.map.CraftMapRenderer.class;
++        }
++        // Paper end
+         public final Player player;
+         private boolean dirtyData = true;
+         private int minDirtyX;
 @@ -506,7 +_,13 @@
              this.player = p_77970_;
          }
@@ -179,7 +219,7 @@
              int i = this.minDirtyX;
              int j = this.minDirtyY;
              int k = this.maxDirtyX + 1 - this.minDirtyX;
-@@ -515,15 +_,18 @@
+@@ -515,9 +_,10 @@
  
              for (int i1 = 0; i1 < k; i1++) {
                  for (int j1 = 0; j1 < l; j1++) {
@@ -191,15 +231,18 @@
  
              return new MapItemSavedData.MapPatch(i, j, k, l, abyte);
          }
- 
+@@ -525,6 +_,10 @@
          @Nullable
          Packet<?> nextUpdatePacket(MapId p_324558_) {
-+            RenderData render = MapItemSavedData.this.mapView.render((CraftPlayer) this.player.getBukkitEntity()); // CraftBukkit
-+
              MapItemSavedData.MapPatch mapitemsaveddata$mappatch;
++            if (!this.dirtyData && this.tick % 5 != 0) { this.tick++; return null; } // Paper - this won't end up sending, so don't render it!
++            boolean vanillaMaps = shouldUseVanillaMap(); // Paper
++            org.bukkit.craftbukkit.map.RenderData render = !vanillaMaps ? MapItemSavedData.this.mapView.render((org.bukkit.craftbukkit.entity.CraftPlayer) this.player.getBukkitEntity()) : MapItemSavedData.this.vanillaRender; // CraftBukkit // Paper
++
              if (this.dirtyData) {
                  this.dirtyData = false;
-@@ -533,9 +_,25 @@
+                 mapitemsaveddata$mappatch = this.createPatch();
+@@ -533,9 +_,27 @@
              }
  
              Collection<MapDecoration> collection;
@@ -210,6 +253,8 @@
 -                collection = MapItemSavedData.this.decorations.values();
 +
 +                java.util.Collection<MapDecoration> icons = new java.util.ArrayList<MapDecoration>();
++
++                if (vanillaMaps) addSeenPlayers(icons); // Paper
 +
 +                for (org.bukkit.map.MapCursor cursor : render.cursors) {
 +                    if (cursor.isVisible()) {

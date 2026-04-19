@@ -106,7 +106,8 @@
 -    private GameProfile authenticatedProfile;
 +    public GameProfile authenticatedProfile;
      private final String serverId = "";
-     private final boolean transferred;
+-    private final boolean transferred;
++    public final boolean transferred;
 +    private ServerPlayer player; // CraftBukkit
 +    public int velocityLoginMessageId = -1; // Paper - Velocity support
  
@@ -160,7 +161,7 @@
          this.requestedUsername = p_10047_.name();
          GameProfile gameprofile = this.server.getSingleplayerProfile();
          if (gameprofile != null && this.requestedUsername.equalsIgnoreCase(gameprofile.getName())) {
-@@ -125,7 +_,34 @@
+@@ -125,7 +_,36 @@
                  this.state = ServerLoginPacketListenerImpl.State.KEY;
                  this.connection.send(new ClientboundHelloPacket("", this.server.getKeyPair().getPublic().getEncoded(), this.challenge, true));
              } else {
@@ -182,8 +183,10 @@
 +                    @Override
 +                    public void run() {
 +                        try {
-+                            GameProfile gameprofile = createOfflineProfile(ServerLoginPacketListenerImpl.this.requestedUsername); // Spigot
-+                            new LoginHandler().fireEvents(ServerLoginPacketListenerImpl.this, gameprofile);
++                            GameProfile gameprofile = ServerLoginPacketListenerImpl.this.createOfflineProfile(ServerLoginPacketListenerImpl.this.requestedUsername); // Spigot
++
++                            gameprofile = LoginHandler.callPlayerPreLoginEvents(ServerLoginPacketListenerImpl.this, gameprofile); // Paper - Add more fields to AsyncPlayerPreLoginEvent
++                            ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
 +                            ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
 +                        } catch (Exception ex) {
 +                            disconnect("Failed to verify username!");
@@ -272,17 +275,17 @@
              public void run() {
                  String s1 = Objects.requireNonNull(ServerLoginPacketListenerImpl.this.requestedUsername, "Player name not initialized");
  
-@@ -193,11 +_,16 @@
+@@ -193,11 +_,17 @@
                      ProfileResult profileresult = ServerLoginPacketListenerImpl.this.server.getSessionService().hasJoinedServer(s1, s, this.getAddress());
                      if (profileresult != null) {
                          GameProfile gameprofile = profileresult.profile();
--                        ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
 +                        // CraftBukkit start - fire PlayerPreLoginEvent
 +                        if (!connection.isConnected()) {
 +                            return;
 +                        }
-+                        new LoginHandler().fireEvents(ServerLoginPacketListenerImpl.this, gameprofile);
++                        gameprofile = LoginHandler.callPlayerPreLoginEvents(ServerLoginPacketListenerImpl.this, gameprofile); // Paper - Add more fields to AsyncPlayerPreLoginEvent
 +                        // CraftBukkit end
+                         ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
                          ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
                      } else if (ServerLoginPacketListenerImpl.this.server.isSingleplayer()) {
                          ServerLoginPacketListenerImpl.LOGGER.warn("Failed to verify username but will let them in anyway!");
@@ -322,7 +325,7 @@
      }
  
      @Override
-@@ -230,14 +_,86 @@
+@@ -230,14 +_,87 @@
          this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
      }
  
@@ -365,8 +368,9 @@
 +        // Proceed with login
 +        authenticatorPool.execute(() -> {
 +            try {
-+                new LoginHandler().fireEvents(ServerLoginPacketListenerImpl.this, this.authenticatedProfile);
-+                ServerLoginPacketListenerImpl.this.startClientVerification(this.authenticatedProfile);
++                final GameProfile gameprofile = LoginHandler.callPlayerPreLoginEvents(ServerLoginPacketListenerImpl.this, this.authenticatedProfile);
++                ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.getName(), gameprofile.getId());
++                ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
 +            } catch (Exception ex) {
 +                disconnect("Failed to verify username!");
 +                server.server.getLogger().log(java.util.logging.Level.WARNING, "Exception verifying " + authenticatedProfile.getName(), ex);

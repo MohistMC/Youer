@@ -1,0 +1,23 @@
+--- a/net/minecraft/world/level/block/EnderChestBlock.java
++++ b/net/minecraft/world/level/block/EnderChestBlock.java
+@@ -93,13 +_,16 @@
+             } else {
+                 EnderChestBlockEntity enderchestblockentity = (EnderChestBlockEntity)blockentity;
+                 playerenderchestcontainer.setActiveChest(enderchestblockentity);
+-                p_53140_.openMenu(
++                // Paper start - Fix InventoryOpenEvent cancellation
++                if (p_53140_.openMenu(
+                     new SimpleMenuProvider(
+                         (p_53124_, p_53125_, p_53126_) -> ChestMenu.threeRows(p_53124_, p_53125_, playerenderchestcontainer), CONTAINER_TITLE
+                     )
+-                );
+-                p_53140_.awardStat(Stats.OPEN_ENDERCHEST);
+-                PiglinAi.angerNearbyPiglins(p_53140_, true);
++                ).isPresent()) {
++                    p_53140_.awardStat(Stats.OPEN_ENDERCHEST);
++                    PiglinAi.angerNearbyPiglins(p_53140_, true);
++                }
++                // Paper end - Fix InventoryOpenEvent cancellation
+                 return InteractionResult.CONSUME;
+             }
+         } else {

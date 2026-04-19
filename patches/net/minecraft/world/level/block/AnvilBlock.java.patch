@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/level/block/AnvilBlock.java
++++ b/net/minecraft/world/level/block/AnvilBlock.java
+@@ -64,11 +_,10 @@
+     protected InteractionResult useWithoutItem(BlockState p_48804_, Level p_48805_, BlockPos p_48806_, Player p_48807_, BlockHitResult p_48809_) {
+         if (p_48805_.isClientSide) {
+             return InteractionResult.SUCCESS;
+-        } else {
+-            p_48807_.openMenu(p_48804_.getMenuProvider(p_48805_, p_48806_));
++        } else if (p_48807_.openMenu(p_48804_.getMenuProvider(p_48805_, p_48806_)).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+             p_48807_.awardStat(Stats.INTERACT_WITH_ANVIL);
+-            return InteractionResult.CONSUME;
+         }
++        return InteractionResult.CONSUME; // Paper - Fix InventoryOpenEvent cancellation
+     }
+ 
+     @Nullable

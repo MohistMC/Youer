@@ -18,13 +18,14 @@
          return this.isScreamingGoat() ? SoundEvents.GOAT_SCREAMING_DEATH : SoundEvents.GOAT_DEATH;
      }
  
-@@ -216,13 +_,20 @@
+@@ -216,13 +_,21 @@
      public InteractionResult mobInteract(Player p_149379_, InteractionHand p_149380_) {
          ItemStack itemstack = p_149379_.getItemInHand(p_149380_);
          if (itemstack.is(Items.BUCKET) && !this.isBaby()) {
 +            // CraftBukkit start - Got milk?
 +            org.bukkit.event.player.PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) p_149379_.level(), p_149379_, this.blockPosition(), this.blockPosition(), null, itemstack, Items.MILK_BUCKET, p_149380_);
 +            if (event.isCancelled()) {
++                p_149379_.containerMenu.sendAllDataToRemote(); // Paper - Fix inventory desync
 +                return InteractionResult.PASS;
 +            }
 +            // CraftBukkit end

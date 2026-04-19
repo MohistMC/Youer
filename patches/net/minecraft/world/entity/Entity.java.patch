@@ -1173,14 +1173,15 @@
                      this.gameEvent(GameEvent.ENTITY_INTERACT, p_19978_);
                  }
  
-@@ -1914,6 +_,13 @@
+@@ -1914,6 +_,14 @@
              ItemStack itemstack = p_19978_.getItemInHand(p_19979_);
              if (itemstack.is(Items.LEAD) && leashable.canHaveALeashAttachedToIt()) {
                  if (!this.level().isClientSide()) {
 +                    // CraftBukkit start - fire PlayerLeashEntityEvent
 +                    if (CraftEventFactory.callPlayerLeashEntityEvent(this, p_19978_, p_19978_, p_19979_).isCancelled()) {
-+                        ((ServerPlayer) p_19978_).resendItemInHands(); // SPIGOT-7615: Resend to fix client desync with used item
++                        // ((ServerPlayer) p_19978_).resendItemInHands(); // SPIGOT-7615: Resend to fix client desync with used item // Paper - Fix inventory desync
 +                        ((ServerPlayer) p_19978_).connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket(this, leashable.getLeashHolder()));
++                        p_19978_.containerMenu.sendAllDataToRemote(); // Paper - Fix inventory desync
 +                        return InteractionResult.PASS;
 +                    }
 +                    // CraftBukkit end

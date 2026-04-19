@@ -39,7 +39,18 @@
      }
  
      default void chestVehicleDestroyed(DamageSource p_219928_, Level p_219929_, Entity p_219930_) {
-@@ -99,14 +_,22 @@
+@@ -93,20 +_,32 @@
+     }
+ 
+     default InteractionResult interactWithContainerVehicle(Player p_270068_) {
+-        p_270068_.openMenu(this);
++        // Paper start - Fix InventoryOpenEvent cancellation
++        if (p_270068_.openMenu(this).isEmpty()) {
++            return InteractionResult.PASS;
++        }
++        // Paper end - Fix InventoryOpenEvent cancellation
+         return !p_270068_.level().isClientSide ? InteractionResult.CONSUME : InteractionResult.SUCCESS;
+     }
  
      default void unpackChestVehicleLootTable(@Nullable Player p_219950_) {
          MinecraftServer minecraftserver = this.level().getServer();

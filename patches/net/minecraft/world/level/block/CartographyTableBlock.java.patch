@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/level/block/CartographyTableBlock.java
++++ b/net/minecraft/world/level/block/CartographyTableBlock.java
+@@ -34,11 +_,10 @@
+     protected InteractionResult useWithoutItem(BlockState p_51357_, Level p_51358_, BlockPos p_51359_, Player p_51360_, BlockHitResult p_51362_) {
+         if (p_51358_.isClientSide) {
+             return InteractionResult.SUCCESS;
+-        } else {
+-            p_51360_.openMenu(p_51357_.getMenuProvider(p_51358_, p_51359_));
++        } else if (p_51360_.openMenu(p_51357_.getMenuProvider(p_51358_, p_51359_)).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+             p_51360_.awardStat(Stats.INTERACT_WITH_CARTOGRAPHY_TABLE);
+-            return InteractionResult.CONSUME;
+         }
++        return InteractionResult.CONSUME; // Paper - Fix InventoryOpenEvent cancellation
+     }
+ 
+     @Nullable
