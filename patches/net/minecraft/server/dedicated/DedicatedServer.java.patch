@@ -133,7 +133,7 @@
          DedicatedServerProperties dedicatedserverproperties = this.settings.getProperties();
          if (this.isSingleplayer()) {
              this.setLocalIp("127.0.0.1");
-@@ -133,51 +_,103 @@
+@@ -133,51 +_,107 @@
              this.setLocalIp(dedicatedserverproperties.serverIp);
          }
  
@@ -180,18 +180,14 @@
          this.setEnforceWhitelist(dedicatedserverproperties.enforceWhitelist);
 -        this.worldData.setGameType(dedicatedserverproperties.gamemode);
 -        LOGGER.info("Default game type: {}", dedicatedserverproperties.gamemode);
--        InetAddress inetaddress = null;
--        if (!this.getLocalIp().isEmpty()) {
--            inetaddress = InetAddress.getByName(this.getLocalIp());
--        }
--
--        if (this.getPort() < 0) {
--            this.setPort(dedicatedserverproperties.serverPort);
--        }
 +        // this.worldData.setGameType(dedicatedserverproperties.gamemode); // CraftBukkit - moved to world loading
 +        LOGGER.info(I18n.as("minecraftserver.defaultgamemode", dedicatedserverproperties.gamemode));
 +        // Paper start - Unix domain socket support
-+        java.net.SocketAddress bindAddress;
++        java.net.SocketAddress bindAddress = null;
+         InetAddress inetaddress = null;
+-        if (!this.getLocalIp().isEmpty()) {
+-            inetaddress = InetAddress.getByName(this.getLocalIp());
+-        }
 +        if (this.getLocalIp().startsWith("unix:")) {
 +            if (!io.netty.channel.epoll.Epoll.isAvailable()) {
 +                DedicatedServer.LOGGER.error("**** INVALID CONFIGURATION!");
@@ -204,17 +200,16 @@
 +            }
 +            bindAddress = new io.netty.channel.unix.DomainSocketAddress(this.getLocalIp().substring("unix:".length()));
 +        } else {
-+            InetAddress inetaddress = null;
-+
 +            if (!this.getLocalIp().isEmpty()) {
 +                inetaddress = InetAddress.getByName(this.getLocalIp());
 +            }
-+
+ 
+-        if (this.getPort() < 0) {
+-            this.setPort(dedicatedserverproperties.serverPort);
 +            if (this.getPort() < 0) {
 +                this.setPort(dedicatedserverproperties.serverPort);
 +            }
-+            bindAddress = new java.net.InetSocketAddress(inetaddress, this.getPort());
-+        }
+         }
 +        // Paper end - Unix domain socket support
  
          this.initializeKeyPair();
@@ -223,7 +218,13 @@
  
          try {
 -            this.getConnection().startTcpServerListener(inetaddress, this.getPort());
-+            this.getConnection().bind(bindAddress); // Paper - Unix domain socket support
++            // Youer start - fix sable mod UDP
++            if (bindAddress != null) {
++                this.getConnection().bind(bindAddress); // Paper - Unix domain socket support
++            } else {
++                this.getConnection().startTcpServerListener(inetaddress, this.getPort());
++            }
++            // Youer end
          } catch (IOException ioexception) {
 -            LOGGER.warn("**** FAILED TO BIND TO PORT!");
 -            LOGGER.warn("The exception was: {}", ioexception.toString());
