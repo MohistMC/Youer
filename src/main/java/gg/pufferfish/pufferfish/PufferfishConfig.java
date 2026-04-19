@@ -82,7 +82,7 @@ public class PufferfishConfig {
 		// Attempt to detect vectorization
 		try {
 			SIMDDetection.isEnabled = SIMDDetection.canEnable(PufferfishLogger.LOGGER);
-			SIMDDetection.versionLimited = SIMDDetection.getJavaVersion() < 17 || SIMDDetection.getJavaVersion() > 21;
+			SIMDDetection.versionLimited = SIMDDetection.getJavaVersion() < 17 || SIMDDetection.getJavaVersion() > 25;
 		} catch (NoClassDefFoundError | Exception ignored) {
 			ignored.printStackTrace();
 		}
