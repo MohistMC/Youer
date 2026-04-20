@@ -8,26 +8,50 @@
              return LevelDataAndDimensions.create(worldData, worldGenSettings, dimensions);
          }
      }
-@@ -392,19 +_,19 @@
+@@ -392,19 +_,34 @@
          return this.backupDir;
      }
  
 -    public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String levelId) throws IOException, ContentValidationException {
-+    public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String levelId, ResourceKey<LevelStem> dimensionType) throws IOException, ContentValidationException { // CraftBukkit
-         Path levelPath = this.getLevelPath(levelId);
-         List<ForbiddenSymlinkInfo> validationResults = this.worldDirValidator.validateDirectory(levelPath, true);
-         if (!validationResults.isEmpty()) {
-             throw new ContentValidationException(levelPath, validationResults);
-         } else {
+-        Path levelPath = this.getLevelPath(levelId);
+-        List<ForbiddenSymlinkInfo> validationResults = this.worldDirValidator.validateDirectory(levelPath, true);
+-        if (!validationResults.isEmpty()) {
+-            throw new ContentValidationException(levelPath, validationResults);
+-        } else {
 -            return new LevelStorageSource.LevelStorageAccess(levelId, levelPath);
-+            return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, dimensionType); // CraftBukkit
-         }
-     }
- 
+-        }
+-    }
+-
 -    public LevelStorageSource.LevelStorageAccess createAccess(String levelId) throws IOException {
-+    public LevelStorageSource.LevelStorageAccess createAccess(String levelId, ResourceKey<LevelStem> dimensionType) throws IOException { // CraftBukkit
-         Path levelPath = this.getLevelPath(levelId);
+-        Path levelPath = this.getLevelPath(levelId);
 -        return new LevelStorageSource.LevelStorageAccess(levelId, levelPath);
++    public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String levelId) throws IOException, ContentValidationException { // CraftBukkit
++        Path levelPath = this.getLevelPath(levelId);
++        List<ForbiddenSymlinkInfo> validationResults = this.worldDirValidator.validateDirectory(levelPath, true);
++        if (!validationResults.isEmpty()) {
++            throw new ContentValidationException(levelPath, validationResults);
++        } else {
++            return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, LevelStem.OVERWORLD); // CraftBukkit
++        }
++    }
++
++    public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String levelId, ResourceKey<LevelStem> dimensionType) throws IOException, ContentValidationException { // CraftBukkit
++        Path levelPath = this.getLevelPath(levelId);
++        List<ForbiddenSymlinkInfo> validationResults = this.worldDirValidator.validateDirectory(levelPath, true);
++        if (!validationResults.isEmpty()) {
++            throw new ContentValidationException(levelPath, validationResults);
++        } else {
++            return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, dimensionType); // CraftBukkit
++        }
++    }
++
++    public LevelStorageSource.LevelStorageAccess createAccess(String levelId) throws IOException { // CraftBukkit
++        Path levelPath = this.getLevelPath(levelId);
++        return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, LevelStem.OVERWORLD); // CraftBukkit
++    }
++
++    public LevelStorageSource.LevelStorageAccess createAccess(String levelId, ResourceKey<LevelStem> dimensionType) throws IOException { // CraftBukkit
++        Path levelPath = this.getLevelPath(levelId);
 +        return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, dimensionType); // CraftBukkit
      }
  

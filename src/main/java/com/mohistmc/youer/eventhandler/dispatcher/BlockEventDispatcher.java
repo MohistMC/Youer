@@ -4,16 +4,13 @@ import com.google.common.collect.Lists;
 import com.mohistmc.youer.bukkit.block.MohistBlockSnapshot;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.AbstractCandleBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -30,7 +27,6 @@ import org.bukkit.craftbukkit.block.CraftBlockState;
 import org.bukkit.craftbukkit.block.CraftBlockStates;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.event.Cancellable;
-import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -53,25 +49,6 @@ public class BlockEventDispatcher {
                 }
                 // CraftBukkit end
             }
-        }
-    }
-
-    @SubscribeEvent(receiveCanceled = true)
-    public void onBlockBreak(BlockEvent.BreakEvent event) {
-        LevelAccessor level = event.getLevel();
-        BlockPos pos = event.getPos();
-        Player player = event.getPlayer();
-        // CraftBukkit start - fire BlockBreakEvent
-        org.bukkit.block.Block bblock = CraftBlock.at(level, pos);
-        if (player instanceof ServerPlayer serverPlayer && !(player instanceof FakePlayer)) {
-            if (level instanceof ServerLevel) {
-                BlockBreakEvent bukkitEvent = new BlockBreakEvent(bblock, serverPlayer.getBukkitEntity());
-                bukkitEvent.setCancelled(event.isCanceled());
-                // event.setDropItems(bukkitEvent.isDropItems()); // TODO
-                Bukkit.getPluginManager().callEvent(bukkitEvent);
-                event.setCanceled(bukkitEvent.isCancelled());
-            }
-            // CraftBukkit end
         }
     }
 

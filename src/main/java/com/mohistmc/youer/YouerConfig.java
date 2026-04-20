@@ -129,6 +129,7 @@ public class YouerConfig {
     public static List<String> player_modlist_blacklist;
     public static boolean fakeplayer_callbukkitevent = false;
     public static String message_require_neoforge;
+    public static boolean no_damage_particle;
 
     static int version;
     static Map<String, Command> commands;
@@ -314,6 +315,7 @@ public class YouerConfig {
         custom_fix_cmi_tempban = getBoolean("custom.fix_cmi_tempban", false);
         custom_disabled_spawner = getBoolean("custom.disabled_spawner", false);
         custom_disabled_sign_commands = getBoolean("custom.disabled_signblock_commands", true);
+        no_damage_particle = getBoolean("custom.no_damage_particle", false);
 
         player_modlist_blacklist_enable = getBoolean("player_modlist_blacklist.enable", false);
         player_modlist_blacklist_use_real_feedback = getBoolean("player_modlist_blacklist.use_real_feedback", false);

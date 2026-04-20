@@ -172,6 +172,7 @@ import net.neoforged.neoforge.common.loot.IGlobalLootModifier;
 import net.neoforged.neoforge.common.loot.LootModifierManager;
 import net.neoforged.neoforge.common.loot.LootTableIdCondition;
 import net.neoforged.neoforge.common.util.BlockSnapshot;
+import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.common.util.Lazy;
 import net.neoforged.neoforge.event.AnvilUpdateEvent;
 import net.neoforged.neoforge.event.DifficultyChangeEvent;
@@ -214,6 +215,7 @@ import net.neoforged.neoforge.event.entity.player.SweepAttackEvent;
 import net.neoforged.neoforge.event.level.BlockDropsEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.level.NoteBlockEvent;
+import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 import net.neoforged.neoforge.event.level.block.CropGrowEvent;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.internal.NeoForgeProxy;
@@ -228,6 +230,9 @@ import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
+import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.block.CraftBlock;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.transformer.meta.MixinMerged;
@@ -575,7 +580,7 @@ public class CommonHooks {
      * @param state    The state of the block being broken
      * @return The event
      */
-    public static BlockEvent.BreakEvent fireBlockBreak(Level level, GameType gameType, ServerPlayer player, BlockPos pos, BlockState state) {
+    public static BreakBlockEvent fireBlockBreak(Level level, GameType gameType, Player player, BlockPos pos, BlockState state) {
         boolean preCancelEvent = false;
 
         ItemStack itemstack = player.getMainHandItem();
@@ -591,14 +596,28 @@ public class CommonHooks {
             preCancelEvent = true;
         }
 
-        // Post the block break event
-        BlockEvent.BreakEvent event = new BlockEvent.BreakEvent(level, pos, state, player);
+        var event = new BreakBlockEvent(level, pos, state, player);
         event.setCanceled(preCancelEvent);
         NeoForge.EVENT_BUS.post(event);
-
-        // If the event is canceled, let the client know the block still exists
-        if (event.isCanceled()) {
-            player.connection.send(new ClientboundBlockUpdatePacket(pos, state));
+        // CraftBukkit start - fire BlockBreakEvent
+        org.bukkit.block.Block bblock = CraftBlock.at(level, pos);
+        if (player instanceof ServerPlayer serverPlayer && !(player instanceof FakePlayer)) {
+            if (level instanceof ServerLevel) {
+                BlockBreakEvent bukkitEvent = new BlockBreakEvent(bblock, serverPlayer.getBukkitEntity());
+                // event.setDropItems(bukkitEvent.isDropItems()); // TODO
+                Bukkit.getPluginManager().callEvent(bukkitEvent);
+                if (event.isCanceled() && !bukkitEvent.isCancelled()) {
+                    bukkitEvent.setCancelled(event.isCanceled());
+                }
+                if (!event.isCanceled() && bukkitEvent.isCancelled()) {
+                    event.setCanceled(bukkitEvent.isCancelled());
+                }
+            }
+        }
+        // CraftBukkit end
+        // If the event is canceled on the server, let the client know the block still exists
+        if (event.isCanceled() && event.shouldNotifyClient() && player instanceof ServerPlayer sp) {
+            sp.connection.send(new ClientboundBlockUpdatePacket(pos, state));
         }
 
         return event;
@@ -1120,8 +1139,12 @@ public class CommonHooks {
     public static ObjectArrayList<ItemStack> modifyLoot(Identifier lootTableId, ObjectArrayList<ItemStack> generatedLoot, LootContext context) {
         context.setQueriedLootTableId(lootTableId); // In case the ID was set via copy constructor, this will be ignored: intended
         LootModifierManager man = NeoForgeEventHandler.getLootModifierManager();
-        for (IGlobalLootModifier mod : man.getAllLootMods()) {
-            generatedLoot = mod.apply(generatedLoot, context);
+        for (IGlobalLootModifier mod : man.getSortedModifiers()) {
+            try {
+                generatedLoot = mod.apply(generatedLoot, context);
+            } catch (Exception e) {
+                LOGGER.error("Error applying global loot modifier %s for loot table %s!".formatted(man.getId(mod), lootTableId), e);
+            }
         }
         return generatedLoot;
     }

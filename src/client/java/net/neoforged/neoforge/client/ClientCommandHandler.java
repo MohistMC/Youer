@@ -129,11 +129,6 @@ public class ClientCommandHandler {
             }
 
             @Override
-            public CommandSender getBukkitSender(CommandSourceStack wrapper) {
-                return null;
-            }
-
-            @Override
             public void sendSystemMessage(Component message) {
                 Minecraft.getInstance().gui.getChat().addClientSystemMessage(message);
             }
