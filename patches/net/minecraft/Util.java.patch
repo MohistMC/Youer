@@ -1,5 +1,13 @@
 --- a/net/minecraft/Util.java
 +++ b/net/minecraft/Util.java
+@@ -82,6 +_,7 @@
+ import net.minecraft.util.TimeSource;
+ import net.minecraft.util.datafix.DataFixers;
+ import net.minecraft.world.level.block.state.properties.Property;
++import org.bukkit.NamespacedKey;
+ import org.slf4j.Logger;
+ 
+ public class Util {
 @@ -92,6 +_,22 @@
      private static final ExecutorService BACKGROUND_EXECUTOR = makeExecutor("Main");
      private static final ExecutorService IO_POOL = makeIoExecutor("IO-Worker-", false);
@@ -23,7 +31,18 @@
      private static final DateTimeFormatter FILENAME_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss", Locale.ROOT);
      public static final int LINEAR_LOOKUP_THRESHOLD = 8;
      private static final Set<String> ALLOWED_UNTRUSTED_LINK_PROTOCOLS = Set.of("http", "https");
-@@ -135,7 +_,7 @@
+@@ -130,12 +_,18 @@
+             : p_137493_ + "." + p_137494_.getNamespace() + "." + p_137494_.getPath().replace('/', '.');
+     }
+ 
++    public static String makeDescriptionId(String p_137493_, @Nullable NamespacedKey p_137494_) {
++        return p_137494_ == null
++                ? p_137493_ + ".unregistered_sadface"
++                : p_137493_ + "." + p_137494_.getNamespace() + "." + p_137494_.getKey().replace('/', '.');
++    }
++
+     public static long getMillis() {
+         return getNanos() / 1000000L;
      }
  
      public static long getNanos() {
