@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/entity/ai/behavior/TransportItemsBetweenContainers.java
++++ b/net/minecraft/world/entity/ai/behavior/TransportItemsBetweenContainers.java
+@@ -36,6 +_,9 @@
+ import net.minecraft.world.phys.HitResult;
+ import net.minecraft.world.phys.Vec3;
+ import org.apache.commons.lang3.function.TriConsumer;
++import org.bukkit.craftbukkit.block.CraftBlock;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityTargetBlockEvent;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class TransportItemsBetweenContainers extends Behavior<PathfinderMob> {
+@@ -289,6 +_,17 @@
+                                 body, level, chestBlockEntity, visitedPositions, unreachablePositions, targetBlockSearchArea
+                             );
+                             if (targetValidToPick != null) {
++                                // CraftBukkit start
++                                EntityTargetBlockEvent event = CraftEventFactory.callEntityTargetBlockEvent(body, level, targetValidToPick.pos());
++                                if (event.isCancelled()) {
++                                    return Optional.empty();
++                                }
++                                org.bukkit.block.Block newTarget = event.getTarget();
++                                if (newTarget == null) {
++                                    continue;
++                                }
++                                targetValidToPick = TransportItemsBetweenContainers.TransportItemTarget.tryCreatePossibleTarget(((CraftBlock) newTarget).getPosition(), level);
++                                // CraftBukkit end
+                                 target = targetValidToPick;
+                                 closestDistance = distance;
+                             }

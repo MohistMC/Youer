@@ -1,0 +1,26 @@
+--- a/net/minecraft/world/entity/npc/wanderingtrader/WanderingTrader.java
++++ b/net/minecraft/world/entity/npc/wanderingtrader/WanderingTrader.java
+@@ -46,6 +_,7 @@
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.event.entity.EntityRemoveEvent;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class WanderingTrader extends AbstractVillager implements Consumable.OverrideConsumeSound {
+@@ -55,6 +_,7 @@
+ 
+     public WanderingTrader(EntityType<? extends WanderingTrader> type, Level level) {
+         super(type, level);
++        this.setDespawnDelay(48000); // CraftBukkit - set default from MobSpawnerTrader
+     }
+ 
+     @Override
+@@ -211,6 +_,7 @@
+ 
+     private void maybeDespawn() {
+         if (this.despawnDelay > 0 && !this.isTrading() && --this.despawnDelay == 0) {
++            this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
+         }
+     }

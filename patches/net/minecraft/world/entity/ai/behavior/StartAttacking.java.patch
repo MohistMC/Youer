@@ -1,10 +1,37 @@
 --- a/net/minecraft/world/entity/ai/behavior/StartAttacking.java
 +++ b/net/minecraft/world/entity/ai/behavior/StartAttacking.java
-@@ -29,7 +_,11 @@
+@@ -2,10 +_,14 @@
+ 
+ import java.util.Optional;
+ import net.minecraft.server.level.ServerLevel;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.Mob;
+ import net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;
+ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
++import org.bukkit.craftbukkit.entity.CraftLivingEntity;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityTargetEvent;
+ 
+ public class StartAttacking {
+     public static <E extends Mob> BehaviorControl<E> create(StartAttacking.TargetFinder<E> targetFinderFunction) {
+@@ -29,7 +_,23 @@
                              if (!body.canAttack(targetEntity)) {
                                  return false;
                              } else {
 -                                attackTarget.set(targetEntity);
++                                // CraftBukkit start
++                                EntityTargetEvent event = CraftEventFactory.callEntityTargetLivingEvent(body, targetEntity, (targetEntity instanceof ServerPlayer) ? EntityTargetEvent.TargetReason.CLOSEST_PLAYER : EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
++                                if (event.isCancelled()) {
++                                    return false;
++                                }
++                                if (event.getTarget() == null) {
++                                    attackTarget.erase();
++                                    return true;
++                                }
++                                targetEntity = ((CraftLivingEntity) event.getTarget()).getHandle();
++                                // CraftBukkit end
++
 +                                net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.neoforged.neoforge.common.CommonHooks.onLivingChangeTarget(body, targetEntity, net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.BEHAVIOR_TARGET);
 +                                if (changeTargetEvent.isCanceled() || changeTargetEvent.getNewAboutToBeSetTarget() == null)
 +                                    return false;

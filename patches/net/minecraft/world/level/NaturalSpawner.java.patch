@@ -1,6 +1,36 @@
 --- a/net/minecraft/world/level/NaturalSpawner.java
 +++ b/net/minecraft/world/level/NaturalSpawner.java
-@@ -72,7 +_,7 @@
+@@ -33,6 +_,7 @@
+ import net.minecraft.world.entity.MobCategory;
+ import net.minecraft.world.entity.SpawnGroupData;
+ import net.minecraft.world.entity.SpawnPlacements;
++import net.minecraft.world.entity.animal.feline.Ocelot;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.level.biome.Biome;
+ import net.minecraft.world.level.biome.MobSpawnSettings;
+@@ -49,6 +_,11 @@
+ import net.minecraft.world.level.material.FluidState;
+ import net.minecraft.world.level.storage.LevelData;
+ import net.minecraft.world.phys.Vec3;
++import net.neoforged.neoforge.event.EventHooks;
++import org.bukkit.craftbukkit.util.CraftSpawnCategory;
++import org.bukkit.entity.Ageable;
++import org.bukkit.entity.SpawnCategory;
++import org.bukkit.event.entity.CreatureSpawnEvent;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+@@ -64,15 +_,15 @@
+     private NaturalSpawner() {
+     }
+ 
+-    public static NaturalSpawner.SpawnState createState(
+-        int spawnableChunkCount, Iterable<Entity> entities, NaturalSpawner.ChunkGetter chunkGetter, LocalMobCapCalculator localMobCapCalculator
++    public static SpawnState createState(
++        int spawnableChunkCount, Iterable<Entity> entities, ChunkGetter chunkGetter, LocalMobCapCalculator localMobCapCalculator
+     ) {
+         PotentialCalculator spawnPotential = new PotentialCalculator();
+         Object2IntOpenHashMap<MobCategory> mobCounts = new Object2IntOpenHashMap<>();
  
          for (Entity entity : entities) {
              if (!(entity instanceof Mob mob && (mob.isPersistenceRequired() || mob.requiresCustomPersistence()))) {
@@ -9,12 +39,94 @@
                  if (category != MobCategory.MISC) {
                      BlockPos pos = entity.blockPosition();
                      chunkGetter.query(ChunkPos.pack(pos), chunk -> {
-@@ -205,7 +_,7 @@
-                                     groupSize++;
+@@ -91,23 +_,39 @@
+             }
+         }
+ 
+-        return new NaturalSpawner.SpawnState(spawnableChunkCount, mobCounts, spawnPotential, localMobCapCalculator);
++        return new SpawnState(spawnableChunkCount, mobCounts, spawnPotential, localMobCapCalculator);
+     }
+ 
+     private static Biome getRoughBiome(BlockPos pos, ChunkAccess chunk) {
+         return chunk.getNoiseBiome(QuartPos.fromBlock(pos.getX()), QuartPos.fromBlock(pos.getY()), QuartPos.fromBlock(pos.getZ())).value();
+     }
+ 
++    public static @Nullable ServerLevel serverlevel = null;
+     public static List<MobCategory> getFilteredSpawningCategories(
+-        NaturalSpawner.SpawnState state, boolean spawnFriendlies, boolean spawnEnemies, boolean spawnPersistent
++        SpawnState state, boolean spawnFriendlies, boolean spawnEnemies, boolean spawnPersistent
+     ) {
+         List<MobCategory> spawningCategories = new ArrayList<>(SPAWNING_CATEGORIES.length);
+ 
+         for (MobCategory mobCategory : SPAWNING_CATEGORIES) {
++            // CraftBukkit start - Use per-world spawn limits
++            int limit = mobCategory.getMaxInstancesPerChunk();
++            if (serverlevel != null) {
++                boolean spawnThisTick = true;
++                SpawnCategory spawnCategory = CraftSpawnCategory.toBukkit(mobCategory);
++                if (CraftSpawnCategory.isValidForLimits(spawnCategory)) {
++                    spawnThisTick = serverlevel.ticksPerSpawnCategory.getLong(spawnCategory) != 0 && serverlevel.getLevelData().getGameTime() % serverlevel.ticksPerSpawnCategory.getLong(spawnCategory) == 0;
++                    limit = serverlevel.getWorld().getSpawnLimit(spawnCategory);
++                }
++
++                if (!spawnThisTick || limit == 0) {
++                    continue;
++                }
++            }
++
+             if ((spawnFriendlies || !mobCategory.isFriendly())
+                 && (spawnEnemies || mobCategory.isFriendly())
+                 && (spawnPersistent || !mobCategory.isPersistent())
+-                && state.canSpawnForCategoryGlobal(mobCategory)) {
++                && state.canSpawnForCategoryGlobal(mobCategory, limit)) {
+                 spawningCategories.add(mobCategory);
+             }
+         }
+@@ -115,7 +_,7 @@
+         return spawningCategories;
+     }
+ 
+-    public static void spawnForChunk(ServerLevel level, LevelChunk chunk, NaturalSpawner.SpawnState state, List<MobCategory> spawningCategories) {
++    public static void spawnForChunk(ServerLevel level, LevelChunk chunk, SpawnState state, List<MobCategory> spawningCategories) {
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("spawner");
+ 
+@@ -129,7 +_,7 @@
+     }
+ 
+     public static void spawnCategoryForChunk(
+-        MobCategory mobCategory, ServerLevel level, LevelChunk chunk, NaturalSpawner.SpawnPredicate extraTest, NaturalSpawner.AfterSpawnCallback spawnCallback
++        MobCategory mobCategory, ServerLevel level, LevelChunk chunk, SpawnPredicate extraTest, AfterSpawnCallback spawnCallback
+     ) {
+         BlockPos start = getRandomPosWithin(level, chunk);
+         if (start.getY() >= level.getMinY() + 1) {
+@@ -147,8 +_,8 @@
+         ServerLevel level,
+         ChunkAccess chunk,
+         BlockPos start,
+-        NaturalSpawner.SpawnPredicate extraTest,
+-        NaturalSpawner.AfterSpawnCallback spawnCallback
++        SpawnPredicate extraTest,
++        AfterSpawnCallback spawnCallback
+     ) {
+         StructureManager structureManager = level.structureManager();
+         ChunkGenerator generator = level.getChunkSource().getGenerator();
+@@ -201,11 +_,14 @@
+                                     groupData = mob.finalizeSpawn(
+                                         level, level.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.NATURAL, groupData
+                                     );
+-                                    clusterSize++;
+-                                    groupSize++;
++                                    mob.spawnReason((mob instanceof Ocelot && !((Ageable) mob.getBukkitEntity()).isAdult()) ? CreatureSpawnEvent.SpawnReason.OCELOT_BABY : CreatureSpawnEvent.SpawnReason.NATURAL);
                                      level.addFreshEntityWithPassengers(mob);
-                                     spawnCallback.run(mob, chunk);
+-                                    spawnCallback.run(mob, chunk);
 -                                    if (clusterSize >= mob.getMaxSpawnClusterSize()) {
-+                                    if (clusterSize >= net.neoforged.neoforge.event.EventHooks.getMaxSpawnClusterSize(mob)) {
++                                    if (!mob.isRemoved()) {
++                                        clusterSize++;
++                                        groupSize++;
++                                        spawnCallback.run(mob, chunk);
++                                    }
++                                    if (clusterSize >= EventHooks.getMaxSpawnClusterSize(mob)) {
                                          return;
                                      }
  
@@ -23,7 +135,7 @@
                  && mob.removeWhenFarAway(nearestPlayerDistanceSqr)
              ? false
 -            : mob.checkSpawnRules(level, EntitySpawnReason.NATURAL) && mob.checkSpawnObstruction(level);
-+            : net.neoforged.neoforge.event.EventHooks.checkSpawnPosition(mob, level, EntitySpawnReason.NATURAL);
++            : EventHooks.checkSpawnPosition(mob, level, EntitySpawnReason.NATURAL);
      }
  
      private static Optional<MobSpawnSettings.SpawnerData> getRandomSpawnMobAt(
@@ -38,20 +150,39 @@
 +        if (isInNetherFortressBounds(pos, level, mobCategory, structureManager)) {
 +            var monsterSpawns = structureManager.registryAccess().lookupOrThrow(Registries.STRUCTURE).getValueOrThrow(BuiltinStructures.FORTRESS).spawnOverrides().get(MobCategory.MONSTER);
 +            if (monsterSpawns != null) { // structure modifiers can clear the spawn overrides
-+                return net.neoforged.neoforge.event.EventHooks.getPotentialSpawns(level, mobCategory, pos, monsterSpawns.spawns());
++                return EventHooks.getPotentialSpawns(level, mobCategory, pos, monsterSpawns.spawns());
 +            }
 +        }
-+        return net.neoforged.neoforge.event.EventHooks.getPotentialSpawns(level, mobCategory, pos, generator.getMobsAt(biome != null ? biome : level.getBiome(pos), structureManager, mobCategory, pos));
++        return EventHooks.getPotentialSpawns(level, mobCategory, pos, generator.getMobsAt(biome != null ? biome : level.getBiome(pos), structureManager, mobCategory, pos));
      }
  
      public static boolean isInNetherFortressBounds(BlockPos pos, ServerLevel level, MobCategory category, StructureManager structureManager) {
-@@ -395,8 +_,7 @@
+@@ -395,11 +_,11 @@
  
                                  entity.snapTo(fx, pos.getY(), fz, random.nextFloat() * 360.0F, 0.0F);
                                  if (entity instanceof Mob mob
 -                                    && mob.checkSpawnRules(level, EntitySpawnReason.CHUNK_GENERATION)
 -                                    && mob.checkSpawnObstruction(level)) {
-+                                    && net.neoforged.neoforge.event.EventHooks.checkSpawnPosition(mob, level, EntitySpawnReason.CHUNK_GENERATION)) {
++                                    && EventHooks.checkSpawnPosition(mob, level, EntitySpawnReason.CHUNK_GENERATION)) {
                                      groupSpawnData = mob.finalizeSpawn(
                                          level, level.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.CHUNK_GENERATION, groupSpawnData
                                      );
++                                    mob.spawnReason(CreatureSpawnEvent.SpawnReason.CHUNK_GEN); // CraftBukkit
+                                     level.addFreshEntityWithPassengers(mob);
+                                     success = true;
+                                 }
+@@ -521,6 +_,14 @@
+         private boolean canSpawnForCategoryGlobal(MobCategory mobCategory) {
+             int maxMobCount = mobCategory.getMaxInstancesPerChunk() * this.spawnableChunkCount / NaturalSpawner.MAGIC_NUMBER;
+             return this.mobCategoryCounts.getInt(mobCategory) < maxMobCount;
++        }
++
++        // CraftBukkit start
++        private boolean canSpawnForCategoryGlobal(MobCategory mobCategory, int limit) {
++            int i = limit * this.spawnableChunkCount / NaturalSpawner.MAGIC_NUMBER;
++            // CraftBukkit end
++
++            return this.mobCategoryCounts.getInt(mobCategory) < i;
+         }
+ 
+         private boolean canSpawnForCategoryLocal(MobCategory mobCategory, ChunkPos chunkPos) {

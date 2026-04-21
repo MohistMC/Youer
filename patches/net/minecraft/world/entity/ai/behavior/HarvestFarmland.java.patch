@@ -1,5 +1,19 @@
 --- a/net/minecraft/world/entity/ai/behavior/HarvestFarmland.java
 +++ b/net/minecraft/world/entity/ai/behavior/HarvestFarmland.java
+@@ -17,11 +_,13 @@
+ import net.minecraft.world.item.BlockItem;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.CropBlock;
+ import net.minecraft.world.level.block.FarmlandBlock;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.gamerules.GameRules;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class HarvestFarmland extends Behavior<Villager> {
 @@ -46,7 +_,7 @@
      }
  
@@ -18,8 +32,13 @@
      }
  
      protected void start(ServerLevel level, Villager body, long timestamp) {
-@@ -107,7 +_,7 @@
+@@ -104,10 +_,12 @@
+                 Block block = blockState.getBlock();
+                 Block blockBelow = level.getBlockState(this.aboveFarmlandPos.below()).getBlock();
+                 if (block instanceof CropBlock && ((CropBlock)block).isMaxAge(blockState)) {
++                    if (CraftEventFactory.callEntityChangeBlockEvent(body, this.aboveFarmlandPos, Blocks.AIR.defaultBlockState())) { // CraftBukkit
                      level.destroyBlock(this.aboveFarmlandPos, true, body);
++                    } // CraftBukkit
                  }
  
 -                if (blockState.isAir() && blockBelow instanceof FarmlandBlock && body.hasFarmSeeds()) {
@@ -27,10 +46,15 @@
                      SimpleContainer inventory = body.getInventory();
  
                      for (int i = 0; i < inventory.getContainerSize(); i++) {
-@@ -118,6 +_,11 @@
+@@ -115,9 +_,16 @@
+                         boolean ok = false;
+                         if (!itemStack.isEmpty() && itemStack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) && itemStack.getItem() instanceof BlockItem blockItem) {
+                             BlockState place = blockItem.getBlock().defaultBlockState();
++                            if (CraftEventFactory.callEntityChangeBlockEvent(body, this.aboveFarmlandPos, place)) { // CraftBukkit
                              level.setBlockAndUpdate(this.aboveFarmlandPos, place);
                              level.gameEvent(GameEvent.BLOCK_PLACE, this.aboveFarmlandPos, GameEvent.Context.of(body, place));
                              ok = true;
++                            } // CraftBukkit
 +                        } else if (itemStack.getItem() instanceof net.neoforged.neoforge.common.SpecialPlantable specialPlantable && specialPlantable.villagerCanPlantItem(body)) {
 +                            if (specialPlantable.canPlacePlantAtPosition(itemStack, level, aboveFarmlandPos, net.minecraft.core.Direction.DOWN)) {
 +                                specialPlantable.spawnPlantAtPosition(itemStack, level, aboveFarmlandPos, net.minecraft.core.Direction.DOWN);

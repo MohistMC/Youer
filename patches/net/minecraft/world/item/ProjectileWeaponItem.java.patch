@@ -43,6 +43,38 @@
      public static ItemStack getHeldProjectile(LivingEntity entity, Predicate<ItemStack> valid) {
          if (valid.test(entity.getItemInHand(InteractionHand.OFF_HAND))) {
              return entity.getItemInHand(InteractionHand.OFF_HAND);
+@@ -62,12 +_,25 @@
+                 float angle = angleOffset + direction * ((i + 1) / 2) * angleStep;
+                 direction = -direction;
+                 int index = i;
+-                Projectile.spawnProjectile(
+-                    this.createProjectile(level, shooter, weapon, projectile, isCrit),
+-                    level,
+-                    projectile,
+-                    projectileEntity -> this.shootProjectile(shooter, projectileEntity, index, power, uncertainty, angle, targetOverride)
+-                );
++                // CraftBukkit start
++                Projectile projectilE = this.createProjectile(level, shooter, weapon, projectile, isCrit);
++                this.shootProjectile(shooter, projectilE, index, power, uncertainty, angle, targetOverride);
++
++                org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(shooter, weapon, projectile, projectilE, hand, power, true);
++                if (event.isCancelled()) {
++                    event.getProjectile().remove();
++                    return;
++                }
++
++                if (event.getProjectile() == projectilE.getBukkitEntity()) {
++                    if (Projectile.spawnProjectile(projectilE, level, projectile).isRemoved()) {
++                        if (shooter instanceof net.minecraft.server.level.ServerPlayer) {
++                            ((net.minecraft.server.level.ServerPlayer) shooter).getBukkitEntity().updateInventory();
++                        }
++                        return;
++                    }
++                }
++                // CraftBukkit end
+                 weapon.hurtAndBreak(this.getDurabilityUse(projectile), shooter, hand.asEquipmentSlot());
+                 if (weapon.isEmpty()) {
+                     break;
 @@ -97,7 +_,7 @@
              arrowx.setCritArrow(true);
          }

@@ -1,10 +1,13 @@
 --- a/net/minecraft/world/entity/npc/villager/AbstractVillager.java
 +++ b/net/minecraft/world/entity/npc/villager/AbstractVillager.java
-@@ -48,10 +_,18 @@
+@@ -48,15 +_,26 @@
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
  import net.minecraft.world.phys.Vec3;
++import org.bukkit.Bukkit;
 +import org.bukkit.craftbukkit.inventory.CraftMerchant;
++import org.bukkit.craftbukkit.inventory.CraftMerchantRecipe;
++import org.bukkit.event.entity.VillagerAcquireTradeEvent;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -19,6 +22,12 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final EntityDataAccessor<Integer> DATA_UNHAPPY_COUNTER = SynchedEntityData.defineId(AbstractVillager.class, EntityDataSerializers.INT);
      private @Nullable Player tradingPlayer;
+     protected @Nullable MerchantOffers offers;
+-    private final SimpleContainer inventory = new SimpleContainer(8);
++    private final SimpleContainer inventory = new SimpleContainer(8, (org.bukkit.craftbukkit.entity.CraftAbstractVillager) this.getBukkitEntity()); // CraftBukkit add argument
+ 
+     public AbstractVillager(EntityType<? extends AbstractVillager> type, Level level) {
+         super(type, level);
 @@ -138,6 +_,7 @@
          if (this.tradingPlayer instanceof ServerPlayer) {
              CriteriaTriggers.TRADE.trigger((ServerPlayer)this.tradingPlayer, this, offer.getResult());
@@ -27,3 +36,30 @@
      }
  
      protected abstract void rewardTradeXp(final MerchantOffer offer);
+@@ -273,7 +_,7 @@
+         }
+     }
+ 
+-    private static void addOffersFromItemListingsWithoutDuplicates(
++    private void addOffersFromItemListingsWithoutDuplicates(
+         LootContext lootContext, MerchantOffers merchantOffers, HolderSet<VillagerTrade> potentialOffers, int numberOfOffers
+     ) {
+         List<Holder<VillagerTrade>> leftoverOffers = Lists.newArrayList(potentialOffers);
+@@ -283,7 +_,16 @@
+             Holder<VillagerTrade> villagerTrade = leftoverOffers.remove(lootContext.getRandom().nextInt(leftoverOffers.size()));
+             MerchantOffer offer = villagerTrade.value().getOffer(lootContext);
+             if (offer != null) {
+-                merchantOffers.add(offer);
++                // CraftBukkit start
++                VillagerAcquireTradeEvent event = new VillagerAcquireTradeEvent((org.bukkit.entity.AbstractVillager) getBukkitEntity(), offer.asBukkit());
++                // Suppress during worldgen
++                if (this.valid) {
++                    Bukkit.getPluginManager().callEvent(event);
++                }
++                if (!event.isCancelled()) {
++                    merchantOffers.add(CraftMerchantRecipe.fromBukkit(event.getRecipe()).toMinecraft());
++                }
++                // CraftBukkit end
+                 offersFound++;
+             }
+         }

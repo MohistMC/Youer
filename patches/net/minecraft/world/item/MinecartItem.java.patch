@@ -9,3 +9,17 @@
                  : RailShape.NORTH_SOUTH;
              double offset = 0.0;
              if (shape.isSlope()) {
+@@ -57,7 +_,12 @@
+                 }
+ 
+                 if (level instanceof ServerLevel serverLevel) {
+-                    serverLevel.addFreshEntity(cart);
++                    // CraftBukkit start
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPlaceEvent(context, cart).isCancelled()) {
++                        return InteractionResult.FAIL;
++                    }
++                    // CraftBukkit end
++                    if (!serverLevel.addFreshEntity(cart)) return InteractionResult.PASS; // CraftBukkit
+                     serverLevel.gameEvent(GameEvent.ENTITY_PLACE, pos, GameEvent.Context.of(context.getPlayer(), serverLevel.getBlockState(pos.below())));
+                 }
+ 

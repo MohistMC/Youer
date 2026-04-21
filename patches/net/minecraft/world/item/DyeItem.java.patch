@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/item/DyeItem.java
++++ b/net/minecraft/world/item/DyeItem.java
+@@ -10,6 +_,7 @@
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.entity.SignBlockEntity;
++import org.bukkit.event.entity.SheepDyeWoolEvent;
+ 
+ public class DyeItem extends Item implements SignApplicator {
+     public DyeItem(Item.Properties properties) {
+@@ -21,6 +_,17 @@
+         if (target instanceof Sheep sheep && sheep.isAlive() && !sheep.isSheared()) {
+             DyeColor dyeColor = itemStack.get(DataComponents.DYE);
+             if (dyeColor != null && sheep.getColor() != dyeColor) {
++                // CraftBukkit start
++                byte bColor = (byte) dyeColor.getId();
++                SheepDyeWoolEvent event = new SheepDyeWoolEvent((org.bukkit.entity.Sheep) sheep.getBukkitEntity(), org.bukkit.DyeColor.getByWoolData(bColor), (org.bukkit.entity.Player) player.getBukkitEntity());
++                sheep.level().getCraftServer().getPluginManager().callEvent(event);
++
++                if (event.isCancelled()) {
++                    return InteractionResult.PASS;
++                }
++
++                dyeColor = DyeColor.byId((byte) event.getColor().getWoolData());
++                // CraftBukkit end
+                 sheep.level().playSound(player, sheep, SoundEvents.DYE_USE, SoundSource.PLAYERS, 1.0F, 1.0F);
+                 if (!player.level().isClientSide()) {
+                     sheep.setColor(dyeColor);

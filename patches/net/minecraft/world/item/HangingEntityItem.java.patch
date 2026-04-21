@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/item/HangingEntityItem.java
++++ b/net/minecraft/world/item/HangingEntityItem.java
+@@ -20,6 +_,7 @@
+ import net.minecraft.world.item.context.UseOnContext;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.gameevent.GameEvent;
++import org.bukkit.event.hanging.HangingPlaceEvent;
+ 
+ public class HangingEntityItem extends Item {
+     private static final Component TOOLTIP_RANDOM_VARIANT = Component.translatable("painting.random").withStyle(ChatFormatting.GRAY);
+@@ -62,6 +_,19 @@
+             EntityType.<HangingEntity>createDefaultStackConfig(level, itemInHand, player).accept(entity);
+             if (entity.survives()) {
+                 if (!level.isClientSide()) {
++                    // CraftBukkit start - fire HangingPlaceEvent
++                    org.bukkit.entity.Player who = (context.getPlayer() == null) ? null : (org.bukkit.entity.Player) context.getPlayer().getBukkitEntity();
++                    org.bukkit.block.Block blockClicked = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++                    org.bukkit.block.BlockFace blockFace = org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(clickedFace);
++                    org.bukkit.inventory.EquipmentSlot hand = org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(context.getHand());
++
++                    HangingPlaceEvent event = new HangingPlaceEvent((org.bukkit.entity.Hanging) entity.getBukkitEntity(), who, blockClicked, blockFace, hand, org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemInHand));
++                    level.getCraftServer().getPluginManager().callEvent(event);
++
++                    if (event.isCancelled()) {
++                        return InteractionResult.FAIL;
++                    }
++                    // CraftBukkit end
+                     entity.playPlacementSound();
+                     level.gameEvent(player, GameEvent.ENTITY_PLACE, entity.position());
+                     level.addFreshEntity(entity);

@@ -62,7 +62,7 @@
                  ChunkAccess chunk = chunkHolder.getChunkIfPresent(ChunkStatus.FULL);
                  if (chunk != null) {
                      this.storeInCache(pos, chunk, ChunkStatus.FULL);
-@@ -304,13 +_,35 @@
+@@ -304,14 +_,36 @@
          this.chunkMap.saveAllChunks(flushStorage);
      }
  
@@ -77,7 +77,7 @@
          this.lightEngine.close();
          this.chunkMap.close();
      }
-+
+ 
 +    public void close(boolean save) throws IOException {
 +        this.close_save.set(save);
 +        this.close();
@@ -96,6 +96,17 @@
 +        this.clearCache();
 +    }
 +    // CraftBukkit end
- 
++
      @Override
      public void tick(BooleanSupplier haveTime, boolean tickChunks) {
+         ProfilerFiller profiler = Profiler.get();
+@@ -377,7 +_,9 @@
+         List<MobCategory> spawningCategories;
+         if (doMobSpawning) {
+             boolean spawnPersistent = this.level.getGameTime() % 400L == 0L;
++            NaturalSpawner.serverlevel = this.level;
+             spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, true, this.spawnEnemies, spawnPersistent);
++            NaturalSpawner.serverlevel = null;
+         } else {
+             spawningCategories = List.of();
+         }

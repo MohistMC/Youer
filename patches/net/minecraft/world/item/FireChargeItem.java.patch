@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/FireChargeItem.java
 +++ b/net/minecraft/world/item/FireChargeItem.java
-@@ -32,7 +_,8 @@
+@@ -32,17 +_,34 @@
          BlockPos pos = context.getClickedPos();
          BlockState blockState = level.getBlockState(pos);
          boolean used = false;
@@ -9,10 +9,28 @@
 +        if (blockstate2 == null) {
              pos = pos.relative(context.getClickedFace());
              if (BaseFireBlock.canBePlacedAt(level, pos, context.getHorizontalDirection())) {
++                // CraftBukkit start - fire BlockIgniteEvent
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, pos, org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FIREBALL, context.getPlayer()).isCancelled()) {
++                    if (!context.getPlayer().getAbilities().instabuild) {
++                        context.getItemInHand().shrink(1);
++                    }
++                    return InteractionResult.PASS;
++                }
++                // CraftBukkit end
                  this.playSound(level, pos);
-@@ -42,7 +_,7 @@
+                 level.setBlockAndUpdate(pos, BaseFireBlock.getState(level, pos));
+                 level.gameEvent(context.getPlayer(), GameEvent.BLOCK_PLACE, pos);
+                 used = true;
              }
          } else {
++            // CraftBukkit start - fire BlockIgniteEvent
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, pos, org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FIREBALL, context.getPlayer()).isCancelled()) {
++                if (!context.getPlayer().getAbilities().instabuild) {
++                    context.getItemInHand().shrink(1);
++                }
++                return InteractionResult.PASS;
++            }
++            // CraftBukkit end
              this.playSound(level, pos);
 -            level.setBlockAndUpdate(pos, blockState.setValue(BlockStateProperties.LIT, true));
 +            level.setBlockAndUpdate(pos, blockstate2);

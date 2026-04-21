@@ -1,12 +1,56 @@
 --- a/net/minecraft/world/item/TridentItem.java
 +++ b/net/minecraft/world/item/TridentItem.java
-@@ -144,4 +_,9 @@
+@@ -78,18 +_,31 @@
+                             .orElse(SoundEvents.TRIDENT_THROW);
+                         player.awardStat(Stats.ITEM_USED.get(this));
+                         if (level instanceof ServerLevel serverLevel) {
+-                            itemStack.hurtWithoutBreaking(1, player);
++                            // itemStack.hurtWithoutBreaking(1, player); // CraftBukkit - moved down
+                             if (riptideStrength == 0.0F) {
+-                                ItemStack thrownItemStack = itemStack.consumeAndReturn(1, player);
+                                 ThrownTrident trident = Projectile.spawnProjectileFromRotation(
+-                                    ThrownTrident::new, serverLevel, thrownItemStack, player, 0.0F, 2.5F, 1.0F
++                                    ThrownTrident::new, serverLevel, itemStack, player, 0.0F, 2.5F, 1.0F
+                                 );
++                                if (trident.isRemoved()) {
++                                    if (player instanceof net.minecraft.server.level.ServerPlayer) {
++                                        ((net.minecraft.server.level.ServerPlayer) player).getBukkitEntity().updateInventory();
++                                    }
++                                    return false;
++                                }
++                                itemStack.hurtWithoutBreaking(1, player);
++                                ItemStack thrownItemStack = itemStack.consumeAndReturn(1, player);
++                                trident.pickupItemStack = thrownItemStack.copy(); // SPIGOT-4511 update since damage call moved
++                                // CraftBukkit end
+                                 if (player.hasInfiniteMaterials()) {
+                                     trident.pickup = AbstractArrow.Pickup.CREATIVE_ONLY;
+                                 }
+ 
+                                 level.playSound(null, trident, sound.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
+                                 return true;
++                                // CraftBukkit start - SPIGOT-5458 also need in this branch :(
++                            } else {
++                                itemStack.hurtWithoutBreaking(1, player);
++                                // CraftBukkkit end
+                             }
+                         }
+ 
+@@ -103,6 +_,7 @@
+                             xd *= riptideStrength / dist;
+                             yd *= riptideStrength / dist;
+                             zd *= riptideStrength / dist;
++                            org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerRiptideEvent(player, itemStack, xd, yd, zd); // CraftBukkit
+                             player.push(xd, yd, zd);
+                             player.startAutoSpinAttack(20, 8.0F, itemStack);
+                             if (player.onGround()) {
+@@ -143,5 +_,10 @@
+         ThrownTrident trident = new ThrownTrident(level, position.x(), position.y(), position.z(), itemStack.copyWithCount(1));
          trident.pickup = AbstractArrow.Pickup.ALLOWED;
          return trident;
-     }
++    }
 +
 +    @Override
 +    public boolean canPerformAction(ItemInstance stack, net.neoforged.neoforge.common.ItemAbility itemAbility) {
 +        return net.neoforged.neoforge.common.ItemAbilities.DEFAULT_TRIDENT_ACTIONS.contains(itemAbility);
-+    }
+     }
  }

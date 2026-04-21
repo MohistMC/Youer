@@ -178,21 +178,26 @@
          consoleThread.setDaemon(true);
          consoleThread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
          consoleThread.start();
-@@ -241,7 +_,7 @@
+@@ -241,7 +_,13 @@
              this.setLocalIp(properties.serverIp);
          }
  
 -        this.worldData.setGameType(properties.gameMode.get());
++        // Spigot start
++        this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
++        org.spigotmc.SpigotConfig.init((java.io.File) options.valueOf("spigot-settings"));
++        org.spigotmc.SpigotConfig.registerCommands();
++        // Spigot end
++
 +        // this.worldData.setGameType(properties.gameMode.get()); // CraftBukkit - moved to world loading
          LOGGER.info("Default game type: {}", properties.gameMode.get());
          InetAddress localAddress = null;
          if (!this.getLocalIp().isEmpty()) {
-@@ -264,6 +_,14 @@
+@@ -264,6 +_,13 @@
              return false;
          }
  
 +        // CraftBukkit start
-+        this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
 +        YouerConfig.init((java.io.File) options.valueOf("youer-settings"));
 +        YouerConfig.registerCommands();
 +        server.loadPlugins();
