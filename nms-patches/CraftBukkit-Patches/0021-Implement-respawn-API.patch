@@ -1,0 +1,29 @@
+From bc719b7870281e971478ff7e34ee2947870b99b5 Mon Sep 17 00:00:00 2001
+From: ninja- <xninja@openmailbox.org>
+Date: Tue, 8 Oct 2013 14:34:49 +0200
+Subject: [PATCH] Implement respawn API.
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+index 77508ed17..949325551 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -2388,6 +2388,15 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+     // Spigot start
+     private final Player.Spigot spigot = new Player.Spigot()
+     {
++
++        @Override
++        public void respawn()
++        {
++            if ( getHealth() <= 0 && isOnline() )
++            {
++                server.getServer().getPlayerList().respawn( getHandle(), false, Entity.RemovalReason.KILLED, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.PLUGIN );
++            }
++        }
+     };
+ 
+     public Player.Spigot spigot()
+-- 
+2.53.0
+

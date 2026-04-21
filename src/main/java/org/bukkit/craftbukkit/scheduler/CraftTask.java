@@ -131,4 +131,10 @@ class CraftTask implements BukkitTask, Runnable {
         setPeriod(CraftTask.CANCEL);
         return true;
     }
+
+    // Spigot start
+    public String getTaskName() {
+        return (getTaskClass() == null) ? "Unknown" : getTaskClass().getName();
+    }
+    // Spigot end
 }

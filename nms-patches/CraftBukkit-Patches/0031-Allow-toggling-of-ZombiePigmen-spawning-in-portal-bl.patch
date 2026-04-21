@@ -1,0 +1,38 @@
+From 6663d5ae587f8f9e0ae38dc350df765ba5b6cdb0 Mon Sep 17 00:00:00 2001
+From: Dmck2b <dmck2b+github@gmail.com>
+Date: Mon, 20 Jan 2014 20:18:23 +0000
+Subject: [PATCH] Allow toggling of ZombiePigmen spawning in portal blocks
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/NetherPortalBlock.java b/src/main/java/net/minecraft/world/level/block/NetherPortalBlock.java
+index 264d370fe..f7e339166 100644
+--- a/src/main/java/net/minecraft/world/level/block/NetherPortalBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/NetherPortalBlock.java
+@@ -76,7 +76,7 @@ public class NetherPortalBlock extends Block implements Portal {
+ 
+     @Override
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+-        if (level.isSpawningMonsters() && (Boolean) level.environmentAttributes().getValue(EnvironmentAttributes.NETHER_PORTAL_SPAWNS_PIGLINS, pos) && random.nextInt(2000) < level.getDifficulty().getId() && level.anyPlayerCloseEnoughForSpawning(pos)) {
++        if (level.spigotConfig.enableZombiePigmenPortalSpawns && level.isSpawningMonsters() && (Boolean) level.environmentAttributes().getValue(EnvironmentAttributes.NETHER_PORTAL_SPAWNS_PIGLINS, pos) && random.nextInt(2000) < level.getDifficulty().getId() && level.anyPlayerCloseEnoughForSpawning(pos)) { // Spigot
+             while (level.getBlockState(pos).is(this)) {
+                 pos = pos.below();
+             }
+diff --git a/src/main/java/org/spigotmc/SpigotWorldConfig.java b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+index 3e398c4e0..d4eb3ccda 100644
+--- a/src/main/java/org/spigotmc/SpigotWorldConfig.java
++++ b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+@@ -269,4 +269,11 @@ public class SpigotWorldConfig
+         nerfSpawnerMobs = getBoolean( "nerf-spawner-mobs", false );
+         log( "Nerfing mobs spawned from spawners: " + nerfSpawnerMobs );
+     }
++
++    public boolean enableZombiePigmenPortalSpawns;
++    private void enableZombiePigmenPortalSpawns()
++    {
++        enableZombiePigmenPortalSpawns = getBoolean( "enable-zombie-pigmen-portal-spawns", true );
++        log( "Allow Zombie Pigmen to spawn from portal blocks: " + enableZombiePigmenPortalSpawns );
++    }
+ }
+-- 
+2.53.0
+

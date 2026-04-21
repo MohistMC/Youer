@@ -1,0 +1,92 @@
+From 91ec3ea8a50029c01f018afd89c93b8dbcbf7a08 Mon Sep 17 00:00:00 2001
+From: Thinkofdeath <thinkofdeath@spigotmc.org>
+Date: Sun, 29 Jun 2014 21:10:34 +0100
+Subject: [PATCH] Limit block placement/interaction packets
+
+
+diff --git a/src/main/java/net/minecraft/network/protocol/game/ServerboundUseItemOnPacket.java b/src/main/java/net/minecraft/network/protocol/game/ServerboundUseItemOnPacket.java
+index 9b81cd4a4..3e6c2828a 100644
+--- a/src/main/java/net/minecraft/network/protocol/game/ServerboundUseItemOnPacket.java
++++ b/src/main/java/net/minecraft/network/protocol/game/ServerboundUseItemOnPacket.java
+@@ -14,6 +14,7 @@ public class ServerboundUseItemOnPacket implements Packet<ServerGamePacketListen
+     private final BlockHitResult blockHit;
+     private final InteractionHand hand;
+     private final int sequence;
++    public long timestamp; // Spigot
+ 
+     public ServerboundUseItemOnPacket(InteractionHand hand, BlockHitResult blockHit, int sequence) {
+         this.hand = hand;
+@@ -22,6 +23,7 @@ public class ServerboundUseItemOnPacket implements Packet<ServerGamePacketListen
+     }
+ 
+     private ServerboundUseItemOnPacket(FriendlyByteBuf input) {
++        this.timestamp = System.currentTimeMillis(); // Spigot
+         this.hand = (InteractionHand) input.readEnum(InteractionHand.class);
+         this.blockHit = input.readBlockHitResult();
+         this.sequence = input.readVarInt();
+diff --git a/src/main/java/net/minecraft/network/protocol/game/ServerboundUseItemPacket.java b/src/main/java/net/minecraft/network/protocol/game/ServerboundUseItemPacket.java
+index 6b027df2f..c20df0ac5 100644
+--- a/src/main/java/net/minecraft/network/protocol/game/ServerboundUseItemPacket.java
++++ b/src/main/java/net/minecraft/network/protocol/game/ServerboundUseItemPacket.java
+@@ -14,6 +14,7 @@ public class ServerboundUseItemPacket implements Packet<ServerGamePacketListener
+     private final int sequence;
+     private final float yRot;
+     private final float xRot;
++    public long timestamp; // Spigot
+ 
+     public ServerboundUseItemPacket(InteractionHand hand, int sequence, float yRot, float xRot) {
+         this.hand = hand;
+@@ -23,6 +24,7 @@ public class ServerboundUseItemPacket implements Packet<ServerGamePacketListener
+     }
+ 
+     private ServerboundUseItemPacket(FriendlyByteBuf input) {
++        this.timestamp = System.currentTimeMillis(); // Spigot
+         this.hand = (InteractionHand) input.readEnum(InteractionHand.class);
+         this.sequence = input.readVarInt();
+         this.yRot = input.readFloat();
+diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index 3709e06f1..29aaa4487 100644
+--- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -1857,10 +1857,30 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+         }
+     }
+ 
++    // Spigot start - limit place/interactions
++    private int limitedPackets;
++    private long lastLimitedPacket = -1;
++
++    private boolean checkLimit(long timestamp) {
++        if (lastLimitedPacket != -1 && timestamp - lastLimitedPacket < 30 && limitedPackets++ >= 4) {
++            return false;
++        }
++
++        if (lastLimitedPacket == -1 || timestamp - lastLimitedPacket >= 30) {
++            lastLimitedPacket = timestamp;
++            limitedPackets = 0;
++            return true;
++        }
++
++        return true;
++    }
++    // Spigot end
++
+     @Override
+     public void handleUseItemOn(ServerboundUseItemOnPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
+         if (this.player.isImmobile()) return; // CraftBukkit
++        if (!checkLimit(packet.timestamp)) return; // Spigot - check limit
+         if (this.hasClientLoaded()) {
+             this.ackBlockChangesUpTo(packet.getSequence());
+             ServerLevel serverlevel = this.player.level();
+@@ -1940,6 +1960,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+     public void handleUseItem(ServerboundUseItemPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
+         if (this.player.isImmobile()) return; // CraftBukkit
++        if (!checkLimit(packet.timestamp)) return; // Spigot - check limit
+         if (this.hasClientLoaded()) {
+             this.ackBlockChangesUpTo(packet.getSequence());
+             ServerLevel serverlevel = this.player.level();
+-- 
+2.53.0
+

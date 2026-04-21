@@ -1,0 +1,71 @@
+From b4ec368c00b7229404d9e8ac273a519e20535927 Mon Sep 17 00:00:00 2001
+From: md_5 <git@md-5.net>
+Date: Sun, 27 Jul 2014 20:46:04 +1000
+Subject: [PATCH] Apply NBTReadLimiter to more things.
+
+
+diff --git a/src/main/java/net/minecraft/nbt/NbtIo.java b/src/main/java/net/minecraft/nbt/NbtIo.java
+index 677955f83..b3bd26d71 100644
+--- a/src/main/java/net/minecraft/nbt/NbtIo.java
++++ b/src/main/java/net/minecraft/nbt/NbtIo.java
+@@ -109,6 +109,12 @@ public class NbtIo {
+     }
+ 
+     public static CompoundTag read(DataInput input, NbtAccounter accounter) throws IOException {
++        // Spigot start
++        if ( input instanceof io.netty.buffer.ByteBufInputStream )
++        {
++            input = new DataInputStream(new org.spigotmc.LimitStream((InputStream) input, accounter));
++        }
++        // Spigot end
+         Tag tag = readUnnamedTag(input, accounter);
+ 
+         if (tag instanceof CompoundTag) {
+diff --git a/src/main/java/org/spigotmc/LimitStream.java b/src/main/java/org/spigotmc/LimitStream.java
+new file mode 100644
+index 000000000..b98b5239e
+--- /dev/null
++++ b/src/main/java/org/spigotmc/LimitStream.java
+@@ -0,0 +1,39 @@
++package org.spigotmc;
++
++import java.io.FilterInputStream;
++import java.io.IOException;
++import java.io.InputStream;
++import net.minecraft.nbt.NbtAccounter;
++
++public class LimitStream extends FilterInputStream
++{
++
++    private final NbtAccounter limit;
++
++    public LimitStream(InputStream is, NbtAccounter limit)
++    {
++        super( is );
++        this.limit = limit;
++    }
++
++    @Override
++    public int read() throws IOException
++    {
++        limit.accountBytes( 1 );
++        return super.read();
++    }
++
++    @Override
++    public int read(byte[] b) throws IOException
++    {
++        limit.accountBytes( b.length );
++        return super.read( b );
++    }
++
++    @Override
++    public int read(byte[] b, int off, int len) throws IOException
++    {
++        limit.accountBytes( len );
++        return super.read( b, off, len );
++    }
++}
+-- 
+2.53.0
+

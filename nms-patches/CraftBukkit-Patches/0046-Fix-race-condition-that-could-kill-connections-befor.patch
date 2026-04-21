@@ -1,0 +1,63 @@
+From 8180d800a0bf0c509c7bb1d38021784f7d3affda Mon Sep 17 00:00:00 2001
+From: Jonas Konrad <me@yawk.at>
+Date: Fri, 25 Apr 2014 23:46:46 +0200
+Subject: [PATCH] Fix race condition that could kill connections before they
+ were initiated
+
+Because NetworkManagers are registered before they get their channel in
+channelActive, the ServerConnection would remove them sometimes because
+it thought they were disconnected. This commit fixes this by introducing
+a 'preparing' variable that is true while the NetworkManager is not
+initialized. The ServerConnection does not remove NetworkManagers with
+this flag.
+
+diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
+index 7e3d6c4fc..a7355d72a 100644
+--- a/src/main/java/net/minecraft/network/Connection.java
++++ b/src/main/java/net/minecraft/network/Connection.java
+@@ -78,6 +78,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+     // Spigot Start
+     public java.util.UUID spoofedUUID;
+     public com.mojang.authlib.properties.Property[] spoofedProfile;
++    public boolean preparing = true;
+     // Spigot End
+     private volatile @Nullable PacketListener disconnectListener;
+     private volatile @Nullable PacketListener packetListener;
+@@ -102,6 +103,9 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+         super.channelActive(ctx);
+         this.channel = ctx.channel();
+         this.address = this.channel.remoteAddress();
++        // Spigot Start
++        this.preparing = false;
++        // Spigot End
+         if (this.delayedDisconnect != null) {
+             this.disconnect(this.delayedDisconnect);
+         }
+@@ -433,6 +437,9 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+     }
+ 
+     public void disconnect(DisconnectionDetails details) {
++        // Spigot Start
++        this.preparing = false;
++        // Spigot End
+         if (this.channel == null) {
+             this.delayedDisconnect = details;
+         }
+diff --git a/src/main/java/net/minecraft/server/network/ServerConnectionListener.java b/src/main/java/net/minecraft/server/network/ServerConnectionListener.java
+index a3b007467..0d6b03f32 100644
+--- a/src/main/java/net/minecraft/server/network/ServerConnectionListener.java
++++ b/src/main/java/net/minecraft/server/network/ServerConnectionListener.java
+@@ -170,6 +170,10 @@ public class ServerConnectionListener {
+                             connection.setReadOnly();
+                         }
+                     } else {
++                        // Spigot Start
++                        // Fix a race condition where a NetworkManager could be unregistered just before connection.
++                        if (connection.preparing) continue;
++                        // Spigot End
+                         iterator.remove();
+                         connection.handleDisconnection();
+                     }
+-- 
+2.53.0
+

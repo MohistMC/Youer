@@ -1,0 +1,40 @@
+From 0071360cef16a220709bac9e12e558342e25f1d7 Mon Sep 17 00:00:00 2001
+From: md_5 <git@md-5.net>
+Date: Mon, 14 Oct 2013 19:20:10 +1100
+Subject: [PATCH] Arrow Despawn Rate
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java b/src/main/java/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
+index 06b62e249..b5e4db865 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
+@@ -406,7 +406,7 @@ public abstract class AbstractArrow extends Projectile {
+ 
+     protected void tickDespawn() {
+         ++this.life;
+-        if (this.life >= 1200) {
++        if (this.life >= ((this instanceof ThrownTrident) ? this.level().spigotConfig.tridentDespawnRate : this.level().spigotConfig.arrowDespawnRate)) { // Spigot
+             this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         }
+ 
+diff --git a/src/main/java/org/spigotmc/SpigotWorldConfig.java b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+index cec948a05..4894096ae 100644
+--- a/src/main/java/org/spigotmc/SpigotWorldConfig.java
++++ b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+@@ -246,4 +246,13 @@ public class SpigotWorldConfig
+         hopperCanLoadChunks = getBoolean( "hopper-can-load-chunks", false );
+         log( "Hopper Transfer: " + hopperTransfer + " Hopper Check: " + hopperCheck + " Hopper Amount: " + hopperAmount + " Hopper Can Load Chunks: " + hopperCanLoadChunks );
+     }
++
++    public int arrowDespawnRate;
++    public int tridentDespawnRate;
++    private void arrowDespawnRate()
++    {
++        arrowDespawnRate = getInt( "arrow-despawn-rate", 1200 );
++        tridentDespawnRate = getInt( "trident-despawn-rate", arrowDespawnRate );
++        log( "Arrow Despawn Rate: " + arrowDespawnRate + " Trident Respawn Rate:" + tridentDespawnRate );
++    }
+ }
+-- 
+2.53.0
+

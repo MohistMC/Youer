@@ -1,0 +1,27 @@
+From ca52145556e1eb31071ba5ad5f10a654c9b94ed0 Mon Sep 17 00:00:00 2001
+From: md_5 <git@md-5.net>
+Date: Fri, 28 Jun 2013 19:52:54 +1000
+Subject: [PATCH] Disallow Interaction With Self
+
+
+diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index 71ab8d4af..198dadf7c 100644
+--- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -2714,6 +2714,13 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+         if (this.hasClientLoaded()) {
+             ServerLevel serverlevel = this.player.level();
+             Entity entity = serverlevel.getEntityOrPart(packet.entityId());
++            // Spigot Start
++            if ( entity == player && !player.isSpectator() )
++            {
++                disconnect( Component.literal( "Cannot interact with self!" ) );
++                return;
++            }
++            // Spigot End
+ 
+             this.player.resetLastActionTime();
+             this.player.setShiftKeyDown(packet.usingSecondaryAction());
+-- 
+2.53.0
+

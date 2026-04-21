@@ -1,0 +1,37 @@
+From c8aca5e33d673f607d7282e303e270ae3eac1d18 Mon Sep 17 00:00:00 2001
+From: md_5 <git@md-5.net>
+Date: Sun, 9 Feb 2014 14:39:01 +1100
+Subject: [PATCH] Add Option to Silence CommandBlock Console
+
+
+diff --git a/src/main/java/net/minecraft/commands/CommandSourceStack.java b/src/main/java/net/minecraft/commands/CommandSourceStack.java
+index 977670995..f14c0072d 100644
+--- a/src/main/java/net/minecraft/commands/CommandSourceStack.java
++++ b/src/main/java/net/minecraft/commands/CommandSourceStack.java
+@@ -347,7 +347,7 @@ public class CommandSourceStack implements SharedSuggestionProvider, ExecutionCo
+             }
+         }
+ 
+-        if (this.source != this.server && (Boolean) gamerules.get(GameRules.LOG_ADMIN_COMMANDS)) {
++        if (this.source != this.server && (Boolean) gamerules.get(GameRules.LOG_ADMIN_COMMANDS) && !org.spigotmc.SpigotConfig.silentCommandBlocks) { // Spigot
+             this.server.sendSystemMessage(component1);
+         }
+ 
+diff --git a/src/main/java/org/spigotmc/SpigotConfig.java b/src/main/java/org/spigotmc/SpigotConfig.java
+index d53c089eb..12ffd7837 100644
+--- a/src/main/java/org/spigotmc/SpigotConfig.java
++++ b/src/main/java/org/spigotmc/SpigotConfig.java
+@@ -294,4 +294,10 @@ public class SpigotConfig
+                 "/skill"
+         } ) );
+     }
++
++    public static boolean silentCommandBlocks;
++    private static void silentCommandBlocks()
++    {
++        silentCommandBlocks = getBoolean( "commands.silent-commandblock-console", false );
++    }
+ }
+-- 
+2.53.0
+

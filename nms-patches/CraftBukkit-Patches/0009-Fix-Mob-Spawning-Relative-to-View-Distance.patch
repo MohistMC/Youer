@@ -1,0 +1,108 @@
+From 353524de49f74733f288d3696d33d64391aee3a4 Mon Sep 17 00:00:00 2001
+From: md_5 <git@md-5.net>
+Date: Fri, 21 Jun 2013 17:29:54 +1000
+Subject: [PATCH] Fix Mob Spawning Relative to View Distance
+
+Changes the mob spawning algorithm to properly account for view distance and the range around players.
+
+Needs better documentation.
+
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 59e33c9da..184bb78ab 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -1062,9 +1062,15 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+     }
+ 
+     boolean anyPlayerCloseEnoughForSpawning(ChunkPos pos) {
++        // Spigot start
++        return anyPlayerCloseEnoughForSpawning(pos, false);
++    }
++
++    boolean anyPlayerCloseEnoughForSpawning(ChunkPos pos, boolean reducedRange) {
++        // Spigot end
+         TriState tristate = this.distanceManager.hasPlayersNearby(pos.pack());
+ 
+-        return tristate == TriState.DEFAULT ? this.anyPlayerCloseEnoughForSpawningInternal(pos) : tristate.toBoolean(true);
++        return tristate == TriState.DEFAULT ? this.anyPlayerCloseEnoughForSpawningInternal(pos, reducedRange) : tristate.toBoolean(true); // Spigot
+     }
+ 
+     boolean anyPlayerCloseEnoughTo(BlockPos pos, int maxDistance) {
+@@ -1080,8 +1086,19 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+     }
+ 
+     private boolean anyPlayerCloseEnoughForSpawningInternal(ChunkPos pos) {
++        // Spigot start
++        return anyPlayerCloseEnoughForSpawningInternal(pos, false);
++    }
++
++    private boolean anyPlayerCloseEnoughForSpawningInternal(ChunkPos chunkpos, boolean reducedRange) {
++        int chunkRange = level.spigotConfig.mobSpawnRange;
++        chunkRange = (chunkRange > level.spigotConfig.viewDistance) ? (byte) level.spigotConfig.viewDistance : chunkRange;
++        chunkRange = (chunkRange > 8) ? 8 : chunkRange;
++
++        double blockRange = (reducedRange) ? Math.pow(chunkRange << 4, 2) : 16384.0D;
++        // Spigot end
+         for (ServerPlayer serverplayer : this.playerMap.getAllPlayers()) {
+-            if (this.playerIsCloseEnoughForSpawning(serverplayer, pos)) {
++            if (this.playerIsCloseEnoughForSpawning(serverplayer, chunkpos, blockRange)) { // Spigot
+                 return true;
+             }
+         }
+@@ -1098,7 +1115,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+             ImmutableList.Builder<ServerPlayer> immutablelist_builder = ImmutableList.builder();
+ 
+             for (ServerPlayer serverplayer : this.playerMap.getAllPlayers()) {
+-                if (this.playerIsCloseEnoughForSpawning(serverplayer, pos)) {
++                if (this.playerIsCloseEnoughForSpawning(serverplayer, pos, 16384.0D)) { // Spigot
+                     immutablelist_builder.add(serverplayer);
+                 }
+             }
+@@ -1107,13 +1124,13 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+         }
+     }
+ 
+-    private boolean playerIsCloseEnoughForSpawning(ServerPlayer player, ChunkPos pos) {
++    private boolean playerIsCloseEnoughForSpawning(ServerPlayer player, ChunkPos pos, double range) { // Spigot
+         if (player.isSpectator()) {
+             return false;
+         } else {
+             double d0 = euclideanDistanceSquared(pos, player.position());
+ 
+-            return d0 < 16384.0D;
++            return d0 < range; // Spigot
+         }
+     }
+ 
+diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
+index 295d8c374..748d09e2d 100644
+--- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
++++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
+@@ -470,7 +470,7 @@ public class ServerChunkCache extends ChunkSource {
+         }
+ 
+         if (!spawningCategories.isEmpty()) {
+-            if (this.level.canSpawnEntitiesInChunk(chunkpos)) {
++            if (this.level.canSpawnEntitiesInChunk(chunkpos) && this.chunkMap.anyPlayerCloseEnoughForSpawning(chunkpos, true)) { // Spigot
+                 NaturalSpawner.spawnForChunk(this.level, chunk, spawnCookie, spawningCategories);
+             }
+ 
+diff --git a/src/main/java/org/spigotmc/SpigotWorldConfig.java b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+index acaf90301..0c0c29efe 100644
+--- a/src/main/java/org/spigotmc/SpigotWorldConfig.java
++++ b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+@@ -180,4 +180,11 @@ public class SpigotWorldConfig
+ 
+         log( "Simulation Distance: " + simulationDistance );
+     }
++
++    public byte mobSpawnRange;
++    private void mobSpawnRange()
++    {
++        mobSpawnRange = (byte) getInt( "mob-spawn-range", 6 );
++        log( "Mob Spawn Range: " + mobSpawnRange );
++    }
+ }
+-- 
+2.53.0
+

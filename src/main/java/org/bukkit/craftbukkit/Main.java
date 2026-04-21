@@ -136,6 +136,14 @@ public class Main {
                 acceptsAll(asList("demo"), "Demo mode");
 
                 acceptsAll(asList("initSettings"), "Only create configuration files and then exit"); // SPIGOT-5761: Add initSettings option
+
+                // Spigot Start
+                acceptsAll(asList("S", "spigot-settings"), "File for spigot settings")
+                        .withRequiredArg()
+                        .ofType(File.class)
+                        .defaultsTo(new File("spigot.yml"))
+                        .describedAs("Yml file");
+                // Spigot End
             }
         };
 
@@ -189,7 +197,7 @@ public class Main {
                     Date buildDate = new Date(Integer.parseInt(Main.class.getPackage().getImplementationVendor()) * 1000L);
 
                     Calendar deadline = Calendar.getInstance();
-                    deadline.add(Calendar.WEEK_OF_YEAR, -1);
+                    deadline.add(Calendar.WEEK_OF_YEAR, -3);
                     if (buildDate.before(deadline.getTime())) {
                         System.err.println("*** Error, this build is outdated ***");
                         System.err.println("*** Please download a new build as per instructions from https://www.spigotmc.org/go/outdated-spigot ***");

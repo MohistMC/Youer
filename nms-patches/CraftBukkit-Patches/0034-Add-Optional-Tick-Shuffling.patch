@@ -1,0 +1,43 @@
+From 789faae80ae9638abd96e0b7803f29c3f7afbdef Mon Sep 17 00:00:00 2001
+From: md_5 <git@md-5.net>
+Date: Mon, 27 Jan 2014 08:39:26 +1100
+Subject: [PATCH] Add Optional Tick Shuffling
+
+This prevents players from 'gaming' the server, and strategically relogging to increase their position in the tick order.
+
+diff --git a/src/main/java/net/minecraft/server/network/ServerConnectionListener.java b/src/main/java/net/minecraft/server/network/ServerConnectionListener.java
+index 50d08bd8a..a3b007467 100644
+--- a/src/main/java/net/minecraft/server/network/ServerConnectionListener.java
++++ b/src/main/java/net/minecraft/server/network/ServerConnectionListener.java
+@@ -140,6 +140,13 @@ public class ServerConnectionListener {
+ 
+     public void tick() {
+         synchronized (this.connections) {
++            // Spigot Start
++            // This prevents players from 'gaming' the server, and strategically relogging to increase their position in the tick order
++            if ( org.spigotmc.SpigotConfig.playerShuffle > 0 && MinecraftServer.currentTick % org.spigotmc.SpigotConfig.playerShuffle == 0 )
++            {
++                Collections.shuffle( this.connections );
++            }
++            // Spigot End
+             Iterator<Connection> iterator = this.connections.iterator();
+ 
+             while (iterator.hasNext()) {
+diff --git a/src/main/java/org/spigotmc/SpigotConfig.java b/src/main/java/org/spigotmc/SpigotConfig.java
+index cabfecd2a..9744e9456 100644
+--- a/src/main/java/org/spigotmc/SpigotConfig.java
++++ b/src/main/java/org/spigotmc/SpigotConfig.java
+@@ -278,4 +278,10 @@ public class SpigotConfig
+         playerSample = getInt( "settings.sample-count", 12 );
+         System.out.println( "Server Ping Player Sample Count: " + playerSample );
+     }
++
++    public static int playerShuffle;
++    private static void playerShuffle()
++    {
++        playerShuffle = getInt( "settings.player-shuffle", 0 );
++    }
+ }
+-- 
+2.53.0
+

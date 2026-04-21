@@ -134,7 +134,7 @@
      private final ServerFunctionManager functionManager;
      private boolean enforceWhitelist;
      private boolean usingWhitelist;
-@@ -292,12 +_,25 @@
+@@ -292,12 +_,31 @@
      private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
      private final DiscontinuousFrame tickFrame;
      private final PacketProcessor packetProcessor;
@@ -155,6 +155,12 @@
 +    public Commands vanillaCommandDispatcher;
 +    private boolean forceTicks;
 +    // CraftBukkit end
++    // Spigot start
++    public static final int TPS = 20;
++    public static final int TICK_TIME = 1000000000 / TPS;
++    private static final int SAMPLE_INTERVAL = 100;
++    public final double[] recentTps = new double[ 3 ];
++    // Spigot end
  
      public static <S extends MinecraftServer> S spin(Function<Thread, S> factory) {
          AtomicReference<S> serverReference = new AtomicReference<>();
@@ -705,7 +711,20 @@
          this.resources.close();
  
          try {
-@@ -731,9 +_,11 @@
+@@ -725,16 +_,28 @@
+         }
+     }
+ 
++    // Spigot Start
++    private static double calcTps(double avg, double exp, double tps)
++    {
++        return ( avg * exp ) + ( tps * ( 1 - exp ) );
++    }
++    // Spigot End
++
+     protected void runServer() {
+         try {
+             if (!this.initServer()) {
                  throw new IllegalStateException("Failed to initialize server");
              }
  
@@ -715,8 +734,12 @@
              this.status = this.buildServerStatus();
 +            resetStatusCache(status);
  
++            // Spigot start
++            Arrays.fill( recentTps, 20 );
++            long tickSection = Util.getMillis(), tickCount = 1;
              while (this.running) {
                  long thisTickNanos;
+                 if (!this.isPaused() && this.tickRateManager.isSprinting() && this.tickRateManager.checkShouldSprintThisTick()) {
 @@ -747,6 +_,7 @@
                      if (behindTimeNanos > OVERLOADED_THRESHOLD_NANOS + 20L * thisTickNanos
                          && this.nextTickTimeNanos - this.lastOverloadWarningNanos >= OVERLOADED_WARNING_INTERVAL_NANOS + 100L * thisTickNanos) {
@@ -725,7 +748,24 @@
                          LOGGER.warn(
                              "Can't keep up! Is the server overloaded? Running {}ms or {} ticks behind",
                              behindTimeNanos / TimeUtil.NANOSECONDS_PER_MILLISECOND,
-@@ -762,7 +_,7 @@
+@@ -756,13 +_,24 @@
+                         this.lastOverloadWarningNanos = this.nextTickTimeNanos;
+                     }
+                 }
++                // Spigot start
++                if ( tickCount++ % SAMPLE_INTERVAL == 0 )
++                {
++                    long curTime = Util.getMillis();
++                    double currentTps = 1E3 / ( curTime - tickSection ) * SAMPLE_INTERVAL;
++                    recentTps[0] = calcTps( recentTps[0], 0.92, currentTps ); // 1/exp(5sec/1min)
++                    recentTps[1] = calcTps( recentTps[1], 0.9835, currentTps ); // 1/exp(5sec/5min)
++                    recentTps[2] = calcTps( recentTps[2], 0.9945, currentTps ); // 1/exp(5sec/15min)
++                    tickSection = curTime;
++                }
++                // Spigot end
+ 
+                 boolean sprinting = thisTickNanos == 0L;
+                 if (this.debugCommandProfilerDelayStart) {
                      this.debugCommandProfilerDelayStart = false;
                      this.debugCommandProfiler = new MinecraftServer.TimeProfiler(Util.getNanos(), this.tickCount);
                  }

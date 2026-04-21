@@ -278,6 +278,8 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 import org.yaml.snakeyaml.error.MarkedYAMLException;
 
+import net.md_5.bungee.api.chat.BaseComponent; // Spigot
+
 public final class CraftServer implements Server {
     private final String serverVersion;
     private final String bukkitVersion = Versioning.getBukkitVersion();
@@ -544,8 +546,11 @@ public final class CraftServer implements Server {
         }
 
         if (type == PluginLoadOrder.POSTWORLD) {
+            // Spigot start - Allow vanilla commands to be forced to be the main command
+            setVanillaCommands(true);
             commandMap.setFallbackCommands();
-            setVanillaCommands();
+            setVanillaCommands(false);
+            // Spigot end
             commandMap.registerServerAliases();
             DefaultPermissions.registerCorePermissions();
             CraftDefaultPermissions.registerCorePermissions();
@@ -559,12 +564,21 @@ public final class CraftServer implements Server {
         pluginManager.disablePlugins();
     }
 
-    private void setVanillaCommands() {
+    private void setVanillaCommands(boolean first) { // Spigot
         Commands dispatcher = console.vanillaCommandDispatcher;
 
         // Build a list of all Vanilla commands and create wrappers
         for (CommandNode<CommandSourceStack> cmd : dispatcher.getDispatcher().getRoot().getChildren()) {
-            commandMap.register("minecraft", new VanillaCommandWrapper(dispatcher, cmd));
+            // Spigot start
+            VanillaCommandWrapper wrapper = new VanillaCommandWrapper(dispatcher, cmd);
+            if (org.spigotmc.SpigotConfig.replaceCommands.contains( wrapper.getName() ) ) {
+                if (first) {
+                    commandMap.register("minecraft", wrapper);
+                }
+            } else if (!first) {
+                commandMap.register("minecraft", wrapper);
+            }
+            // Spigot end
         }
     }
 
@@ -861,7 +875,13 @@ public final class CraftServer implements Server {
 
     @Override
     public long getConnectionThrottle() {
-        return this.configuration.getInt("settings.connection-throttle");
+        // Spigot Start - Automatically set connection throttle for bungee configurations
+        if (org.spigotmc.SpigotConfig.bungee) {
+            return -1;
+        } else {
+            return this.configuration.getInt("settings.connection-throttle");
+        }
+        // Spigot End
     }
 
     @Override
@@ -961,16 +981,17 @@ public final class CraftServer implements Server {
     public boolean dispatchCommand(CommandSender sender, String commandLine) {
         Preconditions.checkArgument(sender != null, "sender cannot be null");
         Preconditions.checkArgument(commandLine != null, "commandLine cannot be null");
+        org.spigotmc.AsyncCatcher.catchOp("command dispatch"); // Spigot
 
         if (commandMap.dispatch(sender, commandLine)) {
             return true;
         }
 
-        if (sender instanceof Player) {
-            sender.sendMessage("Unknown command. Type \"/help\" for help.");
-        } else {
-            sender.sendMessage("Unknown command. Type \"help\" for help.");
+        // Spigot start
+        if (!org.spigotmc.SpigotConfig.unknownCommandMessage.isEmpty()) {
+            sender.sendMessage(org.spigotmc.SpigotConfig.unknownCommandMessage);
         }
+        // Spigot end
 
         return false;
     }
@@ -1005,6 +1026,7 @@ public final class CraftServer implements Server {
             logger.log(Level.WARNING, "Failed to load banned-players.json, " + ex.getMessage());
         }
 
+        org.spigotmc.SpigotConfig.init((File) console.options.valueOf("spigot-settings")); // Spigot
         for (ServerLevel world : console.getAllLevels()) {
             world.serverLevelData.setDifficulty(config.difficulty.get());
 
@@ -1018,11 +1040,13 @@ public final class CraftServer implements Server {
                     }
                 }
             }
+            world.spigotConfig.init(); // Spigot
         }
 
         pluginManager.clearPlugins();
         commandMap.clearCommands();
         reloadData();
+        org.spigotmc.SpigotConfig.registerCommands(); // Spigot
         overrideAllCommandBlockCommands = commandsConfiguration.getStringList("command-block-overrides").contains("*");
         ignoreVanillaPermissions = commandsConfiguration.getBoolean("ignore-vanilla-permissions");
 
@@ -1868,7 +1892,7 @@ public final class CraftServer implements Server {
         if (result == null) {
             NameAndId profile = null;
             // Only fetch an online UUID in online mode
-            if (getOnlineMode()) {
+            if (getOnlineMode() || org.spigotmc.SpigotConfig.bungee) { // Spigot: bungee = online mode, for now.
                 // This is potentially blocking :(
                 profile = console.services().nameToIdCache().get(name).orElse(null);
             }
@@ -2198,7 +2222,7 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean isPrimaryThread() {
-        return Thread.currentThread().equals(console.serverThread) || console.hasStopped(); // All bets are off if we have shut down (e.g. due to watchdog)
+        return Thread.currentThread().equals(console.serverThread) || console.hasStopped() || org.spigotmc.RestartCommand.restarting; // All bets are off if we have shut down (e.g. due to watchdog)
     }
 
     @Override
@@ -2241,6 +2265,13 @@ public final class CraftServer implements Server {
     }
 
     public List<String> tabCompleteCommand(Player player, String message, ServerLevel world, Vec3 pos) {
+        // Spigot Start
+        if ( (org.spigotmc.SpigotConfig.tabComplete < 0 || message.length() <= org.spigotmc.SpigotConfig.tabComplete) && !message.contains( " " ) )
+        {
+            return ImmutableList.of();
+        }
+        // Spigot End
+
         List<String> completions = null;
         try {
             if (message.startsWith("/")) {
@@ -2622,4 +2653,40 @@ public final class CraftServer implements Server {
     public UnsafeValues getUnsafe() {
         return CraftMagicNumbers.INSTANCE;
     }
+
+    // Spigot start
+    private final org.bukkit.Server.Spigot spigot = new org.bukkit.Server.Spigot()
+    {
+
+        @Override
+        public YamlConfiguration getConfig()
+        {
+            return org.spigotmc.SpigotConfig.config;
+        }
+
+        @Override
+        public void restart() {
+            org.spigotmc.RestartCommand.restart();
+        }
+
+        @Override
+        public void broadcast(BaseComponent component) {
+            for (Player player : getOnlinePlayers()) {
+                player.spigot().sendMessage(component);
+            }
+        }
+
+        @Override
+        public void broadcast(BaseComponent... components) {
+            for (Player player : getOnlinePlayers()) {
+                player.spigot().sendMessage(components);
+            }
+        }
+    };
+
+    public org.bukkit.Server.Spigot spigot()
+    {
+        return spigot;
+    }
+    // Spigot end
 }

@@ -1,0 +1,98 @@
+From 53ee706c2848dcb303e2111e43ebec348a00499f Mon Sep 17 00:00:00 2001
+From: Thinkofdeath <thethinkofdeath@gmail.com>
+Date: Tue, 7 Jan 2014 15:56:26 +0000
+Subject: [PATCH] Allow statistics to be disabled/forced
+
+
+diff --git a/src/main/java/net/minecraft/stats/ServerStatsCounter.java b/src/main/java/net/minecraft/stats/ServerStatsCounter.java
+index 87573c271..9638f36e6 100644
+--- a/src/main/java/net/minecraft/stats/ServerStatsCounter.java
++++ b/src/main/java/net/minecraft/stats/ServerStatsCounter.java
+@@ -77,6 +77,13 @@ public class ServerStatsCounter extends StatsCounter {
+ 
+     public ServerStatsCounter(MinecraftServer server, Path file) {
+         this.file = file;
++        // Spigot start
++        for ( Map.Entry<net.minecraft.resources.Identifier, Integer> entry : org.spigotmc.SpigotConfig.forcedStats.entrySet() )
++        {
++            Stat<net.minecraft.resources.Identifier> wrapper = Stats.CUSTOM.get( entry.getKey() );
++            this.stats.put( wrapper, entry.getValue().intValue() );
++        }
++        // Spigot end
+         if (Files.isRegularFile(file, new LinkOption[0])) {
+             try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+                 JsonElement jsonelement = StrictJsonParser.parse(reader);
+@@ -92,6 +99,7 @@ public class ServerStatsCounter extends StatsCounter {
+     }
+ 
+     public void save() {
++        if ( org.spigotmc.SpigotConfig.disableStatSaving ) return; // Spigot
+         try {
+             FileUtil.createDirectoriesSafe(this.file.getParent());
+ 
+@@ -106,6 +114,7 @@ public class ServerStatsCounter extends StatsCounter {
+ 
+     @Override
+     public void setValue(Player player, Stat<?> stat, int count) {
++        if ( org.spigotmc.SpigotConfig.disableStatSaving ) return; // Spigot
+         super.setValue(player, stat, count);
+         this.dirty.add(stat);
+     }
+diff --git a/src/main/java/org/spigotmc/SpigotConfig.java b/src/main/java/org/spigotmc/SpigotConfig.java
+index 809177065..09eb99312 100644
+--- a/src/main/java/org/spigotmc/SpigotConfig.java
++++ b/src/main/java/org/spigotmc/SpigotConfig.java
+@@ -10,10 +10,13 @@ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.logging.Level;
++import net.minecraft.core.registries.BuiltInRegistries;
++import net.minecraft.resources.Identifier;
+ import net.minecraft.server.MinecraftServer;
+ import org.bukkit.Bukkit;
+ import org.bukkit.ChatColor;
+ import org.bukkit.command.Command;
++import org.bukkit.configuration.ConfigurationSection;
+ import org.bukkit.configuration.InvalidConfigurationException;
+ import org.bukkit.configuration.file.YamlConfiguration;
+ 
+@@ -231,4 +234,36 @@ public class SpigotConfig
+         System.setProperty( "io.netty.eventLoopThreads", Integer.toString( count ) );
+         Bukkit.getLogger().log( Level.INFO, "Using {0} threads for Netty based IO", count );
+     }
++
++    public static boolean disableStatSaving;
++    public static Map<Identifier, Integer> forcedStats = new HashMap<>();
++    private static void stats()
++    {
++        disableStatSaving = getBoolean( "stats.disable-saving", false );
++
++        if ( !config.contains( "stats.forced-stats" ) ) {
++            config.createSection( "stats.forced-stats" );
++        }
++
++        ConfigurationSection section = config.getConfigurationSection( "stats.forced-stats" );
++        for ( String name : section.getKeys( true ) )
++        {
++            if ( section.isInt( name ) )
++            {
++                try
++                {
++                    Identifier key = Identifier.parse( name );
++                    if ( BuiltInRegistries.CUSTOM_STAT.get( key ) == null )
++                    {
++                        Bukkit.getLogger().log(Level.WARNING, "Ignoring non existent stats.forced-stats " + name);
++                        continue;
++                    }
++                    forcedStats.put( key, section.getInt( name ) );
++                } catch (Exception ex)
++                {
++                    Bukkit.getLogger().log(Level.WARNING, "Ignoring invalid stats.forced-stats " + name);
++                }
++            }
++        }
++    }
+ }
+-- 
+2.53.0
+

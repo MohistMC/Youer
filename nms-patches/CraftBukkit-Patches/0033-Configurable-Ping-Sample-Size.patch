@@ -1,0 +1,43 @@
+From 0aef4af8f7c4b26121123d00f1ae0f7775605567 Mon Sep 17 00:00:00 2001
+From: md_5 <git@md-5.net>
+Date: Sun, 26 Jan 2014 21:48:34 +1100
+Subject: [PATCH] Configurable Ping Sample Size
+
+
+diff --git a/src/main/java/net/minecraft/server/network/ServerStatusPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerStatusPacketListenerImpl.java
+index c21d792e0..deba6a746 100644
+--- a/src/main/java/net/minecraft/server/network/ServerStatusPacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerStatusPacketListenerImpl.java
+@@ -133,6 +133,13 @@ public class ServerStatusPacketListenerImpl implements ServerStatusPacketListene
+                 }
+             }
+ 
++            // Spigot Start
++            if ( !server.hidesOnlinePlayers() && !profiles.isEmpty() )
++            {
++                java.util.Collections.shuffle( profiles ); // This sucks, its inefficient but we have no simple way of doing it differently
++                profiles = profiles.subList( 0, Math.min( profiles.size(), org.spigotmc.SpigotConfig.playerSample ) ); // Cap the sample to n (or less) displayed players, ie: Vanilla behaviour
++            }
++            // Spigot End
+             ServerStatus.Players playerSample = new ServerStatus.Players(event.getMaxPlayers(), event.getNumPlayers(), (server.hidesOnlinePlayers()) ? Collections.emptyList() : profiles);
+ 
+             ServerStatus ping = new ServerStatus(
+diff --git a/src/main/java/org/spigotmc/SpigotConfig.java b/src/main/java/org/spigotmc/SpigotConfig.java
+index 418e99b40..cabfecd2a 100644
+--- a/src/main/java/org/spigotmc/SpigotConfig.java
++++ b/src/main/java/org/spigotmc/SpigotConfig.java
+@@ -271,4 +271,11 @@ public class SpigotConfig
+     {
+         commands.put( "tps", new TicksPerSecondCommand( "tps" ) );
+     }
++
++    public static int playerSample;
++    private static void playerSample()
++    {
++        playerSample = getInt( "settings.sample-count", 12 );
++        System.out.println( "Server Ping Player Sample Count: " + playerSample );
++    }
+ }
+-- 
+2.53.0
+

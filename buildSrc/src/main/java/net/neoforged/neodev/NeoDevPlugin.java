@@ -301,7 +301,7 @@ public class NeoDevPlugin implements Plugin<Project> {
             task.from(project.zipTree(joinedJar.flatMap(AbstractArchiveTask::getArchiveFile)));
             task.exclude("net/minecraft/**");
             task.exclude("com/**");
-            task.exclude("org/bukkit/**"); // Youer
+            task.exclude("org/**"); // Youer
             task.exclude("mcp/**");
             task.from(binaryPatchOutputs, spec -> {
                 spec.into("net/neoforged/neoforge/common/");

@@ -2209,6 +2209,11 @@ public final class Bukkit {
         return server.getUnsafe();
     }
 
+    @NotNull
+    public static Server.Spigot spigot() {
+        return server.spigot();
+    }
+
     /**
      * Gets the active {@link org.bukkit.command.CommandMap}
      *

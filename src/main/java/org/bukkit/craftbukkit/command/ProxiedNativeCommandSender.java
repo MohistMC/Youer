@@ -136,7 +136,7 @@ public class ProxiedNativeCommandSender implements ProxiedCommandSender {
     @Override
     public org.bukkit.command.CommandSender.Spigot spigot()
     {
-        return getCaller().spigot();
+       return getCaller().spigot();
     }
     // Spigot end
 }

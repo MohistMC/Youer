@@ -65,7 +65,7 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace("the_nether"));
-@@ -130,6 +_,34 @@
+@@ -130,6 +_,40 @@
      private final DamageSources damageSources;
      private final PalettedContainerFactory palettedContainerFactory;
      private long subTickCount;
@@ -87,6 +87,12 @@
 +    public List<ItemEntity> captureDrops;
 +    public final it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>();
 +    public boolean populating;
++    public final org.spigotmc.SpigotWorldConfig spigotConfig; // Spigot
++
++    public static BlockPos lastPhysicsProblem; // Spigot
++    private org.spigotmc.TickLimiter entityLimiter;
++    private org.spigotmc.TickLimiter tileLimiter;
++    private int tileTickPosition;
 +
 +    public CraftWorld getWorld() {
 +        return this.world;
@@ -100,13 +106,14 @@
  
      protected Level(
          WritableLevelData levelData,
-@@ -139,8 +_,19 @@
+@@ -139,8 +_,20 @@
          boolean isClientSide,
          boolean isDebug,
          long biomeZoomSeed,
 -        int maxChainedNeighborUpdates
 +        int maxChainedNeighborUpdates, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env
      ) {
++        this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) levelData).getLevelName()); // Spigot
 +        this.generator = gen;
 +        this.world = new CraftWorld((ServerLevel) this, gen, biomeProvider, env);
 +

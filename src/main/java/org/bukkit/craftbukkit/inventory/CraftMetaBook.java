@@ -20,6 +20,13 @@ import org.bukkit.craftbukkit.util.CraftChatMessage;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.WritableBookMeta;
 
+// Spigot start
+import java.util.AbstractList;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.minecraft.network.chat.Component;
+import org.bukkit.craftbukkit.util.CraftChatMessage;
+// Spigot end
+
 @DelegateDeserialization(SerializableMeta.class)
 public class CraftMetaBook extends CraftMetaItem implements BookMeta, WritableBookMeta {
     @ItemMetaKey.Specific(ItemMetaKey.Specific.To.NBT)
@@ -246,6 +253,7 @@ public class CraftMetaBook extends CraftMetaItem implements BookMeta, WritableBo
         if (this.pages != null) {
             meta.pages = new ArrayList<String>(this.pages);
         }
+        meta.spigot = meta.new SpigotMeta(); // Spigot
         return meta;
     }
 
@@ -286,4 +294,93 @@ public class CraftMetaBook extends CraftMetaItem implements BookMeta, WritableBo
 
         return builder;
     }
+
+    // Spigot start
+    private BookMeta.Spigot spigot = new SpigotMeta();
+    private class SpigotMeta extends BookMeta.Spigot {
+
+        private String pageToJSON(String page) {
+            // Convert from plain String to JSON (similar to conversion between writable books and written books):
+            Component component = CraftChatMessage.fromString(page, true, true)[0];
+            return CraftChatMessage.toJSON(component);
+        }
+
+        private String componentsToPage(BaseComponent[] components) {
+            // Convert component to plain String:
+            Component component = CraftChatMessage.fromJSONOrNull(CraftChatMessage.getBungee().toString(components));
+            return CraftChatMessage.fromComponent(component);
+        }
+
+        @Override
+        public BaseComponent[] getPage(final int page) {
+            Preconditions.checkArgument(isValidPage(page), "Invalid page number");
+            return CraftChatMessage.getBungee().parse(pageToJSON(pages.get(page - 1)));
+        }
+
+        @Override
+        public void setPage(final int page, final BaseComponent... text) {
+            if (!isValidPage(page)) {
+                throw new IllegalArgumentException("Invalid page number " + page + "/" + getPageCount());
+            }
+
+            BaseComponent[] newText = text == null ? new BaseComponent[0] : text;
+            CraftMetaBook.this.pages.set(page - 1, componentsToPage(newText));
+        }
+
+        @Override
+        public void setPages(final BaseComponent[]... pages) {
+            setPages(Arrays.asList(pages));
+        }
+
+        @Override
+        public void addPage(final BaseComponent[]... pages) {
+            for (BaseComponent[] page : pages) {
+                if (page == null) {
+                    page = new BaseComponent[0];
+                }
+
+                CraftMetaBook.this.internalAddPage(componentsToPage(page));
+            }
+        }
+
+        @Override
+        public List<BaseComponent[]> getPages() {
+            if (CraftMetaBook.this.pages == null) return ImmutableList.of();
+            final List<String> copy = ImmutableList.copyOf(CraftMetaBook.this.pages);
+            return new AbstractList<BaseComponent[]>() {
+
+                @Override
+                public BaseComponent[] get(int index) {
+                    return CraftChatMessage.getBungee().parse(pageToJSON(copy.get(index)));
+                }
+
+                @Override
+                public int size() {
+                    return copy.size();
+                }
+            };
+        }
+
+        @Override
+        public void setPages(List<BaseComponent[]> pages) {
+            if (pages.isEmpty()) {
+                CraftMetaBook.this.pages = null;
+                return;
+            }
+
+            if (CraftMetaBook.this.pages != null) {
+                CraftMetaBook.this.pages.clear();
+            }
+
+            for (BaseComponent[] page : pages) {
+                addPage(page);
+            }
+        }
+    };
+
+    @Override
+    public BookMeta.Spigot spigot() {
+        return spigot;
+    }
+    // Spigot end
 }

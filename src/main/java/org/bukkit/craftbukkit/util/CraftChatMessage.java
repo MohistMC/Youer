@@ -44,6 +44,12 @@ public final class CraftChatMessage {
         formatMap = builder.build();
     }
 
+    // Spigot start
+    public static net.md_5.bungee.chat.VersionedComponentSerializer getBungee() {
+        return net.md_5.bungee.chat.VersionedComponentSerializer.forVersion(net.md_5.bungee.chat.ChatVersion.V1_21_5);
+    }
+    // Spigot end
+
     public static ChatFormatting getColor(ChatColor color) {
         return formatMap.get(color.getChar());
     }

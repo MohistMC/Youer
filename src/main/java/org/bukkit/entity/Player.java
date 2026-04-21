@@ -2304,6 +2304,14 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
     @ApiStatus.Experimental
     public void showDialog(@NotNull NamespacedKey dialog);
 
+    /**
+     * Show a dialog to the player.
+     *
+     * @param dialog the dialog to show
+     */
+    @ApiStatus.Experimental
+    public void showDialog(@NotNull net.md_5.bungee.api.dialog.Dialog dialog);
+
     // Spigot start
     public class Spigot extends Entity.Spigot {
 

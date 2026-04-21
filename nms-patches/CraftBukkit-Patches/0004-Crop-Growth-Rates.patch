@@ -1,0 +1,300 @@
+From 88e55deabdd2c27d7f1242263abce75ef33b868b Mon Sep 17 00:00:00 2001
+From: md_5 <git@md-5.net>
+Date: Mon, 7 Mar 2016 22:14:13 +1100
+Subject: [PATCH] Crop Growth Rates
+
+Allows configuring the growth rates of crops as a percentage of their normal growth rate.
+
+diff --git a/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java b/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
+index 7cc3371b4..e2824750f 100644
+--- a/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
+@@ -39,7 +39,7 @@ public class BambooSaplingBlock extends Block implements BonemealableBlock {
+ 
+     @Override
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+-        if (random.nextInt(3) == 0 && level.isEmptyBlock(pos.above()) && level.getRawBrightness(pos.above(), 0) >= 9) {
++        if (random.nextFloat() < (level.spigotConfig.bambooModifier / (100.0f * 3)) && level.isEmptyBlock(pos.above()) && level.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
+             this.growBamboo(level, pos);
+         }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/BambooStalkBlock.java b/src/main/java/net/minecraft/world/level/block/BambooStalkBlock.java
+index 55df11d34..b658c10ee 100644
+--- a/src/main/java/net/minecraft/world/level/block/BambooStalkBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BambooStalkBlock.java
+@@ -124,7 +124,7 @@ public class BambooStalkBlock extends Block implements BonemealableBlock {
+     @Override
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+         if ((Integer) state.getValue(BambooStalkBlock.STAGE) == 0) {
+-            if (random.nextInt(3) == 0 && level.isEmptyBlock(pos.above()) && level.getRawBrightness(pos.above(), 0) >= 9) {
++            if (random.nextFloat() < (level.spigotConfig.bambooModifier / (100.0f * 3)) && level.isEmptyBlock(pos.above()) && level.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
+                 int i = this.getHeightBelowUpToMax(level, pos) + 1;
+ 
+                 if (i < 16) {
+diff --git a/src/main/java/net/minecraft/world/level/block/Block.java b/src/main/java/net/minecraft/world/level/block/Block.java
+index e182632fe..51bd7ab9e 100644
+--- a/src/main/java/net/minecraft/world/level/block/Block.java
++++ b/src/main/java/net/minecraft/world/level/block/Block.java
+@@ -610,6 +610,18 @@ public class Block extends BlockBehaviour implements ItemLike {
+     }
+     // CraftBukkit end
+ 
++    // Spigot start
++    public static float range(float min, float value, float max) {
++        if (value < min) {
++            return min;
++        }
++        if (value > max) {
++            return max;
++        }
++        return value;
++    }
++    // Spigot end
++
+     private static record ShapePairKey(VoxelShape first, VoxelShape second) {
+ 
+         public boolean equals(Object o) {
+diff --git a/src/main/java/net/minecraft/world/level/block/CactusBlock.java b/src/main/java/net/minecraft/world/level/block/CactusBlock.java
+index 582102814..e23fd7124 100644
+--- a/src/main/java/net/minecraft/world/level/block/CactusBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/CactusBlock.java
+@@ -70,6 +70,12 @@ public class CactusBlock extends Block {
+                 }
+             }
+ 
++            // Spigot start - SPIGOT-7159: Better modifier resolution
++            int modifier = level.spigotConfig.cactusModifier;
++            if (modifier != 100 && random.nextFloat() >= (modifier / (100.0f * 16))) {
++                return;
++            }
++            // Spigot end
+             if (j == 8 && this.canSurvive(this.defaultBlockState(), level, pos.above())) {
+                 double d0 = i >= 3 ? 0.25D : 0.1D;
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/CocoaBlock.java b/src/main/java/net/minecraft/world/level/block/CocoaBlock.java
+index ba3cdf22a..26b1991e9 100644
+--- a/src/main/java/net/minecraft/world/level/block/CocoaBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/CocoaBlock.java
+@@ -53,7 +53,7 @@ public class CocoaBlock extends HorizontalDirectionalBlock implements Bonemealab
+ 
+     @Override
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+-        if (level.getRandom().nextInt(5) == 0) {
++        if (level.getRandom().nextFloat() < (level.spigotConfig.cocoaModifier / (100.0f * 5))) { // Spigot - SPIGOT-7159: Better modifier resolution
+             int i = (Integer) state.getValue(CocoaBlock.AGE);
+ 
+             if (i < 2) {
+diff --git a/src/main/java/net/minecraft/world/level/block/CropBlock.java b/src/main/java/net/minecraft/world/level/block/CropBlock.java
+index e43eeb876..66eb11eff 100644
+--- a/src/main/java/net/minecraft/world/level/block/CropBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/CropBlock.java
+@@ -88,7 +88,20 @@ public class CropBlock extends VegetationBlock implements BonemealableBlock {
+             if (i < this.getMaxAge()) {
+                 float f = getGrowthSpeed(this, level, pos);
+ 
+-                if (random.nextInt((int) (25.0F / f) + 1) == 0) {
++                // Spigot start
++                int modifier;
++                if (this == Blocks.BEETROOTS) {
++                    modifier = level.spigotConfig.beetrootModifier;
++                } else if (this == Blocks.CARROTS) {
++                    modifier = level.spigotConfig.carrotModifier;
++                } else if (this == Blocks.POTATOES) {
++                    modifier = level.spigotConfig.potatoModifier;
++                } else {
++                    modifier = level.spigotConfig.wheatModifier;
++                }
++
++                if (random.nextFloat() < (modifier / (100.0f * (Math.floor((25.0F / f) + 1))))) { // Spigot - SPIGOT-7159: Better modifier resolution
++                    // Spigot end
+                     CraftEventFactory.handleBlockGrowEvent(level, pos, this.getStateForAge(i + 1), 2); // CraftBukkit
+                 }
+             }
+diff --git a/src/main/java/net/minecraft/world/level/block/GrowingPlantHeadBlock.java b/src/main/java/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
+index 17eaffbe4..d7fcf6374 100644
+--- a/src/main/java/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
+@@ -44,7 +44,19 @@ public abstract class GrowingPlantHeadBlock extends GrowingPlantBlock implements
+ 
+     @Override
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+-        if ((Integer) state.getValue(GrowingPlantHeadBlock.AGE) < 25 && random.nextDouble() < this.growPerTickProbability) {
++        // Spigot start
++        int modifier;
++        if (this == Blocks.KELP) {
++            modifier = level.spigotConfig.kelpModifier;
++        } else if (this == Blocks.TWISTING_VINES) {
++            modifier = level.spigotConfig.twistingVinesModifier;
++        } else if (this == Blocks.WEEPING_VINES) {
++            modifier = level.spigotConfig.weepingVinesModifier;
++        } else {
++            modifier = level.spigotConfig.caveVinesModifier;
++        }
++        if ((Integer) state.getValue(GrowingPlantHeadBlock.AGE) < 25 && random.nextDouble() < ((modifier / 100.0D) * this.growPerTickProbability)) { // Spigot - SPIGOT-7159: Better modifier resolution
++            // Spigot end
+             BlockPos blockpos1 = pos.relative(this.growthDirection);
+ 
+             if (this.canGrowInto(level.getBlockState(blockpos1))) {
+diff --git a/src/main/java/net/minecraft/world/level/block/MushroomBlock.java b/src/main/java/net/minecraft/world/level/block/MushroomBlock.java
+index 950a14677..7c2678566 100644
+--- a/src/main/java/net/minecraft/world/level/block/MushroomBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/MushroomBlock.java
+@@ -53,7 +53,7 @@ public class MushroomBlock extends VegetationBlock implements BonemealableBlock
+ 
+     @Override
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+-        if (random.nextInt(25) == 0) {
++        if (random.nextFloat() < (level.spigotConfig.mushroomModifier / (100.0f * 25))) { // Spigot - SPIGOT-7159: Better modifier resolution
+             int i = 5;
+             int j = 4;
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/NetherWartBlock.java b/src/main/java/net/minecraft/world/level/block/NetherWartBlock.java
+index aa8da7214..c89e5614f 100644
+--- a/src/main/java/net/minecraft/world/level/block/NetherWartBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/NetherWartBlock.java
+@@ -55,7 +55,7 @@ public class NetherWartBlock extends VegetationBlock {
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+         int i = (Integer) state.getValue(NetherWartBlock.AGE);
+ 
+-        if (i < 3 && random.nextInt(10) == 0) {
++        if (i < 3 && random.nextFloat() < (level.spigotConfig.wartModifier / (100.0f * 10))) { // Spigot - SPIGOT-7159: Better modifier resolution
+             state = (BlockState) state.setValue(NetherWartBlock.AGE, i + 1);
+             org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos, state, 2); // CraftBukkit
+         }
+diff --git a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
+index 1885d4259..2f2a21c83 100644
+--- a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
+@@ -55,7 +55,7 @@ public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
+ 
+     @Override
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+-        if (level.getMaxLocalRawBrightness(pos.above()) >= 9 && random.nextInt(7) == 0) {
++        if (level.getMaxLocalRawBrightness(pos.above()) >= 9 && random.nextFloat() < (level.spigotConfig.saplingModifier / (100.0f * 7))) { // Spigot - SPIGOT-7159: Better modifier resolution
+             this.advanceTree(level, pos, state, random);
+         }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/StemBlock.java b/src/main/java/net/minecraft/world/level/block/StemBlock.java
+index bbbf4fd09..d9a7ae3ee 100644
+--- a/src/main/java/net/minecraft/world/level/block/StemBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/StemBlock.java
+@@ -85,7 +85,7 @@ public class StemBlock extends VegetationBlock implements BonemealableBlock {
+         if (level.getRawBrightness(pos, 0) >= 9) {
+             float f = CropBlock.getGrowthSpeed(this, level, pos);
+ 
+-            if (random.nextInt((int) (25.0F / f) + 1) == 0) {
++            if (random.nextFloat() < ((this == Blocks.PUMPKIN_STEM ? level.spigotConfig.pumpkinModifier : level.spigotConfig.melonModifier) / (100.0f * (Math.floor((25.0F / f) + 1))))) { // Spigot - SPIGOT-7159: Better modifier resolution
+                 int i = (Integer) state.getValue(StemBlock.AGE);
+ 
+                 if (i < 7) {
+diff --git a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
+index 3da9bab36..6df7df2bc 100644
+--- a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
+@@ -60,10 +60,11 @@ public class SugarCaneBlock extends Block {
+             if (i < 3) {
+                 int j = (Integer) state.getValue(SugarCaneBlock.AGE);
+ 
+-                if (j == 15) {
++                int modifier = level.spigotConfig.caneModifier; // Spigot - SPIGOT-7159: Better modifier resolution
++                if (j >= 15 || (modifier != 100 && random.nextFloat() < (modifier / (100.0f * 16)))) { // Spigot - SPIGOT-7159: Better modifier resolution
+                     org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos.above(), this.defaultBlockState()); // CraftBukkit
+                     level.setBlock(pos, (BlockState) state.setValue(SugarCaneBlock.AGE, 0), 260);
+-                } else {
++                } else if (modifier == 100 || random.nextFloat() < (modifier / (100.0f * 16))) { // Spigot - SPIGOT-7159: Better modifier resolution
+                     level.setBlock(pos, (BlockState) state.setValue(SugarCaneBlock.AGE, j + 1), 260);
+                 }
+             }
+diff --git a/src/main/java/net/minecraft/world/level/block/SweetBerryBushBlock.java b/src/main/java/net/minecraft/world/level/block/SweetBerryBushBlock.java
+index f91eb47f7..92bc584a9 100644
+--- a/src/main/java/net/minecraft/world/level/block/SweetBerryBushBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SweetBerryBushBlock.java
+@@ -91,7 +91,7 @@ public class SweetBerryBushBlock extends VegetationBlock implements Bonemealable
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+         int i = (Integer) state.getValue(SweetBerryBushBlock.AGE);
+ 
+-        if (i < 3 && random.nextInt(5) == 0 && level.getRawBrightness(pos.above(), 0) >= 9) {
++        if (i < 3 && random.nextFloat() < (level.spigotConfig.sweetBerryModifier / (100.0f * 5)) && level.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
+             BlockState blockstate1 = (BlockState) state.setValue(SweetBerryBushBlock.AGE, i + 1);
+ 
+             if (!CraftEventFactory.handleBlockGrowEvent(level, pos, blockstate1, 2)) return; // CraftBukkit
+diff --git a/src/main/java/net/minecraft/world/level/block/VineBlock.java b/src/main/java/net/minecraft/world/level/block/VineBlock.java
+index 6dc3716da..cdac56c4b 100644
+--- a/src/main/java/net/minecraft/world/level/block/VineBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/VineBlock.java
+@@ -163,7 +163,7 @@ public class VineBlock extends Block {
+     @Override
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+         if ((Boolean) level.getGameRules().get(GameRules.SPREAD_VINES)) {
+-            if (random.nextInt(4) == 0) {
++            if (random.nextFloat() < (level.spigotConfig.vineModifier / (100.0f * 4))) { // Spigot - SPIGOT-7159: Better modifier resolution
+                 Direction direction = Direction.getRandom(random);
+                 BlockPos blockpos1 = pos.above();
+ 
+diff --git a/src/main/java/org/spigotmc/SpigotWorldConfig.java b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+index 1cce14866..f42972427 100644
+--- a/src/main/java/org/spigotmc/SpigotWorldConfig.java
++++ b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+@@ -79,4 +79,59 @@ public class SpigotWorldConfig
+         config.addDefault( "world-settings.default." + path, def );
+         return config.get( "world-settings." + worldName + "." + path, config.get( "world-settings.default." + path ) );
+     }
++
++    // Crop growth rates
++    public int cactusModifier;
++    public int caneModifier;
++    public int melonModifier;
++    public int mushroomModifier;
++    public int pumpkinModifier;
++    public int saplingModifier;
++    public int beetrootModifier;
++    public int carrotModifier;
++    public int potatoModifier;
++    public int wheatModifier;
++    public int wartModifier;
++    public int vineModifier;
++    public int cocoaModifier;
++    public int bambooModifier;
++    public int sweetBerryModifier;
++    public int kelpModifier;
++    public int twistingVinesModifier;
++    public int weepingVinesModifier;
++    public int caveVinesModifier;
++    private int getAndValidateGrowth(String crop)
++    {
++        int modifier = getInt( "growth." + crop.toLowerCase(java.util.Locale.ENGLISH) + "-modifier", 100 );
++        if ( modifier == 0 )
++        {
++            log( "Cannot set " + crop + " growth to zero, defaulting to 100" );
++            modifier = 100;
++        }
++        log( crop + " Growth Modifier: " + modifier + "%" );
++
++        return modifier;
++    }
++    private void growthModifiers()
++    {
++        cactusModifier = getAndValidateGrowth( "Cactus" );
++        caneModifier = getAndValidateGrowth( "Cane" );
++        melonModifier = getAndValidateGrowth( "Melon" );
++        mushroomModifier = getAndValidateGrowth( "Mushroom" );
++        pumpkinModifier = getAndValidateGrowth( "Pumpkin" );
++        saplingModifier = getAndValidateGrowth( "Sapling" );
++        beetrootModifier = getAndValidateGrowth( "Beetroot" );
++        carrotModifier = getAndValidateGrowth( "Carrot" );
++        potatoModifier = getAndValidateGrowth( "Potato" );
++        wheatModifier = getAndValidateGrowth( "Wheat" );
++        wartModifier = getAndValidateGrowth( "NetherWart" );
++        vineModifier = getAndValidateGrowth( "Vine" );
++        cocoaModifier = getAndValidateGrowth( "Cocoa" );
++        bambooModifier = getAndValidateGrowth( "Bamboo" );
++        sweetBerryModifier = getAndValidateGrowth( "SweetBerry" );
++        kelpModifier = getAndValidateGrowth( "Kelp" );
++        twistingVinesModifier = getAndValidateGrowth( "TwistingVines" );
++        weepingVinesModifier = getAndValidateGrowth( "WeepingVines" );
++        caveVinesModifier = getAndValidateGrowth( "CaveVines" );
++    }
+ }
+-- 
+2.53.0
+

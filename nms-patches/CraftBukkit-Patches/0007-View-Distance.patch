@@ -1,0 +1,89 @@
+From 547694f2c178144b1a4cf4a9a96d22a2b623e57a Mon Sep 17 00:00:00 2001
+From: md_5 <git@md-5.net>
+Date: Sat, 23 Mar 2013 09:52:41 +1100
+Subject: [PATCH] View Distance
+
+This commit allows the user to select per world view distances.
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index bad81d874..5e4b86255 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -351,8 +351,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+ 
+         this.entityManager = new PersistentEntitySectionManager<Entity>(Entity.class, new ServerLevel.EntityCallbacks(), entitypersistentstorage);
+         StructureTemplateManager structuretemplatemanager = server.getStructureManager();
+-        int j = server.getPlayerList().getViewDistance();
+-        int k = server.getPlayerList().getSimulationDistance();
++        int j = this.spigotConfig.viewDistance; // Spigot
++        int k = this.spigotConfig.simulationDistance; // Spigot
+         PersistentEntitySectionManager persistententitysectionmanager = this.entityManager;
+ 
+         Objects.requireNonNull(this.entityManager);
+diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
+index f587199fa..5fb6efaa0 100644
+--- a/src/main/java/net/minecraft/server/players/PlayerList.java
++++ b/src/main/java/net/minecraft/server/players/PlayerList.java
+@@ -197,7 +197,8 @@ public abstract class PlayerList {
+         boolean flag1 = (Boolean) gamerules.get(GameRules.REDUCED_DEBUG_INFO);
+         boolean flag2 = (Boolean) gamerules.get(GameRules.LIMITED_CRAFTING);
+ 
+-        servergamepacketlistenerimpl.send(new ClientboundLoginPacket(player.getId(), leveldata.isHardcore(), this.server.levelKeys(), this.getMaxPlayers(), this.getViewDistance(), this.getSimulationDistance(), flag1, !flag, flag2, player.createCommonSpawnInfo(serverlevel), this.server.enforceSecureProfile()));
++        // Spigot - view distance
++        servergamepacketlistenerimpl.send(new ClientboundLoginPacket(player.getId(), leveldata.isHardcore(), this.server.levelKeys(), this.getMaxPlayers(), serverlevel.spigotConfig.viewDistance, serverlevel.spigotConfig.simulationDistance, flag1, !flag, flag2, player.createCommonSpawnInfo(serverlevel), this.server.enforceSecureProfile()));
+         player.getBukkitEntity().sendSupportedChannels(); // CraftBukkit
+         servergamepacketlistenerimpl.send(new ClientboundChangeDifficultyPacket(leveldata.getDifficulty(), leveldata.isDifficultyLocked()));
+         servergamepacketlistenerimpl.send(new ClientboundPlayerAbilitiesPacket(player.getAbilities()));
+@@ -610,6 +611,8 @@ public abstract class PlayerList {
+         LevelData leveldata = serverlevel1.getLevelData();
+ 
+         serverplayer1.connection.send(new ClientboundRespawnPacket(serverplayer1.createCommonSpawnInfo(serverlevel1), b0));
++        serverplayer1.connection.send(new ClientboundSetChunkCacheRadiusPacket(serverlevel1.spigotConfig.viewDistance)); // Spigot
++        serverplayer1.connection.send(new ClientboundSetSimulationDistancePacket(serverlevel1.spigotConfig.simulationDistance)); // Spigot
+         serverplayer1.connection.teleport(CraftLocation.toBukkit(serverplayer1.position(), serverlevel1.getWorld(), serverplayer1.getYRot(), serverplayer1.getXRot())); // CraftBukkit
+         serverplayer1.connection.send(new ClientboundSetDefaultSpawnPositionPacket(serverlevel.getRespawnData()));
+         serverplayer1.connection.send(new ClientboundChangeDifficultyPacket(leveldata.getDifficulty(), leveldata.isDifficultyLocked()));
+diff --git a/src/main/java/org/spigotmc/SpigotWorldConfig.java b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+index 5ff085b9e..acaf90301 100644
+--- a/src/main/java/org/spigotmc/SpigotWorldConfig.java
++++ b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+@@ -148,4 +148,36 @@ public class SpigotWorldConfig
+         expMerge = getDouble("merge-radius.exp", 3.0 );
+         log( "Experience Merge Radius: " + expMerge );
+     }
++
++    public int viewDistance;
++    private void viewDistance()
++    {
++        if ( SpigotConfig.version < 12 )
++        {
++            set( "view-distance", null );
++        }
++
++        Object viewDistanceObject = get( "view-distance", "default" );
++        viewDistance = ( viewDistanceObject ) instanceof Number ? ( (Number) viewDistanceObject ).intValue() : -1;
++        if ( viewDistance <= 0 )
++        {
++            viewDistance = Bukkit.getViewDistance();
++        }
++
++        viewDistance = Math.max( Math.min( viewDistance, 32 ), 3 );
++        log( "View Distance: " + viewDistance );
++    }
++
++    public int simulationDistance;
++    private void simulationDistance()
++    {
++        Object simulationDistanceObject = get( "simulation-distance", "default" );
++        simulationDistance = ( simulationDistanceObject ) instanceof Number ? ( (Number) simulationDistanceObject ).intValue() : -1;
++        if ( simulationDistance <= 0 )
++        {
++            simulationDistance = Bukkit.getSimulationDistance();
++        }
++
++        log( "Simulation Distance: " + simulationDistance );
++    }
+ }
+-- 
+2.53.0
+

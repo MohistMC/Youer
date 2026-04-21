@@ -207,6 +207,8 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import net.md_5.bungee.api.chat.BaseComponent; // Spigot
+
 @DelegateDeserialization(CraftOfflinePlayer.class)
 public class CraftPlayer extends CraftHumanEntity implements Player {
     private long firstPlayed = 0;
@@ -508,6 +510,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void kickPlayer(String message) {
+        org.spigotmc.AsyncCatcher.catchOp("player kick"); // Spigot
         getHandle().transferCookieConnection.kickPlayer(CraftChatMessage.fromStringOrEmpty(message, true));
     }
 
@@ -2178,7 +2181,15 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
             }
         }
         AttributeInstance dummy = new AttributeInstance(Attributes.MAX_HEALTH, (attribute) -> { });
-        dummy.setBaseValue(scaledHealth ? healthScale : getMaxHealth());
+        // Spigot start
+        double healthMod = scaledHealth ? healthScale : getMaxHealth();
+        if ( healthMod >= Float.MAX_VALUE || healthMod <= 0 )
+        {
+            healthMod = 20; // Reset health
+            getServer().getLogger().warning( getName() + " tried to crash the server with a large health attribute" );
+        }
+        dummy.setBaseValue(healthMod);
+        // Spigot end
         collection.add(dummy);
     }
 
@@ -2375,6 +2386,20 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         showDialog(nms.orElseThrow(() -> new IllegalArgumentException("Dialog does not exist on server: " + dialog)));
     }
 
+    // Spigot start
+    @Override
+    public void showDialog(net.md_5.bungee.api.dialog.Dialog dialog) {
+        Preconditions.checkArgument(dialog != null, "Dialog cannot be null");
+
+        com.google.gson.JsonElement json = CraftChatMessage.getBungee().getDialogSerializer().toJson(dialog);
+        net.minecraft.server.dialog.Dialog nms = net.minecraft.server.dialog.Dialog.DIRECT_CODEC
+                .parse(getHandle().level().registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE), json)
+                .getOrThrow();
+
+        showDialog(Holder.direct(nms));
+    }
+    // Spigot end
+
     private void showDialog(Holder<net.minecraft.server.dialog.Dialog> dialog) {
         if (getHandle().connection == null) {
             return;
@@ -2402,7 +2427,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         {
             if ( getHealth() <= 0 && isOnline() )
             {
-                // server.getServer().getPlayerList().respawn( getHandle(), false, Entity.RemovalReason.KILLED, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.PLUGIN );
+                server.getServer().getPlayerList().respawn( getHandle(), false, Entity.RemovalReason.KILLED, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.PLUGIN );
             }
         }
 
@@ -2423,12 +2448,12 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
         @Override
         public void sendMessage(BaseComponent component) {
-            sendMessage( new BaseComponent[] { component } );
+          sendMessage( new BaseComponent[] { component } );
         }
 
         @Override
         public void sendMessage(BaseComponent... components) {
-            this.sendMessage(net.md_5.bungee.api.ChatMessageType.SYSTEM, components);
+           this.sendMessage(net.md_5.bungee.api.ChatMessageType.SYSTEM, components);
         }
 
         @Override
@@ -2460,7 +2485,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         public void sendMessage(net.md_5.bungee.api.ChatMessageType position, UUID sender, BaseComponent... components) {
             if ( getHandle().connection == null ) return;
 
-            // getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundSystemChatPacket(components, position == net.md_5.bungee.api.ChatMessageType.ACTION_BAR));
+            getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundSystemChatPacket(components, position == net.md_5.bungee.api.ChatMessageType.ACTION_BAR));
         }
     };
 

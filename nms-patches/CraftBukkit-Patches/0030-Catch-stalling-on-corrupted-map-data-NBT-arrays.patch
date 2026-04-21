@@ -1,0 +1,33 @@
+From a4214d0f43feb27de033730dd9c76a9e669700c0 Mon Sep 17 00:00:00 2001
+From: md_5 <git@md-5.net>
+Date: Mon, 20 Jan 2014 13:44:07 +1100
+Subject: [PATCH] Catch stalling on corrupted map data / NBT arrays.
+
+
+diff --git a/src/main/java/net/minecraft/nbt/ByteArrayTag.java b/src/main/java/net/minecraft/nbt/ByteArrayTag.java
+index 955239974..7d7a52155 100644
+--- a/src/main/java/net/minecraft/nbt/ByteArrayTag.java
++++ b/src/main/java/net/minecraft/nbt/ByteArrayTag.java
+@@ -25,6 +25,7 @@ public final class ByteArrayTag implements CollectionTag {
+         private static byte[] readAccounted(DataInput input, NbtAccounter accounter) throws IOException {
+             accounter.accountBytes(24L);
+             int i = input.readInt();
++            com.google.common.base.Preconditions.checkArgument( i < 1 << 24); // Spigot
+ 
+             accounter.accountBytes(1L, (long) i);
+             byte[] abyte = new byte[i];
+diff --git a/src/main/java/net/minecraft/nbt/IntArrayTag.java b/src/main/java/net/minecraft/nbt/IntArrayTag.java
+index f0444b12b..d1dd80756 100644
+--- a/src/main/java/net/minecraft/nbt/IntArrayTag.java
++++ b/src/main/java/net/minecraft/nbt/IntArrayTag.java
+@@ -25,6 +25,7 @@ public final class IntArrayTag implements CollectionTag {
+         private static int[] readAccounted(DataInput input, NbtAccounter accounter) throws IOException {
+             accounter.accountBytes(24L);
+             int i = input.readInt();
++            com.google.common.base.Preconditions.checkArgument( i < 1 << 24); // Spigot
+ 
+             accounter.accountBytes(4L, (long) i);
+             int[] aint = new int[i];
+-- 
+2.53.0
+

@@ -1,0 +1,572 @@
+From cbf4a62079b62e2bc4d02607bd73f422da5b7bc6 Mon Sep 17 00:00:00 2001
+From: Aikar <aikar@aikar.co>
+Date: Sat, 2 Nov 2024 18:16:11 +1100
+Subject: [PATCH] Entity Activation Range
+
+This feature gives 3 new configurable ranges that if an entity of the matching type is outside of this radius of any player, will tick at 5% of its normal rate.
+
+This will drastically cut down on tick timings for entities that are not in range of a user to actually be "used".
+This change can have dramatic impact on gameplay if configured too low. Balance according to your servers desired gameplay.
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index c7c0b8798..ef21dd1f3 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -510,6 +510,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+                 profilerfiller.pop();
+             }
+ 
++            org.spigotmc.ActivationRange.activateEntities(this); // Spigot
+             timings.entityTick.startTiming(); // Spigot
+             this.entityTickList.forEach((entity) -> {
+                 if (!entity.isRemoved()) {
+@@ -993,6 +994,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+     }
+ 
+     public void tickNonPassenger(Entity entity) {
++        // Spigot start
++        if (!org.spigotmc.ActivationRange.checkIfActive(entity)) {
++            entity.tickCount++;
++            entity.inactiveTick();
++            return;
++        }
++        // Spigot end
+         entity.tickTimer.startTiming(); // Spigot
+         entity.setOldPosAndRot();
+         ProfilerFiller profilerfiller = Profiler.get();
+diff --git a/src/main/java/net/minecraft/world/entity/AgeableMob.java b/src/main/java/net/minecraft/world/entity/AgeableMob.java
+index 4b2cb76b5..a9d0f4af7 100644
+--- a/src/main/java/net/minecraft/world/entity/AgeableMob.java
++++ b/src/main/java/net/minecraft/world/entity/AgeableMob.java
+@@ -45,6 +45,31 @@ public abstract class AgeableMob extends PathfinderMob {
+         super(type, level);
+     }
+ 
++    // Spigot start
++    @Override
++    public void inactiveTick()
++    {
++        super.inactiveTick();
++        if ( this.level().isClientSide() || this.isAgeLocked() )
++        { // CraftBukkit
++            this.refreshDimensions();
++        } else
++        {
++            int i = this.getAge();
++
++            if ( i < 0 )
++            {
++                ++i;
++                this.setAge( i );
++            } else if ( i > 0 )
++            {
++                --i;
++                this.setAge( i );
++            }
++        }
++    }
++    // Spigot end
++
+     @Override
+     public @Nullable SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason spawnReason, @Nullable SpawnGroupData groupData) {
+         if (groupData == null) {
+diff --git a/src/main/java/net/minecraft/world/entity/AreaEffectCloud.java b/src/main/java/net/minecraft/world/entity/AreaEffectCloud.java
+index 1847d72d5..06c522271 100644
+--- a/src/main/java/net/minecraft/world/entity/AreaEffectCloud.java
++++ b/src/main/java/net/minecraft/world/entity/AreaEffectCloud.java
+@@ -162,6 +162,18 @@ public class AreaEffectCloud extends Entity implements TraceableEntity {
+         this.duration = duration;
+     }
+ 
++    // Spigot start - copied from below
++    @Override
++    public void inactiveTick() {
++        super.inactiveTick();
++
++        if (this.tickCount >= this.waitTime + this.duration) {
++            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            return;
++        }
++    }
++    // Spigot end
++
+     @Override
+     public void tick() {
+         super.tick();
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 1e285f8bc..2bee2988f 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -371,6 +371,12 @@ public abstract class Entity implements Nameable, EntityAccess, ScoreHolder, Syn
+     // Main use case currently is for SPIGOT-7487, preventing dropping of leash when leash is removed
+     public boolean pluginRemoved = false;
+     public CustomTimingsHandler tickTimer = org.bukkit.craftbukkit.SpigotTimings.getEntityTimings(this); // Spigot
++    // Spigot start
++    public final org.spigotmc.ActivationRange.ActivationType activationType = org.spigotmc.ActivationRange.initializeEntityActivationType(this);
++    public final boolean defaultActivationState;
++    public long activatedTick = Integer.MIN_VALUE;
++    public void inactiveTick() { }
++    // Spigot end
+ 
+     public float getBukkitYaw() {
+         return this.yRot;
+@@ -412,6 +418,13 @@ public abstract class Entity implements Nameable, EntityAccess, ScoreHolder, Syn
+         this.position = Vec3.ZERO;
+         this.blockPosition = BlockPos.ZERO;
+         this.chunkPosition = ChunkPos.ZERO;
++        // Spigot start
++        if (level != null) {
++            this.defaultActivationState = org.spigotmc.ActivationRange.initializeEntityActivationState(this, level.spigotConfig);
++        } else {
++            this.defaultActivationState = false;
++        }
++        // Spigot end
+         SynchedEntityData.Builder synchedentitydata_builder = new SynchedEntityData.Builder(this);
+ 
+         synchedentitydata_builder.define(Entity.DATA_SHARED_FLAGS_ID, (byte) 0);
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index c69e97a47..fec541a31 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -304,6 +304,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+         return getYHeadRot();
+     }
+     // CraftBukkit end
++    // Spigot start
++    public void inactiveTick()
++    {
++        super.inactiveTick();
++        ++this.noActionTime; // Above all the floats
++    }
++    // Spigot end
+ 
+     protected LivingEntity(EntityType<? extends LivingEntity> type, Level level) {
+         super(type, level);
+diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+index 6de58e8d0..c9656109c 100644
+--- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+@@ -210,6 +210,28 @@ public class ItemEntity extends Entity implements TraceableEntity {
+         }
+     }
+ 
++    // Spigot start - copied from above
++    @Override
++    public void inactiveTick() {
++        // CraftBukkit start - Use wall time for pickup and despawn timers
++        int elapsedTicks = MinecraftServer.currentTick - this.lastTick;
++        if (this.pickupDelay != 32767) this.pickupDelay -= elapsedTicks;
++        if (this.age != -32768) this.age += elapsedTicks;
++        this.lastTick = MinecraftServer.currentTick;
++        // CraftBukkit end
++
++        if (!this.level().isClientSide() && this.age >= this.level().spigotConfig.itemDespawnRate) { // Spigot
++            // CraftBukkit start - fire ItemDespawnEvent
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callItemDespawnEvent(this).isCancelled()) {
++                this.age = 0;
++                return;
++            }
++            // CraftBukkit end
++            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++        }
++    }
++    // Spigot end
++
+     @Override
+     public BlockPos getBlockPosBelowThatAffectsMyMovement() {
+         return this.getOnPos(0.999999F);
+diff --git a/src/main/java/net/minecraft/world/entity/npc/villager/Villager.java b/src/main/java/net/minecraft/world/entity/npc/villager/Villager.java
+index 79d815d6b..910f08bd4 100644
+--- a/src/main/java/net/minecraft/world/entity/npc/villager/Villager.java
++++ b/src/main/java/net/minecraft/world/entity/npc/villager/Villager.java
+@@ -242,6 +242,17 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
+         return this.assignProfessionWhenSpawned;
+     }
+ 
++    // Spigot Start
++    @Override
++    public void inactiveTick() {
++        // SPIGOT-3874, SPIGOT-3894, SPIGOT-3846, SPIGOT-5286 :(
++        if (this.level().spigotConfig.tickInactiveVillagers && this.isEffectiveAi()) {
++            this.customServerAiStep((ServerLevel) this.level());
++        }
++        super.inactiveTick();
++    }
++    // Spigot End
++
+     @Override
+     protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profilerfiller = Profiler.get();
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java b/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
+index ada8b0bf1..3fa0aea79 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
+@@ -94,6 +94,28 @@ public class FireworkRocketEntity extends Projectile implements ItemSupplier {
+         this.setOwner(owner);
+     }
+ 
++    // Spigot Start - copied from tick
++    @Override
++    public void inactiveTick() {
++        this.life += 1;
++
++        if (this.life > this.lifetime) {
++            Level level = this.level();
++
++            if (level instanceof ServerLevel) {
++                ServerLevel serverlevel = (ServerLevel) level;
++
++                // CraftBukkit start
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callFireworkExplodeEvent(this).isCancelled()) {
++                    this.explode(serverlevel);
++                }
++                // CraftBukkit end
++            }
++        }
++        super.inactiveTick();
++    }
++    // Spigot End
++
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder entityData) {
+         entityData.define(FireworkRocketEntity.DATA_ID_FIREWORKS_ITEM, getDefaultItem());
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java b/src/main/java/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
+index c8cccfe1e..06b62e249 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
+@@ -88,6 +88,18 @@ public abstract class AbstractArrow extends Projectile {
+     public ItemStack pickupItemStack;
+     public @Nullable ItemStack firedFromWeapon;
+ 
++    // Spigot Start
++    @Override
++    public void inactiveTick()
++    {
++        if ( this.isInGround() )
++        {
++            this.life += 1;
++        }
++        super.inactiveTick();
++    }
++    // Spigot End
++
+     protected AbstractArrow(EntityType<? extends AbstractArrow> type, Level level) {
+         super(type, level);
+         this.pickup = AbstractArrow.Pickup.DISALLOWED;
+diff --git a/src/main/java/org/bukkit/craftbukkit/SpigotTimings.java b/src/main/java/org/bukkit/craftbukkit/SpigotTimings.java
+index 52f54c2e0..56b644e27 100644
+--- a/src/main/java/org/bukkit/craftbukkit/SpigotTimings.java
++++ b/src/main/java/org/bukkit/craftbukkit/SpigotTimings.java
+@@ -39,6 +39,9 @@ public class SpigotTimings {
+ 
+     public static final CustomTimingsHandler playerCommandTimer = new CustomTimingsHandler("** playerCommand");
+ 
++    public static final CustomTimingsHandler entityActivationCheckTimer = new CustomTimingsHandler("entityActivationCheck");
++    public static final CustomTimingsHandler checkIfActiveTimer = new CustomTimingsHandler("** checkIfActive");
++
+     public static final HashMap<String, CustomTimingsHandler> entityTypeTimingMap = new HashMap<String, CustomTimingsHandler>();
+     public static final HashMap<String, CustomTimingsHandler> tileEntityTypeTimingMap = new HashMap<String, CustomTimingsHandler>();
+     public static final HashMap<String, CustomTimingsHandler> pluginTaskTimingMap = new HashMap<String, CustomTimingsHandler>();
+diff --git a/src/main/java/org/spigotmc/ActivationRange.java b/src/main/java/org/spigotmc/ActivationRange.java
+new file mode 100644
+index 000000000..82566467a
+--- /dev/null
++++ b/src/main/java/org/spigotmc/ActivationRange.java
+@@ -0,0 +1,268 @@
++package org.spigotmc;
++
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.ExperienceOrb;
++import net.minecraft.world.entity.LightningBolt;
++import net.minecraft.world.entity.LivingEntity;
++import net.minecraft.world.entity.PathfinderMob;
++import net.minecraft.world.entity.ambient.AmbientCreature;
++import net.minecraft.world.entity.animal.Animal;
++import net.minecraft.world.entity.animal.sheep.Sheep;
++import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
++import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
++import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
++import net.minecraft.world.entity.boss.wither.WitherBoss;
++import net.minecraft.world.entity.item.ItemEntity;
++import net.minecraft.world.entity.item.PrimedTnt;
++import net.minecraft.world.entity.monster.Creeper;
++import net.minecraft.world.entity.monster.Monster;
++import net.minecraft.world.entity.monster.Slime;
++import net.minecraft.world.entity.npc.villager.Villager;
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.entity.projectile.FireworkRocketEntity;
++import net.minecraft.world.entity.projectile.ThrowableProjectile;
++import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
++import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
++import net.minecraft.world.entity.projectile.hurtingprojectile.AbstractHurtingProjectile;
++import net.minecraft.world.entity.raid.Raider;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.phys.AABB;
++import org.bukkit.craftbukkit.SpigotTimings;
++
++public class ActivationRange
++{
++
++    public enum ActivationType
++    {
++        MONSTER,
++        ANIMAL,
++        RAIDER,
++        MISC;
++
++        AABB boundingBox = new AABB( 0, 0, 0, 0, 0, 0 );
++    }
++
++    static AABB maxBB = new AABB( 0, 0, 0, 0, 0, 0 );
++
++    /**
++     * Initializes an entities type on construction to specify what group this
++     * entity is in for activation ranges.
++     *
++     * @param entity
++     * @return group id
++     */
++    public static ActivationType initializeEntityActivationType(Entity entity)
++    {
++        if ( entity instanceof Raider )
++        {
++            return ActivationType.RAIDER;
++        } else if ( entity instanceof Monster || entity instanceof Slime )
++        {
++            return ActivationType.MONSTER;
++        } else if ( entity instanceof PathfinderMob || entity instanceof AmbientCreature )
++        {
++            return ActivationType.ANIMAL;
++        } else
++        {
++            return ActivationType.MISC;
++        }
++    }
++
++    /**
++     * These entities are excluded from Activation range checks.
++     *
++     * @param entity
++     * @param config
++     * @return boolean If it should always tick.
++     */
++    public static boolean initializeEntityActivationState(Entity entity, SpigotWorldConfig config)
++    {
++        if ( config == null )
++        {
++            return false;
++        }
++
++        if ( ( entity.activationType == ActivationType.MISC && config.miscActivationRange == 0 )
++                || ( entity.activationType == ActivationType.RAIDER && config.raiderActivationRange == 0 )
++                || ( entity.activationType == ActivationType.ANIMAL && config.animalActivationRange == 0 )
++                || ( entity.activationType == ActivationType.MONSTER && config.monsterActivationRange == 0 )
++                || entity instanceof Player
++                || entity instanceof ThrowableProjectile
++                || entity instanceof EnderDragon
++                || entity instanceof EnderDragonPart
++                || entity instanceof WitherBoss
++                || entity instanceof AbstractHurtingProjectile
++                || entity instanceof LightningBolt
++                || entity instanceof PrimedTnt
++                || entity instanceof EndCrystal
++                || entity instanceof FireworkRocketEntity
++                || entity instanceof ThrownTrident )
++        {
++            return true;
++        }
++
++        return false;
++    }
++
++    /**
++     * Find what entities are in range of the players in the world and set
++     * active if in range.
++     *
++     * @param world
++     */
++    public static void activateEntities(Level level)
++    {
++        SpigotTimings.entityActivationCheckTimer.startTiming();
++        final int miscActivationRange = level.spigotConfig.miscActivationRange;
++        final int raiderActivationRange = level.spigotConfig.raiderActivationRange;
++        final int animalActivationRange = level.spigotConfig.animalActivationRange;
++        final int monsterActivationRange = level.spigotConfig.monsterActivationRange;
++
++        int maxRange = Math.max( monsterActivationRange, animalActivationRange );
++        maxRange = Math.max( maxRange, raiderActivationRange );
++        maxRange = Math.max( maxRange, miscActivationRange );
++        maxRange = Math.min( ( level.spigotConfig.simulationDistance << 4 ) - 8, maxRange );
++
++        for ( Player player : level.players() )
++        {
++            player.activatedTick = MinecraftServer.currentTick;
++            if ( level.spigotConfig.ignoreSpectatorActivation && player.isSpectator() )
++            {
++                continue;
++            }
++
++            maxBB = player.getBoundingBox().inflate( maxRange, 256, maxRange );
++            ActivationType.MISC.boundingBox = player.getBoundingBox().inflate( miscActivationRange, 256, miscActivationRange );
++            ActivationType.RAIDER.boundingBox = player.getBoundingBox().inflate( raiderActivationRange, 256, raiderActivationRange );
++            ActivationType.ANIMAL.boundingBox = player.getBoundingBox().inflate( animalActivationRange, 256, animalActivationRange );
++            ActivationType.MONSTER.boundingBox = player.getBoundingBox().inflate( monsterActivationRange, 256, monsterActivationRange );
++
++            level.getEntities().get(maxBB, ActivationRange::activateEntity);
++        }
++        SpigotTimings.entityActivationCheckTimer.stopTiming();
++    }
++
++    /**
++     * Checks for the activation state of all entities in this chunk.
++     *
++     * @param chunk
++     */
++    private static void activateEntity(Entity entity)
++    {
++        if ( MinecraftServer.currentTick > entity.activatedTick )
++        {
++            if ( entity.defaultActivationState )
++            {
++                entity.activatedTick = MinecraftServer.currentTick;
++                return;
++            }
++            if ( entity.activationType.boundingBox.intersects( entity.getBoundingBox() ) )
++            {
++                entity.activatedTick = MinecraftServer.currentTick;
++            }
++        }
++    }
++
++    /**
++     * If an entity is not in range, do some more checks to see if we should
++     * give it a shot.
++     *
++     * @param entity
++     * @return
++     */
++    public static boolean checkEntityImmunities(Entity entity)
++    {
++        // quick checks.
++        if ( entity.wasTouchingWater || entity.getRemainingFireTicks() > 0 )
++        {
++            return true;
++        }
++        if ( !( entity instanceof AbstractArrow ) )
++        {
++            if ( !entity.onGround() || !entity.passengers.isEmpty() || entity.isPassenger() )
++            {
++                return true;
++            }
++        } else if ( !( (AbstractArrow) entity ).isInGround() )
++        {
++            return true;
++        }
++        // special cases.
++        if ( entity instanceof LivingEntity )
++        {
++            LivingEntity living = (LivingEntity) entity;
++            if ( /*TODO: Missed mapping? living.attackTicks > 0 || */ living.hurtTime > 0 || living.activeEffects.size() > 0 )
++            {
++                return true;
++            }
++            if ( entity instanceof PathfinderMob && ( (PathfinderMob) entity ).getTarget() != null )
++            {
++                return true;
++            }
++            if ( entity instanceof Villager && ( (Villager) entity ).canBreed() )
++            {
++                return true;
++            }
++            if ( entity instanceof Animal )
++            {
++                Animal animal = (Animal) entity;
++                if ( animal.isBaby() || animal.isInLove() )
++                {
++                    return true;
++                }
++                if ( entity instanceof Sheep && ( (Sheep) entity ).isSheared() )
++                {
++                    return true;
++                }
++            }
++            if (entity instanceof Creeper && ((Creeper) entity).isIgnited()) { // isExplosive
++                return true;
++            }
++        }
++        // SPIGOT-6644: Otherwise the target refresh tick will be missed
++        if (entity instanceof ExperienceOrb) {
++            return true;
++        }
++        return false;
++    }
++
++    /**
++     * Checks if the entity is active for this tick.
++     *
++     * @param entity
++     * @return
++     */
++    public static boolean checkIfActive(Entity entity)
++    {
++        SpigotTimings.checkIfActiveTimer.startTiming();
++        // Never safe to skip fireworks or item gravity
++        if (entity instanceof FireworkRocketEntity || (entity instanceof ItemEntity && (entity.tickCount + entity.getId() + 1) % 4 == 0)) {
++            SpigotTimings.checkIfActiveTimer.stopTiming();
++            return true;
++        }
++
++        boolean isActive = entity.activatedTick >= MinecraftServer.currentTick || entity.defaultActivationState;
++
++        // Should this entity tick?
++        if ( !isActive )
++        {
++            if ( ( MinecraftServer.currentTick - entity.activatedTick - 1 ) % 20 == 0 )
++            {
++                // Check immunities every 20 ticks.
++                if ( checkEntityImmunities( entity ) )
++                {
++                    // Triggered some sort of immunity, give 20 full ticks before we check again.
++                    entity.activatedTick = MinecraftServer.currentTick + 20;
++                }
++                isActive = true;
++            }
++            // Add a little performance juice to active entities. Skip 1/4 if not immune.
++        } else if ( !entity.defaultActivationState && entity.tickCount % 4 == 0 && !checkEntityImmunities( entity ) )
++        {
++            isActive = false;
++        }
++        SpigotTimings.checkIfActiveTimer.stopTiming();
++        return isActive;
++    }
++}
+diff --git a/src/main/java/org/spigotmc/SpigotWorldConfig.java b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+index e3682d28c..936279b5f 100644
+--- a/src/main/java/org/spigotmc/SpigotWorldConfig.java
++++ b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+@@ -194,4 +194,21 @@ public class SpigotWorldConfig
+         itemDespawnRate = getInt( "item-despawn-rate", 6000 );
+         log( "Item Despawn Rate: " + itemDespawnRate );
+     }
++
++    public int animalActivationRange = 32;
++    public int monsterActivationRange = 32;
++    public int raiderActivationRange = 48;
++    public int miscActivationRange = 16;
++    public boolean tickInactiveVillagers = true;
++    public boolean ignoreSpectatorActivation = false;
++    private void activationRange()
++    {
++        animalActivationRange = getInt( "entity-activation-range.animals", animalActivationRange );
++        monsterActivationRange = getInt( "entity-activation-range.monsters", monsterActivationRange );
++        raiderActivationRange = getInt( "entity-activation-range.raiders", raiderActivationRange );
++        miscActivationRange = getInt( "entity-activation-range.misc", miscActivationRange );
++        tickInactiveVillagers = getBoolean( "entity-activation-range.tick-inactive-villagers", tickInactiveVillagers );
++        ignoreSpectatorActivation = getBoolean( "entity-activation-range.ignore-spectators", ignoreSpectatorActivation );
++        log( "Entity Activation Range: An " + animalActivationRange + " / Mo " + monsterActivationRange + " / Ra " + raiderActivationRange + " / Mi " + miscActivationRange + " / Tiv " + tickInactiveVillagers + " / Isa " + ignoreSpectatorActivation );
++    }
+ }
+-- 
+2.53.0
+

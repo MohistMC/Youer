@@ -1,0 +1,37 @@
+From adf59a671b12b0a9b6b50af6beed7a5830fae8bc Mon Sep 17 00:00:00 2001
+From: drXor <mcyoung@mit.edu>
+Date: Sat, 9 Aug 2014 13:56:51 -0400
+Subject: [PATCH] Configurable Hanging Tick
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/decoration/BlockAttachedEntity.java b/src/main/java/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
+index 7b0b0b406..deb19efbd 100644
+--- a/src/main/java/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
++++ b/src/main/java/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
+@@ -51,7 +51,7 @@ public abstract class BlockAttachedEntity extends Entity {
+ 
+         if (level instanceof ServerLevel serverlevel) {
+             this.checkBelowWorld();
+-            if (this.checkInterval++ == 100) {
++            if (this.checkInterval++ == this.level().spigotConfig.hangingTickFrequency) { // Spigot
+                 this.checkInterval = 0;
+                 if (!this.isRemoved() && !this.survives()) {
+                     // CraftBukkit start - fire break events
+diff --git a/src/main/java/org/spigotmc/SpigotWorldConfig.java b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+index 8411f9e57..76aeff332 100644
+--- a/src/main/java/org/spigotmc/SpigotWorldConfig.java
++++ b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+@@ -367,4 +367,10 @@ public class SpigotWorldConfig
+         maxTntTicksPerTick = getInt( "max-tnt-per-tick", 100 );
+         log( "Max TNT Explosions: " + maxTntTicksPerTick );
+     }
++
++    public int hangingTickFrequency;
++    private void hangingTickFrequency()
++    {
++        hangingTickFrequency = getInt( "hanging-tick-frequency", 100 );
++    }
+ }
+-- 
+2.53.0
+
