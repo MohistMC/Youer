@@ -1,6 +1,7 @@
 package io.papermc.paper.adventure;
 
 import com.google.gson.JsonElement;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.JavaOps;
@@ -71,6 +72,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.command.VanillaCommandWrapper;
 import org.bukkit.craftbukkit.entity.CraftEntity;
+import org.bukkit.craftbukkit.util.CraftChatMessage;
 import org.intellij.lang.annotations.Subst;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -165,7 +167,7 @@ public final class PaperAdventure {
     // Component
 
     public static @NotNull Component asAdventure(@Nullable final net.minecraft.network.chat.Component component) {
-        return component == null ? Component.empty() : WRAPPER_AWARE_SERIALIZER.deserialize(component);
+        return component == null ? Component.empty() : ColorAPI.adventure(CraftChatMessage.fromComponent(component)); // Youer
     }
 
     public static ArrayList<Component> asAdventure(final List<? extends net.minecraft.network.chat.Component> vanillas) {

@@ -34,7 +34,7 @@
      }
  
      private static RegistryAccess.Frozen load(
-@@ -135,7 +_,8 @@
+@@ -135,9 +_,11 @@
              .map(p_321410_ -> p_321410_.create(Lifecycle.stable(), map))
              .collect(Collectors.toUnmodifiableList());
          RegistryOps.RegistryInfoLookup registryops$registryinfolookup = createContext(p_321583_, list);
@@ -43,7 +43,10 @@
 +        list.forEach(p_321416_ -> p_321713_.apply((RegistryDataLoader.Loader<?>)p_321416_, registryops$registryinfolookup, conversions));
          list.forEach(p_344258_ -> {
              Registry<?> registry = p_344258_.registry();
++            io.papermc.paper.registry.PaperRegistryListenerManager.INSTANCE.runFreezeListeners(p_344258_.registry.key(), conversions); // Paper - run pre-freeze listeners
  
+             try {
+                 registry.freeze();
 @@ -196,6 +_,7 @@
          LOGGER.error("Registry loading errors:\n{}", stringwriter);
      }
