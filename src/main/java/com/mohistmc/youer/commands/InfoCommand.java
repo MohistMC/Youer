@@ -5,6 +5,7 @@ import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import net.minecraft.network.chat.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -91,7 +92,7 @@ public class InfoCommand extends Command {
                     sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.pos") + ChatColor.YELLOW + block.getX() + ", " + block.getY() + ", " + block.getZ());
                     sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.world") + ChatColor.YELLOW + block.getWorld().getName());
                     sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.light") + ChatColor.YELLOW + block.getLightLevel());
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.biome") + ChatColor.YELLOW + block.getBiome().name());
+                    sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.biome") + ChatColor.YELLOW + block.getBiome().name() + "(%s)".formatted(Component.translatable(block.getBiome().translationKey()).getString()));
                     sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.hardness") + ChatColor.YELLOW + block.getType().getHardness());
                     sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.resistance") + ChatColor.YELLOW + block.getType().getBlastResistance());
                     sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.slipperiness") + ChatColor.YELLOW + block.getType().getSlipperiness());

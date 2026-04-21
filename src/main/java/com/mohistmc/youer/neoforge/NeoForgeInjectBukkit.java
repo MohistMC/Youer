@@ -27,10 +27,8 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.dimension.LevelStem;
 import org.bukkit.Art;
 import org.bukkit.Fluid;
@@ -193,7 +191,6 @@ public class NeoForgeInjectBukkit {
         }
         map.clear();
     }
-
 
     public static void addEnumEnvironment(Registry<LevelStem> registry) {
         int i = World.Environment.values().length;

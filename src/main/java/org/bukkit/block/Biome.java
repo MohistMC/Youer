@@ -1,6 +1,7 @@
 package org.bukkit.block;
 
 import java.util.Locale;
+import net.minecraft.Util;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.jetbrains.annotations.NotNull;
@@ -93,7 +94,10 @@ public enum Biome implements Keyed, net.kyori.adventure.translation.Translatable
     // Paper start
     @Override
     public @NotNull String translationKey() {
-        return "biome.minecraft." + this.key.getKey();
+        if (this.key.getNamespace().equals(NamespacedKey.MINECRAFT)) {
+            return "biome.minecraft." + this.key.getKey();
+        }
+        return Util.makeDescriptionId("biome", this.key);
     }
     // Paper end
 }

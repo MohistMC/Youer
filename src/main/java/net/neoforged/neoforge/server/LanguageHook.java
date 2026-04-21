@@ -49,6 +49,12 @@ public class LanguageHook {
     private static void loadLanguage(String langName, MinecraftServer server) {
         String langFile = String.format(Locale.ROOT, "lang/%s.json", "en_us");
         String langFile_youer = String.format(Locale.ROOT, "lang/%s.json", langName);
+
+        boolean isEnglish = "en_us".equals(langName);
+
+        Map<String, String> enUsTranslations = I18nManager.loadTranslations("en_us");
+        Map<String, String> targetTranslations = isEnglish ? enUsTranslations : I18nManager.loadTranslations(langName);
+
         // noinspection resource
         ResourceManager resourceManager = server.getServerResources().resourceManager();
         // We cannot use the resource manager itself, because it is specifically scoped to data packs
@@ -60,27 +66,26 @@ public class LanguageHook {
         int loaded = 0;
         for (String namespace : clientResources.getNamespaces()) {
             try {
-                modTable.putAll(I18nManager.loadTranslations(langName));
-                ResourceLocation langResource = ResourceLocation.fromNamespaceAndPath(namespace, langFile_youer);
-                for (Resource resource : clientResources.getResourceStack(langResource)) {
+                modTable.putAll(enUsTranslations);
+                ResourceLocation enUsLangResource = ResourceLocation.fromNamespaceAndPath(namespace, langFile);
+                for (Resource resource : clientResources.getResourceStack(enUsLangResource)) {
                     try (InputStream stream = resource.open()) {
                         Language.loadFromJson(stream, (key, value) -> modTable.put(key, value), (key, value) -> modComponentTable.put(key, value));
                     }
                 }
-                loaded++;
-            } catch (Exception exception) {
-                try {
-                    modTable.putAll(I18nManager.loadTranslations("en_us"));
-                    ResourceLocation langResource = ResourceLocation.fromNamespaceAndPath(namespace, langFile);
+
+                if (!isEnglish) {
+                    modTable.putAll(targetTranslations);
+                    ResourceLocation langResource = ResourceLocation.fromNamespaceAndPath(namespace, langFile_youer);
                     for (Resource resource : clientResources.getResourceStack(langResource)) {
                         try (InputStream stream = resource.open()) {
                             Language.loadFromJson(stream, (key, value) -> modTable.put(key, value), (key, value) -> modComponentTable.put(key, value));
                         }
                     }
-                    loaded++;
-                } catch (Exception exception1) {
-                    LOGGER.warn("Skipped language file: {}:{}", namespace, langFile, exception1);
                 }
+                loaded++;
+            } catch (Exception exception) {
+                LOGGER.warn("Failed to load language files for namespace {}: {}", namespace, exception.getMessage());
             }
         }
         LOGGER.debug("Loaded {} language files for {}", loaded, langName);
