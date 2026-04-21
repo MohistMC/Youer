@@ -64,7 +64,7 @@ public final class StandardPaperServerListPingEventImpl extends PaperServerListP
         return profiles;
     }
 
-    public static void processRequest(MinecraftServer server, Connection networkManager) {
+    public static void processRequest(MinecraftServer server, Connection networkManager, String statusCache) {
         StandardPaperServerListPingEventImpl event = new StandardPaperServerListPingEventImpl(server, networkManager, server.getStatus());
         server.server.getPluginManager().callEvent(event);
 
@@ -100,7 +100,7 @@ public final class StandardPaperServerListPingEventImpl extends PaperServerListP
         final ServerStatus ping = new ServerStatus(description, players, Optional.of(version), favicon, server.enforceSecureProfile());
 
         // Send response
-        networkManager.send(new ClientboundStatusResponsePacket(ping));
+        networkManager.send(new ClientboundStatusResponsePacket(ping, statusCache));
     }
 
 }

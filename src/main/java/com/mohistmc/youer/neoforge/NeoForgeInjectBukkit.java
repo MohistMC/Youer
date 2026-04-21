@@ -83,7 +83,7 @@ public class NeoForgeInjectBukkit {
         addFluid();
         addEnumEntity();
         addEnumArt();
-        addEnumParticle();
+        // addEnumParticle();
         addStatistic();
         loadSpawnCategory();
         addPose();
@@ -163,7 +163,7 @@ public class NeoForgeInjectBukkit {
         }
     }
 
-    public static void addEnumParticle() {
+    public static void addEnumParticle() { // TODO CMILIB
         var registry = BuiltInRegistries.PARTICLE_TYPE;
         for (ParticleType<?> particleType : registry) {
             ResourceLocation resourceLocation = registry.getKey(particleType);
