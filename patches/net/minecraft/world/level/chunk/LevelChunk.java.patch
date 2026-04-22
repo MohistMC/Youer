@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -3,6 +_,8 @@
+@@ -3,10 +_,13 @@
  import com.google.common.collect.ImmutableList;
  import com.google.common.collect.Maps;
  import com.mojang.logging.LogUtils;
@@ -9,6 +9,19 @@
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
  import java.util.Map;
+ import java.util.Map.Entry;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.Consumer;
+ import java.util.function.Supplier;
+ import javax.annotation.Nullable;
+@@ -26,6 +_,7 @@
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.BaseEntityBlock;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.EntityBlock;
 @@ -48,6 +_,7 @@
  import net.minecraft.world.level.material.Fluids;
  import net.minecraft.world.ticks.LevelChunkTicks;
@@ -117,12 +130,12 @@
          }
      }
  
-+    public boolean setBlockState$doPlace = true;
++    public AtomicBoolean setBlockState$doPlace = new AtomicBoolean(true);
 +
 +    // CraftBukkit start - ChunkMap#setBlockState() -> ChunkMap#setBlockState(BlockPos, IBlockData, boolean, boolean)
 +    @Nullable
 +    public BlockState setBlockStateCB(BlockPos p_62865_, BlockState p_62866_, boolean p_62867_, boolean doPlace) {
-+        setBlockState$doPlace = doPlace;
++        setBlockState$doPlace.set(doPlace);
 +        return setBlockState(p_62865_, p_62866_, p_62867_);
 +    }
 +
@@ -135,7 +148,7 @@
                  } else {
 -                    if (!this.level.isClientSide) {
 +                    // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer
-+                    if (!this.level.isClientSide && setBlockState$doPlace && (!this.level.captureBlockStates || block instanceof EntityBlock)) {
++                    if (!this.level.isClientSide && !this.level.captureBlockSnapshots && setBlockState$doPlace.getAndSet(true) && (!this.level.captureBlockStates || block instanceof BaseEntityBlock)) {
                          p_62866_.onPlace(this.level, p_62865_, blockstate, p_62867_);
                      }
  

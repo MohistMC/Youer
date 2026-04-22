@@ -454,16 +454,6 @@
          this.setYRot(p_19916_ % 360.0F);
          this.setXRot(p_19917_ % 360.0F);
      }
-@@ -389,8 +_,7 @@
-     }
- 
-     public void setPos(double p_20210_, double p_20211_, double p_20212_) {
--        this.setPosRaw(p_20210_, p_20211_, p_20212_);
--        this.setBoundingBox(this.makeBoundingBox());
-+        this.setPosRaw(p_20210_, p_20211_, p_20212_, true); // Paper - Block invalid positions and bounding box; force update
-     }
- 
-     protected AABB makeBoundingBox() {
 @@ -416,11 +_,30 @@
      }
  
@@ -1565,34 +1555,6 @@
          this.dimensions = entitydimensions1;
          this.eyeHeight = entitydimensions1.eyeHeight();
          this.reapplyPosition();
-@@ -2849,7 +_,26 @@
-     }
- 
-     public final void setBoundingBox(AABB p_20012_) {
--        this.bb = p_20012_;
-+        // CraftBukkit start - block invalid bounding boxes
-+        double minX = p_20012_.minX,
-+                minY = p_20012_.minY,
-+                minZ = p_20012_.minZ,
-+                maxX = p_20012_.maxX,
-+                maxY = p_20012_.maxY,
-+                maxZ = p_20012_.maxZ;
-+        double len = p_20012_.maxX - p_20012_.minX;
-+        if (len < 0) maxX = minX;
-+        if (len > 64) maxX = minX + 64.0;
-+
-+        len = p_20012_.maxY - p_20012_.minY;
-+        if (len < 0) maxY = minY;
-+        if (len > 64) maxY = minY + 64.0;
-+
-+        len = p_20012_.maxZ - p_20012_.minZ;
-+        if (len < 0) maxZ = minZ;
-+        if (len > 64) maxZ = minZ + 64.0;
-+        this.bb = new AABB(minX, minY, minZ, maxX, maxY, maxZ);
-+        // CraftBukkit end
-     }
- 
-     public final float getEyeHeight(Pose p_20237_) {
 @@ -2872,6 +_,20 @@
          return SlotAccess.NULL;
      }
@@ -1764,7 +1726,7 @@
          return this.fluidHeight.getDouble(p_204037_);
      }
  
-@@ -3307,7 +_,37 @@
+@@ -3307,7 +_,33 @@
          return this.getZ((2.0 * this.random.nextDouble() - 1.0) * p_20263_);
      }
  
@@ -1785,10 +1747,6 @@
 +    }
 +    public AtomicBoolean setPosRaw$forceBoundingBoxUpdate = new AtomicBoolean(false);
      public final void setPosRaw(double p_20344_, double p_20345_, double p_20346_) {
-+        if (!checkPosition(this, p_20344_, p_20345_, p_20346_)) {
-+            return;
-+        }
-+        // Paper end - Block invalid positions and bounding box
 +        // Paper start - Fix MC-4
 +        if (this instanceof ItemEntity) {
 +            if (io.papermc.paper.configuration.GlobalConfiguration.get().misc.fixEntityPositionDesync) {
@@ -1802,16 +1760,10 @@
          if (this.position.x != p_20344_ || this.position.y != p_20345_ || this.position.z != p_20346_) {
              this.position = new Vec3(p_20344_, p_20345_, p_20346_);
              int i = Mth.floor(p_20344_);
-@@ -3323,6 +_,18 @@
+@@ -3323,6 +_,12 @@
  
              this.levelCallback.onMove();
          }
-+        // Paper start - Block invalid positions and bounding box; don't allow desync of pos and AABB
-+        // hanging has its own special logic
-+        if (!(this instanceof net.minecraft.world.entity.decoration.HangingEntity) && (setPosRaw$forceBoundingBoxUpdate.getAndSet(false) || this.position.x != p_20344_ || this.position.y != p_20345_ || this.position.z != p_20346_)) {
-+            this.setBoundingBox(this.makeBoundingBox());
-+        }
-+        // Paper end - Block invalid positions and bounding box
 +        if (this.isAddedToLevel() && !this.level.isClientSide && !this.isRemoved()) this.level.getChunk((int) Math.floor(p_20344_) >> 4, (int) Math.floor(p_20346_) >> 4); // Forge - ensure target chunk is loaded.
 +    }
 +
@@ -1830,8 +1782,8 @@
      public final void setRemoved(Entity.RemovalReason p_146876_) {
 +        if (!AsyncCatcher.catchAsync()) {
 +            CraftEventFactory.callEntityRemoveEvent(this, removeReason);
-+            this.removeReason = null;
 +        }
++        this.removeReason = null;
 +        final boolean alreadyRemoved = this.removalReason != null; // Paper - Folia schedulers
          if (this.removalReason == null) {
              this.removalReason = p_146876_;

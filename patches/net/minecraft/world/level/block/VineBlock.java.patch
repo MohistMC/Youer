@@ -25,7 +25,7 @@
                  Direction direction = Direction.getRandom(p_222658_);
                  BlockPos blockpos = p_222657_.above();
                  if (direction.getAxis().isHorizontal() && !p_222655_.getValue(getPropertyForFace(direction))) {
-@@ -197,30 +_,33 @@
+@@ -197,30 +_,47 @@
                              boolean flag1 = p_222655_.getValue(getPropertyForFace(direction4));
                              BlockPos blockpos2 = blockpos4.relative(direction3);
                              BlockPos blockpos3 = blockpos4.relative(direction4);
@@ -34,56 +34,65 @@
 +                            BlockPos source = p_222657_;
 +
                              if (flag && isAcceptableNeighbour(p_222656_, blockpos2, direction3)) {
--                                p_222656_.setBlock(blockpos4, this.defaultBlockState().setValue(getPropertyForFace(direction3), Boolean.valueOf(true)), 2);
-+                                CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos4, this.defaultBlockState().setValue(getPropertyForFace(direction3), Boolean.valueOf(true)), 2);
++                                p_222656_.fake$setBlock = true;
+                                 p_222656_.setBlock(blockpos4, this.defaultBlockState().setValue(getPropertyForFace(direction3), Boolean.valueOf(true)), 2);
++                                CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos4, p_222656_.fake$setBlockBlockState, 2);
                              } else if (flag1 && isAcceptableNeighbour(p_222656_, blockpos3, direction4)) {
--                                p_222656_.setBlock(blockpos4, this.defaultBlockState().setValue(getPropertyForFace(direction4), Boolean.valueOf(true)), 2);
-+                                CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos4, this.defaultBlockState().setValue(getPropertyForFace(direction4), Boolean.valueOf(true)), 2);
++                                p_222656_.fake$setBlock = true;
+                                 p_222656_.setBlock(blockpos4, this.defaultBlockState().setValue(getPropertyForFace(direction4), Boolean.valueOf(true)), 2);
++                                CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos4, p_222656_.fake$setBlockBlockState, 2);
                              } else {
                                  Direction direction1 = direction.getOpposite();
                                  if (flag && p_222656_.isEmptyBlock(blockpos2) && isAcceptableNeighbour(p_222656_, p_222657_.relative(direction3), direction1)) {
--                                    p_222656_.setBlock(blockpos2, this.defaultBlockState().setValue(getPropertyForFace(direction1), Boolean.valueOf(true)), 2);
++                                    p_222656_.fake$setBlock = true;
+                                     p_222656_.setBlock(blockpos2, this.defaultBlockState().setValue(getPropertyForFace(direction1), Boolean.valueOf(true)), 2);
 -                                } else if (flag1
 -                                    && p_222656_.isEmptyBlock(blockpos3)
 -                                    && isAcceptableNeighbour(p_222656_, p_222657_.relative(direction4), direction1)) {
--                                    p_222656_.setBlock(blockpos3, this.defaultBlockState().setValue(getPropertyForFace(direction1), Boolean.valueOf(true)), 2);
-+                                    CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos2, this.defaultBlockState().setValue(getPropertyForFace(direction1), Boolean.valueOf(true)), 2);
++                                    CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos2, p_222656_.fake$setBlockBlockState, 2);
 +                                } else if (flag1 && p_222656_.isEmptyBlock(blockpos3) && isAcceptableNeighbour(p_222656_, p_222657_.relative(direction4), direction1)) {
-+                                    CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos3, this.defaultBlockState().setValue(getPropertyForFace(direction1), Boolean.valueOf(true)), 2);
++                                    p_222656_.fake$setBlock = true;
+                                     p_222656_.setBlock(blockpos3, this.defaultBlockState().setValue(getPropertyForFace(direction1), Boolean.valueOf(true)), 2);
++                                    CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos3, p_222656_.fake$setBlockBlockState, 2);
                                  } else if ((double)p_222658_.nextFloat() < 0.05 && isAcceptableNeighbour(p_222656_, blockpos4.above(), Direction.UP)) {
--                                    p_222656_.setBlock(blockpos4, this.defaultBlockState().setValue(UP, Boolean.valueOf(true)), 2);
-+                                    CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos4, this.defaultBlockState().setValue(UP, Boolean.valueOf(true)), 2);
++                                    p_222656_.fake$setBlock = true;
+                                     p_222656_.setBlock(blockpos4, this.defaultBlockState().setValue(UP, Boolean.valueOf(true)), 2);
++                                    CraftEventFactory.handleBlockSpreadEvent(p_222656_, source, blockpos4, p_222656_.fake$setBlockBlockState, 2);
                                  }
 +                                // CraftBukkit end
                              }
                          } else if (isAcceptableNeighbour(p_222656_, blockpos4, direction)) {
--                            p_222656_.setBlock(p_222657_, p_222655_.setValue(getPropertyForFace(direction), Boolean.valueOf(true)), 2);
-+                            CraftEventFactory.handleBlockGrowEvent(p_222656_, p_222657_, p_222655_.setValue(getPropertyForFace(direction), Boolean.valueOf(true)), 2); // CraftBukkit
++                            p_222656_.fake$setBlock = true;
+                             p_222656_.setBlock(p_222657_, p_222655_.setValue(getPropertyForFace(direction), Boolean.valueOf(true)), 2);
++                            CraftEventFactory.handleBlockGrowEvent(p_222656_, p_222657_, p_222656_.fake$setBlockBlockState, 2); // CraftBukkit
                          }
                      }
                  } else {
                      if (direction == Direction.UP && p_222657_.getY() < p_222656_.getMaxBuildHeight() - 1) {
                          if (this.canSupportAtFace(p_222656_, p_222657_, direction)) {
--                            p_222656_.setBlock(p_222657_, p_222655_.setValue(UP, Boolean.valueOf(true)), 2);
-+                            CraftEventFactory.handleBlockGrowEvent(p_222656_, p_222657_, p_222655_.setValue(UP, Boolean.valueOf(true)), 2); // CraftBukkit
++                            p_222656_.fake$setBlock = true;
+                             p_222656_.setBlock(p_222657_, p_222655_.setValue(UP, Boolean.valueOf(true)), 2);
++                            CraftEventFactory.handleBlockGrowEvent(p_222656_, p_222657_, p_222656_.fake$setBlockBlockState, 2); // CraftBukkit
                              return;
                          }
  
-@@ -238,7 +_,7 @@
+@@ -238,7 +_,9 @@
                              }
  
                              if (this.hasHorizontalConnection(blockstate3)) {
--                                p_222656_.setBlock(blockpos, blockstate3, 2);
-+                                CraftEventFactory.handleBlockSpreadEvent(p_222656_, p_222657_, blockpos, blockstate3, 2); // CraftBukkit
++                                p_222656_.fake$setBlock = true;
+                                 p_222656_.setBlock(blockpos, blockstate3, 2);
++                                CraftEventFactory.handleBlockSpreadEvent(p_222656_, p_222657_, blockpos, p_222656_.fake$setBlockBlockState, 2); // CraftBukkit
                              }
  
                              return;
-@@ -252,7 +_,7 @@
+@@ -252,7 +_,9 @@
                              BlockState blockstate1 = blockstate.isAir() ? this.defaultBlockState() : blockstate;
                              BlockState blockstate2 = this.copyRandomFaces(p_222655_, blockstate1, p_222658_);
                              if (blockstate1 != blockstate2 && this.hasHorizontalConnection(blockstate2)) {
--                                p_222656_.setBlock(blockpos1, blockstate2, 2);
-+                                CraftEventFactory.handleBlockSpreadEvent(p_222656_, p_222657_, blockpos1, blockstate2, 2); // CraftBukkit
++                                p_222656_.fake$setBlock = true;
+                                 p_222656_.setBlock(blockpos1, blockstate2, 2);
++                                CraftEventFactory.handleBlockSpreadEvent(p_222656_, p_222657_, blockpos1, p_222656_.fake$setBlockBlockState, 2); // CraftBukkit
                              }
                          }
                      }
