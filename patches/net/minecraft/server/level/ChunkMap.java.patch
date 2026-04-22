@@ -327,19 +327,9 @@
              this.entity = p_140478_;
              this.range = p_140479_;
              this.lastSectionPos = SectionPos.of(p_140478_);
-@@ -1273,17 +_,40 @@
- 
-         public void updatePlayer(ServerPlayer p_140498_) {
-             if (p_140498_ != this.entity) {
-+                // Paper start - remove allocation of Vec3D here
-                 Vec3 vec3 = p_140498_.position().subtract(this.entity.position());
-+                double vec3d_dx = p_140498_.getX() - this.entity.getX();
-+                double vec3d_dz = p_140498_.getZ() - this.entity.getZ();
-+                // Paper end - remove allocation of Vec3D here
-                 int i = ChunkMap.this.getPlayerViewDistance(p_140498_);
+@@ -1278,12 +_,31 @@
                  double d0 = (double)Math.min(this.getEffectiveRange(), i * 16);
--                double d1 = vec3.x * vec3.x + vec3.z * vec3.z;
-+                double d1 = vec3d_dx * vec3d_dx + vec3d_dz * vec3d_dz; // Paper
+                 double d1 = vec3.x * vec3.x + vec3.z * vec3.z;
                  double d2 = d0 * d0;
 -                boolean flag = d1 <= d2
 -                    && this.entity.broadcastToPlayer(p_140498_)
