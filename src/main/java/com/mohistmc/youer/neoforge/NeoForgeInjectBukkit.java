@@ -47,6 +47,10 @@ import org.bukkit.potion.PotionType;
 public class NeoForgeInjectBukkit {
 
     public static final boolean DEBUG = Boolean.getBoolean("youer.debug");
+    // Many Bukkit plugins compile enum switches (e.g. switch(Material)). If we dynamically extend
+    // Bukkit enums with mod entries, those switch tables can crash with ArrayIndexOutOfBoundsException.
+    // Keep this disabled by default for plugin compatibility; can be enabled explicitly if needed.
+    private static final boolean INJECT_MOD_BUKKIT_ENUMS = Boolean.getBoolean("youer.inject_mod_bukkit_enums");
     public static BiMap<ResourceKey<LevelStem>, World.Environment> environment =
             HashBiMap.create(ImmutableMap.<ResourceKey<LevelStem>, World.Environment>builder()
                     .put(LevelStem.OVERWORLD, World.Environment.NORMAL)
@@ -68,10 +72,12 @@ public class NeoForgeInjectBukkit {
 
 
     public static void init() {
-        addEnumMaterialInItems();
+        if (INJECT_MOD_BUKKIT_ENUMS) {
+            addEnumMaterialInItems();
+            addEnumMaterialsInBlocks();
+            addEnumEntity();
+        }
         addEnumEffectAndPotion();
-        addEnumMaterialsInBlocks();
-        addEnumEntity();
         addEnumArt();
         //addEnumParticle();
         addStatistic();
@@ -212,10 +218,9 @@ public class NeoForgeInjectBukkit {
             boolean isMod = isMods(resourceLocation);
             String entityName = getMaterialName(resourceLocation, isMod);
             if (isMod) {
-                int typeId = entityName.hashCode();
                 EntityType bukkitType = MohistDynamEnum.addEnum(EntityType.class, entityName,
                         List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
-                        List.of(entityName.toLowerCase(), Entity.class, typeId, false));
+                        List.of(entityName.toLowerCase(), Entity.class, -1, false));
 
                 if (bukkitType != null) {
                     bukkitType.hookForgeEntity(resourceLocation, entity);
@@ -223,10 +228,9 @@ public class NeoForgeInjectBukkit {
                 debug("Registered forge EntityType as {}", bukkitType);
             } else {
                 if (!entityTypeNames.contains(entityName)) {
-                    int typeId = entityName.hashCode();
                     EntityType bukkitType = MohistDynamEnum.addEnum(EntityType.class, entityName,
                             List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
-                            List.of(entityName.toLowerCase(), Entity.class, typeId, false));
+                            List.of(entityName.toLowerCase(), Entity.class, -1, false));
 
                     if (bukkitType != null) {
                         bukkitType.hookForgeEntity(resourceLocation, entity);

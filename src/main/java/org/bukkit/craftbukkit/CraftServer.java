@@ -9,6 +9,9 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
 import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.papercompat.YouerAsyncScheduler;
+import com.mohistmc.youer.papercompat.YouerGlobalRegionScheduler;
+import com.mohistmc.youer.papercompat.YouerRegionScheduler;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.mohistmc.youer.util.Level2LevelStem;
 import com.mohistmc.youer.util.YouerVersion;
@@ -18,6 +21,9 @@ import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
+import io.papermc.paper.threadedregions.scheduler.AsyncScheduler;
+import io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler;
+import io.papermc.paper.threadedregions.scheduler.RegionScheduler;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -257,6 +263,7 @@ import org.bukkit.packs.DataPackManager;
 import org.bukkit.packs.ResourcePack;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.permissions.Permission;
+import org.jetbrains.annotations.NotNull;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginLoadOrder;
 import org.bukkit.plugin.PluginManager;
@@ -286,6 +293,9 @@ public final class CraftServer implements Server {
     private final Logger logger = Logger.getLogger("Minecraft");
     private final ServicesManager servicesManager = new SimpleServicesManager();
     private final CraftScheduler scheduler = new CraftScheduler();
+    private volatile YouerRegionScheduler paperRegionScheduler;
+    private volatile YouerGlobalRegionScheduler paperGlobalRegionScheduler;
+    private volatile YouerAsyncScheduler paperAsyncScheduler;
     private final CraftCommandMap commandMap = new CraftCommandMap(this);
     private final SimpleHelpMap helpMap = new SimpleHelpMap(this);
     private final StandardMessenger messenger = new StandardMessenger();
@@ -935,6 +945,48 @@ public final class CraftServer implements Server {
     @Override
     public CraftScheduler getScheduler() {
         return scheduler;
+    }
+
+    @Override
+    public @NotNull RegionScheduler getRegionScheduler() {
+        YouerRegionScheduler s = this.paperRegionScheduler;
+        if (s == null) {
+            synchronized (this) {
+                s = this.paperRegionScheduler;
+                if (s == null) {
+                    s = this.paperRegionScheduler = new YouerRegionScheduler(this);
+                }
+            }
+        }
+        return s;
+    }
+
+    @Override
+    public @NotNull GlobalRegionScheduler getGlobalRegionScheduler() {
+        YouerGlobalRegionScheduler s = this.paperGlobalRegionScheduler;
+        if (s == null) {
+            synchronized (this) {
+                s = this.paperGlobalRegionScheduler;
+                if (s == null) {
+                    s = this.paperGlobalRegionScheduler = new YouerGlobalRegionScheduler(this);
+                }
+            }
+        }
+        return s;
+    }
+
+    @Override
+    public @NotNull AsyncScheduler getAsyncScheduler() {
+        YouerAsyncScheduler s = this.paperAsyncScheduler;
+        if (s == null) {
+            synchronized (this) {
+                s = this.paperAsyncScheduler;
+                if (s == null) {
+                    s = this.paperAsyncScheduler = new YouerAsyncScheduler(this);
+                }
+            }
+        }
+        return s;
     }
 
     @Override

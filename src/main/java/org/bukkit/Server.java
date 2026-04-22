@@ -54,6 +54,9 @@ import org.bukkit.plugin.ServicesManager;
 import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.plugin.messaging.PluginMessageRecipient;
 import org.bukkit.profile.PlayerProfile;
+import io.papermc.paper.threadedregions.scheduler.AsyncScheduler;
+import io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler;
+import io.papermc.paper.threadedregions.scheduler.RegionScheduler;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.ScoreboardManager;
@@ -612,6 +615,16 @@ public interface Server extends PluginMessageRecipient {
      */
     @NotNull
     public BukkitScheduler getScheduler();
+
+    // Paper Folia scheduler API (non-Folia: implemented as main-thread / async BukkitScheduler mapping)
+    @NotNull
+    RegionScheduler getRegionScheduler();
+
+    @NotNull
+    AsyncScheduler getAsyncScheduler();
+
+    @NotNull
+    GlobalRegionScheduler getGlobalRegionScheduler();
 
     /**
      * Gets a services manager.

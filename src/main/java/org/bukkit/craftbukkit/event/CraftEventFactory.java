@@ -1718,7 +1718,11 @@ public class CraftEventFactory {
         Preconditions.checkState(bukkitOldEffect != null || bukkitNewEffect != null, "Old and new potion effect are both null");
 
         EntityPotionEffectEvent event = new EntityPotionEffectEvent((org.bukkit.entity.LivingEntity) entity.getBukkitEntity(), bukkitOldEffect, bukkitNewEffect, cause, action, willOverride);
-        Bukkit.getPluginManager().callEvent(event);
+        // Some mods apply effects from chunk-generation worker threads. Firing a synchronous Bukkit
+        // event there would throw and crash generation; in that case, skip the callback and proceed.
+        if (Bukkit.isPrimaryThread()) {
+            Bukkit.getPluginManager().callEvent(event);
+        }
 
         return event;
     }

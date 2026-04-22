@@ -44,6 +44,7 @@ import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.api.tasks.bundling.Zip;
+import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.language.jvm.tasks.ProcessResources;
 
 public class NeoDevPlugin implements Plugin<Project> {
@@ -164,9 +165,14 @@ public class NeoDevPlugin implements Plugin<Project> {
             task.from(project.zipTree(splitPatchedSources.flatMap(SplitMergedSources::getClientJar)));
             task.into(project.file("src/client/java"));
         });
-        tasks.register("setup", task -> {
+        var setup = tasks.register("setup", task -> {
             task.dependsOn(setupCommon, setupClient);
         });
+
+        // Decompiled Minecraft sources live under src/ after setup* Sync tasks. With parallel execution,
+        // compileJava could otherwise start before those directories are populated and fail on missing
+        // net.minecraft.* packages.
+        tasks.withType(JavaCompile.class).configureEach(task -> task.dependsOn(setup));
 
         /*
          * RUNS SETUP

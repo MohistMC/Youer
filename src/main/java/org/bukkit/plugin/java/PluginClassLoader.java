@@ -141,7 +141,8 @@ final class PluginClassLoader extends URLClassLoader {
 
                     if (provider != description
                             && !seenIllegalAccess.contains(provider.getName())
-                            && !((SimplePluginManager) loader.server.getPluginManager()).isTransitiveDepend(description, provider)) {
+                            && !((SimplePluginManager) loader.server.getPluginManager()).isTransitiveDepend(description, provider)
+                            && !isKnownOptionalPluginBridge(description.getName(), provider.getName(), name)) {
 
                         seenIllegalAccess.add(provider.getName());
                         if (plugin != null) {
@@ -242,5 +243,19 @@ final class PluginClassLoader extends URLClassLoader {
         this.pluginInit = javaPlugin;
 
         javaPlugin.init(loader, loader.server, description, dataFolder, file, this);
+    }
+
+    /**
+     * Vault discovers economy backends via reflection and may load Essentials' API classes without a declared
+     * {@code softdepend}; this is normal and safe for the economy bridge.
+     */
+    private static boolean isKnownOptionalPluginBridge(String consumerPlugin, String providerPlugin, String className) {
+        if (!"Vault".equals(consumerPlugin)) {
+            return false;
+        }
+        if (!className.startsWith("com.earth2me.essentials.api.")) {
+            return false;
+        }
+        return "Essentials".equals(providerPlugin);
     }
 }

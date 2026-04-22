@@ -116,13 +116,13 @@ public class ConfigByWorlds {
         if (section != null) {
             for (String w : section.getKeys(false)) {
                 boolean canload = true;
-                if (Objects.equals(w, "DIM1")) {
+                if (Objects.equals(w, "DIM-1")) {
                     if (!Bukkit.getAllowNether()) {
                         config.set("worlds." + w, null);
                         init();
                         canload = false;
                     }
-                } else if (Objects.equals(w, "DIM-1")) {
+                } else if (Objects.equals(w, "DIM1")) {
                     if (!Bukkit.getAllowEnd()) {
                         config.set("worlds." + w, null);
                         init();

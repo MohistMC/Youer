@@ -22,7 +22,8 @@ import net.neoforged.neoforge.registries.NeoForgeRegistries;
  * Implementation that defines what a global loot modifier must implement in order to be functional.
  * {@link LootModifier} Supplies base functionality; most modders should only need to extend that.<br/>
  * Requires a {@link Codec} to be registered: {@link NeoForgeRegistries#GLOBAL_LOOT_MODIFIER_SERIALIZERS}, and returned in {@link #codec()}
- * Individual instances of modifiers must be registered via json, see neoforge:loot_modifiers/global_loot_modifiers
+ * Individual modifiers are one JSON file each under {@code data/<namespace>/loot_modifiers/<id>.json}, with a {@code type} field
+ * (see {@link LootModifierManager}).
  */
 public interface IGlobalLootModifier {
     Codec<IGlobalLootModifier> DIRECT_CODEC = NeoForgeRegistries.GLOBAL_LOOT_MODIFIER_SERIALIZERS.byNameCodec()

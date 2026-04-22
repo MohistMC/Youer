@@ -56,8 +56,17 @@ public class CraftBlockType<B extends BlockData> extends CraftRegistryItem<Block
     }
 
     private static boolean hasMethod(Class<?> clazz, Class<?>... params) {
+        final Method[] declaredMethods;
+        try {
+            declaredMethods = clazz.getDeclaredMethods();
+        } catch (NoClassDefFoundError | ExceptionInInitializerError ex) {
+            // Some transformed classes may reference client-only parameter types.
+            // Treat as non-interactable instead of crashing plugin enable/registry init.
+            return false;
+        }
+
         boolean hasMethod = false;
-        for (Method method : clazz.getDeclaredMethods()) {
+        for (Method method : declaredMethods) {
             if (Arrays.equals(method.getParameterTypes(), params)) {
                 Preconditions.checkArgument(!hasMethod, "More than one matching method for %s, args %s", clazz, Arrays.toString(params));
 
