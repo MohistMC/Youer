@@ -167,7 +167,7 @@ public final class PaperAdventure {
     // Component
 
     public static @NotNull Component asAdventure(@Nullable final net.minecraft.network.chat.Component component) {
-        return component == null ? Component.empty() : ColorAPI.adventure(CraftChatMessage.fromComponent(component)); // Youer
+        return component == null ? Component.empty() : WRAPPER_AWARE_SERIALIZER.deserialize(component);
     }
 
     public static ArrayList<Component> asAdventure(final List<? extends net.minecraft.network.chat.Component> vanillas) {
