@@ -1,5 +1,6 @@
 package org.spigotmc;
 
+import com.mohistmc.youer.api.ServerAPI;
 import java.io.File;
 import java.util.List;
 import net.minecraft.server.MinecraftServer;
@@ -122,7 +123,11 @@ public class RestartCommand extends Command
                 {
                 }
             }
-            System.exit( 0 );
+            if (ServerAPI.yes_steve_model()) {
+                System.exit(0);
+            } else {
+                Runtime.getRuntime().halt(0);
+            }
         } catch ( Exception ex )
         {
             ex.printStackTrace();
