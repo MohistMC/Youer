@@ -1,6 +1,8 @@
 package org.bukkit.craftbukkit.block;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.api.ServerAPI;
+import com.mohistmc.youer.neoforge.compat.SableCompat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -103,7 +105,11 @@ public class CraftBlock implements Block {
 
     @Override
     public Location getLocation() {
-        return CraftLocation.toBukkit(this.position, this.getWorld());
+        var location = CraftLocation.toBukkit(this.position, this.getWorld());
+        if (ServerAPI.hasMod("sable")) {
+            location = SableCompat.at(this.getWorld(), location);
+        }
+        return location;
     }
 
     @Override

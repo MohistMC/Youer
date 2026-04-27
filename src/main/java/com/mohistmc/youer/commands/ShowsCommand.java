@@ -1,10 +1,12 @@
 package com.mohistmc.youer.commands;
 
 import com.mohistmc.youer.api.ItemAPI;
+import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
+import com.mohistmc.youer.neoforge.compat.SableCompat;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,8 +25,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.block.CraftBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
@@ -126,8 +130,9 @@ public class ShowsCommand extends Command {
                 StreamSupport.stream(WorldAPI.getServerLevel(player.getWorld()).getAllEntities().spliterator(), false)
                         .forEach(entity -> {
                             net.minecraft.world.entity.EntityType<?> type = entity.getType();
-                            long chunkX = entity.blockPosition().getX() >> 4;
-                            long chunkZ = entity.blockPosition().getZ() >> 4;
+                            var v = entity.getBukkitEntity().getLocation();
+                            long chunkX = (long) v.x() >> 4;
+                            long chunkZ = (long) v.z() >> 4;
                             String chunkKey = chunkX + "," + chunkZ;
 
                             entityChunkCount.computeIfAbsent(type, k -> new HashMap<>())
@@ -207,14 +212,13 @@ public class ShowsCommand extends Command {
                 for (TickingBlockEntity blockEntityTicker : serverLevel.blockEntityTickers) {
                     BlockPos pos = blockEntityTicker.getPos();
                     if (pos == null) continue;
-                    BlockState block = serverLevel.getBlockState(pos);
-                    net.minecraft.world.item.ItemStack itemStack = block.getBlock().asItem().getDefaultInstance();
-                    Material material = itemStack.getBukkitStack().getType();
+                    Block block = CraftBlock.at(serverLevel, pos);
+                    Material material = block.getType();
                     if (material.isAir() || material.asItemType() == null) continue;
                     collect.merge(material, 1, Integer::sum);
-
-                    long chunkX = pos.getX() >> 4;
-                    long chunkZ = pos.getZ() >> 4;
+                    var v = block.getLocation();
+                    long chunkX = (long) v.x() >> 4;
+                    long chunkZ = (long) v.z() >> 4;
                     String chunkKey = chunkX + "," + chunkZ;
                     blockEntityChunkCount.computeIfAbsent(material, k -> new HashMap<>())
                             .merge(chunkKey, 1, Integer::sum);

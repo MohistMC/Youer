@@ -8,9 +8,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
 import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.bukkit.entity.CraftFakePlayer;
 import com.mohistmc.youer.bukkit.entity.YouerModsFireballEntity;
 import com.mohistmc.youer.neoforge.EntityClassLookup;
+import com.mohistmc.youer.neoforge.compat.SableCompat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -54,6 +56,7 @@ import org.bukkit.craftbukkit.util.CraftSpawnCategory;
 import org.bukkit.craftbukkit.util.CraftVector;
 import org.bukkit.entity.EntitySnapshot;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Pose;
 import org.bukkit.entity.SpawnCategory;
@@ -154,7 +157,11 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public Location getLocation() {
-        return CraftLocation.toBukkit(this.entity.position(), this.getWorld(), this.entity.getBukkitYaw(), this.entity.getXRot());
+        var location = CraftLocation.toBukkit(this.entity.position(), this.getWorld(), this.entity.getBukkitYaw(), this.entity.getXRot());
+        if (ServerAPI.hasMod("sable")) {
+            location = SableCompat.at(this.getWorld(), location);
+        }
+        return location;
     }
 
     @Override
