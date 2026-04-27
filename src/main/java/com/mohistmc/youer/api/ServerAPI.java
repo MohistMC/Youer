@@ -60,6 +60,10 @@ public class ServerAPI {
         return modlists_All.contains(modid);
     }
 
+    public static boolean hasSable() {
+        return hasMod("sable");
+    }
+
     public static Boolean hasPlugin(String pluginname) {
         return Bukkit.getPluginManager().getPlugin(pluginname) != null;
     }

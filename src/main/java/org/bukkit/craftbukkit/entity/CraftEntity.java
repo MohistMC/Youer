@@ -7,7 +7,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
-import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.bukkit.entity.CraftFakePlayer;
 import com.mohistmc.youer.bukkit.entity.YouerModsFireballEntity;
@@ -158,8 +157,8 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
     @Override
     public Location getLocation() {
         var location = CraftLocation.toBukkit(this.entity.position(), this.getWorld(), this.entity.getBukkitYaw(), this.entity.getXRot());
-        if (ServerAPI.hasMod("sable")) {
-            location = SableCompat.at(this.getWorld(), location);
+        if (ServerAPI.hasSable()) {
+            location = SableCompat.at(location);
         }
         return location;
     }

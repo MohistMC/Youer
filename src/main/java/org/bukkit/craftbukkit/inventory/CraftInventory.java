@@ -1,6 +1,8 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.api.ServerAPI;
+import com.mohistmc.youer.neoforge.compat.SableCompat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -585,6 +587,10 @@ public class CraftInventory implements Inventory {
 
     @Override
     public Location getLocation() {
-        return this.inventory.getLocation();
+        var loc = this.inventory.getLocation();
+        if (ServerAPI.hasSable()) {
+            loc = SableCompat.at(loc);
+        }
+        return loc;
     }
 }

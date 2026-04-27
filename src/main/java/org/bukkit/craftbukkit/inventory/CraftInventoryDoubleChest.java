@@ -1,6 +1,8 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.api.ServerAPI;
+import com.mohistmc.youer.neoforge.compat.SableCompat;
 import net.minecraft.world.CompoundContainer;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.level.block.ChestBlock;
@@ -72,6 +74,10 @@ public class CraftInventoryDoubleChest extends CraftInventory implements DoubleC
 
     @Override
     public Location getLocation() {
-        return this.getLeftSide().getLocation().add(this.getRightSide().getLocation()).multiply(0.5);
+        var loc = this.getLeftSide().getLocation().add(this.getRightSide().getLocation()).multiply(0.5);
+        if (ServerAPI.hasSable()) {
+            loc = SableCompat.at(loc);
+        }
+        return loc;
     }
 }

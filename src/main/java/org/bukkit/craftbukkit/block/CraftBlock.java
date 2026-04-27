@@ -106,8 +106,8 @@ public class CraftBlock implements Block {
     @Override
     public Location getLocation() {
         var location = CraftLocation.toBukkit(this.position, this.getWorld());
-        if (ServerAPI.hasMod("sable")) {
-            location = SableCompat.at(this.getWorld(), location);
+        if (ServerAPI.hasSable()) {
+            location = SableCompat.at(location);
         }
         return location;
     }
@@ -288,7 +288,7 @@ public class CraftBlock implements Block {
 
     @Override
     public String toString() {
-        return "CraftBlock{pos=" + this.position + ",type=" + this.getType() + ",data=" + this.getNMS() + ",fluid=" + this.world.getFluidState(this.position) + '}';
+        return "CraftBlock{pos=" + this.getLocation() + ",type=" + this.getType() + ",data=" + this.getNMS() + ",fluid=" + this.world.getFluidState(this.position) + '}';
     }
 
     public static BlockFace notchToBlockFace(Direction notch) {

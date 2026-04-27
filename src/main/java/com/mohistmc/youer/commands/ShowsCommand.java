@@ -1,12 +1,10 @@
 package com.mohistmc.youer.commands;
 
 import com.mohistmc.youer.api.ItemAPI;
-import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
-import com.mohistmc.youer.neoforge.compat.SableCompat;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,7 +18,6 @@ import java.util.stream.StreamSupport;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.entity.TickingBlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;

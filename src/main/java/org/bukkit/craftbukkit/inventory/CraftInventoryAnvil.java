@@ -1,6 +1,8 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.api.ServerAPI;
+import com.mohistmc.youer.neoforge.compat.SableCompat;
 import java.util.function.Consumer;
 import net.minecraft.world.Container;
 import org.bukkit.Location;
@@ -39,7 +41,11 @@ public class CraftInventoryAnvil extends CraftResultInventory implements AnvilIn
 
     @Override
     public Location getLocation() {
-        return this.location;
+        var loc = this.location;
+        if (ServerAPI.hasSable()) {
+            loc = SableCompat.at(loc);
+        }
+        return loc;
     }
 
     @Override
