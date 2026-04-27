@@ -15,6 +15,14 @@
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import it.unimi.dsi.fastutil.objects.ObjectArraySet;
  import java.io.File;
+@@ -38,6 +_,7 @@
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.Executor;
+ import java.util.concurrent.RejectedExecutionException;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.concurrent.atomic.AtomicReference;
+ import java.util.concurrent.locks.LockSupport;
+ import java.util.function.BooleanSupplier;
 @@ -45,6 +_,7 @@
  import java.util.function.Function;
  import java.util.function.Supplier;
@@ -256,12 +264,21 @@
      }
  
      protected abstract boolean initServer() throws IOException;
-@@ -400,15 +_,12 @@
+@@ -400,15 +_,21 @@
          };
      }
  
 -    protected void loadLevel() {
++    protected AtomicBoolean fake$loadLevel =new AtomicBoolean(false);
++
++    // Fix lithostitched mod mixin -> dev.worldgen.lithostitched.mixin.server.DedicatedServerMixin
++    protected void youer$loadLevel() {
++        fake$loadLevel.set(true);
++        loadLevel();
++    }
++
 +    protected void loadLevel() { // CraftBukkit
++        if (fake$loadLevel.getAndSet(false)) return;
          boolean startedWorldLoadProfiling = !JvmProfiler.INSTANCE.isRunning()
              && SharedConstants.DEBUG_JFR_PROFILING_ENABLE_LEVEL_LOADING
              && JvmProfiler.INSTANCE.start(Environment.from(this));
