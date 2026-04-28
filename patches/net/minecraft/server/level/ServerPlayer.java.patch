@@ -1243,33 +1243,49 @@
      public void moveTo(double p_9171_, double p_9172_, double p_9173_) {
          super.moveTo(p_9171_, p_9172_, p_9173_);
          this.connection.resetPosition();
-@@ -1468,9 +_,19 @@
-     }
+@@ -1469,7 +_,10 @@
  
      public boolean setGameMode(GameType p_143404_) {
-+        // Paper start - Expand PlayerGameModeChangeEvent
-+        org.bukkit.event.player.PlayerGameModeChangeEvent event = this.setGameMode(p_143404_, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.UNKNOWN, null);
-+        return event == null ? false : event.isCancelled();
-+    }
-+    @Nullable
-+    public org.bukkit.event.player.PlayerGameModeChangeEvent setGameMode(GameType p_143404_, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause cause, @Nullable net.kyori.adventure.text.Component message) {
          boolean flag = this.isSpectator();
 -        if (!this.gameMode.changeGameModeForPlayer(p_143404_)) {
--            return false;
++        p_143404_ = net.neoforged.neoforge.common.CommonHooks.onChangeGameType(this, this.gameMode.getGameModeForPlayer(), p_143404_);
++        if (p_143404_ == null) return false;
++        org.bukkit.event.player.PlayerGameModeChangeEvent event = this.gameMode.changeGameModeForPlayer(p_143404_, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.UNKNOWN, null);
++        if (event == null || event.isCancelled()) {
+             return false;
+         } else {
+             this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE, (float)p_143404_.getId()));
+@@ -1487,6 +_,34 @@
+             this.onUpdateAbilities();
+             this.updateEffectVisibility();
+             return true;
++        }
++    }
++
++    @Nullable
++    public org.bukkit.event.player.PlayerGameModeChangeEvent setGameMode(GameType p_143404_, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause cause, @Nullable net.kyori.adventure.text.Component message) {
++        boolean flag = this.isSpectator();
 +        p_143404_ = net.neoforged.neoforge.common.CommonHooks.onChangeGameType(this, this.gameMode.getGameModeForPlayer(), p_143404_);
 +        if (p_143404_ == null) return null;
 +        org.bukkit.event.player.PlayerGameModeChangeEvent event = this.gameMode.changeGameModeForPlayer(p_143404_, cause, message);
 +        if (event == null || event.isCancelled()) {
 +            return null;
 +            // Paper end - Expand PlayerGameModeChangeEvent
-         } else {
-             this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE, (float)p_143404_.getId()));
-             if (p_143404_ == GameType.SPECTATOR) {
-@@ -1486,7 +_,7 @@
- 
-             this.onUpdateAbilities();
-             this.updateEffectVisibility();
--            return true;
++        } else {
++            this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE, (float)p_143404_.getId()));
++            if (p_143404_ == GameType.SPECTATOR) {
++                this.removeEntitiesOnShoulder();
++                this.stopRiding();
++                EnchantmentHelper.stopLocationBasedEffects(this);
++            } else {
++                this.setCamera(this);
++                if (flag) {
++                    EnchantmentHelper.runLocationChangedEffects(this.serverLevel(), this);
++                }
++            }
++
++            this.onUpdateAbilities();
++            this.updateEffectVisibility();
 +            return event; // Paper - Expand PlayerGameModeChangeEvent
          }
      }
