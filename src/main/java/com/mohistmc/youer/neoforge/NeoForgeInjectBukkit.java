@@ -26,6 +26,7 @@ import net.minecraft.stats.Stats;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.inventory.RecipeBookType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.level.block.Block;
@@ -48,6 +49,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.SpawnCategory;
 import org.bukkit.entity.Villager;
+import org.bukkit.event.player.PlayerRecipeBookSettingsChangeEvent;
 import org.bukkit.potion.PotionType;
 
 public class NeoForgeInjectBukkit {
@@ -86,6 +88,7 @@ public class NeoForgeInjectBukkit {
         loadSpawnCategory();
         addPose();
         addModSound();
+        addModRecipeBookType();
         addEnumAttribute();
         reloadBukkitRegistries();
     }
@@ -365,6 +368,20 @@ public class NeoForgeInjectBukkit {
                 Sound sound = MohistDynamEnum.addEnum(Sound.class, name, List.of(String.class), List.of(resourceLocation.toString()));
                 MODD_SOUNDS.put(statType, sound);
                 debug("Registered mods SoundEvent as Sound(Bukkit) {}", sound.name());
+            }
+        }
+    }
+
+    private static void addModRecipeBookType() {
+        var knownTypes = new ArrayList<String>();
+        for (PlayerRecipeBookSettingsChangeEvent.RecipeBookType type : PlayerRecipeBookSettingsChangeEvent.RecipeBookType.values()) {
+            knownTypes.add(type.name());
+        }
+        for (RecipeBookType type : RecipeBookType.values()) {
+            var name = type.name();
+            if (!knownTypes.contains(name)) {
+                var bukkit = MohistDynamEnum.addEnum(PlayerRecipeBookSettingsChangeEvent.RecipeBookType.class, name, List.of(), List.of());
+                debug("Registered {} as recipe book type {}", name, bukkit);
             }
         }
     }

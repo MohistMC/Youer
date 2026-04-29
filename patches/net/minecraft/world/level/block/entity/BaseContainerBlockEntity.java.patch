@@ -64,6 +64,52 @@
      }
  
      protected abstract NonNullList<ItemStack> getItems();
+@@ -98,12 +_,20 @@
+ 
+     @Override
+     public ItemStack getItem(int p_332727_) {
+-        return this.getItems().get(p_332727_);
++        NonNullList<ItemStack> items = this.getItems();
++        if (p_332727_ < 0 || p_332727_ >= items.size()) {
++            return ItemStack.EMPTY;
++        }
++        return items.get(p_332727_);
+     }
+ 
+     @Override
+     public ItemStack removeItem(int p_332707_, int p_332672_) {
+-        ItemStack itemstack = ContainerHelper.removeItem(this.getItems(), p_332707_, p_332672_);
++        NonNullList<ItemStack> items = this.getItems();
++        if (p_332707_ < 0 || p_332707_ >= items.size()) {
++            return ItemStack.EMPTY;
++        }
++        ItemStack itemstack = ContainerHelper.removeItem(items, p_332707_, p_332672_);
+         if (!itemstack.isEmpty()) {
+             this.setChanged();
+         }
+@@ -113,12 +_,20 @@
+ 
+     @Override
+     public ItemStack removeItemNoUpdate(int p_332812_) {
+-        return ContainerHelper.takeItem(this.getItems(), p_332812_);
++        NonNullList<ItemStack> items = this.getItems();
++        if (p_332812_ < 0 || p_332812_ >= items.size()) {
++            return ItemStack.EMPTY;
++        }
++        return ContainerHelper.takeItem(items, p_332812_);
+     }
+ 
+     @Override
+     public void setItem(int p_332705_, ItemStack p_332643_) {
+-        this.getItems().set(p_332705_, p_332643_);
++        NonNullList<ItemStack> items = this.getItems();
++        if (p_332705_ < 0 || p_332705_ >= items.size()) {
++            return;
++        }
++        items.set(p_332705_, p_332643_);
+         p_332643_.limitSize(this.getMaxStackSize(p_332643_));
+         this.setChanged();
+     }
 @@ -166,4 +_,12 @@
          p_330762_.remove("Lock");
          p_330762_.remove("Items");

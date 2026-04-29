@@ -85,9 +85,13 @@ public final class CraftBlockStates {
             // Preconditions.checkState(tileEntity == null, "Unexpected BlockState for %s", CraftBlockType.minecraftToBukkit(blockData.getBlock()));
             net.minecraft.world.level.block.Block block = blockData.getBlock();
             if (block.defaultBlockState().is(BlockTags.SIGNS)) {
-                return new CraftSign<>(world, (SignBlockEntity) tileEntity);
+                if (tileEntity instanceof SignBlockEntity signEntity) {
+                    return new CraftSign<>(world, signEntity);
+                }
             } else if (block.defaultBlockState().is(BlockTags.ALL_HANGING_SIGNS)) {
-                return new CraftHangingSign(world, (HangingSignBlockEntity) tileEntity);
+                if (tileEntity instanceof HangingSignBlockEntity hangingSignEntity) {
+                    return new CraftHangingSign(world, hangingSignEntity);
+                }
             } else if (block instanceof SignBlock signBlock) {
                 BlockEntity blockEntity = signBlock.newBlockEntity(BlockPos.ZERO, block.defaultBlockState());
                 if (blockEntity instanceof HangingSignBlockEntity) {
@@ -103,7 +107,9 @@ public final class CraftBlockStates {
                     return new CraftChest(world, (ChestBlockEntity) tileEntity);
                 }
             } else if (block instanceof DecoratedPotBlock) {
-                return new CraftDecoratedPot(world, (DecoratedPotBlockEntity) tileEntity);
+                if (tileEntity instanceof DecoratedPotBlockEntity decoratedPotEntity) {
+                    return new CraftDecoratedPot(world, decoratedPotEntity);
+                }
             }
             return new CraftBlockState(world, blockPosition, blockData);
         }
