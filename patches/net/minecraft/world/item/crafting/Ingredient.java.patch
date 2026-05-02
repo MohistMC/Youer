@@ -8,7 +8,7 @@
  import java.util.Objects;
  import java.util.Optional;
  import java.util.function.Predicate;
-@@ -21,18 +_,40 @@
+@@ -21,54 +_,153 @@
  import net.minecraft.world.item.Items;
  import net.minecraft.world.item.crafting.display.SlotDisplay;
  import net.minecraft.world.level.ItemLike;
@@ -54,8 +54,21 @@
 +    // CraftBukkit end
  
      private Ingredient(HolderSet<Item> values) {
-         values.unwrap().ifRight(directValues -> {
-@@ -45,30 +_,106 @@
+-        values.unwrap().ifRight(directValues -> {
+-            if (directValues.isEmpty()) {
+-                throw new UnsupportedOperationException("Ingredients can't be empty");
+-            } else if (directValues.contains(Items.AIR.builtInRegistryHolder())) {
+-                throw new UnsupportedOperationException("Ingredient can't contain air");
+-            }
+-        });
++        if (values.isImmediatelyResolvable())//Neo: Skip validating holderset contents for holdersets if they are not immediately resolvable
++            values.unwrap().ifRight(directValues -> {
++                if (directValues.isEmpty()) {
++                    throw new UnsupportedOperationException("Ingredients can't be empty");
++                } else if (directValues.contains(Items.AIR.builtInRegistryHolder())) {
++                    throw new UnsupportedOperationException("Ingredient can't contain air");
++                }
++            });
          this.values = values;
      }
  
