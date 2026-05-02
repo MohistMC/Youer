@@ -1,6 +1,6 @@
 --- a/net/minecraft/network/CompressionEncoder.java
 +++ b/net/minecraft/network/CompressionEncoder.java
-@@ -6,16 +_,31 @@
+@@ -6,37 +_,100 @@
  import java.util.zip.Deflater;
  
  public class CompressionEncoder extends MessageToByteEncoder<ByteBuf> {
@@ -11,10 +11,17 @@
 +    @javax.annotation.Nullable // Paper - Use Velocity cipher
 +    private final com.velocitypowered.natives.compression.VelocityCompressor compressor; // Paper - Use Velocity cipher
      private int threshold;
- 
+-
 -    public CompressionEncoder(int p_129448_) {
 -        this.threshold = p_129448_;
 -        this.deflater = new Deflater();
+-    }
+-
+-    protected void encode(ChannelHandlerContext p_129452_, ByteBuf p_129453_, ByteBuf p_129454_) {
++    private static final boolean DISABLE_PACKET_DEBUG = Boolean.parseBoolean(System.getProperty("neoforge.disablePacketCompressionDebug", "true"));
++    private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger();
++
++
 +    // Paper start - Use Velocity cipher
 +    public CompressionEncoder(int compressionThreshold) {
 +        this(null, compressionThreshold);
@@ -30,14 +37,22 @@
 +        }
 +        this.compressor = compressor;
 +        // Paper end - Use Velocity cipher
-     }
- 
--    protected void encode(ChannelHandlerContext p_129452_, ByteBuf p_129453_, ByteBuf p_129454_) {
++    }
++
 +    protected void encode(ChannelHandlerContext p_129452_, ByteBuf p_129453_, ByteBuf p_129454_) throws Exception { // Paper - Use Velocity cipher
          int i = p_129453_.readableBytes();
-         if (i > 8388608) {
+-        if (i > 8388608) {
++        if (!DISABLE_PACKET_DEBUG && i > net.minecraft.network.CompressionDecoder.MAXIMUM_UNCOMPRESSED_LENGTH) {
++            p_129453_.markReaderIndex();
++            LOGGER.error("Attempted to send packet over maximum protocol size: {} > {}\nData:\n{}", i, net.minecraft.network.CompressionDecoder.MAXIMUM_UNCOMPRESSED_LENGTH,
++                    net.neoforged.neoforge.logging.PacketDump.getContentDump(p_129453_));
++            p_129453_.resetReaderIndex();
++        }
++        int max = 8388608;
++        if (i > Integer.MAX_VALUE) {
              throw new IllegalArgumentException("Packet too big (is " + i + ", should be less than 8388608)");
-@@ -24,19 +_,57 @@
+         } else {
+             if (i < this.threshold) {
                  VarInt.write(p_129454_, 0);
                  p_129454_.writeBytes(p_129453_);
              } else {
