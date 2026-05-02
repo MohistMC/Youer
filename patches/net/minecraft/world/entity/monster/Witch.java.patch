@@ -18,7 +18,7 @@
          return SoundEvents.WITCH_DEATH;
      }
  
-@@ -121,8 +_,14 @@
+@@ -121,8 +_,17 @@
                      ItemStack itemstack = this.getMainHandItem();
                      this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
                      PotionContents potioncontents = itemstack.get(DataComponents.POTION_CONTENTS);
@@ -30,7 +30,10 @@
 +                    // Paper end - WitchConsumePotionEvent
                      if (itemstack.is(Items.POTION) && potioncontents != null) {
 -                        potioncontents.forEachEffect(this::addEffect);
-+                        potioncontents.forEachEffect((effect) -> this.addEffect(effect, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK)); // CraftBukkit
++                        potioncontents.forEachEffect((effect) -> {
++                            this.addEffectCause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK);
++                            this.addEffect(effect);
++                        }); // CraftBukkit
                      }
  
                      this.gameEvent(GameEvent.DRINK);

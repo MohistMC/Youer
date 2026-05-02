@@ -1,14 +1,13 @@
 --- a/net/minecraft/world/level/block/WitherRoseBlock.java
 +++ b/net/minecraft/world/level/block/WitherRoseBlock.java
-@@ -72,9 +_,10 @@
+@@ -72,8 +_,10 @@
  
      @Override
      protected void entityInside(BlockState p_58238_, Level p_58239_, BlockPos p_58240_, Entity p_58241_) {
 +        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(p_58241_.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(p_58239_, p_58240_)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
          if (!p_58239_.isClientSide && p_58239_.getDifficulty() != Difficulty.PEACEFUL) {
              if (p_58241_ instanceof LivingEntity livingentity && !livingentity.isInvulnerableTo(p_58239_.damageSources().wither())) {
--                livingentity.addEffect(new MobEffectInstance(MobEffects.WITHER, 40));
-+                livingentity.addEffect(new MobEffectInstance(MobEffects.WITHER, 40), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.WITHER_ROSE); // CraftBukkit
++                livingentity.addEffectCause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.WITHER_ROSE); // CraftBukkit
+                 livingentity.addEffect(new MobEffectInstance(MobEffects.WITHER, 40));
              }
          }
-     }
