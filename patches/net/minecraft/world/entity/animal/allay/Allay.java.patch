@@ -21,6 +21,28 @@
      @Override
      protected Brain<Allay> makeBrain(Brain.Packed packedBrain) {
          return BRAIN_PROVIDER.makeBrain(this, packedBrain);
+@@ -213,6 +_,7 @@
+     public void aiStep() {
+         super.aiStep();
+         if (!this.level().isClientSide() && this.isAlive() && this.tickCount % 10 == 0) {
++            this.pushHealReason(org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.REGEN); // CraftBukkit
+             this.heal(1.0F);
+         }
+ 
+@@ -281,7 +_,12 @@
+         ItemStack interactionItem = player.getItemInHand(hand);
+         ItemStack itemInHand = this.getItemInHand(InteractionHand.MAIN_HAND);
+         if (this.isDancing() && interactionItem.is(ItemTags.DUPLICATES_ALLAYS) && this.canDuplicate()) {
+-            this.duplicateAllay();
++            // CraftBukkit start - handle cancel duplication
++            Allay allay = this.duplicateAllay0();
++            if (allay == null) {
++                return InteractionResult.SUCCESS;
++            }
++            // CraftBukkit end
+             this.level().broadcastEntityEvent(this, (byte)18);
+             this.level().playSound(player, this, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.NEUTRAL, 2.0F, 1.0F);
+             this.removeInteractionItem(player, interactionItem);
 @@ -336,9 +_,9 @@
      public boolean wantsToPickUp(ServerLevel level, ItemStack itemStack) {
          ItemStack itemInHand = this.getItemInHand(InteractionHand.MAIN_HAND);
@@ -41,23 +63,21 @@
          return this.jukeboxPos == null
              || !this.jukeboxPos.closerToCenterThan(this.position(), GameEvent.JUKEBOX_PLAY.value().notificationRadius())
              || !this.level().getBlockState(this.jukeboxPos).is(Blocks.JUKEBOX);
-@@ -460,6 +_,19 @@
+@@ -458,8 +_,17 @@
+             allay.setPersistenceRequired();
+             allay.resetDuplicationCooldown();
              this.resetDuplicationCooldown();
++            allay.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DUPLICATION); // CraftBukkit - reason for duplicated allay
              this.level().addFreshEntity(allay);
          }
++        duplicateAllay = allay;
 +    }
 +
-+    public Allay duplicateAllay0() { // CraftBukkit - return allay
-+        Allay allay = EntityType.ALLAY.create(this.level(), EntitySpawnReason.BREEDING);
++    public Allay duplicateAllay = null;
 +
-+        if (allay != null) {
-+            allay.snapTo(this.position());
-+            allay.setPersistenceRequired();
-+            allay.resetDuplicationCooldown();
-+            this.resetDuplicationCooldown();
-+            this.level().addFreshEntity(allay, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DUPLICATION); // CraftBukkit - reason for duplicated allay
-+        }
-+        return allay; // CraftBukkit
++    public Allay duplicateAllay0() { // CraftBukkit - return allay
++        duplicateAllay();
++        return duplicateAllay; // CraftBukkit
      }
  
      public void resetDuplicationCooldown() {

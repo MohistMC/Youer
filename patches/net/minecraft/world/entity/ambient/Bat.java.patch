@@ -1,0 +1,44 @@
+--- a/net/minecraft/world/entity/ambient/Bat.java
++++ b/net/minecraft/world/entity/ambient/Bat.java
+@@ -26,6 +_,7 @@
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class Bat extends AmbientCreature {
+@@ -137,13 +_,13 @@
+                     this.yHeadRot = this.random.nextInt(360);
+                 }
+ 
+-                if (level.getNearestPlayer(BAT_RESTING_TARGETING, this) != null) {
++                if (level.getNearestPlayer(BAT_RESTING_TARGETING, this) != null && CraftEventFactory.handleBatToggleSleepEvent(this, true)) { // CraftBukkit - Call BatToggleSleepEvent
+                     this.setResting(false);
+                     if (!isSilent) {
+                         level.levelEvent(null, 1025, pos, 0);
+                     }
+                 }
+-            } else {
++            } else if (CraftEventFactory.handleBatToggleSleepEvent(this, true)) { // CraftBukkit - Call BatToggleSleepEvent
+                 this.setResting(false);
+                 if (!isSilent) {
+                     level.levelEvent(null, 1025, pos, 0);
+@@ -174,7 +_,7 @@
+             float rotDiff = Mth.wrapDegrees(yRotD - this.getYRot());
+             this.zza = 0.5F;
+             this.setYRot(this.getYRot() + rotDiff);
+-            if (this.random.nextInt(100) == 0 && level.getBlockState(above).isRedstoneConductor(level, above)) {
++            if (this.random.nextInt(100) == 0 && level.getBlockState(above).isRedstoneConductor(level, above) && CraftEventFactory.handleBatToggleSleepEvent(this, false)) { // CraftBukkit - Call BatToggleSleepEvent
+                 this.setResting(true);
+             }
+         }
+@@ -199,7 +_,7 @@
+         if (this.isInvulnerableTo(level, source)) {
+             return false;
+         } else {
+-            if (this.isResting()) {
++            if (this.isResting() && CraftEventFactory.handleBatToggleSleepEvent(this, true)) { // CraftBukkit - Call BatToggleSleepEvent
+                 this.setResting(false);
+             }
+ 

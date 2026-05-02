@@ -1,0 +1,29 @@
+--- a/net/minecraft/world/entity/Interaction.java
++++ b/net/minecraft/world/entity/Interaction.java
+@@ -20,6 +_,8 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityDamageEvent;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class Interaction extends Entity implements Attackable, Targeting {
+@@ -99,9 +_,16 @@
+     @Override
+     public boolean skipAttackInteraction(Entity source) {
+         if (source instanceof Player player) {
++            // CraftBukkit start
++            DamageSource damageSource = player.damageSources().playerAttack(player);
++            EntityDamageEvent event = CraftEventFactory.callNonLivingEntityDamageEvent(this, damageSource, 1.0F, false);
++            if (event.isCancelled()) {
++                return true;
++            }
++            // CraftBukkit end
+             this.attack = new Interaction.PlayerAction(player.getUUID(), this.level().getGameTime());
+             if (player instanceof ServerPlayer serverPlayer) {
+-                CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(serverPlayer, this, player.damageSources().generic(), 1.0F, 1.0F, false);
++                CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(serverPlayer, this, damageSource, (float) event.getFinalDamage(), 1.0F, false);
+             }
+ 
+             return !this.getResponse();

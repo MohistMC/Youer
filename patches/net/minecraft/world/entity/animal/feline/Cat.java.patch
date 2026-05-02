@@ -5,7 +5,41 @@
  
      private void tryToTame(Player player) {
 -        if (this.random.nextInt(3) == 0) {
-+        if (this.random.nextInt(3) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, player)) {
++        if (this.random.nextInt(3) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, player) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, player).isCancelled()) { // CraftBukkit
              this.tame(player);
              this.setOrderedToSit(true);
              this.level().broadcastEntityEvent(this, (byte)7);
+@@ -601,15 +_,24 @@
+                 .dropFromGiftLootTable(
+                     getServerLevel(this.cat),
+                     BuiltInLootTables.CAT_MORNING_GIFT,
+-                    (level, itemStack) -> level.addFreshEntity(
+-                        new ItemEntity(
+-                            level,
+-                            (double)catPos.getX() - Mth.sin(this.cat.yBodyRot * (float) (Math.PI / 180.0)),
+-                            catPos.getY(),
+-                            (double)catPos.getZ() + Mth.cos(this.cat.yBodyRot * (float) (Math.PI / 180.0)),
+-                            itemStack
+-                        )
+-                    )
++                    (level, itemStack) -> {
++                        // CraftBukkit start
++                        ItemEntity itementity =
++                                new ItemEntity(
++                                        level,
++                                        (double) catPos.getX() - Mth.sin(this.cat.yBodyRot * (float) (Math.PI / 180.0)),
++                                        catPos.getY(),
++                                        (double) catPos.getZ() + Mth.cos(this.cat.yBodyRot * (float) (Math.PI / 180.0)),
++                                        itemStack
++                                );
++                        org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.cat.getBukkitEntity(), (org.bukkit.entity.Item) itementity.getBukkitEntity());
++                        itementity.level().getCraftServer().getPluginManager().callEvent(event);
++                        if (event.isCancelled()) {
++                            return;
++                        }
++                        level.addFreshEntity(itementity);
++                        // CraftBukkit end
++                    }
+                 );
+         }
+ 
