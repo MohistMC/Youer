@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+@@ -1,6 +_,7 @@
+ package net.minecraft.world.level.block.entity;
+ 
+ import java.util.List;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.BooleanSupplier;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.BlockPos;
 @@ -10,6 +_,7 @@
  import net.minecraft.nbt.CompoundTag;
  import net.minecraft.network.chat.Component;
@@ -506,25 +514,28 @@
      }
  
      public static List<ItemEntity> getItemsAtAndAbove(Level p_155590_, Hopper p_155591_) {
-@@ -377,8 +_,15 @@
- 
+@@ -378,15 +_,26 @@
      @Nullable
      private static Container getContainerAt(Level p_59348_, BlockPos p_326114_, BlockState p_326445_, double p_59349_, double p_59350_, double p_59351_) {
-+        // Paper start - Perf: Optimize Hoppers
-+        return HopperBlockEntity.getContainerAt(p_59348_, p_326114_, p_326445_, p_59349_, p_59350_, p_59351_, false);
-+    }
-+
-+    @Nullable
-+    private static Container getContainerAt(Level p_59348_, BlockPos p_326114_, BlockState p_326445_, double p_59349_, double p_59350_, double p_59351_, boolean optimizeEntities) {
-+        // Paper end - Perf: Optimize Hoppers
          Container container = getBlockContainer(p_59348_, p_326114_, p_326445_);
 -        if (container == null) {
-+        if (container == null && (!optimizeEntities || !p_59348_.paperConfig().hopper.ignoreOccludingBlocks || !p_326445_.getBukkitMaterial().isOccluding())) { // Paper - Perf: Optimize Hoppers
++        boolean optimize = paper$optimizeEntities.getAndSet(false);
++        if (container == null && (!optimize || !p_59348_.paperConfig().hopper.ignoreOccludingBlocks || !p_326445_.getBukkitMaterial().isOccluding())) {
              container = getEntityContainer(p_59348_, p_59349_, p_59350_, p_59351_);
          }
  
-@@ -387,6 +_,7 @@
+         return container;
+     }
  
++    // Paper start - Perf: Optimize Hoppers
++    private static final AtomicBoolean paper$optimizeEntities = new AtomicBoolean(false);
++    @Nullable
++    private static Container getContainerAt(Level p_59348_, BlockPos p_326114_, BlockState p_326445_, double p_59349_, double p_59350_, double p_59351_, boolean optimizeEntities) {
++        paper$optimizeEntities.set(optimizeEntities);
++        return getContainerAt(p_59348_, p_326114_, p_326445_, p_59349_, p_59350_, p_59351_);
++    }
++    // Paper end - Perf: Optimize Hoppers
++
      @Nullable
      private static Container getBlockContainer(Level p_326127_, BlockPos p_326017_, BlockState p_326108_) {
 +        if (!p_326127_.spigotConfig.hopperCanLoadChunks && !p_326127_.hasChunkAt(p_326017_)) return null; // Spigot
