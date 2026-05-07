@@ -90,7 +90,7 @@
      @Nullable
      public BlockPlaceContext updatePlacementContext(BlockPlaceContext p_40609_) {
          return p_40609_;
-@@ -143,8 +_,16 @@
+@@ -143,8 +_,17 @@
      protected boolean canPlace(BlockPlaceContext p_40611_, BlockState p_40612_) {
          Player player = p_40611_.getPlayer();
          CollisionContext collisioncontext = player == null ? CollisionContext.empty() : CollisionContext.of(player);
@@ -98,7 +98,8 @@
 -            && p_40611_.getLevel().isUnobstructed(p_40612_, p_40611_.getClickedPos(), collisioncontext);
 +        // CraftBukkit start - store default return
 +        Level world = p_40611_.getLevel(); // Paper - Cancel hit for vanished players
-+        boolean defaultReturn = (!this.mustSurvive() || p_40612_.canSurvive(p_40611_.getLevel(), p_40611_.getClickedPos())) && world.checkEntityCollision(p_40612_, player, collisioncontext, p_40611_.getClickedPos(), true); // Paper - Cancel hit for vanished players
++        boolean defaultReturn = (!this.mustSurvive() || p_40612_.canSurvive(p_40611_.getLevel(), p_40611_.getClickedPos())) &&
++                (player != null ? world.checkEntityCollision(p_40612_, player, collisioncontext, p_40611_.getClickedPos(), true) : p_40611_.getLevel().isUnobstructed(p_40612_, p_40611_.getClickedPos(), collisioncontext)); // Paper - Cancel hit for vanished players
 +        org.bukkit.entity.Player playerBukkit = (p_40611_.getPlayer() instanceof ServerPlayer) ? (org.bukkit.entity.Player) p_40611_.getPlayer().getBukkitEntity() : null;
 +
 +        BlockCanBuildEvent event = new BlockCanBuildEvent(CraftBlock.at(p_40611_.getLevel(), p_40611_.getClickedPos()), playerBukkit, CraftBlockData.fromData(p_40612_), defaultReturn, CraftEquipmentSlot.getHand(p_40611_.getHand())); // Paper - Expose hand in BlockCanBuildEvent

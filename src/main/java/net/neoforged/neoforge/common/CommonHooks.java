@@ -115,6 +115,7 @@ import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.PotionItem;
+import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.Tiers;
 import net.minecraft.world.item.TippedArrowItem;
@@ -615,7 +616,12 @@ public class CommonHooks {
             level.captureBlockSnapshots = true;
 
         ItemStack copy = itemstack.copy();
-        InteractionResult ret = itemstack.getItem().useOn(context);
+        InteractionResult ret;
+        try {
+            ret = item.useOn(context);
+        } finally {
+            level.captureBlockStates = false;
+        }
         if (itemstack.isEmpty())
             EventHooks.onPlayerDestroyItem(player, copy, context.getHand());
 
@@ -635,7 +641,7 @@ public class CommonHooks {
             //TODO: Set pre-placement item attachments?
 
             Direction side = context.getClickedFace();
-
+            level.capturedBlockStates.clear();
             boolean eventResult = false;
             if (blockSnapshots.size() > 1) {
                 eventResult = EventHooks.onMultiBlockPlace(player, blockSnapshots, side, context.getHand());
@@ -651,6 +657,10 @@ public class CommonHooks {
                     blocksnapshot.restore(blocksnapshot.getFlags() | Block.UPDATE_CLIENTS);
                     level.restoringBlockSnapshots = false;
                 }
+                // PAIL: Remove this when MC-99075 fixed
+                level.capturedTileEntities.clear(); // Paper - Allow chests to be placed with NBT data; clear out block entities as chests and such will pop loot
+                // revert back all captured blocks
+                SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
             } else {
                 // Change the stack to its new content
                 itemstack.setCount(newSize);
@@ -674,6 +684,8 @@ public class CommonHooks {
             }
         }
         level.capturedBlockSnapshots.clear();
+        level.capturedTileEntities.clear();
+        level.capturedBlockStates.clear();
 
         return ret;
     }

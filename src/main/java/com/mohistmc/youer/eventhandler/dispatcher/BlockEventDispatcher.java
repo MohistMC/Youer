@@ -72,10 +72,14 @@ public class BlockEventDispatcher {
         if (player instanceof ServerPlayer serverPlayer && !(player instanceof FakePlayer)) {
             if (level instanceof ServerLevel) {
                 BlockBreakEvent bukkitEvent = new BlockBreakEvent(bblock, serverPlayer.getBukkitEntity());
-                bukkitEvent.setCancelled(event.isCanceled());
+                if (event.isCanceled()) {
+                    bukkitEvent.setCancelled(true);
+                }
                 event.setDropItems(bukkitEvent.isDropItems());
                 Bukkit.getPluginManager().callEvent(bukkitEvent);
-                event.setCanceled(bukkitEvent.isCancelled());
+                if (!event.isCanceled() && bukkitEvent.isCancelled()) {
+                    event.setCanceled(true);
+                }
             }
             // CraftBukkit end
         }
@@ -112,7 +116,7 @@ public class BlockEventDispatcher {
     @SubscribeEvent(receiveCanceled = true)
     public void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
         Entity entity = event.getEntity();
-        if (entity instanceof ServerPlayer serverPlayer && !(entity instanceof FakePlayer)) {
+        if (entity instanceof ServerPlayer serverPlayer && serverPlayer.level() instanceof ServerLevel serverLevel && !(entity instanceof FakePlayer)) {
             org.bukkit.entity.Player player = serverPlayer.getBukkitEntity();
             Direction direction = event.getPlaceEventDirection();
             if (direction != null) {
@@ -130,13 +134,16 @@ public class BlockEventDispatcher {
                 }
                 CraftBlockState replacedBlockState = CraftBlockStates.getBlockState(event.getLevel(), event.getPos());
                 replacedBlockState.setData(event.getBlockSnapshot().getState());
-                BlockPlaceEvent placeEvent = new BlockPlaceEvent(placedBlock, replacedBlockState, againstBlock, bukkitStack, player, !event.isCanceled(), bukkitHand);
-                placeEvent.setCancelled(event.isCanceled());
-                Bukkit.getPluginManager().callEvent(placeEvent);
-                if (placeEvent.isCancelled()) {
-                    player.updateInventory();
+                boolean canBuild = CraftEventFactory.canBuild(serverLevel, player, placedBlock.getX(), placedBlock.getZ());
+                BlockPlaceEvent placeEvent = new BlockPlaceEvent(placedBlock, replacedBlockState, againstBlock, bukkitStack, player, canBuild, bukkitHand);
+                if (event.isCanceled()) {
+                    placeEvent.setCancelled(true);
                 }
-                event.setCanceled(placeEvent.isCancelled() || !placeEvent.canBuild());
+                Bukkit.getPluginManager().callEvent(placeEvent);
+                if (!event.isCanceled() && (placeEvent.isCancelled() || !placeEvent.canBuild())) {
+                    placeEvent.getPlayer().updateInventory();
+                    event.setCanceled(true);
+                }
             }
         }
     }
@@ -144,7 +151,7 @@ public class BlockEventDispatcher {
     @SubscribeEvent(receiveCanceled = true)
     public void onMultiPlace(BlockEvent.EntityMultiPlaceEvent event) {
         Entity entity = event.getEntity();
-        if (entity instanceof ServerPlayer serverPlayer && !(entity instanceof FakePlayer)) {
+        if (entity instanceof ServerPlayer serverPlayer && serverPlayer.level() instanceof ServerLevel serverLevel && !(entity instanceof FakePlayer)) {
             org.bukkit.entity.Player player = serverPlayer.getBukkitEntity();
             Direction direction = event.getPlaceEventDirection();
             if (direction != null) {
@@ -164,12 +171,23 @@ public class BlockEventDispatcher {
                     bukkitStack = player.getInventory().getItemInOffHand();
                     equipmentSlot = EquipmentSlot.OFF_HAND;
                 }
-                BlockPlaceEvent placeEvent = new BlockMultiPlaceEvent(placedBlocks, againstBlock, bukkitStack, player, !event.isCanceled(), equipmentSlot
-                );
+                boolean canBuild = true;
+                for (int i = 0; i < placedBlocks.size(); i++) {
+                    if (!CraftEventFactory.canBuild(serverLevel, player, placedBlocks.get(i).getX(), placedBlocks.get(i).getZ())) {
+                        canBuild = false;
+                        break;
+                    }
+                }
+                BlockPlaceEvent placeEvent = new BlockMultiPlaceEvent(placedBlocks, againstBlock, bukkitStack, player, canBuild, equipmentSlot);
                 // Paper end
-                placeEvent.setCancelled(event.isCanceled());
+                if (event.isCanceled()) {
+                    placeEvent.setCancelled(true);
+                }
                 Bukkit.getPluginManager().callEvent(placeEvent);
-                event.setCanceled(placeEvent.isCancelled() || !placeEvent.canBuild());
+                if (!event.isCanceled() && (placeEvent.isCancelled() || !placeEvent.canBuild())) {
+                    placeEvent.getPlayer().updateInventory();
+                    event.setCanceled(true);
+                }
             }
         }
     }
