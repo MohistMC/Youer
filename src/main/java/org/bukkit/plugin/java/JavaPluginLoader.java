@@ -323,7 +323,7 @@ public final class JavaPluginLoader implements PluginLoader {
         Preconditions.checkArgument(plugin instanceof JavaPlugin, "Plugin is not associated with this PluginLoader");
 
         if (!plugin.isEnabled()) {
-            Youer.LOGGER.info(I18n.as("minecraftserver.plugin.load.enabling", plugin.getDescription().getFullName()));
+            plugin.getLogger().info(I18n.as("minecraftserver.plugin.load.enabling", plugin.getDescription().getFullName()));
 
             JavaPlugin jPlugin = (JavaPlugin) plugin;
 
@@ -331,14 +331,14 @@ public final class JavaPluginLoader implements PluginLoader {
 
             if (!loaders.contains(pluginLoader)) {
                 loaders.add(pluginLoader);
-                Youer.LOGGER.warn(I18n.as( "mohist.i18n.20", plugin.getDescription().getFullName()));
+                server.getLogger().log(Level.WARNING, I18n.as( "mohist.i18n.20", plugin.getDescription().getFullName()));
             }
 
             try {
                 jPlugin.setEnabled(true);
             } catch (Throwable ex) {
                 gg.pufferfish.pufferfish.sentry.SentryContext.setPluginContext(plugin); // Pufferfish
-                Youer.LOGGER.error(I18n.as("mohist.i18n.21", plugin.getDescription().getFullName()), ex);
+                server.getLogger().log(Level.SEVERE, I18n.as("mohist.i18n.21", plugin.getDescription().getFullName()), ex);
                 gg.pufferfish.pufferfish.sentry.SentryContext.removePluginContext(); // Pufferfish
                 // Paper start - Disable plugins that fail to load
                 this.server.getPluginManager().disablePlugin(jPlugin);
