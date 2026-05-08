@@ -322,4 +322,11 @@ public class ItemAPI {
         } catch (Exception ignored) {
         }
     }
+
+    public static NamespacedKey PlacedInfinitely_Key = new NamespacedKey("youer", "placedinfinitely");
+    public static boolean isPlacedInfinitely(net.minecraft.world.item.ItemStack itemStack) {
+        ItemStack bukkit = itemStack.asBukkitCopy();
+        ItemMeta itemMeta = bukkit.getItemMeta();
+        return itemMeta.getPersistentDataContainer().has(PlacedInfinitely_Key);
+    }
 }
