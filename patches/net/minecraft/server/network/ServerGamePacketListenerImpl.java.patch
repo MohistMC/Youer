@@ -944,7 +944,7 @@
 +    }
 +
 +    private final AtomicReference<PlayerTeleportEvent.TeleportCause> teleport$cause = new AtomicReference<>(PlayerTeleportEvent.TeleportCause.UNKNOWN);
-+    private final AtomicBoolean teleport$boolean = new AtomicBoolean(false);
++    private final AtomicBoolean teleport$boolean = new AtomicBoolean(true);
 +    public void teleport$cause(PlayerTeleportEvent.TeleportCause cause) {
 +        this.teleport$cause.set(cause);
      }
@@ -961,7 +961,7 @@
 +        // SPIGOT-5171: Triggered on join
 +        if (from.equals(to)) {
 +            this.internalTeleport(p_9781_, p_9782_, p_9783_, p_9784_, p_9785_, p_9786_);
-+            teleport$boolean.set(false);
++            teleport$boolean.set(true);
 +            return; // CraftBukkit - Return event status
 +        }
 +        if (!AsyncCatcher.catchAsync()) {
@@ -986,14 +986,14 @@
 +            teleport$boolean.set(!event.isCancelled());
 +        } else {
 +            this.internalTeleport(p_9781_, p_9782_, p_9783_, p_9784_, p_9785_, p_9786_);
-+            teleport$boolean.set(false);
++            teleport$boolean.set(true);
 +        }
 +    }
 +
 +    public boolean teleport(double d0, double d1, double d2, float f, float f1, Set<RelativeMovement> set, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) { // CraftBukkit - Return event status
 +        this.teleport$cause(cause);
 +        teleport(d0, d1, d2, f, f1, set);
-+        return teleport$boolean.getAndSet(false);
++        return teleport$boolean.getAndSet(true);
 +    }
 +
 +    public void teleport(org.bukkit.Location dest) {

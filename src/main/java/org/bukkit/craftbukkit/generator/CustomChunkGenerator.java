@@ -116,6 +116,11 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
 
     @Override
     public void createStructures(RegistryAccess registryManager, ChunkGeneratorStructureState placementCalculator, StructureManager structureAccessor, ChunkAccess chunk, StructureTemplateManager structureTemplateManager) {
+        if (this.generator == null) {
+            super.createStructures(registryManager, placementCalculator, structureAccessor, chunk, structureTemplateManager);
+            return;
+        }
+
         WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
         int x = chunk.getPos().x;
         int z = chunk.getPos().z;
@@ -128,6 +133,11 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
 
     @Override
     public void buildSurface(WorldGenRegion region, StructureManager structures, RandomState noiseConfig, ChunkAccess chunk) {
+        if (this.generator == null) {
+            this.delegate.buildSurface(region, structures, noiseConfig, chunk);
+            return;
+        }
+
         WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
         int x = chunk.getPos().x;
         int z = chunk.getPos().z;
@@ -224,6 +234,11 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
 
     @Override
     public void applyCarvers(WorldGenRegion chunkRegion, long seed, RandomState noiseConfig, BiomeManager biomeAccess, StructureManager structureAccessor, ChunkAccess chunk, GenerationStep.Carving carverStep) {
+        if (this.generator == null) {
+            this.delegate.applyCarvers(chunkRegion, seed, noiseConfig, biomeAccess, structureAccessor, chunk, carverStep);
+            return;
+        }
+
         WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
         int x = chunk.getPos().x;
         int z = chunk.getPos().z;
@@ -244,6 +259,10 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
 
     @Override
     public CompletableFuture<ChunkAccess> fillFromNoise(Blender blender, RandomState noiseConfig, StructureManager structureAccessor, ChunkAccess chunk) {
+        if (this.generator == null) {
+            return this.delegate.fillFromNoise(blender, noiseConfig, structureAccessor, chunk);
+        }
+
         CompletableFuture<ChunkAccess> future = null;
         WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
         int x = chunk.getPos().x;
@@ -268,7 +287,7 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
 
     @Override
     public int getBaseHeight(int x, int z, Heightmap.Types heightmap, LevelHeightAccessor world, RandomState noiseConfig) {
-        if (this.implementBaseHeight) {
+        if (this.generator != null && this.implementBaseHeight) {
             try {
                 WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
                 int xChunk = x >> 4;
@@ -291,6 +310,11 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
 
     @Override
     public void applyBiomeDecorationCB(WorldGenLevel world, ChunkAccess chunk, StructureManager structureAccessor) {
+        if (this.generator == null) {
+            super.applyBiomeDecorationCB(world, chunk, structureAccessor, true);
+            return;
+        }
+
         WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
         int x = chunk.getPos().x;
         int z = chunk.getPos().z;
@@ -306,6 +330,11 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
 
     @Override
     public void spawnOriginalMobs(WorldGenRegion region) {
+        if (this.generator == null) {
+            this.delegate.spawnOriginalMobs(region);
+            return;
+        }
+
         WorldgenRandom random = CustomChunkGenerator.getSeededRandom();
         int x = region.getCenter().x;
         int z = region.getCenter().z;
