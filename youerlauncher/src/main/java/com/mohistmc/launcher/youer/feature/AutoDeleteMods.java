@@ -58,6 +58,7 @@ public class AutoDeleteMods {
         put("ru.vidtu.ksyxis.platform.KNeoForge", DeletionReason.DUPLICATE_FEATURE);
         //put("carpet.CarpetServer", DeletionReason.DUPLICATE_FEATURE);
         put("io.github.reserveword.imblocker.IMBlocker", DeletionReason.CLIENT_ONLY);
+        put("snownee.pdgamerules.PDGameRulesMod", DeletionReason.DUPLICATE_FEATURE);
     }};
 
     /**
