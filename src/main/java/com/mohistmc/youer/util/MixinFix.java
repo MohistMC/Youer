@@ -4,7 +4,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.SolidBucketItem;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import org.bukkit.block.BlockState;
 import org.bukkit.craftbukkit.event.CraftEventFactory;

@@ -52,12 +52,12 @@ public class BansCommand extends Command {
         String check = I18n.as("banscmd.check");
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatColor.RED + "You must be a player to perform this command.");
+            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.error.notplayer"));
             return false;
         }
 
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
             return false;
         }
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
@@ -69,11 +69,11 @@ public class BansCommand extends Command {
                     }
                     String name = args[2];
                     if (BanConfig.RECIPE.has(name)) {
-                        sender.sendMessage(ChatColor.RED + "This recipe already exists.");
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.recipe.exists"));
                         return false;
                     }
                     if (!BanRecipe.CACHE.contains(ResourceLocation.parse(name))) {
-                        sender.sendMessage(ChatColor.RED + "This recipe does not exist.");
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.recipe.notexists"));
                         return false;
                     }
                     BanRecipe.addBan(player, name);
@@ -86,18 +86,18 @@ public class BansCommand extends Command {
                     }
                     String name = args[2];
                     if (BanConfig.WORLD.has(name)) {
-                        sender.sendMessage(ChatColor.RED + "This world already exists.");
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.world.exists"));
                         return false;
                     }
                     if (!BanWorld.CACHE.contains(ResourceLocation.parse(name))) {
-                        sender.sendMessage(ChatColor.RED + "This world does not exist.");
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.world.notexists"));
                         return false;
                     }
                     BanWorld.addBan(player, name);
                     return true;
                 }
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + usageMessage);
+                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                     return false;
                 }
                 switch (args[1]) {
@@ -106,7 +106,7 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + check);
                             return false;
                         }
-                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ITEM, "§4Add bans item");
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ITEM, I18n.as("banscmd.gui.add.item"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
                         BanListener.openInventory = banSaveInventory;
@@ -117,7 +117,7 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + check);
                             return false;
                         }
-                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ITEM_MOSHOU, "§4Add bans moshou item");
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ITEM_MOSHOU, I18n.as("banscmd.gui.add.item.moshou"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
                         BanListener.openInventory = banSaveInventory;
@@ -128,7 +128,7 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + check);
                             return false;
                         }
-                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ENTITY, "§4Add bans entity");
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ENTITY, I18n.as("banscmd.gui.add.entity"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
                         BanListener.openInventory = banSaveInventory;
@@ -139,7 +139,7 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + check);
                             return false;
                         }
-                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ENCHANTMENT, "§4Add bans enchantment");
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ENCHANTMENT, I18n.as("banscmd.gui.add.enchantment"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
                         BanListener.openInventory = banSaveInventory;
@@ -150,7 +150,7 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + check);
                             return false;
                         }
-                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.BLOCK, "§4Add bans block");
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.BLOCK, I18n.as("banscmd.gui.add.block"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
                         BanListener.openInventory = banSaveInventory;
@@ -164,29 +164,29 @@ public class BansCommand extends Command {
 
                         ItemStack itemStack = player.getInventory().getItemInMainHand();
                         if (itemStack.isEmpty()) {
-                            sender.sendMessage(ChatColor.RED + "Please hold the item in hand.");
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.nbt.noitem"));
                             return false;
                         }
 
                         if (args.length < 3) {
-                            sender.sendMessage(ChatColor.RED + "Usage: /bans add nbt <nbt>");
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.nbt.usage"));
                             return false;
                         }
 
                         String nbt = args[2];
                         BanConfig.NBT.addNbt(itemStack.getType().key().asString(), nbt);
-                        sender.sendMessage(ChatColor.GREEN + "Successfully banned items with NBT: " + nbt);
+                        sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.add.nbt.success").formatted(nbt));
                         return true;
                     }
                     default -> {
-                        sender.sendMessage(ChatColor.RED + usageMessage);
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                         return false;
                     }
                 }
             }
             case "show" -> {
                 if (args.length != 2) {
-                    sender.sendMessage(ChatColor.RED + usageMessage);
+                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                     return false;
                 }
                 switch (args[1]) {
@@ -333,13 +333,13 @@ public class BansCommand extends Command {
                         return true;
                     }
                     case "nbt" -> {
-                        DemoGUI wh = new DemoGUI("§2Show bans nbt");
+                        DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.nbt"));
                         for (String s : BanConfig.NBT.getAllNbtKeys()) {
                             Material material = Material.matchMaterial(s);
                             if (material != null && !material.isAirSafe()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
-                                        .addLore("§eClick here to view the NBT list")
+                                        .addLore("§e" + I18n.as("banscmd.show.nbt.lore"))
                                         .build()) {
                                     @Override
                                     public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
@@ -378,14 +378,14 @@ public class BansCommand extends Command {
                         return true;
                     }
                     default -> {
-                        sender.sendMessage(ChatColor.RED + usageMessage);
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                         return false;
                     }
                 }
             }
             case "setmessage" -> {
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + usageMessage);
+                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                     return false;
                 }
                 switch (args[1]) {
@@ -396,7 +396,7 @@ public class BansCommand extends Command {
                         }
                         ItemStack itemStack = player.getInventory().getItemInMainHand();
                         if (itemStack.isEmpty()) {
-                            sender.sendMessage(ChatColor.RED + "Please hold an item in your hand.");
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.setmessage.noitem"));
                             return false;
                         }
                         if (BanItem.check(itemStack) || BanItem.checkMoShou(itemStack)) {
@@ -405,10 +405,10 @@ public class BansCommand extends Command {
                                     .collect(Collectors.joining(" "));
                             BanConfig.BAN_MESSAGE.setBanMessage(itemStack.getType().name(), result);
                         } else {
-                            sender.sendMessage(ChatColor.RED + "This item is not banned.");
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.setmessage.notbanned"));
                             return false;
                         }
-                        sender.sendMessage(ChatColor.GREEN + "Set the message for " + itemStack.getType().name() + ".");
+                        sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.setmessage.success").formatted(itemStack.getType().name()));
                         return true;
                     }
                     case "entity" -> {
@@ -426,13 +426,13 @@ public class BansCommand extends Command {
                         return true;
                     }
                     default -> {
-                        sender.sendMessage(ChatColor.RED + usageMessage);
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                         return false;
                     }
                 }
             }
             default -> {
-                sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+                sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                 return false;
             }
         }

@@ -40,7 +40,7 @@
          switch (p_9975_.intention()) {
              case LOGIN:
                  this.beginLogin(p_9975_, false);
-@@ -50,22 +_,124 @@
+@@ -50,22 +_,118 @@
              default:
                  throw new UnsupportedOperationException("Invalid intention " + p_9975_.intention());
          }
@@ -75,13 +75,7 @@
 +                        throttleCounter = 0;
 +
 +                        // Cleanup stale entries
-+                        java.util.Iterator iter = throttleTracker.entrySet().iterator();
-+                        while (iter.hasNext()) {
-+                            java.util.Map.Entry<InetAddress, Long> entry = (java.util.Map.Entry) iter.next();
-+                            if (entry.getValue() > connectionThrottle) {
-+                                iter.remove();
-+                            }
-+                        }
++                        throttleTracker.entrySet().removeIf(entry -> entry.getValue() > connectionThrottle);
 +                    }
 +                }
 +            } // Paper - Unix domain socket support
