@@ -36,7 +36,6 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.server.command.CommandHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.ApiStatus;
 
 public class ClientCommandHandler {

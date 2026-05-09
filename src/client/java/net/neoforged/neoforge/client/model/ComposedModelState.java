@@ -12,7 +12,6 @@ import org.joml.Matrix4fc;
 
 /// Implementation of [ModelState] which prepends an additional transform onto the incoming [ModelState].
 public record ComposedModelState(ModelState parent, Transformation transformation) implements ModelState {
-
     public ComposedModelState(ModelState parent, Transformation transformation) {
         this.parent = parent;
         this.transformation = parent.transformation().compose(transformation);
