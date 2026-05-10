@@ -2,6 +2,7 @@ package com.mohistmc.launcher.youer.feature;
 
 import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.util.I18n;
+import com.mohistmc.launcher.youer.util.JarLoader;
 import com.mohistmc.launcher.youer.util.JarModifier;
 import com.mohistmc.tools.FileUtils;
 import java.io.File;
@@ -61,6 +62,11 @@ public class AutoDeleteMods {
         put("snownee.pdgamerules.PDGameRulesMod", DeletionReason.DUPLICATE_FEATURE);
     }};
 
+    private static final Map<String, String> LIB_BLACKLIST = new HashMap<>() {{
+        put("cn.tohsaka.factory.zstdmc.Zstdmc", "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar;");
+        put("cn.tohsaka.factory.zstdnet.Zstdnet", "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar;");
+    }};
+
     /**
      * Mapping tables for classes to directories
      * Key: Detected class (e.g. "org.example.ModClass")
@@ -91,6 +97,8 @@ public class AutoDeleteMods {
             } catch (Exception ignored) {
             }
         }
+
+        syncLibBlacklistToJarLoader();
     }
 
     /**
@@ -178,6 +186,30 @@ public class AutoDeleteMods {
 
         public String getDisplayText() {
             return I18n.as("update.deleting.reason." + i18nKey);
+        }
+    }
+
+    public static void syncLibBlacklistToJarLoader() {
+        for (Map.Entry<String, String> entry : LIB_BLACKLIST.entrySet()) {
+            String className = entry.getKey();
+            String jarName = entry.getValue();
+
+            File modsDir = new File("mods");
+            if (!modsDir.exists()) {
+                continue;
+            }
+
+            File[] jarFiles = modsDir.listFiles((dir, name) -> name.endsWith(".jar"));
+            if (jarFiles != null && jarFiles.length > 0) {
+                try {
+                    String classPath = className.replaceAll("\\.", "/") + ".class";
+                    if (FileUtils.fileExists(jarFiles[0], classPath)) {
+                        JarLoader.addToBlacklist(jarName);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to check lib blacklist for: " + jarName + " - " + e.getMessage());
+                }
+            }
         }
     }
 }

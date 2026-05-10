@@ -135,7 +135,11 @@ public class YouerModuleManager {
                     exports.add(arg.substring("--add-exports ".length()).trim());
                 } else if (arg.startsWith("-D")) {
                     var split = arg.substring(2).split("=", 2);
-                    System.setProperty(split[0], split[1]);
+                    String value = split[1];
+                    for (String blib : JarLoader.getBlacklist()) {
+                        value = value.replace(blib, "");
+                    }
+                    System.setProperty(split[0], value);
                 }
             }
         }
