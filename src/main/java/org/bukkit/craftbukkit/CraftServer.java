@@ -1025,8 +1025,7 @@ public final class CraftServer implements Server {
 
     // NOTE: Should only be called from DedicatedServer.ah()
     public boolean dispatchServerCommand(CommandSender sender, ConsoleInput serverCommand) {
-        if (sender instanceof Conversable) {
-            Conversable conversable = (Conversable) sender;
+        if (sender instanceof Conversable conversable) {
 
             if (conversable.isConversing()) {
                 conversable.acceptConversationInput(serverCommand.msg);
@@ -1194,7 +1193,7 @@ public final class CraftServer implements Server {
         int pollCount = 0;
 
         // Wait for at most 2.5 seconds for plugins to close their threads
-        while (pollCount < 50 && this.getScheduler().getActiveWorkers().size() > 0) {
+        while (pollCount < 50 && !this.getScheduler().getActiveWorkers().isEmpty()) {
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {}

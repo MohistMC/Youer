@@ -60,6 +60,8 @@ public class AutoDeleteMods {
         //put("carpet.CarpetServer", DeletionReason.DUPLICATE_FEATURE);
         put("io.github.reserveword.imblocker.IMBlocker", DeletionReason.CLIENT_ONLY);
         put("snownee.pdgamerules.PDGameRulesMod", DeletionReason.DUPLICATE_FEATURE);
+        put("com.xinian.KryptonHybrid.kryptonhybrid", DeletionReason.DUPLICATE_FEATURE);
+        put("com.wfphantom.stfudisconnect.STFUDisconnect", DeletionReason.DUPLICATE_FEATURE);
     }};
 
     private static final Map<String, String> LIB_BLACKLIST = new HashMap<>() {{
@@ -87,6 +89,7 @@ public class AutoDeleteMods {
             } catch (Exception ignored) {
             }
         }
+        syncLibBlacklistToJarLoader();
         if (!YouerConfigUtil.AutoDeleteMods()) return;
         System.out.println(I18n.as("update.mods"));
 
@@ -97,8 +100,6 @@ public class AutoDeleteMods {
             } catch (Exception ignored) {
             }
         }
-
-        syncLibBlacklistToJarLoader();
     }
 
     /**
@@ -200,14 +201,15 @@ public class AutoDeleteMods {
             }
 
             File[] jarFiles = modsDir.listFiles((dir, name) -> name.endsWith(".jar"));
-            if (jarFiles != null && jarFiles.length > 0) {
+            if (jarFiles == null) return;
+
+            for (File jarFile : jarFiles) {
                 try {
                     String classPath = className.replaceAll("\\.", "/") + ".class";
-                    if (FileUtils.fileExists(jarFiles[0], classPath)) {
+                    if (FileUtils.fileExists(jarFile, classPath)) {
                         JarLoader.addToBlacklist(jarName);
                     }
-                } catch (Exception e) {
-                    System.err.println("Failed to check lib blacklist for: " + jarName + " - " + e.getMessage());
+                } catch (Exception ignored) {
                 }
             }
         }
