@@ -4,6 +4,7 @@ import com.google.common.collect.Sets;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.bukkit.entity.CraftFakePlayer;
 import com.mohistmc.youer.feature.YouerPlugin;
+import com.mohistmc.youer.util.I18n;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,9 +40,9 @@ class PaperEventManager {
         if (!YouerConfig.fakeplayer_callbukkitevent && event instanceof PlayerEvent playerEvent && playerEvent.getPlayer() instanceof CraftFakePlayer) return; // Youer
         YouerPlugin.registerListener(event); // Youer
         if (event.isAsynchronous() && this.server.isPrimaryThread()) {
-            throw new IllegalStateException(event.getEventName() + " may only be triggered asynchronously.");
+            throw new IllegalStateException(I18n.as("papereventmanager.1", event.getEventName()));
         } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
-            throw new IllegalStateException(event.getEventName() + " may only be triggered synchronously.");
+            throw new IllegalStateException(I18n.as("papereventmanager.2", event.getEventName(), Thread.currentThread().toString()));
         }
 
         HandlerList handlers = event.getHandlers();
