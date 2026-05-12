@@ -52,7 +52,7 @@
  import net.minecraft.world.level.entity.EntityTypeTest;
  import net.minecraft.world.level.entity.LevelEntityGetter;
  import net.minecraft.world.level.gameevent.GameEvent;
-@@ -75,8 +_,28 @@
+@@ -75,8 +_,29 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.Scoreboard;
@@ -75,6 +75,7 @@
 +import org.bukkit.event.block.BlockPhysicsEvent;
 +import org.bukkit.generator.BiomeProvider;
 +import org.bukkit.generator.ChunkGenerator;
++import org.spigotmc.AsyncCatcher;
 +import org.spigotmc.SpigotWorldConfig;
  
 -public abstract class Level implements LevelAccessor, AutoCloseable, net.neoforged.neoforge.common.extensions.ILevelExtension {
@@ -451,7 +452,7 @@
                          int i = p_46607_ & -34;
                          blockstate.updateIndirectNeighbourShapes(this, p_46605_, i, p_46608_ - 1);
 +                        // CraftBukkit start
-+                        if (this instanceof ServerLevel serverLevel) {
++                        if (!AsyncCatcher.catchAsync() && this instanceof ServerLevel serverLevel) {
 +                            CraftWorld world = serverLevel.getWorld();
 +                            if (world != null && serverLevel.hasPhysicsEvent) { // Paper - BlockPhysicsEvent
 +                                BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(p_46605_.getX(), p_46605_.getY(), p_46605_.getZ()), CraftBlockData.fromData(blockstate1));
@@ -512,7 +513,7 @@
 +                // CraftBukkit start
 +                iblockdata1.updateIndirectNeighbourShapes(this, blockposition, k, j - 1); // Don't call an event for the old block to limit event spam
 +                boolean cancelledUpdates = false; // Paper - Fix block place logic
-+                if (this instanceof ServerLevel serverLevel) {
++                if (!AsyncCatcher.catchAsync() && this instanceof ServerLevel serverLevel) {
 +                    CraftWorld world = serverLevel.getWorld();
 +                    if (world != null && serverLevel.hasPhysicsEvent) { // Paper - BlockPhysicsEvent
 +                        BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ()), CraftBlockData.fromData(iblockdata));
