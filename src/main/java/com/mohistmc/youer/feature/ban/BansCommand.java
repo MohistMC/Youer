@@ -150,6 +150,34 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + check);
                             return false;
                         }
+
+                        if (args.length >= 3) {
+                            String blockName = args[2];
+                            Material material = Material.matchMaterial(blockName);
+
+                            if (material == null) {
+                                sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.block.invalid").formatted(blockName));
+                                return false;
+                            }
+
+                            if (material.isAirSafe()) {
+                                sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.block.air"));
+                                return false;
+                            }
+
+                            String blockKey = material.getKey().asString();
+                            List<String> old = BanConfig.getListByType(BanType.BLOCK);
+                            if (old.contains(blockKey)) {
+                                sender.sendMessage(ChatColor.YELLOW + I18n.as("banscmd.add.block.exists").formatted(blockKey));
+                                return false;
+                            }
+
+                            old.add(blockKey);
+                            BanUtils.saveToYaml(player, com.mohistmc.youer.feature.ban.ClickType.ADD, old, BanType.BLOCK);
+                            sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.add.block.success").formatted(blockKey));
+                            return true;
+                        }
+
                         BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.BLOCK, I18n.as("banscmd.gui.add.block"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
@@ -313,7 +341,8 @@ public class BansCommand extends Command {
                         for (String s : BanConfig.getListByType(BanType.BLOCK)) {
                             Material material = Material.matchMaterial(s);
                             if (material != null && !material.isAirSafe()) {
-                                wh.addItem(new GUIItem(new ItemStackFactory(material)
+                                Material displayMaterial = material.isItem() ? material : Material.STRUCTURE_VOID;
+                                wh.addItem(new GUIItem(new ItemStackFactory(displayMaterial)
                                         .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
                                         .build()) {
@@ -465,6 +494,15 @@ public class BansCommand extends Command {
             return BanWorld.CACHE.stream()
                     .map(ResourceLocation::toString)
                     .toList();
+        }
+
+        if (args.length == 3 && args[0].equals("add") && args[1].equals("block") && (sender.isOp() || testPermission(sender))) {
+            return java.util.Arrays.stream(Material.values())
+                    .filter(m -> m.isBlock() && !m.isAirSafe() && !m.isLegacy())
+                    .map(m -> m.getKey().asString())
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .limit(50)
+                    .collect(Collectors.toList());
         }
 
         return list;
