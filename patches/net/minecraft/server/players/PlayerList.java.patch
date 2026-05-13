@@ -382,7 +382,7 @@
      }
  
      public void updateEntireScoreboard(ServerScoreboard p_11274_, ServerPlayer p_11275_) {
-@@ -287,6 +_,7 @@
+@@ -287,30 +_,31 @@
      }
  
      public void addWorldborderListener(ServerLevel p_184210_) {
@@ -390,7 +390,9 @@
          p_184210_.getWorldBorder().addListener(new BorderChangeListener() {
              @Override
              public void onBorderSizeSet(WorldBorder p_11321_, double p_11322_) {
-@@ -295,22 +_,22 @@
+-                PlayerList.this.broadcastAll(new ClientboundSetBorderSizePacket(p_11321_));
++                PlayerList.this.broadcastAll(new ClientboundSetBorderSizePacket(p_11321_), p_11321_.world); // CraftBukkit
+             }
  
              @Override
              public void onBorderSizeLerping(WorldBorder p_11328_, double p_11329_, double p_11330_, long p_11331_) {
@@ -1147,9 +1149,12 @@
      public UserWhiteList getWhiteList() {
          return this.whitelist;
      }
-@@ -682,23 +_,36 @@
+@@ -680,25 +_,38 @@
+     }
+ 
      public void sendLevelInfo(ServerPlayer p_11230_, ServerLevel p_11231_) {
-         WorldBorder worldborder = this.server.overworld().getWorldBorder();
+-        WorldBorder worldborder = this.server.overworld().getWorldBorder();
++        WorldBorder worldborder = p_11230_.level().getWorldBorder(); // CraftBukkit
          p_11230_.connection.send(new ClientboundInitializeBorderPacket(worldborder));
 +        if (p_11230_.connection.hasChannel(net.neoforged.neoforge.network.payload.ClientboundCustomSetTimePayload.TYPE)) {
 +            p_11230_.connection.send(new net.neoforged.neoforge.network.payload.ClientboundCustomSetTimePayload(p_11231_.getGameTime(), p_11231_.getDayTime(), p_11231_.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT), p_11231_.getDayTimeFraction(), p_11231_.getDayTimePerTick()));
