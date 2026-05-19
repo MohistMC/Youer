@@ -606,7 +606,7 @@
              IpBanListEntry ipbanlistentry = this.ipBans.get(p_11257_);
              MutableComponent mutablecomponent = Component.translatable("multiplayer.disconnect.banned_ip.reason", ipbanlistentry.getReason());
              if (ipbanlistentry.getExpires() != null) {
-@@ -402,19 +_,30 @@
+@@ -402,19 +_,38 @@
                  );
              }
  
@@ -617,13 +617,6 @@
 -                ? Component.translatable("multiplayer.disconnect.server_full")
 -                : null;
 -        }
--    }
--
--    public ServerPlayer getPlayerForLogin(GameProfile p_215625_, ClientInformation p_302018_) {
--        return new ServerPlayer(this.server, this.server.overworld(), p_215625_, p_302018_);
--    }
--
--    public boolean disconnectAllPlayersWithProfile(GameProfile p_295670_) {
 +            if (this.players.size() >= this.maxPlayers && !this.canBypassPlayerLimit(p_11258_)) {
 +                event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_FULL, ColorAPI.adventure(org.spigotmc.SpigotConfig.serverFullMessage)); // Spigot // Paper - Adventure
 +            }
@@ -635,11 +628,22 @@
 +            return io.papermc.paper.adventure.PaperAdventure.asVanilla(event.kickMessage());
 +        }
 +        return null;
+     }
+ 
++    @Deprecated
+     public ServerPlayer getPlayerForLogin(GameProfile p_215625_, ClientInformation p_302018_) {
+         return new ServerPlayer(this.server, this.server.overworld(), p_215625_, p_302018_);
+-    }
+-
+-    public boolean disconnectAllPlayersWithProfile(GameProfile p_295670_) {
++        // CraftBukkit end
 +    }
 +
 +    // CraftBukkit start - added ServerPlayer
 +    public ServerPlayer getPlayerForLogin(GameProfile p_215625_, ClientInformation p_302018_, ServerPlayer player) {
++        var magic_ = getPlayerForLogin(p_215625_, p_302018_);
 +        player.updateOptions(p_302018_);
++        player.setServerLevel(magic_.serverLevel());
 +        return player;
 +        // CraftBukkit end
 +    }
