@@ -4623,7 +4623,7 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     public static final Map<String, Material> BY_NAME = Maps.newHashMap();
     public static final Map<String, Material> BY_KEY = Maps.newHashMap();
     private final int maxStack;
-    private final short durability;
+    private short durability;
     public final Class<?> data;
     private final boolean legacy;
     public NamespacedKey key;
@@ -4637,10 +4637,11 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     }
 
     // Youer start - constructor used to set if the Material is a block or not
-    private Material(final int id, final int stack, boolean isForgeBlock, boolean isForgeItem) {
+    private Material(final int id, final int stack, short durability, boolean isForgeBlock, boolean isForgeItem) {
         this(id, stack);
         this.isModBlock = isForgeBlock;
         this.isModItem = isForgeItem;
+        this.durability = durability;
     }
     // Youer end
 
@@ -5650,20 +5651,20 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
         return blockType.get();
     }
 
-    public static Material addMaterial(String materialName, int id, int stack, boolean isBlock, boolean isItem, ResourceLocation resourceLocation) {
+    public static Material addMaterial(String materialName, int id, int stack, short durability, boolean isBlock, boolean isItem, ResourceLocation resourceLocation) {
         if (isBlock) {
             Material material = BY_NAME.get(materialName);
             if (material != null) {
                 material.isModBlock = true;
             } else {
-                material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
+                material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Short.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, durability, isBlock, isItem));
             }
             BY_NAME.put(materialName, material);
             material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
             BY_KEY.put(resourceLocation.toString(), material);
             return material;
         } else { // Forge Items
-            Material material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
+            Material material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Short.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, durability, isBlock, isItem));
             BY_NAME.put(materialName, material);
             material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
             material.isModItem = true;
