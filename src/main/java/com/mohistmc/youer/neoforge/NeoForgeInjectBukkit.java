@@ -109,9 +109,8 @@ public class NeoForgeInjectBukkit {
             if (isMod || CraftMagicNumbers.getMaterial(item) == null) {
                 int id = Item.getId(item);
                 int maxStackSize = item.getDefaultInstance().getMaxStackSize();
-                short maxDamage = (short) item.getDefaultInstance().getMaxDamage();
 
-                Material material = Material.addMaterial(materialName, id, maxStackSize, maxDamage, false, true, resourceLocation);
+                Material material = Material.addMaterial(materialName, id, maxStackSize, false, true, resourceLocation);
 
                 if (material != null) {
                     CraftMagicNumbers.ITEM_MATERIAL.put(item, material);
@@ -133,9 +132,8 @@ public class NeoForgeInjectBukkit {
                 int id = Item.getId(block.asItem());
                 Item item = Item.byId(id);
                 int maxStackSize = item.getDefaultInstance().getMaxStackSize();
-                short maxDamage = (short) item.getDefaultInstance().getMaxDamage();
 
-                Material material = Material.addMaterial(materialName, id, maxStackSize, maxDamage, true, false, resourceLocation);
+                Material material = Material.addMaterial(materialName, id, maxStackSize, true, false, resourceLocation);
                 if (material != null) {
                     CraftMagicNumbers.BLOCK_MATERIAL.put(block, material);
                     CraftMagicNumbers.MATERIAL_BLOCK.put(material, block);
