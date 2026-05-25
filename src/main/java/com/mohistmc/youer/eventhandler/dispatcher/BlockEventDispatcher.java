@@ -72,11 +72,11 @@ public class BlockEventDispatcher {
         if (player instanceof ServerPlayer serverPlayer && !(player instanceof FakePlayer)) {
             if (level instanceof ServerLevel) {
                 BlockBreakEvent bukkitEvent = new BlockBreakEvent(bblock, serverPlayer.getBukkitEntity());
+                Bukkit.getPluginManager().callEvent(bukkitEvent);
                 if (event.isCanceled()) {
                     bukkitEvent.setCancelled(true);
                 }
                 event.setDropItems(bukkitEvent.isDropItems());
-                Bukkit.getPluginManager().callEvent(bukkitEvent);
                 if (!event.isCanceled() && bukkitEvent.isCancelled()) {
                     event.setCanceled(true);
                 }
@@ -136,10 +136,10 @@ public class BlockEventDispatcher {
                 replacedBlockState.setData(event.getBlockSnapshot().getState());
                 boolean canBuild = CraftEventFactory.canBuild(serverLevel, player, placedBlock.getX(), placedBlock.getZ());
                 BlockPlaceEvent placeEvent = new BlockPlaceEvent(placedBlock, replacedBlockState, againstBlock, bukkitStack, player, canBuild, bukkitHand);
+                Bukkit.getPluginManager().callEvent(placeEvent);
                 if (event.isCanceled()) {
                     placeEvent.setCancelled(true);
                 }
-                Bukkit.getPluginManager().callEvent(placeEvent);
                 if (!event.isCanceled() && (placeEvent.isCancelled() || !placeEvent.canBuild())) {
                     placeEvent.getPlayer().updateInventory();
                     event.setCanceled(true);
@@ -180,10 +180,10 @@ public class BlockEventDispatcher {
                 }
                 BlockPlaceEvent placeEvent = new BlockMultiPlaceEvent(placedBlocks, againstBlock, bukkitStack, player, canBuild, equipmentSlot);
                 // Paper end
+                Bukkit.getPluginManager().callEvent(placeEvent);
                 if (event.isCanceled()) {
                     placeEvent.setCancelled(true);
                 }
-                Bukkit.getPluginManager().callEvent(placeEvent);
                 if (!event.isCanceled() && (placeEvent.isCancelled() || !placeEvent.canBuild())) {
                     placeEvent.getPlayer().updateInventory();
                     event.setCanceled(true);
