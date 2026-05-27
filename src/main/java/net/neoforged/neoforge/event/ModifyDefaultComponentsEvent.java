@@ -47,7 +47,7 @@ public final class ModifyDefaultComponentsEvent extends Event implements IModBus
 
     @ApiStatus.Internal
     public ModifyDefaultComponentsEvent(Map<Item, Initializer> modifiersByItem,
-                                        List<Pair<ItemWithComponentsPredicate, Initializer>> modifiersByPredicate) {
+            List<Pair<ItemWithComponentsPredicate, Initializer>> modifiersByPredicate) {
         this.modifiersByItem = modifiersByItem;
         this.modifiersByPredicate = modifiersByPredicate;
     }

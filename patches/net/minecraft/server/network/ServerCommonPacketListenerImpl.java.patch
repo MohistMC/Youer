@@ -101,7 +101,7 @@
          if (this.keepAlivePending && packet.getId() == this.keepAliveChallenge) {
              int time = (int)(Util.getMillis() - this.keepAliveTime);
              this.latency = (this.latency * 3 + time) / 4;
-@@ -93,12 +_,43 @@
+@@ -93,12 +_,44 @@
  
      @Override
      public void handleCustomPayload(ServerboundCustomPayloadPacket packet) {
@@ -143,7 +143,8 @@
      public void handleCustomClickAction(ServerboundCustomClickActionPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.server.packetProcessor());
 -        this.server.handleCustomClickAction(packet.id(), packet.payload());
-+        this.server.handleCustomClickAction(packet.id(), packet.payload(), this.player); // CraftBukkit - add player
++        // this.server.handleCustomClickAction(packet.id(), packet.payload(), this.player); // CraftBukkit - add player
++        this.server.handleCustomClickAction(packet.id(), packet.payload(), this instanceof ServerGamePacketListenerImpl gamePacketListener ? gamePacketListener.getPlayer() : this.player, this.playerProfile());
      }
  
      @Override

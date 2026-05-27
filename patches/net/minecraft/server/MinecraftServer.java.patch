@@ -240,7 +240,7 @@
 +        // CraftBukkit start
 +        this.options = options;
 +        this.worldLoader = worldLoader;
-+        this.vanillaCommandDispatcher = worldStem.dataPackResources().commands; // CraftBukkit
++        this.vanillaCommandDispatcher = worldStem.dataPackResources().getCommands(); // CraftBukkit
 +        // Try to see if we're actually running in a terminal, disable jline if not
 +        if (System.console() == null && System.getProperty(TerminalBuilder.PROP_PROVIDER) == null) {
 +            System.setProperty(TerminalBuilder.PROP_PROVIDER, Terminal.TYPE_DUMB);
@@ -1165,20 +1165,22 @@
      public ChatDecorator getChatDecorator() {
          return ChatDecorator.PLAIN;
      }
-@@ -2080,8 +_,11 @@
+@@ -2080,6 +_,15 @@
          return true;
      }
  
--    public void handleCustomClickAction(Identifier id, Optional<Tag> payload) {
--        LOGGER.debug("Received custom click action {} with payload {}", id, payload.orElse(null));
-+    // CraftBukkit start - add player
-+    public void handleCustomClickAction(Identifier identifier, Optional<Tag> optional, ServerPlayer player) {
-+        MinecraftServer.LOGGER.debug("Received custom click action {} with payload {}", identifier, optional.orElse(null)); // CraftBukkit - decompile error
-+        CraftEventFactory.callPlayerCustomClickEvent(identifier, optional, player);
-+        // CraftBukkit end
++    public void handleCustomClickAction(Identifier id, Optional<Tag> payload, @Nullable ServerPlayer player, GameProfile profile) {
++        if (!net.neoforged.neoforge.common.CommonHooks.onCustomClickAction(player, profile, id, payload)) {
++            CraftEventFactory.callPlayerCustomClickEvent(id, payload, player);
++            handleCustomClickAction(id, payload);
++        }
++    }
++
++    /// @deprecated Neo: Use the overload that has the player context and triggers the appropriate event.
++    @Deprecated
+     public void handleCustomClickAction(Identifier id, Optional<Tag> payload) {
+         LOGGER.debug("Received custom click action {} with payload {}", id, payload.orElse(null));
      }
- 
-     public LevelLoadListener getLevelLoadListener() {
 @@ -2111,12 +_,12 @@
          return false;
      }
