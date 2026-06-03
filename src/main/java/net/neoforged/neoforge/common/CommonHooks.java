@@ -6,6 +6,7 @@
 package net.neoforged.neoforge.common;
 
 import com.google.common.base.CaseFormat;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -313,10 +314,12 @@ public class CommonHooks {
      * @param entity    the entity to receive damage
      * @param container the newly instantiated container for damage to be dealt. Most properties of
      *                  the container will be empty at this stage.
-     * @return if the event is cancelled and no damage will be applied to the entity
+     * @return if the event is cancelled or the entity was killed during the event. If true, further processing stops and no damage will be applied to the entity
      */
     public static boolean onEntityIncomingDamage(LivingEntity entity, DamageContainer container) {
-        return NeoForge.EVENT_BUS.post(new LivingIncomingDamageEvent(entity, container)).isCanceled();
+        Preconditions.checkArgument(!entity.isDeadOrDying(), "The LivingIncomingDamageEvent cannot be fired with a dead entity.");
+        var event = NeoForge.EVENT_BUS.post(new LivingIncomingDamageEvent(entity, container));
+        return event.isCanceled() || entity.isDeadOrDying();
     }
 
     public static LivingKnockBackEvent onLivingKnockBack(LivingEntity target, float strength, double ratioX, double ratioZ) {
@@ -822,12 +825,14 @@ public class CommonHooks {
         return true;
     }
 
-    private static ThreadLocal<Player> craftingPlayer = new ThreadLocal<Player>();
 
-    public static void setCraftingPlayer(Player player) {
+    private static final ThreadLocal<@Nullable Player> craftingPlayer = new ThreadLocal<>();
+
+    public static void setCraftingPlayer(@Nullable Player player) {
         craftingPlayer.set(player);
     }
 
+    @Nullable
     public static Player getCraftingPlayer() {
         return craftingPlayer.get();
     }

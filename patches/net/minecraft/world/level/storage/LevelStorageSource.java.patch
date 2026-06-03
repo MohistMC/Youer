@@ -89,12 +89,13 @@
              Objects.requireNonNull(LevelStorageSource.this);
              super();
              this.resources = Maps.newHashMap();
-@@ -522,7 +_,7 @@
+@@ -522,7 +_,8 @@
          }
  
          public Path getDimensionPath(ResourceKey<Level> name) {
 -            return DimensionType.getStorageFolder(name, this.levelDirectory.path());
-+            return DimensionType.getStorageFolder(net.minecraft.core.registries.Registries.levelStemToLevel(this.dimensionType), this.levelDirectory.path()); // CraftBukkit
++            if (this.dimensionType != null) name = net.minecraft.core.registries.Registries.levelStemToLevel(this.dimensionType);
++            return DimensionType.getStorageFolder(name, this.levelDirectory.path()); // CraftBukkit
          }
  
          private void checkLock() {
