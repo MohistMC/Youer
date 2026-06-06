@@ -160,10 +160,13 @@ public final class CraftPlayerProfile implements PlayerProfile, SharedPlayerProf
         }
 
         // Look up properties such as the textures:
-        if (!profile.getId().equals(Util.NIL_UUID)) {
-            ProfileResult newProfile = server.getSessionService().fetchProfile(profile.getId(), true);
-            if (newProfile != null) {
-                profile = newProfile.profile();
+        if (!profile.getId().equals(Util.NIL_UUID) && server.usesAuthentication()) {
+            try {
+                ProfileResult newProfile = server.getSessionService().fetchProfile(profile.getId(), true);
+                if (newProfile != null) {
+                    profile = newProfile.profile();
+                }
+            } catch (Exception ignored) {
             }
         }
 
