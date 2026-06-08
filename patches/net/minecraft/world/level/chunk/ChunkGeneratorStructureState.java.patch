@@ -8,6 +8,14 @@
  import java.util.stream.Collectors;
  import java.util.stream.Stream;
  import javax.annotation.Nullable;
+@@ -20,6 +_,7 @@
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.HolderSet;
+ import net.minecraft.core.SectionPos;
++import net.minecraft.resources.ResourceLocation;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.biome.Biome;
 @@ -28,8 +_,10 @@
  import net.minecraft.world.level.levelgen.structure.Structure;
  import net.minecraft.world.level.levelgen.structure.StructureSet;
@@ -38,7 +46,7 @@
      }
  
      public static ChunkGeneratorStructureState createForNormal(
-@@ -55,8 +_,63 @@
+@@ -55,8 +_,68 @@
          List<Holder<StructureSet>> list = p_256659_.listElements()
              .filter(p_256144_ -> hasBiomesForStructureSet(p_256144_.value(), p_256653_))
              .collect(Collectors.toUnmodifiableList());
@@ -60,13 +68,16 @@
 +    // Spigot start
 +    public static AtomicReference<SpigotWorldConfig> injectSpigot$conf = new AtomicReference<>();
 +    private static List<Holder<StructureSet>> injectSpigot(List<Holder<StructureSet>> list) {
-+        return list.stream().map((holder) -> {
-+            StructureSet structureset = holder.value();
++        // Paper - Add missing structure set seed configs; check namespace cause datapacks could add structure sets with the same path
++        // I really wish we didn't have to do this here
++        List<Holder<StructureSet>> result = new ArrayList<>();
++        for (Holder<StructureSet> structureSetHolder : list) {
++            StructureSet structureset = structureSetHolder.value();
 +            final Holder<StructureSet> newHolder; // Paper - Add missing structure set seed configs
-+            if (structureset.placement() instanceof RandomSpreadStructurePlacement randomConfig && holder.unwrapKey().orElseThrow().location().getNamespace().equals(net.minecraft.resources.ResourceLocation.DEFAULT_NAMESPACE)) { // Paper - Add missing structure set seed configs; check namespace cause datapacks could add structure sets with the same path
-+                String name = holder.unwrapKey().orElseThrow().location().getPath();
++            if (structureset.placement() instanceof RandomSpreadStructurePlacement randomConfig && structureSetHolder.unwrapKey().orElseThrow().location().getNamespace().equals(ResourceLocation.DEFAULT_NAMESPACE)) { // Paper - Add missing structure set seed configs; check namespace cause datapacks could add structure sets with the same path
++                String name = structureSetHolder.unwrapKey().orElseThrow().location().getPath();
 +                int seed = randomConfig.salt;
-+                org.spigotmc.SpigotWorldConfig conf = injectSpigot$conf.getAndSet(null);
++                SpigotWorldConfig conf = injectSpigot$conf.getAndSet(null);
 +                if (conf != null) {
 +                    seed = switch (name) {
 +                        case "desert_pyramids" -> conf.desertSeed;
@@ -92,13 +103,15 @@
 +                    };
 +                }
 +                // Paper start - Add missing structure set seed configs
-+                structureset = new StructureSet(structureset.structures(), new KeyedRandomSpreadStructurePlacement(holder.unwrapKey().orElseThrow(), randomConfig.locateOffset, randomConfig.frequencyReductionMethod, randomConfig.frequency, seed, randomConfig.exclusionZone, randomConfig.spacing(), randomConfig.separation(), randomConfig.spreadType()));
++                structureset = new StructureSet(structureset.structures(), new KeyedRandomSpreadStructurePlacement(structureSetHolder.unwrapKey().orElseThrow(), randomConfig.locateOffset, randomConfig.frequencyReductionMethod, randomConfig.frequency, seed, randomConfig.exclusionZone, randomConfig.spacing(), randomConfig.separation(), randomConfig.spreadType()));
 +                newHolder = Holder.direct(structureset); // I really wish we didn't have to do this here
 +            } else {
-+                newHolder = holder;
++                newHolder = structureSetHolder;
 +            }
-+            return newHolder;
-+        }).toList();
++            Holder<StructureSet> apply = newHolder;
++            result.add(apply);
++        }
++        return result;
 +    }
 +    // Spigot end
  
