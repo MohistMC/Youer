@@ -52,21 +52,23 @@
          p_150664_.onCraftedBy(p_150663_.level(), p_150663_, p_150664_.getCount());
          this.resultSlots.awardUsedRecipes(p_150663_, this.getRelevantItems());
          this.shrinkStackInSlot(0);
-@@ -91,16 +_,19 @@
+@@ -91,16 +_,23 @@
          SmithingRecipeInput smithingrecipeinput = this.createRecipeInput();
          List<RecipeHolder<SmithingRecipe>> list = this.level.getRecipeManager().getRecipesFor(RecipeType.SMITHING, smithingrecipeinput, this.level);
          if (list.isEmpty()) {
--            this.resultSlots.setItem(0, ItemStack.EMPTY);
-+            CraftEventFactory.callPrepareSmithingEvent(getBukkitView(), ItemStack.EMPTY); // CraftBukkit
++            this.resultSlots.fakeSetItem();
+             this.resultSlots.setItem(0, ItemStack.EMPTY);
++            CraftEventFactory.callPrepareSmithingEvent(getBukkitView(), this.resultSlots.setItem$itemStack()); // CraftBukkit
          } else {
              RecipeHolder<SmithingRecipe> recipeholder = list.get(0);
              ItemStack itemstack = recipeholder.value().assemble(smithingrecipeinput, this.level.registryAccess());
              if (itemstack.isItemEnabled(this.level.enabledFeatures())) {
                  this.selectedRecipe = recipeholder;
                  this.resultSlots.setRecipeUsed(recipeholder);
--                this.resultSlots.setItem(0, itemstack);
 +                // CraftBukkit start
-+                CraftEventFactory.callPrepareSmithingEvent(getBukkitView(), itemstack);
++                this.resultSlots.fakeSetItem();
+                 this.resultSlots.setItem(0, itemstack);
++                CraftEventFactory.callPrepareSmithingEvent(getBukkitView(), this.resultSlots.setItem$itemStack());
 +                // CraftBukkit end
              }
          }
