@@ -1,0 +1,31 @@
+--- a/net/minecraft/world/entity/ai/goal/target/TargetGoal.java
++++ b/net/minecraft/world/entity/ai/goal/target/TargetGoal.java
+@@ -10,6 +_,10 @@
+ import net.minecraft.world.scores.Team;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityTargetEvent;
++// CraftBukkit end
++
+ public abstract class TargetGoal extends Goal {
+     private static final int EMPTY_REACH_CACHE = 0;
+     private static final int CAN_REACH_CACHE = 1;
+@@ -62,7 +_,7 @@
+                         }
+                     }
+ 
+-                    this.mob.setTarget(target);
++                    this.mob.setTarget(target, EntityTargetEvent.TargetReason.CLOSEST_ENTITY, true); // CraftBukkit
+                     return true;
+                 }
+             }
+@@ -82,7 +_,7 @@
+ 
+     @Override
+     public void stop() {
+-        this.mob.setTarget(null);
++        this.mob.setTarget((LivingEntity) null, EntityTargetEvent.TargetReason.FORGOT_TARGET, true); // CraftBukkit
+         this.targetMob = null;
+     }
+ 

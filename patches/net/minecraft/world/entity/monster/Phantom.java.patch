@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/entity/monster/Phantom.java
++++ b/net/minecraft/world/entity/monster/Phantom.java
+@@ -235,11 +_,11 @@
+                 ServerLevel level = getServerLevel(Phantom.this.level());
+                 List<Player> players = level.getNearbyPlayers(this.attackTargeting, Phantom.this, Phantom.this.getBoundingBox().inflate(16.0, 64.0, 16.0));
+                 if (!players.isEmpty()) {
+-                    players.sort(Comparator.<Player, Double>comparing(Entity::getY).reversed());
++                    players.sort(Comparator.<Player, Double>comparing(e -> e.getY()).reversed()); // CraftBukkit - decompile error
+ 
+                     for (Player player : players) {
+                         if (Phantom.this.canAttack(level, player, TargetingConditions.DEFAULT)) {
+-                            Phantom.this.setTarget(player);
++                            Phantom.this.setTarget(player, org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER, true); // CraftBukkit - reason
+                             return true;
+                         }
+                     }

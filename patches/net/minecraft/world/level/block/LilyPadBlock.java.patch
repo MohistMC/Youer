@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/level/block/LilyPadBlock.java
++++ b/net/minecraft/world/level/block/LilyPadBlock.java
+@@ -34,6 +_,11 @@
+     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
+         super.entityInside(state, level, pos, entity, effectApplier, isPrecise);
+         if (level instanceof ServerLevel && entity instanceof AbstractBoat) {
++            // CraftBukkit start
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, pos, Blocks.AIR.defaultBlockState())) {
++                return;
++            }
++            // CraftBukkit end
+             level.destroyBlock(new BlockPos(pos), true, entity);
+         }
+     }

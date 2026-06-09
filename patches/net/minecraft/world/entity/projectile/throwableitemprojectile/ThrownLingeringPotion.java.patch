@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownLingeringPotion.java
++++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownLingeringPotion.java
+@@ -41,6 +_,13 @@
+         cloud.setWaitTime(10);
+         cloud.setRadiusPerTick(-cloud.getRadius() / cloud.getDuration());
+         cloud.applyComponentsFromItemStack(potionItem);
+-        level.addFreshEntity(cloud);
++        // CraftBukkit start
++        org.bukkit.event.entity.LingeringPotionSplashEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callLingeringPotionSplashEvent(this, hitResult, cloud);
++        if (!(event.isCancelled() || cloud.isRemoved())) {
++            this.level().addFreshEntity(cloud);
++        } else {
++            cloud.discard(null); // CraftBukkit - add Bukkit remove cause
++        }
++        // CraftBukkit end
+     }
+ }

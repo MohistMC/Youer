@@ -1,5 +1,19 @@
 --- a/net/minecraft/world/level/block/PowderSnowBlock.java
 +++ b/net/minecraft/world/level/block/PowderSnowBlock.java
+@@ -85,8 +_,12 @@
+             e -> {
+                 if (level instanceof ServerLevel serverLevel
+                     && e.isOnFire()
+-                    && (serverLevel.getGameRules().get(GameRules.MOB_GRIEFING) || e instanceof Player)
+                     && e.mayInteract(serverLevel, position)) {
++                    // CraftBukkit start
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(e, position, Blocks.AIR.defaultBlockState(), !(serverLevel.getGameRules().get(GameRules.MOB_GRIEFING) || e instanceof Player))) {
++                        return;
++                    }
++                    // CraftBukkit end
+                     level.destroyBlock(position, false);
+                 }
+             }
 @@ -138,7 +_,7 @@
          if (entity.is(EntityTypeTags.POWDER_SNOW_WALKABLE_MOBS)) {
              return true;

@@ -1,0 +1,26 @@
+--- a/net/minecraft/world/entity/animal/panda/Panda.java
++++ b/net/minecraft/world/entity/animal/panda/Panda.java
+@@ -70,6 +_,7 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.event.entity.EntityRemoveEvent;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class Panda extends Animal {
+@@ -528,13 +_,13 @@
+ 
+     @Override
+     protected void pickUpItem(ServerLevel level, ItemEntity entity) {
+-        if (this.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty() && canPickUpAndEat(entity)) {
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(this, entity, 0, !(this.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty() && canPickUpAndEat(entity))).isCancelled()) { // CraftBukkit
+             this.onItemPickup(entity);
+             ItemStack itemStack = entity.getItem();
+             this.setItemSlot(EquipmentSlot.MAINHAND, itemStack);
+             this.setGuaranteedDrop(EquipmentSlot.MAINHAND);
+             this.take(entity, itemStack.getCount());
+-            entity.discard();
++            entity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 

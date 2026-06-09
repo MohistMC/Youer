@@ -1,0 +1,27 @@
+--- a/net/minecraft/world/entity/npc/wanderingtrader/WanderingTraderSpawner.java
++++ b/net/minecraft/world/entity/npc/wanderingtrader/WanderingTraderSpawner.java
+@@ -90,13 +_,13 @@
+                     return false;
+                 }
+ 
+-                WanderingTrader trader = EntityType.WANDERING_TRADER.spawn(level, spawnPosition, EntitySpawnReason.EVENT);
++                WanderingTrader trader = EntityType.WANDERING_TRADER.spawn(level, spawnPosition, EntitySpawnReason.EVENT, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL); // CraftBukkit
+                 if (trader != null) {
+                     for (int i = 0; i < 2; i++) {
+                         this.tryToSpawnLlamaFor(level, trader, 4);
+                     }
+ 
+-                    trader.setDespawnDelay(48000);
++                    // trader.setDespawnDelay(48000); // CraftBukkit - moved to WanderingTrader constructor. This lets the value be modified by plugins on CreatureSpawnEvent
+                     trader.setWanderTarget(referencePos);
+                     trader.setHomeTo(referencePos, 16);
+                     return true;
+@@ -110,7 +_,7 @@
+     private void tryToSpawnLlamaFor(ServerLevel level, WanderingTrader trader, int radius) {
+         BlockPos spawnPosition = this.findSpawnPositionNear(level, trader.blockPosition(), radius);
+         if (spawnPosition != null) {
+-            TraderLlama llama = EntityType.TRADER_LLAMA.spawn(level, spawnPosition, EntitySpawnReason.EVENT);
++            TraderLlama llama = EntityType.TRADER_LLAMA.spawn(level, spawnPosition, EntitySpawnReason.EVENT, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL); // CraftBukkit
+             if (llama != null) {
+                 llama.setLeashedTo(trader, true);
+             }

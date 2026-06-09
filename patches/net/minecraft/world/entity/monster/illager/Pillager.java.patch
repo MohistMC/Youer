@@ -1,5 +1,16 @@
 --- a/net/minecraft/world/entity/monster/illager/Pillager.java
 +++ b/net/minecraft/world/entity/monster/illager/Pillager.java
+@@ -55,6 +_,10 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public class Pillager extends AbstractIllager implements CrossbowAttackMob, InventoryCarrier {
+     private static final EntityDataAccessor<Boolean> IS_CHARGING_CROSSBOW = SynchedEntityData.defineId(Pillager.class, EntityDataSerializers.BOOLEAN);
+     private static final int INVENTORY_SIZE = 5;
 @@ -97,7 +_,7 @@
  
      @Override
@@ -18,3 +29,12 @@
              return AbstractIllager.IllagerArmPose.CROSSBOW_HOLD;
          } else {
              return this.isAggressive() ? AbstractIllager.IllagerArmPose.ATTACKING : AbstractIllager.IllagerArmPose.NEUTRAL;
+@@ -215,7 +_,7 @@
+             this.onItemPickup(entity);
+             ItemStack remainder = this.inventory.addItem(itemStack);
+             if (remainder.isEmpty()) {
+-                entity.discard();
++                entity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             } else {
+                 itemStack.setCount(remainder.getCount());
+             }

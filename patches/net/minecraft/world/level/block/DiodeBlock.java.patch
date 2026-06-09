@@ -1,5 +1,24 @@
 --- a/net/minecraft/world/level/block/DiodeBlock.java
 +++ b/net/minecraft/world/level/block/DiodeBlock.java
+@@ -56,8 +_,18 @@
+             boolean on = state.getValue(POWERED);
+             boolean shouldTurnOn = this.shouldTurnOn(level, pos, state);
+             if (on && !shouldTurnOn) {
++                // CraftBukkit start
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(level, pos, 15, 0).getNewCurrent() != 0) {
++                    return;
++                }
++                // CraftBukkit end
+                 level.setBlock(pos, state.setValue(POWERED, false), 2);
+             } else if (!on) {
++                // CraftBukkit start
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(level, pos, 0, 15).getNewCurrent() != 15) {
++                    return;
++                }
++                // CraftBukkit end
+                 level.setBlock(pos, state.setValue(POWERED, true), 2);
+                 if (!shouldTurnOn) {
+                     level.scheduleTick(pos, this, this.getDelay(state), TickPriority.VERY_HIGH);
 @@ -175,6 +_,8 @@
      protected void updateNeighborsInFront(Level level, BlockPos pos, BlockState state) {
          Direction direction = state.getValue(FACING);

@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/level/block/DecoratedPotBlock.java
++++ b/net/minecraft/world/level/block/DecoratedPotBlock.java
+@@ -209,6 +_,11 @@
+     protected void onProjectileHit(Level level, BlockState state, BlockHitResult blockHit, Projectile projectile) {
+         BlockPos pos = blockHit.getBlockPos();
+         if (level instanceof ServerLevel serverLevel && projectile.mayInteract(serverLevel, pos) && projectile.mayBreak(serverLevel)) {
++            // CraftBukkit start - call EntityChangeBlockEvent
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(projectile, pos, this.getFluidState(state).createLegacyBlock())) {
++                return;
++            }
++            // CraftBukkit end
+             level.setBlock(pos, state.setValue(CRACKED, true), 260);
+             level.destroyBlock(pos, true, projectile);
+         }

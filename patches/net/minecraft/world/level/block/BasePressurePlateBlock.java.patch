@@ -1,0 +1,31 @@
+--- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
++++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
+@@ -20,6 +_,7 @@
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.event.block.BlockRedstoneEvent;
+ import org.jspecify.annotations.Nullable;
+ 
+ public abstract class BasePressurePlateBlock extends Block {
+@@ -94,6 +_,20 @@
+         int signal = this.getSignalStrength(level, pos);
+         boolean wasPressed = oldSignal > 0;
+         boolean isPressed = signal > 0;
++
++        // CraftBukkit start - Interact Pressure Plate
++        org.bukkit.World bworld = level.getWorld();
++        org.bukkit.plugin.PluginManager manager = level.getCraftServer().getPluginManager();
++
++        if (wasPressed != isPressed) {
++            BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(bworld.getBlockAt(pos.getX(), pos.getY(), pos.getZ()), oldSignal, signal);
++            manager.callEvent(eventRedstone);
++
++            isPressed = eventRedstone.getNewCurrent() > 0;
++            signal = eventRedstone.getNewCurrent();
++        }
++        // CraftBukkit end
++
+         if (oldSignal != signal) {
+             BlockState newState = this.setSignalForState(state, signal);
+             level.setBlock(pos, newState, 2);

@@ -60,7 +60,7 @@
              level.gameEvent(player, GameEvent.BLOCK_CHANGE, pos);
              return InteractionResult.SUCCESS;
          }
-@@ -116,12 +_,44 @@
+@@ -116,7 +_,7 @@
      }
  
      public Block getPotted() {
@@ -69,10 +69,10 @@
      }
  
      @Override
-     protected boolean isPathfindable(BlockState state, PathComputationType type) {
+@@ -124,6 +_,38 @@
          return false;
-+    }
-+
+     }
+ 
 +    // Neo: Maps flower blocks to the filled flower pot equivalent
 +    private final Map<net.minecraft.resources.Identifier, java.util.function.Supplier<? extends Block>> fullPots;
 +
@@ -103,6 +103,26 @@
 +     */
 +    public Map<net.minecraft.resources.Identifier, java.util.function.Supplier<? extends Block>> getFullPotsView() {
 +        return java.util.Collections.unmodifiableMap(fullPots);
-     }
- 
++    }
++
      @Override
+     protected boolean isRandomlyTicking(BlockState state) {
+         return state.is(Blocks.POTTED_OPEN_EYEBLOSSOM) || state.is(Blocks.POTTED_CLOSED_EYEBLOSSOM);
+@@ -135,10 +_,13 @@
+             boolean isOpen = this.potted == Blocks.OPEN_EYEBLOSSOM;
+             boolean shouldBeOpen = level.environmentAttributes().getValue(EnvironmentAttributes.EYEBLOSSOM_OPEN, pos).toBoolean(isOpen);
+             if (isOpen != shouldBeOpen) {
+-                level.setBlock(pos, this.opposite(state), 3);
+-                EyeblossomBlock.Type newType = EyeblossomBlock.Type.fromBoolean(isOpen).transform();
+-                newType.spawnTransformParticle(level, pos, random);
+-                level.playSound(null, pos, newType.longSwitchSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
++                // CraftBukkit start - BlockFormEvent
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(level, pos, this.opposite(state), 3)) {
++                    EyeblossomBlock.Type newType = EyeblossomBlock.Type.fromBoolean(isOpen).transform();
++                    newType.spawnTransformParticle(level, pos, random);
++                    level.playSound(null, pos, newType.longSwitchSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
++                }
++                // CraftBukkit end
+             }
+         }
+ 

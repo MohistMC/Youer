@@ -1,0 +1,29 @@
+--- a/net/minecraft/world/level/block/DragonEggBlock.java
++++ b/net/minecraft/world/level/block/DragonEggBlock.java
+@@ -16,6 +_,7 @@
+ import net.minecraft.world.phys.BlockHitResult;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.event.block.BlockFromToEvent;
+ 
+ public class DragonEggBlock extends FallingBlock {
+     public static final MapCodec<DragonEggBlock> CODEC = simpleCodec(DragonEggBlock::new);
+@@ -58,6 +_,18 @@
+                 && !level.getBlockState(testPos.below()).isAir()
+                 && worldBorder.isWithinBounds(testPos)
+                 && level.isInsideBuildHeight(testPos)) {
++                // CraftBukkit start
++                org.bukkit.block.Block from = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++                org.bukkit.block.Block to = level.getWorld().getBlockAt(testPos.getX(), testPos.getY(), testPos.getZ());
++                BlockFromToEvent event = new BlockFromToEvent(from, to);
++                org.bukkit.Bukkit.getPluginManager().callEvent(event);
++
++                if (event.isCancelled()) {
++                    return;
++                }
++
++                testPos = new BlockPos(event.getToBlock().getX(), event.getToBlock().getY(), event.getToBlock().getZ());
++                // CraftBukkit end
+                 if (level.isClientSide()) {
+                     for (int j = 0; j < 128; j++) {
+                         double d = random.nextDouble();

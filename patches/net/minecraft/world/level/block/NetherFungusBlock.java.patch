@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/NetherFungusBlock.java
 +++ b/net/minecraft/world/level/block/NetherFungusBlock.java
-@@ -77,6 +_,9 @@
+@@ -77,6 +_,16 @@
  
      @Override
      public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
@@ -8,6 +8,13 @@
 +        // Neo: Fire the BlockGrowFeatureEvent and change the ifPresent call to use the event's result.
 +        var event = net.neoforged.neoforge.event.EventHooks.fireBlockGrowFeature(level, random, pos, this.getFeature(level).orElse(null));
 +        if (event.isCanceled()) return;
++        // CraftBukkit start
++        if (this == Blocks.WARPED_FUNGUS) {
++            SaplingBlock.treeType = org.bukkit.TreeType.WARPED_FUNGUS;
++        } else if (this == Blocks.CRIMSON_FUNGUS) {
++            SaplingBlock.treeType = org.bukkit.TreeType.CRIMSON_FUNGUS;
++        }
++        // CraftBukkit end
 +        Optional.ofNullable(event.getFeature()).ifPresent(feature -> feature.value().place(level, level.getChunkSource().getGenerator(), random, pos));
      }
  }

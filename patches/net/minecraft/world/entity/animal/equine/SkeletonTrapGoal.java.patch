@@ -11,7 +11,28 @@
          DifficultyInstance difficulty = level.getCurrentDifficultyAt(this.horse.blockPosition());
          this.horse.setTrap(false);
          this.horse.setTamed(true);
-@@ -58,6 +_,7 @@
+@@ -39,11 +_,11 @@
+         if (bolt != null) {
+             bolt.snapTo(this.horse.getX(), this.horse.getY(), this.horse.getZ());
+             bolt.setVisualOnly(true);
+-            level.addFreshEntity(bolt);
++            level.strikeLightning(bolt, org.bukkit.event.weather.LightningStrikeEvent.Cause.TRAP); // CraftBukkit
+             Skeleton skeleton = this.createSkeleton(difficulty, this.horse);
+             if (skeleton != null) {
+                 skeleton.startRiding(this.horse);
+-                level.addFreshEntityWithPassengers(skeleton);
++                level.addFreshEntityWithPassengers(skeleton, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.TRAP); // CraftBukkit
+ 
+                 for (int i = 0; i < 3; i++) {
+                     AbstractHorse otherHorse = this.createHorse(difficulty);
+@@ -52,12 +_,13 @@
+                         if (otherSkeleton != null) {
+                             otherSkeleton.startRiding(otherHorse);
+                             otherHorse.push(this.horse.getRandom().triangle(0.0, 1.1485), 0.0, this.horse.getRandom().triangle(0.0, 1.1485));
+-                            level.addFreshEntityWithPassengers(otherHorse);
++                            level.addFreshEntityWithPassengers(otherHorse, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.JOCKEY); // CraftBukkit
+                         }
+                     }
                  }
              }
          }

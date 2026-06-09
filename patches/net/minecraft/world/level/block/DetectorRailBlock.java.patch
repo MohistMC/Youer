@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/DetectorRailBlock.java
 +++ b/net/minecraft/world/level/block/DetectorRailBlock.java
+@@ -25,6 +_,7 @@
+ import net.minecraft.world.level.block.state.properties.Property;
+ import net.minecraft.world.level.block.state.properties.RailShape;
+ import net.minecraft.world.phys.AABB;
++import org.bukkit.event.block.BlockRedstoneEvent;
+ 
+ public class DetectorRailBlock extends BaseRailBlock {
+     public static final MapCodec<DetectorRailBlock> CODEC = simpleCodec(DetectorRailBlock::new);
 @@ -39,6 +_,10 @@
  
      public DetectorRailBlock(BlockBehaviour.Properties properties) {
@@ -11,6 +19,24 @@
          this.registerDefaultState(this.stateDefinition.any().setValue(POWERED, false).setValue(SHAPE, RailShape.NORTH_SOUTH).setValue(WATERLOGGED, false));
      }
  
+@@ -86,6 +_,17 @@
+                 shouldBePressed = true;
+             }
+ 
++            // CraftBukkit start
++            if (wasPressed != shouldBePressed) {
++                org.bukkit.block.Block block = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++
++                BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(block, wasPressed ? 15 : 0, shouldBePressed ? 15 : 0);
++                level.getCraftServer().getPluginManager().callEvent(eventRedstone);
++
++                shouldBePressed = eventRedstone.getNewCurrent() > 0;
++            }
++            // CraftBukkit end
++
+             if (shouldBePressed && !wasPressed) {
+                 BlockState newState = state.setValue(POWERED, true);
+                 level.setBlock(pos, newState, 3);
 @@ -183,6 +_,6 @@
  
      @Override

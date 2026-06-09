@@ -1,14 +1,17 @@
 --- a/net/minecraft/world/item/BoneMealItem.java
 +++ b/net/minecraft/world/item/BoneMealItem.java
-@@ -37,7 +_,7 @@
+@@ -37,9 +_,9 @@
          BlockPos pos = context.getClickedPos();
          BlockPos relative = pos.relative(context.getClickedFace());
          ItemStack boneMealStack = context.getItemInHand();
 -        if (growCrop(boneMealStack, level, pos)) {
 +        if (applyBonemeal(boneMealStack, level, pos, context.getPlayer())) {
              if (!level.isClientSide()) {
-                 boneMealStack.causeUseVibration(context.getPlayer(), GameEvent.ITEM_INTERACT_FINISH);
+-                boneMealStack.causeUseVibration(context.getPlayer(), GameEvent.ITEM_INTERACT_FINISH);
++                if (context.getPlayer() != null) boneMealStack.causeUseVibration(context.getPlayer(), GameEvent.ITEM_INTERACT_FINISH); // CraftBukkit - SPIGOT-7518
                  level.levelEvent(1505, pos, 15);
+                 return InteractionResult.SUCCESS_SERVER;
+             } else {
 @@ -61,8 +_,49 @@
          }
      }

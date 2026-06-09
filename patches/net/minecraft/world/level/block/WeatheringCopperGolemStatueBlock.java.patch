@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/level/block/WeatheringCopperGolemStatueBlock.java
++++ b/net/minecraft/world/level/block/WeatheringCopperGolemStatueBlock.java
+@@ -17,6 +_,7 @@
+ import net.minecraft.world.level.block.state.BlockBehaviour;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.BlockHitResult;
++import org.bukkit.event.entity.CreatureSpawnEvent;
+ 
+ public class WeatheringCopperGolemStatueBlock extends CopperGolemStatueBlock implements WeatheringCopper {
+     public static final MapCodec<WeatheringCopperGolemStatueBlock> CODEC = RecordCodecBuilder.mapCodec(
+@@ -63,9 +_,10 @@
+ 
+             if (this.getAge().equals(WeatheringCopper.WeatherState.UNAFFECTED)) {
+                 CopperGolem copperGolem = copperGolemStatueBlockEntity.removeStatue(state);
+-                itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
+-                if (copperGolem != null) {
+-                    level.addFreshEntity(copperGolem);
++                // CraftBukkit start
++                if (copperGolem != null && level.addFreshEntity(copperGolem, CreatureSpawnEvent.SpawnReason.REANIMATE)) {
++                    itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
++                    // CraftBukkit end
+                     level.removeBlock(pos, false);
+                     return InteractionResult.SUCCESS;
+                 }

@@ -9,6 +9,18 @@
                  boolean destroyedBlock = false;
                  AABB bb = this.getBoundingBox().inflate(0.2);
  
+@@ -152,6 +_,11 @@
+                     BlockState state = serverLevel.getBlockState(pos);
+                     Block block = state.getBlock();
+                     if (block instanceof LeavesBlock) {
++                        // CraftBukkit start
++                        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this, pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())) {
++                            continue;
++                        }
++                        // CraftBukkit end
+                         destroyedBlock = serverLevel.destroyBlock(pos, true, this) || destroyedBlock;
+                     }
+                 }
 @@ -221,9 +_,9 @@
  
      private void roar() {

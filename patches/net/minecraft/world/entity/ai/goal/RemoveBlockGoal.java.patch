@@ -9,6 +9,18 @@
              return false;
          } else if (this.nextStartTick > 0) {
              this.nextStartTick--;
+@@ -101,6 +_,11 @@
+             }
+ 
+             if (this.ticksSinceReachedGoal > 60) {
++                // CraftBukkit start - Step on eggs
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityInteractEvent(this.removerMob, org.bukkit.craftbukkit.block.CraftBlock.at(level, eatPos))) {
++                    return;
++                }
++                // CraftBukkit end
+                 level.removeBlock(eatPos, false);
+                 if (!level.isClientSide()) {
+                     for (int i = 0; i < 20; i++) {
 @@ -139,6 +_,6 @@
          ChunkAccess chunk = level.getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()), ChunkStatus.FULL, false);
          return chunk == null

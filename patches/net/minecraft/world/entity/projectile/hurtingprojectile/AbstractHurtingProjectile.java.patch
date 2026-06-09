@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.java
 +++ b/net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.java
-@@ -22,6 +_,8 @@
+@@ -18,10 +_,16 @@
+ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public abstract class AbstractHurtingProjectile extends Projectile {
      public static final double INITAL_ACCELERATION_POWER = 0.1;
      public static final double DEFLECTION_SCALE = 0.5;
      public double accelerationPower = 0.1;
@@ -19,12 +27,20 @@
                  newPosition = hitResult.getLocation();
              } else {
                  newPosition = this.position().add(this.getDeltaMovement());
-@@ -85,7 +_,7 @@
+@@ -85,13 +_,13 @@
                  this.igniteForSeconds(1.0F);
              }
  
 -            if (hitResult.getType() != HitResult.Type.MISS && this.isAlive()) {
+-                this.hitTargetOrDeflectSelf(hitResult);
 +            if (hitResult.getType() != HitResult.Type.MISS && this.isAlive() && impacted) {
-                 this.hitTargetOrDeflectSelf(hitResult);
++                this.preHitTargetOrDeflectSelf(hitResult); // CraftBukkit - projectile hit event
              }
+ 
+             this.createParticleTrail();
+         } else {
+-            this.discard();
++            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         }
+     }
  

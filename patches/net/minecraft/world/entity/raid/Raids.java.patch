@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/entity/raid/Raids.java
++++ b/net/minecraft/world/entity/raid/Raids.java
+@@ -130,11 +_,23 @@
+                 }
+ 
+                 Raid raid = this.getOrCreateRaid(level, raidCenterPos);
++                /* CraftBukkit - moved down
+                 if (!raid.isStarted() && !this.raidMap.containsValue(raid)) {
+                     this.raidMap.put(this.getUniqueId(), raid);
+                 }
+-
+-                if (!raid.isStarted() || raid.getRaidOmenLevel() < raid.getMaxRaidOmenLevel()) {
++                */
++
++                if (!raid.isStarted() || (raid.isInProgress() && raid.getRaidOmenLevel() < raid.getMaxRaidOmenLevel())) { // CraftBukkit - fixed a bug with raid
++                    // CraftBukkit start
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callRaidTriggerEvent(raid, level, player)) {
++                        player.removeEffect(net.minecraft.world.effect.MobEffects.RAID_OMEN);
++                        return null;
++                    }
++
++                    if (!raid.isStarted() && !this.raidMap.containsValue(raid)) {
++                        this.raidMap.put(this.getUniqueId(), raid);
++                    }
++                    // CraftBukkit end
+                     raid.absorbRaidOmen(player);
+                 }
+ 

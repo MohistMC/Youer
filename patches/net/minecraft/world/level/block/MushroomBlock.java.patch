@@ -1,6 +1,23 @@
 --- a/net/minecraft/world/level/block/MushroomBlock.java
 +++ b/net/minecraft/world/level/block/MushroomBlock.java
-@@ -83,11 +_,20 @@
+@@ -20,6 +_,7 @@
+ import net.minecraft.world.level.levelgen.feature.configurations.HugeMushroomFeatureConfiguration;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.TreeType;
+ 
+ public class MushroomBlock extends VegetationBlock implements BonemealableBlock {
+     public static final MapCodec<MushroomBlock> CODEC = RecordCodecBuilder.mapCodec(
+@@ -69,7 +_,7 @@
+             }
+ 
+             if (level.isEmptyBlock(offset) && state.canSurvive(level, offset)) {
+-                level.setBlock(offset, state, 2);
++                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, pos, offset, state, 2); // CraftBukkit
+             }
+         }
+     }
+@@ -83,15 +_,25 @@
      protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
          BlockPos belowPos = pos.below();
          BlockState below = level.getBlockState(belowPos);
@@ -22,3 +39,8 @@
          if (feature.isEmpty()) {
              return false;
          } else {
+             level.removeBlock(pos, false);
++            SaplingBlock.treeType = (this == Blocks.BROWN_MUSHROOM) ? TreeType.BROWN_MUSHROOM : TreeType.RED_MUSHROOM; // CraftBukkit
+             if (feature.get().value().place(level, level.getChunkSource().getGenerator(), random, pos)) {
+                 return true;
+             } else {

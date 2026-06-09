@@ -5,7 +5,7 @@
              BlockPos pos = this.mob.blockPosition();
              if (IS_EDIBLE.test(this.level.getBlockState(pos))) {
 -                if (getServerLevel(this.level).getGameRules().get(GameRules.MOB_GRIEFING)) {
-+                if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.level), this.mob)) {
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.mob, pos, Blocks.AIR.defaultBlockState(), !net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.level), this.mob))) { // CraftBukkit
                      this.level.destroyBlock(pos, false);
                  }
  
@@ -14,7 +14,7 @@
                  BlockPos below = pos.below();
                  if (this.level.getBlockState(below).is(Blocks.GRASS_BLOCK)) {
 -                    if (getServerLevel(this.level).getGameRules().get(GameRules.MOB_GRIEFING)) {
-+                    if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.level), this.mob)) {
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.mob, below, Blocks.AIR.defaultBlockState(), !net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.level), this.mob))) { // CraftBukkit
                          this.level.levelEvent(2001, below, Block.getId(Blocks.GRASS_BLOCK.defaultBlockState()));
                          this.level.setBlock(below, Blocks.DIRT.defaultBlockState(), 2);
                      }

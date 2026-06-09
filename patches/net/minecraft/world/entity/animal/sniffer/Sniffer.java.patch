@@ -1,5 +1,19 @@
 --- a/net/minecraft/world/entity/animal/sniffer/Sniffer.java
 +++ b/net/minecraft/world/entity/animal/sniffer/Sniffer.java
+@@ -286,6 +_,13 @@
+             BlockPos head = this.getHeadBlock();
+             this.dropFromGiftLootTable(level, BuiltInLootTables.SNIFFER_DIGGING, (l, itemStack) -> {
+                 ItemEntity entity = new ItemEntity(this.level(), head.getX(), head.getY(), head.getZ(), itemStack);
++                // CraftBukkit start - handle EntityDropItemEvent
++                org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) entity.getBukkitEntity());
++                org.bukkit.Bukkit.getPluginManager().callEvent(event);
++                if (event.isCancelled()) {
++                    return;
++                }
++                // CraftBukkit end
+                 entity.setDefaultPickUpDelay();
+                 l.addFreshEntity(entity);
+             });
 @@ -307,7 +_,7 @@
                  if (this.tickCount % 10 == 0) {
                      this.level()
