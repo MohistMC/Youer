@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/level/block/CarvedPumpkinBlock.java
++++ b/net/minecraft/world/level/block/CarvedPumpkinBlock.java
+@@ -104,16 +_,22 @@
+                 .getAge();
+     }
+ 
+-    private static void spawnGolemInWorld(Level level, BlockPattern.BlockPatternMatch match, Entity golem, BlockPos spawnPos) {
+-        clearPatternBlocks(level, match);
++    // CraftBukkit start
++    private static boolean spawnGolemInWorld(Level level, BlockPattern.BlockPatternMatch match, Entity golem, BlockPos spawnPos) {
++        // clearPatternBlocks(level, match); // CraftBukkit - moved down
+         golem.snapTo(spawnPos.getX() + 0.5, spawnPos.getY() + 0.05, spawnPos.getZ() + 0.5, 0.0F, 0.0F);
+-        level.addFreshEntity(golem);
++        if (!level.addFreshEntity(golem, (golem.getType() == EntityType.SNOW_GOLEM) ? SpawnReason.BUILD_SNOWMAN : ((golem.getType() == EntityType.IRON_GOLEM) ? SpawnReason.BUILD_IRONGOLEM : SpawnReason.BUILD_COPPERGOLEM))) {
++            return false;
++        }
++        clearPatternBlocks(level, match); // CraftBukkit - from above
++        // CraftBukkit end
+ 
+         for (ServerPlayer player : level.getEntitiesOfClass(ServerPlayer.class, golem.getBoundingBox().inflate(5.0))) {
+             CriteriaTriggers.SUMMONED_ENTITY.trigger(player, golem);
+         }
+ 
+         updatePatternBlocks(level, match);
++        return true; // CraftBukkit
+     }
+ 
+     public static void clearPatternBlocks(Level level, BlockPattern.BlockPatternMatch match) {

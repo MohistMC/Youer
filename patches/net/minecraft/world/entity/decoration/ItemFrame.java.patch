@@ -17,6 +17,18 @@
          float shiftToBlockWall = 0.46875F;
          Vec3 position = Vec3.atCenterOf(blockPos).relative(direction, -0.46875);
          float width = hasFramedMap ? 1.0F : 0.75F;
+@@ -173,6 +_,11 @@
+             if (this.isInvulnerableToBase(source)) {
+                 return false;
+             } else if (this.shouldDamageDropItem(source)) {
++                // CraftBukkit start - fire EntityDamageEvent
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, source, damage, false) || this.isRemoved()) {
++                    return true;
++                }
++                // CraftBukkit end
+                 this.dropItem(level, source.getEntity(), false);
+                 this.gameEvent(GameEvent.BLOCK_CHANGE, source.getEntity());
+                 this.playSound(this.getRemoveItemSound(), 1.0F, 1.0F);
 @@ -245,7 +_,7 @@
      private void removeFramedMap(ItemStack itemStack) {
          MapId mapId = this.getFramedMapId(itemStack);
@@ -26,12 +38,24 @@
              if (mapItemSavedData != null) {
                  mapItemSavedData.removedFromFrame(this.pos, this.getId());
              }
-@@ -275,13 +_,19 @@
+@@ -269,19 +_,31 @@
+     }
+ 
+     public void setItem(ItemStack itemStack, boolean updateNeighbours) {
++        // CraftBukkit start
++        this.setItem(itemStack, updateNeighbours, true);
++    }
++
++    public void setItem(ItemStack itemStack, boolean updateNeighbours, boolean playSound) {
++        // CraftBukkit end
+         if (!itemStack.isEmpty()) {
+             itemStack = itemStack.copyWithCount(1);
+         }
  
          this.onItemChanged(itemStack);
          this.getEntityData().set(DATA_ITEM, itemStack);
 -        if (!itemStack.isEmpty()) {
-+        if (!itemStack.isEmpty() && updateNeighbours && setItem$playSound.getAndSet(true)) {
++        if (!itemStack.isEmpty() && playSound) { // CraftBukkit
              this.playSound(this.getAddItemSound(), 1.0F, 1.0F);
          }
  

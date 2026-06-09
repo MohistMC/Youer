@@ -1,9 +1,16 @@
 --- a/net/minecraft/world/entity/monster/Shulker.java
 +++ b/net/minecraft/world/entity/monster/Shulker.java
-@@ -390,6 +_,12 @@
+@@ -390,6 +_,19 @@
                      && this.level().noCollision(this, new AABB(target).deflate(1.0E-6))) {
                      Direction attachmentDirection = this.findAttachableSurface(target);
                      if (attachmentDirection != null) {
++                        // CraftBukkit start
++                        org.bukkit.event.entity.EntityTeleportEvent teleportEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTeleportEvent(this, target.getX(), target.getY(), target.getZ());
++                        if (teleportEvent.isCancelled()) {
++                            return false;
++                        }
++                        target = org.bukkit.craftbukkit.util.CraftLocation.toBlockPosition(teleportEvent.getTo());
++                        // CraftBukkit end
 +                        net.neoforged.neoforge.event.entity.EntityTeleportEvent.EnderEntity event = net.neoforged.neoforge.event.EventHooks.onEnderTeleport(this, target.getX(), target.getY(), target.getZ());
 +                        if (event.isCanceled()) attachmentDirection = null;
 +                        target = BlockPos.containing(event.getTargetX(), event.getTargetY(), event.getTargetZ());
@@ -13,3 +20,12 @@
                          this.unRide();
                          this.setAttachFace(attachmentDirection);
                          this.playSound(SoundEvents.SHULKER_TELEPORT, 1.0F, 1.0F);
+@@ -453,7 +_,7 @@
+                 if (baby != null) {
+                     baby.setVariant(this.getVariant());
+                     baby.snapTo(oldPosition);
+-                    this.level().addFreshEntity(baby);
++                    this.level().addFreshEntity(baby, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING); // CraftBukkit - the mysteries of life
+                 }
+             }
+         }

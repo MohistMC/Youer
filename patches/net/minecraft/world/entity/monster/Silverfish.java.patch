@@ -9,11 +9,32 @@
                      this.selectedDirection = Direction.getRandom(random);
                      BlockPos pos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5, this.mob.getZ()).relative(this.selectedDirection);
                      BlockState blockState = this.mob.level().getBlockState(pos);
-@@ -210,7 +_,7 @@
+@@ -168,9 +_,14 @@
+                 BlockPos pos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5, this.mob.getZ()).relative(this.selectedDirection);
+                 BlockState blockState = level.getBlockState(pos);
+                 if (InfestedBlock.isCompatibleHostBlock(blockState)) {
++                    // CraftBukkit start
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.mob, pos, InfestedBlock.infestedStateByHost(blockState))) {
++                        return;
++                    }
++                    // CraftBukkit end
+                     level.setBlock(pos, InfestedBlock.infestedStateByHost(blockState), 3);
+                     this.mob.spawnAnim();
+-                    this.mob.discard();
++                    this.mob.discard(EntityRemoveEvent.Cause.ENTER_BLOCK); // CraftBukkit - add Bukkit remove cause
+                 }
+             }
+         }
+@@ -210,7 +_,12 @@
                              BlockState blockState = level.getBlockState(testPos);
                              Block block = blockState.getBlock();
                              if (block instanceof InfestedBlock) {
 -                                if (getServerLevel(level).getGameRules().get(GameRules.MOB_GRIEFING)) {
++                                // CraftBukkit start
++                                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.silverfish, testPos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())) {
++                                    continue;
++                                }
++                                // CraftBukkit end
 +                                if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(level), this.silverfish)) {
                                      level.destroyBlock(testPos, true, this.silverfish);
                                  } else {

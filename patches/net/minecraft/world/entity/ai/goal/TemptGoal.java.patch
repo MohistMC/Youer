@@ -1,0 +1,42 @@
+--- a/net/minecraft/world/entity/ai/goal/TemptGoal.java
++++ b/net/minecraft/world/entity/ai/goal/TemptGoal.java
+@@ -23,7 +_,7 @@
+     private double pz;
+     private double pRotX;
+     private double pRotY;
+-    protected @Nullable Player player;
++    protected @Nullable LivingEntity player; // CraftBukkit
+     private int calmDown;
+     private boolean isRunning;
+     private final Predicate<ItemStack> items;
+@@ -56,6 +_,15 @@
+         } else {
+             this.player = getServerLevel(this.mob)
+                 .getNearestPlayer(this.targetingConditions.range(this.mob.getAttributeValue(Attributes.TEMPT_RANGE)), this.mob);
++            // CraftBukkit start
++            if (this.player != null) {
++                EntityTargetLivingEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(this.mob, this.player, EntityTargetEvent.TargetReason.TEMPT);
++                if (event.isCancelled()) {
++                    return false;
++                }
++                this.player = (event.getTarget() == null) ? null : ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle();
++            }
++            // CraftBukkit end
+             return this.player != null;
+         }
+     }
+@@ -123,7 +_,13 @@
+     }
+ 
+     protected void navigateTowards(Player player) {
+-        this.mob.getNavigation().moveTo(player, this.speedModifier);
++        // CraftBukkit start
++        this.navigateTowards((Entity) player);
++    }
++
++    protected void navigateTowards(Entity entity) {
++        this.mob.getNavigation().moveTo(entity, this.speedModifier);
++        // CraftBukkit end
+     }
+ 
+     public boolean isRunning() {

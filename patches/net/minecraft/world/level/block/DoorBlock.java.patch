@@ -9,3 +9,26 @@
              DoublePlantBlock.preventDropFromBottomPart(level, pos, state, player);
          }
  
+@@ -221,8 +_,20 @@
+ 
+     @Override
+     protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
+-        boolean signal = level.hasNeighborSignal(pos)
+-            || level.hasNeighborSignal(pos.relative(state.getValue(HALF) == DoubleBlockHalf.LOWER ? Direction.UP : Direction.DOWN));
++        // CraftBukkit start
++        BlockPos otherHalf = pos.relative(state.getValue(HALF) == DoubleBlockHalf.LOWER ? Direction.UP : Direction.DOWN);
++        org.bukkit.World bworld = level.getWorld();
++        org.bukkit.block.Block bukkitBlock = bworld.getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++        org.bukkit.block.Block blockTop = bworld.getBlockAt(otherHalf.getX(), otherHalf.getY(), otherHalf.getZ());
++        int power = bukkitBlock.getBlockPower();
++        int powerTop = blockTop.getBlockPower();
++        if (powerTop > power) power = powerTop;
++        int oldPower = state.getValue(POWERED) ? 15 : 0;
++        if (oldPower == 0 ^ power == 0) {
++            BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(bukkitBlock, oldPower, power);
++            level.getCraftServer().getPluginManager().callEvent(eventRedstone);
++            boolean signal = eventRedstone.getNewCurrent() > 0;
++            // CraftBukkit end
+         if (!this.defaultBlockState().is(block) && signal != state.getValue(POWERED)) {
+             if (signal != state.getValue(OPEN)) {
+                 this.playSound(null, level, pos, signal);

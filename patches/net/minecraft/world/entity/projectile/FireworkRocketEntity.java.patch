@@ -1,16 +1,65 @@
 --- a/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
 +++ b/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
-@@ -186,6 +_,13 @@
+@@ -158,7 +_,7 @@
          }
-     }
  
+         if (!this.noPhysics && this.isAlive() && hitResult.getType() != HitResult.Type.MISS) {
+-            this.hitTargetOrDeflectSelf(hitResult);
++            this.preHitTargetOrDeflectSelf(hitResult); // CraftBukkit - projectile hit event
+             this.needsSync = true;
+         }
+ 
+@@ -182,7 +_,18 @@
+         }
+ 
+         if (this.life > this.lifetime && this.level() instanceof ServerLevel level) {
+-            this.explode(level);
++            // CraftBukkit start
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callFireworkExplodeEvent(this).isCancelled()) {
++                this.explode(level);
++            }
++            // CraftBukkit end
++        }
++    }
++
 +    @Override
 +    protected void onHit(HitResult result) {
 +        if (result.getType() == HitResult.Type.MISS || !net.neoforged.neoforge.event.EventHooks.onProjectileImpact(this, result)) {
 +            super.onHit(result);
-+        }
-+    }
-+
-     private void explode(ServerLevel level) {
+         }
+     }
+ 
+@@ -190,14 +_,18 @@
          level.broadcastEntityEvent(this, (byte)17);
          this.gameEvent(GameEvent.EXPLODE, this.getOwner());
+         this.dealExplosionDamage(level);
+-        this.discard();
++        this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
+     }
+ 
+     @Override
+     protected void onHitEntity(EntityHitResult hitResult) {
+         super.onHitEntity(hitResult);
+         if (this.level() instanceof ServerLevel level) {
+-            this.explode(level);
++            // CraftBukkit start
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callFireworkExplodeEvent(this).isCancelled()) {
++                this.explode(level);
++            }
++            // CraftBukkit end
+         }
+     }
+ 
+@@ -206,7 +_,11 @@
+         BlockPos pos = new BlockPos(hitResult.getBlockPos());
+         this.level().getBlockState(pos).entityInside(this.level(), pos, this, InsideBlockEffectApplier.NOOP, true);
+         if (this.level() instanceof ServerLevel level && this.hasExplosion()) {
+-            this.explode(level);
++            // CraftBukkit start
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callFireworkExplodeEvent(this).isCancelled()) {
++                this.explode(level);
++            }
++            // CraftBukkit end
+         }
+ 
+         super.onHitBlock(hitResult);

@@ -8,3 +8,35 @@
  
      public MinecartTNT(EntityType<? extends MinecartTNT> type, Level level) {
          super(type, level);
+@@ -103,20 +_,18 @@
+         if (this.level() instanceof ServerLevel level) {
+             if (level.getGameRules().get(GameRules.TNT_EXPLODES)) {
+                 double speed = Math.min(Math.sqrt(speedSqr), 5.0);
+-                level.explode(
+-                    this,
+-                    damageSource,
+-                    null,
+-                    this.getX(),
+-                    this.getY(),
+-                    this.getZ(),
+-                    (float)(this.explosionPowerBase + this.explosionSpeedFactor * this.random.nextDouble() * 1.5 * speed),
+-                    false,
+-                    Level.ExplosionInteraction.TNT
+-                );
+-                this.discard();
++                // CraftBukkit start
++                ExplosionPrimeEvent event = new ExplosionPrimeEvent(this.getBukkitEntity(), (float)(this.explosionPowerBase + this.explosionSpeedFactor * this.random.nextDouble() * 1.5 * speed), this.isIncendiary);
++                level.getCraftServer().getPluginManager().callEvent(event);
++                if (event.isCancelled()) {
++                    fuse = -1;
++                    return;
++                }
++                level.explode(this, damageSource, null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.TNT);
++                // CraftBukkit end
++                this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
+             } else if (this.isPrimed()) {
+-                this.discard();
++                this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
+             }
+         }
+     }

@@ -8,3 +8,44 @@
  
      public PrimedTnt(EntityType<? extends PrimedTnt> type, Level level) {
          super(type, level);
+@@ -104,10 +_,13 @@
+         int fuse = this.getFuse() - 1;
+         this.setFuse(fuse);
+         if (fuse <= 0) {
+-            this.discard();
++            // CraftBukkit start - Need to reverse the order of the explosion and the entity death
++            // this.discard();
+             if (!this.level().isClientSide()) {
+                 this.explode();
+             }
++            this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
++            // CraftBukkit end
+         } else {
+             this.updateFluidInteraction();
+             if (this.level().isClientSide()) {
+@@ -118,6 +_,11 @@
+ 
+     protected void explode() {
+         if (this.level() instanceof ServerLevel level && level.getGameRules().get(GameRules.TNT_EXPLODES)) {
++            // CraftBukkit start
++            ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent((org.bukkit.entity.Explosive) this.getBukkitEntity());
++            if (event.isCancelled()) {
++                return;
++            }
+             this.level()
+                 .explode(
+                     this,
+@@ -126,10 +_,11 @@
+                     this.getX(),
+                     this.getY(0.0625),
+                     this.getZ(),
+-                    this.explosionPower,
+-                    false,
++                    event.getRadius(),
++                    event.getFire(),
+                     Level.ExplosionInteraction.TNT
+                 );
++            // CraftBukkit end
+         }
+     }
+ 

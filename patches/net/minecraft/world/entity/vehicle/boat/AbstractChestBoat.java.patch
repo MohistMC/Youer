@@ -18,6 +18,26 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class AbstractChestBoat extends AbstractBoat implements HasCustomInventoryScreen, ContainerEntity {
+@@ -69,11 +_,18 @@
+ 
+     @Override
+     public void remove(Entity.RemovalReason reason) {
++        // CraftBukkit start - add Bukkit remove cause
++        this.remove(reason, null);
++    }
++
++    @Override
++    public void remove(Entity.RemovalReason reason, EntityRemoveEvent.Cause cause) {
++        // CraftBukkit end
+         if (!this.level().isClientSide() && reason.shouldDestroy()) {
+             Containers.dropContents(this.level(), this, this);
+         }
+ 
+-        super.remove(reason);
++        super.remove(reason, cause); // CraftBukkit - add Bukkit remove cause
+     }
+ 
+     @Override
 @@ -195,4 +_,51 @@
      public void stopOpen(ContainerUser containerUser) {
          this.level().gameEvent(GameEvent.CONTAINER_CLOSE, this.position(), GameEvent.Context.of(containerUser.getLivingEntity()));

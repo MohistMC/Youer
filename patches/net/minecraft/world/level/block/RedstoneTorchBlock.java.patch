@@ -1,0 +1,42 @@
+--- a/net/minecraft/world/level/block/RedstoneTorchBlock.java
++++ b/net/minecraft/world/level/block/RedstoneTorchBlock.java
+@@ -78,8 +_,23 @@
+             toggles.remove(0);
+         }
+ 
++        // CraftBukkit start
++        org.bukkit.plugin.PluginManager manager = level.getCraftServer().getPluginManager();
++        org.bukkit.block.Block block = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++        int oldCurrent = state.getValue(LIT) ? 15 : 0;
++        BlockRedstoneEvent event = new BlockRedstoneEvent(block, oldCurrent, oldCurrent);
++        // CraftBukkit end
+         if (state.getValue(LIT)) {
+             if (neighborSignal) {
++                // CraftBukkit start
++                if (oldCurrent != 0) {
++                    event.setNewCurrent(0);
++                    manager.callEvent(event);
++                    if (event.getNewCurrent() != 0) {
++                        return;
++                    }
++                }
++                // CraftBukkit end
+                 level.setBlock(pos, state.setValue(LIT, false), 3);
+                 if (isToggledTooFrequently(level, pos, true)) {
+                     level.levelEvent(1502, pos, 0);
+@@ -87,6 +_,15 @@
+                 }
+             }
+         } else if (!neighborSignal && !isToggledTooFrequently(level, pos, false)) {
++            // CraftBukkit start
++            if (oldCurrent != 15) {
++                event.setNewCurrent(15);
++                manager.callEvent(event);
++                if (event.getNewCurrent() != 15) {
++                    return;
++                }
++            }
++            // CraftBukkit end
+             level.setBlock(pos, state.setValue(LIT, true), 3);
+         }
+     }

@@ -1,0 +1,46 @@
+--- a/net/minecraft/world/entity/vehicle/VehicleEntity.java
++++ b/net/minecraft/world/entity/vehicle/VehicleEntity.java
+@@ -43,12 +_,42 @@
+             this.markHurt();
+             this.setDamage(this.getDamage() + damage * 10.0F);
+             this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
++            // CraftBukkit start
++            Vehicle vehicle = (Vehicle) this.getBukkitEntity();
++            org.bukkit.entity.Entity attacker = (source.getEntity() == null) ? null : source.getEntity().getBukkitEntity();
++
++            VehicleDamageEvent event = new VehicleDamageEvent(vehicle, attacker, (double) damage);
++            this.level().getCraftServer().getPluginManager().callEvent(event);
++
++            if (event.isCancelled()) {
++                return false;
++            }
++            damage = (float) event.getDamage();
++            // CraftBukkit end
+             boolean creativePlayer = source.getEntity() instanceof Player player && player.getAbilities().instabuild;
+             if ((creativePlayer || !(this.getDamage() > 40.0F)) && !this.shouldSourceDestroy(source)) {
+                 if (creativePlayer) {
+-                    this.discard();
++                    // CraftBukkit start
++                    VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, attacker);
++                    this.level().getCraftServer().getPluginManager().callEvent(destroyEvent);
++
++                    if (destroyEvent.isCancelled()) {
++                        this.setDamage(40.0F);
++                        return true;
++                    }
++                    // CraftBukkit end
++                    this.discard(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
+                 }
+             } else {
++                // CraftBukkit start
++                VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, attacker);
++                this.level().getCraftServer().getPluginManager().callEvent(destroyEvent);
++
++                if (destroyEvent.isCancelled()) {
++                    this.setDamage(40.0F);
++                    return true;
++                }
++                // CraftBukkit end
+                 this.destroy(level, source);
+             }
+ 

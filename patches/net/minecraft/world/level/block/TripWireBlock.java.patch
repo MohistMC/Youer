@@ -9,3 +9,39 @@
              level.setBlock(pos, state.setValue(DISARMED, true), 260);
              level.gameEvent(player, GameEvent.SHEAR, pos);
          }
+@@ -179,6 +_,35 @@
+                 }
+             }
+         }
++
++        // CraftBukkit start - Call interact even when triggering connected tripwire
++        if (wasPressed != shouldBePressed && shouldBePressed && state.getValue(ATTACHED)) {
++            org.bukkit.World bworld = level.getWorld();
++            org.bukkit.plugin.PluginManager manager = level.getCraftServer().getPluginManager();
++            org.bukkit.block.Block block = bworld.getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++            boolean allowed = false;
++            for (Object obj : entities) {
++                if (obj != null) {
++                    org.bukkit.event.Cancellable cancellable;
++                    if (obj instanceof Player) {
++                        cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) obj, org.bukkit.event.block.Action.PHYSICAL, pos, null, null, null);
++                    } else if (obj instanceof Entity) {
++                        cancellable = new EntityInteractEvent(((Entity) obj).getBukkitEntity(), block);
++                        manager.callEvent((EntityInteractEvent) cancellable);
++                    } else {
++                        continue;
++                    }
++                    if (!cancellable.isCancelled()) {
++                        allowed = true;
++                        break;
++                    }
++                }
++            }
++            if (!allowed) {
++                return;
++            }
++        }
++        // CraftBukkit end
+ 
+         if (shouldBePressed != wasPressed) {
+             state = state.setValue(POWERED, shouldBePressed);

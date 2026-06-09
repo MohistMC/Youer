@@ -9,3 +9,23 @@
                      return false;
                  }
  
+@@ -630,9 +_,19 @@
+                 if (this.canRaid && block instanceof CarrotBlock) {
+                     int carrotAge = blockState.getValue(CarrotBlock.AGE);
+                     if (carrotAge == 0) {
++                        // CraftBukkit start
++                        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.rabbit, cropsPos, Blocks.AIR.defaultBlockState())) {
++                            return;
++                        }
++                        // CraftBukkit end
+                         level.setBlock(cropsPos, Blocks.AIR.defaultBlockState(), 2);
+                         level.destroyBlock(cropsPos, true, this.rabbit);
+                     } else {
++                        // CraftBukkit start
++                        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.rabbit, cropsPos, blockState.setValue(CarrotBlock.AGE, carrotAge - 1))) {
++                            return;
++                        }
++                        // CraftBukkit end
+                         level.setBlock(cropsPos, blockState.setValue(CarrotBlock.AGE, carrotAge - 1), 2);
+                         level.gameEvent(GameEvent.BLOCK_CHANGE, cropsPos, GameEvent.Context.of(this.rabbit));
+                         level.levelEvent(2001, cropsPos, Block.getId(blockState));

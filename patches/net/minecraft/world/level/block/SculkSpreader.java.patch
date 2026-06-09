@@ -1,0 +1,22 @@
+--- a/net/minecraft/world/level/block/SculkSpreader.java
++++ b/net/minecraft/world/level/block/SculkSpreader.java
+@@ -128,6 +_,19 @@
+ 
+     private void addCursor(SculkSpreader.ChargeCursor cursor) {
+         if (this.cursors.size() < 32) {
++            // CraftBukkit start
++            if (!isWorldGeneration()) { // CraftBukkit - SPIGOT-7475: Don't call event during world generation
++                CraftBlock bukkitBlock = CraftBlock.at(level, cursor.pos);
++                SculkBloomEvent event = new SculkBloomEvent(bukkitBlock, cursor.getCharge());
++                Bukkit.getPluginManager().callEvent(event);
++                if (event.isCancelled()) {
++                    return;
++                }
++
++                cursor.charge = event.getCharge();
++            }
++            // CraftBukkit end
++
+             this.cursors.add(cursor);
+         }
+     }

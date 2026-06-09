@@ -22,6 +22,15 @@
                      this.tame(player);
                      this.level().broadcastEntityEvent(this, (byte)7);
                  } else {
+@@ -289,7 +_,7 @@
+             }
+         } else {
+             this.usePlayerItem(player, hand, itemStack);
+-            this.addEffect(new MobEffectInstance(MobEffects.POISON, 900));
++            this.addEffect(new MobEffectInstance(MobEffects.POISON, 900), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.FOOD); // CraftBukkit
+             if (player.isCreative() || !this.isInvulnerable()) {
+                 this.hurt(this.damageSources().playerAttack(player), Float.MAX_VALUE);
+             }
 @@ -328,7 +_,10 @@
  
      public static SoundEvent getAmbient(Level level, RandomSource random) {
@@ -45,3 +54,28 @@
      }
  
      @Override
+@@ -381,7 +_,7 @@
+ 
+     @Override
+     public boolean isPushable() {
+-        return true;
++        return super.isPushable(); // CraftBukkit - collidable API
+     }
+ 
+     @Override
+@@ -396,8 +_,14 @@
+         if (this.isInvulnerableTo(level, source)) {
+             return false;
+         } else {
++            // CraftBukkit start
++            boolean result = super.hurtServer(level, source, damage);
++            if (!result) {
++                return result;
++            }
++            // CraftBukkit end
+             this.setOrderedToSit(false);
+-            return super.hurtServer(level, source, damage);
++            return result; // CraftBukkit
+         }
+     }
+ 

@@ -1,0 +1,29 @@
+--- a/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
++++ b/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
+@@ -39,7 +_,25 @@
+ 
+     @Override
+     protected int getSignalStrength(Level level, BlockPos pos) {
+-        int count = Math.min(getEntityCount(level, TOUCH_AABB.move(pos), Entity.class), this.maxWeight);
++        // CraftBukkit start
++        int i = 0;
++        for (Entity entity : getEntities(level, TOUCH_AABB.move(pos), Entity.class)) {
++            org.bukkit.event.Cancellable cancellable;
++
++            if (entity instanceof Player) {
++                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) entity, org.bukkit.event.block.Action.PHYSICAL, pos, null, null, null);
++            } else {
++                cancellable = new EntityInteractEvent(entity.getBukkitEntity(), level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()));
++                level.getCraftServer().getPluginManager().callEvent((EntityInteractEvent) cancellable);
++            }
++
++            if (!cancellable.isCancelled()) {
++                i++;
++            }
++        }
++
++        int count = Math.min(i, this.maxWeight);
++        // CraftBukkit end
+         if (count > 0) {
+             float percent = (float)Math.min(this.maxWeight, count) / this.maxWeight;
+             return Mth.ceil(percent * 15.0F);

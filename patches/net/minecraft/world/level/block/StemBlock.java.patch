@@ -14,11 +14,21 @@
                  if (age < 7) {
 -                    state = state.setValue(AGE, age + 1);
 -                    level.setBlock(pos, state, 2);
-+                    level.setBlock(pos, state.setValue(AGE, age + 1), 2);
++                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos, state.setValue(AGE, age + 1), 2); // CraftBukkit
                  } else {
                      Direction direction = Direction.Plane.HORIZONTAL.getRandomDirection(random);
                      BlockPos relative = pos.relative(direction);
-@@ -102,6 +_,7 @@
+@@ -97,11 +_,16 @@
+                         Optional<Block> fruit = blocks.getOptional(this.fruit);
+                         Optional<Block> stem = blocks.getOptional(this.attachedStem);
+                         if (fruit.isPresent() && stem.isPresent()) {
+-                            level.setBlockAndUpdate(relative, fruit.get().defaultBlockState());
++                            // CraftBukkit start
++                            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, relative, fruit.get().defaultBlockState())) {
++                                return;
++                            }
++                            // CraftBukkit end
+                             level.setBlockAndUpdate(pos, stem.get().defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, direction));
                          }
                      }
                  }
@@ -26,3 +36,12 @@
              }
          }
      }
+@@ -125,7 +_,7 @@
+     public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
+         int age = Math.min(7, state.getValue(AGE) + Mth.nextInt(random, 2, 5));
+         BlockState newState = state.setValue(AGE, age);
+-        level.setBlock(pos, newState, 2);
++        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos, newState, 2); // CraftBukkit
+         if (age == 7) {
+             newState.randomTick(level, pos, random);
+         }

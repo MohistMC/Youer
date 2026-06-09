@@ -103,6 +103,15 @@
      public float getExplosionResistance() {
          return this.explosionResistance;
      }
+@@ -443,7 +_,7 @@
+ 
+     public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith) {
+         player.awardStat(Stats.BLOCK_MINED.get(this));
+-        player.causeFoodExhaustion(0.005F);
++        player.causeFoodExhaustion(0.005F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.BLOCK_MINED); // CraftBukkit - EntityExhaustionEvent
+         dropResources(state, level, pos, blockEntity, player, destroyedWith);
+     }
+ 
 @@ -495,6 +_,7 @@
      public void handlePrecipitation(BlockState state, Level level, BlockPos pos, Biome.Precipitation precipitation) {
      }
@@ -111,7 +120,7 @@
      public boolean dropFromExplosion(Explosion explosion) {
          return true;
      }
-@@ -577,6 +_,35 @@
+@@ -577,17 +_,55 @@
          return state.setValue(property, (T)value);
      }
  
@@ -147,3 +156,26 @@
      @Deprecated
      public Holder.Reference<Block> builtInRegistryHolder() {
          return this.builtInRegistryHolder;
+     }
+ 
+-    protected void tryDropExperience(ServerLevel level, BlockPos pos, ItemStack tool, IntProvider xpRange) {
++    // CraftBukkit start
++    protected int tryDropExperience(ServerLevel level, BlockPos pos, ItemStack tool, IntProvider xpRange) {
+         int experience = EnchantmentHelper.processBlockExperience(level, tool, xpRange.sample(level.getRandom()));
+         if (experience > 0) {
+-            this.popExperience(level, pos, experience);
++            // this.popExperience(level, pos, experience);
++            return experience;
+         }
+-    }
++
++        return 0;
++    }
++
++    public int getExpDrop(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack, boolean flag) {
++        return 0;
++    }
++    // CraftBukkit end
+ 
+     private record ShapePairKey(VoxelShape first, VoxelShape second) {
+         @Override
