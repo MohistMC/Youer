@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
 +++ b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
+@@ -27,6 +_,7 @@
+ import net.minecraft.nbt.IntTag;
+ import net.minecraft.nbt.ListTag;
+ import net.minecraft.nbt.NbtUtils;
++import net.minecraft.nbt.Tag;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.util.ProblemReporter;
 @@ -60,6 +_,8 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.BitSetDiscreteVoxelShape;
@@ -50,6 +58,26 @@
      public boolean placeInWorld(
          ServerLevelAccessor level,
          BlockPos position,
+@@ -257,6 +_,19 @@
+         if (this.palettes.isEmpty()) {
+             return false;
+         } else {
++            // CraftBukkit start
++            // We only want the TransformerGeneratorAccess at certain locations because in here are many "block update" calls that shouldn't be transformed
++            ServerLevelAccessor wrappedAccess = level;
++            org.bukkit.craftbukkit.util.CraftStructureTransformer structureTransformer = null;
++            if (wrappedAccess instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess) {
++                level = transformerAccess.getHandle();
++                structureTransformer = transformerAccess.getStructureTransformer();
++                // The structureTransformer is not needed if we can not transform blocks therefore we can save a little bit of performance doing this
++                if (structureTransformer != null && !structureTransformer.canTransformBlocks()) {
++                    structureTransformer = null;
++                }
++            }
++            // CraftBukkit end
+             List<StructureTemplate.StructureBlockInfo> blockInfoList = settings.getRandomPalette(this.palettes, position).blocks();
+             if ((!blockInfoList.isEmpty() || !settings.isIgnoreEntities() && !this.entityInfoList.isEmpty())
+                 && this.size.getX() >= 1
 @@ -272,7 +_,7 @@
                  int maxX = Integer.MIN_VALUE;
                  int maxY = Integer.MIN_VALUE;
@@ -59,14 +87,32 @@
  
                  try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(LOGGER)) {
                      for (StructureTemplate.StructureBlockInfo blockInfo : processedBlockInfoList) {
-@@ -302,6 +_,7 @@
+@@ -302,8 +_,23 @@
                                          blockEntity.loadWithComponents(
                                              TagValueInput.create(reporter.forChild(blockEntity.problemPath()), level.registryAccess(), blockInfo.nbt)
                                          );
+-                                    }
+-                                }
 +                                        net.neoforged.neoforge.common.CommonHooks.applyStructureRotation(blockEntity, blockInfo.nbt, settings);
-                                     }
-                                 }
++                                    }
++                                }
++                                // CraftBukkit start
++                                if (structureTransformer != null) {
++                                    org.bukkit.craftbukkit.block.CraftBlockState craftBlockState = (org.bukkit.craftbukkit.block.CraftBlockState) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(level, blockPos, state, null);
++                                    if (blockInfo.nbt != null && craftBlockState instanceof org.bukkit.craftbukkit.block.CraftBlockEntityState<?> entityState) {
++                                        entityState.loadData(blockInfo.nbt);
++                                        if (craftBlockState instanceof org.bukkit.craftbukkit.block.CraftLootable<?> craftLootable) {
++                                            craftLootable.setSeed(random.nextLong());
++                                        }
++                                    }
++                                    craftBlockState = structureTransformer.transformCraftState(craftBlockState);
++                                    state = craftBlockState.getHandle();
++                                    blockInfo = new StructureTemplate.StructureBlockInfo(blockPos, state, (craftBlockState instanceof org.bukkit.craftbukkit.block.CraftBlockEntityState<?> craftBlockEntityState ? craftBlockEntityState.getSnapshotNBT() : null));
++                                }
++                                // CraftBukkit end
  
+                                 if (previousFluidState != null) {
+                                     if (state.getFluidState().isSource()) {
 @@ -387,16 +_,7 @@
                      }
  
@@ -81,7 +127,7 @@
 -                            settings.shouldFinalizeEntities(),
 -                            reporter
 -                        );
-+                        this.addEntitiesToWorld(level, position, settings, reporter);
++                        this.addEntitiesToWorld(wrappedAccess, position, settings, reporter); // CraftBukkit
                      }
                  }
  
@@ -178,6 +224,49 @@
                          mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(pos)), EntitySpawnReason.STRUCTURE, null);
                      }
  
+@@ -504,11 +_,13 @@
+     }
+ 
+     private static Optional<Entity> createEntityIgnoreException(ProblemReporter reporter, ServerLevelAccessor level, CompoundTag tag) {
+-        try {
++        // CraftBukkit start
++        // try {
+             return EntityType.create(TagValueInput.create(reporter, level.registryAccess(), tag), level.getLevel(), EntitySpawnReason.STRUCTURE);
+-        } catch (Exception var4) {
+-            return Optional.empty();
+-        }
++        // } catch (Exception exception) {
++            // return Optional.empty();
++        // }
++        // CraftBukkit end
+     }
+ 
+     public Vec3i getSize(Rotation rotation) {
+@@ -699,6 +_,11 @@
+ 
+         tag.put("entities", entityList);
+         tag.put("size", this.newIntegerList(this.size.getX(), this.size.getY(), this.size.getZ()));
++        // CraftBukkit start - PDC
++        if (!this.persistentDataContainer.isEmpty()) {
++            tag.put("BukkitValues", this.persistentDataContainer.toTagCompound());
++        }
++        // CraftBukkit end
+         return NbtUtils.addCurrentDataVersion(tag);
+     }
+ 
+@@ -724,6 +_,12 @@
+             BlockPos blockPos = new BlockPos(blockPosTag.getIntOr(0, 0), blockPosTag.getIntOr(1, 0), blockPosTag.getIntOr(2, 0));
+             entityTag.getCompound("nbt").ifPresent(nbt -> this.entityInfoList.add(new StructureTemplate.StructureEntityInfo(pos, blockPos, nbt)));
+         });
++        // CraftBukkit start - PDC
++        Tag base = tag.get("BukkitValues");
++        if (base instanceof CompoundTag) {
++            this.persistentDataContainer.putAll((CompoundTag) base);
++        }
++        // CraftBukkit end
+     }
+ 
+     private void loadPalette(HolderGetter<Block> blockLookup, ListTag paletteList, ListTag blockList) {
 @@ -823,7 +_,7 @@
  
      public static final class Palette {

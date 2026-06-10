@@ -1,0 +1,56 @@
+--- a/net/minecraft/world/level/block/entity/vault/VaultBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/vault/VaultBlockEntity.java
+@@ -40,6 +_,13 @@
+ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.event.block.BlockDispenseLootEvent;
++import org.bukkit.event.block.VaultDisplayItemEvent;
++// CraftBukkit end
++
+ public class VaultBlockEntity extends BlockEntity {
+     public final VaultServerData serverData = new VaultServerData();
+     private final VaultSharedData sharedData = new VaultSharedData();
+@@ -75,7 +_,7 @@
+         super.loadAdditional(input);
+         input.read("server_data", VaultServerData.CODEC).ifPresent(this.serverData::set);
+         this.config = input.read("config", VaultConfig.CODEC).orElse(VaultConfig.DEFAULT);
+-        input.read("shared_data", VaultSharedData.CODEC).ifPresent(this.sharedData::set);
++        ((java.util.Optional<VaultSharedData>) (java.util.Optional) input.read("shared_data", VaultSharedData.CODEC)).ifPresent(this.sharedData::set); // CraftBukkit - decompile error
+     }
+ 
+     public @Nullable VaultServerData getServerData() {
+@@ -268,6 +_,14 @@
+                     if (!itemsToEject.isEmpty()) {
+                         player.awardStat(Stats.ITEM_USED.get(stackToInsert.getItem()));
+                         stackToInsert.consume(config.keyItem().getCount(), player);
++                        // CraftBukkit start
++                        BlockDispenseLootEvent vaultDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(serverLevel, pos, player, itemsToEject);
++                        if (vaultDispenseLootEvent.isCancelled()) {
++                            return;
++                        }
++
++                        itemsToEject = vaultDispenseLootEvent.getDispensedLoot().stream().map(CraftItemStack::asNMSCopy).toList();
++                        // CraftBukkit end
+                         unlock(serverLevel, blockState, pos, config, serverData, sharedData, itemsToEject);
+                         serverData.addToRewardedPlayers(player);
+                         sharedData.updateConnectedPlayersWithinRange(serverLevel, pos, serverData, config, config.deactivationRange());
+@@ -290,6 +_,15 @@
+                 sharedData.setDisplayItem(ItemStack.EMPTY);
+             } else {
+                 ItemStack displayItem = getRandomDisplayItemFromLootTable(serverLevel, pos, config.overrideLootTableToDisplay().orElse(config.lootTable()));
++                // CraftBukkit start
++                VaultDisplayItemEvent event = CraftEventFactory.callVaultDisplayItemEvent(serverLevel, pos, displayItem);
++                if (event.isCancelled()) {
++                    return;
++                }
++
++                displayItem = CraftItemStack.asNMSCopy(event.getDisplayItem());
++                // CraftBukkit end
++
+                 sharedData.setDisplayItem(displayItem);
+             }
+         }

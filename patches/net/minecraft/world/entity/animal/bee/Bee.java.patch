@@ -1,5 +1,54 @@
 --- a/net/minecraft/world/entity/animal/bee/Bee.java
 +++ b/net/minecraft/world/entity/animal/bee/Bee.java
+@@ -96,6 +_,12 @@
+ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityPotionEffectEvent;
++import org.bukkit.event.entity.EntityTargetEvent;
++// CraftBukkit end
++
+ public class Bee extends Animal implements FlyingAnimal, NeutralMob {
+     public static final float FLAP_DEGREES_PER_TICK = 120.32113F;
+     public static final int TICKS_PER_FLAP = Mth.ceil(1.4959966F);
+@@ -199,9 +_,24 @@
+ 
+     @Override
+     protected void addAdditionalSaveData(ValueOutput output) {
++        // CraftBukkit start - selectively save data
++        addAdditionalSaveData(output, true);
++    }
++
++    @Override
++    protected void addAdditionalSaveData(ValueOutput output, boolean includeAll) {
++        // CraftBukkit end
+         super.addAdditionalSaveData(output);
+-        output.storeNullable("hive_pos", BlockPos.CODEC, this.hivePos);
+-        output.storeNullable("flower_pos", BlockPos.CODEC, this.savedFlowerPos);
++        // CraftBukkit start - selectively save hive
++        if (includeAll) {
++            output.storeNullable("hive_pos", BlockPos.CODEC, this.hivePos);
++        }
++        // CraftBukkit end
++        // CraftBukkit start - selectively save flower
++        if (includeAll) {
++            output.storeNullable("flower_pos", BlockPos.CODEC, this.savedFlowerPos);
++        }
++        // CraftBukkit end
+         output.putBoolean("HasNectar", this.hasNectar());
+         output.putBoolean("HasStung", this.hasStung());
+         output.putInt("TicksSincePollination", this.ticksWithoutNectarSinceExitingHive);
+@@ -239,7 +_,7 @@
+                 }
+ 
+                 if (poisonTime > 0) {
+-                    livingTarget.addEffect(new MobEffectInstance(MobEffects.POISON, poisonTime * 20, 0), this);
++                    livingTarget.addEffect(new MobEffectInstance(MobEffects.POISON, poisonTime * 20, 0), this, EntityPotionEffectEvent.Cause.ATTACK); // CraftBukkit
+                 }
+             }
+ 
 @@ -480,7 +_,7 @@
          if (this.hivePos == null) {
              return null;
@@ -9,7 +58,20 @@
          }
      }
  
-@@ -646,8 +_,18 @@
+@@ -640,17 +_,33 @@
+         if (this.isInvulnerableTo(level, source)) {
+             return false;
+         } else {
++            // CraftBukkit start - Only stop pollinating if entity was damaged
++            boolean result = super.hurtServer(level, source, damage);
++            if (!result) {
++                return result;
++            }
++            // CraftBukkit end
+             this.beePollinateGoal.stopPollinating();
+-            return super.hurtServer(level, source, damage);
++            return result; // CraftBukkit
+         }
      }
  
      @Override
@@ -20,11 +82,40 @@
 +
 +    private void jumpInLiquidInternal() {
          this.setDeltaMovement(this.getDeltaMovement().add(0.0, 0.01, 0.0));
-+    }
-+
-+    @Override
-+    public void jumpInFluid(net.neoforged.neoforge.fluids.FluidType type) {
-+        this.jumpInLiquidInternal();
      }
  
      @Override
++    public void jumpInFluid(net.neoforged.neoforge.fluids.FluidType type) {
++        this.jumpInLiquidInternal();
++    }
++
++    @Override
+     public Vec3 getLeashOffset() {
+         return new Vec3(0.0, 0.5F * this.getEyeHeight(), this.getBbWidth() * 0.2F);
+     }
+@@ -726,6 +_,7 @@
+ 
+     private static class BeeBecomeAngryTargetGoal extends NearestAttackableTargetGoal<Player> {
+         BeeBecomeAngryTargetGoal(Bee bee) {
++            // Objects.requireNonNull(entitybee); // CraftBukkit - decompile error
+             super(bee, Player.class, 10, true, false, bee::isAngryAt);
+         }
+ 
+@@ -1013,7 +_,7 @@
+                             }
+                         }
+ 
+-                        if (growState != null) {
++                        if (growState != null && CraftEventFactory.callEntityChangeBlockEvent(Bee.this, belowPos, growState)) { // CraftBukkit
+                             Bee.this.level().levelEvent(2011, belowPos, 15);
+                             Bee.this.level().setBlockAndUpdate(belowPos, growState);
+                             Bee.this.incrementNumCropsGrownSincePollination();
+@@ -1038,7 +_,7 @@
+         @Override
+         protected void alertOther(Mob other, LivingEntity hurtByMob) {
+             if (other instanceof Bee && this.mob.hasLineOfSight(hurtByMob)) {
+-                other.setTarget(hurtByMob);
++                other.setTarget(hurtByMob, EntityTargetEvent.TargetReason.TARGET_ATTACKED_ENTITY, true); // CraftBukkit - reason
+             }
+         }
+     }

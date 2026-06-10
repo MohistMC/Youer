@@ -13,9 +13,58 @@
      public StructureStart(Structure structure, ChunkPos chunkPos, int references, PiecesContainer pieceContainer) {
          this.structure = structure;
          this.chunkPos = chunkPos;
-@@ -98,6 +_,9 @@
+@@ -79,17 +_,31 @@
+     public void placeInChunk(
+         WorldGenLevel level, StructureManager structureManager, ChunkGenerator generator, RandomSource random, BoundingBox chunkBB, ChunkPos chunkPos
+     ) {
+-        List<StructurePiece> pieces = this.pieceContainer.pieces();
+-        if (!pieces.isEmpty()) {
+-            BoundingBox centerBB = pieces.get(0).boundingBox;
+-            BlockPos centerPos = centerBB.getCenter();
+-            BlockPos referencePos = new BlockPos(centerPos.getX(), centerBB.minY(), centerPos.getZ());
++        List<StructurePiece> list = this.pieceContainer.pieces();
++        if (!list.isEmpty()) {
++            BoundingBox boundingbox1 = list.get(0).boundingBox;
++            BlockPos blockpos = boundingbox1.getCenter();
++            BlockPos blockpos1 = new BlockPos(blockpos.getX(), boundingbox1.minY(), blockpos.getZ());
+ 
+-            for (StructurePiece next : pieces) {
+-                if (next.getBoundingBox().intersects(chunkBB)) {
+-                    next.postProcess(level, structureManager, generator, random, chunkBB, chunkPos, referencePos);
+-                }
+-            }
++            // CraftBukkit start
++            /*
++            for (StructurePiece structurepiece : list) {
++                if (structurepiece.getBoundingBox().intersects(chunkBB)) {
++                    structurepiece.postProcess(level, structureManager, generator, random, chunkBB, chunkPos, blockpos1);
++                }
++            }
++            */
++            List<StructurePiece> pieces = list.stream().filter(piece -> piece.getBoundingBox().intersects(chunkBB)).toList();
++            if (!pieces.isEmpty()) {
++                org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess = new org.bukkit.craftbukkit.util.TransformerGeneratorAccess();
++                transformerAccess.setHandle(level);
++                transformerAccess.setStructureTransformer(new org.bukkit.craftbukkit.util.CraftStructureTransformer(generationEventCause, level, structureManager, structure, chunkBB, chunkPos));
++                for (StructurePiece piece : pieces) {
++                    piece.postProcess(transformerAccess, structureManager, generator, random, chunkBB, chunkPos, blockpos1);
++                }
++                transformerAccess.getStructureTransformer().discard();
++            }
++            // CraftBukkit end
+ 
+             this.structure.afterPlace(level, structureManager, generator, random, chunkBB, chunkPos, this.pieceContainer);
+         }
+@@ -97,7 +_,16 @@
+ 
      public CompoundTag createTag(StructurePieceSerializationContext context, ChunkPos chunkPos) {
          CompoundTag tag = new CompoundTag();
++        // CraftBukkit start - store persistent data in nbt
++        if (!persistentDataContainer.isEmpty()) {
++            tag.put("StructureBukkitValues", persistentDataContainer.toTagCompound());
++        }
++        // CraftBukkit end
++
          if (this.isValid()) {
 +            if (context.registryAccess().lookupOrThrow(Registries.STRUCTURE).getKey(this.getStructure()) == null) { // FORGE: This is just a more friendly error instead of the 'Null String' below
 +                throw new RuntimeException("StructureStart \"" + this.getClass().getName() + "\": \"" + this.getStructure() + "\" unregistered, serializing impossible.");

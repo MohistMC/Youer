@@ -1,0 +1,64 @@
+--- a/net/minecraft/world/entity/projectile/throwableitemprojectile/AbstractThrownPotion.java
++++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/AbstractThrownPotion.java
+@@ -16,11 +_,14 @@
+ import net.minecraft.world.item.alchemy.Potions;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.AbstractCandleBlock;
++import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.CampfireBlock;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.BlockHitResult;
+ import net.minecraft.world.phys.HitResult;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityRemoveEvent;
+ 
+ public abstract class AbstractThrownPotion extends ThrowableItemProjectile {
+     public static final double SPLASH_RANGE = 4.0;
+@@ -72,13 +_,13 @@
+             PotionContents potion = potionItemStack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
+             if (potion.is(Potions.WATER)) {
+                 this.onHitAsWater(level);
+-            } else if (potion.hasEffects()) {
++            } else if (true || potion.hasEffects()) { // CraftBukkit - Call event even if no effects to apply
+                 this.onHitAsPotion(level, potionItemStack, hitResult);
+             }
+ 
+             int type = potion.potion().isPresent() && potion.potion().get().value().hasInstantEffects() ? 2007 : 2002;
+             level.levelEvent(type, this.blockPosition(), potion.getColor());
+-            this.discard();
++            this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 
+@@ -108,13 +_,25 @@
+     private void dowseFire(BlockPos pos) {
+         BlockState blockState = this.level().getBlockState(pos);
+         if (blockState.is(BlockTags.FIRE)) {
+-            this.level().destroyBlock(pos, false, this);
++            // CraftBukkit start
++            if (CraftEventFactory.callEntityChangeBlockEvent(this, pos, Blocks.AIR.defaultBlockState())) {
++                this.level().destroyBlock(pos, false, this);
++            }
++            // CraftBukkit end
+         } else if (AbstractCandleBlock.isLit(blockState)) {
+-            AbstractCandleBlock.extinguish(null, blockState, this.level(), pos);
++            // CraftBukkit start
++            if (CraftEventFactory.callEntityChangeBlockEvent(this, pos, blockState.setValue(AbstractCandleBlock.LIT, false))) {
++                AbstractCandleBlock.extinguish(null, blockState, this.level(), pos);
++            }
++            // CraftBukkit end
+         } else if (CampfireBlock.isLitCampfire(blockState)) {
+-            this.level().levelEvent(null, 1009, pos, 0);
+-            CampfireBlock.dowse(this.getOwner(), this.level(), pos, blockState);
+-            this.level().setBlockAndUpdate(pos, blockState.setValue(CampfireBlock.LIT, false));
++            // CraftBukkit start
++            if (CraftEventFactory.callEntityChangeBlockEvent(this, pos, blockState.setValue(CampfireBlock.LIT, false))) {
++                this.level().levelEvent(null, 1009, pos, 0);
++                CampfireBlock.dowse(this.getOwner(), this.level(), pos, blockState);
++                this.level().setBlockAndUpdate(pos, blockState.setValue(CampfireBlock.LIT, false));
++            }
++            // CraftBukkit end
+         }
+     }
+ 

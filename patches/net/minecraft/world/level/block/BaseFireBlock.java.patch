@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/level/block/BaseFireBlock.java
 +++ b/net/minecraft/world/level/block/BaseFireBlock.java
+@@ -144,7 +_,14 @@
+             }
+ 
+             if (entity.getRemainingFireTicks() >= 0) {
+-                entity.igniteForSeconds(8.0F);
++                // CraftBukkit start
++                org.bukkit.event.entity.EntityCombustEvent event = new org.bukkit.event.entity.EntityCombustByBlockEvent(entity.getBukkitEntity().getLocation().getBlock(), entity.getBukkitEntity(), 8.0F); // PAIL - TODO
++                entity.level().getCraftServer().getPluginManager().callEvent(event);
++
++                if (!event.isCancelled()) {
++                    entity.igniteForSeconds(event.getDuration(), false);
++                }
++                // CraftBukkit end
+             }
+         }
+     }
 @@ -154,6 +_,7 @@
          if (!oldState.is(state.getBlock())) {
              if (inPortalDimension(level)) {
@@ -8,6 +24,30 @@
                  if (optionalShape.isPresent()) {
                      optionalShape.get().createPortalBlocks(level);
                      return;
+@@ -161,7 +_,7 @@
+             }
+ 
+             if (!state.canSurvive(level, pos)) {
+-                level.removeBlock(pos, false);
++                fireExtinguished(level, pos); // CraftBukkit - fuel block broke
+             }
+         }
+     }
+@@ -183,6 +_,14 @@
+         return super.playerWillDestroy(level, pos, state, player);
+     }
+ 
++    // CraftBukkit start
++    protected void fireExtinguished(net.minecraft.world.level.LevelAccessor world, BlockPos position) {
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, position, Blocks.AIR.defaultBlockState()).isCancelled()) {
++            world.removeBlock(position, false);
++        }
++    }
++    // CraftBukkit end
++
+     public static boolean canBePlacedAt(Level level, BlockPos pos, Direction forwardDirection) {
+         BlockState state = level.getBlockState(pos);
+         return !state.isAir() ? false : getState(level, pos).canSurvive(level, pos) || isPortal(level, pos, forwardDirection);
 @@ -196,7 +_,7 @@
              boolean hasObsidian = false;
  

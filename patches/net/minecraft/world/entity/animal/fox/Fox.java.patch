@@ -1,5 +1,35 @@
 --- a/net/minecraft/world/entity/animal/fox/Fox.java
 +++ b/net/minecraft/world/entity/animal/fox/Fox.java
+@@ -104,6 +_,10 @@
+ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public class Fox extends Animal {
+     private static final EntityDataAccessor<Integer> DATA_TYPE_ID = SynchedEntityData.defineId(Fox.class, EntityDataSerializers.INT);
+     private static final EntityDataAccessor<Byte> DATA_FLAGS_ID = SynchedEntityData.defineId(Fox.class, EntityDataSerializers.BYTE);
+@@ -530,7 +_,8 @@
+     @Override
+     protected void pickUpItem(ServerLevel level, ItemEntity entity) {
+         ItemStack itemStack = entity.getItem();
+-        if (this.canHoldItem(itemStack)) {
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(this, entity, itemStack.getCount() - 1, !this.canHoldItem(itemStack)).isCancelled()) { // CraftBukkit - call EntityPickupItemEvent
++            itemStack = entity.getItem(); // CraftBukkit - update ItemStack from event
+             int count = itemStack.getCount();
+             if (count > 1) {
+                 this.dropItemStack(itemStack.split(count - 1));
+@@ -541,7 +_,7 @@
+             this.setItemSlot(EquipmentSlot.MAINHAND, itemStack.split(1));
+             this.setGuaranteedDrop(EquipmentSlot.MAINHAND);
+             this.take(entity, itemStack.getCount());
+-            entity.discard();
++            entity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             this.ticksSinceEaten = 0;
+         }
+     }
 @@ -700,13 +_,18 @@
  
      @Override

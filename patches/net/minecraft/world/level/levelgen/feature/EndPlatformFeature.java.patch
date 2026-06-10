@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/levelgen/feature/EndPlatformFeature.java
 +++ b/net/minecraft/world/level/levelgen/feature/EndPlatformFeature.java
-@@ -8,6 +8,12 @@
+@@ -7,6 +_,12 @@
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
  
@@ -11,9 +11,9 @@
 +// CraftBukkit end
 +
  public class EndPlatformFeature extends Feature<NoneFeatureConfiguration> {
- 
      public EndPlatformFeature(Codec<NoneFeatureConfiguration> codec) {
-@@ -21,6 +27,13 @@
+         super(codec);
+@@ -19,6 +_,13 @@
      }
  
      public static void createEndPlatform(ServerLevelAccessor newLevel, BlockPos origin, boolean dropResources) {
@@ -21,26 +21,26 @@
 +        // CraftBukkit start
 +    }
 +
-+    public static void createEndPlatform(ServerLevelAccessor newLevel, BlockPos origin, boolean dropResources, Entity entity) {
++    public static void createEndPlatform(ServerLevelAccessor newLevel, BlockPos origin, boolean dropResources, net.minecraft.world.entity.Entity entity) {
 +        org.bukkit.craftbukkit.util.BlockStateListPopulator blockList = new org.bukkit.craftbukkit.util.BlockStateListPopulator(newLevel);
 +        // CraftBukkit end
-         BlockPos.MutableBlockPos blockpos_mutableblockpos = origin.mutable();
+         BlockPos.MutableBlockPos pos = origin.mutable();
  
-         for (int i = -2; i <= 2; ++i) {
-@@ -29,16 +42,36 @@
-                     BlockPos blockpos1 = blockpos_mutableblockpos.set(origin).move(j, k, i);
-                     Block block = k == -1 ? Blocks.OBSIDIAN : Blocks.AIR;
- 
--                    if (!newLevel.getBlockState(blockpos1).is(block)) {
+         for (int dz = -2; dz <= 2; dz++) {
+@@ -26,15 +_,35 @@
+                 for (int dy = -1; dy < 3; dy++) {
+                     BlockPos blockPos = pos.set(origin).move(dx, dy, dz);
+                     Block block = dy == -1 ? Blocks.OBSIDIAN : Blocks.AIR;
+-                    if (!newLevel.getBlockState(blockPos).is(block)) {
 +                    // CraftBukkit start
-+                    if (!blockList.getBlockState(blockpos1).is(block)) {
++                    if (!blockList.getBlockState(blockPos).is(block)) {
                          if (dropResources) {
--                            newLevel.destroyBlock(blockpos1, true, (Entity) null);
-+                            blockList.destroyBlock(blockpos1, true, (Entity) null);
+-                            newLevel.destroyBlock(blockPos, true, null);
++                            blockList.destroyBlock(blockPos, true, null);
                          }
  
--                        newLevel.setBlock(blockpos1, block.defaultBlockState(), 3);
-+                        blockList.setBlock(blockpos1, block.defaultBlockState(), 3);
+-                        newLevel.setBlock(blockPos, block.defaultBlockState(), 3);
++                        blockList.setBlock(blockPos, block.defaultBlockState(), 3);
 +                        // CraftBukkit end
                      }
                  }
@@ -64,6 +64,5 @@
 +        }
 +        blockList.updateList();
 +        // CraftBukkit end
- 
      }
  }

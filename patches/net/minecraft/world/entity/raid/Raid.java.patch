@@ -13,6 +13,67 @@
      public float getTotalHealth() {
          return this.totalHealth;
      }
+@@ -271,6 +_,7 @@
+                 boolean oldActive = this.active;
+                 this.active = level.hasChunkAt(this.center);
+                 if (level.getDifficulty() == Difficulty.PEACEFUL) {
++                    org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, level, org.bukkit.event.raid.RaidStopEvent.Reason.PEACE); // CraftBukkit
+                     this.stop();
+                     return;
+                 }
+@@ -290,13 +_,16 @@
+                 if (!level.isVillage(this.center)) {
+                     if (this.groupsSpawned > 0) {
+                         this.status = Raid.RaidStatus.LOSS;
++                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidFinishEvent(this, level, new java.util.ArrayList<>()); // CraftBukkit
+                     } else {
++                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, level, org.bukkit.event.raid.RaidStopEvent.Reason.NOT_IN_VILLAGE); // CraftBukkit
+                         this.stop();
+                     }
+                 }
+ 
+                 this.ticksActive++;
+                 if (this.ticksActive >= 48000L) {
++                    org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, level, org.bukkit.event.raid.RaidStopEvent.Reason.TIMEOUT); // CraftBukkit
+                     this.stop();
+                     return;
+                 }
+@@ -385,6 +_,7 @@
+                     }
+ 
+                     if (attempt > 5) {
++                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, level, org.bukkit.event.raid.RaidStopEvent.Reason.UNSPAWNABLE);  // CraftBukkit
+                         this.stop();
+                         break;
+                     }
+@@ -396,6 +_,7 @@
+                     } else {
+                         this.status = Raid.RaidStatus.VICTORY;
+ 
++                        List<org.bukkit.entity.Player> winners = new java.util.ArrayList<>(); // CraftBukkit
+                         for (UUID heroUUID : this.heroesOfTheVillage) {
+                             Entity entity = level.getEntity(heroUUID);
+                             if (entity instanceof LivingEntity hero && !entity.isSpectator()) {
+@@ -403,9 +_,11 @@
+                                 if (hero instanceof ServerPlayer playerHero) {
+                                     playerHero.awardStat(Stats.RAID_WIN);
+                                     CriteriaTriggers.RAID_WIN.trigger(playerHero);
++                                    winners.add(playerHero.getBukkitEntity()); // CraftBukkit
+                                 }
+                             }
+                         }
++                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidFinishEvent(this, level, winners); // CraftBukkit
+                     }
+                 }
+ 
+@@ -413,6 +_,7 @@
+             } else if (this.isOver()) {
+                 this.celebrationTicks++;
+                 if (this.celebrationTicks >= 600) {
++                    org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, level, org.bukkit.event.raid.RaidStopEvent.Reason.FINISHED); // CraftBukkit
+                     this.stop();
+                     return;
+                 }
 @@ -530,7 +_,7 @@
              int ravagersSpawned = 0;
  
@@ -31,6 +92,15 @@
                      Raider ridingRaider = null;
                      if (groupNumber == this.getNumGroups(Difficulty.NORMAL)) {
                          ridingRaider = EntityType.PILLAGER.create(level, EntitySpawnReason.EVENT);
+@@ -582,7 +_,7 @@
+                 raider.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.EVENT, null);
+                 raider.applyRaidBuffs(level, groupNumber, false);
+                 raider.setOnGround(true);
+-                level.addFreshEntityWithPassengers(raider);
++                level.addFreshEntityWithPassengers(raider, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.RAID); // CraftBukkit
+             }
+         }
+     }
 @@ -808,6 +_,12 @@
          this.heroesOfTheVillage.add(killer.getUUID());
      }

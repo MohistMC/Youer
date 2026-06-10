@@ -1,20 +1,91 @@
 --- a/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
 +++ b/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
-@@ -156,7 +_,7 @@
+@@ -56,6 +_,12 @@
+ import net.minecraft.world.level.storage.ValueOutput;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.entity.EntityTransformEvent;
++// CraftBukkit end
++
+ public class ZombieVillager extends Zombie implements VillagerDataHolder {
+     public static final EntityDataAccessor<Boolean> DATA_CONVERTING_ID = SynchedEntityData.defineId(ZombieVillager.class, EntityDataSerializers.BOOLEAN);
+     private static final EntityDataAccessor<VillagerData> DATA_VILLAGER_DATA = SynchedEntityData.defineId(
+@@ -78,6 +_,7 @@
+     private static final EntityDimensions BABY_DIMENSIONS = EntityDimensions.scalable(0.49F, 0.99F)
+         .withEyeHeight(0.67F)
+         .withAttachments(EntityAttachments.builder().attach(EntityAttachment.VEHICLE, 0.0F, 0.125F, 0.0F));
++    private int lastTick = MinecraftServer.currentTick; // CraftBukkit - add field
+ 
+     public ZombieVillager(EntityType<? extends ZombieVillager> type, Level level) {
+         super(type, level);
+@@ -155,13 +_,18 @@
+     public void tick() {
          if (!this.level().isClientSide() && this.isAlive() && this.isConverting()) {
              int amount = this.getConversionProgress();
++            // CraftBukkit start - Use wall time instead of ticks for villager conversion
++            int elapsedTicks = MinecraftServer.currentTick - this.lastTick;
++            amount *= elapsedTicks;
++            // CraftBukkit end
              this.villagerConversionTime -= amount;
 -            if (this.villagerConversionTime <= 0) {
 +            if (this.villagerConversionTime <= 0 && net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityType.VILLAGER, (timer) -> this.villagerConversionTime = timer)) {
                  this.finishConversion((ServerLevel)this.level());
              }
          }
-@@ -270,6 +_,8 @@
+ 
+         super.tick();
++        this.lastTick = MinecraftServer.currentTick; // CraftBukkit
+     }
+ 
+     @Override
+@@ -201,8 +_,10 @@
+         this.conversionStarter = player;
+         this.villagerConversionTime = time;
+         this.getEntityData().set(DATA_CONVERTING_ID, true);
+-        this.removeEffect(MobEffects.WEAKNESS);
+-        this.addEffect(new MobEffectInstance(MobEffects.STRENGTH, time, Math.min(this.level().getDifficulty().getId() - 1, 0)));
++        // CraftBukkit start
++        this.removeEffect(MobEffects.WEAKNESS, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
++        this.addEffect(new MobEffectInstance(MobEffects.STRENGTH, time, Math.min(this.level().getDifficulty().getId() - 1, 0)), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
++        // CraftBukkit end
+         this.level().broadcastEntityEvent(this, (byte)16);
+     }
+ 
+@@ -233,10 +_,12 @@
+     }
+ 
+     private void finishConversion(ServerLevel level) {
+-        this.convertTo(
++        // CraftBukkit start
++        Villager converted = this.convertTo(
+             EntityType.VILLAGER,
+             ConversionParams.single(this, false, false),
+             villager -> {
++                this.forceDrops = false; // CraftBukkit
+                 for (EquipmentSlot undroppedSlot : this.dropPreservedEquipment(
+                     level, stack -> !EnchantmentHelper.has(stack, EnchantmentEffectComponents.PREVENT_ARMOR_CHANGE)
+                 )) {
+@@ -266,12 +_,18 @@
+                     }
+                 }
+ 
+-                villager.addEffect(new MobEffectInstance(MobEffects.NAUSEA, 200, 0));
++                villager.addEffect(new MobEffectInstance(MobEffects.NAUSEA, 200, 0), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION); // CraftBukkit
                  if (!this.isSilent()) {
                      level.levelEvent(null, 1027, this.blockPosition(), 0);
                  }
+-            }
 +
 +                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, villager);
-             }
++            }, EntityTransformEvent.TransformReason.CURED, CreatureSpawnEvent.SpawnReason.CURED
          );
++        if (converted == null) {
++            ((org.bukkit.entity.ZombieVillager) getBukkitEntity()).setConversionTime(-1); // SPIGOT-5208: End conversion to stop event spam
++        }
++        // CraftBukkit end
      }
+ 
+     @VisibleForTesting

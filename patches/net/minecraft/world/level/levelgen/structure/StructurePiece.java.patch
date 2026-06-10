@@ -10,11 +10,22 @@
          CompoundTag tag = new CompoundTag();
          tag.putString("id", BuiltInRegistries.STRUCTURE_PIECE.getKey(this.getType()).toString());
          tag.store("BB", BoundingBox.CODEC, this.boundingBox);
-@@ -197,6 +_,38 @@
-             }
+@@ -186,6 +_,11 @@
+                 }
+ 
+                 level.setBlock(pos, blockState, 2);
++                // CraftBukkit start - fluid handling is already done if we have a transformer generator access
++                if (level instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess) {
++                    return;
++                }
++                // CraftBukkit end
+                 FluidState fluidState = level.getFluidState(pos);
+                 if (!fluidState.isEmpty()) {
+                     level.scheduleTick(pos, fluidState.getType(), 0);
+@@ -198,6 +_,38 @@
          }
      }
-+
+ 
 +    // CraftBukkit start
 +    protected boolean placeCraftBlockEntity(ServerLevelAccessor worldAccess, BlockPos position, org.bukkit.craftbukkit.block.CraftBlockEntityState<?> craftBlockEntityState, int i) {
 +        if (worldAccess instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess) {
@@ -46,6 +57,87 @@
 +        }
 +    }
 +    // CraftBukkit end
- 
++
      protected boolean canBeReplaced(LevelReader level, int x, int y, int z, BoundingBox chunkBB) {
          return true;
+     }
+@@ -416,11 +_,20 @@
+                 blockState = reorient(level, pos, Blocks.CHEST.defaultBlockState());
+             }
+ 
++            // CraftBukkit start
++            /*
+             level.setBlock(pos, blockState, 2);
+-            BlockEntity blockEntity = level.getBlockEntity(pos);
+-            if (blockEntity instanceof ChestBlockEntity) {
+-                ((ChestBlockEntity)blockEntity).setLootTable(lootTable, random.nextLong());
++            BlockEntity blockentity = level.getBlockEntity(pos);
++
++            if (blockentity instanceof ChestBlockEntity) {
++                ((ChestBlockEntity) blockentity).setLootTable(lootTable, random.nextLong());
+             }
++            */
++            org.bukkit.craftbukkit.block.CraftChest chestState = (org.bukkit.craftbukkit.block.CraftChest) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(level, pos, blockState, null);
++            chestState.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(lootTable));
++            chestState.setSeed(random.nextLong());
++            placeCraftBlockEntity(level, pos, chestState, 2);
++            // CraftBukkit end
+ 
+             return true;
+         } else {
+@@ -431,13 +_,33 @@
+     protected boolean createDispenser(
+         WorldGenLevel level, BoundingBox chunkBB, RandomSource random, int x, int y, int z, Direction facing, ResourceKey<LootTable> lootTable
+     ) {
+-        BlockPos pos = this.getWorldPos(x, y, z);
+-        if (chunkBB.isInside(pos) && !level.getBlockState(pos).is(Blocks.DISPENSER)) {
+-            this.placeBlock(level, Blocks.DISPENSER.defaultBlockState().setValue(DispenserBlock.FACING, facing), x, y, z, chunkBB);
+-            BlockEntity blockEntity = level.getBlockEntity(pos);
+-            if (blockEntity instanceof DispenserBlockEntity) {
+-                ((DispenserBlockEntity)blockEntity).setLootTable(lootTable, random.nextLong());
+-            }
++        BlockPos blockpos = this.getWorldPos(x, y, z);
++        if (chunkBB.isInside(blockpos) && !level.getBlockState(blockpos).is(Blocks.DISPENSER)) {
++            // CraftBukkit start
++            /*
++            this.placeBlock(level, (BlockState) Blocks.DISPENSER.defaultBlockState().setValue(DispenserBlock.FACING, facing), x, y, z, chunkBB);
++            BlockEntity blockentity = level.getBlockEntity(blockpos);
++
++            if (blockentity instanceof DispenserBlockEntity) {
++                ((DispenserBlockEntity) blockentity).setLootTable(lootTable, random.nextLong());
++            }
++            */
++            if (!this.canBeReplaced(level, x, y, z, chunkBB)) {
++                return true;
++            }
++            BlockState blockstate = Blocks.DISPENSER.defaultBlockState().setValue(DispenserBlock.FACING, facing);
++            if (this.mirror != Mirror.NONE) {
++                blockstate = blockstate.mirror(this.mirror);
++            }
++            if (this.rotation != Rotation.NONE) {
++                blockstate = blockstate.rotate(this.rotation);
++            }
++
++            org.bukkit.craftbukkit.block.CraftDispenser dispenserState = (org.bukkit.craftbukkit.block.CraftDispenser) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(level, blockpos, blockstate, null);
++            dispenserState.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(lootTable));
++            dispenserState.setSeed(random.nextLong());
++            placeCraftBlockEntity(level, blockpos, dispenserState, 2);
++            // CraftBukkit end
+ 
+             return true;
+         } else {
+@@ -450,8 +_,12 @@
+     }
+ 
+     public static BoundingBox createBoundingBox(Stream<StructurePiece> pieces) {
+-        return BoundingBox.encapsulatingBoxes(pieces.map(StructurePiece::getBoundingBox)::iterator)
+-            .orElseThrow(() -> new IllegalStateException("Unable to calculate boundingbox without pieces"));
++        Stream<BoundingBox> stream1 = pieces.map(StructurePiece::getBoundingBox); // CraftBukkit - decompile error
++
++        Objects.requireNonNull(stream1);
++        return (BoundingBox) BoundingBox.encapsulatingBoxes(stream1::iterator).orElseThrow(() -> {
++            return new IllegalStateException("Unable to calculate boundingbox without pieces");
++        });
+     }
+ 
+     public static @Nullable StructurePiece findCollisionPiece(List<StructurePiece> pieces, BoundingBox box) {

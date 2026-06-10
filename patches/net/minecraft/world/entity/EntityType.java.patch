@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/EntityType.java
 +++ b/net/minecraft/world/entity/EntityType.java
+@@ -225,7 +_,7 @@
+             .fireImmune()
+             .sized(6.0F, 0.5F)
+             .clientTrackingRange(10)
+-            .updateInterval(Integer.MAX_VALUE)
++            .updateInterval(10) // CraftBukkit - SPIGOT-3729: track area effect clouds
+     );
+     public static final EntityType<Armadillo> ARMADILLO = register(
+         "armadillo", EntityType.Builder.of(Armadillo::new, MobCategory.CREATURE).sized(0.7F, 0.65F).eyeHeight(0.26F).clientTrackingRange(10)
 @@ -1225,6 +_,11 @@
      private final FeatureFlagSet requiredFeatures;
      private final boolean allowedInPeaceful;
@@ -12,6 +21,15 @@
      private static <T extends Entity> EntityType<T> register(ResourceKey<EntityType<?>> id, EntityType.Builder<T> builder) {
          return Registry.register(BuiltInRegistries.ENTITY_TYPE, id, builder.build(id));
      }
+@@ -1233,7 +_,7 @@
+         return ResourceKey.create(Registries.ENTITY_TYPE, Identifier.withDefaultNamespace(vanillaId));
+     }
+ 
+-    private static <T extends Entity> EntityType<T> register(String vanillaId, EntityType.Builder<T> builder) {
++    private static <T extends Entity> EntityType<T> register(String vanillaId, EntityType.Builder builder) { // CraftBukkit - decompile error
+         return register(vanillaEntityId(vanillaId), builder);
+     }
+ 
 @@ -1262,6 +_,30 @@
          FeatureFlagSet requiredFeatures,
          boolean allowedInPeaceful
@@ -43,18 +61,61 @@
          this.factory = factory;
          this.category = category;
          this.canSpawnFarFromPlayer = canSpawnFarFromPlayer;
-@@ -1277,6 +_,10 @@
+@@ -1277,25 +_,28 @@
          this.lootTable = lootTable;
          this.requiredFeatures = requiredFeatures;
          this.allowedInPeaceful = allowedInPeaceful;
+-    }
+-
+-    public @Nullable T spawn(
+-        ServerLevel level,
+-        @Nullable ItemStack itemStack,
+-        @Nullable LivingEntity user,
+-        BlockPos spawnPos,
+-        EntitySpawnReason spawnReason,
+-        boolean tryMoveDown,
+-        boolean movedUp
+-    ) {
+-        Consumer<T> postSpawnConfig;
 +        this.trackDeltasSupplier = trackDeltasSupplier;
 +        this.trackingRangeSupplier = trackingRangeSupplier;
 +        this.updateIntervalSupplier = updateIntervalSupplier;
 +        this.onlyOpCanSetNbt = onlyOpCanSetNbt;
++    }
++
++    public @Nullable T spawn(ServerLevel level, @Nullable ItemStack itemStack, @Nullable LivingEntity user, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp) {
++        // CraftBukkit start
++        return this.spawn(level, itemStack, user, spawnPos, spawnReason, tryMoveDown, movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER_EGG);
++    }
++
++    public @Nullable T spawn(ServerLevel level, @Nullable ItemStack itemStack, @Nullable LivingEntity user, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason bukkitSpawnReason) {
++        // CraftBukkit end
++        Consumer<T> consumer;
++
+         if (itemStack != null) {
+-            postSpawnConfig = createDefaultStackConfig(level, itemStack, user);
++            consumer = createDefaultStackConfig(level, itemStack, user);
+         } else {
+-            postSpawnConfig = entity -> {};
++            consumer = entity -> {};
+         }
+ 
+-        return this.spawn(level, postSpawnConfig, spawnPos, spawnReason, tryMoveDown, movedUp);
++        return (T) this.spawn(level, consumer, spawnPos, spawnReason, tryMoveDown, movedUp, bukkitSpawnReason); // CraftBukkit
      }
  
-     public @Nullable T spawn(
-@@ -1320,12 +_,22 @@
+     public static <T extends Entity> Consumer<T> createDefaultStackConfig(Level level, ItemStack itemStack, @Nullable LivingEntity user) {
+@@ -1315,20 +_,38 @@
+     public static <T extends Entity> Consumer<T> appendCustomEntityStackConfig(
+         Consumer<T> initialConfig, Level level, ItemStack itemStack, @Nullable LivingEntity user
+     ) {
+-        TypedEntityData<EntityType<?>> entityData = itemStack.get(DataComponents.ENTITY_DATA);
+-        return entityData != null ? initialConfig.andThen(entity -> updateCustomEntityTag(level, user, entity, entityData)) : initialConfig;
++        TypedEntityData<EntityType<?>> typedentitydata = (TypedEntityData) itemStack.get(DataComponents.ENTITY_DATA);
++
++        return typedentitydata != null ? initialConfig.andThen((entity) -> {
++            try { updateCustomEntityTag(level, user, entity, typedentitydata); } catch (Throwable t) { LOGGER.warn("Error loading spawn egg NBT", t); } // CraftBukkit - SPIGOT-5665
++        }) : initialConfig;
      }
  
      public @Nullable T spawn(ServerLevel level, BlockPos spawnPos, EntitySpawnReason spawnReason) {
@@ -82,7 +143,16 @@
 +        // CraftBukkit end
          T entity = this.create(level, postSpawnConfig, spawnPos, spawnReason, tryMoveDown, movedUp);
          if (entity != null) {
-             level.addFreshEntityWithPassengers(entity);
+-            level.addFreshEntityWithPassengers(entity);
++            // CraftBukkit start
++            level.addFreshEntityWithPassengers(entity, bukkitSpawnReason);
++            if (entity.isRemoved()) {
++                return null; // Don't return an entity when CreatureSpawnEvent is canceled
++            }
++            // CraftBukkit end
+             if (entity instanceof Mob mob) {
+                 mob.playAmbientSound();
+             }
 @@ -1357,6 +_,13 @@
                  mob.yHeadRot = mob.getYRot();
                  mob.yBodyRot = mob.getYRot();
@@ -97,6 +167,36 @@
              }
  
              if (postSpawnConfig != null) {
+@@ -1510,17 +_,21 @@
+     }
+ 
+     public static @Nullable Entity loadEntityRecursive(ValueInput input, Level level, EntitySpawnReason reason, EntityProcessor postLoad) {
+-        return loadStaticEntity(input, level, reason)
+-            .map(postLoad::process)
+-            .map(entity -> loadPassengersRecursive(entity, input, level, reason, postLoad))
+-            .orElse(null);
++        Optional<Entity> optional = loadStaticEntity(input, level, reason); // CraftBukkit - decompile error
++
++        Objects.requireNonNull(postLoad);
++        return (Entity) optional.map(postLoad::process).map((entity) -> {
++            return loadPassengersRecursive(entity, input, level, reason, postLoad);
++        }).orElse(null); // CraftBukkit - decompile error
+     }
+ 
+     public static @Nullable Entity loadEntityRecursive(EntityType<?> type, ValueInput input, Level level, EntitySpawnReason reason, EntityProcessor postLoad) {
+-        return loadStaticEntity(type, input, level, reason)
+-            .map(postLoad::process)
+-            .map(entity -> loadPassengersRecursive(entity, input, level, reason, postLoad))
+-            .orElse(null);
++        Optional<Entity> optional = loadStaticEntity(type, input, level, reason); // CraftBukkit - decompile error
++
++        Objects.requireNonNull(postLoad);
++        return (Entity) optional.map(postLoad::process).map((entity) -> {
++            return loadPassengersRecursive(entity, input, level, reason, postLoad);
++        }).orElse(null); // CraftBukkit - decompile error
+     }
+ 
+     private static Entity loadPassengersRecursive(Entity entity, ValueInput input, Level level, EntitySpawnReason reason, EntityProcessor postLoad) {
 @@ -1560,14 +_,23 @@
      }
  
@@ -145,6 +245,15 @@
  
          private Builder(EntityType.EntityFactory<T> factory, MobCategory category) {
              this.factory = factory;
+@@ -1644,7 +_,7 @@
+             this.canSpawnFarFromPlayer = category == MobCategory.CREATURE || category == MobCategory.MISC;
+         }
+ 
+-        public static <T extends Entity> EntityType.Builder<T> of(EntityType.EntityFactory<T> factory, MobCategory category) {
++        public static <T extends Entity> EntityType.Builder<T> of(EntityType.EntityFactory factory, MobCategory category) { // CraftBukkit - decompile error
+             return new EntityType.Builder<>(factory, category);
+         }
+ 
 @@ -1755,6 +_,26 @@
              return this;
          }
