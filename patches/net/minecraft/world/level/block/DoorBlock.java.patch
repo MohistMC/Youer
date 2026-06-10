@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/DoorBlock.java
 +++ b/net/minecraft/world/level/block/DoorBlock.java
+@@ -38,6 +_,7 @@
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.Shapes;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.event.block.BlockRedstoneEvent;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class DoorBlock extends Block {
 @@ -118,7 +_,7 @@
  
      @Override
@@ -9,7 +17,7 @@
              DoublePlantBlock.preventDropFromBottomPart(level, pos, state, player);
          }
  
-@@ -221,8 +_,20 @@
+@@ -221,8 +_,24 @@
  
      @Override
      protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
@@ -24,11 +32,15 @@
 +        int powerTop = blockTop.getBlockPower();
 +        if (powerTop > power) power = powerTop;
 +        int oldPower = state.getValue(POWERED) ? 15 : 0;
++        boolean signal;
 +        if (oldPower == 0 ^ power == 0) {
 +            BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(bukkitBlock, oldPower, power);
 +            level.getCraftServer().getPluginManager().callEvent(eventRedstone);
-+            boolean signal = eventRedstone.getNewCurrent() > 0;
-+            // CraftBukkit end
++            signal = eventRedstone.getNewCurrent() > 0;
++        } else {
++            signal = power > 0;
++        }
++        // CraftBukkit end
          if (!this.defaultBlockState().is(block) && signal != state.getValue(POWERED)) {
              if (signal != state.getValue(OPEN)) {
                  this.playSound(null, level, pos, signal);

@@ -36,12 +36,10 @@
                  if (entity.checkingBeamSections.size() <= 1) {
                      lastBeamSection = new BeaconBeamOwner.Section(color);
                      entity.checkingBeamSections.add(lastBeamSection);
-@@ -230,6 +_,55 @@
-     public void setRemoved() {
-         playSound(this.level, this.worldPosition, SoundEvents.BEACON_DEACTIVATE);
+@@ -232,28 +_,65 @@
          super.setRemoved();
-+    }
-+
+     }
+ 
 +    // CraftBukkit start - split into components
 +    private static int getAmplification(int levels, @Nullable Holder<MobEffect> primaryPower, @Nullable Holder<MobEffect> secondaryPower) {
 +        {
@@ -89,6 +87,53 @@
 +
 +            return false;
 +        }
++    }
++
+     private static void applyEffects(
+         Level level, BlockPos worldPosition, int levels, @Nullable Holder<MobEffect> primaryPower, @Nullable Holder<MobEffect> secondaryPower
+     ) {
+         if (!level.isClientSide() && primaryPower != null) {
+-            double range = levels * 10 + 10;
+-            int baseAmp = 0;
+-            if (levels >= 4 && Objects.equals(primaryPower, secondaryPower)) {
+-                baseAmp = 1;
+-            }
+-
+-            int durationTicks = (9 + levels * 2) * 20;
+-            AABB bb = new AABB(worldPosition).inflate(range).expandTowards(0.0, level.getHeight(), 0.0);
+-            List<Player> players = level.getEntitiesOfClass(Player.class, bb);
+-
+-            for (Player player : players) {
+-                player.addEffect(new MobEffectInstance(primaryPower, durationTicks, baseAmp, true, true));
+-            }
+-
+-            if (levels >= 4 && !Objects.equals(primaryPower, secondaryPower) && secondaryPower != null) {
+-                for (Player player : players) {
+-                    player.addEffect(new MobEffectInstance(secondaryPower, durationTicks, 0, true, true));
+-                }
++            int j = getAmplification(levels, primaryPower, secondaryPower);
++            int k = getLevel(levels);
++            List list = getHumansInRange(level, worldPosition, levels);
++            applyEffect(list, primaryPower, k, j);
++            if (hasSecondaryEffect(levels, primaryPower, secondaryPower)) {
++                applyEffect(list, secondaryPower, k, 0);
+             }
+         }
+     }
+@@ -283,7 +_,7 @@
      }
  
-     private static void applyEffects(
+     private static @Nullable Holder<MobEffect> loadEffect(ValueInput input, String field) {
+-        return input.read(field, BuiltInRegistries.MOB_EFFECT.holderByNameCodec()).filter(VALID_EFFECTS::contains).orElse(null);
++        return input.read(field, BuiltInRegistries.MOB_EFFECT.holderByNameCodec()).orElse(null); // CraftBukkit - persist manually set non-default beacon effect (SPIGOT-3598)
+     }
+ 
+     @Override
+@@ -291,6 +_,7 @@
+         super.loadAdditional(input);
+         this.primaryPower = loadEffect(input, "primary_effect");
+         this.secondaryPower = loadEffect(input, "secondary_effect");
++        this.levels = input.getIntOr("Levels", this.levels); // CraftBukkit - SPIGOT-5053, use where available
+         this.name = parseCustomNameSafe(input, "CustomName");
+         this.lockKey = LockCode.fromTag(input);
+     }

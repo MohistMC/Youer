@@ -8,6 +8,14 @@
  import net.minecraft.world.damagesource.DamageSource;
  import net.minecraft.world.damagesource.DamageTypes;
  import net.minecraft.world.effect.MobEffectInstance;
+@@ -124,6 +_,7 @@
+ import net.minecraft.world.entity.EntitySpawnReason;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.EquipmentSlot;
++import net.minecraft.world.entity.HumanoidArm;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.Mob;
+ import net.minecraft.world.entity.NeutralMob;
 @@ -151,10 +_,12 @@
  import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
  import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
@@ -21,7 +29,15 @@
  import net.minecraft.world.inventory.NautilusInventoryMenu;
  import net.minecraft.world.inventory.RemoteSlot;
  import net.minecraft.world.inventory.ResultSlot;
-@@ -175,6 +_,7 @@
+@@ -167,6 +_,7 @@
+ import net.minecraft.world.item.component.WrittenBookContent;
+ import net.minecraft.world.item.crafting.Recipe;
+ import net.minecraft.world.item.crafting.RecipeHolder;
++import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
+ import net.minecraft.world.item.enchantment.EnchantmentHelper;
+ import net.minecraft.world.item.trading.MerchantOffers;
+ import net.minecraft.world.level.ChunkPos;
+@@ -175,12 +_,14 @@
  import net.minecraft.world.level.biome.BiomeManager;
  import net.minecraft.world.level.block.BedBlock;
  import net.minecraft.world.level.block.Block;
@@ -29,7 +45,14 @@
  import net.minecraft.world.level.block.HorizontalDirectionalBlock;
  import net.minecraft.world.level.block.RespawnAnchorBlock;
  import net.minecraft.world.level.block.entity.BlockEntity;
-@@ -199,6 +_,17 @@
+ import net.minecraft.world.level.block.entity.CommandBlockEntity;
+ import net.minecraft.world.level.block.entity.SignBlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.gamerules.GameRules;
+ import net.minecraft.world.level.portal.TeleportTransition;
+@@ -199,6 +_,30 @@
  import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.scores.criteria.ObjectiveCriteria;
@@ -42,8 +65,21 @@
 +import org.bukkit.craftbukkit.CraftWorldBorder;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.event.CraftPortalEvent;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.craftbukkit.scoreboard.CraftScoreboardManager;
++import org.bukkit.craftbukkit.util.CraftDimensionUtil;
 +import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.player.PlayerBedLeaveEvent;
++import org.bukkit.event.player.PlayerChangedMainHandEvent;
++import org.bukkit.event.player.PlayerChangedWorldEvent;
++import org.bukkit.event.player.PlayerLocaleChangeEvent;
++import org.bukkit.event.player.PlayerPortalEvent;
++import org.bukkit.event.player.PlayerRespawnEvent;
 +import org.bukkit.event.player.PlayerSpawnChangeEvent;
++import org.bukkit.event.player.PlayerTeleportEvent;
++import org.bukkit.inventory.MainHand;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -522,16 +558,16 @@
              scoreboard.forAllObjectives(ObjectiveCriteria.KILL_COUNT_ALL, this, ScoreAccess::increment);
              if (victim instanceof Player) {
                  this.awardStat(Stats.PLAYER_KILLS);
-@@ -980,7 +_,8 @@
-     }
- 
-     private void handleTeamKill(ScoreHolder source, ScoreHolder target, ObjectiveCriteria[] criteriaByTeam) {
--        Scoreboard scoreboard = this.level().getScoreboard();
-+        // CraftBukkit - Get our scores instead
-+        CraftScoreboardManager scoreboard = this.level().getCraftServer().getScoreboardManager();
-         PlayerTeam ownTeam = scoreboard.getPlayersTeam(target.getScoreboardName());
+@@ -985,7 +_,8 @@
          if (ownTeam != null) {
              int color = ownTeam.getColor().getId();
+             if (color >= 0 && color < criteriaByTeam.length) {
+-                scoreboard.forAllObjectives(criteriaByTeam[color], source, ScoreAccess::increment);
++                // CraftBukkit - Get our scores instead
++                this.level().getCraftServer().getScoreboardManager().forAllObjectives(criteriaByTeam[color], source, ScoreAccess::increment);
+             }
+         }
+     }
 @@ -1015,22 +_,44 @@
          return this.level().isPvpAllowed();
      }
@@ -715,7 +751,7 @@
  
 +    // CraftBukkit start
 +    @Override
-+    public CraftPortalEvent callPortalEvent(Entity entity, Location exit, TeleportCause cause, int searchRadius, int creationRadius) {
++    public CraftPortalEvent callPortalEvent(Entity entity, Location exit, PlayerTeleportEvent.TeleportCause cause, int searchRadius, int creationRadius) {
 +        Location enter = this.getBukkitEntity().getLocation();
 +        PlayerPortalEvent event = new PlayerPortalEvent(this.getBukkitEntity(), enter, exit, cause, searchRadius, true, creationRadius);
 +        Bukkit.getServer().getPluginManager().callEvent(event);
@@ -843,7 +879,7 @@
          super.stopSleepInBed(forcefulWakeUp, updateLevelList);
          if (this.connection != null) {
 -            this.connection.teleport(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
-+            this.connection.teleport(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot(), TeleportCause.EXIT_BED); // CraftBukkit
++            this.connection.teleport(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot(), PlayerTeleportEvent.TeleportCause.EXIT_BED); // CraftBukkit
          }
      }
  
@@ -1046,7 +1082,7 @@
  
      @Override
 -    public boolean teleportTo(ServerLevel level, double x, double y, double z, Set<Relative> relatives, float newYRot, float newXRot, boolean resetCamera) {
-+    public boolean teleportTo(ServerLevel level, double x, double y, double z, Set<Relative> relatives, float newYRot, float newXRot, boolean resetCamera, TeleportCause cause) { // CraftBukkit
++    public boolean teleportTo(ServerLevel level, double x, double y, double z, Set<Relative> relatives, float newYRot, float newXRot, boolean resetCamera, PlayerTeleportEvent.TeleportCause cause) { // CraftBukkit
          if (this.isSleeping()) {
              this.stopSleepInBed(true, true);
          }
@@ -1094,7 +1130,7 @@
              if (this.camera.level() instanceof ServerLevel level) {
 -                this.teleportTo(level, this.camera.getX(), this.camera.getY(), this.camera.getZ(), Set.of(), this.getYRot(), this.getXRot(), false);
 +                // CraftBukkit start
-+                boolean result = this.teleportTo(level, this.camera.getX(), this.camera.getY(), this.camera.getZ(), Set.of(), this.getYRot(), this.getXRot(), false, TeleportCause.SPECTATE);
++                boolean result = this.teleportTo(level, this.camera.getX(), this.camera.getY(), this.camera.getZ(), Set.of(), this.getYRot(), this.getXRot(), false, PlayerTeleportEvent.TeleportCause.SPECTATE);
 +                if (!result) {
 +                    this.camera = oldCamera;
 +                    return;

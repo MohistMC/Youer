@@ -1,0 +1,70 @@
+--- a/net/minecraft/world/level/block/NetherPortalBlock.java
++++ b/net/minecraft/world/level/block/NetherPortalBlock.java
+@@ -43,6 +_,14 @@
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
++// CraftBukkit start
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.event.CraftPortalEvent;
++import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.event.entity.EntityPortalEnterEvent;
++import org.bukkit.event.player.PlayerTeleportEvent;
++// CraftBukkit end
++
+ public class NetherPortalBlock extends Block implements Portal {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public static final MapCodec<NetherPortalBlock> CODEC = simpleCodec(NetherPortalBlock::new);
+@@ -75,7 +_,7 @@
+             }
+ 
+             if (level.getBlockState(pos).isValidSpawn(level, pos, EntityType.ZOMBIFIED_PIGLIN)) {
+-                Entity entity = EntityType.ZOMBIFIED_PIGLIN.spawn(level, pos.above(), EntitySpawnReason.STRUCTURE);
++                Entity entity = EntityType.ZOMBIFIED_PIGLIN.spawn(level, pos.above(), EntitySpawnReason.STRUCTURE, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NETHER_PORTAL); // CraftBukkit
+                 if (entity != null) {
+                     entity.setPortalCooldown();
+                     Entity vehicle = entity.getVehicle();
+@@ -109,6 +_,10 @@
+     @Override
+     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
+         if (entity.canUsePortal(false)) {
++            // CraftBukkit start - Entity in portal
++            EntityPortalEnterEvent event = new EntityPortalEnterEvent(entity.getBukkitEntity(), new org.bukkit.Location(level.getWorld(), pos.getX(), pos.getY(), pos.getZ()));
++            level.getCraftServer().getPluginManager().callEvent(event);
++            // CraftBukkit end
+             entity.setAsInsidePortal(this, pos);
+         }
+     }
+@@ -129,12 +_,22 @@
+         ResourceKey<Level> newDimension = currentLevel.dimension() == Level.NETHER ? Level.OVERWORLD : Level.NETHER;
+         ServerLevel newLevel = currentLevel.getServer().getLevel(newDimension);
+         if (newLevel == null) {
+-            return null;
++            return new TeleportTransition(PlayerTeleportEvent.TeleportCause.NETHER_PORTAL); // CraftBukkit
+         } else {
+             boolean toNether = newLevel.dimension() == Level.NETHER;
+             WorldBorder newWorldBorder = newLevel.getWorldBorder();
+             double teleportationScale = DimensionType.getTeleportationScale(currentLevel.dimensionType(), newLevel.dimensionType());
+             BlockPos approximateExitPos = newWorldBorder.clampToBounds(entity.getX() * teleportationScale, entity.getY(), entity.getZ() * teleportationScale);
++            // CraftBukkit start
++            CraftPortalEvent event = entity.callPortalEvent(entity, CraftLocation.toBukkit(approximateExitPos, newLevel.getWorld()), PlayerTeleportEvent.TeleportCause.NETHER_PORTAL, toNether ? 16 : 128, 16);
++            if (event == null) {
++                return null;
++            }
++            newLevel = ((CraftWorld) event.getTo().getWorld()).getHandle();
++            newWorldBorder = newLevel.getWorldBorder();
++            approximateExitPos = newWorldBorder.clampToBounds(event.getTo().getX(), event.getTo().getY(), event.getTo().getZ());
++            toNether = newLevel.dimension() == Level.NETHER;
++            // CraftBukkit end
+             return this.getExitPortal(newLevel, entity, portalEntryPos, approximateExitPos, toNether, newWorldBorder);
+         }
+     }
+@@ -222,7 +_,7 @@
+         );
+         Vec3 collisionFreePos = PortalShape.findCollisionFreePosition(targetPos, newLevel, entity, dimensions);
+         return new TeleportTransition(
+-            newLevel, collisionFreePos, Vec3.ZERO, outputRotation, 0.0F, Relative.union(Relative.DELTA, Relative.ROTATION), postTeleportTransition
++            newLevel, collisionFreePos, Vec3.ZERO, outputRotation, 0.0F, Relative.union(Relative.DELTA, Relative.ROTATION), postTeleportTransition, PlayerTeleportEvent.TeleportCause.NETHER_PORTAL // CraftBukkit
+         );
+     }
+ 

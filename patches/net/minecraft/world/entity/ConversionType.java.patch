@@ -1,0 +1,93 @@
+--- a/net/minecraft/world/entity/ConversionType.java
++++ b/net/minecraft/world/entity/ConversionType.java
+@@ -1,6 +_,9 @@
+ package net.minecraft.world.entity;
+ 
++import java.util.Objects;
++import java.util.Optional;
+ import java.util.Set;
++import net.minecraft.core.BlockPos;
+ import net.minecraft.core.component.DataComponentType;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.world.effect.MobEffectInstance;
+@@ -10,6 +_,7 @@
+ import net.minecraft.world.entity.monster.zombie.Zombie;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.scores.Scoreboard;
++import org.bukkit.event.entity.EntityRemoveEvent;
+ 
+ public enum ConversionType {
+     SINGLE(true) {
+@@ -24,7 +_,7 @@
+ 
+                 for (Entity passenger : to.getPassengers()) {
+                     passenger.stopRiding();
+-                    passenger.remove(Entity.RemovalReason.DISCARDED);
++                    passenger.remove(Entity.RemovalReason.DISCARDED, EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
+                 }
+ 
+                 rootPassenger.startRiding(to);
+@@ -40,7 +_,7 @@
+                 for (EquipmentSlot slot : EquipmentSlot.VALUES) {
+                     ItemStack itemStack = from.getItemBySlot(slot);
+                     if (!itemStack.isEmpty()) {
+-                        to.setItemSlot(slot, itemStack.copyAndClear());
++                        to.setItemSlot(slot, itemStack.copy()); // CraftBukkit - SPIGOT-7996: don't clear yet
+                         to.setDropChance(slot, from.getDropChances().byEquipment(slot));
+                     }
+                 }
+@@ -52,7 +_,10 @@
+             to.hurtTime = from.hurtTime;
+             to.yBodyRot = from.yBodyRot;
+             to.setOnGround(from.onGround());
+-            from.getSleepingPos().ifPresent(to::setSleepingPos);
++            Optional<BlockPos> optional = from.getSleepingPos(); // CraftBukkit - decompile error
++
++            Objects.requireNonNull(to);
++            optional.ifPresent(to::setSleepingPos);
+             Entity leashHolder = from.getLeashHolder();
+             if (leashHolder != null) {
+                 to.setLeashedTo(leashHolder, true);
+@@ -60,6 +_,21 @@
+ 
+             this.convertCommon(from, to, params);
+         }
++
++        // CraftBukkit start
++        @Override
++        void postConvert(Mob mob, Mob mob1, ConversionParams conversionparams) {
++            if (conversionparams.keepEquipment()) {
++                for (EquipmentSlot equipmentslot : EquipmentSlot.VALUES) {
++                    ItemStack itemstack = mob.getItemBySlot(equipmentslot);
++
++                    if (!itemstack.isEmpty()) {
++                        itemstack.setCount(0); // SPIGOT-7996: clear after conversion
++                    }
++                }
++            }
++        }
++        // CraftBukkit end
+     },
+     SPLIT_ON_DEATH(false) {
+         @Override
+@@ -91,6 +_,8 @@
+ 
+     abstract void convert(final Mob from, final Mob to, final ConversionParams params);
+ 
++    void postConvert(Mob mob, Mob mob1, ConversionParams conversionparams) {} // CraftBukkit
++
+     void convertCommon(Mob from, Mob to, ConversionParams params) {
+         to.setAbsorptionAmount(from.getAbsorptionAmount());
+ 
+@@ -130,7 +_,10 @@
+         to.setNoGravity(from.isNoGravity());
+         to.setPortalCooldown(from.getPortalCooldown());
+         to.setSilent(from.isSilent());
+-        from.entityTags().forEach(to::addTag);
++        Set<String> set = from.entityTags(); // CraftBukkit - decompile error
++
++        Objects.requireNonNull(to);
++        set.forEach(to::addTag);
+ 
+         for (DataComponentType<?> component : COMPONENTS_TO_COPY) {
+             copyComponent(from, to, component);

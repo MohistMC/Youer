@@ -95,14 +95,100 @@
              super.setChanged();
          }
      }
-@@ -261,6 +_,10 @@
-                 }
-             }
-         }
+@@ -208,8 +_,14 @@
+         BeehiveBlockEntity.BeeReleaseStatus releaseStatus,
+         @Nullable BlockPos savedFlowerPos
+     ) {
+-        if (level.environmentAttributes().getValue(EnvironmentAttributes.BEES_STAY_IN_HIVE, blockPos)
++        // CraftBukkit start - This allows us to bypass the night/rain/emergency check
++        return releaseOccupant(level, blockPos, state, beeData, spawned, releaseStatus, savedFlowerPos, false);
 +    }
 +
 +    private static boolean releaseOccupant(Level level, BlockPos blockPos, BlockState state, BeehiveBlockEntity.Occupant beeData, @Nullable List<Entity> spawned, BeehiveBlockEntity.BeeReleaseStatus releaseStatus, @Nullable BlockPos savedFlowerPos, boolean force) {
-+        return releaseOccupant(level, blockPos, state, beeData, spawned, releaseStatus, savedFlowerPos);
++        if (!force && level.environmentAttributes().getValue(EnvironmentAttributes.BEES_STAY_IN_HIVE, blockPos)
+             && releaseStatus != BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY) {
++            // CraftBukkit end
+             return false;
+         } else {
+             Direction facing = state.getValue(BeehiveBlock.FACING);
+@@ -220,6 +_,17 @@
+             } else {
+                 Entity entity = beeData.createEntity(level, blockPos);
+                 if (entity != null) {
++                    // CraftBukkit start
++                    if (entity instanceof Bee) {
++                        float bbWidth = entity.getBbWidth();
++                        double delta = frontBlocked ? 0.0 : 0.55 + bbWidth / 2.0F;
++                        double spawnX = blockPos.getX() + 0.5 + delta * facing.getStepX();
++                        double spawnY = blockPos.getY() + 0.5 - entity.getBbHeight() / 2.0F;
++                        double spawnZ = blockPos.getZ() + 0.5 + delta * facing.getStepZ();
++                        entity.snapTo(spawnX, spawnY, spawnZ, entity.getYRot(), entity.getXRot());
++                    }
++                    if (!level.addFreshEntity(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BEEHIVE)) return false; // CraftBukkit - SpawnReason, moved from below
++                    // CraftBukkit end
+                     if (entity instanceof Bee bee) {
+                         RandomSource random = level.getRandom();
+                         if (savedFlowerPos != null && !bee.hasSavedFlowerPos() && random.nextFloat() < 0.9F) {
+@@ -245,17 +_,19 @@
+                             spawned.add(bee);
+                         }
+ 
++                        /* // CraftBukkit start
+                         float bbWidth = entity.getBbWidth();
+                         double delta = frontBlocked ? 0.0 : 0.55 + bbWidth / 2.0F;
+                         double spawnX = blockPos.getX() + 0.5 + delta * facing.getStepX();
+                         double spawnY = blockPos.getY() + 0.5 - entity.getBbHeight() / 2.0F;
+                         double spawnZ = blockPos.getZ() + 0.5 + delta * facing.getStepZ();
+                         entity.snapTo(spawnX, spawnY, spawnZ, entity.getYRot(), entity.getXRot());
++                         */ // CraftBukkit end
+                     }
+ 
+                     level.playSound(null, blockPos, SoundEvents.BEEHIVE_EXIT, SoundSource.BLOCKS, 1.0F, 1.0F);
+                     level.gameEvent(GameEvent.BLOCK_CHANGE, blockPos, GameEvent.Context.of(entity, level.getBlockState(blockPos)));
+-                    return level.addFreshEntity(entity);
++                    return true; // return this.world.addFreshEntity(entity); // CraftBukkit - moved up
+                 } else {
+                     return false;
+                 }
+@@ -280,6 +_,10 @@
+                 if (releaseOccupant(level, pos, state, data.toOccupant(), null, releaseStatus, savedFlowerPos)) {
+                     changed = true;
+                     iterator.remove();
++                    // CraftBukkit start
++                } else {
++                    data.ticksInHive = data.occupant.minTicksInHive / 2; // Not strictly Vanilla behaviour in cases where bees cannot spawn but still reasonable
++                    // CraftBukkit end
+                 }
+             }
+         }
+@@ -302,9 +_,12 @@
+     @Override
+     protected void loadAdditional(ValueInput input) {
+         super.loadAdditional(input);
+-        this.stored.clear();
+-        input.read("bees", BeehiveBlockEntity.Occupant.LIST_CODEC).orElse(List.of()).forEach(this::storeBee);
+-        this.savedFlowerPos = input.read("flower_pos", BlockPos.CODEC).orElse(null);
++        this.stored = Lists.newArrayList(); // CraftBukkit - SPIGOT-7790: create new copy (may be modified in physics event triggered by honey change)
++        input.read("bees", BeehiveBlockEntity.Occupant.LIST_CODEC).orElse(List.of()).forEach(this::storeBee); // CraftBukkit - decompile error
++        this.savedFlowerPos = input.read("flower_pos", BlockPos.CODEC).orElse(null); // CraftBukkit - decompile error
++        // CraftBukkit start
++        this.maxBees = input.getIntOr("Bukkit.MaxEntities", this.maxBees);
++        // CraftBukkit end
      }
  
-     private boolean hasSavedFlowerPos() {
+     @Override
+@@ -312,12 +_,13 @@
+         super.saveAdditional(output);
+         output.store("bees", BeehiveBlockEntity.Occupant.LIST_CODEC, this.getBees());
+         output.storeNullable("flower_pos", BlockPos.CODEC, this.savedFlowerPos);
++        output.putInt("Bukkit.MaxEntities", this.maxBees); // CraftBukkit
+     }
+ 
+     @Override
+     protected void applyImplicitComponents(DataComponentGetter components) {
+         super.applyImplicitComponents(components);
+-        this.stored.clear();
++        this.stored = Lists.newArrayList(); // CraftBukkit - SPIGOT-7790: create new copy (may be modified in physics event triggered by honey change)
+         List<BeehiveBlockEntity.Occupant> bees = components.getOrDefault(DataComponents.BEES, Bees.EMPTY).bees();
+         bees.forEach(this::storeBee);
+     }

@@ -29,3 +29,17 @@
          if (oldSignal != signal) {
              BlockState newState = this.setSignalForState(state, signal);
              level.setBlock(pos, newState, 2);
+@@ -143,6 +_,13 @@
+ 
+     protected static int getEntityCount(Level level, AABB entityDetectionBox, Class<? extends Entity> entityClass) {
+         return level.getEntitiesOfClass(entityClass, entityDetectionBox, EntitySelector.NO_SPECTATORS.and(e -> !e.isIgnoringBlockTriggers())).size();
++    }
++
++    protected static <T extends Entity> java.util.List<T> getEntities(Level level, AABB entityDetectionBox, Class<T> entityClass) {
++        // CraftBukkit end
++        return level.getEntitiesOfClass(entityClass, entityDetectionBox, EntitySelector.NO_SPECTATORS.and((entity) -> {
++            return !entity.isIgnoringBlockTriggers();
++        })); // CraftBukkit
+     }
+ 
+     protected abstract int getSignalStrength(Level level, BlockPos pos);

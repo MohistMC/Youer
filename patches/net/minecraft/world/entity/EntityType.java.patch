@@ -54,6 +54,35 @@
      }
  
      public @Nullable T spawn(
+@@ -1320,12 +_,22 @@
+     }
+ 
+     public @Nullable T spawn(ServerLevel level, BlockPos spawnPos, EntitySpawnReason spawnReason) {
+-        return this.spawn(level, null, spawnPos, spawnReason, false, false);
+-    }
+-
+-    public @Nullable T spawn(
+-        ServerLevel level, @Nullable Consumer<T> postSpawnConfig, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp
+-    ) {
++        // CraftBukkit start
++        return (T) this.spawn(level, spawnPos, spawnReason, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
++    }
++
++    public @Nullable T spawn(ServerLevel level, BlockPos spawnPos, EntitySpawnReason spawnReason, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason bukkitSpawnReason) {
++        return (T) this.spawn(level, (Consumer) null, spawnPos, spawnReason, false, false, bukkitSpawnReason); // CraftBukkit
++        // CraftBukkit end
++    }
++
++    public @Nullable T spawn(ServerLevel level, @Nullable Consumer<T> postSpawnConfig, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp) {
++        // CraftBukkit start
++        return this.spawn(level, postSpawnConfig, spawnPos, spawnReason, tryMoveDown, movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
++    }
++
++    public @Nullable T spawn(ServerLevel level, @Nullable Consumer<T> postSpawnConfig, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason bukkitSpawnReason) {
++        // CraftBukkit end
+         T entity = this.create(level, postSpawnConfig, spawnPos, spawnReason, tryMoveDown, movedUp);
+         if (entity != null) {
+             level.addFreshEntityWithPassengers(entity);
 @@ -1357,6 +_,13 @@
                  mob.yHeadRot = mob.getYRot();
                  mob.yBodyRot = mob.getYRot();

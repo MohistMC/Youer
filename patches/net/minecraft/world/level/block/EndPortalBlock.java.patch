@@ -1,0 +1,56 @@
+--- a/net/minecraft/world/level/block/EndPortalBlock.java
++++ b/net/minecraft/world/level/block/EndPortalBlock.java
+@@ -29,6 +_,16 @@
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import org.bukkit.Location;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.event.CraftPortalEvent;
++import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.event.entity.EntityPortalEnterEvent;
++import org.bukkit.event.player.PlayerRespawnEvent;
++import org.bukkit.event.player.PlayerTeleportEvent;
++// CraftBukkit end
++
+ public class EndPortalBlock extends BaseEntityBlock implements Portal {
+     public static final MapCodec<EndPortalBlock> CODEC = simpleCodec(EndPortalBlock::new);
+     private static final VoxelShape SHAPE = Block.column(16.0, 6.0, 12.0);
+@@ -60,6 +_,10 @@
+     @Override
+     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
+         if (entity.canUsePortal(false)) {
++            // CraftBukkit start - Entity in portal
++            org.bukkit.event.entity.EntityPortalEnterEvent event = new org.bukkit.event.entity.EntityPortalEnterEvent(entity.getBukkitEntity(), new org.bukkit.Location(level.getWorld(), pos.getX(), pos.getY(), pos.getZ()));
++            level.getCraftServer().getPluginManager().callEvent(event);
++            // CraftBukkit end
+             if (!level.isClientSide() && level.dimension() == Level.END && entity instanceof ServerPlayer player && !player.seenCredits) {
+                 player.showEndCredits();
+             } else {
+@@ -77,7 +_,7 @@
+         BlockPos spawnBlockPos = fromEnd ? respawnData.pos() : ServerLevel.END_SPAWN_POINT;
+         ServerLevel newLevel = currentLevel.getServer().getLevel(newDimension);
+         if (newLevel == null) {
+-            return null;
++            return new TeleportTransition(PlayerTeleportEvent.TeleportCause.END_PORTAL); // CraftBukkit
+         } else {
+             Vec3 spawnPos = spawnBlockPos.getBottomCenter();
+             float yRot;
+@@ -96,14 +_,14 @@
+                 xRot = respawnData.pitch();
+                 relatives = Relative.union(Relative.DELTA, Relative.ROTATION);
+                 if (entity instanceof ServerPlayer serverPlayer) {
+-                    return serverPlayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING);
++                    return serverPlayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING, PlayerRespawnEvent.RespawnReason.END_PORTAL); // CraftBukkit
+                 }
+ 
+                 spawnPos = entity.adjustSpawnLocation(newLevel, spawnBlockPos).getBottomCenter();
+             }
+ 
+             return new TeleportTransition(
+-                newLevel, spawnPos, Vec3.ZERO, yRot, xRot, relatives, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET)
++                newLevel, spawnPos, Vec3.ZERO, yRot, xRot, relatives, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET), PlayerTeleportEvent.TeleportCause.END_PORTAL
+             );
+         }
+     }

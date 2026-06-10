@@ -143,10 +143,9 @@
          List<MobCategory> spawningCategories;
          if (doMobSpawning) {
 -            boolean spawnPersistent = this.level.getGameTime() % 400L == 0L;
--            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, true, this.spawnEnemies, spawnPersistent);
 +            boolean spawnPersistent = this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) != 0L && this.level.getLevelData().getGameTime() % this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) == 0L; // CraftBukkit
-+            NaturalSpawner.serverlevel = this.level;
-+            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, true, this.spawnEnemies, spawnPersistent, this.level); // CraftBukkit
++            NaturalSpawner.serverlevel = this.level; // CraftBukkit
+             spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, true, this.spawnEnemies, spawnPersistent);
 +            NaturalSpawner.serverlevel = null;
          } else {
              spawningCategories = List.of();

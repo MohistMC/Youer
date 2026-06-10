@@ -1,5 +1,16 @@
 --- a/net/minecraft/world/entity/animal/equine/AbstractHorse.java
 +++ b/net/minecraft/world/entity/animal/equine/AbstractHorse.java
+@@ -75,6 +_,10 @@
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec2;
+ import net.minecraft.world.phys.Vec3;
++// CraftBukkit start
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityRegainHealthEvent;
++// CraftBukkit end
+ import org.jspecify.annotations.Nullable;
+ 
+ public abstract class AbstractHorse extends Animal implements PlayerRideableJumping, HasCustomInventoryScreen, OwnableEntity {
 @@ -124,6 +_,7 @@
      protected boolean canGallop = true;
      protected int gallopSoundCounter;
@@ -8,6 +19,15 @@
  
      protected AbstractHorse(EntityType<? extends AbstractHorse> type, Level level) {
          super(type, level);
+@@ -299,7 +_,7 @@
+ 
+     public void createInventory() {
+         SimpleContainer old = this.inventory;
+-        this.inventory = new SimpleContainer(this.getInventorySize());
++        this.inventory = new SimpleContainer(this.getInventorySize(), (org.bukkit.entity.AbstractHorse) this.getBukkitEntity()); // CraftBukkit
+         if (old != null) {
+             int max = Math.min(old.getContainerSize(), this.inventory.getContainerSize());
+ 
 @@ -343,9 +_,9 @@
      protected void playStepSound(BlockPos pos, BlockState blockState) {
          if (!blockState.liquid()) {
@@ -20,6 +40,33 @@
              }
  
              if (this.isVehicle() && this.canGallop) {
+@@ -391,7 +_,7 @@
+     }
+ 
+     public int getMaxTemper() {
+-        return 100;
++        return this.maxDomestication; // CraftBukkit - return stored max domestication instead of 100
+     }
+ 
+     @Override
+@@ -467,7 +_,7 @@
+         }
+ 
+         if (this.getHealth() < this.getMaxHealth() && heal > 0.0F) {
+-            this.heal(heal);
++            this.heal(heal, EntityRegainHealthEvent.RegainReason.EATING); // CraftBukkit
+             itemUsed = true;
+         }
+ 
+@@ -538,7 +_,7 @@
+         super.aiStep();
+         if (this.level() instanceof ServerLevel level && this.isAlive()) {
+             if (this.random.nextInt(900) == 0 && this.deathTime == 0) {
+-                this.heal(1.0F);
++                this.heal(1.0F, EntityRegainHealthEvent.RegainReason.REGEN); // CraftBukkit
+             }
+ 
+             if (this.canEatGrass()) {
 @@ -772,6 +_,7 @@
          Vec3 movement = this.getDeltaMovement();
          this.setDeltaMovement(movement.x, impulse, movement.z);
@@ -28,6 +75,42 @@
          if (input.z > 0.0) {
              float sin = Mth.sin(this.getYRot() * (float) (Math.PI / 180.0));
              float cos = Mth.cos(this.getYRot() * (float) (Math.PI / 180.0));
+@@ -791,6 +_,7 @@
+         output.putInt("Temper", this.getTemper());
+         output.putBoolean("Tame", this.isTamed());
+         EntityReference.store(this.owner, output, "Owner");
++        output.putInt("Bukkit.MaxDomestication", this.maxDomestication); // CraftBukkit
+     }
+ 
+     @Override
+@@ -801,6 +_,9 @@
+         this.setTemper(input.getIntOr("Temper", 0));
+         this.setTamed(input.getBooleanOr("Tame", false));
+         this.owner = EntityReference.readWithOldOwnerConversion(input, "Owner", this.level());
++        // CraftBukkit start
++        this.maxDomestication = input.getIntOr("Bukkit.MaxDomestication", this.maxDomestication);
++        // CraftBukkit end
+     }
+ 
+     @Override
+@@ -890,6 +_,17 @@
+ 
+     @Override
+     public void handleStartJump(int jumpScale) {
++        // CraftBukkit start
++        float power;
++        if (jumpScale >= 90) {
++            power = 1.0F;
++        } else {
++            power = 0.4F + 0.4F * (float) jumpScale / 90.0F;
++        }
++        if (!CraftEventFactory.callHorseJumpEvent(this, power)) {
++            return;
++        }
++        // CraftBukkit end
+         this.allowStandSliding = true;
+         this.standIfPossible();
+         this.playJumpSound();
 @@ -1019,6 +_,11 @@
  
          this.randomizeAttributes(level.getRandom());
