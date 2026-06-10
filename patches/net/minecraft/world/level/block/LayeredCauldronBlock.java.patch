@@ -10,7 +10,7 @@
  
  public class LayeredCauldronBlock extends AbstractCauldronBlock {
      public static final MapCodec<LayeredCauldronBlock> CODEC = RecordCodecBuilder.mapCodec(
-@@ -85,28 +_,58 @@
+@@ -85,35 +_,64 @@
              BlockPos blockPos = pos.immutable();
              effectApplier.runBefore(InsideBlockEffectType.EXTINGUISH, e -> {
                  if (e.isOnFire() && e.mayInteract(serverLevel, blockPos)) {
@@ -79,6 +79,14 @@
  
      @Override
      public void handlePrecipitation(BlockState state, Level level, BlockPos pos, Biome.Precipitation precipitation) {
+         if (CauldronBlock.shouldHandlePrecipitation(level, precipitation) && state.getValue(LEVEL) != 3 && precipitation == this.precipitationType) {
+             BlockState newState = state.cycle(LEVEL);
+-            level.setBlockAndUpdate(pos, newState);
+-            level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(newState));
++            changeLevel(state, level, pos, newState, null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL); // CraftBukkit
+         }
+     }
+ 
 @@ -131,8 +_,11 @@
      protected void receiveStalactiteDrip(BlockState state, Level level, BlockPos pos, Fluid fluid) {
          if (!this.isFull(state)) {

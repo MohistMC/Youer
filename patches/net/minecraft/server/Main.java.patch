@@ -25,7 +25,19 @@
  import java.util.function.BooleanSupplier;
  import joptsimple.OptionParser;
  import joptsimple.OptionSet;
-@@ -56,6 +_,7 @@
+@@ -33,6 +_,7 @@
+ import net.minecraft.server.dedicated.DedicatedServer;
+ import net.minecraft.server.dedicated.DedicatedServerProperties;
+ import net.minecraft.server.dedicated.DedicatedServerSettings;
++import net.minecraft.server.packs.PackType;
+ import net.minecraft.server.packs.repository.PackRepository;
+ import net.minecraft.server.packs.repository.ServerPacksSource;
+ import net.minecraft.util.Mth;
+@@ -53,9 +_,11 @@
+ import net.minecraft.world.level.levelgen.presets.WorldPresets;
+ import net.minecraft.world.level.storage.LevelDataAndDimensions;
+ import net.minecraft.world.level.storage.LevelStorageSource;
++import net.minecraft.world.level.storage.LevelResource;
  import net.minecraft.world.level.storage.LevelSummary;
  import net.minecraft.world.level.storage.PrimaryLevelData;
  import net.minecraft.world.level.storage.WorldData;
@@ -162,15 +174,33 @@
              Dynamic<?> levelDataTag;
              if (access.hasWorldData()) {
                  Dynamic<?> levelDataUnfixed;
-@@ -157,6 +_,8 @@
+@@ -156,6 +_,26 @@
+             }
  
              PackRepository packRepository = ServerPacksSource.createPackRepository(access);
- 
-+            AtomicReference<WorldLoader.DataLoadContext> worldLoader = new AtomicReference<>();
++            // CraftBukkit start
++            File bukkitDataPackFolder = new File(access.getLevelPath(LevelResource.DATAPACK_DIR).toFile(), "bukkit");
++            if (!bukkitDataPackFolder.exists()) {
++                bukkitDataPackFolder.mkdirs();
++            }
++            File mcMeta = new File(bukkitDataPackFolder, "pack.mcmeta");
++            try {
++                com.google.common.io.Files.write("{\n"
++                        + "    \"pack\": {\n"
++                        + "        \"description\": \"Data pack for resources provided by Bukkit plugins\",\n"
++                        + "        \"min_format\": " + SharedConstants.getCurrentVersion().packVersion(PackType.SERVER_DATA) + ",\n"
++                        + "        \"max_format\": " + SharedConstants.getCurrentVersion().packVersion(PackType.SERVER_DATA) + "\n"
++                        + "    }\n"
++                        + "}\n", mcMeta, com.google.common.base.Charsets.UTF_8);
++            } catch (java.io.IOException ex) {
++                throw new RuntimeException("Could not initialize Bukkit datapack", ex);
++            }
++            // CraftBukkit end
 +
++            AtomicReference<WorldLoader.DataLoadContext> worldLoader = new AtomicReference<>();
+ 
              WorldStem worldStem;
              try {
-                 WorldLoader.InitConfig worldLoadConfig = loadOrCreateConfig(settings.getProperties(), levelDataTag, safeModeEnabled, packRepository);
 @@ -164,6 +_,7 @@
                          executor -> WorldLoader.load(
                              worldLoadConfig,
@@ -228,3 +258,12 @@
          WorldDimensions.Complete finalDimensions = dimensions.bake(datapackDimensions);
          Lifecycle lifecycle = finalDimensions.lifecycle().add(context.datapackWorldgen().allRegistriesLifecycle());
          PrimaryLevelData primaryLevelData = new PrimaryLevelData(createLevelSettings, finalDimensions.specialWorldProperty(), lifecycle);
+@@ -295,7 +_,7 @@
+         RegistryAccess registryAccess,
+         boolean recreateRegionFiles
+     ) {
+-        LOGGER.info("Forcing world upgrade!");
++        LOGGER.info("Forcing world upgrade! {}", storageSource.getLevelId()); // CraftBukkit
+ 
+         try (WorldUpgrader upgrader = new WorldUpgrader(storageSource, fixerUpper, registryAccess, eraseCache, recreateRegionFiles)) {
+             Component lastStatus = null;

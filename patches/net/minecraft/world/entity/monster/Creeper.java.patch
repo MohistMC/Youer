@@ -1,10 +1,12 @@
 --- a/net/minecraft/world/entity/monster/Creeper.java
 +++ b/net/minecraft/world/entity/monster/Creeper.java
-@@ -40,6 +_,7 @@
+@@ -40,6 +_,9 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.entity.ExplosionPrimeEvent;
  import org.jspecify.annotations.Nullable;
  
  public class Creeper extends Monster {
@@ -45,3 +47,44 @@
                  this.ignite();
                  if (!itemStack.isDamageableItem()) {
                      itemStack.shrink(1);
+@@ -231,11 +_,21 @@
+     public void explodeCreeper() {
+         if (this.level() instanceof ServerLevel level) {
+             float explosionMultiplier = this.isPowered() ? 2.0F : 1.0F;
++
++            // CraftBukkit start
++            ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent(this, this.explosionRadius * explosionMultiplier, false);
++            if (!event.isCancelled()) {
++            // CraftBukkit end
+             this.dead = true;
+-            level.explode(this, this.getX(), this.getY(), this.getZ(), this.explosionRadius * explosionMultiplier, Level.ExplosionInteraction.MOB);
++            level.explode(this, net.minecraft.world.level.Explosion.getDefaultDamageSource(this.level(), this).customCausingEntityDamager(this.entityIgniter), null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB); // CraftBukkit
+             this.spawnLingeringCloud();
+             this.triggerOnDeathMobEffects(level, Entity.RemovalReason.KILLED);
+-            this.discard();
++            this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
++            // CraftBukkit start
++            } else {
++                swell = 0;
++            }
++            // CraftBukkit end
+         }
+     }
+ 
+@@ -243,6 +_,7 @@
+         Collection<MobEffectInstance> activeEffects = this.getActiveEffects();
+         if (!activeEffects.isEmpty()) {
+             AreaEffectCloud cloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());
++            cloud.setOwner(this); // CraftBukkit
+             cloud.setRadius(2.5F);
+             cloud.setRadiusOnUse(-0.5F);
+             cloud.setWaitTime(10);
+@@ -254,7 +_,7 @@
+                 cloud.addEffect(new MobEffectInstance(mobEffect));
+             }
+ 
+-            this.level().addFreshEntity(cloud);
++            this.level().addFreshEntity(cloud, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.EXPLOSION); // CraftBukkit
+         }
+     }
+ 

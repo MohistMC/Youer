@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/CaveVines.java
 +++ b/net/minecraft/world/level/block/CaveVines.java
-@@ -17,6 +17,16 @@
+@@ -16,6 +_,16 @@
  import net.minecraft.world.level.storage.loot.BuiltInLootTables;
  import net.minecraft.world.phys.shapes.VoxelShape;
  
@@ -15,23 +15,29 @@
 +// CraftBukkit end
 +
  public interface CaveVines {
- 
-     VoxelShape SHAPE = Block.column(14.0D, 0.0D, 16.0D);
-@@ -27,9 +37,29 @@
-             if (level instanceof ServerLevel) {
-                 ServerLevel serverlevel = (ServerLevel) level;
- 
--                Block.dropFromBlockInteractLootTable(serverlevel, BuiltInLootTables.HARVEST_CAVE_VINE, state, level.getBlockEntity(pos), (ItemInstance) null, sourceEntity, (serverlevel1, itemstack) -> {
--                    Block.popResource(serverlevel1, pos, itemstack);
--                });
+     VoxelShape SHAPE = Block.column(14.0, 0.0, 16.0);
+     BooleanProperty BERRIES = BlockStateProperties.BERRIES;
+@@ -23,15 +_,29 @@
+     static InteractionResult use(Entity sourceEntity, BlockState state, Level level, BlockPos pos) {
+         if (state.getValue(BERRIES)) {
+             if (level instanceof ServerLevel serverLevel) {
+-                Block.dropFromBlockInteractLootTable(
+-                    serverLevel,
+-                    BuiltInLootTables.HARVEST_CAVE_VINE,
+-                    state,
+-                    level.getBlockEntity(pos),
+-                    null,
+-                    sourceEntity,
+-                    (serverlvl, itemStack) -> Block.popResource(serverlvl, pos, itemStack)
+-                );
 +                // CraftBukkit start
-+                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(sourceEntity, pos, (BlockState) state.setValue(CaveVines.BERRIES, false))) {
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(sourceEntity, pos, state.setValue(CaveVines.BERRIES, false))) {
 +                    return InteractionResult.SUCCESS;
 +                }
 +
 +                if (sourceEntity instanceof Player) {
 +                    List<ItemStack> dropped = new LinkedList<>();
-+                    Block.dropFromBlockInteractLootTable(serverlevel, BuiltInLootTables.HARVEST_CAVE_VINE, state, level.getBlockEntity(pos), (ItemInstance) null, sourceEntity, (serverlevel1, itemstack) -> {
++                    Block.dropFromBlockInteractLootTable(serverLevel, BuiltInLootTables.HARVEST_CAVE_VINE, state, level.getBlockEntity(pos), null, sourceEntity, (serverlvl, itemstack) -> {
 +                        dropped.add(itemstack);
 +                    });
 +                    PlayerHarvestBlockEvent event = CraftEventFactory.callPlayerHarvestBlockEvent(level, pos, (Player) sourceEntity, net.minecraft.world.InteractionHand.MAIN_HAND, dropped);
@@ -42,11 +48,11 @@
 +                        Block.popResource(level, pos, CraftItemStack.asNMSCopy(itemStack));
 +                    }
 +                } else {
-+                    Block.dropFromBlockInteractLootTable(serverlevel, BuiltInLootTables.HARVEST_CAVE_VINE, state, level.getBlockEntity(pos), (ItemInstance) null, sourceEntity, (serverlevel1, itemstack) -> {
-+                        Block.popResource(serverlevel1, pos, itemstack);
++                    Block.dropFromBlockInteractLootTable(serverLevel, BuiltInLootTables.HARVEST_CAVE_VINE, state, level.getBlockEntity(pos), null, sourceEntity, (serverlvl, itemstack) -> {
++                        Block.popResource(serverlvl, pos, itemstack);
 +                    });
 +                }
 +                // CraftBukkit end
-                 float f = Mth.randomBetween(serverlevel.getRandom(), 0.8F, 1.2F);
- 
-                 serverlevel.playSound((Entity) null, pos, SoundEvents.CAVE_VINES_PICK_BERRIES, SoundSource.BLOCKS, 1.0F, f);
+                 float pitch = Mth.randomBetween(serverLevel.getRandom(), 0.8F, 1.2F);
+                 serverLevel.playSound(null, pos, SoundEvents.CAVE_VINES_PICK_BERRIES, SoundSource.BLOCKS, 1.0F, pitch);
+                 BlockState newState = state.setValue(BERRIES, false);

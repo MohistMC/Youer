@@ -33,3 +33,47 @@
          return level.getBlockState(pos.below()).is(BlockTags.SUPPORTS_BAMBOO);
      }
  
+@@ -180,7 +_,8 @@
+             BlockPos topPos = pos.above(heightAbove);
+             BlockState topState = level.getBlockState(topPos);
+             BlockPos growthPos = topPos.above();
+-            if (totalHeight >= 16 || topState.getValue(STAGE) == 1 || !level.isEmptyBlock(growthPos) || level.isOutsideBuildHeight(growthPos)) {
++            // CraftBukkit - If the BlockSpreadEvent was cancelled, we have no bamboo here
++            if (totalHeight >= 16 || !topState.is(Blocks.BAMBOO) || topState.getValue(STAGE) == 1 || !level.isEmptyBlock(growthPos) || level.isOutsideBuildHeight(growthPos)) {
+                 return;
+             }
+ 
+@@ -195,21 +_,30 @@
+         BlockPos twoBelowPos = pos.below(2);
+         BlockState twoBelowState = level.getBlockState(twoBelowPos);
+         BambooLeaves leaves = BambooLeaves.NONE;
++        boolean shouldUpdateOthers = false; // CraftBukkit
+         if (height >= 1) {
+             if (!belowState.is(Blocks.BAMBOO) || belowState.getValue(LEAVES) == BambooLeaves.NONE) {
+                 leaves = BambooLeaves.SMALL;
+             } else if (belowState.is(Blocks.BAMBOO) && belowState.getValue(LEAVES) != BambooLeaves.NONE) {
+                 leaves = BambooLeaves.LARGE;
+                 if (twoBelowState.is(Blocks.BAMBOO)) {
+-                    level.setBlock(pos.below(), belowState.setValue(LEAVES, BambooLeaves.SMALL), 3);
+-                    level.setBlock(twoBelowPos, twoBelowState.setValue(LEAVES, BambooLeaves.NONE), 3);
++                    // CraftBukkit start - moved down
++                    shouldUpdateOthers = true;
++                    // CraftBukkit end
+                 }
+             }
+         }
+ 
+         int age = state.getValue(AGE) != 1 && !twoBelowState.is(Blocks.BAMBOO) ? 0 : 1;
+         int stage = (height < 11 || !(random.nextFloat() < 0.25F)) && height != 15 ? 0 : 1;
+-        level.setBlock(pos.above(), this.defaultBlockState().setValue(AGE, age).setValue(LEAVES, leaves).setValue(STAGE, stage), 3);
++        // CraftBukkit start
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, pos, pos.above(), this.defaultBlockState().setValue(AGE, age).setValue(LEAVES, leaves).setValue(STAGE, stage), 3)) {
++            if (shouldUpdateOthers) {
++                level.setBlock(pos.below(), belowState.setValue(LEAVES, BambooLeaves.SMALL), 3);
++                level.setBlock(twoBelowPos, twoBelowState.setValue(LEAVES, BambooLeaves.NONE), 3);
++            }
++        }
++        // CraftBukkit end
+     }
+ 
+     protected int getHeightAboveUpToMax(BlockGetter level, BlockPos pos) {

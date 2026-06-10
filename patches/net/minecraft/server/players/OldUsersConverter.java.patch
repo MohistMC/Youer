@@ -1,0 +1,83 @@
+--- a/net/minecraft/server/players/OldUsersConverter.java
++++ b/net/minecraft/server/players/OldUsersConverter.java
+@@ -27,6 +_,12 @@
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
++// CraftBukkit start
++import net.minecraft.nbt.NbtIo;
++import net.minecraft.nbt.NbtAccounter;
++import net.minecraft.nbt.CompoundTag;
++// CraftBukkit end
++
+ public class OldUsersConverter {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public static final File OLD_IPBANLIST = new File("banned-ips.txt");
+@@ -66,7 +_,7 @@
+                 try {
+                     bans.load();
+                 } catch (IOException var6) {
+-                    LOGGER.warn("Could not load existing file {}", bans.getFile().getName(), var6);
++                    LOGGER.warn("Could not load existing file {}", bans.getFile().getName()); // CraftBukkit - don't print stacktrace
+                 }
+             }
+ 
+@@ -122,7 +_,7 @@
+                 try {
+                     ipBans.load();
+                 } catch (IOException var11) {
+-                    LOGGER.warn("Could not load existing file {}", ipBans.getFile().getName(), var11);
++                    LOGGER.warn("Could not load existing file {}", ipBans.getFile().getName()); // CraftBukkit - don't print stacktrace
+                 }
+             }
+ 
+@@ -158,7 +_,7 @@
+                 try {
+                     opsList.load();
+                 } catch (IOException var6) {
+-                    LOGGER.warn("Could not load existing file {}", opsList.getFile().getName(), var6);
++                    LOGGER.warn("Could not load existing file {}", opsList.getFile().getName()); // CraftBukkit - don't print stacktrace
+                 }
+             }
+ 
+@@ -203,7 +_,7 @@
+                 try {
+                     whitelist.load();
+                 } catch (IOException var6) {
+-                    LOGGER.warn("Could not load existing file {}", whitelist.getFile().getName(), var6);
++                    LOGGER.warn("Could not load existing file {}", whitelist.getFile().getName()); // CraftBukkit - don't print stacktrace
+                 }
+             }
+ 
+@@ -317,6 +_,31 @@
+                     private void movePlayerFile(File directory, String oldName, String newName) {
+                         File oldFileName = new File(worldPlayerDirectory, oldName + ".dat");
+                         File newFileName = new File(directory, newName + ".dat");
++
++                        // CraftBukkit start - Use old file name to seed lastKnownName
++                        CompoundTag root = null;
++
++                        try {
++                            root = NbtIo.readCompressed(new java.io.FileInputStream(oldFileName), NbtAccounter.unlimitedHeap());
++                        } catch (Exception exception) {
++                            exception.printStackTrace();
++                        }
++
++                        if (root != null) {
++                            if (!root.contains("bukkit")) {
++                                root.put("bukkit", new CompoundTag());
++                            }
++                            CompoundTag data = root.getCompoundOrEmpty("bukkit");
++                            data.putString("lastKnownName", oldName);
++
++                            try {
++                                NbtIo.writeCompressed(root, new java.io.FileOutputStream(oldFileName));
++                            } catch (Exception exception) {
++                                exception.printStackTrace();
++                            }
++                        }
++                        // CraftBukkit end
++
+                         OldUsersConverter.ensureDirectoryExists(directory);
+                         if (!oldFileName.renameTo(newFileName)) {
+                             throw new OldUsersConverter.ConversionError("Could not convert file for " + oldName);

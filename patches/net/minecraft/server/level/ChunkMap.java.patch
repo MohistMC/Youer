@@ -36,6 +36,21 @@
      public ChunkMap(
          ServerLevel level,
          LevelStorageSource.LevelStorageAccess levelStorage,
+@@ -179,7 +_,13 @@
+         this.level = level;
+         RegistryAccess registryAccess = level.registryAccess();
+         long levelSeed = level.getSeed();
+-        if (generator instanceof NoiseBasedChunkGenerator noiseGenerator) {
++        // CraftBukkit start - SPIGOT-7051: It's a rigged game! Use delegate for random state creation, otherwise it is not so random.
++        ChunkGenerator randomGenerator = generator;
++        if (randomGenerator instanceof org.bukkit.craftbukkit.generator.CustomChunkGenerator customChunkGenerator) {
++            randomGenerator = customChunkGenerator.getDelegate();
++        }
++        if (randomGenerator instanceof NoiseBasedChunkGenerator noiseGenerator) {
++            // CraftBukkit end
+             this.randomState = RandomState.create(noiseGenerator.generatorSettings().value(), registryAccess.lookupOrThrow(Registries.NOISE), levelSeed);
+         } else {
+             this.randomState = RandomState.create(NoiseGeneratorSettings.dummy(), registryAccess.lookupOrThrow(Registries.NOISE), levelSeed);
 @@ -389,6 +_,7 @@
                  this.modified = true;
              }
@@ -170,6 +185,45 @@
      public class DistanceManager extends net.minecraft.server.level.DistanceManager {
          protected DistanceManager(TicketStorage ticketStorage, Executor executor, Executor mainThreadExecutor) {
              Objects.requireNonNull(ChunkMap.this);
+@@ -1324,7 +_,7 @@
+             Objects.requireNonNull(ChunkMap.this);
+             super();
+             this.seenBy = Sets.newIdentityHashSet();
+-            this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, updateInterval, trackDelta, this);
++            this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, updateInterval, trackDelta, this, seenBy); // CraftBukkit
+             this.entity = entity;
+             this.range = range;
+             this.lastSectionPos = SectionPos.of(entity);
+@@ -1364,6 +_,17 @@
+             }
+         }
+ 
++        // CraftBukkit start
++        @Override
++        public void sendToTrackingPlayersFilteredAndSelf(Packet<? super ClientGamePacketListener> packet, Predicate<ServerPlayer> predicate) {
++            this.sendToTrackingPlayersFiltered(packet, predicate);
++
++            if (this.entity instanceof ServerPlayer serverplayer) {
++                serverplayer.connection.send(packet);
++            }
++        }
++        // CraftBukkit end
++
+         public void broadcastRemoved() {
+             for (ServerPlayerConnection connection : this.seenBy) {
+                 this.serverEntity.removePairing(connection.getPlayer());
+@@ -1389,6 +_,11 @@
+                 boolean visibleToPlayer = distanceSquared <= rangeSquared
+                     && this.entity.broadcastToPlayer(player)
+                     && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x(), this.entity.chunkPosition().z());
++                // CraftBukkit start - respect vanish API
++                if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
++                    visibleToPlayer = false;
++                }
++                // CraftBukkit end
+                 if (visibleToPlayer) {
+                     if (this.seenBy.add(player.connection)) {
+                         this.serverEntity.addPairing(player);
 @@ -1426,5 +_,20 @@
                  this.updatePlayer(player);
              }

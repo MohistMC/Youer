@@ -1,9 +1,25 @@
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
-@@ -51,6 +_,10 @@
+@@ -35,6 +_,14 @@
+ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityPickupItemEvent;
++import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.player.PlayerPickupItemEvent;
++// CraftBukkit end
++
+ public class ItemEntity extends Entity implements TraceableEntity {
+     private static final EntityDataAccessor<ItemStack> DATA_ITEM = SynchedEntityData.defineId(ItemEntity.class, EntityDataSerializers.ITEM_STACK);
+     private static final float FLOAT_HEIGHT = 0.1F;
+@@ -51,6 +_,11 @@
      public @Nullable EntityReference<Entity> thrower;
      public @Nullable UUID target;
      public final float bobOffs = this.random.nextFloat() * (float) Math.PI * 2.0F;
++    private int lastTick = MinecraftServer.currentTick - 1; // CraftBukkit
 +    /**
 +     * The maximum age of this EntityItem. The item is expired once this is reached.
 +     */
@@ -27,14 +43,28 @@
      }
  
      @Override
-@@ -106,6 +_,7 @@
+@@ -106,13 +_,17 @@
  
      @Override
      public void tick() {
 +        if (getItem().onEntityItemUpdate(this)) return;
          if (this.getItem().isEmpty()) {
-             this.discard();
+-            this.discard();
++            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else {
+             super.tick();
+-            if (this.pickupDelay > 0 && this.pickupDelay != 32767) {
+-                this.pickupDelay--;
+-            }
++            // CraftBukkit start - Use wall time for pickup and despawn timers
++            int elapsedTicks = MinecraftServer.currentTick - this.lastTick;
++            if (this.pickupDelay != 32767) this.pickupDelay -= elapsedTicks;
++            if (this.age != -32768) this.age += elapsedTicks;
++            this.lastTick = MinecraftServer.currentTick;
++            // CraftBukkit end
+ 
+             this.xo = this.getX();
+             this.yo = this.getY();
 @@ -142,7 +_,8 @@
                  this.applyEffectsFromBlocks();
                  float friction = 0.98F;
@@ -45,32 +75,82 @@
                  }
  
                  this.setDeltaMovement(this.getDeltaMovement().multiply(friction, 0.98, friction));
-@@ -174,7 +_,15 @@
+@@ -162,9 +_,11 @@
+                 this.mergeWithNeighbours();
+             }
+ 
++            /* CraftBukkit start - moved up
+             if (this.age != -32768) {
+                 this.age++;
+             }
++            // CraftBukkit end */
+ 
+             this.needsSync = this.needsSync | this.updateFluidInteraction();
+             if (!this.level().isClientSide()) {
+@@ -174,8 +_,22 @@
                  }
              }
  
 -            if (!this.level().isClientSide() && this.age >= 6000) {
+-                this.discard();
 +            ItemStack item = this.getItem();
 +            if (!this.level().isClientSide() && this.age >= lifespan) {
 +            	  // Clamping to MAX_VALUE -1 as age is a Short and going above that would produce an infinite lifespan implicitly (accidentally)
 +                this.lifespan = Mth.clamp(lifespan + net.neoforged.neoforge.event.EventHooks.onItemExpire(this), 0, Short.MAX_VALUE - 1);
 +                if (this.age >= lifespan) {
-+                    this.discard();
++                    // CraftBukkit start - fire ItemDespawnEvent
++                    if (CraftEventFactory.callItemDespawnEvent(this).isCancelled()) {
++                        this.age = 0;
++                    } else {
++                        this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                    }
++                    // CraftBukkit end
 +                }
 +            }
 +            if (item.isEmpty() && !this.isRemoved()) {
-                 this.discard();
++                this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
              }
          }
-@@ -284,7 +_,7 @@
-             this.health = (int)(this.health - damage);
+     }
+@@ -248,11 +_,16 @@
+     }
+ 
+     private static void merge(ItemEntity toItem, ItemStack toStack, ItemEntity fromItem, ItemStack fromStack) {
++        // CraftBukkit start
++        if (!CraftEventFactory.callItemMergeEvent(fromItem, toItem)) {
++            return;
++        }
++        // CraftBukkit end
+         merge(toItem, toStack, fromStack);
+         toItem.pickupDelay = Math.max(toItem.pickupDelay, fromItem.pickupDelay);
+         toItem.age = Math.min(toItem.age, fromItem.age);
+         if (fromStack.isEmpty()) {
+-            fromItem.discard();
++            fromItem.discard(EntityRemoveEvent.Cause.MERGE); // CraftBukkit - add Bukkit remove cause);
+         }
+     }
+ 
+@@ -280,12 +_,17 @@
+         } else if (!this.getItem().canBeHurtBy(source)) {
+             return false;
+         } else {
++            // CraftBukkit start
++            if (CraftEventFactory.handleNonLivingEntityDamageEvent(this, source, damage)) {
++                return false;
++            }
++            // CraftBukkit end
+             this.markHurt();
+-            this.health = (int)(this.health - damage);
++            this.health = (int)((float) this.health - damage);
              this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
              if (this.health <= 0) {
 -                this.getItem().onDestroyed(this);
+-                this.discard();
 +                this.getItem().onDestroyed(this, source);
-                 this.discard();
++                this.discard(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
              }
  
+             return true;
 @@ -302,6 +_,7 @@
          output.putShort("Health", (short)this.health);
          output.putShort("Age", (short)this.age);
@@ -79,7 +159,7 @@
          EntityReference.store(this.thrower, output, "Thrower");
          output.storeNullable("Owner", UUIDUtil.CODEC, this.target);
          if (!this.getItem().isEmpty()) {
-@@ -314,6 +_,7 @@
+@@ -314,11 +_,12 @@
          this.health = input.getShortOr("Health", (short)5);
          this.age = input.getShortOr("Age", (short)0);
          this.pickupDelay = input.getShortOr("PickupDelay", (short)0);
@@ -87,7 +167,13 @@
          this.target = input.read("Owner", UUIDUtil.CODEC).orElse(null);
          this.thrower = EntityReference.read(input, "Thrower");
          this.setItem(input.read("Item", ItemStack.CODEC).orElse(ItemStack.EMPTY));
-@@ -328,7 +_,22 @@
+         if (this.getItem().isEmpty()) {
+-            this.discard();
++            this.discard(null); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 
+@@ -328,10 +_,25 @@
              ItemStack itemStack = this.getItem();
              Item item = itemStack.getItem();
              int orgCount = itemStack.getCount();
@@ -110,7 +196,11 @@
 +
                  player.take(this, orgCount);
                  if (itemStack.isEmpty()) {
-                     this.discard();
+-                    this.discard();
++                    this.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+                     itemStack.setCount(orgCount);
+                 }
+ 
 @@ -374,6 +_,15 @@
          this.target = target;
      }

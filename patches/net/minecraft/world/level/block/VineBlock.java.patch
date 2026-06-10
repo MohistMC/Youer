@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/block/VineBlock.java
 +++ b/net/minecraft/world/level/block/VineBlock.java
-@@ -166,7 +_,7 @@
+@@ -22,6 +_,7 @@
+ import net.minecraft.world.phys.shapes.Shapes;
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ import org.jspecify.annotations.Nullable;
++import org.bukkit.craftbukkit.event.CraftEventFactory; // CraftBukkit
+ 
+ public class VineBlock extends Block implements net.neoforged.neoforge.common.IShearable {
+     public static final MapCodec<VineBlock> CODEC = simpleCodec(VineBlock::new);
+@@ -166,13 +_,15 @@
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          if (level.getGameRules().get(GameRules.SPREAD_VINES)) {
@@ -9,3 +17,67 @@
                  Direction testDirection = Direction.getRandom(random);
                  BlockPos abovePos = pos.above();
                  if (testDirection.getAxis().isHorizontal() && !state.getValue(getPropertyForFace(testDirection))) {
+                     if (this.canSpread(level, pos)) {
+                         BlockPos testPos = pos.relative(testDirection);
+                         BlockState edgeState = level.getBlockState(testPos);
++                        // CraftBukkit start - Call BlockSpreadEvent
++                        BlockPos source = pos;
+                         if (edgeState.isAir()) {
+                             Direction cwDirection = testDirection.getClockWise();
+                             Direction ccwDirection = testDirection.getCounterClockWise();
+@@ -181,29 +_,30 @@
+                             BlockPos cwTestPos = testPos.relative(cwDirection);
+                             BlockPos ccwTestPos = testPos.relative(ccwDirection);
+                             if (cwHasConnectingFace && isAcceptableNeighbour(level, cwTestPos, cwDirection)) {
+-                                level.setBlock(testPos, this.defaultBlockState().setValue(getPropertyForFace(cwDirection), true), 2);
++                                CraftEventFactory.handleBlockSpreadEvent(level, source, testPos, this.defaultBlockState().setValue(getPropertyForFace(cwDirection), true), 2);
+                             } else if (ccwHasConnectingFace && isAcceptableNeighbour(level, ccwTestPos, ccwDirection)) {
+-                                level.setBlock(testPos, this.defaultBlockState().setValue(getPropertyForFace(ccwDirection), true), 2);
++                                CraftEventFactory.handleBlockSpreadEvent(level, source, testPos, this.defaultBlockState().setValue(getPropertyForFace(ccwDirection), true), 2);
+                             } else {
+                                 Direction opposite = testDirection.getOpposite();
+                                 if (cwHasConnectingFace && level.isEmptyBlock(cwTestPos) && isAcceptableNeighbour(level, pos.relative(cwDirection), opposite)) {
+-                                    level.setBlock(cwTestPos, this.defaultBlockState().setValue(getPropertyForFace(opposite), true), 2);
++                                    CraftEventFactory.handleBlockSpreadEvent(level, source, cwTestPos, this.defaultBlockState().setValue(getPropertyForFace(opposite), true), 2);
+                                 } else if (ccwHasConnectingFace
+                                     && level.isEmptyBlock(ccwTestPos)
+                                     && isAcceptableNeighbour(level, pos.relative(ccwDirection), opposite)) {
+-                                    level.setBlock(ccwTestPos, this.defaultBlockState().setValue(getPropertyForFace(opposite), true), 2);
++                                    CraftEventFactory.handleBlockSpreadEvent(level, source, ccwTestPos, this.defaultBlockState().setValue(getPropertyForFace(opposite), true), 2);
+                                 } else if (random.nextFloat() < 0.05 && isAcceptableNeighbour(level, testPos.above(), Direction.UP)) {
+-                                    level.setBlock(testPos, this.defaultBlockState().setValue(UP, true), 2);
++                                    CraftEventFactory.handleBlockSpreadEvent(level, source, testPos, this.defaultBlockState().setValue(UP, true), 2);
+                                 }
+                             }
+                         } else if (isAcceptableNeighbour(level, testPos, testDirection)) {
+-                            level.setBlock(pos, state.setValue(getPropertyForFace(testDirection), true), 2);
++                            CraftEventFactory.handleBlockGrowEvent(level, pos, state.setValue(getPropertyForFace(testDirection), true), 2); // CraftBukkit
+                         }
++                        // CraftBukkit end
+                     }
+                 } else {
+                     if (testDirection == Direction.UP && pos.getY() < level.getMaxY()) {
+                         if (this.canSupportAtFace(level, pos, testDirection)) {
+-                            level.setBlock(pos, state.setValue(UP, true), 2);
++                            CraftEventFactory.handleBlockGrowEvent(level, pos, state.setValue(UP, true), 2); // CraftBukkit
+                             return;
+                         }
+ 
+@@ -221,7 +_,7 @@
+                             }
+ 
+                             if (this.hasHorizontalConnection(aboveState)) {
+-                                level.setBlock(abovePos, aboveState, 2);
++                                CraftEventFactory.handleBlockSpreadEvent(level, pos, abovePos, aboveState, 2); // CraftBukkit
+                             }
+ 
+                             return;
+@@ -235,7 +_,7 @@
+                             BlockState before = belowState.isAir() ? this.defaultBlockState() : belowState;
+                             BlockState after = this.copyRandomFaces(state, before, random);
+                             if (before != after && this.hasHorizontalConnection(after)) {
+-                                level.setBlock(belowPos, after, 2);
++                                CraftEventFactory.handleBlockSpreadEvent(level, pos, belowPos, after, 2); // CraftBukkit
+                             }
+                         }
+                     }

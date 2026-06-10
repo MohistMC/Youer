@@ -1,6 +1,24 @@
 --- a/net/minecraft/world/level/block/DropperBlock.java
 +++ b/net/minecraft/world/level/block/DropperBlock.java
-@@ -58,12 +_,16 @@
+@@ -20,10 +_,16 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import org.slf4j.Logger;
+ 
++// CraftBukkit start
++import net.minecraft.world.CompoundContainer;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.event.inventory.InventoryMoveItemEvent;
++// CraftBukkit end
++
+ public class DropperBlock extends DispenserBlock {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public static final MapCodec<DropperBlock> CODEC = simpleCodec(DropperBlock::new);
+-    private static final DispenseItemBehavior DISPENSE_BEHAVIOUR = new DefaultDispenseItemBehavior();
++    private static final DispenseItemBehavior DISPENSE_BEHAVIOUR = new DefaultDispenseItemBehavior(true); // CraftBukkit
+ 
+     @Override
+     public MapCodec<DropperBlock> codec() {
+@@ -58,17 +_,45 @@
                  ItemStack itemStack = blockEntity.getItem(slot);
                  if (!itemStack.isEmpty()) {
                      Direction direction = level.getBlockState(pos).getValue(FACING);
@@ -12,11 +30,44 @@
                          remaining = DISPENSE_BEHAVIOUR.dispense(source, itemStack);
                      } else {
 -                        remaining = HopperBlockEntity.addItem(blockEntity, into, itemStack.copyWithCount(1), direction.getOpposite());
+-                        if (remaining.isEmpty()) {
+-                            remaining = itemStack.copy();
+-                            remaining.shrink(1);
 +                        if (into.container() != null) {
-+                            remaining = HopperBlockEntity.addItem(blockEntity, into.container(), itemStack.copyWithCount(1), direction.getOpposite());
-+                        } else {
++                            // CraftBukkit start - Fire event when pushing items into other inventories
++                            CraftItemStack oitemstack = CraftItemStack.asCraftMirror(itemStack.copyWithCount(1));
++                    
++                            org.bukkit.inventory.Inventory destinationInventory;
++                            // Have to special case large chests as they work oddly
++                            if (into.container() instanceof CompoundContainer) {
++                                destinationInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest((CompoundContainer) into.container());
++                            } else {
++                                destinationInventory = into.container().getOwner().getInventory();
++                            }
++                    
++                            InventoryMoveItemEvent event = new InventoryMoveItemEvent(blockEntity.getOwner().getInventory(), oitemstack, destinationInventory, true);
++                            level.getCraftServer().getPluginManager().callEvent(event);
++                            if (event.isCancelled()) {
++                                return;
++                            }
++                            remaining = HopperBlockEntity.addItem(blockEntity, into.container(), CraftItemStack.asNMSCopy(event.getItem()), direction.getOpposite());
++                            if (event.getItem().equals(oitemstack) && remaining.isEmpty()) {
++                                // CraftBukkit end
++                                remaining = itemStack.copy();
++                                remaining.shrink(1);
++                            } else {
++                                // CraftBukkit end
++                                remaining = itemStack.copy();
++                            }
+                         } else {
+-                            remaining = itemStack.copy();
 +                            remaining = net.neoforged.neoforge.transfer.item.ItemUtil.insertItemReturnRemaining(into.itemHandler(), itemStack.copyWithCount(1), false, null);
-+                        }
-                         if (remaining.isEmpty()) {
-                             remaining = itemStack.copy();
-                             remaining.shrink(1);
++                            if (remaining.isEmpty()) {
++                                remaining = itemStack.copy();
++                                remaining.shrink(1);
++                            } else {
++                                remaining = itemStack.copy();
++                            }
+                         }
+                     }
+ 

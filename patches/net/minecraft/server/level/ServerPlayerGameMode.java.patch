@@ -1,5 +1,19 @@
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -56,6 +_,13 @@
+         if (gameModeForPlayer == this.gameModeForPlayer) {
+             return false;
+         } else {
++            // CraftBukkit start
++            PlayerGameModeChangeEvent event = new PlayerGameModeChangeEvent(player.getBukkitEntity(), org.bukkit.GameMode.getByValue(gameModeForPlayer.getId()));
++            org.bukkit.Bukkit.getPluginManager().callEvent(event);
++            if (event.isCancelled()) {
++                return false;
++            }
++            // CraftBukkit end
+             Abilities abilities = this.player.getAbilities();
+             this.setGameModeForPlayer(gameModeForPlayer, this.gameModeForPlayer);
+             if (abilities.flying && gameModeForPlayer != GameType.SPECTATOR && this.isInRangeOfGround()) {
 @@ -80,7 +_,10 @@
          this.previousGameModeForPlayer = previousGameModeForPlayer;
          this.gameModeForPlayer = gameModeForPlayer;
@@ -11,6 +25,15 @@
      }
  
      private boolean isInRangeOfGround() {
+@@ -105,7 +_,7 @@
+     }
+ 
+     public void tick() {
+-        this.gameTicks++;
++        this.gameTicks = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit
+         if (this.hasDelayedDestroy) {
+             BlockState blockState = this.level.getBlockState(this.delayedDestroyPos);
+             if (blockState.isAir()) {
 @@ -148,6 +_,10 @@
      }
  

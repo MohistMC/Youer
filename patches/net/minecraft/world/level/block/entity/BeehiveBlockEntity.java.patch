@@ -1,5 +1,16 @@
 --- a/net/minecraft/world/level/block/entity/BeehiveBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BeehiveBlockEntity.java
+@@ -48,6 +_,10 @@
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
++// CraftBukkit start
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ public class BeehiveBlockEntity extends BlockEntity {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final String TAG_FLOWER_POS = "flower_pos";
 @@ -86,6 +_,7 @@
      public static final int MIN_OCCUPATION_TICKS_NECTARLESS = 600;
      private List<BeehiveBlockEntity.BeeData> stored = Lists.newArrayList();
@@ -8,10 +19,38 @@
  
      public BeehiveBlockEntity(BlockPos worldPosition, BlockState blockState) {
          super(BlockEntityType.BEEHIVE, worldPosition, blockState);
-@@ -150,6 +_,20 @@
-         return spawned;
+@@ -119,7 +_,7 @@
      }
  
+     public boolean isFull() {
+-        return this.stored.size() == 3;
++        return this.stored.size() == this.maxBees; // CraftBukkit
+     }
+ 
+     public void emptyAllLivingFromHive(@Nullable Player player, BlockState state, BeehiveBlockEntity.BeeReleaseStatus releaseReason) {
+@@ -128,7 +_,7 @@
+             for (Entity released : releasedFromHive) {
+                 if (released instanceof Bee bee && player.position().distanceToSqr(released.position()) <= 16.0) {
+                     if (!this.isSedated()) {
+-                        bee.setTarget(player);
++                        bee.setTarget(player, org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER, true); // CraftBukkit
+                     } else {
+                         bee.setStayOutOfHiveCountdown(400);
+                     }
+@@ -138,16 +_,22 @@
+     }
+ 
+     private List<Entity> releaseAllOccupants(BlockState state, BeehiveBlockEntity.BeeReleaseStatus releaseStatus) {
+-        List<Entity> spawned = Lists.newArrayList();
+-        this.stored
+-            .removeIf(
+-                occupantEntry -> releaseOccupant(this.level, this.worldPosition, state, occupantEntry.toOccupant(), spawned, releaseStatus, this.savedFlowerPos)
+-            );
+-        if (!spawned.isEmpty()) {
++        // CraftBukkit start - This allows us to bypass the night/rain/emergency check
++        return releaseBees(state, releaseStatus, false);
++    }
++
 +    public List<Entity> releaseBees(BlockState blockstate, BeehiveBlockEntity.BeeReleaseStatus beehiveblockentity_beereleasestatus, boolean force) {
 +        List<Entity> list = Lists.newArrayList();
 +
@@ -20,15 +59,42 @@
 +            // CraftBukkit end
 +        });
 +        if (!list.isEmpty()) {
-+            super.setChanged();
-+        }
-+
+             super.setChanged();
+         }
+ 
+-        return spawned;
 +        return list;
-+    }
-+
+     }
+ 
      @VisibleForDebug
-     public int getOccupantCount() {
-         return this.stored.size();
+@@ -165,7 +_,17 @@
+     }
+ 
+     public void addOccupant(Bee bee) {
+-        if (this.stored.size() < 3) {
++        if (this.stored.size() < this.maxBees) { // CraftBukkit
++            // CraftBukkit start
++            if (this.level != null) {
++                org.bukkit.event.entity.EntityEnterBlockEvent event = new org.bukkit.event.entity.EntityEnterBlockEvent(bee.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, getBlockPos()));
++                org.bukkit.Bukkit.getPluginManager().callEvent(event);
++                if (event.isCancelled()) {
++                    bee.setStayOutOfHiveCountdown(400);
++                    return;
++                }
++            }
++            // CraftBukkit end
+             bee.stopRiding();
+             bee.ejectPassengers();
+             bee.dropLeash();
+@@ -190,7 +_,7 @@
+                 this.level.gameEvent(GameEvent.BLOCK_CHANGE, blockPos, GameEvent.Context.of(bee, this.getBlockState()));
+             }
+ 
+-            bee.discard();
++            bee.discard(EntityRemoveEvent.Cause.ENTER_BLOCK); // CraftBukkit - add Bukkit remove cause
+             super.setChanged();
+         }
+     }
 @@ -261,6 +_,10 @@
                  }
              }

@@ -1,0 +1,41 @@
+--- a/net/minecraft/world/entity/raid/Raider.java
++++ b/net/minecraft/world/entity/raid/Raider.java
+@@ -39,6 +_,11 @@
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.phys.Vec3;
++
++// CraftBukkit start
++import org.bukkit.event.entity.EntityRemoveEvent;
++// CraftBukkit end
++
+ import org.jspecify.annotations.Nullable;
+ 
+ public abstract class Raider extends PatrollingMonster {
+@@ -224,7 +_,7 @@
+             this.onItemPickup(entity);
+             this.setItemSlot(slot, itemStack);
+             this.take(entity, itemStack.getCount());
+-            entity.discard();
++            entity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             this.getCurrentRaid().setLeader(this.getWave(), this);
+             this.setPatrolLeader(true);
+         } else {
+@@ -297,7 +_,7 @@
+ 
+             for (Raider entity : getServerLevel(this.mob)
+                 .getNearbyEntities(Raider.class, this.shoutTargeting, this.mob, this.mob.getBoundingBox().inflate(8.0, 8.0, 8.0))) {
+-                entity.setTarget(this.mob.getTarget());
++                entity.setTarget(this.mob.getTarget(), org.bukkit.event.entity.EntityTargetEvent.TargetReason.FOLLOW_LEADER, true); // CraftBukkit
+             }
+         }
+ 
+@@ -308,7 +_,7 @@
+             if (target != null) {
+                 for (Raider entity : getServerLevel(this.mob)
+                     .getNearbyEntities(Raider.class, this.shoutTargeting, this.mob, this.mob.getBoundingBox().inflate(8.0, 8.0, 8.0))) {
+-                    entity.setTarget(target);
++                    entity.setTarget(target, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FOLLOW_LEADER, true); // CraftBukkit
+                     entity.setAggressive(true);
+                 }
+ 

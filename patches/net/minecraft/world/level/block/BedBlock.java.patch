@@ -1,0 +1,64 @@
+--- a/net/minecraft/world/level/block/BedBlock.java
++++ b/net/minecraft/world/level/block/BedBlock.java
+@@ -91,7 +_,8 @@
+             }
+ 
+             BedRule bedRule = level.environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
+-            if (bedRule.explodes()) {
++            // CraftBukkit - moved world and biome check into EntityHuman
++            if (false && bedRule.explodes()) {
+                 bedRule.errorMessage().ifPresent(player::sendOverlayMessage);
+                 level.removeBlock(pos, false);
+                 BlockPos blockPos = pos.relative(state.getValue(FACING).getOpposite());
+@@ -109,7 +_,16 @@
+ 
+                 return InteractionResult.SUCCESS_SERVER;
+             } else {
++                // CraftBukkit start
++                BlockState finalBlockState = state;
++                BlockPos finalPos = pos;
++                // CraftBukkit end
+                 player.startSleepInBed(pos).ifLeft(problem -> {
++                    // CraftBukkit start - handling bed explosion from below here
++                    if (bedRule.explodes()) {
++                        BedBlock.this.explodeBed(finalBlockState, level, finalPos);
++                    } else
++                    // CraftBukkit end
+                     if (problem.message() != null) {
+                         player.sendOverlayMessage(problem.message());
+                     }
+@@ -129,6 +_,22 @@
+         }
+     }
+ 
++    // CraftBukkit start
++    private InteractionResult explodeBed(BlockState blockState, Level level, BlockPos pos) {
++        org.bukkit.block.BlockState blockStateBukkit = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos).getState(); // CraftBukkit - capture BlockState before remove block
++        level.removeBlock(pos, false);
++        BlockPos otherPos = pos.relative(blockState.getValue(BedBlock.FACING).getOpposite());
++        if (level.getBlockState(otherPos).getBlock() == this) {
++            level.removeBlock(otherPos, false);
++        }
++
++        Vec3 boomPos = pos.getCenter();
++
++        level.explode((Entity) null, level.damageSources().badRespawnPointExplosion(boomPos, blockStateBukkit), (net.minecraft.world.level.ExplosionDamageCalculator) null, boomPos, 5.0F, true, Level.ExplosionInteraction.BLOCK); // CraftBukkit - add state
++        return InteractionResult.SUCCESS;
++    }
++    // CraftBukkit end
++
+     @Override
+     public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
+         super.fallOn(level, state, pos, entity, fallDistance * 0.5);
+@@ -292,6 +_,11 @@
+         if (!level.isClientSide()) {
+             BlockPos otherPos = pos.relative(state.getValue(FACING));
+             level.setBlock(otherPos, state.setValue(PART, BedPart.HEAD), 3);
++            // CraftBukkit start - SPIGOT-7315: Don't updated if we capture block states
++            if (level.captureBlockStates) {
++                return;
++            }
++            // CraftBukkit end
+             level.updateNeighborsAt(pos, Blocks.AIR);
+             state.updateNeighbourShapes(level, pos, 3);
+         }

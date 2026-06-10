@@ -13,10 +13,35 @@
                          }
                      }
                  }
-@@ -179,14 +_,32 @@
-         }
+@@ -163,30 +_,54 @@
      }
  
+     private static void applyEffects(Level level, BlockPos worldPosition, List<BlockPos> effectBlocks) {
+-        int activeSize = effectBlocks.size();
+-        int effectRange = activeSize / 7 * 16;
++        // CraftBukkit start
++        applyEffects(level, worldPosition, getRange(effectBlocks));
++    }
++
++    private static void applyEffects(Level level, BlockPos worldPosition, int j) { // j = effect range in blocks
++        // CraftBukkit end
+         int x = worldPosition.getX();
+         int y = worldPosition.getY();
+         int z = worldPosition.getZ();
+-        AABB bb = new AABB(x, y, z, x + 1, y + 1, z + 1).inflate(effectRange).expandTowards(0.0, level.getHeight(), 0.0);
++        AABB bb = new AABB(x, y, z, x + 1, y + 1, z + 1).inflate(j).expandTowards(0.0, level.getHeight(), 0.0);
+         List<Player> players = level.getEntitiesOfClass(Player.class, bb);
+         if (!players.isEmpty()) {
+             for (Player player : players) {
+-                if (worldPosition.closerThan(player.blockPosition(), effectRange) && player.isInWaterOrRain()) {
+-                    player.addEffect(new MobEffectInstance(MobEffects.CONDUIT_POWER, 260, 0, true, true));
++                if (worldPosition.closerThan(player.blockPosition(), j) && player.isInWaterOrRain()) {
++                    player.addEffect(new MobEffectInstance(MobEffects.CONDUIT_POWER, 260, 0, true, true), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONDUIT); // CraftBukkit
+                 }
+             }
+         }
+     }
++
 +    public static int getRange(List<BlockPos> effectBlocks) {
 +        // CraftBukkit end
 +        int i = effectBlocks.size();
@@ -25,7 +50,7 @@
 +        return j;
 +    }
 +
-+
+ 
      private static void updateAndAttackTarget(ServerLevel level, BlockPos worldPosition, BlockState blockState, ConduitBlockEntity entity, boolean isActive) {
 +        // CraftBukkit start - add "damageTarget" boolean
 +        updateAndAttackTarget(level, worldPosition, blockState, entity, isActive, true);
@@ -36,13 +61,19 @@
          EntityReference<LivingEntity> newDestroyTarget = updateDestroyTarget(entity.destroyTarget, level, worldPosition, isActive);
          LivingEntity targetEntity = EntityReference.getLivingEntity(newDestroyTarget, level);
 -        if (targetEntity != null) {
+-            level.playSound(
+-                null, targetEntity.getX(), targetEntity.getY(), targetEntity.getZ(), SoundEvents.CONDUIT_ATTACK_TARGET, SoundSource.BLOCKS, 1.0F, 1.0F
+-            );
+-            targetEntity.hurtServer(level, level.damageSources().magic(), 4.0F);
 +
 +        // CraftBukkit start
 +        if (damageTarget && targetEntity != null) {
-             level.playSound(
-                 null, targetEntity.getX(), targetEntity.getY(), targetEntity.getZ(), SoundEvents.CONDUIT_ATTACK_TARGET, SoundSource.BLOCKS, 1.0F, 1.0F
-             );
-             targetEntity.hurtServer(level, level.damageSources().magic(), 4.0F);
++            // CraftBukkit start
++            if (targetEntity.hurtServer(level, level.damageSources().magic().directBlock(level, worldPosition), 4.0F)) {
++                level.playSound(
++                    null, targetEntity.getX(), targetEntity.getY(), targetEntity.getZ(), SoundEvents.CONDUIT_ATTACK_TARGET, SoundSource.BLOCKS, 1.0F, 1.0F
++                );
++            }
 +            // CraftBukkit end
          }
  

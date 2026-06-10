@@ -12,6 +12,23 @@
      public ChunkAccess(
          ChunkPos chunkPos,
          UpgradeData upgradeData,
+@@ -266,6 +_,7 @@
+     public boolean tryMarkSaved() {
+         if (this.unsaved) {
+             this.unsaved = false;
++            this.persistentDataContainer.dirty(false); // CraftBukkit - SPIGOT-6814: chunk was saved, pdc is no longer dirty
+             return true;
+         } else {
+             return false;
+@@ -273,7 +_,7 @@
+     }
+ 
+     public boolean isUnsaved() {
+-        return this.unsaved;
++        return this.unsaved || this.persistentDataContainer.dirty(); // CraftBukkit - SPIGOT-6814: chunk is unsaved if pdc was mutated
+     }
+ 
+     public abstract ChunkStatus getPersistedStatus();
 @@ -318,10 +_,14 @@
  
      @Override

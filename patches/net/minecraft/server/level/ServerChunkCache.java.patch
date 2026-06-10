@@ -43,7 +43,14 @@
      public ThreadedLevelLightEngine getLightEngine() {
          return this.lightEngine;
      }
-@@ -160,6 +_,10 @@
+@@ -154,12 +_,16 @@
+             for (int i = 0; i < 4; i++) {
+                 if (pos == this.lastChunkPos[i] && targetStatus == this.lastChunkStatus[i]) {
+                     ChunkAccess chunkAccess = this.lastChunk[i];
+-                    if (chunkAccess != null || !loadOrGenerate) {
++                    if (chunkAccess != null) { // CraftBukkit - the chunk can become accessible in the meantime TODO for non-null chunks it might also make sense to check that the chunk's state hasn't changed in the meantime
+                         return chunkAccess;
+                     }
                  }
              }
  
@@ -62,6 +69,32 @@
                  ChunkAccess chunk = chunkHolder.getChunkIfPresent(ChunkStatus.FULL);
                  if (chunk != null) {
                      this.storeInCache(pos, chunk, ChunkStatus.FULL);
+@@ -233,7 +_,15 @@
+         long key = pos.pack();
+         int targetTicketLevel = ChunkLevel.byStatus(targetStatus);
+         ChunkHolder chunkHolder = this.getVisibleChunkIfPresent(key);
+-        if (loadOrGenerate) {
++        // CraftBukkit start - don't add new ticket for currently unloading chunk
++        boolean currentlyUnloading = false;
++        if (chunkHolder != null) {
++            FullChunkStatus oldChunkState = ChunkLevel.fullStatus(chunkHolder.oldTicketLevel);
++            FullChunkStatus currentChunkState = ChunkLevel.fullStatus(chunkHolder.getTicketLevel());
++            currentlyUnloading = (oldChunkState.isOrAfter(FullChunkStatus.FULL) && !currentChunkState.isOrAfter(FullChunkStatus.FULL));
++        }
++        if (loadOrGenerate && !currentlyUnloading) {
++            // CraftBukkit end
+             this.addTicket(new Ticket(TicketType.UNKNOWN, targetTicketLevel), pos);
+             if (this.chunkAbsent(chunkHolder, targetTicketLevel)) {
+                 ProfilerFiller profiler = Profiler.get();
+@@ -253,7 +_,7 @@
+     }
+ 
+     private boolean chunkAbsent(@Nullable ChunkHolder chunkHolder, int targetTicketLevel) {
+-        return chunkHolder == null || chunkHolder.getTicketLevel() > targetTicketLevel;
++        return chunkHolder == null || chunkHolder.oldTicketLevel > targetTicketLevel; // CraftBukkit using oldTicketLevel for isLoaded checks
+     }
+ 
+     @Override
 @@ -304,14 +_,36 @@
          this.chunkMap.saveAllChunks(flushStorage);
      }
@@ -100,13 +133,42 @@
      @Override
      public void tick(BooleanSupplier haveTime, boolean tickChunks) {
          ProfilerFiller profiler = Profiler.get();
-@@ -377,7 +_,9 @@
+@@ -372,12 +_,14 @@
+             chunkCount, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap)
+         );
+         this.lastSpawnState = spawnCookie;
+-        boolean doMobSpawning = this.level.getGameRules().get(GameRules.SPAWN_MOBS);
++        boolean doMobSpawning = this.level.getGameRules().get(GameRules.SPAWN_MOBS) && !this.level.players().isEmpty(); // CraftBukkit
+         int tickSpeed = this.level.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
          List<MobCategory> spawningCategories;
          if (doMobSpawning) {
-             boolean spawnPersistent = this.level.getGameTime() % 400L == 0L;
+-            boolean spawnPersistent = this.level.getGameTime() % 400L == 0L;
+-            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, true, this.spawnEnemies, spawnPersistent);
++            boolean spawnPersistent = this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) != 0L && this.level.getLevelData().getGameTime() % this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) == 0L; // CraftBukkit
 +            NaturalSpawner.serverlevel = this.level;
-             spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, true, this.spawnEnemies, spawnPersistent);
++            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, true, this.spawnEnemies, spawnPersistent, this.level); // CraftBukkit
 +            NaturalSpawner.serverlevel = null;
          } else {
              spawningCategories = List.of();
          }
+@@ -617,13 +_,19 @@
+         }
+ 
+         @Override
+-        protected boolean pollTask() {
++        // CraftBukkit start - process pending Chunk loadCallback() and unloadCallback() after each run task
++        public boolean pollTask() {
++        try {
+             if (ServerChunkCache.this.runDistanceManagerUpdates()) {
+                 return true;
+             } else {
+                 ServerChunkCache.this.lightEngine.tryScheduleUpdate();
+                 return super.pollTask();
+             }
++        } finally {
++            chunkMap.callbackExecutor.run();
++        }
++        // CraftBukkit end
+         }
+     }
+ }

@@ -1,10 +1,17 @@
 --- a/net/minecraft/world/level/block/SaplingBlock.java
 +++ b/net/minecraft/world/level/block/SaplingBlock.java
-@@ -16,6 +_,7 @@
+@@ -16,6 +_,14 @@
  import net.minecraft.world.level.block.state.properties.IntegerProperty;
  import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.VoxelShape;
 +import org.bukkit.TreeType;
++
++// CraftBukkit start
++import org.bukkit.Location;
++import org.bukkit.craftbukkit.block.CapturedBlockState;
++import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.event.world.StructureGrowEvent;
++// CraftBukkit end
  
  public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
      public static final MapCodec<SaplingBlock> CODEC = RecordCodecBuilder.mapCodec(
@@ -24,3 +31,37 @@
          if (level.getMaxLocalRawBrightness(pos.above()) >= 9 && random.nextInt(7) == 0) {
              this.advanceTree(level, pos, state, random);
          }
+@@ -52,7 +_,32 @@
+         if (state.getValue(STAGE) == 0) {
+             level.setBlock(pos, state.cycle(STAGE), 260);
+         } else {
+-            this.treeGrower.growTree(level, level.getChunkSource().getGenerator(), pos, state, random);
++            // CraftBukkit start
++            if (level.captureTreeGeneration) {
++                this.treeGrower.growTree(level, level.getChunkSource().getGenerator(), pos, state, random);
++            } else {
++                level.captureTreeGeneration = true;
++                this.treeGrower.growTree(level, level.getChunkSource().getGenerator(), pos, state, random);
++                level.captureTreeGeneration = false;
++                if (level.capturedBlockStates.size() > 0) {
++                    TreeType treeType = SaplingBlock.treeType;
++                    SaplingBlock.treeType = null;
++                    Location location = CraftLocation.toBukkit(pos, level.getWorld());
++                    java.util.List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(level.capturedBlockStates.values());
++                    level.capturedBlockStates.clear();
++                    StructureGrowEvent event = null;
++                    if (treeType != null) {
++                        event = new StructureGrowEvent(location, treeType, false, null, blocks);
++                        org.bukkit.Bukkit.getPluginManager().callEvent(event);
++                    }
++                    if (event == null || !event.isCancelled()) {
++                        for (org.bukkit.block.BlockState capturedBlockState : blocks) {
++                            CapturedBlockState.setBlockState(capturedBlockState);
++                        }
++                    }
++                }
++            }
++            // CraftBukkit end
+         }
+     }
+ 

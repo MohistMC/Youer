@@ -1,15 +1,28 @@
 --- a/net/minecraft/world/entity/monster/zombie/Zombie.java
 +++ b/net/minecraft/world/entity/monster/zombie/Zombie.java
-@@ -66,6 +_,8 @@
+@@ -66,6 +_,11 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
++import net.minecraft.server.MinecraftServer;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.entity.EntityCombustByEntityEvent;
++import org.bukkit.event.entity.EntityTargetEvent;
 +import org.bukkit.event.entity.EntityTransformEvent;
  import org.jspecify.annotations.Nullable;
  
  public class Zombie extends Monster {
-@@ -238,6 +_,7 @@
+@@ -230,14 +_,17 @@
+         }
+ 
+         super.tick();
++        this.lastTick = MinecraftServer.currentTick; // CraftBukkit
+     }
+ 
+     public void startUnderWaterConversion(int time) {
++        this.lastTick = MinecraftServer.currentTick; // CraftBukkit
+         this.conversionTime = time;
+         this.getEntityData().set(DATA_DROWNED_CONVERSION_ID, true);
      }
  
      protected void doUnderWaterConversion(ServerLevel level) {
@@ -17,20 +30,31 @@
          this.convertToZombieType(level, EntityType.DROWNED);
          if (!this.isSilent()) {
              level.levelEvent(null, 1040, this.blockPosition(), 0);
-@@ -248,9 +_,10 @@
-         this.convertTo(
+@@ -245,13 +_,19 @@
+     }
+ 
+     protected void convertToZombieType(ServerLevel level, EntityType<? extends Zombie> zombieType) {
+-        this.convertTo(
++        // CraftBukkit start
++        Zombie converted = this.convertTo(
              zombieType,
              ConversionParams.single(this, true, true),
 -            newZombie -> newZombie.handleAttributes(
 -                level.getCurrentDifficultyAt(newZombie.blockPosition()).getSpecialMultiplier(), EntitySpawnReason.CONVERSION
 -            )
+-        );
 +            newZombie -> {
 +                newZombie.handleAttributes(level.getCurrentDifficultyAt(newZombie.blockPosition()).getSpecialMultiplier(), EntitySpawnReason.CONVERSION);
 +                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, newZombie);
-+            }
-         );
++            // CraftBukkit start
++            }, EntityTransformEvent.TransformReason.DROWNED, CreatureSpawnEvent.SpawnReason.DROWNED);
++        if (converted == null) {
++            ((org.bukkit.entity.Zombie) getBukkitEntity()).setConversionTime(-1); // CraftBukkit - SPIGOT-5208: End conversion to stop event spam
++        }
++        // CraftBukkit end
      }
  
+     @VisibleForTesting
 @@ -267,6 +_,7 @@
                  zombie.setGossips(villager.getGossips().copy());
                  zombie.setTradeOffers(villager.getOffers().copy());
@@ -65,6 +89,36 @@
      public boolean isSunSensitive() {
          return true;
      }
+@@ -314,11 +_,11 @@
+                             && level.isUnobstructed(reinforcement)
+                             && level.noCollision(reinforcement)
+                             && (reinforcement.canSpawnInLiquids() || !level.containsAnyLiquid(reinforcement.getBoundingBox()))) {
+-                            reinforcement.setTarget(target);
++                            reinforcement.setTarget(target, EntityTargetEvent.TargetReason.REINFORCEMENT_TARGET, true); // CraftBukkit
+                             reinforcement.finalizeSpawn(
+                                 level, level.getCurrentDifficultyAt(reinforcement.blockPosition()), EntitySpawnReason.REINFORCEMENT, null
+                             );
+-                            level.addFreshEntityWithPassengers(reinforcement);
++                            level.addFreshEntityWithPassengers(reinforcement, CreatureSpawnEvent.SpawnReason.REINFORCEMENTS); // CraftBukkit
+                             AttributeInstance attribute = this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE);
+                             AttributeModifier modifier = attribute.getModifier(REINFORCEMENT_CALLER_CHARGE_ID);
+                             double existingAmount = modifier != null ? modifier.amount() : 0.0;
+@@ -343,7 +_,14 @@
+         if (result) {
+             float difficulty = level.getCurrentDifficultyAt(this.blockPosition()).getEffectiveDifficulty();
+             if (this.getMainHandItem().isEmpty() && this.isOnFire() && this.random.nextFloat() < difficulty * 0.3F) {
+-                target.igniteForSeconds(2 * (int)difficulty);
++                // CraftBukkit start
++                EntityCombustByEntityEvent event = new EntityCombustByEntityEvent(this.getBukkitEntity(), target.getBukkitEntity(), (float) (2 * (int) difficulty)); // PAIL: fixme
++                this.level().getCraftServer().getPluginManager().callEvent(event);
++
++                if (!event.isCancelled()) {
++                    target.igniteForSeconds(event.getDuration(), false);
++                }
++                // CraftBukkit end
+             }
+         }
+ 
 @@ -424,7 +_,7 @@
      @Override
      public boolean killedEntity(ServerLevel level, LivingEntity entity, DamageSource source) {
