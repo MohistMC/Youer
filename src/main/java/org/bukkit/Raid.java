@@ -19,6 +19,13 @@ public interface Raid {
     boolean isStarted();
 
     /**
+     * Stops this raid.
+     *
+     * @param removeSpawnedRaiders whether to remove spawned raiders
+     */
+    void stopRaid(boolean removeSpawnedRaiders);
+
+    /**
      * Gets the amount of ticks this raid has existed.
      *
      * @return active ticks
@@ -85,6 +92,18 @@ public interface Raid {
      * @return number of waves
      */
     int getTotalWaves();
+
+    /**
+     * Sets the total number of waves in this raid.
+     * <br>
+     * <b>Note:</b> There is an automatic raid timeout that will cancel the raid entirely.
+     * At the time of writing, it is 48,000 ticks or 40 minutes. Please keep that in
+     * mind when changing the total number of waves, as your raid may be cut short without reward.
+     *
+     * @param waves new number of waves
+     * @throws IllegalArgumentException if total waves are less than 1
+     */
+    void setTotalWaves(int waves);
 
     /**
      * Gets the sum of all raider's health.

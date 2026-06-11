@@ -60,7 +60,7 @@ public class StandardMessenger implements Messenger {
                 channels.remove(channel);
 
                 if (channels.isEmpty()) {
-                    outgoingByChannel.remove(channel);
+                    outgoingByPlugin.remove(plugin);
                 }
             }
         }

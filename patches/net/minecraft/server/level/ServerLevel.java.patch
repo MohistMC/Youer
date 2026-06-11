@@ -108,7 +108,7 @@
      private final EntityTickList entityTickList = new EntityTickList();
      private final ServerWaypointManager waypointManager;
      private EnvironmentAttributeSystem environmentAttributes;
-@@ -215,30 +_,125 @@
+@@ -215,30 +_,127 @@
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      private @Nullable EnderDragonFight dragonFight;
@@ -223,6 +223,8 @@
 +        this.customBossEvents = (CustomBossEvents) this.savedDataStorage.computeIfAbsent(CustomBossEvents.TYPE);
 +        this.scheduledEvents = (TimerQueue) this.savedDataStorage.computeIfAbsent(TimerQueue.TYPE);
 +        // End moved from MinecraftServer<init>
++
++        weatherData.setWorld(this);
 +        if (biomeProvider != null) {
 +            BiomeSource worldChunkManager = new CustomWorldChunkManager(getWorld(), biomeProvider, server.registryAccess().lookupOrThrow(Registries.BIOME));
 +            if (generator instanceof NoiseBasedChunkGenerator cga) {
@@ -391,12 +393,11 @@
                  }
              }
  
-@@ -688,6 +_,13 @@
+@@ -688,6 +_,12 @@
      }
  
      private void prepareWeather(WeatherData weatherData) {
 +        // CraftBukkit start - SPIGOT-8029: consistent with WorldServer#advanceWeatherCycle
-+        weatherData.init(this);
 +
 +        if (!this.dimensionType().hasSkyLight()) {
 +            return;

@@ -101,6 +101,15 @@
              }
          }
      }
+@@ -742,7 +_,7 @@
+     }
+ 
+     private int getDefaultNumSpawns(Raid.RaiderType type, int wav, boolean isBonusWave) {
+-        return isBonusWave ? type.spawnsPerWaveBeforeBonus[this.numGroups] : type.spawnsPerWaveBeforeBonus[wav];
++        return type.getDefaultSpawnsForWave(isBonusWave ? this.numGroups : wav); // CraftBukkit
+     }
+ 
+     private int getPotentialBonusSpawns(Raid.RaiderType type, RandomSource random, int wav, DifficultyInstance difficultyInstance, boolean isBonusWave) {
 @@ -808,6 +_,12 @@
          this.heroesOfTheVillage.add(killer.getUUID());
      }
@@ -114,7 +123,7 @@
      private static enum RaidStatus implements StringRepresentable {
          ONGOING("ongoing"),
          VICTORY("victory"),
-@@ -835,12 +_,26 @@
+@@ -835,12 +_,59 @@
          RAVAGER(EntityType.RAVAGER, new int[]{0, 0, 0, 1, 0, 1, 0, 2});
  
          private static final Raid.RaiderType[] VALUES = values();
@@ -127,6 +136,7 @@
          private RaiderType(EntityType<? extends Raider> entityType, int[] spawnsPerWaveBeforeBonus) {
              this.entityType = entityType;
              this.spawnsPerWaveBeforeBonus = spawnsPerWaveBeforeBonus;
+-        }
 +            this.entityTypeSupplier = () -> entityType;
 +        }
 +
@@ -138,6 +148,39 @@
 +
 +        public static net.neoforged.fml.common.asm.enumextension.ExtensionInfo getExtensionInfo() {
 +            return net.neoforged.fml.common.asm.enumextension.ExtensionInfo.nonExtended(Raid.RaiderType.class);
-         }
++        }
++
++        // CraftBukkit start
++        private int getDefaultSpawnsForWave(int wave) {
++            if (wave < 0) {
++                return 0;
++            }
++
++            if (wave < this.spawnsPerWaveBeforeBonus.length) {
++                return this.spawnsPerWaveBeforeBonus[wave];
++            }
++
++            return this.getExtendedSpawnsForWave(wave);
++        }
++
++        private int getExtendedSpawnsForWave(int wave) {
++            int lastHardcodedWave = this.spawnsPerWaveBeforeBonus.length - 1;
++            int lastHardcodedCount = this.spawnsPerWaveBeforeBonus[lastHardcodedWave];
++            int extraWaves = wave - lastHardcodedWave;
++
++            return lastHardcodedCount + this.getAdditionalSpawnsPerExtendedWave(extraWaves);
++        }
++
++        // TODO: Adjust this to have a better spawning curve.
++        private int getAdditionalSpawnsPerExtendedWave(int extraWaves) {
++            return switch (this) {
++                case PILLAGER -> extraWaves / 2;
++                case VINDICATOR -> extraWaves / 3;
++                case EVOKER -> extraWaves / 4;
++                case WITCH -> extraWaves / 5;
++                case RAVAGER -> extraWaves / 6;
++            };
++        }
++        // CraftBukkit end
      }
  }

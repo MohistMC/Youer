@@ -26,6 +26,18 @@ public final class CraftRaid implements Raid {
     }
 
     @Override
+    public void stopRaid(boolean removeSpawnedRaiders) {
+        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(handle, world, org.bukkit.event.raid.RaidStopEvent.Reason.PLUGIN);
+        handle.stop();
+
+        if (removeSpawnedRaiders) {
+            for (Raider raider : getRaiders()) {
+                raider.remove();
+            }
+        }
+    }
+
+    @Override
     public boolean isStarted() {
         return handle.isStarted();
     }
@@ -79,6 +91,12 @@ public final class CraftRaid implements Raid {
     @Override
     public int getTotalWaves() {
         return handle.numGroups;
+    }
+
+    @Override
+    public void setTotalWaves(int waves) {
+        Preconditions.checkArgument(waves > 0, "Total waves must be greater than 0");
+        handle.numGroups = waves;
     }
 
     @Override

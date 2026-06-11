@@ -1654,13 +1654,13 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
 
     @Override
     public Tag<DamageType> getDamageResistant() {
-        return (hasDamageResistant())
-                ? this.damageResistant.stream()
-                        .filter(holder -> holder instanceof HolderSet.Named)
-                        .map((namedHolder) -> ((HolderSet.Named) namedHolder).key())
-                        .map((tag) -> Bukkit.getTag(DamageTypeTags.REGISTRY_DAMAGE_TYPES, CraftNamespacedKey.fromMinecraft(tag.location()), DamageType.class))
-                        .findFirst().orElse(null)
-                : null;
+        if (hasDamageResistant()) {
+            if (this.damageResistant instanceof HolderSet.Named<net.minecraft.world.damagesource.DamageType> namedHolder) {
+                return Bukkit.getTag(DamageTypeTags.REGISTRY_DAMAGE_TYPES, CraftNamespacedKey.fromMinecraft(namedHolder.key().location()), DamageType.class);
+            }
+        }
+
+        return null;
     }
 
     @Override

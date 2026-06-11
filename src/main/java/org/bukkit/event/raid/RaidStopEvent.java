@@ -61,6 +61,10 @@ public class RaidStopEvent extends RaidEvent {
         /**
          * The place where the raid occurs no longer be a village.
          */
-        NOT_IN_VILLAGE
+        NOT_IN_VILLAGE,
+        /**
+         * A plugin forcibly stopped the raid.
+         */
+        PLUGIN,
     }
 }
