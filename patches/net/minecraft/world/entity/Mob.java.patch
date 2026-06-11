@@ -110,20 +110,42 @@
      @Override
      protected void addAdditionalSaveData(ValueOutput output) {
          super.addAdditionalSaveData(output);
-@@ -383,6 +_,9 @@
+@@ -383,13 +_,26 @@
          if (this.isNoAi()) {
              output.putBoolean("NoAI", this.isNoAi());
          }
++        output.putBoolean("Bukkit.Aware", this.aware); // CraftBukkit
 +        if (this.spawnType != null) {
 +            output.putString("neoforge:spawn_type", this.spawnType.name());
 +        }
      }
  
      @Override
-@@ -401,6 +_,14 @@
+     protected void readAdditionalSaveData(ValueInput input) {
+         super.readAdditionalSaveData(input);
+-        this.setCanPickUpLoot(input.getBooleanOr("CanPickUpLoot", false));
+-        this.persistenceRequired = input.getBooleanOr("PersistenceRequired", false);
++        // CraftBukkit start - If looting or persistence is false only use it if it was set after we started using it
++        boolean canPickUpLoot = input.getBooleanOr("CanPickUpLoot", false);
++        if (isLevelAtLeast(input, 1) || canPickUpLoot) {
++            this.setCanPickUpLoot(canPickUpLoot);
++        }
++
++        boolean persistenceRequired = input.getBooleanOr("PersistenceRequired", false);
++        if (isLevelAtLeast(input, 1) || persistenceRequired) {
++            this.persistenceRequired = persistenceRequired;
++        }
++        // CraftBukkit end
+         this.dropChances = input.read("drop_chances", DropChances.CODEC).orElse(DropChances.DEFAULT);
+         this.readLeashData(input);
+         this.homeRadius = input.getIntOr("home_radius", -1);
+@@ -401,6 +_,17 @@
          this.lootTable = input.read("DeathLootTable", LootTable.KEY_CODEC);
          this.lootTableSeed = input.getLongOr("DeathLootTableSeed", 0L);
          this.setNoAi(input.getBooleanOr("NoAI", false));
++        // CraftBukkit start
++        this.aware = input.getBooleanOr("Bukkit.Aware", this.aware);
++        // CraftBukkit end
 +
 +        input.getString("neoforge:spawn_type")
 +                .ifPresent(spawnType -> {

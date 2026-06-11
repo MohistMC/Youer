@@ -1,13 +1,22 @@
 --- a/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
 +++ b/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
-@@ -91,7 +_,9 @@
+@@ -31,6 +_,7 @@
+ import net.minecraft.nbt.NbtOps;
+ import net.minecraft.nbt.NbtUtils;
+ import net.minecraft.nbt.ShortTag;
++import net.minecraft.nbt.Tag;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.ProblemReporter;
+@@ -91,7 +_,10 @@
      List<SerializableChunkData.SectionData> sectionData,
      List<CompoundTag> entities,
      List<CompoundTag> blockEntities,
 -    CompoundTag structureData
 +    CompoundTag structureData,
 +    @Nullable CompoundTag attachmentData,
-+    @Nullable ListTag auxLightData
++    @Nullable ListTag auxLightData,
++    @Nullable Tag persistentDataContainer // CraftBukkit
  ) {
      private static final Codec<List<SavedTick<Block>>> BLOCK_TICKS_CODEC = SavedTick.codec(BuiltInRegistries.BLOCK.byNameCodec()).listOf();
      private static final Codec<List<SavedTick<Fluid>>> FLUID_TICKS_CODEC = SavedTick.codec(BuiltInRegistries.FLUID.byNameCodec()).listOf();
@@ -39,7 +48,7 @@
 +            List<CompoundTag> blockEntities,
 +            CompoundTag structureData
 +    ) {
-+        this(containerFactory, chunkPos, minSectionY, lastUpdateTime, inhabitedTime, chunkStatus, blendingData, belowZeroRetrogen, upgradeData, carvingMask, heightmaps, packedTicks, postProcessingSections, lightCorrect, sectionData, entities, blockEntities, structureData, null, null);
++        this(containerFactory, chunkPos, minSectionY, lastUpdateTime, inhabitedTime, chunkStatus, blendingData, belowZeroRetrogen, upgradeData, carvingMask, heightmaps, packedTicks, postProcessingSections, lightCorrect, sectionData, entities, blockEntities, structureData, null, null, null); // CraftBukkit
 +    }
 +
      public static SerializableChunkData parse(LevelHeightAccessor levelHeight, PalettedContainerFactory containerFactory, CompoundTag chunkData) {
@@ -59,11 +68,11 @@
              ListTag sectionTags = chunkData.getListOrEmpty("sections");
              List<SerializableChunkData.SectionData> sectionData = new ArrayList<>(sectionTags.size());
 -            Codec<PalettedContainerRO<Holder<Biome>>> biomesCodec = containerFactory.biomeContainerCodec();
-+            Codec<PalettedContainer<Holder<Biome>>> biomesCodec = containerFactory.biomeContainerCodecRW();
++            Codec<PalettedContainer<Holder<Biome>>> biomesCodec = containerFactory.biomeContainerCodecRW(); // CraftBukkit - read/write
              Codec<PalettedContainer<BlockState>> blockStatesCodec = containerFactory.blockStatesContainerCodec();
  
              for (int i = 0; i < sectionTags.size(); i++) {
-@@ -167,7 +_,7 @@
+@@ -167,13 +_,13 @@
                                      .getOrThrow(SerializableChunkData.ChunkReadException::new)
                              )
                              .orElseGet(containerFactory::createForBlockStates);
@@ -72,24 +81,34 @@
                              .map(
                                  container -> biomesCodec.parse(NbtOps.INSTANCE, container)
                                      .promotePartial(msg -> logErrors(chunkPos, y, msg))
-@@ -185,6 +_,9 @@
+                                     .getOrThrow(SerializableChunkData.ChunkReadException::new)
+                             )
+-                            .orElseGet(containerFactory::createForBiomes);
++                            .orElseGet(containerFactory::createForBiomes); // CraftBukkit - read/write
+                         section = new LevelChunkSection(blocks, biomes);
+                     } else {
+                         section = null;
+@@ -185,6 +_,11 @@
                  }
              }
  
 +            CompoundTag attachmentData = chunkData.getCompound(net.neoforged.neoforge.attachment.AttachmentHolder.ATTACHMENTS_NBT_KEY).orElse(null);
 +            ListTag auxLightData = chunkData.getList(net.neoforged.neoforge.common.world.LevelChunkAuxiliaryLightManager.LIGHT_NBT_KEY).orElse(null);
++            // CraftBukkit - ChunkBukkitValues
++            Tag persistentDataContainer = chunkData.get("ChunkBukkitValues");
 +
              return new SerializableChunkData(
                  containerFactory,
                  chunkPos,
-@@ -203,7 +_,9 @@
+@@ -203,7 +_,10 @@
                  sectionData,
                  entities,
                  blockEntities,
 -                structureData
 +                structureData,
 +                attachmentData,
-+                auxLightData
++                auxLightData,
++                persistentDataContainer
              );
          }
      }
@@ -112,13 +131,19 @@
              long[] heightmap = this.heightmaps.get(type);
              if (heightmap != null) {
                  chunk.setHeightmap(type, heightmap);
-@@ -304,6 +_,10 @@
+@@ -304,6 +_,16 @@
              }
          }
  
 +        if (this.attachmentData != null) {
 +            chunk.readAttachmentsFromNBT(level.registryAccess(), this.attachmentData);
 +        }
++
++        // CraftBukkit start - load chunk persistent data from nbt - SPIGOT-6814: Already load PDC here to account for 1.17 to 1.18 chunk upgrading.
++        if (persistentDataContainer instanceof CompoundTag persistentCompoundTag) {
++            chunk.persistentDataContainer.putAll(persistentCompoundTag);
++        }
++        // CraftBukkit end
 +
          if (chunkType == ChunkType.LEVELCHUNK) {
              return new ImposterProtoChunk((LevelChunk)chunk, false);
@@ -132,7 +157,7 @@
                      long[] data = entry.getValue().getRawData();
                      heightmaps.put(entry.getKey(), (long[])data.clone());
                  }
-@@ -387,6 +_,18 @@
+@@ -387,6 +_,25 @@
              CompoundTag structureData = packStructureData(
                  StructurePieceSerializationContext.fromLevel(level), pos, chunk.getAllStarts(), chunk.getAllReferences()
              );
@@ -148,21 +173,29 @@
 +                auxLightData = levelChunk.getAuxLightManager(pos).serializeNBT();
 +            }
 +
++            // CraftBukkit start - store chunk persistent data in nbt
++            Tag persistentDataContainer = null;
++            if (!chunk.persistentDataContainer.isEmpty()) { // SPIGOT-6814: Always save PDC to account for 1.17 to 1.18 chunk upgrading.
++                persistentDataContainer = chunk.persistentDataContainer.toTagCompound();
++            }
++            // CraftBukkit end
++
              return new SerializableChunkData(
                  level.palettedContainerFactory(),
                  pos,
-@@ -405,7 +_,9 @@
+@@ -405,7 +_,10 @@
                  sectionData,
                  entities,
                  blockEntities,
 -                structureData
 +                structureData,
 +                attachmentData,
-+                auxLightData
++                auxLightData,
++                persistentDataContainer
              );
          }
      }
-@@ -473,6 +_,14 @@
+@@ -473,6 +_,19 @@
          this.heightmaps.forEach((type, data) -> heightmapsTag.put(type.getSerializationKey(), new LongArrayTag(data)));
          tag.put("Heightmaps", heightmapsTag);
          tag.put("structures", this.structureData);
@@ -173,7 +206,25 @@
 +        if (auxLightData != null) {
 +            tag.put(net.neoforged.neoforge.common.world.LevelChunkAuxiliaryLightManager.LIGHT_NBT_KEY, auxLightData);
 +        }
++        // CraftBukkit start - store chunk persistent data in nbt
++        if (persistentDataContainer != null) { // SPIGOT-6814: Always save PDC to account for 1.17 to 1.18 chunk upgrading.
++            tag.put("ChunkBukkitValues", persistentDataContainer);
++        }
++        // CraftBukkit end
 +
          return tag;
      }
  
+@@ -551,6 +_,12 @@
+             } else {
+                 StructureStart start = StructureStart.loadStaticStart(context, startsTag.getCompoundOrEmpty(key), seed);
+                 if (start != null) {
++                    // CraftBukkit start - load persistent data for structure start
++                    Tag persistentBase = startsTag.getCompoundOrEmpty(key).get("StructureBukkitValues");
++                    if (persistentBase instanceof CompoundTag persistentCompoundTag) {
++                        start.persistentDataContainer.putAll(persistentCompoundTag);
++                    }
++                    // CraftBukkit end
+                     outmap.put(startFeature, start);
+                 }
+             }

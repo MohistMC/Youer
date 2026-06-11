@@ -167,36 +167,6 @@
              }
  
              if (postSpawnConfig != null) {
-@@ -1510,17 +_,21 @@
-     }
- 
-     public static @Nullable Entity loadEntityRecursive(ValueInput input, Level level, EntitySpawnReason reason, EntityProcessor postLoad) {
--        return loadStaticEntity(input, level, reason)
--            .map(postLoad::process)
--            .map(entity -> loadPassengersRecursive(entity, input, level, reason, postLoad))
--            .orElse(null);
-+        Optional<Entity> optional = loadStaticEntity(input, level, reason); // CraftBukkit - decompile error
-+
-+        Objects.requireNonNull(postLoad);
-+        return (Entity) optional.map(postLoad::process).map((entity) -> {
-+            return loadPassengersRecursive(entity, input, level, reason, postLoad);
-+        }).orElse(null); // CraftBukkit - decompile error
-     }
- 
-     public static @Nullable Entity loadEntityRecursive(EntityType<?> type, ValueInput input, Level level, EntitySpawnReason reason, EntityProcessor postLoad) {
--        return loadStaticEntity(type, input, level, reason)
--            .map(postLoad::process)
--            .map(entity -> loadPassengersRecursive(entity, input, level, reason, postLoad))
--            .orElse(null);
-+        Optional<Entity> optional = loadStaticEntity(type, input, level, reason); // CraftBukkit - decompile error
-+
-+        Objects.requireNonNull(postLoad);
-+        return (Entity) optional.map(postLoad::process).map((entity) -> {
-+            return loadPassengersRecursive(entity, input, level, reason, postLoad);
-+        }).orElse(null); // CraftBukkit - decompile error
-     }
- 
-     private static Entity loadPassengersRecursive(Entity entity, ValueInput input, Level level, EntitySpawnReason reason, EntityProcessor postLoad) {
 @@ -1560,14 +_,23 @@
      }
  

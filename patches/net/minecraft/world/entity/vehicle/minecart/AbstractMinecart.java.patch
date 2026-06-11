@@ -1,9 +1,13 @@
 --- a/net/minecraft/world/entity/vehicle/minecart/AbstractMinecart.java
 +++ b/net/minecraft/world/entity/vehicle/minecart/AbstractMinecart.java
-@@ -44,6 +_,7 @@
+@@ -44,6 +_,11 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
++import org.bukkit.Location;
++import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.entity.Vehicle;
++import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 +import org.bukkit.util.Vector;
  import org.jspecify.annotations.Nullable;
  
@@ -27,6 +31,62 @@
      protected AbstractMinecart(EntityType<?> type, Level level) {
          super(type, level);
          this.blocksBuilding = true;
+@@ -263,6 +_,14 @@
+ 
+     @Override
+     public void tick() {
++        // CraftBukkit start
++        double prevX = this.getX();
++        double prevY = this.getY();
++        double prevZ = this.getZ();
++        float prevYaw = this.getYRot();
++        float prevPitch = this.getXRot();
++        // CraftBukkit end
++
+         if (this.getHurtTime() > 0) {
+             this.setHurtTime(this.getHurtTime() - 1);
+         }
+@@ -273,8 +_,20 @@
+ 
+         this.checkBelowWorld();
+         this.computeSpeed();
+-        this.handlePortal();
++        // this.handlePortal(); // CraftBukkit - handled in postTick
+         this.behavior.tick();
++        // CraftBukkit start
++        org.bukkit.World bworld = this.level().getWorld();
++        Location from = new Location(bworld, prevX, prevY, prevZ, prevYaw, prevPitch);
++        Location to = CraftLocation.toBukkit(this.position(), bworld, this.getYRot(), this.getXRot());
++        Vehicle vehicle = (Vehicle) this.getBukkitEntity();
++
++        this.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.vehicle.VehicleUpdateEvent(vehicle));
++
++        if (!from.equals(to)) {
++            this.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.vehicle.VehicleMoveEvent(vehicle, from, to));
++        }
++        // CraftBukkit end
+         this.updateFluidInteraction();
+         if (this.isInLava()) {
+             this.lavaIgnite();
+@@ -362,12 +_,16 @@
+         Vec3 movement = this.getDeltaMovement();
+         this.setDeltaMovement(Mth.clamp(movement.x, -maxSpeed, maxSpeed), movement.y, Mth.clamp(movement.z, -maxSpeed, maxSpeed));
+         if (this.onGround()) {
+-            this.setDeltaMovement(this.getDeltaMovement().scale(0.5));
++            // CraftBukkit start - replace magic numbers with our variables
++            this.setDeltaMovement(new Vec3(this.getDeltaMovement().x * this.derailedX, this.getDeltaMovement().y * this.derailedY, this.getDeltaMovement().z * this.derailedZ));
++            // CraftBukkit end
+         }
+ 
+         this.move(MoverType.SELF, this.getDeltaMovement());
+         if (!this.onGround()) {
+-            this.setDeltaMovement(this.getDeltaMovement().scale(0.95));
++            // CraftBukkit start - replace magic numbers with our variables
++            this.setDeltaMovement(new Vec3(this.getDeltaMovement().x * this.flyingX, this.getDeltaMovement().y * this.flyingY, this.getDeltaMovement().z * this.flyingZ));
++            // CraftBukkit end
+         }
+     }
+ 
 @@ -423,8 +_,8 @@
  
      public Vec3 getRedstoneDirection(BlockPos pos) {
@@ -38,6 +98,21 @@
              if (shape == RailShape.EAST_WEST) {
                  if (this.isRedstoneConductor(pos.west())) {
                      return new Vec3(1.0, 0.0, 0.0);
+@@ -488,6 +_,14 @@
+         if (!this.level().isClientSide()) {
+             if (!entity.noPhysics && !this.noPhysics) {
+                 if (!this.hasPassenger(entity)) {
++                    // CraftBukkit start
++                    VehicleEntityCollisionEvent collisionEvent = new VehicleEntityCollisionEvent((Vehicle) this.getBukkitEntity(), entity.getBukkitEntity());
++                    this.level().getCraftServer().getPluginManager().callEvent(collisionEvent);
++
++                    if (collisionEvent.isCancelled()) {
++                        return;
++                    }
++                    // CraftBukkit end
+                     double xa = entity.getX() - this.getX();
+                     double za = entity.getZ() - this.getZ();
+                     double dd = xa * xa + za * za;
 @@ -596,4 +_,26 @@
      public boolean isFurnace() {
          return false;

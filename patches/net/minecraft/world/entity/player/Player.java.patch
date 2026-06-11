@@ -8,12 +8,13 @@
  import java.util.function.Predicate;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
-@@ -121,9 +_,15 @@
+@@ -121,9 +_,16 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Team;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.entity.EntityDamageEvent;
 +import org.bukkit.event.entity.EntityExhaustionEvent;
 +import org.bukkit.event.entity.EntityRemoveEvent;
 +import org.bukkit.event.player.PlayerBedEnterEvent;
@@ -24,6 +25,15 @@
      public static final int MAX_HEALTH = 20;
      public static final int SLEEP_DURATION = 100;
      public static final int WAKE_UP_DURATION = 10;
+@@ -149,7 +_,7 @@
+     private static final int DEFAULT_SCORE = 0;
+     public static final float CREATIVE_ENTITY_INTERACTION_RANGE_MODIFIER_VALUE = 2.0F;
+     private final Inventory inventory;
+-    protected PlayerEnderChestContainer enderChestInventory = new PlayerEnderChestContainer();
++    protected PlayerEnderChestContainer enderChestInventory = new PlayerEnderChestContainer(this); // CraftBukkit - add "this" to constructor
+     public final InventoryMenu inventoryMenu;
+     public AbstractContainerMenu containerMenu;
+     protected FoodData foodData = new FoodData();
 @@ -171,11 +_,26 @@
      private Optional<GlobalPos> lastDeathLocation = Optional.empty();
      public @Nullable FishingHook fishing;
@@ -216,9 +226,12 @@
      }
  
      @Override
-@@ -742,15 +_,31 @@
+@@ -740,17 +_,33 @@
+     }
+ 
      @Override
-     protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
+-    protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
++    protected boolean actuallyHurt(ServerLevel level, DamageSource source, float dmg, EntityDamageEvent event) { // void -> boolean
          if (!this.isInvulnerableTo(level, source)) {
 -            dmg = this.getDamageAfterArmorAbsorb(source, dmg);
 -            dmg = this.getDamageAfterMagicAbsorb(source, dmg);
@@ -253,15 +266,17 @@
              if (var8 != 0.0F) {
                  this.causeFoodExhaustion(source.getFoodExhaustion());
                  this.getCombatTracker().recordDamage(source, var8);
-@@ -761,6 +_,8 @@
+@@ -761,7 +_,10 @@
  
                  this.gameEvent(GameEvent.ENTITY_DAMAGE);
              }
-+
++            return true; // Youer TODO
 +            // Neo: Now we go back to hurtServer, where we'll update various metadata fields, process the side effects of damage (i.e. killing the entity), and firing LivingDamageEvent.Post
          }
++        return false; // CraftBukkit
      }
  
+     public boolean isTextFilteringEnabled() {
 @@ -816,6 +_,8 @@
  
              return InteractionResult.PASS;
@@ -442,7 +457,7 @@
          this.inventoryMenu.removed(this);
          if (this.hasContainerOpen()) {
              this.doCloseContainer();
-@@ -1289,6 +_,12 @@
+@@ -1289,13 +_,26 @@
          return true;
      }
  
@@ -453,9 +468,15 @@
 +    }
 +
      public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos pos) {
++        // CraftBukkit start
++        return this.startSleepInBed(pos, false);
++    }
++
++    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos pos, boolean force) {
++        // CraftBukkit end
          this.startSleeping(pos);
          this.sleepCounter = 0;
-@@ -1296,6 +_,7 @@
+         return Either.right(Unit.INSTANCE);
      }
  
      public void stopSleepInBed(boolean forcefulWakeUp, boolean updateLevelList) {
@@ -473,6 +494,23 @@
              return false;
          } else {
              if (fallDistance >= 2.0) {
+@@ -1427,7 +_,15 @@
+     }
+ 
+     public void startFallFlying() {
+-        this.setSharedFlag(7, true);
++        // CraftBukkit start
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callToggleGlideEvent(this, true).isCancelled()) {
++            this.setSharedFlag(7, true);
++        } else {
++            // SPIGOT-5542: must toggle like below
++            this.setSharedFlag(7, true);
++            this.setSharedFlag(7, false);
++        }
++        // CraftBukkit end
+     }
+ 
+     @Override
 @@ -1441,13 +_,13 @@
      protected void playStepSound(BlockPos onPos, BlockState onState) {
          if (this.isInWater()) {
@@ -603,7 +641,7 @@
      }
  
      @Override
-@@ -2015,10 +_,47 @@
+@@ -2015,10 +_,52 @@
          return ResolvableProfile.createResolved(this.gameProfile);
      }
  
@@ -612,7 +650,12 @@
 -        public static final Player.BedSleepingProblem OBSTRUCTED = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.obstructed"));
 -        public static final Player.BedSleepingProblem OTHER_PROBLEM = new Player.BedSleepingProblem(null);
 -        public static final Player.BedSleepingProblem NOT_SAFE = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.not_safe"));
++    // CraftBukkit start
 +    public record BedSleepingProblem(@Nullable Component message, PlayerBedEnterEvent.BedEnterResult bukkit) {
++        public BedSleepingProblem(@Nullable Component message) {
++            this(message, PlayerBedEnterEvent.BedEnterResult.OTHER_PROBLEM);
++        }
++
 +        public static final Player.BedSleepingProblem TOO_FAR_AWAY = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.too_far_away"), PlayerBedEnterEvent.BedEnterResult.TOO_FAR_AWAY);
 +        public static final Player.BedSleepingProblem OBSTRUCTED = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.obstructed"), PlayerBedEnterEvent.BedEnterResult.OTHER_PROBLEM);
 +        public static final Player.BedSleepingProblem OTHER_PROBLEM = new Player.BedSleepingProblem((Component) null, PlayerBedEnterEvent.BedEnterResult.OTHER_PROBLEM);

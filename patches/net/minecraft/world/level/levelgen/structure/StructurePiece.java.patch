@@ -126,18 +126,3 @@
  
              return true;
          } else {
-@@ -450,8 +_,12 @@
-     }
- 
-     public static BoundingBox createBoundingBox(Stream<StructurePiece> pieces) {
--        return BoundingBox.encapsulatingBoxes(pieces.map(StructurePiece::getBoundingBox)::iterator)
--            .orElseThrow(() -> new IllegalStateException("Unable to calculate boundingbox without pieces"));
-+        Stream<BoundingBox> stream1 = pieces.map(StructurePiece::getBoundingBox); // CraftBukkit - decompile error
-+
-+        Objects.requireNonNull(stream1);
-+        return (BoundingBox) BoundingBox.encapsulatingBoxes(stream1::iterator).orElseThrow(() -> {
-+            return new IllegalStateException("Unable to calculate boundingbox without pieces");
-+        });
-     }
- 
-     public static @Nullable StructurePiece findCollisionPiece(List<StructurePiece> pieces, BoundingBox box) {

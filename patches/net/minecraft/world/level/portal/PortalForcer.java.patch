@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/portal/PortalForcer.java
 +++ b/net/minecraft/world/level/portal/PortalForcer.java
-@@ -39,17 +_,34 @@
+@@ -39,8 +_,14 @@
      }
  
      public Optional<BlockPos> findClosestPortalPosition(BlockPos approximateExitPos, boolean toNether, WorldBorder worldBorder) {
@@ -8,28 +8,15 @@
 +        return findClosestPortalPosition(approximateExitPos, worldBorder, toNether ? 16 : 128); // Search Radius
 +    }
 +
-+    public Optional<BlockPos> findClosestPortalPosition(BlockPos approximateExitPos, WorldBorder worldBorder, int i) {
++    public Optional<BlockPos> findClosestPortalPosition(BlockPos approximateExitPos, WorldBorder worldBorder, int radius) {
          PoiManager poiManager = this.level.getPoiManager();
 -        int radius = toNether ? 16 : 128;
--        poiManager.ensureLoadedAndValid(this.level, approximateExitPos, radius);
--        return poiManager.getInSquare(type -> type.is(PoiTypes.NETHER_PORTAL), approximateExitPos, radius, PoiManager.Occupancy.ANY)
--            .map(PoiRecord::getPos)
--            .filter(worldBorder::isWithinBounds)
--            .filter(pos -> this.level.getBlockState(pos).hasProperty(BlockStateProperties.HORIZONTAL_AXIS))
--            .min(Comparator.<BlockPos>comparingDouble(p -> p.distSqr(approximateExitPos)).thenComparingInt(Vec3i::getY));
 +        // int i = flag ? 16 : 128;
 +        // CraftBukkit end
-+        poiManager.ensureLoadedAndValid(this.level, approximateExitPos, i);
-+        Stream<BlockPos> stream = poiManager.getInSquare((holder) -> { // CraftBukkit - decompile error
-+            return holder.is(PoiTypes.NETHER_PORTAL);
-+        }, approximateExitPos, i, PoiManager.Occupancy.ANY).map(PoiRecord::getPos);
-+
-+        Objects.requireNonNull(worldBorder);
-+        return stream.filter(worldBorder::isWithinBounds).filter((blockpos1) -> {
-+            return this.level.getBlockState(blockpos1).hasProperty(BlockStateProperties.HORIZONTAL_AXIS);
-+        }).min(Comparator.comparingDouble((BlockPos blockpos1) -> { // CraftBukkit - decompile error
-+            return blockpos1.distSqr(approximateExitPos);
-+        }).thenComparingInt(Vec3i::getY));
+         poiManager.ensureLoadedAndValid(this.level, approximateExitPos, radius);
+         return poiManager.getInSquare(type -> type.is(PoiTypes.NETHER_PORTAL), approximateExitPos, radius, PoiManager.Occupancy.ANY)
+             .map(PoiRecord::getPos)
+@@ -50,6 +_,12 @@
      }
  
      public Optional<BlockUtil.FoundRectangle> createPortal(BlockPos origin, Direction.Axis portalAxis) {

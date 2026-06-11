@@ -1,5 +1,17 @@
 --- a/net/minecraft/world/entity/vehicle/minecart/NewMinecartBehavior.java
 +++ b/net/minecraft/world/entity/vehicle/minecart/NewMinecartBehavior.java
+@@ -26,6 +_,11 @@
+ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
+ 
++// CraftBukkit start
++import org.bukkit.entity.Vehicle;
++import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
++// CraftBukkit end
++
+ public class NewMinecartBehavior extends MinecartBehavior {
+     public static final int POS_ROT_LERP_TICKS = 3;
+     public static final double ON_RAIL_Y_OFFSET = 0.1;
 @@ -153,7 +_,7 @@
  
      public void adjustToRails(BlockPos targetBlockPos, BlockState currentState, boolean instant) {
@@ -33,15 +45,18 @@
              return deltaMovement.length() < 0.03 ? Vec3.ZERO : deltaMovement.scale(0.5);
          } else {
              return deltaMovement;
-@@ -387,7 +_,7 @@
+@@ -387,9 +_,9 @@
      }
  
      private Vec3 calculateBoostTrackSpeed(Vec3 deltaMovement, BlockPos pos, BlockState state) {
 -        if (state.is(Blocks.POWERED_RAIL) && state.getValue(PoweredRailBlock.POWERED)) {
 +        if (state.getBlock() instanceof PoweredRailBlock poweredRail && !poweredRail.isActivatorRail() && state.getValue(PoweredRailBlock.POWERED)) {
              if (deltaMovement.length() > 0.01) {
-                 return deltaMovement.normalize().scale(deltaMovement.length() + 0.06);
+-                return deltaMovement.normalize().scale(deltaMovement.length() + 0.06);
++                return deltaMovement.normalize().scale(deltaMovement.length() + (0.06D * this.minecart.powRailAccelMult)); // CraftBukkit - added acceleration multiplier
              } else {
+                 Vec3 powerDirection = this.minecart.getRedstoneDirection(pos);
+                 return powerDirection.lengthSqr() <= 0.0 ? deltaMovement : powerDirection.scale(deltaMovement.length() + 0.2);
 @@ -436,10 +_,11 @@
                  }
  
@@ -56,3 +71,72 @@
                          if (this.restAtVShape(shape, newRailShape)) {
                              return 0.0;
                          }
+@@ -477,6 +_,12 @@
+ 
+     @Override
+     public double getMaxSpeed(ServerLevel level) {
++        // CraftBukkit start
++        Double maxSpeed = this.minecart.maxSpeed;
++        if (maxSpeed != null) {
++            return (this.minecart.isInWater() ? maxSpeed / 2.0D : maxSpeed);
++        }
++        // CraftBukkit end
+         return level.getGameRules().get(GameRules.MAX_MINECART_SPEED).intValue() * (this.minecart.isInWater() ? 0.5 : 1.0) / 20.0;
+     }
+ 
+@@ -492,7 +_,7 @@
+ 
+     @Override
+     public double getSlowdownFactor() {
+-        return this.minecart.isVehicle() ? 0.997 : 0.975;
++        return this.minecart.isVehicle() || !this.minecart.slowWhenEmpty ? 0.997D : 0.975D; // CraftBukkit - add !this.slowWhenEmpty
+     }
+ 
+     @Override
+@@ -516,6 +_,14 @@
+                         && !(entity instanceof AbstractMinecart)
+                         && !this.minecart.isVehicle()
+                         && !entity.isPassenger()) {
++                        // CraftBukkit start
++                        VehicleEntityCollisionEvent collisionEvent = new VehicleEntityCollisionEvent((Vehicle) this.minecart.getBukkitEntity(), entity.getBukkitEntity());
++                        this.level().getCraftServer().getPluginManager().callEvent(collisionEvent);
++
++                        if (collisionEvent.isCancelled()) {
++                            continue;
++                        }
++                        // CraftBukkit end
+                         boolean pickedUp = entity.startRiding(this.minecart);
+                         if (pickedUp) {
+                             return true;
+@@ -539,6 +_,16 @@
+                         || entity instanceof AbstractMinecart
+                         || this.minecart.isVehicle()
+                         || entity.isPassenger()) {
++                        // CraftBukkit start
++                        if (!this.minecart.isPassengerOfSameVehicle(entity)) {
++                            VehicleEntityCollisionEvent collisionEvent = new VehicleEntityCollisionEvent((Vehicle) this.minecart.getBukkitEntity(), entity.getBukkitEntity());
++                            this.level().getCraftServer().getPluginManager().callEvent(collisionEvent);
++
++                            if (collisionEvent.isCancelled()) {
++                                continue;
++                            }
++                        }
++                        // CraftBukkit end
+                         entity.push(this.minecart);
+                         pushed = true;
+                     }
+@@ -547,6 +_,14 @@
+         } else {
+             for (Entity entityx : this.level().getEntities(this.minecart, hitbox)) {
+                 if (!this.minecart.hasPassenger(entityx) && entityx.isPushable() && entityx instanceof AbstractMinecart) {
++                    // CraftBukkit start
++                    VehicleEntityCollisionEvent collisionEvent = new VehicleEntityCollisionEvent((Vehicle) this.minecart.getBukkitEntity(), entityx.getBukkitEntity());
++                    this.level().getCraftServer().getPluginManager().callEvent(collisionEvent);
++
++                    if (collisionEvent.isCancelled()) {
++                        continue;
++                    }
++                    // CraftBukkit end
+                     entityx.push(this.minecart);
+                     pushed = true;
+                 }

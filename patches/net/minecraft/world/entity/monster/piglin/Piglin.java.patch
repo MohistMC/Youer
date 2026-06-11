@@ -76,7 +76,7 @@
  
      protected void holdInOffHand(ItemStack itemStack) {
 -        if (itemStack.is(PiglinAi.BARTERING_ITEM)) {
-+        if (itemStack.isPiglinCurrency()) {
++        if (itemStack.isPiglinCurrency() || allowedBarterItems.contains(itemStack.getItem())) { // CraftBukkit - Changes to accept custom payment items
              this.setItemSlot(EquipmentSlot.OFFHAND, itemStack);
              this.setGuaranteedDrop(EquipmentSlot.OFFHAND);
          } else {
@@ -89,3 +89,14 @@
      }
  
      protected boolean canReplaceCurrentItem(ItemStack newItemStack) {
+@@ -382,8 +_,8 @@
+             return false;
+         } else {
+             TagKey<Item> preferredWeaponType = this.getPreferredWeaponType();
+-            boolean newItemWanted = PiglinAi.isLovedItem(newItemStack) || preferredWeaponType != null && newItemStack.is(preferredWeaponType);
+-            boolean currentItemWanted = PiglinAi.isLovedItem(currentItemStack) || preferredWeaponType != null && currentItemStack.is(preferredWeaponType);
++            boolean newItemWanted = PiglinAi.isLovedItem(newItemStack, this) || preferredWeaponType != null && newItemStack.is(preferredWeaponType); // CraftBukkit
++            boolean currentItemWanted = PiglinAi.isLovedItem(currentItemStack, this) || preferredWeaponType != null && currentItemStack.is(preferredWeaponType); // CraftBukkit
+             if (newItemWanted && !currentItemWanted) {
+                 return true;
+             } else {
