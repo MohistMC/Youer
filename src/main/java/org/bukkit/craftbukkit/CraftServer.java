@@ -18,6 +18,7 @@ import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
+import com.mohistmc.youer.neoforge.compat.TerraBlenderCompat;
 import com.mohistmc.youer.util.Level2LevelStem;
 import com.mohistmc.youer.util.ProxyUtils;
 import com.mojang.authlib.GameProfile;
@@ -1394,6 +1395,7 @@ public final class CraftServer implements Server {
             try {
                 dynamic = worldSession.getDataTag();
                 worldinfo = worldSession.getSummary(dynamic);
+                worldSession.readAdditionalLevelSaveData(false);
             } catch (NbtException | ReportedNbtException | IOException ioexception) {
                 LevelStorageSource.LevelDirectory convertable_b = worldSession.getLevelDirectory();
 
@@ -1403,6 +1405,7 @@ public final class CraftServer implements Server {
                 try {
                     dynamic = worldSession.getDataTagFallback();
                     worldinfo = worldSession.getSummary(dynamic);
+                    worldSession.readAdditionalLevelSaveData(true);
                 } catch (NbtException | ReportedNbtException | IOException ioexception1) {
                     MinecraftServer.LOGGER.error("Failed to load world data from {}", convertable_b.oldDataFile(), ioexception1);
                     MinecraftServer.LOGGER.error("Failed to load world data from {} and {}. World files may be corrupted. Shutting down.", convertable_b.dataFile(), convertable_b.oldDataFile());
@@ -1446,6 +1449,11 @@ public final class CraftServer implements Server {
             worldsettings = new LevelSettings(name, GameType.byId(this.getDefaultGameMode().getValue()), hardcore, Difficulty.EASY, false, new GameRules(), worldloader_a.dataConfiguration());
             worlddimensions = properties.create(worldloader_a.datapackWorldgen());
 
+            // Neo: Do a write-read-cycle to inject modded dimensions into plugin-created worlds
+            var registryOps = net.minecraft.resources.RegistryOps.create(net.minecraft.nbt.NbtOps.INSTANCE, worldloader_a.datapackWorldgen());
+            worlddimensions = WorldDimensions.CODEC.encoder().encodeStart(registryOps, worlddimensions).flatMap((writtenPayloadWithModdedDimensions) -> WorldDimensions.CODEC.decoder().parse(registryOps, writtenPayloadWithModdedDimensions)).resultOrPartial(MinecraftServer.LOGGER::error).orElse(worlddimensions);
+            // Neo end
+
             WorldDimensions.Complete worlddimensions_b = worlddimensions.bake(iregistry);
             Lifecycle lifecycle = worlddimensions_b.lifecycle().add(worldloader_a.datapackWorldgen().allRegistriesLifecycle());
 
@@ -1453,6 +1461,26 @@ public final class CraftServer implements Server {
             iregistrycustom_dimension = worlddimensions_b.dimensionsRegistryAccess();
         }
         iregistry = iregistrycustom_dimension.registryOrThrow(Registries.LEVEL_STEM);
+
+        // Neo: Apply biome modifiers and refresh features per step for plugin-created worlds
+        try {
+            var biomeModifierRegistry = this.console.registryAccess().registry(net.neoforged.neoforge.registries.NeoForgeRegistries.Keys.BIOME_MODIFIERS);
+            if (biomeModifierRegistry.isPresent()) {
+                var biomeModifiers = biomeModifierRegistry.get().holders().map(net.minecraft.core.Holder::value).toList();
+                var biomeRegistryAccess = this.console.registryAccess();
+                for (var entry : iregistry.entrySet()) {
+                    var chunkGenerator = entry.getValue().generator();
+                    for (var biomeHolder : chunkGenerator.getBiomeSource().possibleBiomes()) {
+                        biomeHolder.value().modifiableBiomeInfo().applyBiomeModifiers(biomeHolder, biomeModifiers, biomeRegistryAccess);
+                    }
+                    chunkGenerator.refreshFeaturesPerStep();
+                }
+            }
+        } catch (Exception e) {
+            MinecraftServer.LOGGER.warn("Failed to apply biome modifiers for plugin-created world", e);
+        }
+        // Neo end
+
         worlddata.customDimensions = iregistry;
         worlddata.checkName(name);
         worlddata.setModdedInfo(this.console.getServerModName(), this.console.getModdedStatus().shouldReportAsModified());
@@ -1461,7 +1489,8 @@ public final class CraftServer implements Server {
             net.minecraft.server.Main.forceUpgrade(worldSession, DataFixers.getDataFixer(), this.console.options.has("eraseCache"), () -> true, iregistrycustom_dimension, this.console.options.has("recreateRegionFiles"));
         }
 
-        long j = BiomeManager.obfuscateSeed(worlddata.worldGenOptions().seed()); // Paper - use world seed
+        long seed = worlddata.worldGenOptions().seed();
+        long j = BiomeManager.obfuscateSeed(seed); // Paper - use world seed
         List<CustomSpawner> list = ImmutableList.of(new PhantomSpawner(), new PatrolSpawner(), new CatSpawner(), new VillageSiege(), new WanderingTraderSpawner(worlddata));
         LevelStem worlddimension = iregistry.get(actualDimension);
 
@@ -1483,6 +1512,9 @@ public final class CraftServer implements Server {
         // If set to not keep spawn in memory (changed from default) then adjust rule accordingly
         if (creator.keepSpawnLoaded() == net.kyori.adventure.util.TriState.FALSE) { // Paper
             worlddata.getGameRules().getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(0, (ServerLevel) null);
+        }
+        if (ServerAPI.hasMod("terrablender")) {
+            TerraBlenderCompat.initializeBiomes(this.console.registryAccess(), worlddimension.type(), actualDimension, worlddimension.generator(), seed);
         }
         net.minecraft.world.level.Level.craftWorldData(creator.environment(), generator, biomeProvider);
         ServerLevel internal = new ServerLevel(this.console, this.console.executor, worldSession, worlddata, worldKey, worlddimension, this.getServer().progressListenerFactory.create(worlddata.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS)),

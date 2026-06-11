@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.block;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -13,6 +14,10 @@ public class CraftBiome {
 
     public static Biome minecraftToBukkit(net.minecraft.world.level.biome.Biome minecraft) {
         Preconditions.checkArgument(minecraft != null);
+        var mods = NeoForgeInjectBukkit.biomeBiomeMap.get(minecraft);
+        if (mods != null) {
+            return mods;
+        }
 
         net.minecraft.core.Registry<net.minecraft.world.level.biome.Biome> registry = CraftRegistry.getMinecraftRegistry(Registries.BIOME);
         Biome bukkit = Registry.BIOME.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location()));
