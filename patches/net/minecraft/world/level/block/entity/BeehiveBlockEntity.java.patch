@@ -166,11 +166,9 @@
      protected void loadAdditional(ValueInput input) {
          super.loadAdditional(input);
 -        this.stored.clear();
--        input.read("bees", BeehiveBlockEntity.Occupant.LIST_CODEC).orElse(List.of()).forEach(this::storeBee);
--        this.savedFlowerPos = input.read("flower_pos", BlockPos.CODEC).orElse(null);
 +        this.stored = Lists.newArrayList(); // CraftBukkit - SPIGOT-7790: create new copy (may be modified in physics event triggered by honey change)
-+        input.read("bees", BeehiveBlockEntity.Occupant.LIST_CODEC).orElse(List.of()).forEach(this::storeBee); // CraftBukkit - decompile error
-+        this.savedFlowerPos = input.read("flower_pos", BlockPos.CODEC).orElse(null); // CraftBukkit - decompile error
+         input.read("bees", BeehiveBlockEntity.Occupant.LIST_CODEC).orElse(List.of()).forEach(this::storeBee);
+         this.savedFlowerPos = input.read("flower_pos", BlockPos.CODEC).orElse(null);
 +        // CraftBukkit start
 +        this.maxBees = input.getIntOr("Bukkit.MaxEntities", this.maxBees);
 +        // CraftBukkit end

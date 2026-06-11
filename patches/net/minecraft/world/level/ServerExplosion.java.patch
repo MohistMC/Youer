@@ -189,27 +189,3 @@
          for (ServerExplosion.StackCollector stackCollector : stacks) {
              stackCollector.tryMerge(stack);
              if (stack.isEmpty()) {
-@@ -293,18 +_,15 @@
- 
-     @Override
-     public boolean canTriggerBlocks() {
--        if (this.blockInteraction != Explosion.BlockInteraction.TRIGGER_BLOCK) {
--            return false;
--        } else {
--            return this.source != null && this.source.is(EntityType.BREEZE_WIND_CHARGE) ? this.level.getGameRules().get(GameRules.MOB_GRIEFING) : true;
--        }
-+        return this.blockInteraction != Explosion.BlockInteraction.TRIGGER_BLOCK ? false : (this.source != null && this.source.is(EntityType.BREEZE_WIND_CHARGE) ? (Boolean) this.level.getGameRules().get(GameRules.MOB_GRIEFING) : true); // CraftBukkit - decompile error
-     }
- 
-     @Override
-     public boolean shouldAffectBlocklikeEntities() {
--        boolean mobGriefingEnabled = this.level.getGameRules().get(GameRules.MOB_GRIEFING);
--        boolean isNotWindCharge = this.source == null || !this.source.is(EntityType.BREEZE_WIND_CHARGE) && !this.source.is(EntityType.WIND_CHARGE);
--        return mobGriefingEnabled ? isNotWindCharge : this.blockInteraction.shouldAffectBlocklikeEntities() && isNotWindCharge;
-+        boolean flag = (Boolean) this.level.getGameRules().get(GameRules.MOB_GRIEFING);
-+        boolean flag1 = this.source == null || !this.source.is(EntityType.BREEZE_WIND_CHARGE) && !this.source.is(EntityType.WIND_CHARGE); // CraftBukkit - decompile error
-+
-+        return flag ? flag1 : this.blockInteraction.shouldAffectBlocklikeEntities() && flag1;
-     }
- 
-     public boolean isSmall() {

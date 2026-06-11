@@ -36,18 +36,6 @@
                          to.setDropChance(slot, from.getDropChances().byEquipment(slot));
                      }
                  }
-@@ -52,7 +_,10 @@
-             to.hurtTime = from.hurtTime;
-             to.yBodyRot = from.yBodyRot;
-             to.setOnGround(from.onGround());
--            from.getSleepingPos().ifPresent(to::setSleepingPos);
-+            Optional<BlockPos> optional = from.getSleepingPos(); // CraftBukkit - decompile error
-+
-+            Objects.requireNonNull(to);
-+            optional.ifPresent(to::setSleepingPos);
-             Entity leashHolder = from.getLeashHolder();
-             if (leashHolder != null) {
-                 to.setLeashedTo(leashHolder, true);
 @@ -60,6 +_,21 @@
  
              this.convertCommon(from, to, params);
@@ -70,24 +58,12 @@
      },
      SPLIT_ON_DEATH(false) {
          @Override
-@@ -91,6 +_,8 @@
+@@ -90,6 +_,8 @@
+     }
  
      abstract void convert(final Mob from, final Mob to, final ConversionParams params);
- 
-+    void postConvert(Mob mob, Mob mob1, ConversionParams conversionparams) {} // CraftBukkit
 +
++    void postConvert(Mob mob, Mob mob1, ConversionParams conversionparams) {} // CraftBukkit
+ 
      void convertCommon(Mob from, Mob to, ConversionParams params) {
          to.setAbsorptionAmount(from.getAbsorptionAmount());
- 
-@@ -130,7 +_,10 @@
-         to.setNoGravity(from.isNoGravity());
-         to.setPortalCooldown(from.getPortalCooldown());
-         to.setSilent(from.isSilent());
--        from.entityTags().forEach(to::addTag);
-+        Set<String> set = from.entityTags(); // CraftBukkit - decompile error
-+
-+        Objects.requireNonNull(to);
-+        set.forEach(to::addTag);
- 
-         for (DataComponentType<?> component : COMPONENTS_TO_COPY) {
-             copyComponent(from, to, component);

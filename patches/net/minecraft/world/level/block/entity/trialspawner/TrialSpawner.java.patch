@@ -13,7 +13,7 @@
  public final class TrialSpawner implements net.neoforged.neoforge.common.extensions.IOwnedSpawner {
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final int DETECT_PLAYER_SPAWN_BUFFER = 40;
-@@ -211,15 +_,22 @@
+@@ -211,15 +_,20 @@
                  }
  
                  boolean hasNoConfiguration = nextSpawnData.getEntityToSpawn().size() == 1 && nextSpawnData.getEntityToSpawn().getString("id").isPresent();
@@ -25,15 +25,10 @@
 +                net.neoforged.neoforge.event.EventHooks.finalizeMobSpawnSpawner(mob, level, level.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.TRIAL_SPAWNER, null, this, hasNoConfiguration);
  
                  mob.setPersistenceRequired();
--                nextSpawnData.getEquipment().ifPresent(mob::equip);
--            }
--
+                 nextSpawnData.getEquipment().ifPresent(mob::equip);
+             }
+ 
 -            if (!level.tryAddFreshEntityWithPassengers(entity)) {
-+                Optional<net.minecraft.world.entity.EquipmentTable> optional1 = nextSpawnData.getEquipment(); // CraftBukkit - decompile error
-+
-+                optional1.ifPresent(mob::equip);
-+            }
-+
 +            // CraftBukkit start
 +            if (org.bukkit.craftbukkit.event.CraftEventFactory.callTrialSpawnerSpawnEvent(entity, spawnerPos).isCancelled()) {
 +                return Optional.empty();

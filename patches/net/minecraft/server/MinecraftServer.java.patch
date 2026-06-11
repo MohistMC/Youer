@@ -1206,7 +1206,7 @@
                  player.connection.send(new ClientboundEntityEventPacket(player, event));
              }
          } else if (rule == GameRules.LIMITED_CRAFTING || rule == GameRules.IMMEDIATE_RESPAWN) {
-@@ -2124,21 +_,26 @@
+@@ -2124,21 +_,23 @@
                  ? ClientboundGameEventPacket.LIMITED_CRAFTING
                  : ClientboundGameEventPacket.IMMEDIATE_RESPAWN;
              ClientboundGameEventPacket packet = new ClientboundGameEventPacket(eventType, (Boolean)value ? 1.0F : 0.0F);
@@ -1224,10 +1224,7 @@
 +            ServerWaypointManager serverwaypointmanager = serverlevel.getWaypointManager();
 +
 +            if ((Boolean) value) {
-+                List<ServerPlayer> list = serverlevel.players(); // CraftBukkit - decompile error
-+
-+                Objects.requireNonNull(serverwaypointmanager);
-+                list.forEach(serverwaypointmanager::updatePlayer);
++                serverlevel.players().forEach(serverwaypointmanager::updatePlayer);
 +            } else {
 +                serverwaypointmanager.breakAllConnections();
 +            }

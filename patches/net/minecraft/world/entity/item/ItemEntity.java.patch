@@ -173,11 +173,51 @@
          }
      }
  
-@@ -328,10 +_,25 @@
+@@ -328,9 +_,65 @@
              ItemStack itemStack = this.getItem();
              Item item = itemStack.getItem();
              int orgCount = itemStack.getCount();
 -            if (this.pickupDelay == 0 && (this.target == null || this.target.equals(player.getUUID())) && player.getInventory().add(itemStack)) {
++
++            // CraftBukkit start - fire PlayerPickupItemEvent
++            int canHold = player.getInventory().canHold(itemStack);
++            int remaining = orgCount - canHold;
++
++            if (this.pickupDelay <= 0 && canHold > 0) {
++                itemStack.setCount(canHold);
++                // Call legacy event
++                PlayerPickupItemEvent playerEvent = new PlayerPickupItemEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.Item) this.getBukkitEntity(), remaining);
++                playerEvent.setCancelled(!playerEvent.getPlayer().getCanPickupItems());
++                this.level().getCraftServer().getPluginManager().callEvent(playerEvent);
++                if (playerEvent.isCancelled()) {
++                    itemStack.setCount(orgCount); // SPIGOT-5294 - restore count
++                    return;
++                }
++
++                // Call newer event afterwards
++                EntityPickupItemEvent entityEvent = new EntityPickupItemEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.Item) this.getBukkitEntity(), remaining);
++                entityEvent.setCancelled(!entityEvent.getEntity().getCanPickupItems());
++                this.level().getCraftServer().getPluginManager().callEvent(entityEvent);
++                if (entityEvent.isCancelled()) {
++                    itemStack.setCount(orgCount); // SPIGOT-5294 - restore count
++                    return;
++                }
++
++                // Update the ItemStack if it was changed in the event
++                ItemStack current = this.getItem();
++                if (!itemStack.equals(current)) {
++                    itemStack = current;
++                } else {
++                    itemStack.setCount(canHold + remaining); // = i
++                }
++
++                // Possibly < 0; fix here so we do not have to modify code below
++                this.pickupDelay = 0;
++            } else if (this.pickupDelay == 0) {
++                // ensure that the code below isn't triggered if canHold says we can't pick the items up
++                this.pickupDelay = -1;
++            }
++            // CraftBukkit end
 +
 +            // Neo: Fire item pickup pre/post and adjust handling logic to adhere to the event result.
 +            var result = net.neoforged.neoforge.event.EventHooks.fireItemPickupPre(this, player).canPickup();
@@ -196,11 +236,10 @@
 +
                  player.take(this, orgCount);
                  if (itemStack.isEmpty()) {
--                    this.discard();
-+                    this.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
++                    this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+                     this.discard();
                      itemStack.setCount(orgCount);
                  }
- 
 @@ -374,6 +_,15 @@
          this.target = target;
      }

@@ -35,7 +35,7 @@
                          return;
                      }
  
-@@ -218,39 +_,57 @@
+@@ -218,39 +_,52 @@
                          this.potionContents.forEachEffect(allEffects::add, this.potionDurationScale);
                          List<LivingEntity> entities = this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox());
                          if (!entities.isEmpty()) {
@@ -74,19 +74,14 @@
 -                                                return;
 +                            List<org.bukkit.entity.LivingEntity> bukkitEntities = new java.util.ArrayList<>(); // CraftBukkit
 +                            for (LivingEntity livingentity : entities) {
-+                                if (!this.victims.containsKey(livingentity) && livingentity.isAffectedByPotions()) {
-+                                    java.util.stream.Stream<MobEffectInstance> stream = allEffects.stream(); // CraftBukkit - decompile error
++                                if (!this.victims.containsKey(livingentity) && livingentity.isAffectedByPotions() && !allEffects.stream().noneMatch(livingentity::canBeAffected)) {
++                                    double d0 = livingentity.getX() - this.getX();
++                                    double d1 = livingentity.getZ() - this.getZ();
++                                    double d2 = d0 * d0 + d1 * d1;
 +
-+                                    java.util.Objects.requireNonNull(livingentity);
-+                                    if (!stream.noneMatch(livingentity::canBeAffected)) {
-+                                        double d0 = livingentity.getX() - this.getX();
-+                                        double d1 = livingentity.getZ() - this.getZ();
-+                                        double d2 = d0 * d0 + d1 * d1;
-+
-+                                        if (d2 <= (double) (radius * radius)) {
-+                                            // CraftBukkit start
-+                                            bukkitEntities.add((org.bukkit.entity.LivingEntity) livingentity.getBukkitEntity());
-+                                        }
++                                    if (d2 <= (double) (radius * radius)) {
++                                        // CraftBukkit start
++                                        bukkitEntities.add((org.bukkit.entity.LivingEntity) livingentity.getBukkitEntity());
 +                                    }
 +                                }
 +                            }
