@@ -1,0 +1,48 @@
+--- a/net/minecraft/world/level/chunk/storage/SimpleRegionStorage.java
++++ b/net/minecraft/world/level/chunk/storage/SimpleRegionStorage.java
+@@ -14,8 +_,12 @@
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.NbtUtils;
+ import net.minecraft.nbt.Tag;
++import net.minecraft.server.level.ServerChunkCache;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.datafix.DataFixTypes;
+ import net.minecraft.world.level.ChunkPos;
++import net.minecraft.world.level.LevelAccessor;
++import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class SimpleRegionStorage implements AutoCloseable {
+@@ -46,13 +_,31 @@
+     }
+ 
+     public CompoundTag upgradeChunkTag(CompoundTag chunkTag, int defaultVersion, @Nullable CompoundTag dataFixContextTag, int targetVersion) {
++        // CraftBukkit start
++        return this.upgradeChunkTag(chunkTag, defaultVersion, dataFixContextTag, targetVersion, null, null);
++    }
++
++    public CompoundTag upgradeChunkTag(CompoundTag chunkTag, int defaultVersion, @Nullable CompoundTag dataFixContextTag, int targetVersion, ChunkPos pos, @Nullable LevelAccessor levelaccessor) {
++        // CraftBukkit end
+         int version = NbtUtils.getDataVersion(chunkTag, defaultVersion);
+         if (version >= targetVersion) {
+             return chunkTag;
+         } else {
+             try {
++                // Spigot start - SPIGOT-6806: Quick and dirty way to prevent below zero generation in old chunks, by setting the status to heightmap instead of empty
++                boolean stopBelowZero = false;
++                boolean belowZeroGenerationInExistingChunks = (levelaccessor != null) ? ((ServerLevel) levelaccessor).spigotConfig.belowZeroGenerationInExistingChunks : org.spigotmc.SpigotConfig.belowZeroGenerationInExistingChunks;
++
++                if (version <= 2730 && !belowZeroGenerationInExistingChunks) {
++                    stopBelowZero = "full".equals(chunkTag.getCompoundOrEmpty("Level").getStringOr("Status", ""));
++                }
++                // Spigot end
+                 injectDatafixingContext(chunkTag, dataFixContextTag);
+-                chunkTag = this.dataFixType.update(this.fixerUpper, chunkTag, version, targetVersion);
++                // Spigot start
++                if (stopBelowZero) {
++                    chunkTag.putString("Status", net.minecraft.core.registries.BuiltInRegistries.CHUNK_STATUS.getKey(ChunkStatus.SPAWN).toString());
++                }
++                // Spigot end
+                 removeDatafixingContext(chunkTag);
+                 NbtUtils.addDataVersion(chunkTag, targetVersion);
+                 return chunkTag;

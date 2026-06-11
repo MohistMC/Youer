@@ -60,7 +60,7 @@
      private final Map<UUID, ServerPlayer> playersByUUID = Maps.newHashMap();
      private final UserBanList bans;
      private final IpBanList ipBans;
-@@ -127,10 +_,17 @@
+@@ -127,10 +_,18 @@
      private int simulationDistance;
      private boolean allowCommandsForAllPlayers;
      private int sendAllPlayerInfoIn;
@@ -68,6 +68,7 @@
 +
 +    // CraftBukkit start
 +    private CraftServer cserver;
++    private final Map<String,ServerPlayer> playersByName = new java.util.HashMap<>();
  
      public PlayerList(
          MinecraftServer server, LayeredRegistryAccess<RegistryLayer> registries, PlayerDataStorage playerIo, NotificationService notificationService
@@ -87,6 +88,17 @@
          );
          playerConnection.suspendFlushing();
          GameRules gameRules = level.getGameRules();
+@@ -173,8 +_,8 @@
+                 levelData.isHardcore(),
+                 this.server.levelKeys(),
+                 this.getMaxPlayers(),
+-                this.getViewDistance(),
+-                this.getSimulationDistance(),
++                level.spigotConfig.viewDistance,
++                level.spigotConfig.simulationDistance,
+                 reducedDebugInfo,
+                 !immediateRespawn,
+                 doLimitedCrafting,
 @@ -185,10 +_,12 @@
          playerConnection.send(new ClientboundChangeDifficultyPacket(levelData.getDifficulty(), levelData.isDifficultyLocked()));
          playerConnection.send(new ClientboundPlayerAbilitiesPacket(player.getAbilities()));
@@ -100,6 +112,14 @@
          this.sendPlayerPermissionLevel(player);
          player.getStats().markAllDirty();
          player.getRecipeBook().sendInitialRecipeBook(player);
+@@ -210,6 +_,7 @@
+ 
+         player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(this.players));
+         this.players.add(player);
++        this.playersByName.put(player.getScoreboardName().toLowerCase(java.util.Locale.ROOT), player); // Spigot
+         this.playersByUUID.put(player.getUUID(), player);
+         this.broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(player)));
+         this.sendLevelInfo(player, level);
 @@ -219,6 +_,9 @@
          player.initInventoryMenu();
          this.server.notificationManager().playerJoined(player);
@@ -110,7 +130,7 @@
      }
  
      public void updateEntireScoreboard(ServerScoreboard scoreboard, ServerPlayer player) {
-@@ -291,35 +_,69 @@
+@@ -291,41 +_,76 @@
          }
      }
  
@@ -183,6 +203,13 @@
              enderpearl.setRemoved(Entity.RemovalReason.UNLOADED_WITH_PLAYER);
          }
  
+         level.removePlayerImmediately(player, Entity.RemovalReason.UNLOADED_WITH_PLAYER);
+         player.getAdvancements().stopListening();
+         this.players.remove(player);
++        this.playersByName.remove(player.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot
+         this.server.getCustomBossEvents().onPlayerDisconnect(player);
+         UUID uuid = player.getUUID();
+         ServerPlayer serverPlayer = this.playersByUUID.get(uuid);
 @@ -336,10 +_,60 @@
              this.server.notificationManager().playerLeft(player);
          }
@@ -256,11 +283,11 @@
          } else if (!this.isWhiteListed(nameAndId)) {
 -            return Component.translatable("multiplayer.disconnect.not_whitelisted");
 +            MutableComponent mutablecomponent = Component.translatable("multiplayer.disconnect.not_whitelisted");
-+            event.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, CraftChatMessage.fromComponent(mutablecomponent));
++            event.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, org.spigotmc.SpigotConfig.whitelistMessage); // Spigot
          } else if (this.ipBans.isBanned(address)) {
              IpBanListEntry ban = this.ipBans.get(address);
              MutableComponent reason = Component.translatable("multiplayer.disconnect.banned_ip.reason", ban.getReasonMessage());
-@@ -357,46 +_,51 @@
+@@ -357,46 +_,52 @@
                  reason.append(Component.translatable("multiplayer.disconnect.banned_ip.expiration", BAN_DATE_FORMAT.format(ban.getExpires())));
              }
  
@@ -280,7 +307,7 @@
 -            if (player.getUUID().equals(playerId)) {
 -                dupes.add(player);
 +            if (this.players.size() >= this.getMaxPlayers() && !this.canBypassPlayerLimit(nameAndId)) {
-+                event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_FULL, "The server is full");
++                event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_FULL, org.spigotmc.SpigotConfig.serverFullMessage); // Spigot
              }
          }
  
@@ -318,6 +345,7 @@
 -        TeleportTransition respawnInfo = serverPlayer.findRespawnPositionAndUseSpawnBlock(!keepAllPlayerData, TeleportTransition.DO_NOTHING);
 +        TeleportTransition respawnInfo = serverPlayer.findRespawnPositionAndUseSpawnBlock(!keepAllPlayerData, TeleportTransition.DO_NOTHING, PlayerRespawnEvent.RespawnReason.DEATH); // CraftBukkit
          this.players.remove(serverPlayer);
++        this.playersByName.remove(serverPlayer.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot
          serverPlayer.level().removePlayerImmediately(serverPlayer, removalReason);
 +
 +        // Neo: Allow changing the respawn position of players. The local dimension transition is updated with the new target.
@@ -337,7 +365,20 @@
              player.copyRespawnPosition(serverPlayer);
          }
  
-@@ -426,6 +_,8 @@
+@@ -414,6 +_,8 @@
+         ServerLevel playerLevel = player.level();
+         LevelData levelData = playerLevel.getLevelData();
+         player.connection.send(new ClientboundRespawnPacket(player.createCommonSpawnInfo(playerLevel), dataToKeep));
++        player.connection.send(new ClientboundSetChunkCacheRadiusPacket(playerLevel.spigotConfig.viewDistance)); // Spigot
++        player.connection.send(new ClientboundSetSimulationDistancePacket(playerLevel.spigotConfig.simulationDistance)); // Spigot
+         player.connection.teleport(player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot());
+         player.connection.send(new ClientboundSetDefaultSpawnPositionPacket(level.getRespawnData()));
+         player.connection.send(new ClientboundChangeDifficultyPacket(levelData.getDifficulty(), levelData.isDifficultyLocked()));
+@@ -423,9 +_,12 @@
+         this.sendPlayerPermissionLevel(player);
+         level.addRespawnedPlayer(player);
+         this.players.add(player);
++        this.playersByName.put(player.getScoreboardName().toLowerCase(java.util.Locale.ROOT), player); // Spigot
          this.playersByUUID.put(player.getUUID(), player);
          player.initInventoryMenu();
          player.setHealth(player.getHealth());
@@ -415,7 +456,23 @@
          this.server.getCommands().sendCommands(player);
      }
  
-@@ -601,6 +_,13 @@
+@@ -586,21 +_,19 @@
+     }
+ 
+     public @Nullable ServerPlayer getPlayerByName(String name) {
+-        int size = this.players.size();
+-
+-        for (int i = 0; i < size; i++) {
+-            ServerPlayer player = this.players.get(i);
+-            if (player.getGameProfile().name().equalsIgnoreCase(name)) {
+-                return player;
+-            }
+-        }
+-
+-        return null;
++        return this.playersByName.get(name.toLowerCase(java.util.Locale.ROOT)); // Spigot
+     }
+ 
      public void broadcast(@Nullable Player except, double x, double y, double z, double range, ResourceKey<Level> dimension, Packet<?> packet) {
          for (int i = 0; i < this.players.size(); i++) {
              ServerPlayer player = this.players.get(i);

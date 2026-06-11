@@ -166,7 +166,7 @@
          if (!this.isInValidBounds(pos)) {
              return false;
          } else if (!this.isClientSide() && this.isDebug()) {
-@@ -222,11 +_,49 @@
+@@ -222,11 +_,55 @@
          } else {
              LevelChunk chunk = this.getChunkAt(pos);
              Block block = blockState.getBlock();
@@ -199,7 +199,13 @@
                  BlockState newState = this.getBlockState(pos);
 +
 +                if (blockSnapshot == null && !this.captureBlockStates) { // Don't notify clients or update physics while capturing blockstates
-+                    this.markAndNotifyBlock(pos, chunk, oldState, blockState, updateFlags, updateLimit);
++                    // Spigot start
++                    try {
++                        this.markAndNotifyBlock(pos, chunk, oldState, blockState, updateFlags, updateLimit);
++                    } catch (StackOverflowError ex) {
++                        lastPhysicsProblem = new BlockPos(pos);
++                    }
++                    // Spigot end
 +                }
 +
 +                return true;
@@ -377,7 +383,12 @@
          if (!this.pendingBlockEntityTickers.isEmpty()) {
              this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
              this.pendingBlockEntityTickers.clear();
-@@ -479,12 +_,19 @@
+@@ -475,16 +_,24 @@
+         }
+ 
+         this.tickingBlockEntities = false;
++        spigotConfig.currentPrimedTnt = 0; // Spigot
+     }
  
      public <T extends Entity> void guardEntityTick(Consumer<T> tick, T entity) {
          try {

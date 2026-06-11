@@ -62,3 +62,28 @@
                  .localAddress(LocalAddress.ANY)
                  .bind()
                  .syncUninterruptibly();
+@@ -150,6 +_,13 @@
+ 
+     public void tick() {
+         synchronized (this.connections) {
++            // Spigot Start
++            // This prevents players from 'gaming' the server, and strategically relogging to increase their position in the tick order
++            if ( org.spigotmc.SpigotConfig.playerShuffle > 0 && MinecraftServer.currentTick % org.spigotmc.SpigotConfig.playerShuffle == 0 )
++            {
++                Collections.shuffle( this.connections );
++            }
++            // Spigot End
+             Iterator<Connection> iterator = this.connections.iterator();
+ 
+             while (iterator.hasNext()) {
+@@ -169,6 +_,10 @@
+                             connection.setReadOnly();
+                         }
+                     } else {
++                        // Spigot Start
++                        // Fix a race condition where a NetworkManager could be unregistered just before connection.
++                        if (connection.preparing) continue;
++                        // Spigot End
+                         iterator.remove();
+                         connection.handleDisconnection();
+                     }

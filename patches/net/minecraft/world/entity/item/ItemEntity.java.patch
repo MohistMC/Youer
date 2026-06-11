@@ -112,6 +112,28 @@
              }
          }
      }
+@@ -200,8 +_,11 @@
+ 
+     private void mergeWithNeighbours() {
+         if (this.isMergable()) {
++            // Spigot start
++            double radius = this.level().spigotConfig.itemMerge;
+             for (ItemEntity entity : this.level()
+-                .getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(0.5, 0.0, 0.5), other -> other != this && other.isMergable())) {
++                .getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(radius, radius - 0.5D, radius), other -> other != this && other.isMergable())) {
++                // Spigot end
+                 if (entity.isMergable()) {
+                     this.tryToMerge(entity);
+                     if (this.isRemoved()) {
+@@ -221,7 +_,7 @@
+         ItemStack thisItemStack = this.getItem();
+         ItemStack otherItemStack = other.getItem();
+         if (Objects.equals(this.target, other.target) && areMergable(thisItemStack, otherItemStack)) {
+-            if (otherItemStack.getCount() < thisItemStack.getCount()) {
++            if (true || otherItemStack.getCount() < thisItemStack.getCount()) { // Spigot
+                 merge(this, thisItemStack, other, otherItemStack);
+             } else {
+                 merge(other, otherItemStack, this, thisItemStack);
 @@ -248,11 +_,16 @@
      }
  

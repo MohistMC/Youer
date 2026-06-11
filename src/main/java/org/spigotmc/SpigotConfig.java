@@ -393,7 +393,7 @@ public class SpigotConfig
     public static boolean logVillagerDeaths;
     public static boolean logNamedDeaths;
     private static void logDeaths() {
-        logVillagerDeaths = getBoolean("settings.log-villager-deaths", true);
+        logVillagerDeaths = getBoolean("settings.log-villager-deaths", false);
         logNamedDeaths = getBoolean("settings.log-named-deaths", true);
     }
 

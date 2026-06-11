@@ -95,7 +95,7 @@
      }
  
      @Override
-@@ -304,14 +_,36 @@
+@@ -304,19 +_,41 @@
          this.chunkMap.saveAllChunks(flushStorage);
      }
  
@@ -133,6 +133,12 @@
      @Override
      public void tick(BooleanSupplier haveTime, boolean tickChunks) {
          ProfilerFiller profiler = Profiler.get();
+         profiler.push("purge");
+-        if (this.level.tickRateManager().runsNormally() || !tickChunks) {
++        if (this.level.tickRateManager().runsNormally() || !tickChunks || this.level.spigotConfig.unloadFrozenChunks) { // Spigot
+             this.ticketStorage.purgeStaleTickets(this.chunkMap);
+         }
+ 
 @@ -372,12 +_,14 @@
              chunkCount, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap)
          );

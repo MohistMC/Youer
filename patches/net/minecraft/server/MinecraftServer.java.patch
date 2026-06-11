@@ -194,7 +194,7 @@
          Thread serverThread,
          LevelStorageSource.LevelStorageAccess storageSource,
          PackRepository packRepository,
-@@ -326,10 +_,10 @@
+@@ -326,23 +_,23 @@
          if (!this.registries.compositeAccess().lookupOrThrow(Registries.LEVEL_STEM).containsKey(LevelStem.OVERWORLD)) {
              throw new IllegalStateException("Missing Overworld dimension data");
          } else {
@@ -208,7 +208,10 @@
              this.proxy = proxy;
              this.packRepository = packRepository;
              this.resources = new MinecraftServer.ReloadableResources(worldStem.resourceManager(), worldStem.dataPackResources());
-@@ -339,10 +_,10 @@
+             this.services = services;
+-            this.connection = new ServerConnectionListener(this);
++            // this.connection = new ServerConnection(this); // Spigot
+             this.tickRateManager = new ServerTickRateManager(this);
              this.levelLoadListener = levelLoadListener;
              this.storageSource = storageSource;
              this.playerDataStorage = storageSource.createPlayerStorage();
@@ -737,6 +740,19 @@
          this.resources.close();
  
          try {
+@@ -700,6 +_,12 @@
+         } catch (IOException var4) {
+             LOGGER.error("Failed to unlock level {}", this.storageSource.getLevelId(), var4);
+         }
++        // Spigot start
++        if (org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly) {
++            LOGGER.info("Saving usercache.json");
++            this.services().nameToIdCache().save();
++        }
++        // Spigot end
+     }
+ 
+     public String getLocalIp() {
 @@ -725,16 +_,28 @@
          }
      }
@@ -817,10 +833,11 @@
              this.onServerCrash(report);
          } finally {
              try {
-@@ -806,6 +_,7 @@
+@@ -806,6 +_,8 @@
              } catch (Throwable var64) {
                  LOGGER.error("Exception stopping the server", var64);
              } finally {
++                org.spigotmc.WatchdogThread.doStop(); // Spigot
 +                net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStopped(this);
                  this.onServerExit();
              }
@@ -841,6 +858,14 @@
      }
  
      public NotificationManager notificationManager() {
+@@ -966,6 +_,7 @@
+     }
+ 
+     protected void tickServer(BooleanSupplier haveTime) {
++        org.spigotmc.WatchdogThread.tick(); // Spigot
+         long nano = Util.getNanos();
+         int emptyTickThreshold = this.pauseWhenEmptySeconds() * 20;
+         if (emptyTickThreshold > 0) {
 @@ -987,11 +_,13 @@
          }
  
@@ -994,6 +1019,15 @@
          systemReport.setDetail("Suppressed Exceptions", this.suppressedExceptions::dump);
          if (this.serverId != null) {
              systemReport.setDetail("Server Id", () -> this.serverId);
+@@ -1417,7 +_,7 @@
+     }
+ 
+     public ServerConnectionListener getConnection() {
+-        return this.connection;
++        return this.connection == null ? this.connection = new ServerConnectionListener(this) : this.connection; // Spigot
+     }
+ 
+     public boolean isReady() {
 @@ -1517,9 +_,9 @@
  
      public CompletableFuture<Void> reloadResources(Collection<String> packsToEnable) {

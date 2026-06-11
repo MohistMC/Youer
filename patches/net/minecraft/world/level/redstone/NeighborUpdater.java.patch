@@ -17,7 +17,7 @@
  import org.jspecify.annotations.Nullable;
  
  public interface NeighborUpdater {
-@@ -58,6 +_,22 @@
+@@ -58,7 +_,27 @@
  
      static void executeUpdate(Level level, BlockState state, BlockPos pos, Block changedBlock, @Nullable Orientation orientation, boolean movedByPiston) {
          try {
@@ -38,5 +38,10 @@
 +            }
 +            // CraftBukkit end
              state.handleNeighborChanged(level, pos, changedBlock, orientation, movedByPiston);
++            // Spigot Start
++        } catch (StackOverflowError ex) {
++            level.lastPhysicsProblem = new BlockPos(pos);
++            // Spigot End
          } catch (Throwable var9) {
              CrashReport report = CrashReport.forThrowable(var9, "Exception while updating neighbours");
+             CrashReportCategory category = report.addCategory("Block being updated");

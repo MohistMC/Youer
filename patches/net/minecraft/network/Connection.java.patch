@@ -1,5 +1,17 @@
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
+@@ -68,6 +_,11 @@
+     private final Queue<Consumer<Connection>> pendingActions = Queues.newConcurrentLinkedQueue();
+     public Channel channel;
+     public SocketAddress address;
++    // Spigot Start
++    public java.util.UUID spoofedUUID;
++    public com.mojang.authlib.properties.Property[] spoofedProfile;
++    public boolean preparing = true;
++    // Spigot End
+     private volatile @Nullable PacketListener disconnectListener;
+     private volatile @Nullable PacketListener packetListener;
+     private @Nullable DisconnectionDetails disconnectionDetails;
 @@ -81,6 +_,9 @@
      private boolean handlingFault;
      private volatile @Nullable DisconnectionDetails delayedDisconnect;
@@ -10,7 +22,13 @@
  
      public Connection(PacketFlow receiving) {
          this.receiving = receiving;
-@@ -94,11 +_,13 @@
+@@ -91,14 +_,19 @@
+         super.channelActive(ctx);
+         this.channel = ctx.channel();
+         this.address = this.channel.remoteAddress();
++        // Spigot Start
++        this.preparing = false;
++        // Spigot End
          if (this.delayedDisconnect != null) {
              this.disconnect(this.delayedDisconnect);
          }
@@ -69,7 +87,15 @@
          }
      }
  
-@@ -395,7 +_,7 @@
+@@ -390,12 +_,15 @@
+     }
+ 
+     public void disconnect(DisconnectionDetails details) {
++        // Spigot Start
++        this.preparing = false;
++        // Spigot End
+         if (this.channel == null) {
+             this.delayedDisconnect = details;
          }
  
          if (this.isConnected()) {
@@ -86,6 +112,14 @@
          return new Bootstrap().group(eventLoopGroupHolder.eventLoopGroup()).handler(new ChannelInitializer<Channel>() {
              @Override
              protected void initChannel(Channel channel) {
+@@ -576,6 +_,7 @@
+                     );
+                     disconnectListener.onDisconnect(details);
+                 }
++                this.pendingActions.clear(); // Free up packet queue.
+             }
+         }
+     }
 @@ -590,5 +_,17 @@
  
      public void setBandwidthLogger(LocalSampleLogger bandwidthLogger) {

@@ -1,0 +1,41 @@
+--- a/net/minecraft/server/players/CachedUserNameToIdResolver.java
++++ b/net/minecraft/server/players/CachedUserNameToIdResolver.java
+@@ -90,7 +_,7 @@
+         Date expirationDate = c.getTime();
+         CachedUserNameToIdResolver.GameProfileInfo profileInfo = new CachedUserNameToIdResolver.GameProfileInfo(profile, expirationDate);
+         this.safeAdd(profileInfo);
+-        this.save();
++        if( !org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly ) this.save(); // Spigot - skip saving if disabled
+         return profileInfo;
+     }
+ 
+@@ -124,7 +_,7 @@
+             }
+         }
+ 
+-        if (needsSave) {
++        if (needsSave && !org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly) { // Spigot - skip saving if disabled
+             this.save();
+         }
+ 
+@@ -164,6 +_,11 @@
+ 
+             return (List<CachedUserNameToIdResolver.GameProfileInfo>)var9;
+         } catch (FileNotFoundException var7) {
++            // Spigot Start
++        } catch (com.google.gson.JsonSyntaxException | NullPointerException ex) {
++            CachedUserNameToIdResolver.LOGGER.warn( "Usercache.json is corrupted or has bad formatting. Deleting it to prevent further issues." );
++            this.file.delete();
++            // Spigot End
+         } catch (JsonParseException | IOException var8) {
+             LOGGER.warn("Failed to load profile cache {}", this.file, var8);
+         }
+@@ -175,7 +_,7 @@
+     public void save() {
+         JsonArray entryList = new JsonArray();
+         DateFormat dateFormat = createDateFormat();
+-        this.getTopMRUProfiles(1000).forEach(entry -> entryList.add(writeGameProfile(entry, dateFormat)));
++        this.getTopMRUProfiles(org.spigotmc.SpigotConfig.userCacheCap).forEach(entry -> entryList.add(writeGameProfile(entry, dateFormat)));
+         String toSave = this.gson.toJson((JsonElement)entryList);
+ 
+         try (Writer writer = Files.newWriter(this.file, StandardCharsets.UTF_8)) {

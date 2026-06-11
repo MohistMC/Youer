@@ -8,7 +8,7 @@
      }
  
      public boolean isNearPlayer(Level level, BlockPos pos) {
-@@ -146,20 +_,24 @@
+@@ -146,20 +_,30 @@
  
                              entity.snapTo(entity.getX(), entity.getY(), entity.getZ(), random.nextFloat() * 360.0F, 0.0F);
                              if (entity instanceof Mob mob) {
@@ -28,8 +28,15 @@
 +                                net.neoforged.neoforge.event.EventHooks.finalizeMobSpawnSpawner(mob, level, level.getCurrentDifficultyAt(entity.blockPosition()), EntitySpawnReason.SPAWNER, null, this, hasNoConfiguration);
  
                                  nextSpawnData.getEquipment().ifPresent(mob::equip);
-                             }
+-                            }
 -
++                                // Spigot Start
++                                if ( mob.level().spigotConfig.nerfSpawnerMobs )
++                                {
++                                    mob.aware = false;
++                                }
++                                // Spigot End
++                            }
 +                            // CraftBukkit start
 +                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callSpawnerSpawnEvent(entity, pos).isCancelled()) {
 +                                continue;

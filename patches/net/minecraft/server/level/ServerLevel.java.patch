@@ -239,6 +239,17 @@
          boolean syncWrites = server.forceSynchronousWrites();
          DataFixer fixerUpper = server.getFixerUpper();
          EntityPersistentStorage<Entity> entityStorage = new EntityStorage(
+@@ -260,8 +_,8 @@
+             server.getStructureManager(),
+             executor,
+             generator,
+-            server.getPlayerList().getViewDistance(),
+-            server.getPlayerList().getSimulationDistance(),
++            this.spigotConfig.viewDistance,
++            this.spigotConfig.simulationDistance,
+             syncWrites,
+             this.entityManager::updateChunkStatus,
+             () -> server.overworld().getDataStorage()
 @@ -269,7 +_,7 @@
          this.chunkSource.getGeneratorState().ensureStructuresGenerated();
          this.portalForcer = new PortalForcer(this);
@@ -321,6 +332,15 @@
                                      profiler.pop();
                                  }
                              }
+@@ -535,7 +_,7 @@
+         int minZ = chunkPos.getMinBlockZ();
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("thunder");
+-        if (raining && this.isThundering() && this.random.nextInt(100000) == 0) {
++        if (raining && this.isThundering() && this.spigotConfig.thunderChance > 0 && this.random.nextInt(this.spigotConfig.thunderChance) == 0) { // Spigot
+             BlockPos pos = this.findLightningTargetAround(this.getBlockRandomPos(minX, 0, minZ, 15));
+             if (this.isRainingAt(pos)) {
+                 DifficultyInstance difficulty = this.getCurrentDifficultyAt(pos);
 @@ -548,6 +_,7 @@
                          horse.setTrap(true);
                          horse.setAge(0);
@@ -590,7 +610,7 @@
      }
  
      public boolean tryAddFreshEntityWithPassengers(Entity entity) {
-@@ -997,6 +_,15 @@
+@@ -997,23 +_,70 @@
          }
      }
  
@@ -604,9 +624,18 @@
 +    }
 +
      public void unload(LevelChunk levelChunk) {
++        // Spigot Start
++        for (net.minecraft.world.level.block.entity.BlockEntity blockentity : levelChunk.getBlockEntities().values()) {
++            if (blockentity instanceof net.minecraft.world.Container) {
++                for (org.bukkit.entity.HumanEntity h : Lists.newArrayList(((net.minecraft.world.Container) blockentity).getViewers())) {
++                    h.closeInventory();
++                }
++            }
++        }
++        // Spigot End
          levelChunk.clearAllBlockEntities();
          levelChunk.unregisterTickContainerFromLevel(this);
-@@ -1004,16 +_,45 @@
+         this.debugSynchronizers.dropChunk(levelChunk.getPos());
      }
  
      public void removePlayerImmediately(ServerPlayer player, Entity.RemovalReason reason) {
@@ -912,7 +941,7 @@
      }
  
      public boolean isPvpAllowed() {
-@@ -1906,13 +_,14 @@
+@@ -1906,16 +_,47 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -929,6 +958,39 @@
          }
  
          public void onTrackingEnd(Entity entity) {
++            // Spigot start
++            if ( entity instanceof Player )
++            {
++                com.google.common.collect.Streams.stream( getServer().getAllLevels() ).map( ServerLevel::getDataStorage ).forEach( (worldData) ->
++                {
++                    for (Object o : worldData.cache.values() )
++                    {
++                        if ( o instanceof MapItemSavedData )
++                        {
++                            MapItemSavedData map = (MapItemSavedData) o;
++                            map.carriedByPlayers.remove( (Player) entity );
++                            for ( java.util.Iterator<MapItemSavedData.HoldingPlayer> iter = (java.util.Iterator<MapItemSavedData.HoldingPlayer>) map.carriedBy.iterator(); iter.hasNext(); )
++                            {
++                                if ( iter.next().player == entity )
++                                {
++                                    iter.remove();
++                                }
++                            }
++                        }
++                    }
++                } );
++            }
++            // Spigot end
++            // Spigot Start
++            if (entity.getBukkitEntity() instanceof org.bukkit.inventory.InventoryHolder && (!(entity instanceof ServerPlayer) || entity.getRemovalReason() != Entity.RemovalReason.KILLED)) { // SPIGOT-6876: closeInventory clears death message
++                for (org.bukkit.entity.HumanEntity h : Lists.newArrayList(((org.bukkit.inventory.InventoryHolder) entity.getBukkitEntity()).getInventory().getViewers())) {
++                    h.closeInventory();
++                }
++            }
++            // Spigot End
+             ServerLevel.this.getChunkSource().removeEntity(entity);
+             if (entity instanceof ServerPlayer player) {
+                 ServerLevel.this.players.remove(player);
 @@ -1927,25 +_,69 @@
                  if (ServerLevel.this.isUpdatingNavigations) {
                      String message = "onTrackingStart called during navigation iteration";

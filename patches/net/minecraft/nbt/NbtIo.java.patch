@@ -1,5 +1,18 @@
 --- a/net/minecraft/nbt/NbtIo.java
 +++ b/net/minecraft/nbt/NbtIo.java
+@@ -118,6 +_,12 @@
+     }
+ 
+     public static CompoundTag read(DataInput input, NbtAccounter accounter) throws IOException {
++        // Spigot start
++        if ( input instanceof io.netty.buffer.ByteBufInputStream )
++        {
++            input = new DataInputStream(new org.spigotmc.LimitStream((InputStream) input, accounter));
++        }
++        // Spigot end
+         Tag tag = readUnnamedTag(input, accounter);
+         if (tag instanceof CompoundTag) {
+             return (CompoundTag)tag;
 @@ -179,10 +_,12 @@
      @VisibleForTesting
      public static Tag readUnnamedTag(DataInput input, NbtAccounter accounter) throws IOException {

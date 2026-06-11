@@ -33,7 +33,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -178,12 +_,18 @@
+@@ -178,15 +_,25 @@
                  } else {
                      Holder<Item> item = Item.STREAM_CODEC.decode(input);
                      DataComponentPatch patch = patchCodec.decode(input);
@@ -54,6 +54,13 @@
                      output.writeVarInt(0);
                  } else {
                      output.writeVarInt(itemStack.getCount());
++                    // Spigot start - filter
++                    itemStack = itemStack.copy();
++                    CraftItemStack.setItemMeta(itemStack, CraftItemStack.getItemMeta(itemStack));
++                    // Spigot end
+                     Item.STREAM_CODEC.encode(output, itemStack.typeHolder());
+                     patchCodec.encode(output, itemStack.components.asPatch());
+                 }
 @@ -237,6 +_,10 @@
          return !this.isEmpty() && this.components.hasNonDefault(type);
      }

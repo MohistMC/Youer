@@ -1,0 +1,32 @@
+--- a/net/minecraft/stats/ServerStatsCounter.java
++++ b/net/minecraft/stats/ServerStatsCounter.java
+@@ -65,6 +_,13 @@
+ 
+     public ServerStatsCounter(MinecraftServer server, Path file) {
+         this.file = file;
++        // Spigot start
++        for ( Map.Entry<net.minecraft.resources.Identifier, Integer> entry : org.spigotmc.SpigotConfig.forcedStats.entrySet() )
++        {
++            Stat<net.minecraft.resources.Identifier> wrapper = Stats.CUSTOM.get( entry.getKey() );
++            this.stats.put( wrapper, entry.getValue().intValue() );
++        }
++        // Spigot end
+         if (Files.isRegularFile(file)) {
+             try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+                 JsonElement element = StrictJsonParser.parse(reader);
+@@ -78,6 +_,7 @@
+     }
+ 
+     public void save() {
++        if ( org.spigotmc.SpigotConfig.disableStatSaving ) return; // Spigot
+         try {
+             FileUtil.createDirectoriesSafe(this.file.getParent());
+ 
+@@ -91,6 +_,7 @@
+ 
+     @Override
+     public void setValue(Player player, Stat<?> stat, int count) {
++        if ( org.spigotmc.SpigotConfig.disableStatSaving ) return; // Spigot
+         super.setValue(player, stat, count);
+         this.dirty.add(stat);
+     }

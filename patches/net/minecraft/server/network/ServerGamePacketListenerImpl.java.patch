@@ -260,12 +260,20 @@
 +                }
 +                speed *= 2f; // TODO: Get the speed of the vehicle instead of the player
 +
-+                if (movedDist - expectedDist > Math.max(100.0D, Math.pow((double) (10.0F * (float) i * speed), 2)) && !this.isSingleplayerOwner()) {
++                if (movedDist - expectedDist > Math.max(100.0D, Math.pow((double) (org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) i * speed), 2)) && !this.isSingleplayerOwner()) {
 +                    // CraftBukkit end
                      LOGGER.warn(
                          "{} (vehicle of {}) moved too quickly! {},{},{}", vehicle.getPlainTextName(), this.player.getPlainTextName(), xDist, yDist, zDist
                      );
-@@ -492,18 +_,71 @@
+@@ -485,25 +_,78 @@
+                 zDist = targetZ - vehicle.getZ();
+                 movedDist = xDist * xDist + yDist * yDist + zDist * zDist;
+                 boolean fail = false;
+-                if (movedDist > 0.0625) {
++                if (movedDist > org.spigotmc.SpigotConfig.movedWronglyThreshold) { // Spigot
+                     fail = true;
+                     LOGGER.warn("{} (vehicle of {}) moved wrongly! {}", vehicle.getPlainTextName(), this.player.getPlainTextName(), Math.sqrt(movedDist));
+                 }
  
                  if (fail && level.noCollision(vehicle, oldAABB) || this.isEntityCollidingWithAnythingNew(level, vehicle, oldAABB, targetX, targetY, targetZ)) {
                      vehicle.absSnapTo(oldX, oldY, oldZ, targetYRot, targetXRot);
@@ -398,15 +406,18 @@
              Suggestions suggestions = results.getList().size() <= 1000 ? results : new Suggestions(results.getRange(), results.getList().subList(0, 1000));
              this.send(new ClientboundCommandSuggestionsPacket(packet.getId(), suggestions));
          });
-@@ -700,7 +_,7 @@
+@@ -700,9 +_,9 @@
              if (level.isLoaded(pos)) {
                  BlockState blockState = level.getBlockState(pos);
                  boolean includeData = this.player.hasInfiniteMaterials() && packet.includeData();
 -                ItemStack itemStack = blockState.getCloneItemStack(level, pos, includeData);
 +                ItemStack itemStack = blockState.getCloneItemStack(pos, level, includeData, player);
                  if (!itemStack.isEmpty()) {
-                     if (includeData) {
+-                    if (includeData) {
++                    if (includeData && this.player.getBukkitEntity().hasPermission("minecraft.nbt.copy")) { // Spigot
                          addBlockDataToItem(blockState, level, pos, itemStack);
+                     }
+ 
 @@ -808,7 +_,7 @@
  
      private <T> void setGameRuleValue(GameRules gameRules, GameRule<T> rule, String value) {
@@ -528,7 +539,7 @@
                                      if (this.shouldCheckPlayerMovement(isFallFlying)) {
                                          float metersPerTick = isFallFlying ? 300.0F : 100.0F;
 -                                        if (movedDist - expectedDist > metersPerTick * deltaPackets) {
-+                                        if (movedDist - expectedDist > Math.max(metersPerTick, Math.pow((double) (10.0F * (float) deltaPackets * speed), 2))) {
++                                        if (movedDist - expectedDist > Math.max(metersPerTick, Math.pow((double) (org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) deltaPackets * speed), 2))) {
                                              LOGGER.warn("{} moved too quickly! {},{},{}", this.player.getPlainTextName(), xDist, yDist, zDist);
                                              this.teleport(
                                                  this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot()
@@ -540,6 +551,15 @@
                                  double oyDist = yDist;
                                  xDist = targetX - this.player.getX();
                                  yDist = targetY - this.player.getY();
+@@ -1138,7 +_,7 @@
+                                 movedDist = xDist * xDist + yDist * yDist + zDist * zDist;
+                                 boolean fail = false;
+                                 if (!this.player.isChangingDimension()
+-                                    && movedDist > 0.0625
++                                    && movedDist > org.spigotmc.SpigotConfig.movedWronglyThreshold
+                                     && !this.player.isSleeping()
+                                     && !this.player.isCreative()
+                                     && !this.player.isSpectator()
 @@ -1151,13 +_,79 @@
                                      || this.player.isSleeping()
                                      || (!fail || !level.noCollision(this.player, oldAABB))
@@ -784,11 +804,34 @@
                      return;
                  default:
                      throw new IllegalArgumentException("Invalid player action");
-@@ -1333,8 +_,9 @@
+@@ -1330,11 +_,32 @@
+         }
+     }
+ 
++    // Spigot start - limit place/interactions
++    private int limitedPackets;
++    private long lastLimitedPacket = -1;
++
++    private boolean checkLimit(long timestamp) {
++        if (lastLimitedPacket != -1 && timestamp - lastLimitedPacket < 30 && limitedPackets++ >= 4) {
++            return false;
++        }
++
++        if (lastLimitedPacket == -1 || timestamp - lastLimitedPacket >= 30) {
++            lastLimitedPacket = timestamp;
++            limitedPackets = 0;
++            return true;
++        }
++
++        return true;
++    }
++    // Spigot end
++
      @Override
      public void handleUseItemOn(ServerboundUseItemOnPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
 +        if (this.player.isImmobile()) return; // CraftBukkit
++        if (!checkLimit(packet.timestamp)) return; // Spigot - check limit
          if (this.hasClientLoaded()) {
 -            this.ackBlockChangesUpTo(packet.getSequence());
 +            this.player.connection.ackBlockChangesUpTo = packet.getSequence();
@@ -803,11 +846,12 @@
                                  InteractionResult interactionResult = this.player.gameMode.useItemOn(this.player, level, itemStack, hand, blockHit);
                                  if (interactionResult.consumesAction()) {
                                      CriteriaTriggers.ANY_BLOCK_USE.trigger(this.player, blockHit.getBlockPos(), itemStack);
-@@ -1406,6 +_,7 @@
+@@ -1406,6 +_,8 @@
      @Override
      public void handleUseItem(ServerboundUseItemPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
 +        if (this.player.isImmobile()) return; // CraftBukkit
++        if (!checkLimit(packet.timestamp)) return; // Spigot - check limit
          if (this.hasClientLoaded()) {
              this.ackBlockChangesUpTo(packet.getSequence());
              ServerLevel level = this.player.level();
@@ -1061,7 +1105,7 @@
          }
      }
  
-@@ -1658,21 +_,149 @@
+@@ -1658,21 +_,150 @@
          return false;
      }
  
@@ -1097,7 +1141,7 @@
 +
 +                        String message = String.format(queueEvent.getFormat(), queueEvent.getPlayer().getDisplayName(), queueEvent.getMessage());
 +                        if (((LazyPlayerSet) queueEvent.getRecipients()).isLazy()) {
-+                            if (originalFormat.equals(queueEvent.getFormat()) && originalMessage.equals(queueEvent.getMessage()) && queueEvent.getPlayer().getName().equalsIgnoreCase(queueEvent.getPlayer().getDisplayName())) {
++                            if (!org.spigotmc.SpigotConfig.bungee && originalFormat.equals(queueEvent.getFormat()) && originalMessage.equals(queueEvent.getMessage()) && queueEvent.getPlayer().getName().equalsIgnoreCase(queueEvent.getPlayer().getDisplayName())) {
 +                                ServerGamePacketListenerImpl.this.server.getPlayerList().broadcastChatMessage(original, ServerGamePacketListenerImpl.this.player, ChatType.bind(ChatType.CHAT, (Entity) ServerGamePacketListenerImpl.this.player));
 +                                return null;
 +                            }
@@ -1133,7 +1177,7 @@
 +
 +                s = String.format(event.getFormat(), event.getPlayer().getDisplayName(), event.getMessage());
 +                if (((LazyPlayerSet) event.getRecipients()).isLazy()) {
-+                    if (originalFormat.equals(event.getFormat()) && originalMessage.equals(event.getMessage()) && event.getPlayer().getName().equalsIgnoreCase(event.getPlayer().getDisplayName())) {
++                    if (!org.spigotmc.SpigotConfig.bungee && originalFormat.equals(event.getFormat()) && originalMessage.equals(event.getMessage()) && event.getPlayer().getName().equalsIgnoreCase(event.getPlayer().getDisplayName())) {
 +                        ServerGamePacketListenerImpl.this.server.getPlayerList().broadcastChatMessage(original, ServerGamePacketListenerImpl.this.player, ChatType.bind(ChatType.CHAT, (Entity) ServerGamePacketListenerImpl.this.player));
 +                        return;
 +                    }
@@ -1152,6 +1196,7 @@
 +    }
 +
 +    private void handleCommand(String s) {
++        if ( org.spigotmc.SpigotConfig.logCommands ) // Spigot
 +        this.LOGGER.info(this.player.getScoreboardName() + " issued server command: " + s);
 +
 +        CraftPlayer player = this.getCraftPlayer();
@@ -1330,7 +1375,7 @@
                              }
                          }
                      }
-@@ -1823,6 +_,7 @@
+@@ -1823,9 +_,17 @@
      @Override
      public void handleInteract(ServerboundInteractPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
@@ -1338,6 +1383,16 @@
          if (this.hasClientLoaded()) {
              ServerLevel level = this.player.level();
              Entity target = level.getEntityOrPart(packet.entityId());
++            // Spigot Start
++            if ( target == player && !player.isSpectator() ) {
++                disconnect(Component.literal("Cannot interact with self!"));
++                return;
++            }
++            // Spigot End
++
+             this.player.resetLastActionTime();
+             this.player.setShiftKeyDown(packet.usingSecondaryAction());
+             if (target != null && level.getWorldBorder().isWithinBounds(target.blockPosition())) {
 @@ -1836,7 +_,43 @@
                      ItemStack tool = this.player.getItemInHand(hand);
                      if (tool.isItemEnabled(level.enabledFeatures())) {

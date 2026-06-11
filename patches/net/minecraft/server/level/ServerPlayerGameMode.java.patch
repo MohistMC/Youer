@@ -53,6 +53,21 @@
          if (!this.player.isWithinBlockInteractionRange(pos, 1.0)) {
              this.debugLogging(pos, false, sequence, "too far");
          } else if (pos.getY() > maxY) {
+@@ -172,6 +_,14 @@
+                     return;
+                 }
+ 
++                // Spigot start - handle debug stick left click for non-creative
++                if (this.player.getMainHandItem().is(net.minecraft.world.item.Items.DEBUG_STICK)
++                        && ((net.minecraft.world.item.DebugStickItem) net.minecraft.world.item.Items.DEBUG_STICK).handleInteraction(this.player, this.level.getBlockState(pos), this.level, pos, false, this.player.getMainHandItem())) {
++                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
++                    return;
++                }
++                // Spigot end
++
+                 if (this.player.blockActionRestricted(this.level, pos, this.gameModeForPlayer)) {
+                     this.player.connection.send(new ClientboundBlockUpdatePacket(pos, this.level.getBlockState(pos)));
+                     this.debugLogging(pos, false, sequence, "block action restricted");
 @@ -192,6 +_,7 @@
                          blockState,
                          item -> this.player.onEquippedItemBroken(item, EquipmentSlot.MAINHAND)

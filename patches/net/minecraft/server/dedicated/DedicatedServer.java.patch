@@ -193,7 +193,7 @@
          LOGGER.info("Default game type: {}", properties.gameMode.get());
          InetAddress localAddress = null;
          if (!this.getLocalIp().isEmpty()) {
-@@ -264,6 +_,13 @@
+@@ -264,12 +_,24 @@
              return false;
          }
  
@@ -207,6 +207,20 @@
          if (!this.usesAuthentication()) {
              LOGGER.warn("**** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!");
              LOGGER.warn("The server will make no attempt to authenticate usernames. Beware.");
+-            LOGGER.warn(
+-                "While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose."
+-            );
++            // Spigot start
++            if (org.spigotmc.SpigotConfig.bungee) {
++                DedicatedServer.LOGGER.warn("Whilst this makes it possible to use BungeeCord, unless access to your server is properly restricted, it also opens up the ability for hackers to connect with any username they choose.");
++                DedicatedServer.LOGGER.warn("Please see http://www.spigotmc.org/wiki/firewall-guide/ for further information.");
++            } else {
++                DedicatedServer.LOGGER.warn("While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.");
++            }
++            // Spigot end
+             LOGGER.warn("To change this, set \"online-mode\" to \"true\" in the server.properties file.");
+         }
+ 
 @@ -280,17 +_,20 @@
          if (!OldUsersConverter.areOldUserlistsRemoved()) {
              return false;
@@ -230,6 +244,15 @@
              }
  
              if (properties.enableQuery) {
+@@ -303,7 +_,7 @@
+                 this.rconThread = RconThread.create(this);
+             }
+ 
+-            if (this.getMaxTickLength() > 0L) {
++            if (false && this.getMaxTickLength() > 0L) {  // Spigot - disable
+                 Thread watchdog = new Thread(new ServerWatchdog(this));
+                 watchdog.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(LOGGER));
+                 watchdog.setName("Server Watchdog");
 @@ -318,6 +_,12 @@
  
              this.saveEverything(false, true, true);

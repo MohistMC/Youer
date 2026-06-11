@@ -585,7 +585,7 @@
              output.store("Rotation", Vec2.CODEC, new Vec2(this.getYRot(), this.getXRot()));
              output.putDouble("fall_distance", this.fallDistance);
              output.putShort("Fire", (short)this.remainingFireTicks);
-@@ -1980,7 +_,28 @@
+@@ -1980,7 +_,29 @@
              output.putBoolean("OnGround", this.onGround());
              output.putBoolean("Invulnerable", this.invulnerable);
              output.putInt("PortalCooldown", this.portalCooldown);
@@ -611,6 +611,7 @@
 +            if (maxAirTicks != getDefaultMaxAirSupply()) {
 +                output.putInt("Bukkit.MaxAirSupply", getMaxAirSupply());
 +            }
++            output.putInt("Spigot.ticksLived", this.tickCount);
 +            // CraftBukkit end
              output.storeNullable("CustomName", ComponentSerialization.CODEC, this.getCustomName());
              if (this.isCustomNameVisible()) {
@@ -659,12 +660,17 @@
                  this.tags.clear();
                  input.read("Tags", TAG_LIST_CODEC).ifPresent(this.tags::addAll);
                  this.readAdditionalSaveData(input);
-@@ -2086,6 +_,45 @@
+@@ -2086,6 +_,50 @@
              } else {
                  throw new IllegalStateException("Entity has invalid rotation");
              }
 +
 +            // CraftBukkit start
++            // Spigot start
++            if (this instanceof LivingEntity) {
++                this.tickCount = input.getIntOr("Spigot.ticksLived", this.tickCount);
++            }
++            // Spigot end
 +            this.persist = input.getBooleanOr("Bukkit.persist", this.persist);
 +            this.visibleByDefault = input.getBooleanOr("Bukkit.visibleByDefault", this.visibleByDefault);
 +            // SPIGOT-6907: re-implement LivingEntity#setMaximumAir()

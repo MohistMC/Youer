@@ -14,6 +14,14 @@
  import org.slf4j.Logger;
  
  public class PlayerDataStorage {
+@@ -31,6 +_,7 @@
+     }
+ 
+     public void save(Player player) {
++        if (org.spigotmc.SpigotConfig.disablePlayerDataSaving) return; // Spigot
+         try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(player.problemPath(), LOGGER)) {
+             TagValueOutput output = TagValueOutput.createWithContext(reporter, player.registryAccess());
+             player.saveWithoutId(output);
 @@ -41,6 +_,7 @@
              Path realFile = playerDirPath.resolve(player.getStringUUID() + ".dat");
              Path oldFile = playerDirPath.resolve(player.getStringUUID() + ".dat_old");
@@ -22,6 +30,39 @@
          } catch (Exception var11) {
              LOGGER.warn("Failed to save player data for {}", player.getPlainTextName());
          }
+@@ -61,10 +_,30 @@
+     }
+ 
+     private Optional<CompoundTag> load(NameAndId nameAndId, String suffix) {
+-        File realFile = new File(this.playerDir, nameAndId.id() + suffix);
++        File file = this.playerDir;
++        File realFile = new File(file, nameAndId.id() + suffix);
++        // Spigot Start
++        boolean usingWrongFile = false;
++        if ( !realFile.exists() )
++        {
++            realFile = new File( file, NameAndId.createOffline( nameAndId.name() ).id().toString() + suffix );
++            if ( realFile.exists() )
++            {
++                usingWrongFile = true;
++                org.bukkit.Bukkit.getServer().getLogger().warning( "Using offline mode UUID file for player " + nameAndId.name() + " as it is the only copy we can find." );
++            }
++        }
++        // Spigot End
+         if (realFile.exists() && realFile.isFile()) {
+             try {
+-                return Optional.of(NbtIo.readCompressed(realFile.toPath(), NbtAccounter.unlimitedHeap()));
++                // Spigot Start
++                Optional<CompoundTag> optional = Optional.of(NbtIo.readCompressed(realFile.toPath(), NbtAccounter.unlimitedHeap()));
++                if ( usingWrongFile )
++                {
++                    realFile.renameTo( new File( realFile.getPath() + ".offline-read" ) );
++                }
++                return optional;
++                // Spigot End
+             } catch (Exception var5) {
+                 LOGGER.warn("Failed to load player data for {}", nameAndId.name());
+             }
 @@ -73,6 +_,23 @@
          return Optional.empty();
      }

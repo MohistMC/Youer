@@ -15,7 +15,15 @@
      private AdvancementTree tree = new AdvancementTree();
      private final HolderLookup.Provider registries;
  
-@@ -37,7 +_,7 @@
+@@ -34,10 +_,15 @@
+     protected void apply(Map<Identifier, Advancement> preparations, ResourceManager manager, ProfilerFiller profiler) {
+         Builder<Identifier, AdvancementHolder> builder = ImmutableMap.builder();
+         preparations.forEach((id, advancement) -> {
++            // Spigot start
++            if (org.spigotmc.SpigotConfig.disabledAdvancements != null && (org.spigotmc.SpigotConfig.disabledAdvancements.contains("*") || org.spigotmc.SpigotConfig.disabledAdvancements.contains(id.toString()) || org.spigotmc.SpigotConfig.disabledAdvancements.contains(id.getNamespace()))) {
++                return;
++            }
++            // Spigot end
              this.validate(id, advancement);
              builder.put(id, new AdvancementHolder(id, advancement));
          });

@@ -158,11 +158,12 @@
                  if (cursor > 10) {
                      context.append(CommonComponents.ELLIPSIS);
                  }
-@@ -410,13 +_,39 @@
+@@ -410,15 +_,43 @@
      }
  
      public void sendCommands(ServerPlayer player) {
 -        Map<CommandNode<CommandSourceStack>, CommandNode<CommandSourceStack>> playerCommands = new HashMap<>();
++        if ( org.spigotmc.SpigotConfig.tabComplete < 0 ) return; // Spigot
 +        // CraftBukkit start
 +        // Register Vanilla commands into builtRoot as before
 +        Map<CommandNode<CommandSourceStack>, CommandNode<CommandSourceStack>> playerCommands = new IdentityHashMap<>(); // Use identity to prevent aliasing issues
@@ -199,4 +200,7 @@
 +    // Neo: Replaced by our own command merging logic
      private static <S> void fillUsableCommands(CommandNode<S> source, CommandNode<S> target, S commandFilter, Map<CommandNode<S>, CommandNode<S>> converted) {
          for (CommandNode<S> child : source.getChildren()) {
++            if ( !org.spigotmc.SpigotConfig.sendNamespaced && child.getName().contains( ":" ) ) continue; // Spigot
              if (child.canUse(commandFilter)) {
+                 ArgumentBuilder<S, ?> builder = child.createBuilder();
+                 if (builder.getRedirect() != null) {
