@@ -67,6 +67,7 @@ public class AutoDeleteMods {
     private static final Map<String, String> LIB_BLACKLIST = new HashMap<>() {{
         put("cn.tohsaka.factory.zstdmc.Zstdmc", "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar;");
         put("cn.tohsaka.factory.zstdnet.Zstdnet", "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar;");
+        put("cn.ussshenzhou.notenoughbandwidth.NotEnoughBandwidthLegacy", "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar;");
     }};
 
     /**
