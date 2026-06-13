@@ -18,6 +18,7 @@ import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
+import com.mohistmc.youer.neoforge.compat.LithostitchedCompat;
 import com.mohistmc.youer.neoforge.compat.TerraBlenderCompat;
 import com.mohistmc.youer.util.Level2LevelStem;
 import com.mohistmc.youer.util.ProxyUtils;
@@ -1515,6 +1516,9 @@ public final class CraftServer implements Server {
         }
         if (ServerAPI.hasMod("terrablender")) {
             TerraBlenderCompat.initializeBiomes(this.console.registryAccess(), worlddimension.type(), actualDimension, worlddimension.generator(), seed);
+        }
+        if (ServerAPI.hasMod("lithostitched")) {
+            LithostitchedCompat.applyBiomeInjectors(this.console, actualDimension, worlddimension);
         }
         net.minecraft.world.level.Level.craftWorldData(creator.environment(), generator, biomeProvider);
         ServerLevel internal = new ServerLevel(this.console, this.console.executor, worldSession, worlddata, worldKey, worlddimension, this.getServer().progressListenerFactory.create(worlddata.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS)),
