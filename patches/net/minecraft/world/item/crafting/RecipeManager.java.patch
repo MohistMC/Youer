@@ -59,6 +59,33 @@
      }
  
      public boolean hadErrorsLoading() {
+@@ -91,9 +_,9 @@
+         if (p_345826_.isEmpty()) {
+             return Optional.empty();
+         } else {
+-            return p_346407_ != null && p_346407_.value().matches(p_345826_, p_220251_)
+-                ? Optional.of(p_346407_)
+-                : this.byType(p_220249_).stream().filter(p_344413_ -> p_344413_.value().matches(p_345826_, p_220251_)).findFirst();
++            if (p_346407_ != null && p_346407_.value().matches(p_345826_, p_220251_)) return Optional.of(p_346407_);
++            List<RecipeHolder<T>> list = this.byType(p_220249_).stream().filter(p_344413_ -> p_344413_.value().matches(p_345826_, p_220251_)).toList();
++            return list.isEmpty() ? Optional.empty() : Optional.of(list.getLast()); // CraftBukkit - SPIGOT-4638: last recipe gets priority
+         }
+     }
+ 
+@@ -114,7 +_,12 @@
+     }
+ 
+     public <I extends RecipeInput, T extends Recipe<I>> NonNullList<ItemStack> getRemainingItemsFor(RecipeType<T> p_44070_, I p_345118_, Level p_44072_) {
+-        Optional<RecipeHolder<T>> optional = this.getRecipeFor(p_44070_, p_345118_, p_44072_);
++        // Paper start - Perf: improve performance of mass crafts
++        return this.getRemainingItemsFor(p_44070_, p_345118_, p_44072_, null);
++    }
++    public <I extends RecipeInput, T extends Recipe<I>> NonNullList<ItemStack> getRemainingItemsFor(RecipeType<T> p_44070_, I p_345118_, Level p_44072_, @Nullable RecipeHolder<T> previousRecipe) {
++        Optional<RecipeHolder<T>> optional = this.getRecipeFor(p_44070_, p_345118_, p_44072_, previousRecipe);
++        // Paper end - Perf: improve performance of mass crafts
+         if (optional.isPresent()) {
+             return optional.get().value().getRemainingItems(p_345118_);
+         } else {
 @@ -193,5 +_,47 @@
  
      public interface CachedCheck<I extends RecipeInput, T extends Recipe<I>> {

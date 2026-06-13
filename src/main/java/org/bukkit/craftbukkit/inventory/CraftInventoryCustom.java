@@ -187,7 +187,7 @@ public class CraftInventoryCustom extends CraftInventory {
 
         @Override
         public int getMaxStackSize() {
-            return this.maxStack;
+            return Math.max(Container.super.getMaxStackSize(), maxStack);
         }
 
         @Override
