@@ -79,7 +79,7 @@ public class DeepSeek {
      * <a href="https://api-docs.deepseek.com/zh-cn/api/list-models">...</a>
      */
     private static boolean isValidModel(String model) {
-        return "deepseek-chat".equals(model) || "deepseek-reasoner".equals(model);
+        return "deepseek-v4-flash".equals(model) || "deepseek-v4-pro".equals(model);
     }
 
     /**
