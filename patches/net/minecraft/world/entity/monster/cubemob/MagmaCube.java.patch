@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/cubemob/MagmaCube.java
 +++ b/net/minecraft/world/entity/monster/cubemob/MagmaCube.java
-@@ -96,20 +_,31 @@
+@@ -96,17 +_,28 @@
          float sizeJumpBoostPower = this.getSize() * 0.1F;
          this.setDeltaMovement(movement.x, this.getJumpPower() + sizeJumpBoostPower, movement.z);
          this.needsSync = true;
@@ -23,29 +23,11 @@
 -            super.jumpInLiquid(type);
 +            onSuper.run();
          }
-     }
- 
-     @Override
-+    public void jumpInFluid(net.neoforged.neoforge.fluids.FluidType type) {
-+        this.jumpInLiquidInternal(() -> type == net.neoforged.neoforge.common.NeoForgeMod.LAVA_TYPE.value(), () -> super.jumpInFluid(type));
 +    }
 +
 +    @Override
-     protected boolean isDealsDamage() {
-         return this.isEffectiveAi();
-     }
-@@ -120,12 +_,12 @@
++    public void jumpInFluid(net.neoforged.neoforge.fluids.FluidType type) {
++        this.jumpInLiquidInternal(() -> type == net.neoforged.neoforge.common.NeoForgeMod.LAVA_TYPE.value(), () -> super.jumpInFluid(type));
      }
  
      @Override
--    protected SoundEvent getHurtSound(DamageSource source) {
-+    public SoundEvent getHurtSound(DamageSource source) {
-         return this.isTiny() ? SoundEvents.MAGMA_CUBE_HURT_SMALL : SoundEvents.MAGMA_CUBE_HURT;
-     }
- 
-     @Override
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return this.isTiny() ? SoundEvents.MAGMA_CUBE_DEATH_SMALL : SoundEvents.MAGMA_CUBE_DEATH;
-     }
- 
