@@ -298,7 +298,7 @@ public class YouerConfig {
         deepseek_enable = getBoolean("deepseek.enable", false);
         deepseek_baseUrl = getString("deepseek.baseUrl", "https://api.deepseek.com/chat/completions");
         deepseek_apikey = getString("deepseek.apikey", "youer");
-        deepseek_model = getString("deepseek.model", "deepseek-chat");
+        deepseek_model = getString("deepseek.model", "deepseek-v4-pro");
         deepseek_max_tokens = getInt("deepseek.max_tokens", 2048);
         deepseek_system = getString("deepseek.system", "你的名字叫小小墨，年龄18岁，是个可爱的女孩子!");
         deepseek_command = getString("deepseek.command", "ai");

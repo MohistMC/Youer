@@ -8,6 +8,9 @@ import com.mohistmc.youer.bukkit.entity.YouerModsProjectileEntity;
 import com.mohistmc.youer.bukkit.entity.YouerModsThrowableProjectile;
 import com.mohistmc.youer.bukkit.entity.YouerModsVehicle;
 import com.mohistmc.youer.bukkit.entity.YouerModsWindCharge;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiFunction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.AreaEffectCloud;
@@ -211,8 +214,8 @@ import org.bukkit.craftbukkit.entity.CraftGlowItemFrame;
 import org.bukkit.craftbukkit.entity.CraftGlowSquid;
 import org.bukkit.craftbukkit.entity.CraftGoat;
 import org.bukkit.craftbukkit.entity.CraftGuardian;
-import org.bukkit.craftbukkit.entity.CraftHappyGhast;
 import org.bukkit.craftbukkit.entity.CraftHanging;
+import org.bukkit.craftbukkit.entity.CraftHappyGhast;
 import org.bukkit.craftbukkit.entity.CraftHoglin;
 import org.bukkit.craftbukkit.entity.CraftHorse;
 import org.bukkit.craftbukkit.entity.CraftHumanEntity;
@@ -300,10 +303,6 @@ import org.bukkit.craftbukkit.entity.CraftZoglin;
 import org.bukkit.craftbukkit.entity.CraftZombie;
 import org.bukkit.craftbukkit.entity.CraftZombieHorse;
 import org.bukkit.craftbukkit.entity.CraftZombieNautilus;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.BiFunction;
 
 /**
  * @author Mgazul
