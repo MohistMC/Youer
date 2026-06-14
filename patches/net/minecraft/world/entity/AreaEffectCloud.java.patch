@@ -35,23 +35,24 @@
                          return;
                      }
  
-@@ -218,39 +_,52 @@
+@@ -218,39 +_,53 @@
                          this.potionContents.forEachEffect(allEffects::add, this.potionDurationScale);
                          List<LivingEntity> entities = this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox());
                          if (!entities.isEmpty()) {
--                            for (LivingEntity entity : entities) {
--                                if (!this.victims.containsKey(entity) && entity.isAffectedByPotions() && !allEffects.stream().noneMatch(entity::canBeAffected)) {
--                                    double xd = entity.getX() - this.getX();
--                                    double zd = entity.getZ() - this.getZ();
--                                    double dist = xd * xd + zd * zd;
--                                    if (dist <= radius * radius) {
++                            List<org.bukkit.entity.LivingEntity> bukkitEntities = new java.util.ArrayList<>(); // CraftBukkit
+                             for (LivingEntity entity : entities) {
+                                 if (!this.victims.containsKey(entity) && entity.isAffectedByPotions() && !allEffects.stream().noneMatch(entity::canBeAffected)) {
+                                     double xd = entity.getX() - this.getX();
+                                     double zd = entity.getZ() - this.getZ();
+                                     double dist = xd * xd + zd * zd;
+                                     if (dist <= radius * radius) {
 -                                        this.victims.put(entity, this.tickCount + this.reapplicationDelay);
 -
 -                                        for (MobEffectInstance effect : allEffects) {
--                                            if (effect.getEffect().value().isInstantenous()) {
+-                                            if (effect.getEffect().value().isInstantaneous()) {
 -                                                effect.getEffect()
 -                                                    .value()
--                                                    .applyInstantenousEffect(serverLevel, this, this.getOwner(), entity, effect.getAmplifier(), 0.5);
+-                                                    .applyInstantaneousEffect(serverLevel, this, this.getOwner(), entity, effect.getAmplifier(), 0.5);
 -                                            } else {
 -                                                entity.addEffect(new MobEffectInstance(effect), this);
 -                                            }
@@ -72,16 +73,8 @@
 -                                            if (this.duration <= 0) {
 -                                                this.discard();
 -                                                return;
-+                            List<org.bukkit.entity.LivingEntity> bukkitEntities = new java.util.ArrayList<>(); // CraftBukkit
-+                            for (LivingEntity livingentity : entities) {
-+                                if (!this.victims.containsKey(livingentity) && livingentity.isAffectedByPotions() && !allEffects.stream().noneMatch(livingentity::canBeAffected)) {
-+                                    double d0 = livingentity.getX() - this.getX();
-+                                    double d1 = livingentity.getZ() - this.getZ();
-+                                    double d2 = d0 * d0 + d1 * d1;
-+
-+                                    if (d2 <= (double) (radius * radius)) {
 +                                        // CraftBukkit start
-+                                        bukkitEntities.add((org.bukkit.entity.LivingEntity) livingentity.getBukkitEntity());
++                                        bukkitEntities.add((org.bukkit.entity.LivingEntity) entity.getBukkitEntity());
 +                                    }
 +                                }
 +                            }
@@ -94,11 +87,13 @@
 +                                            // CraftBukkit end
 +                                            this.victims.put(livingentity, this.tickCount + this.reapplicationDelay);
 +
-+                                            for (MobEffectInstance mobeffectinstance : allEffects) {
-+                                                if (mobeffectinstance.getEffect().value().isInstantenous()) {
-+                                                    mobeffectinstance.getEffect().value().applyInstantenousEffect(serverLevel, this, this.getOwner(), livingentity, mobeffectinstance.getAmplifier(), 0.5);
++                                            for (MobEffectInstance effect : allEffects) {
++                                                if (effect.getEffect().value().isInstantaneous()) {
++                                                    effect.getEffect()
++                                                            .value()
++                                                            .applyInstantaneousEffect(serverLevel, this, this.getOwner(), livingentity, effect.getAmplifier(), 0.5);
 +                                                } else {
-+                                                    livingentity.addEffect(new MobEffectInstance(mobeffectinstance), this, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.AREA_EFFECT_CLOUD); // CraftBukkit
++                                                    livingentity.addEffect(new MobEffectInstance(effect), this);
 +                                                }
 +                                            }
 +

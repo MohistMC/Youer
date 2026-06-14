@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/vehicle/boat/AbstractBoat.java
 +++ b/net/minecraft/world/entity/vehicle/boat/AbstractBoat.java
-@@ -79,6 +_,14 @@
+@@ -81,6 +_,14 @@
      private Leashable.@Nullable LeashData leashData;
      private final Supplier<Item> dropItem;
  
@@ -15,7 +15,7 @@
      public AbstractBoat(EntityType<? extends AbstractBoat> type, Level level, Supplier<Item> dropItem) {
          super(type, level);
          this.dropItem = dropItem;
-@@ -416,7 +_,7 @@
+@@ -418,7 +_,7 @@
                  for (int z = minZ; z < maxZ; z++) {
                      pos.set(x, y, z);
                      FluidState fluidState = this.level().getFluidState(pos);
@@ -24,7 +24,7 @@
                          blockHeight = Math.max(blockHeight, fluidState.getHeight(this.level(), pos));
                      }
  
-@@ -458,7 +_,7 @@
+@@ -460,7 +_,7 @@
                              BlockState blockState = this.level().getBlockState(blockPos);
                              if (!(blockState.getBlock() instanceof LilyPadBlock)
                                  && Shapes.joinIsNotEmpty(blockState.getCollisionShape(this.level(), blockPos).move(blockPos), boatShape, BooleanOp.AND)) {
@@ -33,16 +33,16 @@
                                  count++;
                              }
                          }
-@@ -487,7 +_,7 @@
+@@ -489,7 +_,7 @@
                  for (int z = minZ; z < maxZ; z++) {
                      pos.set(x, y, z);
                      FluidState fluidState = this.level().getFluidState(pos);
 -                    if (fluidState.is(FluidTags.WATER)) {
 +                    if (this.canBoatInFluid(fluidState)) {
                          float height = y + fluidState.getHeight(this.level(), pos);
-                         this.waterLevel = Math.max((double)height, this.waterLevel);
+                         this.waterLevel = Math.max(height, this.waterLevel);
                          inWater |= bb.minY < height;
-@@ -516,7 +_,7 @@
+@@ -518,7 +_,7 @@
                  for (int z = z0; z < z1; z++) {
                      pos.set(x, y, z);
                      FluidState fluidState = this.level().getFluidState(pos);
@@ -51,7 +51,7 @@
                          if (!fluidState.isSource()) {
                              return AbstractBoat.Status.UNDER_FLOWING_WATER;
                          }
-@@ -722,7 +_,7 @@
+@@ -727,7 +_,7 @@
          if (!this.isPassenger()) {
              if (onGround) {
                  this.resetFallDistance();

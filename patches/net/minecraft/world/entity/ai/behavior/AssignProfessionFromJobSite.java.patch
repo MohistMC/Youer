@@ -10,11 +10,11 @@
  
  public class AssignProfessionFromJobSite {
      public static BehaviorControl<Villager> create() {
-@@ -38,7 +_,14 @@
-                                             .findFirst()
-                                     )
-                                     .ifPresent(profession -> {
--                                        body.setVillagerData(body.getVillagerData().withProfession(profession));
+@@ -40,7 +_,14 @@
+                                     .findFirst()
+                             )
+                             .ifPresent(profession -> {
+-                                body.setVillagerData(body.getVillagerData().withProfession(profession));
 +                                        // CraftBukkit start - Fire VillagerCareerChangeEvent where Villager gets employed
 +                                        VillagerCareerChangeEvent event = CraftEventFactory.callVillagerCareerChangeEvent(body, CraftVillager.CraftProfession.minecraftHolderToBukkit(profession), VillagerCareerChangeEvent.ChangeReason.EMPLOYED);
 +                                        if (event.isCancelled()) {
@@ -23,6 +23,6 @@
 +
 +                                        body.setVillagerData(body.getVillagerData().withProfession(CraftVillager.CraftProfession.bukkitToMinecraftHolder(event.getProfession())));
 +                                        // CraftBukkit end
-                                         body.refreshBrain(level);
-                                     });
-                                 return true;
+                                 body.refreshBrain(level);
+                             });
+                         return true;

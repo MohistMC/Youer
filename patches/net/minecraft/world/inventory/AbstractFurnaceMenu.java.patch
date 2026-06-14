@@ -1,7 +1,10 @@
 --- a/net/minecraft/world/inventory/AbstractFurnaceMenu.java
 +++ b/net/minecraft/world/inventory/AbstractFurnaceMenu.java
-@@ -18,6 +_,9 @@
- import net.minecraft.world.item.crafting.RecipeType;
+@@ -14,8 +_,12 @@
+ import net.minecraft.world.item.crafting.AbstractCookingRecipe;
+ import net.minecraft.world.item.crafting.RecipeHolder;
+ import net.minecraft.world.item.crafting.RecipePropertySet;
++import net.minecraft.world.item.crafting.RecipeType;
  import net.minecraft.world.item.crafting.SingleRecipeInput;
  import net.minecraft.world.level.Level;
 +import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
@@ -10,7 +13,7 @@
  
  public abstract class AbstractFurnaceMenu extends RecipeBookMenu {
      public static final int INGREDIENT_SLOT = 0;
-@@ -36,6 +_,22 @@
+@@ -33,6 +_,22 @@
      private final RecipePropertySet acceptedInputs;
      private final RecipeBookType recipeBookType;
  
@@ -31,9 +34,9 @@
 +    // CraftBukkit end
 +
      protected AbstractFurnaceMenu(
-         MenuType<?> menuType,
-         RecipeType<? extends AbstractCookingRecipe> recipeType,
-@@ -69,6 +_,7 @@
+         MenuType<?> menuType, ResourceKey<RecipePropertySet> allowedInputs, RecipeBookType recipeBookType, int containerId, Inventory inventory
+     ) {
+@@ -59,6 +_,7 @@
          this.addSlot(new Slot(container, 0, 56, 17));
          this.addSlot(new FurnaceFuelSlot(this, container, 1, 56, 53));
          this.addSlot(new FurnaceResultSlot(inventory.player, container, 2, 116, 35));
@@ -41,7 +44,7 @@
          this.addStandardInventorySlots(inventory, 8, 84);
          this.addDataSlots(data);
      }
-@@ -86,6 +_,7 @@
+@@ -76,6 +_,7 @@
  
      @Override
      public boolean stillValid(Player player) {
@@ -49,12 +52,18 @@
          return this.container.stillValid(player);
      }
  
-@@ -143,7 +_,7 @@
+@@ -133,7 +_,13 @@
      }
  
      protected boolean isFuel(ItemStack itemStack) {
 -        return this.level.fuelValues().isFuel(itemStack);
-+        return itemStack.getBurnTime(this.recipeType, this.level.fuelValues()) > 0;
++        var recipeType = switch (recipeBookType) {
++            case SMOKER -> net.minecraft.world.item.crafting.RecipeType.SMOKING;
++            case FURNACE -> net.minecraft.world.item.crafting.RecipeType.SMELTING;
++            case BLAST_FURNACE -> net.minecraft.world.item.crafting.RecipeType.BLASTING;
++            default -> null;
++        };
++        return itemStack.getBurnTime(recipeType, this.level.fuelValues()) > 0;
      }
  
      public float getBurnProgress() {

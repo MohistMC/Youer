@@ -80,14 +80,14 @@
  
          this.move(MoverType.SELF, this.getDeltaMovement());
          if (!this.onGround()) {
--            this.setDeltaMovement(this.getDeltaMovement().scale(0.95));
+-            this.setDeltaMovement(this.getDeltaMovement().scale(this.getAirDrag()));
 +            // CraftBukkit start - replace magic numbers with our variables
 +            this.setDeltaMovement(new Vec3(this.getDeltaMovement().x * this.flyingX, this.getDeltaMovement().y * this.flyingY, this.getDeltaMovement().z * this.flyingZ));
 +            // CraftBukkit end
          }
      }
  
-@@ -423,8 +_,8 @@
+@@ -428,8 +_,8 @@
  
      public Vec3 getRedstoneDirection(BlockPos pos) {
          BlockState state = this.level().getBlockState(pos);
@@ -98,7 +98,7 @@
              if (shape == RailShape.EAST_WEST) {
                  if (this.isRedstoneConductor(pos.west())) {
                      return new Vec3(1.0, 0.0, 0.0);
-@@ -488,6 +_,14 @@
+@@ -493,6 +_,14 @@
          if (!this.level().isClientSide()) {
              if (!entity.noPhysics && !this.noPhysics) {
                  if (!this.hasPassenger(entity)) {
@@ -113,7 +113,7 @@
                      double xa = entity.getX() - this.getX();
                      double za = entity.getZ() - this.getZ();
                      double dd = xa * xa + za * za;
-@@ -596,4 +_,26 @@
+@@ -601,4 +_,26 @@
      public boolean isFurnace() {
          return false;
      }

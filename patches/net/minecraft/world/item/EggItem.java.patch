@@ -1,21 +1,10 @@
 --- a/net/minecraft/world/item/EggItem.java
 +++ b/net/minecraft/world/item/EggItem.java
-@@ -23,19 +_,26 @@
+@@ -23,6 +_,16 @@
      @Override
      public InteractionResult use(Level level, Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
--        level.playSound(
--            null,
--            player.getX(),
--            player.getY(),
--            player.getZ(),
--            SoundEvents.EGG_THROW,
--            SoundSource.PLAYERS,
--            0.5F,
--            0.4F / (level.getRandom().nextFloat() * 0.4F + 0.8F)
--        );
-         if (level instanceof ServerLevel serverLevel) {
--            Projectile.spawnProjectileFromRotation(ThrownEgg::new, serverLevel, itemStack, player, 0.0F, 1.5F, 1.0F);
++        if (level instanceof ServerLevel serverLevel) {
 +            // CraftBukkit start
 +            if (Projectile.spawnProjectileFromRotation(ThrownEgg::new, serverLevel, itemStack, player, 0.0F, 1.5F, 1.0F).isRemoved()) {
 +                if (player instanceof net.minecraft.server.level.ServerPlayer) {
@@ -24,17 +13,17 @@
 +                return InteractionResult.FAIL;
 +            }
 +            // CraftBukkit end
-         }
-+        level.playSound(
-+                null,
-+                player.getX(),
-+                player.getY(),
-+                player.getZ(),
-+                SoundEvents.EGG_THROW,
-+                SoundSource.PLAYERS,
-+                0.5F,
-+                0.4F / (level.getRandom().nextFloat() * 0.4F + 0.8F)
-+        );
++        }
+         level.playSound(
+             null,
+             player.getX(),
+@@ -33,9 +_,6 @@
+             0.5F,
+             0.4F / (level.getRandom().nextFloat() * 0.4F + 0.8F)
+         );
+-        if (level instanceof ServerLevel serverLevel) {
+-            Projectile.spawnProjectileFromRotation(ThrownEgg::new, serverLevel, itemStack, player, 0.0F, 1.5F, 1.0F);
+-        }
  
          player.awardStat(Stats.ITEM_USED.get(this));
          itemStack.consume(1, player);

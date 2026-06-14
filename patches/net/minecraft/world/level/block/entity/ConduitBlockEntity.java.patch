@@ -1,7 +1,7 @@
 --- a/net/minecraft/world/level/block/entity/ConduitBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/ConduitBlockEntity.java
-@@ -149,10 +_,8 @@
-                         BlockPos testPos = worldPosition.offset(ox, oy, ozx);
+@@ -150,10 +_,8 @@
+                         BlockPos testPos = worldPosition.offset(ox, oy, oz);
                          BlockState testBlock = level.getBlockState(testPos);
  
 -                        for (Block type : VALID_BLOCKS) {
@@ -13,7 +13,7 @@
                          }
                      }
                  }
-@@ -163,30 +_,54 @@
+@@ -164,30 +_,54 @@
      }
  
      private static void applyEffects(Level level, BlockPos worldPosition, List<BlockPos> effectBlocks) {
@@ -78,3 +78,22 @@
          }
  
          if (!Objects.equals(newDestroyTarget, entity.destroyTarget)) {
+@@ -201,14 +_,12 @@
+     ) {
+         if (!isActive) {
+             return null;
+-        }
+-
+-        if (target == null) {
++        } else if (target == null) {
+             return selectNewTarget(level, pos);
++        } else {
++            LivingEntity targetEntity = EntityReference.getLivingEntity(target, level);
++            return targetEntity != null && targetEntity.isAlive() && pos.closerThan(targetEntity.blockPosition(), 8.0) ? target : null;
+         }
+-
+-        LivingEntity targetEntity = EntityReference.getLivingEntity(target, level);
+-        return targetEntity != null && targetEntity.isAlive() && pos.closerThan(targetEntity.blockPosition(), 8.0) ? target : null;
+     }
+ 
+     private static @Nullable EntityReference<LivingEntity> selectNewTarget(ServerLevel level, BlockPos pos) {

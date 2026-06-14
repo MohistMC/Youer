@@ -17,7 +17,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Monster;
-import net.minecraft.world.entity.monster.Slime;
+import net.minecraft.world.entity.monster.cubemob.Slime;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.FireworkRocketEntity;
@@ -56,7 +56,7 @@ public class ActivationRange
         if ( entity instanceof Raider )
         {
             return ActivationType.RAIDER;
-        } else if ( entity instanceof Monster || entity instanceof Slime )
+        } else if ( entity instanceof Monster || entity instanceof Slime)
         {
             return ActivationType.MONSTER;
         } else if ( entity instanceof PathfinderMob || entity instanceof AmbientCreature )

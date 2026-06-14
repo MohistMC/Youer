@@ -49,6 +49,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -566,7 +567,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         Preconditions.checkArgument(item != null, "ItemStack cannot be null");
 
         double xs = Mth.nextDouble(world.getRandom(), -0.25D, 0.25D);
-        double ys = Mth.nextDouble(world.getRandom(), -0.25D, 0.25D) - ((double) EntityType.ITEM.getHeight() / 2.0D);
+        double ys = Mth.nextDouble(world.getRandom(), -0.25D, 0.25D) - ((double) EntityTypes.ITEM.getHeight() / 2.0D);
         double zs = Mth.nextDouble(world.getRandom(), -0.25D, 0.25D);
         loc = loc.clone().add(xs, ys, zs);
         return dropItem(loc, item, function);
@@ -585,14 +586,14 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
         net.minecraft.world.entity.projectile.arrow.AbstractArrow arrow;
         if (TippedArrow.class.isAssignableFrom(clazz)) {
-            arrow = EntityType.ARROW.create(world, EntitySpawnReason.COMMAND);
+            arrow = EntityTypes.ARROW.create(world, EntitySpawnReason.COMMAND);
             ((Arrow) arrow.getBukkitEntity()).setBasePotionType(PotionType.WATER);
         } else if (SpectralArrow.class.isAssignableFrom(clazz)) {
-            arrow = EntityType.SPECTRAL_ARROW.create(world, EntitySpawnReason.COMMAND);
+            arrow = EntityTypes.SPECTRAL_ARROW.create(world, EntitySpawnReason.COMMAND);
         } else if (Trident.class.isAssignableFrom(clazz)) {
-            arrow = EntityType.TRIDENT.create(world, EntitySpawnReason.COMMAND);
+            arrow = EntityTypes.TRIDENT.create(world, EntitySpawnReason.COMMAND);
         } else {
-            arrow = EntityType.ARROW.create(world, EntitySpawnReason.COMMAND);
+            arrow = EntityTypes.ARROW.create(world, EntitySpawnReason.COMMAND);
         }
 
         arrow.snapTo(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
@@ -614,7 +615,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     private LightningStrike strikeLightning0(Location loc, boolean isVisual) {
         Preconditions.checkArgument(loc != null, "Location cannot be null");
 
-        LightningBolt lightning = EntityType.LIGHTNING_BOLT.create(world, EntitySpawnReason.COMMAND);
+        LightningBolt lightning = EntityTypes.LIGHTNING_BOLT.create(world, EntitySpawnReason.COMMAND);
         lightning.snapTo(loc.getX(), loc.getY(), loc.getZ());
         lightning.setVisualOnly(isVisual);
         world.strikeLightning(lightning, LightningStrikeEvent.Cause.CUSTOM);

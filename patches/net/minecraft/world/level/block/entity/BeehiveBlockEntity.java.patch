@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/entity/BeehiveBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BeehiveBlockEntity.java
-@@ -48,6 +_,10 @@
+@@ -49,6 +_,10 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -18,7 +18,7 @@
 +    public int maxBees = 3; // CraftBukkit - allow setting max amount of bees a hive can hold
  
      public BeehiveBlockEntity(BlockPos worldPosition, BlockState blockState) {
-         super(BlockEntityType.BEEHIVE, worldPosition, blockState);
+         super(BlockEntityTypes.BEEHIVE, worldPosition, blockState);
 @@ -119,7 +_,7 @@
      }
  
@@ -86,7 +86,22 @@
              bee.stopRiding();
              bee.ejectPassengers();
              bee.dropLeash();
-@@ -190,7 +_,7 @@
+@@ -176,11 +_,21 @@
+                 }
+ 
+                 BlockPos blockPos = this.getBlockPos();
+-                this.level.playSound(null, blockPos.getX(), blockPos.getY(), blockPos.getZ(), SoundEvents.BEEHIVE_ENTER, SoundSource.BLOCKS, 1.0F, 1.0F);
++                this.level
++                    .playSound(
++                        null,
++                        (double)blockPos.getX(),
++                        (double)blockPos.getY(),
++                        (double)blockPos.getZ(),
++                        SoundEvents.BEEHIVE_ENTER,
++                        SoundSource.BLOCKS,
++                        1.0F,
++                        1.0F
++                    );
                  this.level.gameEvent(GameEvent.BLOCK_CHANGE, blockPos, GameEvent.Context.of(bee, this.getBlockState()));
              }
  
@@ -95,7 +110,7 @@
              super.setChanged();
          }
      }
-@@ -208,8 +_,14 @@
+@@ -198,58 +_,77 @@
          BeehiveBlockEntity.BeeReleaseStatus releaseStatus,
          @Nullable BlockPos savedFlowerPos
      ) {
@@ -107,14 +122,66 @@
 +    private static boolean releaseOccupant(Level level, BlockPos blockPos, BlockState state, BeehiveBlockEntity.Occupant beeData, @Nullable List<Entity> spawned, BeehiveBlockEntity.BeeReleaseStatus releaseStatus, @Nullable BlockPos savedFlowerPos, boolean force) {
 +        if (!force && level.environmentAttributes().getValue(EnvironmentAttributes.BEES_STAY_IN_HIVE, blockPos)
              && releaseStatus != BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY) {
+-            return false;
+-        }
+-
+-        Direction facing = state.getValue(BeehiveBlock.FACING);
+-        BlockPos facingPos = blockPos.relative(facing);
+-        boolean frontBlocked = !level.getBlockState(facingPos).getCollisionShape(level, facingPos).isEmpty();
+-        if (frontBlocked && releaseStatus != BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY) {
+-            return false;
+-        }
+-
+-        Entity entity = beeData.createEntity(level, blockPos);
+-        if (entity != null) {
+-            if (entity instanceof Bee bee) {
+-                RandomSource random = level.getRandom();
+-                if (savedFlowerPos != null && !bee.hasSavedFlowerPos() && random.nextFloat() < 0.9F) {
+-                    bee.setSavedFlowerPos(savedFlowerPos);
+-                }
+-
+-                if (releaseStatus == BeehiveBlockEntity.BeeReleaseStatus.HONEY_DELIVERED) {
+-                    bee.dropOffNectar();
+-                    if (state.is(BlockTags.BEEHIVES, s -> s.hasProperty(BeehiveBlock.HONEY_LEVEL))) {
+-                        int honeyLevel = getHoneyLevel(state);
+-                        if (honeyLevel < 5) {
+-                            int levelIncrease = random.nextInt(100) == 0 ? 2 : 1;
+-                            if (honeyLevel + levelIncrease > 5) {
+-                                levelIncrease--;
+-                            }
+-
+-                            level.setBlockAndUpdate(blockPos, state.setValue(BeehiveBlock.HONEY_LEVEL, honeyLevel + levelIncrease));
+-                        }
+-                    }
+-                }
+-
+-                if (spawned != null) {
+-                    spawned.add(bee);
+-                }
+-
+-                float bbWidth = entity.getBbWidth();
+-                double delta = frontBlocked ? 0.0 : 0.55 + bbWidth / 2.0F;
+-                double spawnX = blockPos.getX() + 0.5 + delta * facing.getStepX();
+-                double spawnY = blockPos.getY() + 0.5 - entity.getBbHeight() / 2.0F;
+-                double spawnZ = blockPos.getZ() + 0.5 + delta * facing.getStepZ();
+-                entity.snapTo(spawnX, spawnY, spawnZ, entity.getYRot(), entity.getXRot());
+-            }
+-
+-            level.playSound(null, blockPos, SoundEvents.BEEHIVE_EXIT, SoundSource.BLOCKS, 1.0F, 1.0F);
+-            level.gameEvent(GameEvent.BLOCK_CHANGE, blockPos, GameEvent.Context.of(entity, level.getBlockState(blockPos)));
+-            return level.addFreshEntity(entity);
 +            // CraftBukkit end
-             return false;
++            return false;
          } else {
-             Direction facing = state.getValue(BeehiveBlock.FACING);
-@@ -220,6 +_,17 @@
-             } else {
-                 Entity entity = beeData.createEntity(level, blockPos);
-                 if (entity != null) {
+-            return false;
++            Direction facing = state.getValue(BeehiveBlock.FACING);
++            BlockPos facingPos = blockPos.relative(facing);
++            boolean frontBlocked = !level.getBlockState(facingPos).getCollisionShape(level, facingPos).isEmpty();
++            if (frontBlocked && releaseStatus != BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY) {
++                return false;
++            } else {
++                Entity entity = beeData.createEntity(level, blockPos);
++                if (entity != null) {
 +                    // CraftBukkit start
 +                    if (entity instanceof Bee) {
 +                        float bbWidth = entity.getBbWidth();
@@ -126,31 +193,52 @@
 +                    }
 +                    if (!level.addFreshEntity(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BEEHIVE)) return false; // CraftBukkit - SpawnReason, moved from below
 +                    // CraftBukkit end
-                     if (entity instanceof Bee bee) {
-                         RandomSource random = level.getRandom();
-                         if (savedFlowerPos != null && !bee.hasSavedFlowerPos() && random.nextFloat() < 0.9F) {
-@@ -245,17 +_,19 @@
-                             spawned.add(bee);
-                         }
- 
++                    if (entity instanceof Bee bee) {
++                        RandomSource random = level.getRandom();
++                        if (savedFlowerPos != null && !bee.hasSavedFlowerPos() && random.nextFloat() < 0.9F) {
++                            bee.setSavedFlowerPos(savedFlowerPos);
++                        }
++
++                        if (releaseStatus == BeehiveBlockEntity.BeeReleaseStatus.HONEY_DELIVERED) {
++                            bee.dropOffNectar();
++                            if (state.is(BlockTags.BEEHIVES, s -> s.hasProperty(BeehiveBlock.HONEY_LEVEL))) {
++                                int honeyLevel = getHoneyLevel(state);
++                                if (honeyLevel < 5) {
++                                    int levelIncrease = random.nextInt(100) == 0 ? 2 : 1;
++                                    if (honeyLevel + levelIncrease > 5) {
++                                        levelIncrease--;
++                                    }
++
++                                    level.setBlockAndUpdate(blockPos, state.setValue(BeehiveBlock.HONEY_LEVEL, honeyLevel + levelIncrease));
++                                }
++                            }
++                        }
++
++                        if (spawned != null) {
++                            spawned.add(bee);
++                        }
++
 +                        /* // CraftBukkit start
-                         float bbWidth = entity.getBbWidth();
-                         double delta = frontBlocked ? 0.0 : 0.55 + bbWidth / 2.0F;
-                         double spawnX = blockPos.getX() + 0.5 + delta * facing.getStepX();
-                         double spawnY = blockPos.getY() + 0.5 - entity.getBbHeight() / 2.0F;
-                         double spawnZ = blockPos.getZ() + 0.5 + delta * facing.getStepZ();
-                         entity.snapTo(spawnX, spawnY, spawnZ, entity.getYRot(), entity.getXRot());
++                        float bbWidth = entity.getBbWidth();
++                        double delta = frontBlocked ? 0.0 : 0.55 + bbWidth / 2.0F;
++                        double spawnX = blockPos.getX() + 0.5 + delta * facing.getStepX();
++                        double spawnY = blockPos.getY() + 0.5 - entity.getBbHeight() / 2.0F;
++                        double spawnZ = blockPos.getZ() + 0.5 + delta * facing.getStepZ();
++                        entity.snapTo(spawnX, spawnY, spawnZ, entity.getYRot(), entity.getXRot());
 +                         */ // CraftBukkit end
-                     }
- 
-                     level.playSound(null, blockPos, SoundEvents.BEEHIVE_EXIT, SoundSource.BLOCKS, 1.0F, 1.0F);
-                     level.gameEvent(GameEvent.BLOCK_CHANGE, blockPos, GameEvent.Context.of(entity, level.getBlockState(blockPos)));
--                    return level.addFreshEntity(entity);
++                    }
++
++                    level.playSound(null, blockPos, SoundEvents.BEEHIVE_EXIT, SoundSource.BLOCKS, 1.0F, 1.0F);
++                    level.gameEvent(GameEvent.BLOCK_CHANGE, blockPos, GameEvent.Context.of(entity, level.getBlockState(blockPos)));
 +                    return true; // return this.world.addFreshEntity(entity); // CraftBukkit - moved up
-                 } else {
-                     return false;
-                 }
-@@ -280,6 +_,10 @@
++                } else {
++                    return false;
++                }
++            }
+         }
+     }
+ 
+@@ -270,6 +_,10 @@
                  if (releaseOccupant(level, pos, state, data.toOccupant(), null, releaseStatus, savedFlowerPos)) {
                      changed = true;
                      iterator.remove();
@@ -161,7 +249,7 @@
                  }
              }
          }
-@@ -302,9 +_,12 @@
+@@ -292,9 +_,12 @@
      @Override
      protected void loadAdditional(ValueInput input) {
          super.loadAdditional(input);
@@ -175,7 +263,7 @@
      }
  
      @Override
-@@ -312,12 +_,13 @@
+@@ -302,12 +_,13 @@
          super.saveAdditional(output);
          output.store("bees", BeehiveBlockEntity.Occupant.LIST_CODEC, this.getBees());
          output.storeNullable("flower_pos", BlockPos.CODEC, this.savedFlowerPos);

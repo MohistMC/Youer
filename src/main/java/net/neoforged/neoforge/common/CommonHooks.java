@@ -825,7 +825,6 @@ public class CommonHooks {
         return true;
     }
 
-
     private static final ThreadLocal<@Nullable Player> craftingPlayer = new ThreadLocal<>();
 
     public static void setCraftingPlayer(@Nullable Player player) {

@@ -8,10 +8,30 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -56,6 +_,13 @@
+@@ -55,32 +_,42 @@
+     public boolean changeGameModeForPlayer(GameType gameModeForPlayer) {
          if (gameModeForPlayer == this.gameModeForPlayer) {
              return false;
-         } else {
+-        }
+-
+-        Abilities abilities = this.player.getAbilities();
+-        this.setGameModeForPlayer(gameModeForPlayer, this.gameModeForPlayer);
+-        if (abilities.flying && gameModeForPlayer != GameType.SPECTATOR && this.isInRangeOfGround()) {
+-            abilities.flying = false;
+-        }
+-
+-        this.player.onUpdateAbilities();
+-        this.level
+-            .getServer()
+-            .getPlayerList()
+-            .broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE, this.player));
+-        this.level.updateSleepingPlayerList();
+-        if (gameModeForPlayer == GameType.CREATIVE) {
+-            this.player.resetCurrentImpulseContext();
+-        }
+-
+-        return true;
++        } else {
 +            // CraftBukkit start
 +            PlayerGameModeChangeEvent event = new PlayerGameModeChangeEvent(player.getBukkitEntity(), org.bukkit.GameMode.getByValue(gameModeForPlayer.getId()));
 +            org.bukkit.Bukkit.getPluginManager().callEvent(event);
@@ -19,10 +39,27 @@
 +                return false;
 +            }
 +            // CraftBukkit end
-             Abilities abilities = this.player.getAbilities();
-             this.setGameModeForPlayer(gameModeForPlayer, this.gameModeForPlayer);
-             if (abilities.flying && gameModeForPlayer != GameType.SPECTATOR && this.isInRangeOfGround()) {
-@@ -80,7 +_,10 @@
++            Abilities abilities = this.player.getAbilities();
++            this.setGameModeForPlayer(gameModeForPlayer, this.gameModeForPlayer);
++            if (abilities.flying && gameModeForPlayer != GameType.SPECTATOR && this.isInRangeOfGround()) {
++                abilities.flying = false;
++            }
++
++            this.player.onUpdateAbilities();
++            this.level
++                .getServer()
++                .getPlayerList()
++                .broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE, this.player));
++            this.level.updateSleepingPlayerList();
++            if (gameModeForPlayer == GameType.CREATIVE) {
++                this.player.resetCurrentImpulseContext();
++            }
++
++            return true;
++        }
+     }
+ 
+     protected void setGameModeForPlayer(GameType gameModeForPlayer, @Nullable GameType previousGameModeForPlayer) {
          this.previousGameModeForPlayer = previousGameModeForPlayer;
          this.gameModeForPlayer = gameModeForPlayer;
          Abilities abilities = this.player.getAbilities();
@@ -86,49 +123,47 @@
 +        var event = net.neoforged.neoforge.common.CommonHooks.fireBlockBreak(level, gameModeForPlayer, player, pos, state);
 +        if (event.isCanceled()) {
              return false;
-         } else {
-             BlockEntity blockEntity = this.level.getBlockEntity(pos);
-@@ -271,30 +_,46 @@
-                 return false;
-             } else {
-                 BlockState adjustedState = block.playerWillDestroy(this.level, pos, state, this.player);
--                boolean changed = this.level.removeBlock(pos, false);
--                if (SharedConstants.DEBUG_BLOCK_BREAK) {
--                    LOGGER.info("server broke {} {} -> {}", pos, adjustedState, this.level.getBlockState(pos));
--                }
--
--                if (changed) {
--                    block.destroy(this.level, pos, adjustedState);
--                }
- 
-                 if (this.player.preventsBlockDrops()) {
-+                    removeBlock(pos, adjustedState, false, player.getMainHandItem().copy());
-                     return true;
-                 } else {
-                     ItemStack itemStack = this.player.getMainHandItem();
-                     ItemStack destroyedWith = itemStack.copy();
--                    boolean canDestroy = this.player.hasCorrectToolForDrops(adjustedState);
-+                    boolean canDestroy = adjustedState.canHarvestBlock(this.level, pos, this.player); // previously player.hasCorrectToolForDrops(blockstate)
-                     itemStack.mineBlock(this.level, adjustedState, pos, this.player);
-+                    boolean changed = removeBlock(pos, adjustedState, canDestroy, destroyedWith.copy());
-+
-                     if (changed && canDestroy) {
-                         block.playerDestroy(this.level, this.player, pos, adjustedState, blockEntity, destroyedWith);
-                     }
- 
-+                    // Neo: Fire the PlayerDestroyItemEvent if the tool was broken at any point during the break process
-+                    if (itemStack.isEmpty() && !destroyedWith.isEmpty()) {
-+                        net.neoforged.neoforge.event.EventHooks.onPlayerDestroyItem(this.player, destroyedWith, InteractionHand.MAIN_HAND);
-+                    }
-+
-                     return true;
-                 }
-             }
          }
+ 
+@@ -275,28 +_,44 @@
+         }
+ 
+         BlockState adjustedState = block.playerWillDestroy(this.level, pos, state, this.player);
+-        boolean changed = this.level.removeBlock(pos, false);
+-        if (SharedConstants.DEBUG_BLOCK_BREAK) {
+-            LOGGER.info("server broke {} {} -> {}", pos, adjustedState, this.level.getBlockState(pos));
+-        }
+-
+-        if (changed) {
+-            block.destroy(this.level, pos, adjustedState);
+-        }
+ 
+         if (this.player.preventsBlockDrops()) {
++            removeBlock(pos, adjustedState, false, player.getMainHandItem().copy());
+             return true;
+         }
+ 
+         ItemStack itemStack = this.player.getMainHandItem();
+         ItemStack destroyedWith = itemStack.copy();
+-        boolean canDestroy = this.player.hasCorrectToolForDrops(adjustedState);
++        boolean canDestroy = adjustedState.canHarvestBlock(this.level, pos, this.player); // previously player.hasCorrectToolForDrops(blockstate)
+         itemStack.mineBlock(this.level, adjustedState, pos, this.player);
++        boolean changed = removeBlock(pos, adjustedState, canDestroy, destroyedWith.copy());
++
+         if (changed && canDestroy) {
+             block.playerDestroy(this.level, this.player, pos, adjustedState, blockEntity, destroyedWith);
+         }
+ 
++        // Neo: Fire the PlayerDestroyItemEvent if the tool was broken at any point during the break process
++        if (itemStack.isEmpty() && !destroyedWith.isEmpty()) {
++            net.neoforged.neoforge.event.EventHooks.onPlayerDestroyItem(this.player, destroyedWith, InteractionHand.MAIN_HAND);
++        }
++
+         return true;
 +    }
 +
 +    /**
-+     * Patched-in method that handles actual removal of blocks for {@link #destroyBlock(BlockPos)}.
++     * Neo: Patched-in method that handles actual removal of blocks for {@link #destroyBlock(BlockPos)}.
 +     *
 +     * @param pos The block pos of the destroyed block
 +     * @param state The state of the destroyed block
@@ -144,17 +179,18 @@
      }
  
      public InteractionResult useItem(ServerPlayer player, Level level, ItemStack itemStack, InteractionHand hand) {
-@@ -303,6 +_,8 @@
-         } else if (player.getCooldowns().isOnCooldown(itemStack)) {
+@@ -308,6 +_,9 @@
              return InteractionResult.PASS;
-         } else {
-+            InteractionResult cancelResult = net.neoforged.neoforge.common.CommonHooks.onItemRightClick(player, hand);
-+            if (cancelResult != null) return cancelResult;
-             int oldCount = itemStack.getCount();
-             int oldDamage = itemStack.getDamageValue();
-             InteractionResult result = itemStack.use(level, player, hand);
-@@ -338,12 +_,22 @@
          }
+ 
++        InteractionResult cancelResult = net.neoforged.neoforge.common.CommonHooks.onItemRightClick(player, hand);
++        if (cancelResult != null) return cancelResult;
++
+         int oldCount = itemStack.getCount();
+         int oldDamage = itemStack.getDamageValue();
+         InteractionResult result = itemStack.use(level, player, hand);
+@@ -344,6 +_,13 @@
+         return result;
      }
  
 +
@@ -167,17 +203,16 @@
      public InteractionResult useItemOn(ServerPlayer player, Level level, ItemStack itemStack, InteractionHand hand, BlockHitResult hitResult) {
          BlockPos pos = hitResult.getBlockPos();
          BlockState state = level.getBlockState(pos);
-         if (!state.getBlock().isEnabled(level.enabledFeatures())) {
+@@ -351,6 +_,8 @@
              return InteractionResult.FAIL;
--        } else if (this.gameModeForPlayer == GameType.SPECTATOR) {
-+        }
+         }
+ 
 +        net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock event = net.neoforged.neoforge.common.CommonHooks.onRightClickBlock(player, hand, pos, hitResult);
 +        if (event.isCanceled()) return event.getCancellationResult();
-+        if (this.gameModeForPlayer == GameType.SPECTATOR) {
+         if (this.gameModeForPlayer == GameType.SPECTATOR) {
              MenuProvider menuProvider = state.getMenuProvider(level, pos);
              if (menuProvider != null) {
-                 player.openMenu(menuProvider);
-@@ -352,10 +_,15 @@
+@@ -360,10 +_,15 @@
                  return InteractionResult.PASS;
              }
          } else {
@@ -195,7 +230,7 @@
                  InteractionResult itemUse = state.useItemOn(player.getItemInHand(hand), level, player, hand, hitResult);
                  if (itemUse.consumesAction()) {
                      CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(player, pos, usedItemStack);
-@@ -371,8 +_,8 @@
+@@ -379,8 +_,8 @@
                  }
              }
  

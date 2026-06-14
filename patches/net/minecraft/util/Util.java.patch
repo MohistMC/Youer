@@ -1,17 +1,26 @@
 --- a/net/minecraft/util/Util.java
 +++ b/net/minecraft/util/Util.java
-@@ -272,8 +_,8 @@
+@@ -282,7 +_,7 @@
+         throw throwable instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(throwable);
+     }
+ 
+-    public static void onThreadException(Thread thread, Throwable throwable) {
++    private static void onThreadException(Thread thread, Throwable throwable) {
+         pauseInIde(throwable);
+         if (throwable instanceof CompletionException) {
+             throwable = throwable.getCause();
+@@ -313,8 +_,8 @@
                  .getSchema(DataFixUtils.makeKey(SharedConstants.getCurrentVersion().dataVersion().version()))
                  .getChoiceType(reference, name);
-         } catch (IllegalArgumentException var4) {
+         } catch (IllegalArgumentException e) {
 -            LOGGER.error("No data fixer registered for {}", name);
 -            if (SharedConstants.IS_RUNNING_IN_IDE) {
 +            LOGGER.debug("No data fixer registered for {}", name);
 +            if (SharedConstants.IS_RUNNING_IN_IDE && false) {
-                 throw var4;
+                 throw e;
              }
          }
-@@ -687,20 +_,20 @@
+@@ -735,20 +_,20 @@
  
      public static void logAndPauseIfInIde(String message) {
          LOGGER.error(message);

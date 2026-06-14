@@ -1,14 +1,23 @@
 --- a/net/minecraft/network/chat/TextColor.java
 +++ b/net/minecraft/network/chat/TextColor.java
-@@ -17,21 +_,32 @@
-     public static final Codec<TextColor> CODEC = Codec.STRING.comapFlatMap(TextColor::parseColor, TextColor::serialize);
-     private static final Map<ChatFormatting, TextColor> LEGACY_FORMAT_TO_COLOR = Stream.of(ChatFormatting.values())
-         .filter(ChatFormatting::isColor)
--        .collect(ImmutableMap.toImmutableMap(Function.identity(), f -> new TextColor(f.getColor(), f.getName())));
-+        .collect(ImmutableMap.toImmutableMap(Function.identity(), f -> new TextColor(f.getColor(), f.getName(), f)));
-     private static final Map<String, TextColor> NAMED_COLORS = LEGACY_FORMAT_TO_COLOR.values()
-         .stream()
-         .collect(ImmutableMap.toImmutableMap(e -> e.name, Function.identity()));
+@@ -1,5 +_,6 @@
+ package net.minecraft.network.chat;
+ 
++import com.google.common.collect.ImmutableMap;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.DataResult;
+ import com.mojang.serialization.Lifecycle;
+@@ -7,6 +_,8 @@
+ import java.util.Locale;
+ import java.util.Map;
+ import java.util.Objects;
++import java.util.function.Function;
++import java.util.stream.Stream;
+ import net.minecraft.ChatFormatting;
+ import org.jspecify.annotations.Nullable;
+ 
+@@ -32,15 +_,26 @@
+     public static final TextColor WHITE = named("white", 16777215);
      private final int value;
      public final @Nullable String name;
 +    // CraftBukkit start
@@ -33,4 +42,4 @@
 +        this.format = null;
      }
  
-     public int getValue() {
+     private static TextColor named(String name, int rgb) {

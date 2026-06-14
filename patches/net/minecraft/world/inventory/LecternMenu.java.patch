@@ -1,7 +1,9 @@
 --- a/net/minecraft/world/inventory/LecternMenu.java
 +++ b/net/minecraft/world/inventory/LecternMenu.java
-@@ -3,10 +_,32 @@
- import java.util.Objects;
+@@ -1,11 +_,34 @@
+ package net.minecraft.world.inventory;
+ 
++import java.util.Objects;
  import net.minecraft.world.Container;
  import net.minecraft.world.SimpleContainer;
 +import net.minecraft.world.entity.player.Inventory;
@@ -33,7 +35,7 @@
      private static final int DATA_COUNT = 1;
      private static final int SLOT_COUNT = 1;
      public static final int BUTTON_PREV_PAGE = 1;
-@@ -40,6 +_,29 @@
+@@ -35,39 +_,69 @@
          this.addDataSlots(lecternData);
      }
  
@@ -63,10 +65,41 @@
      @Override
      public boolean clickMenuButton(Player player, int buttonId) {
          if (buttonId >= 100) {
-@@ -63,6 +_,13 @@
-                         return false;
-                     }
- 
+             int pageToSet = buttonId - 100;
+             this.setData(0, pageToSet);
+             return true;
+-        }
+-
+-        switch (buttonId) {
+-            case 1: {
+-                int currentPage = this.lecternData.get(0);
+-                this.setData(0, currentPage - 1);
+-                return true;
+-            }
+-            case 2: {
+-                int currentPage = this.lecternData.get(0);
+-                this.setData(0, currentPage + 1);
+-                return true;
+-            }
+-            case 3:
+-                if (!player.mayBuild()) {
++        } else {
++            switch (buttonId) {
++                case 1: {
++                    int currentPage = this.lecternData.get(0);
++                    this.setData(0, currentPage - 1);
++                    return true;
++                }
++                case 2: {
++                    int currentPage = this.lecternData.get(0);
++                    this.setData(0, currentPage + 1);
++                    return true;
++                }
++                case 3:
++                    if (!player.mayBuild()) {
++                        return false;
++                    }
++
 +                    // CraftBukkit start - Event for taking the book
 +                    PlayerTakeLecternBookEvent event = new PlayerTakeLecternBookEvent(this.player, ((CraftInventoryLectern) getBukkitView().getTopInventory()).getHolder());
 +                    Bukkit.getServer().getPluginManager().callEvent(event);
@@ -74,10 +107,31 @@
 +                        return false;
 +                    }
 +                    // CraftBukkit end
-                     ItemStack book = this.lectern.removeItemNoUpdate(0);
-                     this.lectern.setChanged();
-                     if (!player.getInventory().add(book)) {
-@@ -89,6 +_,8 @@
++                    ItemStack book = this.lectern.removeItemNoUpdate(0);
++                    this.lectern.setChanged();
++                    if (!player.getInventory().add(book)) {
++                        player.drop(book, false);
++                    }
++
++                    return true;
++                default:
+                     return false;
+-                }
+-
+-                ItemStack book = this.lectern.removeItemNoUpdate(0);
+-                this.lectern.setChanged();
+-                if (!player.getInventory().add(book)) {
+-                    player.drop(book, false);
+-                }
+-
+-                return true;
+-            default:
+-                return false;
++            }
+         }
+     }
+ 
+@@ -84,6 +_,8 @@
  
      @Override
      public boolean stillValid(Player player) {

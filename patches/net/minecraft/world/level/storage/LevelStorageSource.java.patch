@@ -1,23 +1,18 @@
 --- a/net/minecraft/world/level/storage/LevelStorageSource.java
 +++ b/net/minecraft/world/level/storage/LevelStorageSource.java
-@@ -169,6 +_,7 @@
-             WorldDimensions.Complete dimensions = worldGenSettings.dimensions().bake(datapackDimensions);
-             Lifecycle lifecycle = dimensions.lifecycle().add(registryAccess.allRegistriesLifecycle());
-             PrimaryLevelData worldData = PrimaryLevelData.parse(dataTag, settings, dimensions.specialWorldProperty(), lifecycle);
-+            worldData.pdc = ((Dynamic<Tag>) dataTag).getElement("BukkitValues", null); // CraftBukkit - Add PDC to world
-             return LevelDataAndDimensions.create(worldData, worldGenSettings, dimensions);
-         }
-     }
-@@ -392,19 +_,34 @@
-         return this.backupDir;
-     }
- 
--    public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String levelId) throws IOException, ContentValidationException {
--        Path levelPath = this.getLevelPath(levelId);
--        List<ForbiddenSymlinkInfo> validationResults = this.worldDirValidator.validateDirectory(levelPath, true);
--        if (!validationResults.isEmpty()) {
--            throw new ContentValidationException(levelPath, validationResults);
--        } else {
+@@ -95,7 +_,7 @@
+     public static final String ALLOWED_SYMLINKS_CONFIG_NAME = "allowed_symlinks.txt";
+     private static final int DISK_SPACE_WARNING_THRESHOLD = 67108864;
+     private static final Component LOAD_FOLDER_ACCESS_MESSAGE = Component.translatable("selectWorld.load_folder_access");
+-    public final Path baseDir;
++    private final Path baseDir;
+     private final Path backupDir;
+     private final DataFixer fixerUpper;
+     private final DirectoryValidator worldDirValidator;
+@@ -395,13 +_,28 @@
+         if (!validationResults.isEmpty()) {
+             throw new ContentValidationException(levelPath, validationResults);
+         } else {
 -            return new LevelStorageSource.LevelStorageAccess(levelId, levelPath);
 -        }
 -    }
@@ -25,12 +20,6 @@
 -    public LevelStorageSource.LevelStorageAccess createAccess(String levelId) throws IOException {
 -        Path levelPath = this.getLevelPath(levelId);
 -        return new LevelStorageSource.LevelStorageAccess(levelId, levelPath);
-+    public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String levelId) throws IOException, ContentValidationException { // CraftBukkit
-+        Path levelPath = this.getLevelPath(levelId);
-+        List<ForbiddenSymlinkInfo> validationResults = this.worldDirValidator.validateDirectory(levelPath, true);
-+        if (!validationResults.isEmpty()) {
-+            throw new ContentValidationException(levelPath, validationResults);
-+        } else {
 +            return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, LevelStem.OVERWORLD); // CraftBukkit
 +        }
 +    }
@@ -56,7 +45,7 @@
      }
  
      public DirectoryValidator getWorldDirValidator() {
-@@ -456,13 +_,31 @@
+@@ -453,13 +_,31 @@
          }
      }
  
@@ -78,7 +67,7 @@
          private DirectoryLock lock;
          public final LevelStorageSource.LevelDirectory levelDirectory;
          private final String levelId;
-         private final Map<LevelResource, Path> resources;
+         private final Map<LevelResource, Path> resources = Maps.newHashMap();
 +        // CraftBukkit start
 +        public final ResourceKey<LevelStem> dimensionType;
  
@@ -86,10 +75,10 @@
 +        private LevelStorageAccess(String levelId, Path path, ResourceKey<LevelStem> dimensionType) throws IOException {
 +            this.dimensionType = dimensionType;
 +            // CraftBukkit end
-             Objects.requireNonNull(LevelStorageSource.this);
-             super();
-             this.resources = Maps.newHashMap();
-@@ -522,7 +_,8 @@
+             this.levelId = levelId;
+             this.levelDirectory = new LevelStorageSource.LevelDirectory(path);
+             this.createLock();
+@@ -516,7 +_,8 @@
          }
  
          public Path getDimensionPath(ResourceKey<Level> name) {
@@ -99,7 +88,7 @@
          }
  
          private void checkLock() {
-@@ -531,6 +_,19 @@
+@@ -525,6 +_,19 @@
              }
          }
  
@@ -119,20 +108,20 @@
          public PlayerDataStorage createPlayerStorage() {
              this.checkLock();
              return new PlayerDataStorage(this, LevelStorageSource.this.fixerUpper);
-@@ -560,10 +_,12 @@
+@@ -554,10 +_,12 @@
              Dynamic<?> unfixedDataTag;
              try {
                  unfixedDataTag = this.getUnfixedDataTag(false);
 +                this.readAdditionalLevelSaveData(false);
-             } catch (NbtException | ReportedNbtException | IOException var3) {
-                 LevelStorageSource.LOGGER.warn("Failed to load world data from {}", this.levelDirectory.dataFile(), var3);
+             } catch (IOException | NbtException | ReportedNbtException e) {
+                 LevelStorageSource.LOGGER.warn("Failed to load world data from {}", this.levelDirectory.dataFile(), e);
                  LevelStorageSource.LOGGER.info("Attempting to use fallback {}", this.levelDirectory.oldDataFile());
                  unfixedDataTag = this.getUnfixedDataTag(true);
 +                this.readAdditionalLevelSaveData(true);
                  this.restoreLevelDataFromOld();
              }
  
-@@ -589,6 +_,7 @@
+@@ -583,6 +_,7 @@
              CompoundTag dataTag = levelData.createTag(singleplayerUUID);
              CompoundTag root = new CompoundTag();
              root.put("Data", dataTag);
@@ -140,7 +129,7 @@
              this.saveLevelData(root);
          }
  
-@@ -615,6 +_,10 @@
+@@ -609,6 +_,10 @@
  
          public Optional<Path> getIconFile() {
              return !this.lock.isValid() ? Optional.empty() : Optional.of(this.levelDirectory.iconFile());

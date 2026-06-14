@@ -12,10 +12,11 @@
  public class ButtonBlock extends FaceAttachedHorizontalDirectionalBlock {
      public static final MapCodec<ButtonBlock> CODEC = RecordCodecBuilder.mapCodec(
          i -> i.group(
-@@ -89,6 +_,19 @@
+@@ -88,10 +_,23 @@
+     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
          if (state.getValue(POWERED)) {
              return InteractionResult.CONSUME;
-         } else {
++        } else {
 +            // CraftBukkit start
 +            boolean powered = state.getValue(POWERED);
 +            org.bukkit.block.Block block = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
@@ -29,9 +30,15 @@
 +                return InteractionResult.SUCCESS;
 +            }
 +            // CraftBukkit end
-             this.press(state, level, pos, player);
-             return InteractionResult.SUCCESS;
++            this.press(state, level, pos, player);
++            return InteractionResult.SUCCESS;
          }
+-
+-        this.press(state, level, pos, player);
+-        return InteractionResult.SUCCESS;
+     }
+ 
+     @Override
 @@ -161,7 +_,33 @@
              : null;
          boolean shouldBePressed = firstArrow != null;

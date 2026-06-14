@@ -19,7 +19,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class TeleportCommand {
-@@ -244,6 +_,14 @@
+@@ -244,30 +_,61 @@
          float xRot,
          @Nullable LookAt lookAt
      ) throws CommandSyntaxException {
@@ -34,11 +34,35 @@
          BlockPos blockPos = BlockPos.containing(x, y, z);
          if (!Level.isInSpawnableBounds(blockPos)) {
              throw INVALID_POSITION.create();
-@@ -255,7 +_,30 @@
-             float relativeOrAbsoluteXRot = relatives.contains(Relative.X_ROT) ? xRot - victim.getXRot() : xRot;
-             float newYRot = Mth.wrapDegrees(relativeOrAbsoluteYRot);
-             float newXRot = Mth.wrapDegrees(relativeOrAbsoluteXRot);
--            if (victim.teleportTo(level, relativeOrAbsoluteX, relativeOrAbsoluteY, relativeOrAbsoluteZ, relatives, newYRot, newXRot, true)) {
+-        }
+-
+-        double relativeOrAbsoluteX = relatives.contains(Relative.X) ? x - victim.getX() : x;
+-        double relativeOrAbsoluteY = relatives.contains(Relative.Y) ? y - victim.getY() : y;
+-        double relativeOrAbsoluteZ = relatives.contains(Relative.Z) ? z - victim.getZ() : z;
+-        float relativeOrAbsoluteYRot = relatives.contains(Relative.Y_ROT) ? yRot - victim.getYRot() : yRot;
+-        float relativeOrAbsoluteXRot = relatives.contains(Relative.X_ROT) ? xRot - victim.getXRot() : xRot;
+-        float newYRot = Mth.wrapDegrees(relativeOrAbsoluteYRot);
+-        float newXRot = Mth.wrapDegrees(relativeOrAbsoluteXRot);
+-        if (victim.teleportTo(level, relativeOrAbsoluteX, relativeOrAbsoluteY, relativeOrAbsoluteZ, relatives, newYRot, newXRot, true)) {
+-            if (lookAt != null) {
+-                lookAt.perform(source, victim);
+-            }
+-
+-            if (!(victim instanceof LivingEntity living && living.isFallFlying())) {
+-                victim.setDeltaMovement(victim.getDeltaMovement().multiply(1.0, 0.0, 1.0));
+-                victim.setOnGround(true);
+-            }
+-
+-            if (victim instanceof PathfinderMob mob) {
+-                mob.getNavigation().stop();
++        } else {
++            double relativeOrAbsoluteX = relatives.contains(Relative.X) ? x - victim.getX() : x;
++            double relativeOrAbsoluteY = relatives.contains(Relative.Y) ? y - victim.getY() : y;
++            double relativeOrAbsoluteZ = relatives.contains(Relative.Z) ? z - victim.getZ() : z;
++            float relativeOrAbsoluteYRot = relatives.contains(Relative.Y_ROT) ? yRot - victim.getYRot() : yRot;
++            float relativeOrAbsoluteXRot = relatives.contains(Relative.X_ROT) ? xRot - victim.getXRot() : xRot;
++            float newYRot = Mth.wrapDegrees(relativeOrAbsoluteYRot);
++            float newXRot = Mth.wrapDegrees(relativeOrAbsoluteXRot);
 +            // CraftBukkit start - Teleport event
 +            boolean result;
 +            if (victim instanceof ServerPlayer player) {
@@ -63,6 +87,18 @@
 +
 +            if (result) {
 +                // CraftBukkit end
-                 if (lookAt != null) {
-                     lookAt.perform(source, victim);
-                 }
++                if (lookAt != null) {
++                    lookAt.perform(source, victim);
++                }
++
++                if (!(victim instanceof LivingEntity living && living.isFallFlying())) {
++                    victim.setDeltaMovement(victim.getDeltaMovement().multiply(1.0, 0.0, 1.0));
++                    victim.setOnGround(true);
++                }
++
++                if (victim instanceof PathfinderMob mob) {
++                    mob.getNavigation().stop();
++                }
+             }
+         }
+     }

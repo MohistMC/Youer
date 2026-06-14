@@ -1,14 +1,24 @@
 --- a/net/minecraft/world/level/levelgen/structure/structures/IglooPieces.java
 +++ b/net/minecraft/world/level/levelgen/structure/structures/IglooPieces.java
-@@ -106,10 +_,15 @@
+@@ -13,6 +_,7 @@
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.Mirror;
+ import net.minecraft.world.level.block.Rotation;
++import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.entity.ChestBlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+@@ -105,9 +_,15 @@
          protected void handleDataMarker(String markerId, BlockPos position, ServerLevelAccessor level, RandomSource random, BoundingBox chunkBB) {
              if ("chest".equals(markerId)) {
                  level.setBlock(position, Blocks.AIR.defaultBlockState(), 3);
+-                if (level.getBlockEntity(position.below()) instanceof ChestBlockEntity chestBlockEntity) {
+-                    chestBlockEntity.setLootTable(BuiltInLootTables.IGLOO_CHEST, random.nextLong());
 +                // CraftBukkit start - ensure block transformation
 +                /*
-                 BlockEntity chest = level.getBlockEntity(position.below());
-                 if (chest instanceof ChestBlockEntity) {
-                     ((ChestBlockEntity)chest).setLootTable(BuiltInLootTables.IGLOO_CHEST, random.nextLong());
++                BlockEntity chest = level.getBlockEntity(position.below());
++                if (chest instanceof ChestBlockEntity) {
++                    ((ChestBlockEntity)chest).setLootTable(BuiltInLootTables.IGLOO_CHEST, random.nextLong());
                  }
 +                */
 +                setCraftLootTable(level, position.below(), random, BuiltInLootTables.IGLOO_CHEST);

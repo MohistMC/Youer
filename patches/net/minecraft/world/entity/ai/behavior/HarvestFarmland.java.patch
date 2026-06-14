@@ -21,21 +21,21 @@
 -        if (!level.getGameRules().get(GameRules.MOB_GRIEFING)) {
 +        if (!net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, body)) {
              return false;
-         } else if (!body.getVillagerData().profession().is(VillagerProfession.FARMER)) {
-             return false;
-@@ -80,7 +_,7 @@
+         }
+ 
+@@ -82,7 +_,7 @@
          BlockState state = level.getBlockState(blockPos);
          Block block = state.getBlock();
          Block blockBelow = level.getBlockState(blockPos.below()).getBlock();
--        return block instanceof CropBlock && ((CropBlock)block).isMaxAge(state) || state.isAir() && blockBelow instanceof FarmlandBlock;
+-        return block instanceof CropBlock cropBlock && cropBlock.isMaxAge(state) || state.isAir() && blockBelow instanceof FarmlandBlock;
 +        return block instanceof CropBlock && ((CropBlock)block).isMaxAge(state) || state.isAir() && (blockBelow instanceof FarmlandBlock || blockBelow.builtInRegistryHolder().is(net.neoforged.neoforge.common.Tags.Blocks.VILLAGER_FARMLANDS));
      }
  
      protected void start(ServerLevel level, Villager body, long timestamp) {
-@@ -104,10 +_,12 @@
+@@ -106,10 +_,12 @@
                  Block block = blockState.getBlock();
                  Block blockBelow = level.getBlockState(this.aboveFarmlandPos.below()).getBlock();
-                 if (block instanceof CropBlock && ((CropBlock)block).isMaxAge(blockState)) {
+                 if (block instanceof CropBlock cropBlock && cropBlock.isMaxAge(blockState)) {
 +                    if (CraftEventFactory.callEntityChangeBlockEvent(body, this.aboveFarmlandPos, Blocks.AIR.defaultBlockState())) { // CraftBukkit
                      level.destroyBlock(this.aboveFarmlandPos, true, body);
 +                    } // CraftBukkit
@@ -46,7 +46,7 @@
                      SimpleContainer inventory = body.getInventory();
  
                      for (int i = 0; i < inventory.getContainerSize(); i++) {
-@@ -115,9 +_,16 @@
+@@ -117,9 +_,16 @@
                          boolean ok = false;
                          if (!itemStack.isEmpty() && itemStack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) && itemStack.getItem() instanceof BlockItem blockItem) {
                              BlockState place = blockItem.getBlock().defaultBlockState();

@@ -1,57 +1,27 @@
 --- a/net/minecraft/world/level/LevelSettings.java
 +++ b/net/minecraft/world/level/LevelSettings.java
-@@ -2,64 +_,199 @@
- 
- import com.mojang.serialization.Codec;
- import com.mojang.serialization.Dynamic;
-+import com.mojang.serialization.Lifecycle;
- import com.mojang.serialization.codecs.RecordCodecBuilder;
-+import java.util.Objects;
+@@ -6,8 +_,13 @@
  import net.minecraft.world.Difficulty;
--
--public record LevelSettings(
+ 
+ public record LevelSettings(
 -    String levelName, GameType gameType, LevelSettings.DifficultySettings difficultySettings, boolean allowCommands, WorldDataConfiguration dataConfiguration
--) {
-+import net.neoforged.neoforge.common.CommonHooks;
-+
-+public final class LevelSettings {
-+    public String levelName;
-+    private final GameType gameType;
-+    private final DifficultySettings difficultySettings;
-+    private final boolean allowCommands;
-+    private final WorldDataConfiguration dataConfiguration;
-+    private final Lifecycle lifecycle;
-+
-+    public LevelSettings(
-+            String levelName, GameType gameType, DifficultySettings difficultySettings, boolean allowCommands, WorldDataConfiguration dataConfiguration, Lifecycle lifecycle
-+    ) {
-+        this.levelName = levelName;
-+        this.gameType = gameType;
-+        this.difficultySettings = difficultySettings;
-+        this.allowCommands = allowCommands;
-+        this.dataConfiguration = dataConfiguration;
-+        this.lifecycle = lifecycle;
-+    }
-+
++    String levelName, GameType gameType, LevelSettings.DifficultySettings difficultySettings, boolean allowCommands, WorldDataConfiguration dataConfiguration, com.mojang.serialization.Lifecycle lifecycle
+ ) {
 +    // Neo: Overload that defaults the new lifecycle parameter
 +    public LevelSettings(String levelName, GameType gameType, DifficultySettings difficultySettings, boolean allowCommands, WorldDataConfiguration dataConfiguration) {
-+        this(levelName, gameType, difficultySettings, allowCommands, dataConfiguration, Lifecycle.stable());
++        this(levelName, gameType, difficultySettings, allowCommands, dataConfiguration, com.mojang.serialization.Lifecycle.stable());
 +    }
 +
      public static LevelSettings parse(Dynamic<?> input, WorldDataConfiguration loadConfig) {
          GameType gameType = GameType.byId(input.get("GameType").asInt(0));
          return new LevelSettings(
--            input.get("LevelName").asString(""),
--            gameType,
--            input.get("difficulty_settings").read(LevelSettings.DifficultySettings.CODEC).result().orElse(LevelSettings.DifficultySettings.DEFAULT),
--            input.get("allowCommands").asBoolean(gameType == GameType.CREATIVE),
+@@ -15,12 +_,13 @@
+             gameType,
+             input.get("difficulty_settings").read(LevelSettings.DifficultySettings.CODEC).result().orElse(LevelSettings.DifficultySettings.DEFAULT),
+             input.get("allowCommands").asBoolean(gameType == GameType.CREATIVE),
 -            loadConfig
-+                input.get("LevelName").asString(""),
-+                gameType,
-+                input.get("difficulty_settings").read(DifficultySettings.CODEC).result().orElse(DifficultySettings.DEFAULT),
-+                input.get("allowCommands").asBoolean(gameType == GameType.CREATIVE),
-+                loadConfig,
-+                CommonHooks.parseLifecycle(input.get("forgeLifecycle").asString("stable"))
++            loadConfig,
++            net.neoforged.neoforge.common.CommonHooks.parseLifecycle(input.get("forgeLifecycle").asString("stable"))
          );
      }
  
@@ -60,35 +30,24 @@
 +        return new LevelSettings(this.levelName, gameType, this.difficultySettings, this.allowCommands, this.dataConfiguration, this.lifecycle);
      }
  
-     public LevelSettings withDifficulty(Difficulty difficulty) {
-         return new LevelSettings(
--            this.levelName,
--            this.gameType,
--            new LevelSettings.DifficultySettings(difficulty, this.difficultySettings.hardcore(), this.difficultySettings.locked()),
--            this.allowCommands,
+     public LevelSettings withAllowCommands(boolean allowCommands) {
+@@ -33,7 +_,8 @@
+             this.gameType,
+             new LevelSettings.DifficultySettings(difficulty, this.difficultySettings.hardcore(), this.difficultySettings.locked()),
+             this.allowCommands,
 -            this.dataConfiguration
-+                this.levelName,
-+                this.gameType,
-+                new DifficultySettings(difficulty, this.difficultySettings.hardcore(), this.difficultySettings.locked()),
-+                this.allowCommands,
-+                this.dataConfiguration,
-+                this.lifecycle
++            this.dataConfiguration,
++            this.lifecycle
          );
      }
  
-     public LevelSettings withDifficultyLock(boolean locked) {
-         return new LevelSettings(
--            this.levelName,
--            this.gameType,
--            new LevelSettings.DifficultySettings(this.difficultySettings.difficulty(), this.difficultySettings.hardcore(), locked),
--            this.allowCommands,
+@@ -43,16 +_,26 @@
+             this.gameType,
+             new LevelSettings.DifficultySettings(this.difficultySettings.difficulty(), this.difficultySettings.hardcore(), locked),
+             this.allowCommands,
 -            this.dataConfiguration
-+                this.levelName,
-+                this.gameType,
-+                new DifficultySettings(this.difficultySettings.difficulty(), this.difficultySettings.hardcore(), locked),
-+                this.allowCommands,
-+                this.dataConfiguration,
-+                this.lifecycle
++            this.dataConfiguration,
++            this.lifecycle
          );
      }
  
@@ -98,140 +57,17 @@
 +    }
 +
 +    // Neo: Changes the lifecycle, keeps every other property
-+    public LevelSettings withLifecycle(Lifecycle lifecycle) {
++    public LevelSettings withLifecycle(com.mojang.serialization.Lifecycle lifecycle) {
 +        return new LevelSettings(this.levelName, this.gameType, this.difficultySettings, this.allowCommands, this.dataConfiguration, lifecycle);
      }
  
      public LevelSettings copy() {
 -        return new LevelSettings(this.levelName, this.gameType, this.difficultySettings, this.allowCommands, this.dataConfiguration);
--    }
--
--    public record DifficultySettings(Difficulty difficulty, boolean hardcore, boolean locked) {
--        public static final LevelSettings.DifficultySettings DEFAULT = new LevelSettings.DifficultySettings(Difficulty.NORMAL, false, false);
--        public static final Codec<LevelSettings.DifficultySettings> CODEC = RecordCodecBuilder.create(
--            i -> i.group(
--                    Difficulty.CODEC.fieldOf("difficulty").forGetter(LevelSettings.DifficultySettings::difficulty),
--                    Codec.BOOL.fieldOf("hardcore").forGetter(LevelSettings.DifficultySettings::hardcore),
--                    Codec.BOOL.fieldOf("locked").forGetter(LevelSettings.DifficultySettings::locked)
--                )
--                .apply(i, LevelSettings.DifficultySettings::new)
--        );
--    }
 +        return new LevelSettings(this.levelName, this.gameType, this.difficultySettings, this.allowCommands, this.dataConfiguration, this.lifecycle);
 +    }
 +
-+    public Lifecycle getLifecycle() {
++    public com.mojang.serialization.Lifecycle getLifecycle() {
 +        return this.lifecycle;
-+    }
-+
-+    public String levelName() {
-+        return levelName;
-+    }
-+
-+    public GameType gameType() {
-+        return gameType;
-+    }
-+
-+    public DifficultySettings difficultySettings() {
-+        return difficultySettings;
-+    }
-+
-+    public boolean allowCommands() {
-+        return allowCommands;
-+    }
-+
-+    public WorldDataConfiguration dataConfiguration() {
-+        return dataConfiguration;
-+    }
-+
-+    public Lifecycle lifecycle() {
-+        return lifecycle;
-+    }
-+
-+    @Override
-+    public boolean equals(Object obj) {
-+        if (obj == this) return true;
-+        if (obj == null || obj.getClass() != this.getClass()) return false;
-+        var that = (LevelSettings) obj;
-+        return Objects.equals(this.levelName, that.levelName) &&
-+                Objects.equals(this.gameType, that.gameType) &&
-+                Objects.equals(this.difficultySettings, that.difficultySettings) &&
-+                this.allowCommands == that.allowCommands &&
-+                Objects.equals(this.dataConfiguration, that.dataConfiguration) &&
-+                Objects.equals(this.lifecycle, that.lifecycle);
-+    }
-+
-+    @Override
-+    public int hashCode() {
-+        return Objects.hash(levelName, gameType, difficultySettings, allowCommands, dataConfiguration, lifecycle);
-+    }
-+
-+    @Override
-+    public String toString() {
-+        return "LevelSettings[" +
-+                "levelName=" + levelName + ", " +
-+                "gameType=" + gameType + ", " +
-+                "difficultySettings=" + difficultySettings + ", " +
-+                "allowCommands=" + allowCommands + ", " +
-+                "dataConfiguration=" + dataConfiguration + ", " +
-+                "lifecycle=" + lifecycle + ']';
-+    }
-+
-+
-+    public static final class DifficultySettings {
-+            public static final DifficultySettings DEFAULT = new DifficultySettings(Difficulty.NORMAL, false, false);
-+            public static final Codec<DifficultySettings> CODEC = RecordCodecBuilder.create(
-+                    i -> i.group(
-+                                    Difficulty.CODEC.fieldOf("difficulty").forGetter(DifficultySettings::difficulty),
-+                                    Codec.BOOL.fieldOf("hardcore").forGetter(DifficultySettings::hardcore),
-+                                    Codec.BOOL.fieldOf("locked").forGetter(DifficultySettings::locked)
-+                            )
-+                            .apply(i, DifficultySettings::new)
-+            );
-+        private final Difficulty difficulty;
-+        public boolean hardcore;
-+        private final boolean locked;
-+
-+        public DifficultySettings(Difficulty difficulty, boolean hardcore, boolean locked) {
-+            this.difficulty = difficulty;
-+            this.hardcore = hardcore;
-+            this.locked = locked;
-+        }
-+
-+        public Difficulty difficulty() {
-+            return difficulty;
-+        }
-+
-+        public boolean hardcore() {
-+            return hardcore;
-+        }
-+
-+        public boolean locked() {
-+            return locked;
-+        }
-+
-+        @Override
-+        public boolean equals(Object obj) {
-+            if (obj == this) return true;
-+            if (obj == null || obj.getClass() != this.getClass()) return false;
-+            var that = (DifficultySettings) obj;
-+            return Objects.equals(this.difficulty, that.difficulty) &&
-+                    this.hardcore == that.hardcore &&
-+                    this.locked == that.locked;
-+        }
-+
-+        @Override
-+        public int hashCode() {
-+            return Objects.hash(difficulty, hardcore, locked);
-+        }
-+
-+        @Override
-+        public String toString() {
-+            return "DifficultySettings[" +
-+                    "difficulty=" + difficulty + ", " +
-+                    "hardcore=" + hardcore + ", " +
-+                    "locked=" + locked + ']';
-+        }
-+
-+        }
- }
+     }
+ 
+     public record DifficultySettings(Difficulty difficulty, boolean hardcore, boolean locked) {

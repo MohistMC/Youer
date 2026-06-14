@@ -1,9 +1,17 @@
 --- a/net/minecraft/world/level/chunk/storage/RegionFile.java
 +++ b/net/minecraft/world/level/chunk/storage/RegionFile.java
+@@ -15,6 +_,7 @@
+ import java.nio.file.Path;
+ import java.nio.file.StandardCopyOption;
+ import java.nio.file.StandardOpenOption;
++import java.util.Objects;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.util.Util;
+ import net.minecraft.util.profiling.jfr.JvmProfiler;
 @@ -83,6 +_,14 @@
-                     if (offset != 0) {
-                         int sectorNumber = getSectorNumber(offset);
-                         int numSectors = getNumSectors(offset);
+                 if (offset != 0) {
+                     int sectorNumber = getSectorNumber(offset);
+                     int numSectors = getNumSectors(offset);
 +                        // Spigot start
 +                        if (numSectors == 255) {
 +                            // We're maxed out, so we need to read the proper length from the section
@@ -12,13 +20,13 @@
 +                            numSectors = (realLen.getInt(0) + 4) / 4096 + 1;
 +                        }
 +                        // Spigot end
-                         if (sectorNumber < 2) {
-                             LOGGER.warn("Region file {} has invalid sector at index: {}; sector {} overlaps with header", path, i, sectorNumber);
-                             this.offsets.put(i, 0);
+                     if (sectorNumber < 2) {
+                         LOGGER.warn("Region file {} has invalid sector at index: {}; sector {} overlaps with header", path, i, sectorNumber);
+                         this.offsets.put(i, 0);
 @@ -117,6 +_,13 @@
-         } else {
-             int sectorNumber = getSectorNumber(offset);
-             int numSectors = getNumSectors(offset);
+ 
+         int sectorNumber = getSectorNumber(offset);
+         int numSectors = getNumSectors(offset);
 +            // Spigot start
 +            if (numSectors == 255) {
 +                ByteBuffer realLen = ByteBuffer.allocate(4);
@@ -26,6 +34,6 @@
 +                numSectors = (realLen.getInt(0) + 4) / 4096 + 1;
 +            }
 +            // Spigot end
-             int sectorsLength = numSectors * 4096;
-             ByteBuffer buffer = ByteBuffer.allocate(sectorsLength);
-             this.file.read(buffer, sectorNumber * 4096);
+         int sectorsLength = numSectors * 4096;
+         ByteBuffer buffer = ByteBuffer.allocate(sectorsLength);
+         this.file.read(buffer, sectorNumber * 4096);

@@ -48,10 +48,26 @@
                      this.dropItem(level, null);
                  }
              }
-@@ -78,6 +_,22 @@
+@@ -74,19 +_,33 @@
+     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+         if (this.isInvulnerableToBase(source)) {
              return false;
-         } else {
-             if (!this.isRemoved()) {
+-        }
+-
+-        if (!level.getGameRules().get(GameRules.MOB_GRIEFING) && source.getEntity() instanceof Mob) {
++        } else if (!level.getGameRules().get(GameRules.MOB_GRIEFING) && source.getEntity() instanceof Mob) {
+             return false;
+-        }
+-
+-        if (!this.isRemoved()) {
+-            this.kill(level);
+-            this.markHurt();
+-            this.dropItem(level, source.getEntity());
+-        }
+-
+-        return true;
++        } else {
++            if (!this.isRemoved()) {
 +                // CraftBukkit start - fire break events
 +                Entity damager = (source.isDirect()) ? source.getDirectEntity() : source.getEntity();
 +                HangingBreakEvent event;
@@ -68,10 +84,17 @@
 +                }
 +                // CraftBukkit end
 +
-                 this.kill(level);
-                 this.markHurt();
-                 this.dropItem(level, source.getEntity());
-@@ -100,6 +_,16 @@
++                this.kill(level);
++                this.markHurt();
++                this.dropItem(level, source.getEntity());
++            }
++
++            return true;
++        }
+     }
+ 
+     @Override
+@@ -102,6 +_,16 @@
      @Override
      public void move(MoverType moverType, Vec3 delta) {
          if (this.level() instanceof ServerLevel level && !this.isRemoved() && delta.lengthSqr() > 0.0) {
@@ -88,7 +111,7 @@
              this.kill(level);
              this.dropItem(level, null);
          }
-@@ -107,7 +_,7 @@
+@@ -109,7 +_,7 @@
  
      @Override
      public void push(double xa, double ya, double za) {

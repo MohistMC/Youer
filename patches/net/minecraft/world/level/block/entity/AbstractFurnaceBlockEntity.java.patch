@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
-@@ -32,11 +_,23 @@
+@@ -6,6 +_,7 @@
+ import it.unimi.dsi.fastutil.objects.Reference2IntMap.Entry;
+ import java.util.List;
+ import java.util.Map;
++import java.util.Objects;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.NonNullList;
+@@ -31,11 +_,23 @@
  import net.minecraft.world.item.crafting.RecipeManager;
  import net.minecraft.world.item.crafting.RecipeType;
  import net.minecraft.world.item.crafting.SingleRecipeInput;
@@ -24,7 +32,15 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer, StackedContentsCompatible, RecipeCraftingHolder {
-@@ -72,9 +_,14 @@
+@@ -63,13 +_,22 @@
+     public int cookingTimer;
+     public int cookingTotalTime;
+     protected final ContainerData dataAccess = new ContainerData() {
++        {
++            Objects.requireNonNull(AbstractFurnaceBlockEntity.this);
++        }
++
+         @Override
          public int get(int dataId) {
              switch (dataId) {
                  case 0:
@@ -40,7 +56,7 @@
                  case 2:
                      return AbstractFurnaceBlockEntity.this.cookingTimer;
                  case 3:
-@@ -108,23 +_,55 @@
+@@ -103,23 +_,55 @@
      };
      public final Reference2IntOpenHashMap<ResourceKey<Recipe<?>>> recipesUsed = new Reference2IntOpenHashMap<>();
      private final RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> quickCheck;
@@ -101,7 +117,7 @@
          this.recipesUsed.clear();
          this.recipesUsed.putAll(input.read("RecipesUsed", RECIPES_USED_CODEC).orElse(Map.of()));
      }
-@@ -132,10 +_,10 @@
+@@ -127,10 +_,10 @@
      @Override
      protected void saveAdditional(ValueOutput output) {
          super.saveAdditional(output);
@@ -116,7 +132,7 @@
          ContainerHelper.saveAllItems(output, this.items);
          output.store("RecipesUsed", RECIPES_USED_CODEC, this.recipesUsed);
      }
-@@ -167,9 +_,18 @@
+@@ -162,9 +_,18 @@
                      if (!burnResult.isEmpty() && canBurn(entity.items, maxStackSize, burnResult)) {
                          if (!isLit) {
                              int newLitTime = entity.getBurnDuration(level.fuelValues(), fuel);
@@ -136,7 +152,7 @@
                                  consumeFuel(entity.items, fuel);
                                  isLit = true;
                                  changed = true;
-@@ -177,12 +_,22 @@
+@@ -172,12 +_,22 @@
                          }
  
                          if (isLit) {
@@ -161,7 +177,7 @@
                                  changed = true;
                              }
                          } else {
-@@ -212,9 +_,10 @@
+@@ -207,9 +_,10 @@
  
      private static void consumeFuel(NonNullList<ItemStack> items, ItemStack fuel) {
          Item fuelItem = fuel.getItem();
@@ -173,8 +189,24 @@
              items.set(1, remainder != null ? remainder.create() : ItemStack.EMPTY);
          }
      }
-@@ -232,26 +_,56 @@
+@@ -218,37 +_,65 @@
+         ItemStack resultItemStack = items.get(2);
+         if (resultItemStack.isEmpty()) {
+             return true;
+-        }
+-
+-        if (!ItemStack.isSameItemSameComponents(resultItemStack, burnResult)) {
++        } else if (!ItemStack.isSameItemSameComponents(resultItemStack, burnResult)) {
+             return false;
++        } else {
++            int resultCount = resultItemStack.getCount() + burnResult.count();
++            int maxResultCount = Math.min(maxStackSize, burnResult.getMaxStackSize());
++            return resultCount <= maxResultCount;
          }
+-
+-        int resultCount = resultItemStack.getCount() + burnResult.count();
+-        int maxResultCount = Math.min(maxStackSize, burnResult.getMaxStackSize());
+-        return resultCount <= maxResultCount;
      }
  
 -    private static void burn(NonNullList<ItemStack> items, ItemStack inputItemStack, ItemStack result) {
@@ -232,7 +264,7 @@
          SingleRecipeInput input = new SingleRecipeInput(entity.getItem(0));
          return entity.quickCheck.getRecipeFor(input, level).map(recipeHolder -> recipeHolder.value().cookingTime()).orElse(200);
      }
-@@ -292,17 +_,57 @@
+@@ -289,17 +_,57 @@
  
      @Override
      public void setItem(int slot, ItemStack itemStack) {
@@ -292,15 +324,15 @@
      public boolean canPlaceItem(int slot, ItemStack itemStack) {
          if (slot == 2) {
 @@ -311,7 +_,7 @@
-             return true;
-         } else {
-             ItemStack fuelSlot = this.items.get(1);
--            return this.level.fuelValues().isFuel(itemStack) || itemStack.is(Items.BUCKET) && !fuelSlot.is(Items.BUCKET);
-+            return itemStack.getBurnTime(this.recipeType, this.level.fuelValues()) > 0 || itemStack.is(Items.BUCKET) && !fuelSlot.is(Items.BUCKET);
          }
+ 
+         ItemStack fuelSlot = this.items.get(1);
+-        return this.level.fuelValues().isFuel(itemStack) || itemStack.is(Items.BUCKET) && !fuelSlot.is(Items.BUCKET);
++        return itemStack.getBurnTime(this.recipeType, this.level.fuelValues()) > 0 || itemStack.is(Items.BUCKET) && !fuelSlot.is(Items.BUCKET);
      }
  
-@@ -332,8 +_,8 @@
+     @Override
+@@ -331,8 +_,8 @@
      public void awardUsedRecipes(Player player, List<ItemStack> itemStacks) {
      }
  
@@ -311,7 +343,7 @@
          player.awardRecipes(recipesToAward);
  
          for (RecipeHolder<?> recipe : recipesToAward) {
-@@ -344,24 +_,40 @@
+@@ -343,24 +_,40 @@
      }
  
      public List<RecipeHolder<?>> getRecipesToAwardAndPopExperience(ServerLevel level, Vec3 position) {

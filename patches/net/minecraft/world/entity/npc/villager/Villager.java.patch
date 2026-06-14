@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/npc/villager/Villager.java
 +++ b/net/minecraft/world/entity/npc/villager/Villager.java
-@@ -89,8 +_,11 @@
+@@ -90,8 +_,11 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.timeline.Timelines;
@@ -12,15 +12,6 @@
  
  public class Villager extends AbstractVillager implements VillagerDataHolder, ReputationEventHandler {
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -118,7 +_,7 @@
-     private @Nullable Player lastTradedPlayer;
-     private boolean chasing;
-     private int foodLevel = 0;
--    private final GossipContainer gossips = new GossipContainer();
-+    private final GossipContainer gossips = new GossipContainer(this);
-     private long lastGossipTime;
-     private long lastGossipDecayTime = 0L;
-     private int villagerXp = 0;
 @@ -180,6 +_,9 @@
          MemoryModuleType.MEETING_POINT,
          (villager, poiType) -> poiType.is(PoiTypes.MEETING)
@@ -29,9 +20,9 @@
 +    public long gossipDecayInterval = GOSSIP_DECAY_INTERVAL;
 +    // CraftBukkit end
  
-     public Villager(EntityType<? extends Villager> type, Level level) {
-         this(type, level, VillagerType.PLAINS);
-@@ -261,7 +_,7 @@
+     public Villager(EntityType<? extends Villager> entityType, Level level) {
+         super(entityType, level);
+@@ -252,7 +_,7 @@
                      this.increaseProfessionLevelOnUpdate = false;
                  }
  
@@ -40,16 +31,16 @@
              }
          }
  
-@@ -298,7 +_,7 @@
+@@ -289,7 +_,7 @@
      @Override
      public InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
 -        if (itemStack.is(Items.VILLAGER_SPAWN_EGG) || !this.isAlive() || this.isTrading() || this.isSleeping()) {
 +        if (itemStack.is(Items.VILLAGER_SPAWN_EGG) || !this.isAlive() || this.isTrading() || this.isSleeping() || player.isSecondaryUseActive()) {
              return super.mobInteract(player, hand);
-         } else if (this.isBaby()) {
-             this.setUnhappy();
-@@ -375,7 +_,13 @@
+         }
+ 
+@@ -368,7 +_,13 @@
          this.updateDemand();
  
          for (MerchantOffer offer : this.getOffers()) {
@@ -64,7 +55,7 @@
          }
  
          this.resendOffersToTradingPlayer();
-@@ -436,7 +_,13 @@
+@@ -429,7 +_,13 @@
          int missedUpdates = 2 - this.numberOfRestocksToday;
          if (missedUpdates > 0) {
              for (MerchantOffer offer : this.getOffers()) {
@@ -79,7 +70,7 @@
              }
          }
  
-@@ -599,7 +_,7 @@
+@@ -602,7 +_,7 @@
  
      @Override
      public void die(DamageSource source) {
@@ -88,14 +79,14 @@
          Entity murderer = source.getEntity();
          if (murderer != null) {
              this.tellWitnessesThatIWasMurdered(murderer);
-@@ -759,13 +_,14 @@
+@@ -761,13 +_,14 @@
  
      @Override
      public void thunderHit(ServerLevel level, LightningBolt lightningBolt) {
 -        if (level.getDifficulty() != Difficulty.PEACEFUL) {
-+        if (level.getDifficulty() != Difficulty.PEACEFUL && net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityType.WITCH, (timer) -> {})) {
++        if (level.getDifficulty() != Difficulty.PEACEFUL && net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityTypes.WITCH, (timer) -> {})) {
              LOGGER.info("Villager {} was struck by lightning {}.", this, lightningBolt);
-             Witch witch = this.convertTo(EntityType.WITCH, ConversionParams.single(this, false, false), w -> {
+             Witch witch = this.convertTo(EntityTypes.WITCH, ConversionParams.single(this, false, false), w -> {
                  w.finalizeSpawn(level, level.getCurrentDifficultyAt(w.blockPosition()), EntitySpawnReason.CONVERSION, null);
 +                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, w);
                  w.setPersistenceRequired();
@@ -105,7 +96,7 @@
              if (witch == null) {
                  super.thunderHit(level, lightningBolt);
              }
-@@ -782,7 +_,10 @@
+@@ -784,7 +_,10 @@
      @Override
      public boolean wantsToPickUp(ServerLevel level, ItemStack itemStack) {
          Item item = itemStack.getItem();
@@ -117,7 +108,7 @@
              && this.getInventory().canAddItem(itemStack);
      }
  
-@@ -830,7 +_,7 @@
+@@ -832,7 +_,7 @@
          long timestamp = this.level().getGameTime();
          if (this.lastGossipDecayTime == 0L) {
              this.lastGossipDecayTime = timestamp;
@@ -126,7 +117,7 @@
              this.gossips.decay();
              this.lastGossipDecayTime = timestamp;
          }
-@@ -854,9 +_,10 @@
+@@ -856,9 +_,10 @@
                          8,
                          6,
                          SpawnUtil.Strategy.LEGACY_IRON_GOLEM,
@@ -139,7 +130,7 @@
                      nearbyVillagers.forEach(GolemSensor::golemDetected);
                  }
              }
-@@ -869,15 +_,18 @@
+@@ -871,15 +_,18 @@
  
      @Override
      public void onReputationEventFrom(ReputationEventType type, Entity source) {

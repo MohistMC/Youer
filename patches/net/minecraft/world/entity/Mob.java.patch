@@ -13,9 +13,9 @@
  import java.util.Set;
 +import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.function.Predicate;
+ import net.minecraft.advancements.triggers.CriteriaTriggers;
  import net.minecraft.core.BlockPos;
- import net.minecraft.core.Holder;
-@@ -90,6 +_,16 @@
+@@ -94,6 +_,16 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.ticks.ContainerSingleItem;
@@ -32,7 +32,7 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class Mob extends LivingEntity implements Targeting, EquipmentUser, Leashable {
-@@ -139,6 +_,13 @@
+@@ -144,6 +_,13 @@
      private Leashable.@Nullable LeashData leashData;
      private BlockPos homePosition = BlockPos.ZERO;
      private int homeRadius = -1;
@@ -46,7 +46,7 @@
  
      protected Mob(EntityType<? extends Mob> type, Level level) {
          super(type, level);
-@@ -243,9 +_,35 @@
+@@ -248,9 +_,35 @@
          return this.asValidTarget(this.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null));
      }
  
@@ -84,7 +84,7 @@
  
      @Override
      public boolean canAttack(LivingEntity target) {
-@@ -340,6 +_,12 @@
+@@ -345,6 +_,12 @@
          if (!this.level().isClientSide() && this.tickCount % 5 == 0) {
              this.updateControlFlags();
          }
@@ -97,7 +97,7 @@
      }
  
      protected void updateControlFlags() {
-@@ -359,6 +_,12 @@
+@@ -364,6 +_,12 @@
          return null;
      }
  
@@ -110,7 +110,7 @@
      @Override
      protected void addAdditionalSaveData(ValueOutput output) {
          super.addAdditionalSaveData(output);
-@@ -383,13 +_,26 @@
+@@ -388,13 +_,26 @@
          if (this.isNoAi()) {
              output.putBoolean("NoAI", this.isNoAi());
          }
@@ -139,7 +139,7 @@
          this.dropChances = input.read("drop_chances", DropChances.CODEC).orElse(DropChances.DEFAULT);
          this.readLeashData(input);
          this.homeRadius = input.getIntOr("home_radius", -1);
-@@ -401,6 +_,17 @@
+@@ -406,6 +_,17 @@
          this.lootTable = input.read("DeathLootTable", LootTable.KEY_CODEC);
          this.lootTableSeed = input.getLongOr("DeathLootTableSeed", 0L);
          this.setNoAi(input.getBooleanOr("NoAI", false));
@@ -157,7 +157,7 @@
      }
  
      @Override
-@@ -459,7 +_,7 @@
+@@ -464,7 +_,7 @@
              && this.canPickUpLoot()
              && this.isAlive()
              && !this.dead
@@ -166,7 +166,7 @@
              Vec3i pickupReach = this.getPickupReach();
  
              for (ItemEntity entity : this.level()
-@@ -515,18 +_,24 @@
+@@ -520,49 +_,63 @@
  
      protected void pickUpItem(ServerLevel level, ItemEntity entity) {
          ItemStack itemStack = entity.getItem();
@@ -193,11 +193,36 @@
          EquipmentSlot slot = this.getEquipmentSlotForItem(itemStack);
          if (!this.isEquippableInSlot(itemStack, slot)) {
              return ItemStack.EMPTY;
-@@ -539,10 +_,18 @@
-                 canReplace = current.isEmpty();
-             }
- 
--            if (canReplace && this.canHoldItem(itemStack)) {
+-        }
+-
+-        ItemStack current = this.getItemBySlot(slot);
+-        boolean canReplace = this.canReplaceCurrentItem(itemStack, current, slot);
+-        if (slot.isArmor() && !canReplace) {
+-            slot = EquipmentSlot.MAINHAND;
+-            current = this.getItemBySlot(slot);
+-            canReplace = current.isEmpty();
+-        }
+-
+-        if (canReplace && this.canHoldItem(itemStack)) {
+-            double dropChance = this.dropChances.byEquipment(slot);
+-            if (!current.isEmpty() && Math.max(this.random.nextFloat() - 0.1F, 0.0F) < dropChance) {
+-                this.spawnAtLocation(level, current);
+-            }
+-
+-            ItemStack toEquip = slot.limit(itemStack);
+-            this.setItemSlotAndDropWhenKilled(slot, toEquip);
+-            this.persistenceRequired = true;
+-            return toEquip;
+         } else {
+-            return ItemStack.EMPTY;
++            ItemStack current = this.getItemBySlot(slot);
++            boolean canReplace = this.canReplaceCurrentItem(itemStack, current, slot);
++            if (slot.isArmor() && !canReplace) {
++                slot = EquipmentSlot.MAINHAND;
++                current = this.getItemBySlot(slot);
++                canReplace = current.isEmpty();
++            }
++
 +            // CraftBukkit start
 +            boolean canPickup = canReplace && this.canHoldItem(itemStack);
 +            if (itementity != null) {
@@ -205,15 +230,30 @@
 +            }
 +            if (canPickup) {
 +                // CraftBukkit end
-                 double dropChance = this.dropChances.byEquipment(slot);
-                 if (!current.isEmpty() && Math.max(this.random.nextFloat() - 0.1F, 0.0F) < dropChance) {
++                double dropChance = this.dropChances.byEquipment(slot);
++                if (!current.isEmpty() && Math.max(this.random.nextFloat() - 0.1F, 0.0F) < dropChance) {
 +                    this.forceDrops = true; // CraftBukkit
-                     this.spawnAtLocation(level, current);
++                    this.spawnAtLocation(level, current);
 +                    this.forceDrops = false; // CraftBukkit
-                 }
++                }
++
++                ItemStack toEquip = slot.limit(itemStack);
++                this.setItemSlotAndDropWhenKilled(slot, toEquip);
++                return toEquip;
++            } else {
++                return ItemStack.EMPTY;
++            }
+         }
+     }
  
-                 ItemStack toEquip = slot.limit(itemStack);
-@@ -614,6 +_,8 @@
+     protected void setItemSlotAndDropWhenKilled(EquipmentSlot slot, ItemStack itemStack) {
+         this.setItemSlot(slot, itemStack);
+         this.setGuaranteedDrop(slot);
++        this.persistenceRequired = true;
+     }
+ 
+     protected boolean canShearEquipment(Player player) {
+@@ -646,6 +_,8 @@
      private double getApproximateAttributeWith(ItemStack itemStack, Holder<Attribute> attribute, EquipmentSlot slot) {
          double baseValue = this.getAttributes().hasAttribute(attribute) ? this.getAttributeBaseValue(attribute) : 0.0;
          ItemAttributeModifiers attributeModifiers = itemStack.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
@@ -222,7 +262,7 @@
          return attributeModifiers.compute(attribute, baseValue, slot);
      }
  
-@@ -653,8 +_,9 @@
+@@ -685,8 +_,9 @@
  
      @Override
      public void checkDespawn() {
@@ -233,7 +273,7 @@
          } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {
              Entity player = this.level().getNearestPlayer(this, -1.0);
              if (player != null) {
-@@ -662,13 +_,13 @@
+@@ -694,13 +_,13 @@
                  int instantDespawnDistance = this.getType().getCategory().getDespawnDistance();
                  int despawnDistanceSqr = instantDespawnDistance * instantDespawnDistance;
                  if (distSqr > despawnDistanceSqr && this.removeWhenFarAway(distSqr)) {
@@ -249,7 +289,7 @@
                  } else if (distSqr < noDespawnDistanceSqr) {
                      this.noActionTime = 0;
                  }
-@@ -681,6 +_,7 @@
+@@ -713,6 +_,7 @@
      @Override
      protected final void serverAiStep() {
          this.noActionTime++;
@@ -257,7 +297,7 @@
          ProfilerFiller profiler = Profiler.get();
          profiler.push("sensing");
          this.sensing.tick();
-@@ -859,6 +_,51 @@
+@@ -883,6 +_,51 @@
              public boolean stillValid(Player player) {
                  return player.getVehicle() == Mob.this || player.isWithinEntityInteractionRange(Mob.this, 4.0);
              }
@@ -309,7 +349,7 @@
          };
      }
  
-@@ -1054,6 +_,11 @@
+@@ -1078,6 +_,11 @@
          }
      }
  
@@ -321,7 +361,7 @@
      public @Nullable SpawnGroupData finalizeSpawn(
          ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason spawnReason, @Nullable SpawnGroupData groupData
      ) {
-@@ -1066,6 +_,7 @@
+@@ -1090,6 +_,7 @@
          }
  
          this.setLeftHanded(random.nextFloat() < 0.05F);
@@ -329,7 +369,7 @@
          return groupData;
      }
  
-@@ -1203,6 +_,12 @@
+@@ -1227,30 +_,55 @@
      public <T extends Mob> @Nullable T convertTo(
          EntityType<T> entityType, ConversionParams params, EntitySpawnReason spawnReason, ConversionParams.AfterConversion<T> afterConversion
      ) {
@@ -341,11 +381,31 @@
 +        // CraftBukkit end
          if (this.isRemoved()) {
              return null;
-         } else {
-@@ -1212,12 +_,25 @@
-             } else {
-                 params.type().convert(this, newMob, params);
-                 afterConversion.finalizeConversion(newMob);
+-        }
+-
+-        T newMob = (T)entityType.create(this.level(), spawnReason);
+-        if (newMob == null) {
+-            return null;
+-        }
+-
+-        params.type().convert(this, newMob, params);
+-        afterConversion.finalizeConversion(newMob);
+-        if (this.level() instanceof ServerLevel serverLevel) {
+-            serverLevel.addFreshEntity(newMob);
+-        }
+-
+-        if (params.type().shouldDiscardAfterConversion()) {
+-            this.discard();
+-        }
+-
+-        return newMob;
++        } else {
++            T newMob = (T)entityType.create(this.level(), spawnReason);
++            if (newMob == null) {
++                return null;
++            } else {
++                params.type().convert(this, newMob, params);
++                afterConversion.finalizeConversion(newMob);
 +                // CraftBukkit start
 +                if (transformReason == null) {
 +                    // Special handling for slime split and pig lightning
@@ -359,18 +419,17 @@
 +                params.type().postConvert(this, newMob, params);
 +                // CraftBukkit end
 +                if (!preventConversionSpawns)
-                 if (this.level() instanceof ServerLevel serverLevel) {
--                    serverLevel.addFreshEntity(newMob);
++                if (this.level() instanceof ServerLevel serverLevel) {
 +                    serverLevel.addFreshEntity(newMob, bukkitSpawnReason); // CraftBukkit
-                 }
- 
-                 if (params.type().shouldDiscardAfterConversion()) {
--                    this.discard();
++                }
++
++                if (params.type().shouldDiscardAfterConversion()) {
 +                    this.discard(EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
-                 }
- 
-                 return newMob;
-@@ -1226,7 +_,13 @@
++                }
++
++                return newMob;
++            }
++        }
      }
  
      public <T extends Mob> @Nullable T convertTo(EntityType<T> entityType, ConversionParams params, ConversionParams.AfterConversion<T> afterConversion) {
@@ -385,7 +444,7 @@
      }
  
      @Override
-@@ -1267,6 +_,7 @@
+@@ -1291,6 +_,7 @@
      public boolean startRiding(Entity entity, boolean force, boolean sendEventAndTriggers) {
          boolean result = super.startRiding(entity, force, sendEventAndTriggers);
          if (result && this.isLeashed()) {
@@ -393,7 +452,7 @@
              this.dropLeash();
          }
  
-@@ -1375,14 +_,24 @@
+@@ -1399,14 +_,24 @@
      }
  
      @Override
@@ -419,7 +478,7 @@
      @VisibleForTesting
      public void removeFreeWill() {
          this.removeAllGoals(goal -> true);
-@@ -1442,5 +_,40 @@
+@@ -1472,5 +_,40 @@
  
      public float chargeSpeedModifier() {
          return 1.0F;

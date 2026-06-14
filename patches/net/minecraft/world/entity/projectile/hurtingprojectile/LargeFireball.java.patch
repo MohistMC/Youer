@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/hurtingprojectile/LargeFireball.java
 +++ b/net/minecraft/world/entity/projectile/hurtingprojectile/LargeFireball.java
-@@ -13,6 +_,8 @@
+@@ -14,6 +_,8 @@
  import net.minecraft.world.phys.EntityHitResult;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
@@ -9,7 +9,7 @@
  
  public class LargeFireball extends Fireball {
      private static final byte DEFAULT_EXPLOSION_POWER = 1;
-@@ -20,20 +_,30 @@
+@@ -21,20 +_,30 @@
  
      public LargeFireball(EntityType<? extends LargeFireball> type, Level level) {
          super(type, level);
@@ -17,7 +17,7 @@
      }
  
      public LargeFireball(Level level, LivingEntity mob, Vec3 direction, int explosionPower) {
-         super(EntityType.FIREBALL, mob, direction, level);
+         super(EntityTypes.FIREBALL, mob, direction, level);
          this.explosionPower = explosionPower;
 +        isIncendiary = (level instanceof ServerLevel serverlevel) && serverlevel.getGameRules().get(GameRules.MOB_GRIEFING); // CraftBukkit
      }
@@ -32,7 +32,7 @@
 +            // TODO 1.19.3: The creation of Level.ExplosionInteraction means this code path will fire EntityMobGriefingEvent twice. Should we try and fix it? -SS
 +            boolean grief = net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, this.getOwner());
 +            // CraftBukkit start - fire ExplosionPrimeEvent
-+            ExplosionPrimeEvent event = new ExplosionPrimeEvent((org.bukkit.entity.Explosive) this.getBukkitEntity());
++            ExplosionPrimeEvent event = new ExplosionPrimeEvent(this.getBukkitEntity(), this.explosionPower, grief);
 +            this.level().getCraftServer().getPluginManager().callEvent(event);
 +
 +            if (!event.isCancelled()) {
@@ -43,7 +43,7 @@
          }
      }
  
-@@ -58,6 +_,7 @@
+@@ -59,6 +_,7 @@
      @Override
      protected void readAdditionalSaveData(ValueInput input) {
          super.readAdditionalSaveData(input);

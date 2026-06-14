@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/allay/Allay.java
 +++ b/net/minecraft/world/entity/animal/allay/Allay.java
-@@ -98,6 +_,7 @@
+@@ -99,6 +_,7 @@
      private float dancingAnimationTicks;
      private float spinningAnimationTicks;
      private float spinningAnimationTicks0;
@@ -8,7 +8,7 @@
  
      public Allay(EntityType<? extends Allay> type, Level level) {
          super(type, level);
-@@ -111,6 +_,12 @@
+@@ -112,6 +_,12 @@
          );
      }
  
@@ -21,7 +21,7 @@
      @Override
      protected Brain<Allay> makeBrain(Brain.Packed packedBrain) {
          return BRAIN_PROVIDER.makeBrain(this, packedBrain);
-@@ -213,6 +_,7 @@
+@@ -214,6 +_,7 @@
      public void aiStep() {
          super.aiStep();
          if (!this.level().isClientSide() && this.isAlive() && this.tickCount % 10 == 0) {
@@ -29,7 +29,7 @@
              this.heal(1.0F);
          }
  
-@@ -281,7 +_,12 @@
+@@ -282,7 +_,12 @@
          ItemStack interactionItem = player.getItemInHand(hand);
          ItemStack itemInHand = this.getItemInHand(InteractionHand.MAIN_HAND);
          if (this.isDancing() && interactionItem.is(ItemTags.DUPLICATES_ALLAYS) && this.canDuplicate()) {
@@ -43,7 +43,7 @@
              this.level().broadcastEntityEvent(this, (byte)18);
              this.level().playSound(player, this, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.NEUTRAL, 2.0F, 1.0F);
              this.removeInteractionItem(player, interactionItem);
-@@ -336,9 +_,9 @@
+@@ -341,9 +_,9 @@
      public boolean wantsToPickUp(ServerLevel level, ItemStack itemStack) {
          ItemStack itemInHand = this.getItemInHand(InteractionHand.MAIN_HAND);
          return !itemInHand.isEmpty()
@@ -55,7 +55,7 @@
      }
  
      private boolean allayConsidersItemEqual(ItemStack item1, ItemStack item2) {
-@@ -380,6 +_,7 @@
+@@ -385,6 +_,7 @@
      }
  
      private boolean shouldStopDancing() {
@@ -63,7 +63,7 @@
          return this.jukeboxPos == null
              || !this.jukeboxPos.closerToCenterThan(this.position(), GameEvent.JUKEBOX_PLAY.value().notificationRadius())
              || !this.level().getBlockState(this.jukeboxPos).is(Blocks.JUKEBOX);
-@@ -458,8 +_,17 @@
+@@ -463,8 +_,17 @@
              allay.setPersistenceRequired();
              allay.resetDuplicationCooldown();
              this.resetDuplicationCooldown();
@@ -81,3 +81,12 @@
      }
  
      public void resetDuplicationCooldown() {
+@@ -517,6 +_,8 @@
+         private final int listenerRadius;
+ 
+         public JukeboxListener(PositionSource listenerSource, int listenerRadius) {
++            Objects.requireNonNull(Allay.this);
++            super();
+             this.listenerSource = listenerSource;
+             this.listenerRadius = listenerRadius;
+         }

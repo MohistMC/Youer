@@ -10,10 +10,11 @@
  
  public class StopAttackingIfTargetInvalid {
      private static final int TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE = 200;
-@@ -40,6 +_,17 @@
+@@ -39,11 +_,22 @@
+                             && target.level() == body.level()
                              && !stopAttackingWhen.test(level, target)) {
                              return true;
-                         } else {
++                        } else {
 +                            // CraftBukkit start
 +                            LivingEntity old = body.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null);
 +                            EntityTargetEvent event = CraftEventFactory.callEntityTargetLivingEvent(body, null, (old != null && !old.isAlive()) ? EntityTargetEvent.TargetReason.TARGET_DIED : EntityTargetEvent.TargetReason.FORGOT_TARGET);
@@ -25,6 +26,14 @@
 +                                return true;
 +                            }
 +                            // CraftBukkit end
-                             onTargetErased.accept(level, body, target);
-                             attackTarget.erase();
-                             return true;
++                            onTargetErased.accept(level, body, target);
++                            attackTarget.erase();
++                            return true;
+                         }
+-
+-                        onTargetErased.accept(level, body, target);
+-                        attackTarget.erase();
+-                        return true;
+                     }
+                 )
+         );

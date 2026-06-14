@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-@@ -19,10 +_,13 @@
+@@ -8,6 +_,7 @@
+ import java.math.BigInteger;
+ import java.net.InetAddress;
+ import java.net.InetSocketAddress;
++import java.net.SocketAddress;
+ import java.security.PrivateKey;
+ import java.util.Objects;
+ import java.util.concurrent.atomic.AtomicInteger;
+@@ -18,11 +_,14 @@
  import net.minecraft.DefaultUncaughtExceptionHandler;
  import net.minecraft.core.UUIDUtil;
  import net.minecraft.network.Connection;
@@ -8,6 +16,7 @@
  import net.minecraft.network.DisconnectionDetails;
  import net.minecraft.network.PacketSendListener;
  import net.minecraft.network.TickablePacketListener;
+ import net.minecraft.network.chat.CommonComponents;
  import net.minecraft.network.chat.Component;
 +import net.minecraft.network.protocol.Packet;
 +import net.minecraft.network.protocol.PacketUtils;
@@ -137,7 +146,7 @@
              }
          }
      }
-@@ -139,23 +_,55 @@
+@@ -139,25 +_,55 @@
  
      private void verifyLoginAndFinishConnectionSetup(GameProfile profile) {
          PlayerList playerList = this.server.getPlayerList();
@@ -145,7 +154,9 @@
          Component error = playerList.canPlayerLogin(this.connection.getRemoteAddress(), new NameAndId(profile));
          if (error != null) {
              this.disconnect(error);
-         } else {
+-        } else if (this.connection.getIntendedProfileId() != null && !profile.id().equals(this.connection.getIntendedProfileId())) {
+-            this.disconnect(CommonComponents.CONNECT_FAILED);
++        } else {
 +            if (this.player == null) {
 +                this.player = playerList.youer$canPlayerLogin$entity.get();
 +            }
@@ -176,7 +187,7 @@
 +        if (this.player == null) {
 +            // this.disconnect(ichatbasecomponent);
 +            // CraftBukkit end
-+        } else {
+         } else {
              if (this.server.getCompressionThreshold() >= 0 && !this.connection.isMemoryConnection()) {
                  this.connection
 -                    .send(
@@ -200,7 +211,7 @@
              }
          }
      }
-@@ -202,12 +_,18 @@
+@@ -200,24 +_,35 @@
                          .hasJoinedServer(name, digest, this.getAddress());
                      if (result != null) {
                          GameProfile profile = result.profile();
@@ -220,8 +231,9 @@
                      } else {
                          ServerLoginPacketListenerImpl.this.disconnect(Component.translatable("multiplayer.disconnect.unverified_username"));
                          ServerLoginPacketListenerImpl.LOGGER.error("Username '{}' tried to join with an invalid session", name);
-@@ -215,11 +_,16 @@
-                 } catch (AuthenticationUnavailableException var4) {
+                     }
+-                } catch (AuthenticationUnavailableException ignored) {
++                } catch (AuthenticationUnavailableException var4) {
                      if (ServerLoginPacketListenerImpl.this.server.isSingleplayer()) {
                          ServerLoginPacketListenerImpl.LOGGER.warn("Authentication servers are down but will let them in anyway!");
 -                        ServerLoginPacketListenerImpl.this.startClientVerification(UUIDUtil.createOfflineProfile(name));
@@ -238,7 +250,7 @@
                  }
              }
  
-@@ -234,6 +_,43 @@
+@@ -232,6 +_,43 @@
          thread.start();
      }
  
@@ -282,7 +294,7 @@
      @Override
      public void handleCustomQueryPacket(ServerboundCustomQueryAnswerPacket packet) {
          this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
-@@ -241,10 +_,11 @@
+@@ -239,10 +_,11 @@
  
      @Override
      public void handleLoginAcknowledgement(ServerboundLoginAcknowledgedPacket packet) {
@@ -295,7 +307,7 @@
          this.connection.setupInboundProtocol(ConfigurationProtocols.SERVERBOUND, configPacketListener);
          configPacketListener.startConfiguration();
          this.state = ServerLoginPacketListenerImpl.State.ACCEPTED;
-@@ -257,8 +_,40 @@
+@@ -255,10 +_,42 @@
  
      @Override
      public void handleCookieResponse(ServerboundCookieResponsePacket packet) {
@@ -307,7 +319,8 @@
 +        // CraftBukkit end
          this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
      }
-+
+ 
+-    public enum State {
 +    // Spigot start
 +    protected GameProfile createOfflineProfile(String s) {
 +        java.util.UUID uuid;
@@ -333,10 +346,12 @@
 +        return new GameProfile( uuid, s, new com.mojang.authlib.properties.PropertyMap( properties ) );
 +    }
 +    // Spigot end
- 
-     public static enum State {
++
++    public static enum State {
          HELLO,
-@@ -268,6 +_,7 @@
+         KEY,
+         AUTHENTICATING,
+@@ -266,6 +_,7 @@
          VERIFYING,
          WAITING_FOR_DUPE_DISCONNECT,
          PROTOCOL_SWITCHING,

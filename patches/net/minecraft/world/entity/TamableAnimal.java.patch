@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/TamableAnimal.java
 +++ b/net/minecraft/world/entity/TamableAnimal.java
-@@ -136,8 +_,10 @@
+@@ -135,8 +_,10 @@
      protected void feed(Player player, InteractionHand hand, ItemStack itemStack, float healingFactor, float defaultHeal) {
          FoodProperties foodProperties = itemStack.get(DataComponents.FOOD);
          this.usePlayerItem(player, hand, itemStack);
@@ -12,7 +12,7 @@
      }
  
      public boolean isInSittingPose() {
-@@ -222,13 +_,16 @@
+@@ -221,13 +_,16 @@
  
      @Override
      public void die(DamageSource source) {
@@ -32,11 +32,11 @@
      }
  
      public boolean isOrderedToSit() {
-@@ -268,7 +_,14 @@
+@@ -266,11 +_,18 @@
+     private boolean maybeTeleportTo(int x, int y, int z) {
          if (!this.canTeleportTo(new BlockPos(x, y, z))) {
              return false;
-         } else {
--            this.snapTo(x + 0.5, y, z + 0.5, this.getYRot(), this.getXRot());
++        } else {
 +            // CraftBukkit start
 +            org.bukkit.event.entity.EntityTeleportEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTeleportEvent(this, x + 0.5, y, z + 0.5);
 +            if (event.isCancelled()) {
@@ -45,6 +45,13 @@
 +            org.bukkit.Location to = event.getTo();
 +            this.snapTo(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch());
 +            // CraftBukkit end
-             this.navigation.stop();
-             return true;
++            this.navigation.stop();
++            return true;
          }
+-
+-        this.snapTo(x + 0.5, y, z + 0.5, this.getYRot(), this.getXRot());
+-        this.navigation.stop();
+-        return true;
+     }
+ 
+     private boolean canTeleportTo(BlockPos pos) {

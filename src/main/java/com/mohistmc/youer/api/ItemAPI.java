@@ -182,7 +182,7 @@ public class ItemAPI {
 
     public static Material getEggMaterial(net.minecraft.world.entity.EntityType<?> entitytype) {
         try {
-            if (entitytype == net.minecraft.world.entity.EntityType.PLAYER) {
+            if (entitytype == net.minecraft.world.entity.EntityTypes.PLAYER) {
                 return Material.PLAYER_HEAD;
             }
             var getMaterial = SpawnEggItem.byId(entitytype);

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -50,6 +_,8 @@
+@@ -51,6 +_,8 @@
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
@@ -9,7 +9,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -89,6 +_,12 @@
+@@ -90,6 +_,12 @@
      }
  
      public static FallingBlockEntity fall(Level level, BlockPos pos, BlockState state) {
@@ -22,7 +22,7 @@
          FallingBlockEntity entity = new FallingBlockEntity(
              level,
              pos.getX() + 0.5,
-@@ -96,11 +_,15 @@
+@@ -97,11 +_,15 @@
              pos.getZ() + 0.5,
              state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
          );
@@ -39,7 +39,7 @@
      @Override
      public boolean isAttackable() {
          return false;
-@@ -146,7 +_,7 @@
+@@ -147,7 +_,7 @@
      @Override
      public void tick() {
          if (this.blockState.isAir()) {
@@ -48,7 +48,7 @@
          } else {
              Block block = this.blockState.getBlock();
              this.time++;
-@@ -157,7 +_,7 @@
+@@ -158,7 +_,7 @@
              if (this.level() instanceof ServerLevel serverLevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
                  BlockPos pos = this.blockPosition();
                  boolean isConcrete = this.blockState.getBlock() instanceof ConcretePowderBlock;
@@ -57,7 +57,7 @@
                  double moveVec = this.getDeltaMovement().lengthSqr();
                  if (isConcrete && moveVec > 1.0) {
                      BlockHitResult clip = this.level()
-@@ -166,7 +_,7 @@
+@@ -167,7 +_,7 @@
                                  new Vec3(this.xo, this.yo, this.zo), this.position(), ClipContext.Block.COLLIDER, ClipContext.Fluid.SOURCE_ONLY, this
                              )
                          );
@@ -66,7 +66,7 @@
                          pos = clip.getBlockPos();
                          isStuckInWater = true;
                      }
-@@ -178,7 +_,7 @@
+@@ -179,7 +_,7 @@
                              this.spawnAtLocation(serverLevel, block);
                          }
  
@@ -75,7 +75,7 @@
                      }
                  } else {
                      BlockState currentState = this.level().getBlockState(pos);
-@@ -195,11 +_,17 @@
+@@ -196,11 +_,17 @@
                                      this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
                                  }
  
@@ -94,7 +94,17 @@
                                      if (block instanceof Fallable fallable) {
                                          fallable.onLand(this.level(), pos, this.blockState, currentState, this);
                                      }
-@@ -224,19 +_,19 @@
+@@ -217,34 +_,37 @@
+                                                 CompoundTag merged = output.buildResult();
+                                                 this.blockData.forEach((name, tag) -> merged.put(name, tag.copy()));
+                                                 blockEntity.loadWithComponents(TagValueInput.create(reporter, registryAccess, merged));
+-                                            } catch (Exception e) {
+-                                                LOGGER.error("Failed to load block entity from falling block", e);
++                                            } catch (Exception var19) {
++                                                LOGGER.error("Failed to load block entity from falling block", (Throwable)var19);
+                                             }
+ 
+                                             blockEntity.setChanged();
                                          }
                                      }
                                  } else if (this.dropItem && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
@@ -117,10 +127,11 @@
                              this.callOnBrokenAfterFall(block, pos);
                          }
                      }
-@@ -244,6 +_,9 @@
+                 }
              }
  
-             this.setDeltaMovement(this.getDeltaMovement().scale(0.98));
+-            this.setDeltaMovement(this.getDeltaMovement().scale(this.getAirDrag()));
++            this.setDeltaMovement(this.getDeltaMovement().scale(0.98));
 +            if (isAlive() && block instanceof net.neoforged.neoforge.common.extensions.IFallableExtension feblock) {
 +                feblock.fallingTick(level(), blockPosition(), this);
 +            }

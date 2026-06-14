@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/levelgen/structure/StructurePiece.java
 +++ b/net/minecraft/world/level/levelgen/structure/StructurePiece.java
-@@ -80,6 +_,9 @@
+@@ -22,6 +_,7 @@
+ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+ import net.minecraft.world.level.block.Mirror;
+ import net.minecraft.world.level.block.Rotation;
++import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.entity.ChestBlockEntity;
+ import net.minecraft.world.level.block.entity.DispenserBlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
+@@ -79,6 +_,9 @@
      }
  
      public final CompoundTag createTag(StructurePieceSerializationContext context) {
@@ -10,7 +18,7 @@
          CompoundTag tag = new CompoundTag();
          tag.putString("id", BuiltInRegistries.STRUCTURE_PIECE.getKey(this.getType()).toString());
          tag.store("BB", BoundingBox.CODEC, this.boundingBox);
-@@ -186,6 +_,11 @@
+@@ -175,6 +_,11 @@
                  }
  
                  level.setBlock(pos, blockState, 2);
@@ -22,7 +30,7 @@
                  FluidState fluidState = level.getFluidState(pos);
                  if (!fluidState.isEmpty()) {
                      level.scheduleTick(pos, fluidState.getType(), 0);
-@@ -198,6 +_,38 @@
+@@ -187,6 +_,38 @@
          }
      }
  
@@ -61,16 +69,15 @@
      protected boolean canBeReplaced(LevelReader level, int x, int y, int z, BoundingBox chunkBB) {
          return true;
      }
-@@ -416,11 +_,20 @@
+@@ -405,10 +_,20 @@
                  blockState = reorient(level, pos, Blocks.CHEST.defaultBlockState());
              }
  
 +            // CraftBukkit start
 +            /*
              level.setBlock(pos, blockState, 2);
--            BlockEntity blockEntity = level.getBlockEntity(pos);
--            if (blockEntity instanceof ChestBlockEntity) {
--                ((ChestBlockEntity)blockEntity).setLootTable(lootTable, random.nextLong());
+-            if (level.getBlockEntity(pos) instanceof ChestBlockEntity chestBlockEntity) {
+-                chestBlockEntity.setLootTable(lootTable, random.nextLong());
 +            BlockEntity blockentity = level.getBlockEntity(pos);
 +
 +            if (blockentity instanceof ChestBlockEntity) {
@@ -85,16 +92,15 @@
  
              return true;
          } else {
-@@ -431,13 +_,33 @@
+@@ -419,12 +_,33 @@
      protected boolean createDispenser(
          WorldGenLevel level, BoundingBox chunkBB, RandomSource random, int x, int y, int z, Direction facing, ResourceKey<LootTable> lootTable
      ) {
 -        BlockPos pos = this.getWorldPos(x, y, z);
 -        if (chunkBB.isInside(pos) && !level.getBlockState(pos).is(Blocks.DISPENSER)) {
 -            this.placeBlock(level, Blocks.DISPENSER.defaultBlockState().setValue(DispenserBlock.FACING, facing), x, y, z, chunkBB);
--            BlockEntity blockEntity = level.getBlockEntity(pos);
--            if (blockEntity instanceof DispenserBlockEntity) {
--                ((DispenserBlockEntity)blockEntity).setLootTable(lootTable, random.nextLong());
+-            if (level.getBlockEntity(pos) instanceof DispenserBlockEntity dispenserBlockEntity) {
+-                dispenserBlockEntity.setLootTable(lootTable, random.nextLong());
 -            }
 +        BlockPos blockpos = this.getWorldPos(x, y, z);
 +        if (chunkBB.isInside(blockpos) && !level.getBlockState(blockpos).is(Blocks.DISPENSER)) {

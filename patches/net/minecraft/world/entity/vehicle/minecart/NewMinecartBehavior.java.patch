@@ -21,7 +21,7 @@
              Pair<Vec3i, Vec3i> exits = AbstractMinecart.exits(shape);
              Vec3 exit0 = new Vec3(exits.getFirst()).scale(0.5);
              Vec3 exit1 = new Vec3(exits.getSecond()).scale(0.5);
-@@ -244,12 +_,12 @@
+@@ -246,12 +_,12 @@
              if (onRails) {
                  this.minecart.resetFallDistance();
                  this.minecart.setOldPosAndRot();
@@ -36,7 +36,7 @@
                  Vec3 newDeltaMovement = this.calculateTrackSpeed(level, initialStepDeltaMovement.horizontal(), trackIteration, currentPos, currentState, shape);
                  if (trackIteration.firstIteration) {
                      trackIteration.movementLeft = newDeltaMovement.horizontalDistance();
-@@ -379,7 +_,7 @@
+@@ -381,7 +_,7 @@
      }
  
      private Vec3 calculateHaltTrackSpeed(Vec3 deltaMovement, BlockState state) {
@@ -45,7 +45,7 @@
              return deltaMovement.length() < 0.03 ? Vec3.ZERO : deltaMovement.scale(0.5);
          } else {
              return deltaMovement;
-@@ -387,9 +_,9 @@
+@@ -389,9 +_,9 @@
      }
  
      private Vec3 calculateBoostTrackSpeed(Vec3 deltaMovement, BlockPos pos, BlockState state) {
@@ -54,24 +54,24 @@
              if (deltaMovement.length() > 0.01) {
 -                return deltaMovement.normalize().scale(deltaMovement.length() + 0.06);
 +                return deltaMovement.normalize().scale(deltaMovement.length() + (0.06D * this.minecart.powRailAccelMult)); // CraftBukkit - added acceleration multiplier
-             } else {
-                 Vec3 powerDirection = this.minecart.getRedstoneDirection(pos);
-                 return powerDirection.lengthSqr() <= 0.0 ? deltaMovement : powerDirection.scale(deltaMovement.length() + 0.2);
-@@ -436,10 +_,11 @@
-                 }
+             }
  
-                 this.minecart.move(MoverType.SELF, newPosition.subtract(oldPosition));
--                BlockState newBlockState = this.level().getBlockState(BlockPos.containing(newPosition));
-+                BlockPos railPos = BlockPos.containing(newPosition);
-+                BlockState newBlockState = this.level().getBlockState(railPos);
-                 if (inHill) {
-                     if (BaseRailBlock.isRail(newBlockState)) {
--                        RailShape newRailShape = newBlockState.getValue(((BaseRailBlock)newBlockState.getBlock()).getShapeProperty());
-+                        RailShape newRailShape = ((BaseRailBlock)newBlockState.getBlock()).getRailDirection(newBlockState, this.level(), railPos, this.minecart);;
-                         if (this.restAtVShape(shape, newRailShape)) {
-                             return 0.0;
-                         }
-@@ -477,6 +_,12 @@
+             Vec3 powerDirection = this.minecart.getRedstoneDirection(pos);
+@@ -440,10 +_,11 @@
+         }
+ 
+         this.minecart.move(MoverType.SELF, newPosition.subtract(oldPosition));
+-        BlockState newBlockState = this.level().getBlockState(BlockPos.containing(newPosition));
++        BlockPos railPos = BlockPos.containing(newPosition);
++        BlockState newBlockState = this.level().getBlockState(railPos);
+         if (inHill) {
+             if (BaseRailBlock.isRail(newBlockState)) {
+-                RailShape newRailShape = newBlockState.getValue(((BaseRailBlock)newBlockState.getBlock()).getShapeProperty());
++                RailShape newRailShape = ((BaseRailBlock)newBlockState.getBlock()).getRailDirection(newBlockState, this.level(), railPos, this.minecart);
+                 if (this.restAtVShape(shape, newRailShape)) {
+                     return 0.0;
+                 }
+@@ -479,6 +_,12 @@
  
      @Override
      public double getMaxSpeed(ServerLevel level) {
@@ -84,7 +84,7 @@
          return level.getGameRules().get(GameRules.MAX_MINECART_SPEED).intValue() * (this.minecart.isInWater() ? 0.5 : 1.0) / 20.0;
      }
  
-@@ -492,7 +_,7 @@
+@@ -494,7 +_,7 @@
  
      @Override
      public double getSlowdownFactor() {
@@ -93,7 +93,7 @@
      }
  
      @Override
-@@ -516,6 +_,14 @@
+@@ -518,6 +_,14 @@
                          && !(entity instanceof AbstractMinecart)
                          && !this.minecart.isVehicle()
                          && !entity.isPassenger()) {
@@ -108,7 +108,7 @@
                          boolean pickedUp = entity.startRiding(this.minecart);
                          if (pickedUp) {
                              return true;
-@@ -539,6 +_,16 @@
+@@ -541,15 +_,33 @@
                          || entity instanceof AbstractMinecart
                          || this.minecart.isVehicle()
                          || entity.isPassenger()) {
@@ -125,10 +125,14 @@
                          entity.push(this.minecart);
                          pushed = true;
                      }
-@@ -547,6 +_,14 @@
+                 }
+             }
          } else {
-             for (Entity entityx : this.level().getEntities(this.minecart, hitbox)) {
-                 if (!this.minecart.hasPassenger(entityx) && entityx.isPushable() && entityx instanceof AbstractMinecart) {
+-            for (Entity entity : this.level().getEntities(this.minecart, hitbox)) {
+-                if (!this.minecart.hasPassenger(entity) && entity.isPushable() && entity instanceof AbstractMinecart) {
+-                    entity.push(this.minecart);
++            for (Entity entityx : this.level().getEntities(this.minecart, hitbox)) {
++                if (!this.minecart.hasPassenger(entityx) && entityx.isPushable() && entityx instanceof AbstractMinecart) {
 +                    // CraftBukkit start
 +                    VehicleEntityCollisionEvent collisionEvent = new VehicleEntityCollisionEvent((Vehicle) this.minecart.getBukkitEntity(), entityx.getBukkitEntity());
 +                    this.level().getCraftServer().getPluginManager().callEvent(collisionEvent);
@@ -137,6 +141,7 @@
 +                        continue;
 +                    }
 +                    // CraftBukkit end
-                     entityx.push(this.minecart);
++                    entityx.push(this.minecart);
                      pushed = true;
                  }
+             }

@@ -45,7 +45,7 @@
  import net.minecraft.world.level.entity.EntityTypeTest;
  import net.minecraft.world.level.entity.LevelEntityGetter;
  import net.minecraft.world.level.gameevent.GameEvent;
-@@ -88,9 +_,18 @@
+@@ -88,11 +_,20 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.Scoreboard;
  import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -60,12 +60,14 @@
 +import org.bukkit.event.block.BlockPhysicsEvent;
  import org.jspecify.annotations.Nullable;
  
--public abstract class Level implements LevelAccessor, AutoCloseable, net.neoforged.neoforge.common.extensions.ILevelExtension {
-+public abstract class Level extends net.neoforged.neoforge.attachment.AttachmentHolder implements LevelAccessor, AutoCloseable, net.neoforged.neoforge.common.extensions.ILevelExtension {
+ import net.neoforged.neoforge.common.extensions.ILevelExtension;
+ 
+-public abstract class Level implements LevelAccessor, AutoCloseable, ILevelExtension {
++public abstract class Level extends net.neoforged.neoforge.attachment.AttachmentHolder implements LevelAccessor, AutoCloseable, ILevelExtension {
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace("the_nether"));
-@@ -130,6 +_,40 @@
+@@ -133,6 +_,40 @@
      private final DamageSources damageSources;
      private final PalettedContainerFactory palettedContainerFactory;
      private long subTickCount;
@@ -106,7 +108,7 @@
  
      protected Level(
          WritableLevelData levelData,
-@@ -139,8 +_,20 @@
+@@ -142,8 +_,20 @@
          boolean isClientSide,
          boolean isDebug,
          long biomeZoomSeed,
@@ -128,7 +130,7 @@
          this.levelData = levelData;
          this.dimensionTypeRegistration = dimensionTypeRegistration;
          this.dimension = dimension;
-@@ -213,8 +_,37 @@
+@@ -220,54 +_,191 @@
          return this.setBlock(pos, blockState, updateFlags, 512);
      }
  
@@ -165,11 +167,14 @@
 +        // CraftBukkit end
          if (!this.isInValidBounds(pos)) {
              return false;
-         } else if (!this.isClientSide() && this.isDebug()) {
-@@ -222,11 +_,55 @@
-         } else {
-             LevelChunk chunk = this.getChunkAt(pos);
-             Block block = blockState.getBlock();
+-        }
+-
+-        if (!this.isClientSide() && this.isDebug()) {
++        } else if (!this.isClientSide() && this.isDebug()) {
+             return false;
++        } else {
++            LevelChunk chunk = this.getChunkAt(pos);
++            Block block = blockState.getBlock();
 +
 +            pos = pos.immutable(); // Forge - prevent mutable BlockPos leaks
 +            net.neoforged.neoforge.common.util.BlockSnapshot blockSnapshot = null;
@@ -186,17 +191,17 @@
 +            }
 +            // CraftBukkit end
 +
-             BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
-             if (oldState == null) {
++            BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
++            if (oldState == null) {
 +                if (blockSnapshot != null) this.capturedBlockSnapshots.remove(blockSnapshot);
 +                // CraftBukkit start - remove blockstate if failed (or the same)
 +                if (this.captureBlockStates && this.captured.getAndSet(false)) {
 +                    this.capturedBlockStates.remove(pos);
 +                }
 +                // CraftBukkit end
-                 return false;
-             } else {
-                 BlockState newState = this.getBlockState(pos);
++                return false;
++            } else {
++                BlockState newState = this.getBlockState(pos);
 +
 +                if (blockSnapshot == null && !this.captureBlockStates) { // Don't notify clients or update physics while capturing blockstates
 +                    // Spigot start
@@ -210,22 +215,73 @@
 +
 +                return true;
 +            }
-+        }
+         }
 +    }
-+
+ 
+-        LevelChunk chunk = this.getChunkAt(pos);
 +    // Split off from original setBlockState(BlockPos, BlockState, int, int) method in order to directly send client and physic updates
 +    public void markAndNotifyBlock(BlockPos pos, @Nullable LevelChunk chunk, BlockState oldState, BlockState blockState, int updateFlags, int updateLimit) {
-+        Block block = blockState.getBlock();
+         Block block = blockState.getBlock();
+-        BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
+-        if (oldState == null) {
+-            return false;
+-        }
+-
+-        BlockState newState = this.getBlockState(pos);
+-        if (newState == blockState) {
+-            if (oldState != newState) {
+-                this.setBlocksDirty(pos, oldState, newState);
+-            }
+-
+-            if ((updateFlags & 2) != 0
+-                && (!this.isClientSide() || (updateFlags & 4) == 0)
+-                && (this.isClientSide() || chunk.getFullStatus() != null && chunk.getFullStatus().isOrAfter(FullChunkStatus.BLOCK_TICKING))) {
+-                this.sendBlockUpdated(pos, oldState, blockState, updateFlags);
+-            }
+-
+-            if ((updateFlags & 1) != 0) {
+-                this.updateNeighborsAt(pos, oldState.getBlock());
+-                if (!this.isClientSide() && blockState.hasAnalogOutputSignal()) {
+-                    this.updateNeighbourForOutputSignal(pos, block);
+-                }
+-            }
+-
+-            if ((updateFlags & 16) == 0 && updateLimit > 0) {
+-                int neighbourUpdateFlags = updateFlags & -34;
+-                oldState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
+-                blockState.updateNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
+-                blockState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
+-            }
+-
+-            this.updatePOIOnBlockStateChange(pos, oldState, newState);
+-        }
+-
+-        return true;
+-    }
 +        BlockState newState = getBlockState(pos);
 +        {
 +            {
-                 if (newState == blockState) {
-                     if (oldState != newState) {
-                         this.setBlocksDirty(pos, oldState, newState);
-@@ -248,17 +_,83 @@
-                     if ((updateFlags & 16) == 0 && updateLimit > 0) {
-                         int neighbourUpdateFlags = updateFlags & -34;
-                         oldState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
++                if (newState == blockState) {
++                    if (oldState != newState) {
++                        this.setBlocksDirty(pos, oldState, newState);
++                    }
++
++                    if ((updateFlags & 2) != 0
++                        && (!this.isClientSide() || (updateFlags & 4) == 0)
++                        && (this.isClientSide() || chunk.getFullStatus() != null && chunk.getFullStatus().isOrAfter(FullChunkStatus.BLOCK_TICKING))) {
++                        this.sendBlockUpdated(pos, oldState, blockState, updateFlags);
++                    }
++
++                    if ((updateFlags & 1) != 0) {
++                        this.updateNeighborsAt(pos, oldState.getBlock());
++                        if (!this.isClientSide() && blockState.hasAnalogOutputSignal()) {
++                            this.updateNeighbourForOutputSignal(pos, block);
++                        }
++                    }
++
++                    if ((updateFlags & 16) == 0 && updateLimit > 0) {
++                        int neighbourUpdateFlags = updateFlags & -34;
++                        oldState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
 +                        if (this instanceof ServerLevel serverLevel) {
 +                            CraftWorld world = serverLevel.getWorld();
 +                            if (world != null) {
@@ -238,17 +294,10 @@
 +                            }
 +                        }
 +                        // CraftBukkit end
-                         blockState.updateNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
-                         blockState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
-                     }
- 
--                    this.updatePOIOnBlockStateChange(pos, oldState, newState);
--                }
--
--                return true;
--            }
--        }
--    }
++                        blockState.updateNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
++                        blockState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
++                    }
++
 +                    // CraftBukkit start - SPIGOT-5710
 +                    if (!preventPoiUpdated) {
 +                        this.updatePOIOnBlockStateChange(pos, oldState, newState);
@@ -313,7 +362,7 @@
  
      public void updatePOIOnBlockStateChange(BlockPos pos, BlockState oldState, BlockState newState) {
      }
-@@ -297,7 +_,15 @@
+@@ -306,7 +_,15 @@
      public void addDestroyBlockEffect(BlockPos pos, BlockState blockState) {
      }
  
@@ -329,7 +378,7 @@
          return this.setBlock(pos, blockState, 3);
      }
  
-@@ -307,6 +_,7 @@
+@@ -316,6 +_,7 @@
      }
  
      public void updateNeighborsAt(BlockPos pos, Block sourceBlock, @Nullable Orientation orientation) {
@@ -337,7 +386,7 @@
      }
  
      public void updateNeighborsAtExceptFromFacing(BlockPos pos, Block blockObject, Direction skipDirection, @Nullable Orientation orientation) {
-@@ -348,6 +_,14 @@
+@@ -357,6 +_,14 @@
  
      @Override
      public BlockState getBlockState(BlockPos pos) {
@@ -351,8 +400,8 @@
 +        // CraftBukkit end
          if (!this.isInValidBounds(pos)) {
              return Blocks.VOID_AIR.defaultBlockState();
-         } else {
-@@ -455,8 +_,30 @@
+         }
+@@ -464,8 +_,30 @@
          (this.tickingBlockEntities ? this.pendingBlockEntityTickers : this.blockEntityTickers).add(ticker);
      }
  
@@ -383,7 +432,7 @@
          if (!this.pendingBlockEntityTickers.isEmpty()) {
              this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
              this.pendingBlockEntityTickers.clear();
-@@ -475,16 +_,24 @@
+@@ -484,16 +_,24 @@
          }
  
          this.tickingBlockEntities = false;
@@ -394,8 +443,8 @@
          try {
 +            net.neoforged.neoforge.server.timings.TimeTracker.ENTITY_UPDATE.trackStart(entity);
              tick.accept(entity);
-         } catch (Throwable var6) {
-             CrashReport report = CrashReport.forThrowable(var6, "Ticking entity");
+         } catch (Throwable t) {
+             CrashReport report = CrashReport.forThrowable(t, "Ticking entity");
              CrashReportCategory category = report.addCategory("Entity being ticked");
              entity.fillCrashReportCategory(category);
 +            if (net.neoforged.neoforge.common.config.NeoForgeServerConfig.INSTANCE.removeErroringEntities.get()) {
@@ -408,7 +457,7 @@
          }
      }
  
-@@ -610,6 +_,10 @@
+@@ -619,6 +_,10 @@
  
      @Override
      public @Nullable BlockEntity getBlockEntity(BlockPos pos) {
@@ -419,7 +468,7 @@
          if (!this.isInValidBounds(pos)) {
              return null;
          } else {
-@@ -622,6 +_,12 @@
+@@ -631,6 +_,12 @@
      public void setBlockEntity(BlockEntity blockEntity) {
          BlockPos pos = blockEntity.getBlockPos();
          if (this.isInValidBounds(pos)) {
@@ -432,7 +481,7 @@
              this.getChunkAt(pos).addAndRegisterBlockEntity(blockEntity);
          }
      }
-@@ -630,6 +_,7 @@
+@@ -639,6 +_,7 @@
          if (this.isInValidBounds(pos)) {
              this.getChunkAt(pos).removeBlockEntity(pos);
          }
@@ -440,7 +489,7 @@
      }
  
      public boolean isLoaded(BlockPos pos) {
-@@ -695,8 +_,8 @@
+@@ -704,8 +_,8 @@
              }
          });
  
@@ -451,7 +500,7 @@
                  output.add(dragonPart);
              }
          }
-@@ -725,6 +_,7 @@
+@@ -734,6 +_,7 @@
                  }
              }
  
@@ -459,7 +508,7 @@
              if (e instanceof EnderDragon enderDragon) {
                  for (EnderDragonPart subEntity : enderDragon.getSubEntities()) {
                      T castSubPart = type.tryCast(subEntity);
-@@ -739,6 +_,15 @@
+@@ -748,6 +_,15 @@
  
              return AbortableIterationConsumer.Continuation.CONTINUE;
          });
@@ -475,17 +524,17 @@
      }
  
      public <T extends Entity> boolean hasEntities(EntityTypeTest<Entity, T> type, AABB bb, Predicate<? super T> selector) {
-@@ -749,6 +_,7 @@
-                 hasEntities.setTrue();
+@@ -759,6 +_,7 @@
                  return AbortableIterationConsumer.Continuation.ABORT;
-             } else {
-+                if (false)
-                 if (e instanceof EnderDragon enderDragon) {
-                     for (EnderDragonPart subEntity : enderDragon.getSubEntities()) {
-                         T castSubPart = type.tryCast(subEntity);
-@@ -762,6 +_,13 @@
-                 return AbortableIterationConsumer.Continuation.CONTINUE;
              }
+ 
++            if (false)
+             if (e instanceof EnderDragon enderDragon) {
+                 for (EnderDragonPart subEntity : enderDragon.getSubEntities()) {
+                     T castSubPart = type.tryCast(subEntity);
+@@ -771,6 +_,13 @@
+ 
+             return AbortableIterationConsumer.Continuation.CONTINUE;
          });
 +        for (net.neoforged.neoforge.entity.PartEntity<?> p : this.dragonParts()) {
 +            T t = type.tryCast(p);
@@ -497,7 +546,7 @@
          return hasEntities.isTrue();
      }
  
-@@ -783,7 +_,7 @@
+@@ -792,7 +_,7 @@
          return this.getPlayerByUUID(uuid);
      }
  
@@ -506,7 +555,7 @@
  
      public void blockEntityChanged(BlockPos pos) {
          if (this.hasChunkAt(pos)) {
-@@ -907,17 +_,20 @@
+@@ -920,17 +_,20 @@
  
      public abstract Scoreboard getScoreboard();
  
@@ -532,7 +581,7 @@
                          this.neighborChanged(state, relativePos, changedBlock, null, false);
                      }
                  }
-@@ -982,6 +_,18 @@
+@@ -995,6 +_,18 @@
          return this.biomeManager;
      }
  
@@ -551,7 +600,13 @@
      public final boolean isDebug() {
          return this.isDebug;
      }
-@@ -1023,7 +_,8 @@
+@@ -1031,17 +_,18 @@
+         return this.palettedContainerFactory;
+     }
+ 
+-    public enum ExplosionInteraction implements StringRepresentable {
++    public static enum ExplosionInteraction implements StringRepresentable {
+         NONE("none"),
          BLOCK("block"),
          MOB("mob"),
          TNT("tnt"),
@@ -561,3 +616,9 @@
  
          public static final Codec<Level.ExplosionInteraction> CODEC = StringRepresentable.fromEnum(Level.ExplosionInteraction::values);
          private final String id;
+ 
+-        ExplosionInteraction(String id) {
++        private ExplosionInteraction(String id) {
+             this.id = id;
+         }
+ 

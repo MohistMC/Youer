@@ -1,27 +1,6 @@
 --- a/net/minecraft/world/level/block/PointedDripstoneBlock.java
 +++ b/net/minecraft/world/level/block/PointedDripstoneBlock.java
-@@ -144,6 +_,11 @@
-                 && projectile.mayBreak(serverLevel)
-                 && projectile instanceof ThrownTrident
-                 && projectile.getDeltaMovement().length() > 0.6) {
-+                // CraftBukkit start
-+                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(projectile, blockPos, Blocks.AIR.defaultBlockState())) {
-+                    return;
-+                }
-+                // CraftBukkit end
-                 level.destroyBlock(blockPos, true);
-             }
-         }
-@@ -152,7 +_,7 @@
-     @Override
-     public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
-         if (state.getValue(TIP_DIRECTION) == Direction.UP && state.getValue(THICKNESS) == DripstoneThickness.TIP) {
--            entity.causeFallDamage(fallDistance + 2.5, 2.0F, level.damageSources().stalagmite());
-+            entity.causeFallDamage(fallDistance + 2.5, 2.0F, level.damageSources().stalagmite().directBlock(level, pos)); // CraftBukkit
-         } else {
-             super.fallOn(level, state, pos, entity, fallDistance);
-         }
-@@ -189,7 +_,7 @@
+@@ -89,7 +_,7 @@
  
      @VisibleForTesting
      public static void maybeTransferFluid(BlockState state, ServerLevel level, BlockPos pos, float randomValue) {
@@ -30,7 +9,7 @@
              if (isStalactiteStartPos(state, level, pos)) {
                  Optional<PointedDripstoneBlock.FluidInfo> fluidInfo = getFluidAboveStalactite(level, pos, state);
                  if (!fluidInfo.isEmpty()) {
-@@ -198,14 +_,12 @@
+@@ -98,14 +_,12 @@
                      if (fluid == Fluids.WATER) {
                          transferProbability = 0.17578125F;
                      } else {
@@ -47,39 +26,7 @@
                          BlockPos stalactiteTipPos = findTip(state, level, pos, 11, false);
                          if (stalactiteTipPos != null) {
                              if (fluidInfo.get().sourceState.is(Blocks.MUD) && fluid == Fluids.WATER) {
-@@ -359,17 +_,17 @@
-         if (isUnmergedTipWithDirection(existingStateAtTargetPos, growToDirection.getOpposite())) {
-             createMergedTips(existingStateAtTargetPos, level, targetPos);
-         } else if (existingStateAtTargetPos.isAir() || existingStateAtTargetPos.is(Blocks.WATER)) {
--            createDripstone(level, targetPos, growToDirection, DripstoneThickness.TIP);
-+            createDripstone(level, targetPos, growToDirection, DripstoneThickness.TIP, growFromPos); // CraftBukkit
-         }
-     }
- 
--    private static void createDripstone(LevelAccessor level, BlockPos pos, Direction direction, DripstoneThickness thickness) {
-+    private static void createDripstone(LevelAccessor level, BlockPos pos, Direction direction, DripstoneThickness thickness, BlockPos source) { // CraftBukkit
-         BlockState state = Blocks.POINTED_DRIPSTONE
-             .defaultBlockState()
-             .setValue(TIP_DIRECTION, direction)
-             .setValue(THICKNESS, thickness)
-             .setValue(WATERLOGGED, level.getFluidState(pos).is(Fluids.WATER));
--        level.setBlock(pos, state, 3);
-+        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, source, pos, state, 3); // CraftBukkit
-     }
- 
-     private static void createMergedTips(BlockState tipState, LevelAccessor level, BlockPos tipPos) {
-@@ -383,8 +_,8 @@
-             stalagmitePos = tipPos.below();
-         }
- 
--        createDripstone(level, stalactitePos, Direction.DOWN, DripstoneThickness.TIP_MERGE);
--        createDripstone(level, stalagmitePos, Direction.UP, DripstoneThickness.TIP_MERGE);
-+        createDripstone(level, stalactitePos, Direction.DOWN, DripstoneThickness.TIP_MERGE, tipPos); // CraftBukkit
-+        createDripstone(level, stalagmitePos, Direction.UP, DripstoneThickness.TIP_MERGE, tipPos); // CraftBukkit
-     }
- 
-     public static void spawnDripParticle(Level level, BlockPos stalactiteTipPos, BlockState stalactiteTipState) {
-@@ -552,7 +_,7 @@
+@@ -190,7 +_,7 @@
      }
  
      private static boolean canFillCauldron(Fluid fluidAbove) {
@@ -87,8 +34,8 @@
 +        return fluidAbove.getFluidType().getDripInfo() != null;
      }
  
-     private static boolean canGrow(BlockState rootState, BlockState aboveState) {
-@@ -564,7 +_,9 @@
+     @Override
+@@ -203,7 +_,9 @@
          if (fluidAbove.isSame(Fluids.EMPTY)) {
              return level.environmentAttributes().getValue(EnvironmentAttributes.DEFAULT_DRIPSTONE_PARTICLE, posAbove);
          } else {

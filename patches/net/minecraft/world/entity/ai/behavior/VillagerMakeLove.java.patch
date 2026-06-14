@@ -9,14 +9,17 @@
  
  public class VillagerMakeLove extends Behavior<Villager> {
      private long birthTimestamp;
-@@ -103,11 +_,19 @@
+@@ -103,12 +_,19 @@
          if (child == null) {
              return Optional.empty();
-         } else {
--            source.setAge(6000);
--            target.setAge(6000);
-             child.setAge(-24000);
-             child.snapTo(source.getX(), source.getY(), source.getZ(), 0.0F, 0.0F);
+         }
+-
+-        source.setAge(6000);
+-        target.setAge(6000);
+-        child.setAge(-24000);
+-        child.snapTo(source.getX(), source.getY(), source.getZ(), 0.0F, 0.0F);
++            child.setAge(-24000);
++            child.snapTo(source.getX(), source.getY(), source.getZ(), 0.0F, 0.0F);
 +            // CraftBukkit start - call EntityBreedEvent
 +            if (CraftEventFactory.callEntityBreedEvent(child, source, target, null, null, 0).isCancelled()) {
 +                return Optional.empty();
@@ -25,9 +28,9 @@
 +            source.setAge(6000);
 +            target.setAge(6000);
 +            child.spawnReason(CreatureSpawnEvent.SpawnReason.BREEDING);
-             level.addFreshEntityWithPassengers(child);
-+            // Neo: If villager is blocked from spawning (e.g., FinalizeSpawnEvent), then breed should be unsuccessful
-+            if (!child.isAddedToLevel()) return Optional.empty();
-             level.broadcastEntityEvent(child, (byte)12);
-             return Optional.of(child);
-         }
+         level.addFreshEntityWithPassengers(child);
++        // Neo: If villager is blocked from spawning (e.g., FinalizeSpawnEvent), then breed should be unsuccessful
++        if (!child.isAddedToLevel()) return Optional.empty();
+         level.broadcastEntityEvent(child, (byte)12);
+         return Optional.of(child);
+     }

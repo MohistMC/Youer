@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
 +++ b/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
-@@ -52,6 +_,13 @@
+@@ -53,6 +_,13 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -14,7 +14,7 @@
  public abstract class AbstractArrow extends Projectile {
      private static final double ARROW_BASE_DAMAGE = 2.0;
      private static final int SHAKE_TIME = 7;
-@@ -86,7 +_,16 @@
+@@ -87,7 +_,16 @@
      protected AbstractArrow(
          EntityType<? extends AbstractArrow> type, double x, double y, double z, Level level, ItemStack pickupItemStack, @Nullable ItemStack firedFromWeapon
      ) {
@@ -31,7 +31,7 @@
          this.pickupItemStack = pickupItemStack.copy();
          this.applyComponentsFromItemStack(pickupItemStack);
          Unit intangible = pickupItemStack.remove(DataComponents.INTANGIBLE_PROJECTILE);
-@@ -111,8 +_,8 @@
+@@ -112,8 +_,8 @@
      protected AbstractArrow(
          EntityType<? extends AbstractArrow> type, LivingEntity mob, Level level, ItemStack pickupItemStack, @Nullable ItemStack firedFromWeapon
      ) {
@@ -42,7 +42,7 @@
      }
  
      public void setSoundEvent(SoundEvent soundEvent) {
-@@ -278,11 +_,15 @@
+@@ -284,11 +_,15 @@
  
              if (entitiesHit.isEmpty()) {
                  if (this.isAlive() && blockHitResult.getType() != HitResult.Type.MISS) {
@@ -60,7 +60,7 @@
                  ProjectileDeflection deflection = this.hitTargetsOrDeflectSelf(entitiesHit);
                  this.needsSync = true;
                  if (this.getPierceLevel() > 0 && deflection == ProjectileDeflection.NONE) {
-@@ -295,7 +_,7 @@
+@@ -301,7 +_,7 @@
  
      private ProjectileDeflection hitTargetsOrDeflectSelf(Collection<EntityHitResult> entityHitResults) {
          for (EntityHitResult e : entityHitResults) {
@@ -69,7 +69,7 @@
              if (!this.isAlive() || deflection != ProjectileDeflection.NONE) {
                  return deflection;
              }
-@@ -366,8 +_,8 @@
+@@ -372,8 +_,8 @@
  
      protected void tickDespawn() {
          this.life++;
@@ -80,7 +80,7 @@
          }
      }
  
-@@ -430,7 +_,7 @@
+@@ -436,7 +_,7 @@
              }
  
              if (this.piercingIgnoreEntityIds.size() >= this.getPierceLevel() + 1) {
@@ -89,9 +89,9 @@
                  return;
              }
  
-@@ -448,8 +_,15 @@
+@@ -454,8 +_,15 @@
  
-         boolean isEnderman = entity.is(EntityType.ENDERMAN);
+         boolean isEnderman = entity.is(EntityTypes.ENDERMAN);
          int remainingFireTicks = entity.getRemainingFireTicks();
 +
          if (this.isOnFire() && !isEnderman) {
@@ -106,7 +106,7 @@
          }
  
          if (entity.hurtOrSimulate(damageSource, damage)) {
-@@ -487,7 +_,7 @@
+@@ -493,7 +_,7 @@
  
              this.playSound(this.soundEvent, 1.0F, 1.2F / (this.random.nextFloat() * 0.2F + 0.9F));
              if (this.getPierceLevel() <= 0) {
@@ -115,7 +115,7 @@
              }
          } else {
              entity.setRemainingFireTicks(remainingFireTicks);
-@@ -498,7 +_,7 @@
+@@ -504,7 +_,7 @@
                      this.spawnAtLocation(level, this.getPickupItem(), 0.1F);
                  }
  
@@ -124,7 +124,7 @@
              }
          }
      }
-@@ -634,9 +_,24 @@
+@@ -640,9 +_,24 @@
      @Override
      public void playerTouch(Player player) {
          if (!this.level().isClientSide() && (this.isInGround() || this.isNoPhysics()) && this.shakeTime <= 0) {
@@ -151,3 +151,12 @@
              }
          }
      }
+@@ -745,7 +_,7 @@
+         return true;
+     }
+ 
+-    public enum Pickup {
++    public static enum Pickup {
+         DISALLOWED,
+         ALLOWED,
+         CREATIVE_ONLY;

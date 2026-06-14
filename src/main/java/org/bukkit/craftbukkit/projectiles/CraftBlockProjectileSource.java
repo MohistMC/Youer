@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.projectile.hurtingprojectile.AbstractHurtingProjectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -108,13 +109,13 @@ public class CraftBlockProjectileSource implements BlockProjectileSource {
         if (Fireball.class.isAssignableFrom(projectile)) {
             AbstractHurtingProjectile customFireball = null;
             if (WitherSkull.class.isAssignableFrom(projectile)) {
-                launch = customFireball = EntityType.WITHER_SKULL.create(level, EntitySpawnReason.TRIGGERED);
+                launch = customFireball = EntityTypes.WITHER_SKULL.create(level, EntitySpawnReason.TRIGGERED);
             } else if (DragonFireball.class.isAssignableFrom(projectile)) {
-                launch = EntityType.DRAGON_FIREBALL.create(level, EntitySpawnReason.TRIGGERED);
+                launch = EntityTypes.DRAGON_FIREBALL.create(level, EntitySpawnReason.TRIGGERED);
             } else if (BreezeWindCharge.class.isAssignableFrom(projectile)) {
-                launch = customFireball = EntityType.BREEZE_WIND_CHARGE.create(level, EntitySpawnReason.TRIGGERED);
+                launch = customFireball = EntityTypes.BREEZE_WIND_CHARGE.create(level, EntitySpawnReason.TRIGGERED);
             } else if (LargeFireball.class.isAssignableFrom(projectile)) {
-                launch = customFireball = EntityType.FIREBALL.create(level, EntitySpawnReason.TRIGGERED);
+                launch = customFireball = EntityTypes.FIREBALL.create(level, EntitySpawnReason.TRIGGERED);
             }
 
             if (customFireball != null) {

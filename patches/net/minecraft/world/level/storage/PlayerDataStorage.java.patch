@@ -27,10 +27,10 @@
              Path oldFile = playerDirPath.resolve(player.getStringUUID() + ".dat_old");
              Util.safeReplaceFile(realFile, tmpFile, oldFile);
 +            net.neoforged.neoforge.event.EventHooks.firePlayerSavingEvent(player, playerDir, player.getStringUUID());
-         } catch (Exception var11) {
+         } catch (Exception ignored) {
              LOGGER.warn("Failed to save player data for {}", player.getPlainTextName());
          }
-@@ -61,10 +_,30 @@
+@@ -61,11 +_,31 @@
      }
  
      private Optional<CompoundTag> load(NameAndId nameAndId, String suffix) {
@@ -52,6 +52,7 @@
          if (realFile.exists() && realFile.isFile()) {
              try {
 -                return Optional.of(NbtIo.readCompressed(realFile.toPath(), NbtAccounter.unlimitedHeap()));
+-            } catch (Exception ignored) {
 +                // Spigot Start
 +                Optional<CompoundTag> optional = Optional.of(NbtIo.readCompressed(realFile.toPath(), NbtAccounter.unlimitedHeap()));
 +                if ( usingWrongFile )
@@ -60,9 +61,10 @@
 +                }
 +                return optional;
 +                // Spigot End
-             } catch (Exception var5) {
++            } catch (Exception var5) {
                  LOGGER.warn("Failed to load player data for {}", nameAndId.name());
              }
+         }
 @@ -73,6 +_,23 @@
          return Optional.empty();
      }

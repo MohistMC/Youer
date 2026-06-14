@@ -9,25 +9,37 @@
          long totalTicks = clockManager.getTotalTicks(clock);
          source.sendSuccess(() -> Component.translatable("commands.time.query.absolute", clock.getRegisteredName(), totalTicks), false);
          return wrapTime(totalTicks);
-@@ -145,7 +_,7 @@
+@@ -144,34 +_,34 @@
+     private static int queryTimelineTicks(CommandSourceStack source, Holder<WorldClock> clock, Holder<Timeline> timeline) throws CommandSyntaxException {
          if (!clock.equals(timeline.value().clock())) {
              throw ERROR_WRONG_TIMELINE_FOR_CLOCK.create(clock.getRegisteredName(), timeline.getRegisteredName());
-         } else {
--            ServerClockManager clockManager = source.getServer().clockManager();
++        } else {
 +            ServerClockManager clockManager = source.getLevel().clockManager(); // CraftBukkit - per-world
-             long currentTicks = timeline.value().getCurrentTicks(clockManager);
-             source.sendSuccess(() -> Component.translatable("commands.time.query.timeline", timeline.getRegisteredName(), currentTicks), false);
-             return wrapTime(currentTicks);
-@@ -156,7 +_,7 @@
++            long currentTicks = timeline.value().getCurrentTicks(clockManager);
++            source.sendSuccess(() -> Component.translatable("commands.time.query.timeline", timeline.getRegisteredName(), currentTicks), false);
++            return wrapTime(currentTicks);
+         }
+-
+-        ServerClockManager clockManager = source.getServer().clockManager();
+-        long currentTicks = timeline.value().getCurrentTicks(clockManager);
+-        source.sendSuccess(() -> Component.translatable("commands.time.query.timeline", timeline.getRegisteredName(), currentTicks), false);
+-        return wrapTime(currentTicks);
+     }
+ 
+     private static int queryTimelineRepetitions(CommandSourceStack source, Holder<WorldClock> clock, Holder<Timeline> timeline) throws CommandSyntaxException {
          if (!clock.equals(timeline.value().clock())) {
              throw ERROR_WRONG_TIMELINE_FOR_CLOCK.create(clock.getRegisteredName(), timeline.getRegisteredName());
-         } else {
--            ServerClockManager clockManager = source.getServer().clockManager();
++        } else {
 +            ServerClockManager clockManager = source.getLevel().clockManager(); // CraftBukkit - per-world
-             long repetitions = timeline.value().getPeriodCount(clockManager);
-             source.sendSuccess(() -> Component.translatable("commands.time.query.timeline.repetitions", timeline.getRegisteredName(), repetitions), false);
-             return wrapTime(repetitions);
-@@ -164,14 +_,14 @@
++            long repetitions = timeline.value().getPeriodCount(clockManager);
++            source.sendSuccess(() -> Component.translatable("commands.time.query.timeline.repetitions", timeline.getRegisteredName(), repetitions), false);
++            return wrapTime(repetitions);
+         }
+-
+-        ServerClockManager clockManager = source.getServer().clockManager();
+-        long repetitions = timeline.value().getPeriodCount(clockManager);
+-        source.sendSuccess(() -> Component.translatable("commands.time.query.timeline.repetitions", timeline.getRegisteredName(), repetitions), false);
+-        return wrapTime(repetitions);
      }
  
      private static int setTotalTicks(CommandSourceStack source, Holder<WorldClock> clock, int totalTicks) {
@@ -52,9 +64,9 @@
 +        ServerClockManager clockManager = source.getLevel().clockManager(); // CraftBukkit - per-world
          if (!clockManager.moveToTimeMarker(clock, timeMarkerId)) {
              throw ERROR_NO_TIME_MARKER_FOUND.create(clock.getRegisteredName(), timeMarkerId);
-         } else {
-@@ -190,8 +_,10 @@
          }
+@@ -188,8 +_,10 @@
+         return wrapTime(clockManager.getTotalTicks(clock));
      }
  
 -    private static int setPaused(CommandSourceStack source, Holder<WorldClock> clock, boolean paused) {

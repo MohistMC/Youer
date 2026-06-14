@@ -1,5 +1,13 @@
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
+@@ -7,6 +_,7 @@
+ import io.netty.channel.ChannelException;
+ import io.netty.channel.ChannelFuture;
+ import io.netty.channel.ChannelFutureListener;
++import io.netty.channel.ChannelHandler;
+ import io.netty.channel.ChannelHandlerContext;
+ import io.netty.channel.ChannelInboundHandler;
+ import io.netty.channel.ChannelInitializer;
 @@ -68,6 +_,11 @@
      private final Queue<Consumer<Connection>> pendingActions = Queues.newConcurrentLinkedQueue();
      public Channel channel;
@@ -13,9 +21,9 @@
      private volatile @Nullable PacketListener packetListener;
      private @Nullable DisconnectionDetails disconnectionDetails;
 @@ -81,6 +_,9 @@
-     private boolean handlingFault;
      private volatile @Nullable DisconnectionDetails delayedDisconnect;
      private @Nullable BandwidthDebugMonitor bandwidthDebugMonitor;
+     private @Nullable UUID intendedProfileId;
 +    @Nullable
 +    private ProtocolInfo<?> inboundProtocol;
 +    public String hostname = ""; // CraftBukkit - add field
@@ -56,28 +64,28 @@
                      DisconnectionDetails details;
                      if (listener != null) {
                          details = listener.createDisconnectionInfo(reason, cause);
-@@ -200,6 +_,7 @@
-         if (protocol.flow() != this.getReceiving()) {
+@@ -201,6 +_,7 @@
              throw new IllegalStateException("Invalid inbound protocol: " + protocol.id());
-         } else {
-+            this.inboundProtocol = protocol;
-             this.packetListener = packetListener;
-             this.disconnectListener = null;
-             UnconfiguredPipelineHandler.InboundConfigurationTask configMessage = UnconfiguredPipelineHandler.setupInboundProtocol(protocol);
-@@ -221,7 +_,12 @@
-             BundlerInfo bundlerInfo = protocol.bundlerInfo();
-             if (bundlerInfo != null) {
-                 PacketBundleUnpacker newUnbundler = new PacketBundleUnpacker(bundlerInfo);
--                configMessage = configMessage.andThen(ctx -> ctx.pipeline().addAfter("encoder", "unbundler", newUnbundler));
-+                configMessage = configMessage.andThen(ctx -> {
-+                    ctx.pipeline().addAfter("encoder", "unbundler", newUnbundler);
-+                    // Neo: our handlers must be between the encoder and the unbundler, so re-inject them
-+                    // Note, this call must be inside the .andThen lambda, or it will actually run before the unbundler gets added.
-+                    net.neoforged.neoforge.network.filters.NetworkFilters.injectIfNecessary(this);
-+                });
-             }
+         }
  
-             boolean isLoginProtocol = protocol.id() == ConnectionProtocol.LOGIN;
++        this.inboundProtocol = protocol;
+         this.packetListener = packetListener;
+         this.disconnectListener = null;
+         UnconfiguredPipelineHandler.InboundConfigurationTask configMessage = UnconfiguredPipelineHandler.setupInboundProtocol(protocol);
+@@ -222,7 +_,12 @@
+         BundlerInfo bundlerInfo = protocol.bundlerInfo();
+         if (bundlerInfo != null) {
+             PacketBundleUnpacker newUnbundler = new PacketBundleUnpacker(bundlerInfo);
+-            configMessage = configMessage.andThen(ctx -> ctx.pipeline().addAfter("encoder", "unbundler", newUnbundler));
++            configMessage = configMessage.andThen(ctx -> {
++                ctx.pipeline().addAfter("encoder", "unbundler", newUnbundler);
++                // Neo: our handlers must be between the encoder and the unbundler, so re-inject them
++                // Note, this call must be inside the .andThen lambda, or it will actually run before the unbundler gets added.
++                net.neoforged.neoforge.network.filters.NetworkFilters.injectIfNecessary(this);
++            });
+         }
+ 
+         boolean isLoginProtocol = protocol.id() == ConnectionProtocol.LOGIN;
 @@ -381,7 +_,7 @@
          if (this.address == null) {
              return "local";
@@ -120,10 +128,10 @@
              }
          }
      }
-@@ -590,5 +_,17 @@
+@@ -598,5 +_,17 @@
  
-     public void setBandwidthLogger(LocalSampleLogger bandwidthLogger) {
-         this.bandwidthDebugMonitor = new BandwidthDebugMonitor(bandwidthLogger);
+     public @Nullable UUID getIntendedProfileId() {
+         return this.intendedProfileId;
 +    }
 +
 +    public Channel channel() {

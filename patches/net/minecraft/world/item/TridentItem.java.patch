@@ -1,17 +1,74 @@
 --- a/net/minecraft/world/item/TridentItem.java
 +++ b/net/minecraft/world/item/TridentItem.java
-@@ -78,18 +_,31 @@
-                             .orElse(SoundEvents.TRIDENT_THROW);
-                         player.awardStat(Stats.ITEM_USED.get(this));
-                         if (level instanceof ServerLevel serverLevel) {
--                            itemStack.hurtWithoutBreaking(1, player);
+@@ -68,57 +_,71 @@
+             int timeHeld = this.getUseDuration(itemStack, entity) - remainingTime;
+             if (timeHeld < 10) {
+                 return false;
+-            }
+-
+-            float riptideStrength = EnchantmentHelper.getTridentSpinAttackStrength(itemStack, player);
+-            if (!(riptideStrength > 0.0F) || player.isInWaterOrRain() && !player.isPassenger()) {
+-                if (itemStack.nextDamageWillBreak()) {
+-                    return false;
+-                }
+-
+-                Holder<SoundEvent> sound = EnchantmentHelper.pickHighestLevel(itemStack, EnchantmentEffectComponents.TRIDENT_SOUND)
+-                    .orElse(SoundEvents.TRIDENT_THROW);
+-                player.awardStat(Stats.ITEM_USED.get(this));
+-                if (level instanceof ServerLevel serverLevel) {
+-                    itemStack.hurtWithoutBreaking(1, player);
+-                    if (riptideStrength == 0.0F) {
+-                        ItemStack thrownItemStack = itemStack.consumeAndReturn(1, player);
+-                        ThrownTrident trident = Projectile.spawnProjectileFromRotation(
+-                            ThrownTrident::new, serverLevel, thrownItemStack, player, 0.0F, 2.5F, 1.0F
+-                        );
+-                        if (player.hasInfiniteMaterials()) {
+-                            trident.pickup = AbstractArrow.Pickup.CREATIVE_ONLY;
+-                        }
+-
+-                        level.playSound(null, trident, sound.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
+-                        return true;
+-                    }
+-                }
+-
+-                if (riptideStrength > 0.0F) {
+-                    float yRot = player.getYRot();
+-                    float xRot = player.getXRot();
+-                    float xd = -Mth.sin(yRot * (float) (Math.PI / 180.0)) * Mth.cos(xRot * (float) (Math.PI / 180.0));
+-                    float yd = -Mth.sin(xRot * (float) (Math.PI / 180.0));
+-                    float zd = Mth.cos(yRot * (float) (Math.PI / 180.0)) * Mth.cos(xRot * (float) (Math.PI / 180.0));
+-                    float dist = Mth.sqrt(xd * xd + yd * yd + zd * zd);
+-                    xd *= riptideStrength / dist;
+-                    yd *= riptideStrength / dist;
+-                    zd *= riptideStrength / dist;
+-                    player.push(xd, yd, zd);
+-                    player.startAutoSpinAttack(20, 8.0F, itemStack);
+-                    if (player.onGround()) {
+-                        float heightDifference = 1.1999999F;
+-                        player.move(MoverType.SELF, new Vec3(0.0, 1.1999999F, 0.0));
+-                    }
+-
+-                    level.playSound(null, player, sound.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
+-                    return true;
+-                } else {
+-                    return false;
+-                }
+             } else {
+-                return false;
++                float riptideStrength = EnchantmentHelper.getTridentSpinAttackStrength(itemStack, player);
++                if (!(riptideStrength > 0.0F) || player.isInWaterOrRain() && !player.isPassenger()) {
++                    if (itemStack.nextDamageWillBreak()) {
++                        return false;
++                    } else {
++                        Holder<SoundEvent> sound = EnchantmentHelper.pickHighestLevel(itemStack, EnchantmentEffectComponents.TRIDENT_SOUND)
++                            .orElse(SoundEvents.TRIDENT_THROW);
++                        player.awardStat(Stats.ITEM_USED.get(this));
++                        if (level instanceof ServerLevel serverLevel) {
 +                            // itemStack.hurtWithoutBreaking(1, player); // CraftBukkit - moved down
-                             if (riptideStrength == 0.0F) {
--                                ItemStack thrownItemStack = itemStack.consumeAndReturn(1, player);
-                                 ThrownTrident trident = Projectile.spawnProjectileFromRotation(
--                                    ThrownTrident::new, serverLevel, thrownItemStack, player, 0.0F, 2.5F, 1.0F
++                            if (riptideStrength == 0.0F) {
++                                ThrownTrident trident = Projectile.spawnProjectileFromRotation(
 +                                    ThrownTrident::new, serverLevel, itemStack, player, 0.0F, 2.5F, 1.0F
-                                 );
++                                );
 +                                if (trident.isRemoved()) {
 +                                    if (player instanceof net.minecraft.server.level.ServerPlayer) {
 +                                        ((net.minecraft.server.level.ServerPlayer) player).getBukkitEntity().updateInventory();
@@ -22,28 +79,50 @@
 +                                ItemStack thrownItemStack = itemStack.consumeAndReturn(1, player);
 +                                trident.pickupItemStack = thrownItemStack.copy(); // SPIGOT-4511 update since damage call moved
 +                                // CraftBukkit end
-                                 if (player.hasInfiniteMaterials()) {
-                                     trident.pickup = AbstractArrow.Pickup.CREATIVE_ONLY;
-                                 }
- 
-                                 level.playSound(null, trident, sound.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
-                                 return true;
++                                if (player.hasInfiniteMaterials()) {
++                                    trident.pickup = AbstractArrow.Pickup.CREATIVE_ONLY;
++                                }
++
++                                level.playSound(null, trident, sound.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
++                                return true;
 +                                // CraftBukkit start - SPIGOT-5458 also need in this branch :(
 +                            } else {
 +                                itemStack.hurtWithoutBreaking(1, player);
 +                                // CraftBukkkit end
-                             }
-                         }
- 
-@@ -103,6 +_,7 @@
-                             xd *= riptideStrength / dist;
-                             yd *= riptideStrength / dist;
-                             zd *= riptideStrength / dist;
++                            }
++                        }
++
++                        if (riptideStrength > 0.0F) {
++                            float yRot = player.getYRot();
++                            float xRot = player.getXRot();
++                            float xd = -Mth.sin(yRot * (float) (Math.PI / 180.0)) * Mth.cos(xRot * (float) (Math.PI / 180.0));
++                            float yd = -Mth.sin(xRot * (float) (Math.PI / 180.0));
++                            float zd = Mth.cos(yRot * (float) (Math.PI / 180.0)) * Mth.cos(xRot * (float) (Math.PI / 180.0));
++                            float dist = Mth.sqrt(xd * xd + yd * yd + zd * zd);
++                            xd *= riptideStrength / dist;
++                            yd *= riptideStrength / dist;
++                            zd *= riptideStrength / dist;
 +                            org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerRiptideEvent(player, itemStack, xd, yd, zd); // CraftBukkit
-                             player.push(xd, yd, zd);
-                             player.startAutoSpinAttack(20, 8.0F, itemStack);
-                             if (player.onGround()) {
-@@ -143,5 +_,10 @@
++                            player.push(xd, yd, zd);
++                            player.startAutoSpinAttack(20, 8.0F, itemStack);
++                            if (player.onGround()) {
++                                float heightDifference = 1.1999999F;
++                                player.move(MoverType.SELF, new Vec3(0.0, 1.1999999F, 0.0));
++                            }
++
++                            level.playSound(null, player, sound.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
++                            return true;
++                        } else {
++                            return false;
++                        }
++                    }
++                } else {
++                    return false;
++                }
+             }
+         } else {
+             return false;
+@@ -145,5 +_,10 @@
          ThrownTrident trident = new ThrownTrident(level, position.x(), position.y(), position.z(), itemStack.copyWithCount(1));
          trident.pickup = AbstractArrow.Pickup.ALLOWED;
          return trident;

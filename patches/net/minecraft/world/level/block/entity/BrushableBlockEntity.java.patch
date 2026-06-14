@@ -14,20 +14,56 @@
  public class BrushableBlockEntity extends BlockEntity {
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final String LOOT_TABLE_TAG = "LootTable";
-@@ -77,7 +_,12 @@
-                 if (previousCompletionState != completionState) {
-                     BlockState previousState = this.getBlockState();
-                     BlockState state = previousState.setValue(BlockStateProperties.DUSTED, completionState);
--                    level.setBlock(this.getBlockPos(), state, 3);
+@@ -64,25 +_,30 @@
+         this.brushCountResetsAtTick = gameTime + 40L;
+         if (gameTime < this.coolDownEndsAtTick) {
+             return false;
+-        }
+-
+-        this.coolDownEndsAtTick = gameTime + 10L;
+-        this.unpackLootTable(level, user, brush);
+-        int previousCompletionState = this.getCompletionState();
+-        if (++this.brushCount >= 10) {
+-            this.brushingCompleted(level, user, brush);
+-            return true;
+-        }
+-
+-        level.scheduleTick(this.getBlockPos(), this.getBlockState().getBlock(), 2);
+-        int completionState = this.getCompletionState();
+-        if (previousCompletionState != completionState) {
+-            BlockState previousState = this.getBlockState();
+-            BlockState state = previousState.setValue(BlockStateProperties.DUSTED, completionState);
+-            level.setBlock(this.getBlockPos(), state, 3);
+-        }
+-
+-        return false;
++        } else {
++            this.coolDownEndsAtTick = gameTime + 10L;
++            this.unpackLootTable(level, user, brush);
++            int previousCompletionState = this.getCompletionState();
++            if (++this.brushCount >= 10) {
++                this.brushingCompleted(level, user, brush);
++                return true;
++            } else {
++                level.scheduleTick(this.getBlockPos(), this.getBlockState().getBlock(), 2);
++                int completionState = this.getCompletionState();
++                if (previousCompletionState != completionState) {
++                    BlockState previousState = this.getBlockState();
++                    BlockState state = previousState.setValue(BlockStateProperties.DUSTED, completionState);
 +                    // CraftBukkit start
 +                    BlockBrushEvent event = CraftEventFactory.callBlockBrushEvent(level, this.getBlockPos(), state, 3, (ServerPlayer) user);
 +                    if (!event.isCancelled()) {
 +                        event.getNewState().update(true);
 +                    }
 +                    // CraftBukkit end
-                 }
++                }
++
++                return false;
++            }
++        }
+     }
  
-                 return false;
+     private void unpackLootTable(ServerLevel level, LivingEntity user, ItemInstance brush) {
 @@ -114,9 +_,10 @@
      }
  

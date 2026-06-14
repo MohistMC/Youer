@@ -15,11 +15,34 @@
  
  public class StartAttacking {
      public static <E extends Mob> BehaviorControl<E> create(StartAttacking.TargetFinder<E> targetFinderFunction) {
-@@ -29,7 +_,23 @@
-                             if (!body.canAttack(targetEntity)) {
-                                 return false;
-                             } else {
--                                attackTarget.set(targetEntity);
+@@ -20,21 +_,37 @@
+                 .apply(i, (attackTarget, cantReachSince) -> (level, body, timestamp) -> {
+                     if (!canAttackPredicate.test(level, body)) {
+                         return false;
+-                    }
+-
+-                    Optional<? extends LivingEntity> target = targetFinderFunction.get(level, body);
+-                    if (target.isEmpty()) {
+-                        return false;
+-                    }
+-
+-                    LivingEntity targetEntity = target.get();
+-                    if (!body.canAttack(targetEntity)) {
+-                        return false;
+-                    }
+-
+-                    attackTarget.set(targetEntity);
+-                    cantReachSince.erase();
+-                    return true;
++                    } else {
++                        Optional<? extends LivingEntity> target = targetFinderFunction.get(level, body);
++                        if (target.isEmpty()) {
++                            return false;
++                        } else {
++                            LivingEntity targetEntity = target.get();
++                            if (!body.canAttack(targetEntity)) {
++                                return false;
++                            } else {
 +                                // CraftBukkit start
 +                                EntityTargetEvent event = CraftEventFactory.callEntityTargetLivingEvent(body, targetEntity, (targetEntity instanceof ServerPlayer) ? EntityTargetEvent.TargetReason.CLOSEST_PLAYER : EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
 +                                if (event.isCancelled()) {
@@ -37,6 +60,11 @@
 +                                    return false;
 +
 +                                attackTarget.set(changeTargetEvent.getNewAboutToBeSetTarget());
-                                 cantReachSince.erase();
-                                 return true;
-                             }
++                                cantReachSince.erase();
++                                return true;
++                            }
++                        }
++                    }
+                 })
+         );
+     }

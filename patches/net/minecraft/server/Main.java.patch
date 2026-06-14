@@ -25,15 +25,15 @@
  import java.util.function.BooleanSupplier;
  import joptsimple.OptionParser;
  import joptsimple.OptionSet;
-@@ -33,6 +_,7 @@
- import net.minecraft.server.dedicated.DedicatedServer;
- import net.minecraft.server.dedicated.DedicatedServerProperties;
- import net.minecraft.server.dedicated.DedicatedServerSettings;
+@@ -36,6 +_,7 @@
+ import net.minecraft.server.jsonrpc.JsonRpc;
+ import net.minecraft.server.jsonrpc.ManagementServer;
+ import net.minecraft.server.notifications.NotificationManager;
 +import net.minecraft.server.packs.PackType;
  import net.minecraft.server.packs.repository.PackRepository;
  import net.minecraft.server.packs.repository.ServerPacksSource;
  import net.minecraft.util.Mth;
-@@ -53,9 +_,11 @@
+@@ -56,9 +_,11 @@
  import net.minecraft.world.level.levelgen.presets.WorldPresets;
  import net.minecraft.world.level.storage.LevelDataAndDimensions;
  import net.minecraft.world.level.storage.LevelStorageSource;
@@ -45,7 +45,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -64,10 +_,11 @@
+@@ -67,10 +_,11 @@
  
      @SuppressForbidden(reason = "System.out needed before bootstrap")
      public static void main(String[] args) {
@@ -58,7 +58,7 @@
          OptionSpec<Void> demo = parser.accepts("demo");
          OptionSpec<Void> bonusChest = parser.accepts("bonusChest");
          OptionSpec<Void> forceUpgrade = parser.accepts("forceUpgrade");
-@@ -83,12 +_,70 @@
+@@ -86,12 +_,70 @@
          OptionSpec<Path> pidFile = parser.accepts("pidFile").withRequiredArg().withValuesConvertedBy(new PathConverter());
          OptionSpec<String> nonOptions = parser.nonOptions();
  
@@ -130,7 +130,7 @@
  
              Path pidFilePath = options.valueOf(pidFile);
              if (pidFilePath != null) {
-@@ -104,26 +_,45 @@
+@@ -107,19 +_,34 @@
              Bootstrap.validate();
              Util.startTimerHackThread();
              Path settingsFile = Paths.get("server.properties");
@@ -171,7 +171,9 @@
              }
  
              File universePath = new File(options.valueOf(universe));
-             Services services = Services.create(new YggdrasilAuthenticationService(Proxy.NO_PROXY), universePath);
+@@ -127,8 +_,12 @@
+             NotificationManager notificationManager = new NotificationManager();
+             ManagementServer jsonRpcServer = JsonRpc.create(settings, notificationManager);
              String levelName = Optional.ofNullable(options.valueOf(worldName)).orElse(settings.getProperties().levelName);
 +            if (levelName == null || levelName.isEmpty() || new File(universePath, levelName).getAbsolutePath().equals(new File(levelName).getAbsolutePath())) {
 +                LOGGER.error("Invalid world directory specified, must not be null, empty or the same directory as your universe! {}", levelName);
@@ -183,7 +185,7 @@
              Dynamic<?> levelDataTag;
              if (access.hasWorldData()) {
                  Dynamic<?> levelDataUnfixed;
-@@ -156,6 +_,26 @@
+@@ -161,6 +_,26 @@
              }
  
              PackRepository packRepository = ServerPacksSource.createPackRepository(access);
@@ -210,7 +212,7 @@
  
              WorldStem worldStem;
              try {
-@@ -164,6 +_,7 @@
+@@ -169,6 +_,7 @@
                          executor -> WorldLoader.load(
                              worldLoadConfig,
                              context -> {
@@ -218,7 +220,7 @@
                                  Registry<LevelStem> datapackDimensions = context.datapackDimensions().lookupOrThrow(Registries.LEVEL_STEM);
                                  if (levelDataTag != null) {
                                      LevelDataAndDimensions worldData = LevelStorageSource.getLevelDataAndDimensions(
-@@ -190,7 +_,7 @@
+@@ -194,7 +_,7 @@
                  );
                  return;
              }
@@ -227,7 +229,7 @@
              RegistryAccess.Frozen registryHolder = worldStem.registries().compositeAccess();
              WorldData data = worldStem.worldDataAndGenSettings().data();
              boolean recreateRegionFilesValue = options.has(recreateRegionFiles);
-@@ -199,9 +_,11 @@
+@@ -203,9 +_,11 @@
              }
  
              access.saveDataTag(data);
@@ -236,10 +238,10 @@
                  thread -> {
                      DedicatedServer server = new DedicatedServer(
 +                        options, worldLoader.get(),
-                         thread, access, packRepository, worldStem, Optional.empty(), settings, DataFixers.getDataFixer(), services
-                     );
-                     server.setPort(options.valueOf(port));
-@@ -215,14 +_,17 @@
+                         thread,
+                         access,
+                         packRepository,
+@@ -229,14 +_,17 @@
                      return server;
                  }
              );
@@ -254,10 +256,10 @@
              shutdownThread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
              Runtime.getRuntime().addShutdownHook(shutdownThread);
 +            */ // CraftBukkit end
-         } catch (Throwable var40) {
-             LOGGER.error(LogUtils.FATAL_MARKER, "Failed to start the minecraft server", var40);
+         } catch (Throwable t) {
+             LOGGER.error(LogUtils.FATAL_MARKER, "Failed to start the minecraft server", t);
          }
-@@ -251,6 +_,9 @@
+@@ -265,6 +_,9 @@
              dimensions = properties.createDimensions(context.datapackWorldgen());
          }
  
@@ -267,7 +269,7 @@
          WorldDimensions.Complete finalDimensions = dimensions.bake(datapackDimensions);
          Lifecycle lifecycle = finalDimensions.lifecycle().add(context.datapackWorldgen().allRegistriesLifecycle());
          PrimaryLevelData primaryLevelData = new PrimaryLevelData(createLevelSettings, finalDimensions.specialWorldProperty(), lifecycle);
-@@ -295,7 +_,7 @@
+@@ -309,7 +_,7 @@
          RegistryAccess registryAccess,
          boolean recreateRegionFiles
      ) {

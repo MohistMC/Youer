@@ -1,6 +1,22 @@
 --- a/net/minecraft/world/entity/animal/bee/Bee.java
 +++ b/net/minecraft/world/entity/animal/bee/Bee.java
-@@ -96,6 +_,12 @@
+@@ -5,6 +_,7 @@
+ import java.util.Comparator;
+ import java.util.EnumSet;
+ import java.util.List;
++import java.util.Objects;
+ import java.util.Optional;
+ import java.util.stream.Collectors;
+ import java.util.stream.Stream;
+@@ -53,6 +_,7 @@
+ import net.minecraft.world.entity.ai.goal.FloatGoal;
+ import net.minecraft.world.entity.ai.goal.FollowParentGoal;
+ import net.minecraft.world.entity.ai.goal.Goal;
++import net.minecraft.world.entity.ai.goal.GoalSelector;
+ import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
+ import net.minecraft.world.entity.ai.goal.TemptGoal;
+ import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
+@@ -93,6 +_,12 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -10,10 +26,10 @@
 +import org.bukkit.event.entity.EntityTargetEvent;
 +// CraftBukkit end
 +
- public class Bee extends Animal implements FlyingAnimal, NeutralMob {
+ public class Bee extends Animal implements NeutralMob {
      public static final float FLAP_DEGREES_PER_TICK = 120.32113F;
      public static final int TICKS_PER_FLAP = Mth.ceil(1.4959966F);
-@@ -199,9 +_,24 @@
+@@ -196,9 +_,24 @@
  
      @Override
      protected void addAdditionalSaveData(ValueOutput output) {
@@ -40,7 +56,7 @@
          output.putBoolean("HasNectar", this.hasNectar());
          output.putBoolean("HasStung", this.hasStung());
          output.putInt("TicksSincePollination", this.ticksWithoutNectarSinceExitingHive);
-@@ -239,7 +_,7 @@
+@@ -236,7 +_,7 @@
                  }
  
                  if (poisonTime > 0) {
@@ -49,29 +65,32 @@
                  }
              }
  
-@@ -480,7 +_,7 @@
+@@ -471,7 +_,7 @@
          if (this.hivePos == null) {
              return null;
          } else {
--            return this.isTooFarAway(this.hivePos) ? null : this.level().getBlockEntity(this.hivePos, BlockEntityType.BEEHIVE).orElse(null);
+-            return this.isTooFarAway(this.hivePos) ? null : this.level().getBlockEntity(this.hivePos, BlockEntityTypes.BEEHIVE).orElse(null);
 +            return this.isTooFarAway(this.hivePos) ? null : this.level().getBlockEntity(this.hivePos) instanceof BeehiveBlockEntity hive ? hive : null;
          }
      }
  
-@@ -640,17 +_,33 @@
+@@ -630,18 +_,34 @@
+     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableTo(level, source)) {
              return false;
-         } else {
++        } else {
 +            // CraftBukkit start - Only stop pollinating if entity was damaged
 +            boolean result = super.hurtServer(level, source, damage);
 +            if (!result) {
 +                return result;
 +            }
 +            // CraftBukkit end
-             this.beePollinateGoal.stopPollinating();
--            return super.hurtServer(level, source, damage);
++            this.beePollinateGoal.stopPollinating();
 +            return result; // CraftBukkit
          }
+-
+-        this.beePollinateGoal.stopPollinating();
+-        return super.hurtServer(level, source, damage);
      }
  
      @Override
@@ -93,7 +112,7 @@
      public Vec3 getLeashOffset() {
          return new Vec3(0.0, 0.5F * this.getEyeHeight(), this.getBbWidth() * 0.2F);
      }
-@@ -1013,7 +_,7 @@
+@@ -983,7 +_,7 @@
                              }
                          }
  
@@ -102,7 +121,7 @@
                              Bee.this.level().levelEvent(2011, belowPos, 15);
                              Bee.this.level().setBlockAndUpdate(belowPos, growState);
                              Bee.this.incrementNumCropsGrownSincePollination();
-@@ -1038,7 +_,7 @@
+@@ -1007,7 +_,7 @@
          @Override
          protected void alertOther(Mob other, LivingEntity hurtByMob) {
              if (other instanceof Bee && this.mob.hasLineOfSight(hurtByMob)) {

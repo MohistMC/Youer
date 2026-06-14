@@ -8,11 +8,13 @@
  
  public interface ConsumeEffect {
      Codec<ConsumeEffect> CODEC = BuiltInRegistries.CONSUME_EFFECT_TYPE.byNameCodec().dispatch(ConsumeEffect::getType, ConsumeEffect.Type::codec);
-@@ -19,7 +_,15 @@
+@@ -19,9 +_,17 @@
  
      ConsumeEffect.Type<? extends ConsumeEffect> getType();
  
 -    boolean apply(final Level level, final ItemStack stack, final LivingEntity user);
+-
+-    record Type<T extends ConsumeEffect>(MapCodec<T> codec, StreamCodec<RegistryFriendlyByteBuf, T> streamCodec) {
 +    // CraftBukkit start
 +    default boolean apply(Level level, ItemStack stack, LivingEntity user) {
 +        return this.apply(level, stack, user, EntityPotionEffectEvent.Cause.UNKNOWN);
@@ -22,6 +24,8 @@
 +        return this.apply(level, stack, user);
 +    }
 +    // CraftBukkit end
- 
-     public record Type<T extends ConsumeEffect>(MapCodec<T> codec, StreamCodec<RegistryFriendlyByteBuf, T> streamCodec) {
++
++    public record Type<T extends ConsumeEffect>(MapCodec<T> codec, StreamCodec<RegistryFriendlyByteBuf, T> streamCodec) {
          public static final ConsumeEffect.Type<ApplyStatusEffectsConsumeEffect> APPLY_EFFECTS = register(
+             "apply_effects", ApplyStatusEffectsConsumeEffect.CODEC, ApplyStatusEffectsConsumeEffect.STREAM_CODEC
+         );

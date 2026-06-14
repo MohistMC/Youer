@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
 +++ b/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
-@@ -51,6 +_,21 @@
+@@ -52,6 +_,21 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -22,31 +22,23 @@
  public class EnderDragon extends Mob implements Enemy {
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final EntityDataAccessor<Integer> DATA_PHASE = SynchedEntityData.defineId(EnderDragon.class, EntityDataSerializers.INT);
-@@ -85,6 +_,7 @@
+@@ -87,6 +_,7 @@
      private final Node[] nodes = new Node[24];
      private final int[] nodeAdjacency = new int[24];
      private final BinaryHeap openSet = new BinaryHeap();
 +    private final Explosion explosionSource; // CraftBukkit - reusable source for CraftTNTPrimed.getSource()
  
      public EnderDragon(EntityType<? extends EnderDragon> type, Level level) {
-         super(EntityType.ENDER_DRAGON, level);
-@@ -100,6 +_,15 @@
+         super(EntityTypes.ENDER_DRAGON, level);
+@@ -102,6 +_,7 @@
          this.setHealth(this.getMaxHealth());
          this.noPhysics = true;
          this.phaseManager = new EnderDragonPhaseManager(this);
 +        this.explosionSource = new ServerExplosion(level.getMinecraftWorld(), this, null, null, new Vec3(Double.NaN, Double.NaN, Double.NaN), Float.NaN, true, Explosion.BlockInteraction.DESTROY); // CraftBukkit
-+        this.setId(ENTITY_COUNTER.getAndAdd(this.subEntities.length + 1) + 1); // Forge: Fix MC-158205: Make sure part ids are successors of parent mob id
-+    }
-+
-+    @Override
-+    public void setId(int id) {
-+        super.setId(id);
-+        for (int i = 0; i < this.subEntities.length; i++) // Forge: Fix MC-158205: Set part ids to successors of parent mob id
-+            this.subEntities[i].setId(id + i + 1);
      }
  
      public void setDragonFight(EnderDragonFight fight) {
-@@ -148,8 +_,19 @@
+@@ -150,8 +_,19 @@
          entityData.define(DATA_PHASE, EnderDragonPhase.HOVERING.getId());
      }
  
@@ -66,7 +58,7 @@
          this.processFlappingMovement();
          if (this.level().isClientSide()) {
              this.setHealth(this.getHealth());
-@@ -209,7 +_,7 @@
+@@ -211,7 +_,7 @@
                      }
  
                      Vec3 targetLocation = currentPhase.getFlyTargetLocation();
@@ -75,7 +67,7 @@
                          double xdd = targetLocation.x - this.getX();
                          double ydd = targetLocation.y - this.getY();
                          double zdd = targetLocation.z - this.getZ();
-@@ -364,7 +_,14 @@
+@@ -366,7 +_,14 @@
              if (this.nearestCrystal.isRemoved()) {
                  this.nearestCrystal = null;
              } else if (this.tickCount % 10 == 0 && this.getHealth() < this.getMaxHealth()) {
@@ -91,7 +83,7 @@
              }
          }
  
-@@ -427,6 +_,9 @@
+@@ -429,6 +_,9 @@
          int z1 = Mth.floor(bb.maxZ);
          boolean hitWall = false;
          boolean destroyedBlock = false;
@@ -101,7 +93,7 @@
  
          for (int x = x0; x <= x1; x++) {
              for (int y = y0; y <= y1; y++) {
-@@ -434,8 +_,12 @@
+@@ -436,8 +_,12 @@
                      BlockPos blockPos = new BlockPos(x, y, z);
                      BlockState state = level.getBlockState(blockPos);
                      if (!state.isAir() && !state.is(BlockTags.DRAGON_TRANSPARENT)) {
@@ -116,7 +108,7 @@
                          } else {
                              hitWall = true;
                          }
-@@ -444,6 +_,49 @@
+@@ -446,6 +_,49 @@
              }
          }
  
@@ -166,7 +158,7 @@
          if (destroyedBlock) {
              BlockPos randomPos = new BlockPos(
                  x0 + this.random.nextInt(x1 - x0 + 1), y0 + this.random.nextInt(y1 - y0 + 1), z0 + this.random.nextInt(z1 - z0 + 1)
-@@ -506,7 +_,7 @@
+@@ -511,7 +_,7 @@
  
      @Override
      public void kill(ServerLevel level) {
@@ -175,7 +167,7 @@
          this.gameEvent(GameEvent.ENTITY_DIE);
          if (this.dragonFight != null) {
              this.dragonFight.updateDragon(this);
-@@ -528,14 +_,19 @@
+@@ -533,14 +_,19 @@
              this.level().addParticle(ParticleTypes.EXPLOSION_EMITTER, this.getX() + xo, this.getY() + 2.0 + yo, this.getZ() + zo, 0.0, 0.0, 0.0);
          }
  
@@ -197,7 +189,7 @@
              }
  
              if (this.dragonDeathTime == 1 && !this.isSilent()) {
-@@ -552,19 +_,35 @@
+@@ -557,19 +_,35 @@
          }
  
          if (this.dragonDeathTime >= 200 && this.level() instanceof ServerLevel level) {
@@ -236,26 +228,29 @@
      public int findClosestNode() {
          if (this.nodes[0] == null) {
              for (int i = 0; i < 24; i++) {
-@@ -743,6 +_,7 @@
-         super.addAdditionalSaveData(output);
+@@ -750,6 +_,7 @@
          output.putInt("DragonPhase", this.phaseManager.getCurrentPhase().getPhase().getId());
          output.putInt("DragonDeathTime", this.dragonDeathTime);
+         output.putFloat("sitting_damage_received", this.sittingDamageReceived);
 +        output.putInt("Bukkit.expToDrop", expToDrop); // CraftBukkit - SPIGOT-2420: The ender dragon drops xp over time which can also happen between server starts
      }
  
      @Override
-@@ -750,6 +_,7 @@
-         super.readAdditionalSaveData(input);
+@@ -758,6 +_,7 @@
          input.getInt("DragonPhase").ifPresent(phaseId -> this.phaseManager.setPhase(EnderDragonPhase.getById(phaseId)));
          this.dragonDeathTime = input.getIntOr("DragonDeathTime", 0);
+         this.sittingDamageReceived = input.getFloatOr("sitting_damage_received", 0.0F);
 +        this.expToDrop = input.getIntOr("Bukkit.expToDrop", this.expToDrop); // CraftBukkit - SPIGOT-2420: The ender dragon drops xp over time which can also happen between server starts
      }
  
      @Override
-@@ -859,8 +_,19 @@
-     }
- 
+@@ -864,6 +_,16 @@
      @Override
+     public boolean canUsePortal(boolean ignorePassenger) {
+         return false;
++    }
++
++    @Override
 +    public boolean isMultipartEntity() {
 +        return true;
 +    }
@@ -263,12 +258,6 @@
 +    @Override
 +    public net.neoforged.neoforge.entity.PartEntity<?>[] getParts() {
 +        return this.subEntities;
-+    }
-+
-+    @Override
-     public void recreateFromPacket(ClientboundAddEntityPacket packet) {
-         super.recreateFromPacket(packet);
-+        if (true) return; // Forge: Fix MC-158205: Moved into setId()
-         EnderDragonPart[] subEntities = this.getSubEntities();
+     }
  
-         for (int i = 0; i < subEntities.length; i++) {
+     @Override

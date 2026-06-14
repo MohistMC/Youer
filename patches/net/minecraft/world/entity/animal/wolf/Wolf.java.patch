@@ -1,6 +1,13 @@
 --- a/net/minecraft/world/entity/animal/wolf/Wolf.java
 +++ b/net/minecraft/world/entity/animal/wolf/Wolf.java
-@@ -83,6 +_,11 @@
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.entity.animal.wolf;
+ 
++import java.util.Objects;
+ import java.util.Optional;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+@@ -87,6 +_,11 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
@@ -12,20 +19,23 @@
  import org.jspecify.annotations.Nullable;
  
  public class Wolf extends TamableAnimal implements NeutralMob {
-@@ -395,27 +_,39 @@
+@@ -401,28 +_,40 @@
+     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableTo(level, source)) {
              return false;
-         } else {
++        } else {
 +            // CraftBukkit start
 +            boolean result = super.hurtServer(level, source, damage);
 +            if (!result) {
 +                return result;
 +            }
 +            // CraftBukkit end
-             this.setOrderedToSit(false);
--            return super.hurtServer(level, source, damage);
++            this.setOrderedToSit(false);
 +            return result; // CraftBukkit
          }
+-
+-        this.setOrderedToSit(false);
+-        return super.hurtServer(level, source, damage);
      }
  
      @Override
@@ -63,7 +73,7 @@
      }
  
      private boolean canArmorAbsorb(DamageSource source) {
-@@ -426,7 +_,7 @@
+@@ -433,7 +_,7 @@
      protected void applyTamingSideEffects() {
          if (this.isTame()) {
              this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(40.0);
@@ -72,7 +82,7 @@
          } else {
              this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(8.0);
          }
-@@ -476,7 +_,7 @@
+@@ -483,7 +_,7 @@
                      this.setOrderedToSit(!this.isOrderedToSit());
                      this.jumping = false;
                      this.navigation.stop();
@@ -81,13 +91,13 @@
                      return InteractionResult.SUCCESS.withoutItem();
                  }
  
-@@ -499,7 +_,8 @@
+@@ -506,7 +_,8 @@
      }
  
      private void tryToTame(Player player) {
 -        if (this.random.nextInt(3) == 0) {
 +        // CraftBukkit - added event call and isCancelled check.
-+        if (this.random.nextInt(3) == 0 && !CraftEventFactory.callEntityTameEvent(this, player).isCancelled()) {
++        if (this.random.nextInt(3) == 0 && (!net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, player) || !CraftEventFactory.callEntityTameEvent(this, player).isCancelled())) {
              this.tame(player);
              this.navigation.stop();
              this.setTarget(null);

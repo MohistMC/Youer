@@ -1,15 +1,19 @@
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -4,6 +_,8 @@
+@@ -3,8 +_,12 @@
+ import com.google.common.collect.ImmutableMap;
  import com.google.common.collect.Lists;
  import com.google.common.collect.ImmutableMap.Builder;
- import com.google.common.net.HostAndPort;
++import com.google.common.net.HostAndPort;
 +import com.mohistmc.youer.YouerConfig;
 +import com.mohistmc.youer.api.ColorAPI;
  import com.mojang.datafixers.DataFixer;
  import com.mojang.logging.LogUtils;
- import io.netty.handler.ssl.SslContext;
-@@ -19,6 +_,7 @@
++import io.netty.handler.ssl.SslContext;
+ import java.io.BufferedReader;
+ import java.io.IOException;
+ import java.io.InputStreamReader;
+@@ -17,9 +_,11 @@
  import java.nio.file.LinkOption;
  import java.nio.file.Path;
  import java.util.Collections;
@@ -17,15 +21,35 @@
  import java.util.List;
  import java.util.Locale;
  import java.util.Map;
-@@ -38,6 +_,7 @@
++import java.util.Objects;
+ import java.util.Optional;
+ import java.util.function.BooleanSupplier;
+ import java.util.stream.Stream;
+@@ -35,9 +_,15 @@
  import net.minecraft.server.ServerInterface;
  import net.minecraft.server.ServerLinks;
  import net.minecraft.server.Services;
 +import net.minecraft.server.WorldLoader;
  import net.minecraft.server.WorldStem;
  import net.minecraft.server.gui.MinecraftServerGui;
- import net.minecraft.server.jsonrpc.JsonRpcNotificationService;
-@@ -77,6 +_,17 @@
++import net.minecraft.server.jsonrpc.JsonRpcNotificationService;
+ import net.minecraft.server.jsonrpc.ManagementServer;
++import net.minecraft.server.jsonrpc.internalapi.MinecraftApi;
++import net.minecraft.server.jsonrpc.security.AuthenticationHandler;
++import net.minecraft.server.jsonrpc.security.JsonRpcSslContextProvider;
++import net.minecraft.server.jsonrpc.security.SecurityConfig;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.server.level.progress.LoggingLevelLoadListener;
+@@ -56,6 +_,7 @@
+ import net.minecraft.server.rcon.thread.RconThread;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.StringUtil;
++import net.minecraft.util.TimeUtil;
+ import net.minecraft.util.Util;
+ import net.minecraft.util.debug.DebugSubscriptions;
+ import net.minecraft.util.debugchart.RemoteDebugSampleType;
+@@ -69,6 +_,17 @@
  import net.minecraft.world.level.gamerules.GameRules;
  import net.minecraft.world.level.storage.LevelData;
  import net.minecraft.world.level.storage.LevelStorageSource;
@@ -43,7 +67,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -86,7 +_,7 @@
+@@ -78,7 +_,7 @@
      private static final int CONVERSION_RETRIES = 2;
      private final List<ConsoleInput> consoleInput = Collections.synchronizedList(Lists.newArrayList());
      private @Nullable QueryThreadGs4 queryThreadGs4;
@@ -52,10 +76,12 @@
      private @Nullable RconThread rconThread;
      public DedicatedServerSettings settings;
      private @Nullable MinecraftServerGui gui;
-@@ -97,8 +_,10 @@
+@@ -87,9 +_,11 @@
+     private boolean isTickTimeLoggingEnabled;
+     public ServerLinks serverLinks;
      private final Map<String, String> codeOfConductTexts;
-     private @Nullable ManagementServer jsonRpcServer;
-     private long lastHeartbeat;
+-    private final @Nullable ManagementServer jsonRpcServer;
++    private @Nullable ManagementServer jsonRpcServer;
 +    private net.neoforged.neoforge.server.dedicated.@Nullable DedicatedLanServerPinger dediLanPinger;
  
      public DedicatedServer(
@@ -63,36 +89,47 @@
          Thread serverThread,
          LevelStorageSource.LevelStorageAccess levelStorageSource,
          PackRepository packRepository,
-@@ -109,6 +_,7 @@
-         Services services
+@@ -102,6 +_,7 @@
+         NotificationManager notificationManager
      ) {
          super(
 +            options, worldLoader,
              serverThread,
              levelStorageSource,
              packRepository,
-@@ -121,7 +_,7 @@
-             true
+@@ -115,7 +_,7 @@
+             notificationManager
          );
          this.settings = settings;
 -        this.rconConsoleSource = new RconConsoleSource(this);
 +        // this.rconConsoleSource = new RconConsoleSource(this); // CraftBukkit - remove field
          this.serverTextFilter = ServerTextFilter.createFromConfig(settings.getProperties());
+         this.jsonRpcServer = jsonRpcServer;
          this.serverLinks = createServerLinks(settings);
-         if (settings.getProperties().codeOfConduct) {
-@@ -160,7 +_,7 @@
-                     }
+@@ -156,29 +_,99 @@
                  }
+             }
  
--                return builder.build();
-+                return new LinkedHashMap<>(builder.build()); // CraftBukkit - mutable
-             } catch (IOException var11) {
-                 throw new IllegalArgumentException("Failed to read Code of Conduct folder", var11);
-             }
-@@ -204,6 +_,13 @@
-             }
+-            return builder.build();
++            return new LinkedHashMap<>(builder.build()); // CraftBukkit - mutable
+         } catch (IOException e) {
+             throw new IllegalArgumentException("Failed to read Code of Conduct folder", e);
          }
+     }
  
++    private SslContext createSslContext() {
++        try {
++            return JsonRpcSslContextProvider.createFrom(
++                this.getProperties().managementServerTlsKeystore, this.getProperties().managementServerTlsKeystorePassword
++            );
++        } catch (Exception var2) {
++            JsonRpcSslContextProvider.printInstructions();
++            throw new IllegalStateException("Failed to configure TLS for the server management protocol", var2);
++        }
++    }
++
+     @Override
+     protected boolean initServer() throws IOException {
 +        // CraftBukkit start
 +        LineReader reader = LineReaderBuilder.builder()
 +                .terminal(terminal)
@@ -101,10 +138,6 @@
 +                .build();
 +        // CraftBukkit end
          Thread consoleThread = new Thread("Server console handler") {
-             {
-                 Objects.requireNonNull(DedicatedServer.this);
-@@ -211,18 +_,70 @@
- 
              @Override
              public void run() {
 -                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
@@ -146,9 +179,10 @@
 +                            }
 +                        }
                      }
--                } catch (IOException var4) {
+-                } catch (IOException e) {
+-                    DedicatedServer.LOGGER.error("Exception handling console input", e);
 +                } catch (Throwable var4) {
-                     DedicatedServer.LOGGER.error("Exception handling console input", (Throwable)var4);
++                    DedicatedServer.LOGGER.error("Exception handling console input", (Throwable) var4);
                  }
              }
          };
@@ -178,7 +212,7 @@
          consoleThread.setDaemon(true);
          consoleThread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
          consoleThread.start();
-@@ -241,7 +_,13 @@
+@@ -197,7 +_,13 @@
              this.setLocalIp(properties.serverIp);
          }
  
@@ -193,7 +227,7 @@
          LOGGER.info("Default game type: {}", properties.gameMode.get());
          InetAddress localAddress = null;
          if (!this.getLocalIp().isEmpty()) {
-@@ -264,12 +_,24 @@
+@@ -220,12 +_,24 @@
              return false;
          }
  
@@ -221,52 +255,53 @@
              LOGGER.warn("To change this, set \"online-mode\" to \"true\" in the server.properties file.");
          }
  
-@@ -280,17 +_,20 @@
+@@ -236,18 +_,20 @@
          if (!OldUsersConverter.areOldUserlistsRemoved()) {
              return false;
-         } else {
--            this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
-+            // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
-             this.tickTimeLogger = new RemoteSampleLogger(TpsDebugDimensions.values().length, this.debugSubscribers(), RemoteDebugSampleType.TICK_TIME);
-             long levelNanoTime = Util.getNanos();
-             this.services.nameToIdCache().resolveOfflineUsers(!this.usesAuthentication());
-             LOGGER.info("Preparing level \"{}\"", this.getLevelIdName());
-+            youer$loadLevel();
-             this.loadLevel();
-+            net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
-             long elapsed = Util.getNanos() - levelNanoTime;
-             String time = String.format(Locale.ROOT, "%.3fs", elapsed / 1.0E9);
-             LOGGER.info("Done ({})! For help, type \"help\"", time);
-+            this.nextTickTimeNanos = Util.getNanos(); // Neo: Update server time to prevent watchdog/spamming during long load.
-             if (properties.announcePlayerAchievements != null) {
--                this.getGameRules().set(GameRules.SHOW_ADVANCEMENT_MESSAGES, properties.announcePlayerAchievements, this);
-+                this.overworld().getGameRules().set(GameRules.SHOW_ADVANCEMENT_MESSAGES, properties.announcePlayerAchievements, this.overworld()); // CraftBukkit - per-world
-             }
- 
-             if (properties.enableQuery) {
-@@ -303,7 +_,7 @@
-                 this.rconThread = RconThread.create(this);
-             }
- 
--            if (this.getMaxTickLength() > 0L) {
-+            if (false && this.getMaxTickLength() > 0L) {  // Spigot - disable
-                 Thread watchdog = new Thread(new ServerWatchdog(this));
-                 watchdog.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(LOGGER));
-                 watchdog.setName("Server Watchdog");
-@@ -318,6 +_,12 @@
- 
-             this.saveEverything(false, true, true);
-             this.notificationManager().serverStarted();
-+            if (net.neoforged.neoforge.common.config.NeoForgeServerConfig.INSTANCE.advertiseDedicatedServerToLan.get()) {
-+                this.dediLanPinger = new net.neoforged.neoforge.server.dedicated.DedicatedLanServerPinger(this.getMotd(), String.valueOf(this.getServerPort()));
-+                this.dediLanPinger.start();
-+            }
-+
-+            net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStarting(this);
-             return true;
          }
+-
+-        this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
++        // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
+         this.tickTimeLogger = new RemoteSampleLogger(TpsDebugDimensions.values().length, this.debugSubscribers(), RemoteDebugSampleType.TICK_TIME);
+         long levelNanoTime = Util.getNanos();
+         this.services.nameToIdCache().resolveOfflineUsers(!this.usesAuthentication());
+         LOGGER.info("Preparing level \"{}\"", this.getLevelIdName());
++        youer$loadLevel();
+         this.loadLevel();
++        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
+         long elapsed = Util.getNanos() - levelNanoTime;
+         String time = String.format(Locale.ROOT, "%.3fs", elapsed / 1.0E9);
+         LOGGER.info("Done ({})! For help, type \"help\"", time);
++        this.nextTickTimeNanos = Util.getNanos(); // Neo: Update server time to prevent watchdog/spamming during long load.
+         if (properties.announcePlayerAchievements != null) {
+-            this.getGameRules().set(GameRules.SHOW_ADVANCEMENT_MESSAGES, properties.announcePlayerAchievements, this);
++            this.overworld().getGameRules().set(GameRules.SHOW_ADVANCEMENT_MESSAGES, properties.announcePlayerAchievements, this.overworld()); // CraftBukkit - per-world
+         }
+ 
+         if (properties.enableQuery) {
+@@ -260,7 +_,7 @@
+             this.rconThread = RconThread.create(this);
+         }
+ 
+-        if (this.getMaxTickLength() > 0L) {
++        if (false && this.getMaxTickLength() > 0L) {  // Spigot - disable
+             Thread watchdog = new Thread(new ServerWatchdog(this), "Server Watchdog");
+             watchdog.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(LOGGER));
+             watchdog.setDaemon(true);
+@@ -274,6 +_,12 @@
+ 
+         this.saveEverything(false, true, true);
+         this.notificationManager().serverStarted();
++        if (net.neoforged.neoforge.common.config.NeoForgeServerConfig.INSTANCE.advertiseDedicatedServerToLan.get()) {
++            this.dediLanPinger = new net.neoforged.neoforge.server.dedicated.DedicatedLanServerPinger(this.getMotd(), String.valueOf(this.getServerPort()));
++            this.dediLanPinger.start();
++        }
++
++        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStarting(this);
+         return true;
      }
-@@ -463,6 +_,11 @@
+ 
+@@ -410,6 +_,11 @@
              this.queryThreadGs4.stop();
          }
  
@@ -278,15 +313,15 @@
          if (this.jsonRpcServer != null) {
              try {
                  this.jsonRpcServer.stop(true);
-@@ -470,6 +_,7 @@
-                 LOGGER.error("Interrupted while stopping the management server", (Throwable)var2);
+@@ -417,6 +_,7 @@
+                 LOGGER.error("Interrupted while stopping the management server", e);
              }
          }
 +        Runtime.getRuntime().halt(0); // CraftBukkit
      }
  
      @Override
-@@ -484,8 +_,17 @@
+@@ -431,8 +_,17 @@
  
      public void handleConsoleInputs() {
          while (!this.consoleInput.isEmpty()) {
@@ -306,7 +341,7 @@
          }
      }
  
-@@ -623,7 +_,7 @@
+@@ -591,7 +_,7 @@
  
      @Override
      public String getMotd() {
@@ -315,7 +350,7 @@
      }
  
      @Override
-@@ -739,20 +_,63 @@
+@@ -707,20 +_,63 @@
  
      @Override
      public String getPluginNames() {
@@ -383,7 +418,7 @@
          Util.shutdownExecutors();
      }
  
-@@ -881,4 +_,15 @@
+@@ -849,4 +_,15 @@
      public Map<String, String> getCodeOfConducts() {
          return this.codeOfConductTexts;
      }

@@ -1,36 +1,96 @@
 --- a/net/minecraft/world/level/block/BedBlock.java
 +++ b/net/minecraft/world/level/block/BedBlock.java
-@@ -91,7 +_,8 @@
-             }
- 
-             BedRule bedRule = level.environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
--            if (bedRule.explodes()) {
+@@ -79,41 +_,51 @@
+     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
+         if (level.isClientSide()) {
+             return InteractionResult.SUCCESS_SERVER;
+-        }
+-
+-        if (state.getValue(PART) != BedPart.HEAD) {
+-            pos = pos.relative(state.getValue(FACING));
+-            state = level.getBlockState(pos);
+-            if (!state.is(this)) {
+-                return InteractionResult.CONSUME;
+-            }
+-        }
+-
+-        BedRule bedRule = level.environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
+-        if (bedRule.explodes()) {
+-            bedRule.errorMessage().ifPresent(player::sendOverlayMessage);
+-            level.removeBlock(pos, false);
+-            BlockPos blockPos = pos.relative(state.getValue(FACING).getOpposite());
+-            if (level.getBlockState(blockPos).is(this)) {
+-                level.removeBlock(blockPos, false);
+-            }
+-
+-            Vec3 boomPos = Vec3.atCenterOf(pos);
+-            level.explode(null, level.damageSources().badRespawnPointExplosion(boomPos), null, boomPos, 5.0F, true, Level.ExplosionInteraction.BLOCK);
+-            return InteractionResult.SUCCESS_SERVER;
+-        } else if (state.getValue(OCCUPIED)) {
+-            if (!this.kickVillagerOutOfBed(level, pos)) {
+-                player.sendOverlayMessage(Component.translatable("block.minecraft.bed.occupied"));
+-            }
+-
+-            return InteractionResult.SUCCESS_SERVER;
+         } else {
+-            player.startSleepInBed(pos).ifLeft(problem -> {
+-                if (problem.message() != null) {
+-                    player.sendOverlayMessage(problem.message());
+-                }
+-            });
+-            return InteractionResult.SUCCESS_SERVER;
++            if (state.getValue(PART) != BedPart.HEAD) {
++                pos = pos.relative(state.getValue(FACING));
++                state = level.getBlockState(pos);
++                if (!state.is(this)) {
++                    return InteractionResult.CONSUME;
++                }
++            }
++
++            BedRule bedRule = level.environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
 +            // CraftBukkit - moved world and biome check into EntityHuman
 +            if (false && bedRule.explodes()) {
-                 bedRule.errorMessage().ifPresent(player::sendOverlayMessage);
-                 level.removeBlock(pos, false);
-                 BlockPos blockPos = pos.relative(state.getValue(FACING).getOpposite());
-@@ -109,7 +_,16 @@
- 
-                 return InteractionResult.SUCCESS_SERVER;
-             } else {
++                bedRule.errorMessage().ifPresent(player::sendOverlayMessage);
++                level.removeBlock(pos, false);
++                BlockPos blockPos = pos.relative(state.getValue(FACING).getOpposite());
++                if (level.getBlockState(blockPos).is(this)) {
++                    level.removeBlock(blockPos, false);
++                }
++
++                Vec3 boomPos = pos.getCenter();
++                level.explode(null, level.damageSources().badRespawnPointExplosion(boomPos), null, boomPos, 5.0F, true, Level.ExplosionInteraction.BLOCK);
++                return InteractionResult.SUCCESS_SERVER;
++            } else if (state.getValue(OCCUPIED)) {
++                if (!this.kickVillagerOutOfBed(level, pos)) {
++                    player.sendOverlayMessage(Component.translatable("block.minecraft.bed.occupied"));
++                }
++
++                return InteractionResult.SUCCESS_SERVER;
++            } else {
 +                // CraftBukkit start
 +                BlockState finalBlockState = state;
 +                BlockPos finalPos = pos;
 +                // CraftBukkit end
-                 player.startSleepInBed(pos).ifLeft(problem -> {
++                player.startSleepInBed(pos).ifLeft(problem -> {
 +                    // CraftBukkit start - handling bed explosion from below here
 +                    if (bedRule.explodes()) {
 +                        BedBlock.this.explodeBed(finalBlockState, level, finalPos);
 +                    } else
 +                    // CraftBukkit end
-                     if (problem.message() != null) {
-                         player.sendOverlayMessage(problem.message());
-                     }
-@@ -129,6 +_,22 @@
++                    if (problem.message() != null) {
++                        player.sendOverlayMessage(problem.message());
++                    }
++                });
++                return InteractionResult.SUCCESS_SERVER;
++            }
          }
      }
  
+@@ -126,6 +_,22 @@
+         villagers.get(0).stopSleeping();
+         return true;
+     }
++
 +    // CraftBukkit start
 +    private InteractionResult explodeBed(BlockState blockState, Level level, BlockPos pos) {
 +        org.bukkit.block.BlockState blockStateBukkit = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos).getState(); // CraftBukkit - capture BlockState before remove block
@@ -46,19 +106,6 @@
 +        return InteractionResult.SUCCESS;
 +    }
 +    // CraftBukkit end
-+
+ 
      @Override
      public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
-         super.fallOn(level, state, pos, entity, fallDistance * 0.5);
-@@ -292,6 +_,11 @@
-         if (!level.isClientSide()) {
-             BlockPos otherPos = pos.relative(state.getValue(FACING));
-             level.setBlock(otherPos, state.setValue(PART, BedPart.HEAD), 3);
-+            // CraftBukkit start - SPIGOT-7315: Don't updated if we capture block states
-+            if (level.captureBlockStates) {
-+                return;
-+            }
-+            // CraftBukkit end
-             level.updateNeighborsAt(pos, Blocks.AIR);
-             state.updateNeighbourShapes(level, pos, 3);
-         }

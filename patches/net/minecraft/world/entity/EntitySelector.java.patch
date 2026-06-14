@@ -1,11 +1,32 @@
 --- a/net/minecraft/world/entity/EntitySelector.java
 +++ b/net/minecraft/world/entity/EntitySelector.java
-@@ -33,7 +_,7 @@
+@@ -33,21 +_,20 @@
              ? Predicates.alwaysFalse()
              : NO_SPECTATORS.and(
                  input -> {
 -                    if (!input.isPushable()) {
 +                    if (!input.canCollideWithBukkit(entity) || !entity.canCollideWithBukkit(input)) { // CraftBukkit - collidable API
                          return false;
-                     } else if (!entity.level().isClientSide() || input instanceof Player player && player.isLocalPlayer()) {
+-                    }
+-
+-                    if (!entity.level().isClientSide() || input instanceof Player player && player.isLocalPlayer()) {
++                    } else if (!entity.level().isClientSide() || input instanceof Player player && player.isLocalPlayer()) {
                          Team theirTeam = input.getTeam();
+                         Team.CollisionRule theirCollisionRule = theirTeam == null ? Team.CollisionRule.ALWAYS : theirTeam.getCollisionRule();
+                         if (theirCollisionRule == Team.CollisionRule.NEVER) {
+                             return false;
++                        } else {
++                            boolean sameTeam = ownTeam != null && ownTeam.isAlliedTo(theirTeam);
++                            return (ownCollisionRule == Team.CollisionRule.PUSH_OWN_TEAM || theirCollisionRule == Team.CollisionRule.PUSH_OWN_TEAM) && sameTeam
++                                ? false
++                                : ownCollisionRule != Team.CollisionRule.PUSH_OTHER_TEAMS && theirCollisionRule != Team.CollisionRule.PUSH_OTHER_TEAMS
++                                    || sameTeam;
+                         }
+-
+-                        boolean sameTeam = ownTeam != null && ownTeam.isAlliedTo(theirTeam);
+-                        return (ownCollisionRule == Team.CollisionRule.PUSH_OWN_TEAM || theirCollisionRule == Team.CollisionRule.PUSH_OWN_TEAM) && sameTeam
+-                            ? false
+-                            : ownCollisionRule != Team.CollisionRule.PUSH_OTHER_TEAMS && theirCollisionRule != Team.CollisionRule.PUSH_OTHER_TEAMS || sameTeam;
+                     } else {
+                         return false;
+                     }

@@ -33,7 +33,17 @@
          this.axis = axis;
          this.numPortalBlocks = portalBlockCount;
          this.rightDir = rightDir;
-@@ -62,23 +_,24 @@
+@@ -55,30 +_,31 @@
+         Optional<PortalShape> firstAxis = Optional.of(findAnyShape(level, pos, preferredAxis)).filter(isValid);
+         if (firstAxis.isPresent()) {
+             return firstAxis;
++        } else {
++            Direction.Axis otherAxis = preferredAxis == Direction.Axis.X ? Direction.Axis.Z : Direction.Axis.X;
++            return Optional.of(findAnyShape(level, pos, otherAxis)).filter(isValid);
+         }
+-
+-        Direction.Axis otherAxis = preferredAxis == Direction.Axis.X ? Direction.Axis.Z : Direction.Axis.X;
+-        return Optional.of(findAnyShape(level, pos, otherAxis)).filter(isValid);
      }
  
      public static PortalShape findAnyShape(BlockGetter level, BlockPos pos, Direction.Axis axis) {
@@ -43,21 +53,27 @@
 +        BlockPos bottomLeft = calculateBottomLeft(level, rightDir, pos, blocks); // CraftBukkit
          if (bottomLeft == null) {
 -            return new PortalShape(axis, 0, rightDir, pos, 0, 0);
+-        }
+-
+-        int width = calculateWidth(level, bottomLeft, rightDir);
+-        if (width == 0) {
+-            return new PortalShape(axis, 0, rightDir, bottomLeft, 0, 0);
+-        }
+-
+-        MutableInt portalBlockCountOutput = new MutableInt();
+-        int height = calculateHeight(level, bottomLeft, rightDir, width, portalBlockCountOutput);
+-        return new PortalShape(axis, portalBlockCountOutput.intValue(), rightDir, bottomLeft, width, height);
 +            return new PortalShape(axis, 0, rightDir, pos, 0, 0, blocks); // CraftBukkit
-         } else {
--            int width = calculateWidth(level, bottomLeft, rightDir);
++        } else {
 +            int width = calculateWidth(level, bottomLeft, rightDir, blocks); // CraftBukkit
-             if (width == 0) {
--                return new PortalShape(axis, 0, rightDir, bottomLeft, 0, 0);
++            if (width == 0) {
 +                return new PortalShape(axis, 0, rightDir, bottomLeft, 0, 0, blocks); // CraftBukkit
-             } else {
-                 MutableInt portalBlockCountOutput = new MutableInt();
--                int height = calculateHeight(level, bottomLeft, rightDir, width, portalBlockCountOutput);
--                return new PortalShape(axis, portalBlockCountOutput.intValue(), rightDir, bottomLeft, width, height);
++            } else {
++                MutableInt portalBlockCountOutput = new MutableInt();
 +                int height = calculateHeight(level, bottomLeft, rightDir, width, portalBlockCountOutput, blocks); // CraftBukkit
 +                return new PortalShape(axis, portalBlockCountOutput.intValue(), rightDir, bottomLeft, width, height, blocks); // CraftBukkit
-             }
-         }
++            }
++        }
      }
  
 -    private static @Nullable BlockPos calculateBottomLeft(BlockGetter level, Direction rightDir, BlockPos pos) {

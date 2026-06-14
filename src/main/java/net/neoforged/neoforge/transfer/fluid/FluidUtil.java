@@ -169,7 +169,7 @@ public final class FluidUtil {
 
     @Nullable
     private static ResourceStack<FluidResource> moveWithSound(ResourceHandler<FluidResource> from, ResourceHandler<FluidResource> to, Level level, @Nullable BlockPos pos,
-                                                              @Nullable Player player, @Nullable TransactionContext transaction, boolean pickup) {
+            @Nullable Player player, @Nullable TransactionContext transaction, boolean pickup) {
         if (player == null && pos == null) {
             throw new IllegalArgumentException("Either player or pos must be provided.");
         }

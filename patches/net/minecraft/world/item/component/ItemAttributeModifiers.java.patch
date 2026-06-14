@@ -1,0 +1,47 @@
+--- a/net/minecraft/world/item/component/ItemAttributeModifiers.java
++++ b/net/minecraft/world/item/component/ItemAttributeModifiers.java
+@@ -148,7 +_,7 @@
+ 
+         void apply(Consumer<Component> consumer, @Nullable Player player, Holder<Attribute> attribute, AttributeModifier modifier);
+ 
+-        record Default() implements ItemAttributeModifiers.Display {
++        public record Default() implements ItemAttributeModifiers.Display {
+             private static final ItemAttributeModifiers.Display.Default INSTANCE = new ItemAttributeModifiers.Display.Default();
+             private static final MapCodec<ItemAttributeModifiers.Display.Default> CODEC = MapCodec.unit(INSTANCE);
+             private static final StreamCodec<RegistryFriendlyByteBuf, ItemAttributeModifiers.Display.Default> STREAM_CODEC = StreamCodec.unit(INSTANCE);
+@@ -216,7 +_,7 @@
+             }
+         }
+ 
+-        record Hidden() implements ItemAttributeModifiers.Display {
++        public record Hidden() implements ItemAttributeModifiers.Display {
+             private static final ItemAttributeModifiers.Display.Hidden INSTANCE = new ItemAttributeModifiers.Display.Hidden();
+             private static final MapCodec<ItemAttributeModifiers.Display.Hidden> CODEC = MapCodec.unit(INSTANCE);
+             private static final StreamCodec<RegistryFriendlyByteBuf, ItemAttributeModifiers.Display.Hidden> STREAM_CODEC = StreamCodec.unit(INSTANCE);
+@@ -231,7 +_,7 @@
+             }
+         }
+ 
+-        record OverrideText(Component component) implements ItemAttributeModifiers.Display {
++        public record OverrideText(Component component) implements ItemAttributeModifiers.Display {
+             private static final MapCodec<ItemAttributeModifiers.Display.OverrideText> CODEC = RecordCodecBuilder.mapCodec(
+                 i -> i.group(ComponentSerialization.CODEC.fieldOf("value").forGetter(ItemAttributeModifiers.Display.OverrideText::component))
+                     .apply(i, ItemAttributeModifiers.Display.OverrideText::new)
+@@ -251,7 +_,7 @@
+             }
+         }
+ 
+-        enum Type implements StringRepresentable {
++        public static enum Type implements StringRepresentable {
+             DEFAULT("default", 0, ItemAttributeModifiers.Display.Default.CODEC, ItemAttributeModifiers.Display.Default.STREAM_CODEC),
+             HIDDEN("hidden", 1, ItemAttributeModifiers.Display.Hidden.CODEC, ItemAttributeModifiers.Display.Hidden.STREAM_CODEC),
+             OVERRIDE("override", 2, ItemAttributeModifiers.Display.OverrideText.CODEC, ItemAttributeModifiers.Display.OverrideText.STREAM_CODEC);
+@@ -268,7 +_,7 @@
+             private final MapCodec<? extends ItemAttributeModifiers.Display> codec;
+             private final StreamCodec<RegistryFriendlyByteBuf, ? extends ItemAttributeModifiers.Display> streamCodec;
+ 
+-            Type(
++            private Type(
+                 String name,
+                 int id,
+                 MapCodec<? extends ItemAttributeModifiers.Display> codec,

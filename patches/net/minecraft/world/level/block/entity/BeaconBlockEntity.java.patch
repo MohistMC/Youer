@@ -1,15 +1,15 @@
 --- a/net/minecraft/world/level/block/entity/BeaconBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BeaconBlockEntity.java
-@@ -46,6 +_,8 @@
- import net.minecraft.world.level.storage.ValueInput;
+@@ -47,6 +_,8 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
 +import org.bukkit.craftbukkit.potion.CraftPotionUtil;
 +import org.bukkit.potion.PotionEffect;
  import org.jspecify.annotations.Nullable;
  
  public class BeaconBlockEntity extends BlockEntity implements MenuProvider, Nameable, BeaconBeamOwner {
-@@ -111,6 +_,15 @@
+@@ -109,6 +_,15 @@
              return 3;
          }
      };
@@ -25,7 +25,7 @@
  
      private static @Nullable Holder<MobEffect> filterEffect(@Nullable Holder<MobEffect> effect) {
          return VALID_EFFECTS.contains(effect) ? effect : null;
-@@ -140,8 +_,8 @@
+@@ -138,8 +_,8 @@
  
          for (int i = 0; i < 10 && checkPos.getY() <= lastSetBlock; i++) {
              BlockState state = level.getBlockState(checkPos);
@@ -36,8 +36,8 @@
                  if (entity.checkingBeamSections.size() <= 1) {
                      lastBeamSection = new BeaconBeamOwner.Section(color);
                      entity.checkingBeamSections.add(lastBeamSection);
-@@ -232,28 +_,65 @@
-         super.setRemoved();
+@@ -259,6 +_,55 @@
+         return Integer.MAX_VALUE;
      }
  
 +    // CraftBukkit start - split into components
@@ -92,44 +92,7 @@
      private static void applyEffects(
          Level level, BlockPos worldPosition, int levels, @Nullable Holder<MobEffect> primaryPower, @Nullable Holder<MobEffect> secondaryPower
      ) {
-         if (!level.isClientSide() && primaryPower != null) {
--            double range = levels * 10 + 10;
--            int baseAmp = 0;
--            if (levels >= 4 && Objects.equals(primaryPower, secondaryPower)) {
--                baseAmp = 1;
--            }
--
--            int durationTicks = (9 + levels * 2) * 20;
--            AABB bb = new AABB(worldPosition).inflate(range).expandTowards(0.0, level.getHeight(), 0.0);
--            List<Player> players = level.getEntitiesOfClass(Player.class, bb);
--
--            for (Player player : players) {
--                player.addEffect(new MobEffectInstance(primaryPower, durationTicks, baseAmp, true, true));
--            }
--
--            if (levels >= 4 && !Objects.equals(primaryPower, secondaryPower) && secondaryPower != null) {
--                for (Player player : players) {
--                    player.addEffect(new MobEffectInstance(secondaryPower, durationTicks, 0, true, true));
--                }
-+            int j = getAmplification(levels, primaryPower, secondaryPower);
-+            int k = getLevel(levels);
-+            List list = getHumansInRange(level, worldPosition, levels);
-+            applyEffect(list, primaryPower, k, j);
-+            if (hasSecondaryEffect(levels, primaryPower, secondaryPower)) {
-+                applyEffect(list, secondaryPower, k, 0);
-             }
-         }
-     }
-@@ -283,7 +_,7 @@
-     }
- 
-     private static @Nullable Holder<MobEffect> loadEffect(ValueInput input, String field) {
--        return input.read(field, BuiltInRegistries.MOB_EFFECT.holderByNameCodec()).filter(VALID_EFFECTS::contains).orElse(null);
-+        return input.read(field, BuiltInRegistries.MOB_EFFECT.holderByNameCodec()).orElse(null); // CraftBukkit - persist manually set non-default beacon effect (SPIGOT-3598)
-     }
- 
-     @Override
-@@ -291,6 +_,7 @@
+@@ -318,6 +_,7 @@
          super.loadAdditional(input);
          this.primaryPower = loadEffect(input, "primary_effect");
          this.secondaryPower = loadEffect(input, "secondary_effect");
@@ -137,3 +100,17 @@
          this.name = parseCustomNameSafe(input, "CustomName");
          this.lockKey = LockCode.fromTag(input);
      }
+@@ -345,10 +_,10 @@
+     public @Nullable AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
+         if (this.lockKey.canUnlock(player)) {
+             return new BeaconMenu(containerId, inventory, this.dataAccess, ContainerLevelAccess.create(this.level, this.getBlockPos()));
++        } else {
++            BaseContainerBlockEntity.sendChestLockedNotifications(this.getBlockPos().getCenter(), player, this.getDisplayName());
++            return null;
+         }
+-
+-        BaseContainerBlockEntity.sendChestLockedNotifications(Vec3.atCenterOf(this.getBlockPos()), player, this.getDisplayName());
+-        return null;
+     }
+ 
+     @Override

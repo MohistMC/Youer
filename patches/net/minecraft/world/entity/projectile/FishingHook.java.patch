@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/FishingHook.java
 +++ b/net/minecraft/world/entity/projectile/FishingHook.java
-@@ -48,6 +_,12 @@
+@@ -49,6 +_,12 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -13,7 +13,7 @@
  public class FishingHook extends Projectile {
      private static final Logger LOGGER = LogUtils.getLogger();
      private final RandomSource syncronizedRandom = RandomSource.create();
-@@ -68,6 +_,18 @@
+@@ -69,6 +_,18 @@
      private final int lureSpeed;
      private final InterpolationHandler interpolationHandler = new InterpolationHandler(this);
  
@@ -32,7 +32,7 @@
      private FishingHook(EntityType<? extends FishingHook> type, Level level, int luck, int lureSpeed) {
          super(type, level);
          this.luck = Math.max(0, luck);
-@@ -151,12 +_,12 @@
+@@ -152,12 +_,12 @@
          super.tick();
          Player owner = this.getPlayerOwner();
          if (owner == null) {
@@ -47,7 +47,7 @@
                      return;
                  }
              } else {
-@@ -253,20 +_,21 @@
+@@ -254,20 +_,20 @@
          if (owner.canInteractWithLevel()) {
              ItemStack selectedItem = owner.getMainHandItem();
              ItemStack selectedItemOffHand = owner.getOffhandItem();
@@ -68,12 +68,11 @@
      private void checkCollision() {
          HitResult hitResult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
 -        this.hitTargetOrDeflectSelf(hitResult);
-+
-+        this.preHitTargetOrDeflectSelf(hitResult); // CraftBukkit - projectile hit event
++        if (hitResult.getType() == HitResult.Type.MISS || !net.neoforged.neoforge.event.EventHooks.onProjectileImpact(this, hitResult)) this.preHitTargetOrDeflectSelf(hitResult); // CraftBukkit - projectile hit event
      }
  
      @Override
-@@ -297,11 +_,11 @@
+@@ -298,11 +_,11 @@
          ServerLevel serverLevel = (ServerLevel)this.level();
          int fishingSpeed = 1;
          BlockPos above = blockPos.above();
@@ -87,7 +86,7 @@
              fishingSpeed--;
          }
  
-@@ -311,6 +_,10 @@
+@@ -312,6 +_,10 @@
                  this.timeUntilLured = 0;
                  this.timeUntilHooked = 0;
                  this.getEntityData().set(DATA_BITING, false);
@@ -98,7 +97,7 @@
              }
          } else if (this.timeUntilHooked > 0) {
              this.timeUntilHooked -= fishingSpeed;
-@@ -334,6 +_,13 @@
+@@ -335,6 +_,13 @@
                      serverLevel.sendParticles(ParticleTypes.FISHING, fishX, fishY, fishZ, 0, -particleZMovement, 0.01, particleXMovement, 1.0);
                  }
              } else {
@@ -112,7 +111,7 @@
                  this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
                  double y = this.getY() + 0.5;
                  serverLevel.sendParticles(
-@@ -377,12 +_,16 @@
+@@ -378,12 +_,16 @@
              }
  
              if (this.timeUntilLured <= 0) {
@@ -133,7 +132,7 @@
          }
      }
  
-@@ -447,7 +_,16 @@
+@@ -448,7 +_,16 @@
          Player owner = this.getPlayerOwner();
          if (!this.level().isClientSide() && owner != null && !this.shouldStopFishing(owner)) {
              int dmg = 0;
@@ -150,7 +149,7 @@
                  this.pullEntity(this.hookedIn);
                  CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer)owner, rod, this, Collections.emptyList());
                  this.level().broadcastEntityEvent(this, (byte)31);
-@@ -457,22 +_,41 @@
+@@ -458,22 +_,41 @@
                      .withParameter(LootContextParams.ORIGIN, this.position())
                      .withParameter(LootContextParams.TOOL, rod)
                      .withParameter(LootContextParams.THIS_ENTITY, this)
@@ -194,7 +193,7 @@
                      if (itemStack.is(ItemTags.FISHES)) {
                          owner.awardStat(Stats.FISH_CAUGHT, 1);
                      }
-@@ -482,10 +_,28 @@
+@@ -483,10 +_,28 @@
              }
  
              if (this.onGround()) {
@@ -224,7 +223,7 @@
              return dmg;
          } else {
              return 0;
-@@ -516,8 +_,15 @@
+@@ -517,8 +_,15 @@
  
      @Override
      public void remove(Entity.RemovalReason reason) {
@@ -241,7 +240,7 @@
      }
  
      @Override
-@@ -563,7 +_,7 @@
+@@ -564,11 +_,11 @@
          if (this.getPlayerOwner() == null) {
              int ownerId = packet.getData();
              LOGGER.error("Failed to recreate fishing hook on client. {} (id: {}) is not a valid owner.", this.level().getEntity(ownerId), ownerId);
@@ -250,3 +249,8 @@
          }
      }
  
+-    public enum FishHookState {
++    private enum FishHookState {
+         FLYING,
+         HOOKED_IN_ENTITY,
+         BOBBING;

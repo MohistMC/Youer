@@ -11,8 +11,8 @@
 +    /** @deprecated Neo: use the {@link net.neoforged.neoforge.registries.datamaps.builtin.NeoForgeDataMaps#PARROT_IMITATIONS data map} instead */
 +    @Deprecated
      private static final Map<EntityType<?>, SoundEvent> MOB_SOUND_MAP = Util.make(Maps.newHashMap(), map -> {
-         map.put(EntityType.BLAZE, SoundEvents.PARROT_IMITATE_BLAZE);
-         map.put(EntityType.BOGGED, SoundEvents.PARROT_IMITATE_BOGGED);
+         map.put(EntityTypes.BLAZE, SoundEvents.PARROT_IMITATE_BLAZE);
+         map.put(EntityTypes.BOGGED, SoundEvents.PARROT_IMITATE_BOGGED);
 @@ -268,7 +_,7 @@
              }
  
@@ -63,19 +63,23 @@
      }
  
      @Override
-@@ -396,8 +_,14 @@
+@@ -395,10 +_,16 @@
+     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableTo(level, source)) {
              return false;
-         } else {
++        } else {
 +            // CraftBukkit start
 +            boolean result = super.hurtServer(level, source, damage);
 +            if (!result) {
 +                return result;
 +            }
 +            // CraftBukkit end
-             this.setOrderedToSit(false);
--            return super.hurtServer(level, source, damage);
++            this.setOrderedToSit(false);
 +            return result; // CraftBukkit
          }
+-
+-        this.setOrderedToSit(false);
+-        return super.hurtServer(level, source, damage);
      }
  
+     public Parrot.Variant getVariant() {

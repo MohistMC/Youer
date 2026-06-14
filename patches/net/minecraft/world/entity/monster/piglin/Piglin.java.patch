@@ -14,7 +14,7 @@
  import net.minecraft.network.syncher.EntityDataAccessor;
  import net.minecraft.network.syncher.EntityDataSerializers;
  import net.minecraft.network.syncher.SynchedEntityData;
-@@ -96,6 +_,10 @@
+@@ -97,6 +_,10 @@
          List.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_PLAYERS, SensorType.NEAREST_ITEMS, SensorType.HURT_BY, SensorType.PIGLIN_SPECIFIC_SENSOR),
          PiglinAi::getActivities
      );
@@ -25,7 +25,7 @@
  
      public Piglin(EntityType<? extends AbstractPiglin> type, Level level) {
          super(type, level);
-@@ -108,6 +_,12 @@
+@@ -109,6 +_,12 @@
          output.putBoolean("IsBaby", this.isBaby());
          output.putBoolean("CannotHunt", this.cannotHunt);
          this.writeInventoryToTag(output);
@@ -38,7 +38,7 @@
      }
  
      @Override
-@@ -116,6 +_,14 @@
+@@ -117,6 +_,14 @@
          this.setBaby(input.getBooleanOr("IsBaby", false));
          this.setCannotHunt(input.getBooleanOr("CannotHunt", false));
          this.readInventoryFromTag(input);
@@ -53,7 +53,7 @@
      }
  
      @VisibleForDebug
-@@ -320,7 +_,7 @@
+@@ -321,7 +_,7 @@
          } else if (this.isChargingCrossbow()) {
              return PiglinArmPose.CROSSBOW_CHARGE;
          } else {
@@ -62,7 +62,7 @@
          }
      }
  
-@@ -349,7 +_,7 @@
+@@ -350,7 +_,7 @@
  
      @Override
      public boolean canUseNonMeleeWeapon(ItemStack item) {
@@ -71,16 +71,15 @@
      }
  
      protected void holdInMainHand(ItemStack itemStack) {
-@@ -357,7 +_,7 @@
-     }
+@@ -360,14 +_,14 @@
  
      protected void holdInOffHand(ItemStack itemStack) {
--        if (itemStack.is(PiglinAi.BARTERING_ITEM)) {
-+        if (itemStack.isPiglinCurrency() || allowedBarterItems.contains(itemStack.getItem())) { // CraftBukkit - Changes to accept custom payment items
-             this.setItemSlot(EquipmentSlot.OFFHAND, itemStack);
-             this.setGuaranteedDrop(EquipmentSlot.OFFHAND);
-         } else {
-@@ -367,7 +_,7 @@
+         this.setItemSlotAndDropWhenKilled(EquipmentSlot.OFFHAND, itemStack);
+-        if (!itemStack.is(PiglinAi.BARTERING_ITEM)) {
++        if (!itemStack.isPiglinCurrency()) {
+             this.setPersistenceRequired();
+         }
+     }
  
      @Override
      public boolean wantsToPickUp(ServerLevel level, ItemStack itemStack) {

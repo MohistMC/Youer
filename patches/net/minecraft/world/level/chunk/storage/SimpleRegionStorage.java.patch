@@ -13,7 +13,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class SimpleRegionStorage implements AutoCloseable {
-@@ -46,13 +_,31 @@
+@@ -46,17 +_,35 @@
      }
  
      public CompoundTag upgradeChunkTag(CompoundTag chunkTag, int defaultVersion, @Nullable CompoundTag dataFixContextTag, int targetVersion) {
@@ -26,8 +26,14 @@
          int version = NbtUtils.getDataVersion(chunkTag, defaultVersion);
          if (version >= targetVersion) {
              return chunkTag;
-         } else {
-             try {
+         }
+ 
+         try {
+-            injectDatafixingContext(chunkTag, dataFixContextTag);
+-            chunkTag = this.dataFixType.update(this.fixerUpper, chunkTag, version, targetVersion);
+-            removeDatafixingContext(chunkTag);
+-            NbtUtils.addDataVersion(chunkTag, targetVersion);
+-            return chunkTag;
 +                // Spigot start - SPIGOT-6806: Quick and dirty way to prevent below zero generation in old chunks, by setting the status to heightmap instead of empty
 +                boolean stopBelowZero = false;
 +                boolean belowZeroGenerationInExistingChunks = (levelaccessor != null) ? ((ServerLevel) levelaccessor).spigotConfig.belowZeroGenerationInExistingChunks : org.spigotmc.SpigotConfig.belowZeroGenerationInExistingChunks;
@@ -36,13 +42,15 @@
 +                    stopBelowZero = "full".equals(chunkTag.getCompoundOrEmpty("Level").getStringOr("Status", ""));
 +                }
 +                // Spigot end
-                 injectDatafixingContext(chunkTag, dataFixContextTag);
--                chunkTag = this.dataFixType.update(this.fixerUpper, chunkTag, version, targetVersion);
++                injectDatafixingContext(chunkTag, dataFixContextTag);
 +                // Spigot start
 +                if (stopBelowZero) {
 +                    chunkTag.putString("Status", net.minecraft.core.registries.BuiltInRegistries.CHUNK_STATUS.getKey(ChunkStatus.SPAWN).toString());
 +                }
 +                // Spigot end
-                 removeDatafixingContext(chunkTag);
-                 NbtUtils.addDataVersion(chunkTag, targetVersion);
-                 return chunkTag;
++                removeDatafixingContext(chunkTag);
++                NbtUtils.addDataVersion(chunkTag, targetVersion);
++                return chunkTag;
+         } catch (Exception e) {
+             CrashReport report = CrashReport.forThrowable(e, "Updated chunk");
+             CrashReportCategory details = report.addCategory("Updated chunk details");

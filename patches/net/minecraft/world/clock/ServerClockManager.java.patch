@@ -24,7 +24,7 @@
  
  public class ServerClockManager extends SavedData implements ClockManager {
      public static final SavedDataType<ServerClockManager> TYPE = new SavedDataType<>(
-@@ -29,14 +_,14 @@
+@@ -29,19 +_,19 @@
          DataFixTypes.SAVED_DATA_WORLD_CLOCKS
      );
      private final PackedClockStates packedClockStates;
@@ -41,6 +41,12 @@
          this.server = server;
          server.registryAccess()
              .lookupOrThrow(Registries.WORLD_CLOCK)
+             .listElements()
+-            .forEach(definition -> this.clocks.put(definition, new ServerClockManager.ClockInstance()));
++            .forEach(definition -> this.clocks.put(definition, new ServerClockManager.ClockInstance(definition)));
+         server.registryAccess()
+             .lookupOrThrow(Registries.TIMELINE)
+             .listElements()
 @@ -52,6 +_,12 @@
          });
      }

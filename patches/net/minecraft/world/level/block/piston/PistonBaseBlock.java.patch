@@ -33,10 +33,10 @@
              level.gameEvent(GameEvent.BLOCK_ACTIVATE, pos, GameEvent.Context.of(extendedState));
          } else if (b0 == 1 || b0 == 2) {
 +            if (net.neoforged.neoforge.event.EventHooks.onPistonMovePre(level, pos, direction, false)) return false;
-             BlockEntity prevBlockEntity = level.getBlockEntity(pos.relative(direction));
-             if (prevBlockEntity instanceof PistonMovingBlockEntity) {
-                 ((PistonMovingBlockEntity)prevBlockEntity).finalTick();
-@@ -206,6 +_,18 @@
+             if (level.getBlockEntity(pos.relative(direction)) instanceof PistonMovingBlockEntity pistonMovingBlockEntity) {
+                 pistonMovingBlockEntity.finalTick();
+             }
+@@ -205,6 +_,18 @@
                          || movingState.getPistonPushReaction() != PushReaction.NORMAL
                              && !movingState.is(Blocks.PISTON)
                              && !movingState.is(Blocks.STICKY_PISTON)) {
@@ -55,7 +55,7 @@
                          level.removeBlock(pos.relative(direction), false);
                      } else {
                          this.moveBlocks(level, pos, direction, false);
-@@ -219,6 +_,7 @@
+@@ -218,6 +_,7 @@
              level.gameEvent(GameEvent.BLOCK_DEACTIVATE, pos, GameEvent.Context.of(movingPistonState));
          }
  
@@ -63,10 +63,10 @@
          return true;
      }
  
-@@ -279,6 +_,48 @@
-             BlockState[] toUpdate = new BlockState[toPush.size() + toDestroy.size()];
-             Direction pushDirection = extending ? direction : direction.getOpposite();
-             int updateIndex = 0;
+@@ -287,6 +_,48 @@
+         BlockState[] toUpdate = new BlockState[toPush.size() + toDestroy.size()];
+         Direction pushDirection = extending ? direction : direction.getOpposite();
+         int updateIndex = 0;
 +            // CraftBukkit start
 +            final org.bukkit.block.Block bblock = level.getWorld().getBlockAt(pistonPos.getX(), pistonPos.getY(), pistonPos.getZ());
 +
@@ -110,19 +110,19 @@
 +            }
 +            // CraftBukkit end
  
-             for (int i = toDestroy.size() - 1; i >= 0; i--) {
-                 BlockPos pos = toDestroy.get(i);
-@@ -289,8 +_,7 @@
-                     level.levelEvent(2001, pos, getId(state));
-                 }
- 
--                level.setBlock(pos, Blocks.AIR.defaultBlockState(), 18);
--                level.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(state));
-+                state.onDestroyedByPushReaction(level, pos, direction, level.getFluidState(pos));
-                 toUpdate[updateIndex++] = state;
+         for (int i = toDestroy.size() - 1; i >= 0; i--) {
+             BlockPos pos = toDestroy.get(i);
+@@ -297,8 +_,7 @@
+                 level.levelEvent(2001, pos, getId(state));
              }
  
-@@ -360,6 +_,10 @@
+-            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 18);
+-            level.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(state));
++            state.onDestroyedByPushReaction(level, pos, direction, level.getFluidState(pos));
+             toUpdate[updateIndex++] = state;
+         }
+ 
+@@ -367,6 +_,10 @@
      @Override
      protected BlockState rotate(BlockState state, Rotation rotation) {
          return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));

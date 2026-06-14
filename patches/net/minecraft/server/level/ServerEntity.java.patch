@@ -41,7 +41,7 @@
                          data.tickCarriedBy(player, itemStack, frame);
                          Packet<?> packet = data.getUpdatePacket(id, player);
                          if (packet != null) {
-@@ -216,6 +_,27 @@
+@@ -221,6 +_,27 @@
  
          this.tickCount++;
          if (this.entity.hurtMarked) {
@@ -69,7 +69,7 @@
              this.entity.hurtMarked = false;
              this.synchronizer.sendToTrackingPlayersAndSelf(new ClientboundSetEntityMotionPacket(this.entity));
          }
-@@ -255,6 +_,7 @@
+@@ -260,6 +_,7 @@
      public void removePairing(ServerPlayer player) {
          this.entity.stopSeenByPlayer(player);
          player.connection.send(new ClientboundRemoveEntitiesPacket(this.entity.getId()));
@@ -77,7 +77,7 @@
      }
  
      public void addPairing(ServerPlayer player) {
-@@ -262,22 +_,32 @@
+@@ -267,22 +_,32 @@
          this.sendPairingData(player, packets::add);
          player.connection.send(new ClientboundBundlePacket(packets));
          this.entity.startSeenByPlayer(player);
@@ -112,7 +112,7 @@
              if (!attributes.isEmpty()) {
                  broadcast.accept(new ClientboundUpdateAttributesPacket(this.entity.getId(), attributes));
              }
-@@ -296,6 +_,7 @@
+@@ -301,6 +_,7 @@
              if (!slots.isEmpty()) {
                  broadcast.accept(new ClientboundSetEquipmentPacket(this.entity.getId(), slots));
              }
@@ -120,7 +120,7 @@
          }
  
          if (!this.entity.getPassengers().isEmpty()) {
-@@ -309,6 +_,8 @@
+@@ -314,6 +_,8 @@
          if (this.entity instanceof Leashable leashable && leashable.isLeashed()) {
              broadcast.accept(new ClientboundSetEntityLinkPacket(this.entity, leashable.getLeashHolder()));
          }
@@ -129,9 +129,9 @@
      }
  
      public Vec3 getPositionBase() {
-@@ -342,6 +_,11 @@
-         if (this.entity instanceof LivingEntity) {
-             Set<AttributeInstance> attributes = ((LivingEntity)this.entity).getAttributes().getAttributesToSync();
+@@ -347,6 +_,11 @@
+         if (this.entity instanceof LivingEntity livingEntity) {
+             Set<AttributeInstance> attributes = livingEntity.getAttributes().getAttributesToSync();
              if (!attributes.isEmpty()) {
 +                // CraftBukkit start - Send scaled max health
 +                if (this.entity instanceof ServerPlayer) {
@@ -141,7 +141,7 @@
                  this.synchronizer.sendToTrackingPlayersAndSelf(new ClientboundUpdateAttributesPacket(this.entity.getId(), attributes));
              }
  
-@@ -355,5 +_,7 @@
+@@ -360,5 +_,7 @@
          void sendToTrackingPlayersAndSelf(Packet<? super ClientGamePacketListener> packet);
  
          void sendToTrackingPlayersFiltered(Packet<? super ClientGamePacketListener> packet, Predicate<ServerPlayer> predicate);

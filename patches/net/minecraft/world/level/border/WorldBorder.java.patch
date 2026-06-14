@@ -1,6 +1,25 @@
 --- a/net/minecraft/world/level/border/WorldBorder.java
 +++ b/net/minecraft/world/level/border/WorldBorder.java
-@@ -209,6 +_,7 @@
+@@ -4,6 +_,7 @@
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import java.util.List;
++import java.util.Objects;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.util.Mth;
+@@ -193,7 +_,9 @@
+     }
+ 
+     public void lerpSizeBetween(double from, double to, long ticks, long gameTime) {
+-        this.extent = from == to ? new WorldBorder.StaticBorderExtent(to) : new WorldBorder.MovingBorderExtent(from, to, ticks, gameTime);
++        this.extent = (WorldBorder.BorderExtent)(from == to
++            ? new WorldBorder.StaticBorderExtent(to)
++            : new WorldBorder.MovingBorderExtent(from, to, ticks, gameTime));
+         this.setDirty();
+ 
+         for (BorderChangeListener listener : this.getListeners()) {
+@@ -206,6 +_,7 @@
      }
  
      public void addListener(BorderChangeListener listener) {
@@ -8,7 +27,7 @@
          this.listeners.add(listener);
      }
  
-@@ -286,7 +_,13 @@
+@@ -283,7 +_,13 @@
      }
  
      public void applyInitialSettings(long gameTime) {
@@ -23,3 +42,108 @@
              this.setCenter(this.settings.centerX(), this.settings.centerZ());
              this.setDamagePerBlock(this.settings.damagePerBlock());
              this.setSafeZone(this.settings.safeZone());
+@@ -338,6 +_,8 @@
+         private double previousSize;
+ 
+         private MovingBorderExtent(double from, double to, long duration, long gameTime) {
++            Objects.requireNonNull(WorldBorder.this);
++            super();
+             this.from = from;
+             this.to = to;
+             this.lerpDuration = duration;
+@@ -352,36 +_,36 @@
+         @Override
+         public double getMinX(float deltaPartialTick) {
+             return Mth.clamp(
+-                WorldBorder.this.getCenterX() - Mth.lerp(deltaPartialTick, this.getPreviousSize(), this.getSize()) / 2.0,
+-                -WorldBorder.this.absoluteMaxSize,
+-                WorldBorder.this.absoluteMaxSize
++                WorldBorder.this.getCenterX() - Mth.lerp((double)deltaPartialTick, this.getPreviousSize(), this.getSize()) / 2.0,
++                (double)(-WorldBorder.this.absoluteMaxSize),
++                (double)WorldBorder.this.absoluteMaxSize
+             );
+         }
+ 
+         @Override
+         public double getMinZ(float deltaPartialTick) {
+             return Mth.clamp(
+-                WorldBorder.this.getCenterZ() - Mth.lerp(deltaPartialTick, this.getPreviousSize(), this.getSize()) / 2.0,
+-                -WorldBorder.this.absoluteMaxSize,
+-                WorldBorder.this.absoluteMaxSize
++                WorldBorder.this.getCenterZ() - Mth.lerp((double)deltaPartialTick, this.getPreviousSize(), this.getSize()) / 2.0,
++                (double)(-WorldBorder.this.absoluteMaxSize),
++                (double)WorldBorder.this.absoluteMaxSize
+             );
+         }
+ 
+         @Override
+         public double getMaxX(float deltaPartialTick) {
+             return Mth.clamp(
+-                WorldBorder.this.getCenterX() + Mth.lerp(deltaPartialTick, this.getPreviousSize(), this.getSize()) / 2.0,
+-                -WorldBorder.this.absoluteMaxSize,
+-                WorldBorder.this.absoluteMaxSize
++                WorldBorder.this.getCenterX() + Mth.lerp((double)deltaPartialTick, this.getPreviousSize(), this.getSize()) / 2.0,
++                (double)(-WorldBorder.this.absoluteMaxSize),
++                (double)WorldBorder.this.absoluteMaxSize
+             );
+         }
+ 
+         @Override
+         public double getMaxZ(float deltaPartialTick) {
+             return Mth.clamp(
+-                WorldBorder.this.getCenterZ() + Mth.lerp(deltaPartialTick, this.getPreviousSize(), this.getSize()) / 2.0,
+-                -WorldBorder.this.absoluteMaxSize,
+-                WorldBorder.this.absoluteMaxSize
++                WorldBorder.this.getCenterZ() + Mth.lerp((double)deltaPartialTick, this.getPreviousSize(), this.getSize()) / 2.0,
++                (double)(-WorldBorder.this.absoluteMaxSize),
++                (double)WorldBorder.this.absoluteMaxSize
+             );
+         }
+ 
+@@ -432,8 +_,12 @@
+             this.lerpProgress--;
+             this.previousSize = this.size;
+             this.size = this.calculateSize();
+-            WorldBorder.this.setDirty();
+-            return this.lerpProgress <= 0L ? WorldBorder.this.new StaticBorderExtent(this.to) : this;
++            if (this.lerpProgress <= 0L) {
++                WorldBorder.this.setDirty();
++                return WorldBorder.this.new StaticBorderExtent(this.to);
++            } else {
++                return this;
++            }
+         }
+ 
+         @Override
+@@ -504,6 +_,8 @@
+         private VoxelShape shape;
+ 
+         public StaticBorderExtent(double size) {
++            Objects.requireNonNull(WorldBorder.this);
++            super();
+             this.size = size;
+             this.updateBox();
+         }
+@@ -554,10 +_,18 @@
+         }
+ 
+         private void updateBox() {
+-            this.minX = Mth.clamp(WorldBorder.this.getCenterX() - this.size / 2.0, -WorldBorder.this.absoluteMaxSize, WorldBorder.this.absoluteMaxSize);
+-            this.minZ = Mth.clamp(WorldBorder.this.getCenterZ() - this.size / 2.0, -WorldBorder.this.absoluteMaxSize, WorldBorder.this.absoluteMaxSize);
+-            this.maxX = Mth.clamp(WorldBorder.this.getCenterX() + this.size / 2.0, -WorldBorder.this.absoluteMaxSize, WorldBorder.this.absoluteMaxSize);
+-            this.maxZ = Mth.clamp(WorldBorder.this.getCenterZ() + this.size / 2.0, -WorldBorder.this.absoluteMaxSize, WorldBorder.this.absoluteMaxSize);
++            this.minX = Mth.clamp(
++                WorldBorder.this.getCenterX() - this.size / 2.0, (double)(-WorldBorder.this.absoluteMaxSize), (double)WorldBorder.this.absoluteMaxSize
++            );
++            this.minZ = Mth.clamp(
++                WorldBorder.this.getCenterZ() - this.size / 2.0, (double)(-WorldBorder.this.absoluteMaxSize), (double)WorldBorder.this.absoluteMaxSize
++            );
++            this.maxX = Mth.clamp(
++                WorldBorder.this.getCenterX() + this.size / 2.0, (double)(-WorldBorder.this.absoluteMaxSize), (double)WorldBorder.this.absoluteMaxSize
++            );
++            this.maxZ = Mth.clamp(
++                WorldBorder.this.getCenterZ() + this.size / 2.0, (double)(-WorldBorder.this.absoluteMaxSize), (double)WorldBorder.this.absoluteMaxSize
++            );
+             this.shape = Shapes.join(
+                 Shapes.INFINITY,
+                 Shapes.box(

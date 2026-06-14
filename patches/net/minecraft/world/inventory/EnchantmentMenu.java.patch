@@ -6,10 +6,10 @@
 +import java.util.ArrayList;
  import java.util.List;
 +import java.util.Map;
- import java.util.Objects;
  import java.util.Optional;
- import net.minecraft.advancements.CriteriaTriggers;
-@@ -29,6 +_,14 @@
+ import net.minecraft.advancements.triggers.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+@@ -28,6 +_,14 @@
  import net.minecraft.world.item.enchantment.EnchantmentInstance;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.EnchantingTableBlock;
@@ -24,7 +24,7 @@
  
  public class EnchantmentMenu extends AbstractContainerMenu {
      private static final Identifier EMPTY_SLOT_LAPIS_LAZULI = Identifier.withDefaultNamespace("container/slot/lapis_lazuli");
-@@ -42,6 +_,13 @@
+@@ -37,6 +_,13 @@
              super.setChanged();
              EnchantmentMenu.this.slotsChanged(this);
          }
@@ -38,7 +38,7 @@
      };
      private final ContainerLevelAccess access;
      private final RandomSource random = RandomSource.create();
-@@ -49,6 +_,10 @@
+@@ -44,6 +_,10 @@
      public final int[] costs = new int[3];
      public final int[] enchantClue = new int[]{-1, -1, -1};
      public final int[] levelClue = new int[]{-1, -1, -1};
@@ -49,8 +49,8 @@
  
      public EnchantmentMenu(int containerId, Inventory inventory) {
          this(containerId, inventory, ContainerLevelAccess.NULL);
-@@ -74,7 +_,7 @@
- 
+@@ -61,7 +_,7 @@
+         this.addSlot(new Slot(this.enchantSlots, 1, 35, 47) {
              @Override
              public boolean mayPlace(ItemStack itemStack) {
 -                return itemStack.is(Items.LAPIS_LAZULI);
@@ -58,7 +58,7 @@
              }
  
              @Override
-@@ -93,6 +_,9 @@
+@@ -80,6 +_,9 @@
          this.addDataSlot(DataSlot.shared(this.levelClue, 0));
          this.addDataSlot(DataSlot.shared(this.levelClue, 1));
          this.addDataSlot(DataSlot.shared(this.levelClue, 2));
@@ -68,7 +68,7 @@
      }
  
      @Override
-@@ -102,23 +_,24 @@
+@@ -89,23 +_,24 @@
              if (!itemStack.isEmpty() && itemStack.isEnchantable()) {
                  this.access.execute((level, pos) -> {
                      IdMap<Holder<Enchantment>> holders = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).asHolderIdMap();
@@ -96,7 +96,7 @@
                      }
  
                      for (int ix = 0; ix < 3; ix++) {
-@@ -132,6 +_,41 @@
+@@ -119,6 +_,41 @@
                          }
                      }
  
@@ -138,11 +138,30 @@
                      this.broadcastChanges();
                  });
              } else {
-@@ -160,16 +_,41 @@
-                 this.access.execute((level, pos) -> {
-                     ItemStack enchantmentItem = itemStack;
-                     List<EnchantmentInstance> newEnchantment = this.getEnchantmentList(level.registryAccess(), itemStack, buttonId, this.costs[buttonId]);
--                    if (!newEnchantment.isEmpty()) {
+@@ -139,45 +_,68 @@
+             int enchantmentCost = buttonId + 1;
+             if ((currency.isEmpty() || currency.getCount() < enchantmentCost) && !player.hasInfiniteMaterials()) {
+                 return false;
+-            }
+-
+-            if (this.costs[buttonId] <= 0
++            } else if (this.costs[buttonId] <= 0
+                 || itemStack.isEmpty()
+                 || (player.experienceLevel < enchantmentCost || player.experienceLevel < this.costs[buttonId]) && !player.hasInfiniteMaterials()) {
+                 return false;
+-            }
+-
+-            this.access.execute((level, pos) -> {
+-                ItemStack enchantmentItem = itemStack;
+-                List<EnchantmentInstance> newEnchantment = this.getEnchantmentList(level.registryAccess(), enchantmentItem, buttonId, this.costs[buttonId]);
+-                if (!newEnchantment.isEmpty()) {
+-                    player.onEnchantmentPerformed(enchantmentItem, enchantmentCost);
+-                    if (enchantmentItem.is(Items.BOOK)) {
+-                        enchantmentItem = itemStack.transmuteCopy(Items.ENCHANTED_BOOK);
++            } else {
++                this.access.execute((level, pos) -> {
++                    ItemStack enchantmentItem = itemStack;
++                    List<EnchantmentInstance> newEnchantment = this.getEnchantmentList(level.registryAccess(), itemStack, buttonId, this.costs[buttonId]);
 +                    // CraftBukkit start
 +                    IdMap<Holder<Enchantment>> idmap = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).asHolderIdMap();
 +                    if (true || !newEnchantment.isEmpty()) {
@@ -172,23 +191,58 @@
 +                            newList.add(enchantmentInstance);
 +                        }
 +                        // CraftBukkit end
-                         player.onEnchantmentPerformed(itemStack, enchantmentCost);
--                        if (itemStack.is(Items.BOOK)) {
--                            enchantmentItem = itemStack.transmuteCopy(Items.ENCHANTED_BOOK);
--                            this.enchantSlots.setItem(0, enchantmentItem);
--                        }
++                        player.onEnchantmentPerformed(itemStack, enchantmentCost);
 +                        // Neo: Allow items to transform themselves when enchanted, instead of relying on hardcoded transformations for Items.BOOK
 +                        enchantmentItem = itemStack.getItem().applyEnchantments(itemStack, newList);
-+                        this.enchantSlots.setItem(0, enchantmentItem);
+                         this.enchantSlots.setItem(0, enchantmentItem);
+-                    }
+-
+-                    for (EnchantmentInstance enchantment : newEnchantment) {
+-                        enchantmentItem.enchant(enchantment.enchantment(), enchantment.level());
+-                    }
+-
+-                    currency.consume(enchantmentCost, player);
+-                    if (currency.isEmpty()) {
+-                        this.enchantSlots.setItem(1, ItemStack.EMPTY);
+-                    }
+-
+-                    player.awardStat(Stats.ENCHANT_ITEM);
+-                    if (player instanceof ServerPlayer serverPlayer) {
+-                        CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, enchantmentItem, enchantmentCost);
+-                    }
+-
+-                    this.enchantSlots.setChanged();
+-                    this.enchantmentSeed.set(player.getEnchantmentSeed());
+-                    this.slotsChanged(this.enchantSlots);
+-                    level.playSound(null, pos, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.BLOCKS, 1.0F, level.getRandom().nextFloat() * 0.1F + 0.9F);
+-                }
+-            });
+-            return true;
 +                        net.neoforged.neoforge.common.CommonHooks.onPlayerEnchantItem(player, enchantmentItem, newList);
- 
--                        for (EnchantmentInstance enchantment : newEnchantment) {
--                            enchantmentItem.enchant(enchantment.enchantment(), enchantment.level());
--                        }
- 
-                         currency.consume(enchantmentCost, player);
-                         if (currency.isEmpty()) {
-@@ -227,6 +_,7 @@
++
++
++                        currency.consume(enchantmentCost, player);
++                        if (currency.isEmpty()) {
++                            this.enchantSlots.setItem(1, ItemStack.EMPTY);
++                        }
++
++                        player.awardStat(Stats.ENCHANT_ITEM);
++                        if (player instanceof ServerPlayer) {
++                            CriteriaTriggers.ENCHANTED_ITEM.trigger((ServerPlayer)player, enchantmentItem, enchantmentCost);
++                        }
++
++                        this.enchantSlots.setChanged();
++                        this.enchantmentSeed.set(player.getEnchantmentSeed());
++                        this.slotsChanged(this.enchantSlots);
++                        level.playSound(null, pos, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.BLOCKS, 1.0F, level.getRandom().nextFloat() * 0.1F + 0.9F);
++                    }
++                });
++                return true;
++            }
+         } else {
+             Util.logAndPauseIfInIde(player.getPlainTextName() + " pressed invalid button id: " + buttonId);
+             return false;
+@@ -216,6 +_,7 @@
  
      @Override
      public boolean stillValid(Player player) {
@@ -196,7 +250,7 @@
          return stillValid(this.access, player, Blocks.ENCHANTING_TABLE);
      }
  
-@@ -245,7 +_,7 @@
+@@ -234,7 +_,7 @@
                  if (!this.moveItemStackTo(stack, 2, 38, true)) {
                      return ItemStack.EMPTY;
                  }
@@ -205,7 +259,7 @@
                  if (!this.moveItemStackTo(stack, 1, 2, true)) {
                      return ItemStack.EMPTY;
                  }
-@@ -274,4 +_,17 @@
+@@ -263,4 +_,17 @@
  
          return clicked;
      }

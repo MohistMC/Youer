@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/SculkSensorBlock.java
 +++ b/net/minecraft/world/level/block/SculkSensorBlock.java
-@@ -41,6 +_,12 @@
+@@ -42,6 +_,12 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -13,16 +13,16 @@
  public class SculkSensorBlock extends BaseEntityBlock implements SimpleWaterloggedBlock {
      public static final MapCodec<SculkSensorBlock> CODEC = simpleCodec(SculkSensorBlock::new);
      public static final int ACTIVE_TICKS = 30;
-@@ -97,11 +_,24 @@
+@@ -98,11 +_,24 @@
      public void stepOn(Level level, BlockPos pos, BlockState onState, Entity entity) {
          if (!level.isClientSide()
              && canActivate(onState)
--            && !entity.is(EntityType.WARDEN)
+-            && !entity.is(EntityTypes.WARDEN)
 -            && level.getBlockEntity(pos) instanceof SculkSensorBlockEntity sculkSensor
 -            && level instanceof ServerLevel serverLevel
 -            && sculkSensor.getVibrationUser().canReceiveVibration(serverLevel, pos, GameEvent.STEP, GameEvent.Context.of(onState))) {
 -            sculkSensor.getListener().forceScheduleVibration(serverLevel, GameEvent.STEP, GameEvent.Context.of(entity), entity.position());
-+            && !entity.is(EntityType.WARDEN)) {
++            && !entity.is(EntityTypes.WARDEN)) {
 +            // CraftBukkit start
 +            org.bukkit.event.Cancellable cancellable;
 +            if (entity instanceof Player) {
@@ -43,7 +43,7 @@
          }
  
          super.stepOn(level, pos, onState, entity);
-@@ -192,6 +_,15 @@
+@@ -193,6 +_,15 @@
      }
  
      public static void deactivate(Level level, BlockPos pos, BlockState state) {
@@ -59,7 +59,7 @@
          level.setBlock(pos, state.setValue(PHASE, SculkSensorPhase.COOLDOWN).setValue(POWER, 0), 3);
          level.scheduleTick(pos, state.getBlock(), 10);
          updateNeighbours(level, pos, state);
-@@ -203,6 +_,15 @@
+@@ -204,6 +_,15 @@
      }
  
      public void activate(@Nullable Entity sourceEntity, Level level, BlockPos pos, BlockState state, int calculatedPower, int vibrationFrequency) {
@@ -75,7 +75,7 @@
          level.setBlock(pos, state.setValue(PHASE, SculkSensorPhase.ACTIVE).setValue(POWER, calculatedPower), 3);
          level.scheduleTick(pos, state.getBlock(), this.getActiveTicks());
          updateNeighbours(level, pos, state);
-@@ -280,8 +_,13 @@
+@@ -281,8 +_,13 @@
      @Override
      protected void spawnAfterBreak(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
          super.spawnAfterBreak(state, level, pos, tool, dropExperience);

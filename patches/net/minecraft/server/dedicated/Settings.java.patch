@@ -8,7 +8,7 @@
  import net.minecraft.core.RegistryAccess;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
-@@ -26,13 +_,31 @@
+@@ -26,39 +_,70 @@
  public abstract class Settings<T extends Settings<T>> {
      private static final Logger LOGGER = LogUtils.getLogger();
      public final Properties properties;
@@ -33,15 +33,52 @@
  
      public static Properties loadFromFile(Path file) {
          try {
+-            try (InputStream is = Files.newInputStream(file)) {
+-                CharsetDecoder reportingUtf8Decoder = StandardCharsets.UTF_8
+-                    .newDecoder()
+-                    .onMalformedInput(CodingErrorAction.REPORT)
+-                    .onUnmappableCharacter(CodingErrorAction.REPORT);
+-                Properties properties = new Properties();
+-                properties.load(new InputStreamReader(is, reportingUtf8Decoder));
+-                return properties;
+-            } catch (CharacterCodingException e) {
 +            // CraftBukkit start - SPIGOT-7465, MC-264979: Don't load if file doesn't exist
 +            if (!file.toFile().exists()) {
 +                return new Properties();
 +            }
 +            // CraftBukkit end
-             try {
-                 Properties var13;
-                 try (InputStream is = Files.newInputStream(file)) {
-@@ -65,8 +_,13 @@
++            try {
++                Properties var13;
++                try (InputStream is = Files.newInputStream(file)) {
++                    CharsetDecoder reportingUtf8Decoder = StandardCharsets.UTF_8
++                        .newDecoder()
++                        .onMalformedInput(CodingErrorAction.REPORT)
++                        .onUnmappableCharacter(CodingErrorAction.REPORT);
++                    Properties properties = new Properties();
++                    properties.load(new InputStreamReader(is, reportingUtf8Decoder));
++                    var13 = properties;
++                }
++
++                return var13;
++            } catch (CharacterCodingException var9) {
+                 LOGGER.info("Failed to load properties as UTF-8 from file {}, trying ISO_8859_1", file);
+ 
++                Properties var4;
+                 try (Reader reader = Files.newBufferedReader(file, StandardCharsets.ISO_8859_1)) {
+                     Properties properties = new Properties();
+                     properties.load(reader);
+-                    return properties;
++                    var4 = properties;
+                 }
++
++                return var4;
+             }
+-        } catch (IOException e) {
+-            LOGGER.error("Failed to load properties from file: {}", file, e);
++        } catch (IOException var10) {
++            LOGGER.error("Failed to load properties from file: {}", file, var10);
+             return new Properties();
+         }
      }
  
      public void store(Path output) {
@@ -53,10 +90,10 @@
          try (Writer os = Files.newBufferedWriter(output, StandardCharsets.UTF_8)) {
 -            this.properties.store(os, "Minecraft server properties");
 +            net.neoforged.neoforge.common.util.SortedProperties.store(this.properties, os, "Minecraft server properties");
-         } catch (IOException var7) {
+         } catch (IOException e) {
              LOGGER.error("Failed to store properties to file: {}", output);
          }
-@@ -95,7 +_,7 @@
+@@ -87,7 +_,7 @@
      }
  
      public @Nullable String getStringRaw(String key) {
@@ -65,7 +102,7 @@
      }
  
      protected <V> @Nullable V getLegacy(String key, Function<String, V> deserializer) {
-@@ -109,6 +_,16 @@
+@@ -101,6 +_,16 @@
      }
  
      protected <V> V get(String key, Function<String, @Nullable V> deserializer, Function<V, String> serializer, V defaultValue) {
@@ -82,7 +119,7 @@
          String value = this.getStringRaw(key);
          V result = MoreObjects.firstNonNull(value != null ? deserializer.apply(value) : null, defaultValue);
          this.properties.put(key, serializer.apply(result));
-@@ -183,7 +_,7 @@
+@@ -175,7 +_,7 @@
          return result;
      }
  
@@ -91,7 +128,7 @@
  
      public class MutableValue<V> implements Supplier<V> {
          private final String key;
-@@ -206,7 +_,7 @@
+@@ -196,7 +_,7 @@
          public T update(RegistryAccess registryAccess, V value) {
              Properties properties = Settings.this.cloneProperties();
              properties.put(this.key, this.serializer.apply(value));

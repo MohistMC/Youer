@@ -1,19 +1,19 @@
 --- a/net/minecraft/world/entity/monster/zombie/Husk.java
 +++ b/net/minecraft/world/entity/monster/zombie/Husk.java
-@@ -66,7 +_,7 @@
+@@ -67,7 +_,7 @@
          boolean result = super.doHurtTarget(level, target);
-         if (result && this.getMainHandItem().isEmpty() && target instanceof LivingEntity) {
+         if (result && this.getMainHandItem().isEmpty() && target instanceof LivingEntity livingEntity) {
              float difficulty = level.getCurrentDifficultyAt(this.blockPosition()).getEffectiveDifficulty();
--            ((LivingEntity)target).addEffect(new MobEffectInstance(MobEffects.HUNGER, 140 * (int)difficulty), this);
-+            ((LivingEntity)target).addEffect(new MobEffectInstance(MobEffects.HUNGER, 140 * (int)difficulty), this, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK); // CraftBukkit
+-            livingEntity.addEffect(new MobEffectInstance(MobEffects.HUNGER, 140 * (int)difficulty), this);
++            livingEntity.addEffect(new MobEffectInstance(MobEffects.HUNGER, 140 * (int)difficulty), this, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK); // CraftBukkit
          }
  
          return result;
-@@ -79,6 +_,7 @@
+@@ -80,6 +_,7 @@
  
      @Override
      protected void doUnderWaterConversion(ServerLevel level) {
-+        if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityType.ZOMBIE, (timer) -> this.conversionTime = timer)) return;
-         this.convertToZombieType(level, EntityType.ZOMBIE);
++        if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityTypes.ZOMBIE, (timer) -> this.conversionTime = timer)) return;
+         this.convertToZombieType(level, EntityTypes.ZOMBIE);
          if (!this.isSilent()) {
              level.levelEvent(null, 1041, this.blockPosition(), 0);

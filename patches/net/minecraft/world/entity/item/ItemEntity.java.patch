@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
-@@ -35,6 +_,14 @@
+@@ -36,6 +_,14 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -15,7 +15,7 @@
  public class ItemEntity extends Entity implements TraceableEntity {
      private static final EntityDataAccessor<ItemStack> DATA_ITEM = SynchedEntityData.defineId(ItemEntity.class, EntityDataSerializers.ITEM_STACK);
      private static final float FLOAT_HEIGHT = 0.1F;
-@@ -51,6 +_,11 @@
+@@ -52,6 +_,11 @@
      public @Nullable EntityReference<Entity> thrower;
      public @Nullable UUID target;
      public final float bobOffs = this.random.nextFloat() * (float) Math.PI * 2.0F;
@@ -27,7 +27,7 @@
  
      public ItemEntity(EntityType<? extends ItemEntity> type, Level level) {
          super(type, level);
-@@ -62,6 +_,7 @@
+@@ -63,6 +_,7 @@
          this.setPos(x, y, z);
          this.setItem(itemStack);
          this.setDeltaMovement(this.random.nextDouble() * 0.2 - 0.1, 0.2, this.random.nextDouble() * 0.2 - 0.1);
@@ -35,7 +35,7 @@
      }
  
      public ItemEntity(Level level, double x, double y, double z, ItemStack itemStack, double deltaX, double deltaY, double deltaZ) {
-@@ -69,6 +_,7 @@
+@@ -70,6 +_,7 @@
          this.setPos(x, y, z);
          this.setItem(itemStack);
          this.setDeltaMovement(deltaX, deltaY, deltaZ);
@@ -43,7 +43,7 @@
      }
  
      @Override
-@@ -106,13 +_,17 @@
+@@ -107,13 +_,17 @@
  
      @Override
      public void tick() {
@@ -65,17 +65,17 @@
  
              this.xo = this.getX();
              this.yo = this.getY();
-@@ -142,7 +_,8 @@
-                 this.applyEffectsFromBlocks();
-                 float friction = 0.98F;
+@@ -144,7 +_,8 @@
+                 float airDrag = this.getAirDrag();
+                 float groundFriction = airDrag;
                  if (this.onGround()) {
--                    friction = this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getBlock().getFriction() * 0.98F;
+-                    groundFriction *= this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getBlock().getFriction();
 +                    BlockPos groundPos = getBlockPosBelowThatAffectsMyMovement();
-+                    friction = this.level().getBlockState(groundPos).getFriction(level(), groundPos, this) * 0.98F;
++                    groundFriction *= this.level().getBlockState(groundPos).getFriction(level(), groundPos, this);
                  }
  
-                 this.setDeltaMovement(this.getDeltaMovement().multiply(friction, 0.98, friction));
-@@ -162,9 +_,11 @@
+                 this.setDeltaMovement(this.getDeltaMovement().multiply(groundFriction, airDrag, groundFriction));
+@@ -164,9 +_,11 @@
                  this.mergeWithNeighbours();
              }
  
@@ -87,7 +87,7 @@
  
              this.needsSync = this.needsSync | this.updateFluidInteraction();
              if (!this.level().isClientSide()) {
-@@ -174,8 +_,22 @@
+@@ -176,8 +_,22 @@
                  }
              }
  
@@ -112,7 +112,7 @@
              }
          }
      }
-@@ -200,8 +_,11 @@
+@@ -202,8 +_,11 @@
  
      private void mergeWithNeighbours() {
          if (this.isMergable()) {
@@ -125,7 +125,7 @@
                  if (entity.isMergable()) {
                      this.tryToMerge(entity);
                      if (this.isRemoved()) {
-@@ -221,7 +_,7 @@
+@@ -223,7 +_,7 @@
          ItemStack thisItemStack = this.getItem();
          ItemStack otherItemStack = other.getItem();
          if (Objects.equals(this.target, other.target) && areMergable(thisItemStack, otherItemStack)) {
@@ -134,7 +134,7 @@
                  merge(this, thisItemStack, other, otherItemStack);
              } else {
                  merge(other, otherItemStack, this, thisItemStack);
-@@ -248,11 +_,16 @@
+@@ -250,11 +_,16 @@
      }
  
      private static void merge(ItemEntity toItem, ItemStack toStack, ItemEntity fromItem, ItemStack fromStack) {
@@ -152,28 +152,53 @@
          }
      }
  
-@@ -280,12 +_,17 @@
-         } else if (!this.getItem().canBeHurtBy(source)) {
+@@ -277,25 +_,26 @@
+     public final boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+         if (this.isInvulnerableToBase(source)) {
              return false;
-         } else {
+-        }
+-
+-        if (!level.getGameRules().get(GameRules.MOB_GRIEFING) && source.getEntity() instanceof Mob) {
+-            return false;
+-        }
+-
+-        if (!this.getItem().canBeHurtBy(source)) {
+-            return false;
+-        }
+-
+-        this.markHurt();
+-        this.health = (int)(this.health - damage);
+-        this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
+-        if (this.health <= 0) {
+-            this.getItem().onDestroyed(this);
+-            this.discard();
+-        }
+-
+-        return true;
++        } else if (!level.getGameRules().get(GameRules.MOB_GRIEFING) && source.getEntity() instanceof Mob) {
++            return false;
++        } else if (!this.getItem().canBeHurtBy(source)) {
++            return false;
++        } else {
 +            // CraftBukkit start
 +            if (CraftEventFactory.handleNonLivingEntityDamageEvent(this, source, damage)) {
 +                return false;
 +            }
 +            // CraftBukkit end
-             this.markHurt();
--            this.health = (int)(this.health - damage);
++            this.markHurt();
 +            this.health = (int)((float) this.health - damage);
-             this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
-             if (this.health <= 0) {
--                this.getItem().onDestroyed(this);
--                this.discard();
++            this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
++            if (this.health <= 0) {
 +                this.getItem().onDestroyed(this, source);
 +                this.discard(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
-             }
++            }
++
++            return true;
++        }
+     }
  
-             return true;
-@@ -302,6 +_,7 @@
+     @Override
+@@ -308,6 +_,7 @@
          output.putShort("Health", (short)this.health);
          output.putShort("Age", (short)this.age);
          output.putShort("PickupDelay", (short)this.pickupDelay);
@@ -181,7 +206,7 @@
          EntityReference.store(this.thrower, output, "Thrower");
          output.storeNullable("Owner", UUIDUtil.CODEC, this.target);
          if (!this.getItem().isEmpty()) {
-@@ -314,11 +_,12 @@
+@@ -320,11 +_,12 @@
          this.health = input.getShortOr("Health", (short)5);
          this.age = input.getShortOr("Age", (short)0);
          this.pickupDelay = input.getShortOr("PickupDelay", (short)0);
@@ -195,7 +220,7 @@
          }
      }
  
-@@ -328,9 +_,65 @@
+@@ -334,9 +_,65 @@
              ItemStack itemStack = this.getItem();
              Item item = itemStack.getItem();
              int orgCount = itemStack.getCount();
@@ -262,7 +287,7 @@
                      this.discard();
                      itemStack.setCount(orgCount);
                  }
-@@ -374,6 +_,15 @@
+@@ -380,6 +_,15 @@
          this.target = target;
      }
  
@@ -278,7 +303,7 @@
      public void setThrower(Entity thrower) {
          this.thrower = EntityReference.of(thrower);
      }
-@@ -412,7 +_,7 @@
+@@ -418,7 +_,7 @@
  
      public void makeFakeItem() {
          this.setNeverPickUp();

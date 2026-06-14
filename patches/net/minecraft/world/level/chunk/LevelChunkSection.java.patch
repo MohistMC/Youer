@@ -1,6 +1,13 @@
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
-@@ -20,7 +_,7 @@
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.chunk;
+ 
++import java.util.Objects;
+ import java.util.function.Predicate;
+ import net.minecraft.core.Holder;
+ import net.minecraft.network.FriendlyByteBuf;
+@@ -16,7 +_,7 @@
      private short tickingBlockCount;
      private short tickingFluidCount;
      public final PalettedContainer<BlockState> states;
@@ -9,7 +16,7 @@
  
      private LevelChunkSection(LevelChunkSection source) {
          this.nonEmptyBlockCount = source.nonEmptyBlockCount;
-@@ -31,7 +_,7 @@
+@@ -27,7 +_,7 @@
          this.biomes = source.biomes.copy();
      }
  
@@ -18,7 +25,7 @@
          this.states = states;
          this.biomes = biomes;
          this.recalcBlockCounts();
-@@ -70,7 +_,7 @@
+@@ -66,7 +_,7 @@
              previous = this.states.getAndSetUnchecked(sectionX, sectionY, sectionZ, state);
          }
  
@@ -27,7 +34,7 @@
              this.nonEmptyBlockCount--;
              if (previous.isRandomlyTicking()) {
                  this.tickingBlockCount--;
-@@ -85,7 +_,7 @@
+@@ -81,7 +_,7 @@
              }
          }
  
@@ -36,8 +43,8 @@
              this.nonEmptyBlockCount++;
              if (state.isRandomlyTicking()) {
                  this.tickingBlockCount++;
-@@ -136,7 +_,7 @@
-             }
+@@ -127,7 +_,7 @@
+             public int tickingFluidCount;
  
              public void accept(BlockState state, int count) {
 -                if (!state.isAir()) {
@@ -45,7 +52,7 @@
                      this.nonEmptyBlockCount += count;
                      if (state.isRandomlyTicking()) {
                          this.tickingBlockCount += count;
-@@ -202,6 +_,12 @@
+@@ -193,6 +_,12 @@
      public Holder<Biome> getNoiseBiome(int quartX, int quartY, int quartZ) {
          return this.biomes.get(quartX, quartY, quartZ);
      }

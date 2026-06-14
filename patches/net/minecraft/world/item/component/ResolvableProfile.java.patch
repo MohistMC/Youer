@@ -1,0 +1,41 @@
+--- a/net/minecraft/world/item/component/ResolvableProfile.java
++++ b/net/minecraft/world/item/component/ResolvableProfile.java
+@@ -66,7 +_,7 @@
+         return new ResolvableProfile.Dynamic(Either.right(id), PlayerSkin.Patch.EMPTY);
+     }
+ 
+-    public abstract Either<GameProfile, ResolvableProfile.Partial> unpack();
++    protected abstract Either<GameProfile, ResolvableProfile.Partial> unpack();
+ 
+     protected ResolvableProfile(GameProfile partialProfile, PlayerSkin.Patch skinPatch) {
+         this.partialProfile = partialProfile;
+@@ -117,7 +_,7 @@
+         }
+ 
+         @Override
+-        public Either<GameProfile, ResolvableProfile.Partial> unpack() {
++        protected Either<GameProfile, ResolvableProfile.Partial> unpack() {
+             return Either.right(new ResolvableProfile.Partial(this.nameOrId.left(), this.nameOrId.right(), PropertyMap.EMPTY));
+         }
+ 
+@@ -132,9 +_,9 @@
+         }
+     }
+ 
+-    public record Partial(Optional<String> name, Optional<UUID> id, PropertyMap properties) {
++    protected record Partial(Optional<String> name, Optional<UUID> id, PropertyMap properties) {
+         public static final ResolvableProfile.Partial EMPTY = new ResolvableProfile.Partial(Optional.empty(), Optional.empty(), PropertyMap.EMPTY);
+-        public static final MapCodec<ResolvableProfile.Partial> MAP_CODEC = RecordCodecBuilder.mapCodec(
++        private static final MapCodec<ResolvableProfile.Partial> MAP_CODEC = RecordCodecBuilder.mapCodec(
+             i -> i.group(
+                     ExtraCodecs.PLAYER_NAME.optionalFieldOf("name").forGetter(ResolvableProfile.Partial::name),
+                     UUIDUtil.CODEC.optionalFieldOf("id").forGetter(ResolvableProfile.Partial::id),
+@@ -172,7 +_,7 @@
+         }
+ 
+         @Override
+-        public Either<GameProfile, ResolvableProfile.Partial> unpack() {
++        protected Either<GameProfile, ResolvableProfile.Partial> unpack() {
+             return this.contents;
+         }
+ 

@@ -8,7 +8,7 @@
  import net.minecraft.resources.Identifier;
  import net.minecraft.resources.ResourceKey;
  import net.minecraft.util.ProblemReporter;
-@@ -60,6 +_,8 @@
+@@ -61,6 +_,8 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.BitSetDiscreteVoxelShape;
  import net.minecraft.world.phys.shapes.DiscreteVoxelShape;
@@ -17,7 +17,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -81,6 +_,11 @@
+@@ -82,6 +_,11 @@
      private Vec3i size = Vec3i.ZERO;
      private String author = "?";
  
@@ -30,24 +30,24 @@
          return this.size;
      }
 @@ -209,7 +_,7 @@
-                         new StructureTemplate.StructureBlockInfo(
-                             calculateRelativePosition(settings, blockInfo.pos()).offset(position),
-                             blockInfo.state.rotate(settings.getRotation()),
--                            blockInfo.nbt
-+                            net.neoforged.neoforge.common.CommonHooks.captureStructureRotation(blockInfo.nbt, rotation)
-                         )
+             result.add(
+                 jigsaw.withInfo(
+                     new StructureTemplate.StructureBlockInfo(
+-                        calculateRelativePosition(settings, blockInfo.pos()).offset(position), blockInfo.state.rotate(settings.getRotation()), blockInfo.nbt
++                        calculateRelativePosition(settings, blockInfo.pos()).offset(position), blockInfo.state.rotate(settings.getRotation()), net.neoforged.neoforge.common.CommonHooks.captureStructureRotation(blockInfo.nbt, rotation)
                      )
-                 );
+                 )
+             );
 @@ -228,7 +_,7 @@
-             for (StructureTemplate.StructureBlockInfo blockInfo : settings.getRandomPalette(this.palettes, position).blocks(block)) {
-                 BlockPos blockPos = absolute ? calculateRelativePosition(settings, blockInfo.pos).offset(position) : blockInfo.pos;
-                 if (boundingBox == null || boundingBox.isInside(blockPos)) {
--                    result.add(new StructureTemplate.StructureBlockInfo(blockPos, blockInfo.state.rotate(settings.getRotation()), blockInfo.nbt));
-+                    result.add(new StructureTemplate.StructureBlockInfo(blockPos, blockInfo.state.rotate(settings.getRotation()), net.neoforged.neoforge.common.CommonHooks.captureStructureRotation(blockInfo.nbt, settings.getRotation())));
-                 }
+         for (StructureTemplate.StructureBlockInfo blockInfo : settings.getRandomPalette(this.palettes, position).blocks(block)) {
+             BlockPos blockPos = absolute ? calculateRelativePosition(settings, blockInfo.pos).offset(position) : blockInfo.pos;
+             if (boundingBox == null || boundingBox.isInside(blockPos)) {
+-                result.add(new StructureTemplate.StructureBlockInfo(blockPos, blockInfo.state.rotate(settings.getRotation()), blockInfo.nbt));
++                result.add(new StructureTemplate.StructureBlockInfo(blockPos, blockInfo.state.rotate(settings.getRotation()), net.neoforged.neoforge.common.CommonHooks.captureStructureRotation(blockInfo.nbt, settings.getRotation())));
              }
+         }
  
-@@ -246,6 +_,10 @@
+@@ -245,6 +_,10 @@
          return transform(pos, settings.getMirror(), settings.getRotation(), settings.getRotationPivot());
      }
  
@@ -58,80 +58,81 @@
      public boolean placeInWorld(
          ServerLevelAccessor level,
          BlockPos position,
-@@ -257,6 +_,19 @@
+@@ -256,7 +_,19 @@
          if (this.palettes.isEmpty()) {
              return false;
-         } else {
-+            // CraftBukkit start
-+            // We only want the TransformerGeneratorAccess at certain locations because in here are many "block update" calls that shouldn't be transformed
-+            ServerLevelAccessor wrappedAccess = level;
-+            org.bukkit.craftbukkit.util.CraftStructureTransformer structureTransformer = null;
-+            if (wrappedAccess instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess) {
-+                level = transformerAccess.getHandle();
-+                structureTransformer = transformerAccess.getStructureTransformer();
-+                // The structureTransformer is not needed if we can not transform blocks therefore we can save a little bit of performance doing this
-+                if (structureTransformer != null && !structureTransformer.canTransformBlocks()) {
-+                    structureTransformer = null;
-+                }
+         }
+-
++        // CraftBukkit start
++        // We only want the TransformerGeneratorAccess at certain locations because in here are many "block update" calls that shouldn't be transformed
++        ServerLevelAccessor wrappedAccess = level;
++        org.bukkit.craftbukkit.util.CraftStructureTransformer structureTransformer = null;
++        if (wrappedAccess instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess) {
++            level = transformerAccess.getHandle();
++            structureTransformer = transformerAccess.getStructureTransformer();
++            // The structureTransformer is not needed if we can not transform blocks therefore we can save a little bit of performance doing this
++            if (structureTransformer != null && !structureTransformer.canTransformBlocks()) {
++                structureTransformer = null;
 +            }
-+            // CraftBukkit end
-             List<StructureTemplate.StructureBlockInfo> blockInfoList = settings.getRandomPalette(this.palettes, position).blocks();
-             if ((!blockInfoList.isEmpty() || !settings.isIgnoreEntities() && !this.entityInfoList.isEmpty())
-                 && this.size.getX() >= 1
++        }
++        // CraftBukkit end
+         List<StructureTemplate.StructureBlockInfo> blockInfoList = settings.getRandomPalette(this.palettes, position).blocks();
+         if ((!blockInfoList.isEmpty() || !settings.isIgnoreEntities() && !this.entityInfoList.isEmpty())
+             && this.size.getX() >= 1
 @@ -272,7 +_,7 @@
-                 int maxX = Integer.MIN_VALUE;
-                 int maxY = Integer.MIN_VALUE;
-                 int maxZ = Integer.MIN_VALUE;
--                List<StructureTemplate.StructureBlockInfo> processedBlockInfoList = processBlockInfos(level, position, referencePos, settings, blockInfoList);
-+                List<StructureTemplate.StructureBlockInfo> processedBlockInfoList = processBlockInfos(level, position, referencePos, settings, blockInfoList, this);
+             int maxX = Integer.MIN_VALUE;
+             int maxY = Integer.MIN_VALUE;
+             int maxZ = Integer.MIN_VALUE;
+-            List<StructureTemplate.StructureBlockInfo> processedBlockInfoList = processBlockInfos(level, position, referencePos, settings, blockInfoList);
++            List<StructureTemplate.StructureBlockInfo> processedBlockInfoList = processBlockInfos(level, position, referencePos, settings, blockInfoList, this);
  
-                 try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(LOGGER)) {
-                     for (StructureTemplate.StructureBlockInfo blockInfo : processedBlockInfoList) {
+             try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(LOGGER)) {
+                 for (StructureTemplate.StructureBlockInfo blockInfo : processedBlockInfoList) {
 @@ -302,8 +_,23 @@
-                                         blockEntity.loadWithComponents(
-                                             TagValueInput.create(reporter.forChild(blockEntity.problemPath()), level.registryAccess(), blockInfo.nbt)
-                                         );
--                                    }
+                                     blockEntity.loadWithComponents(
+                                         TagValueInput.create(reporter.forChild(blockEntity.problemPath()), level.registryAccess(), blockInfo.nbt)
+                                     );
 -                                }
-+                                        net.neoforged.neoforge.common.CommonHooks.applyStructureRotation(blockEntity, blockInfo.nbt, settings);
+-                            }
++                                    net.neoforged.neoforge.common.CommonHooks.applyStructureRotation(blockEntity, blockInfo.nbt, settings);
++                                }
++                            }
++                            // CraftBukkit start
++                            if (structureTransformer != null) {
++                                org.bukkit.craftbukkit.block.CraftBlockState craftBlockState = (org.bukkit.craftbukkit.block.CraftBlockState) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(level, blockPos, state, null);
++                                if (blockInfo.nbt != null && craftBlockState instanceof org.bukkit.craftbukkit.block.CraftBlockEntityState<?> entityState) {
++                                    entityState.loadData(blockInfo.nbt);
++                                    if (craftBlockState instanceof org.bukkit.craftbukkit.block.CraftLootable<?> craftLootable) {
++                                        craftLootable.setSeed(random.nextLong());
 +                                    }
 +                                }
-+                                // CraftBukkit start
-+                                if (structureTransformer != null) {
-+                                    org.bukkit.craftbukkit.block.CraftBlockState craftBlockState = (org.bukkit.craftbukkit.block.CraftBlockState) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(level, blockPos, state, null);
-+                                    if (blockInfo.nbt != null && craftBlockState instanceof org.bukkit.craftbukkit.block.CraftBlockEntityState<?> entityState) {
-+                                        entityState.loadData(blockInfo.nbt);
-+                                        if (craftBlockState instanceof org.bukkit.craftbukkit.block.CraftLootable<?> craftLootable) {
-+                                            craftLootable.setSeed(random.nextLong());
-+                                        }
-+                                    }
-+                                    craftBlockState = structureTransformer.transformCraftState(craftBlockState);
-+                                    state = craftBlockState.getHandle();
-+                                    blockInfo = new StructureTemplate.StructureBlockInfo(blockPos, state, (craftBlockState instanceof org.bukkit.craftbukkit.block.CraftBlockEntityState<?> craftBlockEntityState ? craftBlockEntityState.getSnapshotNBT() : null));
-+                                }
-+                                // CraftBukkit end
++                                craftBlockState = structureTransformer.transformCraftState(craftBlockState);
++                                state = craftBlockState.getHandle();
++                                blockInfo = new StructureTemplate.StructureBlockInfo(blockPos, state, (craftBlockState instanceof org.bukkit.craftbukkit.block.CraftBlockEntityState<?> craftBlockEntityState ? craftBlockEntityState.getSnapshotNBT() : null));
++                            }
++                            // CraftBukkit end
  
-                                 if (previousFluidState != null) {
-                                     if (state.getFluidState().isSource()) {
-@@ -387,16 +_,7 @@
-                     }
- 
-                     if (!settings.isIgnoreEntities()) {
--                        this.placeEntities(
--                            level,
--                            position,
--                            settings.getMirror(),
--                            settings.getRotation(),
--                            settings.getRotationPivot(),
--                            boundingBox,
--                            settings.shouldFinalizeEntities(),
--                            reporter
--                        );
-+                        this.addEntitiesToWorld(wrappedAccess, position, settings, reporter); // CraftBukkit
-                     }
+                             if (previousFluidState != null) {
+                                 if (state.getFluidState().isSource()) {
+@@ -386,16 +_,7 @@
                  }
  
-@@ -431,6 +_,10 @@
+                 if (!settings.isIgnoreEntities()) {
+-                    this.placeEntities(
+-                        level,
+-                        position,
+-                        settings.getMirror(),
+-                        settings.getRotation(),
+-                        settings.getRotationPivot(),
+-                        boundingBox,
+-                        settings.shouldFinalizeEntities(),
+-                        reporter
+-                    );
++                    this.addEntitiesToWorld(wrappedAccess, position, settings, reporter); // CraftBukkit
+                 }
+             }
+ 
+@@ -429,6 +_,10 @@
          });
      }
  
@@ -142,7 +143,7 @@
      public static List<StructureTemplate.StructureBlockInfo> processBlockInfos(
          ServerLevelAccessor level,
          BlockPos position,
-@@ -438,6 +_,10 @@
+@@ -436,6 +_,10 @@
          StructurePlaceSettings settings,
          List<StructureTemplate.StructureBlockInfo> blockInfoList
      ) {
@@ -152,17 +153,17 @@
 +    public static List<StructureTemplate.StructureBlockInfo> processBlockInfos(ServerLevelAccessor level, BlockPos position, BlockPos referencePos, StructurePlaceSettings settings, List<StructureTemplate.StructureBlockInfo> blockInfoList, @Nullable StructureTemplate template) {
          List<StructureTemplate.StructureBlockInfo> originalBlockInfoList = new ArrayList<>();
          List<StructureTemplate.StructureBlockInfo> processedBlockInfoList = new ArrayList<>();
+         boolean processOnlyInCurrentChunk = true;
+@@ -458,7 +_,7 @@
+                 Iterator<StructureProcessor> iterator = settings.getProcessors().iterator();
  
-@@ -449,7 +_,7 @@
-             Iterator<StructureProcessor> iterator = settings.getProcessors().iterator();
+                 while (processedBlockInfo != null && iterator.hasNext()) {
+-                    processedBlockInfo = iterator.next().processBlock(level, position, referencePos, blockInfo.pos, processedBlockInfo, settings);
++                    processedBlockInfo = iterator.next().process(level, position, referencePos, blockInfo, processedBlockInfo, settings, template);
+                 }
  
-             while (processedBlockInfo != null && iterator.hasNext()) {
--                processedBlockInfo = iterator.next().processBlock(level, position, referencePos, blockInfo, processedBlockInfo, settings);
-+                processedBlockInfo = iterator.next().process(level, position, referencePos, blockInfo, processedBlockInfo, settings, template);
-             }
- 
-             if (processedBlockInfo != null) {
-@@ -465,22 +_,30 @@
+                 if (processedBlockInfo != null) {
+@@ -475,22 +_,30 @@
          return processedBlockInfoList;
      }
  
@@ -208,7 +209,7 @@
                  ListTag posTag = new ListTag();
                  posTag.add(DoubleTag.valueOf(pos.x));
                  posTag.add(DoubleTag.valueOf(pos.y));
-@@ -488,12 +_,12 @@
+@@ -498,12 +_,12 @@
                  tag.put("Pos", posTag);
                  tag.remove("UUID");
                  createEntityIgnoreException(problemReporter, level, tag).ifPresent(entity -> {
@@ -224,17 +225,20 @@
                          mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(pos)), EntitySpawnReason.STRUCTURE, null);
                      }
  
-@@ -504,11 +_,13 @@
+@@ -514,13 +_,13 @@
      }
  
      private static Optional<Entity> createEntityIgnoreException(ProblemReporter reporter, ServerLevelAccessor level, CompoundTag tag) {
 -        try {
-+        // CraftBukkit start
-+        // try {
-             return EntityType.create(TagValueInput.create(reporter, level.registryAccess(), tag), level.getLevel(), EntitySpawnReason.STRUCTURE);
--        } catch (Exception var4) {
+-            return EntityType.create(
+-                TagValueInput.create(reporter, level.registryAccess(), tag), level.getLevel(), new EntitySpawnRequest(EntitySpawnReason.STRUCTURE, false)
+-            );
+-        } catch (Exception ignored) {
 -            return Optional.empty();
 -        }
++        // CraftBukkit start
++        // try {
++            return EntityType.create(TagValueInput.create(reporter, level.registryAccess(), tag), level.getLevel(), EntitySpawnReason.STRUCTURE);
 +        // } catch (Exception exception) {
 +            // return Optional.empty();
 +        // }
@@ -242,7 +246,7 @@
      }
  
      public Vec3i getSize(Rotation rotation) {
-@@ -699,6 +_,11 @@
+@@ -693,6 +_,11 @@
  
          tag.put("entities", entityList);
          tag.put("size", this.newIntegerList(this.size.getX(), this.size.getY(), this.size.getZ()));
@@ -254,7 +258,7 @@
          return NbtUtils.addCurrentDataVersion(tag);
      }
  
-@@ -724,6 +_,12 @@
+@@ -718,6 +_,12 @@
              BlockPos blockPos = new BlockPos(blockPosTag.getIntOr(0, 0), blockPosTag.getIntOr(1, 0), blockPosTag.getIntOr(2, 0));
              entityTag.getCompound("nbt").ifPresent(nbt -> this.entityInfoList.add(new StructureTemplate.StructureEntityInfo(pos, blockPos, nbt)));
          });
@@ -267,7 +271,7 @@
      }
  
      private void loadPalette(HolderGetter<Block> blockLookup, ListTag paletteList, ListTag blockList) {
-@@ -823,7 +_,7 @@
+@@ -817,7 +_,7 @@
  
      public static final class Palette {
          private final List<StructureTemplate.StructureBlockInfo> blocks;

@@ -28,29 +28,64 @@
              if (!level.isClientSide() && level.dimension() == Level.END && entity instanceof ServerPlayer player && !player.seenCredits) {
                  player.showEndCredits();
              } else {
-@@ -77,7 +_,7 @@
+@@ -77,35 +_,35 @@
          BlockPos spawnBlockPos = fromEnd ? respawnData.pos() : ServerLevel.END_SPAWN_POINT;
          ServerLevel newLevel = currentLevel.getServer().getLevel(newDimension);
          if (newLevel == null) {
 -            return null;
+-        }
+-
+-        Vec3 spawnPos = Vec3.atBottomCenterOf(spawnBlockPos);
+-        float yRot;
+-        float xRot;
+-        Set<Relative> relatives;
+-        if (!fromEnd) {
+-            EndPlatformFeature.createEndPlatform(newLevel, BlockPos.containing(spawnPos).below(), true);
+-            yRot = Direction.WEST.toYRot();
+-            xRot = 0.0F;
+-            relatives = Relative.union(Relative.DELTA, Set.of(Relative.X_ROT));
+-            if (entity instanceof ServerPlayer) {
+-                spawnPos = spawnPos.subtract(0.0, 1.0, 0.0);
+-            }
 +            return new TeleportTransition(PlayerTeleportEvent.TeleportCause.END_PORTAL); // CraftBukkit
          } else {
-             Vec3 spawnPos = spawnBlockPos.getBottomCenter();
-             float yRot;
-@@ -96,14 +_,14 @@
-                 xRot = respawnData.pitch();
-                 relatives = Relative.union(Relative.DELTA, Relative.ROTATION);
-                 if (entity instanceof ServerPlayer serverPlayer) {
--                    return serverPlayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING);
+-            yRot = respawnData.yaw();
+-            xRot = respawnData.pitch();
+-            relatives = Relative.union(Relative.DELTA, Relative.ROTATION);
+-            if (entity instanceof ServerPlayer serverPlayer) {
+-                return serverPlayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING);
++            Vec3 spawnPos = spawnBlockPos.getBottomCenter();
++            float yRot;
++            float xRot;
++            Set<Relative> relatives;
++            if (!fromEnd) {
++                EndPlatformFeature.createEndPlatform(newLevel, BlockPos.containing(spawnPos).below(), true);
++                yRot = Direction.WEST.toYRot();
++                xRot = 0.0F;
++                relatives = Relative.union(Relative.DELTA, Set.of(Relative.X_ROT));
++                if (entity instanceof ServerPlayer) {
++                    spawnPos = spawnPos.subtract(0.0, 1.0, 0.0);
++                }
++            } else {
++                yRot = respawnData.yaw();
++                xRot = respawnData.pitch();
++                relatives = Relative.union(Relative.DELTA, Relative.ROTATION);
++                if (entity instanceof ServerPlayer serverPlayer) {
 +                    return serverPlayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING, PlayerRespawnEvent.RespawnReason.END_PORTAL); // CraftBukkit
-                 }
- 
-                 spawnPos = entity.adjustSpawnLocation(newLevel, spawnBlockPos).getBottomCenter();
++                }
++
++                spawnPos = entity.adjustSpawnLocation(newLevel, spawnBlockPos).getBottomCenter();
              }
  
-             return new TeleportTransition(
--                newLevel, spawnPos, Vec3.ZERO, yRot, xRot, relatives, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET)
+-            spawnPos = Vec3.atBottomCenterOf(entity.adjustSpawnLocation(newLevel, spawnBlockPos));
++            return new TeleportTransition(
 +                newLevel, spawnPos, Vec3.ZERO, yRot, xRot, relatives, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET), PlayerTeleportEvent.TeleportCause.END_PORTAL
-             );
++            );
          }
+-
+-        return new TeleportTransition(
+-            newLevel, spawnPos, Vec3.ZERO, yRot, xRot, relatives, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET)
+-        );
      }
+ 
+     @Override

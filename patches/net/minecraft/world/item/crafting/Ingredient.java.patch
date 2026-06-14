@@ -8,7 +8,7 @@
  import java.util.Objects;
  import java.util.Optional;
  import java.util.function.Predicate;
-@@ -21,54 +_,153 @@
+@@ -21,20 +_,43 @@
  import net.minecraft.world.item.Items;
  import net.minecraft.world.item.crafting.display.SlotDisplay;
  import net.minecraft.world.level.ItemLike;
@@ -54,21 +54,11 @@
 +    // CraftBukkit end
  
      private Ingredient(HolderSet<Item> values) {
--        values.unwrap().ifRight(directValues -> {
--            if (directValues.isEmpty()) {
--                throw new UnsupportedOperationException("Ingredients can't be empty");
--            } else if (directValues.contains(Items.AIR.builtInRegistryHolder())) {
--                throw new UnsupportedOperationException("Ingredient can't contain air");
--            }
--        });
 +        if (values.isImmediatelyResolvable())//Neo: Skip validating holderset contents for holdersets if they are not immediately resolvable
-+            values.unwrap().ifRight(directValues -> {
-+                if (directValues.isEmpty()) {
-+                    throw new UnsupportedOperationException("Ingredients can't be empty");
-+                } else if (directValues.contains(Items.AIR.builtInRegistryHolder())) {
-+                    throw new UnsupportedOperationException("Ingredient can't contain air");
-+                }
-+            });
+         values.unwrap().ifRight(directValues -> {
+             if (directValues.isEmpty()) {
+                 throw new UnsupportedOperationException("Ingredients can't be empty");
+@@ -47,35 +_,106 @@
          this.values = values;
      }
  
@@ -124,11 +114,12 @@
      @Override
      public boolean equals(Object o) {
 -        return o instanceof Ingredient other ? Objects.equals(this.values, other.values) : false;
-+        return o instanceof Ingredient ingredient ? java.util.Objects.equals(this.customIngredient, ingredient.customIngredient) && Objects.equals(this.values, ingredient.values) && Objects.equals(this.itemStacks, ingredient.itemStacks) : false;
-+    }
-+
-+    @Override
-+    public int hashCode() {
++        return o instanceof Ingredient ingredient ? java.util.Objects.equals(this.customIngredient, ingredient.customIngredient) && Objects.equals(this.values, ingredient.values) : false;
+     }
+ 
+     @Override
+     public int hashCode() {
+-        return Objects.hashCode(this.values);
 +        if (this.customIngredient != null) {
 +            return this.customIngredient.hashCode();
 +        }
@@ -176,7 +167,7 @@
      }
  
      public static Ingredient of(ItemLike itemLike) {
-@@ -88,6 +_,9 @@
+@@ -95,6 +_,9 @@
      }
  
      public SlotDisplay display() {

@@ -24,23 +24,57 @@
                  for (int dx = 0; dx >= -1; dx--) {
                      for (int dz = 0; dz >= -1; dz--) {
                          if (isTwoByTwoSapling(state, level, pos, dx, dz)) {
-@@ -161,9 +_,13 @@
+@@ -159,25 +_,29 @@
+         ResourceKey<ConfiguredFeature<?, ?>> featureKey = this.getConfiguredFeature(random, this.hasFlowers(level, pos));
+         if (featureKey == null) {
              return false;
+-        }
+-
+-        Holder<ConfiguredFeature<?, ?>> featureHolder = level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(featureKey).orElse(null);
+-        if (featureHolder == null) {
+-            return false;
+-        }
+-
+-        ConfiguredFeature<?, ?> feature = featureHolder.value();
+-        BlockState emptyBlock = level.getFluidState(pos).createLegacyBlock();
+-        level.setBlock(pos, emptyBlock, 260);
+-        if (feature.place(level, generator, random, pos)) {
+-            if (level.getBlockState(pos) == emptyBlock) {
+-                level.sendBlockUpdated(pos, state, emptyBlock, 2);
+-            }
+-
+-            return true;
          } else {
-             Holder<ConfiguredFeature<?, ?>> featureHolder = level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(featureKey).orElse(null);
+-            level.setBlock(pos, state, 260);
+-            return false;
++            Holder<ConfiguredFeature<?, ?>> featureHolder = level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(featureKey).orElse(null);
 +            var event = net.neoforged.neoforge.event.EventHooks.fireBlockGrowFeature(level, random, pos, featureHolder);
 +            featureHolder = event.getFeature();
 +            if (event.isCanceled()) return false;
-             if (featureHolder == null) {
-                 return false;
-             } else {
++            if (featureHolder == null) {
++                return false;
++            } else {
 +                setTreeType(featureHolder); // CraftBukkit
-                 ConfiguredFeature<?, ?> feature = featureHolder.value();
-                 BlockState emptyBlock = level.getFluidState(pos).createLegacyBlock();
-                 level.setBlock(pos, emptyBlock, 260);
-@@ -210,4 +_,59 @@
-                 : OptionalInt.empty();
++                ConfiguredFeature<?, ?> feature = featureHolder.value();
++                BlockState emptyBlock = level.getFluidState(pos).createLegacyBlock();
++                level.setBlock(pos, emptyBlock, 260);
++                if (feature.place(level, generator, random, pos)) {
++                    if (level.getBlockState(pos) == emptyBlock) {
++                        level.sendBlockUpdated(pos, state, emptyBlock, 2);
++                    }
++
++                    return true;
++                } else {
++                    level.setBlock(pos, state, 260);
++                    return false;
++                }
++            }
          }
+     }
+ 
+@@ -210,4 +_,59 @@
+             ? OptionalInt.of(treeConfig.trunkPlacer.getBaseHeight())
+             : OptionalInt.empty();
      }
 +
 +    // CraftBukkit start

@@ -58,7 +58,7 @@
 +    // CraftBukkit end
 +
      public HopperBlockEntity(BlockPos worldPosition, BlockState blockState) {
-         super(BlockEntityType.HOPPER, worldPosition, blockState);
+         super(BlockEntityTypes.HOPPER, worldPosition, blockState);
          this.facing = blockState.getValue(HopperBlock.FACING);
 @@ -82,6 +_,41 @@
          this.getItems().set(slot, itemStack);
@@ -102,26 +102,47 @@
  
      @Override
      public void setBlockState(BlockState blockState) {
-@@ -139,10 +_,11 @@
+@@ -139,34 +_,59 @@
      }
  
      private static boolean ejectItems(Level level, BlockPos blockPos, HopperBlockEntity self) {
 -        Container container = getAttachedContainer(level, blockPos, self);
 -        if (container == null) {
+-            return false;
+-        }
+-
+-        Direction direction = self.facing.getOpposite();
+-        if (isFullContainer(container, direction)) {
+-            return false;
+-        }
+-
+-        for (int slot = 0; slot < self.getContainerSize(); slot++) {
+-            ItemStack itemStack = self.getItem(slot);
+-            if (!itemStack.isEmpty()) {
+-                int originalCount = itemStack.getCount();
+-                ItemStack result = addItem(self, container, self.removeItem(slot, 1), direction);
+-                if (result.isEmpty()) {
+-                    container.setChanged();
+-                    return true;
+-                }
+-
+-                itemStack.setCount(originalCount);
+-                if (originalCount == 1) {
+-                    self.setItem(slot, itemStack);
+-                }
 +        var containerOrHandler = getContainerOrHandlerAt(level, blockPos.relative(self.facing), self.facing.getOpposite());
 +        if (containerOrHandler.isEmpty()) {
-             return false;
--        } else {
++            return false;
 +        } else if (containerOrHandler.container() != null) {
 +            Container container = containerOrHandler.container();
-             Direction direction = self.facing.getOpposite();
-             if (isFullContainer(container, direction)) {
-                 return false;
-@@ -151,7 +_,29 @@
-                     ItemStack itemStack = self.getItem(slot);
-                     if (!itemStack.isEmpty()) {
-                         int originalCount = itemStack.getCount();
--                        ItemStack result = addItem(self, container, self.removeItem(slot, 1), direction);
++            Direction direction = self.facing.getOpposite();
++            if (isFullContainer(container, direction)) {
++                return false;
++            } else {
++                for (int slot = 0; slot < self.getContainerSize(); slot++) {
++                    ItemStack itemStack = self.getItem(slot);
++                    if (!itemStack.isEmpty()) {
++                        int originalCount = itemStack.getCount();
 +                        // CraftBukkit start - Call event when pushing items into other inventories
 +                        ItemStack original = itemStack.copy();
 +                        CraftItemStack oitemstack = CraftItemStack.asCraftMirror(self.removeItem(slot, 1));
@@ -145,18 +166,28 @@
 +                        }
 +                        ItemStack result = addItem(self, container, CraftItemStack.asNMSCopy(event.getItem()), direction);
 +                        // CraftBukkit end
-                         if (result.isEmpty()) {
-                             container.setChanged();
-                             return true;
-@@ -166,6 +_,8 @@
- 
-                 return false;
++                        if (result.isEmpty()) {
++                            container.setChanged();
++                            return true;
++                        }
++
++                        itemStack.setCount(originalCount);
++                        if (originalCount == 1) {
++                            self.setItem(slot, itemStack);
++                        }
++                    }
++                }
++
++                return false;
              }
 +        } else {
 +            return net.neoforged.neoforge.transfer.item.VanillaInventoryCodeHooks.insertHook(self, containerOrHandler.itemHandler());
          }
+-
+-        return false;
      }
  
+     private static int[] getSlots(Container container, Direction direction) {
 @@ -216,8 +_,9 @@
      public static boolean suckInItems(Level level, Hopper hopper) {
          BlockPos blockPos = BlockPos.containing(hopper.getLevelX(), hopper.getLevelY() + 1.0, hopper.getLevelZ());

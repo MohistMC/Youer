@@ -1,12 +1,12 @@
 --- a/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
-@@ -1,11 +_,14 @@
+@@ -1,10 +_,14 @@
  package net.minecraft.world.level.block.entity;
  
 +import java.util.ArrayList;
  import java.util.Arrays;
 +import java.util.List;
- import java.util.Objects;
++import java.util.Objects;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.NonNullList;
@@ -15,7 +15,7 @@
  import net.minecraft.tags.ItemTags;
  import net.minecraft.world.ContainerHelper;
  import net.minecraft.world.Containers;
-@@ -24,6 +_,14 @@
+@@ -23,6 +_,14 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
@@ -30,7 +30,18 @@
  import org.jspecify.annotations.Nullable;
  
  public class BrewingStandBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer {
-@@ -75,6 +_,37 @@
+@@ -44,6 +_,10 @@
+     private Item ingredient;
+     public int fuel;
+     protected final ContainerData dataAccess = new ContainerData() {
++        {
++            Objects.requireNonNull(BrewingStandBlockEntity.this);
++        }
++
+         @Override
+         public int get(int dataId) {
+             return switch (dataId) {
+@@ -70,6 +_,37 @@
          }
      };
  
@@ -66,9 +77,9 @@
 +    // CraftBukkit end
 +
      public BrewingStandBlockEntity(BlockPos worldPosition, BlockState blockState) {
-         super(BlockEntityType.BREWING_STAND, worldPosition, blockState);
+         super(BlockEntityTypes.BREWING_STAND, worldPosition, blockState);
      }
-@@ -102,19 +_,36 @@
+@@ -97,19 +_,36 @@
      public static void serverTick(Level level, BlockPos pos, BlockState selfState, BrewingStandBlockEntity entity) {
          ItemStack fuel = entity.items.get(4);
          if (entity.fuel <= 0 && fuel.is(ItemTags.BREWING_FUEL)) {
@@ -110,7 +121,7 @@
              } else if (!brewable || !ingredient.is(entity.ingredient)) {
                  entity.brewTime = 0;
              }
-@@ -122,7 +_,11 @@
+@@ -117,7 +_,11 @@
              setChanged(level, pos, selfState);
          } else if (brewable && entity.fuel > 0) {
              entity.fuel--;
@@ -123,8 +134,17 @@
              entity.ingredient = ingredient.getItem();
              setChanged(level, pos, selfState);
          }
-@@ -173,16 +_,41 @@
-         }
+@@ -126,7 +_,7 @@
+         if (!Arrays.equals(newCount, entity.lastPotionCount)) {
+             entity.lastPotionCount = newCount;
+             BlockState state = selfState;
+-            if (!(state.getBlock() instanceof BrewingStandBlock)) {
++            if (!(selfState.getBlock() instanceof BrewingStandBlock)) {
+                 return;
+             }
+ 
+@@ -170,16 +_,41 @@
+         return false;
      }
  
 -    private static void doBrew(Level level, BlockPos pos, NonNullList<ItemStack> items) {
@@ -171,7 +191,7 @@
          if (remainder != null) {
              if (ingredient.isEmpty()) {
                  ingredient = remainder.create();
-@@ -218,13 +_,13 @@
+@@ -215,13 +_,13 @@
  
      @Override
      public boolean canPlaceItem(int slot, ItemStack itemStack) {

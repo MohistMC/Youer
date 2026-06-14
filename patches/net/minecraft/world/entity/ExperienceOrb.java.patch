@@ -18,15 +18,15 @@
  public class ExperienceOrb extends Entity {
 @@ -136,7 +_,8 @@
              this.applyEffectsFromBlocks();
-             float friction = 0.98F;
+             float friction = this.getAirDrag();
              if (this.onGround()) {
--                friction = this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getBlock().getFriction() * 0.98F;
+-                friction *= this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getBlock().getFriction();
 +                BlockPos pos = this.getBlockPosBelowThatAffectsMyMovement();
-+                friction = this.level().getBlockState(pos).getFriction(this.level(), pos, this) * 0.98F;
++                friction *= this.level().getBlockState(pos).getFriction(this.level(), pos, this);
              }
  
              this.setDeltaMovement(this.getDeltaMovement().scale(friction));
-@@ -146,14 +_,15 @@
+@@ -146,7 +_,7 @@
  
              this.age++;
              if (this.age >= 6000) {
@@ -34,6 +34,8 @@
 +                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
              }
          }
+     }
+@@ -157,8 +_,9 @@
      }
  
      private void followNearbyPlayer() {
@@ -44,7 +46,7 @@
              if (nearestPlayer != null && !nearestPlayer.isSpectator() && !nearestPlayer.isDeadOrDying()) {
                  this.followingPlayer = nearestPlayer;
              } else {
-@@ -161,7 +_,22 @@
+@@ -166,7 +_,22 @@
              }
          }
  
@@ -68,7 +70,7 @@
              Vec3 delta = new Vec3(
                  this.followingPlayer.getX() - this.getX(),
                  this.followingPlayer.getY() + this.followingPlayer.getEyeHeight() / 2.0 - this.getY(),
-@@ -225,7 +_,7 @@
+@@ -230,7 +_,7 @@
      private void merge(ExperienceOrb orb) {
          this.count = this.count + orb.count;
          this.age = Math.min(this.age, orb.age);
@@ -77,16 +79,16 @@
      }
  
      private void setUnderwaterMovement() {
-@@ -250,7 +_,7 @@
-             this.markHurt();
-             this.health = (int)(this.health - damage);
-             if (this.health <= 0) {
--                this.discard();
-+                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
-             }
+@@ -256,7 +_,7 @@
+         this.markHurt();
+         this.health = (int)(this.health - damage);
+         if (this.health <= 0) {
+-            this.discard();
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
+         }
  
-             return true;
-@@ -277,16 +_,17 @@
+         return true;
+@@ -282,16 +_,17 @@
      public void playerTouch(Player player) {
          if (player instanceof ServerPlayer serverPlayer) {
              if (player.takeXpDelay == 0) {
@@ -107,7 +109,7 @@
                  }
              }
          }
-@@ -296,12 +_,20 @@
+@@ -301,12 +_,20 @@
          Optional<EnchantedItemInUse> selected = EnchantmentHelper.getRandomItemWith(EnchantmentEffectComponents.REPAIR_WITH_XP, player, ItemStack::isDamaged);
          if (selected.isPresent()) {
              ItemStack itemStack = selected.get().itemStack();
@@ -129,7 +131,7 @@
                      return this.repairPlayerItems(player, remaining);
                  }
              }
-@@ -346,6 +_,24 @@
+@@ -351,6 +_,24 @@
      }
  
      public static int getExperienceValue(int maxValue) {

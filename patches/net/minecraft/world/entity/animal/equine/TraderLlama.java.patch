@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/equine/TraderLlama.java
 +++ b/net/minecraft/world/entity/animal/equine/TraderLlama.java
-@@ -21,6 +_,7 @@
+@@ -22,6 +_,7 @@
  import net.minecraft.world.level.ServerLevelAccessor;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
@@ -8,7 +8,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class TraderLlama extends Llama {
-@@ -92,7 +_,7 @@
+@@ -94,7 +_,7 @@
              this.despawnDelay = this.isLeashedToWanderingTrader() ? ((WanderingTrader)this.getLeashHolder()).getDespawnDelay() - 1 : this.despawnDelay - 1;
              if (this.despawnDelay <= 0) {
                  this.removeLeash();
@@ -17,12 +17,17 @@
              }
          }
      }
-@@ -154,7 +_,7 @@
+@@ -156,9 +_,10 @@
  
          @Override
          public void start() {
 -            this.mob.setTarget(this.ownerLastHurtBy);
+-            if (this.llama.getLeashHolder() instanceof WanderingTrader wanderingTrader) {
+-                this.timestamp = wanderingTrader.getLastHurtByMobTimestamp();
 +            this.mob.setTarget(this.ownerLastHurtBy, org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_OWNER, true); // CraftBukkit
-             Entity leashHolder = this.llama.getLeashHolder();
-             if (leashHolder instanceof WanderingTrader) {
-                 this.timestamp = ((WanderingTrader)leashHolder).getLastHurtByMobTimestamp();
++            Entity leashHolder = this.llama.getLeashHolder();
++            if (leashHolder instanceof WanderingTrader) {
++                this.timestamp = ((WanderingTrader)leashHolder).getLastHurtByMobTimestamp();
+             }
+ 
+             super.start();

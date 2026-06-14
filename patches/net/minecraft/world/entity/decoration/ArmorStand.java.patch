@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/decoration/ArmorStand.java
 +++ b/net/minecraft/world/entity/decoration/ArmorStand.java
-@@ -47,6 +_,14 @@
+@@ -48,6 +_,14 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
@@ -15,7 +15,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class ArmorStand extends LivingEntity {
-@@ -101,6 +_,13 @@
+@@ -102,6 +_,13 @@
          return createLivingAttributes().add(Attributes.STEP_HEIGHT, 0.0);
      }
  
@@ -29,11 +29,16 @@
      @Override
      public void refreshDimensions() {
          double oldX = this.getX();
-@@ -247,7 +_,25 @@
+@@ -250,57 +_,68 @@
+         ItemStack itemStack = this.getItemBySlot(slot);
+         if (!itemStack.isEmpty() && (this.disabledSlots & 1 << slot.getFilterBit(8)) != 0) {
              return false;
-         } else if (itemStack.isEmpty() && (this.disabledSlots & 1 << slot.getFilterBit(16)) != 0) {
+-        }
+-
+-        if (itemStack.isEmpty() && (this.disabledSlots & 1 << slot.getFilterBit(16)) != 0) {
++        } else if (itemStack.isEmpty() && (this.disabledSlots & 1 << slot.getFilterBit(16)) != 0) {
              return false;
--        } else if (player.hasInfiniteMaterials() && itemStack.isEmpty() && !playerItemStack.isEmpty()) {
+-        }
 +            // CraftBukkit start
 +        } else {
 +            org.bukkit.inventory.ItemStack armorStandItem = CraftItemStack.asCraftMirror(itemStack);
@@ -50,36 +55,66 @@
 +            if (armorStandManipulateEvent.isCancelled()) {
 +                return true;
 +            }
-+
-+        if (player.hasInfiniteMaterials() && itemStack.isEmpty() && !playerItemStack.isEmpty()) {
+ 
+         if (player.hasInfiniteMaterials() && itemStack.isEmpty() && !playerItemStack.isEmpty()) {
 +            // CraftBukkit end
              this.setItemSlot(slot, playerItemStack.copyWithCount(1));
              return true;
-         } else if (playerItemStack.isEmpty() || playerItemStack.getCount() <= 1) {
-@@ -260,6 +_,7 @@
-             this.setItemSlot(slot, playerItemStack.split(1));
+-        }
+-
+-        if (playerItemStack.isEmpty() || playerItemStack.getCount() <= 1) {
++        } else if (playerItemStack.isEmpty() || playerItemStack.getCount() <= 1) {
+             this.setItemSlot(slot, playerItemStack);
+             player.setItemInHand(hand, itemStack);
              return true;
+-        }
+-
+-        if (!itemStack.isEmpty()) {
++        } else if (!itemStack.isEmpty()) {
+             return false;
++        } else {
++            this.setItemSlot(slot, playerItemStack.split(1));
++            return true;
          }
+-
+-        this.setItemSlot(slot, playerItemStack.split(1));
+-        return true;
 +        } // CraftBukkit
      }
  
      @Override
-@@ -269,13 +_,23 @@
-         } else if (!level.getGameRules().get(GameRules.MOB_GRIEFING) && source.getEntity() instanceof Mob) {
+     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+         if (this.isRemoved()) {
              return false;
-         } else if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+-        }
+-
+-        if (!level.getGameRules().get(GameRules.MOB_GRIEFING) && source.getEntity() instanceof Mob) {
+-            return false;
+-        }
+-
+-        if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
 -            this.kill(level);
+-            return false;
+-        }
+-
+-        if (this.isInvulnerableTo(level, source) || this.invisible || this.isMarker()) {
+-            return false;
+-        }
+-
+-        if (source.is(DamageTypeTags.IS_EXPLOSION)) {
++        } else if (!level.getGameRules().get(GameRules.MOB_GRIEFING) && source.getEntity() instanceof Mob) {
++            return false;
++        } else if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
 +            // CraftBukkit start
 +            if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, source, damage)) {
 +                return false;
 +            }
 +            this.kill(level, source); // CraftBukkit
 +            // CraftBukkit end
-             return false;
--        } else if (this.isInvulnerableTo(level, source) || this.invisible || this.isMarker()) {
++            return false;
 +        } else if (this.isInvulnerableTo(level, source) || (true || !this.invisible) && !this.isMarker()) { // CraftBukkit
-             return false;
-         } else if (source.is(DamageTypeTags.IS_EXPLOSION)) {
++            return false;
++        } else if (source.is(DamageTypeTags.IS_EXPLOSION)) {
 +            // CraftBukkit start
 +            if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, source, damage, true, this.invisible)) {
 +                return false;
@@ -89,18 +124,14 @@
 -            this.kill(level);
 +            this.kill(level, source); // CraftBukkit
              return false;
-         } else if (source.is(DamageTypeTags.IGNITES_ARMOR_STANDS)) {
+-        }
+-
+-        if (source.is(DamageTypeTags.IGNITES_ARMOR_STANDS)) {
++        } else if (source.is(DamageTypeTags.IGNITES_ARMOR_STANDS)) {
              if (this.isOnFire()) {
-@@ -298,7 +_,7 @@
-             } else if (source.isCreativePlayer()) {
-                 this.playBrokenSound();
-                 this.showBreakingParticles();
--                this.kill(level);
-+                this.kill(level, source); // CraftBukkit
-                 return true;
+                 this.causeDamage(level, source, 0.15F);
              } else {
-                 long time = level.getGameTime();
-@@ -309,7 +_,7 @@
+@@ -334,7 +_,7 @@
                  } else {
                      this.brokenByPlayer(level, source);
                      this.showBreakingParticles();
@@ -109,7 +140,7 @@
                  }
  
                  return true;
-@@ -362,7 +_,7 @@
+@@ -387,7 +_,7 @@
          health -= dmg;
          if (health <= 0.5F) {
              this.brokenByAnything(level, source);
@@ -118,7 +149,7 @@
          } else {
              this.setHealth(health);
              this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
-@@ -372,20 +_,24 @@
+@@ -397,20 +_,24 @@
      private void brokenByPlayer(ServerLevel level, DamageSource source) {
          ItemStack result = new ItemStack(Items.ARMOR_STAND);
          result.set(DataComponents.CUSTOM_NAME, this.getCustomName());
@@ -146,7 +177,7 @@
      }
  
      private void playBrokenSound() {
-@@ -433,9 +_,23 @@
+@@ -458,9 +_,23 @@
          return this.isSmall();
      }
  

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/Container.java
 +++ b/net/minecraft/world/Container.java
-@@ -1,5 +_,7 @@
+@@ -1,8 +_,11 @@
  package net.minecraft.world;
  
 +import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
@@ -8,7 +8,11 @@
  import java.util.Iterator;
  import java.util.List;
  import java.util.NoSuchElementException;
-@@ -15,6 +_,11 @@
++import java.util.Objects;
+ import java.util.Set;
+ import java.util.function.Predicate;
+ import net.minecraft.core.BlockPos;
+@@ -14,6 +_,11 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.entity.BlockEntity;
@@ -19,12 +23,12 @@
 +import org.bukkit.inventory.InventoryHolder;
  import org.jspecify.annotations.Nullable;
  
- public interface Container extends Clearable, Iterable<ItemStack>, SlotProvider, net.neoforged.neoforge.common.extensions.ContainerExtension {
-@@ -126,6 +_,49 @@
-     default Iterator<ItemStack> iterator() {
+ import net.neoforged.neoforge.common.extensions.ContainerExtension;
+@@ -124,7 +_,50 @@
          return new Container.ContainerIterator(this);
      }
-+
+ 
+-    class ContainerIterator implements Iterator<ItemStack> {
 +    // CraftBukkit start
 +    default java.util.List<ItemStack> getContents() {
 +        return Collections.emptyList();
@@ -67,6 +71,8 @@
 +
 +    int MAX_STACK = 99;
 +    // CraftBukkit end
- 
-     public static class ContainerIterator implements Iterator<ItemStack> {
++
++    public static class ContainerIterator implements Iterator<ItemStack> {
          private final Container container;
+         private int index;
+         private final int size;

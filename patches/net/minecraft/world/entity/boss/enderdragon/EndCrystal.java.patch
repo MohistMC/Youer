@@ -1,14 +1,14 @@
 --- a/net/minecraft/world/entity/boss/enderdragon/EndCrystal.java
 +++ b/net/minecraft/world/entity/boss/enderdragon/EndCrystal.java
-@@ -12,6 +_,7 @@
- import net.minecraft.world.entity.EntityType;
+@@ -13,6 +_,7 @@
+ import net.minecraft.world.entity.EntityTypes;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.Items;
 +import net.minecraft.world.level.ExplosionDamageCalculator;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.BaseFireBlock;
  import net.minecraft.world.level.dimension.end.EnderDragonFight;
-@@ -19,6 +_,12 @@
+@@ -20,6 +_,12 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import org.jspecify.annotations.Nullable;
  
@@ -21,7 +21,7 @@
  public class EndCrystal extends Entity {
      private static final EntityDataAccessor<Optional<BlockPos>> DATA_BEAM_TARGET = SynchedEntityData.defineId(
          EndCrystal.class, EntityDataSerializers.OPTIONAL_BLOCK_POS
-@@ -57,7 +_,11 @@
+@@ -58,7 +_,11 @@
          if (this.level() instanceof ServerLevel) {
              BlockPos pos = this.blockPosition();
              if (((ServerLevel)this.level()).getDragonFight() != null && this.level().getBlockState(pos).isAir()) {
@@ -34,19 +34,30 @@
              }
          }
      }
-@@ -92,11 +_,26 @@
+@@ -89,23 +_,36 @@
+     public final boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+         if (this.isInvulnerableToBase(source)) {
              return false;
-         } else {
-             if (!this.isRemoved()) {
--                this.remove(Entity.RemovalReason.KILLED);
+-        }
+-
+-        if (source.getEntity() instanceof EnderDragon) {
++        } else if (source.getEntity() instanceof EnderDragon) {
+             return false;
+-        }
+-
+-        if (!this.isRemoved()) {
+-            this.remove(Entity.RemovalReason.KILLED);
+-            if (!source.is(DamageTypeTags.IS_EXPLOSION)) {
+-                DamageSource damageSource = source.getEntity() != null ? this.damageSources().explosion(this, source.getEntity()) : null;
+-                level.explode(this, damageSource, null, this.getX(), this.getY(), this.getZ(), 6.0F, false, Level.ExplosionInteraction.BLOCK);
++        } else {
++            if (!this.isRemoved()) {
 +                // CraftBukkit start - All non-living entities need this
 +                if (CraftEventFactory.handleNonLivingEntityDamageEvent(this, source, damage, false)) {
 +                    return false;
 +                }
 +                // CraftBukkit end
-                 if (!source.is(DamageTypeTags.IS_EXPLOSION)) {
--                    DamageSource damageSource = source.getEntity() != null ? this.damageSources().explosion(this, source.getEntity()) : null;
--                    level.explode(this, damageSource, null, this.getX(), this.getY(), this.getZ(), 6.0F, false, Level.ExplosionInteraction.BLOCK);
++                if (!source.is(DamageTypeTags.IS_EXPLOSION)) {
 +                    DamageSource damagesource1 = source.getEntity() != null ? this.damageSources().explosion(this, source.getEntity()) : null;
 +
 +                    // CraftBukkit start
@@ -59,8 +70,17 @@
 +                    level.explode(this, damagesource1, (ExplosionDamageCalculator) null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.BLOCK);
 +                } else {
 +                    this.remove(Entity.RemovalReason.KILLED, EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
-                 }
++                }
 +                // CraftBukkit end
- 
-                 this.onDestroyedBy(level, source);
++
++                this.onDestroyedBy(level, source);
              }
+ 
+-            this.onDestroyedBy(level, source);
++            return true;
+         }
+-
+-        return true;
+     }
+ 
+     @Override

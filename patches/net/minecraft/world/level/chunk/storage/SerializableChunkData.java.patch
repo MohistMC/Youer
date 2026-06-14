@@ -54,64 +54,57 @@
      public static SerializableChunkData parse(LevelHeightAccessor levelHeight, PalettedContainerFactory containerFactory, CompoundTag chunkData) {
          if (chunkData.getString("Status").isEmpty()) {
              return null;
-@@ -122,7 +_,7 @@
-             long[] carvingMask = chunkData.getLongArray("carving_mask").orElse(null);
-             Map<Heightmap.Types, long[]> heightmaps = new EnumMap<>(Heightmap.Types.class);
-             chunkData.getCompound("Heightmaps").ifPresent(heightmapsTag -> {
--                for (Heightmap.Types type : status.heightmapsAfter()) {
-+                for (Heightmap.Types type : status.getChunkSaveHeightmaps()) {
-                     heightmapsTag.getLongArray(type.getSerializationKey()).ifPresent(longs -> heightmaps.put(type, longs));
-                 }
-             });
-@@ -150,7 +_,7 @@
-             CompoundTag structureData = chunkData.getCompoundOrEmpty("structures");
-             ListTag sectionTags = chunkData.getListOrEmpty("sections");
-             List<SerializableChunkData.SectionData> sectionData = new ArrayList<>(sectionTags.size());
--            Codec<PalettedContainerRO<Holder<Biome>>> biomesCodec = containerFactory.biomeContainerCodec();
-+            Codec<PalettedContainer<Holder<Biome>>> biomesCodec = containerFactory.biomeContainerCodecRW(); // CraftBukkit - read/write
-             Codec<PalettedContainer<BlockState>> blockStatesCodec = containerFactory.blockStatesContainerCodec();
- 
-             for (int i = 0; i < sectionTags.size(); i++) {
-@@ -167,13 +_,13 @@
-                                     .getOrThrow(SerializableChunkData.ChunkReadException::new)
-                             )
-                             .orElseGet(containerFactory::createForBlockStates);
--                        PalettedContainerRO<Holder<Biome>> biomes = sectionTag.getCompound("biomes")
-+                        PalettedContainer<Holder<Biome>> biomes = sectionTag.getCompound("biomes")
-                             .map(
-                                 container -> biomesCodec.parse(NbtOps.INSTANCE, container)
-                                     .promotePartial(msg -> logErrors(chunkPos, y, msg))
-                                     .getOrThrow(SerializableChunkData.ChunkReadException::new)
-                             )
--                            .orElseGet(containerFactory::createForBiomes);
-+                            .orElseGet(containerFactory::createForBiomes); // CraftBukkit - read/write
-                         section = new LevelChunkSection(blocks, biomes);
-                     } else {
-                         section = null;
-@@ -185,6 +_,11 @@
-                 }
+@@ -123,7 +_,7 @@
+         long[] carvingMask = chunkData.getLongArray("carving_mask").orElse(null);
+         Map<Heightmap.Types, long[]> heightmaps = new EnumMap<>(Heightmap.Types.class);
+         chunkData.getCompound("Heightmaps").ifPresent(heightmapsTag -> {
+-            for (Heightmap.Types type : status.heightmapsAfter()) {
++            for (Heightmap.Types type : status.getChunkSaveHeightmaps()) {
+                 heightmapsTag.getLongArray(type.getSerializationKey()).ifPresent(longs -> heightmaps.put(type, longs));
              }
+         });
+@@ -151,7 +_,7 @@
+         CompoundTag structureData = chunkData.getCompoundOrEmpty("structures");
+         ListTag sectionTags = chunkData.getListOrEmpty("sections");
+         List<SerializableChunkData.SectionData> sectionData = new ArrayList<>(sectionTags.size());
+-        Codec<PalettedContainerRO<Holder<Biome>>> biomesCodec = containerFactory.biomeContainerCodec();
++            Codec<PalettedContainer<Holder<Biome>>> biomesCodec = containerFactory.biomeContainerCodecRW(); // CraftBukkit - read/write
+         Codec<PalettedContainer<BlockState>> blockStatesCodec = containerFactory.blockStatesContainerCodec();
  
-+            CompoundTag attachmentData = chunkData.getCompound(net.neoforged.neoforge.attachment.AttachmentHolder.ATTACHMENTS_NBT_KEY).orElse(null);
-+            ListTag auxLightData = chunkData.getList(net.neoforged.neoforge.common.world.LevelChunkAuxiliaryLightManager.LIGHT_NBT_KEY).orElse(null);
+         for (int i = 0; i < sectionTags.size(); i++) {
+@@ -168,7 +_,7 @@
+                                 .getOrThrow(SerializableChunkData.ChunkReadException::new)
+                         )
+                         .orElseGet(containerFactory::createForBlockStates);
+-                    PalettedContainerRO<Holder<Biome>> biomes = sectionTag.getCompound("biomes")
++                        PalettedContainer<Holder<Biome>> biomes = sectionTag.getCompound("biomes")
+                         .map(
+                             container -> biomesCodec.parse(NbtOps.INSTANCE, container)
+                                 .promotePartial(msg -> logErrors(chunkPos, y, msg))
+@@ -186,6 +_,11 @@
+             }
+         }
+ 
++        CompoundTag attachmentData = chunkData.getCompound(net.neoforged.neoforge.attachment.AttachmentHolder.ATTACHMENTS_NBT_KEY).orElse(null);
++        ListTag auxLightData = chunkData.getList(net.neoforged.neoforge.common.world.LevelChunkAuxiliaryLightManager.LIGHT_NBT_KEY).orElse(null);
 +            // CraftBukkit - ChunkBukkitValues
 +            Tag persistentDataContainer = chunkData.get("ChunkBukkitValues");
 +
-             return new SerializableChunkData(
-                 containerFactory,
-                 chunkPos,
-@@ -203,7 +_,10 @@
-                 sectionData,
-                 entities,
-                 blockEntities,
--                structureData
-+                structureData,
-+                attachmentData,
-+                auxLightData,
-+                persistentDataContainer
-             );
-         }
+         return new SerializableChunkData(
+             containerFactory,
+             chunkPos,
+@@ -204,7 +_,10 @@
+             sectionData,
+             entities,
+             blockEntities,
+-            structureData
++            structureData,
++            attachmentData,
++            auxLightData,
++            persistentDataContainer
+         );
      }
+ 
 @@ -263,6 +_,9 @@
                  postLoadChunk(level, this.entities, this.blockEntities),
                  BlendingData.unpack(this.blendingData)
@@ -147,31 +140,50 @@
 +
          if (chunkType == ChunkType.LEVELCHUNK) {
              return new ImposterProtoChunk((LevelChunk)chunk, false);
-         } else {
-@@ -374,7 +_,7 @@
-             Map<Heightmap.Types, long[]> heightmaps = new EnumMap<>(Heightmap.Types.class);
+         }
+@@ -375,7 +_,7 @@
+         Map<Heightmap.Types, long[]> heightmaps = new EnumMap<>(Heightmap.Types.class);
  
-             for (Entry<Heightmap.Types, Heightmap> entry : chunk.getHeightmaps()) {
--                if (chunk.getPersistedStatus().heightmapsAfter().contains(entry.getKey())) {
-+                if (chunk.getPersistedStatus().getChunkSaveHeightmaps().contains(entry.getKey())) {
-                     long[] data = entry.getValue().getRawData();
-                     heightmaps.put(entry.getKey(), (long[])data.clone());
-                 }
-@@ -387,6 +_,25 @@
-             CompoundTag structureData = packStructureData(
-                 StructurePieceSerializationContext.fromLevel(level), pos, chunk.getAllStarts(), chunk.getAllReferences()
-             );
+         for (Entry<Heightmap.Types, Heightmap> entry : chunk.getHeightmaps()) {
+-            if (chunk.getPersistedStatus().heightmapsAfter().contains(entry.getKey())) {
++            if (chunk.getPersistedStatus().getChunkSaveHeightmaps().contains(entry.getKey())) {
+                 long[] data = entry.getValue().getRawData();
+                 heightmaps.put(entry.getKey(), (long[])data.clone());
+             }
+@@ -386,25 +_,47 @@
+             .map(shorts -> shorts != null && !shorts.isEmpty() ? new ShortArrayList(shorts) : null)
+             .toArray(ShortList[]::new);
+         CompoundTag structureData = packStructureData(StructurePieceSerializationContext.fromLevel(level), pos, chunk.getAllStarts(), chunk.getAllReferences());
+-        return new SerializableChunkData(
+-            level.palettedContainerFactory(),
+-            pos,
+-            chunk.getMinSectionY(),
+-            level.getGameTime(),
+-            chunk.getInhabitedTime(),
+-            chunk.getPersistedStatus(),
+-            Optionull.map(chunk.getBlendingData(), BlendingData::pack),
+-            chunk.getBelowZeroRetrogen(),
+-            chunk.getUpgradeData().copy(),
+-            carvingMask,
+-            heightmaps,
+-            ticksForSerialization,
+-            postProcessingSections,
+-            chunk.isLightCorrect(),
+-            sectionData,
+-            entities,
+-            blockEntities,
+-            structureData
 +
-+            CompoundTag attachmentData = null;
-+            try {
-+                attachmentData = chunk.writeAttachmentsToNBT(level.registryAccess());
-+            } catch (Exception exception) {
-+                LOGGER.error("Failed to write chunk attachments. An attachment has likely thrown an exception trying to write state. It will not persist. Report this to the mod author", exception);
-+            }
-+            ListTag auxLightData = null;
-+            if (chunk instanceof LevelChunk levelChunk) {
-+                auxLightData = levelChunk.getAuxLightManager(pos).serializeNBT();
-+            }
++        CompoundTag attachmentData = null;
++        try {
++            attachmentData = chunk.writeAttachmentsToNBT(level.registryAccess());
++        } catch (Exception exception) {
++            LOGGER.error("Failed to write chunk attachments. An attachment has likely thrown an exception trying to write state. It will not persist. Report this to the mod author", exception);
++        }
++        ListTag auxLightData = null;
++        if (chunk instanceof LevelChunk levelChunk) {
++            auxLightData = levelChunk.getAuxLightManager(pos).serializeNBT();
++        }
 +
 +            // CraftBukkit start - store chunk persistent data in nbt
 +            Tag persistentDataContainer = null;
@@ -180,22 +192,32 @@
 +            }
 +            // CraftBukkit end
 +
-             return new SerializableChunkData(
-                 level.palettedContainerFactory(),
-                 pos,
-@@ -405,7 +_,10 @@
-                 sectionData,
-                 entities,
-                 blockEntities,
--                structureData
++            return new SerializableChunkData(
++                level.palettedContainerFactory(),
++                pos,
++                chunk.getMinSectionY(),
++                level.getGameTime(),
++                chunk.getInhabitedTime(),
++                chunk.getPersistedStatus(),
++                Optionull.map(chunk.getBlendingData(), BlendingData::pack),
++                chunk.getBelowZeroRetrogen(),
++                chunk.getUpgradeData().copy(),
++                carvingMask,
++                heightmaps,
++                ticksForSerialization,
++                postProcessingSections,
++                chunk.isLightCorrect(),
++                sectionData,
++                entities,
++                blockEntities,
 +                structureData,
 +                attachmentData,
 +                auxLightData,
 +                persistentDataContainer
-             );
-         }
+         );
      }
-@@ -473,6 +_,19 @@
+ 
+@@ -471,6 +_,19 @@
          this.heightmaps.forEach((type, data) -> heightmapsTag.put(type.getSerializationKey(), new LongArrayTag(data)));
          tag.put("Heightmaps", heightmapsTag);
          tag.put("structures", this.structureData);
@@ -215,7 +237,7 @@
          return tag;
      }
  
-@@ -551,6 +_,12 @@
+@@ -549,6 +_,12 @@
              } else {
                  StructureStart start = StructureStart.loadStaticStart(context, startsTag.getCompoundOrEmpty(key), seed);
                  if (start != null) {

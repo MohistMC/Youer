@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/item/slot/SlotCollection.java
++++ b/net/minecraft/world/item/slot/SlotCollection.java
+@@ -51,7 +_,7 @@
+         };
+     }
+ 
+-    record Filtered(SlotCollection slots, Predicate<? super ItemStack> filter) implements SlotCollection {
++    public record Filtered(SlotCollection slots, Predicate<? super ItemStack> filter) implements SlotCollection {
+         @Override
+         public Stream<ItemStack> itemCopies() {
+             return this.slots.itemCopies().filter(this.filter);
+@@ -64,14 +_,14 @@
+         }
+     }
+ 
+-    record FlatMapped(SlotCollection slots, Function<ItemStack, ? extends SlotCollection> mapper) implements SlotCollection {
++    public record FlatMapped(SlotCollection slots, Function<ItemStack, ? extends SlotCollection> mapper) implements SlotCollection {
+         @Override
+         public Stream<ItemStack> itemCopies() {
+             return this.slots.itemCopies().map(this.mapper).flatMap(SlotCollection::itemCopies);
+         }
+     }
+ 
+-    record Limited(SlotCollection slots, int limit) implements SlotCollection {
++    public record Limited(SlotCollection slots, int limit) implements SlotCollection {
+         @Override
+         public Stream<ItemStack> itemCopies() {
+             return this.slots.itemCopies().limit(this.limit);

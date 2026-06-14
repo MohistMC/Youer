@@ -9,7 +9,7 @@
  import com.mojang.brigadier.CommandDispatcher;
  import com.mojang.brigadier.ParseResults;
  import com.mojang.brigadier.StringReader;
-@@ -15,7 +_,10 @@
+@@ -15,8 +_,12 @@
  import com.mojang.brigadier.tree.CommandNode;
  import com.mojang.brigadier.tree.RootCommandNode;
  import com.mojang.logging.LogUtils;
@@ -18,8 +18,10 @@
 +import java.util.IdentityHashMap;
 +import java.util.LinkedHashSet;
  import java.util.Map;
- import java.util.Objects;
++import java.util.Objects;
  import java.util.Optional;
+ import java.util.Set;
+ import java.util.function.Consumer;
 @@ -153,6 +_,8 @@
  import net.minecraft.world.level.gamerules.GameRules;
  import net.minecraft.world.phys.Vec2;
@@ -46,9 +48,9 @@
              PerfCommand.register(this.dispatcher);
              SaveAllCommand.register(this.dispatcher);
              SaveOffCommand.register(this.dispatcher);
-@@ -298,7 +_,13 @@
-         if (commandSelection.includeIntegrated) {
+@@ -299,7 +_,13 @@
              PublishCommand.register(this.dispatcher);
+             UnpublishCommand.register(this.dispatcher);
          }
 -
 +        net.neoforged.neoforge.event.EventHooks.onCommandRegister(this.dispatcher, commandSelection, context);
@@ -61,7 +63,7 @@
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
      }
  
-@@ -308,9 +_,52 @@
+@@ -309,9 +_,52 @@
          return new ParseResults<>(source, parse.getReader(), parse.getExceptions());
      }
  
@@ -115,7 +117,7 @@
      }
  
      public static String trimOptionalPrefix(String command) {
-@@ -318,9 +_,23 @@
+@@ -319,9 +_,23 @@
      }
  
      public void performCommand(ParseResults<CommandSourceStack> command, String commandString) {
@@ -140,7 +142,7 @@
  
          try {
              if (commandChain != null) {
-@@ -358,7 +_,7 @@
+@@ -359,7 +_,7 @@
      }
  
      private static @Nullable ContextChain<CommandSourceStack> finishParsing(
@@ -149,8 +151,8 @@
      ) {
          try {
              validateParseResults(command);
-@@ -370,7 +_,7 @@
-                 int cursor = Math.min(var7.getInput().length(), var7.getCursor());
+@@ -371,7 +_,7 @@
+                 int cursor = Math.min(e.getInput().length(), e.getCursor());
                  MutableComponent context = Component.empty()
                      .withStyle(ChatFormatting.GRAY)
 -                    .withStyle(s -> s.withClickEvent(new ClickEvent.SuggestCommand("/" + commandString)));
@@ -158,7 +160,7 @@
                  if (cursor > 10) {
                      context.append(CommonComponents.ELLIPSIS);
                  }
-@@ -410,15 +_,43 @@
+@@ -411,15 +_,43 @@
      }
  
      public void sendCommands(ServerPlayer player) {

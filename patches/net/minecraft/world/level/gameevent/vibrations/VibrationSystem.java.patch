@@ -19,7 +19,7 @@
      ToIntFunction<ResourceKey<GameEvent>> VIBRATION_FREQUENCY_FOR_EVENT = Util.make(new Reference2IntOpenHashMap<>(), map -> {
          map.defaultReturnValue(0);
          map.put(GameEvent.STEP.key(), 1);
-@@ -103,11 +_,13 @@
+@@ -104,11 +_,13 @@
      VibrationSystem.User getVibrationUser();
  
      static int getGameEventFrequency(Holder<GameEvent> event) {
@@ -35,11 +35,49 @@
      }
  
      static ResourceKey<GameEvent> getResonanceEventByFrequency(int vibrationFrequency) {
-@@ -214,7 +_,14 @@
-                     return false;
-                 } else {
-                     Vec3 destination = listenerSourcePos.get();
--                    if (!user.canReceiveVibration(level, BlockPos.containing(sourcePosition), event, context)) {
+@@ -185,7 +_,7 @@
+         }
+     }
+ 
+-    class Listener implements GameEventListener {
++    public static class Listener implements GameEventListener {
+         private final VibrationSystem system;
+ 
+         public Listener(VibrationSystem system) {
+@@ -208,28 +_,31 @@
+             VibrationSystem.User user = this.system.getVibrationUser();
+             if (data.getCurrentVibration() != null) {
+                 return false;
+-            }
+-
+-            if (!user.isValidVibration(event, context)) {
+-                return false;
+-            }
+-
+-            Optional<Vec3> listenerSourcePos = user.getPositionSource().getPosition(level);
+-            if (listenerSourcePos.isEmpty()) {
+-                return false;
+-            }
+-
+-            Vec3 destination = listenerSourcePos.get();
+-            if (!user.canReceiveVibration(level, BlockPos.containing(sourcePosition), event, context)) {
+-                return false;
+-            }
+-
+-            if (isOccluded(level, sourcePosition, destination)) {
+-                return false;
+-            }
+-
+-            this.scheduleVibration(level, data, event, context, sourcePosition, destination);
+-            return true;
++            } else if (!user.isValidVibration(event, context)) {
++                return false;
++            } else {
++                Optional<Vec3> listenerSourcePos = user.getPositionSource().getPosition(level);
++                if (listenerSourcePos.isEmpty()) {
++                    return false;
++                } else {
++                    Vec3 destination = listenerSourcePos.get();
 +                    // CraftBukkit start
 +                    boolean defaultCancel = !user.canReceiveVibration(level, BlockPos.containing(sourcePosition), event, context);
 +                    Entity sourceEntity = context.sourceEntity();
@@ -48,6 +86,33 @@
 +                    level.getCraftServer().getPluginManager().callEvent(bukkitEvent);
 +                    if (bukkitEvent.isCancelled()) {
 +                        // CraftBukkit end
-                         return false;
-                     } else if (isOccluded(level, sourcePosition, destination)) {
-                         return false;
++                        return false;
++                    } else if (isOccluded(level, sourcePosition, destination)) {
++                        return false;
++                    } else {
++                        this.scheduleVibration(level, data, event, context, sourcePosition, destination);
++                        return true;
++                    }
++                }
++            }
+         }
+ 
+         public void forceScheduleVibration(ServerLevel level, Holder<GameEvent> event, GameEvent.Context context, Vec3 origin) {
+@@ -264,7 +_,7 @@
+         }
+     }
+ 
+-    interface Ticker {
++    public interface Ticker {
+         static void tick(Level level, VibrationSystem.Data data, VibrationSystem.User user) {
+             if (level instanceof ServerLevel serverLevel) {
+                 if (data.currentVibration == null) {
+@@ -370,7 +_,7 @@
+         }
+     }
+ 
+-    interface User {
++    public interface User {
+         int getListenerRadius();
+ 
+         PositionSource getPositionSource();

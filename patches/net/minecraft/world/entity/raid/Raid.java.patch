@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/raid/Raid.java
 +++ b/net/minecraft/world/entity/raid/Raid.java
-@@ -185,6 +_,12 @@
+@@ -188,6 +_,12 @@
          return this.status == Raid.RaidStatus.LOSS;
      }
  
@@ -13,7 +13,7 @@
      public float getTotalHealth() {
          return this.totalHealth;
      }
-@@ -271,6 +_,7 @@
+@@ -274,6 +_,7 @@
                  boolean oldActive = this.active;
                  this.active = level.hasChunkAt(this.center);
                  if (level.getDifficulty() == Difficulty.PEACEFUL) {
@@ -21,7 +21,7 @@
                      this.stop();
                      return;
                  }
-@@ -290,13 +_,16 @@
+@@ -293,13 +_,16 @@
                  if (!level.isVillage(this.center)) {
                      if (this.groupsSpawned > 0) {
                          this.status = Raid.RaidStatus.LOSS;
@@ -38,7 +38,7 @@
                      this.stop();
                      return;
                  }
-@@ -385,6 +_,7 @@
+@@ -388,6 +_,7 @@
                      }
  
                      if (attempt > 5) {
@@ -46,7 +46,7 @@
                          this.stop();
                          break;
                      }
-@@ -396,6 +_,7 @@
+@@ -399,6 +_,7 @@
                      } else {
                          this.status = Raid.RaidStatus.VICTORY;
  
@@ -54,7 +54,7 @@
                          for (UUID heroUUID : this.heroesOfTheVillage) {
                              Entity entity = level.getEntity(heroUUID);
                              if (entity instanceof LivingEntity hero && !entity.isSpectator()) {
-@@ -403,9 +_,11 @@
+@@ -406,9 +_,11 @@
                                  if (hero instanceof ServerPlayer playerHero) {
                                      playerHero.awardStat(Stats.RAID_WIN);
                                      CriteriaTriggers.RAID_WIN.trigger(playerHero);
@@ -66,7 +66,7 @@
                      }
                  }
  
-@@ -413,6 +_,7 @@
+@@ -416,6 +_,7 @@
              } else if (this.isOver()) {
                  this.celebrationTicks++;
                  if (this.celebrationTicks >= 600) {
@@ -74,7 +74,7 @@
                      this.stop();
                      return;
                  }
-@@ -530,7 +_,7 @@
+@@ -533,7 +_,7 @@
              int ravagersSpawned = 0;
  
              for (int i = 0; i < numSpawns; i++) {
@@ -83,16 +83,16 @@
                  if (raider == null) {
                      break;
                  }
-@@ -542,7 +_,7 @@
+@@ -545,7 +_,7 @@
                  }
  
                  this.joinRaid(level, groupNumber, raider, pos, false);
--                if (raiderType.entityType == EntityType.RAVAGER) {
-+                if (raiderType.entityTypeSupplier.get() == EntityType.RAVAGER) {
+-                if (raiderType.entityType == EntityTypes.RAVAGER) {
++                if (raiderType.entityTypeSupplier.get() == EntityTypes.RAVAGER) {
                      Raider ridingRaider = null;
                      if (groupNumber == this.getNumGroups(Difficulty.NORMAL)) {
-                         ridingRaider = EntityType.PILLAGER.create(level, EntitySpawnReason.EVENT);
-@@ -582,7 +_,7 @@
+                         ridingRaider = EntityTypes.PILLAGER.create(level, EntitySpawnReason.EVENT);
+@@ -585,7 +_,7 @@
                  raider.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.EVENT, null);
                  raider.applyRaidBuffs(level, groupNumber, false);
                  raider.setOnGround(true);
@@ -101,7 +101,7 @@
              }
          }
      }
-@@ -742,7 +_,7 @@
+@@ -745,7 +_,7 @@
      }
  
      private int getDefaultNumSpawns(Raid.RaiderType type, int wav, boolean isBonusWave) {
@@ -110,7 +110,7 @@
      }
  
      private int getPotentialBonusSpawns(Raid.RaiderType type, RandomSource random, int wav, DifficultyInstance difficultyInstance, boolean isBonusWave) {
-@@ -808,6 +_,12 @@
+@@ -811,6 +_,12 @@
          this.heroesOfTheVillage.add(killer.getUUID());
      }
  
@@ -120,11 +120,11 @@
 +    }
 +    // CraftBukkit end
 +
-     private static enum RaidStatus implements StringRepresentable {
+     private enum RaidStatus implements StringRepresentable {
          ONGOING("ongoing"),
          VICTORY("victory"),
-@@ -835,12 +_,59 @@
-         RAVAGER(EntityType.RAVAGER, new int[]{0, 0, 0, 1, 0, 1, 0, 2});
+@@ -838,12 +_,59 @@
+         RAVAGER(EntityTypes.RAVAGER, new int[]{0, 0, 0, 1, 0, 1, 0, 2});
  
          private static final Raid.RaiderType[] VALUES = values();
 +        @Deprecated // Neo: null for custom types, use the supplier instead
@@ -133,7 +133,7 @@
 +        final java.util.function.Supplier<EntityType<? extends Raider>> entityTypeSupplier;
  
 +        @net.neoforged.fml.common.asm.enumextension.ReservedConstructor
-         private RaiderType(EntityType<? extends Raider> entityType, int[] spawnsPerWaveBeforeBonus) {
+         RaiderType(EntityType<? extends Raider> entityType, int[] spawnsPerWaveBeforeBonus) {
              this.entityType = entityType;
              this.spawnsPerWaveBeforeBonus = spawnsPerWaveBeforeBonus;
 -        }

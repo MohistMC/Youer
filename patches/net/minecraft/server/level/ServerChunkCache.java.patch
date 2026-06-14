@@ -8,7 +8,7 @@
  import java.util.function.BooleanSupplier;
  import java.util.function.Consumer;
  import java.util.function.Supplier;
-@@ -63,7 +_,7 @@
+@@ -65,7 +_,7 @@
      public final ServerChunkCache.MainThreadExecutor mainThreadProcessor;
      public final ChunkMap chunkMap;
      private final SavedDataStorage savedDataStorage;
@@ -17,8 +17,8 @@
      private long lastInhabitedUpdate;
      public boolean spawnEnemies = true;
      private static final int CACHE_SIZE = 4;
-@@ -99,7 +_,7 @@
-             LOGGER.error("Failed to create dimension data storage directory", (Throwable)var14);
+@@ -101,7 +_,7 @@
+             LOGGER.error("Failed to create dimension data storage directory", e);
          }
  
 -        this.savedDataStorage = new SavedDataStorage(dataFolder, fixerUpper, level.registryAccess());
@@ -26,7 +26,7 @@
          this.ticketStorage = this.savedDataStorage.computeIfAbsent(TicketStorage.TYPE);
          this.chunkMap = new ChunkMap(
              level,
-@@ -122,6 +_,16 @@
+@@ -124,6 +_,16 @@
          this.clearCache();
      }
  
@@ -43,33 +43,33 @@
      public ThreadedLevelLightEngine getLightEngine() {
          return this.lightEngine;
      }
-@@ -154,12 +_,16 @@
-             for (int i = 0; i < 4; i++) {
-                 if (pos == this.lastChunkPos[i] && targetStatus == this.lastChunkStatus[i]) {
-                     ChunkAccess chunkAccess = this.lastChunk[i];
--                    if (chunkAccess != null || !loadOrGenerate) {
-+                    if (chunkAccess != null) { // CraftBukkit - the chunk can become accessible in the meantime TODO for non-null chunks it might also make sense to check that the chunk's state hasn't changed in the meantime
-                         return chunkAccess;
-                     }
+@@ -157,12 +_,16 @@
+         for (int i = 0; i < 4; i++) {
+             if (pos == this.lastChunkPos[i] && targetStatus == this.lastChunkStatus[i]) {
+                 ChunkAccess chunkAccess = this.lastChunk[i];
+-                if (chunkAccess != null || !loadOrGenerate) {
++                if (chunkAccess != null) { // CraftBukkit - the chunk can become accessible in the meantime TODO for non-null chunks it might also make sense to check that the chunk's state hasn't changed in the meantime
+                     return chunkAccess;
                  }
              }
+         }
  
-+            ChunkHolder chunkholder = this.getVisibleChunkIfPresent(pos);
-+            if (chunkholder != null && chunkholder.currentlyLoading != null)
-+                return chunkholder.currentlyLoading; // Neo: If the requested chunk is loading, bypass the future chain to prevent a deadlock.
++        ChunkHolder chunkholder = this.getVisibleChunkIfPresent(pos);
++        if (chunkholder != null && chunkholder.currentlyLoading != null)
++            return chunkholder.currentlyLoading; // Neo: If the requested chunk is loading, bypass the future chain to prevent a deadlock.
 +
-             profiler.incrementCounter("getChunkCacheMiss");
-             CompletableFuture<ChunkResult<ChunkAccess>> serverFuture = this.getChunkFutureMainThread(x, z, targetStatus, loadOrGenerate);
-             this.mainThreadProcessor.managedBlock(serverFuture::isDone);
-@@ -193,6 +_,7 @@
-             if (chunkHolder == null) {
-                 return null;
-             } else {
-+                if (chunkHolder.currentlyLoading != null) return chunkHolder.currentlyLoading; // Forge: If the requested chunk is loading, bypass the future chain to prevent a deadlock.
-                 ChunkAccess chunk = chunkHolder.getChunkIfPresent(ChunkStatus.FULL);
-                 if (chunk != null) {
-                     this.storeInCache(pos, chunk, ChunkStatus.FULL);
-@@ -233,7 +_,15 @@
+         profiler.incrementCounter("getChunkCacheMiss");
+         CompletableFuture<ChunkResult<ChunkAccess>> serverFuture = this.getChunkFutureMainThread(x, z, targetStatus, loadOrGenerate);
+         this.mainThreadProcessor.managedBlock(serverFuture::isDone);
+@@ -196,6 +_,7 @@
+             return null;
+         }
+ 
++        if (chunkHolder.currentlyLoading != null) return chunkHolder.currentlyLoading; // Forge: If the requested chunk is loading, bypass the future chain to prevent a deadlock.
+         ChunkAccess chunk = chunkHolder.getChunkIfPresent(ChunkStatus.FULL);
+         if (chunk != null) {
+             this.storeInCache(pos, chunk, ChunkStatus.FULL);
+@@ -234,7 +_,15 @@
          long key = pos.pack();
          int targetTicketLevel = ChunkLevel.byStatus(targetStatus);
          ChunkHolder chunkHolder = this.getVisibleChunkIfPresent(key);
@@ -86,7 +86,7 @@
              this.addTicket(new Ticket(TicketType.UNKNOWN, targetTicketLevel), pos);
              if (this.chunkAbsent(chunkHolder, targetTicketLevel)) {
                  ProfilerFiller profiler = Profiler.get();
-@@ -253,7 +_,7 @@
+@@ -254,7 +_,7 @@
      }
  
      private boolean chunkAbsent(@Nullable ChunkHolder chunkHolder, int targetTicketLevel) {
@@ -95,7 +95,7 @@
      }
  
      @Override
-@@ -304,19 +_,41 @@
+@@ -305,19 +_,41 @@
          this.chunkMap.saveAllChunks(flushStorage);
      }
  
@@ -139,7 +139,7 @@
              this.ticketStorage.purgeStaleTickets(this.chunkMap);
          }
  
-@@ -372,12 +_,14 @@
+@@ -373,12 +_,14 @@
              chunkCount, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap)
          );
          this.lastSpawnState = spawnCookie;
@@ -149,14 +149,15 @@
          List<MobCategory> spawningCategories;
          if (doMobSpawning) {
 -            boolean spawnPersistent = this.level.getGameTime() % 400L == 0L;
+-            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, this.spawnEnemies, spawnPersistent);
 +            boolean spawnPersistent = this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) != 0L && this.level.getLevelData().getGameTime() % this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) == 0L; // CraftBukkit
 +            NaturalSpawner.serverlevel = this.level; // CraftBukkit
-             spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, true, this.spawnEnemies, spawnPersistent);
++            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, true, this.spawnEnemies, spawnPersistent);
 +            NaturalSpawner.serverlevel = null;
          } else {
              spawningCategories = List.of();
          }
-@@ -617,13 +_,19 @@
+@@ -623,13 +_,19 @@
          }
  
          @Override
@@ -166,10 +167,13 @@
 +        try {
              if (ServerChunkCache.this.runDistanceManagerUpdates()) {
                  return true;
-             } else {
-                 ServerChunkCache.this.lightEngine.tryScheduleUpdate();
-                 return super.pollTask();
++            } else {
++                ServerChunkCache.this.lightEngine.tryScheduleUpdate();
++                return super.pollTask();
              }
+-
+-            ServerChunkCache.this.lightEngine.tryScheduleUpdate();
+-            return super.pollTask();
 +        } finally {
 +            chunkMap.callbackExecutor.run();
 +        }
