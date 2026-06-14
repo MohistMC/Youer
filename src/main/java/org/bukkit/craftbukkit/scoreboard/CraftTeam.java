@@ -2,10 +2,13 @@ package org.bukkit.craftbukkit.scoreboard;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
 import java.util.Set;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Team.CollisionRule;
 import net.minecraft.world.scores.Team.Visibility;
+import net.minecraft.world.scores.TeamColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -77,7 +80,7 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
     public ChatColor getColor() {
         checkState();
 
-        return CraftChatMessage.getColor(team.getColor());
+        return this.team.getColor().map(t -> CraftChatMessage.toLegacyFormat(t.textColor())).map(CraftChatMessage::getColor).orElse(ChatColor.RESET);
     }
 
     @Override
@@ -85,7 +88,14 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
         Preconditions.checkArgument(color != null && !color.isFormat(), "Color cannot be null or a format");
         checkState();
 
-        team.setColor(CraftChatMessage.getColor(color));
+        this.team.setColor(
+                Optional.of(color)
+                        .filter(c -> c != ChatColor.RESET)
+                        .map(CraftChatMessage::getColor)
+                        .map(TextColor::fromLegacyFormat)
+                        .map(TextColor::serialize)
+                        .map(TeamColor::byName)
+        );
     }
 
     @Override

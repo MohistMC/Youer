@@ -1,19 +1,14 @@
 package org.bukkit.craftbukkit.block;
 
-import net.minecraft.world.level.block.entity.BedBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.DyeColor;
-import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.block.Bed;
+import org.bukkit.craftbukkit.block.data.CraftBlockData;
 
-public class CraftBed extends CraftBlockEntityState<BedBlockEntity> implements Bed {
+public abstract class CraftBed extends CraftBlockData implements Bed {
 
-    public CraftBed(World world, BedBlockEntity tileEntity) {
-        super(world, tileEntity);
-    }
-
-    protected CraftBed(CraftBed state, Location location) {
-        super(state, location);
+    public CraftBed(BlockState state) {
+        super(state);
     }
 
     @Override
@@ -59,15 +54,5 @@ public class CraftBed extends CraftBlockEntityState<BedBlockEntity> implements B
     @Override
     public void setColor(DyeColor color) {
         throw new UnsupportedOperationException("Must set block type to appropriate bed colour");
-    }
-
-    @Override
-    public CraftBed copy() {
-        return new CraftBed(this, null);
-    }
-
-    @Override
-    public CraftBed copy(Location location) {
-        return new CraftBed(this, location);
     }
 }

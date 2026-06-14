@@ -21,6 +21,7 @@ import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityProcessor;
 import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntitySpawnRequest;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
 import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
@@ -833,7 +834,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         TagValueOutput compoundTag = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, getHandle().registryAccess());
         getHandle().saveAsPassenger(compoundTag, false);
 
-        return net.minecraft.world.entity.EntityType.loadEntityRecursive(compoundTag.buildResult(), level, EntitySpawnReason.LOAD, EntityProcessor.NOP);
+        return net.minecraft.world.entity.EntityType.loadEntityRecursive(compoundTag.buildResult(), level, new EntitySpawnRequest(EntitySpawnReason.LOAD, false), EntityProcessor.NOP);
     }
 
     public void storeBukkitValues(ValueOutput output) {

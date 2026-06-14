@@ -68,7 +68,7 @@ public class TransformerGeneratorAccess extends DelegatedGeneratorAccess {
             scheduleTick(position, fluidstate.getType(), 0);
         }
         if (StructurePiece.SHAPE_CHECK_BLOCKS.contains(blockstate.getBlock())) {
-            getChunk(position).markPosForPostprocessing(position);
+            getChunk(position).markPosForPostProcessing(position);
         }
         BlockEntity tileEntity = getBlockEntity(position);
         if (tileEntity != null && craftBlockState instanceof CraftBlockEntityState<?> craftEntityState) {

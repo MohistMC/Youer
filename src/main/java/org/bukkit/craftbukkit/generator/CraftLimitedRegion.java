@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntitySpawnRequest;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.WorldGenLevel;
@@ -84,12 +85,12 @@ public class CraftLimitedRegion extends CraftRegionAccessor implements LimitedRe
             for (int z = -(buffer >> 4); z <= (buffer >> 4); z++) {
                 ProtoChunk chunk = (ProtoChunk) access.getChunk(centerChunkX + x, centerChunkZ + z);
                 for (CompoundTag compound : chunk.getEntities()) {
-                    EntityType.loadEntityRecursive(compound, access.getMinecraftWorld(), EntitySpawnReason.LOAD, (entity) -> {
-                        if (region.contains(entity.getX(), entity.getY(), entity.getZ())) {
+                    EntityType.loadEntityRecursive(compound, access.getMinecraftWorld(), new EntitySpawnRequest(EntitySpawnReason.LOAD, false), (entity) -> {
+                        if (this.region.contains(entity.getX(), entity.getY(), entity.getZ())) {
                             entity.generation = true;
-                            entities.add(entity);
+                            this.entities.add(entity);
                         } else {
-                            outsideEntities.add(entity);
+                            this.outsideEntities.add(entity);
                         }
                         return entity;
                     });

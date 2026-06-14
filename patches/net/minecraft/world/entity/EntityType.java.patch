@@ -8,7 +8,7 @@
  import java.util.stream.Stream;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
-@@ -73,6 +_,11 @@
+@@ -73,10 +_,19 @@
      private final FeatureFlagSet requiredFeatures;
      private final boolean allowedInPeaceful;
  
@@ -20,6 +20,14 @@
      public static Identifier getKey(EntityType<?> type) {
          return BuiltInRegistries.ENTITY_TYPE.getKey(type);
      }
+ 
++    public static Optional<EntityType<?>> byString(String id) {
++        return BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.tryParse(id));
++    }
++
+     public EntityType(
+         EntityType.EntityFactory<T> factory,
+         MobCategory category,
 @@ -94,6 +_,30 @@
          FeatureFlagSet requiredFeatures,
          boolean allowedInPeaceful
@@ -80,7 +88,7 @@
 +
 +    public @Nullable T spawn(ServerLevel level, @Nullable ItemStack itemStack, @Nullable LivingEntity user, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason bukkitSpawnReason) {
 +        // CraftBukkit end
-+        Consumer<T> consumer;
++        PostSpawnProcessor<T> consumer;
 +
          if (itemStack != null) {
 -            postSpawnConfig = createDefaultStackConfig(level, itemStack, user);
@@ -115,16 +123,16 @@
 +    }
 +
 +    public @Nullable T spawn(ServerLevel level, BlockPos spawnPos, EntitySpawnReason spawnReason, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason bukkitSpawnReason) {
-+        return (T) this.spawn(level, (Consumer) null, spawnPos, spawnReason, false, false, bukkitSpawnReason); // CraftBukkit
++        return (T) this.spawn(level, null, spawnPos, spawnReason, false, false, bukkitSpawnReason); // CraftBukkit
 +        // CraftBukkit end
 +    }
 +
-+    public @Nullable T spawn(ServerLevel level, @Nullable Consumer<T> postSpawnConfig, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp) {
++    public @Nullable T spawn(ServerLevel level, @Nullable PostSpawnProcessor<T> postSpawnConfig, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp) {
 +        // CraftBukkit start
 +        return this.spawn(level, postSpawnConfig, spawnPos, spawnReason, tryMoveDown, movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
 +    }
 +
-+    public @Nullable T spawn(ServerLevel level, @Nullable Consumer<T> postSpawnConfig, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason bukkitSpawnReason) {
++    public @Nullable T spawn(ServerLevel level, @Nullable PostSpawnProcessor<T> postSpawnConfig, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason bukkitSpawnReason) {
 +        // CraftBukkit end
          T entity = this.create(level, postSpawnConfig, spawnPos, spawnReason, tryMoveDown, movedUp);
          if (entity != null) {

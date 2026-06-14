@@ -16,7 +16,6 @@ import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.entity.BannerBlockEntity;
 import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 import net.minecraft.world.level.block.entity.BeaconBlockEntity;
-import net.minecraft.world.level.block.entity.BedBlockEntity;
 import net.minecraft.world.level.block.entity.BeehiveBlockEntity;
 import net.minecraft.world.level.block.entity.BellBlockEntity;
 import net.minecraft.world.level.block.entity.BlastFurnaceBlockEntity;
@@ -276,27 +275,6 @@ public final class CraftBlockStates {
                         Material.RED_SHULKER_BOX,
                         Material.BLACK_SHULKER_BOX
                 ), CraftShulkerBox.class, CraftShulkerBox::new, ShulkerBoxBlockEntity::new
-        );
-
-        register(
-                Arrays.asList(
-                        Material.BLACK_BED,
-                        Material.BLUE_BED,
-                        Material.BROWN_BED,
-                        Material.CYAN_BED,
-                        Material.GRAY_BED,
-                        Material.GREEN_BED,
-                        Material.LIGHT_BLUE_BED,
-                        Material.LIGHT_GRAY_BED,
-                        Material.LIME_BED,
-                        Material.MAGENTA_BED,
-                        Material.ORANGE_BED,
-                        Material.PINK_BED,
-                        Material.PURPLE_BED,
-                        Material.RED_BED,
-                        Material.WHITE_BED,
-                        Material.YELLOW_BED
-                ), CraftBed.class, CraftBed::new, BedBlockEntity::new
         );
 
         register(

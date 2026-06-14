@@ -1405,7 +1405,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public void setHardcore(boolean hardcore) {
-        world.serverLevelData.settings.difficultySettings().hardcore = hardcore;
+        world.serverLevelData.settings.withHardcore(hardcore);
     }
 
     @Override

@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/animal/golem/CopperGolem.java
 +++ b/net/minecraft/world/entity/animal/golem/CopperGolem.java
+@@ -39,6 +_,7 @@
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.ServerLevelAccessor;
++import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.ChestBlock;
+ import net.minecraft.world.level.block.CopperGolemStatueBlock;
 @@ -53,6 +_,9 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
@@ -31,7 +39,7 @@
                  this.shear(serverLevel, SoundSource.PLAYERS, itemStack);
                  this.gameEvent(GameEvent.SHEAR, player);
                  itemStack.hurtAndBreak(1, player, hand);
-@@ -285,22 +_,24 @@
+@@ -285,22 +_,26 @@
  
      private void turnToStatue(ServerLevel level) {
          BlockPos pos = this.blockPosition();
@@ -48,7 +56,9 @@
 -            3
 -        );
 +        // CraftBukkit start
-+        BlockState blockState = Blocks.OXIDIZED_COPPER_GOLEM_STATUE
++        BlockState blockState = Blocks.COPPER_GOLEM_STATUE
++            .weathering()
++            .oxidized()
 +            .defaultBlockState()
 +            .setValue(
 +                CopperGolemStatueBlock.POSE, CopperGolemStatueBlock.Pose.values()[this.random.nextInt(0, CopperGolemStatueBlock.Pose.values().length)]
@@ -57,7 +67,7 @@
 +        if (!CraftEventFactory.callEntityChangeBlockEvent(this, pos, blockState)) {
 +            return;
 +        }
-+        level.setBlock(pos, blockState, 3);
++        level.setBlock(pos, blockState, Block.UPDATE_ALL);
 +        // CraftBukkit end
          if (level.getBlockEntity(pos) instanceof CopperGolemStatueBlockEntity copperGolemStatueBlockEntity) {
              copperGolemStatueBlockEntity.createStatue(this);

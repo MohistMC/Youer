@@ -13,6 +13,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntitySpawnRequest;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.WorldGenLevel;
@@ -136,7 +137,7 @@ public class CraftStructure implements Structure {
     public List<Entity> getEntities() {
         List<Entity> entities = new ArrayList<>();
         for (StructureTemplate.StructureEntityInfo entity : structure.entityInfoList) {
-            EntityType.create(TagValueInput.create(ProblemReporter.DISCARDING, registry, entity.nbt), ((CraftWorld) Bukkit.getServer().getWorlds().get(0)).getHandle(), EntitySpawnReason.STRUCTURE).ifPresent(dummyEntity -> {
+            EntityType.create(TagValueInput.create(ProblemReporter.DISCARDING, registry, entity.nbt), ((CraftWorld) Bukkit.getServer().getWorlds().get(0)).getHandle(), new EntitySpawnRequest(EntitySpawnReason.STRUCTURE, false)).ifPresent(dummyEntity -> {
                 dummyEntity.setPos(entity.pos.x, entity.pos.y, entity.pos.z);
                 entities.add(dummyEntity.getBukkitEntity());
             });

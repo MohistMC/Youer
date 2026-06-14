@@ -36,15 +36,43 @@
      }
  
      protected abstract void rewardTradeXp(final MerchantOffer offer);
+@@ -245,15 +_,15 @@
+                 .create(tradeSet.randomSequence());
+             int numberOfOffers = tradeSet.calculateNumberOfTrades(lootContext);
+             if (tradeSet.allowDuplicates()) {
+-                addOffersFromItemListings(lootContext, offers, tradeSet.getTrades(), numberOfOffers);
++                addOffersFromItemListings(lootContext, offers, tradeSet.getTrades(), numberOfOffers, this);
+             } else {
+-                addOffersFromItemListingsWithoutDuplicates(lootContext, offers, tradeSet.getTrades(), numberOfOffers);
++                addOffersFromItemListingsWithoutDuplicates(lootContext, offers, tradeSet.getTrades(), numberOfOffers, this);
+             }
+         }
+     }
+ 
+     @VisibleForTesting
+-    static void addOffersFromItemListings(LootContext lootContext, MerchantOffers merchantOffers, HolderSet<VillagerTrade> potentialOffers, int numberOfOffers) {
++    static void addOffersFromItemListings(LootContext lootContext, MerchantOffers merchantOffers, HolderSet<VillagerTrade> potentialOffers, int numberOfOffers, final AbstractVillager villager) {
+         List<Holder<VillagerTrade>> potentialOffersList = Lists.newArrayList(potentialOffers);
+         int offersFound = 0;
+ 
+@@ -271,7 +_,7 @@
+     }
+ 
+     private static void addOffersFromItemListingsWithoutDuplicates(
+-        LootContext lootContext, MerchantOffers merchantOffers, HolderSet<VillagerTrade> potentialOffers, int numberOfOffers
++        LootContext lootContext, MerchantOffers merchantOffers, HolderSet<VillagerTrade> potentialOffers, int numberOfOffers, final AbstractVillager villager
+     ) {
+         List<Holder<VillagerTrade>> leftoverOffers = Lists.newArrayList(potentialOffers);
+         int offersFound = 0;
 @@ -280,7 +_,16 @@
              Holder<VillagerTrade> villagerTrade = leftoverOffers.remove(lootContext.getRandom().nextInt(leftoverOffers.size()));
              MerchantOffer offer = villagerTrade.value().getOffer(lootContext);
              if (offer != null) {
 -                merchantOffers.add(offer);
 +                // CraftBukkit start
-+                VillagerAcquireTradeEvent event = new VillagerAcquireTradeEvent((org.bukkit.entity.AbstractVillager) getBukkitEntity(), offer.asBukkit());
++                VillagerAcquireTradeEvent event = new VillagerAcquireTradeEvent((org.bukkit.entity.AbstractVillager) villager.getBukkitEntity(), offer.asBukkit());
 +                // Suppress during worldgen
-+                if (this.valid) {
++                if (villager.valid) {
 +                    Bukkit.getPluginManager().callEvent(event);
 +                }
 +                if (!event.isCancelled()) {

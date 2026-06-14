@@ -1,0 +1,49 @@
+--- a/net/minecraft/server/jsonrpc/internalapi/MinecraftGameRuleServiceImpl.java
++++ b/net/minecraft/server/jsonrpc/internalapi/MinecraftGameRuleServiceImpl.java
+@@ -14,10 +_,19 @@
+ public class MinecraftGameRuleServiceImpl implements MinecraftGameRuleService {
+     private final NotificationManager notificationManager;
+     private final JsonRpcLogger jsonrpcLogger;
++    private @org.jspecify.annotations.Nullable GameRules gameRules;
+ 
+     public MinecraftGameRuleServiceImpl(NotificationManager notificationManager, JsonRpcLogger jsonrpcLogger) {
+         this.notificationManager = notificationManager;
+         this.jsonrpcLogger = jsonrpcLogger;
++        this.gameRules = null;
++    }
++
++    public GameRules getGameRules() {
++        if (this.gameRules == null) {
++            this.gameRules = this.server().overworld().getGameRules();
++        }
++        return this.gameRules;
+     }
+ 
+     private DedicatedServer server() {
+@@ -28,10 +_,10 @@
+     public <T> GameRulesService.GameRuleUpdate<T> updateGameRule(GameRulesService.GameRuleUpdate<T> update, ClientInfo clientInfo) {
+         GameRule<T> gameRule = update.gameRule();
+         MinecraftServer server = this.server();
+-        GameRules gameRules = server.getGameRules();
++        GameRules gameRules = this.getGameRules();
+         T oldValue = gameRules.get(gameRule);
+         T newValue = update.value();
+-        gameRules.set(gameRule, newValue, server);
++        gameRules.set(gameRule, newValue, this.server().overworld());
+         this.jsonrpcLogger
+             .log(clientInfo, "Game rule '{}' updated from '{}' to '{}'", gameRule.id(), gameRule.serialize(oldValue), gameRule.serialize(newValue));
+         return update;
+@@ -44,11 +_,11 @@
+ 
+     @Override
+     public Stream<GameRule<?>> getAvailableGameRules() {
+-        return this.server().getGameRules().availableRules();
++        return this.getGameRules().availableRules();
+     }
+ 
+     @Override
+     public <T> T getRuleValue(GameRule<T> gameRule) {
+-        return this.server().getGameRules().get(gameRule);
++        return this.getGameRules().get(gameRule);
+     }
+ }
