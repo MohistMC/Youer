@@ -148,7 +148,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -276,7 +_,7 @@
+@@ -276,15 +_,31 @@
      private int clientLoadedTimeoutTimer;
  
      public ServerGamePacketListenerImpl(MinecraftServer server, Connection connection, ServerPlayer player, CommonListenerCookie cookie) {
@@ -157,10 +157,13 @@
          this.restartClientLoadTimerAfterRespawn();
          this.chunkSender = new PlayerChunkSender(connection.isMemoryConnection());
          this.player = player;
-@@ -286,6 +_,22 @@
-         this.chatMessageChain = new FutureChain(server);
+         player.connection = this;
+         player.getTextFilter().join();
+         this.signedMessageDecoder = SignedMessageChain.Decoder.unsigned(player.getUUID(), server::enforceSecureProfile);
+-        this.chatMessageChain = new FutureChain(server);
++        this.chatMessageChain = new FutureChain(server.chatExecutor); // CraftBukkit - async chat
      }
- 
++
 +    // CraftBukkit start - add fields and methods
 +    private int lastTick = MinecraftServer.currentTick;
 +    private int allowedPlayerTicks = 1;
@@ -176,10 +179,9 @@
 +    private float lastYaw = Float.MAX_VALUE;
 +    private boolean justTeleported = false;
 +    // CraftBukkit end
-+
+ 
      @Override
      public void tick() {
-         if (this.ackBlockChangesUpTo > -1) {
 @@ -301,6 +_,7 @@
                  && this.server.playerIdleTimeout() > 0
                  && Util.getMillis() - this.player.getLastActionTime() > TimeUnit.MINUTES.toMillis(this.server.playerIdleTimeout())
