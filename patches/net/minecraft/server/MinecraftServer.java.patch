@@ -939,11 +939,18 @@
              profiler.pop();
          }
  
-@@ -1105,9 +_,11 @@
+@@ -1105,9 +_,18 @@
          profiler.push("levels");
          this.updateEffectiveRespawnData();
  
 -        for (ServerLevel level : this.getAllLevels()) {
++        // CraftBukkit start
++        // Run tasks that are waiting on processing
++        while (!processQueue.isEmpty()) {
++            processQueue.remove().run();
++        }
++        // CraftBukkit end
++
 +        for (ServerLevel level : this.getWorldArray()) {
 +            long tickStart = Util.getNanos();
              profiler.push(() -> level + " " + level.dimension().identifier());

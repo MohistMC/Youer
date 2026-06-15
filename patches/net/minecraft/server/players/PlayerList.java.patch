@@ -41,17 +41,19 @@
  import net.minecraft.server.notifications.NotificationService;
  import net.minecraft.server.permissions.LevelBasedPermissionSet;
  import net.minecraft.sounds.SoundEvents;
-@@ -98,6 +_,17 @@
+@@ -98,6 +_,19 @@
  import net.minecraft.world.scores.Objective;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Team;
 +import org.bukkit.Location;
 +import org.bukkit.craftbukkit.CraftServer;
 +import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.util.CraftChatMessage;
 +import org.bukkit.craftbukkit.util.CraftLocation;
 +import org.bukkit.event.entity.EntityRemoveEvent;
 +import org.bukkit.event.player.PlayerChangedWorldEvent;
++import org.bukkit.event.player.PlayerJoinEvent;
 +import org.bukkit.event.player.PlayerLoginEvent;
 +import org.bukkit.event.player.PlayerQuitEvent;
 +import org.bukkit.event.player.PlayerRespawnEvent;
@@ -87,7 +89,29 @@
          this.server = server;
          this.registries = registries;
          this.playerIo = playerIo;
-@@ -161,7 +_,7 @@
+@@ -146,22 +_,20 @@
+         UserNameToIdResolver profileCache = this.server.services().nameToIdCache();
+         Optional<NameAndId> oldProfile = profileCache.get(gameProfile.id());
+         String oldName = oldProfile.map(NameAndId::name).orElse(gameProfile.name());
++        // CraftBukkit start - Better rename detection
++        String lastKnownName = player.getBukkitEntity().getLastKnownName();
++        if (lastKnownName != null) {
++            oldName = lastKnownName;
++        }
++        // CraftBukkit end
+         profileCache.add(gameProfile);
+         ServerLevel level = player.level();
+         String address = connection.getLoggableAddress(this.server.logIPs());
+-        LOGGER.info(
+-            "{}[{}] logged in with entity id {} at ({}, {}, {})",
+-            player.getPlainTextName(),
+-            address,
+-            player.getId(),
+-            player.getX(),
+-            player.getY(),
+-            player.getZ()
+-        );
++
          LevelData levelData = level.getLevelData();
          ServerGamePacketListenerImpl playerConnection = new ServerGamePacketListenerImpl(this.server, connection, player, cookie);
          connection.setupInboundProtocol(
@@ -120,21 +144,99 @@
          this.sendPlayerPermissionLevel(player);
          player.getStats().markAllDirty();
          player.getRecipeBook().sendInitialRecipeBook(player);
-@@ -212,6 +_,7 @@
+@@ -203,24 +_,90 @@
+             component = Component.translatable("multiplayer.player.joined.renamed", player.getDisplayName(), oldName);
+         }
  
-         player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(this.players));
+-        this.broadcastSystemMessage(component.withStyle(ChatFormatting.YELLOW), false);
++        // CraftBukkit start
++        component.withStyle(ChatFormatting.YELLOW);
++        String joinMessage = CraftChatMessage.fromComponent(component);
+         playerConnection.teleport(player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot());
+         ServerStatus status = this.server.getStatus();
+         if (status != null && !cookie.transferred()) {
+             player.sendServerStatus(status);
+         }
+ 
+-        player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(this.players));
++        // player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(this.players));
          this.players.add(player);
 +        this.playersByName.put(player.getScoreboardName().toLowerCase(java.util.Locale.ROOT), player); // Spigot
          this.playersByUUID.put(player.getUUID(), player);
-         this.broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(player)));
+-        this.broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(player)));
++        // this.broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(player)));
++
++        // CraftBukkit start
++        CraftPlayer bukkitPlayer = player.getBukkitEntity();
++
++        // Ensure that player inventory is populated with its viewer
++        player.containerMenu.transferTo(player.containerMenu, bukkitPlayer);
++
++        PlayerJoinEvent playerJoinEvent = new PlayerJoinEvent(bukkitPlayer, joinMessage);
++        cserver.getPluginManager().callEvent(playerJoinEvent);
++
++        if (!player.connection.isAcceptingMessages()) {
++            return;
++        }
++
++        joinMessage = playerJoinEvent.getJoinMessage();
++
++        if (joinMessage != null && joinMessage.length() > 0) {
++            for (Component line : org.bukkit.craftbukkit.util.CraftChatMessage.fromString(joinMessage)) {
++                server.getPlayerList().broadcastSystemMessage(line, false);
++            }
++        }
++        // CraftBukkit end
++
++        // CraftBukkit start - sendAll above replaced with this loop
++        ClientboundPlayerInfoUpdatePacket packet = ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(player));
++
++        for (int i = 0; i < this.players.size(); ++i) {
++            ServerPlayer serverplayer1 = (ServerPlayer) this.players.get(i);
++
++            if (serverplayer1.getBukkitEntity().canSee(bukkitPlayer)) {
++                serverplayer1.connection.send(packet);
++            }
++
++            if (!bukkitPlayer.canSee(serverplayer1.getBukkitEntity())) {
++                continue;
++            }
++
++            player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(serverplayer1)));
++        }
++        player.sentListPacket = true;
++        // CraftBukkit end
++
++        player.refreshEntityData(player); // CraftBukkit - BungeeCord#2321, send complete data to self on spawn
++
          this.sendLevelInfo(player, level);
-@@ -221,6 +_,9 @@
+-        level.addNewPlayer(player);
+-        this.server.getCustomBossEvents().onPlayerConnect(player);
++
++        // CraftBukkit start - Only add if the player wasn't moved in the event
++        if (player.level() == level && !level.players().contains(player)) {
++            level.addNewPlayer(player);
++            this.server.getCustomBossEvents().onPlayerConnect(player);
++        }
++
++        level = player.level(); // CraftBukkit - Update in case join event changed it
++        // CraftBukkit end
+         this.sendActivePlayerEffects(player);
          player.initInventoryMenu();
          this.server.notificationManager().playerJoined(player);
          playerConnection.resumeFlushing();
 +
 +        net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(player);
 +        net.neoforged.neoforge.event.EventHooks.firePlayerLoggedIn(player);
++        LOGGER.info(
++                "{}[{}] logged in with entity id {} at ({}, {}, {})",
++                player.getPlainTextName(),
++                address,
++                player.getId(),
++                player.getX(),
++                player.getY(),
++                player.getZ()
++        );
      }
  
      public void updateEntireScoreboard(ServerScoreboard scoreboard, ServerPlayer player) {

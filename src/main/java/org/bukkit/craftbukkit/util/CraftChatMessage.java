@@ -290,8 +290,9 @@ public final class CraftChatMessage {
             TextColor color = modi.getColor();
             if (c.getContents() != PlainTextContents.EMPTY || color != null) {
                 if (color != null) {
-                    if (color.format != null) {
-                        out.append(color.format);
+                    final ChatFormatting format = toLegacyFormat(color);
+                    if (format != null) {
+                        out.append(format);
                     } else {
                         out.append(ChatColor.COLOR_CHAR).append("x");
                         for (char magic : color.serialize().substring(1).toCharArray()) {

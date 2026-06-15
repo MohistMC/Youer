@@ -23,12 +23,17 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
 
     @Override
     public void sendMessage(String message) {
-        sendRawMessage(message);
+        // Purpur start
+        String[] parts = message.split("\n");
+        for (String part : parts) {
+            this.sendRawMessage(part);
+        }
+        // Purpur end
     }
 
     @Override
     public void sendRawMessage(String message) {
-        Youer.LOGGER.info(ColorAPI.string(message));
+        Youer.LOGGER.info(ChatColor.stripColor(ColorAPI.string(message)));
     }
 
     @Override
