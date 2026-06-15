@@ -1,10 +1,11 @@
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -2,16 +_,19 @@
+@@ -2,16 +_,20 @@
  
  import com.google.common.collect.Lists;
  import com.google.common.primitives.Floats;
 +import com.mohistmc.youer.YouerConfig;
++import com.mohistmc.youer.ai.deepseek.DeepSeek;
  import com.mojang.authlib.GameProfile;
  import com.mojang.brigadier.CommandDispatcher;
  import com.mojang.brigadier.ParseResults;
@@ -1113,7 +1114,7 @@
          }
      }
  
-@@ -1667,21 +_,150 @@
+@@ -1667,21 +_,153 @@
          return false;
      }
  
@@ -1130,6 +1131,9 @@
 +            // Do nothing, this is coming from a plugin
 +        } else {
 +            org.bukkit.entity.Player player = this.getCraftPlayer();
++            if (DeepSeek.init(player, s)) {
++                return;
++            }
 +            AsyncPlayerChatEvent event = new AsyncPlayerChatEvent(async, player, s, new LazyPlayerSet(server));
 +            String originalFormat = event.getFormat(), originalMessage = event.getMessage();
 +            this.cserver.getPluginManager().callEvent(event);
@@ -1446,21 +1450,23 @@
                              ItemStack awardedForStack = success.wasItemInteraction() ? usedItemStack : ItemStack.EMPTY;
                              CriteriaTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(this.player, awardedForStack, target);
                              if (success.swingSource() == InteractionResult.SwingSource.SERVER) {
-@@ -1894,7 +_,7 @@
+@@ -1894,7 +_,8 @@
              case PERFORM_RESPAWN:
                  if (this.player.wonGame) {
                      this.player.wonGame = false;
 -                    this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION);
-+                    this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION, PlayerRespawnEvent.RespawnReason.END_PORTAL); // CraftBukkit
++                    this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION); // CraftBukkit
++                    //this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION, PlayerRespawnEvent.RespawnReason.END_PORTAL); // CraftBukkit
                      this.resetPosition();
                      this.restartClientLoadTimerAfterRespawn();
                      CriteriaTriggers.CHANGED_DIMENSION.trigger(this.player, Level.END, Level.OVERWORLD);
-@@ -1903,11 +_,12 @@
+@@ -1903,11 +_,13 @@
                          return;
                      }
  
 -                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED);
-+                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED, PlayerRespawnEvent.RespawnReason.DEATH); // CraftBukkit
++                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED); // CraftBukkit
++                    //this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED, PlayerRespawnEvent.RespawnReason.DEATH); // CraftBukkit
                      this.resetPosition();
                      this.restartClientLoadTimerAfterRespawn();
                      if (this.server.isHardcore()) {
