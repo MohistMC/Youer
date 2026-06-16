@@ -95,6 +95,7 @@ import org.bukkit.block.data.type.Piston;
 import org.bukkit.block.data.type.PistonHead;
 import org.bukkit.block.data.type.PitcherCrop;
 import org.bukkit.block.data.type.PointedDripstone;
+import org.bukkit.block.data.type.PotentSulfur;
 import org.bukkit.block.data.type.RedstoneRail;
 import org.bukkit.block.data.type.RedstoneWallTorch;
 import org.bukkit.block.data.type.RedstoneWire;
@@ -203,6 +204,90 @@ public enum Material implements Keyed, Translatable, RegistryAware {
      */
     TUFF_BRICK_WALL(11761, Wall.class),
     CHISELED_TUFF_BRICKS(8601),
+    SULFUR(22665),
+    /**
+     * BlockData: {@link PotentSulfur}
+     */
+    POTENT_SULFUR(6653, PotentSulfur.class),
+    /**
+     * BlockData: {@link Slab}
+     */
+    SULFUR_SLAB(15800, Slab.class),
+    /**
+     * BlockData: {@link Stairs}
+     */
+    SULFUR_STAIRS(17152, Stairs.class),
+    /**
+     * BlockData: {@link Wall}
+     */
+    SULFUR_WALL(17292, Wall.class),
+    POLISHED_SULFUR(27503),
+    /**
+     * BlockData: {@link Slab}
+     */
+    POLISHED_SULFUR_SLAB(31000, Slab.class),
+    /**
+     * BlockData: {@link Stairs}
+     */
+    POLISHED_SULFUR_STAIRS(13441, Stairs.class),
+    /**
+     * BlockData: {@link Wall}
+     */
+    POLISHED_SULFUR_WALL(22981, Wall.class),
+    SULFUR_BRICKS(19556),
+    /**
+     * BlockData: {@link Slab}
+     */
+    SULFUR_BRICK_SLAB(14428, Slab.class),
+    /**
+     * BlockData: {@link Stairs}
+     */
+    SULFUR_BRICK_STAIRS(31077, Stairs.class),
+    /**
+     * BlockData: {@link Wall}
+     */
+    SULFUR_BRICK_WALL(19178, Wall.class),
+    CHISELED_SULFUR(29208),
+    CINNABAR(17980),
+    /**
+     * BlockData: {@link Slab}
+     */
+    CINNABAR_SLAB(14647, Slab.class),
+    /**
+     * BlockData: {@link Stairs}
+     */
+    CINNABAR_STAIRS(6463, Stairs.class),
+    /**
+     * BlockData: {@link Wall}
+     */
+    CINNABAR_WALL(16298, Wall.class),
+    POLISHED_CINNABAR(5092),
+    /**
+     * BlockData: {@link Slab}
+     */
+    POLISHED_CINNABAR_SLAB(13254, Slab.class),
+    /**
+     * BlockData: {@link Stairs}
+     */
+    POLISHED_CINNABAR_STAIRS(31959, Stairs.class),
+    /**
+     * BlockData: {@link Wall}
+     */
+    POLISHED_CINNABAR_WALL(28123, Wall.class),
+    CINNABAR_BRICKS(24463),
+    /**
+     * BlockData: {@link Slab}
+     */
+    CINNABAR_BRICK_SLAB(16426, Slab.class),
+    /**
+     * BlockData: {@link Stairs}
+     */
+    CINNABAR_BRICK_STAIRS(8658, Stairs.class),
+    /**
+     * BlockData: {@link Wall}
+     */
+    CINNABAR_BRICK_WALL(4702, Wall.class),
+    CHISELED_CINNABAR(27471),
     DRIPSTONE_BLOCK(26227),
     /**
      * BlockData: {@link Snowable}
@@ -317,20 +402,32 @@ public enum Material implements Keyed, Translatable, RegistryAware {
     BUDDING_AMETHYST(13963),
     IRON_BLOCK(24754),
     COPPER_BLOCK(12880),
-    GOLD_BLOCK(27392),
-    DIAMOND_BLOCK(5944),
-    NETHERITE_BLOCK(6527),
     EXPOSED_COPPER(28488),
     WEATHERED_COPPER(19699),
     OXIDIZED_COPPER(19490),
+    WAXED_COPPER_BLOCK(14638),
+    WAXED_EXPOSED_COPPER(27989),
+    WAXED_WEATHERED_COPPER(5960),
+    WAXED_OXIDIZED_COPPER(25626),
+    GOLD_BLOCK(27392),
+    DIAMOND_BLOCK(5944),
+    NETHERITE_BLOCK(6527),
     CHISELED_COPPER(12143),
     EXPOSED_CHISELED_COPPER(4570),
     WEATHERED_CHISELED_COPPER(30876),
     OXIDIZED_CHISELED_COPPER(27719),
+    WAXED_CHISELED_COPPER(7500),
+    WAXED_EXPOSED_CHISELED_COPPER(30658),
+    WAXED_WEATHERED_CHISELED_COPPER(5970),
+    WAXED_OXIDIZED_CHISELED_COPPER(7735),
     CUT_COPPER(32519),
     EXPOSED_CUT_COPPER(18000),
     WEATHERED_CUT_COPPER(21158),
     OXIDIZED_CUT_COPPER(5382),
+    WAXED_CUT_COPPER(11030),
+    WAXED_EXPOSED_CUT_COPPER(30043),
+    WAXED_WEATHERED_CUT_COPPER(13823),
+    WAXED_OXIDIZED_CUT_COPPER(22582),
     /**
      * BlockData: {@link Stairs}
      */
@@ -348,34 +445,6 @@ public enum Material implements Keyed, Translatable, RegistryAware {
      */
     OXIDIZED_CUT_COPPER_STAIRS(25379, Stairs.class),
     /**
-     * BlockData: {@link Slab}
-     */
-    CUT_COPPER_SLAB(28988, Slab.class),
-    /**
-     * BlockData: {@link Slab}
-     */
-    EXPOSED_CUT_COPPER_SLAB(26694, Slab.class),
-    /**
-     * BlockData: {@link Slab}
-     */
-    WEATHERED_CUT_COPPER_SLAB(4602, Slab.class),
-    /**
-     * BlockData: {@link Slab}
-     */
-    OXIDIZED_CUT_COPPER_SLAB(29642, Slab.class),
-    WAXED_COPPER_BLOCK(14638),
-    WAXED_EXPOSED_COPPER(27989),
-    WAXED_WEATHERED_COPPER(5960),
-    WAXED_OXIDIZED_COPPER(25626),
-    WAXED_CHISELED_COPPER(7500),
-    WAXED_EXPOSED_CHISELED_COPPER(30658),
-    WAXED_WEATHERED_CHISELED_COPPER(5970),
-    WAXED_OXIDIZED_CHISELED_COPPER(7735),
-    WAXED_CUT_COPPER(11030),
-    WAXED_EXPOSED_CUT_COPPER(30043),
-    WAXED_WEATHERED_CUT_COPPER(13823),
-    WAXED_OXIDIZED_CUT_COPPER(22582),
-    /**
      * BlockData: {@link Stairs}
      */
     WAXED_CUT_COPPER_STAIRS(23125, Stairs.class),
@@ -391,6 +460,22 @@ public enum Material implements Keyed, Translatable, RegistryAware {
      * BlockData: {@link Stairs}
      */
     WAXED_OXIDIZED_CUT_COPPER_STAIRS(9842, Stairs.class),
+    /**
+     * BlockData: {@link Slab}
+     */
+    CUT_COPPER_SLAB(28988, Slab.class),
+    /**
+     * BlockData: {@link Slab}
+     */
+    EXPOSED_CUT_COPPER_SLAB(26694, Slab.class),
+    /**
+     * BlockData: {@link Slab}
+     */
+    WEATHERED_CUT_COPPER_SLAB(4602, Slab.class),
+    /**
+     * BlockData: {@link Slab}
+     */
+    OXIDIZED_CUT_COPPER_SLAB(29642, Slab.class),
     /**
      * BlockData: {@link Slab}
      */
@@ -1684,7 +1769,7 @@ public enum Material implements Keyed, Translatable, RegistryAware {
     /**
      * BlockData: {@link Directional}
      */
-    CYAN_SHULKER_BOX(28123, Directional.class),
+    CYAN_SHULKER_BOX(31670, Directional.class),
     /**
      * BlockData: {@link Directional}
      */
@@ -2795,6 +2880,7 @@ public enum Material implements Keyed, Translatable, RegistryAware {
     COD_BUCKET(28601),
     TROPICAL_FISH_BUCKET(29995),
     AXOLOTL_BUCKET(20669),
+    SULFUR_CUBE_BUCKET(4750),
     TADPOLE_BUCKET(9731),
     BRICK(6820),
     CLAY_BALL(24603),
@@ -2997,6 +3083,7 @@ public enum Material implements Keyed, Translatable, RegistryAware {
     ALLAY_SPAWN_EGG(7909),
     MOOSHROOM_SPAWN_EGG(22125),
     SNIFFER_SPAWN_EGG(27473),
+    SULFUR_CUBE_SPAWN_EGG(24453),
     COPPER_GOLEM_SPAWN_EGG(7297),
     IRON_GOLEM_SPAWN_EGG(12781),
     SNOW_GOLEM_SPAWN_EGG(24732),
@@ -3212,6 +3299,7 @@ public enum Material implements Keyed, Translatable, RegistryAware {
     MUSIC_DISC_13(16359),
     MUSIC_DISC_CAT(16246),
     MUSIC_DISC_BLOCKS(26667),
+    MUSIC_DISC_BOUNCE(10520),
     MUSIC_DISC_CHIRP(19436),
     MUSIC_DISC_CREATOR(20345),
     MUSIC_DISC_CREATOR_MUSIC_BOX(7202),
@@ -3473,6 +3561,10 @@ public enum Material implements Keyed, Translatable, RegistryAware {
      * BlockData: {@link PointedDripstone}
      */
     POINTED_DRIPSTONE(18755, PointedDripstone.class),
+    /**
+     * BlockData: {@link PointedDripstone}
+     */
+    SULFUR_SPIKE(21598, PointedDripstone.class),
     /**
      * BlockData: {@link Orientable}
      */

@@ -29,6 +29,7 @@ public interface JukeboxSong extends Keyed, Translatable, RegistryAware {
     public static final JukeboxSong CREATOR_MUSIC_BOX = get("creator_music_box");
     public static final JukeboxSong TEARS = get("tears");
     public static final JukeboxSong LAVA_CHICKEN = get("lava_chicken");
+    public static final JukeboxSong BOUNCE = get("bounce");
 
     @NotNull
     private static JukeboxSong get(@NotNull String key) {

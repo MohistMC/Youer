@@ -249,7 +249,7 @@ public final class CraftItemMetas {
                 || itemType == ItemType.DECORATED_POT || itemType == ItemType.SUSPICIOUS_SAND
                 || itemType == ItemType.SUSPICIOUS_GRAVEL || itemType == ItemType.CRAFTER
                 || itemType == ItemType.TRIAL_SPAWNER || itemType == ItemType.VAULT
-                || itemType == ItemType.CREAKING_HEART || itemType == ItemType.TEST_BLOCK || itemType == ItemType.TEST_INSTANCE_BLOCK
+                || itemType == ItemType.CREAKING_HEART || itemType == ItemType.TEST_BLOCK || itemType == ItemType.TEST_INSTANCE_BLOCK || itemType == ItemType.POTENT_SULFUR
                 || blockHandle instanceof ShelfBlock) {
             return asType(BLOCK_STATE_META_DATA);
         }

@@ -54,14 +54,14 @@ public class CraftEntitySnapshot implements EntitySnapshot {
     }
 
     private net.minecraft.world.entity.Entity createInternal(World world) {
-        net.minecraft.world.level.Level level = ((CraftWorld) world).getHandle();
-        net.minecraft.world.entity.Entity internal = net.minecraft.world.entity.EntityType.loadEntityRecursive(data, level, new EntitySpawnRequest(EntitySpawnReason.LOAD, false), EntityProcessor.NOP);
+        net.minecraft.world.level.Level nms = ((CraftWorld) world).getHandle();
+        net.minecraft.world.entity.Entity internal = net.minecraft.world.entity.EntityType.loadEntityRecursive(data, nms, new EntitySpawnRequest(EntitySpawnReason.LOAD, false), EntityProcessor.NOP);
         if (internal == null) { // Try creating by type
-            internal = CraftEntityType.bukkitToMinecraft(type).create(level, EntitySpawnReason.LOAD);
+            internal = CraftEntityType.bukkitToMinecraft(type).create(nms, EntitySpawnReason.LOAD);
         }
 
         Preconditions.checkArgument(internal != null, "Error creating new entity."); // This should only fail if the stored NBTTagCompound is malformed.
-        ValueInput val = TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), data);
+        ValueInput val = TagValueInput.create(ProblemReporter.DISCARDING, nms.registryAccess(), data);
         internal.load(val);
 
         return internal;

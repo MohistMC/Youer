@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import java.util.Set;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Team.CollisionRule;
@@ -80,7 +81,7 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
     public ChatColor getColor() {
         checkState();
 
-        return this.team.getColor().map(t -> CraftChatMessage.toLegacyFormat(t.textColor())).map(CraftChatMessage::getColor).orElse(ChatColor.RESET);
+        return CraftChatMessage.getColor(team.getColor().map(TeamColor::textColor).map(TextColor::getFormat).orElse(ChatFormatting.RESET));
     }
 
     @Override
@@ -88,14 +89,7 @@ final class CraftTeam extends CraftScoreboardComponent implements Team {
         Preconditions.checkArgument(color != null && !color.isFormat(), "Color cannot be null or a format");
         checkState();
 
-        this.team.setColor(
-                Optional.of(color)
-                        .filter(c -> c != ChatColor.RESET)
-                        .map(CraftChatMessage::getColor)
-                        .map(TextColor::fromLegacyFormat)
-                        .map(TextColor::serialize)
-                        .map(TeamColor::byName)
-        );
+        team.setColor(Optional.of(TeamColor.byName(TextColor.fromLegacyFormat(CraftChatMessage.getColor(color)).name)));
     }
 
     @Override

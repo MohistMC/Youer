@@ -154,9 +154,29 @@ public interface Attribute extends OldEnum<Attribute>, Keyed, Translatable, Regi
      */
     Attribute WAYPOINT_TRANSMIT_RANGE = getAttribute("waypoint_transmit_range");
     /**
-     * Waypoing receive range.
+     * Waypoint receive range.
      */
     Attribute WAYPOINT_RECEIVE_RANGE = getAttribute("waypoint_receive_range");
+    /**
+     * Drag applied to entity in air.
+     */
+    Attribute AIR_DRAG_MODIFIER = getAttribute("air_drag_modifier");
+    /**
+     * Distance below_name scoreboard displays are visible.
+     */
+    Attribute BELOW_NAME_DISTANCE = getAttribute("below_name_distance");
+    /**
+     * Bounciness when colliding with blocks.
+     */
+    Attribute BOUNCINESS = getAttribute("bounciness");
+    /**
+     * Friction when on blocks.
+     */
+    Attribute FRICTION_MODIFIER = getAttribute("friction_modifier");
+    /**
+     * Distance the name tag is visible.
+     */
+    Attribute NAME_TAG_DISTANCE = getAttribute("name_tag_distance");
 
     @NotNull
     private static Attribute getAttribute(@NotNull String key) {

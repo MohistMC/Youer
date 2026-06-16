@@ -9,6 +9,8 @@ import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ColorParticleOption;
 import net.minecraft.core.particles.DustColorTransitionOptions;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.GeyserBaseParticleOptions;
+import net.minecraft.core.particles.GeyserParticleOptions;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.PowerParticleOption;
@@ -213,6 +215,20 @@ public abstract class CraftParticle<D> implements Keyed {
                 }
             };
 
+            BiFunction<NamespacedKey, net.minecraft.core.particles.ParticleType<?>, CraftParticle<?>> gesyerFunction = (name, particletype) -> new CraftParticle<>(name, particletype, Integer.class) {
+                @Override
+                public ParticleOptions createParticleParam(Integer data) {
+                    return new GeyserParticleOptions((net.minecraft.core.particles.ParticleType<GeyserParticleOptions>) getHandle(), data);
+                }
+            };
+
+            BiFunction<NamespacedKey, net.minecraft.core.particles.ParticleType<?>, CraftParticle<?>> geyserBaseFunction = (name, particletype) -> new CraftParticle<>(name, particletype, Particle.GeyserBase.class) {
+                @Override
+                public ParticleOptions createParticleParam(Particle.GeyserBase data) {
+                    return new GeyserBaseParticleOptions((net.minecraft.core.particles.ParticleType<GeyserBaseParticleOptions>) getHandle(), data.getWaterBlocks(), data.getBurstImpulseBase());
+                }
+            };
+
             add("dust", dustOptionsFunction);
             add("item", itemStackFunction);
             add("block", blockDataFunction);
@@ -231,6 +247,10 @@ public abstract class CraftParticle<D> implements Keyed {
             add("trail", trailFunction);
             add("effect", spellFunction);
             add("instant_effect", spellFunction);
+            add("geyser", gesyerFunction);
+            add("geyser_base", geyserBaseFunction);
+            add("geyser_poof", geyserBaseFunction);
+            add("geyser_plume", gesyerFunction);
         }
 
         private static void add(String name, BiFunction<NamespacedKey, net.minecraft.core.particles.ParticleType<?>, CraftParticle<?>> function) {

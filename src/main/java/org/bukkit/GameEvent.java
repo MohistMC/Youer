@@ -21,6 +21,7 @@ public abstract class GameEvent implements Keyed, RegistryAware {
     public static final GameEvent BLOCK_DETACH = getEvent("block_detach");
     public static final GameEvent BLOCK_OPEN = getEvent("block_open");
     public static final GameEvent BLOCK_PLACE = getEvent("block_place");
+    public static final GameEvent BOUNCE = getEvent("bounce");
     @Deprecated(since = "1.19")
     public static final GameEvent BLOCK_PRESS = getEvent("block_activate");
     @Deprecated(since = "1.19")

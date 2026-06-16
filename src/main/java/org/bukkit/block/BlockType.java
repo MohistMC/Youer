@@ -86,6 +86,7 @@ import org.bukkit.block.data.type.Piston;
 import org.bukkit.block.data.type.PistonHead;
 import org.bukkit.block.data.type.PitcherCrop;
 import org.bukkit.block.data.type.PointedDripstone;
+import org.bukkit.block.data.type.PotentSulfur;
 import org.bukkit.block.data.type.RedstoneRail;
 import org.bukkit.block.data.type.RedstoneWallTorch;
 import org.bukkit.block.data.type.RedstoneWire;
@@ -3185,6 +3186,90 @@ public interface BlockType extends Keyed, Translatable, RegistryAware {
      */
     BlockType.Typed<Wall> TUFF_BRICK_WALL = getBlockType("tuff_brick_wall");
     BlockType.Typed<BlockData> CHISELED_TUFF_BRICKS = getBlockType("chiseled_tuff_bricks");
+    BlockType.Typed<BlockData> SULFUR = getBlockType("sulfur");
+    /**
+     * BlockData: {@link PotentSulfur}
+     */
+    BlockType.Typed<PotentSulfur> POTENT_SULFUR = getBlockType("potent_sulfur");
+    /**
+     * BlockData: {@link Slab}
+     */
+    BlockType.Typed<Slab> SULFUR_SLAB = getBlockType("sulfur_slab");
+    /**
+     * BlockData: {@link Stairs}
+     */
+    BlockType.Typed<Stairs> SULFUR_STAIRS = getBlockType("sulfur_stairs");
+    /**
+     * BlockData: {@link Wall}
+     */
+    BlockType.Typed<Wall> SULFUR_WALL = getBlockType("sulfur_wall");
+    BlockType.Typed<BlockData> POLISHED_SULFUR = getBlockType("polished_sulfur");
+    /**
+     * BlockData: {@link Slab}
+     */
+    BlockType.Typed<Slab> POLISHED_SULFUR_SLAB = getBlockType("polished_sulfur_slab");
+    /**
+     * BlockData: {@link Stairs}
+     */
+    BlockType.Typed<Stairs> POLISHED_SULFUR_STAIRS = getBlockType("polished_sulfur_stairs");
+    /**
+     * BlockData: {@link Wall}
+     */
+    BlockType.Typed<Wall> POLISHED_SULFUR_WALL = getBlockType("polished_sulfur_wall");
+    BlockType.Typed<BlockData> SULFUR_BRICKS = getBlockType("sulfur_bricks");
+    /**
+     * BlockData: {@link Slab}
+     */
+    BlockType.Typed<Slab> SULFUR_BRICK_SLAB = getBlockType("sulfur_brick_slab");
+    /**
+     * BlockData: {@link Stairs}
+     */
+    BlockType.Typed<Stairs> SULFUR_BRICK_STAIRS = getBlockType("sulfur_brick_stairs");
+    /**
+     * BlockData: {@link Wall}
+     */
+    BlockType.Typed<Wall> SULFUR_BRICK_WALL = getBlockType("sulfur_brick_wall");
+    BlockType.Typed<BlockData> CHISELED_SULFUR = getBlockType("chiseled_sulfur");
+    BlockType.Typed<BlockData> CINNABAR = getBlockType("cinnabar");
+    /**
+     * BlockData: {@link Slab}
+     */
+    BlockType.Typed<Slab> CINNABAR_SLAB = getBlockType("cinnabar_slab");
+    /**
+     * BlockData: {@link Stairs}
+     */
+    BlockType.Typed<Stairs> CINNABAR_STAIRS = getBlockType("cinnabar_stairs");
+    /**
+     * BlockData: {@link Wall}
+     */
+    BlockType.Typed<Wall> CINNABAR_WALL = getBlockType("cinnabar_wall");
+    BlockType.Typed<BlockData> POLISHED_CINNABAR = getBlockType("polished_cinnabar");
+    /**
+     * BlockData: {@link Slab}
+     */
+    BlockType.Typed<Slab> POLISHED_CINNABAR_SLAB = getBlockType("polished_cinnabar_slab");
+    /**
+     * BlockData: {@link Stairs}
+     */
+    BlockType.Typed<Stairs> POLISHED_CINNABAR_STAIRS = getBlockType("polished_cinnabar_stairs");
+    /**
+     * BlockData: {@link Wall}
+     */
+    BlockType.Typed<Wall> POLISHED_CINNABAR_WALL = getBlockType("polished_cinnabar_wall");
+    BlockType.Typed<BlockData> CINNABAR_BRICKS = getBlockType("cinnabar_bricks");
+    /**
+     * BlockData: {@link Slab}
+     */
+    BlockType.Typed<Slab> CINNABAR_BRICK_SLAB = getBlockType("cinnabar_brick_slab");
+    /**
+     * BlockData: {@link Stairs}
+     */
+    BlockType.Typed<Stairs> CINNABAR_BRICK_STAIRS = getBlockType("cinnabar_brick_stairs");
+    /**
+     * BlockData: {@link Wall}
+     */
+    BlockType.Typed<Wall> CINNABAR_BRICK_WALL = getBlockType("cinnabar_brick_wall");
+    BlockType.Typed<BlockData> CHISELED_CINNABAR = getBlockType("chiseled_cinnabar");
     BlockType.Typed<BlockData> CALCITE = getBlockType("calcite");
     BlockType.Typed<BlockData> TINTED_GLASS = getBlockType("tinted_glass");
     BlockType.Typed<BlockData> POWDER_SNOW = getBlockType("powder_snow");
@@ -3527,6 +3612,10 @@ public interface BlockType extends Keyed, Translatable, RegistryAware {
      * BlockData: {@link PointedDripstone}
      */
     BlockType.Typed<PointedDripstone> POINTED_DRIPSTONE = getBlockType("pointed_dripstone");
+    /**
+     * BlockData: {@link PointedDripstone}
+     */
+    BlockType.Typed<PointedDripstone> SULFUR_SPIKE = getBlockType("sulfur_spike");
     BlockType.Typed<BlockData> DRIPSTONE_BLOCK = getBlockType("dripstone_block");
     /**
      * BlockData: {@link CaveVines}

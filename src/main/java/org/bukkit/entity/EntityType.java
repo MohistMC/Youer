@@ -346,6 +346,7 @@ public enum EntityType implements Keyed, Translatable, RegistryAware {
     NAUTILUS("nautilus", Nautilus.class, -1),
     PARCHED("parched", Parched.class, -1),
     ZOMBIE_NAUTILUS("zombie_nautilus", ZombieNautilus.class, -1),
+    SULFUR_CUBE("sulfur_cube", SulfurCube.class, -1),
     /**
      * A fishing line and bobber.
      */

@@ -24,6 +24,7 @@ public interface DamageType extends Keyed, Translatable, RegistryAware {
     public static final DamageType ON_FIRE = getDamageType("on_fire");
     public static final DamageType LAVA = getDamageType("lava");
     public static final DamageType HOT_FLOOR = getDamageType("hot_floor");
+    public static final DamageType SULFUR_CUBE_HOT = getDamageType("sulfur_cube_hot");
     public static final DamageType IN_WALL = getDamageType("in_wall");
     public static final DamageType CRAMMING = getDamageType("cramming");
     public static final DamageType DROWN = getDamageType("drown");

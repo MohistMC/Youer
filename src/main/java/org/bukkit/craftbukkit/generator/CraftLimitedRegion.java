@@ -86,11 +86,11 @@ public class CraftLimitedRegion extends CraftRegionAccessor implements LimitedRe
                 ProtoChunk chunk = (ProtoChunk) access.getChunk(centerChunkX + x, centerChunkZ + z);
                 for (CompoundTag compound : chunk.getEntities()) {
                     EntityType.loadEntityRecursive(compound, access.getMinecraftWorld(), new EntitySpawnRequest(EntitySpawnReason.LOAD, false), (entity) -> {
-                        if (this.region.contains(entity.getX(), entity.getY(), entity.getZ())) {
+                        if (region.contains(entity.getX(), entity.getY(), entity.getZ())) {
                             entity.generation = true;
-                            this.entities.add(entity);
+                            entities.add(entity);
                         } else {
-                            this.outsideEntities.add(entity);
+                            outsideEntities.add(entity);
                         }
                         return entity;
                     });

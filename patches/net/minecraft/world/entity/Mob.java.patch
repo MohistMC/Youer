@@ -253,6 +253,16 @@
      }
  
      protected boolean canShearEquipment(Player player) {
+@@ -591,7 +_,9 @@
+         this.setItemSlot(slot, ItemStack.EMPTY);
+         this.gameEvent(GameEvent.SHEAR, player);
+         if (this.level() instanceof ServerLevel serverLevel) {
++            this.forceDrops = true; // CraftBukkit
+             this.spawnAtLocation(serverLevel, itemStackToShear, equipmentSpawnOffset);
++            this.forceDrops = false; // CraftBukkit
+             CriteriaTriggers.PLAYER_SHEARED_EQUIPMENT.trigger((ServerPlayer)player, itemStackToShear, this);
+         }
+     }
 @@ -646,6 +_,8 @@
      private double getApproximateAttributeWith(ItemStack itemStack, Holder<Attribute> attribute, EquipmentSlot slot) {
          double baseValue = this.getAttributes().hasAttribute(attribute) ? this.getAttributeBaseValue(attribute) : 0.0;

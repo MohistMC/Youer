@@ -98,6 +98,10 @@ public final class DamageTypeTags {
      */
     public static final Tag<DamageType> WITHER_IMMUNE_TO = getTag("wither_immune_to");
     /**
+     * Vanilla tag representing damage types types which sulfur cubes with block absorbed are immune to.
+     */
+    public static final Tag<DamageType> SULFUR_CUBE_WITH_BLOCK_IMMUNE_TO = getTag("sulfur_cube_with_block_immune_to");
+    /**
      * Vanilla tag representing damage types which ignite armor stands.
      */
     public static final Tag<DamageType> IGNITES_ARMOR_STANDS = getTag("ignites_armor_stands");

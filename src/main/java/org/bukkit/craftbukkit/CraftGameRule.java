@@ -35,6 +35,12 @@ public class CraftGameRule<T> implements Handleable<net.minecraft.world.level.ga
 
     @NotNull
     @Override
+    public T getDefaultValue() {
+        return this.handle.defaultValue();
+    }
+
+    @NotNull
+    @Override
     public NamespacedKey getKey() {
         return getKeyOrThrow();
     }

@@ -57,6 +57,7 @@ import org.bukkit.craftbukkit.block.CraftBiome;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.damage.CraftDamageEffect;
 import org.bukkit.craftbukkit.damage.CraftDamageSourceBuilder;
+import org.bukkit.craftbukkit.entity.CraftEntityType;
 import org.bukkit.craftbukkit.entity.CraftVillager;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.legacy.CraftLegacy;
@@ -360,8 +361,7 @@ public final class CraftMagicNumbers implements UnsafeValues {
 
     @Override
     public String getTranslationKey(EntityType entityType) {
-        Preconditions.checkArgument(entityType.getName() != null, "Invalid name of EntityType %s for translation key", entityType);
-        return net.minecraft.world.entity.EntityType.byString(entityType.getName()).map(net.minecraft.world.entity.EntityType::getDescriptionId).orElseThrow();
+        return CraftEntityType.bukkitToMinecraft(entityType).getDescriptionId();
     }
 
     @Override

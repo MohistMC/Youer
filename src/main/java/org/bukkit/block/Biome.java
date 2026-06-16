@@ -81,6 +81,7 @@ public interface Biome extends OldEnum<Biome>, Keyed, RegistryAware {
     Biome DRIPSTONE_CAVES = getBiome("dripstone_caves");
     Biome LUSH_CAVES = getBiome("lush_caves");
     Biome DEEP_DARK = getBiome("deep_dark");
+    Biome SULFUR_CAVES = getBiome("sulfur_caves");
     Biome MEADOW = getBiome("meadow");
     Biome GROVE = getBiome("grove");
     Biome SNOWY_SLOPES = getBiome("snowy_slopes");

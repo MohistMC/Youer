@@ -44,6 +44,7 @@ import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.world.level.block.entity.JigsawBlockEntity;
 import net.minecraft.world.level.block.entity.JukeboxBlockEntity;
 import net.minecraft.world.level.block.entity.LecternBlockEntity;
+import net.minecraft.world.level.block.entity.PotentSulfurBlockEntity;
 import net.minecraft.world.level.block.entity.SculkCatalystBlockEntity;
 import net.minecraft.world.level.block.entity.SculkSensorBlockEntity;
 import net.minecraft.world.level.block.entity.SculkShriekerBlockEntity;
@@ -371,6 +372,7 @@ public final class CraftBlockStates {
         register(Material.VAULT, CraftVault.class, CraftVault::new, VaultBlockEntity::new);
         register(Material.TEST_BLOCK, CraftTestBlock.class, CraftTestBlock::new, TestBlockEntity::new);
         register(Material.TEST_INSTANCE_BLOCK, CraftTestInstance.class, CraftTestInstance::new, TestInstanceBlockEntity::new);
+        register(Material.POTENT_SULFUR, CraftPotentSulfurBlock.class, CraftPotentSulfurBlock::new, PotentSulfurBlockEntity::new);
     }
 
     private static void register(Material blockType, BlockStateFactory<?> factory) {

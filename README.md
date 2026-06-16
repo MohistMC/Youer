@@ -31,9 +31,9 @@
 
 ✅ **Core Integration**
 - [x] NeoForge ([ebb37812f](https://github.com/neoforged/NeoForge/commit/ebb37812f))
-- [x] Bukkit API ([e12da072](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/bukkit/commits/e12da072))
-- [x] CraftBukkit ([f6faf9ed8](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/f6faf9ed8))
-- [ ] Spigot ([566f9723](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/spigot/commits/566f9723))
+- [x] Bukkit API ([10827ca5](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/bukkit/commits/10827ca5))
+- [x] CraftBukkit ([3259c8108](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/3259c8108))
+- [ ] Spigot ([8db49a2b](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/spigot/commits/8db49a2b))
 
 - [ ] Paper ([27f926e7e](https://github.com/PaperMC/Paper/commit/27f926e7e))
   - [ ] api

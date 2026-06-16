@@ -108,7 +108,7 @@ public final class CraftChatMessage {
                             modifier = RESET.withColor(TextColor.parseColor(hex.toString()).result().get());
                             hex = null;
                         }
-                    } else if (isFormat(format) && format != ChatFormatting.RESET) {
+                    } else if (format.compareTo(ChatFormatting.WHITE) > 0 && format != ChatFormatting.RESET) {
                         switch (format) {
                         case BOLD:
                             modifier = modifier.withBold(Boolean.TRUE);
@@ -290,9 +290,8 @@ public final class CraftChatMessage {
             TextColor color = modi.getColor();
             if (c.getContents() != PlainTextContents.EMPTY || color != null) {
                 if (color != null) {
-                    final ChatFormatting format = toLegacyFormat(color);
-                    if (format != null) {
-                        out.append(format);
+                    if (color.format != null) {
+                        out.append(color.format);
                     } else {
                         out.append(ChatColor.COLOR_CHAR).append("x");
                         for (char magic : color.serialize().substring(1).toCharArray()) {
@@ -408,36 +407,6 @@ public final class CraftChatMessage {
         }
 
         return component;
-    }
-
-    public static @org.jspecify.annotations.Nullable ChatFormatting toLegacyFormat(final TextColor color) {
-        // rgb values of the named text colors mapped to the legacy chat formatting enum
-        return switch (color.getValue()) {
-            case 0 -> ChatFormatting.BLACK;
-            case 170 -> ChatFormatting.DARK_BLUE;
-            case 43520 -> ChatFormatting.DARK_GREEN;
-            case 43690 -> ChatFormatting.DARK_AQUA;
-            case 11141120 -> ChatFormatting.DARK_RED;
-            case 11141290 -> ChatFormatting.DARK_PURPLE;
-            case 16755200 -> ChatFormatting.GOLD;
-            case 11184810 -> ChatFormatting.GRAY;
-            case 5592405 -> ChatFormatting.DARK_GRAY;
-            case 5592575 -> ChatFormatting.BLUE;
-            case 5635925 -> ChatFormatting.GREEN;
-            case 5636095 -> ChatFormatting.AQUA;
-            case 16733525 -> ChatFormatting.RED;
-            case 16733695 -> ChatFormatting.LIGHT_PURPLE;
-            case 16777045 -> ChatFormatting.YELLOW;
-            case 16777215 -> ChatFormatting.WHITE;
-            default -> null;
-        };
-    }
-
-    private static boolean isFormat(final ChatFormatting formatting) {
-        return switch (formatting) {
-            case OBFUSCATED, BOLD, STRIKETHROUGH, UNDERLINE, ITALIC -> true;
-            default -> false;
-        };
     }
 
     private CraftChatMessage() {

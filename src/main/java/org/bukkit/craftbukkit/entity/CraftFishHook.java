@@ -194,6 +194,6 @@ public class CraftFishHook extends CraftProjectile implements FishHook {
 
     @Override
     public HookState getState() {
-        return HookState.values()[this.getHandle().currentState.ordinal()];
+        return HookState.values()[getHandle().currentState.ordinal()];
     }
 }

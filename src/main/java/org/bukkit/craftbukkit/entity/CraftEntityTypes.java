@@ -167,6 +167,7 @@ import org.bukkit.entity.SplashPotion;
 import org.bukkit.entity.Squid;
 import org.bukkit.entity.Stray;
 import org.bukkit.entity.Strider;
+import org.bukkit.entity.SulfurCube;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.entity.Tadpole;
 import org.bukkit.entity.TextDisplay;
@@ -300,6 +301,7 @@ public final class CraftEntityTypes {
         register(new EntityTypeData<>(org.bukkit.entity.EntityType.SILVERFISH, Silverfish.class, CraftSilverfish::new, createLiving(EntityTypes.SILVERFISH)));
         register(new EntityTypeData<>(org.bukkit.entity.EntityType.BLAZE, Blaze.class, CraftBlaze::new, createLiving(EntityTypes.BLAZE)));
         register(new EntityTypeData<>(org.bukkit.entity.EntityType.MAGMA_CUBE, MagmaCube.class, CraftMagmaCube::new, createLiving(EntityTypes.MAGMA_CUBE)));
+        register(new EntityTypeData<>(org.bukkit.entity.EntityType.SULFUR_CUBE, SulfurCube.class, CraftSulfurCube::new, createLiving(EntityTypes.SULFUR_CUBE)));
         register(new EntityTypeData<>(org.bukkit.entity.EntityType.WITHER, Wither.class, CraftWither::new, createLiving(EntityTypes.WITHER)));
         register(new EntityTypeData<>(org.bukkit.entity.EntityType.BAT, Bat.class, CraftBat::new, createLiving(EntityTypes.BAT)));
         register(new EntityTypeData<>(org.bukkit.entity.EntityType.WITCH, Witch.class, CraftWitch::new, createLiving(EntityTypes.WITCH)));

@@ -14,6 +14,25 @@ public enum Particle implements Keyed, RegistryAware {
     EXPLOSION_EMITTER("explosion_emitter"),
     FIREWORK("firework"),
     BUBBLE("bubble"),
+    SULFUR_BUBBLES("sulfur_bubbles"),
+    NOXIOUS_GAS("noxious_gas"),
+    NOXIOUS_GAS_CLOUD("noxious_gas_cloud"),
+    /**
+     * Uses {@link Integer} as DataType
+     */
+    GEYSER("geyser", Integer.class),
+    /**
+     * Uses {@link GeyserBase} as DataType
+     */
+    GEYSER_BASE("geyser_base", GeyserBase.class),
+    /**
+     * Uses {@link GeyserBase} as DataType
+     */
+    GEYSER_POOF("geyser_poof", GeyserBase.class),
+    /**
+     * Uses {@link Integer} as DataType
+     */
+    GEYSER_PLUME("geyser_plume", Integer.class),
     SPLASH("splash"),
     FISHING("fishing"),
     UNDERWATER("underwater"),
@@ -179,6 +198,7 @@ public enum Particle implements Keyed, RegistryAware {
      */
     BLOCK_MARKER("block_marker", BlockData.class),
     FIREFLY("firefly"),
+    SULFUR_CUBE_GOO("sulfur_cube_goo"),
     COPPER_FIRE_FLAME("copper_fire_flame"),
     PAUSE_MOB_GROWTH("pause_mob_growth"),
     RESET_MOB_GROWTH("reset_mob_growth"),
@@ -389,6 +409,30 @@ public enum Particle implements Keyed, RegistryAware {
          */
         public float getPower() {
             return power;
+        }
+    }
+
+    /**
+     * Options which can be applied to a geyser base - a scale for number of
+     * blocks and initial burst impulse.
+     */
+    @ApiStatus.Experimental
+    public static class GeyserBase {
+
+        private final int waterBlocks;
+        private final float burstImpulseBase;
+
+        public GeyserBase(int waterBlocks, float burstImpulseBase) {
+            this.waterBlocks = waterBlocks;
+            this.burstImpulseBase = burstImpulseBase;
+        }
+
+        public int getWaterBlocks() {
+            return this.waterBlocks;
+        }
+
+        public float getBurstImpulseBase() {
+            return this.burstImpulseBase;
         }
     }
 }

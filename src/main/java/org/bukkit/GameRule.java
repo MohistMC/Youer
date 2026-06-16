@@ -326,6 +326,14 @@ public interface GameRule<T> extends Keyed, RegistryAware {
     }
 
     /**
+     * Gets the default value of this rule.
+     *
+     * @return the default value
+     */
+    @NotNull
+    public T getDefaultValue();
+
+    /**
      * {@inheritDoc}
      *
      * @see #getKeyOrThrow()

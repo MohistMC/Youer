@@ -119,6 +119,36 @@ public interface ItemType extends Keyed, Translatable, RegistryAware {
     ItemType.Typed<ItemMeta> TUFF_BRICK_STAIRS = getItemType("tuff_brick_stairs");
     ItemType.Typed<ItemMeta> TUFF_BRICK_WALL = getItemType("tuff_brick_wall");
     ItemType.Typed<ItemMeta> CHISELED_TUFF_BRICKS = getItemType("chiseled_tuff_bricks");
+    ItemType.Typed<ItemMeta> SULFUR = getItemType("sulfur");
+    /**
+     * ItemMeta: {@link BlockStateMeta}
+     */
+    ItemType.Typed<BlockStateMeta> POTENT_SULFUR = getItemType("potent_sulfur");
+    ItemType.Typed<ItemMeta> SULFUR_SLAB = getItemType("sulfur_slab");
+    ItemType.Typed<ItemMeta> SULFUR_STAIRS = getItemType("sulfur_stairs");
+    ItemType.Typed<ItemMeta> SULFUR_WALL = getItemType("sulfur_wall");
+    ItemType.Typed<ItemMeta> POLISHED_SULFUR = getItemType("polished_sulfur");
+    ItemType.Typed<ItemMeta> POLISHED_SULFUR_SLAB = getItemType("polished_sulfur_slab");
+    ItemType.Typed<ItemMeta> POLISHED_SULFUR_STAIRS = getItemType("polished_sulfur_stairs");
+    ItemType.Typed<ItemMeta> POLISHED_SULFUR_WALL = getItemType("polished_sulfur_wall");
+    ItemType.Typed<ItemMeta> SULFUR_BRICKS = getItemType("sulfur_bricks");
+    ItemType.Typed<ItemMeta> SULFUR_BRICK_SLAB = getItemType("sulfur_brick_slab");
+    ItemType.Typed<ItemMeta> SULFUR_BRICK_STAIRS = getItemType("sulfur_brick_stairs");
+    ItemType.Typed<ItemMeta> SULFUR_BRICK_WALL = getItemType("sulfur_brick_wall");
+    ItemType.Typed<ItemMeta> CHISELED_SULFUR = getItemType("chiseled_sulfur");
+    ItemType.Typed<ItemMeta> CINNABAR = getItemType("cinnabar");
+    ItemType.Typed<ItemMeta> CINNABAR_SLAB = getItemType("cinnabar_slab");
+    ItemType.Typed<ItemMeta> CINNABAR_STAIRS = getItemType("cinnabar_stairs");
+    ItemType.Typed<ItemMeta> CINNABAR_WALL = getItemType("cinnabar_wall");
+    ItemType.Typed<ItemMeta> POLISHED_CINNABAR = getItemType("polished_cinnabar");
+    ItemType.Typed<ItemMeta> POLISHED_CINNABAR_SLAB = getItemType("polished_cinnabar_slab");
+    ItemType.Typed<ItemMeta> POLISHED_CINNABAR_STAIRS = getItemType("polished_cinnabar_stairs");
+    ItemType.Typed<ItemMeta> POLISHED_CINNABAR_WALL = getItemType("polished_cinnabar_wall");
+    ItemType.Typed<ItemMeta> CINNABAR_BRICKS = getItemType("cinnabar_bricks");
+    ItemType.Typed<ItemMeta> CINNABAR_BRICK_SLAB = getItemType("cinnabar_brick_slab");
+    ItemType.Typed<ItemMeta> CINNABAR_BRICK_STAIRS = getItemType("cinnabar_brick_stairs");
+    ItemType.Typed<ItemMeta> CINNABAR_BRICK_WALL = getItemType("cinnabar_brick_wall");
+    ItemType.Typed<ItemMeta> CHISELED_CINNABAR = getItemType("chiseled_cinnabar");
     ItemType.Typed<ItemMeta> DRIPSTONE_BLOCK = getItemType("dripstone_block");
     ItemType.Typed<ItemMeta> GRASS_BLOCK = getItemType("grass_block");
     ItemType.Typed<ItemMeta> DIRT = getItemType("dirt");
@@ -1413,6 +1443,7 @@ public interface ItemType extends Keyed, Translatable, RegistryAware {
      * ItemMeta: {@link AxolotlBucketMeta}
      */
     ItemType.Typed<AxolotlBucketMeta> AXOLOTL_BUCKET = getItemType("axolotl_bucket");
+    ItemType.Typed<ItemMeta> SULFUR_CUBE_BUCKET = getItemType("sulfur_cube_bucket");
     ItemType.Typed<ItemMeta> TADPOLE_BUCKET = getItemType("tadpole_bucket");
     ItemType.Typed<ItemMeta> BRICK = getItemType("brick");
     ItemType.Typed<ItemMeta> CLAY_BALL = getItemType("clay_ball");
@@ -1729,6 +1760,10 @@ public interface ItemType extends Keyed, Translatable, RegistryAware {
      * ItemMeta: {@link SpawnEggMeta}
      */
     ItemType.Typed<SpawnEggMeta> SNIFFER_SPAWN_EGG = getItemType("sniffer_spawn_egg");
+    /**
+     * ItemMeta: {@link SpawnEggMeta}
+     */
+    ItemType.Typed<SpawnEggMeta> SULFUR_CUBE_SPAWN_EGG = getItemType("sulfur_cube_spawn_egg");
     /**
      * ItemMeta: {@link SpawnEggMeta}
      */
@@ -2130,6 +2165,7 @@ public interface ItemType extends Keyed, Translatable, RegistryAware {
     ItemType.Typed<ItemMeta> MUSIC_DISC_13 = getItemType("music_disc_13");
     ItemType.Typed<ItemMeta> MUSIC_DISC_CAT = getItemType("music_disc_cat");
     ItemType.Typed<ItemMeta> MUSIC_DISC_BLOCKS = getItemType("music_disc_blocks");
+    ItemType.Typed<ItemMeta> MUSIC_DISC_BOUNCE = getItemType("music_disc_bounce");
     ItemType.Typed<ItemMeta> MUSIC_DISC_CHIRP = getItemType("music_disc_chirp");
     ItemType.Typed<ItemMeta> MUSIC_DISC_CREATOR = getItemType("music_disc_creator");
     ItemType.Typed<ItemMeta> MUSIC_DISC_CREATOR_MUSIC_BOX = getItemType("music_disc_creator_music_box");
@@ -2264,6 +2300,7 @@ public interface ItemType extends Keyed, Translatable, RegistryAware {
     ItemType.Typed<ItemMeta> LARGE_AMETHYST_BUD = getItemType("large_amethyst_bud");
     ItemType.Typed<ItemMeta> AMETHYST_CLUSTER = getItemType("amethyst_cluster");
     ItemType.Typed<ItemMeta> POINTED_DRIPSTONE = getItemType("pointed_dripstone");
+    ItemType.Typed<ItemMeta> SULFUR_SPIKE = getItemType("sulfur_spike");
     ItemType.Typed<ItemMeta> OCHRE_FROGLIGHT = getItemType("ochre_froglight");
     ItemType.Typed<ItemMeta> VERDANT_FROGLIGHT = getItemType("verdant_froglight");
     ItemType.Typed<ItemMeta> PEARLESCENT_FROGLIGHT = getItemType("pearlescent_froglight");
