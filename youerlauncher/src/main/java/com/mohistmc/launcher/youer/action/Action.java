@@ -46,6 +46,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import lombok.SneakyThrows;
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
@@ -261,7 +262,7 @@ public class Action {
     protected void copyFileFromJar(File file, String pathInJar, boolean clearOld) {
         if (file == BINPATCH) file.delete();
         InputStream is = Main.class.getClassLoader().getResourceAsStream(pathInJar);
-        if (!file.exists() || !SHA256.as(file).equals(SHA256.as(is)) || file.length() <= 1) {
+        if (!file.exists() || !Objects.equals(SHA256.as(file), SHA256.as(is)) || file.length() <= 1) {
             // Clear old version
             if (clearOld) {
                 File parentfile = file.getParentFile();
