@@ -117,7 +117,7 @@
          } catch (IOException e) {
              throw new IllegalArgumentException("Failed to read Code of Conduct folder", e);
          }
-@@ -164,21 +_,80 @@
+@@ -164,21 +_,72 @@
  
      @Override
      protected boolean initServer() throws IOException {
@@ -158,7 +158,7 @@
 +                                line = reader.readLine();
 +                            }
 +
-+                            if (line.trim().length() > 0) { // Trim to filter lines which are just spaces
++                            if (!line.trim().isEmpty()) { // Trim to filter lines which are just spaces
 +                                DedicatedServer.this.handleConsoleInput(line, DedicatedServer.this.createCommandSourceStack());
 +                            }
 +                        } catch (EndOfFileException | UserInterruptException eof) {
@@ -186,18 +186,10 @@
 +        }
 +        global.addHandler(new org.bukkit.craftbukkit.util.ForwardLogHandler());
 +
-+        final org.apache.logging.log4j.core.Logger logger = ((org.apache.logging.log4j.core.Logger) LogManager.getRootLogger());
-+        for (org.apache.logging.log4j.core.Appender appender : logger.getAppenders().values()) {
-+            if (appender instanceof org.apache.logging.log4j.core.appender.ConsoleAppender) {
-+                logger.removeAppender(appender);
-+            }
-+        }
++        final org.apache.logging.log4j.Logger logger = LogManager.getRootLogger();
 +
-+        TerminalConsoleWriterThread writerThread = new TerminalConsoleWriterThread(System.out, reader);
-+        writerThread.start();
-+
-+        System.setOut(IoBuilder.forLogger(logger).setLevel(Level.INFO).buildPrintStream());
-+        System.setErr(IoBuilder.forLogger(logger).setLevel(Level.WARN).buildPrintStream());
++        System.setOut(IoBuilder.forLogger(logger).setLevel(org.apache.logging.log4j.Level.INFO).buildPrintStream());
++        System.setErr(IoBuilder.forLogger(logger).setLevel(org.apache.logging.log4j.Level.WARN).buildPrintStream());
 +        // CraftBukkit end
 +
          consoleThread.setDaemon(true);
