@@ -23,9 +23,18 @@
  import java.net.Proxy;
  import java.nio.file.FileStore;
  import java.nio.file.Files;
-@@ -36,6 +_,7 @@
+@@ -30,12 +_,16 @@
+ import java.util.Map;
+ import java.util.Objects;
+ import java.util.Optional;
++import java.util.Random;
+ import java.util.Set;
+ import java.util.UUID;
+ import java.util.Map.Entry;
  import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.Executor;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
  import java.util.concurrent.RejectedExecutionException;
 +import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.concurrent.atomic.AtomicReference;
@@ -202,8 +211,12 @@
          Thread serverThread,
          LevelStorageSource.LevelStorageAccess storageSource,
          PackRepository packRepository,
-@@ -326,41 +_,69 @@
-         if (!this.registries.compositeAccess().lookupOrThrow(Registries.LEVEL_STEM).containsKey(LevelStem.OVERWORLD)) {
+@@ -323,44 +_,72 @@
+     ) {
+         super("Server", propagatesCrashes);
+         this.registries = worldStem.registries();
+-        if (!this.registries.compositeAccess().lookupOrThrow(Registries.LEVEL_STEM).containsKey(LevelStem.OVERWORLD)) {
++        if (false && !this.registries.compositeAccess().lookupOrThrow(Registries.LEVEL_STEM).containsKey(LevelStem.OVERWORLD)) {
              throw new IllegalStateException("Missing Overworld dimension data");
          }
 -
@@ -612,14 +625,32 @@
      }
  
      private static void setInitialSpawn(
-@@ -488,6 +_,7 @@
+@@ -488,7 +_,25 @@
              levelData.setSpawn(LevelData.RespawnData.of(level.dimension(), BlockPos.ZERO.above(80), 0.0F, 0.0F));
          } else {
              ServerChunkCache chunkSource = level.getChunkSource();
 +            if (net.neoforged.neoforge.event.EventHooks.onCreateWorldSpawn(level, levelData)) return;
              ChunkPos spawnChunk = ChunkPos.containing(chunkSource.randomState().sampler().findSpawnPosition());
++
++            // CraftBukkit start
++            if (level.generator != null) {
++                Random rand = new Random(level.getSeed());
++                org.bukkit.Location spawn = level.generator.getFixedSpawnLocation(level.getWorld(), rand);
++
++                if (spawn != null) {
++                    if (spawn.getWorld() != level.getWorld()) {
++                        throw new IllegalStateException("Cannot set spawn point for " + levelData.getLevelName() + " to be in another world (" + spawn.getWorld().getName() + ")");
++                    } else {
++                        levelData.setSpawn(LevelData.RespawnData.of(level.dimension(), new BlockPos(spawn.getBlockX(), spawn.getBlockY(), spawn.getBlockZ()), spawn.getYaw(), spawn.getPitch()));
++                        return;
++                    }
++                }
++            }
++            // CraftBukkit end
++
              levelLoadListener.start(LevelLoadListener.Stage.PREPARE_GLOBAL_SPAWN, 0);
              levelLoadListener.updateFocus(level.dimension(), spawnChunk);
+             int height = chunkSource.getGenerator().getSpawnHeight(level);
 @@ -533,37 +_,41 @@
          }
      }
@@ -631,7 +662,7 @@
          ServerLevelData levelData = worldData.overworldData();
 -        this.getGameRules().set(GameRules.ADVANCE_WEATHER, false, this);
 -        this.clockManager.moveToTimeMarker(this.registryAccess().getOrThrow(WorldClocks.OVERWORLD), ClockTimeMarkers.NOON);
-+        this.getGameRules().set(GameRules.ADVANCE_WEATHER, false, serverlevel); // CraftBukkit
++        serverlevel.getGameRules().set(GameRules.ADVANCE_WEATHER, false, serverlevel); // CraftBukkit
 +        serverlevel.clockManager().moveToTimeMarker(this.registryAccess().getOrThrow(WorldClocks.OVERWORLD), ClockTimeMarkers.NOON); // CraftBukkit
          levelData.setGameType(GameType.SPECTATOR);
      }
@@ -844,11 +875,17 @@
              this.onServerCrash(report);
          } finally {
              try {
-@@ -796,6 +_,8 @@
+@@ -796,6 +_,14 @@
              } catch (Throwable t) {
                  LOGGER.error("Exception stopping the server", t);
              } finally {
 +                org.spigotmc.WatchdogThread.doStop(); // Spigot
++                // CraftBukkit start - Restore terminal to original settings
++                try {
++                    terminal.close();
++                } catch (Exception ignored) {
++                }
++                // CraftBukkit end
 +                net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStopped(this);
                  this.onServerExit();
              }
@@ -877,7 +914,14 @@
          long nano = Util.getNanos();
          int emptyTickThreshold = this.pauseWhenEmptySeconds() * 20;
          if (emptyTickThreshold > 0) {
-@@ -977,11 +_,13 @@
+@@ -971,21 +_,24 @@
+                     this.autoSave();
+                 }
+ 
++                this.server.getScheduler().mainThreadHeartbeat(); // CraftBukkit
+                 this.tickConnection();
+                 return;
+             }
          }
  
          this.tickCount++;
@@ -891,6 +935,11 @@
          }
  
          this.ticksUntilAutosave--;
+-        if (this.ticksUntilAutosave <= 0) {
++        if (this.autosavePeriod > 0 && this.ticksUntilAutosave <= 0) { // CraftBukkit
+             this.autoSave();
+         }
+ 
 @@ -999,6 +_,7 @@
          this.smoothedTickTimeMillis = this.smoothedTickTimeMillis * 0.8F + (float)tickTime / (float)TimeUtil.NANOSECONDS_PER_MILLISECOND * 0.19999999F;
          this.logTickMethodTime(nano);
@@ -899,6 +948,15 @@
      }
  
      protected void processPacketsAndTick(boolean sprinting) {
+@@ -1014,7 +_,7 @@
+     }
+ 
+     private void autoSave() {
+-        this.ticksUntilAutosave = this.computeNextAutosaveInterval();
++        this.ticksUntilAutosave = this.autosavePeriod; // CraftBukkit
+         LOGGER.debug("Autosave started");
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("save");
 @@ -1029,6 +_,16 @@
          }
      }
@@ -926,7 +984,13 @@
          );
      }
  
-@@ -1092,7 +_,11 @@
+@@ -1087,12 +_,17 @@
+     protected void tickChildren(BooleanSupplier haveTime) {
+         ProfilerFiller profiler = Profiler.get();
+         this.getPlayerList().getPlayers().forEach(playerx -> playerx.connection.suspendFlushing());
++        this.server.getScheduler().mainThreadHeartbeat(); // CraftBukkit
+         profiler.push("commandFunctions");
+         this.getFunctions().tick();
          profiler.pop();
          if (this.tickRateManager.runsNormally()) {
              profiler.push("clocks");
@@ -981,7 +1045,7 @@
              GameTestTicker.SINGLETON.tick();
          }
  
-@@ -1160,6 +_,9 @@
+@@ -1160,9 +_,16 @@
      }
  
      public void forceGameTimeSynchronization() {
@@ -990,7 +1054,15 @@
 +        }
          ProfilerFiller profiler = Profiler.get();
          profiler.push("timeSync");
-         this.playerList.broadcastAll(new ClientboundSetTimePacket(this.overworld().getGameTime(), Map.of()));
+-        this.playerList.broadcastAll(new ClientboundSetTimePacket(this.overworld().getGameTime(), Map.of()));
++        // CraftBukkit start
++        for (ServerLevel serverlevel : this.getAllLevels()) {
++            this.playerList.broadcastAll(new ClientboundSetTimePacket(serverlevel.getGameTime(), Map.of()), serverlevel);
++        }
++        // CraftBukkit end
+         profiler.pop();
+     }
+ 
 @@ -1190,6 +_,22 @@
          return this.levels.get(dimension);
      }
@@ -1059,6 +1131,14 @@
                      .map(Pack::open)
                      .collect(ImmutableList.toImmutableList()),
                  this
+@@ -1547,6 +_,7 @@
+             .thenAcceptAsync(newResources -> {
+                 this.resources.close();
+                 this.resources = newResources;
++                this.server.syncCommands(); // SPIGOT-5884: Lost on reload
+                 this.packRepository.setSelected(packsToEnable);
+                 WorldDataConfiguration newConfig = new WorldDataConfiguration(getSelectedPacks(this.packRepository, true), this.worldData.enabledFeatures());
+                 this.worldData.setDataConfiguration(newConfig);
 @@ -1556,7 +_,8 @@
                  this.getPlayerList().reloadResources();
                  this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
@@ -1214,13 +1294,15 @@
      public RegistryAccess.Frozen registryAccess() {
          return this.registries.compositeAccess();
      }
-@@ -2065,6 +_,11 @@
+@@ -2065,6 +_,13 @@
          }
      }
  
 +    // CraftBukkit start
-+    public final java.util.concurrent.ExecutorService chatExecutor = java.util.concurrent.Executors.newCachedThreadPool(
-+            new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Chat Thread - #%d").build());
++    public final ExecutorService chatExecutor = Executors.newThreadPerTaskExecutor(Thread.ofVirtual()
++            .name("Async Chat Thread - #", 0)
++            .uncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER))
++            .factory());
 +    // CraftBukkit end
 +
      public ChatDecorator getChatDecorator() {

@@ -1020,8 +1020,9 @@
 +            }
 +            // CraftBukkit end
              this.performUnsignedChatCommand(packet.command());
-             this.detectCommandRateSpam();
+-            this.detectCommandRateSpam();
 -        });
++            this.detectCommandRateSpam("/" + packet.command()); // Spigot
 +        }, true); // CraftBukkit - sync commands
      }
  
@@ -1051,8 +1052,9 @@
 +                }
 +                // CraftBukkit end
                  this.performSignedChatCommand(packet, unpackedLastSeen.get());
-                 this.detectCommandRateSpam();
+-                this.detectCommandRateSpam();
 -            });
++                this.detectCommandRateSpam("/" + packet.command()); // Spigot
 +            }, true); // CraftBukkit - sync commands
          }
      }
@@ -1086,7 +1088,7 @@
          CommandSigningContext signingContext = new CommandSigningContext.SignedArguments(signedArguments);
          command = Commands.mapSource(command, source -> source.withSigningContext(signingContext, this.chatMessageChain));
 -        this.server.getCommands().performCommand(command, packet.command());
-+        this.server.getCommands().performCommand(command, command_bukkit);
++        this.server.getCommands().performCommand(command, command_bukkit); // CraftBukkit
      }
  
      private void handleMessageDecodeFailure(SignedMessageChain.DecodeException e) {
@@ -1114,7 +1116,7 @@
          }
      }
  
-@@ -1667,21 +_,152 @@
+@@ -1667,31 +_,170 @@
          return false;
      }
  
@@ -1238,6 +1240,24 @@
  
      private void broadcastChatMessage(PlayerChatMessage message) {
 -        this.server.getPlayerList().broadcastChatMessage(message, this.player, ChatType.bind(ChatType.CHAT, this.player));
+-        this.detectChatRateSpam();
+-    }
+-
+-    private void detectRateSpam(TickThrottler throttler) {
+-        throttler.increment();
+-        if (!throttler.isUnderThreshold()
+-            && !this.server.getPlayerList().isOp(this.player.nameAndId())
+-            && !this.server.isSingleplayerOwner(this.player.nameAndId())) {
+-            this.disconnect(Component.translatable("disconnect.spam"));
+-        }
+-    }
+-
+-    private void detectCommandRateSpam() {
+-        this.detectRateSpam(this.commandSpamThrottler);
+-    }
+-
+-    private void detectChatRateSpam() {
+-        this.detectRateSpam(this.chatSpamThrottler);
 +        // CraftBukkit start
 +        String s = message.signedContent();
 +        if (s.isEmpty()) {
@@ -1257,21 +1277,35 @@
 +        }
 +        // this.server.getPlayerList().broadcastChatMessage(playerchatmessage, this.player, ChatType.bind(ChatType.CHAT, (Entity) this.player));
 +        // CraftBukkit end
-         this.detectChatRateSpam();
++        this.detectChatRateSpam(s);
++    }
++
++    private void detectRateSpam(TickThrottler throttler, String s) {
++        // CraftBukkit start - replaced with thread safe throttle
++        for (String exclude : org.spigotmc.SpigotConfig.spamExclusions) {
++            if (exclude != null && s.startsWith(exclude)) {
++                return;
++            }
++        }
++        // Spigot end
++        // throttler.increment();
++        if (!throttler.isIncrementAndUnderThreshold() && !this.server.getPlayerList().isOp(this.player.nameAndId()) && !this.server.isSingleplayerOwner(this.player.nameAndId())) {
++            // CraftBukkit end
++            this.disconnect((Component) Component.translatable("disconnect.spam"));
++        }
++    }
++
++    // Spigot start
++    private void detectCommandRateSpam(String s) {
++        this.detectRateSpam(this.commandSpamThrottler, s);
++    }
++
++    private void detectChatRateSpam(String s) {
++        this.detectRateSpam(this.chatSpamThrottler, s);
++        // Spigot end
      }
  
-     private void detectRateSpam(TickThrottler throttler) {
--        throttler.increment();
--        if (!throttler.isUnderThreshold()
--            && !this.server.getPlayerList().isOp(this.player.nameAndId())
--            && !this.server.isSingleplayerOwner(this.player.nameAndId())) {
-+        // CraftBukkit start - replaced with thread safe throttle
-+        // this.chatSpamThrottler.increment();
-+        if (!this.chatSpamThrottler.isIncrementAndUnderThreshold() && !this.server.getPlayerList().isOp(this.player.nameAndId()) && !this.server.isSingleplayerOwner(this.player.nameAndId())) {
-+            // CraftBukkit end
-             this.disconnect(Component.translatable("disconnect.spam"));
-         }
-     }
+     @Override
 @@ -1710,6 +_,37 @@
      public void handleAnimate(ServerboundSwingPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
