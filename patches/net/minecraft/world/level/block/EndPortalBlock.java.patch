@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/EndPortalBlock.java
 +++ b/net/minecraft/world/level/block/EndPortalBlock.java
+@@ -20,6 +_,7 @@
+ import net.minecraft.world.level.block.entity.TheEndPortalBlockEntity;
+ import net.minecraft.world.level.block.state.BlockBehaviour;
+ import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.levelgen.feature.EndPlatformFeature;
+ import net.minecraft.world.level.material.Fluid;
+ import net.minecraft.world.level.portal.TeleportTransition;
 @@ -29,6 +_,16 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
@@ -28,7 +36,20 @@
              if (!level.isClientSide() && level.dimension() == Level.END && entity instanceof ServerPlayer player && !player.seenCredits) {
                  player.showEndCredits();
              } else {
-@@ -77,35 +_,35 @@
+@@ -70,42 +_,51 @@
+ 
+     @Override
+     public @Nullable TeleportTransition getPortalDestination(ServerLevel currentLevel, Entity entity, BlockPos portalEntryPos) {
+-        LevelData.RespawnData respawnData = currentLevel.getRespawnData();
+-        ResourceKey<Level> currentDimension = currentLevel.dimension();
+-        boolean fromEnd = currentDimension == Level.END;
++        // CraftBukkit start - SPIGOT-8111: send back to main overworld
++        LevelData.RespawnData respawnData = currentLevel.getServer().findRespawnDimension().getRespawnData();
++        // SPIGOT-6152: send back to main overworld in custom ends
++        ResourceKey<LevelStem> resourcekey = currentLevel.getTypeKey();
++        boolean fromEnd = resourcekey == LevelStem.END;
++        // CraftBukkit end
+         ResourceKey<Level> newDimension = fromEnd ? respawnData.dimension() : Level.END;
          BlockPos spawnBlockPos = fromEnd ? respawnData.pos() : ServerLevel.END_SPAWN_POINT;
          ServerLevel newLevel = currentLevel.getServer().getLevel(newDimension);
          if (newLevel == null) {
@@ -54,6 +75,9 @@
 -            relatives = Relative.union(Relative.DELTA, Relative.ROTATION);
 -            if (entity instanceof ServerPlayer serverPlayer) {
 -                return serverPlayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING);
+-            }
+-
+-            spawnPos = Vec3.atBottomCenterOf(entity.adjustSpawnLocation(newLevel, spawnBlockPos));
 +            Vec3 spawnPos = spawnBlockPos.getBottomCenter();
 +            float yRot;
 +            float xRot;
@@ -74,13 +98,18 @@
 +                    return serverPlayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING, PlayerRespawnEvent.RespawnReason.END_PORTAL); // CraftBukkit
 +                }
 +
-+                spawnPos = entity.adjustSpawnLocation(newLevel, spawnBlockPos).getBottomCenter();
-             }
- 
--            spawnPos = Vec3.atBottomCenterOf(entity.adjustSpawnLocation(newLevel, spawnBlockPos));
-+            return new TeleportTransition(
-+                newLevel, spawnPos, Vec3.ZERO, yRot, xRot, relatives, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET), PlayerTeleportEvent.TeleportCause.END_PORTAL
-+            );
++                spawnPos = Vec3.atBottomCenterOf(entity.adjustSpawnLocation(newLevel, spawnBlockPos));
++            }
++
++            // CraftBukkit start
++            CraftPortalEvent event = entity.callPortalEvent(entity, CraftLocation.toBukkit(spawnPos, newLevel.getWorld(), yRot, xRot), PlayerTeleportEvent.TeleportCause.END_PORTAL, 0, 0);
++            if (event == null) {
++                return null;
++            }
++            Location to = event.getTo();
++
++            return new TeleportTransition(((CraftWorld) to.getWorld()).getHandle(), CraftLocation.toVec3D(to), Vec3.ZERO, to.getYaw(), to.getPitch(), relatives, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET), PlayerTeleportEvent.TeleportCause.END_PORTAL);
++            // CraftBukkit end
          }
 -
 -        return new TeleportTransition(

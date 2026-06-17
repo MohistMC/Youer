@@ -1,57 +1,97 @@
 package com.mohistmc.youer.neoforge;
 
-public class BukkitDamageHooks {
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import org.bukkit.craftbukkit.event.CraftEventFactory;
 
+public class BukkitDamageHooks {
 
     /**
      * A large number of lambdas will break the recognition of Mixins, so they need to be kept out separately
      */
-    /*
     public static org.bukkit.event.entity.EntityDamageEvent handleEntityDamage(LivingEntity livingEntity, final DamageSource damagesource, float f) {
         float originalDamage = f;
-        Function<Double, Double> freezing = f4 -> {
-            if (damagesource.is(net.minecraft.tags.DamageTypeTags.IS_FREEZING) && livingEntity.getType().is(net.minecraft.tags.EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {
-                return -(f4 - (f4 * 5.0F));
+
+        com.google.common.base.Function<Double, Double> freezing = new com.google.common.base.Function<Double, Double>() {
+            @Override
+            public Double apply(Double f) {
+                if (damagesource.is(DamageTypeTags.IS_FREEZING) && livingEntity.is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {
+                    return -(f - (f * 5.0F));
+                }
+                return -0.0;
             }
-            return -0.0;
         };
         float freezingModifier = freezing.apply((double) f).floatValue();
         f += freezingModifier;
-        Function<Double, Double> hardHat = f5 -> {
-            if (damagesource.is(net.minecraft.tags.DamageTypeTags.DAMAGES_HELMET) && !livingEntity.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD).isEmpty()) {
-                return -(f5 - (f5 * 0.75F));
+
+        com.google.common.base.Function<Double, Double> hardHat = new com.google.common.base.Function<Double, Double>() {
+            @Override
+            public Double apply(Double f) {
+                if (damagesource.is(DamageTypeTags.DAMAGES_HELMET) && !livingEntity.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
+                    return -(f - (f * 0.75F));
+                }
+                return -0.0;
             }
-            return -0.0;
         };
         float hardHatModifier = hardHat.apply((double) f).floatValue();
         f += hardHatModifier;
-        Function<Double, Double> blocking = f2 -> -((double) livingEntity.calculateItemBlocking(damagesource, f2.floatValue()));
+
+        com.google.common.base.Function<Double, Double> blocking = new com.google.common.base.Function<Double, Double>() {
+            @Override
+            public Double apply(Double f) {
+                return -((double) livingEntity.calculateItemBlocking(damagesource, f.floatValue()));
+            }
+        };
         float blockingModifier = blocking.apply((double) f).floatValue();
         f += blockingModifier;
-        Function<Double, Double> armor = f7 -> {
-            livingEntity.calDamageEvent.set(true);
-            return -(f7 - livingEntity.getDamageAfterArmorAbsorb(damagesource, f7.floatValue()));
+
+        com.google.common.base.Function<Double, Double> armor = new com.google.common.base.Function<Double, Double>() {
+            @Override
+            public Double apply(Double f) {
+                livingEntity.calDamageEvent.set(true);
+                return -(f - livingEntity.getDamageAfterArmorAbsorb(damagesource, f.floatValue()));
+            }
         };
         float armorModifier = armor.apply((double) f).floatValue();
         f += armorModifier;
-        Function<Double, Double> resistance = f8 -> {
-            if (!damagesource.is(net.minecraft.tags.DamageTypeTags.BYPASSES_EFFECTS) && livingEntity.hasEffect(net.minecraft.world.effect.MobEffects.RESISTANCE) && !damagesource.is(net.minecraft.tags.DamageTypeTags.BYPASSES_RESISTANCE)) {
-                int i = (livingEntity.getEffect(net.minecraft.world.effect.MobEffects.RESISTANCE).getAmplifier() + 1) * 5;
-                int j = 25 - i;
-                float f1 = f8.floatValue() * (float) j;
-                return -(f8 - (f1 / 25.0F));
+
+        com.google.common.base.Function<Double, Double> resistance = new com.google.common.base.Function<Double, Double>() {
+            @Override
+            public Double apply(Double f) {
+                if (!damagesource.is(DamageTypeTags.BYPASSES_EFFECTS) && livingEntity.hasEffect(MobEffects.RESISTANCE) && !damagesource.is(DamageTypeTags.BYPASSES_RESISTANCE)) {
+                    int i = (livingEntity.getEffect(MobEffects.RESISTANCE).getAmplifier() + 1) * 5;
+                    int j = 25 - i;
+                    float f1 = f.floatValue() * (float) j;
+
+                    return -(f - Math.max(f1 / 25.0F, 0.0F));
+                }
+                return -0.0;
             }
-            return -0.0;
         };
         float resistanceModifier = resistance.apply((double) f).floatValue();
         f += resistanceModifier;
-        com.google.common.base.Function<Double, Double> magic = f9 -> -(f9 - livingEntity.getDamageAfterMagicAbsorb(damagesource, f9.floatValue()));
+
+        com.google.common.base.Function<Double, Double> magic = new com.google.common.base.Function<Double, Double>() {
+            @Override
+            public Double apply(Double f) {
+                return -(f - livingEntity.getDamageAfterMagicAbsorb(damagesource, f.floatValue()));
+            }
+        };
         float magicModifier = magic.apply((double) f).floatValue();
         f += magicModifier;
-        com.google.common.base.Function<Double, Double> absorption = f10 -> -(Math.max(f10 - Math.max(f10 - livingEntity.getAbsorptionAmount(), 0.0F), 0.0F));
+
+        com.google.common.base.Function<Double, Double> absorption = new com.google.common.base.Function<Double, Double>() {
+            @Override
+            public Double apply(Double f) {
+                return -(Math.max(f - Math.max(f - livingEntity.getAbsorptionAmount(), 0.0F), 0.0F));
+            }
+        };
         float absorptionModifier = absorption.apply((double) f).floatValue();
 
-        return org.bukkit.craftbukkit.event.CraftEventFactory.handleLivingEntityDamageEvent(livingEntity, damagesource, originalDamage, freezingModifier, hardHatModifier, blockingModifier, armorModifier, resistanceModifier, magicModifier, absorptionModifier, freezing, hardHat, blocking, armor, resistance, magic, absorption);
+        return CraftEventFactory.handleLivingEntityDamageEvent(livingEntity, damagesource, originalDamage, freezingModifier, hardHatModifier, blockingModifier, armorModifier, resistanceModifier, magicModifier, absorptionModifier, freezing, hardHat, blocking, armor, resistance, magic, absorption);
     }
-    */
 }

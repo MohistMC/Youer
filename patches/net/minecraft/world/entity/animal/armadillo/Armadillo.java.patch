@@ -1,21 +1,13 @@
 --- a/net/minecraft/world/entity/animal/armadillo/Armadillo.java
 +++ b/net/minecraft/world/entity/animal/armadillo/Armadillo.java
-@@ -3,6 +_,7 @@
- import com.mojang.serialization.Codec;
- import io.netty.buffer.ByteBuf;
- import java.util.List;
-+import java.util.Objects;
- import java.util.function.IntFunction;
- import net.minecraft.core.BlockPos;
- import net.minecraft.network.codec.ByteBufCodecs;
-@@ -52,6 +_,7 @@
- import net.minecraft.world.level.storage.ValueInput;
- import net.minecraft.world.level.storage.ValueOutput;
- import net.minecraft.world.level.storage.loot.BuiltInLootTables;
-+import org.bukkit.event.entity.EntityDamageEvent;
- import org.jspecify.annotations.Nullable;
- 
- public class Armadillo extends Animal {
+@@ -44,7 +_,6 @@
+ import net.minecraft.world.entity.animal.Animal;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.ItemStack;
+-import net.minecraft.world.item.Items;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.block.state.BlockState;
 @@ -147,10 +_,12 @@
          ArmadilloAi.updateActivity(this);
          profiler.pop();
@@ -29,31 +21,7 @@
  
              this.scuteTime = this.pickNextScuteDropTime();
          }
-@@ -297,8 +_,13 @@
-     }
- 
-     @Override
--    protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
--        super.actuallyHurt(level, source, dmg);
-+    // CraftBukkit start - void -> boolean
-+    public boolean actuallyHurt(ServerLevel level, DamageSource source, float dmg, EntityDamageEvent event) {
-+        boolean damageResult = super.actuallyHurt(level, source, dmg, event);
-+        if (!damageResult) {
-+            return false;
-+        }
-+        // CraftBukkit end
-         if (!this.isNoAi() && !this.isDeadOrDying()) {
-             if (source.getEntity() instanceof LivingEntity) {
-                 this.getBrain().setMemoryWithExpiry(MemoryModuleType.DANGER_DETECTED_RECENTLY, true, 80L);
-@@ -308,13 +_,15 @@
-             } else if (source.is(DamageTypeTags.PANIC_ENVIRONMENTAL_CAUSES)) {
-                 this.rollOut();
-             }
-+
-         }
-+        return true; // CraftBukkit
-     }
- 
+@@ -314,7 +_,7 @@
      @Override
      public InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);

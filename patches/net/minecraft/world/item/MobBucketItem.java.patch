@@ -1,5 +1,18 @@
 --- a/net/minecraft/world/item/MobBucketItem.java
 +++ b/net/minecraft/world/item/MobBucketItem.java
+@@ -1,10 +_,12 @@
+ package net.minecraft.world.item;
+ 
+ import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.sounds.SoundEvent;
+ import net.minecraft.sounds.SoundSource;
++import net.minecraft.world.InteractionHand;
+ import net.minecraft.world.entity.Bucketable;
+ import net.minecraft.world.entity.EntitySpawnReason;
+ import net.minecraft.world.entity.EntityType;
 @@ -18,6 +_,7 @@
  import net.minecraft.world.level.material.Fluid;
  import net.minecraft.world.level.material.Fluids;
@@ -16,3 +29,22 @@
              level.addFreshEntityWithPassengers(mob);
              mob.playAmbientSound();
          }
+@@ -59,11 +_,17 @@
+ 
+     @Override
+     public boolean emptyContents(@Nullable LivingEntity user, Level level, BlockPos pos, @Nullable BlockHitResult hitResult) {
++        return emptyContents(user, level, pos, hitResult, null);
++    }
++
++    // Neo: Override our patched in overload from upstream allowing mobs to be placed with empty fludis
++    @Override
++    public boolean emptyContents(@Nullable LivingEntity user, Level level, BlockPos pos, @Nullable BlockHitResult hitResult, @Nullable ItemStack containerItem) {
+         if (this.content == Fluids.EMPTY) {
+             this.playEmptySound(user, level, pos);
+             return true;
+         } else {
+-            return super.emptyContents(user, level, pos, hitResult);
++            return super.emptyContents(user, level, pos, hitResult, containerItem);
+         }
+     }
+ 

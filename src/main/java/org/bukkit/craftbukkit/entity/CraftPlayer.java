@@ -2027,7 +2027,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public boolean getAllowFlight() {
-        return getHandle().getAbilities().mayfly;
+        return this.getHandle().mayFly(); // Youer - NeoForge
     }
 
     @Override

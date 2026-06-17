@@ -236,10 +236,9 @@
 -                    vehicle.discard();
 +                    vehicle.discard(null); // CraftBukkit - add Bukkit remove cause
  
--                    for (Entity entity : vehicle.getIndirectPassengers()) {
+                     for (Entity entity : vehicle.getIndirectPassengers()) {
 -                        entity.discard();
-+                    for (Entity entityx : vehicle.getIndirectPassengers()) {
-+                        entityx.discard(null); // CraftBukkit - add Bukkit remove cause
++                        entity.discard(null); // CraftBukkit - add Bukkit remove cause
                      }
                  }
              }
@@ -946,23 +945,6 @@
          }
      }
  
-@@ -1290,7 +_,7 @@
-     @Override
-     protected void checkFallDamage(double ya, boolean onGround, BlockState onState, BlockPos pos) {
-         if (this.spawnExtraParticlesOnFall && onGround && this.fallDistance > 0.0) {
--            Vec3 centered = Vec3.atCenterOf(pos).add(0.0, 0.5, 0.0);
-+            Vec3 centered = pos.getCenter().add(0.0, 0.5, 0.0);
-             int particles = (int)Mth.clamp(50.0 * this.fallDistance, 0.0, 200.0);
-             this.level()
-                 .sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, onState), centered.x, centered.y, centered.z, particles, 0.3F, 0.3F, 0.3F, 0.15F);
-@@ -1303,7 +_,6 @@
-     @Override
-     public void onExplosionHit(@Nullable Entity explosionCausedBy) {
-         super.onExplosionHit(explosionCausedBy);
--        this.currentExplosionImpactPos = this.position();
-         this.currentExplosionCause = explosionCausedBy;
-         this.setIgnoreFallDamageFromCurrentImpulse(explosionCausedBy != null && explosionCausedBy.is(EntityTypes.WIND_CHARGE), this.position());
-     }
 @@ -1326,33 +_,80 @@
          this.connection.send(new ClientboundShowDialogPacket(dialog));
      }
@@ -1155,7 +1137,7 @@
      }
  
      @Override
-@@ -1621,17 +_,24 @@
+@@ -1621,7 +_,7 @@
          this.lastSentExp = -1;
          this.lastSentHealth = -1.0F;
          this.lastSentFood = -1;
@@ -1163,11 +1145,8 @@
 +        // this.recipeBook.copyOverData(oldPlayer.recipeBook);// CraftBukkit
          this.seenCredits = oldPlayer.seenCredits;
          this.enteredNetherPosition = oldPlayer.enteredNetherPosition;
--        this.currentExplosionImpactPos = oldPlayer.currentExplosionImpactPos;
--        this.currentExplosionCause = oldPlayer.currentExplosionCause;
-         this.chunkTrackingView = oldPlayer.chunkTrackingView;
-         this.requestedDebugSubscriptions = oldPlayer.requestedDebugSubscriptions;
-         this.setShoulderEntityLeft(oldPlayer.getShoulderEntityLeft());
+         this.currentExplosionImpactPos = oldPlayer.currentExplosionImpactPos;
+@@ -1632,6 +_,15 @@
          this.setShoulderEntityRight(oldPlayer.getShoulderEntityRight());
          this.setLastDeathLocation(oldPlayer.getLastDeathLocation());
          this.waypointIcon().copyFrom(oldPlayer.waypointIcon());

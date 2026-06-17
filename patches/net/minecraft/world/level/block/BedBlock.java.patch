@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/BedBlock.java
 +++ b/net/minecraft/world/level/block/BedBlock.java
+@@ -26,6 +_,7 @@
+ import net.minecraft.world.item.context.BlockPlaceContext;
+ import net.minecraft.world.level.BlockGetter;
+ import net.minecraft.world.level.CollisionGetter;
++import net.minecraft.world.level.ExplosionDamageCalculator;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.LevelReader;
+ import net.minecraft.world.level.ScheduledTickAccess;
 @@ -79,41 +_,51 @@
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
          if (level.isClientSide()) {
@@ -86,24 +94,29 @@
          }
      }
  
-@@ -126,6 +_,22 @@
+@@ -126,6 +_,27 @@
          villagers.get(0).stopSleeping();
          return true;
      }
 +
 +    // CraftBukkit start
-+    private InteractionResult explodeBed(BlockState blockState, Level level, BlockPos pos) {
-+        org.bukkit.block.BlockState blockStateBukkit = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos).getState(); // CraftBukkit - capture BlockState before remove block
-+        level.removeBlock(pos, false);
-+        BlockPos otherPos = pos.relative(blockState.getValue(BedBlock.FACING).getOpposite());
-+        if (level.getBlockState(otherPos).getBlock() == this) {
-+            level.removeBlock(otherPos, false);
++    private InteractionResult explodeBed(BlockState state, Level level, BlockPos pos) {
++        {
++            {
++                org.bukkit.block.BlockState blockState = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos).getState(); // CraftBukkit - capture BlockState before remove block
++                level.removeBlock(pos, false);
++                BlockPos blockpos1 = pos.relative(((Direction) state.getValue(BedBlock.FACING)).getOpposite());
++
++                if (level.getBlockState(blockpos1).getBlock() == this) {
++                    level.removeBlock(blockpos1, false);
++                }
++
++                Vec3 vec3 = Vec3.atCenterOf(pos);
++
++                level.explode((Entity) null, level.damageSources().badRespawnPointExplosion(vec3, blockState), (ExplosionDamageCalculator) null, vec3, 5.0F, true, Level.ExplosionInteraction.BLOCK); // CraftBukkit - add state
++                return InteractionResult.SUCCESS;
++            }
 +        }
-+
-+        Vec3 boomPos = pos.getCenter();
-+
-+        level.explode((Entity) null, level.damageSources().badRespawnPointExplosion(boomPos, blockStateBukkit), (net.minecraft.world.level.ExplosionDamageCalculator) null, boomPos, 5.0F, true, Level.ExplosionInteraction.BLOCK); // CraftBukkit - add state
-+        return InteractionResult.SUCCESS;
 +    }
 +    // CraftBukkit end
  

@@ -1,78 +1,16 @@
 --- a/net/minecraft/world/entity/animal/wolf/Wolf.java
 +++ b/net/minecraft/world/entity/animal/wolf/Wolf.java
-@@ -1,5 +_,6 @@
- package net.minecraft.world.entity.animal.wolf;
- 
-+import java.util.Objects;
- import java.util.Optional;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Holder;
-@@ -87,6 +_,11 @@
+@@ -87,6 +_,10 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
 +// CraftBukkit start
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.event.entity.EntityDamageEvent;
 +import org.bukkit.event.entity.EntityTargetEvent;
 +// CraftBukkit end
  import org.jspecify.annotations.Nullable;
  
  public class Wolf extends TamableAnimal implements NeutralMob {
-@@ -401,28 +_,40 @@
-     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
-         if (this.isInvulnerableTo(level, source)) {
-             return false;
-+        } else {
-+            // CraftBukkit start
-+            boolean result = super.hurtServer(level, source, damage);
-+            if (!result) {
-+                return result;
-+            }
-+            // CraftBukkit end
-+            this.setOrderedToSit(false);
-+            return result; // CraftBukkit
-         }
--
--        this.setOrderedToSit(false);
--        return super.hurtServer(level, source, damage);
-     }
- 
-     @Override
--    protected void actuallyHurt(ServerLevel level, DamageSource source, float damage) {
-+    public boolean actuallyHurt(ServerLevel level, DamageSource source, float damage, EntityDamageEvent event) { // CraftBukkit - void -> boolean
-         if (!this.canArmorAbsorb(source)) {
--            super.actuallyHurt(level, source, damage);
-+            return super.actuallyHurt(level, source, damage, event); // CraftBukkit
-         } else {
--            ItemStack armorBefore = this.getBodyArmorItem();
--            int damageBefore = armorBefore.getDamageValue();
--            int maxDamage = armorBefore.getMaxDamage();
--            armorBefore.hurtAndBreak(Mth.ceil(damage), this, EquipmentSlot.BODY);
--            if (Crackiness.WOLF_ARMOR.byDamage(damageBefore, maxDamage) != Crackiness.WOLF_ARMOR.byDamage(this.getBodyArmorItem())) {
-+            // CraftBukkit start - SPIGOT-7815: if the damage was cancelled, no need to run the wolf armor behaviour
-+            if (event.isCancelled()) {
-+                return false;
-+            }
-+            // CraftBukkit end
-+            ItemStack itemstack = this.getBodyArmorItem();
-+            int i = itemstack.getDamageValue();
-+            int j = itemstack.getMaxDamage();
-+
-+            itemstack.hurtAndBreak(Mth.ceil(damage), this, EquipmentSlot.BODY);
-+            if (Crackiness.WOLF_ARMOR.byDamage(i, j) != Crackiness.WOLF_ARMOR.byDamage(this.getBodyArmorItem())) {
-                 this.playSound(SoundEvents.WOLF_ARMOR_CRACK);
--                level.sendParticles(
--                    new ItemParticleOption(ParticleTypes.ITEM, Items.ARMADILLO_SCUTE), this.getX(), this.getY() + 1.0, this.getZ(), 20, 0.2, 0.1, 0.2, 0.1
--                );
-+                level.sendParticles(new ItemParticleOption(ParticleTypes.ITEM, Items.ARMADILLO_SCUTE), this.getX(), this.getY() + 1.0D, this.getZ(), 20, 0.2D, 0.1D, 0.2D, 0.1D);
-             }
-+
-         }
-+        return false; // CraftBukkit
-     }
- 
-     private boolean canArmorAbsorb(DamageSource source) {
 @@ -433,7 +_,7 @@
      protected void applyTamingSideEffects() {
          if (this.isTame()) {

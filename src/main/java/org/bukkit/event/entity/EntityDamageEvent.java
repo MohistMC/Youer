@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
+import net.minecraft.util.Mth;
 import org.bukkit.Material;
 import org.bukkit.WorldBorder;
 import org.bukkit.damage.DamageSource;
@@ -130,6 +131,10 @@ public class EntityDamageEvent extends EntityEvent implements Cancellable {
     public boolean isApplicable(@NotNull DamageModifier type) throws IllegalArgumentException {
         Preconditions.checkArgument(type != null, "Cannot have null DamageModifier");
         return modifiers.containsKey(type);
+    }
+
+    public boolean isStillOriginal(EntityDamageEvent.DamageModifier modifier, double last, double current) {
+        return Math.abs((current - last) - modifierFunctions.get(modifier).apply(last)) < Mth.EPSILON;
     }
 
     /**

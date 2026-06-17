@@ -120,14 +120,13 @@
          if (this.canPlayerFitWithinBlocksAndEntitiesWhen(Pose.SWIMMING)) {
              Pose desiredPose = this.getDesiredPose();
              Pose actualPose;
-@@ -435,7 +_,14 @@
+@@ -435,7 +_,13 @@
      public void rideTick() {
          if (!this.level().isClientSide() && this.wantsToStopRiding() && this.isPassenger()) {
              this.stopRiding();
 -        } else {
 +            // CraftBukkit start - SPIGOT-7316: no longer passenger, dismount and return
 +            if (!this.isPassenger()) {
-+                this.setShiftKeyDown(false);
 +                return;
 +            }
 +        }
@@ -229,12 +228,9 @@
      }
  
      @Override
-@@ -747,18 +_,33 @@
-     }
- 
+@@ -749,16 +_,31 @@
      @Override
--    protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
-+    protected boolean actuallyHurt(ServerLevel level, DamageSource source, float dmg, EntityDamageEvent event) { // void -> boolean
+     protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
          if (!this.isInvulnerableTo(level, source)) {
 -            dmg = this.getDamageAfterArmorAbsorb(source, dmg);
 -            dmg = this.getDamageAfterMagicAbsorb(source, dmg);
@@ -270,17 +266,15 @@
              if (dmg != 0.0F) {
                  this.causeFoodExhaustion(source.getFoodExhaustion());
                  this.getCombatTracker().recordDamage(source, dmg);
-@@ -769,7 +_,10 @@
+@@ -769,6 +_,8 @@
  
                  this.gameEvent(GameEvent.ENTITY_DAMAGE);
              }
-+            return true; // Youer TODO
++
 +            // Neo: Now we go back to hurtServer, where we'll update various metadata fields, process the side effects of damage (i.e. killing the entity), and firing LivingDamageEvent.Post
          }
-+        return false; // CraftBukkit
      }
  
-     public boolean isTextFilteringEnabled() {
 @@ -824,6 +_,8 @@
  
              return InteractionResult.PASS;

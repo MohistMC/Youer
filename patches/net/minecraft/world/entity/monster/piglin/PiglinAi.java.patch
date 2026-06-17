@@ -57,47 +57,32 @@
          } else {
              itemEntity.setItem(sourceStack);
          }
-@@ -383,23 +_,28 @@
+@@ -383,9 +_,14 @@
          ItemStack itemStack = body.getItemInHand(InteractionHand.OFF_HAND);
          body.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
          if (body.isAdult()) {
 -            boolean barterCurrency = isBarterCurrency(itemStack);
--            if (barteringEnabled && barterCurrency) {
++            boolean barterCurrency = isBarterCurrency(itemStack, body); // CraftBukkit - Changes to allow custom payment for bartering
+             if (barteringEnabled && barterCurrency) {
 -                throwItems(body, getBarterResponseItems(body));
--            } else if (!barterCurrency) {
--                boolean equipped = !body.equipItemIfPossible(level, itemStack).isEmpty();
--                if (!equipped) {
-+            boolean flag1 = isBarterCurrency(itemStack, body); // CraftBukkit - Changes to allow custom payment for bartering
-+            if (barteringEnabled && flag1) {
 +                // CraftBukkit start
 +                PiglinBarterEvent event = CraftEventFactory.callPiglinBarterEvent(body, getBarterResponseItems(body), itemStack);
 +                if (!event.isCancelled()) {
 +                    throwItems(body, event.getOutcome().stream().map(CraftItemStack::asNMSCopy).collect(Collectors.toList()));
 +                }
 +                // CraftBukkit end
-+            } else if (!flag1) {
-+                boolean flag2 = !body.equipItemIfPossible(level, itemStack).isEmpty();
-+                if (!flag2) {
-                     putInInventory(body, itemStack);
-                 }
-             }
-         } else {
--            boolean equipped = !body.equipItemIfPossible(level, itemStack).isEmpty();
--            if (!equipped) {
--                ItemStack mainHandItem = body.getMainHandItem();
+             } else if (!barterCurrency) {
+                 boolean equipped = !body.equipItemIfPossible(level, itemStack).isEmpty();
+                 if (!equipped) {
+@@ -396,7 +_,7 @@
+             boolean equipped = !body.equipItemIfPossible(level, itemStack).isEmpty();
+             if (!equipped) {
+                 ItemStack mainHandItem = body.getMainHandItem();
 -                if (isLovedItem(mainHandItem)) {
--                    putInInventory(body, mainHandItem);
-+            boolean flag3 = !body.equipItemIfPossible(level, itemStack).isEmpty();
-+            if (!flag3) {
-+                ItemStack itemStack1 = body.getMainHandItem();
-+                if (isLovedItem(itemStack1, body)) { // CraftBukkit - Changes to allow for custom payment in bartering
-+                    putInInventory(body, itemStack1);
++                if (isLovedItem(mainHandItem, body)) { // CraftBukkit - Changes to allow for custom payment in bartering
+                     putInInventory(body, mainHandItem);
                  } else {
--                    throwItems(body, Collections.singletonList(mainHandItem));
-+                    throwItems(body, Collections.singletonList(itemStack1));
-                 }
- 
-                 body.holdInMainHand(itemStack);
+                     throwItems(body, Collections.singletonList(mainHandItem));
 @@ -464,7 +_,7 @@
              return false;
          } else if (isAdmiringDisabled(body) && body.getBrain().hasMemoryValue(MemoryModuleType.ATTACK_TARGET)) {
