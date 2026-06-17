@@ -1488,26 +1488,21 @@
                  if (this.player.wonGame) {
                      this.player.wonGame = false;
 -                    this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION);
-+                    this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION); // CraftBukkit
-+                    //this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION, PlayerRespawnEvent.RespawnReason.END_PORTAL); // CraftBukkit
++                    // this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION); // CraftBukkit
++                    this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION, PlayerRespawnEvent.RespawnReason.END_PORTAL, null); // CraftBukkit
                      this.resetPosition();
                      this.restartClientLoadTimerAfterRespawn();
                      CriteriaTriggers.CHANGED_DIMENSION.trigger(this.player, Level.END, Level.OVERWORLD);
-@@ -1903,11 +_,13 @@
+@@ -1903,7 +_,8 @@
                          return;
                      }
  
 -                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED);
-+                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED); // CraftBukkit
-+                    //this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED, PlayerRespawnEvent.RespawnReason.DEATH); // CraftBukkit
++                    // this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED); // CraftBukkit
++                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED, PlayerRespawnEvent.RespawnReason.DEATH, null); // CraftBukkit
                      this.resetPosition();
                      this.restartClientLoadTimerAfterRespawn();
                      if (this.server.isHardcore()) {
-                         this.player.setGameMode(GameType.SPECTATOR);
-+                        this.player.level().getGameRules().set(GameRules.SPECTATORS_GENERATE_CHUNKS, false, this.player.level()); // CraftBukkit - per-world
-                     }
-                 }
-                 break;
 @@ -1937,15 +_,18 @@
      @Override
      public void handleContainerClose(ServerboundContainerClosePacket packet) {
@@ -1525,7 +1520,7 @@
 -            if (this.player.isSpectator() || this.player.isDeadOrDying()) {
 +        if (this.player.containerMenu.containerId == packet.containerId() && this.player.containerMenu.stillValid(this.player)) { // CraftBukkit
 +            boolean cancelled = this.player.isSpectator(); // CraftBukkit - see below if
-+            if (false/*this.player.isSpectator()*/) { // CraftBukkit
++            if (!this.player.isDeadOrDying()) { // CraftBukkit
                  this.player.containerMenu.sendAllDataToRemote();
              } else if (!this.player.containerMenu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, this.player.containerMenu);

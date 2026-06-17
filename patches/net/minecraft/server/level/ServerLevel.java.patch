@@ -841,7 +841,7 @@
      public <T extends ParticleOptions> int sendParticles(
          T particle,
          boolean overrideLimiter,
-@@ -1391,20 +_,24 @@
+@@ -1391,7 +_,7 @@
      }
  
      @Override
@@ -850,30 +850,6 @@
          return this.dragonParts.values();
      }
  
-     public @Nullable BlockPos findNearestMapStructure(TagKey<Structure> structureTag, BlockPos origin, int maxSearchRadius, boolean createReference) {
--        Optional<HolderSet.Named<Structure>> tag = this.registryAccess().lookupOrThrow(Registries.STRUCTURE).get(structureTag);
--        if (tag.isEmpty()) {
-+        if (!this.worldGenSettings.options().generateStructures()) { // CraftBukkit
-             return null;
-+        } else {
-+            Optional<HolderSet.Named<Structure>> tag = this.registryAccess().lookupOrThrow(Registries.STRUCTURE).get(structureTag);
-+            if (tag.isEmpty()) {
-+                return null;
-+            } else {
-+                Pair<BlockPos, Holder<Structure>> result = this.getChunkSource()
-+                    .getGenerator()
-+                    .findNearestMapStructure(this, tag.get(), origin, maxSearchRadius, createReference);
-+                return result != null ? result.getFirst() : null;
-+            }
-         }
--
--        Pair<BlockPos, Holder<Structure>> result = this.getChunkSource()
--            .getGenerator()
--            .findNearestMapStructure(this, tag.get(), origin, maxSearchRadius, createReference);
--        return result != null ? result.getFirst() : null;
-     }
- 
-     public @Nullable Pair<BlockPos, Holder<Biome>> findClosestBiome3d(
 @@ -1439,16 +_,33 @@
          return this.noSave;
      }

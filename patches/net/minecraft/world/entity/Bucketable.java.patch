@@ -1,0 +1,41 @@
+--- a/net/minecraft/world/entity/Bucketable.java
++++ b/net/minecraft/world/entity/Bucketable.java
+@@ -14,6 +_,10 @@
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.item.component.CustomData;
+ import net.minecraft.world.level.Level;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.player.PlayerBucketEntityEvent;
+ 
+ public interface Bucketable {
+     boolean fromBucket();
+@@ -78,9 +_,18 @@
+     static <T extends LivingEntity & Bucketable> Optional<InteractionResult> bucketMobPickup(Player player, InteractionHand hand, T pickupEntity) {
+         ItemStack itemStack = player.getItemInHand(hand);
+         if (pickupEntity.canBePickedUpWithBucket(itemStack) && pickupEntity.isAlive()) {
+-            pickupEntity.playSound(pickupEntity.getPickupSound(), 1.0F, 1.0F);
+             ItemStack bucket = pickupEntity.getBucketItemStack();
+             pickupEntity.saveToBucketTag(bucket);
++
++            PlayerBucketEntityEvent playerBucketFishEvent = CraftEventFactory.callPlayerFishBucketEvent(pickupEntity, player, itemStack, bucket, hand);
++            bucket = CraftItemStack.asNMSCopy(playerBucketFishEvent.getEntityBucket());
++            if (playerBucketFishEvent.isCancelled()) {
++                ((ServerPlayer) player).containerMenu.sendAllDataToRemote(); // We need to update inventory to resync client's bucket
++                pickupEntity.getBukkitEntity().update((ServerPlayer) player); // We need to play out these packets as the client assumes the fish is gone
++                pickupEntity.refreshEntityData((ServerPlayer) player); // Need to send data such as the display name to client
++                return Optional.of(InteractionResult.FAIL);
++            }
++            pickupEntity.playSound(pickupEntity.getPickupSound(), 1.0F, 1.0F);
+             ItemStack result = ItemUtils.createFilledResult(itemStack, player, bucket, false);
+             player.setItemInHand(hand, result);
+             Level level = pickupEntity.level();
+@@ -92,6 +_,7 @@
+                 leashable.dropLeash();
+             }
+ 
++            pickupEntity.removeReason(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             pickupEntity.discard();
+             return Optional.of(InteractionResult.SUCCESS);
+         } else {

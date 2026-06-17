@@ -149,35 +149,32 @@
          List<MobCategory> spawningCategories;
          if (doMobSpawning) {
 -            boolean spawnPersistent = this.level.getGameTime() % 400L == 0L;
--            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, this.spawnEnemies, spawnPersistent);
 +            boolean spawnPersistent = this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) != 0L && this.level.getLevelData().getGameTime() % this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) == 0L; // CraftBukkit
 +            NaturalSpawner.serverlevel = this.level; // CraftBukkit
-+            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, true, this.spawnEnemies, spawnPersistent);
+             spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, this.spawnEnemies, spawnPersistent);
 +            NaturalSpawner.serverlevel = null;
          } else {
              spawningCategories = List.of();
          }
-@@ -623,13 +_,19 @@
+@@ -623,13 +_,20 @@
          }
  
          @Override
 -        protected boolean pollTask() {
 +        // CraftBukkit start - process pending Chunk loadCallback() and unloadCallback() after each run task
 +        public boolean pollTask() {
-+        try {
++            try {
              if (ServerChunkCache.this.runDistanceManagerUpdates()) {
                  return true;
-+            } else {
-+                ServerChunkCache.this.lightEngine.tryScheduleUpdate();
-+                return super.pollTask();
              }
--
--            ServerChunkCache.this.lightEngine.tryScheduleUpdate();
--            return super.pollTask();
-+        } finally {
-+            chunkMap.callbackExecutor.run();
-+        }
-+        // CraftBukkit end
+ 
+             ServerChunkCache.this.lightEngine.tryScheduleUpdate();
+             return super.pollTask();
++
++            } finally {
++                chunkMap.callbackExecutor.run();
++            }
++            // CraftBukkit end
          }
      }
  }

@@ -38,19 +38,15 @@
                  if (category != MobCategory.MISC) {
                      BlockPos pos = entity.blockPosition();
                      chunkGetter.query(ChunkPos.pack(pos), chunk -> {
-@@ -98,11 +_,32 @@
+@@ -98,10 +_,26 @@
          return chunk.getNoiseBiome(QuartPos.fromBlock(pos.getX()), QuartPos.fromBlock(pos.getY()), QuartPos.fromBlock(pos.getZ())).value();
      }
  
--    public static List<MobCategory> getFilteredSpawningCategories(NaturalSpawner.SpawnState state, boolean spawnEnemies, boolean spawnPersistent) {
 +    public static @Nullable ServerLevel serverlevel = null;
-+    public static List<MobCategory> getFilteredSpawningCategories(
-+        SpawnState state, boolean spawnFriendlies, boolean spawnEnemies, boolean spawnPersistent
-+    ) {
+     public static List<MobCategory> getFilteredSpawningCategories(NaturalSpawner.SpawnState state, boolean spawnEnemies, boolean spawnPersistent) {
          List<MobCategory> spawningCategories = new ArrayList<>(SPAWNING_CATEGORIES.length);
  
          for (MobCategory mobCategory : SPAWNING_CATEGORIES) {
--            if ((spawnEnemies || mobCategory.isFriendly()) && (spawnPersistent || !mobCategory.isPersistent()) && state.canSpawnForCategoryGlobal(mobCategory)) {
 +            // CraftBukkit start - Use per-world spawn limits
 +            int limit = mobCategory.getMaxInstancesPerChunk();
 +            if (serverlevel != null) {
@@ -66,13 +62,9 @@
 +                }
 +            }
 +
-+            if ((spawnFriendlies || !mobCategory.isFriendly())
-+                && (spawnEnemies || mobCategory.isFriendly())
-+                && (spawnPersistent || !mobCategory.isPersistent())
-+                && state.canSpawnForCategoryGlobal(mobCategory, limit)) {
+             if ((spawnEnemies || mobCategory.isFriendly()) && (spawnPersistent || !mobCategory.isPersistent()) && state.canSpawnForCategoryGlobal(mobCategory)) {
                  spawningCategories.add(mobCategory);
              }
-         }
 @@ -196,11 +_,14 @@
                                      groupData = mob.finalizeSpawn(
                                          level, level.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.NATURAL, groupData

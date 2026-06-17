@@ -827,7 +827,7 @@
      }
  
      public @Nullable ItemEntity spawnAtLocation(ServerLevel level, ItemStack itemStack, float offset) {
-@@ -2279,23 +_,29 @@
+@@ -2279,11 +_,11 @@
          }
  
          ItemStack heldItem = player.getItemInHand(hand);
@@ -840,60 +840,34 @@
 +            && heldItem.canPerformAction(net.neoforged.neoforge.common.ItemAbilities.SHEARS_REMOVE_ARMOR)
              && target.canShearEquipment(player)
              && !player.isSecondaryUseActive()
--            && target.attemptToShearEquipment(player, hand, heldItem)) {
-+            && this.attemptToShearEquipment(player, hand, heldItem, target)) {
-             return InteractionResult.SUCCESS;
-         } else {
--            if (this.isAlive() && this instanceof Leashable leashable) {
--                if (leashable.getLeashHolder() == player) {
-+            if (this.isAlive() && this instanceof Leashable leashablex) {
-+                if (leashablex.getLeashHolder() == player) {
+             && target.attemptToShearEquipment(player, hand, heldItem)) {
+@@ -2292,6 +_,12 @@
+             if (this.isAlive() && this instanceof Leashable leashable) {
+                 if (leashable.getLeashHolder() == player) {
                      if (!this.level().isClientSide()) {
 +                        // CraftBukkit start - fire PlayerUnleashEntityEvent
 +                        if (CraftEventFactory.callPlayerUnleashEntityEvent(this, player, hand).isCancelled()) {
-+                            ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(this, leashablex.getLeashHolder()));
++                            ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(this, leashable.getLeashHolder()));
 +                            return InteractionResult.PASS;
 +                        }
 +                        // CraftBukkit end
                          if (player.hasInfiniteMaterials()) {
--                            leashable.removeLeash();
-+                            leashablex.removeLeash();
+                             leashable.removeLeash();
                          } else {
--                            leashable.dropLeash();
-+                            leashablex.dropLeash();
-                         }
- 
-                         this.gameEvent(GameEvent.ENTITY_INTERACT, player);
-@@ -2306,17 +_,24 @@
-                 }
- 
-                 ItemStack itemStack = player.getItemInHand(hand);
--                if (itemStack.is(Items.LEAD) && !(leashable.getLeashHolder() instanceof Player)) {
-+                if (itemStack.is(Items.LEAD) && !(leashablex.getLeashHolder() instanceof Player)) {
-                     if (this.level().isClientSide()) {
-                         return InteractionResult.CONSUME;
+@@ -2312,6 +_,13 @@
                      }
  
--                    if (leashable.canHaveALeashAttachedTo(player)) {
--                        if (leashable.isLeashed()) {
--                            leashable.dropLeash();
-+                    if (leashablex.canHaveALeashAttachedTo(player)) {
+                     if (leashable.canHaveALeashAttachedTo(player)) {
 +                        // CraftBukkit start - fire PlayerLeashEntityEvent
 +                        if (CraftEventFactory.callPlayerLeashEntityEvent(this, player, player, hand).isCancelled()) {
 +                            ((ServerPlayer) player).resendItemInHands(); // SPIGOT-7615: Resend to fix client desync with used item
-+                            ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(this, leashablex.getLeashHolder()));
++                            ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(this, leashable.getLeashHolder()));
 +                            return InteractionResult.PASS;
 +                        }
 +                        // CraftBukkit end
-+                        if (leashablex.isLeashed()) {
-+                            leashablex.dropLeash();
+                         if (leashable.isLeashed()) {
+                             leashable.dropLeash();
                          }
- 
--                        leashable.setLeashedTo(player, true);
-+                        leashablex.setLeashedTo(player, true);
-                         this.playSound(SoundEvents.LEAD_TIED);
-                         itemStack.shrink(1);
-                         return InteractionResult.SUCCESS_SERVER;
 @@ -2329,7 +_,7 @@
      }
  
@@ -930,39 +904,6 @@
              leashable.dropLeash();
          }
  
-@@ -2357,6 +_,32 @@
-         }
-     }
- 
-+    private boolean attemptToShearEquipment(Player player, InteractionHand hand, ItemStack heldItem, Mob target) {
-+        for (EquipmentSlot slot : EquipmentSlot.VALUES) {
-+            ItemStack itemStack = target.getItemBySlot(slot);
-+            Equippable equippable = itemStack.get(DataComponents.EQUIPPABLE);
-+            if (equippable != null
-+                && equippable.canBeSheared()
-+                && (!EnchantmentHelper.has(itemStack, EnchantmentEffectComponents.PREVENT_ARMOR_CHANGE) || player.isCreative())) {
-+                heldItem.hurtAndBreak(1, player, hand.asEquipmentSlot());
-+                Vec3 equipmentSpawnOffset = this.dimensions.attachments().getAverage(EntityAttachment.PASSENGER);
-+                target.setItemSlotAndDropWhenKilled(slot, ItemStack.EMPTY);
-+                this.gameEvent(GameEvent.SHEAR, player);
-+                this.playSound(equippable.shearingSound().value());
-+                if (this.level() instanceof ServerLevel serverLevel) {
-+                    this.forceDrops = true; // CraftBukkit
-+                    this.spawnAtLocation(serverLevel, itemStack, equipmentSpawnOffset);
-+                    this.forceDrops = false; // CraftBukkit
-+                    CriteriaTriggers.PLAYER_SHEARED_EQUIPMENT.trigger((ServerPlayer)player, itemStack, target);
-+                }
-+
-+                return true;
-+            }
-+        }
-+
-+        return false;
-+    }
-+
-     public boolean canCollideWith(Entity entity) {
-         return entity.canBeCollidedWith(this) && !this.isPassengerOfSameVehicle(entity);
-     }
 @@ -2367,7 +_,11 @@
  
      public void rideTick() {

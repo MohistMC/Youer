@@ -5,10 +5,9 @@
      public static int setDifficulty(CommandSourceStack source, Difficulty difficulty) throws CommandSyntaxException {
          MinecraftServer server = source.getServer();
 -        if (server.getWorldData().getDifficulty() == difficulty) {
--            throw ERROR_ALREADY_SAME_DIFFICULTY.create(difficulty.getDisplayName());
 +        net.minecraft.server.level.ServerLevel worldServer = source.getLevel(); // CraftBukkit
 +        if (worldServer.getDifficulty() == difficulty) { // CraftBukkit
-+            throw ERROR_ALREADY_SAME_DIFFICULTY.create(difficulty.getSerializedName());
+             throw ERROR_ALREADY_SAME_DIFFICULTY.create(difficulty.getDisplayName());
 +        } else {
 +            worldServer.serverLevelData.setDifficulty(difficulty); // CraftBukkit
 +            source.sendSuccess(() -> Component.translatable("commands.difficulty.success", difficulty.getDisplayName()), true);
