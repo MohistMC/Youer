@@ -1,65 +1,50 @@
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
-@@ -28,6 +_,7 @@
+@@ -7,6 +_,7 @@
+ import net.minecraft.advancements.triggers.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
++import net.minecraft.network.protocol.game.ClientboundBlockChangedAckPacket;
+ import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
+ import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
+ import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+@@ -22,12 +_,20 @@
+ import net.minecraft.world.level.GameType;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.DoorBlock;
+ import net.minecraft.world.level.block.GameMasterBlock;
++import net.minecraft.world.level.block.TrapDoorBlock;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.VoxelShape;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.event.Event;
++import org.bukkit.event.block.Action;
 +import org.bukkit.event.player.PlayerGameModeChangeEvent;
++import org.bukkit.event.player.PlayerInteractEvent;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -55,32 +_,42 @@
-     public boolean changeGameModeForPlayer(GameType gameModeForPlayer) {
+@@ -56,7 +_,13 @@
          if (gameModeForPlayer == this.gameModeForPlayer) {
              return false;
--        }
+         }
 -
--        Abilities abilities = this.player.getAbilities();
--        this.setGameModeForPlayer(gameModeForPlayer, this.gameModeForPlayer);
--        if (abilities.flying && gameModeForPlayer != GameType.SPECTATOR && this.isInRangeOfGround()) {
--            abilities.flying = false;
--        }
--
--        this.player.onUpdateAbilities();
--        this.level
--            .getServer()
--            .getPlayerList()
--            .broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE, this.player));
--        this.level.updateSleepingPlayerList();
--        if (gameModeForPlayer == GameType.CREATIVE) {
--            this.player.resetCurrentImpulseContext();
--        }
--
--        return true;
-+        } else {
-+            // CraftBukkit start
-+            PlayerGameModeChangeEvent event = new PlayerGameModeChangeEvent(player.getBukkitEntity(), org.bukkit.GameMode.getByValue(gameModeForPlayer.getId()));
-+            org.bukkit.Bukkit.getPluginManager().callEvent(event);
-+            if (event.isCancelled()) {
-+                return false;
-+            }
-+            // CraftBukkit end
-+            Abilities abilities = this.player.getAbilities();
-+            this.setGameModeForPlayer(gameModeForPlayer, this.gameModeForPlayer);
-+            if (abilities.flying && gameModeForPlayer != GameType.SPECTATOR && this.isInRangeOfGround()) {
-+                abilities.flying = false;
-+            }
-+
-+            this.player.onUpdateAbilities();
-+            this.level
-+                .getServer()
-+                .getPlayerList()
-+                .broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE, this.player));
-+            this.level.updateSleepingPlayerList();
-+            if (gameModeForPlayer == GameType.CREATIVE) {
-+                this.player.resetCurrentImpulseContext();
-+            }
-+
-+            return true;
++        // CraftBukkit start
++        PlayerGameModeChangeEvent event = new PlayerGameModeChangeEvent(player.getBukkitEntity(), org.bukkit.GameMode.getByValue(gameModeForPlayer.getId()));
++        org.bukkit.Bukkit.getPluginManager().callEvent(event);
++        if (event.isCancelled()) {
++            return false;
 +        }
-     }
- 
-     protected void setGameModeForPlayer(GameType gameModeForPlayer, @Nullable GameType previousGameModeForPlayer) {
++        // CraftBukkit end
+         Abilities abilities = this.player.getAbilities();
+         this.setGameModeForPlayer(gameModeForPlayer, this.gameModeForPlayer);
+         if (abilities.flying && gameModeForPlayer != GameType.SPECTATOR && this.isInRangeOfGround()) {
+@@ -80,7 +_,10 @@
          this.previousGameModeForPlayer = previousGameModeForPlayer;
          this.gameModeForPlayer = gameModeForPlayer;
          Abilities abilities = this.player.getAbilities();
@@ -90,7 +75,45 @@
          if (!this.player.isWithinBlockInteractionRange(pos, 1.0)) {
              this.debugLogging(pos, false, sequence, "too far");
          } else if (pos.getY() > maxY) {
-@@ -172,6 +_,14 @@
+@@ -162,16 +_,50 @@
+                 }
+ 
+                 if (!this.level.mayInteract(this.player, pos)) {
++                    // CraftBukkit start - fire PlayerInteractEvent
++                    CraftEventFactory.callPlayerInteractEvent(this.player, Action.LEFT_CLICK_BLOCK, pos, direction, this.player.getInventory().getSelectedItem(), InteractionHand.MAIN_HAND);
+                     this.player.connection.send(new ClientboundBlockUpdatePacket(pos, this.level.getBlockState(pos)));
+                     this.debugLogging(pos, false, sequence, "may not interact");
+-                    return;
+-                }
++                    // SPIGOT-8042: Need to ACK above changes first
++                    this.player.connection.send(new ClientboundBlockChangedAckPacket(sequence));
++                    // Update any tile entity data for this block
++                    BlockEntity blockentity = level.getBlockEntity(pos);
++                    if (blockentity != null) {
++                        this.player.connection.send(blockentity.getUpdatePacket());
++                    }
++                    // CraftBukkit end
++                    return;
++                }
++
++                // CraftBukkit start
++                PlayerInteractEvent bukkit_event = CraftEventFactory.callPlayerInteractEvent(this.player, Action.LEFT_CLICK_BLOCK, pos, direction, this.player.getInventory().getSelectedItem(), InteractionHand.MAIN_HAND);
++                if (bukkit_event.isCancelled()) {
++                    // Let the client know the block still exists
++                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
++                    // SPIGOT-8042: Need to ACK above changes first
++                    this.player.connection.send(new ClientboundBlockChangedAckPacket(sequence));
++                    // Update any tile entity data for this block
++                    BlockEntity blockentity = this.level.getBlockEntity(pos);
++                    if (blockentity != null) {
++                        this.player.connection.send(blockentity.getUpdatePacket());
++                    }
++                    return;
++                }
++                // CraftBukkit end
+ 
+                 if (this.player.getAbilities().instabuild) {
+                     this.destroyAndAck(pos, sequence, "creative destroy");
                      return;
                  }
  
@@ -105,7 +128,28 @@
                  if (this.player.blockActionRestricted(this.level, pos, this.gameModeForPlayer)) {
                      this.player.connection.send(new ClientboundBlockUpdatePacket(pos, this.level.getBlockState(pos)));
                      this.debugLogging(pos, false, sequence, "block action restricted");
-@@ -192,6 +_,7 @@
+@@ -181,7 +_,19 @@
+                 this.destroyProgressStart = this.gameTicks;
+                 float progress = 1.0F;
+                 BlockState blockState = this.level.getBlockState(pos);
+-                if (!blockState.isAir()) {
++                // CraftBukkit start - Swings at air do *NOT* exist.
++                if (bukkit_event.useInteractedBlock() == Event.Result.DENY) {
++                    // If we denied a door from opening, we need to send a correcting update to the client, as it already opened the door.
++                    BlockState data = this.level.getBlockState(pos);
++                    if (data.getBlock() instanceof DoorBlock) {
++                        // For some reason *BOTH* the bottom/top part have to be marked updated.
++                        boolean bottom = data.getValue(DoorBlock.HALF) == DoubleBlockHalf.LOWER;
++                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
++                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, bottom ? pos.above() : pos.below()));
++                    } else if (data.getBlock() instanceof TrapDoorBlock) {
++                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
++                    }
++                } else if (!blockState.isAir()) {
+                     EnchantmentHelper.onHitBlock(
+                         this.level,
+                         this.player.getMainHandItem(),
+@@ -192,10 +_,31 @@
                          blockState,
                          item -> this.player.onEquippedItemBroken(item, EquipmentSlot.MAINHAND)
                      );
@@ -113,6 +157,47 @@
                      blockState.attack(this.level, pos, this.player);
                      progress = blockState.getDestroyProgress(this.player, this.player.level(), pos);
                  }
+ 
++                if (bukkit_event.useItemInHand() == Event.Result.DENY) {
++                    // If we 'insta destroyed' then the client needs to be informed.
++                    if (progress > 1.0f) {
++                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
++                    }
++                    return;
++                }
++                org.bukkit.event.block.BlockDamageEvent blockEvent = CraftEventFactory.callBlockDamageEvent(this.player, pos, this.player.getInventory().getSelectedItem(), progress >= 1.0f);
++
++                if (blockEvent.isCancelled()) {
++                    // Let the client know the block still exists
++                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
++                    return;
++                }
++
++                if (blockEvent.getInstaBreak()) {
++                    progress = 2.0f;
++                }
++                // CraftBukkit end
++
+                 if (!blockState.isAir() && progress >= 1.0F) {
+                     this.destroyAndAck(pos, sequence, "insta mine");
+                 } else {
+@@ -237,13 +_,15 @@
+             } else if (action == ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK) {
+                 this.isDestroyingBlock = false;
+                 if (!Objects.equals(this.destroyPos, pos)) {
+-                    LOGGER.warn("Mismatch in destroy block pos: {} {}", this.destroyPos, pos);
++                    LOGGER.debug("Mismatch in destroy block pos: {} {}", this.destroyPos, pos);
+                     this.level.destroyBlockProgress(this.player.getId(), this.destroyPos, -1);
+                     this.debugLogging(pos, true, sequence, "aborted mismatched destroying");
+                 }
+ 
+                 this.level.destroyBlockProgress(this.player.getId(), pos, -1);
+                 this.debugLogging(pos, true, sequence, "aborted destroying");
++
++                CraftEventFactory.callBlockDamageAbortEvent(this.player, pos, this.player.getInventory().getSelectedItem()); // CraftBukkit
+             }
+         }
+     }
 @@ -258,8 +_,10 @@
      }
  

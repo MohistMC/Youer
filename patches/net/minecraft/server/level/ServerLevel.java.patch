@@ -925,17 +925,7 @@
      }
  
      @Override
-@@ -1742,13 +_,16 @@
-     }
- 
-     public boolean isSpawningMonsters() {
--        return this.getGameRules().get(GameRules.SPAWN_MOBS) && this.getGameRules().get(GameRules.SPAWN_MONSTERS);
-+        return this.getLevelData().getDifficulty() != Difficulty.PEACEFUL
-+            && this.getGameRules().get(GameRules.SPAWN_MOBS)
-+            && this.getGameRules().get(GameRules.SPAWN_MONSTERS);
-     }
- 
-     @Override
+@@ -1749,6 +_,7 @@
      public void close() throws IOException {
          super.close();
          this.entityManager.close();
@@ -961,18 +951,6 @@
      }
  
      public boolean isPvpAllowed() {
-@@ -1859,6 +_,11 @@
-     }
- 
-     private final class EntityCallbacks implements LevelCallback<Entity> {
-+        private EntityCallbacks() {
-+            Objects.requireNonNull(ServerLevel.this);
-+            super();
-+        }
-+
-         public void onCreated(Entity entity) {
-             if (entity instanceof WaypointTransmitter waypoint && waypoint.isTransmittingWaypoint()) {
-                 ServerLevel.this.getWaypointManager().trackWaypoint(waypoint);
 @@ -1907,16 +_,47 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }

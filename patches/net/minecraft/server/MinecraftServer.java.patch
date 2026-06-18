@@ -1063,23 +1063,20 @@
          profiler.pop();
      }
  
-@@ -1190,6 +_,22 @@
+@@ -1190,6 +_,19 @@
          return this.levels.get(dimension);
      }
  
 +    // CraftBukkit start
 +    public void addLevel(ServerLevel level) {
-+        Map<ResourceKey<Level>, ServerLevel> oldLevels = this.levels;
-+        Map<ResourceKey<Level>, ServerLevel> newLevels = Maps.newLinkedHashMap(oldLevels);
-+        newLevels.put(level.dimension(), level);
-+        this.levels = Collections.unmodifiableMap(newLevels);
++        this.levels.put(level.dimension(), level);
++        markWorldsDirty();
 +    }
 +
 +    public void removeLevel(ServerLevel level) {
-+        Map<ResourceKey<Level>, ServerLevel> oldLevels = this.levels;
-+        Map<ResourceKey<Level>, ServerLevel> newLevels = Maps.newLinkedHashMap(oldLevels);
-+        newLevels.remove(level.dimension());
-+        this.levels = Collections.unmodifiableMap(newLevels);
++        this.levels.remove(level.dimension());
++        markWorldsDirty();
++        ((CraftServer)Bukkit.getServer()).removeWorld(level);
 +    }
 +    // CraftBukkit end
 +

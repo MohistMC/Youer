@@ -130,7 +130,7 @@
          this.levelData = levelData;
          this.dimensionTypeRegistration = dimensionTypeRegistration;
          this.dimension = dimension;
-@@ -220,54 +_,191 @@
+@@ -220,8 +_,37 @@
          return this.setBlock(pos, blockState, updateFlags, 512);
      }
  
@@ -167,145 +167,90 @@
 +        // CraftBukkit end
          if (!this.isInValidBounds(pos)) {
              return false;
--        }
--
--        if (!this.isClientSide() && this.isDebug()) {
-+        } else if (!this.isClientSide() && this.isDebug()) {
-             return false;
-+        } else {
-+            LevelChunk chunk = this.getChunkAt(pos);
-+            Block block = blockState.getBlock();
+         }
+@@ -232,11 +_,50 @@
+ 
+         LevelChunk chunk = this.getChunkAt(pos);
+         Block block = blockState.getBlock();
 +
-+            pos = pos.immutable(); // Forge - prevent mutable BlockPos leaks
-+            net.neoforged.neoforge.common.util.BlockSnapshot blockSnapshot = null;
-+            if (this.captureBlockSnapshots && !this.isClientSide) {
-+                blockSnapshot = net.neoforged.neoforge.common.util.BlockSnapshot.create(this.dimension, this, pos, updateFlags);
-+                this.capturedBlockSnapshots.add(blockSnapshot);
-+            }
++        pos = pos.immutable(); // Forge - prevent mutable BlockPos leaks
++        net.neoforged.neoforge.common.util.BlockSnapshot blockSnapshot = null;
++        if (this.captureBlockSnapshots && !this.isClientSide) {
++            blockSnapshot = net.neoforged.neoforge.common.util.BlockSnapshot.create(this.dimension, this, pos, updateFlags);
++            this.capturedBlockSnapshots.add(blockSnapshot);
++        }
 +
-+            // CraftBukkit start - capture blockstates
-+            if (this.captureBlockStates && !this.capturedBlockStates.containsKey(pos)) {
-+                CapturedBlockState capturedBlockState = CapturedBlockState.getBlockState(this, pos, updateFlags);
-+                this.capturedBlockStates.put(pos.immutable(), capturedBlockState);
-+                this.captured.set(true);
++        // CraftBukkit start - capture blockstates
++        if (this.captureBlockStates && !this.capturedBlockStates.containsKey(pos)) {
++            CapturedBlockState capturedBlockState = CapturedBlockState.getBlockState(this, pos, updateFlags);
++            this.capturedBlockStates.put(pos.immutable(), capturedBlockState);
++            this.captured.set(true);
++        }
++        // CraftBukkit end
++
+         BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
+         if (oldState == null) {
++            if (blockSnapshot != null) this.capturedBlockSnapshots.remove(blockSnapshot);
++            // CraftBukkit start - remove blockstate if failed (or the same)
++            if (this.captureBlockStates && this.captured.getAndSet(false)) {
++                this.capturedBlockStates.remove(pos);
 +            }
 +            // CraftBukkit end
-+
-+            BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
-+            if (oldState == null) {
-+                if (blockSnapshot != null) this.capturedBlockSnapshots.remove(blockSnapshot);
-+                // CraftBukkit start - remove blockstate if failed (or the same)
-+                if (this.captureBlockStates && this.captured.getAndSet(false)) {
-+                    this.capturedBlockStates.remove(pos);
-+                }
-+                // CraftBukkit end
-+                return false;
-+            } else {
-+                BlockState newState = this.getBlockState(pos);
-+
-+                if (blockSnapshot == null && !this.captureBlockStates) { // Don't notify clients or update physics while capturing blockstates
-+                    // Spigot start
-+                    try {
-+                        this.markAndNotifyBlock(pos, chunk, oldState, blockState, updateFlags, updateLimit);
-+                    } catch (StackOverflowError ex) {
-+                        lastPhysicsProblem = new BlockPos(pos);
-+                    }
-+                    // Spigot end
-+                }
-+
-+                return true;
-+            }
+             return false;
          }
+-
++        BlockState newState = this.getBlockState(pos);
++
++        if (blockSnapshot == null && !this.captureBlockStates) { // Don't notify clients or update physics while capturing blockstates
++            // Spigot start
++            try {
++                this.markAndNotifyBlock(pos, chunk, oldState, blockState, updateFlags, updateLimit);
++            } catch (StackOverflowError ex) {
++                lastPhysicsProblem = new BlockPos(pos);
++            }
++            // Spigot end
++        }
++
++        return true;
 +    }
- 
--        LevelChunk chunk = this.getChunkAt(pos);
++
 +    // Split off from original setBlockState(BlockPos, BlockState, int, int) method in order to directly send client and physic updates
 +    public void markAndNotifyBlock(BlockPos pos, @Nullable LevelChunk chunk, BlockState oldState, BlockState blockState, int updateFlags, int updateLimit) {
-         Block block = blockState.getBlock();
--        BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
--        if (oldState == null) {
--            return false;
--        }
--
--        BlockState newState = this.getBlockState(pos);
--        if (newState == blockState) {
--            if (oldState != newState) {
--                this.setBlocksDirty(pos, oldState, newState);
--            }
--
--            if ((updateFlags & 2) != 0
--                && (!this.isClientSide() || (updateFlags & 4) == 0)
--                && (this.isClientSide() || chunk.getFullStatus() != null && chunk.getFullStatus().isOrAfter(FullChunkStatus.BLOCK_TICKING))) {
--                this.sendBlockUpdated(pos, oldState, blockState, updateFlags);
--            }
--
--            if ((updateFlags & 1) != 0) {
--                this.updateNeighborsAt(pos, oldState.getBlock());
--                if (!this.isClientSide() && blockState.hasAnalogOutputSignal()) {
--                    this.updateNeighbourForOutputSignal(pos, block);
--                }
--            }
--
--            if ((updateFlags & 16) == 0 && updateLimit > 0) {
--                int neighbourUpdateFlags = updateFlags & -34;
--                oldState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
--                blockState.updateNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
--                blockState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
--            }
--
++        Block block = blockState.getBlock();
+         BlockState newState = this.getBlockState(pos);
+         if (newState == blockState) {
+             if (oldState != newState) {
+@@ -259,15 +_,81 @@
+             if ((updateFlags & 16) == 0 && updateLimit > 0) {
+                 int neighbourUpdateFlags = updateFlags & -34;
+                 oldState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
++                if (this instanceof ServerLevel serverLevel) {
++                    CraftWorld world = serverLevel.getWorld();
++                    if (world != null) {
++                        BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(pos.getX(), pos.getY(), pos.getZ()), CraftBlockData.fromData(newState));
++                        this.getCraftServer().getPluginManager().callEvent(event);
++
++                        if (event.isCancelled()) {
++                            return;
++                        }
++                    }
++                }
++                // CraftBukkit end
+                 blockState.updateNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
+                 blockState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
+             }
+ 
 -            this.updatePOIOnBlockStateChange(pos, oldState, newState);
 -        }
 -
 -        return true;
 -    }
-+        BlockState newState = getBlockState(pos);
-+        {
-+            {
-+                if (newState == blockState) {
-+                    if (oldState != newState) {
-+                        this.setBlocksDirty(pos, oldState, newState);
-+                    }
-+
-+                    if ((updateFlags & 2) != 0
-+                        && (!this.isClientSide() || (updateFlags & 4) == 0)
-+                        && (this.isClientSide() || chunk.getFullStatus() != null && chunk.getFullStatus().isOrAfter(FullChunkStatus.BLOCK_TICKING))) {
-+                        this.sendBlockUpdated(pos, oldState, blockState, updateFlags);
-+                    }
-+
-+                    if ((updateFlags & 1) != 0) {
-+                        this.updateNeighborsAt(pos, oldState.getBlock());
-+                        if (!this.isClientSide() && blockState.hasAnalogOutputSignal()) {
-+                            this.updateNeighbourForOutputSignal(pos, block);
-+                        }
-+                    }
-+
-+                    if ((updateFlags & 16) == 0 && updateLimit > 0) {
-+                        int neighbourUpdateFlags = updateFlags & -34;
-+                        oldState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
-+                        if (this instanceof ServerLevel serverLevel) {
-+                            CraftWorld world = serverLevel.getWorld();
-+                            if (world != null) {
-+                                BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(pos.getX(), pos.getY(), pos.getZ()), CraftBlockData.fromData(newState));
-+                                this.getCraftServer().getPluginManager().callEvent(event);
-+
-+                                if (event.isCancelled()) {
-+                                    return;
-+                                }
-+                            }
-+                        }
-+                        // CraftBukkit end
-+                        blockState.updateNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
-+                        blockState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
-+                    }
-+
-+                    // CraftBukkit start - SPIGOT-5710
-+                    if (!preventPoiUpdated) {
-+                        this.updatePOIOnBlockStateChange(pos, oldState, newState);
-+                    }
-+                    // CraftBukkit end
-+                    blockState.onBlockStateChange(this, pos, oldState);
-+                }
++            // CraftBukkit start - SPIGOT-5710
++            if (!preventPoiUpdated) {
++                this.updatePOIOnBlockStateChange(pos, oldState, newState);
 +            }
++            // CraftBukkit end
++            blockState.onBlockStateChange(this, pos, oldState);
 +        }
 +    }
 +
@@ -600,13 +545,7 @@
      public final boolean isDebug() {
          return this.isDebug;
      }
-@@ -1031,17 +_,18 @@
-         return this.palettedContainerFactory;
-     }
- 
--    public enum ExplosionInteraction implements StringRepresentable {
-+    public static enum ExplosionInteraction implements StringRepresentable {
-         NONE("none"),
+@@ -1036,7 +_,8 @@
          BLOCK("block"),
          MOB("mob"),
          TNT("tnt"),
@@ -616,9 +555,3 @@
  
          public static final Codec<Level.ExplosionInteraction> CODEC = StringRepresentable.fromEnum(Level.ExplosionInteraction::values);
          private final String id;
- 
--        ExplosionInteraction(String id) {
-+        private ExplosionInteraction(String id) {
-             this.id = id;
-         }
- 

@@ -775,7 +775,7 @@
 +                            this.player.setItemInHand(InteractionHand.OFF_HAND, CraftItemStack.asNMSCopy(swapItemsEvent.getOffHandItem()));
 +                        }
 +                        if (swapItemsEvent.getMainHandItem().equals(mainHand)) {
-+                            this.player.setItemInHand(InteractionHand.MAIN_HAND, event.getItemSwappedToOffHand());
++                            this.player.setItemInHand(InteractionHand.MAIN_HAND, event.getItemSwappedToMainHand());
 +                        } else {
 +                            this.player.setItemInHand(InteractionHand.MAIN_HAND, CraftItemStack.asNMSCopy(swapItemsEvent.getMainHandItem()));
 +                        }
@@ -864,12 +864,11 @@
          if (this.hasClientLoaded()) {
              this.ackBlockChangesUpTo(packet.getSequence());
              ServerLevel level = this.player.level();
-@@ -1427,8 +_,50 @@
+@@ -1427,7 +_,47 @@
                  if (targetXRot != this.player.getXRot() || targetYRot != this.player.getYRot()) {
                      this.player.absSnapRotationTo(targetYRot, targetXRot);
                  }
 -
--                if (this.player.gameMode.useItem(this.player, level, itemStack, hand) instanceof InteractionResult.Success success
 +                // CraftBukkit start
 +                // Raytrace to look for 'rogue armswings'
 +                double d0 = this.player.getX();
@@ -911,12 +910,9 @@
 +                    return;
 +                }
 +                // CraftBukkit end
-+                InteractionResult interactionresult = this.player.gameMode.useItem(this.player, level, itemStack, hand);
-+
-+                if (interactionresult instanceof InteractionResult.Success success
+                 if (this.player.gameMode.useItem(this.player, level, itemStack, hand) instanceof InteractionResult.Success success
                      && success.swingSource() == InteractionResult.SwingSource.SERVER) {
                      this.player.swing(hand, true);
-                 }
 @@ -1443,7 +_,7 @@
              for (ServerLevel level : this.server.getAllLevels()) {
                  Entity entity = packet.getEntity(level);
@@ -1923,23 +1919,19 @@
          if (this.player.isModelPartShown(PlayerModelPart.HAT) != wasHatShown) {
              this.server.getPlayerList().broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_HAT, this.player));
          }
-@@ -2154,13 +_,13 @@
-     public void handleConfigurationAcknowledged(ServerboundConfigurationAcknowledgedPacket packet) {
-         if (!this.waitingForSwitchToConfig) {
-             throw new IllegalStateException("Client acknowledged config, but none was requested");
-+        } else {
-+            this.connection
-+                .setupInboundProtocol(
-+                    ConfigurationProtocols.SERVERBOUND,
-+                    new ServerConfigurationPacketListenerImpl(this.server, this.connection, this.createCookie(this.player.clientInformation(), this.connectionType), this.player) // CraftBukkit
-+                );
+@@ -2157,10 +_,11 @@
          }
--
--        this.connection
+ 
+         this.connection
 -            .setupInboundProtocol(
 -                ConfigurationProtocols.SERVERBOUND,
 -                new ServerConfigurationPacketListenerImpl(this.server, this.connection, this.createCookie(this.player.clientInformation()))
 -            );
++                .setupInboundProtocol(
++                        ConfigurationProtocols.SERVERBOUND,
++                        new ServerConfigurationPacketListenerImpl(this.server, this.connection, this.createCookie(this.player.clientInformation(), this.connectionType), this.player) // CraftBukkit
++                );
++
      }
  
      @Override
