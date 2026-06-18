@@ -1,6 +1,12 @@
 --- a/net/minecraft/world/level/NaturalSpawner.java
 +++ b/net/minecraft/world/level/NaturalSpawner.java
-@@ -6,6 +_,7 @@
+@@ -1,11 +_,13 @@
+ package net.minecraft.world.level;
+ 
++import com.mohistmc.youer.YouerConfig;
+ import com.mojang.logging.LogUtils;
+ import it.unimi.dsi.fastutil.objects.Object2IntMap;
+ import it.unimi.dsi.fastutil.objects.Object2IntMaps;
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  import java.util.Objects;
  import java.util.Optional;
@@ -43,9 +49,11 @@
                  BlockPos blockpos = entity.blockPosition();
                  p_186527_.query(
                      ChunkPos.asLong(blockpos),
-@@ -103,8 +_,21 @@
+@@ -102,9 +_,23 @@
+     public static void spawnForChunk(
          ServerLevel p_47030_, LevelChunk p_47031_, NaturalSpawner.SpawnState p_47032_, boolean p_47033_, boolean p_47034_, boolean p_47035_
      ) {
++        if (!YouerConfig.spawnForChunk) return;
          p_47030_.getProfiler().push("spawner");
 +        LevelData worlddata = p_47030_.getLevelData(); // CraftBukkit - Other mob type spawn tick rate
  
@@ -83,6 +91,14 @@
      public static void spawnCategoryForChunk(
          MobCategory p_47046_, ServerLevel p_47047_, LevelChunk p_47048_, NaturalSpawner.SpawnPredicate p_47049_, NaturalSpawner.AfterSpawnCallback p_47050_
      ) {
+@@ -141,6 +_,7 @@
+         NaturalSpawner.SpawnPredicate p_47043_,
+         NaturalSpawner.AfterSpawnCallback p_47044_
+     ) {
++        if (!YouerConfig.spawnForNatural) return;
+         StructureManager structuremanager = p_47040_.structureManager();
+         ChunkGenerator chunkgenerator = p_47040_.getChunkSource().getGenerator();
+         int i = p_47042_.getY();
 @@ -181,10 +_,13 @@
                                      + p_47040_.random.nextInt(1 + mobspawnsettings$spawnerdata.maxCount - mobspawnsettings$spawnerdata.minCount);
                              }

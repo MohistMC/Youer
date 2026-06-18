@@ -833,7 +833,7 @@
          Entity entity = this.getEntities().get(p_8854_.getUUID());
          if (entity != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", p_8854_.getUUID());
-@@ -903,15 +_,58 @@
+@@ -903,15 +_,65 @@
              this.removePlayerImmediately((ServerPlayer)entity, Entity.RemovalReason.DISCARDED);
          }
  
@@ -858,6 +858,13 @@
 +            return false;
 +        } else {
 +            if (p_8873_ instanceof Villager && YouerConfig.custom_no_villager) return false;
++            if (!YouerConfig.spawnForChunk && p_8873_.spawnReason.equals(CreatureSpawnEvent.SpawnReason.CHUNK_GEN)) {
++                return false;
++            }
++
++            if (!YouerConfig.spawnForNatural && p_8873_.spawnReason.equals(CreatureSpawnEvent.SpawnReason.NATURAL)) {
++                return false;
++            }
 +            if (BanEntity.check(p_8873_)) {
 +                p_8873_.discard();
 +                return false;
