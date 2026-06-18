@@ -72,20 +72,31 @@
          }
      }
  
-@@ -114,7 +_,12 @@
+@@ -113,8 +_,12 @@
+         return (Collection<RecipeHolder<T>>)(Collection<?>)this.byType.get(p_44055_);
      }
  
++    @Nullable
++    public RecipeHolder<?> previousRecipe = null;
      public <I extends RecipeInput, T extends Recipe<I>> NonNullList<ItemStack> getRemainingItemsFor(RecipeType<T> p_44070_, I p_345118_, Level p_44072_) {
 -        Optional<RecipeHolder<T>> optional = this.getRecipeFor(p_44070_, p_345118_, p_44072_);
 +        // Paper start - Perf: improve performance of mass crafts
-+        return this.getRemainingItemsFor(p_44070_, p_345118_, p_44072_, null);
-+    }
-+    public <I extends RecipeInput, T extends Recipe<I>> NonNullList<ItemStack> getRemainingItemsFor(RecipeType<T> p_44070_, I p_345118_, Level p_44072_, @Nullable RecipeHolder<T> previousRecipe) {
-+        Optional<RecipeHolder<T>> optional = this.getRecipeFor(p_44070_, p_345118_, p_44072_, previousRecipe);
++        Optional<RecipeHolder<T>> optional = this.getRecipeFor(p_44070_, p_345118_, p_44072_, (RecipeHolder<T>) previousRecipe);
 +        // Paper end - Perf: improve performance of mass crafts
          if (optional.isPresent()) {
              return optional.get().value().getRemainingItems(p_345118_);
          } else {
+@@ -127,6 +_,10 @@
+             return nonnulllist;
+         }
+     }
++    public <I extends RecipeInput, T extends Recipe<I>> NonNullList<ItemStack> getRemainingItemsForPaper(RecipeType<T> p_44070_, I p_345118_, Level p_44072_, @Nullable RecipeHolder<T> previousRecipe) {
++        this.previousRecipe = previousRecipe;
++        return getRemainingItemsFor(p_44070_, p_345118_, p_44072_);
++    }
+ 
+     public Optional<RecipeHolder<?>> byKey(ResourceLocation p_44044_) {
+         return Optional.ofNullable(this.byName.get(p_44044_));
 @@ -193,5 +_,47 @@
  
      public interface CachedCheck<I extends RecipeInput, T extends Recipe<I>> {
