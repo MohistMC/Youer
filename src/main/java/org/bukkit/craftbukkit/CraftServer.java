@@ -120,6 +120,8 @@ import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraft.world.level.storage.SavedDataStorage;
 import net.minecraft.world.level.validation.ContentValidationException;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.level.LevelEvent;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -1298,7 +1300,7 @@ public final class CraftServer implements Server {
             worldKey = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace(name.toLowerCase(Locale.ROOT)));
         }
 
-        ServerLevel internal = (ServerLevel) new ServerLevel(console, console.executor, worldSession, serverleveldata, worldKey, levelstem,
+        ServerLevel internal = new ServerLevel(console, console.executor, worldSession, serverleveldata, worldKey, levelstem,
                 serverleveldata.isDebugWorld(), j, creator.environment() == Environment.NORMAL ? list : ImmutableList.of(), true, dimensiondatastorage, dataAndSettings.genSettings(), creator.environment(), generator, biomeProvider);
 
         if (!(worlds.containsKey(name.toLowerCase(Locale.ROOT)))) {
@@ -1312,7 +1314,7 @@ public final class CraftServer implements Server {
 
         getServer().prepareLevels(internal);
         internal.entityManager.tick(); // SPIGOT-6526: Load pending entities so they are available to the API
-
+        NeoForge.EVENT_BUS.post(new LevelEvent.Load(internal));
         pluginManager.callEvent(new WorldLoadEvent(internal.getWorld()));
         return internal.getWorld();
     }

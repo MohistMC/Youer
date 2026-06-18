@@ -1520,7 +1520,7 @@
 -            if (this.player.isSpectator() || this.player.isDeadOrDying()) {
 +        if (this.player.containerMenu.containerId == packet.containerId() && this.player.containerMenu.stillValid(this.player)) { // CraftBukkit
 +            boolean cancelled = this.player.isSpectator(); // CraftBukkit - see below if
-+            if (!this.player.isDeadOrDying()) { // CraftBukkit
++            if (cancelled || this.player.isDeadOrDying()) { // CraftBukkit
                  this.player.containerMenu.sendAllDataToRemote();
              } else if (!this.player.containerMenu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, this.player.containerMenu);
@@ -1752,17 +1752,17 @@
 +                                this.player.containerMenu.clicked(slotIndex, packet.buttonNum(), packet.containerInput(), this.player);
 +                                break;
 +                            case DENY:
-+                                /* Needs enum constructor in InventoryAction
-+                                if (action.modifiesOtherSlots()) {
++                                    /* Needs enum constructor in InventoryAction
++                                    if (action.modifiesOtherSlots()) {
 +
-+                                } else {
-+                                    if (action.modifiesCursor()) {
-+                                        this.player.playerConnection.sendPacket(new Packet103SetSlot(-1, -1, this.player.inventory.getCarried()));
-+                                    }
-+                                    if (action.modifiesClicked()) {
-+                                        this.player.playerConnection.sendPacket(new Packet103SetSlot(this.player.activeContainer.windowId, packet102windowclick.slot, this.player.activeContainer.getSlot(packet102windowclick.slot).getItem()));
-+                                    }
-+                                }*/
++                                    } else {
++                                        if (action.modifiesCursor()) {
++                                            this.player.playerConnection.sendPacket(new Packet103SetSlot(-1, -1, this.player.inventory.getCarried()));
++                                        }
++                                        if (action.modifiesClicked()) {
++                                            this.player.playerConnection.sendPacket(new Packet103SetSlot(this.player.activeContainer.windowId, packet102windowclick.slot, this.player.activeContainer.getSlot(packet102windowclick.slot).getItem()));
++                                        }
++                                    }*/
 +                                switch (action) {
 +                                    // Modified other slots
 +                                    case PICKUP_ALL:
