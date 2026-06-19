@@ -1,0 +1,38 @@
+package ca.spottedleaf.moonrise.patches.chunk_system;
+
+import ca.spottedleaf.moonrise.common.PlatformHooks;
+import net.minecraft.SharedConstants;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.datafix.fixes.References;
+
+public final class ChunkSystemConverters {
+
+    // See SectionStorage#getVersion
+    private static final int DEFAULT_POI_DATA_VERSION = 1945;
+
+    private static final int DEFAULT_ENTITY_CHUNK_DATA_VERSION = -1;
+
+    private static int getCurrentVersion() {
+        return SharedConstants.getCurrentVersion().dataVersion().version();
+    }
+
+    private static int getDataVersion(final CompoundTag data, final int dfl) {
+        return data.getIntOr(SharedConstants.DATA_VERSION_TAG, dfl);
+    }
+
+    public static CompoundTag convertPoiCompoundTag(final CompoundTag data, final ServerLevel world) {
+        final int dataVersion = getDataVersion(data, DEFAULT_POI_DATA_VERSION);
+
+        return PlatformHooks.get().convertNBT(References.POI_CHUNK, world.getServer().getFixerUpper(), data, dataVersion, getCurrentVersion());
+    }
+
+    public static CompoundTag convertEntityChunkCompoundTag(final CompoundTag data, final ServerLevel world) {
+        final int dataVersion = getDataVersion(data, DEFAULT_ENTITY_CHUNK_DATA_VERSION);
+
+        return PlatformHooks.get().convertNBT(References.ENTITY_CHUNK, world.getServer().getFixerUpper(), data, dataVersion, getCurrentVersion());
+    }
+
+    private ChunkSystemConverters() {}
+}

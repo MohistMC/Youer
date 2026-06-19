@@ -160,7 +160,6 @@ public class NeoForgeInjectBukkit {
                     } catch (Exception e) {
                         PotionType potionType = MohistDynamEnum.addEnum(PotionType.class, name, List.of(String.class), List.of(resourceLocation.toString()));
                         if (potionType != null) {
-                            CraftPotionUtil.mods.put(resourceLocation, potionType);
                             debug("Save-PotionType:{} - {}", name, potionType.name());
                         }
                     }

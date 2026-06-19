@@ -113,7 +113,7 @@ public enum CraftStatistic {
     // End generate - CraftStatisticType
     private final Identifier key;
     private final org.bukkit.Statistic bukkit;
-    private static final BiMap<Identifier, org.bukkit.Statistic> statistics;
+    public static BiMap<Identifier, org.bukkit.Statistic> statistics;
 
     static {
         ImmutableBiMap.Builder<Identifier, org.bukkit.Statistic> statisticBuilder = ImmutableBiMap.builder();
